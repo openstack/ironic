@@ -355,17 +355,9 @@ class AgentDeploy(base.DeployInterface):
     def take_over(self, task):
         """Take over management of this node from a dead conductor.
 
-        If conductors' hosts maintain a static relationship to nodes, this
-        method should be implemented by the driver to allow conductors to
-        perform the necessary work during the remapping of nodes to conductors
-        when a conductor joins or leaves the cluster.
-
-        For example, the PXE driver has an external dependency:
-            Neutron must forward DHCP BOOT requests to a conductor which has
-            prepared the tftpboot environment for the given node. When a
-            conductor goes offline, another conductor must change this setting
-            in Neutron as part of remapping that node's control to itself.
-            This is performed within the `takeover` method.
+        Since this deploy interface only does local boot, there's no need
+        for this conductor to do anything when it takes over management
+        of this node.
 
         :param task: a TaskManager instance.
         """
