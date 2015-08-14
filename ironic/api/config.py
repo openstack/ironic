@@ -31,7 +31,7 @@ app = {
         '/',
         '/v1',
         # IPA ramdisk methods
-        '/v1/drivers/[a-z_]*/vendor_passthru/lookup',
+        '/v1/drivers/[a-z0-9_]*/vendor_passthru/lookup',
         '/v1/nodes/[a-z0-9\-]+/vendor_passthru/heartbeat',
         # DIB ramdisk methods
         # NOTE(yuriyz): support URL without 'v1' for backward compatibility
