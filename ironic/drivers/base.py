@@ -299,9 +299,7 @@ class DeployInterface(BaseInterface):
         this method should be implemented by the driver.
 
         If implemented, this method must be idempotent. It may be called
-        multiple times for the same node on the same conductor, and it may be
-        called by multiple conductors in parallel. Therefore, it must not
-        require an exclusive lock.
+        multiple times for the same node on the same conductor.
 
         This method is called before `deploy`.
 

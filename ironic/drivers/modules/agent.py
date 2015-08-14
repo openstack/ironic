@@ -295,8 +295,16 @@ class AgentDeploy(base.DeployInterface):
 
         :param task: a TaskManager instance.
         :returns: status of the deploy. One of ironic.common.states.
+        :raises: NetworkError if the cleaning ports cannot be removed.
+        :raises: InvalidParameterValue when the wrong power state is specified
+             or the wrong driver info is specified for power management.
+        :raises: other exceptions by the node's power driver if something
+             wrong occurred during the power action.
         """
         manager_utils.node_power_action(task, states.POWER_OFF)
+
+        task.driver.network.unconfigure_tenant_networks(task)
+
         return states.DELETED
 
     @task_manager.require_exclusive_lock
@@ -304,11 +312,25 @@ class AgentDeploy(base.DeployInterface):
         """Prepare the deployment environment for this node.
 
         :param task: a TaskManager instance.
+        :raises: NetworkError: if the previous cleaning ports cannot be removed
+            or if new cleaning ports cannot be created.
+        :raises: InvalidParameterValue when the wrong power state is specified
+             or the wrong driver info is specified for power management.
+        :raises: other exceptions by the node's power driver if something
+             wrong occurred during the power action.
+        :raises: exception.ImageRefValidationFailed if image_source is not
+            Glance href and is not HTTP(S) URL.
+        :raises: any boot interface's prepare_ramdisk exceptions.
         """
         # Nodes deployed by AgentDeploy always boot from disk now. So there
         # is nothing to be done in prepare() when it's called during
         # take over.
         node = task.node
+        if node.provision_state == states.DEPLOYING:
+            # Adding the node to provisioning network so that the dhcp
+            # options get added for the provisioning port.
+            manager_utils.node_power_action(task, states.POWER_OFF)
+            task.driver.network.add_provisioning_network(task)
         if node.provision_state != states.ACTIVE:
             node.instance_info = build_instance_info_for_deploy(task)
             node.save()
