@@ -49,9 +49,6 @@ agent_opts = [
                default=paths.basedir_def(
                    'drivers/modules/agent_config.template'),
                help=_('Template file for PXE configuration.')),
-    cfg.StrOpt('agent_pxe_bootfile_name',
-               default='pxelinux.0',
-               help=_('Neutron bootfile DHCP parameter.')),
     cfg.IntOpt('agent_erase_devices_priority',
                help=_('Priority to run in-band erase devices via the Ironic '
                       'Python Agent ramdisk. If unset, will use the priority '
