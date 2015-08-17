@@ -272,9 +272,11 @@ class BaseAgentVendor(base.VendorInterface):
                 if not node.clean_step:
                     LOG.debug('Node %s just booted to start cleaning.',
                               node.uuid)
+                    msg = _('Node failed to start the next cleaning step.')
                     manager.set_node_cleaning_steps(task)
                     self._notify_conductor_resume_clean(task)
                 else:
+                    msg = _('Node failed to check cleaning progress.')
                     self.continue_cleaning(task, **kwargs)
 
         except Exception as e:
@@ -282,7 +284,10 @@ class BaseAgentVendor(base.VendorInterface):
             last_error = _('Asynchronous exception for node %(node)s: '
                            '%(msg)s exception: %(e)s') % err_info
             LOG.exception(last_error)
-            deploy_utils.set_failed_state(task, last_error)
+            if node.provision_state in (states.CLEANING, states.CLEANWAIT):
+                manager.cleaning_error_handler(task, last_error)
+            else:
+                deploy_utils.set_failed_state(task, last_error)
 
     @base.driver_passthru(['POST'], async=False)
     def lookup(self, context, **kwargs):
