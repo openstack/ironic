@@ -19,6 +19,7 @@
 """Utilities and helper functions."""
 
 import contextlib
+import datetime
 import errno
 import hashlib
 import os
@@ -32,7 +33,9 @@ from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
+from oslo_utils import timeutils
 import paramiko
+import pytz
 import six
 
 from ironic.common import exception
@@ -658,3 +661,13 @@ def get_updated_capabilities(current_capabilities, new_capabilities):
 def is_regex_string_in_file(path, string):
     with open(path, 'r') as inf:
         return any(re.search(string, line) for line in inf.readlines())
+
+
+def unix_file_modification_datetime(file_name):
+    return timeutils.normalize_time(
+        # normalize time to be UTC without timezone
+        datetime.datetime.fromtimestamp(
+            # fromtimestamp will return local time by default, make it UTC
+            os.path.getmtime(file_name), tz=pytz.utc
+        )
+    )

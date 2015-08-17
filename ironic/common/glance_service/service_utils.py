@@ -77,10 +77,15 @@ def _extract_attributes(image):
 
 
 def _convert_timestamps_to_datetimes(image_meta):
-    """Returns image with timestamp fields converted to datetime objects."""
+    """Convert timestamps to datetime objects
+
+    Returns image metadata with timestamp fields converted to naive UTC
+    datetime objects.
+    """
     for attr in ['created_at', 'updated_at', 'deleted_at']:
         if image_meta.get(attr):
-            image_meta[attr] = timeutils.parse_isotime(image_meta[attr])
+            image_meta[attr] = timeutils.normalize_time(
+                timeutils.parse_isotime(image_meta[attr]))
     return image_meta
 
 _CONVERT_PROPS = ('block_device_mapping', 'mappings')

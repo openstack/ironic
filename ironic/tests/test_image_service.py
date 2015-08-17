@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
 import os
 import shutil
 
@@ -66,11 +67,28 @@ class HttpImageServiceTestCase(base.TestCase):
         head_mock.assert_called_once_with(self.href)
 
     @mock.patch.object(requests, 'head', autospec=True)
-    def test_show(self, head_mock):
+    def _test_show(self, head_mock, mtime, mtime_date):
         head_mock.return_value.status_code = 200
+        head_mock.return_value.headers = {
+            'Content-Length': 100,
+            'Last-Modified': mtime
+        }
         result = self.service.show(self.href)
-        head_mock.assert_called_with(self.href)
-        self.assertEqual({'size': 1, 'properties': {}}, result)
+        head_mock.assert_called_once_with(self.href)
+        self.assertEqual({'size': 100, 'updated_at': mtime_date,
+                          'properties': {}}, result)
+
+    def test_show_rfc_822(self):
+        self._test_show(mtime='Tue, 15 Nov 2014 08:12:31 GMT',
+                        mtime_date=datetime.datetime(2014, 11, 15, 8, 12, 31))
+
+    def test_show_rfc_850(self):
+        self._test_show(mtime='Tuesday, 15-Nov-14 08:12:31 GMT',
+                        mtime_date=datetime.datetime(2014, 11, 15, 8, 12, 31))
+
+    def test_show_ansi_c(self):
+        self._test_show(mtime='Tue Nov 15 08:12:31 2014',
+                        mtime_date=datetime.datetime(2014, 11, 15, 8, 12, 31))
 
     @mock.patch.object(requests, 'head', autospec=True)
     def test_show_no_content_length(self, head_mock):
@@ -132,15 +150,21 @@ class FileImageServiceTestCase(base.TestCase):
                           self.service.validate_href, self.href)
         path_exists_mock.assert_called_once_with(self.href_path)
 
+    @mock.patch.object(os.path, 'getmtime', return_value=1431087909.1641912,
+                       autospec=True)
     @mock.patch.object(os.path, 'getsize', return_value=42, autospec=True)
     @mock.patch.object(image_service.FileImageService, 'validate_href',
                        autospec=True)
-    def test_show(self, _validate_mock, getsize_mock):
+    def test_show(self, _validate_mock, getsize_mock, getmtime_mock):
         _validate_mock.return_value = self.href_path
         result = self.service.show(self.href)
         getsize_mock.assert_called_once_with(self.href_path)
+        getmtime_mock.assert_called_once_with(self.href_path)
         _validate_mock.assert_called_once_with(mock.ANY, self.href)
-        self.assertEqual({'size': 42, 'properties': {}}, result)
+        self.assertEqual({'size': 42,
+                          'updated_at': datetime.datetime(2015, 5, 8,
+                                                          12, 25, 9, 164191),
+                          'properties': {}}, result)
 
     @mock.patch.object(os, 'link', autospec=True)
     @mock.patch.object(os, 'remove', autospec=True)

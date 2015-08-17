@@ -34,6 +34,7 @@ from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
+from ironic.common import image_service
 from ironic.common import images
 from ironic.common import utils
 
@@ -75,10 +76,12 @@ class ImageCache(object):
     def fetch_image(self, href, dest_path, ctx=None, force_raw=True):
         """Fetch image by given href to the destination path.
 
-        Does nothing if destination path exists and corresponds to a file that
-        exists.
-        Only creates a link if master image for this UUID is already in cache.
-        Otherwise downloads an image and also stores it in cache.
+        Does nothing if destination path exists and is up to date with cache
+        and href contents.
+        Only creates a hard link (dest_path) to cached image if requested
+        image is already in cache and up to date with href contents.
+        Otherwise downloads an image, stores it in cache and creates a hard
+        link (dest_path) to it.
 
         :param href: image UUID or href to fetch
         :param dest_path: destination file path
@@ -115,33 +118,31 @@ class ImageCache(object):
 
         # TODO(dtantsur): lock expiration time
         with lockutils.lock(img_download_lock_name, 'ironic-'):
-            if os.path.exists(dest_path):
-                # NOTE(vdrok): After rebuild requested image can change, so we
-                # should ensure that dest_path and master_path (if exists) are
-                # pointing to the same file
-                if (os.path.exists(master_path) and
-                        (os.stat(dest_path).st_ino ==
-                         os.stat(master_path).st_ino)):
-                    LOG.debug("Destination %(dest)s already exists for "
-                              "image %(uuid)s" %
-                              {'uuid': href,
-                               'dest': dest_path})
-                    return
-                os.unlink(dest_path)
+            # NOTE(vdrok): After rebuild requested image can change, so we
+            # should ensure that dest_path and master_path (if exists) are
+            # pointing to the same file and their content is up to date
+            cache_up_to_date = _delete_master_path_if_stale(master_path, href,
+                                                            ctx)
+            dest_up_to_date = _delete_dest_path_if_stale(master_path,
+                                                         dest_path)
 
-            try:
+            if cache_up_to_date and dest_up_to_date:
+                LOG.debug("Destination %(dest)s already exists "
+                          "for image %(href)s",
+                          {'href': href, 'dest': dest_path})
+                return
+
+            if cache_up_to_date:
                 # NOTE(dtantsur): ensure we're not in the middle of clean up
                 with lockutils.lock('master_image', 'ironic-'):
                     os.link(master_path, dest_path)
-            except OSError:
-                LOG.info(_LI("Master cache miss for image %(uuid)s, "
-                             "starting download"),
-                         {'uuid': href})
-            else:
-                LOG.debug("Master cache hit for image %(uuid)s",
-                          {'uuid': href})
+                LOG.debug("Master cache hit for image %(href)s",
+                          {'href': href})
                 return
 
+            LOG.info(_LI("Master cache miss for image %(href)s, "
+                         "starting download"),
+                     {'href': href})
             self._download_image(
                 href, master_path, dest_path, ctx=ctx, force_raw=force_raw)
 
@@ -381,3 +382,59 @@ def cleanup(priority):
         return cls
 
     return _add_property_to_class_func
+
+
+def _delete_master_path_if_stale(master_path, href, ctx):
+    """Delete image from cache if it is not up to date with href contents.
+
+    :param master_path: path to an image in master cache
+    :param href: image href
+    :param ctx: context to use
+    :returns: True if master_path is up to date with href contents,
+        False if master_path was stale and was deleted or it didn't exist
+    """
+    if service_utils.is_glance_image(href):
+        # Glance image contents cannot be updated without its UUID change
+        return os.path.exists(master_path)
+    if os.path.exists(master_path):
+        img_service = image_service.get_image_service(href, context=ctx)
+        img_mtime = img_service.show(href).get('updated_at')
+        if not img_mtime:
+            # This means that href is not a glance image and doesn't have an
+            # updated_at attribute
+            LOG.warn(_LW("Image service couldn't determine last "
+                         "modification time of %(href)s, considering "
+                         "cached image up to date."), {'href': href})
+            return True
+        master_mtime = utils.unix_file_modification_datetime(master_path)
+        if img_mtime < master_mtime:
+            return True
+        # Delete image from cache as it is outdated
+        LOG.info(_LI('Image %(href)s was last modified at %(remote_time)s. '
+                     'Deleting the cached copy since it was cached at '
+                     '%(local_time)s and may be outdated.'),
+                 {'href': href, 'remote_time': img_mtime,
+                  'local_time': master_mtime})
+        os.unlink(master_path)
+    return False
+
+
+def _delete_dest_path_if_stale(master_path, dest_path):
+    """Delete dest_path if it does not point to cached image.
+
+    :param master_path: path to an image in master cache
+    :param dest_path: hard link to an image
+    :returns: True if dest_path points to master_path, False if dest_path was
+        stale and was deleted or it didn't exist
+    """
+    dest_path_exists = os.path.exists(dest_path)
+    if not dest_path_exists:
+        # Image not cached, re-download
+        return False
+    master_path_exists = os.path.exists(master_path)
+    if (not master_path_exists or
+            os.stat(master_path).st_ino != os.stat(dest_path).st_ino):
+        # Image exists in cache, but dest_path out of date
+        os.unlink(dest_path)
+        return False
+    return True
