@@ -26,6 +26,7 @@ from oslo_utils import importutils
 import requests
 import sendfile
 import six
+from six.moves import http_client
 import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
@@ -140,7 +141,7 @@ class HttpImageService(BaseImageService):
         """
         try:
             response = requests.head(image_href)
-            if response.status_code != 200:
+            if response.status_code != http_client.OK:
                 raise exception.ImageRefValidationFailed(
                     image_href=image_href,
                     reason=_("Got HTTP code %s instead of 200 in response to "
@@ -163,7 +164,7 @@ class HttpImageService(BaseImageService):
         """
         try:
             response = requests.get(image_href, stream=True)
-            if response.status_code != 200:
+            if response.status_code != http_client.OK:
                 raise exception.ImageRefValidationFailed(
                     image_href=image_href,
                     reason=_("Got HTTP code %s instead of 200 in response to "

@@ -17,6 +17,7 @@ import datetime
 
 import pecan
 from pecan import rest
+from six.moves import http_client
 import wsme
 from wsme import types as wtypes
 
@@ -236,7 +237,7 @@ class ChassisController(rest.RestController):
                                                   chassis_uuid)
         return Chassis.convert_with_links(rpc_chassis, fields=fields)
 
-    @expose.expose(Chassis, body=Chassis, status_code=201)
+    @expose.expose(Chassis, body=Chassis, status_code=http_client.CREATED)
     def post(self, chassis):
         """Create a new chassis.
 
@@ -281,7 +282,7 @@ class ChassisController(rest.RestController):
         rpc_chassis.save()
         return Chassis.convert_with_links(rpc_chassis)
 
-    @expose.expose(None, types.uuid, status_code=204)
+    @expose.expose(None, types.uuid, status_code=http_client.NO_CONTENT)
     def delete(self, chassis_uuid):
         """Delete a chassis.
 

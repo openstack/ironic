@@ -25,6 +25,7 @@ SHOULD include dedicated exception logging.
 from oslo_config import cfg
 from oslo_log import log as logging
 import six
+from six.moves import http_client
 
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
@@ -59,7 +60,7 @@ class IronicException(Exception):
 
     """
     message = _("An unknown exception occurred.")
-    code = 500
+    code = http_client.INTERNAL_SERVER_ERROR
     headers = {}
     safe = False
 
@@ -107,7 +108,7 @@ class IronicException(Exception):
 
 class NotAuthorized(IronicException):
     message = _("Not authorized.")
-    code = 403
+    code = http_client.FORBIDDEN
 
 
 class OperationNotPermitted(NotAuthorized):
@@ -116,23 +117,23 @@ class OperationNotPermitted(NotAuthorized):
 
 class Invalid(IronicException):
     message = _("Unacceptable parameters.")
-    code = 400
+    code = http_client.BAD_REQUEST
 
 
 class Conflict(IronicException):
     message = _('Conflict.')
-    code = 409
+    code = http_client.CONFLICT
 
 
 class TemporaryFailure(IronicException):
     message = _("Resource temporarily unavailable, please retry.")
-    code = 503
+    code = http_client.SERVICE_UNAVAILABLE
 
 
 class NotAcceptable(IronicException):
     # TODO(deva): We need to set response headers in the API for this exception
     message = _("Request not acceptable.")
-    code = 406
+    code = http_client.NOT_ACCEPTABLE
 
 
 class InvalidState(Conflict):
@@ -221,7 +222,7 @@ class Duplicate(IronicException):
 
 class NotFound(IronicException):
     message = _("Resource could not be found.")
-    code = 404
+    code = http_client.NOT_FOUND
 
 
 class DHCPLoadError(IronicException):
@@ -442,7 +443,7 @@ class NodeNotLocked(Invalid):
 class NoFreeConductorWorker(TemporaryFailure):
     message = _('Requested action cannot be performed due to lack of free '
                 'conductor workers.')
-    code = 503  # Service Unavailable (temporary).
+    code = http_client.SERVICE_UNAVAILABLE  # Service Unavailable (temporary).
 
 
 class VendorPassthruException(IronicException):

@@ -18,6 +18,7 @@ are blocked or allowed to be processed.
 
 import mock
 from oslo_config import cfg
+from six.moves import http_client
 
 from ironic.tests.api import base
 from ironic.tests.api import utils
@@ -51,7 +52,7 @@ class TestACL(base.FunctionalTest):
 
     def test_non_authenticated(self):
         response = self.get_json(self.node_path, expect_errors=True)
-        self.assertEqual(401, response.status_int)
+        self.assertEqual(http_client.UNAUTHORIZED, response.status_int)
 
     def test_authenticated(self):
         with mock.patch.object(self.dbapi, 'get_node_by_uuid',
@@ -69,7 +70,7 @@ class TestACL(base.FunctionalTest):
                                  headers={'X-Auth-Token': utils.MEMBER_TOKEN},
                                  expect_errors=True)
 
-        self.assertEqual(403, response.status_int)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     def test_non_admin_with_admin_header(self):
         response = self.get_json(self.node_path,
@@ -77,7 +78,7 @@ class TestACL(base.FunctionalTest):
                                           'X-Roles': 'admin'},
                                  expect_errors=True)
 
-        self.assertEqual(403, response.status_int)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     def test_public_api(self):
         # expect_errors should be set to True: If expect_errors is set to False
@@ -86,12 +87,12 @@ class TestACL(base.FunctionalTest):
         for route in ('/', '/v1'):
             response = self.get_json(route,
                                      path_prefix='', expect_errors=True)
-            self.assertEqual(200, response.status_int)
+            self.assertEqual(http_client.OK, response.status_int)
 
     def test_public_api_with_path_extensions(self):
-        routes = {'/v1/': 200,
-                  '/v1.json': 200,
-                  '/v1.xml': 404}
+        routes = {'/v1/': http_client.OK,
+                  '/v1.json': http_client.OK,
+                  '/v1.xml': http_client.NOT_FOUND}
         for url in routes:
             response = self.get_json(url,
                                      path_prefix='', expect_errors=True)

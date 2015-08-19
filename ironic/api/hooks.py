@@ -16,6 +16,7 @@
 
 from oslo_config import cfg
 from pecan import hooks
+from six.moves import http_client
 from webob import exc
 
 from ironic.common import context
@@ -134,7 +135,8 @@ class NoExceptionTracebackHook(hooks.PecanHook):
             return
 
         # Do nothing if there is no error.
-        if 200 <= state.response.status_int < 400:
+        if (http_client.OK <= state.response.status_int <
+                http_client.BAD_REQUEST):
             return
 
         json_body = state.response.json

@@ -22,6 +22,7 @@ from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 import six
+from six.moves import http_client
 from six.moves.urllib import parse as urlparse
 from wsme import types as wtypes
 
@@ -94,7 +95,7 @@ class TestListChassis(test_api_base.FunctionalTest):
             '/chassis/%s?fields=%s' % (chassis.uuid, fields),
             headers={api_base.Version.string: str(api_v1.MAX_VER)},
             expect_errors=True)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertIn('spongebob', response.json['error_message'])
 
@@ -105,7 +106,7 @@ class TestListChassis(test_api_base.FunctionalTest):
             '/chassis/%s?fields=%s' % (chassis.uuid, fields),
             headers={api_base.Version.string: str(api_v1.MIN_VER)},
             expect_errors=True)
-        self.assertEqual(406, response.status_int)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
     def test_detail(self):
         chassis = obj_utils.create_test_chassis(self.context)
@@ -118,7 +119,7 @@ class TestListChassis(test_api_base.FunctionalTest):
         chassis = obj_utils.create_test_chassis(self.context)
         response = self.get_json('/chassis/%s/detail' % chassis['uuid'],
                                  expect_errors=True)
-        self.assertEqual(404, response.status_int)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     def test_many(self):
         ch_list = []
@@ -178,7 +179,7 @@ class TestListChassis(test_api_base.FunctionalTest):
         for invalid_key in invalid_keys_list:
             response = self.get_json('/chassis?sort_key=%s' % invalid_key,
                                      expect_errors=True)
-            self.assertEqual(400, response.status_int)
+            self.assertEqual(http_client.BAD_REQUEST, response.status_int)
             self.assertEqual('application/json', response.content_type)
             self.assertIn(invalid_key, response.json['error_message'])
 
@@ -206,13 +207,13 @@ class TestListChassis(test_api_base.FunctionalTest):
 
     def test_nodes_subresource_no_uuid(self):
         response = self.get_json('/chassis/nodes', expect_errors=True)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_nodes_subresource_chassis_not_found(self):
         non_existent_uuid = 'eeeeeeee-cccc-aaaa-bbbb-cccccccccccc'
         response = self.get_json('/chassis/%s/nodes' % non_existent_uuid,
                                  expect_errors=True)
-        self.assertEqual(404, response.status_int)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
 
 class TestPatch(test_api_base.FunctionalTest):
@@ -227,7 +228,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                    [{'path': '/extra/a', 'value': 'b',
                                      'op': 'add'}],
                                    expect_errors=True)
-        self.assertEqual(404, response.status_int)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
@@ -242,7 +243,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                    [{'path': '/description',
                                      'value': description, 'op': 'replace'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
         result = self.get_json('/chassis/%s' % chassis.uuid)
         self.assertEqual(description, result['description'])
         return_updated_at = timeutils.parse_isotime(
@@ -258,7 +259,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                    [{'path': '/extra/foo2',
                                      'value': new_value, 'op': 'replace'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
         result = self.get_json('/chassis/%s' % chassis.uuid)
 
         extra["foo2"] = new_value
@@ -270,7 +271,7 @@ class TestPatch(test_api_base.FunctionalTest):
         response = self.patch_json('/chassis/%s' % chassis.uuid,
                                    [{'path': '/description', 'op': 'remove'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
         result = self.get_json('/chassis/%s' % chassis.uuid)
         self.assertIsNone(result['description'])
 
@@ -288,7 +289,7 @@ class TestPatch(test_api_base.FunctionalTest):
         response = self.patch_json('/chassis/%s' % chassis.uuid,
                                    [{'path': '/extra/foo2', 'op': 'remove'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
         result = self.get_json('/chassis/%s' % chassis.uuid)
         extra.pop("foo2")
         self.assertEqual(extra, result['extra'])
@@ -297,7 +298,7 @@ class TestPatch(test_api_base.FunctionalTest):
         response = self.patch_json('/chassis/%s' % chassis.uuid,
                                    [{'path': '/extra', 'op': 'remove'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
         result = self.get_json('/chassis/%s' % chassis.uuid)
         self.assertEqual({}, result['extra'])
 
@@ -312,7 +313,7 @@ class TestPatch(test_api_base.FunctionalTest):
             [{'path': '/extra/non-existent', 'op': 'remove'}],
             expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_add_root(self):
@@ -321,7 +322,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                    [{'path': '/description', 'value': 'test',
                                      'op': 'add'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_int)
+        self.assertEqual(http_client.OK, response.status_int)
 
     def test_add_root_non_existent(self):
         chassis = obj_utils.get_test_chassis(self.context)
@@ -330,7 +331,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'add'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertTrue(response.json['error_message'])
 
     def test_add_multi(self):
@@ -341,7 +342,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                     {'path': '/extra/foo2', 'value': 'bar2',
                                      'op': 'add'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
         result = self.get_json('/chassis/%s' % chassis.uuid)
         expected = {"foo1": "bar1", "foo2": "bar2"}
         self.assertEqual(expected, result['extra'])
@@ -351,14 +352,14 @@ class TestPatch(test_api_base.FunctionalTest):
         response = self.patch_json('/chassis/%s/nodes' % chassis.uuid,
                                    [{'path': '/extra/foo', 'value': 'bar',
                                      'op': 'add'}], expect_errors=True)
-        self.assertEqual(403, response.status_int)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     def test_remove_uuid(self):
         chassis = obj_utils.get_test_chassis(self.context)
         response = self.patch_json('/chassis/%s' % chassis.uuid,
                                    [{'path': '/uuid', 'op': 'remove'}],
                                    expect_errors=True)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
@@ -372,7 +373,7 @@ class TestPost(test_api_base.FunctionalTest):
         mock_utcnow.return_value = test_time
 
         response = self.post_json('/chassis', cdict)
-        self.assertEqual(201, response.status_int)
+        self.assertEqual(http_client.CREATED, response.status_int)
         result = self.get_json('/chassis/%s' % cdict['uuid'])
         self.assertEqual(cdict['uuid'], result['uuid'])
         self.assertFalse(result['updated_at'])
@@ -411,7 +412,7 @@ class TestPost(test_api_base.FunctionalTest):
         ndict['chassis_uuid'] = chassis.uuid
         response = self.post_json('/chassis/nodes', ndict,
                                   expect_errors=True)
-        self.assertEqual(403, response.status_int)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     def test_create_chassis_valid_extra(self):
         cdict = apiutils.chassis_post_data(extra={'str': 'foo', 'int': 123,
@@ -437,7 +438,7 @@ class TestDelete(test_api_base.FunctionalTest):
         self.delete('/chassis/%s' % chassis.uuid)
         response = self.get_json('/chassis/%s' % chassis.uuid,
                                  expect_errors=True)
-        self.assertEqual(404, response.status_int)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
@@ -446,7 +447,7 @@ class TestDelete(test_api_base.FunctionalTest):
         obj_utils.create_test_node(self.context, chassis_id=chassis.id)
         response = self.delete('/chassis/%s' % chassis.uuid,
                                expect_errors=True)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
         self.assertIn(chassis.uuid, response.json['error_message'])
@@ -454,7 +455,7 @@ class TestDelete(test_api_base.FunctionalTest):
     def test_delete_chassis_not_found(self):
         uuid = uuidutils.generate_uuid()
         response = self.delete('/chassis/%s' % uuid, expect_errors=True)
-        self.assertEqual(404, response.status_int)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
@@ -462,4 +463,4 @@ class TestDelete(test_api_base.FunctionalTest):
         chassis = obj_utils.create_test_chassis(self.context)
         response = self.delete('/chassis/%s/nodes' % chassis.uuid,
                                expect_errors=True)
-        self.assertEqual(403, response.status_int)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
