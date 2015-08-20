@@ -121,10 +121,10 @@ export EVENTLET_NO_GREENDNS=yes
 
 OS_VARS=$(set | sed -n '/^OS_/s/=[^=]*$//gp' | xargs)
 [ "$OS_VARS" ] && eval "unset \$OS_VARS"
-DEFAULT_MODULEPATH=ironic.common.config_generator.generator
-MODULEPATH=${MODULEPATH:-$DEFAULT_MODULEPATH}
+DEFAULT_CONFIG_GENERATOR=ironic.common.config_generator.generator
+CONFIG_GENERATOR=${CONFIG_GENERATOR:-$DEFAULT_CONFIG_GENERATOR}
 OUTPUTFILE=$OUTPUTDIR/$PACKAGENAME.conf.sample
-python -m $MODULEPATH $MODULES $LIBRARIES $FILES > $OUTPUTFILE
+python -m $CONFIG_GENERATOR $MODULES $LIBRARIES $FILES > $OUTPUTFILE
 if [ $? != 0 ]
 then
     echo "Can not generate $OUTPUTFILE"
