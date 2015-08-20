@@ -322,10 +322,12 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             '1be26c0b-03f2-4d2e-ae87-c02d7f33c123: Failed checking if deploy '
             'is done. exception: LlamaException')
 
+    @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
     @mock.patch.object(manager, 'set_node_cleaning_steps', autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
                        '_notify_conductor_resume_clean', autospec=True)
-    def test_heartbeat_resume_clean(self, mock_notify, mock_set_steps):
+    def test_heartbeat_resume_clean(self, mock_notify, mock_set_steps,
+                                    mock_touch):
         kwargs = {
             'agent_url': 'http://127.0.0.1:9999/bar'
         }
@@ -337,14 +339,18 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                     self.context, self.node.uuid, shared=True) as task:
                 self.passthru.heartbeat(task, **kwargs)
 
+            mock_touch.assert_called_once_with(mock.ANY)
             mock_notify.assert_called_once_with(mock.ANY, task)
             mock_set_steps.assert_called_once_with(task)
+            # Reset mocks for the next interaction
+            mock_touch.reset_mock()
             mock_notify.reset_mock()
             mock_set_steps.reset_mock()
 
+    @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
                        'continue_cleaning', autospec=True)
-    def test_heartbeat_continue_cleaning(self, mock_continue):
+    def test_heartbeat_continue_cleaning(self, mock_continue, mock_touch):
         kwargs = {
             'agent_url': 'http://127.0.0.1:9999/bar'
         }
@@ -361,7 +367,10 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                     self.context, self.node.uuid, shared=True) as task:
                 self.passthru.heartbeat(task, **kwargs)
 
+            mock_touch.assert_called_once_with(mock.ANY)
             mock_continue.assert_called_once_with(mock.ANY, task, **kwargs)
+            # Reset mocks for the next interaction
+            mock_touch.reset_mock()
             mock_continue.reset_mock()
 
     @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'continue_deploy',

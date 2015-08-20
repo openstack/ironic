@@ -267,19 +267,15 @@ class BaseAgentVendor(base.VendorInterface):
             # with previous code, otherwise nodes in CLEANING when this
             # is deployed would fail. Should be removed once the Mitaka
             # release starts.
-            elif (node.provision_state in (states.CLEANWAIT, states.CLEANING)
-                  and not node.clean_step):
-                # Agent booted from prepare_cleaning
-                LOG.debug('Node %s just booted to start cleaning.', node.uuid)
-                manager.set_node_cleaning_steps(task)
-                self._notify_conductor_resume_clean(task)
-            # TODO(lucasagomes): CLEANING here for backwards compat
-            # with previous code, otherwise nodes in CLEANING when this
-            # is deployed would fail. Should be removed once the Mitaka
-            # release starts.
-            elif (node.provision_state in (states.CLEANWAIT, states.CLEANING)
-                  and node.clean_step):
-                self.continue_cleaning(task, **kwargs)
+            elif node.provision_state in (states.CLEANWAIT, states.CLEANING):
+                node.touch_provisioning()
+                if not node.clean_step:
+                    LOG.debug('Node %s just booted to start cleaning.',
+                              node.uuid)
+                    manager.set_node_cleaning_steps(task)
+                    self._notify_conductor_resume_clean(task)
+                else:
+                    self.continue_cleaning(task, **kwargs)
 
         except Exception as e:
             err_info = {'node': node.uuid, 'msg': msg, 'e': e}
