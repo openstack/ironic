@@ -160,9 +160,8 @@ class Chassis(base.IronicObject):
                         object, e.g.: Chassis(context)
         """
         updates = self.obj_get_changes()
-        self.dbapi.update_chassis(self.uuid, updates)
-
-        self.obj_reset_changes()
+        updated_chassis = self.dbapi.update_chassis(self.uuid, updates)
+        self._from_db_object(self, updated_chassis)
 
     @base.remotable
     def refresh(self, context=None):

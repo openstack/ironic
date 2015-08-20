@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
 import mock
 from oslo_utils import uuidutils
 from testtools.matchers import HasLength
@@ -57,20 +58,25 @@ class TestChassisObject(base.DbTestCase):
 
     def test_save(self):
         uuid = self.fake_chassis['uuid']
+        extra = {"test": 123}
+        test_time = datetime.datetime(2000, 1, 1, 0, 0)
         with mock.patch.object(self.dbapi, 'get_chassis_by_uuid',
                                autospec=True) as mock_get_chassis:
             mock_get_chassis.return_value = self.fake_chassis
             with mock.patch.object(self.dbapi, 'update_chassis',
                                    autospec=True) as mock_update_chassis:
-
+                mock_update_chassis.return_value = (
+                    utils.get_test_chassis(extra=extra, updated_at=test_time))
                 c = objects.Chassis.get_by_uuid(self.context, uuid)
-                c.extra = {"test": 123}
+                c.extra = extra
                 c.save()
 
                 mock_get_chassis.assert_called_once_with(uuid)
                 mock_update_chassis.assert_called_once_with(
                     uuid, {'extra': {"test": 123}})
                 self.assertEqual(self.context, c._context)
+                res_updated_at = (c.updated_at).replace(tzinfo=None)
+                self.assertEqual(test_time, res_updated_at)
 
     def test_refresh(self):
         uuid = self.fake_chassis['uuid']
