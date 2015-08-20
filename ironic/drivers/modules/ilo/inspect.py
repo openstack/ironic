@@ -30,7 +30,6 @@ ilo_error = importutils.try_import('proliantutils.exception')
 
 LOG = logging.getLogger(__name__)
 
-ESSENTIAL_PROPERTIES_KEYS = {'memory_mb', 'local_gb', 'cpus', 'cpu_arch'}
 CAPABILITIES_KEYS = {'BootMode', 'secure_boot', 'rom_firmware_version',
                      'ilo_firmware_version', 'server_model', 'max_raid_level',
                      'pci_gpu_devices', 'sr_iov_devices', 'nic_capacity'}
@@ -72,7 +71,7 @@ def _get_essential_properties(node, ilo_object):
     :returns: The dictionary containing properties and MAC data.
               The dictionary possible keys are 'properties' and 'macs'.
               The 'properties' should contain keys as in
-              ESSENTIAL_PROPERTIES_KEYS. The 'macs' is a dictionary
+              IloInspect.ESSENTIAL_PROPERTIES. The 'macs' is a dictionary
               containing key:value pairs of <port_numbers:mac_addresses>
 
     """
@@ -95,7 +94,7 @@ def _validate(node, data):
     """
     if data.get('properties'):
         if isinstance(data['properties'], dict):
-            valid_keys = ESSENTIAL_PROPERTIES_KEYS
+            valid_keys = IloInspect.ESSENTIAL_PROPERTIES
             missing_keys = valid_keys - set(data['properties'])
             if missing_keys:
                 error = (_(
@@ -216,7 +215,7 @@ class IloInspect(base.InspectInterface):
         inspected_properties = {}
         result = _get_essential_properties(task.node, ilo_object)
         properties = result['properties']
-        for known_property in ESSENTIAL_PROPERTIES_KEYS:
+        for known_property in self.ESSENTIAL_PROPERTIES:
             inspected_properties[known_property] = properties[known_property]
         node_properties = task.node.properties
         node_properties.update(inspected_properties)

@@ -351,7 +351,7 @@ class TestInspectPrivateMethods(db_base.DbTestCase):
                       'cpus': '2', 'cpu_arch': 'x86_arch'}
         macs = {'Port 1': 'aa:aa:aa:aa:aa:aa'}
         data = {'properties': properties, 'macs': macs}
-        valid_keys = set(ilo_inspect.ESSENTIAL_PROPERTIES_KEYS)
+        valid_keys = ilo_inspect.IloInspect.ESSENTIAL_PROPERTIES
         ilo_inspect._validate(self.node, data)
         self.assertEqual(sorted(set(properties)), sorted(valid_keys))
 

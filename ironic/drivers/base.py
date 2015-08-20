@@ -847,6 +847,9 @@ class ManagementInterface(BaseInterface):
 class InspectInterface(object):
     """Interface for inspection-related actions."""
 
+    ESSENTIAL_PROPERTIES = {'memory_mb', 'local_gb', 'cpus', 'cpu_arch'}
+    """The properties required by scheduler/deploy."""
+
     @abc.abstractmethod
     def get_properties(self):
         """Return the properties of the interface.
