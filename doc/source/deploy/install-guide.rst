@@ -1753,9 +1753,10 @@ For iLO drivers, fields that should be provided are:
    Before Liberty release Ironic was not able to track non-Glance images'
    content changes. Starting with Liberty, it is possible to do so using image
    modification date. For example, for HTTP image, if 'Last-Modified' header
-   value of HEAD request to "http://my.server.net/images/deploy.ramdisk" is
-   greater than cached image modification time, Ironic will re-download the
-   content. For "file://" images, the file system modification time is used.
+   value from response to a HEAD request to
+   "http://my.server.net/images/deploy.ramdisk" is greater than cached image
+   modification time, Ironic will re-download the content. For "file://"
+   images, the file system modification time is used.
 
 
 Other references

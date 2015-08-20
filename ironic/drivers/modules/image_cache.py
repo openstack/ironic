@@ -394,7 +394,7 @@ def _delete_master_path_if_stale(master_path, href, ctx):
         False if master_path was stale and was deleted or it didn't exist
     """
     if service_utils.is_glance_image(href):
-        # Glance image contents cannot be updated without its UUID change
+        # Glance image contents cannot be updated without changing image's UUID
         return os.path.exists(master_path)
     if os.path.exists(master_path):
         img_service = image_service.get_image_service(href, context=ctx)
@@ -411,7 +411,7 @@ def _delete_master_path_if_stale(master_path, href, ctx):
             return True
         # Delete image from cache as it is outdated
         LOG.info(_LI('Image %(href)s was last modified at %(remote_time)s. '
-                     'Deleting the cached copy since it was cached at '
+                     'Deleting the cached copy since it was last modified at '
                      '%(local_time)s and may be outdated.'),
                  {'href': href, 'remote_time': img_mtime,
                   'local_time': master_mtime})
