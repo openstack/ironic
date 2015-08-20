@@ -2600,6 +2600,26 @@ class UpdatePortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                     'deploying', 'provision_updated_at',
                     last_error=mock.ANY)
 
+    @mock.patch.object(manager.ConductorManager, 'iter_nodes', autospec=True)
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
+    def test___send_sensor_data_no_management(self, acquire_mock,
+                                              iter_nodes_mock):
+        CONF.set_override('send_sensor_data', True, group='conductor')
+        iter_nodes_mock.return_value = [('fake_uuid1', 'fake', 'fake_uuid2')]
+        self.driver.management = None
+        acquire_mock.return_value.__enter__.return_value.driver = self.driver
+
+        with mock.patch.object(fake.FakeManagement, 'get_sensors_data',
+                               autospec=True) as get_sensors_data_mock:
+            with mock.patch.object(fake.FakeManagement, 'validate',
+                                   autospec=True) as validate_mock:
+                self.service._send_sensor_data(self.context)
+
+        self.assertTrue(iter_nodes_mock.called)
+        self.assertTrue(acquire_mock.called)
+        self.assertFalse(get_sensors_data_mock.called)
+        self.assertFalse(validate_mock.called)
+
     def test_set_boot_device(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
         with mock.patch.object(self.driver.management, 'validate') as mock_val:

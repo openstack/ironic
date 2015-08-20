@@ -1642,6 +1642,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                           node_uuid,
                                           shared=True,
                                           purpose=lock_purpose) as task:
+                    if not getattr(task.driver, 'management', None):
+                        continue
                     task.driver.management.validate(task)
                     sensors_data = task.driver.management.get_sensors_data(
                         task)
