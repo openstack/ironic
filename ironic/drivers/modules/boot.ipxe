@@ -1,7 +1,7 @@
 #!ipxe
 
 # load the MAC-specific file or fail if it's not found
-chain --autofree pxelinux.cfg/${mac:hexhyp} || goto error_no_config
+chain pxelinux.cfg/${mac:hexhyp} || goto error_no_config
 
 :error_no_config
 echo PXE boot failed. No configuration found for MAC ${mac}
