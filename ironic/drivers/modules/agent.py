@@ -17,6 +17,7 @@ import time
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import excutils
+from oslo_utils import units
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
@@ -24,7 +25,9 @@ from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
+from ironic.common.i18n import _LW
 from ironic.common import image_service
+from ironic.common import images
 from ironic.common import keystone
 from ironic.common import paths
 from ironic.common import states
@@ -67,6 +70,14 @@ agent_opts = [
                        'ramdisk. If set to False, you will need to configure '
                        'your mechanism to allow booting the agent '
                        'ramdisk.')),
+    cfg.IntOpt('memory_consumed_by_agent',
+               default=0,
+               help=_('The memory size in MiB consumed by agent when it is '
+                      'booted on a bare metal node. This is used for '
+                      'checking if the image can be downloaded and deployed '
+                      'on the bare metal node after booting agent ramdisk. '
+                      'This may be set according to the memory consumed by '
+                      'the agent ramdisk image.')),
 ]
 
 CONF = cfg.CONF
@@ -156,6 +167,36 @@ def build_instance_info_for_deploy(task):
     return instance_info
 
 
+def check_image_size(task, image_source):
+    """Check if the requested image is larger than the ram size.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :param image_source: href of the image.
+    :raises: InvalidParameterValue if size of the image is greater than
+        the available ram size.
+    """
+    properties = task.node.properties
+    # skip check if 'memory_mb' is not defined
+    if 'memory_mb' not in properties:
+        LOG.warning(_LW('Skip the image size check as memory_mb is not '
+                        'defined in properties on node %s.'), task.node.uuid)
+        return
+
+    memory_size = int(properties.get('memory_mb'))
+    image_size = int(images.download_size(task.context, image_source))
+    reserved_size = CONF.agent.memory_consumed_by_agent
+    if (image_size + (reserved_size * units.Mi)) > (memory_size * units.Mi):
+        msg = (_('Memory size is too small for requested image, if it is '
+                 'less than (image size + reserved RAM size), will break '
+                 'the IPA deployments. Image size: %(image_size)d MiB, '
+                 'Memory size: %(memory_size)d MiB, Reserved size: '
+                 '%(reserved_size)d MiB.')
+               % {'image_size': image_size / units.Mi,
+                  'memory_size': memory_size,
+                  'reserved_size': reserved_size})
+        raise exception.InvalidParameterValue(msg)
+
+
 class AgentDeploy(base.DeployInterface):
     """Interface for deploy-related actions."""
 
@@ -174,7 +215,10 @@ class AgentDeploy(base.DeployInterface):
         the node.
 
         :param task: a TaskManager instance
-        :raises: MissingParameterValue
+        :raises: MissingParameterValue, if any of the required parameters are
+            missing.
+        :raises: InvalidParameterValue, if any of the parameters have invalid
+            value.
         """
         if CONF.agent.manage_agent_boot:
             task.driver.boot.validate(task)
@@ -193,6 +237,7 @@ class AgentDeploy(base.DeployInterface):
                     "image_source's image_checksum must be provided in "
                     "instance_info for node %s") % node.uuid)
 
+        check_image_size(task, image_source)
         is_whole_disk_image = node.driver_internal_info.get(
             'is_whole_disk_image')
         # TODO(sirushtim): Remove once IPA has support for partition images.

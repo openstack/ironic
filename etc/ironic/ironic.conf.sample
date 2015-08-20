@@ -379,6 +379,13 @@
 # Deprecated group/name - [agent]/manage_tftp
 #manage_agent_boot=true
 
+# The memory size in MiB consumed by agent when it is booted on a
+# bare metal node. This is used for checking if the image can
+# be downloaded and deployed on the bare metal node after booting
+# agent ramdisk. This may be set according to the memory
+# consumed by the agent ramdisk image. (integer value)
+#memory_consumed_by_agent=0
+
 
 #
 # Options defined in ironic.drivers.modules.agent_base_vendor
