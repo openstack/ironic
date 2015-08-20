@@ -158,7 +158,7 @@ class Node(Base):
     last_error = Column(Text, nullable=True)
     instance_info = Column(JSONEncodedDict)
     properties = Column(JSONEncodedDict)
-    driver = Column(String(15))
+    driver = Column(String(255))
     driver_info = Column(JSONEncodedDict)
     driver_internal_info = Column(JSONEncodedDict)
     clean_step = Column(JSONEncodedDict)

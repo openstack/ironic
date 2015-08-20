@@ -384,6 +384,15 @@ class MigrationCheckersMixin(object):
         node = nodes.select(nodes.c.uuid == uuid).execute().first()
         self.assertEqual(bigstring, node['name'])
 
+    def _check_516faf1bb9b1(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        bigstring = 'a' * 255
+        uuid = uuidutils.generate_uuid()
+        data = {'uuid': uuid, 'driver': bigstring}
+        nodes.insert().execute(data)
+        node = nodes.select(nodes.c.uuid == uuid).execute().first()
+        self.assertEqual(bigstring, node['driver'])
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')
