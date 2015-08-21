@@ -20,6 +20,7 @@ import mock
 from oslo_config import cfg
 import oslo_messaging as messaging
 import six
+from six.moves import http_client
 from webob import exc as webob_exc
 
 from ironic.api.controllers import root
@@ -165,7 +166,7 @@ class TestNoExceptionTracebackHook(base.FunctionalTest):
     def test_hook_server_debug_on_clientfault(self):
         cfg.CONF.set_override('debug', True)
         client_error = Exception(self.MSG_WITH_TRACE)
-        client_error.code = 400
+        client_error.code = http_client.BAD_REQUEST
         self.root_convert_mock.side_effect = client_error
 
         response = self.get_json('/', path_prefix='', expect_errors=True)

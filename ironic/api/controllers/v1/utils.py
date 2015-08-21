@@ -18,6 +18,7 @@ from oslo_config import cfg
 from oslo_utils import uuidutils
 import pecan
 import six
+from six.moves import http_client
 from webob.static import FileIter
 import wsme
 
@@ -150,7 +151,7 @@ def vendor_passthru(ident, method, topic, data=None, driver_passthru=False):
     else:
         response = pecan.request.rpcapi.vendor_passthru(*params)
 
-    status_code = 202 if response['async'] else 200
+    status_code = http_client.ACCEPTED if response['async'] else http_client.OK
     return_value = response['return']
     response_params = {'status_code': status_code}
 

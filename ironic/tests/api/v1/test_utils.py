@@ -18,6 +18,7 @@ import mock
 from oslo_config import cfg
 from oslo_utils import uuidutils
 import pecan
+from six.moves import http_client
 from webob.static import FileIter
 import wsme
 
@@ -204,7 +205,7 @@ class TestVendorPassthru(base.TestCase):
         self.assertIsInstance(response, wsme.api.Response)
         self.assertEqual('SpongeBob', response.obj)
         self.assertEqual(response.return_type, wsme.types.Unset)
-        sc = 202 if async else 200
+        sc = http_client.ACCEPTED if async else http_client.OK
         self.assertEqual(sc, response.status_code)
 
     def test_vendor_passthru_async(self):
@@ -243,7 +244,7 @@ class TestVendorPassthru(base.TestCase):
         self.assertIsInstance(response, wsme.api.Response)
         self.assertIsNone(response.obj)
         self.assertIsNone(response.return_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
 
     def test_vendor_passthru_attach(self):
         self._test_vendor_passthru_attach('foo', b'foo')

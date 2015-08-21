@@ -22,6 +22,7 @@ from oslo_utils import strutils
 from oslo_utils import uuidutils
 import pecan
 from pecan import rest
+from six.moves import http_client
 import wsme
 from wsme import types as wtypes
 
@@ -144,7 +145,7 @@ class BootDeviceController(rest.RestController):
                                                         rpc_node.uuid, topic)
 
     @expose.expose(None, types.uuid_or_name, wtypes.text, types.boolean,
-                   status_code=204)
+                   status_code=http_client.NO_CONTENT)
     def put(self, node_ident, boot_device, persistent=False):
         """Set the boot device for a node.
 
@@ -237,7 +238,7 @@ class NodeConsoleController(rest.RestController):
         return ConsoleInfo(console_enabled=console_state, console_info=console)
 
     @expose.expose(None, types.uuid_or_name, types.boolean,
-                   status_code=202)
+                   status_code=http_client.ACCEPTED)
     def put(self, node_ident, enabled):
         """Start and stop the node console.
 
@@ -326,7 +327,7 @@ class NodeStatesController(rest.RestController):
         return NodeStates.convert(rpc_node)
 
     @expose.expose(None, types.uuid_or_name, wtypes.text,
-                   status_code=202)
+                   status_code=http_client.ACCEPTED)
     def power(self, node_ident, target):
         """Set the power state of the node.
 
@@ -365,7 +366,7 @@ class NodeStatesController(rest.RestController):
         pecan.response.location = link.build_url('nodes', url_args)
 
     @expose.expose(None, types.uuid_or_name, wtypes.text,
-                   wtypes.text, status_code=202)
+                   wtypes.text, status_code=http_client.ACCEPTED)
     def provision(self, node_ident, target, configdrive=None):
         """Asynchronous trigger the provisioning of the node.
 
@@ -419,7 +420,8 @@ class NodeStatesController(rest.RestController):
         if configdrive and target != ir_states.ACTIVE:
             msg = (_('Adding a config drive is only supported when setting '
                      'provision state to %s') % ir_states.ACTIVE)
-            raise wsme.exc.ClientSideError(msg, status_code=400)
+            raise wsme.exc.ClientSideError(
+                msg, status_code=http_client.BAD_REQUEST)
 
         # Note that there is a race condition. The node state(s) could change
         # by the time the RPC call is made and the TaskManager manager gets a
@@ -476,7 +478,7 @@ class Node(base.APIBase):
             except exception.ChassisNotFound as e:
                 # Change error code because 404 (NotFound) is inappropriate
                 # response for a POST request to create a Port
-                e.code = 400  # BadRequest
+                e.code = http_client.BAD_REQUEST  # BadRequest
                 raise e
         elif value == wtypes.Unset:
             self._chassis_uuid = wtypes.Unset
@@ -743,13 +745,13 @@ class NodeMaintenanceController(rest.RestController):
         try:
             topic = pecan.request.rpcapi.get_topic_for(rpc_node)
         except exception.NoValidHost as e:
-            e.code = 400
+            e.code = http_client.BAD_REQUEST
             raise e
         pecan.request.rpcapi.update_node(pecan.request.context,
                                          rpc_node, topic=topic)
 
     @expose.expose(None, types.uuid_or_name, wtypes.text,
-                   status_code=202)
+                   status_code=http_client.ACCEPTED)
     def put(self, node_ident, reason=None):
         """Put the node in maintenance mode.
 
@@ -759,7 +761,7 @@ class NodeMaintenanceController(rest.RestController):
         """
         self._set_maintenance(node_ident, True, reason=reason)
 
-    @expose.expose(None, types.uuid_or_name, status_code=202)
+    @expose.expose(None, types.uuid_or_name, status_code=http_client.ACCEPTED)
     def delete(self, node_ident):
         """Remove the node from maintenance mode.
 
@@ -879,7 +881,8 @@ class NodesController(rest.RestController):
             if not api_utils.allow_node_logical_names():
                 raise exception.NotAcceptable()
             if not api_utils.is_valid_node_name(name):
-                raise wsme.exc.ClientSideError(error_msg, status_code=400)
+                raise wsme.exc.ClientSideError(
+                    error_msg, status_code=http_client.BAD_REQUEST)
 
     def _update_changed_fields(self, node, rpc_node):
         """Update rpc_node based on changed fields in a node.
@@ -911,7 +914,7 @@ class NodesController(rest.RestController):
             raise wsme.exc.ClientSideError(
                 _("Node %s can not update the driver while the console is "
                   "enabled. Please stop the console first.") % node_ident,
-                status_code=409)
+                status_code=http_client.CONFLICT)
 
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
                    types.boolean, wtypes.text, types.uuid, int, wtypes.text,
@@ -1027,7 +1030,7 @@ class NodesController(rest.RestController):
         rpc_node = api_utils.get_rpc_node(node_ident)
         return Node.convert_with_links(rpc_node, fields=fields)
 
-    @expose.expose(Node, body=Node, status_code=201)
+    @expose.expose(Node, body=Node, status_code=http_client.CREATED)
     def post(self, node):
         """Create a new node.
 
@@ -1049,7 +1052,7 @@ class NodesController(rest.RestController):
             # NOTE(deva): convert from 404 to 400 because client can see
             #             list of available drivers and shouldn't request
             #             one that doesn't exist.
-            e.code = 400
+            e.code = http_client.BAD_REQUEST
             raise e
 
         error_msg = _("Cannot create node with invalid name "
@@ -1098,7 +1101,8 @@ class NodesController(rest.RestController):
               not in ir_states.UPDATE_ALLOWED_STATES):
             msg = _("Node %s can not be updated while a state transition "
                     "is in progress.")
-            raise wsme.exc.ClientSideError(msg % node_ident, status_code=409)
+            raise wsme.exc.ClientSideError(
+                msg % node_ident, status_code=http_client.CONFLICT)
 
         name = api_utils.get_patch_value(patch, '/name')
         error_msg = _("Node %(node)s: Cannot change name to invalid "
@@ -1125,7 +1129,7 @@ class NodesController(rest.RestController):
             # NOTE(deva): convert from 404 to 400 because client can see
             #             list of available drivers and shouldn't request
             #             one that doesn't exist.
-            e.code = 400
+            e.code = http_client.BAD_REQUEST
             raise e
         self._check_driver_changed_and_console_enabled(rpc_node, node_ident)
         new_node = pecan.request.rpcapi.update_node(
@@ -1133,7 +1137,8 @@ class NodesController(rest.RestController):
 
         return Node.convert_with_links(new_node)
 
-    @expose.expose(None, types.uuid_or_name, status_code=204)
+    @expose.expose(None, types.uuid_or_name,
+                   status_code=http_client.NO_CONTENT)
     def delete(self, node_ident):
         """Delete a node.
 
@@ -1147,7 +1152,7 @@ class NodesController(rest.RestController):
         try:
             topic = pecan.request.rpcapi.get_topic_for(rpc_node)
         except exception.NoValidHost as e:
-            e.code = 400
+            e.code = http_client.BAD_REQUEST
             raise e
 
         pecan.request.rpcapi.destroy_node(pecan.request.context,

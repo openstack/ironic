@@ -14,6 +14,7 @@
 #    under the License.
 
 import mock
+from six.moves import http_client
 from webob import exc
 
 from ironic.api.controllers import base as cbase
@@ -29,7 +30,7 @@ class TestBase(base.FunctionalTest):
         response = self.get_json('/bad/path',
                                  expect_errors=True,
                                  headers={"Accept": "application/json"})
-        self.assertEqual(404, response.status_int)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
         self.assertEqual("application/json", response.content_type)
         self.assertTrue(response.json['error_message'])
 

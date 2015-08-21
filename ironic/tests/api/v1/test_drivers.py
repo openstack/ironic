@@ -16,6 +16,7 @@
 import json
 
 import mock
+from six.moves import http_client
 from testtools.matchers import HasLength
 
 from ironic.api.controllers.v1 import driver
@@ -71,7 +72,7 @@ class TestListDrivers(base.FunctionalTest):
 
     def test_drivers_get_one_not_found(self):
         response = self.get_json('/drivers/%s' % self.d1, expect_errors=True)
-        self.assertEqual(404, response.status_int)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'driver_vendor_passthru')
     def test_driver_vendor_passthru_sync(self, mocked_driver_vendor_passthru):
@@ -83,7 +84,7 @@ class TestListDrivers(base.FunctionalTest):
         response = self.post_json(
             '/drivers/%s/vendor_passthru/do_test' % self.d1,
             {'test_key': 'test_value'})
-        self.assertEqual(200, response.status_int)
+        self.assertEqual(http_client.OK, response.status_int)
         self.assertEqual(mocked_driver_vendor_passthru.return_value['return'],
                          response.json)
 
@@ -96,7 +97,7 @@ class TestListDrivers(base.FunctionalTest):
         response = self.post_json(
             '/drivers/%s/vendor_passthru/do_test' % self.d1,
             {'test_key': 'test_value'})
-        self.assertEqual(202, response.status_int)
+        self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertIsNone(mocked_driver_vendor_passthru.return_value['return'])
 
     @mock.patch.object(rpcapi.ConductorAPI, 'driver_vendor_passthru')
@@ -107,7 +108,7 @@ class TestListDrivers(base.FunctionalTest):
         response = self.put_json(
             '/drivers/%s/vendor_passthru/do_test' % self.d1,
             {'test_key': 'test_value'})
-        self.assertEqual(202, response.status_int)
+        self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(return_value['return'], response.json)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'driver_vendor_passthru')
@@ -126,7 +127,7 @@ class TestListDrivers(base.FunctionalTest):
         mock_driver_vendor_passthru.return_value = return_value
         response = self.delete(
             '/drivers/%s/vendor_passthru/do_test' % self.d1)
-        self.assertEqual(202, response.status_int)
+        self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(return_value['return'], response.json)
 
     def test_driver_vendor_passthru_driver_not_found(self):
@@ -137,7 +138,7 @@ class TestListDrivers(base.FunctionalTest):
             {'test_key': 'test_value'},
             expect_errors=True)
 
-        self.assertEqual(404, response.status_int)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     def test_driver_vendor_passthru_method_not_found(self):
         response = self.post_json(
@@ -145,7 +146,7 @@ class TestListDrivers(base.FunctionalTest):
             {'test_key': 'test_value'},
             expect_errors=True)
 
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         error = json.loads(response.json['error_message'])
         self.assertEqual('Missing argument: "method"',
                          error['faultstring'])
@@ -219,7 +220,7 @@ class TestDriverProperties(base.FunctionalTest):
         mock_properties.return_value = {'prop1': 'Property 1. Required.'}
         ret = self.get_json('/drivers/%s/properties' % driver_name,
                             expect_errors=True)
-        self.assertEqual(404, ret.status_int)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_int)
         mock_topic.assert_called_once_with(driver_name)
         self.assertFalse(mock_properties.called)
 
@@ -233,7 +234,7 @@ class TestDriverProperties(base.FunctionalTest):
             driver_name=driver_name)
         ret = self.get_json('/drivers/%s/properties' % driver_name,
                             expect_errors=True)
-        self.assertEqual(404, ret.status_int)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_int)
         mock_topic.assert_called_once_with(driver_name)
         mock_properties.assert_called_once_with(mock.ANY, driver_name,
                                                 topic=mock_topic.return_value)

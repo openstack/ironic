@@ -22,6 +22,7 @@ from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 import six
+from six.moves import http_client
 from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
 from wsme import types as wtypes
@@ -119,7 +120,7 @@ class TestListPorts(test_api_base.FunctionalTest):
             '/ports/%s?fields=%s' % (port.uuid, fields),
             headers={api_base.Version.string: str(api_v1.MAX_VER)},
             expect_errors=True)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertIn('spongebob', response.json['error_message'])
 
@@ -130,7 +131,7 @@ class TestListPorts(test_api_base.FunctionalTest):
             '/ports/%s?fields=%s' % (port.uuid, fields),
             headers={api_base.Version.string: str(api_v1.MIN_VER)},
             expect_errors=True)
-        self.assertEqual(406, response.status_int)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
     def test_detail(self):
         port = obj_utils.create_test_port(self.context, node_id=self.node.id)
@@ -145,7 +146,7 @@ class TestListPorts(test_api_base.FunctionalTest):
         port = obj_utils.create_test_port(self.context, node_id=self.node.id)
         response = self.get_json('/ports/%s/detail' % port.uuid,
                                  expect_errors=True)
-        self.assertEqual(404, response.status_int)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     def test_many(self):
         ports = []
@@ -228,7 +229,7 @@ class TestListPorts(test_api_base.FunctionalTest):
         invalid_address = 'invalid-mac-format'
         response = self.get_json('/ports?address=%s' % invalid_address,
                                  expect_errors=True)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertIn(invalid_address, response.json['error_message'])
 
@@ -250,7 +251,7 @@ class TestListPorts(test_api_base.FunctionalTest):
         for invalid_key in invalid_keys_list:
             response = self.get_json('/ports?sort_key=%s' % invalid_key,
                                      expect_errors=True)
-            self.assertEqual(400, response.status_int)
+            self.assertEqual(http_client.BAD_REQUEST, response.status_int)
             self.assertEqual('application/json', response.content_type)
             self.assertIn(invalid_key, response.json['error_message'])
 
@@ -293,7 +294,7 @@ class TestListPorts(test_api_base.FunctionalTest):
         data = self.get_json("/ports?node=%s" % 'test-node',
                              expect_errors=True)
         self.assertEqual(0, mock_get_rpc_node.call_count)
-        self.assertEqual(406, data.status_int)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, data.status_int)
 
     @mock.patch.object(api_utils, 'get_rpc_node')
     def test_detail_by_node_name_ok(self, mock_get_rpc_node):
@@ -314,7 +315,7 @@ class TestListPorts(test_api_base.FunctionalTest):
         data = self.get_json('/ports/detail?node=%s' % 'test-node',
                              expect_errors=True)
         self.assertEqual(0, mock_get_rpc_node.call_count)
-        self.assertEqual(406, data.status_int)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, data.status_int)
 
     @mock.patch.object(api_port.PortsController, '_get_ports_collection')
     def test_detail_with_incorrect_api_usage(self, mock_gpc):
@@ -350,7 +351,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'value': 'bar',
                                      'op': 'add'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(extra, response.json['extra'])
 
         kargs = mock_upd.call_args[0][1]
@@ -366,7 +367,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'add'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertIn(self.port.address, response.json['error_message'])
         self.assertFalse(mock_upd.called)
 
@@ -378,7 +379,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'add'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(404, response.status_int)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
         self.assertTrue(response.json['error_message'])
         self.assertFalse(mock_upd.called)
 
@@ -391,7 +392,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'value': address,
                                      'op': 'replace'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(address, response.json['address'])
         self.assertTrue(mock_upd.called)
 
@@ -407,7 +408,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'replace'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(409, response.status_code)
+        self.assertEqual(http_client.CONFLICT, response.status_code)
         self.assertTrue(response.json['error_message'])
         self.assertTrue(mock_upd.called)
 
@@ -421,7 +422,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'value': self.node.uuid,
                                      'op': 'replace'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
 
     def test_add_node_uuid(self, mock_upd):
         mock_upd.return_value = self.port
@@ -430,7 +431,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'value': self.node.uuid,
                                      'op': 'add'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
 
     def test_add_node_id(self, mock_upd):
         response = self.patch_json('/ports/%s' % self.port.uuid,
@@ -439,7 +440,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'add'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertFalse(mock_upd.called)
 
     def test_replace_node_id(self, mock_upd):
@@ -449,7 +450,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'replace'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertFalse(mock_upd.called)
 
     def test_remove_node_id(self, mock_upd):
@@ -458,7 +459,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'remove'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertFalse(mock_upd.called)
 
     def test_replace_non_existent_node_uuid(self, mock_upd):
@@ -469,7 +470,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'replace'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertIn(node_uuid, response.json['error_message'])
         self.assertFalse(mock_upd.called)
 
@@ -491,7 +492,7 @@ class TestPatch(test_api_base.FunctionalTest):
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    patch)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(extra, response.json['extra'])
         kargs = mock_upd.call_args[0][1]
         self.assertEqual(extra, kargs.extra)
@@ -509,7 +510,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                    [{'path': '/extra/foo1',
                                      'op': 'remove'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(extra, response.json['extra'])
         kargs = mock_upd.call_args[0][1]
         self.assertEqual(extra, kargs.extra)
@@ -520,7 +521,7 @@ class TestPatch(test_api_base.FunctionalTest):
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/extra', 'op': 'remove'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual({}, response.json['extra'])
         kargs = mock_upd.call_args[0][1]
         self.assertEqual(extra, kargs.extra)
@@ -535,7 +536,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'remove'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
         self.assertFalse(mock_upd.called)
 
@@ -545,7 +546,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'remove'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
         self.assertFalse(mock_upd.called)
 
@@ -558,7 +559,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'value': address,
                                      'op': 'add'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(address, response.json['address'])
         self.assertTrue(mock_upd.called)
         kargs = mock_upd.call_args[0][1]
@@ -571,7 +572,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'add'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertTrue(response.json['error_message'])
         self.assertFalse(mock_upd.called)
 
@@ -587,7 +588,7 @@ class TestPatch(test_api_base.FunctionalTest):
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    patch)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(extra, response.json['extra'])
         kargs = mock_upd.call_args[0][1]
         self.assertEqual(extra, kargs.extra)
@@ -597,7 +598,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                    [{'path': '/uuid',
                                      'op': 'remove'}],
                                    expect_errors=True)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
         self.assertFalse(mock_upd.called)
@@ -609,7 +610,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'replace'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertTrue(response.json['error_message'])
         self.assertFalse(mock_upd.called)
 
@@ -622,7 +623,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'value': address,
                                      'op': 'replace'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(address.lower(), response.json['address'])
         kargs = mock_upd.call_args[0][1]
         self.assertEqual(address.lower(), kargs.address)
@@ -640,7 +641,7 @@ class TestPost(test_api_base.FunctionalTest):
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = test_time
         response = self.post_json('/ports', pdict)
-        self.assertEqual(201, response.status_int)
+        self.assertEqual(http_client.CREATED, response.status_int)
         result = self.get_json('/ports/%s' % pdict['uuid'])
         self.assertEqual(pdict['uuid'], result['uuid'])
         self.assertFalse(result['updated_at'])
@@ -685,7 +686,7 @@ class TestPost(test_api_base.FunctionalTest):
         pdict = post_get_test_port()
         del pdict['address']
         response = self.post_json('/ports', pdict, expect_errors=True)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
@@ -693,14 +694,14 @@ class TestPost(test_api_base.FunctionalTest):
         pdict = post_get_test_port()
         del pdict['node_uuid']
         response = self.post_json('/ports', pdict, expect_errors=True)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
     def test_create_port_invalid_addr_format(self):
         pdict = post_get_test_port(address='invalid-format')
         response = self.post_json('/ports', pdict, expect_errors=True)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
@@ -717,7 +718,7 @@ class TestPost(test_api_base.FunctionalTest):
         hyphensMAC = colonsMAC.replace(':', '-')
         pdict['address'] = hyphensMAC
         response = self.post_json('/ports', pdict, expect_errors=True)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
@@ -725,7 +726,7 @@ class TestPost(test_api_base.FunctionalTest):
         pdict = post_get_test_port(node_uuid='invalid-format')
         response = self.post_json('/ports', pdict, expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertTrue(response.json['error_message'])
 
     def test_node_uuid_to_node_id_mapping(self):
@@ -740,7 +741,7 @@ class TestPost(test_api_base.FunctionalTest):
             node_uuid='1a1a1a1a-2b2b-3c3c-4d4d-5e5e5e5e5e5e')
         response = self.post_json('/ports', pdict, expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertTrue(response.json['error_message'])
 
     def test_create_port_address_already_exist(self):
@@ -749,7 +750,7 @@ class TestPost(test_api_base.FunctionalTest):
         self.post_json('/ports', pdict)
         pdict['uuid'] = uuidutils.generate_uuid()
         response = self.post_json('/ports', pdict, expect_errors=True)
-        self.assertEqual(409, response.status_int)
+        self.assertEqual(http_client.CONFLICT, response.status_int)
         self.assertEqual('application/json', response.content_type)
         error_msg = response.json['error_message']
         self.assertTrue(error_msg)
@@ -773,7 +774,7 @@ class TestDelete(test_api_base.FunctionalTest):
     def test_delete_port_byaddress(self, mock_dpt):
         response = self.delete('/ports/%s' % self.port.address,
                                expect_errors=True)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertIn(self.port.address, response.json['error_message'])
 
@@ -786,6 +787,6 @@ class TestDelete(test_api_base.FunctionalTest):
         mock_dpt.side_effect = exception.NodeLocked(node='fake-node',
                                                     host='fake-host')
         ret = self.delete('/ports/%s' % self.port.uuid, expect_errors=True)
-        self.assertEqual(409, ret.status_code)
+        self.assertEqual(http_client.CONFLICT, ret.status_code)
         self.assertTrue(ret.json['error_message'])
         self.assertTrue(mock_dpt.called)

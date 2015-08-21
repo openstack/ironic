@@ -18,6 +18,7 @@ import datetime
 from oslo_utils import uuidutils
 import pecan
 from pecan import rest
+from six.moves import http_client
 import wsme
 from wsme import types as wtypes
 
@@ -69,7 +70,7 @@ class Port(base.APIBase):
             except exception.NodeNotFound as e:
                 # Change error code because 404 (NotFound) is inappropriate
                 # response for a POST request to create a Port
-                e.code = 400  # BadRequest
+                e.code = http_client.BAD_REQUEST  # BadRequest
                 raise e
         elif value == wtypes.Unset:
             self._node_uuid = wtypes.Unset
@@ -342,7 +343,7 @@ class PortsController(rest.RestController):
         rpc_port = objects.Port.get_by_uuid(pecan.request.context, port_uuid)
         return Port.convert_with_links(rpc_port, fields=fields)
 
-    @expose.expose(Port, body=Port, status_code=201)
+    @expose.expose(Port, body=Port, status_code=http_client.CREATED)
     def post(self, port):
         """Create a new port.
 
@@ -402,7 +403,7 @@ class PortsController(rest.RestController):
 
         return Port.convert_with_links(new_port)
 
-    @expose.expose(None, types.uuid, status_code=204)
+    @expose.expose(None, types.uuid, status_code=http_client.NO_CONTENT)
     def delete(self, port_uuid):
         """Delete a port.
 

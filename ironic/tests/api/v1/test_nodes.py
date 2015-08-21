@@ -23,6 +23,7 @@ from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 import six
+from six.moves import http_client
 from six.moves.urllib import parse as urlparse
 from testtools.matchers import HasLength
 from wsme import types as wtypes
@@ -168,7 +169,7 @@ class TestListNodes(test_api_base.FunctionalTest):
             '/nodes/%s?fields=%s' % (node.uuid, fields),
             headers={api_base.Version.string: str(api_v1.MAX_VER)},
             expect_errors=True)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertIn('spongebob', response.json['error_message'])
 
@@ -180,7 +181,7 @@ class TestListNodes(test_api_base.FunctionalTest):
             '/nodes/%s?fields=%s' % (node.uuid, fields),
             headers={api_base.Version.string: str(api_v1.MIN_VER)},
             expect_errors=True)
-        self.assertEqual(406, response.status_int)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
     def test_get_one_custom_fields_show_password(self):
         node = obj_utils.create_test_node(self.context,
@@ -222,7 +223,7 @@ class TestListNodes(test_api_base.FunctionalTest):
         node = obj_utils.create_test_node(self.context)
         response = self.get_json('/nodes/%s/detail' % node.uuid,
                                  expect_errors=True)
-        self.assertEqual(404, response.status_int)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     def test_mask_available_state(self):
         node = obj_utils.create_test_node(self.context,
@@ -370,7 +371,7 @@ class TestListNodes(test_api_base.FunctionalTest):
         for invalid_key in invalid_keys_list:
             response = self.get_json('/nodes?sort_key=%s' % invalid_key,
                                      expect_errors=True)
-            self.assertEqual(400, response.status_int)
+            self.assertEqual(http_client.BAD_REQUEST, response.status_int)
             self.assertEqual('application/json', response.content_type)
             self.assertIn(invalid_key, response.json['error_message'])
 
@@ -401,13 +402,13 @@ class TestListNodes(test_api_base.FunctionalTest):
         obj_utils.create_test_port(self.context, node_id=node.id)
         # No node id specified
         response = self.get_json('/nodes/ports', expect_errors=True)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_ports_subresource_node_not_found(self):
         non_existent_uuid = 'eeeeeeee-cccc-aaaa-bbbb-cccccccccccc'
         response = self.get_json('/nodes/%s/ports' % non_existent_uuid,
                                  expect_errors=True)
-        self.assertEqual(404, response.status_int)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     @mock.patch.object(timeutils, 'utcnow')
     def test_node_states(self, mock_utcnow):
@@ -488,7 +489,7 @@ class TestListNodes(test_api_base.FunctionalTest):
                                  expect_errors=True)
 
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
 
     def test_associated_nodes_insensitive(self):
         associated_nodes = (self
@@ -507,7 +508,7 @@ class TestListNodes(test_api_base.FunctionalTest):
         self._create_association_test_nodes()
         response = self.get_json('/nodes?associated=blah', expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_unassociated_nodes_insensitive(self):
@@ -596,7 +597,7 @@ class TestListNodes(test_api_base.FunctionalTest):
         response = self.get_json('/nodes?associated=true&maintenance=blah',
                                  expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_maintenance_nodes_associated(self):
@@ -640,7 +641,7 @@ class TestListNodes(test_api_base.FunctionalTest):
                                  headers={api_base.Version.string: "1.9"},
                                  expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_get_nodes_by_provision_state_not_allowed(self):
@@ -648,7 +649,7 @@ class TestListNodes(test_api_base.FunctionalTest):
                                  headers={api_base.Version.string: "1.8"},
                                  expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(406, response.status_code)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_get_console_information(self):
@@ -695,7 +696,7 @@ class TestListNodes(test_api_base.FunctionalTest):
                 extension='console', driver='test-driver')
             ret = self.get_json('/nodes/%s/states/console' % node.uuid,
                                 expect_errors=True)
-            self.assertEqual(400, ret.status_code)
+            self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
             mock_gci.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'get_boot_device')
@@ -724,7 +725,7 @@ class TestListNodes(test_api_base.FunctionalTest):
             extension='management', driver='test-driver')
         ret = self.get_json('/nodes/%s/management/boot_device' % node.uuid,
                             expect_errors=True)
-        self.assertEqual(400, ret.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertTrue(ret.json['error_message'])
         mock_gbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
@@ -756,7 +757,7 @@ class TestListNodes(test_api_base.FunctionalTest):
             extension='management', driver='test-driver')
         ret = self.get_json('/nodes/%s/management/boot_device/supported' %
                             node.uuid, expect_errors=True)
-        self.assertEqual(400, ret.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertTrue(ret.json['error_message'])
         mock_gsbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
@@ -780,7 +781,7 @@ class TestListNodes(test_api_base.FunctionalTest):
         node = obj_utils.create_test_node(self.context, name='spam')
         ret = self.get_json('/nodes/validate?node=%s' % node.name,
                             expect_errors=True)
-        self.assertEqual(406, ret.status_code)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
         self.assertFalse(mock_vdi.called)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'validate_driver_interfaces')
@@ -826,7 +827,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'aaaaaaaa-1111-bbbb-2222-cccccccccccc',
                                      'op': 'replace'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(self.mock_update_node.return_value.updated_at,
                          timeutils.parse_isotime(response.json['updated_at']))
         self.mock_update_node.assert_called_once_with(
@@ -844,7 +845,7 @@ class TestPatch(test_api_base.FunctionalTest):
               'value': 'aaaaaaaa-1111-bbbb-2222-cccccccccccc',
               'op': 'replace'}],
             expect_errors=True)
-        self.assertEqual(404, response.status_code)
+        self.assertEqual(http_client.NOT_FOUND, response.status_code)
         self.assertFalse(self.mock_update_node.called)
 
     def test_update_ok_by_name(self):
@@ -860,7 +861,7 @@ class TestPatch(test_api_base.FunctionalTest):
               'op': 'replace'}],
             headers={api_base.Version.string: "1.5"})
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(self.mock_update_node.return_value.updated_at,
                          timeutils.parse_isotime(response.json['updated_at']))
         self.mock_update_node.assert_called_once_with(
@@ -871,7 +872,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                    [{'power_state': 'new state'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_update_fails_bad_driver_info(self):
@@ -888,7 +889,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'add'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
 
         self.mock_update_node.assert_called_once_with(
             mock.ANY, mock.ANY, 'test-topic')
@@ -903,7 +904,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                    expect_errors=True)
 
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
 
     def test_add_ok(self):
         self.mock_update_node.return_value = self.node
@@ -913,7 +914,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'value': 'bar',
                                      'op': 'add'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
 
         self.mock_update_node.assert_called_once_with(
             mock.ANY, mock.ANY, 'test-topic')
@@ -926,7 +927,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'aaaaaaaa-1111-bbbb-2222-cccccccccccc',
                                      'op': 'add'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
         self.mock_update_node.assert_called_once_with(
             mock.ANY, mock.ANY, 'test-topic')
 
@@ -936,7 +937,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'add'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_remove_ok(self):
@@ -946,7 +947,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                    [{'path': '/extra',
                                      'op': 'remove'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
 
         self.mock_update_node.assert_called_once_with(
             mock.ANY, mock.ANY, 'test-topic')
@@ -957,7 +958,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'remove'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_update_allowed_in_power_transition(self):
@@ -969,7 +970,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                    [{'path': '/extra/foo',
                                      'value': 'bar',
                                      'op': 'add'}])
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
 
     def test_update_allowed_in_maintenance(self):
         node = obj_utils.create_test_node(self.context,
@@ -980,7 +981,7 @@ class TestPatch(test_api_base.FunctionalTest):
         response = self.patch_json('/nodes/%s' % node.uuid,
                                    [{'path': '/instance_uuid',
                                      'op': 'remove'}])
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
 
     def test_add_state_in_deployfail(self):
         node = obj_utils.create_test_node(self.context,
@@ -992,7 +993,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                    [{'path': '/extra/foo', 'value': 'bar',
                                      'op': 'add'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
         self.mock_update_node.assert_called_once_with(
             mock.ANY, mock.ANY, 'test-topic')
 
@@ -1000,14 +1001,14 @@ class TestPatch(test_api_base.FunctionalTest):
         response = self.patch_json('/nodes/%s/ports' % self.node.uuid,
                                    [{'path': '/extra/foo', 'value': 'bar',
                                      'op': 'add'}], expect_errors=True)
-        self.assertEqual(403, response.status_int)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     def test_remove_uuid(self):
         response = self.patch_json('/nodes/%s' % self.node.uuid,
                                    [{'path': '/uuid', 'op': 'remove'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_remove_instance_uuid_clean_backward_compat(self):
@@ -1022,7 +1023,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                        [{'op': 'remove',
                                          'path': '/instance_uuid'}])
             self.assertEqual('application/json', response.content_type)
-            self.assertEqual(200, response.status_code)
+            self.assertEqual(http_client.OK, response.status_code)
             # NOTE(lucasagomes): instance_uuid is already removed as part of
             # node's tear down, assert update has not been called. This test
             # should be removed in the next cycle (Mitaka).
@@ -1039,7 +1040,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                    [{'path': '/extra/foo', 'value': 'bar',
                                      'op': 'add'}], expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(409, response.status_code)
+        self.assertEqual(http_client.CONFLICT, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_remove_mandatory_field(self):
@@ -1047,7 +1048,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                    [{'path': '/driver', 'op': 'remove'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_replace_chassis_uuid(self):
@@ -1057,7 +1058,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'value': self.chassis.uuid,
                                      'op': 'replace'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
 
     def test_add_chassis_uuid(self):
         self.mock_update_node.return_value = self.node
@@ -1066,7 +1067,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'value': self.chassis.uuid,
                                      'op': 'add'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
 
     def test_add_chassis_id(self):
         response = self.patch_json('/nodes/%s' % self.node.uuid,
@@ -1075,7 +1076,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'add'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_replace_chassis_id(self):
@@ -1085,7 +1086,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'replace'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_remove_chassis_id(self):
@@ -1094,7 +1095,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'remove'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_replace_non_existent_chassis_uuid(self):
@@ -1104,7 +1105,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'eeeeeeee-dddd-cccc-bbbb-aaaaaaaaaaaa',
                                      'op': 'replace'}], expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_remove_internal_field(self):
@@ -1112,7 +1113,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                    [{'path': '/last_error', 'op': 'remove'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_replace_internal_field(self):
@@ -1121,7 +1122,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'value': 'fake-state'}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_replace_maintenance(self):
@@ -1131,7 +1132,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                    [{'path': '/maintenance', 'op': 'replace',
                                      'value': 'true'}])
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
 
         self.mock_update_node.assert_called_once_with(
             mock.ANY, mock.ANY, 'test-topic')
@@ -1145,7 +1146,7 @@ class TestPatch(test_api_base.FunctionalTest):
               'value': 'true'}],
             headers={api_base.Version.string: "1.5"})
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
 
         self.mock_update_node.assert_called_once_with(
             mock.ANY, mock.ANY, 'test-topic')
@@ -1156,7 +1157,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'replace', 'value': True}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_replace_provision_updated_at(self):
@@ -1166,7 +1167,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'op': 'replace', 'value': test_time}],
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_patch_add_name_ok(self):
@@ -1178,7 +1179,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'value': test_name}],
                                    headers={api_base.Version.string: "1.5"})
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
 
     def test_patch_add_name_invalid(self):
         self.mock_update_node.return_value = self.node_no_name
@@ -1190,7 +1191,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                    headers={api_base.Version.string: "1.10"},
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_patch_name_replace_ok(self):
@@ -1202,7 +1203,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                      'value': test_name}],
                                    headers={api_base.Version.string: "1.5"})
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(http_client.OK, response.status_code)
 
     def test_patch_add_replace_invalid(self):
         self.mock_update_node.return_value = self.node_no_name
@@ -1214,7 +1215,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                    headers={api_base.Version.string: "1.5"},
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_patch_duplicate_name(self):
@@ -1229,7 +1230,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                    headers={api_base.Version.string: "1.5"},
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(409, response.status_code)
+        self.assertEqual(http_client.CONFLICT, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     @mock.patch.object(api_utils, 'get_rpc_node')
@@ -1244,7 +1245,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                    expect_errors=True)
         mock_rpc_node.assert_called_once_with(self.node.uuid)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(409, response.status_code)
+        self.assertEqual(http_client.CONFLICT, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_update_in_UPDATE_ALLOWED_STATES(self):
@@ -1260,7 +1261,7 @@ class TestPatch(test_api_base.FunctionalTest):
                                        [{'path': '/extra/foo', 'value': 'bar',
                                          'op': 'add'}])
             self.assertEqual('application/json', response.content_type)
-            self.assertEqual(200, response.status_code)
+            self.assertEqual(http_client.OK, response.status_code)
 
 
 class TestPost(test_api_base.FunctionalTest):
@@ -1279,7 +1280,7 @@ class TestPost(test_api_base.FunctionalTest):
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = test_time
         response = self.post_json('/nodes', ndict)
-        self.assertEqual(201, response.status_int)
+        self.assertEqual(http_client.CREATED, response.status_int)
         result = self.get_json('/nodes/%s' % ndict['uuid'])
         self.assertEqual(ndict['uuid'], result['uuid'])
         self.assertFalse(result['updated_at'])
@@ -1296,7 +1297,7 @@ class TestPost(test_api_base.FunctionalTest):
         ndict = test_api_utils.post_get_test_node()
         response = self.post_json('/nodes', ndict,
                                   headers={api_base.Version.string: "1.10"})
-        self.assertEqual(201, response.status_int)
+        self.assertEqual(http_client.CREATED, response.status_int)
 
         # default state remains NONE/AVAILABLE
         result = self.get_json('/nodes/%s' % ndict['uuid'])
@@ -1310,7 +1311,7 @@ class TestPost(test_api_base.FunctionalTest):
         ndict = test_api_utils.post_get_test_node()
         response = self.post_json('/nodes', ndict,
                                   headers={api_base.Version.string: "1.11"})
-        self.assertEqual(201, response.status_int)
+        self.assertEqual(http_client.CREATED, response.status_int)
 
         # default state is ENROLL
         result = self.get_json('/nodes/%s' % ndict['uuid'])
@@ -1356,7 +1357,7 @@ class TestPost(test_api_base.FunctionalTest):
 
     def _test_vendor_passthru_ok(self, mock_vendor, return_value=None,
                                  is_async=True):
-        expected_status = 202 if is_async else 200
+        expected_status = http_client.ACCEPTED if is_async else http_client.OK
         expected_return_value = json.dumps(return_value)
         if six.PY3:
             expected_return_value = expected_return_value.encode('utf-8')
@@ -1375,7 +1376,7 @@ class TestPost(test_api_base.FunctionalTest):
 
     def _test_vendor_passthru_ok_by_name(self, mock_vendor, return_value=None,
                                          is_async=True):
-        expected_status = 202 if is_async else 200
+        expected_status = http_client.ACCEPTED if is_async else http_client.OK
         expected_return_value = json.dumps(return_value)
         if six.PY3:
             expected_return_value = expected_return_value.encode('utf-8')
@@ -1411,7 +1412,7 @@ class TestPost(test_api_base.FunctionalTest):
         response = self.put_json(
             '/nodes/%s/vendor_passthru/do_test' % node.uuid,
             {'test_key': 'test_value'})
-        self.assertEqual(202, response.status_int)
+        self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(return_value['return'], response.json)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
@@ -1434,7 +1435,7 @@ class TestPost(test_api_base.FunctionalTest):
         mock_vendor_passthru.return_value = return_value
         response = self.delete(
             '/nodes/%s/vendor_passthru/do_test' % node.uuid)
-        self.assertEqual(202, response.status_int)
+        self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(return_value['return'], response.json)
 
     def test_vendor_passthru_no_such_method(self):
@@ -1450,14 +1451,14 @@ class TestPost(test_api_base.FunctionalTest):
                                       info, expect_errors=True)
             mock_vendor.assert_called_once_with(
                 mock.ANY, uuid, 'test', 'POST', info, 'test-topic')
-            self.assertEqual(400, response.status_code)
+            self.assertEqual(http_client.BAD_REQUEST, response.status_code)
 
     def test_vendor_passthru_without_method(self):
         node = obj_utils.create_test_node(self.context)
         response = self.post_json('/nodes/%s/vendor_passthru' % node.uuid,
                                   {'foo': 'bar'}, expect_errors=True)
         self.assertEqual('application/json', response.content_type, )
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
     def test_post_ports_subresource(self):
@@ -1466,13 +1467,13 @@ class TestPost(test_api_base.FunctionalTest):
         pdict['node_uuid'] = node.uuid
         response = self.post_json('/nodes/ports', pdict,
                                   expect_errors=True)
-        self.assertEqual(403, response.status_int)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     def test_create_node_no_mandatory_field_driver(self):
         ndict = test_api_utils.post_get_test_node()
         del ndict['driver']
         response = self.post_json('/nodes', ndict, expect_errors=True)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
@@ -1480,7 +1481,7 @@ class TestPost(test_api_base.FunctionalTest):
         ndict = test_api_utils.post_get_test_node()
         self.mock_gtf.side_effect = exception.NoValidHost('Fake Error')
         response = self.post_json('/nodes', ndict, expect_errors=True)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
@@ -1489,7 +1490,7 @@ class TestPost(test_api_base.FunctionalTest):
         del ndict['chassis_uuid']
         response = self.post_json('/nodes', ndict)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(201, response.status_int)
+        self.assertEqual(http_client.CREATED, response.status_int)
         # Check location header
         self.assertIsNotNone(response.location)
         expected_location = '/v1/nodes/%s' % ndict['uuid']
@@ -1501,7 +1502,7 @@ class TestPost(test_api_base.FunctionalTest):
             chassis_uuid=self.chassis.uuid)
         response = self.post_json('/nodes', ndict)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(201, response.status_int)
+        self.assertEqual(http_client.CREATED, response.status_int)
         result = self.get_json('/nodes/%s' % ndict['uuid'])
         self.assertEqual(ndict['chassis_uuid'], result['chassis_uuid'])
         # Check location header
@@ -1515,7 +1516,7 @@ class TestPost(test_api_base.FunctionalTest):
             chassis_uuid='1a1a1a1a-2b2b-3c3c-4d4d-5e5e5e5e5e5e')
         response = self.post_json('/nodes', ndict, expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertTrue(response.json['error_message'])
 
     def test_create_node_with_internal_field(self):
@@ -1523,7 +1524,7 @@ class TestPost(test_api_base.FunctionalTest):
         ndict['reservation'] = 'fake'
         response = self.post_json('/nodes', ndict, expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(400, response.status_int)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertTrue(response.json['error_message'])
 
     @mock.patch.object(rpcapi.ConductorAPI, 'get_node_vendor_passthru_methods')
@@ -1583,7 +1584,7 @@ class TestDelete(test_api_base.FunctionalTest):
         mock_gbu.side_effect = exception.NodeNotFound(node=node.uuid)
 
         response = self.delete('/nodes/%s' % node.uuid, expect_errors=True)
-        self.assertEqual(404, response.status_int)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
         mock_gbu.assert_called_once_with(mock.ANY, node.uuid)
@@ -1595,7 +1596,7 @@ class TestDelete(test_api_base.FunctionalTest):
 
         response = self.delete('/nodes/%s' % node.name,
                                expect_errors=True)
-        self.assertEqual(404, response.status_int)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
         self.assertFalse(mock_gbn.called)
 
     @mock.patch.object(objects.Node, 'get_by_name')
@@ -1606,7 +1607,7 @@ class TestDelete(test_api_base.FunctionalTest):
         response = self.delete('/nodes/%s' % node.name,
                                headers={api_base.Version.string: "1.5"},
                                expect_errors=True)
-        self.assertEqual(404, response.status_int)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
         mock_gbn.assert_called_once_with(mock.ANY, node.name)
@@ -1615,7 +1616,7 @@ class TestDelete(test_api_base.FunctionalTest):
         node = obj_utils.create_test_node(self.context)
         response = self.delete('/nodes/%s/ports' % node.uuid,
                                expect_errors=True)
-        self.assertEqual(403, response.status_int)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node')
     def test_delete_associated(self, mock_dn):
@@ -1626,7 +1627,7 @@ class TestDelete(test_api_base.FunctionalTest):
             node=node.uuid, instance=node.instance_uuid)
 
         response = self.delete('/nodes/%s' % node.uuid, expect_errors=True)
-        self.assertEqual(409, response.status_int)
+        self.assertEqual(http_client.CONFLICT, response.status_int)
         mock_dn.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
     @mock.patch.object(objects.Node, 'get_by_uuid')
@@ -1636,7 +1637,7 @@ class TestDelete(test_api_base.FunctionalTest):
                                           maintenance_reason='blah')
         mock_get.return_value = node
         response = self.delete('/nodes/%s/maintenance' % node.uuid)
-        self.assertEqual(202, response.status_int)
+        self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
         self.assertEqual(False, node.maintenance)
         self.assertIsNone(node.maintenance_reason)
@@ -1654,7 +1655,7 @@ class TestDelete(test_api_base.FunctionalTest):
         mock_get.return_value = node
         response = self.delete('/nodes/%s/maintenance' % node.name,
                                headers={api_base.Version.string: "1.5"})
-        self.assertEqual(202, response.status_int)
+        self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
         self.assertEqual(False, node.maintenance)
         self.assertIsNone(node.maintenance_reason)
@@ -1690,7 +1691,7 @@ class TestPut(test_api_base.FunctionalTest):
     def test_power_state(self):
         response = self.put_json('/nodes/%s/states/power' % self.node.uuid,
                                  {'target': states.POWER_ON})
-        self.assertEqual(202, response.status_code)
+        self.assertEqual(http_client.ACCEPTED, response.status_code)
         self.assertEqual(b'', response.body)
         self.mock_cnps.assert_called_once_with(mock.ANY,
                                                self.node.uuid,
@@ -1706,13 +1707,13 @@ class TestPut(test_api_base.FunctionalTest):
         response = self.put_json('/nodes/%s/states/power' % self.node.name,
                                  {'target': states.POWER_ON},
                                  expect_errors=True)
-        self.assertEqual(404, response.status_code)
+        self.assertEqual(http_client.NOT_FOUND, response.status_code)
 
     def test_power_state_by_name(self):
         response = self.put_json('/nodes/%s/states/power' % self.node.name,
                                  {'target': states.POWER_ON},
                                  headers={api_base.Version.string: "1.5"})
-        self.assertEqual(202, response.status_code)
+        self.assertEqual(http_client.ACCEPTED, response.status_code)
         self.assertEqual(b'', response.body)
         self.mock_cnps.assert_called_once_with(mock.ANY,
                                                self.node.uuid,
@@ -1727,7 +1728,7 @@ class TestPut(test_api_base.FunctionalTest):
     def test_power_invalid_state_request(self):
         ret = self.put_json('/nodes/%s/states/power' % self.node.uuid,
                             {'target': 'not-supported'}, expect_errors=True)
-        self.assertEqual(400, ret.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
 
     def test_power_change_when_being_cleaned(self):
         for state in (states.CLEANING, states.CLEANWAIT):
@@ -1736,17 +1737,17 @@ class TestPut(test_api_base.FunctionalTest):
             ret = self.put_json('/nodes/%s/states/power' % self.node.uuid,
                                 {'target': states.POWER_OFF},
                                 expect_errors=True)
-            self.assertEqual(400, ret.status_code)
+            self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
 
     def test_provision_invalid_state_request(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': 'not-supported'}, expect_errors=True)
-        self.assertEqual(400, ret.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
 
     def test_provision_with_deploy(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.ACTIVE})
-        self.assertEqual(202, ret.status_code)
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         self.mock_dnd.assert_called_once_with(
             mock.ANY, self.node.uuid, False, None, 'test-topic')
@@ -1760,13 +1761,13 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.name,
                             {'target': states.ACTIVE},
                             expect_errors=True)
-        self.assertEqual(404, ret.status_code)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
 
     def test_provision_by_name(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.name,
                             {'target': states.ACTIVE},
                             headers={api_base.Version.string: "1.5"})
-        self.assertEqual(202, ret.status_code)
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         self.mock_dnd.assert_called_once_with(
             mock.ANY, self.node.uuid, False, None, 'test-topic')
@@ -1774,7 +1775,7 @@ class TestPut(test_api_base.FunctionalTest):
     def test_provision_with_deploy_configdrive(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.ACTIVE, 'configdrive': 'foo'})
-        self.assertEqual(202, ret.status_code)
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         self.mock_dnd.assert_called_once_with(
             mock.ANY, self.node.uuid, False, 'foo', 'test-topic')
@@ -1788,7 +1789,7 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.DELETED, 'configdrive': 'foo'},
                             expect_errors=True)
-        self.assertEqual(400, ret.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
 
     def test_provision_with_tear_down(self):
         node = self.node
@@ -1797,7 +1798,7 @@ class TestPut(test_api_base.FunctionalTest):
         node.save()
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.DELETED})
-        self.assertEqual(202, ret.status_code)
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         self.mock_dntd.assert_called_once_with(
             mock.ANY, node.uuid, 'test-topic')
@@ -1816,7 +1817,7 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.ACTIVE},
                             expect_errors=True)
-        self.assertEqual(409, ret.status_code)  # Conflict
+        self.assertEqual(http_client.CONFLICT, ret.status_code)  # Conflict
         self.assertFalse(self.mock_dnd.called)
 
     def test_provision_locked_with_correct_state(self):
@@ -1830,7 +1831,7 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.ACTIVE},
                             expect_errors=True)
-        self.assertEqual(409, ret.status_code)  # Conflict
+        self.assertEqual(http_client.CONFLICT, ret.status_code)  # Conflict
         self.assertTrue(self.mock_dnd.called)
 
     def test_provision_with_tear_down_in_progress_deploywait(self):
@@ -1840,7 +1841,7 @@ class TestPut(test_api_base.FunctionalTest):
         node.save()
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.DELETED})
-        self.assertEqual(202, ret.status_code)
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         self.mock_dntd.assert_called_once_with(
             mock.ANY, node.uuid, 'test-topic')
@@ -1862,7 +1863,7 @@ class TestPut(test_api_base.FunctionalTest):
         node.save()
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.ACTIVE})
-        self.assertEqual(202, ret.status_code)
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         self.mock_dnd.assert_called_once_with(
             mock.ANY, node.uuid, False, None, 'test-topic')
@@ -1878,14 +1879,14 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.ACTIVE},
                             expect_errors=True)
-        self.assertEqual(400, ret.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
 
     def test_manage_raises_error_before_1_2(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.VERBS['manage']},
                             headers={},
                             expect_errors=True)
-        self.assertEqual(406, ret.status_code)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
     def test_provide_from_manage(self, mock_dpa):
@@ -1895,7 +1896,7 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.VERBS['provide']},
                             headers={api_base.Version.string: "1.4"})
-        self.assertEqual(202, ret.status_code)
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         mock_dpa.assert_called_once_with(mock.ANY, self.node.uuid,
                                          states.VERBS['provide'],
@@ -1910,7 +1911,7 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.MANAGEABLE},
                             expect_errors=True)
-        self.assertEqual(409, ret.status_code)  # Conflict
+        self.assertEqual(http_client.CONFLICT, ret.status_code)  # Conflict
 
     @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
     def test_manage_from_available(self, mock_dpa):
@@ -1920,7 +1921,7 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.VERBS['manage']},
                             headers={api_base.Version.string: "1.4"})
-        self.assertEqual(202, ret.status_code)
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         mock_dpa.assert_called_once_with(mock.ANY, self.node.uuid,
                                          states.VERBS['manage'],
@@ -1935,7 +1936,7 @@ class TestPut(test_api_base.FunctionalTest):
             ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                                 {'target': states.ACTIVE},
                                 expect_errors=True)
-            self.assertEqual(400, ret.status_code)
+            self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertEqual(0, mock_dpa.call_count)
 
     def test_set_console_mode_enabled(self):
@@ -1943,7 +1944,7 @@ class TestPut(test_api_base.FunctionalTest):
                                'set_console_mode') as mock_scm:
             ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
                                 {'enabled': "true"})
-            self.assertEqual(202, ret.status_code)
+            self.assertEqual(http_client.ACCEPTED, ret.status_code)
             self.assertEqual(b'', ret.body)
             mock_scm.assert_called_once_with(mock.ANY, self.node.uuid,
                                              True, 'test-topic')
@@ -1958,14 +1959,14 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/console' % self.node.name,
                             {'enabled': "true"},
                             expect_errors=True)
-        self.assertEqual(404, ret.status_code)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode')
     def test_set_console_by_name(self, mock_scm):
         ret = self.put_json('/nodes/%s/states/console' % self.node.name,
                             {'enabled': "true"},
                             headers={api_base.Version.string: "1.5"})
-        self.assertEqual(202, ret.status_code)
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         mock_scm.assert_called_once_with(mock.ANY, self.node.uuid,
                                          True, 'test-topic')
@@ -1975,7 +1976,7 @@ class TestPut(test_api_base.FunctionalTest):
                                'set_console_mode') as mock_scm:
             ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
                                 {'enabled': "false"})
-            self.assertEqual(202, ret.status_code)
+            self.assertEqual(http_client.ACCEPTED, ret.status_code)
             self.assertEqual(b'', ret.body)
             mock_scm.assert_called_once_with(mock.ANY, self.node.uuid,
                                              False, 'test-topic')
@@ -1991,7 +1992,7 @@ class TestPut(test_api_base.FunctionalTest):
             ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
                                 {'enabled': "invalid-value"},
                                 expect_errors=True)
-            self.assertEqual(400, ret.status_code)
+            self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
             # assert set_console_mode wasn't called
             assert not mock_scm.called
 
@@ -2000,7 +2001,7 @@ class TestPut(test_api_base.FunctionalTest):
                                'set_console_mode') as mock_scm:
             ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
                                 {}, expect_errors=True)
-            self.assertEqual(400, ret.status_code)
+            self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
             # assert set_console_mode wasn't called
             assert not mock_scm.called
 
@@ -2011,7 +2012,7 @@ class TestPut(test_api_base.FunctionalTest):
                 extension='console', driver='test-driver')
             ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
                                 {'enabled': "true"}, expect_errors=True)
-            self.assertEqual(400, ret.status_code)
+            self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
             mock_scm.assert_called_once_with(mock.ANY, self.node.uuid,
                                              True, 'test-topic')
 
@@ -2022,7 +2023,7 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.ACTIVE},
                             expect_errors=True)
-        self.assertEqual(400, ret.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertTrue(ret.json['error_message'])
 
     @mock.patch.object(rpcapi.ConductorAPI, 'set_boot_device')
@@ -2030,7 +2031,7 @@ class TestPut(test_api_base.FunctionalTest):
         device = boot_devices.PXE
         ret = self.put_json('/nodes/%s/management/boot_device'
                             % self.node.uuid, {'boot_device': device})
-        self.assertEqual(204, ret.status_code)
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         self.assertEqual(b'', ret.body)
         mock_sbd.assert_called_once_with(mock.ANY, self.node.uuid,
                                          device, persistent=False,
@@ -2042,7 +2043,7 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/management/boot_device'
                             % self.node.name, {'boot_device': device},
                             headers={api_base.Version.string: "1.5"})
-        self.assertEqual(204, ret.status_code)
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         self.assertEqual(b'', ret.body)
         mock_sbd.assert_called_once_with(mock.ANY, self.node.uuid,
                                          device, persistent=False,
@@ -2056,7 +2057,7 @@ class TestPut(test_api_base.FunctionalTest):
         ret = self.put_json('/nodes/%s/management/boot_device'
                             % self.node.uuid, {'boot_device': device},
                             expect_errors=True)
-        self.assertEqual(400, ret.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertTrue(ret.json['error_message'])
         mock_sbd.assert_called_once_with(mock.ANY, self.node.uuid,
                                          device, persistent=False,
@@ -2067,7 +2068,7 @@ class TestPut(test_api_base.FunctionalTest):
         device = boot_devices.PXE
         ret = self.put_json('/nodes/%s/management/boot_device?persistent=True'
                             % self.node.uuid, {'boot_device': device})
-        self.assertEqual(204, ret.status_code)
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         self.assertEqual(b'', ret.body)
         mock_sbd.assert_called_once_with(mock.ANY, self.node.uuid,
                                          device, persistent=True,
@@ -2080,7 +2081,7 @@ class TestPut(test_api_base.FunctionalTest):
                             % self.node.uuid, {'boot_device': device},
                             expect_errors=True)
         self.assertEqual('application/json', ret.content_type)
-        self.assertEqual(400, ret.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
 
     def _test_set_node_maintenance_mode(self, mock_update, mock_get, reason,
                                         node_ident, is_by_name=False):
@@ -2096,7 +2097,7 @@ class TestPut(test_api_base.FunctionalTest):
             headers = {}
         ret = self.put_json('/nodes/%s/maintenance' % node_ident,
                             request_body, headers=headers)
-        self.assertEqual(202, ret.status_code)
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         self.assertEqual(True, self.node.maintenance)
         self.assertEqual(reason, self.node.maintenance_reason)

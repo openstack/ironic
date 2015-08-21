@@ -19,6 +19,7 @@ import requests
 import sendfile
 import six
 import six.moves.builtins as __builtin__
+from six.moves import http_client
 
 from ironic.common import exception
 from ironic.common.glance_service.v1 import image_service as glance_v1_service
@@ -40,21 +41,21 @@ class HttpImageServiceTestCase(base.TestCase):
     @mock.patch.object(requests, 'head', autospec=True)
     def test_validate_href(self, head_mock):
         response = head_mock.return_value
-        response.status_code = 200
+        response.status_code = http_client.OK
         self.service.validate_href(self.href)
         head_mock.assert_called_once_with(self.href)
-        response.status_code = 204
+        response.status_code = http_client.NO_CONTENT
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.validate_href,
                           self.href)
-        response.status_code = 400
+        response.status_code = http_client.BAD_REQUEST
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.validate_href,
                           self.href)
 
     @mock.patch.object(requests, 'head', autospec=True)
     def test_validate_href_error_code(self, head_mock):
-        head_mock.return_value.status_code = 400
+        head_mock.return_value.status_code = http_client.BAD_REQUEST
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.validate_href, self.href)
         head_mock.assert_called_once_with(self.href)
@@ -68,7 +69,7 @@ class HttpImageServiceTestCase(base.TestCase):
 
     @mock.patch.object(requests, 'head', autospec=True)
     def _test_show(self, head_mock, mtime, mtime_date):
-        head_mock.return_value.status_code = 200
+        head_mock.return_value.status_code = http_client.OK
         head_mock.return_value.headers = {
             'Content-Length': 100,
             'Last-Modified': mtime
@@ -92,7 +93,7 @@ class HttpImageServiceTestCase(base.TestCase):
 
     @mock.patch.object(requests, 'head', autospec=True)
     def test_show_no_content_length(self, head_mock):
-        head_mock.return_value.status_code = 200
+        head_mock.return_value.status_code = http_client.OK
         head_mock.return_value.headers = {}
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.show, self.href)
@@ -102,7 +103,7 @@ class HttpImageServiceTestCase(base.TestCase):
     @mock.patch.object(requests, 'get', autospec=True)
     def test_download_success(self, req_get_mock, shutil_mock):
         response_mock = req_get_mock.return_value
-        response_mock.status_code = 200
+        response_mock.status_code = http_client.OK
         response_mock.raw = mock.MagicMock(spec=file)
         file_mock = mock.Mock(spec=file)
         self.service.download(self.href, file_mock)
@@ -123,7 +124,7 @@ class HttpImageServiceTestCase(base.TestCase):
     @mock.patch.object(requests, 'get', autospec=True)
     def test_download_fail_ioerror(self, req_get_mock, shutil_mock):
         response_mock = req_get_mock.return_value
-        response_mock.status_code = 200
+        response_mock.status_code = http_client.OK
         response_mock.raw = mock.MagicMock(spec=file)
         file_mock = mock.Mock(spec=file)
         shutil_mock.side_effect = IOError
