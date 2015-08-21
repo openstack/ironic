@@ -478,7 +478,7 @@ class Node(base.APIBase):
             except exception.ChassisNotFound as e:
                 # Change error code because 404 (NotFound) is inappropriate
                 # response for a POST request to create a Port
-                e.code = http_client.BAD_REQUEST  # BadRequest
+                e.code = http_client.BAD_REQUEST
                 raise e
         elif value == wtypes.Unset:
             self._chassis_uuid = wtypes.Unset

@@ -443,7 +443,7 @@ class NodeNotLocked(Invalid):
 class NoFreeConductorWorker(TemporaryFailure):
     message = _('Requested action cannot be performed due to lack of free '
                 'conductor workers.')
-    code = http_client.SERVICE_UNAVAILABLE  # Service Unavailable (temporary).
+    code = http_client.SERVICE_UNAVAILABLE
 
 
 class VendorPassthruException(IronicException):
