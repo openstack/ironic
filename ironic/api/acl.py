@@ -22,7 +22,7 @@ from ironic.api.middleware import auth_token
 def install(app, conf, public_routes):
     """Install ACL check on application.
 
-    :param app: A WSGI applicatin.
+    :param app: A WSGI application.
     :param conf: Settings. Dict'ified and passed to keystonemiddleware
     :param public_routes: The list of the routes which will be allowed to
                           access without authentication.
