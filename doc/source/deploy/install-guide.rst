@@ -1,39 +1,41 @@
 .. _install-guide:
 
 =====================================
-Bare Metal Service Installation Guide
+Bare Metal service Installation Guide
 =====================================
 
-This document pertains to the current code (on master branch) of OpenStack Ironic and should
-be accurate for the Kilo (2015.1) release of OpenStack Ironic.  Users
-of earlier releases may encounter differences, and are encouraged to look at
-earlier versions of this document for guidance.
+This document pertains to the current code (on master branch) of OpenStack
+Bare Metal service (ironic) and should be accurate for the Kilo (2015.1)
+release of the Bare Metal service.
+Users of earlier releases may encounter differences, and are encouraged
+to look at earlier versions of this document for guidance.
 
 
-Service Overview
-================
+Service overview
+~~~~~~~~~~~~~~~~
 
-The Bare Metal Service is a collection of components that provides support to
+The Bare Metal service is a collection of components that provides support to
 manage and provision physical machines.
 
-Also known as the ``Ironic`` project, the Bare Metal Service may, depending
+Also known as the ``ironic`` project, the Bare Metal service may, depending
 upon configuration, interact with several other OpenStack services. This
 includes:
 
-- the Telemetry (Ceilometer) for consuming the IPMI metrics
-- the Identity Service (Keystone) for request authentication and to
+- the OpenStack Telemetry module (ceilometer) for consuming the IPMI metrics
+- the OpenStack Identity service (keystone) for request authentication and to
   locate other OpenStack services
-- the Image Service (Glance) from which to retrieve images and image meta-data
-- the Networking Service (Neutron) for DHCP and network configuration
-- the Compute Service (Nova) works with Ironic and acts as a user-facing API
-  for instance management, while Ironic provides the admin/operator API for
-  hardware management. Nova also provides scheduling facilities (matching
+- the OpenStack Image service (glance) from which to retrieve images and image meta-data
+- the OpenStack Networking service (neutron) for DHCP and network configuration
+- the OpenStack Compute service (nova) works with the Bare Metal service and acts as
+  a user-facing API for instance management, while the Bare Metal service provides
+  the admin/operator API for hardware management.
+  The OpenStack Compute service also provides scheduling facilities (matching
   flavors <-> images <-> hardware), tenant quotas, IP assignment, and other
-  services which Ironic does not, in and of itself, provide.
+  services which the Bare Metal service does not, in and of itself, provide.
 
-- the Block Storage (Cinder) will provide volumes, but the aspect is not yet available.
+- the OpenStack Block Storage (cinder) provides volumes, but this aspect is not yet available.
 
-The Bare Metal Service includes the following components:
+The Bare Metal service includes the following components:
 
 - ironic-api: A RESTful API that processes application requests by sending
   them to the ironic-conductor over RPC.
@@ -43,18 +45,18 @@ The Bare Metal Service includes the following components:
   provide ironic-conductor service(s) with remote access and in-band hardware
   control.
 - python-ironicclient: A command-line interface (CLI) for interacting with
-  the Bare Metal Service.
+  the Bare Metal service.
 
-Additionally, the Bare Metal Service has certain external dependencies, which are
-very similar to other OpenStack Services:
+Additionally, the Bare Metal service has certain external dependencies, which are
+very similar to other OpenStack services:
 
 - A database to store hardware information and state. You can set the database
-  backend type and location. A simple approach is to use the same database
-  backend as the Compute Service. Another approach is to use a separate
-  database backend to further isolate bare metal resources (and associated
+  back-end type and location. A simple approach is to use the same database
+  back end as the Compute service. Another approach is to use a separate
+  database back-end to further isolate bare metal resources (and associated
   metadata) from users.
-- A queue. A central hub for passing messages. It should use the same
-  implementation as that of the Compute Service (typically RabbitMQ).
+- A queue. A central hub for passing messages, such as RabbitMQ.
+  It should use the same implementation as that of the Compute service.
 
 Optionally, one may wish to utilize the following associated projects for
 additional functionality:
@@ -71,38 +73,38 @@ additional functionality:
 .. todo: include coreos-image-builder reference here, once the split is done
 
 
-Install and Configure Prerequisites
+Install and configure prerequisites
 ===================================
 
-The Bare Metal Service is a collection of components that provides support to
+The Bare Metal service is a collection of components that provides support to
 manage and provision physical machines. You can configure these components to
 run on separate nodes or the same node. In this guide, the components run on
 one node, typically the Compute Service's compute node.
 
 This section shows you how to install and configure the components.
 
-It assumes that the Identity Service, Image Service, Compute Service, and
-Networking Service have already been set up.
+It assumes that the Identity, Image, Compute, and Networking services
+have already been set up.
 
-Configure Identity Service for Bare Metal
------------------------------------------
+Configure the Identity service for the Bare Metal service
+---------------------------------------------------------
 
-#. Create the Bare Metal service user (eg ``ironic``). The service uses this to
-   authenticate with the Identity Service. Use the ``service`` tenant and
-   give the user the ``admin`` role::
+#. Create the Bare Metal service user (for example,``ironic``).
+   The service uses this to authenticate with the Identity service.
+   Use the ``service`` tenant and give the user the ``admin`` role::
 
     keystone user-create --name=ironic --pass=IRONIC_PASSWORD --email=ironic@example.com
     keystone user-role-add --user=ironic --tenant=service --role=admin
 
-#. You must register the Bare Metal Service with the Identity Service so that
+#. You must register the Bare Metal service with the Identity service so that
    other OpenStack services can locate it. To register the service::
 
     keystone service-create --name=ironic --type=baremetal \
     --description="Ironic bare metal provisioning service"
 
-#. Use the ``id`` property that is returned from the Identity Service when registering
-   the service (above), to create the endpoint, and replace IRONIC_NODE
-   with your Bare Metal Service's API node::
+#. Use the ``id`` property that is returned from the Identity service when
+   registering the service (above), to create the endpoint,
+   and replace IRONIC_NODE with your Bare Metal service's API node::
 
     keystone endpoint-create \
     --service-id=the_service_id_above \
@@ -117,15 +119,15 @@ Configure Identity Service for Bare Metal
     that bug is fixed you can force the creation of "RegionOne" by passing
     --region=RegionOne as an argument to the keystone endpoint-create command.
 
-Set up the Database for Bare Metal
+Set up the database for Bare Metal
 ----------------------------------
 
-The Bare Metal Service stores information in a database. This guide uses the
+The Bare Metal service stores information in a database. This guide uses the
 MySQL database that is used by other OpenStack services.
 
 #. In MySQL, create an ``ironic`` database that is accessible by the
    ``ironic`` user. Replace IRONIC_DBPASSWORD
-   with the actual password::
+   with a suitable password::
 
     # mysql -u root -p
     mysql> CREATE DATABASE ironic CHARACTER SET utf8;
@@ -134,7 +136,7 @@ MySQL database that is used by other OpenStack services.
     mysql> GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'%' \
     IDENTIFIED BY 'IRONIC_DBPASSWORD';
 
-Install the Bare Metal Service
+Install the Bare Metal service
 ------------------------------
 
 #. Install from packages::
@@ -146,17 +148,17 @@ Install the Bare Metal Service
         yum install openstack-ironic-api openstack-ironic-conductor python-ironicclient
 
 
-Configure the Bare Metal Service
+Configure the Bare Metal service
 ================================
 
-The Bare Metal Service is configured via its configuration file. This file
+The Bare Metal service is configured via its configuration file. This file
 is typically located at ``/etc/ironic/ironic.conf``.
 
 Although some configuration options are mentioned here, it is recommended that
 you review all the `available options <https://git.openstack.org/cgit/openstack/ironic/tree/etc/ironic/ironic.conf.sample>`_
-so that the Bare Metal Service is configured for your needs.
+so that the Bare Metal service is configured for your needs.
 
-#. The Bare Metal Service stores information in a database. This guide uses the
+#. The Bare Metal service stores information in a database. This guide uses the
    MySQL database that is used by other OpenStack services.
 
    Configure the location of the database via the ``connection`` option. In the
@@ -171,7 +173,7 @@ so that the Bare Metal Service is configured for your needs.
     #connection=<None>
     connection = mysql+pymysql://ironic:IRONIC_DBPASSWORD@DB_IP/ironic?charset=utf8
 
-#. Configure the Bare Metal Service to use the RabbitMQ message broker by
+#. Configure the Bare Metal service to use the RabbitMQ message broker by
    setting one or more of these options. Replace RABBIT_HOST with the
    address of the RabbitMQ server.::
 
@@ -190,10 +192,10 @@ so that the Bare Metal Service is configured for your needs.
     # The RabbitMQ virtual host (string value)
     #rabbit_virtual_host=/
 
-#. Configure the Bare Metal Service to use these credentials with the Identity
-   Service. Replace IDENTITY_IP with the IP of the Identity server, and
+#. Configure the Bare Metal service to use these credentials with the Identity
+   service. Replace IDENTITY_IP with the IP of the Identity server, and
    replace IRONIC_PASSWORD with the password you chose for the ``ironic``
-   user in the Identity Service::
+   user in the Identity service::
 
     [DEFAULT]
     ...
@@ -237,8 +239,8 @@ so that the Bare Metal Service is configured for your needs.
     # value)
     #signing_dir=<None>
 
-#. Set the URL (replace NEUTRON_IP) for connecting to the Networking service, to be the
-   Networking service endpoint::
+#. Set the URL (replace NEUTRON_IP) for connecting to the Networking service,
+   to be the Networking service endpoint::
 
     [neutron]
 
@@ -246,9 +248,9 @@ so that the Bare Metal Service is configured for your needs.
     #url=http://127.0.0.1:9696
     url=http://NEUTRON_IP:9696
 
-#. Configure the Bare Metal Service so that it can communicate with the
-   Image Service. Replace GLANCE_IP with the hostname or IP address of
-   the Image Service::
+#. Configure the Bare Metal service so that it can communicate with the
+   Image service. Replace GLANCE_IP with the hostname or IP address of
+   the Image service::
 
     [glance]
 
@@ -274,11 +276,11 @@ so that the Bare Metal Service is configured for your needs.
     #glance_api_servers=<None>
 
 
-#. Create the Bare Metal Service database tables::
+#. Create the Bare Metal service database tables::
 
     ironic-dbsync --config-file /etc/ironic/ironic.conf create_schema
 
-#. Restart the Bare Metal Service::
+#. Restart the Bare Metal service::
 
     service ironic-api restart
     service ironic-conductor restart
@@ -287,8 +289,8 @@ so that the Bare Metal Service is configured for your needs.
 Configuring ironic-api behind mod_wsgi
 --------------------------------------
 
-Ironic comes with an example file  for configuring the ``ironic-api``
-service to run behind Apache with mod_wsgi.
+Bare Metal service comes with an example file  for configuring the
+``ironic-api`` service to run behind Apache with mod_wsgi.
 
 1. Install the apache service::
 
@@ -334,17 +336,17 @@ service to run behind Apache with mod_wsgi.
 
 
 .. note::
-   The file ironic/api/app.wsgi is installed with the rest of the ironic
-   application code, and should not need to be modified.
+   The file ironic/api/app.wsgi is installed with the rest of the Bare Metal
+   service application code, and should not need to be modified.
 
 
-Configure Compute Service to use the Bare Metal Service
-=======================================================
+Configure Compute to use the Bare Metal service
+===============================================
 
-The Compute Service needs to be configured to use the Bare Metal Service's
-driver.  The configuration file for the Compute Service is typically located at
+The Compute service needs to be configured to use the Bare Metal service's
+driver.  The configuration file for the Compute service is typically located at
 ``/etc/nova/nova.conf``. *This configuration file must be modified on the
-Compute Service's controller nodes and compute nodes.*
+Compute service's controller nodes and compute nodes.*
 
 1. Change these configuration options in the ``default`` section, as follows::
 
@@ -420,28 +422,28 @@ Compute Service's controller nodes and compute nodes.*
     # URL for Ironic API endpoint.
     api_endpoint=http://IRONIC_NODE:6385/v1
 
-3. On the Compute Service's controller nodes, restart ``nova-scheduler`` process::
+3. On the Compute service's controller nodes, restart the ``nova-scheduler`` process::
 
     service nova-scheduler restart
 
-4. On the Compute Service's compute nodes, restart the ``nova-compute`` process::
+4. On the Compute service's compute nodes, restart the ``nova-compute`` process::
 
     service nova-compute restart
 
 .. _NeutronFlatNetworking:
 
-Configure Neutron to communicate with the Bare Metal Server
-===========================================================
+Configure Networking to communicate with the bare metal server
+==============================================================
 
-Neutron needs to be configured so that the bare metal server can communicate
-with the OpenStack Networking service for DHCP, PXE Boot and other
-requirements. This section describes how to configure Neutron for a single flat
-network use case for bare metal provisioning.
+You need to configure Networking so that the bare metal server can communicate
+with the Networking service for DHCP, PXE boot and other requirements.
+This section covers configuring Networking for a single flat
+network for bare metal provisioning.
 
-You will also need to provide Ironic with the MAC address(es) of each Node that
-it is provisioning; Ironic in turn will pass this information to Neutron for
-DHCP and PXE Boot configuration. An example of this is shown in the
-`Enrollment`_ section.
+You will also need to provide Bare Metal service with the MAC address(es) of
+each node that it is provisioning; Bare Metal service in turn will pass this
+information to Networking service for DHCP and PXE boot configuration.
+An example of this is shown in the `Enrollment`_ section.
 
 #. Edit ``/etc/neutron/plugins/ml2/ml2_conf.ini`` and modify these::
 
@@ -475,9 +477,10 @@ DHCP and PXE Boot configuration. An example of this is shown in the
     ovs-vsctl add-br br-int
 
 #. Create the br-eth2 network bridge to handle communication between the
-   OpenStack (and Bare Metal services) and the bare metal nodes using eth2.
-   Replace eth2 with the interface on the neutron node which you are
-   using to connect to the Bare Metal Service::
+   OpenStack services (and the Bare Metal services) and the bare metal nodes
+   using eth2.
+   Replace eth2 with the interface on the network node which you are
+   using to connect to the Bare Metal service::
 
     ovs-vsctl add-br br-eth2
     ovs-vsctl add-port br-eth2 eth2
@@ -486,8 +489,8 @@ DHCP and PXE Boot configuration. An example of this is shown in the
 
     service neutron-plugin-openvswitch-agent restart
 
-#. On restarting the Neutron Open vSwitch agent, the veth pair between
-   the bridges br-int and br-eth2 is automatically created.
+#. On restarting the Networking sevice Open vSwitch agent, the veth pair
+   between the bridges br-int and br-eth2 is automatically created.
 
    Your Open vSwitch bridges should look something like this after
    following the above steps::
@@ -529,10 +532,10 @@ DHCP and PXE Boot configuration. An example of this is shown in the
 
 .. _CleaningNetworkSetup:
 
-Configure the Bare Metal Service for Cleaning
+Configure the Bare Metal service for cleaning
 =============================================
 
-#. If you configure Ironic to use :ref:`cleaning` (which is enabled by
+#. If you configure Bare Metal service to use :ref:`cleaning` (which is enabled by
    default), you will need to set the ``cleaning_network_uuid`` configuration
    option. Note the network UUID (the `id` field) of the network you created in
    :ref:`NeutronFlatNetworking` or another network you created for cleaning::
@@ -540,9 +543,9 @@ Configure the Bare Metal Service for Cleaning
     neutron net-list
 
 #. Configure the cleaning network UUID via the ``cleaning_network_uuid``
-   option in the Ironic configuration file (/etc/ironic/ironic.conf). In the
-   following, replace NETWORK_UUID with the UUID you noted in the previous
-   step::
+   option in the Bare Metal service configuration file (/etc/ironic/ironic.conf).
+   In the following, replace NETWORK_UUID with the UUID you noted in the
+   previous step::
 
     [neutron]
     ...
@@ -553,19 +556,19 @@ Configure the Bare Metal Service for Cleaning
     #cleaning_network_uuid=<None>
     cleaning_network_uuid = NETWORK_UUID
 
-#. Restart the Bare Metal Service's ironic-conductor::
+#. Restart the Bare Metal service's ironic-conductor::
 
     service ironic-conductor restart
 
-Image Requirements
+Image requirements
 ==================
 
 Bare Metal provisioning requires two sets of images: the deploy images
-and the user images. The deploy images are used by the Bare Metal Service
+and the user images. The deploy images are used by the Bare Metal service
 to prepare the bare metal server for actual OS deployment. Whereas the
 user images are installed on the bare metal server to be used by the
 end user. Below are the steps to create the required images and add
-them to Glance service:
+them to the Image service:
 
 1. The `disk-image-builder`_ can be used to create images required for
    deployment and the actual OS which the user is going to run.
@@ -599,12 +602,13 @@ them to Glance service:
    - To build the deploy image take a look at the `Building or
      downloading a deploy ramdisk image`_ section.
 
-2. Add the user images to glance
+2. Add the user images to the Image service
 
-   Load all the images created in the below steps into Glance, and
-   note the glance image UUIDs for each one as it is generated.
+   Load all the images created in the below steps into the Image service,
+   and note the image UUIDs in the Image service for each one as it is
+   generated.
 
-   - Add the kernel and ramdisk images to glance::
+   - Add the kernel and ramdisk images to the Image service::
 
         glance image-create --name my-kernel --is-public True \
         --disk-format aki  < my-image.vmlinuz
@@ -620,7 +624,7 @@ them to Glance service:
      Store the image UUID obtained from the above step as
      *$MY_INITRD_UUID*.
 
-   - Add the *my-image* to glance which is going to be the OS
+   - Add the *my-image* to the Image service which is going to be the OS
      that the user is going to run. Also associate the above created
      images with this OS image. These two operations can be done by
      executing the following command::
@@ -637,10 +641,10 @@ them to Glance service:
          --disk-format qcow2 \
          --container-format bare < my-whole-disk-image.qcow2
 
-3. Add the deploy images to glance
+3. Add the deploy images to the Image service
 
    Add the *my-deploy-ramdisk.kernel* and
-   *my-deploy-ramdisk.initramfs* images to glance::
+   *my-deploy-ramdisk.initramfs* images to the Image service::
 
         glance image-create --name deploy-vmlinuz --is-public True \
         --disk-format aki < my-deploy-ramdisk.kernel
@@ -656,11 +660,11 @@ them to Glance service:
    Store the image UUID obtained from the above step as
    *$DEPLOY_INITRD_UUID*.
 
-Flavor Creation
+Flavor creation
 ===============
 
-You'll need to create a special Bare Metal flavor in Nova. The flavor is
-mapped to the bare metal server through the hardware specifications.
+You'll need to create a special bare metal flavor in the Compute service.
+The flavor is mapped to the bare metal node through the hardware specifications.
 
 #. Change these to match your hardware::
 
@@ -669,27 +673,27 @@ mapped to the bare metal server through the hardware specifications.
     DISK_GB=100
     ARCH={i686|x86_64}
 
-#. Create the baremetal flavor by executing the following command::
+#. Create the bare metal flavor by executing the following command::
 
     nova flavor-create my-baremetal-flavor auto $RAM_MB $DISK_GB $CPU
 
    *Note: You can replace auto with your own flavor id.*
 
 #. A flavor can include a set of key/value pairs called extra_specs.
-   In case of Icehouse version of Ironic, you need to associate the
+   In case of Icehouse version of the Bare Metal service, you need to associate the
    deploy ramdisk and deploy kernel images to the flavor as flavor-keys.
    But in case of Juno and higher versions, this is deprecated. Because these
    may vary between nodes in a heterogeneous environment, the deploy kernel
    and ramdisk images should be associated with each node's driver_info.
 
-   - **Icehouse** version of Ironic::
+   - **Icehouse** version of Bare Metal service::
 
       nova flavor-key my-baremetal-flavor set \
       cpu_arch=$ARCH \
       "baremetal:deploy_kernel_id"=$DEPLOY_VMLINUZ_UUID \
       "baremetal:deploy_ramdisk_id"=$DEPLOY_INITRD_UUID
 
-   - **Juno** version of Ironic::
+   - **Juno** version of Bare Metal service::
 
       nova flavor-key my-baremetal-flavor set cpu_arch=$ARCH
 
@@ -700,7 +704,7 @@ mapped to the bare metal server through the hardware specifications.
       driver_info/pxe_deploy_kernel=$DEPLOY_VMLINUZ_UUID \
       driver_info/pxe_deploy_ramdisk=$DEPLOY_INITRD_UUID
 
-   - **Kilo** and higher versions of Ironic::
+   - **Kilo** and higher versions of Bare Metal service::
 
       nova flavor-key my-baremetal-flavor set cpu_arch=$ARCH
 
@@ -712,13 +716,13 @@ mapped to the bare metal server through the hardware specifications.
       driver_info/deploy_ramdisk=$DEPLOY_INITRD_UUID
 
 
-Setup the drivers for Bare Metal Service
-========================================
+Setup the drivers for the Bare Metal service
+============================================
 
-PXE Setup
+PXE setup
 ---------
 
-If you will be using PXE, it needs to be set up on the Bare Metal Service
+If you will be using PXE, it needs to be set up on the Bare Metal service
 node(s) where ``ironic-conductor`` is running.
 
 #. Make sure the tftp root directory exist and can be written to by the
@@ -787,11 +791,11 @@ node(s) where ``ironic-conductor`` is running.
 .. [2] http://www.syslinux.org/wiki/index.php/Library_modules
 
 
-PXE UEFI Setup
+PXE UEFI setup
 --------------
 
 If you want to deploy on a UEFI supported bare metal, perform these additional
-steps on the Ironic conductor node to configure PXE UEFI environment.
+steps on the ironic conductor node to configure the PXE UEFI environment.
 
 #. Download and untar the elilo bootloader version >= 3.16 from
    http://sourceforge.net/projects/elilo/::
@@ -802,8 +806,8 @@ steps on the Ironic conductor node to configure PXE UEFI environment.
 
     sudo cp ./elilo-3.16-x86_64.efi /tftpboot/elilo.efi
 
-#. Grub2 is an alternate UEFI bootloader supported in Ironic. Install grub2 and
-   shim packages::
+#. Grub2 is an alternate UEFI bootloader supported in Bare Metal service.
+   Install grub2 and shim packages::
 
     Ubuntu: (14.04LTS and later)
         sudo apt-get install grub-efi-amd64-signed shim-signed
@@ -863,7 +867,7 @@ steps on the Ironic conductor node to configure PXE UEFI environment.
     # (string value)
     uefi_pxe_config_template=$pybasedir/drivers/modules/pxe_grub_config.template
 
-#. Update the Ironic node with ``boot_mode`` capability in node's properties
+#. Update the bare metal node with ``boot_mode`` capability in node's properties
    field::
 
     ironic node-update <node-uuid> add properties/capabilities='boot_mode:uefi'
@@ -872,20 +876,20 @@ steps on the Ironic conductor node to configure PXE UEFI environment.
    boot device is set to network/pxe.
 
    NOTE: ``pxe_ilo`` driver supports automatic setting of UEFI boot mode and
-   boot device on the baremetal node. So this step is not required for
+   boot device on the bare metal node. So this step is not required for
    ``pxe_ilo`` driver.
 
 For more information on configuring boot modes, refer boot_mode_support_.
 
 
-iPXE Setup
+iPXE setup
 ----------
 
 An alternative to PXE boot, iPXE was introduced in the Juno release
-(2014.2.0) of Ironic.
+(2014.2.0) of Bare Metal service.
 
 If you will be using iPXE to boot instead of PXE, iPXE needs to be set up
-on the Bare Metal Service node(s) where ``ironic-conductor`` is running.
+on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
 #. Make sure these directories exist and can be written to by the user
    the ``ironic-conductor`` is running as. For example::
@@ -910,7 +914,7 @@ on the Bare Metal Service node(s) where ``ironic-conductor`` is running.
    These root directories need to be mounted locally to the
    ``ironic-conductor`` services, so that the services can access them.
 
-   The Bare Metal Service's configuration file (/etc/ironic/ironic.conf)
+   The Bare Metal service's configuration file (/etc/ironic/ironic.conf)
    should be edited accordingly to specify the TFTP and HTTP root
    directories and server addresses. For example::
 
@@ -971,14 +975,15 @@ on the Bare Metal Service node(s) where ``ironic-conductor`` is running.
     service ironic-conductor restart
 
 
-Neutron configuration
----------------------
+Networking service configuration
+--------------------------------
 
 DHCP requests from iPXE need to have a DHCP tag called ``ipxe``, in order
 for the DHCP server to tell the client to get the boot.ipxe script via
 HTTP. Otherwise, if the tag isn't there, the DHCP server will tell the
-DHCP client to chainload the iPXE image (undionly.kpxe). Neutron needs to
-be configured to create this DHCP tag, since it isn't create by default.
+DHCP client to chainload the iPXE image (undionly.kpxe).
+The Networking service needs to be configured to create this DHCP tag,
+since it isn't created by default.
 
 #. Create a custom ``dnsmasq.conf`` file with a setting for the ipxe tag. For
    example, create the file ``/etc/dnsmasq-ironic.conf`` with the content::
@@ -989,7 +994,7 @@ be configured to create this DHCP tag, since it isn't create by default.
     # Alternatively, create the "ipxe" tag if request comes from DHCP option 175
     # dhcp-match=set:ipxe,175
 
-#. In the Neutron DHCP Agent configuration file (typically located at
+#. In the Networking service DHCP Agent configuration file (typically located at
    /etc/neutron/dhcp_agent.ini), set the custom ``/etc/dnsmasq-ironic.conf``
    file as the dnsmasq configuration file::
 
@@ -1023,8 +1028,8 @@ controller in your bare metal server by using ``ipmitool``::
 
 *Note:*
 
-#. This is not the bare metal server's main IP. The IPMI controller
-   should have it's own unique IP.
+#. This is not the bare metal node's main IP. The IPMI controller
+   should have its own unique IP.
 
 #. In case the above command doesn't return the power status of the
    bare metal server, check for these:
@@ -1042,31 +1047,32 @@ controller in your bare metal server by using ``ipmitool``::
    default is fairly conservative, as setting this timeout too low can cause
    older BMCs to crash and require a hard-reset.
 
-Ironic supports sending IPMI sensor data to Ceilometer with pxe_ipmitool,
+Bare Metal service supports sending IPMI sensor data to Telemetry with pxe_ipmitool,
 pxe_ipminative, agent_ipmitool, agent_pyghmi, agent_ilo, iscsi_ilo, pxe_ilo,
 and with pxe_irmc driver starting from Kilo release. By default, support for
-sending IPMI sensor data to Ceilometer is disabled. If you want to enable it,
+sending IPMI sensor data to Telemetry is disabled. If you want to enable it,
 you should make the following two changes in ``ironic.conf``:
 
 * ``notification_driver = messaging`` in the ``DEFAULT`` section
 * ``send_sensor_data = true`` in the ``conductor`` section
 
-If you want to customize the sensor types which will be sent to Ceilometer,
-change the ``send_sensor_data_types`` option. For example, the below settings
-will send Temperature,Fan,Voltage these three sensor types data to Ceilometer:
+If you want to customize the sensor types which will be sent to Telemetry,
+change the ``send_sensor_data_types`` option. For example, the below
+settings will send temperature, fan, voltage and these three sensor types
+of data to Telemetry:
 
 * send_sensor_data_types=Temperature,Fan,Voltage
 
-Else we use default value 'All' for all the sensor types which supported by
-Ceilometer, they are:
+If we use default value 'All' for all the sensor types which are supported by
+Telemetry, they are:
 
-* Temperature,Fan,Voltage,Current
+* Temperature, Fan, Voltage, Current
 
 
 Configure node web console
 --------------------------
 
-The web console can be configured in Ironic in the following way:
+The web console can be configured in Bare Metal service in the following way:
 
 * Install shellinabox in ironic conductor node. For RHEL/CentOS, shellinabox package
   is not present in base repositories, user must enable EPEL repository, you can find
@@ -1083,8 +1089,8 @@ The web console can be configured in Ironic in the following way:
 
   You can find more about shellinabox on the `shellinabox page`_.
 
-  You can use SSL certificate in shellinabox, it is a optional. If you want to use SSL
-  certificate in shellinabox, you should install openssl and generate SSL certificate.
+  You can optionally use the SSL certificate in shellinabox. If you want to use the SSL
+  certificate in shellinabox, you should install openssl and generate the SSL certificate.
 
   1. Install openssl, for example::
 
@@ -1094,7 +1100,7 @@ The web console can be configured in Ironic in the following way:
     Fedora/RHEL:
          sudo yum install openssl
 
-  2. Generate SSL certificate, here is an example, you can find more about openssl on
+  2. Generate the SSL certificate, here is an example, you can find more about openssl on
      the `openssl page`_::
 
     cd /tmp/ca
@@ -1105,8 +1111,9 @@ The web console can be configured in Ironic in the following way:
     openssl x509 -req -days 3650 -in my.csr -signkey my.key -out my.crt
     cat my.crt my.key > certificate.pem
 
-* Customize console section in the ironic configuration file (/etc/ironic/ironic.conf),
-  if you want to use SSL certificate in shellinabox, you should specify ``terminal_cert_dir``.
+* Customize the console section in the Bare Metal service configuration
+  file (/etc/ironic/ironic.conf), if you want to use SSL certificate in
+  shellinabox, you should specify ``terminal_cert_dir``.
   for example::
 
    [console]
@@ -1134,37 +1141,38 @@ The web console can be configured in Ironic in the following way:
    # start. (integer value)
    #subprocess_timeout=10
 
-* Append console parameters for baremetal PXE boot in the ironic configuration
-  file (/etc/ironic/ironic.conf), including right serial port terminal and serial speed,
-  serial speed should be same serial configuration with BIOS settings, so that os boot
-  process can be seen in web console, for example::
+* Append console parameters for bare metal PXE boot in the Bare Metal service
+  configuration file (/etc/ironic/ironic.conf), including right serial port
+  terminal and serial speed, serial speed should be same serial configuration
+  with BIOS settings, so that os boot process can be seen in web console,
+  for example::
 
    pxe_* driver:
 
         [pxe]
 
-        #Additional append parameters for baremetal PXE boot. (string value)
+        #Additional append parameters for bare metal PXE boot. (string value)
         pxe_append_params = nofb nomodeset vga=normal console=tty0 console=ttyS0,115200n8
 
    agent_* driver:
 
         [agent]
 
-        #Additional append parameters for baremetal PXE boot. (string value)
+        #Additional append parameters for bare metal PXE boot. (string value)
         agent_pxe_append_params = nofb nomodeset vga=normal console=tty0 console=ttyS0,115200n8
 
 * Configure node web console.
 
-  Enable web console, for example::
+  Enable the web console, for example::
 
    ironic node-update <node-uuid> add driver_info/<terminal_port>=<customized_port>
    ironic node-set-console-mode <node-uuid> true
 
-  Check whether console is enabled or not, for example::
+  Check whether the console is enabled, for example::
 
    ironic node-validate <node-uuid>
 
-  Disable web console, for example::
+  Disable the web console, for example::
 
    ironic node-set-console-mode <node-uuid> false
    ironic node-update <node-uuid> remove driver_info/<terminal_port>
@@ -1206,7 +1214,7 @@ The following drivers support setting of boot mode (Legacy BIOS or UEFI).
 
 * ``pxe_ipmitool``
 
-The boot modes can be configured in Ironic in the following way:
+The boot modes can be configured in Bare Metal service in the following way:
 
 * When no boot mode setting is provided, these drivers default the boot_mode
   to Legacy BIOS.
@@ -1216,7 +1224,7 @@ The boot modes can be configured in Ironic in the following way:
 
 * If the operator wants a node to boot always in ``uefi`` mode or ``bios``
   mode, then they may use ``capabilities`` parameter within ``properties``
-  field of an Ironic node.  The operator must manually set the appropriate
+  field of an bare metal node.  The operator must manually set the appropriate
   boot mode on the bare metal node.
 
   To configure a node in ``uefi`` mode, then set ``capabilities`` as below::
@@ -1224,72 +1232,74 @@ The boot modes can be configured in Ironic in the following way:
     ironic node-update <node-uuid> add properties/capabilities='boot_mode:uefi'
 
   Nodes having ``boot_mode`` set to ``uefi`` may be requested by adding an
-  ``extra_spec`` to the Nova flavor::
+  ``extra_spec`` to the Compute service flavor::
 
     nova flavor-key ironic-test-3 set capabilities:boot_mode="uefi"
     nova boot --flavor ironic-test-3 --image test-image instance-1
 
-  If ``capabilities`` is used in ``extra_spec`` as above, Nova scheduler
-  (``ComputeCapabilitiesFilter``) will match only Ironic nodes which have
+  If ``capabilities`` is used in ``extra_spec`` as above, nova scheduler
+  (``ComputeCapabilitiesFilter``) will match only bare metal nodes which have
   the ``boot_mode`` set appropriately in ``properties/capabilities``. It will
   filter out rest of the nodes.
 
-  The above facility for matching in Nova can be used in heterogeneous
-  environments where there is a mix of ``uefi`` and ``bios`` machines, and
-  operator wants to provide a choice to the user regarding boot modes. If
-  the flavor doesn't contain ``boot_mode`` and ``boot_mode`` is configured for
-  Ironic nodes, then Nova scheduler will consider all nodes and user may get
-  either ``bios`` or ``uefi`` machine.
+  The above facility for matching in the Compute service can be used in
+  heterogeneous environments where there is a mix of ``uefi`` and ``bios``
+  machines, and operator wants to provide a choice to the user regarding
+  boot modes. If the flavor doesn't contain ``boot_mode`` and ``boot_mode``
+  is configured for bare metal nodes, then nova scheduler will consider all
+  nodes and user may get either ``bios`` or ``uefi`` machine.
 
 
 Local boot with partition images
 ================================
 
-Starting with the Kilo release, Ironic supports local boot with partition
-images, meaning that after the deployment the node's subsequent reboots
-won't happen via PXE or Virtual Media. Instead, it will boot from a
+Starting with the Kilo release, Bare Metal service supports local boot with
+partition images, meaning that after the deployment the node's subsequent
+reboots won't happen via PXE or Virtual Media. Instead, it will boot from a
 local boot loader installed on the disk.
 
 It's important to note that in order for this to work the image being
-deployed with Ironic **must** contain ``grub2`` installed within it.
+deployed with Bare Metal serivce **must** contain ``grub2`` installed within it.
 
-Enabling the local boot is different when Ironic is used with Nova and
-without it. The following sections will describe both methods.
+Enabling the local boot is different when Bare Metal service is used with 
+Compute service and without it.
+The following sections will describe both methods.
 
 .. note::
    The local boot feature is dependent upon a updated deploy ramdisk built
    with diskimage-builder_ **version >= 0.1.42** or ironic-python-agent_
    in the kilo-era.
 
-Enabling local boot with Nova
------------------------------
+Enabling local boot with Compute service
+----------------------------------------
 
-To enable local boot we need to set a capability on the Ironic node, e.g::
+To enable local boot we need to set a capability on the bare metal node,
+for example::
 
     ironic node-update <node-uuid> add properties/capabilities="boot_option:local"
 
 
 Nodes having ``boot_option`` set to ``local`` may be requested by adding
-an ``extra_spec`` to the Nova flavor, e.g::
+an ``extra_spec`` to the Compute service flavor, for example::
 
     nova flavor-key baremetal set capabilities:boot_option="local"
 
 
 .. note::
-    If the node is configured to use ``UEFI``, Ironic will create an ``EFI
-    partition`` on the disk and switch the partition table format to
+    If the node is configured to use ``UEFI``, Bare Metal service will create
+    an ``EFI partition`` on the disk and switch the partition table format to
     ``gpt``. The ``EFI partition`` will be used later by the boot loader
     (which is installed from the deploy ramdisk).
 
 
-Enabling local boot without Nova
---------------------------------
+Enabling local boot without Compute
+-----------------------------------
 
 Since adding ``capabilities`` to the node's properties is only used by
-the Nova scheduler to perform more advanced scheduling of instances,
-we need a way to enable local boot when Nova is not present. To do that
+the nova scheduler to perform more advanced scheduling of instances,
+we need a way to enable local boot when Compute is not present. To do that
 we can simply specify the capability via the ``instance_info`` attribute
-of the node, e.g::
+of the node, for example::
 
     ironic node-update <node-uuid> add instance_info/capabilities='{"boot_option": "local"}'
 
@@ -1297,29 +1307,32 @@ of the node, e.g::
 Enrollment
 ==========
 
-After all services have been properly configured, you should enroll your
-hardware with Ironic, and confirm that the Compute service sees the available
-hardware.
+After all the services have been properly configured, you should enroll your
+hardware with Bare Metal service, and confirm that the Compute service sees
+the available hardware.
 
 .. note::
-   When enrolling Nodes with Ironic, note that the Compute service will not
-   be immediately notified of the new resources. Nova's resource tracker
-   syncs periodically, and so any changes made directly to Ironic's resources
-   will become visible in Nova only after the next run of that periodic task.
+   When enrolling nodes with Bare Metal service, note that the Compute service
+   will not be immediately notified of the new resources. Compute service's
+   resource tracker syncs periodically, and so any changes made directly to
+   Bare Metal service's resources will become visible in the Compute service
+   only after the next run of that periodic task.
    More information is in the `Troubleshooting`_ section below.
 
 .. note::
-   Any Ironic Node that is visible to Nova may have a workload scheduled to it,
-   if both the ``power`` and ``deploy`` interfaces pass the ``validate`` check.
-   If you wish to exclude a Node from Nova's scheduler, for instance so that
-   you can perform maintenance on it, you can set the Node to "maintenance" mode.
+   Any bare metal node that is visible to the Compute service may have a
+   workload scheduled to it, if both the ``power`` and ``deploy`` interfaces
+   pass the ``validate`` check.
+   If you wish to exclude a node from nova scheduler, for instance so that you
+   can perform maintenance on it, you can set the node to "maintenance" mode.
    For more information see the `Maintenance Mode`_ section below.
 
 Some steps are shown separately for illustration purposes, and may be combined
 if desired.
 
-#. Create a Node in Ironic. At minimum, you must specify the driver name (eg,
-   "pxe_ipmitool"). This will return the node UUID::
+#. Create a node in the Bare Metal service. At minimum, you must
+   specify the driver name (for example, "pxe_ipmitool").
+   This will return the node UUID::
 
     ironic node-create -d pxe_ipmitool
     +--------------+--------------------------------------+
@@ -1334,16 +1347,16 @@ if desired.
     | name         | None                                 |
     +--------------+--------------------------------------+
 
-   Beginning with the Kilo release a Node may also be referred to by a logical
+   Beginning with the Kilo release a node may also be referred to by a logical
    name as well as its UUID. To utilize this new feature a name must be
-   assigned to the Node. This can be done when the Node is created by
+   assigned to the node. This can be done when the node is created by
    adding the ``-n`` option to the ``node-create`` command or by updating an
-   existing Node with the ``node-update`` command. See `Logical Names`_ for
+   existing node with the ``node-update`` command. See `Logical Names`_ for
    examples.
 
-#. Update the Node ``driver_info`` so that Ironic can manage the node. Different
-   drivers may require different information about the node. You can determine this
-   with the ``driver-properties`` command, as follows::
+#. Update the node ``driver_info`` so that Bare Metal service can manage the
+   node. Different drivers may require different information about the node.
+   You can determine this with the ``driver-properties`` command, as follows::
 
     ironic driver-properties pxe_ipmitool
     +----------------------+-------------------------------------------------------------------------------------------------------------+
@@ -1365,7 +1378,7 @@ if desired.
    Note that you may also specify all ``driver_info`` parameters during
    ``node-create`` by passing the **-i** option multiple times.
 
-#. Update the Node's properties to match the baremetal flavor you created
+#. Update the node's properties to match the bare metal flavor you created
    earlier::
 
     ironic node-update $NODE_UUID add \
@@ -1377,32 +1390,32 @@ if desired.
    As above, these can also be specified at node creation by passing the **-p**
    option to ``node-create`` multiple times.
 
-#. If you wish to perform more advanced scheduling of instances based on
-   hardware capabilities, you may add metadata to each Node that will be
-   exposed to the Nova Scheduler (see: `ComputeCapabilitiesFilter`_).  A full
+#. If you wish to perform more advanced scheduling of the instances based on
+   hardware capabilities, you may add metadata to each node that will be
+   exposed to the nova scheduler (see: `ComputeCapabilitiesFilter`_).  A full
    explanation of this is outside of the scope of this document. It can be done
-   through the special ``capabilities`` member of Node properties::
+   through the special ``capabilities`` member of node properties::
 
     ironic node-update $NODE_UUID add \
     properties/capabilities=key1:val1,key2:val2
 
 #. As mentioned in the `Flavor Creation`_ section, if using the Kilo or later
-   release of Ironic, you should specify a deploy kernel and ramdisk which
-   correspond to the Node's driver, eg::
+   release of Bare Metal service, you should specify a deploy kernel and
+   ramdisk which correspond to the node's driver, for example::
 
     ironic node-update $NODE_UUID add \
     driver_info/deploy_kernel=$DEPLOY_VMLINUZ_UUID \
     driver_info/deploy_ramdisk=$DEPLOY_INITRD_UUID
 
-#. You must also inform Ironic of the Network Interface Cards which are part of
-   the Node by creating a Port with each NIC's MAC address.  These MAC
-   addresses are passed to Neutron during instance provisioning and used to
-   configure the network appropriately::
+#. You must also inform Bare Metal service of the network interface cards which
+   are part of the node by creating a port with each NIC's MAC address.
+   These MAC addresses are passed to the Networking service during instance
+   provisioning and used to configure the network appropriately::
 
     ironic port-create -n $NODE_UUID -a $MAC_ADDRESS
 
-#. To check if Ironic has the minimum information necessary for a Node's driver
-   to function, you may ``validate`` it::
+#. To check if Bare Metal service has the minimum information necessary for
+   a node's driver to function, you may ``validate`` it::
 
     ironic node-validate $NODE_UUID
 
@@ -1415,7 +1428,7 @@ if desired.
     | power      | True   |        |
     +------------+--------+--------+
 
-  If the Node fails validation, each driver will return information as to why it failed::
+  If the node fails validation, each driver will return information as to why it failed::
 
    ironic node-validate $NODE_UUID
 
@@ -1431,12 +1444,12 @@ if desired.
 .. _ComputeCapabilitiesFilter: http://docs.openstack.org/developer/nova/devref/filter_scheduler.html?highlight=computecapabilitiesfilter
 
 
-Logical Names
+Logical names
 -------------
 Beginning with the Kilo release a Node may also be referred to by a
 logical name as well as its UUID. Names can be assigned either when
-creating the Node by adding the ``-n`` option to the ``node-create`` command or
-by updating an existing Node with the ``node-update`` command.
+creating the node by adding the ``-n`` option to the ``node-create`` command or
+by updating an existing node with the ``node-update`` command.
 
 Node names must be unique, and conform to:
 
@@ -1454,7 +1467,7 @@ or::
     ironic node-update $NODE_UUID add name=example
 
 
-Once assigned a logical name a Node can then be referred to by name or
+Once assigned a logical name, a node can then be referred to by name or
 UUID interchangeably.
 ::
 
@@ -1496,15 +1509,16 @@ UUID interchangeably.
 Hardware Inspection
 -------------------
 
-Starting with Kilo release Ironic supports hardware inspection that simplifies
-enrolling nodes. Inspection allows Ironic to discover required node properties
-once required ``driver_info`` fields (e.g. IPMI credentials) are set
-by an operator. Inspection will also create the ironic ports for the
-discovered ethernet MACs. Operators will have to manually delete the ironic
-ports for which physical media is not connected. This is required due to the
-`bug 1405131 <https://bugs.launchpad.net/ironic/+bug/1405131>`_.
+Starting with the Kilo release, Bare Metal service supports hardware inspection
+that simplifies enrolling nodes.
+Inspection allows Bare Metal service to discover required node properties
+once required ``driver_info`` fields (for example, IPMI credentials) are set
+by an operator. Inspection will also create the Bare Metal service ports for the
+discovered ethernet MACs. Operators will have to manually delete the Bare Metal
+service ports for which physical media is not connected. This is required due
+to the `bug 1405131 <https://bugs.launchpad.net/ironic/+bug/1405131>`_.
 
-There are two kinds of inspection supported by Ironic:
+There are two kinds of inspection supported by Bare Metal service:
 
 #. Out-of-band inspection is currently implemented by iLO drivers, listed at
    :ref:`ilo`.
@@ -1525,9 +1539,9 @@ There are two kinds of inspection supported by Ironic:
   being run on a separate host from the ironic-conductor service, or is using
   non-standard port.
 
-  In order to ensure that ports in Ironic are synchronized with NIC ports on
-  the node, the following settings in the ironic-inspector configuration file
-  must be set::
+  In order to ensure that ports in Bare Metal service are synchronized with
+  NIC ports on the node, the following settings in the ironic-inspector
+  configuration file must be set::
 
     [processing]
     add_ports = all
@@ -1538,10 +1552,10 @@ There are two kinds of inspection supported by Ironic:
     ironic-discoverd_. Inspector is expected to be a mostly drop-in
     replacement, and the same client library should be used to connect to both.
 
-    For Ironic Kilo install ironic-discoverd_ of version 1.1.0 or higher
+    For Kilo, install ironic-discoverd_ of version 1.1.0 or higher
     instead of python-ironic-inspector-client and use ``[discoverd]`` option
-    group in both Ironic and ironic-discoverd configuration files instead of
-    ones provided above.
+    group in both Bare Metal service and ironic-discoverd configuration
+    files instead of ones provided above.
 
 Inspection can be initiated using node-set-provision-state.
 The node should be in MANAGEABLE state before inspection is initiated.
@@ -1564,14 +1578,14 @@ The node should be in MANAGEABLE state before inspection is initiated.
 Specifying the disk for deployment
 ==================================
 
-Starting with the Kilo release, Ironic supports passing hints to the
+Starting with the Kilo release, Bare Metal service supports passing hints to the
 deploy ramdisk about which disk it should pick for the deployment. In
 Linux when a server has more than one SATA, SCSI or IDE disk controller,
 the order in which their corresponding device nodes are added is arbitrary
 [`link`_], resulting in devices like ``/dev/sda`` and ``/dev/sdb`` to
 switch around between reboots. Therefore, to guarantee that a specific
-disk is always chosen for the deployment, Ironic introduced root device
-hints.
+disk is always chosen for the deployment, Bare Metal service introduced
+root device hints.
 
 The list of support hints is:
 
@@ -1582,13 +1596,13 @@ The list of support hints is:
 * size (INT): size of the device in GiB
 
 To associate one or more hints with a node, update the node's properties
-with a ``root_device`` key, e.g::
+with a ``root_device`` key, for example::
 
     ironic node-update <node-uuid> add properties/root_device='{"wwn": "0x4000cca77fc4dba1"}'
 
 
-That will guarantee that Ironic will pick the disk device that has the
-``wwn`` equal to the specified wwn value, or fail the deployment if it
+That will guarantee that Bare Metal service will pick the disk device that
+has the ``wwn`` equal to the specified wwn value, or fail the deployment if it
 can not be found.
 
 .. note::
@@ -1598,45 +1612,46 @@ can not be found.
 .. _`link`: https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/7/html/Storage_Administration_Guide/persistent_naming.html
 
 
-Using Ironic as a standalone service
-====================================
+Using Bare Metal service as a standalone service
+================================================
 
-Starting with Kilo release, it's possible to use Ironic without other
-OpenStack services.
+Starting with the Kilo release, it's possible to use Bare Metal service without
+other OpenStack services.
 
 You should make the following changes to ``/etc/ironic/ironic.conf``:
 
-#. To disable usage of Keystone tokens::
+#. To disable usage of Identity service tokens::
 
     [DEFAULT]
     ...
     auth_strategy=none
 
-#. If you want to disable Neutron, you should have your network pre-configured
-   to serve DHCP and TFTP for machines that you're deploying. To disable it,
-   change the following lines::
+#. If you want to disable the Networking service, you should have your network
+   pre-configured to serve DHCP and TFTP for machines that you're deploying.
+   To disable it, change the following lines::
 
     [dhcp]
     ...
     dhcp_provider=none
 
    .. note::
-      If you disabled Neutron and driver that you use is supported by at most
-      one conductor, PXE boot will still work for your nodes without any
-      manual config editing. This is because you know all the DHCP options
-      that will be used for deployment and can set up your DHCP server
-      appropriately.
+      If you disabled the Networking service and the driver that you use is
+      supported by at most one conductor, PXE boot will still work for your
+      nodes without any manual config editing. This is because you know all
+      the DHCP options that will be used for deployment and can set up your
+      DHCP server appropriately.
 
       If you have multiple conductors per driver, it would be better to use
-      Neutron since it will do all the dynamically changing configurations for
-      you.
+      Networking since it will do all the dynamically changing configurations
+      for you.
 
-If you don't use Glance, it's possible to provide images to Ironic via hrefs.
+If you don't use Image service, it's possible to provide images to Bare Metal
+service via hrefs.
 
 .. note::
-   At the moment, only two types of hrefs are acceptable instead of Glance
-   UUIDs: HTTP(S) hrefs (e.g. "http://my.server.net/images/img") and
-   file hrefs (file:///images/img).
+   At the moment, only two types of hrefs are acceptable instead of Image
+   service UUIDs: HTTP(S) hrefs (for example, "http://my.server.net/images/img")
+   and file hrefs (file:///images/img).
 
 There are however some limitations for different drivers:
 
@@ -1651,8 +1666,8 @@ There are however some limitations for different drivers:
   Apart from that, because of the way the agent deploy method works, image
   hrefs can use only HTTP(S) protocol.
 
-* If you're using ``iscsi_ilo`` or ``agent_ilo`` driver, Swift service is
-  required, as these drivers need to store floppy image that is used to pass
+* If you're using ``iscsi_ilo`` or ``agent_ilo`` driver, Object Storage service
+  is required, as these drivers need to store floppy image that is used to pass
   parameters to deployment iso. For this method also only HTTP(S) hrefs are
   acceptable, as HP iLO servers cannot attach other types of hrefs as virtual
   media.
@@ -1660,7 +1675,7 @@ There are however some limitations for different drivers:
 * Other drivers use PXE deploy method and there are no special requirements
   in this case.
 
-Steps to start a deployment are pretty similar to those when using Nova:
+Steps to start a deployment are pretty similar to those when using Compute:
 
 #. To use the `ironic CLI <http://docs.openstack.org/developer/python-ironicclient/cli.html>`_,
    set up these environment variables. Since no authentication strategy is
@@ -1671,9 +1686,9 @@ Steps to start a deployment are pretty similar to those when using Nova:
     export OS_AUTH_TOKEN=fake-token
     export IRONIC_URL=http://localhost:6385/
 
-#. Create a Node in Ironic. At minimum, you must specify the driver name (eg,
-   "pxe_ipmitool"). You can also specify all the required driver parameters in
-   one command. This will return the node UUID::
+#. Create a node in Bare Metal service. At minimum, you must specify the driver
+   name (for example, "pxe_ipmitool"). You can also specify all the required
+   driver parameters in one command. This will return the node UUID::
 
     ironic node-create -d pxe_ipmitool -i ipmi_address=ipmi.server.net \
     -i ipmi_username=user -i ipmi_password=pass \
@@ -1695,21 +1710,22 @@ Steps to start a deployment are pretty similar to those when using Nova:
     +--------------+--------------------------------------------------------------------------+
 
    Note that here deploy_kernel and deploy_ramdisk contain links to
-   images instead of Glance UUIDs.
+   images instead of Image service UUIDs.
 
-#. As in case of Nova, you can also provide ``capabilities`` to node
-   properties, but they will be used only by Ironic (e.g. boot mode). Although
-   you don't need to add properties like ``memory_mb``, ``cpus`` etc. as Ironic
-   will require UUID of a node you're going to deploy.
+#. As in case of Compute service, you can also provide ``capabilities`` to node
+   properties, but they will be used only by Bare Metal service (for example,
+   boot mode). Although you don't need to add properties like ``memory_mb``,
+   ``cpus`` etc. as Bare Metal service will require UUID of a node you're
+   going to deploy.
 
-#. Then create a port to inform Ironic of the Network Interface Cards which
-   are part of the Node by creating a Port with each NIC's MAC address. In this
-   case, they're used for naming of PXE configs for a node::
+#. Then create a port to inform Bare Metal service of the network interface
+   cards which are part of the node by creating a port with each NIC's MAC
+   address. In this case, they're used for naming of PXE configs for a node::
 
     ironic port-create -n $NODE_UUID -a $MAC_ADDRESS
 
-#. As there is no Nova flavor and instance image is not provided with nova
-   boot command, you also need to specify some fields in ``instance_info``.
+#. As there is no Compute service flavor and instance image is not provided with
+   nova boot command, you also need to specify some fields in ``instance_info``.
    For PXE deployment, they are ``image_source``, ``kernel``, ``ramdisk``,
    ``root_gb``::
 
@@ -1736,7 +1752,7 @@ Steps to start a deployment are pretty similar to those when using Nova:
     | power      | True   |                                                                |
     +------------+--------+----------------------------------------------------------------+
 
-#. Now you can start the deployment, just run::
+#. Now you can start the deployment, run::
 
     ironic node-set-provision-state $NODE_UUID active
 
@@ -1762,32 +1778,32 @@ For iLO drivers, fields that should be provided are:
 Other references
 ----------------
 
-* `Enabling local boot without Nova`_
+* `Enabling local boot without Compute`_
 
 
 Enabling the configuration drive (configdrive)
 ==============================================
 
-Starting with the Kilo release, Ironic supports exposing a configuration
-drive image to the instances.
+Starting with the Kilo release, the Bare Metal service supports exposing
+a configuration drive image to the instances.
 
-The configuration drive is usually used in conjunction with Nova, but
-Ironic also offers a standalone way of using it. The following sections
-will describe both methods.
+The configuration drive is usually used in conjunction with the Compute
+service, but the Bare Metal service also offers a standalone way of using it.
+The following sections will describe both methods.
 
 
-When used with Nova
--------------------
+When used with Compute service
+------------------------------
 
 To enable the configuration drive when deploying an instance, pass
-``--config-drive true`` parameter to the ``nova boot`` command, e.g::
+``--config-drive true`` parameter to the ``nova boot`` command, for example::
 
     nova boot --config-drive true --flavor baremetal --image test-image instance-1
 
 It's also possible to enable the configuration drive automatically on
-all instances by configuring the ``Nova Compute service`` to always
+all instances by configuring the ``OpenStack Compute service`` to always
 create a configuration drive by setting the following option in the
-``/etc/nova/nova.conf`` file, e.g::
+``/etc/nova/nova.conf`` file, for example::
 
     [DEFAULT]
     ...
@@ -1798,16 +1814,17 @@ create a configuration drive by setting the following option in the
 When used standalone
 --------------------
 
-When used without Nova, the operator needs to create a configuration drive
-and provide the file or HTTP URL to Ironic.
+When used without the Compute service, the operator needs to create a configuration drive
+and provide the file or HTTP URL to the Bare Metal service.
 
-For the format of the configuration drive, Ironic expects a ``gzipped``
-and ``base64`` encoded ISO 9660 [*]_ file with a ``config-2`` label. The
-`Ironic client <https://github.com/openstack/python-ironicclient>`_
+For the format of the configuration drive, Bare Metal service expects a
+``gzipped`` and ``base64`` encoded ISO 9660 [*]_ file with a ``config-2``
+label. The
+`ironic client <https://github.com/openstack/python-ironicclient>`_
 can generate a configuration drive in the expected format. Just pass a
 directory path containing the files that will be injected into it via the
 ``--config-drive`` parameter of the ``node-set-provision-state`` command,
-e.g::
+for example::
 
     ironic node-set-provision-state --config-drive /dir/configdrive_files $node_identifier active
 
@@ -1815,7 +1832,7 @@ e.g::
 Accessing the configuration drive data
 --------------------------------------
 
-When the configuration drive is enabled, Ironic will create a partition on the
+When the configuration drive is enabled, the Bare Metal service will create a partition on the
 instance disk and write the configuration drive image onto it. The
 configuration drive must be mounted before use. This is performed
 automatically by many tools, such as cloud-init and cloudbase-init. To mount
@@ -1828,7 +1845,7 @@ simply run the following::
 
 If the guest OS doesn't support accessing devices by labels, you can use
 other tools such as ``blkid`` to identify which device corresponds to
-the configuration drive and mount it, e.g::
+the configuration drive and mount it, for example::
 
     CONFIG_DEV=$(blkid -t LABEL="config-2" -odevice)
     mkdir -p /mnt/config
@@ -1853,7 +1870,7 @@ but in order to use it we should follow some rules:
   <http://docs.openstack.org/user-guide/content/enable_config_drive.html#config_drive_contents>`_].
 
 
-* Since Ironic uses a disk partition as the configuration drive,
+* Since the Bare Metal service uses a disk partition as the configuration drive,
   it will only work with ``cloud-init`` version **>= 0.7.5** [`link
   <http://bazaar.launchpad.net/~cloud-init-dev/cloud-init/trunk/view/head:/ChangeLog>`_].
 
@@ -1861,7 +1878,7 @@ but in order to use it we should follow some rules:
 * ``Cloud-init`` has a collection of data source modules, so when
   building the image with `disk-image-builder`_ we have to define
   ``DIB_CLOUD_INIT_DATASOURCES`` environment variable and set the
-  appropriate sources to enable the configuration drive, e.g::
+  appropriate sources to enable the configuration drive, for example::
 
     DIB_CLOUD_INIT_DATASOURCES="ConfigDrive, OpenStack" disk-image-create -o fedora-cloud-image fedora baremetal
 
@@ -1970,20 +1987,21 @@ disk-image-builder
 Troubleshooting
 ===============
 
-Once all the services are running and configured properly, and a Node is
-enrolled with Ironic, the Nova Compute service should detect the Node as an
-available resource and expose it to the scheduler.
+Once all the services are running and configured properly, and a node is
+enrolled with Bare Metal service, the Compute service should detect the node
+as an available resource and expose it to the scheduler.
 
 .. note::
    There is a delay, and it may take up to a minute (one periodic task cycle)
-   for Nova to recognize any changes in Ironic's resources (both additions and
-   deletions).
+   for the Compute service to recognize any changes in Bare Metal service's
+   resources (both additions and deletions).
 
 In addition to watching ``nova-compute`` log files, you can see the available
-resources by looking at the list of Nova hypervisors. The resources reported
-therein should match the Ironic Node properties, and the Nova Flavor.
+resources by looking at the list of Compute hypervisors. The resources reported
+therein should match the bare metal node properties, and the Compute service flavor.
 
-Here is an example set of commands to compare the resources in Nova and Ironic::
+Here is an example set of commands to compare the resources in Compute
+service and Bare Metal service::
 
     $ ironic node-list
     +--------------------------------------+---------------+-------------+--------------------+-------------+
@@ -2045,18 +2063,19 @@ Here is an example set of commands to compare the resources in Nova and Ironic::
     +-------------------------+--------------------------------------+
 
 
-Maintenance Mode
+Maintenance mode
 ----------------
-Maintenance mode may be used if you need to take a Node out of the resource
-pool. Putting a Node in maintenance mode will prevent Ironic from executing periodic
-tasks associated with the Node. This will also prevent Nova from placing a tenant
-instance on the Node by not exposing the Node to the Nova scheduler. Nodes can
-be placed into maintenance mode with the following command.
+Maintenance mode may be used if you need to take a node out of the resource
+pool. Putting a node in maintenance mode will prevent Bare Metal service from
+executing periodic tasks associated with the node. This will also prevent
+Compute service from placing a tenant instance on the node by not exposing
+the node to the nova scheduler. Nodes can be placed into maintenance mode
+with the following command.
 ::
 
     $ ironic node-set-maintenance $NODE_UUID on
 
-As of the Kilo release a maintenance reason may be included with the optional
+As of the Kilo release, a maintenance reason may be included with the optional
 ``--reason`` command line option. This is a free form text field that will be
 displayed in the ``maintenance_reason`` section of the ``node-show`` command.
 ::
