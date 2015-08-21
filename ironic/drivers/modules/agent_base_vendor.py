@@ -334,6 +334,7 @@ class BaseAgentVendor(base.VendorInterface):
         :raises: NotFound if no matching node is found.
         :raises: InvalidParameterValue with unknown payload version
         """
+        LOG.debug('Agent lookup using data %s', kwargs)
         uuid = kwargs.get('node_uuid')
         if uuid:
             node = objects.Node.get_by_uuid(context, uuid)
@@ -344,7 +345,8 @@ class BaseAgentVendor(base.VendorInterface):
 
             node = self._find_node_by_macs(context, mac_addresses)
 
-        LOG.debug('Initial lookup for node %s succeeded.', node.uuid)
+        LOG.info(_LI('Initial lookup for node %s succeeded, agent is running '
+                     'and waiting for commands'), node.uuid)
 
         return {
             'heartbeat_timeout': CONF.agent.heartbeat_timeout,
@@ -548,9 +550,13 @@ class BaseAgentVendor(base.VendorInterface):
             on encountering error while setting the boot device on the node.
         """
         node = task.node
+        LOG.debug('Configuring local boot for node %s', node.uuid)
         if not node.driver_internal_info.get(
                 'is_whole_disk_image') and root_uuid:
-            LOG.debug('Installing the bootloader on node %s', node.uuid)
+            LOG.debug('Installing the bootloader for node %(node)s on ',
+                      'partition %(part)s, EFI system partition %(efi)s',
+                      {'node': node.uuid, 'part': root_uuid,
+                       'efi': efi_system_part_uuid})
             result = self._client.install_bootloader(
                 node, root_uuid=root_uuid,
                 efi_system_part_uuid=efi_system_part_uuid)
@@ -570,5 +576,5 @@ class BaseAgentVendor(base.VendorInterface):
                     'error': e})
             self._log_and_raise_deployment_error(task, msg)
 
-        LOG.info(_LI('Bootloader successfully installed on node %s'),
+        LOG.info(_LI('Local boot successfully configured for node %s'),
                  node.uuid)

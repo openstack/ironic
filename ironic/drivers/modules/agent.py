@@ -26,6 +26,7 @@ from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
+from ironic.common.i18n import _LI
 from ironic.common import image_service
 from ironic.common import keystone
 from ironic.common import paths
@@ -466,7 +467,8 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
         task.process_event('resume')
         node = task.node
         image_source = node.instance_info.get('image_source')
-        LOG.debug('Continuing deploy for %s', node.uuid)
+        LOG.debug('Continuing deploy for node %(node)s with image %(img)s',
+                  {'node': node.uuid, 'img': image_source})
 
         image_info = {
             'id': image_source.split('/')[-1],
@@ -482,9 +484,7 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
         }
 
         # Tell the client to download and write the image with the given args
-        res = self._client.prepare_image(node, image_info)
-        LOG.debug('prepare_image got response %(res)s for node %(node)s',
-                  {'res': res, 'node': node.uuid})
+        self._client.prepare_image(node, image_info)
 
         task.process_event('wait')
 
@@ -498,8 +498,6 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
     def reboot_to_instance(self, task, **kwargs):
         task.process_event('resume')
         node = task.node
-        LOG.debug('Preparing to reboot to instance for node %s',
-                  node.uuid)
         error = self.check_deploy_success(node)
         if error is not None:
             # TODO(jimrollenhagen) power off if using neutron dhcp to
@@ -510,7 +508,8 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
             deploy_utils.set_failed_state(task, msg)
             return
 
-        LOG.debug('Rebooting node %s to disk', node.uuid)
+        LOG.info(_LI('Image successfully written to node %s'), node.uuid)
+        LOG.debug('Rebooting node %s to instance', node.uuid)
 
         manager_utils.node_set_boot_device(task, 'disk', persistent=True)
         self.reboot_and_finish_deploy(task)
