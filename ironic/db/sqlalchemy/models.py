@@ -18,17 +18,15 @@
 SQLAlchemy models for baremetal data.
 """
 
-import json
-
 from oslo_config import cfg
 from oslo_db import options as db_options
 from oslo_db.sqlalchemy import models
+from oslo_db.sqlalchemy import types as db_types
 import six.moves.urllib.parse as urlparse
 from sqlalchemy import Boolean, Column, DateTime
 from sqlalchemy import ForeignKey, Integer
 from sqlalchemy import schema, String, Text
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.types import TypeDecorator, TEXT
 
 from ironic.common.i18n import _
 from ironic.common import paths
@@ -53,40 +51,6 @@ def table_args():
         return {'mysql_engine': cfg.CONF.database.mysql_engine,
                 'mysql_charset': "utf8"}
     return None
-
-
-class JsonEncodedType(TypeDecorator):
-    """Abstract base type serialized as json-encoded string in db."""
-    type = None
-    impl = TEXT
-
-    def process_bind_param(self, value, dialect):
-        if value is None:
-            # Save default value according to current type to keep the
-            # interface the consistent.
-            value = self.type()
-        elif not isinstance(value, self.type):
-            raise TypeError("%s supposes to store %s objects, but %s given"
-                            % (self.__class__.__name__,
-                               self.type.__name__,
-                               type(value).__name__))
-        serialized_value = json.dumps(value)
-        return serialized_value
-
-    def process_result_value(self, value, dialect):
-        if value is not None:
-            value = json.loads(value)
-        return value
-
-
-class JSONEncodedDict(JsonEncodedType):
-    """Represents dict serialized as json-encoded string in db."""
-    type = dict
-
-
-class JSONEncodedList(JsonEncodedType):
-    """Represents list serialized as json-encoded string in db."""
-    type = list
 
 
 class IronicBase(models.TimestampMixin,
@@ -114,7 +78,7 @@ class Chassis(Base):
     )
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
-    extra = Column(JSONEncodedDict)
+    extra = Column(db_types.JsonEncodedDict)
     description = Column(String(255), nullable=True)
 
 
@@ -128,7 +92,7 @@ class Conductor(Base):
     )
     id = Column(Integer, primary_key=True)
     hostname = Column(String(255), nullable=False)
-    drivers = Column(JSONEncodedList)
+    drivers = Column(db_types.JsonEncodedList)
     online = Column(Boolean, default=True)
 
 
@@ -156,15 +120,15 @@ class Node(Base):
     target_provision_state = Column(String(15), nullable=True)
     provision_updated_at = Column(DateTime, nullable=True)
     last_error = Column(Text, nullable=True)
-    instance_info = Column(JSONEncodedDict)
-    properties = Column(JSONEncodedDict)
+    instance_info = Column(db_types.JsonEncodedDict)
+    properties = Column(db_types.JsonEncodedDict)
     driver = Column(String(255))
-    driver_info = Column(JSONEncodedDict)
-    driver_internal_info = Column(JSONEncodedDict)
-    clean_step = Column(JSONEncodedDict)
+    driver_info = Column(db_types.JsonEncodedDict)
+    driver_internal_info = Column(db_types.JsonEncodedDict)
+    clean_step = Column(db_types.JsonEncodedDict)
 
-    raid_config = Column(JSONEncodedDict)
-    target_raid_config = Column(JSONEncodedDict)
+    raid_config = Column(db_types.JsonEncodedDict)
+    target_raid_config = Column(db_types.JsonEncodedDict)
 
     # NOTE(deva): this is the host name of the conductor which has
     #             acquired a TaskManager lock on the node.
@@ -185,7 +149,7 @@ class Node(Base):
     console_enabled = Column(Boolean, default=False)
     inspection_finished_at = Column(DateTime, nullable=True)
     inspection_started_at = Column(DateTime, nullable=True)
-    extra = Column(JSONEncodedDict)
+    extra = Column(db_types.JsonEncodedDict)
 
 
 class Port(Base):
@@ -200,4 +164,4 @@ class Port(Base):
     uuid = Column(String(36))
     address = Column(String(18))
     node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
-    extra = Column(JSONEncodedDict)
+    extra = Column(db_types.JsonEncodedDict)
