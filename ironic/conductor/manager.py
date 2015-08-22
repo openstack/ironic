@@ -2283,7 +2283,7 @@ def _do_inspect_hardware(task):
 def cleaning_error_handler(task, msg, tear_down_cleaning=True):
     """Put a failed node in CLEANFAIL or ZAPFAIL and maintenance."""
     # Reset clean step, msg should include current step
-    if task.node.provision_state == states.CLEANING:
+    if task.node.provision_state in (states.CLEANING, states.CLEANWAIT):
         task.node.clean_step = {}
     task.node.last_error = msg
     task.node.maintenance = True
