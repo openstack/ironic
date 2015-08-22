@@ -15,6 +15,7 @@
 import contextlib
 import datetime
 import gettext
+import iso8601
 
 from oslo_context import context
 from oslo_utils import timeutils
@@ -128,17 +129,16 @@ class TestUtils(test_base.TestCase):
             foo = utils.dt_serializer('bar')
 
         obj = Obj()
-        obj.bar = timeutils.parse_isotime('1955-11-05T00:00:00Z')
-        self.assertEqual('1955-11-05T00:00:00Z', obj.foo())
+        obj.bar = timeutils.parse_isotime('1955-11-05T00:00:00+00:00')
+        self.assertEqual('1955-11-05T00:00:00+00:00', obj.foo())
         obj.bar = None
         self.assertIsNone(obj.foo())
         obj.bar = 'foo'
-        self.assertRaises(AttributeError, obj.foo)
+        self.assertRaises(TypeError, obj.foo)
 
     def test_dt_deserializer(self):
         dt = timeutils.parse_isotime('1955-11-05T00:00:00Z')
-        self.assertEqual(utils.dt_deserializer(None, timeutils.isotime(dt)),
-                         dt)
+        self.assertEqual(utils.dt_deserializer(None, dt.isoformat()), dt)
         self.assertIsNone(utils.dt_deserializer(None, None))
         self.assertRaises(ValueError, utils.dt_deserializer, None, 'foo')
 
@@ -358,7 +358,7 @@ class _TestObject(object):
         self.assertRemotes()
 
     def test_base_attributes(self):
-        dt = datetime.datetime(1955, 11, 5)
+        dt = datetime.datetime(1955, 11, 5, 0, 0, tzinfo=iso8601.iso8601.Utc())
         obj = MyObj(self.context)
         obj.created_at = dt
         obj.updated_at = dt
@@ -368,8 +368,8 @@ class _TestObject(object):
                     'ironic_object.changes':
                         ['created_at', 'updated_at'],
                     'ironic_object.data':
-                        {'created_at': timeutils.isotime(dt),
-                         'updated_at': timeutils.isotime(dt),
+                        {'created_at': dt.isoformat(),
+                         'updated_at': dt.isoformat(),
                          }
                     }
         actual = obj.obj_to_primitive()
