@@ -13,20 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-__all__ = [
-    'init',
-    'cleanup',
-    'set_defaults',
-    'add_extra_exmods',
-    'clear_extra_exmods',
-    'get_allowed_exmods',
-    'RequestContextSerializer',
-    'get_client',
-    'get_server',
-    'get_notifier',
-    'TRANSPORT_ALIASES',
-]
-
 from oslo_config import cfg
 import oslo_messaging as messaging
 from oslo_serialization import jsonutils
