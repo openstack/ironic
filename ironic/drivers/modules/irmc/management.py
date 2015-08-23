@@ -57,7 +57,10 @@ def _get_sensors_data(task):
         report = irmc_common.get_irmc_report(task.node)
         sensor = scci.get_sensor_data(report)
 
-    except Exception as e:
+    except (exception.InvalidParameterValue,
+            exception.MissingParameterValue,
+            scci.SCCIInvalidInputError,
+            scci.SCCIClientError) as e:
         LOG.error(_LE("SCCI get sensor data failed for node %(node_id)s "
                   "with the following error: %(error)s"),
                   {'node_id': task.node.uuid, 'error': e})

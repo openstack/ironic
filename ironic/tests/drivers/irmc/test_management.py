@@ -281,12 +281,15 @@ class IRMCManagementTestCase(db_base.DbTestCase):
 
     @mock.patch.object(irmc_common, 'get_irmc_report', spec_set=True,
                        autospec=True)
-    def test_management_interface_get_sensors_data_exception1(
+    def test_management_interface_get_sensors_data_exception(
             self,
             get_irmc_report_mock):
         """'FailedToGetSensorData Exception."""
 
-        get_irmc_report_mock.side_effect = iter([Exception("Report Error")])
+        get_irmc_report_mock.side_effect = exception.InvalidParameterValue(
+            "Fake Error")
+        irmc_management.scci.SCCIInvalidInputError = Exception
+        irmc_management.scci.SCCIClientError = Exception
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.driver_info['irmc_sensor_method'] = 'scci'
@@ -294,5 +297,5 @@ class IRMCManagementTestCase(db_base.DbTestCase):
                                   self.driver.management.get_sensors_data,
                                   task)
         self.assertEqual("Failed to get sensor data for node 1be26c0b-" +
-                         "03f2-4d2e-ae87-c02d7f33c123. Error: Report Error",
+                         "03f2-4d2e-ae87-c02d7f33c123. Error: Fake Error",
                          str(e))

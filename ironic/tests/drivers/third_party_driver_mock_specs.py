@@ -94,6 +94,7 @@ SCCICLIENT_IRMC_SCCI_SPEC = (
     'MOUNT_FD',
     'UNMOUNT_FD',
     'SCCIClientError',
+    'SCCIInvalidInputError',
     'get_share_type',
     'get_client',
     'get_report',
