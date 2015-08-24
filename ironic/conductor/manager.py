@@ -2049,7 +2049,7 @@ def do_node_deploy(task, conductor_id, configdrive=None):
         # NOTE(deva): there is no need to clear conductor_affinity
         task.process_event('fail')
         args = {'node': task.node.uuid, 'err': e}
-        LOG.warning(logmsg, args)
+        LOG.error(logmsg, args)
         node.last_error = errmsg % e
 
     try:
@@ -2060,7 +2060,7 @@ def do_node_deploy(task, conductor_id, configdrive=None):
             with excutils.save_and_reraise_exception():
                 handle_failure(
                     e, task,
-                    _LW('Error while uploading the configdrive for '
+                    _LE('Error while uploading the configdrive for '
                         '%(node)s to Swift'),
                     _('Failed to upload the configdrive to Swift. '
                       'Error: %s'))
@@ -2071,7 +2071,7 @@ def do_node_deploy(task, conductor_id, configdrive=None):
             with excutils.save_and_reraise_exception():
                 handle_failure(
                     e, task,
-                    _LW('Error while preparing to deploy to node %(node)s: '
+                    _LE('Error while preparing to deploy to node %(node)s: '
                         '%(err)s'),
                     _("Failed to prepare to deploy. Error: %s"))
 
@@ -2081,7 +2081,7 @@ def do_node_deploy(task, conductor_id, configdrive=None):
             with excutils.save_and_reraise_exception():
                 handle_failure(
                     e, task,
-                    _LW('Error in deploy of node %(node)s: %(err)s'),
+                    _LE('Error in deploy of node %(node)s: %(err)s'),
                     _("Failed to deploy. Error: %s"))
 
         # Update conductor_affinity to reference this conductor's ID
