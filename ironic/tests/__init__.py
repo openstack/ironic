@@ -32,14 +32,3 @@ eventlet.monkey_patch(os=False)
 # The code below enables nosetests to work with i18n _() blocks
 import six.moves.builtins as __builtin__
 setattr(__builtin__, '_', lambda x: x)
-
-# NOTE(viktors): We can't use mock as third-party library in python 3.4 because
-#                of bug https://code.google.com/p/mock/issues/detail?id=234
-#                so let's use mock from standard library in python 3.x
-import six
-
-if six.PY3:
-    import sys
-    import unittest.mock
-
-    sys.modules['mock'] = unittest.mock
