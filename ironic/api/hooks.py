@@ -135,6 +135,8 @@ class NoExceptionTracebackHook(hooks.PecanHook):
             return
 
         # Do nothing if there is no error.
+        # Status codes in the range 200 (OK) to 399 (400 = BAD_REQUEST) are not
+        # an error.
         if (http_client.OK <= state.response.status_int <
                 http_client.BAD_REQUEST):
             return
