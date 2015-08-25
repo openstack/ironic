@@ -546,6 +546,89 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             deploy_boot_mode = task.node.instance_info.get('deploy_boot_mode')
             self.assertIsNone(deploy_boot_mode)
 
+    @mock.patch.object(ilo_deploy.LOG, 'warning', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_get_boot_iso', spec_set=True,
+                       autospec=True)
+    def test__recreate_and_populate_boot_iso_root_uuid_set(self,
+                                                           get_boot_iso_mock,
+                                                           log_mock):
+        driver_internal_info = {}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            driver_internal_info['root_uuid_or_disk_id'] = 'root-uuid'
+            task.node.driver_internal_info = driver_internal_info
+            r_uuid = task.node.driver_internal_info['root_uuid_or_disk_id']
+            get_boot_iso_mock.return_value = 'boot-uuid'
+            ilo_deploy._recreate_and_populate_ilo_boot_iso(task)
+            self.assertEqual(task.node.instance_info['ilo_boot_iso'],
+                             'boot-uuid')
+            get_boot_iso_mock.assert_called_once_with(task, r_uuid)
+            self.assertFalse(log_mock.called)
+
+    @mock.patch.object(ilo_deploy.LOG, 'warning', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_get_boot_iso', spec_set=True,
+                       autospec=True)
+    def test__recreate_and_populate_boot_iso_root_not_set(self,
+                                                          get_boot_iso_mock,
+                                                          log_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.instance_info['ilo_boot_iso'] = 'boot-uuid-old-iso'
+            ilo_deploy._recreate_and_populate_ilo_boot_iso(task)
+            self.assertEqual(task.node.instance_info['ilo_boot_iso'],
+                             'boot-uuid-old-iso')
+            self.assertFalse(get_boot_iso_mock.called)
+            self.assertTrue(log_mock.called)
+
+    @mock.patch.object(ilo_deploy.LOG, 'warning',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, '_get_boot_iso',
+                       spec_set=True, autospec=True)
+    def test__recreate_and_populate_get_boot_iso_fails(self,
+                                                       get_boot_iso_mock,
+                                                       log_mock):
+        driver_internal_info = {}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+
+            driver_internal_info['boot_iso_created_in_web_server'] = True
+            driver_internal_info['root_uuid_or_disk_id'] = 'uuid'
+            task.node.instance_info['ilo_boot_iso'] = 'boot-uuid-old-iso'
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+            r_uuid = task.node.driver_internal_info.get('root_uuid_or_disk_id')
+            get_boot_iso_mock.side_effect = Exception
+            ilo_deploy._recreate_and_populate_ilo_boot_iso(task)
+            self.assertEqual(task.node.instance_info['ilo_boot_iso'],
+                             'boot-uuid-old-iso')
+            get_boot_iso_mock.assert_called_once_with(task, r_uuid)
+            self.assertTrue(log_mock.called)
+
+    @mock.patch.object(ilo_deploy.LOG, 'warning',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, '_get_boot_iso',
+                       spec_set=True, autospec=True)
+    def test__recreate_and_populate_get_boot_iso_none(self,
+                                                      boot_iso_mock,
+                                                      log_mock):
+        driver_internal_info = {}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            driver_internal_info['boot_iso_created_in_web_server'] = True
+            driver_internal_info['root_uuid_or_disk_id'] = 'uuid'
+            task.node.driver_internal_info = driver_internal_info
+            r_uuid = task.node.driver_internal_info.get('root_uuid_or_disk_id')
+            task.node.instance_info['ilo_boot_iso'] = 'boot-uuid-old-iso'
+            task.node.save()
+            boot_iso_mock.return_value = None
+            ilo_deploy._recreate_and_populate_ilo_boot_iso(task)
+            boot_iso_mock.assert_called_once_with(task, r_uuid)
+            self.assertEqual(task.node.instance_info['ilo_boot_iso'],
+                             'boot-uuid-old-iso')
+            self.assertTrue(log_mock.called)
+
 
 class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
 
@@ -724,11 +807,19 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                        update_secure_boot_mode_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['boot_iso_created_in_web_server'] = True
+            driver_internal_info['root_uuid_or_disk_id'] = 'uuid'
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
             returned_state = task.driver.deploy.tear_down(task)
             node_power_action_mock.assert_called_once_with(task,
                                                            states.POWER_OFF)
             update_secure_boot_mode_mock.assert_called_once_with(task, False)
             self.assertEqual(states.DELETED, returned_state)
+            dinfo = task.node.driver_internal_info
+            self.assertNotIn('boot_iso_created_in_web_server', dinfo)
+            self.assertNotIn('root_uuid_or_disk_id', dinfo)
 
     @mock.patch.object(ilo_deploy.LOG, 'warn', spec_set=True, autospec=True)
     @mock.patch.object(ilo_deploy, 'exception', spec_set=True, autospec=True)
@@ -793,6 +884,40 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             task.driver.deploy.prepare(task)
             self.assertFalse(func_prepare_node_for_deploy.called)
+
+    @mock.patch.object(ilo_deploy, '_recreate_and_populate_ilo_boot_iso',
+                       spec_set=True, autospec=True)
+    def test_take_over_recreate_iso_config_and_dif_set(self, mock_recreate):
+        driver_internal_info = {}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            CONF.ilo.use_web_server_for_images = True
+            driver_internal_info['boot_iso_created_in_web_server'] = True
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+            task.driver.deploy.take_over(task)
+            mock_recreate.assert_called_once_with(task)
+
+    @mock.patch.object(ilo_deploy, '_recreate_and_populate_ilo_boot_iso',
+                       spec_set=True, autospec=True)
+    def test_take_over_recreate_iso_config_set_and_dif_not_set(self,
+                                                               mock_recreate):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            CONF.ilo.use_web_server_for_images = True
+            task.node.save()
+            task.driver.deploy.take_over(task)
+            self.assertFalse(mock_recreate.called)
+
+    @mock.patch.object(ilo_deploy, '_recreate_and_populate_ilo_boot_iso',
+                       spec_set=True, autospec=True)
+    def test_take_over_recreate_iso_config_not_set(self, mock_recreate):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            CONF.ilo.use_web_server_for_images = False
+            task.node.save()
+            task.driver.deploy.take_over(task)
+            self.assertFalse(mock_recreate.called)
 
 
 class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
@@ -1129,6 +1254,8 @@ class VendorPassthruTestCase(db_base.DbTestCase):
 
             self.assertEqual('boot-iso',
                              task.node.instance_info['ilo_boot_iso'])
+            info = task.node.driver_internal_info['root_uuid_or_disk_id']
+            self.assertEqual('root-uuid', info)
             notify_ramdisk_to_proceed_mock.assert_called_once_with('123456')
 
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
