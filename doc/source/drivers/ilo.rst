@@ -294,6 +294,7 @@ Features
 * IPA deployed instances always boots from local disk.
 * Segregates management info from data channel.
 * UEFI Boot Support
+* UEFI Secure Boot Support
 * Support to use default in-band cleaning operations supported by
   Ironic Python Agent. For more details, see :ref:`InbandvsOutOfBandCleaning`.
 * Support for out-of-band hardware inspection.
@@ -429,6 +430,10 @@ Boot modes
 ~~~~~~~~~~
 Refer to `Boot mode support`_ section for more information.
 
+UEFI Secure Boot
+~~~~~~~~~~~~~~~~
+Refer to `UEFI Secure Boot support`_ section for more information.
+
 Node Cleaning
 ~~~~~~~~~~~~~
 Refer to ilo_node_cleaning_ for more information.
@@ -476,6 +481,8 @@ Features
   by the nova flavor's extra spec.
 * Support for out-of-band cleaning operations.
 * Support for out-of-band hardware inspection.
+* Supports UEFI Boot mode
+* Supports UEFI Secure Boot
 
 Requirements
 ~~~~~~~~~~~~
@@ -526,6 +533,10 @@ node::
 Boot modes
 ~~~~~~~~~~
 Refer to `Boot mode support`_ section for more information.
+
+UEFI Secure Boot
+~~~~~~~~~~~~~~~~
+Refer to `UEFI Secure Boot support`_ section for more information.
 
 Node Cleaning
 ~~~~~~~~~~~~~
@@ -597,7 +608,9 @@ UEFI Secure Boot support
 ^^^^^^^^^^^^^^^^^^^^^^^^
 The following drivers support UEFI secure boot deploy:
 
+* ``pxe_ilo``
 * ``iscsi_ilo``
+* ``agent_ilo``
 
 The UEFI secure boot mode can be configured in Ironic by adding
 ``secure_boot`` parameter in the ``capabilities`` parameter  within
