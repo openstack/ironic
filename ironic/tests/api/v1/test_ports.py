@@ -45,7 +45,6 @@ from ironic.tests.objects import utils as obj_utils
 def post_get_test_port(**kw):
     port = apiutils.port_post_data(**kw)
     node = dbutils.get_test_node()
-    del port['node_id']
     port['node_uuid'] = kw.get('node_uuid', node['uuid'])
     return port
 

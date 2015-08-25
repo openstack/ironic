@@ -90,13 +90,19 @@ def remove_internal(values, internal):
 
 def node_post_data(**kw):
     node = utils.get_test_node(**kw)
+    # These values are not part of the API object
     node.pop('conductor_affinity')
+    node.pop('chassis_id')
+    node.pop('target_raid_config')
+    node.pop('raid_config')
     internal = node_controller.NodePatchType.internal_attrs()
     return remove_internal(node, internal)
 
 
 def port_post_data(**kw):
     port = utils.get_test_port(**kw)
+    # node_id is not part of the API object
+    port.pop('node_id')
     internal = port_controller.PortPatchType.internal_attrs()
     return remove_internal(port, internal)
 
@@ -112,6 +118,5 @@ def post_get_test_node(**kw):
     #                    we have to use chassis_uuid
     node = node_post_data(**kw)
     chassis = utils.get_test_chassis()
-    node['chassis_id'] = None
     node['chassis_uuid'] = kw.get('chassis_uuid', chassis['uuid'])
     return node
