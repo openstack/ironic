@@ -835,6 +835,8 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
         node.save()
 
         try:
+            task.driver.boot.prepare_instance(task)
+
             if deploy_utils.get_boot_option(node) == "local":
                 deploy_utils.try_set_boot_device(task, boot_devices.DISK)
 
@@ -845,7 +847,6 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
                     task.process_event('wait')
                     return
 
-            task.driver.boot.prepare_instance(task)
         except Exception as e:
             LOG.error(_LE('Deploy failed for instance %(instance)s. '
                           'Error: %(error)s'),
