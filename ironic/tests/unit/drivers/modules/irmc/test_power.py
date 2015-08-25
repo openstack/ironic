@@ -16,6 +16,8 @@
 Test class for iRMC Power Driver
 """
 
+import time
+
 import mock
 
 from oslo_utils import uuidutils
@@ -34,8 +36,6 @@ from ironic.tests.unit.objects import utils as obj_utils
 INFO_DICT = db_utils.get_test_irmc_info()
 
 
-@mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
-                   autospec=True)
 class IRMCPowerInternalMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
@@ -47,11 +47,98 @@ class IRMCPowerInternalMethodsTestCase(db_base.DbTestCase):
             driver_info=driver_info,
             instance_uuid=uuidutils.generate_uuid())
 
+    def test__is_expected_power_state(self):
+        target_state = states.SOFT_POWER_OFF
+        boot_status_value = irmc_power.BOOT_STATUS_VALUE['unknown']
+        self.assertTrue(irmc_power._is_expected_power_state(
+            target_state, boot_status_value))
+
+        target_state = states.SOFT_POWER_OFF
+        boot_status_value = irmc_power.BOOT_STATUS_VALUE['off']
+        self.assertTrue(irmc_power._is_expected_power_state(
+            target_state, boot_status_value))
+
+        target_state = states.SOFT_REBOOT
+        boot_status_value = irmc_power.BOOT_STATUS_VALUE['os-running']
+        self.assertTrue(irmc_power._is_expected_power_state(
+            target_state, boot_status_value))
+
+        target_state = states.SOFT_POWER_OFF
+        boot_status_value = irmc_power.BOOT_STATUS_VALUE['os-running']
+        self.assertFalse(irmc_power._is_expected_power_state(
+            target_state, boot_status_value))
+
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch('ironic.drivers.modules.irmc.power.snmp.SNMPClient',
+                spec_set=True, autospec=True)
+    def test__wait_power_state_soft_power_off(self, snmpclient_mock):
+        target_state = states.SOFT_POWER_OFF
+        self.config(snmp_polling_interval=1, group='irmc')
+        self.config(soft_power_off_timeout=3, group='conductor')
+        snmpclient_mock.return_value = mock.Mock(
+            **{'get.side_effect': [8, 8, 2]})
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            irmc_power._wait_power_state(task, target_state)
+
+            task.node.refresh()
+            self.assertIsNone(task.node.last_error)
+            self.assertEqual(states.POWER_OFF, task.node.power_state)
+            self.assertEqual(states.NOSTATE, task.node.target_power_state)
+
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch('ironic.drivers.modules.irmc.power.snmp.SNMPClient',
+                spec_set=True, autospec=True)
+    def test__wait_power_state_soft_reboot(self, snmpclient_mock):
+        target_state = states.SOFT_REBOOT
+        self.config(snmp_polling_interval=1, group='irmc')
+        self.config(soft_power_off_timeout=3, group='conductor')
+        snmpclient_mock.return_value = mock.Mock(
+            **{'get.side_effect': [10, 6, 8]})
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            irmc_power._wait_power_state(task, target_state)
+
+            task.node.refresh()
+            self.assertIsNone(task.node.last_error)
+            self.assertEqual(states.POWER_ON, task.node.power_state)
+            self.assertEqual(states.NOSTATE, task.node.target_power_state)
+
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch('ironic.drivers.modules.irmc.power.snmp.SNMPClient',
+                spec_set=True, autospec=True)
+    def test__wait_power_state_timeout(self, snmpclient_mock):
+        target_state = states.SOFT_POWER_OFF
+        self.config(snmp_polling_interval=1, group='irmc')
+        self.config(soft_power_off_timeout=2, group='conductor')
+        snmpclient_mock.return_value = mock.Mock(
+            **{'get.side_effect': [8, 8, 8]})
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.IRMCOperationError,
+                              irmc_power._wait_power_state,
+                              task,
+                              target_state,
+                              timeout=None)
+
+            task.node.refresh()
+            self.assertIsNotNone(task.node.last_error)
+            self.assertEqual(states.ERROR, task.node.power_state)
+            self.assertEqual(states.NOSTATE, task.node.target_power_state)
+
+    @mock.patch.object(irmc_power, '_wait_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
+                       autospec=True)
     @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed')
     def test__set_power_state_power_on_ok(
             self,
             attach_boot_iso_if_needed_mock,
-            get_irmc_client_mock):
+            get_irmc_client_mock,
+            _wait_power_state_mock):
         irmc_client = get_irmc_client_mock.return_value
         target_state = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid,
@@ -59,21 +146,33 @@ class IRMCPowerInternalMethodsTestCase(db_base.DbTestCase):
             irmc_power._set_power_state(task, target_state)
             attach_boot_iso_if_needed_mock.assert_called_once_with(task)
         irmc_client.assert_called_once_with(irmc_power.scci.POWER_ON)
+        self.assertFalse(_wait_power_state_mock.called)
 
+    @mock.patch.object(irmc_power, '_wait_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
+                       autospec=True)
     def test__set_power_state_power_off_ok(self,
-                                           get_irmc_client_mock):
+                                           get_irmc_client_mock,
+                                           _wait_power_state_mock):
         irmc_client = get_irmc_client_mock.return_value
         target_state = states.POWER_OFF
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             irmc_power._set_power_state(task, target_state)
         irmc_client.assert_called_once_with(irmc_power.scci.POWER_OFF)
+        self.assertFalse(_wait_power_state_mock.called)
 
+    @mock.patch.object(irmc_power, '_wait_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
+                       autospec=True)
     @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed')
-    def test__set_power_state_power_reboot_ok(
+    def test__set_power_state_reboot_ok(
             self,
             attach_boot_iso_if_needed_mock,
-            get_irmc_client_mock):
+            get_irmc_client_mock,
+            _wait_power_state_mock):
         irmc_client = get_irmc_client_mock.return_value
         target_state = states.REBOOT
         with task_manager.acquire(self.context, self.node.uuid,
@@ -81,18 +180,72 @@ class IRMCPowerInternalMethodsTestCase(db_base.DbTestCase):
             irmc_power._set_power_state(task, target_state)
             attach_boot_iso_if_needed_mock.assert_called_once_with(task)
         irmc_client.assert_called_once_with(irmc_power.scci.POWER_RESET)
+        self.assertFalse(_wait_power_state_mock.called)
 
-    def test__set_power_state_invalid_target_state(self,
-                                                   get_irmc_client_mock):
+    @mock.patch.object(irmc_power, '_wait_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed')
+    def test__set_power_state_soft_reboot_ok(
+            self,
+            attach_boot_iso_if_needed_mock,
+            get_irmc_client_mock,
+            _wait_power_state_mock):
+        irmc_client = get_irmc_client_mock.return_value
+        target_state = states.SOFT_REBOOT
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            irmc_power._set_power_state(task, target_state)
+            attach_boot_iso_if_needed_mock.assert_called_once_with(task)
+        irmc_client.assert_called_once_with(irmc_power.scci.POWER_SOFT_CYCLE)
+        _wait_power_state_mock.assert_called_once_with(task, target_state,
+                                                       timeout=None)
+
+    @mock.patch.object(irmc_power, '_wait_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed')
+    def test__set_power_state_soft_power_off_ok(self,
+                                                attach_boot_iso_if_needed_mock,
+                                                get_irmc_client_mock,
+                                                _wait_power_state_mock):
+        irmc_client = get_irmc_client_mock.return_value
+        target_state = states.SOFT_POWER_OFF
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            irmc_power._set_power_state(task, target_state)
+        self.assertFalse(attach_boot_iso_if_needed_mock.called)
+        irmc_client.assert_called_once_with(irmc_power.scci.POWER_SOFT_OFF)
+        _wait_power_state_mock.assert_called_once_with(task, target_state,
+                                                       timeout=None)
+
+    @mock.patch.object(irmc_power, '_wait_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed')
+    def test__set_power_state_invalid_target_state(
+            self,
+            attach_boot_iso_if_needed_mock,
+            _wait_power_state_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               irmc_power._set_power_state,
                               task,
                               states.ERROR)
+            self.assertFalse(attach_boot_iso_if_needed_mock.called)
+            self.assertFalse(_wait_power_state_mock.called)
 
+    @mock.patch.object(irmc_power, '_wait_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed')
     def test__set_power_state_scci_exception(self,
-                                             get_irmc_client_mock):
+                                             attach_boot_iso_if_needed_mock,
+                                             get_irmc_client_mock,
+                                             _wait_power_state_mock):
         irmc_client = get_irmc_client_mock.return_value
         irmc_client.side_effect = Exception()
         irmc_power.scci.SCCIClientError = Exception
@@ -103,6 +256,30 @@ class IRMCPowerInternalMethodsTestCase(db_base.DbTestCase):
                               irmc_power._set_power_state,
                               task,
                               states.POWER_ON)
+            attach_boot_iso_if_needed_mock.assert_called_once_with(
+                task)
+            self.assertFalse(_wait_power_state_mock.called)
+
+    @mock.patch.object(irmc_power, '_wait_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed')
+    def test__set_power_state_snmp_exception(self,
+                                             attach_boot_iso_if_needed_mock,
+                                             _wait_power_state_mock):
+        target_state = states.SOFT_REBOOT
+        _wait_power_state_mock.side_effect = exception.SNMPFailure(
+            "fake exception")
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.IRMCOperationError,
+                              irmc_power._set_power_state,
+                              task,
+                              target_state)
+            attach_boot_iso_if_needed_mock.assert_called_once_with(
+                task)
+            _wait_power_state_mock.assert_called_once_with(
+                task, target_state, timeout=None)
 
 
 class IRMCPowerTestCase(db_base.DbTestCase):
@@ -158,7 +335,19 @@ class IRMCPowerTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.power.set_power_state(task, states.POWER_ON)
-        mock_set_power.assert_called_once_with(task, states.POWER_ON)
+        mock_set_power.assert_called_once_with(task, states.POWER_ON,
+                                               timeout=None)
+
+    @mock.patch.object(irmc_power, '_set_power_state', spec_set=True,
+                       autospec=True)
+    def test_set_power_state_timeout(self, mock_set_power):
+        mock_set_power.return_value = states.POWER_ON
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.power.set_power_state(task, states.POWER_ON,
+                                              timeout=2)
+        mock_set_power.assert_called_once_with(task, states.POWER_ON,
+                                               timeout=2)
 
     @mock.patch.object(irmc_power, '_set_power_state', spec_set=True,
                        autospec=True)
@@ -171,7 +360,22 @@ class IRMCPowerTestCase(db_base.DbTestCase):
             task.driver.power.reboot(task)
             mock_get_power.assert_called_once_with(
                 task.driver.power, task)
-        mock_set_power.assert_called_once_with(task, states.REBOOT)
+        mock_set_power.assert_called_once_with(task, states.REBOOT,
+                                               timeout=None)
+
+    @mock.patch.object(irmc_power, '_set_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_power.IRMCPower, 'get_power_state', spec_set=True,
+                       autospec=True)
+    def test_reboot_reboot_timeout(self, mock_get_power, mock_set_power):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            mock_get_power.return_value = states.POWER_ON
+            task.driver.power.reboot(task, timeout=2)
+            mock_get_power.assert_called_once_with(
+                task.driver.power, task)
+        mock_set_power.assert_called_once_with(task, states.REBOOT,
+                                               timeout=2)
 
     @mock.patch.object(irmc_power, '_set_power_state', spec_set=True,
                        autospec=True)
@@ -184,4 +388,19 @@ class IRMCPowerTestCase(db_base.DbTestCase):
             task.driver.power.reboot(task)
             mock_get_power.assert_called_once_with(
                 task.driver.power, task)
-        mock_set_power.assert_called_once_with(task, states.POWER_ON)
+        mock_set_power.assert_called_once_with(task, states.POWER_ON,
+                                               timeout=None)
+
+    @mock.patch.object(irmc_power, '_set_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_power.IRMCPower, 'get_power_state', spec_set=True,
+                       autospec=True)
+    def test_reboot_power_on_timeout(self, mock_get_power, mock_set_power):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            mock_get_power.return_value = states.POWER_OFF
+            task.driver.power.reboot(task, timeout=2)
+            mock_get_power.assert_called_once_with(
+                task.driver.power, task)
+        mock_set_power.assert_called_once_with(task, states.POWER_ON,
+                                               timeout=2)
