@@ -238,6 +238,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         # touch the pid file
         pid_file = console_utils._get_console_pid_file(self.info['uuid'])
         open(pid_file, 'a').close()
+        self.addCleanup(os.remove, pid_file)
         self.assertTrue(os.path.exists(pid_file))
 
         console_utils.start_shellinabox_console(self.info['uuid'],
@@ -264,6 +265,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         # touch the pid file
         pid_file = console_utils._get_console_pid_file(self.info['uuid'])
         open(pid_file, 'a').close()
+        self.addCleanup(os.remove, pid_file)
         self.assertTrue(os.path.exists(pid_file))
 
         console_utils.start_shellinabox_console(self.info['uuid'],
