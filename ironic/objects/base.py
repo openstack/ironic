@@ -412,14 +412,6 @@ class IronicObject(object_base.VersionedObjectDictCompat):
                 self[field] = loaded_object[field]
 
 
-class ObjectListBase(object_base.ObjectListBase):
-    # NOTE(lintan): These are for transition to using the oslo base object
-    # and can be removed when we move to it.
-    fields = {
-        'objects': list,
-    }
-
-
 class IronicObjectSerializer(object_base.VersionedObjectSerializer):
     # Base class to use for object hydration
     OBJ_BASE_CLASS = IronicObject
@@ -428,12 +420,9 @@ class IronicObjectSerializer(object_base.VersionedObjectSerializer):
 def obj_to_primitive(obj):
     """Recursively turn an object into a python primitive.
 
-    An IronicObject becomes a dict, and anything that implements ObjectListBase
-    becomes a list.
+    An IronicObject becomes a dict
     """
-    if isinstance(obj, ObjectListBase):
-        return [obj_to_primitive(x) for x in obj]
-    elif isinstance(obj, IronicObject):
+    if isinstance(obj, IronicObject):
         result = {}
         for key, value in obj.items():
             result[key] = obj_to_primitive(value)
