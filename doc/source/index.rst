@@ -20,6 +20,12 @@ The developer documentation provided here is continually kept up-to-date based
 on the latest code, and may not represent the state of the project at any
 specific prior release.
 
+For information on any current or prior version of Ironic, see `the release
+notes`_ and `the wiki pages`_.
+
+.. _the release notes: releasenotes/index.html
+.. _the wiki pages: https://wiki.openstack.org/wiki/Ironic/ReleaseNotes
+
 Admin Guide
 ===========
 
