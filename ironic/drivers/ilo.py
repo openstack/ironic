@@ -21,10 +21,12 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
 from ironic.drivers.modules import agent
+from ironic.drivers.modules.ilo import boot
 from ironic.drivers.modules.ilo import deploy
 from ironic.drivers.modules.ilo import inspect
 from ironic.drivers.modules.ilo import management
 from ironic.drivers.modules.ilo import power
+from ironic.drivers.modules.ilo import vendor
 
 
 class IloVirtualMediaIscsiDriver(base.BaseDriver):
@@ -44,10 +46,11 @@ class IloVirtualMediaIscsiDriver(base.BaseDriver):
                 reason=_("Unable to import proliantutils library"))
 
         self.power = power.IloPower()
+        self.boot = boot.IloVirtualMediaBoot()
         self.deploy = deploy.IloVirtualMediaIscsiDeploy()
         self.console = deploy.IloConsoleInterface()
         self.management = management.IloManagement()
-        self.vendor = deploy.VendorPassthru()
+        self.vendor = vendor.VendorPassthru()
         self.inspect = inspect.IloInspect()
 
 
@@ -71,6 +74,6 @@ class IloVirtualMediaAgentDriver(base.BaseDriver):
         self.deploy = deploy.IloVirtualMediaAgentDeploy()
         self.console = deploy.IloConsoleInterface()
         self.management = management.IloManagement()
-        self.vendor = deploy.IloVirtualMediaAgentVendorInterface()
+        self.vendor = vendor.IloVirtualMediaAgentVendorInterface()
         self.inspect = inspect.IloInspect()
         self.raid = agent.AgentRAID()
