@@ -253,7 +253,7 @@ def is_glance_image(image_href):
 
 
 def is_image_href_ordinary_file_name(image_href):
-    """judge if image_href is a ordinary file name.
+    """Check if image_href is a ordinary file name.
 
     This method judges if image_href is a ordinary file name or not,
     which is a file supposed to be stored in share file system.

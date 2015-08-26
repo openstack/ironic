@@ -17,6 +17,7 @@ iRMC Deploy Driver
 """
 
 import os
+import shutil
 import tempfile
 
 from oslo_config import cfg
@@ -87,6 +88,8 @@ COMMON_PROPERTIES = REQUIRED_PROPERTIES
 CONF.import_opt('pxe_append_params', 'ironic.drivers.modules.iscsi_deploy',
                 group='pxe')
 
+SUPPORTED_SHARE_TYPES = ('nfs', 'cifs')
+
 
 def _parse_config_option():
     """Parse config file options.
@@ -101,7 +104,7 @@ def _parse_config_option():
             _("Value '%s' for remote_image_share_root isn't a directory "
               "or doesn't exist.") %
             CONF.irmc.remote_image_share_root)
-    if CONF.irmc.remote_image_share_type.lower() not in ('nfs', 'cifs'):
+    if CONF.irmc.remote_image_share_type.lower() not in SUPPORTED_SHARE_TYPES:
         error_msgs.append(
             _("Value '%s' for remote_image_share_type is not supported "
               "value either 'NFS' or 'CIFS'.") %
@@ -340,9 +343,9 @@ def _prepare_floppy_image(task, params):
         images.create_vfat_image(vfat_image_tmpfile_obj.name,
                                  parameters=params)
         try:
-            utils.execute('cp', vfat_image_tmpfile_obj.name,
-                          floppy_fullpathname, check_exit_code=[0])
-        except Exception as e:
+            shutil.copyfile(vfat_image_tmpfile_obj.name,
+                            floppy_fullpathname)
+        except IOError as e:
             operation = _("Copying floppy image file")
             raise exception.IRMCOperationError(
                 operation=operation, error=e)
