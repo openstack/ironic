@@ -42,7 +42,7 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         conductor.obj_reset_changes()
         return conductor
 
-    @base.remotable_classmethod
+    @object_base.remotable_classmethod
     def get_by_hostname(cls, context, hostname):
         """Get a Conductor record by its hostname.
 
@@ -58,7 +58,7 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         raise NotImplementedError(
             _('Cannot update a conductor record directly.'))
 
-    @base.remotable
+    @object_base.remotable
     def refresh(self, context=None):
         """Loads and applies updates for this Conductor.
 
@@ -77,7 +77,7 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                  hostname=self.hostname)
         self.obj_refresh(current)
 
-    @base.remotable
+    @object_base.remotable
     def touch(self, context):
         """Touch this conductor's DB record, marking it as up-to-date."""
         self.dbapi.touch_conductor(self.hostname)

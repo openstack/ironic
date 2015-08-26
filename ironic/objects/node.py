@@ -106,7 +106,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         node.obj_reset_changes()
         return node
 
-    @base.remotable_classmethod
+    @object_base.remotable_classmethod
     def get(cls, context, node_id):
         """Find a node based on its id or uuid and return a Node object.
 
@@ -120,7 +120,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         else:
             raise exception.InvalidIdentity(identity=node_id)
 
-    @base.remotable_classmethod
+    @object_base.remotable_classmethod
     def get_by_id(cls, context, node_id):
         """Find a node based on its integer id and return a Node object.
 
@@ -131,7 +131,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         node = Node._from_db_object(cls(context), db_node)
         return node
 
-    @base.remotable_classmethod
+    @object_base.remotable_classmethod
     def get_by_uuid(cls, context, uuid):
         """Find a node based on uuid and return a Node object.
 
@@ -142,7 +142,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         node = Node._from_db_object(cls(context), db_node)
         return node
 
-    @base.remotable_classmethod
+    @object_base.remotable_classmethod
     def get_by_name(cls, context, name):
         """Find a node based on name and return a Node object.
 
@@ -153,7 +153,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         node = Node._from_db_object(cls(context), db_node)
         return node
 
-    @base.remotable_classmethod
+    @object_base.remotable_classmethod
     def get_by_instance_uuid(cls, context, instance_uuid):
         """Find a node based on the instance uuid and return a Node object.
 
@@ -164,7 +164,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         node = Node._from_db_object(cls(context), db_node)
         return node
 
-    @base.remotable_classmethod
+    @object_base.remotable_classmethod
     def list(cls, context, limit=None, marker=None, sort_key=None,
              sort_dir=None, filters=None):
         """Return a list of Node objects.
@@ -183,7 +183,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                                            sort_dir=sort_dir)
         return [Node._from_db_object(cls(context), obj) for obj in db_nodes]
 
-    @base.remotable_classmethod
+    @object_base.remotable_classmethod
     def reserve(cls, context, tag, node_id):
         """Get and reserve a node.
 
@@ -201,7 +201,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         node = Node._from_db_object(cls(context), db_node)
         return node
 
-    @base.remotable_classmethod
+    @object_base.remotable_classmethod
     def release(cls, context, tag, node_id):
         """Release the reservation on a node.
 
@@ -213,7 +213,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         """
         cls.dbapi.release_node(tag, node_id)
 
-    @base.remotable
+    @object_base.remotable
     def create(self, context=None):
         """Create a Node record in the DB.
 
@@ -234,7 +234,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_node = self.dbapi.create_node(values)
         self._from_db_object(self, db_node)
 
-    @base.remotable
+    @object_base.remotable
     def destroy(self, context=None):
         """Delete the Node from the DB.
 
@@ -248,7 +248,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.dbapi.destroy_node(self.uuid)
         self.obj_reset_changes()
 
-    @base.remotable
+    @object_base.remotable
     def save(self, context=None):
         """Save updates to this Node.
 
@@ -272,7 +272,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.dbapi.update_node(self.uuid, updates)
         self.obj_reset_changes()
 
-    @base.remotable
+    @object_base.remotable
     def refresh(self, context=None):
         """Refresh the object by re-fetching from the DB.
 
@@ -286,7 +286,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         current = self.__class__.get_by_uuid(self._context, self.uuid)
         self.obj_refresh(current)
 
-    @base.remotable
+    @object_base.remotable
     def touch_provisioning(self, context=None):
         """Touch the database record to mark the provisioning as alive."""
         self.dbapi.touch_node_provisioning(self.id)

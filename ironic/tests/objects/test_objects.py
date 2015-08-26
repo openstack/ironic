@@ -23,7 +23,6 @@ from oslo_versionedobjects import base as object_base
 from oslo_versionedobjects import exception as object_exception
 import six
 
-from ironic.common import exception
 from ironic.objects import base
 from ironic.objects import fields
 from ironic.objects import utils
@@ -44,7 +43,7 @@ class MyObj(base.IronicObject, object_base.VersionedObjectDictCompat):
     def obj_load_attr(self, attrname):
         setattr(self, attrname, 'loaded!')
 
-    @base.remotable_classmethod
+    @object_base.remotable_classmethod
     def query(cls, context):
         obj = cls(context)
         obj.foo = 1
@@ -52,29 +51,29 @@ class MyObj(base.IronicObject, object_base.VersionedObjectDictCompat):
         obj.obj_reset_changes()
         return obj
 
-    @base.remotable
-    def marco(self, context):
+    @object_base.remotable
+    def marco(self, context=None):
         return 'polo'
 
-    @base.remotable
-    def update_test(self, context):
-        if context.tenant == 'alternate':
+    @object_base.remotable
+    def update_test(self, context=None):
+        if context and context.tenant == 'alternate':
             self.bar = 'alternate-context'
         else:
             self.bar = 'updated'
 
-    @base.remotable
-    def save(self, context):
+    @object_base.remotable
+    def save(self, context=None):
         self.obj_reset_changes()
 
-    @base.remotable
-    def refresh(self, context):
+    @object_base.remotable
+    def refresh(self, context=None):
         self.foo = 321
         self.bar = 'refreshed'
         self.obj_reset_changes()
 
-    @base.remotable
-    def modify_save_modify(self, context):
+    @object_base.remotable
+    def modify_save_modify(self, context=None):
         self.bar = 'meow'
         self.save()
         self.foo = 42
@@ -85,7 +84,7 @@ class MyObj2(object):
     def obj_name(cls):
         return 'MyObj'
 
-    @base.remotable_classmethod
+    @object_base.remotable_classmethod
     def get(cls, *args, **kwargs):
         pass
 
@@ -257,7 +256,7 @@ class _TestObject(object):
     def test_orphaned_object(self):
         obj = MyObj.query(self.context)
         obj._context = None
-        self.assertRaises(exception.OrphanedObjectError,
+        self.assertRaises(object_exception.OrphanedObjectError,
                           obj.update_test)
         self.assertRemotes()
 

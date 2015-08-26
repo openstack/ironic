@@ -55,7 +55,7 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
         chassis.obj_reset_changes()
         return chassis
 
-    @base.remotable_classmethod
+    @object_base.remotable_classmethod
     def get(cls, context, chassis_id):
         """Find a chassis based on its id or uuid and return a Chassis object.
 
@@ -69,7 +69,7 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
         else:
             raise exception.InvalidIdentity(identity=chassis_id)
 
-    @base.remotable_classmethod
+    @object_base.remotable_classmethod
     def get_by_id(cls, context, chassis_id):
         """Find a chassis based on its integer id and return a Chassis object.
 
@@ -80,7 +80,7 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
         chassis = Chassis._from_db_object(cls(context), db_chassis)
         return chassis
 
-    @base.remotable_classmethod
+    @object_base.remotable_classmethod
     def get_by_uuid(cls, context, uuid):
         """Find a chassis based on uuid and return a :class:`Chassis` object.
 
@@ -92,7 +92,7 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
         chassis = Chassis._from_db_object(cls(context), db_chassis)
         return chassis
 
-    @base.remotable_classmethod
+    @object_base.remotable_classmethod
     def list(cls, context, limit=None, marker=None,
              sort_key=None, sort_dir=None):
         """Return a list of Chassis objects.
@@ -112,7 +112,7 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
         return [Chassis._from_db_object(cls(context), obj)
                 for obj in db_chassis]
 
-    @base.remotable
+    @object_base.remotable
     def create(self, context=None):
         """Create a Chassis record in the DB.
 
@@ -133,7 +133,7 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_chassis = self.dbapi.create_chassis(values)
         self._from_db_object(self, db_chassis)
 
-    @base.remotable
+    @object_base.remotable
     def destroy(self, context=None):
         """Delete the Chassis from the DB.
 
@@ -147,7 +147,7 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.dbapi.destroy_chassis(self.uuid)
         self.obj_reset_changes()
 
-    @base.remotable
+    @object_base.remotable
     def save(self, context=None):
         """Save updates to this Chassis.
 
@@ -165,7 +165,7 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
         updated_chassis = self.dbapi.update_chassis(self.uuid, updates)
         self._from_db_object(self, updated_chassis)
 
-    @base.remotable
+    @object_base.remotable
     def refresh(self, context=None):
         """Loads and applies updates for this Chassis.
 
