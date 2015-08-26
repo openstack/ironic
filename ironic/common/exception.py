@@ -99,6 +99,10 @@ class IronicException(Exception):
 
         return self.args[0]
 
+    def __unicode__(self):
+        """Return a unicode representation of the exception message."""
+        return unicode(self.args[0])
+
     def format_message(self):
         if self.__class__.__name__.endswith('_Remote'):
             return self.args[0]

@@ -41,6 +41,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import excutils
+import six
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -401,7 +402,7 @@ def _exec_ipmitool(driver_info, command):
             except processutils.ProcessExecutionError as e:
                 with excutils.save_and_reraise_exception() as ctxt:
                     err_list = [x for x in IPMITOOL_RETRYABLE_FAILURES
-                                if x in e.args[0]]
+                                if x in six.text_type(e)]
                     if ((time.time() > end_time) or
                         (num_tries == 0) or
                         not err_list):

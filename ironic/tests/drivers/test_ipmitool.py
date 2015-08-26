@@ -31,6 +31,7 @@ import mock
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_utils import uuidutils
+import six
 
 from ironic.common import boot_devices
 from ironic.common import driver_factory
@@ -348,7 +349,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
             ValueError,
             self._test__make_password_file,
             mock_sleep, 12345, ValueError('we should fail'))
-        self.assertEqual('we should fail', result.args[0])
+        self.assertEqual('we should fail', six.text_type(result))
 
     @mock.patch.object(tempfile, 'NamedTemporaryFile',
                        new=mock.MagicMock(side_effect=OSError('Test Error')))
@@ -367,7 +368,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         result = self.assertRaises(
             OverflowError,
             self._test__make_password_file, mock_sleep, 12345)
-        self.assertEqual('Test Error', result.args[0])
+        self.assertEqual('Test Error', six.text_type(result))
 
     def test__make_password_file_write_exception(self, mock_sleep):
         # Test exception in _make_password_file for write()
