@@ -590,14 +590,15 @@ them to the Image service:
    - Build the image your users will run (Ubuntu image has been taken as
      an example)::
 
-       disk-image-create ubuntu baremetal dhcp-all-interfaces -o my-image
+       disk-image-create ubuntu baremetal dhcp-all-interfaces grub2 -o my-image
 
      The above command creates *my-image.qcow2*, *my-image.vmlinuz* and
      *my-image.initrd* files. If you want to use Fedora image, replace
-     *ubuntu* with *fedora* in the above command. *my-image.qcow2* is
-     used while deploying the actual OS the users will run. The images
-     *my-image.vmlinuz* and *my-image.initrd* are used for booting after
-     deploying the bare metal with my-image.qcow2.
+     *ubuntu* with *fedora* in the above command. The *grub2* element is
+     only needed if local boot will be used to deploy *my-image.qcow2*,
+     otherwise the images *my-image.vmlinuz* and *my-image.initrd*
+     will be used for PXE booting after deploying the bare metal with
+     *my-image.qcow2*.
 
    - To build the deploy image take a look at the `Building or
      downloading a deploy ramdisk image`_ section.
@@ -1261,7 +1262,7 @@ local boot loader installed on the disk.
 It's important to note that in order for this to work the image being
 deployed with Bare Metal serivce **must** contain ``grub2`` installed within it.
 
-Enabling the local boot is different when Bare Metal service is used with 
+Enabling the local boot is different when Bare Metal service is used with
 Compute service and without it.
 The following sections will describe both methods.
 
