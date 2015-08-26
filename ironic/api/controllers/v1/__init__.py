@@ -33,44 +33,18 @@ from ironic.api.controllers.v1 import chassis
 from ironic.api.controllers.v1 import driver
 from ironic.api.controllers.v1 import node
 from ironic.api.controllers.v1 import port
+from ironic.api.controllers.v1 import versions
 from ironic.api import expose
 from ironic.common.i18n import _
 
-BASE_VERSION = 1
+BASE_VERSION = versions.BASE_VERSION
 
-# Here goes a short log of changes in every version.
-# Refer to doc/source/webapi/v1.rst for a detailed explanation of what
-# each version contains, and don't forget to update it when introducing
-# a new version.
-#
-# v1.0: corresponds to Juno API, not supported since Kilo
-# v1.1: API at the point in time when versioning support was added,
-# covers the following commits from Kilo cycle:
-#   827db7fe: Add Node.maintenance_reason
-#   68eed82b: Add API endpoint to set/unset the node maintenance mode
-#   bc973889: Add sync and async support for passthru methods
-#   e03f443b: Vendor endpoints to support different HTTP methods
-#   e69e5309: Make vendor methods discoverable via the Ironic API
-#   edf532db: Add logic to store the config drive passed by Nova
-# v1.2: Renamed NOSTATE ("None") to AVAILABLE ("available")
-# v1.3: Add node.driver_internal_info
-# v1.4: Add MANAGEABLE state
-# v1.5: Add logical node names
-# v1.6: Add INSPECT* states
-# v1.7: Add node.clean_step
-# v1.8: Add ability to return a subset of resource fields
-# v1.9: Add ability to filter nodes by provision state
-# v1.10: Logical node names support RFC 3986 unreserved characters
-# v1.11: Nodes appear in ENROLL state by default
-
-MIN_VER_STR = '1.1'
-MAX_VER_STR = '1.11'
-
-
-MIN_VER = base.Version({base.Version.string: MIN_VER_STR},
-                       MIN_VER_STR, MAX_VER_STR)
-MAX_VER = base.Version({base.Version.string: MAX_VER_STR},
-                       MIN_VER_STR, MAX_VER_STR)
+MIN_VER = base.Version(
+    {base.Version.string: versions.MIN_VERSION_STRING},
+    versions.MIN_VERSION_STRING, versions.MAX_VERSION_STRING)
+MAX_VER = base.Version(
+    {base.Version.string: versions.MAX_VERSION_STRING},
+    versions.MIN_VERSION_STRING, versions.MAX_VERSION_STRING)
 
 
 class MediaType(base.APIBase):
@@ -177,7 +151,8 @@ class Controller(rest.RestController):
                 "Mutually exclusive versions requested. Version %(ver)s "
                 "requested but not supported by this service. The supported "
                 "version range is: [%(min)s, %(max)s].") %
-                {'ver': version, 'min': MIN_VER_STR, 'max': MAX_VER_STR},
+                {'ver': version, 'min': versions.MIN_VERSION_STRING,
+                 'max': versions.MAX_VERSION_STRING},
                 headers=headers)
         # ensure the minor version is within the supported range
         if version < MIN_VER or version > MAX_VER:
@@ -185,16 +160,20 @@ class Controller(rest.RestController):
                 "Version %(ver)s was requested but the minor version is not "
                 "supported by this service. The supported version range is: "
                 "[%(min)s, %(max)s].") %
-                {'ver': version, 'min': MIN_VER_STR, 'max': MAX_VER_STR},
+                {'ver': version, 'min': versions.MIN_VERSION_STRING,
+                 'max': versions.MAX_VERSION_STRING},
                 headers=headers)
 
     @pecan.expose()
     def _route(self, args):
-        v = base.Version(pecan.request.headers, MIN_VER_STR, MAX_VER_STR)
+        v = base.Version(pecan.request.headers, versions.MIN_VERSION_STRING,
+                         versions.MAX_VERSION_STRING)
 
         # Always set the min and max headers
-        pecan.response.headers[base.Version.min_string] = MIN_VER_STR
-        pecan.response.headers[base.Version.max_string] = MAX_VER_STR
+        pecan.response.headers[base.Version.min_string] = (
+            versions.MIN_VERSION_STRING)
+        pecan.response.headers[base.Version.max_string] = (
+            versions.MAX_VERSION_STRING)
 
         # assert that requested version is supported
         self._check_version(v, pecan.response.headers)

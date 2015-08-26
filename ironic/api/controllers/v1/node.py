@@ -32,6 +32,7 @@ from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import port
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
+from ironic.api.controllers.v1 import versions
 from ironic.api import expose
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -62,33 +63,33 @@ _DEFAULT_RETURN_FIELDS = ('instance_uuid', 'maintenance', 'power_state',
 MIN_VERB_VERSIONS = {
     # v1.4 added the MANAGEABLE state and two verbs to move nodes into
     # and out of that state. Reject requests to do this in older versions
-    ir_states.VERBS['manage']: 4,
-    ir_states.VERBS['provide']: 4,
+    ir_states.VERBS['manage']: versions.MINOR_4_MANAGEABLE_STATE,
+    ir_states.VERBS['provide']: versions.MINOR_4_MANAGEABLE_STATE,
 
-    ir_states.VERBS['inspect']: 6,
+    ir_states.VERBS['inspect']: versions.MINOR_6_INSPECT_STATE,
 }
 
 
 def hide_fields_in_newer_versions(obj):
     # if requested version is < 1.3, hide driver_internal_info
-    if pecan.request.version.minor < 3:
+    if pecan.request.version.minor < versions.MINOR_3_DRIVER_INTERNAL_INFO:
         obj.driver_internal_info = wsme.Unset
 
     if not api_utils.allow_node_logical_names():
         obj.name = wsme.Unset
 
     # if requested version is < 1.6, hide inspection_*_at fields
-    if pecan.request.version.minor < 6:
+    if pecan.request.version.minor < versions.MINOR_6_INSPECT_STATE:
         obj.inspection_finished_at = wsme.Unset
         obj.inspection_started_at = wsme.Unset
 
-    if pecan.request.version.minor < 7:
+    if pecan.request.version.minor < versions.MINOR_7_NODE_CLEAN:
         obj.clean_step = wsme.Unset
 
 
 def assert_juno_provision_state_name(obj):
     # if requested version is < 1.2, convert AVAILABLE to the old NOSTATE
-    if (pecan.request.version.minor < 2 and
+    if (pecan.request.version.minor < versions.MINOR_2_AVAILABLE_STATE and
             obj.provision_state == ir_states.AVAILABLE):
         obj.provision_state = ir_states.NOSTATE
 

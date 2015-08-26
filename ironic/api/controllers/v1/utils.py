@@ -22,6 +22,7 @@ from six.moves import http_client
 from webob.static import FileIter
 import wsme
 
+from ironic.api.controllers.v1 import versions
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
@@ -73,7 +74,7 @@ def get_patch_value(patch, path):
 
 def allow_node_logical_names():
     # v1.5 added logical name aliases
-    return pecan.request.version.minor >= 5
+    return pecan.request.version.minor >= versions.MINOR_5_NODE_NAME
 
 
 def get_rpc_node(node_ident):
@@ -113,7 +114,7 @@ def is_valid_node_name(name):
 
 def is_valid_logical_name(name):
     """Determine if the provided name is a valid hostname."""
-    if pecan.request.version.minor < 10:
+    if pecan.request.version.minor < versions.MINOR_10_UNRESTRICTED_NODE_NAME:
         return utils.is_hostname_safe(name)
     else:
         return utils.is_valid_logical_name(name)
@@ -193,7 +194,8 @@ def check_allow_specify_fields(fields):
     attributes, this method checks if the required version is being
     requested.
     """
-    if fields is not None and pecan.request.version.minor < 8:
+    if (fields is not None and pecan.request.version.minor <
+            versions.MINOR_8_FETCHING_SUBSET_OF_FIELDS):
         raise exception.NotAcceptable()
 
 
@@ -203,7 +205,8 @@ def check_for_invalid_state_and_allow_filter(provision_state):
     Version 1.9 of the API allows filter nodes by provision state.
     """
     if provision_state is not None:
-        if pecan.request.version.minor < 9:
+        if (pecan.request.version.minor <
+                versions.MINOR_9_PROVISION_STATE_FILTER):
             raise exception.NotAcceptable()
         valid_states = states.machine.states
         if provision_state not in valid_states:
@@ -217,5 +220,6 @@ def initial_node_provision_state():
     Previously the default state for new nodes was AVAILABLE.
     Starting with API 1.11 it is ENROLL.
     """
-    return (states.AVAILABLE if pecan.request.version.minor < 11
+    return (states.AVAILABLE
+            if pecan.request.version.minor < versions.MINOR_11_ENROLL_STATE
             else states.ENROLL)
