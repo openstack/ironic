@@ -899,20 +899,33 @@ class RAIDInterface(BaseInterface):
         """
 
     def validate(self, task):
-        """Validate a given RAID configuration.
+        """Validates the RAID Interface.
 
         This method validates the properties defined by Ironic for RAID
         configuration. Driver implementations of this interface can override
-        this method for doing more validations.
+        this method for doing more validations (such as BMC's credentials).
 
         :param task: a TaskManager instance.
         :raises: InvalidParameterValue, if the RAID configuration is invalid.
+        :raises: MissingParameterValue, if some parameters are missing.
         """
         target_raid_config = task.node.target_raid_config
         if not target_raid_config:
             return
+        self.validate_raid_config(task, target_raid_config)
 
-        raid.validate_configuration(target_raid_config, self.raid_schema)
+    def validate_raid_config(self, task, raid_config):
+        """Validates the given RAID configuration.
+
+        This method validates the given RAID configuration.  Driver
+        implementations of this interface can override this method to support
+        custom parameters for RAID configuration.
+
+        :param task: a TaskManager instance.
+        :param raid_config: The RAID configuration to validate.
+        :raises: InvalidParameterValue, if the RAID configuration is invalid.
+        """
+        raid.validate_configuration(raid_config, self.raid_schema)
 
     @abc.abstractmethod
     def create_configuration(self, task,

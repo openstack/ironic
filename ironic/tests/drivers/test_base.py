@@ -199,29 +199,42 @@ class MyRAIDInterface(driver_base.RAIDInterface):
 
 class RAIDInterfaceTestCase(base.TestCase):
 
-    @mock.patch.object(raid, 'validate_configuration')
-    def test_validate(self, validate_mock):
-        with open(driver_base.RAID_CONFIG_SCHEMA, 'r') as raid_schema_fobj:
-            raid_schema = json.load(raid_schema_fobj)
+    @mock.patch.object(driver_base.RAIDInterface, 'validate_raid_config',
+                       autospec=True)
+    def test_validate(self, validate_raid_config_mock):
         raid_interface = MyRAIDInterface()
         node_mock = mock.MagicMock(target_raid_config='some_raid_config')
         task_mock = mock.MagicMock(node=node_mock)
 
         raid_interface.validate(task_mock)
 
-        validate_mock.assert_called_once_with('some_raid_config', raid_schema)
+        validate_raid_config_mock.assert_called_once_with(
+            raid_interface, task_mock, 'some_raid_config')
 
-    @mock.patch.object(raid, 'validate_configuration')
-    def test_validate_no_target_raid_config(self, validate_mock):
+    @mock.patch.object(driver_base.RAIDInterface, 'validate_raid_config',
+                       autospec=True)
+    def test_validate_no_target_raid_config(self, validate_raid_config_mock):
         raid_interface = MyRAIDInterface()
         node_mock = mock.MagicMock(target_raid_config={})
         task_mock = mock.MagicMock(node=node_mock)
 
         raid_interface.validate(task_mock)
 
-        self.assertFalse(validate_mock.called)
+        self.assertFalse(validate_raid_config_mock.called)
 
-    @mock.patch.object(raid, 'get_logical_disk_properties')
+    @mock.patch.object(raid, 'validate_configuration', autospec=True)
+    def test_validate_raid_config(self, common_validate_mock):
+        with open(driver_base.RAID_CONFIG_SCHEMA, 'r') as raid_schema_fobj:
+            raid_schema = json.load(raid_schema_fobj)
+        raid_interface = MyRAIDInterface()
+
+        raid_interface.validate_raid_config('task', 'some_raid_config')
+
+        common_validate_mock.assert_called_once_with(
+            'some_raid_config', raid_schema)
+
+    @mock.patch.object(raid, 'get_logical_disk_properties',
+                       autospec=True)
     def test_get_logical_disk_properties(self, get_properties_mock):
         with open(driver_base.RAID_CONFIG_SCHEMA, 'r') as raid_schema_fobj:
             raid_schema = json.load(raid_schema_fobj)
