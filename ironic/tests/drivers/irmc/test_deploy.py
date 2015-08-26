@@ -17,6 +17,7 @@ Test class for iRMC Deploy Driver
 """
 
 import os
+import shutil
 import tempfile
 
 import mock
@@ -451,7 +452,7 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
         expected = "image-%s.img" % self.node.uuid
         self.assertEqual(expected, actual)
 
-    @mock.patch.object(utils, 'execute', spec_set=True, autospec=True)
+    @mock.patch.object(shutil, 'copyfile', spec_set=True, autospec=True)
     @mock.patch.object(images, 'create_vfat_image', spec_set=True,
                        autospec=True)
     @mock.patch.object(tempfile, 'NamedTemporaryFile', spec_set=True,
@@ -459,7 +460,7 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
     def test__prepare_floppy_image(self,
                                    tempfile_mock,
                                    create_vfat_image_mock,
-                                   execute_mock):
+                                   copyfile_mock):
         mock_image_file_handle = mock.MagicMock(spec=file)
         mock_image_file_obj = mock.MagicMock()
         mock_image_file_obj.name = 'image-tmp-file'
@@ -475,13 +476,11 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
 
         create_vfat_image_mock.assert_called_once_with(
             'image-tmp-file', parameters=deploy_args)
-        execute_mock.assert_called_once_with(
-            'cp',
+        copyfile_mock.assert_called_once_with(
             'image-tmp-file',
-            '/remote_image_share_root/' + "image-%s.img" % self.node.uuid,
-            check_exit_code=[0])
+            '/remote_image_share_root/' + "image-%s.img" % self.node.uuid)
 
-    @mock.patch.object(utils, 'execute', spec_set=True, autospec=True)
+    @mock.patch.object(shutil, 'copyfile', spec_set=True, autospec=True)
     @mock.patch.object(images, 'create_vfat_image', spec_set=True,
                        autospec=True)
     @mock.patch.object(tempfile, 'NamedTemporaryFile', spec_set=True,
@@ -489,7 +488,7 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
     def test__prepare_floppy_image_exception(self,
                                              tempfile_mock,
                                              create_vfat_image_mock,
-                                             execute_mock):
+                                             copyfile_mock):
         mock_image_file_handle = mock.MagicMock(spec=file)
         mock_image_file_obj = mock.MagicMock()
         mock_image_file_obj.name = 'image-tmp-file'
@@ -498,7 +497,7 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
 
         deploy_args = {'arg1': 'val1', 'arg2': 'val2'}
         CONF.irmc.remote_image_share_name = '/remote_image_share_root'
-        execute_mock.side_effect = iter([Exception("fake error")])
+        copyfile_mock.side_effect = iter([IOError("fake error")])
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -509,11 +508,9 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
 
         create_vfat_image_mock.assert_called_once_with(
             'image-tmp-file', parameters=deploy_args)
-        execute_mock.assert_called_once_with(
-            'cp',
+        copyfile_mock.assert_called_once_with(
             'image-tmp-file',
-            '/remote_image_share_root/' + "image-%s.img" % self.node.uuid,
-            check_exit_code=[0])
+            '/remote_image_share_root/' + "image-%s.img" % self.node.uuid)
 
     @mock.patch.object(irmc_deploy, '_attach_virtual_cd', spec_set=True,
                        autospec=True)
