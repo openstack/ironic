@@ -23,6 +23,7 @@ API_SERVICE_OPTS = [
                help=_('The IP address on which ironic-api listens.')),
     cfg.IntOpt('port',
                default=6385,
+               min=1, max=65535,
                help=_('The TCP port on which ironic-api listens.')),
     cfg.IntOpt('max_limit',
                default=1000,

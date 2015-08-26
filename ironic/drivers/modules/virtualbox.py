@@ -48,6 +48,7 @@ VIRTUALBOX_TO_IRONIC_POWER_MAPPING = {
 opts = [
     cfg.IntOpt('port',
                default=18083,
+               min=1, max=65535,
                help=_('Port on which VirtualBox web service is listening.')),
 ]
 CONF = cfg.CONF

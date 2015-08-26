@@ -45,6 +45,7 @@ opts = [
                help=_('Timeout (in seconds) for iLO operations')),
     cfg.IntOpt('client_port',
                default=443,
+               min=1, max=65535,
                help=_('Port to be used for iLO operations')),
     cfg.StrOpt('swift_ilo_container',
                default='ironic_ilo_container',
