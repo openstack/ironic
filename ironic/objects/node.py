@@ -22,6 +22,7 @@ from ironic.objects import base
 from ironic.objects import fields as object_fields
 
 
+@base.IronicObjectRegistry.register
 class Node(base.IronicObject):
     # Version 1.0: Initial version
     # Version 1.1: Added instance_info

@@ -20,6 +20,7 @@ from ironic.objects import base
 from ironic.objects import fields as object_fields
 
 
+@base.IronicObjectRegistry.register
 class Conductor(base.IronicObject):
 
     dbapi = db_api.get_instance()

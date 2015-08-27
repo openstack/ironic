@@ -104,7 +104,7 @@ class TestCase(testtools.TestCase):
         # registry
         objects_base.IronicObject.indirection_api = None
         self._base_test_obj_backup = copy.copy(
-            objects_base.IronicObject._obj_classes)
+            objects_base.IronicObjectRegistry.obj_classes())
         self.addCleanup(self._restore_obj_registry)
 
         self.addCleanup(self._clear_attrs)
@@ -114,7 +114,8 @@ class TestCase(testtools.TestCase):
         CONF.set_override('fatal_exception_format_errors', True)
 
     def _restore_obj_registry(self):
-        objects_base.IronicObject._obj_classes = self._base_test_obj_backup
+        objects_base.IronicObjectRegistry._registry._obj_classes = (
+            self._base_test_obj_backup)
 
     def _clear_attrs(self):
         # Delete attributes that don't start with _ so they don't pin
