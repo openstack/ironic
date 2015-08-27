@@ -1,6 +1,34 @@
 [DEFAULT]
 
 #
+# Options defined in oslo.service.periodic_task
+#
+
+# Some periodic tasks can be run in a separate process. Should
+# we run them here? (boolean value)
+#run_external_periodic_tasks=true
+
+
+#
+# Options defined in oslo.service.service
+#
+
+# Enable eventlet backdoor.  Acceptable values are 0, <port>,
+# and <start>:<end>, where 0 results in listening on a random
+# tcp port number; <port> results in listening on the
+# specified port number (and not enabling backdoor if that
+# port is in use); and <start>:<end> results in listening on
+# the smallest unused port number within the specified range
+# of port numbers.  The chosen port is displayed in the
+# service's log file. (string value)
+#backdoor_port=<None>
+
+# Enables or disables logging values of all registered options
+# when starting a service (at DEBUG level). (boolean value)
+#log_options=true
+
+
+#
 # Options defined in oslo.messaging
 #
 
@@ -79,12 +107,12 @@
 #
 
 # Print debugging output (set logging level to DEBUG instead
-# of default WARNING level). (boolean value)
+# of default INFO level). (boolean value)
 #debug=false
 
-# Print more verbose output (set logging level to INFO instead
-# of default WARNING level). (boolean value)
-#verbose=false
+# If set to false, will disable INFO logging level, making
+# WARNING the default. (boolean value)
+#verbose=true
 
 # The name of a logging configuration file. This file is
 # appended to any existing logging configuration files. For
@@ -121,8 +149,8 @@
 # (Optional) Enables or disables syslog rfc5424 format for
 # logging. If enabled, prefixes the MSG part of the syslog
 # message with APP-NAME (RFC5424). The format without the APP-
-# NAME is deprecated in K, and will be removed in M, along
-# with this option. (boolean value)
+# NAME is deprecated in Kilo, and will be removed in Mitaka,
+# along with this option. (boolean value)
 #use_syslog_rfc_format=true
 
 # Syslog facility to receive log lines. (string value)
@@ -165,34 +193,6 @@
 # Enables or disables fatal status of deprecations. (boolean
 # value)
 #fatal_deprecations=false
-
-
-#
-# Options defined in oslo.service.service
-#
-
-# Enable eventlet backdoor.  Acceptable values are 0, <port>,
-# and <start>:<end>, where 0 results in listening on a random
-# tcp port number; <port> results in listening on the
-# specified port number (and not enabling backdoor if that
-# port is in use); and <start>:<end> results in listening on
-# the smallest unused port number within the specified range
-# of port numbers.  The chosen port is displayed in the
-# service's log file. (string value)
-#backdoor_port=<None>
-
-# Enables or disables logging values of all registered options
-# when starting a service (at DEBUG level). (boolean value)
-#log_options=true
-
-
-#
-# Options defined in oslo.service.periodic_task
-#
-
-# Some periodic tasks can be run in a separate process. Should
-# we run them here? (boolean value)
-#run_external_periodic_tasks=true
 
 
 #
@@ -1370,12 +1370,12 @@
 # the same time. This option provides such compatibility - it
 # defaults to False in Liberty and can be turned on for early
 # adopters with a new installations or for testing. Please
-# note, that this option will be removed in M release.
-# (boolean value)
+# note, that this option will be removed in the Mitaka
+# release. (boolean value)
 #send_single_reply=false
 
 # Qpid broker hostname. (string value)
-#qpid_hostname=ironic
+#qpid_hostname=localhost
 
 # Qpid broker port. (integer value)
 #qpid_port=5672
@@ -1438,8 +1438,8 @@
 # the same time. This option provides such compatibility - it
 # defaults to False in Liberty and can be turned on for early
 # adopters with a new installations or for testing. Please
-# note, that this option will be removed in M release.
-# (boolean value)
+# note, that this option will be removed in the Mitaka
+# release. (boolean value)
 #send_single_reply=false
 
 # SSL version to use (valid only if SSL enabled). Valid values
@@ -1468,7 +1468,7 @@
 
 # The RabbitMQ broker address where a single node is used.
 # (string value)
-#rabbit_host=ironic
+#rabbit_host=localhost
 
 # The RabbitMQ broker port where a single node is used.
 # (integer value)
