@@ -13,17 +13,15 @@ additional functionality.
 Project Resources
 -----------------
 
+* Free software: Apache license
+* Documentation: http://docs.openstack.org/developer/ironic
+* Source: http://git.openstack.org/cgit/openstack/ironic
+* Bugs: http://bugs.launchpad.net/ironic
+* Wiki: https://wiki.openstack.org/wiki/Ironic
+
 Project status, bugs, and blueprints are tracked on Launchpad:
 
   http://launchpad.net/ironic
-
-Developer documentation can be found here:
-
-  http://docs.openstack.org/developer/ironic
-
-Additional resources are linked from the project wiki page:
-
-  https://wiki.openstack.org/wiki/Ironic
 
 Anyone wishing to contribute to an OpenStack project should
 find a good reference here:
