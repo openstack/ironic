@@ -134,8 +134,8 @@ def _power_on(driver_info):
              from ipmi.
     """
 
-    msg = _LW("IPMI power on failed for node %(node_id)s with the "
-              "following error: %(error)s")
+    msg = _("IPMI power on failed for node %(node_id)s with the "
+            "following error: %(error)s")
     try:
         ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
                                        userid=driver_info['username'],
@@ -143,15 +143,17 @@ def _power_on(driver_info):
         wait = CONF.ipmi.retry_timeout
         ret = ipmicmd.set_power('on', wait)
     except pyghmi_exception.IpmiException as e:
-        LOG.warning(msg, {'node_id': driver_info['uuid'], 'error': str(e)})
-        raise exception.IPMIFailure(cmd=str(e))
+        error = msg % {'node_id': driver_info['uuid'], 'error': e}
+        LOG.error(error)
+        raise exception.IPMIFailure(error)
 
     state = ret.get('powerstate')
     if state == 'on':
         return states.POWER_ON
     else:
-        LOG.warning(msg, {'node_id': driver_info['uuid'], 'error': ret})
-        raise exception.PowerStateFailure(pstate=state)
+        error = _("bad response: %s") % ret
+        LOG.error(msg, {'node_id': driver_info['uuid'], 'error': error})
+        raise exception.PowerStateFailure(pstate=states.POWER_ON)
 
 
 def _power_off(driver_info):
@@ -164,8 +166,8 @@ def _power_off(driver_info):
              from ipmi.
     """
 
-    msg = _LW("IPMI power off failed for node %(node_id)s with the "
-              "following error: %(error)s")
+    msg = _("IPMI power off failed for node %(node_id)s with the "
+            "following error: %(error)s")
     try:
         ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
                                        userid=driver_info['username'],
@@ -173,15 +175,17 @@ def _power_off(driver_info):
         wait = CONF.ipmi.retry_timeout
         ret = ipmicmd.set_power('off', wait)
     except pyghmi_exception.IpmiException as e:
-        LOG.warning(msg, {'node_id': driver_info['uuid'], 'error': str(e)})
-        raise exception.IPMIFailure(cmd=str(e))
+        error = msg % {'node_id': driver_info['uuid'], 'error': e}
+        LOG.error(error)
+        raise exception.IPMIFailure(error)
 
     state = ret.get('powerstate')
     if state == 'off':
         return states.POWER_OFF
     else:
-        LOG.warning(msg % {'node_id': driver_info['uuid'], 'error': ret})
-        raise exception.PowerStateFailure(pstate=state)
+        error = _("bad response: %s") % ret
+        LOG.error(msg, {'node_id': driver_info['uuid'], 'error': error})
+        raise exception.PowerStateFailure(pstate=states.POWER_OFF)
 
 
 def _reboot(driver_info):
@@ -196,8 +200,8 @@ def _reboot(driver_info):
              from ipmi.
     """
 
-    msg = _LW("IPMI power reboot failed for node %(node_id)s with the "
-              "following error: %(error)s")
+    msg = _("IPMI power reboot failed for node %(node_id)s with the "
+            "following error: %(error)s")
     try:
         ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
                                        userid=driver_info['username'],
@@ -205,15 +209,17 @@ def _reboot(driver_info):
         wait = CONF.ipmi.retry_timeout
         ret = ipmicmd.set_power('boot', wait)
     except pyghmi_exception.IpmiException as e:
-        LOG.warning(msg % {'node_id': driver_info['uuid'], 'error': str(e)})
-        raise exception.IPMIFailure(cmd=str(e))
+        error = msg % {'node_id': driver_info['uuid'], 'error': e}
+        LOG.error(error)
+        raise exception.IPMIFailure(error)
 
     state = ret.get('powerstate')
     if state == 'on':
         return states.POWER_ON
     else:
-        LOG.warning(msg % {'node_id': driver_info['uuid'], 'error': ret})
-        raise exception.PowerStateFailure(pstate=state)
+        error = _("bad response: %s") % ret
+        LOG.error(msg, {'node_id': driver_info['uuid'], 'error': error})
+        raise exception.PowerStateFailure(pstate=states.REBOOT)
 
 
 def _power_status(driver_info):
@@ -231,10 +237,11 @@ def _power_status(driver_info):
                                        password=driver_info['password'])
         ret = ipmicmd.get_power()
     except pyghmi_exception.IpmiException as e:
-        LOG.warning(_LW("IPMI get power state failed for node %(node_id)s "
-                        "with the following error: %(error)s"),
-                    {'node_id': driver_info['uuid'], 'error': str(e)})
-        raise exception.IPMIFailure(cmd=str(e))
+        msg = (_("IPMI get power state failed for node %(node_id)s "
+                 "with the following error: %(error)s") %
+               {'node_id': driver_info['uuid'], 'error': e})
+        LOG.error(msg)
+        raise exception.IPMIFailure(msg)
 
     state = ret.get('powerstate')
     if state == 'on':
