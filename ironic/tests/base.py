@@ -24,6 +24,7 @@ inline callbacks.
 import copy
 import os
 import sys
+import tempfile
 
 import eventlet
 eventlet.monkey_patch(os=False)
@@ -84,6 +85,7 @@ class TestCase(testtools.TestCase):
             self.useFixture(fixtures.Timeout(test_timeout, gentle=True))
         self.useFixture(fixtures.NestedTempfile())
         self.useFixture(fixtures.TempHomeDir())
+        self.config(tempdir=tempfile.tempdir)
 
         if (os.environ.get('OS_STDOUT_CAPTURE') == 'True' or
                 os.environ.get('OS_STDOUT_CAPTURE') == '1'):
