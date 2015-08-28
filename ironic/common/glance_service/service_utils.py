@@ -167,7 +167,7 @@ def parse_image_ref(image_href):
 
     :raises ValueError
     """
-    if '/' not in str(image_href):
+    if '/' not in six.text_type(image_href):
         image_id = image_href
         (glance_host, glance_port, use_ssl) = _get_api_server()
         return (image_id, glance_host, glance_port, use_ssl)
