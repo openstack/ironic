@@ -13,6 +13,7 @@
 #    under the License.
 
 import datetime
+import functools
 
 from webob import exc
 import wsme
@@ -50,6 +51,7 @@ class APIBase(wtypes.Base):
                 setattr(self, k, wsme.Unset)
 
 
+@functools.total_ordering
 class Version(object):
     """API Version object."""
 
@@ -102,9 +104,6 @@ class Version(object):
             raise exc.HTTPNotAcceptable(_(
                 "Invalid value for %s header") % Version.string)
         return version
-
-    def __lt__(a, b):
-        return (a.major, a.minor) < (b.major, b.minor)
 
     def __gt__(a, b):
         return (a.major, a.minor) > (b.major, b.minor)

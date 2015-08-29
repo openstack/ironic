@@ -91,3 +91,29 @@ class TestVersion(base.FunctionalTest):
         # this asserts that the minimum version string of "1.1" is applied
         version = cbase.Version.parse_headers({}, '1.1', '1.5')
         self.assertEqual((1, 1), version)
+
+    def test_equals(self):
+        ver_1 = cbase.Version(
+            {cbase.Version.string: '123.456'}, mock.ANY, mock.ANY)
+        ver_2 = cbase.Version(
+            {cbase.Version.string: '123.456'}, mock.ANY, mock.ANY)
+        self.assertTrue(hasattr(ver_1, '__eq__'))
+        self.assertTrue(ver_1 == ver_2)
+
+    def test_greaterthan(self):
+        ver_1 = cbase.Version(
+            {cbase.Version.string: '123.457'}, mock.ANY, mock.ANY)
+        ver_2 = cbase.Version(
+            {cbase.Version.string: '123.456'}, mock.ANY, mock.ANY)
+        self.assertTrue(hasattr(ver_1, '__gt__'))
+        self.assertTrue(ver_1 > ver_2)
+
+    def test_lessthan(self):
+        # __lt__ is created by @functools.total_ordering, make sure it exists
+        # and works
+        ver_1 = cbase.Version(
+            {cbase.Version.string: '123.456'}, mock.ANY, mock.ANY)
+        ver_2 = cbase.Version(
+            {cbase.Version.string: '123.457'}, mock.ANY, mock.ANY)
+        self.assertTrue(hasattr(ver_1, '__lt__'))
+        self.assertTrue(ver_1 < ver_2)
