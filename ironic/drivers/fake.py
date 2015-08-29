@@ -135,6 +135,7 @@ class FakeAgentDriver(base.BaseDriver):
 
     def __init__(self):
         self.power = fake.FakePower()
+        self.boot = pxe.PXEBoot()
         self.deploy = agent.AgentDeploy()
         self.vendor = agent.AgentVendorInterface()
 

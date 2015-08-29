@@ -20,6 +20,7 @@ from ironic.drivers import base
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
+from ironic.drivers.modules import pxe
 from ironic.drivers.modules import ssh
 from ironic.drivers.modules.ucs import management as ucs_mgmt
 from ironic.drivers.modules.ucs import power as ucs_power
@@ -39,6 +40,7 @@ class AgentAndIPMIToolDriver(base.BaseDriver):
 
     def __init__(self):
         self.power = ipmitool.IPMIPower()
+        self.boot = pxe.PXEBoot()
         self.deploy = agent.AgentDeploy()
         self.management = ipmitool.IPMIManagement()
         self.console = ipmitool.IPMIShellinaboxConsole()
@@ -59,6 +61,7 @@ class AgentAndIPMINativeDriver(base.BaseDriver):
 
     def __init__(self):
         self.power = ipminative.NativeIPMIPower()
+        self.boot = pxe.PXEBoot()
         self.deploy = agent.AgentDeploy()
         self.management = ipminative.NativeIPMIManagement()
         self.console = ipminative.NativeIPMIShellinaboxConsole()
@@ -80,6 +83,7 @@ class AgentAndSSHDriver(base.BaseDriver):
 
     def __init__(self):
         self.power = ssh.SSHPower()
+        self.boot = pxe.PXEBoot()
         self.deploy = agent.AgentDeploy()
         self.management = ssh.SSHManagement()
         self.vendor = agent.AgentVendorInterface()
@@ -104,6 +108,7 @@ class AgentAndVirtualBoxDriver(base.BaseDriver):
                 driver=self.__class__.__name__,
                 reason=_("Unable to import pyremotevbox library"))
         self.power = virtualbox.VirtualBoxPower()
+        self.boot = pxe.PXEBoot()
         self.deploy = agent.AgentDeploy()
         self.management = virtualbox.VirtualBoxManagement()
         self.vendor = agent.AgentVendorInterface()
@@ -126,6 +131,7 @@ class AgentAndUcsDriver(base.BaseDriver):
                 driver=self.__class__.__name__,
                 reason=_("Unable to import UcsSdk library"))
         self.power = ucs_power.Power()
+        self.boot = pxe.PXEBoot()
         self.deploy = agent.AgentDeploy()
         self.management = ucs_mgmt.UcsManagement()
         self.vendor = agent.AgentVendorInterface()

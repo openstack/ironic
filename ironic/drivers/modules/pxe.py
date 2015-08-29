@@ -35,6 +35,7 @@ from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.common import utils
 from ironic.drivers import base
+from ironic.drivers.modules import agent
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
 from ironic.drivers import utils as driver_utils
@@ -93,6 +94,49 @@ REQUIRED_PROPERTIES = {
                         "mounted at boot time. Required."),
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES
+
+
+# TODO(rameshg87): This method is only for allowing time for deployers to
+# migrate to CONF.pxe.<options> after the CONF.agent.<pxe-options> have been
+# deprecated. Remove this in Mitaka release.
+def _get_pxe_conf_option(task, opt_name):
+    """Returns the value of PXEBoot provided CONF option.
+
+    This method returns the value of PXEBoot CONF option after checking
+    the driver.deploy. If driver.deploy is AgentDeploy and the value of
+    the CONF option is not it's default value, it returns the value of
+    CONF.agent.agent_<opt_name>.  Otherwise, it returns the value of
+    CONF.pxe.<opt_name>.  There are only 2 such parameters right now -
+    pxe_config_template and pxe_append_params.  Caller
+    has to make sure that only these 2 options are passed.
+
+    :param task: TaskManager instance.
+    :param opt_name: The CONF opt whose value is desired.
+    :returns: The value of the CONF option.
+    :raises: AttributeError, if such a CONF option doesn't exist.
+    """
+    if isinstance(task.driver.deploy, agent.AgentDeploy):
+        agent_opt_name = 'agent_' + opt_name
+        current_value = getattr(CONF.agent, agent_opt_name)
+        opt_object = [x for x in agent.agent_opts
+                      if x.name == agent_opt_name][0]
+        default_value = opt_object.default
+        # Replace $pybasedir which can occur in pxe_config_template
+        # default value.
+        default_value = default_value.replace('$pybasedir',
+                                              CONF.pybasedir)
+
+        if current_value != default_value:
+            LOG.warn(_LW("The CONF option [agent]agent_%(opt_name)s is "
+                         "deprecated and will be removed in Mitaka release of "
+                         "Ironic. Please use [pxe]%(opt_name)s instead."),
+                     {'opt_name': opt_name})
+            return current_value
+
+    # Either task.driver.deploy is ISCSIDeploy() or the default value hasn't
+    # been modified. So return the value of corresponding parameter in
+    # [pxe] group.
+    return getattr(CONF.pxe, opt_name)
 
 
 def _parse_driver_info(node):
@@ -198,7 +242,7 @@ def _get_deploy_image_info(node):
     return pxe_utils.get_deploy_kr_info(node.uuid, d_info)
 
 
-def _build_pxe_config_options(node, pxe_info, ctx):
+def _build_pxe_config_options(task, pxe_info):
     """Build the PXE config options for a node
 
     This method builds the PXE boot options for a node,
@@ -207,12 +251,12 @@ def _build_pxe_config_options(node, pxe_info, ctx):
     The options should then be passed to pxe_utils.create_pxe_config to
     create the actual config files.
 
-    :param node: a single Node.
+    :param task: A TaskManager object
     :param pxe_info: a dict of values to set on the configuration file
-    :param ctx: security context
     :returns: A dictionary of pxe options to be used in the pxe bootfile
         template.
     """
+    node = task.node
     is_whole_disk_image = node.driver_internal_info.get('is_whole_disk_image')
     if is_whole_disk_image:
         # These are dummy values to satisfy elilo.
@@ -240,7 +284,7 @@ def _build_pxe_config_options(node, pxe_info, ctx):
     pxe_options = {
         'deployment_aki_path': deploy_kernel,
         'deployment_ari_path': deploy_ramdisk,
-        'pxe_append_params': CONF.pxe.pxe_append_params,
+        'pxe_append_params': _get_pxe_conf_option(task, 'pxe_append_params'),
         'tftp_server': CONF.pxe.tftp_server,
         'aki_path': kernel,
         'ari_path': ramdisk
@@ -442,14 +486,14 @@ class PXEBoot(base.BootInterface):
         if node.provision_state == states.DEPLOYING:
             pxe_info.update(_get_instance_image_info(node, task.context))
 
-        pxe_options = _build_pxe_config_options(node, pxe_info,
-                                                task.context)
+        pxe_options = _build_pxe_config_options(task, pxe_info)
         pxe_options.update(ramdisk_params)
 
         if deploy_utils.get_boot_mode_for_deploy(node) == 'uefi':
             pxe_config_template = CONF.pxe.uefi_pxe_config_template
         else:
-            pxe_config_template = CONF.pxe.pxe_config_template
+            pxe_config_template = _get_pxe_conf_option(task,
+                                                       'pxe_config_template')
 
         pxe_utils.create_pxe_config(task, pxe_options,
                                     pxe_config_template)
