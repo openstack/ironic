@@ -184,6 +184,12 @@ conductor_opts = [
                        'longer. In an environment where all tenants are '
                        'trusted (eg, because there is only one tenant), '
                        'this option could be safely disabled.')),
+    cfg.IntOpt('clean_callback_timeout',
+               default=1800,
+               help=_('Timeout (seconds) to wait for a callback from the '
+                      'ramdisk doing the cleaning. If the timeout is reached '
+                      'the node will be put in the "clean failed" provision '
+                      'state. Set to 0 to disable timeout.')),
 ]
 CONF = cfg.CONF
 CONF.register_opts(conductor_opts, 'conductor')
@@ -1252,6 +1258,31 @@ class ConductorManager(periodic_task.PeriodicTasks):
         #                    this node
         task.node.conductor_affinity = self.conductor.id
         task.node.save()
+
+    @periodic_task.periodic_task(
+        spacing=CONF.conductor.check_provision_state_interval)
+    def _check_cleanwait_timeouts(self, context):
+        """Periodically checks for nodes being cleaned.
+
+        If a node doing cleaning is unresponsive (detected when it stops
+        heart beating), the operation should be aborted.
+
+        :param context: request context.
+        """
+        callback_timeout = CONF.conductor.clean_callback_timeout
+        if not callback_timeout:
+            return
+
+        filters = {'reserved': False,
+                   'provision_state': states.CLEANWAIT,
+                   'maintenance': False,
+                   'provisioned_before': callback_timeout}
+        last_error = _("Timeout reached while cleaning the node. Please "
+                       "check if the ramdisk responsible for the cleaning is "
+                       "running on the node.")
+        self._fail_if_in_state(context, filters, states.CLEANWAIT,
+                               'provision_updated_at',
+                               last_error=last_error)
 
     @periodic_task.periodic_task(
         spacing=CONF.conductor.sync_local_state_interval)

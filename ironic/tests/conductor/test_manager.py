@@ -1321,6 +1321,22 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
         self.assertIsNotNone(node.last_error)
         mock_cleanup.assert_called_once_with(mock.ANY)
 
+    def test__check_cleanwait_timeouts(self):
+        self._start_service()
+        CONF.set_override('clean_callback_timeout', 1, group='conductor')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.CLEANWAIT,
+            target_provision_state=states.AVAILABLE,
+            provision_updated_at=datetime.datetime(2000, 1, 1, 0, 0))
+
+        self.service._check_cleanwait_timeouts(self.context)
+        self.service._worker_pool.waitall()
+        node.refresh()
+        self.assertEqual(states.CLEANFAIL, node.provision_state)
+        self.assertEqual(states.AVAILABLE, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
+
     def test_do_node_tear_down_invalid_state(self):
         self._start_service()
         # test node.provision_state is incorrect for tear_down
