@@ -262,7 +262,7 @@ class JsonPatchType(wtypes.Base):
 
         if patch.op != 'remove':
             if patch.value is wsme.Unset:
-                msg = _("'add' and 'replace' operations needs value")
+                msg = _("'add' and 'replace' operations need a value")
                 raise wsme.exc.ClientSideError(msg)
 
         ret = {'path': patch.path, 'op': patch.op}
