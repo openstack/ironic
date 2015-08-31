@@ -695,6 +695,16 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
             task.driver.deploy.prepare(task)
             func_prepare_node_for_deploy.assert_called_once_with(task)
 
+    @mock.patch.object(ilo_deploy, '_prepare_node_for_deploy', spec_set=True,
+                       autospec=True)
+    def test_prepare_active_node(self, func_prepare_node_for_deploy):
+        self.node.provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.deploy.prepare(task)
+            self.assertFalse(func_prepare_node_for_deploy.called)
+
 
 class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
 
@@ -777,6 +787,20 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
             task.driver.deploy.prepare(task)
             self.assertEqual(deploy_opts, task.node.instance_info)
             func_prepare_node_for_deploy.assert_called_once_with(task)
+
+    @mock.patch.object(ilo_deploy, '_prepare_node_for_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(agent, 'build_instance_info_for_deploy', spec_set=True,
+                       autospec=True)
+    def test_prepare_active_node(self,
+                                 build_instance_info_mock,
+                                 func_prepare_node_for_deploy):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = states.ACTIVE
+            task.driver.deploy.prepare(task)
+            self.assertFalse(build_instance_info_mock.called)
+            self.assertFalse(func_prepare_node_for_deploy.called)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.delete_cleaning_ports',
                 spec_set=True, autospec=True)
@@ -1405,6 +1429,21 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
             task.node.properties['capabilities'] = 'boot_mode:uefi'
             task.driver.deploy.prepare(task)
             prepare_node_mock.assert_called_once_with(task)
+            pxe_prepare_mock.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_prepare_node_for_deploy', spec_set=True,
+                       autospec=True)
+    def test_prepare_active_node(self,
+                                 prepare_node_mock,
+                                 pxe_prepare_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = states.ACTIVE
+            task.node.properties['capabilities'] = 'boot_mode:uefi'
+            task.driver.deploy.prepare(task)
+            self.assertFalse(prepare_node_mock.called)
             pxe_prepare_mock.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare', spec_set=True,
