@@ -32,12 +32,24 @@ def print_header(text):
     print("*" * len(text))
 
 
-def map_color(text):
+def map_color(text, key='fontcolor'):
+    """Map the text to a color.
+
+    The text is mapped to a color.
+
+    :param text: string of text to be mapped to a color. 'error' and
+                 'fail' in the text will map to 'red'.
+    :param key: in returned dictionary, the key to use that corresponds to
+                the color
+    :returns: A dictionary with one entry, key = color. If no color is
+              associated with the text, an empty dictionary.
+    """
+
     # If the text contains 'error'/'fail' then we'll return red...
     if 'error' in text or 'fail' in text:
-        return 'red'
+        return {key: 'red'}
     else:
-        return None
+        return {}
 
 
 def main():
@@ -54,27 +66,18 @@ def main():
     if options.filename is None:
         options.filename = 'states.%s' % options.format
 
-    def node_attrs(state):
-        attrs = {}
-        text_color = map_color(state)
-        if text_color:
-            attrs['fontcolor'] = text_color
-        return attrs
-
     def edge_attrs(start_state, event, end_state):
         attrs = {}
         if options.labels:
             attrs['label'] = "on_%s" % event
-            edge_color = map_color(event)
-            if edge_color:
-                attrs['fontcolor'] = edge_color
+            attrs.update(map_color(event))
         return attrs
 
     source = states.machine
     graph_name = '"Ironic states"'
     graph_attrs = {'size': 0}
     g = pydot.convert(source, graph_name, graph_attrs=graph_attrs,
-                      node_attrs_cb=node_attrs, edge_attrs_cb=edge_attrs)
+                      node_attrs_cb=map_color, edge_attrs_cb=edge_attrs)
 
     print_header(graph_name)
     print(g.to_string().strip())
