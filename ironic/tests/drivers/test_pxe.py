@@ -773,18 +773,30 @@ class PXEBootTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_prepare_ramdisk(uefi=True)
 
-    @mock.patch.object(shutil, 'copyfile', autospec=True)
-    def test_prepare_ramdisk_ipxe(self, copyfile_mock):
+    def _prepare_ramdisk_ipxe(self):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
         self.config(group='pxe', ipxe_enabled=True)
         self.config(group='deploy', http_url='http://myserver')
         self._test_prepare_ramdisk()
+
+    @mock.patch.object(shutil, 'copyfile', autospec=True)
+    def test_prepare_ramdisk_ipxe(self, copyfile_mock):
+        self._prepare_ramdisk_ipxe()
         copyfile_mock.assert_called_once_with(
             CONF.pxe.ipxe_boot_script,
             os.path.join(
                 CONF.deploy.http_root,
                 os.path.basename(CONF.pxe.ipxe_boot_script)))
+
+    @mock.patch.object(os.path, 'exists', autospec=True)
+    @mock.patch.object(shutil, 'copyfile', autospec=True)
+    def test_prepare_ramdisk_ipxe_already_present(
+            self, copyfile_mock, path_exists_mock):
+        path_exists_mock.return_value = True
+        self._prepare_ramdisk_ipxe()
+        # Assert we don't copy the boot script again
+        self.assertFalse(copyfile_mock.called)
 
     def test_prepare_ramdisk_cleaning(self):
         self.node.provision_state = states.CLEANING

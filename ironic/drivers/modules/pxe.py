@@ -473,7 +473,8 @@ class PXEBoot(base.BootInterface):
             bootfile_path = os.path.join(
                 CONF.deploy.http_root,
                 os.path.basename(CONF.pxe.ipxe_boot_script))
-            shutil.copyfile(CONF.pxe.ipxe_boot_script, bootfile_path)
+            if not os.path.exists(bootfile_path):
+                shutil.copyfile(CONF.pxe.ipxe_boot_script, bootfile_path)
 
         dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
         provider = dhcp_factory.DHCPFactory()
