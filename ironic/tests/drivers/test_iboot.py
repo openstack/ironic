@@ -37,6 +37,11 @@ INFO_DICT = db_utils.get_test_iboot_info()
 
 class IBootPrivateMethodTestCase(db_base.DbTestCase):
 
+    def setUp(self):
+        super(IBootPrivateMethodTestCase, self).setUp()
+        self.config(max_retry=0, group='iboot')
+        self.config(retry_interval=0, group='iboot')
+
     def test__parse_driver_info_good(self):
         node = obj_utils.create_test_node(
             self.context,
@@ -169,10 +174,8 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
             driver_info=INFO_DICT)
         info = iboot._parse_driver_info(node)
 
-        self.assertRaises(exception.IBootOperationError,
-                          iboot._power_status,
-                          info)
-
+        status = iboot._power_status(info)
+        self.assertEqual(states.ERROR, status)
         mock_get_conn.assert_called_once_with(info)
         mock_connection.get_relays.assert_called_once_with()
 
@@ -189,10 +192,8 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
             driver_info=INFO_DICT)
         info = iboot._parse_driver_info(node)
 
-        self.assertRaises(exception.IBootOperationError,
-                          iboot._power_status,
-                          info)
-
+        status = iboot._power_status(info)
+        self.assertEqual(states.ERROR, status)
         mock_get_conn.assert_called_once_with(info)
         mock_connection.get_relays.assert_called_once_with()
 
@@ -230,6 +231,26 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
         self.assertEqual(states.ERROR, status)
         mock_get_conn.assert_called_once_with(info)
         mock_connection.get_relays.assert_called_once_with()
+
+    @mock.patch.object(iboot, '_get_connection', autospec=True)
+    def test__power_status_retries(self, mock_get_conn):
+        self.config(max_retry=1, group='iboot')
+
+        mock_connection = mock.MagicMock(spec_set=['get_relays'])
+        side_effect = TypeError("Surprise!")
+        mock_connection.get_relays.side_effect = side_effect
+
+        mock_get_conn.return_value = mock_connection
+        node = obj_utils.create_test_node(
+            self.context,
+            driver='fake_iboot',
+            driver_info=INFO_DICT)
+        info = iboot._parse_driver_info(node)
+
+        status = iboot._power_status(info)
+        self.assertEqual(states.ERROR, status)
+        mock_get_conn.assert_called_once_with(info)
+        self.assertEqual(2, mock_connection.get_relays.call_count)
 
 
 class IBootDriverTestCase(db_base.DbTestCase):
@@ -317,6 +338,20 @@ class IBootDriverTestCase(db_base.DbTestCase):
                               task.driver.power.reboot, task)
 
         self.assertEqual(manager.mock_calls, expected)
+
+    @mock.patch.object(iboot, '_power_status', autospec=True)
+    @mock.patch.object(iboot, '_get_connection', autospec=True)
+    def test__switch_retries(self, mock_get_conn, mock_power_status):
+        self.config(max_retry=1, group='iboot')
+        mock_power_status.return_value = states.POWER_ON
+
+        mock_connection = mock.MagicMock(spec_set=['switch'])
+        side_effect = TypeError("Surprise!")
+        mock_connection.switch.side_effect = side_effect
+        mock_get_conn.return_value = mock_connection
+
+        iboot._switch(self.info, False)
+        self.assertEqual(2, mock_connection.switch.call_count)
 
     @mock.patch.object(iboot, '_power_status', autospec=True)
     def test_get_power_state(self, mock_power_status):
