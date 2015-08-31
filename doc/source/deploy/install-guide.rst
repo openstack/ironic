@@ -1925,7 +1925,7 @@ CoreOS tools
         sudo dnf install docker gzip util-linux cpio findutils grep gpg
 
     Ubuntu 14.04 (trusty) or higher:
-        sudo apt-get install docker gzip uuid-runtime cpio findutils grep gpg
+        sudo apt-get install docker.io gzip uuid-runtime cpio findutils grep gpg
 
 #. Change directory to ``imagebuild/coreos``::
 
