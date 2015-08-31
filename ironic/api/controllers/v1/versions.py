@@ -40,6 +40,7 @@ BASE_VERSION = 1
 # v1.9: Add ability to filter nodes by provision state
 # v1.10: Logical node names support RFC 3986 unreserved characters
 # v1.11: Nodes appear in ENROLL state by default
+# v1.12: Add support for RAID
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -53,9 +54,10 @@ MINOR_8_FETCHING_SUBSET_OF_FIELDS = 8
 MINOR_9_PROVISION_STATE_FILTER = 9
 MINOR_10_UNRESTRICTED_NODE_NAME = 10
 MINOR_11_ENROLL_STATE = 11
+MINOR_12_RAID_CONFIG = 12
 
 # When adding another version, update MINOR_MAX_VERSION
-MINOR_MAX_VERSION = MINOR_11_ENROLL_STATE
+MINOR_MAX_VERSION = MINOR_12_RAID_CONFIG
 
 # String representations of the minor and maximum versions
 MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

@@ -32,6 +32,11 @@ always requests the newest supported API version.
 API Versions History
 --------------------
 
+**1.12**
+
+    Add ability to get/set ``node.target_raid_config`` and to get
+    ``node.raid_config``.
+
 **1.11** (breaking change)
 
     Newly registered nodes begin in the ``enroll`` provision state by default,

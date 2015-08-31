@@ -15,11 +15,13 @@
 
 import pecan
 from pecan import rest
+from six.moves import http_client
 import wsme
 from wsme import types as wtypes
 
 from ironic.api.controllers import base
 from ironic.api.controllers import link
+from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
 from ironic.common import exception
@@ -147,10 +149,46 @@ class DriverPassthruController(rest.RestController):
                                          driver_passthru=True)
 
 
+class DriverRaidController(rest.RestController):
+
+    _custom_actions = {
+        'logical_disk_properties': ['GET']
+    }
+
+    @expose.expose(types.jsontype, wtypes.text)
+    def logical_disk_properties(self, driver_name):
+        """Returns the logical disk properties for the driver.
+
+        :param driver_name: Name of the driver.
+        :returns: A dictionary containing the properties that can be mentioned
+            for logical disks and a textual description for them.
+        :raises: UnsupportedDriverExtension if the driver doesn't
+            support RAID configuration.
+        :raises: NotAcceptable, if requested version of the API is less than
+            1.12.
+        :raises: DriverNotFound, if driver is not loaded on any of the
+            conductors.
+        """
+        if not api_utils.allow_raid_config():
+            raise exception.NotAcceptable()
+        topic = pecan.request.rpcapi.get_topic_for_driver(driver_name)
+        try:
+            return pecan.request.rpcapi.get_raid_logical_disk_properties(
+                pecan.request.context, driver_name, topic=topic)
+        except exception.UnsupportedDriverExtension as e:
+            # Change error code as 404 seems appropriate because RAID is a
+            # standard interface and all drivers might not have it.
+            e.code = http_client.NOT_FOUND
+            raise
+
+
 class DriversController(rest.RestController):
     """REST controller for Drivers."""
 
     vendor_passthru = DriverPassthruController()
+
+    raid = DriverRaidController()
+    """Expose RAID as a sub-element of drivers"""
 
     _custom_actions = {
         'properties': ['GET'],
