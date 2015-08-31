@@ -18,14 +18,13 @@ import optparse
 import os
 import sys
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir))
-sys.path.insert(0, top_dir)
-
-import pydot
+from automaton.converters import pydot
 
 from ironic.common import states
 
+top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                       os.pardir))
+sys.path.insert(0, top_dir)
 
 def print_header(text):
     print("*" * len(text))
@@ -39,14 +38,6 @@ def map_color(text):
         return 'red'
     else:
         return None
-
-
-def format_state(state):
-    # Changes a state (mainly NOSTATE which is the None object) into
-    # a nicer string...
-    if state == states.NOSTATE:
-        state = 'no-state'
-    return state
 
 
 def main():
@@ -63,51 +54,33 @@ def main():
     if options.filename is None:
         options.filename = 'states.%s' % options.format
 
+    def node_attrs(state):
+        attrs = {}
+        text_color = map_color(state)
+        if text_color:
+            attrs['fontcolor'] = text_color
+        return attrs
+
+    def edge_attrs(start_state, event, end_state):
+        attrs = {}
+        if options.labels:
+            attrs['label'] = "on_%s" % event
+            edge_color = map_color(event)
+            if edge_color:
+                attrs['fontcolor'] = edge_color
+        return attrs
+
     source = states.machine
     graph_name = '"Ironic states"'
-    g = pydot.Dot(graph_name=graph_name, rankdir='LR',
-                  nodesep='0.25', overlap='false',
-                  ranksep="0.5", splines='true',
-                  ordering='in')
-    node_attrs = {
-        'fontsize': '11',
-    }
-    nodes = {}
-    for (start_state, on_event, end_state) in source:
-        start_state = format_state(start_state)
-        end_state = format_state(end_state)
-        if start_state not in nodes:
-            start_node_attrs = node_attrs.copy()
-            text_color = map_color(start_state)
-            if text_color:
-                start_node_attrs['fontcolor'] = text_color
-            nodes[start_state] = pydot.Node(start_state, **start_node_attrs)
-            g.add_node(nodes[start_state])
-        if end_state not in nodes:
-            end_node_attrs = node_attrs.copy()
-            text_color = map_color(end_state)
-            if text_color:
-                end_node_attrs['fontcolor'] = text_color
-            nodes[end_state] = pydot.Node(end_state, **end_node_attrs)
-            g.add_node(nodes[end_state])
-        edge_attrs = {}
-        if options.labels:
-            edge_attrs['label'] = "on_%s" % on_event
-            edge_color = map_color(on_event)
-            if edge_color:
-                edge_attrs['fontcolor'] = edge_color
-        g.add_edge(pydot.Edge(nodes[start_state], nodes[end_state],
-                              **edge_attrs))
+    graph_attrs = {'size': 0}
+    g = pydot.convert(source, graph_name, graph_attrs=graph_attrs,
+                      node_attrs_cb=node_attrs, edge_attrs_cb=edge_attrs)
 
     print_header(graph_name)
     print(g.to_string().strip())
 
     g.write(options.filename, format=options.format)
     print_header("Created %s at '%s'" % (options.format, options.filename))
-
-    # To make the svg more pretty use the following:
-    # $ xsltproc ../diagram-tools/notugly.xsl ./states.svg > pretty-states.svg
-    # Get diagram-tools from https://github.com/vidarh/diagram-tools.git
 
 
 if __name__ == '__main__':
