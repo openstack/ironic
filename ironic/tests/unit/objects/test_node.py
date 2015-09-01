@@ -149,3 +149,41 @@ class TestNodeObject(base.DbTestCase):
                 node = objects.Node.get(self.context, self.fake_node['uuid'])
                 node.touch_provisioning()
                 mock_touch.assert_called_once_with(node.id)
+
+    def test_create_with_invalid_properties(self):
+        node = objects.Node(self.context, **self.fake_node)
+        node.properties = {"local_gb": "5G"}
+        self.assertRaises(exception.InvalidParameterValue, node.create)
+
+    def test_update_with_invalid_properties(self):
+        uuid = self.fake_node['uuid']
+        with mock.patch.object(self.dbapi, 'get_node_by_uuid',
+                               autospec=True) as mock_get_node:
+            mock_get_node.return_value = self.fake_node
+            node = objects.Node.get(self.context, uuid)
+            node.properties = {"local_gb": "5G", "memory_mb": "5",
+                               'cpus': '-1', 'cpu_arch': 'x86_64'}
+            expected_error_message = (
+                ('The following properties for node %(node_uuid)s '
+                 'should be non-negative integers, but provided values '
+                 'are: local_gb=5G, cpus=-1') %
+                {'node_uuid': uuid})
+            self.assertRaisesRegexp(exception.InvalidParameterValue,
+                                    expected_error_message, node.save)
+            mock_get_node.assert_called_once_with(uuid)
+
+    def test__validate_property_values_success(self):
+        uuid = self.fake_node['uuid']
+        with mock.patch.object(self.dbapi, 'get_node_by_uuid',
+                               autospec=True) as mock_get_node:
+            mock_get_node.return_value = self.fake_node
+            node = objects.Node.get(self.context, uuid)
+            values = self.fake_node
+            expect = {
+                'cpu_arch': 'x86_64',
+                "cpus": '8',
+                "local_gb": '10',
+                "memory_mb": '4096',
+            }
+            node._validate_property_values(values['properties'])
+            self.assertEqual(expect, values['properties'])
