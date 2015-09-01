@@ -318,3 +318,11 @@ def get_test_ucs_info():
         "ucs_service_profile": "org-root/ls-devstack",
         "ucs_address": "ucs-b",
     }
+
+
+def get_test_cimc_info():
+    return {
+        "cimc_username": "admin",
+        "cimc_password": "password",
+        "cimc_address": "1.2.3.4",
+    }

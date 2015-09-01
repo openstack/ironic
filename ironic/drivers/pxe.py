@@ -25,6 +25,8 @@ from ironic.drivers import base
 from ironic.drivers.modules.amt import management as amt_management
 from ironic.drivers.modules.amt import power as amt_power
 from ironic.drivers.modules.amt import vendor as amt_vendor
+from ironic.drivers.modules.cimc import management as cimc_mgmt
+from ironic.drivers.modules.cimc import power as cimc_power
 from ironic.drivers.modules import iboot
 from ironic.drivers.modules.ilo import deploy as ilo_deploy
 from ironic.drivers.modules.ilo import inspect as ilo_inspect
@@ -337,6 +339,28 @@ class PXEAndUcsDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = iscsi_deploy.ISCSIDeploy()
         self.management = ucs_mgmt.UcsManagement()
+        self.vendor = iscsi_deploy.VendorPassthru()
+
+
+class PXEAndCIMCDriver(base.BaseDriver):
+    """PXE + Cisco IMC driver.
+
+    This driver implements the 'core' functionality, combining
+    :class:`ironic.drivers.modules.cimc.Power` for power on/off and reboot with
+    :class:`ironic.drivers.modules.pxe.PXEBoot` for booting the node and
+    :class:`ironic.drivers.modules.iscsi_deploy.ISCSIDeploy` for image
+    deployment. Implentations are in those respective classes; this
+    class is merely the glue between them.
+    """
+    def __init__(self):
+        if not importutils.try_import('ImcSdk'):
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_("Unable to import ImcSdk library"))
+        self.power = cimc_power.Power()
+        self.boot = pxe.PXEBoot()
+        self.deploy = iscsi_deploy.ISCSIDeploy()
+        self.management = cimc_mgmt.CIMCManagement()
         self.vendor = iscsi_deploy.VendorPassthru()
 
 

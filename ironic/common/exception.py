@@ -590,3 +590,7 @@ class WolOperationError(IronicException):
 class ImageUploadFailed(IronicException):
     message = _("Failed to upload %(image_name)s image to web server "
                 "%(web_server)s, reason: %(reason)s")
+
+
+class CIMCException(IronicException):
+    message = _("Cisco IMC exception occured for node %(node)s: %(error)s")

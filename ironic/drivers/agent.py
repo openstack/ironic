@@ -18,6 +18,8 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
 from ironic.drivers.modules import agent
+from ironic.drivers.modules.cimc import management as cimc_mgmt
+from ironic.drivers.modules.cimc import power as cimc_power
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
@@ -156,4 +158,27 @@ class AgentAndUcsDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = agent.AgentDeploy()
         self.management = ucs_mgmt.UcsManagement()
+        self.vendor = agent.AgentVendorInterface()
+
+
+class AgentAndCIMCDriver(base.BaseDriver):
+    """Agent + Cisco CIMC driver.
+
+    This driver implements the `core` functionality, combining
+    :class:ironic.drivers.modules.cimc.power.Power for power
+    on/off and reboot with
+    :class:'ironic.driver.modules.agent.AgentDeploy' (for image deployment.)
+    Implementations are in those respective classes;
+    this class is merely the glue between them.
+    """
+
+    def __init__(self):
+        if not importutils.try_import('ImcSdk'):
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_("Unable to import ImcSdk library"))
+        self.power = cimc_power.Power()
+        self.boot = pxe.PXEBoot()
+        self.deploy = agent.AgentDeploy()
+        self.management = cimc_mgmt.CIMCManagement()
         self.vendor = agent.AgentVendorInterface()

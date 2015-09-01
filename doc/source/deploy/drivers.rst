@@ -105,3 +105,12 @@ iBoot driver
   :maxdepth: 1
 
   ../drivers/iboot
+
+
+CIMC driver
+------------
+
+.. toctree::
+  :maxdepth: 1
+
+  ../drivers/cimc
