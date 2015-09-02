@@ -402,7 +402,7 @@ class NodeStatesController(rest.RestController):
 
         m = ir_states.machine.copy()
         m.initialize(rpc_node.provision_state)
-        if not m.is_valid_event(ir_states.VERBS.get(target, target)):
+        if not m.is_actionable_event(ir_states.VERBS.get(target, target)):
             # Normally, we let the task manager recognize and deal with
             # NodeLocked exceptions. However, that isn't done until the RPC
             # calls below.
