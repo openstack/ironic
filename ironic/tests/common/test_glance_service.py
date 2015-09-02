@@ -774,30 +774,35 @@ class TestGlanceUrl(base.TestCase):
 class TestServiceUtils(base.TestCase):
 
     def test_parse_image_ref_no_ssl(self):
-        image_href = 'http://127.0.0.1:9292/image_path/image_uuid'
+        image_href = u'http://127.0.0.1:9292/image_path/'\
+            u'image_\u00F9\u00FA\u00EE\u0111'
         parsed_href = service_utils.parse_image_ref(image_href)
-        self.assertEqual(('image_uuid', '127.0.0.1', 9292, False), parsed_href)
+        self.assertEqual((u'image_\u00F9\u00FA\u00EE\u0111',
+                          '127.0.0.1', 9292, False), parsed_href)
 
     def test_parse_image_ref_ssl(self):
-        image_href = 'https://127.0.0.1:9292/image_path/image_uuid'
+        image_href = 'https://127.0.0.1:9292/image_path/'\
+                     u'image_\u00F9\u00FA\u00EE\u0111'
         parsed_href = service_utils.parse_image_ref(image_href)
-        self.assertEqual(('image_uuid', '127.0.0.1', 9292, True), parsed_href)
+        self.assertEqual((u'image_\u00F9\u00FA\u00EE\u0111',
+                          '127.0.0.1', 9292, True), parsed_href)
 
     def test_generate_image_url(self):
-        image_href = 'image_uuid'
+        image_href = u'image_\u00F9\u00FA\u00EE\u0111'
         self.config(glance_host='123.123.123.123', group='glance')
         self.config(glance_port=1234, group='glance')
         self.config(glance_protocol='https', group='glance')
         generated_url = service_utils.generate_image_url(image_href)
-        self.assertEqual('https://123.123.123.123:1234/images/image_uuid',
+        self.assertEqual('https://123.123.123.123:1234/images/'
+                         u'image_\u00F9\u00FA\u00EE\u0111',
                          generated_url)
 
     def test_is_glance_image(self):
-        image_href = 'uuid'
+        image_href = u'uui\u0111'
         self.assertFalse(service_utils.is_glance_image(image_href))
-        image_href = '733d1c44-a2ea-414b-aca7-69decf20d810'
+        image_href = u'733d1c44-a2ea-414b-aca7-69decf20d810'
         self.assertTrue(service_utils.is_glance_image(image_href))
-        image_href = 'glance://uuid'
+        image_href = u'glance://uui\u0111'
         self.assertTrue(service_utils.is_glance_image(image_href))
         image_href = 'http://aaa/bbb'
         self.assertFalse(service_utils.is_glance_image(image_href))
@@ -805,16 +810,16 @@ class TestServiceUtils(base.TestCase):
         self.assertFalse(service_utils.is_glance_image(image_href))
 
     def test_is_image_href_ordinary_file_name_true(self):
-        image = "deploy.iso"
+        image = u"\u0111eploy.iso"
         result = service_utils.is_image_href_ordinary_file_name(image)
         self.assertTrue(result)
 
     def test_is_image_href_ordinary_file_name_false(self):
         for image in ('733d1c44-a2ea-414b-aca7-69decf20d810',
-                      'glance://deploy_iso',
-                      'http://deploy_iso',
-                      'https://deploy_iso',
-                      'file://deploy_iso',):
+                      u'glance://\u0111eploy_iso',
+                      u'http://\u0111eploy_iso',
+                      u'https://\u0111eploy_iso',
+                      u'file://\u0111eploy_iso',):
             result = service_utils.is_image_href_ordinary_file_name(image)
             self.assertFalse(result)
 
