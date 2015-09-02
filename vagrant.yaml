@@ -125,6 +125,14 @@
             option: 'pecan_debug', value: 'true'
           }
         - {
+            section: 'DEFAULT',
+            option: 'verbose', value: 'true'
+          }
+        - {
+            section: 'DEFAULT',
+            option: 'debug', value: 'true'
+          }
+        - {
             section: 'oslo_messaging_rabbit',
             option: 'rabbit_host', value: "{{ip}}"
           }
@@ -136,7 +144,10 @@
             section: 'oslo_messaging_rabbit',
             option: 'rabbit_password', value: "ironic"
           }
-
+        - { # CORS Domain For Ironic-Webclient's dev server.
+            section: 'cors',
+            option: 'allowed_origin', value: "http://localhost:8000"
+          }
 
   #############################################################################
   # Handlers

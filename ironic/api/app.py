@@ -16,10 +16,12 @@
 #    under the License.
 
 from oslo_config import cfg
+import oslo_middleware.cors as cors_middleware
 import pecan
 
 from ironic.api import acl
 from ironic.api import config
+from ironic.api.controllers.base import Version
 from ironic.api import hooks
 from ironic.api import middleware
 from ironic.common.i18n import _
@@ -71,6 +73,15 @@ def setup_app(pecan_config=None, extra_hooks=None):
         force_canonical=getattr(pecan_config.app, 'force_canonical', True),
         hooks=app_hooks,
         wrap_app=middleware.ParsableErrorMiddleware,
+    )
+
+    # Create a CORS wrapper, and attach ironic-specific defaults that must be
+    # included in all CORS responses.
+    app = cors_middleware.CORS(app, CONF)
+    app.set_latent(
+        allow_headers=[Version.max_string, Version.min_string, Version.string],
+        allow_methods=['GET', 'PUT', 'POST', 'DELETE', 'PATCH'],
+        expose_headers=[Version.max_string, Version.min_string, Version.string]
     )
 
     if pecan_config.app.enable_acl:
