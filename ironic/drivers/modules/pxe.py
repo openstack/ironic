@@ -574,13 +574,20 @@ class PXEBoot(base.BootInterface):
                     pxe_config_path, root_uuid_or_disk_id,
                     deploy_utils.get_boot_mode_for_deploy(node),
                     iwdi, deploy_utils.is_trusted_boot_requested(node))
-
+                # In case boot mode changes from bios to uefi, boot device
+                # order may get lost in some platforms. Better to re-apply
+                # boot device.
+                deploy_utils.try_set_boot_device(task, boot_devices.PXE)
         else:
             # If it's going to boot from the local disk, we don't need
             # PXE config files. They still need to be generated as part
             # of the prepare() because the deployment does PXE boot the
             # deploy ramdisk
             pxe_utils.clean_up_pxe_config(task)
+
+            # In case boot mode changes from bios to uefi, boot device order
+            # may get lost in some platforms. Better to re-apply boot device.
+            deploy_utils.try_set_boot_device(task, boot_devices.DISK)
 
     def clean_up_instance(self, task):
         """Cleans up the boot of instance.
