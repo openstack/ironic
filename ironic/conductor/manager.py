@@ -210,7 +210,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.29'
+    RPC_API_VERSION = '1.30'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -1968,6 +1968,66 @@ class ConductorManager(periodic_task.PeriodicTasks):
             workers_count += 1
             if workers_count >= CONF.conductor.periodic_max_workers:
                 break
+
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.UnsupportedDriverExtension,
+                                   exception.InvalidParameterValue,
+                                   exception.MissingParameterValue)
+    def set_target_raid_config(self, context, node_id, target_raid_config):
+        """Stores the target RAID configuration on the node.
+
+        Stores the target RAID configuration on node.target_raid_config
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param target_raid_config: Dictionary containing the target RAID
+            configuration.
+        :raises: UnsupportedDriverExtension, if the node's driver doesn't
+            support RAID configuration.
+        :raises: InvalidParameterValue, if validation of target raid config
+            fails.
+        :raises: MissingParameterValue, if some required parameters are
+            missing.
+        :raises: NodeLocked if node is locked by another conductor.
+        """
+        LOG.debug('RPC set_target_raid_config called for node %(node)s with '
+                  'RAID configuration %(target_raid_config)s',
+                  {'node': node_id, 'target_raid_config': target_raid_config})
+
+        with task_manager.acquire(
+                context, node_id,
+                purpose='setting target RAID config') as task:
+            node = task.node
+            if not getattr(task.driver, 'raid', None):
+                raise exception.UnsupportedDriverExtension(
+                    driver=task.driver, extension='raid')
+            task.driver.raid.validate_raid_config(task, target_raid_config)
+            node.target_raid_config = target_raid_config
+            node.save()
+
+    @messaging.expected_exceptions(exception.UnsupportedDriverExtension)
+    def get_raid_logical_disk_properties(self, context, driver_name):
+        """Get the logical disk properties for RAID configuration.
+
+        Gets the information about logical disk properties which can
+        be specified in the input RAID configuration.
+
+        :param context: request context.
+        :param driver_name: name of the driver
+        :raises: UnsupportedDriverExtension, if the driver doesn't
+            support RAID configuration.
+        :returns: A dictionary containing the properties and a textual
+            description for them.
+        """
+        LOG.debug("RPC get_raid_logical_disk_properties "
+                  "called for driver %s" % driver_name)
+
+        driver = self._get_driver(driver_name)
+        if not getattr(driver, 'raid', None):
+            raise exception.UnsupportedDriverExtension(
+                driver=driver_name, extension='raid')
+
+        return driver.raid.get_logical_disk_properties()
 
 
 def get_vendor_passthru_metadata(route_dict):
