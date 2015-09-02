@@ -373,6 +373,35 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             mock_touch.reset_mock()
             mock_continue.reset_mock()
 
+    @mock.patch('ironic.conductor.manager.cleaning_error_handler')
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'continue_cleaning', autospec=True)
+    def test_heartbeat_continue_cleaning_fails(self, mock_continue,
+                                               mock_handler):
+        kwargs = {
+            'agent_url': 'http://127.0.0.1:9999/bar'
+        }
+        self.node.clean_step = {
+            'priority': 10,
+            'interface': 'deploy',
+            'step': 'foo',
+            'reboot_requested': False
+        }
+
+        mock_continue.side_effect = Exception()
+
+        for state in (states.CLEANWAIT, states.CLEANING):
+            self.node.provision_state = state
+            self.node.save()
+            with task_manager.acquire(
+                    self.context, self.node.uuid, shared=True) as task:
+                self.passthru.heartbeat(task, **kwargs)
+
+            mock_continue.assert_called_once_with(mock.ANY, task, **kwargs)
+            mock_handler.assert_called_once_with(task, mock.ANY)
+            mock_handler.reset_mock()
+            mock_continue.reset_mock()
+
     @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'continue_deploy',
                        autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'reboot_to_instance',
