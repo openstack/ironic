@@ -464,5 +464,5 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
         # TODO(rameshg87): Not all in-tree drivers using reboot_to_instance
         # have a boot interface. So include a check for now. Remove this
         # check once all in-tree drivers have a boot interface.
-        if hasattr(task.driver, 'boot'):
+        if task.driver.boot:
             task.driver.boot.clean_up_ramdisk(task)
