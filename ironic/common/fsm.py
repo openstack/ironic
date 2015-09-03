@@ -104,19 +104,6 @@ class FSM(machines.FiniteMachine):
         if self._states[self._current.name]['target'] is not None:
             self._target_state = self._states[self._current.name]['target']
 
-    def is_valid_event(self, event):
-        """Check whether the event is actionable in the current state."""
-        # TODO(harlowja): remove this when
-        # https://review.openstack.org/191955 merges and is made available.
-        current = self._current
-        if current is None:
-            return False
-        if self._states[current.name]['terminal']:
-            return False
-        if event not in self._transitions[current.name]:
-            return False
-        return True
-
     @_translate_excp
     def initialize(self, start_state=None):
         super(FSM, self).initialize(start_state=start_state)
