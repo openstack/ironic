@@ -93,20 +93,18 @@ driver itself or on any interface with driver_periodic_task_ decorator, e.g.
         def task2(self, manager, context):
             pass  # do something
 
-        @base.driver_periodic_task(parallel=False)
-        def blocking_task(self, manager, context):
-            pass  # do something fast, this blocks other tasks from starting!
-
 
 Here the ``spacing`` argument is a period in seconds for a given periodic task.
 For example 'spacing=5' means every 5 seconds.
 
-The ``parallel`` argument may be passed to driver_periodic_task_ and defaults
-to True. If False, this task will be run in the periodic task loop, rather
-than a separate greenthread. This should be used with caution, as it will
-cause all other periodic tasks to be blocked from starting while the
-non-parallel task is running. Long running tasks, especially any tasks that
-make a remote call (to a BMC, HTTP, etc.) **must** be parallelized.
+.. note::
+    The ``parallel`` argument may be passed to driver_periodic_task_.
+    If it's set to False, this task will be run in the periodic task loop,
+    rather than a separate greenthread.
+
+    This is deprecated as of Liberty release, and the parallel argument will be
+    ignored starting in the Mitaka cycle, as such task would prevent all other
+    periodic tasks from starting while it is is running.
 
 .. note::
     By default periodic task names are derived from method names,

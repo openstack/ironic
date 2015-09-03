@@ -32,7 +32,7 @@ from oslo_utils import excutils
 import six
 
 from ironic.common import exception
-from ironic.common.i18n import _LE
+from ironic.common.i18n import _LE, _LW
 from ironic.common import raid
 
 LOG = logging.getLogger(__name__)
@@ -1034,11 +1034,8 @@ def driver_periodic_task(parallel=True, **other):
 
     :param parallel: If True (default), this task is run in a separate thread.
             If False, this task will be run in the conductor's periodic task
-            loop, rather than a separate greenthread. False should be used with
-            caution, as it will cause all other periodic tasks to be blocked
-            from starting while the non-parallel task is running. Long running
-            tasks, especially any tasks that make a remote call (to a BMC,
-            HTTP, etc.) must be parallelized.
+            loop, rather than a separate greenthread. This parameter is
+            deprecated and will be ignored starting with Mitaka cycle.
     :param other: arguments to pass to @periodic_task.periodic_task
     """
     # TODO(dtantsur): drop all this magic once
@@ -1055,6 +1052,10 @@ def driver_periodic_task(parallel=True, **other):
 
                 eventlet.greenthread.spawn_n(_internal)
             else:
+                LOG.warn(_LW(
+                    'Using periodic tasks with parallel=False is deprecated, '
+                    '"parallel" argument will be ignored starting with '
+                    'the Mitaka release'))
                 func(*args, **kwargs)
 
         # NOTE(dtantsur): name should be unique
