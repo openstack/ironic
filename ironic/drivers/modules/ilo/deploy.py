@@ -480,7 +480,8 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
         :param task: a TaskManager instance containing the node to act on.
         :raises: IloOperationError, if some operation on iLO failed.
         """
-        _prepare_node_for_deploy(task)
+        if task.node.provision_state != states.ACTIVE:
+            _prepare_node_for_deploy(task)
 
     def clean_up(self, task):
         """Clean up the deployment environment for the task's node.
@@ -549,10 +550,11 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
 
         :param task: a TaskManager instance.
         """
-        node = task.node
-        node.instance_info = agent.build_instance_info_for_deploy(task)
-        node.save()
-        _prepare_node_for_deploy(task)
+        if task.node.provision_state != states.ACTIVE:
+            node = task.node
+            node.instance_info = agent.build_instance_info_for_deploy(task)
+            node.save()
+            _prepare_node_for_deploy(task)
 
     def clean_up(self, task):
         """Clean up the deployment environment for this node.
@@ -661,17 +663,18 @@ class IloPXEDeploy(iscsi_deploy.ISCSIDeploy):
         :raises: IloOperationError, if some operation on iLO failed.
         :raises: InvalidParameterValue, if some information is invalid.
         """
-        _prepare_node_for_deploy(task)
+        if task.node.provision_state != states.ACTIVE:
+            _prepare_node_for_deploy(task)
 
-        # Check if 'boot_option' is compatible with 'boot_mode' and image.
-        # Whole disk image deploy is not supported in UEFI boot mode if
-        # 'boot_option' is not 'local'.
-        # If boot_mode is not set in the node properties/capabilities then
-        # PXEDeploy.validate() would pass.
-        # Boot mode gets updated in prepare stage. It is possible that the
-        # deploy boot mode is 'uefi' after call to update_boot_mode().
-        # Hence a re-check is required here.
-        pxe.validate_boot_option_for_uefi(task.node)
+            # Check if 'boot_option' is compatible with 'boot_mode' and image.
+            # Whole disk image deploy is not supported in UEFI boot mode if
+            # 'boot_option' is not 'local'.
+            # If boot_mode is not set in the node properties/capabilities then
+            # PXEDeploy.validate() would pass.
+            # Boot mode gets updated in prepare stage. It is possible that the
+            # deploy boot mode is 'uefi' after call to update_boot_mode().
+            # Hence a re-check is required here.
+            pxe.validate_boot_option_for_uefi(task.node)
 
         super(IloPXEDeploy, self).prepare(task)
 
