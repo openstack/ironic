@@ -528,6 +528,43 @@ class TestAgentVendor(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
 
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state',
+                       spec=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'power_off',
+                       spec=types.FunctionType)
+    @mock.patch('ironic.conductor.utils.node_set_boot_device', autospec=True)
+    @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
+                '.check_deploy_success', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
+    def test_reboot_to_instance_boot_none(self, clean_pxe_mock,
+                                          check_deploy_mock,
+                                          bootdev_mock, power_off_mock,
+                                          get_power_state_mock,
+                                          node_power_action_mock):
+        check_deploy_mock.return_value = None
+
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            get_power_state_mock.return_value = states.POWER_OFF
+            task.node.driver_internal_info['is_whole_disk_image'] = True
+            task.driver.boot = None
+
+            self.passthru.reboot_to_instance(task)
+
+            self.assertFalse(clean_pxe_mock.called)
+            check_deploy_mock.assert_called_once_with(mock.ANY, task.node)
+            bootdev_mock.assert_called_once_with(task, 'disk', persistent=True)
+            power_off_mock.assert_called_once_with(task.node)
+            get_power_state_mock.assert_called_once_with(task)
+            node_power_action_mock.assert_called_once_with(
+                task, states.POWER_ON)
+            self.assertEqual(states.ACTIVE, task.node.provision_state)
+            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
     def test_deploy_has_started(self, mock_get_cmd):
