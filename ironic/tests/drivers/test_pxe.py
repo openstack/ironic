@@ -24,6 +24,7 @@ from oslo_config import cfg
 from oslo_serialization import jsonutils as json
 from oslo_utils import fileutils
 
+from ironic.common import boot_devices
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import base_image_service
@@ -803,13 +804,15 @@ class PXEBootTestCase(db_base.DbTestCase):
             clean_up_pxe_env_mock.assert_called_once_with(task, image_info)
             get_deploy_image_info_mock.assert_called_once_with(task.node)
 
+    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
     @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
     @mock.patch.object(pxe, '_cache_ramdisk_kernel', autospec=True)
     @mock.patch.object(pxe, '_get_instance_image_info', autospec=True)
     def test_prepare_instance_netboot(
             self, get_image_info_mock, cache_mock,
-            dhcp_factory_mock, switch_pxe_config_mock):
+            dhcp_factory_mock, switch_pxe_config_mock,
+            set_boot_device_mock):
         provider_mock = mock.MagicMock()
         dhcp_factory_mock.return_value = provider_mock
         image_info = {'kernel': ('', '/path/to/kernel'),
@@ -834,14 +837,18 @@ class PXEBootTestCase(db_base.DbTestCase):
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
                 'bios', False, False)
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.PXE)
 
+    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
     @mock.patch.object(dhcp_factory, 'DHCPFactory')
     @mock.patch.object(pxe, '_cache_ramdisk_kernel', autospec=True)
     @mock.patch.object(pxe, '_get_instance_image_info', autospec=True)
     def test_prepare_instance_netboot_missing_root_uuid(
             self, get_image_info_mock, cache_mock,
-            dhcp_factory_mock, switch_pxe_config_mock):
+            dhcp_factory_mock, switch_pxe_config_mock,
+            set_boot_device_mock):
         provider_mock = mock.MagicMock()
         dhcp_factory_mock.return_value = provider_mock
         image_info = {'kernel': ('', '/path/to/kernel'),
@@ -860,13 +867,18 @@ class PXEBootTestCase(db_base.DbTestCase):
                 task.context, task.node, image_info)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             self.assertFalse(switch_pxe_config_mock.called)
+            self.assertFalse(set_boot_device_mock.called)
 
+    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
     @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
-    def test_prepare_instance_localboot(self, clean_up_pxe_config_mock):
+    def test_prepare_instance_localboot(self, clean_up_pxe_config_mock,
+                                        set_boot_device_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.instance_info['capabilities'] = {'boot_option': 'local'}
             task.driver.boot.prepare_instance(task)
             clean_up_pxe_config_mock.assert_called_once_with(task)
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.DISK)
 
     @mock.patch.object(pxe, '_clean_up_pxe_env', autospec=True)
     @mock.patch.object(pxe, '_get_instance_image_info', autospec=True)

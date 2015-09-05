@@ -21,7 +21,6 @@ from oslo_utils import fileutils
 from oslo_utils import strutils
 from six.moves.urllib import parse
 
-from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_service_utils
 from ironic.common.i18n import _
@@ -838,8 +837,6 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
             task.driver.boot.prepare_instance(task)
 
             if deploy_utils.get_boot_option(node) == "local":
-                deploy_utils.try_set_boot_device(task, boot_devices.DISK)
-
                 if not is_whole_disk_image:
                     LOG.debug('Installing the bootloader on node %s',
                               node.uuid)
