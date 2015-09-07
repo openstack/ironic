@@ -19,7 +19,6 @@ from oslo_log import log
 from oslo_utils import excutils
 from oslo_utils import units
 
-from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
@@ -28,7 +27,6 @@ from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
 from ironic.common import image_service
 from ironic.common import images
-from ironic.common import keystone
 from ironic.common import paths
 from ironic.common import raid
 from ironic.common import states
@@ -54,15 +52,6 @@ agent_opts = [
                       'This option is deprecated and will be removed '
                       'in Mitaka release. Please use [pxe]pxe_config_template '
                       'instead.')),
-    cfg.IntOpt('agent_erase_devices_priority',
-               help=_('Priority to run in-band erase devices via the Ironic '
-                      'Python Agent ramdisk. If unset, will use the priority '
-                      'set in the ramdisk (defaults to 10 for the '
-                      'GenericHardwareManager). If set to 0, will not run '
-                      'during cleaning.')),
-    cfg.IntOpt('agent_erase_devices_iterations',
-               default=1,
-               help=_('Number of iterations to be run for erasing devices.')),
     cfg.BoolOpt('manage_agent_boot',
                 default=True,
                 deprecated_name='manage_tftp',
@@ -83,6 +72,8 @@ agent_opts = [
 
 CONF = cfg.CONF
 CONF.import_opt('my_ip', 'ironic.netconf')
+CONF.import_opt('erase_devices_priority',
+                'ironic.drivers.modules.deploy_utils', group='deploy')
 CONF.register_opts(agent_opts, group='agent')
 
 LOG = log.getLogger(__name__)
@@ -105,28 +96,6 @@ def _time():
 def _get_client():
     client = agent_client.AgentClient()
     return client
-
-
-def build_agent_options(node):
-    """Build the options to be passed to the agent ramdisk.
-
-    :param node: an ironic node object
-    :returns: a dictionary containing the parameters to be passed to
-        agent ramdisk.
-    """
-    ironic_api = (CONF.conductor.api_url or
-                  keystone.get_service_url()).rstrip('/')
-    agent_config_opts = {
-        'ipa-api-url': ironic_api,
-        'ipa-driver-name': node.driver,
-        # NOTE: The below entry is a temporary workaround for bug/1433812
-        'coreos.configdrive': 0,
-    }
-    root_device = deploy_utils.parse_root_device_hints(node)
-    if root_device:
-        agent_config_opts['root_device'] = root_device
-
-    return agent_config_opts
 
 
 def build_instance_info_for_deploy(task):
@@ -289,7 +258,7 @@ class AgentDeploy(base.DeployInterface):
             node.instance_info = build_instance_info_for_deploy(task)
             node.save()
             if CONF.agent.manage_agent_boot:
-                deploy_opts = build_agent_options(node)
+                deploy_opts = deploy_utils.build_agent_options(node)
                 task.driver.boot.prepare_ramdisk(task, deploy_opts)
 
     def clean_up(self, task):
@@ -330,12 +299,12 @@ class AgentDeploy(base.DeployInterface):
         :returns: A list of clean step dictionaries
         """
         steps = deploy_utils.agent_get_clean_steps(task)
-        if CONF.agent.agent_erase_devices_priority is not None:
+        if CONF.deploy.erase_devices_priority is not None:
             for step in steps:
                 if (step.get('step') == 'erase_devices' and
                         step.get('interface') == 'deploy'):
                     # Override with operator set priority
-                    step['priority'] = CONF.agent.agent_erase_devices_priority
+                    step['priority'] = CONF.deploy.erase_devices_priority
         return steps
 
     def execute_clean_step(self, task, step):
@@ -357,47 +326,8 @@ class AgentDeploy(base.DeployInterface):
             be removed or if new cleaning ports cannot be created
         :returns: states.CLEANWAIT to signify an asynchronous prepare
         """
-        provider = dhcp_factory.DHCPFactory()
-        # If we have left over ports from a previous cleaning, remove them
-        if getattr(provider.provider, 'delete_cleaning_ports', None):
-            # Allow to raise if it fails, is caught and handled in conductor
-            provider.provider.delete_cleaning_ports(task)
-
-        # Create cleaning ports if necessary
-        if getattr(provider.provider, 'create_cleaning_ports', None):
-            # Allow to raise if it fails, is caught and handled in conductor
-            ports = provider.provider.create_cleaning_ports(task)
-
-            # Add vif_port_id for each of the ports because some boot
-            # interfaces expects these to prepare for booting ramdisk.
-            for port in task.ports:
-                extra_dict = port.extra
-                try:
-                    extra_dict['vif_port_id'] = ports[port.uuid]
-                except KeyError:
-                    # This is an internal error in Ironic.  All DHCP providers
-                    # implementing create_cleaning_ports are supposed to
-                    # return a VIF port ID for all Ironic ports.  But
-                    # that doesn't seem to be true here.
-                    error = (_("When creating cleaning ports, DHCP provider "
-                               "didn't return VIF port ID for %s") % port.uuid)
-                    raise exception.NodeCleaningFailure(
-                        node=task.node.uuid, reason=error)
-                else:
-                    port.extra = extra_dict
-                    port.save()
-
-        # Append required config parameters to node's driver_internal_info
-        # to pass to IPA.
-        deploy_utils.agent_add_clean_params(task)
-
-        if CONF.agent.manage_agent_boot:
-            ramdisk_opts = build_agent_options(task.node)
-            task.driver.boot.prepare_ramdisk(task, ramdisk_opts)
-        manager_utils.node_power_action(task, states.REBOOT)
-
-        # Tell the conductor we are waiting for the agent to boot.
-        return states.CLEANWAIT
+        return deploy_utils.prepare_inband_cleaning(
+            task, manage_boot=CONF.agent.manage_agent_boot)
 
     def tear_down_cleaning(self, task):
         """Clean up the PXE and DHCP files after cleaning.
@@ -406,22 +336,8 @@ class AgentDeploy(base.DeployInterface):
         :raises NodeCleaningFailure: if the cleaning ports cannot be
             removed
         """
-        manager_utils.node_power_action(task, states.POWER_OFF)
-        if CONF.agent.manage_agent_boot:
-            task.driver.boot.clean_up_ramdisk(task)
-
-        # If we created cleaning ports, delete them
-        provider = dhcp_factory.DHCPFactory()
-        if getattr(provider.provider, 'delete_cleaning_ports', None):
-            # Allow to raise if it fails, is caught and handled in conductor
-            provider.provider.delete_cleaning_ports(task)
-
-            for port in task.ports:
-                if 'vif_port_id' in port.extra:
-                    extra_dict = port.extra
-                    extra_dict.pop('vif_port_id', None)
-                    port.extra = extra_dict
-                    port.save()
+        deploy_utils.tear_down_inband_cleaning(
+            task, manage_boot=CONF.agent.manage_agent_boot)
 
 
 class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):

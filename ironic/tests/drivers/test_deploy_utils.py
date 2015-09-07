@@ -35,6 +35,7 @@ from ironic.common import disk_partitioner
 from ironic.common import exception
 from ironic.common import image_service
 from ironic.common import images
+from ironic.common import keystone
 from ironic.common import states
 from ironic.common import utils as common_utils
 from ironic.conductor import task_manager
@@ -1877,9 +1878,10 @@ class TrySetBootDeviceTestCase(db_base.DbTestCase):
                 task, boot_devices.DISK, persistent=True)
 
 
-class AgentCleaningTestCase(db_base.DbTestCase):
+class AgentMethodsTestCase(db_base.DbTestCase):
+
     def setUp(self):
-        super(AgentCleaningTestCase, self).setUp()
+        super(AgentMethodsTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver='fake_agent')
         n = {'driver': 'fake_agent',
              'driver_internal_info': {'agent_url': 'http://127.0.0.1:9999'}}
@@ -2001,12 +2003,135 @@ class AgentCleaningTestCase(db_base.DbTestCase):
             self.assertEqual(states.CLEANWAIT, response)
 
     def test_agent_add_clean_params(self):
-        cfg.CONF.agent.agent_erase_devices_iterations = 2
+        cfg.CONF.deploy.erase_devices_iterations = 2
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             utils.agent_add_clean_params(task)
             self.assertEqual(task.node.driver_internal_info.get(
                 'agent_erase_devices_iterations'), 2)
+
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.delete_cleaning_ports',
+                autospec=True)
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.create_cleaning_ports',
+                autospec=True)
+    def _test_prepare_inband_cleaning_ports(
+            self, create_mock, delete_mock, return_vif_port_id=True):
+        if return_vif_port_id:
+            create_mock.return_value = {self.ports[0].uuid: 'vif-port-id'}
+        else:
+            create_mock.return_value = {}
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            utils.prepare_cleaning_ports(task)
+            create_mock.assert_called_once_with(mock.ANY, task)
+            delete_mock.assert_called_once_with(mock.ANY, task)
+
+        self.ports[0].refresh()
+        self.assertEqual('vif-port-id', self.ports[0].extra['vif_port_id'])
+
+    def test_prepare_inband_cleaning_ports(self):
+        self._test_prepare_inband_cleaning_ports()
+
+    def test_prepare_inband_cleaning_ports_no_vif_port_id(self):
+        self.assertRaises(
+            exception.NodeCleaningFailure,
+            self._test_prepare_inband_cleaning_ports,
+            return_vif_port_id=False)
+
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.delete_cleaning_ports',
+                autospec=True)
+    def test_tear_down_inband_cleaning_ports(self, neutron_mock):
+        extra_dict = self.ports[0].extra
+        extra_dict['vif_port_id'] = 'vif-port-id'
+        self.ports[0].extra = extra_dict
+        self.ports[0].save()
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            utils.tear_down_cleaning_ports(task)
+            neutron_mock.assert_called_once_with(mock.ANY, task)
+
+        self.ports[0].refresh()
+        self.assertNotIn('vif_port_id', self.ports[0].extra)
+
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
+    @mock.patch.object(utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(utils, 'prepare_cleaning_ports', autospec=True)
+    def _test_prepare_inband_cleaning(
+            self, prepare_cleaning_ports_mock,
+            build_options_mock, power_mock, prepare_ramdisk_mock,
+            manage_boot=True):
+        build_options_mock.return_value = {'a': 'b'}
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertEqual(
+                states.CLEANWAIT,
+                utils.prepare_inband_cleaning(task, manage_boot=manage_boot))
+            prepare_cleaning_ports_mock.assert_called_once_with(task)
+            power_mock.assert_called_once_with(task, states.REBOOT)
+            self.assertEqual(task.node.driver_internal_info.get(
+                             'agent_erase_devices_iterations'), 1)
+            if manage_boot:
+                prepare_ramdisk_mock.assert_called_once_with(
+                    mock.ANY, mock.ANY, {'a': 'b'})
+                build_options_mock.assert_called_once_with(task.node)
+            else:
+                self.assertFalse(prepare_ramdisk_mock.called)
+                self.assertFalse(build_options_mock.called)
+
+    def test_prepare_inband_cleaning(self):
+        self._test_prepare_inband_cleaning()
+
+    def test_prepare_inband_cleaning_manage_boot_false(self):
+        self._test_prepare_inband_cleaning(manage_boot=False)
+
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
+    @mock.patch.object(utils, 'tear_down_cleaning_ports', autospec=True)
+    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
+    def _test_tear_down_inband_cleaning(
+            self, power_mock, tear_down_ports_mock,
+            clean_up_ramdisk_mock, manage_boot=True):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            utils.tear_down_inband_cleaning(task, manage_boot=manage_boot)
+            power_mock.assert_called_once_with(task, states.POWER_OFF)
+            tear_down_ports_mock.assert_called_once_with(task)
+            if manage_boot:
+                clean_up_ramdisk_mock.assert_called_once_with(
+                    task.driver.boot, task)
+            else:
+                self.assertFalse(clean_up_ramdisk_mock.called)
+
+    def test_tear_down_inband_cleaning(self):
+        self._test_tear_down_inband_cleaning(manage_boot=True)
+
+    def test_tear_down_inband_cleaning_manage_boot_false(self):
+        self._test_tear_down_inband_cleaning(manage_boot=False)
+
+    def test_build_agent_options_conf(self):
+        self.config(api_url='api-url', group='conductor')
+        options = utils.build_agent_options(self.node)
+        self.assertEqual('api-url', options['ipa-api-url'])
+        self.assertEqual('fake_agent', options['ipa-driver-name'])
+        self.assertEqual(0, options['coreos.configdrive'])
+
+    @mock.patch.object(keystone, 'get_service_url', autospec=True)
+    def test_build_agent_options_keystone(self, get_url_mock):
+
+        self.config(api_url=None, group='conductor')
+        get_url_mock.return_value = 'api-url'
+        options = utils.build_agent_options(self.node)
+        self.assertEqual('api-url', options['ipa-api-url'])
+        self.assertEqual('fake_agent', options['ipa-driver-name'])
+        self.assertEqual(0, options['coreos.configdrive'])
+
+    def test_build_agent_options_root_device_hints(self):
+        self.config(api_url='api-url', group='conductor')
+        self.node.properties['root_device'] = {'model': 'fake_model'}
+        options = utils.build_agent_options(self.node)
+        self.assertEqual('api-url', options['ipa-api-url'])
+        self.assertEqual('fake_agent', options['ipa-driver-name'])
+        self.assertEqual('model=fake_model', options['root_device'])
 
 
 @mock.patch.object(utils, 'is_block_device', autospec=True)

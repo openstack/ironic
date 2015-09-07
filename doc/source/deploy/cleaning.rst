@@ -91,8 +91,8 @@ currently requires use of a custom HardwareManager. The only exception is
 erase_devices, which can have its priority set in ironic.conf. For instance,
 to disable erase_devices, you'd use the following config::
 
-  [agent]
-  agent_erase_devices_priority=0
+  [deploy]
+  erase_devices_priority=0
 
 To enable/disable the in-band disk erase using ``agent_ilo`` driver, use the
 following config::

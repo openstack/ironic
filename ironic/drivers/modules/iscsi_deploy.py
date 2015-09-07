@@ -33,7 +33,6 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
-from ironic.drivers.modules import agent
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
@@ -721,7 +720,7 @@ class ISCSIDeploy(base.DeployInterface):
             # NOTE(lucasagomes): We are going to extend the normal PXE config
             # to also contain the agent options so it could be used for
             # both the DIB ramdisk and the IPA ramdisk
-            agent_opts = agent.build_agent_options(node)
+            agent_opts = deploy_utils.build_agent_options(node)
             deploy_opts.update(agent_opts)
 
             task.driver.boot.prepare_ramdisk(task, deploy_opts)

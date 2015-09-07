@@ -343,7 +343,7 @@ def _prepare_agent_vmedia_boot(task):
     # during deploy.
     ilo_common.eject_vmedia_devices(task)
 
-    deploy_ramdisk_opts = agent.build_agent_options(task.node)
+    deploy_ramdisk_opts = deploy_utils.build_agent_options(task.node)
     deploy_iso = task.node.driver_info['ilo_deploy_iso']
     _reboot_into(task, deploy_iso, deploy_ramdisk_opts)
 
@@ -515,7 +515,7 @@ class IloVirtualMediaIscsiDeploy(base.DeployInterface):
         iscsi_deploy.check_image_size(task)
 
         deploy_ramdisk_opts = iscsi_deploy.build_deploy_ramdisk_options(node)
-        agent_opts = agent.build_agent_options(node)
+        agent_opts = deploy_utils.build_agent_options(node)
         deploy_ramdisk_opts.update(agent_opts)
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
         deploy_ramdisk_opts['BOOTIF'] = deploy_nic_mac
