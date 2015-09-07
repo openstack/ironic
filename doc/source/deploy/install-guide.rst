@@ -489,7 +489,7 @@ An example of this is shown in the `Enrollment`_ section.
 
     service neutron-plugin-openvswitch-agent restart
 
-#. On restarting the Networking sevice Open vSwitch agent, the veth pair
+#. On restarting the Networking service Open vSwitch agent, the veth pair
    between the bridges br-int and br-eth2 is automatically created.
 
    Your Open vSwitch bridges should look something like this after
