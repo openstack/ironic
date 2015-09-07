@@ -830,6 +830,34 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 state=node.provision_state)
         self._do_node_clean(task)
 
+    def _get_node_next_clean_steps(self, task):
+        """Get the task's node's next clean steps.
+
+        :param task: A TaskManager object
+        :raises: NodeCleaningFailure if an internal error occurred when
+                 getting the next clean steps
+
+        """
+        node = task.node
+        if not node.clean_step:
+            return []
+
+        next_steps = node.driver_internal_info.get('clean_steps', [])
+        try:
+            # Trim off the last clean step (now finished) and
+            # all previous steps
+            next_steps = next_steps[next_steps.index(node.clean_step) + 1:]
+        except ValueError:
+            msg = (_('Node %(node)s got an invalid last step for '
+                     '%(state)s: %(step)s.') %
+                   {'node': node.uuid, 'step': node.clean_step,
+                    'state': node.provision_state})
+            LOG.exception(msg)
+            cleaning_error_handler(task, msg)
+            raise exception.NodeCleaningFailure(node=node.uuid,
+                                                reason=msg)
+        return next_steps
+
     def continue_node_clean(self, context, node_id):
         """RPC method to continue cleaning a node.
 
@@ -844,6 +872,8 @@ class ConductorManager(periodic_task.PeriodicTasks):
                  async task
         :raises: NodeLocked if node is locked by another conductor.
         :raises: NodeNotFound if the node no longer appears in the database
+        :raises: NodeCleaningFailure if an internal error occurred when
+                 getting the next clean steps
 
         """
         LOG.debug("RPC continue_node_clean called for node %s.", node_id)
@@ -862,8 +892,32 @@ class ConductorManager(periodic_task.PeriodicTasks):
                     {'node': task.node.uuid,
                      'state': task.node.provision_state,
                      'clean_state': states.CLEANWAIT})
-            task.set_spawn_error_hook(cleaning_error_handler, task.node,
-                                      'Failed to run next clean step')
+
+            next_steps = self._get_node_next_clean_steps(task)
+
+            # If this isn't the final clean step in the cleaning operation
+            # and it is flagged to abort after the clean step that just
+            # finished, we abort the cleaning operaation.
+            if task.node.clean_step.get('abort_after'):
+                step_name = task.node.clean_step['step']
+                if next_steps:
+                    LOG.debug('The cleaning operation for node %(node)s was '
+                              'marked to be aborted after step "%(step)s '
+                              'completed. Aborting now that it has completed.',
+                              {'node': task.node.uuid, 'step': step_name})
+                    task.process_event('abort',
+                                       callback=self._spawn_worker,
+                                       call_args=(self._do_node_clean_abort,
+                                                  task, step_name),
+                                       err_handler=provisioning_error_handler)
+                    return
+
+                LOG.debug('The cleaning operation for node %(node)s was '
+                          'marked to be aborted after step "%(step)s" '
+                          'completed. However, since there are no more '
+                          'clean steps after this, the abort is not going '
+                          'to be done.', {'node': task.node.uuid,
+                                          'step': step_name})
 
             # TODO(lucasagomes): This conditional is here for backwards
             # compat with previous code. Should be removed once the Mitaka
@@ -871,12 +925,12 @@ class ConductorManager(periodic_task.PeriodicTasks):
             if task.node.provision_state == states.CLEANWAIT:
                 task.process_event('resume')
 
+            task.set_spawn_error_hook(cleaning_error_handler, task.node,
+                                      _('Failed to run next clean step'))
             task.spawn_after(
                 self._spawn_worker,
                 self._do_next_clean_step,
-                task,
-                task.node.driver_internal_info.get('clean_steps', []),
-                task.node.clean_step)
+                task, next_steps)
 
     def _do_node_clean(self, task):
         """Internal RPC method to perform automated cleaning of a node."""
@@ -932,32 +986,16 @@ class ConductorManager(periodic_task.PeriodicTasks):
         set_node_cleaning_steps(task)
         self._do_next_clean_step(
             task,
-            node.driver_internal_info.get('clean_steps', []),
-            node.clean_step)
+            node.driver_internal_info.get('clean_steps', []))
 
-    def _do_next_clean_step(self, task, steps, last_step):
-        """Start executing cleaning/zapping steps from the last step (if any).
+    def _do_next_clean_step(self, task, steps):
+        """Start executing cleaning/zapping steps.
 
         :param task: a TaskManager instance with an exclusive lock
-        :param steps: The complete list of steps that need to be executed
-            on the node
-        :param last_step: The last step that was executed. {} will start
-            from the beginning
+        :param steps: The list of remaining steps that need to be executed
+                      on the node
         """
         node = task.node
-        # Trim already executed steps
-        if last_step:
-            try:
-                # Trim off last_step (now finished) and all previous steps.
-                steps = steps[steps.index(last_step) + 1:]
-            except ValueError:
-                msg = (_('Node %(node)s got an invalid last step for '
-                         '%(state)s: %(step)s.') %
-                       {'node': node.uuid, 'step': last_step,
-                        'state': node.provision_state})
-                LOG.exception(msg)
-                return cleaning_error_handler(task, msg)
-
         LOG.info(_LI('Executing %(state)s on node %(node)s, remaining steps: '
                      '%(steps)s'), {'node': node.uuid, 'steps': steps,
                                     'state': node.provision_state})
@@ -1056,6 +1094,36 @@ class ConductorManager(periodic_task.PeriodicTasks):
             node.target_provision_state = None
             node.save()
 
+    def _do_node_clean_abort(self, task, step_name=None):
+        """Internal method to abort an ongoing operation.
+
+        :param task: a TaskManager instance with an exclusive lock
+        :param step_name: The name of the clean step.
+        """
+        node = task.node
+        try:
+            task.driver.deploy.tear_down_cleaning(task)
+        except Exception as e:
+            LOG.exception(_LE('Failed to tear down cleaning for node %(node)s '
+                              'after aborting the operation. Error: %(err)s'),
+                          {'node': node.uuid, 'err': e})
+            error_msg = _('Failed to tear down cleaning after aborting '
+                          'the operation')
+            cleaning_error_handler(task, error_msg, tear_down_cleaning=False,
+                                   set_fail_state=False)
+            return
+
+        info_message = _('Clean operation aborted for node %s') % node.uuid
+        last_error = _('By request, the clean operation was aborted')
+        if step_name:
+            msg = _(' after the completion of step "%s"') % step_name
+            last_error += msg
+            info_message += msg
+
+        node.last_error = last_error
+        node.save()
+        LOG.info(info_message)
+
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
                                    exception.InvalidParameterValue,
@@ -1084,19 +1152,55 @@ class ConductorManager(periodic_task.PeriodicTasks):
                                    callback=self._spawn_worker,
                                    call_args=(self._do_node_clean, task),
                                    err_handler=provisioning_error_handler)
-            elif (action == states.VERBS['manage'] and
+                return
+
+            if (action == states.VERBS['manage'] and
                     task.node.provision_state == states.ENROLL):
                 task.process_event('manage',
                                    callback=self._spawn_worker,
                                    call_args=(self._do_node_verify, task),
                                    err_handler=provisioning_error_handler)
-            else:
-                try:
-                    task.process_event(action)
-                except exception.InvalidState:
-                    raise exception.InvalidStateRequested(
-                        action=action, node=task.node.uuid,
-                        state=task.node.provision_state)
+                return
+
+            if (action == states.VERBS['abort'] and
+                    task.node.provision_state == states.CLEANWAIT):
+
+                # Check if the clean step is abortable; if so abort it.
+                # Otherwise, indicate in that clean step, that cleaning
+                # should be aborted after that step is done.
+                if (task.node.clean_step and not
+                    task.node.clean_step.get('abortable')):
+                    LOG.info(_LI('The current clean step "%(clean_step)s" for '
+                                 'node %(node)s is not abortable. Adding a '
+                                 'flag to abort the cleaning after the clean '
+                                 'step is completed.'),
+                             {'clean_step': task.node.clean_step['step'],
+                              'node': task.node.uuid})
+                    clean_step = task.node.clean_step
+                    if not clean_step.get('abort_after'):
+                        clean_step['abort_after'] = True
+                        task.node.clean_step = clean_step
+                        task.node.save()
+                    return
+
+                LOG.debug('Aborting the cleaning operation during clean step '
+                          '"%(step)s" for node %(node)s in provision state '
+                          '"%(prov)s".',
+                          {'node': task.node.uuid,
+                           'prov': task.node.provision_state,
+                           'step': task.node.clean_step.get('step')})
+                task.process_event('abort',
+                                   callback=self._spawn_worker,
+                                   call_args=(self._do_node_clean_abort, task),
+                                   err_handler=provisioning_error_handler)
+                return
+
+            try:
+                task.process_event(action)
+            except exception.InvalidState:
+                raise exception.InvalidStateRequested(
+                    action=action, node=task.node.uuid,
+                    state=task.node.provision_state)
 
     @periodic_task.periodic_task(
         spacing=CONF.conductor.sync_power_state_interval)
@@ -2372,7 +2476,8 @@ def _do_inspect_hardware(task):
         raise exception.HardwareInspectionFailure(error=error)
 
 
-def cleaning_error_handler(task, msg, tear_down_cleaning=True):
+def cleaning_error_handler(task, msg, tear_down_cleaning=True,
+                           set_fail_state=True):
     """Put a failed node in CLEANFAIL or ZAPFAIL and maintenance."""
     # Reset clean step, msg should include current step
     if task.node.provision_state in (states.CLEANING, states.CLEANWAIT):
@@ -2389,7 +2494,8 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True):
                        'reason: %(err)s'), {'err': e, 'uuid': task.node.uuid})
             LOG.exception(msg)
 
-    task.process_event('fail')
+    if set_fail_state:
+        task.process_event('fail')
 
 
 def _step_key(step):

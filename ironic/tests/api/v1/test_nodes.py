@@ -1973,6 +1973,37 @@ class TestPut(test_api_base.FunctionalTest):
             self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertEqual(0, mock_dpa.call_count)
 
+    def test_abort_unsupported(self):
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['abort']},
+                            headers={api_base.Version.string: "1.12"},
+                            expect_errors=True)
+        self.assertEqual(406, ret.status_code)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
+    def test_abort_cleanwait(self, mock_dpa):
+        self.node.provision_state = states.CLEANWAIT
+        self.node.save()
+
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['abort']},
+                            headers={api_base.Version.string: "1.13"})
+        self.assertEqual(202, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        mock_dpa.assert_called_once_with(mock.ANY, self.node.uuid,
+                                         states.VERBS['abort'],
+                                         'test-topic')
+
+    def test_abort_invalid_state(self):
+        # "abort" is only valid for nodes in CLEANWAIT
+        self.node.provision_state = states.CLEANING
+        self.node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['abort']},
+                            headers={api_base.Version.string: "1.13"},
+                            expect_errors=True)
+        self.assertEqual(400, ret.status_code)
+
     def test_set_console_mode_enabled(self):
         with mock.patch.object(rpcapi.ConductorAPI,
                                'set_console_mode') as mock_scm:

@@ -132,7 +132,7 @@ class CleanStepTestCase(base.TestCase):
             def zap_method(self, task):
                 pass
 
-            @driver_base.clean_step(priority=10)
+            @driver_base.clean_step(priority=10, abortable=True)
             def clean_method(self, task):
                 method_mock(task)
 
@@ -146,7 +146,7 @@ class CleanStepTestCase(base.TestCase):
             def zap_method2(self, task):
                 pass
 
-            @driver_base.clean_step(priority=20)
+            @driver_base.clean_step(priority=20, abortable=True)
             def clean_method2(self, task):
                 method_mock(task)
 
@@ -159,11 +159,13 @@ class CleanStepTestCase(base.TestCase):
         self.assertEqual(2, len(obj.get_clean_steps(task_mock)))
         # Ensure the steps look correct
         self.assertEqual(10, obj.get_clean_steps(task_mock)[0]['priority'])
+        self.assertTrue(obj.get_clean_steps(task_mock)[0]['abortable'])
         self.assertEqual('test', obj.get_clean_steps(
             task_mock)[0]['interface'])
         self.assertEqual('clean_method', obj.get_clean_steps(
             task_mock)[0]['step'])
         self.assertEqual(0, obj.get_clean_steps(task_mock)[1]['priority'])
+        self.assertFalse(obj.get_clean_steps(task_mock)[1]['abortable'])
         self.assertEqual('test', obj.get_clean_steps(
             task_mock)[1]['interface'])
         self.assertEqual('zap_method', obj.get_clean_steps(
@@ -173,11 +175,13 @@ class CleanStepTestCase(base.TestCase):
         self.assertEqual(2, len(obj2.get_clean_steps(task_mock)))
         # Ensure the steps look correct
         self.assertEqual(20, obj2.get_clean_steps(task_mock)[0]['priority'])
+        self.assertTrue(obj2.get_clean_steps(task_mock)[0]['abortable'])
         self.assertEqual('test2', obj2.get_clean_steps(
             task_mock)[0]['interface'])
         self.assertEqual('clean_method2', obj2.get_clean_steps(
             task_mock)[0]['step'])
         self.assertEqual(0, obj2.get_clean_steps(task_mock)[1]['priority'])
+        self.assertFalse(obj.get_clean_steps(task_mock)[1]['abortable'])
         self.assertEqual('test2', obj2.get_clean_steps(
             task_mock)[1]['interface'])
         self.assertEqual('zap_method2', obj2.get_clean_steps(
