@@ -264,7 +264,7 @@ def _parse_driver_info(node):
             "value can be one of %(valid_versions)s") %
             {'version': protocol_version, 'valid_versions': valid_versions})
 
-    if port:
+    if port is not None:
         try:
             port = int(port)
         except ValueError:
