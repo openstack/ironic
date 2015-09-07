@@ -1413,6 +1413,13 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.MissingParameterValue,
                               task.driver.console.validate, task)
 
+    def test_console_validate_invalid_port(self):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=True) as task:
+            task.node.driver_info['ipmi_terminal_port'] = ''
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.console.validate, task)
+
     def test_console_validate_wrong_ipmi_protocol_version(self):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=True) as task:
