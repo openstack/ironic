@@ -394,6 +394,30 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             options = pxe._build_pxe_config_options(task, image_info)
         self.assertEqual(expected_options, options)
 
+    def test__build_pxe_config_options_no_kernel_no_ramdisk(self):
+        del self.node.driver_internal_info['is_whole_disk_image']
+        self.node.save()
+        self.config(group='pxe', tftp_server='my-tftp-server')
+        self.config(group='pxe', pxe_append_params='my-pxe-append-params')
+        image_info = {
+            'deploy_kernel': ('deploy_kernel',
+                              'path-to-deploy_kernel'),
+            'deploy_ramdisk': ('deploy_ramdisk',
+                               'path-to-deploy_ramdisk')}
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            options = pxe._build_pxe_config_options(task, image_info)
+
+        expected_options = {
+            'deployment_aki_path': 'path-to-deploy_kernel',
+            'deployment_ari_path': 'path-to-deploy_ramdisk',
+            'pxe_append_params': 'my-pxe-append-params',
+            'tftp_server': 'my-tftp-server',
+            'aki_path': 'no_kernel',
+            'ari_path': 'no_ramdisk'}
+        self.assertEqual(expected_options, options)
+
     @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
     def test__cache_tftp_images_master_path(self, mock_fetch_image):
         temp_dir = tempfile.mkdtemp()
