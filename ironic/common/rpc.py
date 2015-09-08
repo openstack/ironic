@@ -15,7 +15,6 @@
 
 from oslo_config import cfg
 import oslo_messaging as messaging
-from oslo_serialization import jsonutils
 
 from ironic.common import context as ironic_context
 from ironic.common import exception
@@ -48,7 +47,7 @@ def init(conf):
     TRANSPORT = messaging.get_transport(conf,
                                         allowed_remote_exmods=exmods,
                                         aliases=TRANSPORT_ALIASES)
-    serializer = RequestContextSerializer(JsonPayloadSerializer())
+    serializer = RequestContextSerializer(messaging.JsonPayloadSerializer())
     NOTIFIER = messaging.Notifier(TRANSPORT, serializer=serializer)
 
 
@@ -76,30 +75,7 @@ def get_allowed_exmods():
     return ALLOWED_EXMODS + EXTRA_EXMODS
 
 
-class JsonPayloadSerializer(messaging.NoOpSerializer):
-    @staticmethod
-    def serialize_entity(context, entity):
-        return jsonutils.to_primitive(entity, convert_instances=True)
-
-
-class RequestContextSerializer(messaging.Serializer):
-
-    def __init__(self, base):
-        self._base = base
-
-    def serialize_entity(self, context, entity):
-        if not self._base:
-            return entity
-        return self._base.serialize_entity(context, entity)
-
-    def deserialize_entity(self, context, entity):
-        if not self._base:
-            return entity
-        return self._base.deserialize_entity(context, entity)
-
-    def serialize_context(self, context):
-        return context.to_dict()
-
+class RequestContextSerializer(messaging.RequestContextSerializer):
     def deserialize_context(self, context):
         return ironic_context.RequestContext.from_dict(context)
 
