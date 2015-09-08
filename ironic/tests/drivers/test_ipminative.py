@@ -201,6 +201,38 @@ class IPMINativePrivateMethodTestCase(db_base.DbTestCase):
         ret = ipminative._get_sensors_data(self.info)
         self.assertEqual(expected, ret)
 
+    def test__parse_raw_bytes_ok(self):
+        bytes_string = '0x11 0x12 0x25 0xFF'
+        netfn, cmd, data = ipminative._parse_raw_bytes(bytes_string)
+        self.assertEqual(0x11, netfn)
+        self.assertEqual(0x12, cmd)
+        self.assertEqual([0x25, 0xFF], data)
+
+    def test__parse_raw_bytes_invalid_value(self):
+        bytes_string = '0x11 oops'
+        self.assertRaises(exception.InvalidParameterValue,
+                          ipminative._parse_raw_bytes,
+                          bytes_string)
+
+    def test__parse_raw_bytes_missing_byte(self):
+        bytes_string = '0x11'
+        self.assertRaises(exception.InvalidParameterValue,
+                          ipminative._parse_raw_bytes,
+                          bytes_string)
+
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
+    def test__send_raw(self, ipmi_mock):
+        ipmicmd = ipmi_mock.return_value
+        ipminative._send_raw(self.info, '0x01 0x02 0x03 0x04')
+        ipmicmd.xraw_command.assert_called_once_with(1, 2, data=[3, 4])
+
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
+    def test__send_raw_fail(self, ipmi_mock):
+        ipmicmd = ipmi_mock.return_value
+        ipmicmd.xraw_command.side_effect = pyghmi_exception.IpmiException()
+        self.assertRaises(exception.IPMIFailure, ipminative._send_raw,
+                          self.info, '0x01 0x02')
+
 
 class IPMINativeDriverTestCase(db_base.DbTestCase):
     """Test cases for ipminative.NativeIPMIPower class functions."""
@@ -219,6 +251,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         expected = ipminative.COMMON_PROPERTIES
         self.assertEqual(expected, self.driver.power.get_properties())
         self.assertEqual(expected, self.driver.management.get_properties())
+        self.assertEqual(expected, self.driver.vendor.get_properties())
 
         expected = list(ipminative.COMMON_PROPERTIES)
         expected += list(ipminative.CONSOLE_PROPERTIES)
@@ -466,3 +499,54 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         self.assertEqual(expected, console_info)
         mock_exec.assert_called_once_with(self.info['port'])
         self.assertTrue(mock_exec.called)
+
+    @mock.patch.object(ipminative, '_parse_driver_info', autospec=True)
+    @mock.patch.object(ipminative, '_parse_raw_bytes', autospec=True)
+    def test_vendor_passthru_validate__send_raw_bytes_good(self, mock_raw,
+                                                           mock_driver):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.driver.vendor.validate(task,
+                                        method='send_raw',
+                                        http_method='POST',
+                                        raw_bytes='0x00 0x01')
+            mock_raw.assert_called_once_with('0x00 0x01')
+            mock_driver.assert_called_once_with(task.node)
+
+    def test_vendor_passthru_validate__send_raw_bytes_fail(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.MissingParameterValue,
+                              self.driver.vendor.validate,
+                              task, method='send_raw')
+
+    def test_vendor_passthru_vendor_routes(self):
+        expected = ['send_raw', 'bmc_reset']
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            vendor_routes = task.driver.vendor.vendor_routes
+            self.assertIsInstance(vendor_routes, dict)
+            self.assertEqual(sorted(expected), sorted(vendor_routes))
+
+    @mock.patch.object(ipminative, '_send_raw', autospec=True)
+    def test_send_raw(self, send_raw_mock):
+        bytes = '0x00 0x01'
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.driver.vendor.send_raw(task, http_method='POST',
+                                        raw_bytes=bytes)
+
+        send_raw_mock.assert_called_once_with(self.info, bytes)
+
+    @mock.patch.object(ipminative, '_send_raw', autospec=True)
+    def _test_bmc_reset(self, warm, send_raw_mock):
+        expected_bytes = '0x06 0x03' if warm else '0x06 0x02'
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.driver.vendor.bmc_reset(task, http_method='POST', warm=warm)
+
+        send_raw_mock.assert_called_once_with(self.info, expected_bytes)
+
+    def test_bmc_reset_cold(self):
+        self._test_bmc_reset(False)
+
+    def test_bmc_reset_warm(self):
+        self._test_bmc_reset(True)

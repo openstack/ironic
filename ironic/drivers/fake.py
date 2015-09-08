@@ -112,6 +112,7 @@ class FakeIPMINativeDriver(base.BaseDriver):
         self.power = ipminative.NativeIPMIPower()
         self.console = ipminative.NativeIPMIShellinaboxConsole()
         self.deploy = fake.FakeDeploy()
+        self.vendor = ipminative.VendorPassthru()
         self.management = ipminative.NativeIPMIManagement()
 
 
