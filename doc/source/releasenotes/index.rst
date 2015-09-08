@@ -2,6 +2,23 @@
 Release Notes
 =============
 
+4.1.0
+=====
+
+This brings some bug fixes and small features on top of Ironic 4.0.0.
+Major changes are listed below, and full release details are available
+on Launchpad: https://launchpad.net/ironic/liberty/4.1.0.
+
+* Added CORS support
+
+  The Ironic API now has support for CORS requests, that may be used by,
+  for example, web browser-based clients. This is configured in the [cors]
+  section of ironic.conf.
+
+* Removed deprecated 'admin_api' policy rule
+
+* Deprecated the 'parallel' option to periodic task decorator
+
 4.0.0   First semver release
 ============================
 
