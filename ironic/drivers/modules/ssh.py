@@ -23,6 +23,7 @@ For use in dev and test environments.
 Currently supported environments are:
     Virtual Box (vbox)
     Virsh       (virsh)
+    VMware      (vmware)
     Parallels   (parallels)
 """
 
