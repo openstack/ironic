@@ -19,13 +19,11 @@ Test class for iRMC Power Driver
 import mock
 from oslo_config import cfg
 
-from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
-from ironic.conductor import utils as manager_utils
+from ironic.drivers.modules.irmc import boot as irmc_boot
 from ironic.drivers.modules.irmc import common as irmc_common
-from ironic.drivers.modules.irmc import deploy as irmc_deploy
 from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
@@ -49,17 +47,17 @@ class IRMCPowerInternalMethodsTestCase(db_base.DbTestCase):
             driver_info=driver_info,
             instance_uuid='instance_uuid_123')
 
-    @mock.patch.object(irmc_power, '_attach_boot_iso_if_needed')
+    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed')
     def test__set_power_state_power_on_ok(
             self,
-            _attach_boot_iso_if_needed_mock,
+            attach_boot_iso_if_needed_mock,
             get_irmc_client_mock):
         irmc_client = get_irmc_client_mock.return_value
         target_state = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             irmc_power._set_power_state(task, target_state)
-            _attach_boot_iso_if_needed_mock.assert_called_once_with(task)
+            attach_boot_iso_if_needed_mock.assert_called_once_with(task)
         irmc_client.assert_called_once_with(irmc_power.scci.POWER_ON)
 
     def test__set_power_state_power_off_ok(self,
@@ -71,17 +69,17 @@ class IRMCPowerInternalMethodsTestCase(db_base.DbTestCase):
             irmc_power._set_power_state(task, target_state)
         irmc_client.assert_called_once_with(irmc_power.scci.POWER_OFF)
 
-    @mock.patch.object(irmc_power, '_attach_boot_iso_if_needed')
+    @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed')
     def test__set_power_state_power_reboot_ok(
             self,
-            _attach_boot_iso_if_needed_mock,
+            attach_boot_iso_if_needed_mock,
             get_irmc_client_mock):
         irmc_client = get_irmc_client_mock.return_value
         target_state = states.REBOOT
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             irmc_power._set_power_state(task, target_state)
-            _attach_boot_iso_if_needed_mock.assert_called_once_with(task)
+            attach_boot_iso_if_needed_mock.assert_called_once_with(task)
         irmc_client.assert_called_once_with(irmc_power.scci.POWER_RESET)
 
     def test__set_power_state_invalid_target_state(self,
@@ -105,41 +103,6 @@ class IRMCPowerInternalMethodsTestCase(db_base.DbTestCase):
                               irmc_power._set_power_state,
                               task,
                               states.POWER_ON)
-
-    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(irmc_deploy, 'setup_vmedia_for_boot', spec_set=True,
-                       autospec=True)
-    def test__attach_boot_iso_if_needed(
-            self,
-            setup_vmedia_mock,
-            set_boot_device_mock,
-            get_irmc_client_mock):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            task.node.provision_state = states.ACTIVE
-            task.node.driver_internal_info['irmc_boot_iso'] = 'boot-iso'
-            irmc_power._attach_boot_iso_if_needed(task)
-            setup_vmedia_mock.assert_called_once_with(task, 'boot-iso')
-            set_boot_device_mock.assert_called_once_with(
-                task, boot_devices.CDROM)
-
-    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(irmc_deploy, 'setup_vmedia_for_boot', spec_set=True,
-                       autospec=True)
-    def test__attach_boot_iso_if_needed_on_rebuild(
-            self,
-            setup_vmedia_mock,
-            set_boot_device_mock,
-            get_irmc_client_mock):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            task.node.provision_state = states.DEPLOYING
-            task.node.driver_internal_info['irmc_boot_iso'] = 'boot-iso'
-            irmc_power._attach_boot_iso_if_needed(task)
-            self.assertFalse(setup_vmedia_mock.called)
-            self.assertFalse(set_boot_device_mock.called)
 
 
 class IRMCPowerTestCase(db_base.DbTestCase):

@@ -21,13 +21,14 @@ import testtools
 
 from ironic.common import exception
 from ironic.drivers import irmc
+from ironic.drivers.modules import iscsi_deploy
 
 
 class IRMCVirtualMediaIscsiTestCase(testtools.TestCase):
 
     def setUp(self):
-        irmc.deploy._check_share_fs_mounted_patcher.start()
-        self.addCleanup(irmc.deploy._check_share_fs_mounted_patcher.stop)
+        irmc.boot.check_share_fs_mounted_patcher.start()
+        self.addCleanup(irmc.boot.check_share_fs_mounted_patcher.stop)
         super(IRMCVirtualMediaIscsiTestCase, self).setUp()
 
     @mock.patch.object(irmc.importutils, 'try_import', spec_set=True,
@@ -39,13 +40,14 @@ class IRMCVirtualMediaIscsiTestCase(testtools.TestCase):
         driver = irmc.IRMCVirtualMediaIscsiDriver()
 
         self.assertIsInstance(driver.power, irmc.power.IRMCPower)
-        self.assertIsInstance(driver.deploy,
-                              irmc.deploy.IRMCVirtualMediaIscsiDeploy)
+        self.assertIsInstance(driver.boot,
+                              irmc.boot.IRMCVirtualMediaBoot)
+        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
         self.assertIsInstance(driver.console,
                               irmc.ipmitool.IPMIShellinaboxConsole)
         self.assertIsInstance(driver.management,
                               irmc.management.IRMCManagement)
-        self.assertIsInstance(driver.vendor, irmc.deploy.VendorPassthru)
+        self.assertIsInstance(driver.vendor, iscsi_deploy.VendorPassthru)
 
     @mock.patch.object(irmc.importutils, 'try_import')
     def test___init___try_import_exception(self, mock_try_import):
@@ -54,7 +56,7 @@ class IRMCVirtualMediaIscsiTestCase(testtools.TestCase):
         self.assertRaises(exception.DriverLoadError,
                           irmc.IRMCVirtualMediaIscsiDriver)
 
-    @mock.patch.object(irmc.deploy.IRMCVirtualMediaIscsiDeploy, '__init__',
+    @mock.patch.object(irmc.boot.IRMCVirtualMediaBoot, '__init__',
                        spec_set=True, autospec=True)
     def test___init___share_fs_not_mounted_exception(self, __init___mock):
         __init___mock.side_effect = iter(
@@ -67,8 +69,8 @@ class IRMCVirtualMediaIscsiTestCase(testtools.TestCase):
 class IRMCVirtualMediaAgentTestCase(testtools.TestCase):
 
     def setUp(self):
-        irmc.deploy._check_share_fs_mounted_patcher.start()
-        self.addCleanup(irmc.deploy._check_share_fs_mounted_patcher.stop)
+        irmc.boot.check_share_fs_mounted_patcher.start()
+        self.addCleanup(irmc.boot.check_share_fs_mounted_patcher.stop)
         super(IRMCVirtualMediaAgentTestCase, self).setUp()
 
     @mock.patch.object(irmc.importutils, 'try_import', spec_set=True,

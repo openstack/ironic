@@ -204,12 +204,12 @@ if 'ironic.drivers.modules.irmc' in sys.modules:
 
 # install mock object to prevent 'iscsi_irmc' and 'agent_irmc' from
 # checking whether NFS/CIFS share file system is mounted or not.
-irmc_deploy = importutils.import_module(
-    'ironic.drivers.modules.irmc.deploy')
-irmc_deploy._check_share_fs_mounted_orig = irmc_deploy._check_share_fs_mounted
-irmc_deploy._check_share_fs_mounted_patcher = mock.patch(
-    'ironic.drivers.modules.irmc.deploy._check_share_fs_mounted')
-irmc_deploy._check_share_fs_mounted_patcher.return_value = None
+irmc_boot = importutils.import_module(
+    'ironic.drivers.modules.irmc.boot')
+irmc_boot.check_share_fs_mounted_orig = irmc_boot.check_share_fs_mounted
+irmc_boot.check_share_fs_mounted_patcher = mock.patch(
+    'ironic.drivers.modules.irmc.boot.check_share_fs_mounted')
+irmc_boot.check_share_fs_mounted_patcher.return_value = None
 
 
 pyremotevbox = importutils.try_import('pyremotevbox')
