@@ -176,6 +176,7 @@ class TestListDrivers(base.FunctionalTest):
 
     @mock.patch.object(rpcapi.ConductorAPI, 'get_raid_logical_disk_properties')
     def test_raid_logical_disk_properties(self, disk_prop_mock):
+        driver._RAID_PROPERTIES = {}
         self.register_fake_conductors()
         properties = {'foo': 'description of foo'}
         disk_prop_mock.return_value = properties
@@ -188,6 +189,7 @@ class TestListDrivers(base.FunctionalTest):
 
     @mock.patch.object(rpcapi.ConductorAPI, 'get_raid_logical_disk_properties')
     def test_raid_logical_disk_properties_older_version(self, disk_prop_mock):
+        driver._RAID_PROPERTIES = {}
         self.register_fake_conductors()
         properties = {'foo': 'description of foo'}
         disk_prop_mock.return_value = properties
@@ -198,8 +200,26 @@ class TestListDrivers(base.FunctionalTest):
         self.assertEqual(406, ret.status_code)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'get_raid_logical_disk_properties')
+    def test_raid_logical_disk_properties_cached(self, disk_prop_mock):
+        # only one RPC-conductor call will be made and the info cached
+        # for subsequent requests
+        driver._RAID_PROPERTIES = {}
+        self.register_fake_conductors()
+        properties = {'foo': 'description of foo'}
+        disk_prop_mock.return_value = properties
+        path = '/drivers/%s/raid/logical_disk_properties' % self.d1
+        for i in range(3):
+            data = self.get_json(path,
+                                 headers={api_base.Version.string: "1.12"})
+            self.assertEqual(properties, data)
+        disk_prop_mock.assert_called_once_with(mock.ANY, self.d1,
+                                               topic=mock.ANY)
+        self.assertEqual(properties, driver._RAID_PROPERTIES[self.d1])
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_raid_logical_disk_properties')
     def test_raid_logical_disk_properties_iface_not_supported(
             self, disk_prop_mock):
+        driver._RAID_PROPERTIES = {}
         self.register_fake_conductors()
         disk_prop_mock.side_effect = iter(
             [exception.UnsupportedDriverExtension(
