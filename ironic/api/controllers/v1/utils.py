@@ -223,3 +223,11 @@ def initial_node_provision_state():
     return (states.AVAILABLE
             if pecan.request.version.minor < versions.MINOR_11_ENROLL_STATE
             else states.ENROLL)
+
+
+def allow_raid_config():
+    """Check if RAID configuration is allowed for the node.
+
+    Version 1.12 of the API allows RAID configuration for the node.
+    """
+    return pecan.request.version.minor >= versions.MINOR_12_RAID_CONFIG

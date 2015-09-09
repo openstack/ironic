@@ -86,6 +86,10 @@ def hide_fields_in_newer_versions(obj):
     if pecan.request.version.minor < versions.MINOR_7_NODE_CLEAN:
         obj.clean_step = wsme.Unset
 
+    if pecan.request.version.minor < versions.MINOR_12_RAID_CONFIG:
+        obj.raid_config = wsme.Unset
+        obj.target_raid_config = wsme.Unset
+
 
 def assert_juno_provision_state_name(obj):
     # if requested version is < 1.2, convert AVAILABLE to the old NOSTATE
@@ -112,7 +116,8 @@ class NodePatchType(types.JsonPatchType):
                            '/target_power_state', '/target_provision_state',
                            '/provision_updated_at', '/maintenance_reason',
                            '/driver_internal_info', '/inspection_finished_at',
-                           '/inspection_started_at', '/clean_step']
+                           '/inspection_started_at', '/clean_step',
+                           '/raid_config', '/target_raid_config']
 
     @staticmethod
     def mandatory_attrs():
@@ -282,11 +287,21 @@ class NodeStates(base.APIBase):
     """Any error from the most recent (last) asynchronous transaction that
     started but failed to finish."""
 
+    raid_config = wsme.wsattr({wtypes.text: types.jsontype}, readonly=True)
+    """Represents the RAID configuration that the node is configured with."""
+
+    target_raid_config = wsme.wsattr({wtypes.text: types.jsontype},
+                                     readonly=True)
+    """The desired RAID configuration, to be used the next time the node
+    is configured."""
+
     @staticmethod
     def convert(rpc_node):
         attr_list = ['console_enabled', 'last_error', 'power_state',
                      'provision_state', 'target_power_state',
                      'target_provision_state', 'provision_updated_at']
+        if api_utils.allow_raid_config():
+            attr_list.extend(['raid_config', 'target_raid_config'])
         states = NodeStates()
         for attr in attr_list:
             setattr(states, attr, getattr(rpc_node, attr))
@@ -301,7 +316,9 @@ class NodeStates(base.APIBase):
                      console_enabled=False,
                      provision_updated_at=None,
                      power_state=ir_states.POWER_ON,
-                     provision_state=None)
+                     provision_state=None,
+                     raid_config=None,
+                     target_raid_config=None)
         return sample
 
 
@@ -310,6 +327,7 @@ class NodeStatesController(rest.RestController):
     _custom_actions = {
         'power': ['PUT'],
         'provision': ['PUT'],
+        'raid': ['PUT'],
     }
 
     console = NodeConsoleController()
@@ -326,6 +344,34 @@ class NodeStatesController(rest.RestController):
         # power states of the nodes and update the DB accordingly.
         rpc_node = api_utils.get_rpc_node(node_ident)
         return NodeStates.convert(rpc_node)
+
+    @expose.expose(None, types.uuid_or_name, body=types.jsontype)
+    def raid(self, node_ident, target_raid_config):
+        """Set the target raid config of the node.
+
+        :param node_ident: the UUID or logical name of a node.
+        :param target_raid_config: Desired target RAID configuration of
+            the node
+        :raises: UnsupportedDriverExtension, if the node's driver doesn't
+            support RAID configuration.
+        :raises: InvalidParameterValue, if validation of target raid config
+            fails.
+        :raises: NotAcceptable, if requested version of the API is less than
+            1.12.
+        """
+        if not api_utils.allow_raid_config():
+            raise exception.NotAcceptable()
+        rpc_node = api_utils.get_rpc_node(node_ident)
+        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        try:
+            pecan.request.rpcapi.set_target_raid_config(
+                pecan.request.context, rpc_node.uuid,
+                target_raid_config, topic=topic)
+        except exception.UnsupportedDriverExtension as e:
+            # Change error code as 404 seems appropriate because RAID is a
+            # standard interface and all drivers might not have it.
+            e.code = http_client.NOT_FOUND
+            raise e
 
     @expose.expose(None, types.uuid_or_name, wtypes.text,
                    status_code=http_client.ACCEPTED)
@@ -549,6 +595,13 @@ class Node(base.APIBase):
     clean_step = wsme.wsattr({wtypes.text: types.jsontype}, readonly=True)
     """The current clean step"""
 
+    raid_config = wsme.wsattr({wtypes.text: types.jsontype}, readonly=True)
+    """Represents the current RAID configuration of the node """
+
+    target_raid_config = wsme.wsattr({wtypes.text: types.jsontype},
+                                     readonly=True)
+    """The user modified RAID configuration of the node """
+
     extra = {wtypes.text: types.jsontype}
     """This node's meta data"""
 
@@ -654,7 +707,8 @@ class Node(base.APIBase):
                      provision_updated_at=time, instance_info={},
                      maintenance=False, maintenance_reason=None,
                      inspection_finished_at=None, inspection_started_at=time,
-                     console_enabled=False, clean_step={})
+                     console_enabled=False, clean_step={},
+                     raid_config=None, target_raid_config=None)
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
@@ -806,7 +860,7 @@ class NodesController(rest.RestController):
 
     invalid_sort_key_list = ['properties', 'driver_info', 'extra',
                              'instance_info', 'driver_internal_info',
-                             'clean_step']
+                             'clean_step', 'raid_config', 'target_raid_config']
 
     def _get_nodes_collection(self, chassis_uuid, instance_uuid, associated,
                               maintenance, provision_state, marker, limit,

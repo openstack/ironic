@@ -108,6 +108,8 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertNotIn('provision_updated_at', data['nodes'][0])
         self.assertNotIn('maintenance_reason', data['nodes'][0])
         self.assertNotIn('clean_step', data['nodes'][0])
+        self.assertNotIn('raid_config', data['nodes'][0])
+        self.assertNotIn('target_raid_config', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -216,6 +218,8 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertIn('provision_updated_at', data['nodes'][0])
         self.assertIn('inspection_finished_at', data['nodes'][0])
         self.assertIn('inspection_started_at', data['nodes'][0])
+        self.assertIn('raid_config', data['nodes'][0])
+        self.assertIn('target_raid_config', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -411,9 +415,10 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     @mock.patch.object(timeutils, 'utcnow')
-    def test_node_states(self, mock_utcnow):
+    def _test_node_states(self, mock_utcnow, api_version=None):
         fake_state = 'fake-state'
         fake_error = 'fake-error'
+        fake_config = '{"foo": "bar"}'
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = test_time
         node = obj_utils.create_test_node(self.context,
@@ -422,8 +427,13 @@ class TestListNodes(test_api_base.FunctionalTest):
                                           provision_state=fake_state,
                                           target_provision_state=fake_state,
                                           provision_updated_at=test_time,
+                                          raid_config=fake_config,
+                                          target_raid_config=fake_config,
                                           last_error=fake_error)
-        data = self.get_json('/nodes/%s/states' % node.uuid)
+        headers = {}
+        if api_version:
+            headers = {api_base.Version.string: api_version}
+        data = self.get_json('/nodes/%s/states' % node.uuid, headers=headers)
         self.assertEqual(fake_state, data['power_state'])
         self.assertEqual(fake_state, data['target_power_state'])
         self.assertEqual(fake_state, data['provision_state'])
@@ -433,6 +443,15 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertEqual(test_time, prov_up_at)
         self.assertEqual(fake_error, data['last_error'])
         self.assertFalse(data['console_enabled'])
+        return data
+
+    def test_node_states(self):
+        self._test_node_states()
+
+    def test_node_states_raid(self):
+        data = self._test_node_states(api_version="1.12")
+        self.assertEqual({'foo': 'bar'}, data['raid_config'])
+        self.assertEqual({'foo': 'bar'}, data['target_raid_config'])
 
     @mock.patch.object(timeutils, 'utcnow')
     def test_node_states_by_name(self, mock_utcnow):
@@ -2025,6 +2044,60 @@ class TestPut(test_api_base.FunctionalTest):
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertTrue(ret.json['error_message'])
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_target_raid_config',
+                       autospec=True)
+    def test_put_raid(self, set_raid_config_mock):
+        raid_config = {'logical_disks': [{'size_gb': 100, 'raid_level': 1}]}
+        ret = self.put_json(
+            '/nodes/%s/states/raid' % self.node.uuid, raid_config,
+            headers={api_base.Version.string: "1.12"})
+        self.assertEqual(204, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        set_raid_config_mock.assert_called_once_with(
+            mock.ANY, mock.ANY, self.node.uuid, raid_config, topic=mock.ANY)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_target_raid_config',
+                       autospec=True)
+    def test_put_raid_older_version(self, set_raid_config_mock):
+        raid_config = {'logical_disks': [{'size_gb': 100, 'raid_level': 1}]}
+        ret = self.put_json(
+            '/nodes/%s/states/raid' % self.node.uuid, raid_config,
+            headers={api_base.Version.string: "1.5"},
+            expect_errors=True)
+        self.assertEqual(406, ret.status_code)
+        self.assertFalse(set_raid_config_mock.called)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_target_raid_config',
+                       autospec=True)
+    def test_put_raid_iface_not_supported(self, set_raid_config_mock):
+        raid_config = {'logical_disks': [{'size_gb': 100, 'raid_level': 1}]}
+        set_raid_config_mock.side_effect = iter([
+            exception.UnsupportedDriverExtension(extension='raid',
+                                                 driver='fake')])
+        ret = self.put_json(
+            '/nodes/%s/states/raid' % self.node.uuid, raid_config,
+            headers={api_base.Version.string: "1.12"},
+            expect_errors=True)
+        self.assertEqual(404, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
+        set_raid_config_mock.assert_called_once_with(
+            mock.ANY, mock.ANY, self.node.uuid, raid_config, topic=mock.ANY)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_target_raid_config',
+                       autospec=True)
+    def test_put_raid_invalid_parameter_value(self, set_raid_config_mock):
+        raid_config = {'logical_disks': [{'size_gb': 100, 'raid_level': 1}]}
+        set_raid_config_mock.side_effect = iter([
+            exception.InvalidParameterValue('foo')])
+        ret = self.put_json(
+            '/nodes/%s/states/raid' % self.node.uuid, raid_config,
+            headers={api_base.Version.string: "1.12"},
+            expect_errors=True)
+        self.assertEqual(400, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
+        set_raid_config_mock.assert_called_once_with(
+            mock.ANY, mock.ANY, self.node.uuid, raid_config, topic=mock.ANY)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'set_boot_device')
     def test_set_boot_device(self, mock_sbd):

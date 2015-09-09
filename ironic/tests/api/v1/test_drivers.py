@@ -19,6 +19,7 @@ import mock
 from six.moves import http_client
 from testtools.matchers import HasLength
 
+from ironic.api.controllers import base as api_base
 from ironic.api.controllers.v1 import driver
 from ironic.common import exception
 from ironic.conductor import rpcapi
@@ -172,6 +173,45 @@ class TestListDrivers(base.FunctionalTest):
         self.assertEqual(return_value, data)
         # Assert RPC method wasn't called this time
         self.assertFalse(get_methods_mock.called)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_raid_logical_disk_properties')
+    def test_raid_logical_disk_properties(self, disk_prop_mock):
+        self.register_fake_conductors()
+        properties = {'foo': 'description of foo'}
+        disk_prop_mock.return_value = properties
+        path = '/drivers/%s/raid/logical_disk_properties' % self.d1
+        data = self.get_json(path,
+                             headers={api_base.Version.string: "1.12"})
+        self.assertEqual(properties, data)
+        disk_prop_mock.assert_called_once_with(mock.ANY, self.d1,
+                                               topic=mock.ANY)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_raid_logical_disk_properties')
+    def test_raid_logical_disk_properties_older_version(self, disk_prop_mock):
+        self.register_fake_conductors()
+        properties = {'foo': 'description of foo'}
+        disk_prop_mock.return_value = properties
+        path = '/drivers/%s/raid/logical_disk_properties' % self.d1
+        ret = self.get_json(path,
+                            headers={api_base.Version.string: "1.4"},
+                            expect_errors=True)
+        self.assertEqual(406, ret.status_code)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_raid_logical_disk_properties')
+    def test_raid_logical_disk_properties_iface_not_supported(
+            self, disk_prop_mock):
+        self.register_fake_conductors()
+        disk_prop_mock.side_effect = iter(
+            [exception.UnsupportedDriverExtension(
+                extension='raid', driver='fake')])
+        path = '/drivers/%s/raid/logical_disk_properties' % self.d1
+        ret = self.get_json(path,
+                            headers={api_base.Version.string: "1.12"},
+                            expect_errors=True)
+        self.assertEqual(404, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
+        disk_prop_mock.assert_called_once_with(mock.ANY, self.d1,
+                                               topic=mock.ANY)
 
 
 @mock.patch.object(rpcapi.ConductorAPI, 'get_driver_properties')
