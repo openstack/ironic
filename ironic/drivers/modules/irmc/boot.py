@@ -108,7 +108,7 @@ def _parse_config_option():
         raise exception.InvalidParameterValue(msg)
 
 
-def parse_driver_info(node):
+def _parse_driver_info(node):
     """Gets the driver specific Node deployment info.
 
     This method validates whether the 'driver_info' property of the
@@ -175,7 +175,7 @@ def _parse_instance_info(node):
     return deploy_info
 
 
-def parse_deploy_info(node):
+def _parse_deploy_info(node):
     """Gets the instance and driver specific Node deployment info.
 
     This method validates whether the 'instance_info' and 'driver_info'
@@ -191,13 +191,13 @@ def parse_deploy_info(node):
     """
     deploy_info = {}
     deploy_info.update(deploy_utils.get_image_instance_info(node))
-    deploy_info.update(parse_driver_info(node))
+    deploy_info.update(_parse_driver_info(node))
     deploy_info.update(_parse_instance_info(node))
 
     return deploy_info
 
 
-def setup_deploy_iso(task, ramdisk_options):
+def _setup_deploy_iso(task, ramdisk_options):
     """Attaches virtual media and sets it as boot device.
 
     This method attaches the given deploy ISO as virtual media, prepares the
@@ -256,7 +256,7 @@ def _prepare_boot_iso(task, root_uuid):
     :raises: ImageCreationFailed, if creating boot ISO
        for BIOS boot_mode failed.
     """
-    deploy_info = parse_deploy_info(task.node)
+    deploy_info = _parse_deploy_info(task.node)
     driver_internal_info = task.node.driver_internal_info
 
     # fetch boot iso
@@ -394,7 +394,7 @@ def _setup_vmedia_for_boot(task, bootable_iso_filename, parameters=None):
     _attach_virtual_cd(task.node, bootable_iso_filename)
 
 
-def cleanup_vmedia_boot(task):
+def _cleanup_vmedia_boot(task):
     """Cleans a node after a virtual media boot.
 
     This method cleans up a node after a virtual media boot.
@@ -581,7 +581,7 @@ class IRMCVirtualMediaBoot(base.BootInterface):
         """
         check_share_fs_mounted()
 
-        d_info = parse_deploy_info(task.node)
+        d_info = _parse_deploy_info(task.node)
         if task.node.driver_internal_info.get('is_whole_disk_image'):
             props = []
         elif service_utils.is_glance_image(d_info['image_source']):
@@ -611,7 +611,7 @@ class IRMCVirtualMediaBoot(base.BootInterface):
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
         ramdisk_params['BOOTIF'] = deploy_nic_mac
 
-        setup_deploy_iso(task, ramdisk_params)
+        _setup_deploy_iso(task, ramdisk_params)
 
     def clean_up_ramdisk(self, task):
         """Cleans up the boot of ironic ramdisk.
@@ -623,7 +623,7 @@ class IRMCVirtualMediaBoot(base.BootInterface):
         :returns: None
         :raises: IRMCOperationError if iRMC operation failed.
         """
-        cleanup_vmedia_boot(task)
+        _cleanup_vmedia_boot(task)
 
     def prepare_instance(self, task):
         """Prepares the boot of instance.
@@ -634,7 +634,7 @@ class IRMCVirtualMediaBoot(base.BootInterface):
         :param task: a task from TaskManager.
         :returns: None
         """
-        cleanup_vmedia_boot(task)
+        _cleanup_vmedia_boot(task)
 
         node = task.node
         iwdi = node.driver_internal_info.get('is_whole_disk_image')
@@ -661,7 +661,7 @@ class IRMCVirtualMediaBoot(base.BootInterface):
         driver_internal_info.pop('irmc_boot_iso', None)
         task.node.driver_internal_info = driver_internal_info
         task.node.save()
-        cleanup_vmedia_boot(task)
+        _cleanup_vmedia_boot(task)
 
     def _configure_vmedia_boot(self, task, root_uuid_or_disk_id):
         """Configure vmedia boot for the node."""

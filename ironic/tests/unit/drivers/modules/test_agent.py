@@ -180,28 +180,36 @@ class TestAgentDeploy(db_base.DbTestCase):
         expected = agent.COMMON_PROPERTIES
         self.assertEqual(expected, self.driver.get_properties())
 
+    @mock.patch.object(deploy_utils, 'validate_capabilities',
+                       spec_set=True, autospec=True)
     @mock.patch.object(images, 'download_size', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
-    def test_validate(self, pxe_boot_validate_mock, size_mock):
+    def test_validate(self, pxe_boot_validate_mock, size_mock,
+                      validate_capability_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             self.driver.validate(task)
             pxe_boot_validate_mock.assert_called_once_with(
                 task.driver.boot, task)
             size_mock.assert_called_once_with(self.context, 'fake-image')
+            validate_capability_mock.assert_called_once_with(task.node)
 
+    @mock.patch.object(deploy_utils, 'validate_capabilities',
+                       spec_set=True, autospec=True)
     @mock.patch.object(images, 'download_size', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
     def test_validate_driver_info_manage_agent_boot_false(
-            self, pxe_boot_validate_mock, size_mock):
+            self, pxe_boot_validate_mock, size_mock,
+            validate_capability_mock):
         self.config(manage_agent_boot=False, group='agent')
         self.node.driver_info = {}
         self.node.save()
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             self.driver.validate(task)
-        self.assertFalse(pxe_boot_validate_mock.called)
-        size_mock.assert_called_once_with(self.context, 'fake-image')
+            self.assertFalse(pxe_boot_validate_mock.called)
+            size_mock.assert_called_once_with(self.context, 'fake-image')
+            validate_capability_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
     def test_validate_instance_info_missing_params(
