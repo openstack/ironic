@@ -25,6 +25,7 @@ from ironic.drivers.modules import ssh
 from ironic.drivers.modules.ucs import management as ucs_mgmt
 from ironic.drivers.modules.ucs import power as ucs_power
 from ironic.drivers.modules import virtualbox
+from ironic.drivers import utils
 
 
 class AgentAndIPMIToolDriver(base.BaseDriver):
@@ -44,7 +45,15 @@ class AgentAndIPMIToolDriver(base.BaseDriver):
         self.deploy = agent.AgentDeploy()
         self.management = ipmitool.IPMIManagement()
         self.console = ipmitool.IPMIShellinaboxConsole()
-        self.vendor = agent.AgentVendorInterface()
+        self.agent_vendor = agent.AgentVendorInterface()
+        self.ipmi_vendor = ipmitool.VendorPassthru()
+        self.mapping = {'send_raw': self.ipmi_vendor,
+                        'bmc_reset': self.ipmi_vendor,
+                        'heartbeat': self.agent_vendor}
+        self.driver_passthru_mapping = {'lookup': self.agent_vendor}
+        self.vendor = utils.MixinVendorInterface(
+            self.mapping,
+            driver_passthru_mapping=self.driver_passthru_mapping)
 
 
 class AgentAndIPMINativeDriver(base.BaseDriver):

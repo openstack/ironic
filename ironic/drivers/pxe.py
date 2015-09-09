@@ -65,9 +65,19 @@ class PXEAndIPMIToolDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = iscsi_deploy.ISCSIDeploy()
         self.management = ipmitool.IPMIManagement()
-        self.vendor = iscsi_deploy.VendorPassthru()
         self.inspect = inspector.Inspector.create_if_enabled(
             'PXEAndIPMIToolDriver')
+        self.pxe_vendor = iscsi_deploy.VendorPassthru()
+        self.ipmi_vendor = ipmitool.VendorPassthru()
+        self.mapping = {'send_raw': self.ipmi_vendor,
+                        'bmc_reset': self.ipmi_vendor,
+                        'heartbeat': self.pxe_vendor,
+                        'pass_deploy_info': self.pxe_vendor,
+                        'pass_bootloader_install_info': self.pxe_vendor}
+        self.driver_passthru_mapping = {'lookup': self.pxe_vendor}
+        self.vendor = utils.MixinVendorInterface(
+            self.mapping,
+            driver_passthru_mapping=self.driver_passthru_mapping)
 
 
 class PXEAndSSHDriver(base.BaseDriver):
