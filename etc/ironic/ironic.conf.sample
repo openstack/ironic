@@ -946,6 +946,20 @@
 #auth_strategy=keystone
 
 
+[iboot]
+
+#
+# Options defined in ironic.drivers.modules.iboot
+#
+
+# Maximum retries for iBoot operations (integer value)
+#max_retry=3
+
+# Time between retry attempts for iBoot operations (integer
+# value)
+#retry_interval=1
+
+
 [ilo]
 
 #

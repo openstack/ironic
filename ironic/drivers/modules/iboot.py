@@ -19,7 +19,9 @@
 Ironic iBoot PDU power manager.
 """
 
+from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_service import loopingcall
 from oslo_utils import importutils
 
 from ironic.common import exception
@@ -31,6 +33,20 @@ from ironic.drivers import base
 
 iboot = importutils.try_import('iboot')
 
+opts = [
+    cfg.IntOpt('max_retry',
+               default=3,
+               help=_('Maximum retries for iBoot operations')),
+    cfg.IntOpt('retry_interval',
+               default=1,
+               help=_('Time between retry attempts for iBoot operations')),
+]
+
+CONF = cfg.CONF
+opt_group = cfg.OptGroup(name='iboot',
+                         title='Options for the iBoot power driver')
+CONF.register_group(opt_group)
+CONF.register_opts(opts, opt_group)
 
 LOG = logging.getLogger(__name__)
 
@@ -95,30 +111,66 @@ def _get_connection(driver_info):
 def _switch(driver_info, enabled):
     conn = _get_connection(driver_info)
     relay_id = driver_info['relay_id']
-    return conn.switch(relay_id, enabled)
+
+    def _wait_for_switch(mutable):
+        if mutable['retries'] > CONF.iboot.max_retry:
+            LOG.warning(_LW(
+                'Reached maximum number of attempts ( %(attempts)d ) to set '
+                'power state for node %(node)s to "%(op)s"'),
+                {'attempts': mutable['retries'], 'node': driver_info['uuid'],
+                 'op': states.POWER_ON if enabled else states.POWER_OFF})
+            raise loopingcall.LoopingCallDone()
+
+        try:
+            mutable['retries'] += 1
+            mutable['response'] = conn.switch(relay_id, enabled)
+            if mutable['response']:
+                raise loopingcall.LoopingCallDone()
+        except (TypeError, IndexError):
+            LOG.warning(_LW("Cannot call set power state for node '%(node)s' "
+                            "at relay '%(relay)s'. iBoot switch() failed."),
+                        {'node': driver_info['uuid'], 'relay': relay_id})
+
+    mutable = {'response': False, 'retries': 0}
+    timer = loopingcall.FixedIntervalLoopingCall(_wait_for_switch,
+                                                 mutable)
+    timer.start(interval=CONF.iboot.retry_interval).wait()
+    return mutable['response']
 
 
 def _power_status(driver_info):
     conn = _get_connection(driver_info)
     relay_id = driver_info['relay_id']
-    try:
-        response = conn.get_relays()
-        status = response[relay_id - 1]
-    except TypeError:
-        msg = (_("Cannot get power status for node '%(node)s'. iBoot "
-                 "get_relays() failed.") % {'node': driver_info['uuid']})
-        LOG.error(msg)
-        raise exception.IBootOperationError(message=msg)
-    except IndexError:
-        LOG.warning(_LW("Cannot get power status for node '%(node)s' at relay "
-                        "'%(relay)s'. iBoot get_relays() failed."),
-                    {'node': driver_info['uuid'], 'relay': relay_id})
-        return states.ERROR
 
-    if status:
-        return states.POWER_ON
-    else:
-        return states.POWER_OFF
+    def _wait_for_power_status(mutable):
+
+        if mutable['retries'] > CONF.iboot.max_retry:
+            LOG.warning(_LW(
+                'Reached maximum number of attempts ( %(attempts)d ) to get '
+                'power state for node %(node)s'),
+                {'attempts': mutable['retries'], 'node': driver_info['uuid']})
+            raise loopingcall.LoopingCallDone()
+
+        try:
+            mutable['retries'] += 1
+            response = conn.get_relays()
+            status = response[relay_id - 1]
+            if status:
+                mutable['state'] = states.POWER_ON
+            else:
+                mutable['state'] = states.POWER_OFF
+            raise loopingcall.LoopingCallDone()
+        except (TypeError, IndexError):
+            LOG.warning(_LW("Cannot get power state for node '%(node)s' at "
+                            "relay '%(relay)s'. iBoot get_relays() failed."),
+                        {'node': driver_info['uuid'], 'relay': relay_id})
+
+    mutable = {'state': states.ERROR, 'retries': 0}
+
+    timer = loopingcall.FixedIntervalLoopingCall(_wait_for_power_status,
+                                                 mutable)
+    timer.start(interval=CONF.iboot.retry_interval).wait()
+    return mutable['state']
 
 
 class IBootPower(base.PowerInterface):
