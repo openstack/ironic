@@ -23,6 +23,7 @@ import six
 
 from ironic.common import exception
 from ironic.objects import base
+from ironic.objects import fields
 from ironic.objects import utils
 from ironic.tests import base as test_base
 
@@ -32,9 +33,9 @@ gettext.install('ironic')
 class MyObj(base.IronicObject):
     VERSION = '1.5'
 
-    fields = {'foo': int,
-              'bar': str,
-              'missing': str,
+    fields = {'foo': fields.IntegerField(),
+              'bar': fields.StringField(),
+              'missing': fields.StringField(),
               }
 
     def obj_load_attr(self, attrname):
@@ -428,7 +429,8 @@ class _TestObject(object):
 
     def test_refresh_object(self):
         class TestObj(base.IronicObject):
-            fields = {'foo': int, 'bar': str}
+            fields = {'foo': fields.IntegerField(),
+                      'bar': fields.StringField()}
 
         obj = TestObj(self.context)
         current_obj = TestObj(self.context)

@@ -76,8 +76,12 @@ class TestConductorObject(base.DbTestCase):
             c = objects.Conductor.get_by_hostname(self.context, host)
             # ensure timestamps have tzinfo
             datetime_field = fields.DateTimeField()
-            self.assertEqual(datetime_field(t0), c.updated_at)
+            self.assertEqual(
+                datetime_field.coerce(datetime_field, 'updated_at', t0),
+                c.updated_at)
             c.refresh()
-            self.assertEqual(datetime_field(t1), c.updated_at)
+            self.assertEqual(
+                datetime_field.coerce(datetime_field, 'updated_at', t1),
+                c.updated_at)
             self.assertEqual(expected, mock_get_cdr.call_args_list)
             self.assertEqual(self.context, c._context)

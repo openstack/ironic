@@ -21,44 +21,31 @@ from oslo_versionedobjects import fields as object_fields
 from ironic.common import utils
 
 
-class _Callable(object):
-    """Helper class to make this work like old-style fields.
-
-    This class makes the object able to be called like a function,
-    which emulates the old interface that objects are expecting. This
-    should be removed once objects/base.py is updated to stop using the
-    old interface for the fields.
-
-    """
-    def __call__(self, value):
-        return self.coerce(None, None, value)
-
-
-class IntegerField(object_fields.IntegerField, _Callable):
+class IntegerField(object_fields.IntegerField):
     pass
 
 
-class UUIDField(object_fields.UUIDField, _Callable):
+class UUIDField(object_fields.UUIDField):
     pass
 
 
-class StringField(object_fields.StringField, _Callable):
+class StringField(object_fields.StringField):
     pass
 
 
-class DateTimeField(object_fields.DateTimeField, _Callable):
+class DateTimeField(object_fields.DateTimeField):
     pass
 
 
-class BooleanField(object_fields.BooleanField, _Callable):
+class BooleanField(object_fields.BooleanField):
     pass
 
 
-class ListOfStringsField(object_fields.ListOfStringsField, _Callable):
+class ListOfStringsField(object_fields.ListOfStringsField):
     pass
 
 
-class FlexibleDict(object_fields.FieldType, _Callable):
+class FlexibleDict(object_fields.FieldType):
     @staticmethod
     def coerce(obj, attr, value):
         if isinstance(value, six.string_types):
@@ -66,7 +53,7 @@ class FlexibleDict(object_fields.FieldType, _Callable):
         return dict(value)
 
 
-class FlexibleDictField(object_fields.AutoTypedField, _Callable):
+class FlexibleDictField(object_fields.AutoTypedField):
     AUTO_TYPE = FlexibleDict()
 
     # TODO(lucasagomes): In our code we've always translated None to {},
@@ -84,5 +71,5 @@ class MACAddress(object_fields.FieldType):
         return utils.validate_and_normalize_mac(value)
 
 
-class MACAddressField(object_fields.AutoTypedField, _Callable):
+class MACAddressField(object_fields.AutoTypedField):
     AUTO_TYPE = MACAddress()
