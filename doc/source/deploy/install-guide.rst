@@ -144,7 +144,7 @@ Install the Bare Metal service
     Ubuntu 14.04 (trusty) or higher:
         apt-get install ironic-api ironic-conductor python-ironicclient
 
-    RHEL7/Fedora 21 or higher:
+    RHEL7/CentOS7/Fedora 21 or higher:
         yum install openstack-ironic-api openstack-ironic-conductor python-ironicclient
 
 
@@ -282,8 +282,13 @@ so that the Bare Metal service is configured for your needs.
 
 #. Restart the Bare Metal service::
 
-    service ironic-api restart
-    service ironic-conductor restart
+    Fedora/RHEL7/CentOS7:
+      sudo systemctl restart openstack-ironic-api
+      sudo systemctl restart openstack-ironic-conductor
+
+    Ubuntu:
+      sudo service ironic-api restart
+      sudo service ironic-conductor restart
 
 
 Configuring ironic-api behind mod_wsgi
@@ -294,7 +299,7 @@ Bare Metal service comes with an example file  for configuring the
 
 1. Install the apache service::
 
-    RHEL7/CentOS/Fedora 21 (or lower):
+    RHEL7/CentOS7/Fedora 21 (or lower):
       sudo yum install httpd
 
     Fedora 22 (or higher):
@@ -306,7 +311,7 @@ Bare Metal service comes with an example file  for configuring the
 
 2. Copy the ``etc/apache2/ironic`` file under the apache sites::
 
-    Fedora/RHEL7/CentOS:
+    Fedora/RHEL7/CentOS7:
       sudo cp etc/apache2/ironic /etc/httpd/conf.d/ironic.conf
 
     Debian/Ubuntu:
@@ -327,7 +332,7 @@ Bare Metal service comes with an example file  for configuring the
 
 4. Enable the apache ``ironic`` in site and reload::
 
-    Fedora/RHEL7/CentOS:
+    Fedora/RHEL7/CentOS7:
       sudo systemctl reload httpd
 
     Debian/Ubuntu:
@@ -424,11 +429,19 @@ Compute service's controller nodes and compute nodes.*
 
 3. On the Compute service's controller nodes, restart the ``nova-scheduler`` process::
 
-    service nova-scheduler restart
+    Fedora/RHEL7/CentOS7:
+      sudo systemctl restart openstack-nova-scheduler
+
+    Ubuntu:
+      sudo service nova-scheduler restart
 
 4. On the Compute service's compute nodes, restart the ``nova-compute`` process::
 
-    service nova-compute restart
+    Fedora/RHEL7/CentOS7:
+      sudo systemctl restart openstack-nova-compute
+
+    Ubuntu:
+      sudo service nova-compute restart
 
 .. _NeutronFlatNetworking:
 
@@ -558,7 +571,11 @@ Configure the Bare Metal service for cleaning
 
 #. Restart the Bare Metal service's ironic-conductor::
 
-    service ironic-conductor restart
+    Fedora/RHEL7/CentOS7:
+      sudo systemctl restart openstack-ironic-conductor
+
+    Ubuntu:
+      sudo service ironic-conductor restart
 
 Image requirements
 ==================
@@ -740,7 +757,7 @@ node(s) where ``ironic-conductor`` is running.
     Ubuntu: (14.10 and after)
         sudo apt-get install tftpd-hpa syslinux-common pxelinux
 
-    Fedora/RHEL:
+    Fedora/RHEL7/CentOS7:
         sudo yum install tftp-server syslinux-tftpboot
 
 #. Setup tftp server to serve ``/tftpboot``.
@@ -763,7 +780,7 @@ node(s) where ``ironic-conductor`` is running.
     Ubuntu (14.10 and after):
         sudo cp /usr/lib/syslinux/modules/bios/chain.c32 /tftpboot
 
-    Fedora:
+    Fedora/RHEL7/CentOS7:
         sudo cp /boot/extlinux/chain.c32 /tftpboot
 
 #. If the version of syslinux is **greater than** 4 we also need to make sure
@@ -941,7 +958,7 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
     Ubuntu:
         apt-get install ipxe
 
-    Fedora/RHEL:
+    Fedora/RHEL7/CentOS7:
         yum install ipxe-bootimgs
 
 #. Copy the iPXE boot image (undionly.kpxe) to ``/tftpboot``. The binary
@@ -950,7 +967,7 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
     Ubuntu:
         cp /usr/lib/ipxe/undionly.kpxe /tftpboot
 
-    Fedora/RHEL:
+    Fedora/RHEL7/CentOS7:
         cp /usr/share/ipxe/undionly.kpxe /tftpboot
 
     *Note: If the packaged version of the iPXE boot image doesn't
@@ -973,7 +990,11 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
 #. Restart the ``ironic-conductor`` process::
 
-    service ironic-conductor restart
+    Fedora/RHEL7/CentOS7:
+      sudo systemctl restart openstack-ironic-conductor
+
+    Ubuntu:
+      sudo service ironic-conductor restart
 
 
 Networking service configuration
@@ -1084,7 +1105,7 @@ The web console can be configured in Bare Metal service in the following way:
     Ubuntu:
         sudo apt-get install shellinabox
 
-    Fedora/RHEL:
+    Fedora/RHEL7/CentOS7:
 
         sudo yum install shellinabox
 
@@ -1098,7 +1119,7 @@ The web console can be configured in Bare Metal service in the following way:
     Ubuntu:
          sudo apt-get install openssl
 
-    Fedora/RHEL:
+    Fedora/RHEL7/CentOS7:
          sudo yum install openssl
 
   2. Generate the SSL certificate, here is an example, you can find more about openssl on
@@ -2100,7 +2121,7 @@ CoreOS tools
 
 #. Install the requirements::
 
-    Fedora 21 or lower/RHEL/CentOS:
+    Fedora 21 or lower/RHEL7/CentOS7:
         sudo yum install docker gzip util-linux cpio findutils grep gpg
 
     Fedora 22 or higher:
@@ -2115,7 +2136,7 @@ CoreOS tools
 
 #. Start the docker daemon::
 
-    Fedora/RHEL/CentOS:
+    Fedora/RHEL7/CentOS7:
         sudo systemctl start docker
 
     Ubuntu:
