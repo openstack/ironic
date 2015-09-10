@@ -60,6 +60,27 @@ CONF.register_opts(agent_opts, group='agent')
 
 LOG = log.getLogger(__name__)
 
+# This contains a nested dictionary containing the post clean step
+# hooks registered for each clean step of every interface.
+# Every key of POST_CLEAN_STEP_HOOKS is an interface and its value
+# is a dictionary. For this inner dictionary, the key is the name of
+# the clean-step method in the interface, and the value is the post
+# clean-step hook -- the function that is to be called after successful
+# completion of the clean step.
+#
+# For example:
+# POST_CLEAN_STEP_HOOKS =
+#    {
+#     'raid': {'create_configuration': <post-create function>,
+#              'delete_configuration': <post-delete function>}
+#    }
+#
+# It means that method '<post-create function>' is to be called after
+# successfully completing the clean step 'create_configuration' of
+# raid interface. '<post-delete function>' is to be called after
+# completing 'delete_configuration' of raid interface.
+POST_CLEAN_STEP_HOOKS = {}
+
 
 def _time():
     """Broken out for testing."""
@@ -69,6 +90,51 @@ def _time():
 def _get_client():
     client = agent_client.AgentClient()
     return client
+
+
+def post_clean_step_hook(interface, step):
+    """Decorator method for adding a post clean step hook.
+
+    This is a mechanism for adding a post clean step hook for a particular
+    clean step.  The hook will get executed after the clean step gets executed
+    successfully.  The hook is not invoked on failure of the clean step.
+
+    Any method to be made as a hook may be decorated with @post_clean_step_hook
+    mentioning the interface and step after which the hook should be executed.
+    A TaskManager instance and the object for the last completed command
+    (provided by agent) will be passed to the hook method. The return value of
+    this method will be ignored. Any exception raised by this method will be
+    treated as a failure of the clean step and the node will be moved to
+    CLEANFAIL state.
+
+    :param interface: name of the interface
+    :param step: The name of the step after which it should be executed.
+    :returns: A method which registers the given method as a post clean
+        step hook.
+    """
+    def decorator(func):
+        POST_CLEAN_STEP_HOOKS.setdefault(interface, {})[step] = func
+        return func
+
+    return decorator
+
+
+def _get_post_clean_step_hook(node):
+    """Get post clean step hook for the currently executing clean step.
+
+    This method reads node.clean_step and returns the post clean
+    step hook for the currently executing clean step.
+
+    :param node: a node object
+    :returns: a method if there is a post clean step hook for this clean
+        step; None otherwise
+    """
+    interface = node.clean_step.get('interface')
+    step = node.clean_step.get('step')
+    try:
+        return POST_CLEAN_STEP_HOOKS[interface][step]
+    except KeyError:
+        pass
 
 
 class BaseAgentVendor(base.VendorInterface):
@@ -165,10 +231,11 @@ class BaseAgentVendor(base.VendorInterface):
         to tell if an ordering change will cause a cleaning issue. Therefore,
         we restart cleaning.
         """
+        node = task.node
         command = self._get_completed_cleaning_command(task)
         LOG.debug('Cleaning command status for node %(node)s on step %(step)s:'
-                  ' %(command)s', {'node': task.node.uuid,
-                                   'step': task.node.clean_step,
+                  ' %(command)s', {'node': node.uuid,
+                                   'step': node.clean_step,
                                    'command': command})
 
         if not command:
@@ -178,38 +245,58 @@ class BaseAgentVendor(base.VendorInterface):
         if command.get('command_status') == 'FAILED':
             msg = (_('Agent returned error for clean step %(step)s on node '
                      '%(node)s : %(err)s.') %
-                   {'node': task.node.uuid,
+                   {'node': node.uuid,
                     'err': command.get('command_error'),
-                    'step': task.node.clean_step})
+                    'step': node.clean_step})
             LOG.error(msg)
             return manager.cleaning_error_handler(task, msg)
         elif command.get('command_status') == 'CLEAN_VERSION_MISMATCH':
             # Restart cleaning, agent must have rebooted to new version
             LOG.info(_LI('Node %s detected a clean version mismatch, '
                          'resetting clean steps and rebooting the node.'),
-                     task.node.uuid)
+                     node.uuid)
             try:
                 manager.set_node_cleaning_steps(task)
             except exception.NodeCleaningFailure:
                 msg = (_('Could not restart cleaning on node %(node)s: '
                          '%(err)s.') %
-                       {'node': task.node.uuid,
+                       {'node': node.uuid,
                         'err': command.get('command_error'),
-                        'step': task.node.clean_step})
+                        'step': node.clean_step})
                 LOG.exception(msg)
                 return manager.cleaning_error_handler(task, msg)
             self._notify_conductor_resume_clean(task)
 
         elif command.get('command_status') == 'SUCCEEDED':
+            clean_step_hook = _get_post_clean_step_hook(node)
+            if clean_step_hook is not None:
+                LOG.debug('For node %(node)s, executing post clean step '
+                          'hook %(method)s for clean step %(step)s' %
+                          {'method': clean_step_hook.__name__,
+                           'node': node.uuid,
+                           'step': node.clean_step})
+                try:
+                    clean_step_hook(task, command)
+                except Exception as e:
+                    msg = (_('For node %(node)s, post clean step hook '
+                             '%(method)s failed for clean step %(step)s.'
+                             'Error: %(error)s') %
+                           {'method': clean_step_hook.__name__,
+                            'node': node.uuid,
+                            'error': e,
+                            'step': node.clean_step})
+                    LOG.exception(msg)
+                    return manager.cleaning_error_handler(task, msg)
+
             LOG.info(_LI('Agent on node %s returned cleaning command success, '
-                         'moving to next clean step'), task.node.uuid)
+                         'moving to next clean step'), node.uuid)
             self._notify_conductor_resume_clean(task)
         else:
             msg = (_('Agent returned unknown status for clean step %(step)s '
                      'on node %(node)s : %(err)s.') %
-                   {'node': task.node.uuid,
+                   {'node': node.uuid,
                     'err': command.get('command_status'),
-                    'step': task.node.clean_step})
+                    'step': node.clean_step})
             LOG.error(msg)
             return manager.cleaning_error_handler(task, msg)
 

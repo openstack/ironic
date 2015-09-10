@@ -709,6 +709,68 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.passthru.continue_cleaning(task)
             notify_mock.assert_called_once_with(mock.ANY, task)
 
+    @mock.patch.object(agent_base_vendor,
+                       '_get_post_clean_step_hook', autospec=True)
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       '_notify_conductor_resume_clean', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_continue_cleaning_with_hook(
+            self, status_mock, notify_mock, get_hook_mock):
+        self.node.clean_step = {
+            'priority': 10,
+            'interface': 'raid',
+            'step': 'create_configuration',
+        }
+        self.node.save()
+        command_status = {
+            'command_status': 'SUCCEEDED',
+            'command_name': 'execute_clean_step',
+            'command_result': {'clean_step': self.node.clean_step}}
+        status_mock.return_value = [command_status]
+        hook_mock = mock.MagicMock(spec=types.FunctionType, __name__='foo')
+        get_hook_mock.return_value = hook_mock
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.passthru.continue_cleaning(task)
+
+            get_hook_mock.assert_called_once_with(task.node)
+            hook_mock.assert_called_once_with(task, command_status)
+            notify_mock.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       '_notify_conductor_resume_clean', autospec=True)
+    @mock.patch.object(agent_base_vendor,
+                       '_get_post_clean_step_hook', autospec=True)
+    @mock.patch.object(manager, 'cleaning_error_handler', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_continue_cleaning_with_hook_fails(
+            self, status_mock, error_handler_mock, get_hook_mock,
+            notify_mock):
+        self.node.clean_step = {
+            'priority': 10,
+            'interface': 'raid',
+            'step': 'create_configuration',
+        }
+        self.node.save()
+        command_status = {
+            'command_status': 'SUCCEEDED',
+            'command_name': 'execute_clean_step',
+            'command_result': {'clean_step': self.node.clean_step}}
+        status_mock.return_value = [command_status]
+        hook_mock = mock.MagicMock(spec=types.FunctionType, __name__='foo')
+        hook_mock.side_effect = RuntimeError('error')
+        get_hook_mock.return_value = hook_mock
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.passthru.continue_cleaning(task)
+
+            get_hook_mock.assert_called_once_with(task.node)
+            hook_mock.assert_called_once_with(task, command_status)
+            error_handler_mock.assert_called_once_with(task, mock.ANY)
+            self.assertFalse(notify_mock.called)
+
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
                        '_notify_conductor_resume_clean', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
@@ -805,3 +867,82 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                                   shared=False) as task:
             self.passthru.continue_cleaning(task)
             error_mock.assert_called_once_with(task, mock.ANY)
+
+    def _test_clean_step_hook(self, hook_dict_mock):
+        """Helper method for unit tests related to clean step hooks.
+
+        This is a helper method for other unit tests related to
+        clean step hooks. It acceps a mock 'hook_dict_mock' which is
+        a MagicMock and sets it up to function as a mock dictionary.
+        After that, it defines a dummy hook_method for two clean steps
+        raid.create_configuration and raid.delete_configuration.
+
+        :param hook_dict_mock: An instance of mock.MagicMock() which
+            is the mocked value of agent_base_vendor.POST_CLEAN_STEP_HOOKS
+        :returns: a tuple, where the first item is the hook method created
+            by this method and second item is the backend dictionary for
+            the mocked hook_dict_mock
+        """
+        hook_dict = {}
+
+        def get(key, default):
+            return hook_dict.get(key, default)
+
+        def getitem(self, key):
+            return hook_dict[key]
+
+        def setdefault(key, default):
+            if key not in hook_dict:
+                hook_dict[key] = default
+            return hook_dict[key]
+
+        hook_dict_mock.get = get
+        hook_dict_mock.__getitem__ = getitem
+        hook_dict_mock.setdefault = setdefault
+        some_function_mock = mock.MagicMock()
+
+        @agent_base_vendor.post_clean_step_hook(
+            interface='raid', step='delete_configuration')
+        @agent_base_vendor.post_clean_step_hook(
+            interface='raid', step='create_configuration')
+        def hook_method():
+            some_function_mock('some-arguments')
+
+        return hook_method, hook_dict
+
+    @mock.patch.object(agent_base_vendor, 'POST_CLEAN_STEP_HOOKS',
+                       spec_set=dict)
+    def test_post_clean_step_hook(self, hook_dict_mock):
+        # This unit test makes sure that hook methods are registered
+        # properly and entries are made in
+        # agent_base_vendor.POST_CLEAN_STEP_HOOKS
+        hook_method, hook_dict = self._test_clean_step_hook(hook_dict_mock)
+        self.assertEqual(hook_method,
+                         hook_dict['raid']['create_configuration'])
+        self.assertEqual(hook_method,
+                         hook_dict['raid']['delete_configuration'])
+
+    @mock.patch.object(agent_base_vendor, 'POST_CLEAN_STEP_HOOKS',
+                       spec_set=dict)
+    def test__get_post_clean_step_hook(self, hook_dict_mock):
+        # Check if agent_base_vendor._get_post_clean_step_hook can get
+        # clean step for which hook is registered.
+        hook_method, hook_dict = self._test_clean_step_hook(hook_dict_mock)
+        self.node.clean_step = {'step': 'create_configuration',
+                                'interface': 'raid'}
+        self.node.save()
+        hook_returned = agent_base_vendor._get_post_clean_step_hook(self.node)
+        self.assertEqual(hook_method, hook_returned)
+
+    @mock.patch.object(agent_base_vendor, 'POST_CLEAN_STEP_HOOKS',
+                       spec_set=dict)
+    def test__get_post_clean_step_hook_no_hook_registered(
+            self, hook_dict_mock):
+        # Make sure agent_base_vendor._get_post_clean_step_hook returns
+        # None when no clean step hook is registered for the clean step.
+        hook_method, hook_dict = self._test_clean_step_hook(hook_dict_mock)
+        self.node.clean_step = {'step': 'some-clean-step',
+                                'interface': 'some-other-interface'}
+        self.node.save()
+        hook_returned = agent_base_vendor._get_post_clean_step_hook(self.node)
+        self.assertIsNone(hook_returned)
