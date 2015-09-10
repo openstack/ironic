@@ -18,14 +18,12 @@ import gettext
 import iso8601
 
 from oslo_context import context
-from oslo_utils import timeutils
 from oslo_versionedobjects import base as object_base
 from oslo_versionedobjects import exception as object_exception
 import six
 
 from ironic.objects import base
 from ironic.objects import fields
-from ironic.objects import utils
 from ironic.tests import base as test_base
 
 gettext.install('ironic')
@@ -92,34 +90,6 @@ class MyObj2(object):
 @base.IronicObjectRegistry.register_if(False)
 class TestSubclassedObject(MyObj):
     fields = {'new_field': fields.StringField()}
-
-
-class TestUtils(test_base.TestCase):
-
-    def test_dt_serializer(self):
-        class Obj(object):
-            foo = utils.dt_serializer('bar')
-
-        obj = Obj()
-        obj.bar = timeutils.parse_isotime('1955-11-05T00:00:00+00:00')
-        self.assertEqual('1955-11-05T00:00:00+00:00', obj.foo())
-        obj.bar = None
-        self.assertIsNone(obj.foo())
-        obj.bar = 'foo'
-        self.assertRaises(TypeError, obj.foo)
-
-    def test_dt_deserializer(self):
-        dt = timeutils.parse_isotime('1955-11-05T00:00:00Z')
-        self.assertEqual(utils.dt_deserializer(None, dt.isoformat()), dt)
-        self.assertIsNone(utils.dt_deserializer(None, None))
-        self.assertRaises(ValueError, utils.dt_deserializer, None, 'foo')
-
-    def test_obj_to_primitive_dict(self):
-        myobj = MyObj(self.context)
-        myobj.foo = 1
-        myobj.bar = 'foo'
-        self.assertEqual({'foo': 1, 'bar': 'foo'},
-                         base.obj_to_primitive(myobj))
 
 
 class _BaseTestCase(test_base.TestCase):

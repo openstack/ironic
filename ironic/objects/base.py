@@ -17,8 +17,6 @@
 from oslo_log import log as logging
 from oslo_versionedobjects import base as object_base
 
-from ironic.common import exception
-from ironic.common.i18n import _
 from ironic.objects import fields as object_fields
 
 
@@ -27,30 +25,6 @@ LOG = logging.getLogger('object')
 
 class IronicObjectRegistry(object_base.VersionedObjectRegistry):
     pass
-
-
-# Object versioning rules
-#
-# Each service has its set of objects, each with a version attached. When
-# a client attempts to call an object method, the server checks to see if
-# the version of that object matches (in a compatible way) its object
-# implementation. If so, cool, and if not, fail.
-def check_object_version(server, client):
-    try:
-        client_major, _client_minor = client.split('.')
-        server_major, _server_minor = server.split('.')
-        client_minor = int(_client_minor)
-        server_minor = int(_server_minor)
-    except ValueError:
-        raise exception.IncompatibleObjectVersion(
-            _('Invalid version string'))
-
-    if client_major != server_major:
-        raise exception.IncompatibleObjectVersion(
-            dict(client=client_major, server=server_major))
-    if client_minor > server_minor:
-        raise exception.IncompatibleObjectVersion(
-            dict(client=client_minor, server=server_minor))
 
 
 class IronicObject(object_base.VersionedObject):
@@ -94,17 +68,3 @@ class IronicObject(object_base.VersionedObject):
 class IronicObjectSerializer(object_base.VersionedObjectSerializer):
     # Base class to use for object hydration
     OBJ_BASE_CLASS = IronicObject
-
-
-def obj_to_primitive(obj):
-    """Recursively turn an object into a python primitive.
-
-    An IronicObject becomes a dict
-    """
-    if isinstance(obj, IronicObject):
-        result = {}
-        for key, value in obj.items():
-            result[key] = obj_to_primitive(value)
-        return result
-    else:
-        return obj
