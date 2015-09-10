@@ -196,7 +196,7 @@ def _get_instance_image_info(node, ctx):
 
     :param node: a node object
     :param ctx: context
-    :returns: a dictionary whose key are the name of the image (kernel,
+    :returns: a dictionary whose keys are the names of the images (kernel,
         ramdisk) and values are the absolute paths of them. If it's a whole
         disk image, it returns an empty dictionary.
     """
@@ -232,7 +232,7 @@ def _get_deploy_image_info(node):
     deploy ramdisk.
 
     :param node: a node object
-    :returns: a dictionary whose key are the name of the image (
+    :returns: a dictionary whose keys are the names of the images (
         deploy_kernel, deploy_ramdisk) and values are the absolute
         paths of them.
     :raises: MissingParameterValue, if deploy_kernel/deploy_ramdisk is
