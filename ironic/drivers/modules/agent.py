@@ -298,14 +298,12 @@ class AgentDeploy(base.DeployInterface):
 
         :returns: A list of clean step dictionaries
         """
-        steps = deploy_utils.agent_get_clean_steps(task)
-        if CONF.deploy.erase_devices_priority is not None:
-            for step in steps:
-                if (step.get('step') == 'erase_devices' and
-                        step.get('interface') == 'deploy'):
-                    # Override with operator set priority
-                    step['priority'] = CONF.deploy.erase_devices_priority
-        return steps
+        new_priorities = {
+            'erase_devices': CONF.deploy.erase_devices_priority,
+        }
+        return deploy_utils.agent_get_clean_steps(
+            task, interface='deploy',
+            override_priorities=new_priorities)
 
     def execute_clean_step(self, task, step):
         """Execute a clean step asynchronously on the agent.

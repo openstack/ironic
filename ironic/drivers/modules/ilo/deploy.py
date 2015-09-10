@@ -664,15 +664,12 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
         :param task: a TaskManager object containing the node
         :returns: A list of clean step dictionaries
         """
-        steps = deploy_utils.agent_get_clean_steps(task)
-        if CONF.ilo.clean_priority_erase_devices is not None:
-            for step in steps:
-                if (step.get('step') == 'erase_devices' and
-                        step.get('interface') == 'deploy'):
-                    # Override with operator set priority
-                    step['priority'] = CONF.ilo.clean_priority_erase_devices
-
-        return steps
+        new_priorities = {
+            'erase_devices': CONF.ilo.clean_priority_erase_devices,
+        }
+        return deploy_utils.agent_get_clean_steps(
+            task, interface='deploy',
+            override_priorities=new_priorities)
 
     def execute_clean_step(self, task, step):
         """Execute a clean step asynchronously on the agent.

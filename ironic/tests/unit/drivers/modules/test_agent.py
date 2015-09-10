@@ -357,7 +357,9 @@ class TestAgentDeploy(db_base.DbTestCase):
         mock_get_clean_steps.return_value = mock_steps
         with task_manager.acquire(self.context, self.node.uuid) as task:
             steps = self.driver.get_clean_steps(task)
-            mock_get_clean_steps.assert_called_once_with(task)
+            mock_get_clean_steps.assert_called_once_with(
+                task, interface='deploy',
+                override_priorities={'erase_devices': None})
         self.assertEqual(mock_steps, steps)
 
     @mock.patch('ironic.drivers.modules.deploy_utils.agent_get_clean_steps',
@@ -368,13 +370,12 @@ class TestAgentDeploy(db_base.DbTestCase):
         self.config(erase_devices_priority=0, group='deploy')
         mock_steps = [{'priority': 10, 'interface': 'deploy',
                        'step': 'erase_devices'}]
-        expected_steps = [{'priority': 0, 'interface': 'deploy',
-                           'step': 'erase_devices'}]
         mock_get_clean_steps.return_value = mock_steps
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            steps = self.driver.get_clean_steps(task)
-            mock_get_clean_steps.assert_called_once_with(task)
-        self.assertEqual(expected_steps, steps)
+            self.driver.get_clean_steps(task)
+            mock_get_clean_steps.assert_called_once_with(
+                task, interface='deploy',
+                override_priorities={'erase_devices': 0})
 
     @mock.patch.object(deploy_utils, 'prepare_inband_cleaning', autospec=True)
     def test_prepare_cleaning(self, prepare_inband_cleaning_mock):
