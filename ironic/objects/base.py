@@ -51,7 +51,7 @@ def make_class_properties(cls):
         for name, field in supercls.fields.items():
             if name not in cls.fields:
                 cls.fields[name] = field
-    for name, typefn in cls.fields.items():
+    for name, field in cls.fields.items():
 
         def getter(self, name=name):
             attrname = get_attrname(name)
@@ -59,10 +59,11 @@ def make_class_properties(cls):
                 self.obj_load_attr(name)
             return getattr(self, attrname)
 
-        def setter(self, value, name=name, typefn=typefn):
+        def setter(self, value, name=name, field=field):
             self._changed_fields.add(name)
             try:
-                return setattr(self, get_attrname(name), typefn(value))
+                field_value = field.coerce(self, name, value)
+                return setattr(self, get_attrname(name), field_value)
             except Exception:
                 attr = "%s.%s" % (self.obj_name(), name)
                 LOG.exception(_LE('Error setting %(attr)s'),
