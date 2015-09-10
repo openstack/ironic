@@ -987,8 +987,8 @@
 # Maximum retries for iBoot operations (integer value)
 #max_retry=3
 
-# Time between retry attempts for iBoot operations (integer
-# value)
+# Time (in seconds) between retry attempts for iBoot
+# operations (integer value)
 #retry_interval=1
 
 
@@ -1726,7 +1726,8 @@
 # value)
 #tftp_server=$my_ip
 
-# ironic-conductor node's TFTP root path. (string value)
+# ironic-conductor node's TFTP root path. The ironic-conductor
+# must have read/write access to this path. (string value)
 #tftp_root=/tftpboot
 
 # On ironic-conductor node, directory where master TFTP images
