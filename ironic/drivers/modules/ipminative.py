@@ -36,6 +36,7 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules import console_utils
+from ironic.drivers import utils as driver_utils
 
 pyghmi = importutils.try_import('pyghmi')
 if pyghmi:
@@ -67,7 +68,16 @@ LOG = logging.getLogger(__name__)
 REQUIRED_PROPERTIES = {'ipmi_address': _("IP of the node's BMC. Required."),
                        'ipmi_password': _("IPMI password. Required."),
                        'ipmi_username': _("IPMI username. Required.")}
-COMMON_PROPERTIES = REQUIRED_PROPERTIES
+OPTIONAL_PROPERTIES = {
+    'ipmi_force_boot_device': _("Whether Ironic should specify the boot "
+                                "device to the BMC each time the server "
+                                "is turned on, eg. because the BMC is not "
+                                "capable of remembering the selected boot "
+                                "device across power cycles; default value "
+                                "is False. Optional.")
+}
+COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
+COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 CONSOLE_PROPERTIES = {
     'ipmi_terminal_port': _("node's UDP port to connect to. Only required for "
                             "console access.")
@@ -101,6 +111,7 @@ def _parse_driver_info(node):
     bmc_info['address'] = info.get('ipmi_address')
     bmc_info['username'] = info.get('ipmi_username')
     bmc_info['password'] = info.get('ipmi_password')
+    bmc_info['force_boot_device'] = info.get('ipmi_force_boot_device', False)
 
     # get additional info
     bmc_info['uuid'] = node.uuid
@@ -381,6 +392,7 @@ class NativeIPMIPower(base.PowerInterface):
         driver_info = _parse_driver_info(task.node)
 
         if pstate == states.POWER_ON:
+            driver_utils.ensure_next_boot_device(task, driver_info)
             _power_on(driver_info)
         elif pstate == states.POWER_OFF:
             _power_off(driver_info)
@@ -402,6 +414,7 @@ class NativeIPMIPower(base.PowerInterface):
         """
 
         driver_info = _parse_driver_info(task.node)
+        driver_utils.ensure_next_boot_device(task, driver_info)
         _reboot(driver_info)
 
 
@@ -454,6 +467,15 @@ class NativeIPMIManagement(base.ManagementInterface):
         if device not in self.get_supported_boot_devices(task):
             raise exception.InvalidParameterValue(_(
                 "Invalid boot device %s specified.") % device)
+
+        if task.node.driver_info.get('ipmi_force_boot_device', False):
+            driver_utils.force_persistent_boot(task,
+                                               device,
+                                               persistent)
+            # Reset persistent to False, in case of BMC does not support
+            # persistent or we do not have admin rights.
+            persistent = False
+
         driver_info = _parse_driver_info(task.node)
         try:
             ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
@@ -484,8 +506,19 @@ class NativeIPMIManagement(base.ManagementInterface):
                 future boots or not, None if it is unknown.
 
         """
+        driver_info = task.node.driver_info
+        driver_internal_info = task.node.driver_internal_info
+        if (driver_info.get('ipmi_force_boot_device', False) and
+                driver_internal_info.get('persistent_boot_device') and
+                driver_internal_info.get('is_next_boot_persistent', True)):
+            return {
+                'boot_device': driver_internal_info['persistent_boot_device'],
+                'persistent': True
+            }
+
         driver_info = _parse_driver_info(task.node)
         response = {'boot_device': None}
+
         try:
             ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
                                            userid=driver_info['username'],

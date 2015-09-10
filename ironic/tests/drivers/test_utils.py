@@ -18,6 +18,7 @@ import mock
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import fake
 from ironic.drivers import utils as driver_utils
 from ironic.tests.conductor import utils as mgr_utils
@@ -117,3 +118,48 @@ class UtilsTestCase(db_base.DbTestCase):
             driver_utils.add_node_capability(task, 'a', 'b')
             self.assertEqual('a:b,c:d,a:b',
                              task.node.properties['capabilities'])
+
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
+    def test_ensure_next_boot_device(self, node_set_boot_device_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_internal_info['persistent_boot_device'] = 'pxe'
+            driver_utils.ensure_next_boot_device(
+                task,
+                {'force_boot_device': True}
+            )
+            node_set_boot_device_mock.assert_called_once_with(task, 'pxe')
+
+    def test_ensure_next_boot_device_clears_is_next_boot_persistent(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_internal_info['persistent_boot_device'] = 'pxe'
+            task.node.driver_internal_info['is_next_boot_persistent'] = False
+            driver_utils.ensure_next_boot_device(
+                task,
+                {'force_boot_device': True}
+            )
+            task.node.refresh()
+            self.assertNotIn('is_next_boot_persistent',
+                             task.node.driver_internal_info)
+
+    def test_force_persistent_boot_true(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info['ipmi_force_boot_device'] = True
+            ret = driver_utils.force_persistent_boot(task, 'pxe', True)
+            self.assertEqual(None, ret)
+            task.node.refresh()
+            self.assertIn('persistent_boot_device',
+                          task.node.driver_internal_info)
+
+    def test_force_persistent_boot_false(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ret = driver_utils.force_persistent_boot(task, 'pxe', False)
+            self.assertEqual(None, ret)
+            task.node.refresh()
+            self.assertEqual(
+                False,
+                task.node.driver_internal_info.get('is_next_boot_persistent')
+            )

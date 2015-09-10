@@ -41,6 +41,7 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers.modules import console_utils
 from ironic.drivers.modules import ipmitool as ipmi
+from ironic.drivers import utils as driver_utils
 from ironic.tests import base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
@@ -1193,6 +1194,23 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_on.assert_called_once_with(self.info)
         self.assertFalse(mock_off.called)
 
+    @mock.patch.object(driver_utils, 'ensure_next_boot_device', autospec=True)
+    @mock.patch.object(ipmi, '_power_on', autospec=True)
+    @mock.patch.object(ipmi, '_power_off', autospec=True)
+    def test_set_power_on_with_next_boot(self, mock_off, mock_on,
+                                         mock_next_boot):
+        self.config(retry_timeout=0, group='ipmi')
+
+        mock_on.return_value = states.POWER_ON
+        with task_manager.acquire(self.context,
+                                  self.node['uuid']) as task:
+            self.driver.power.set_power_state(task,
+                                              states.POWER_ON)
+            mock_next_boot.assert_called_once_with(task, self.info)
+
+        mock_on.assert_called_once_with(self.info)
+        self.assertFalse(mock_off.called)
+
     @mock.patch.object(ipmi, '_power_on', autospec=True)
     @mock.patch.object(ipmi, '_power_off', autospec=True)
     def test_set_power_off_ok(self, mock_off, mock_on):
@@ -1285,9 +1303,10 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                               self.driver.vendor.bmc_reset,
                               task, 'POST')
 
+    @mock.patch.object(driver_utils, 'ensure_next_boot_device', autospec=True)
     @mock.patch.object(ipmi, '_power_off', spec_set=types.FunctionType)
     @mock.patch.object(ipmi, '_power_on', spec_set=types.FunctionType)
-    def test_reboot_ok(self, mock_on, mock_off):
+    def test_reboot_ok(self, mock_on, mock_off, mock_next_boot):
         manager = mock.MagicMock()
         # NOTE(rloo): if autospec is True, then manager.mock_calls is empty
         mock_on.return_value = states.POWER_ON
@@ -1299,6 +1318,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
             self.driver.power.reboot(task)
+            mock_next_boot.assert_called_once_with(task, self.info)
 
         self.assertEqual(manager.mock_calls, expected)
 
@@ -1518,6 +1538,42 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                       mock.call(self.info, "chassis bootdev pxe")]
         mock_exec.assert_has_calls(mock_calls)
 
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_management_interface_force_set_boot_device_ok(self, mock_exec):
+        mock_exec.return_value = [None, None]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.driver_info['ipmi_force_boot_device'] = True
+            self.info['force_boot_device'] = True
+            self.driver.management.set_boot_device(task, boot_devices.PXE)
+            task.node.refresh()
+            self.assertEqual(
+                False,
+                task.node.driver_internal_info['is_next_boot_persistent']
+            )
+
+        mock_calls = [mock.call(self.info, "raw 0x00 0x08 0x03 0x08"),
+                      mock.call(self.info, "chassis bootdev pxe")]
+        mock_exec.assert_has_calls(mock_calls)
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_management_interface_set_boot_device_persistent(self, mock_exec):
+        mock_exec.return_value = [None, None]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.driver_info['ipmi_force_boot_device'] = True
+            self.info['force_boot_device'] = True
+            self.driver.management.set_boot_device(task,
+                                                   boot_devices.PXE,
+                                                   True)
+            self.assertEqual(
+                boot_devices.PXE,
+                task.node.driver_internal_info['persistent_boot_device'])
+
+        mock_calls = [mock.call(self.info, "raw 0x00 0x08 0x03 0x08"),
+                      mock.call(self.info, "chassis bootdev pxe")]
+        mock_exec.assert_has_calls(mock_calls)
+
     def test_management_interface_set_boot_device_bad_device(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidParameterValue,
@@ -1615,6 +1671,14 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                  task.driver.management.get_boot_device(task))
                 mock_exec.assert_called_with(mock.ANY,
                                              "chassis bootparam get 5")
+
+    def test_get_force_boot_device_persistent(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.driver_info['ipmi_force_boot_device'] = True
+            task.node.driver_internal_info['persistent_boot_device'] = 'pxe'
+            bootdev = self.driver.management.get_boot_device(task)
+            self.assertEqual('pxe', bootdev['boot_device'])
+            self.assertTrue(bootdev['persistent'])
 
     def test_management_interface_validate_good(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:

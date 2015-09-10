@@ -3578,12 +3578,13 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
                     'ipmi_transit_channel', 'ipmi_transit_address',
                     'ipmi_target_channel', 'ipmi_target_address',
                     'ipmi_local_address', 'ipmi_protocol_version',
+                    'ipmi_force_boot_device'
                     ]
         self._check_driver_properties("fake_ipmitool", expected)
 
     def test_driver_properties_fake_ipminative(self):
         expected = ['ipmi_address', 'ipmi_password', 'ipmi_username',
-                    'ipmi_terminal_port']
+                    'ipmi_terminal_port', 'ipmi_force_boot_device']
         self._check_driver_properties("fake_ipminative", expected)
 
     def test_driver_properties_fake_ssh(self):
@@ -3614,13 +3615,14 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
                     'ipmi_transit_address', 'ipmi_target_channel',
                     'ipmi_target_address', 'ipmi_local_address',
                     'deploy_kernel', 'deploy_ramdisk', 'ipmi_protocol_version',
+                    'ipmi_force_boot_device'
                     ]
         self._check_driver_properties("pxe_ipmitool", expected)
 
     def test_driver_properties_pxe_ipminative(self):
         expected = ['ipmi_address', 'ipmi_password', 'ipmi_username',
                     'deploy_kernel', 'deploy_ramdisk',
-                    'ipmi_terminal_port']
+                    'ipmi_terminal_port', 'ipmi_force_boot_device']
         self._check_driver_properties("pxe_ipminative", expected)
 
     def test_driver_properties_pxe_ssh(self):

@@ -17,6 +17,7 @@ from oslo_log import log as logging
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LW
+from ironic.conductor import utils
 from ironic.drivers import base
 
 
@@ -169,4 +170,49 @@ def add_node_capability(task, capability, value):
 
     properties['capabilities'] = capabilities
     node.properties = properties
+    node.save()
+
+
+def ensure_next_boot_device(task, driver_info):
+    """Ensure boot from correct device if persistent is True
+
+    If ipmi_force_boot_device is True and is_next_boot_persistent, set to
+    boot from correct device, else unset is_next_boot_persistent field.
+
+    :param task: Node object.
+    :param driver_info: Node driver_info.
+    """
+
+    if driver_info.get('force_boot_device', False):
+        driver_internal_info = task.node.driver_internal_info
+        if driver_internal_info.get('is_next_boot_persistent') is False:
+            driver_internal_info.pop('is_next_boot_persistent', None)
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+        else:
+            boot_device = driver_internal_info.get('persistent_boot_device')
+            if boot_device:
+                utils.node_set_boot_device(task, boot_device)
+
+
+def force_persistent_boot(task, device, persistent):
+    """Set persistent boot device to driver_internal_info
+
+    If persistent is True set 'persistent_boot_device' field to the
+    boot device and reset persistent to False, else set
+    'is_next_boot_persistent' to False.
+
+    :param task: Task object.
+    :param device: Boot device.
+    :param persistent: Whether next boot is persistent or not.
+    """
+
+    node = task.node
+    driver_internal_info = node.driver_internal_info
+    if persistent:
+        driver_internal_info['persistent_boot_device'] = device
+    else:
+        driver_internal_info['is_next_boot_persistent'] = False
+
+    node.driver_internal_info = driver_internal_info
     node.save()

@@ -54,6 +54,7 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules import console_utils
+from ironic.drivers import utils as driver_utils
 
 
 CONF = cfg.CONF
@@ -95,6 +96,12 @@ OPTIONAL_PROPERTIES = {
                             "to \"single\" or \"dual\". Optional."),
     'ipmi_protocol_version': _('the version of the IPMI protocol; default '
                                'is "2.0". One of "1.5", "2.0". Optional.'),
+    'ipmi_force_boot_device': _("Whether Ironic should specify the boot "
+                                "device to the BMC each time the server "
+                                "is turned on, eg. because the BMC is not "
+                                "capable of remembering the selected boot "
+                                "device across power cycles; default value "
+                                "is False. Optional.")
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
@@ -257,6 +264,7 @@ def _parse_driver_info(node):
     target_channel = info.get('ipmi_target_channel')
     target_address = info.get('ipmi_target_address')
     protocol_version = str(info.get('ipmi_protocol_version', '2.0'))
+    force_boot_device = info.get('ipmi_force_boot_device', False)
 
     if protocol_version not in VALID_PROTO_VERSIONS:
         valid_versions = ', '.join(VALID_PROTO_VERSIONS)
@@ -332,6 +340,7 @@ def _parse_driver_info(node):
         'target_channel': target_channel,
         'target_address': target_address,
         'protocol_version': protocol_version,
+        'force_boot_device': force_boot_device,
     }
 
 
@@ -732,6 +741,7 @@ class IPMIPower(base.PowerInterface):
         driver_info = _parse_driver_info(task.node)
 
         if pstate == states.POWER_ON:
+            driver_utils.ensure_next_boot_device(task, driver_info)
             state = _power_on(driver_info)
         elif pstate == states.POWER_OFF:
             state = _power_off(driver_info)
@@ -756,6 +766,7 @@ class IPMIPower(base.PowerInterface):
         """
         driver_info = _parse_driver_info(task.node)
         _power_off(driver_info)
+        driver_utils.ensure_next_boot_device(task, driver_info)
         state = _power_on(driver_info)
 
         if state != states.POWER_ON:
@@ -831,6 +842,14 @@ class IPMIManagement(base.ManagementInterface):
         timeout_disable = "0x00 0x08 0x03 0x08"
         send_raw(task, timeout_disable)
 
+        if task.node.driver_info.get('ipmi_force_boot_device', False):
+            driver_utils.force_persistent_boot(task,
+                                               device,
+                                               persistent)
+            # Reset persistent to False, in case of BMC does not support
+            # persistent or we do not have admin rights.
+            persistent = False
+
         cmd = "chassis bootdev %s" % device
         if persistent:
             cmd = cmd + " options=persistent"
@@ -863,9 +882,21 @@ class IPMIManagement(base.ManagementInterface):
                 future boots or not, None if it is unknown.
 
         """
+        driver_info = task.node.driver_info
+        driver_internal_info = task.node.driver_internal_info
+
+        if (driver_info.get('ipmi_force_boot_device', False) and
+                driver_internal_info.get('persistent_boot_device') and
+                driver_internal_info.get('is_next_boot_persistent', True)):
+            return {
+                'boot_device': driver_internal_info['persistent_boot_device'],
+                'persistent': True
+            }
+
         cmd = "chassis bootparam get 5"
         driver_info = _parse_driver_info(task.node)
         response = {'boot_device': None, 'persistent': None}
+
         try:
             out, err = _exec_ipmitool(driver_info, cmd)
         except (exception.PasswordFileFailedToCreate,

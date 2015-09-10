@@ -30,6 +30,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules import console_utils
 from ironic.drivers.modules import ipminative
+from ironic.drivers import utils as driver_utils
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as db_base
 from ironic.tests.db import utils as db_utils
@@ -54,6 +55,7 @@ class IPMINativePrivateMethodTestCase(db_base.DbTestCase):
         self.assertIsNotNone(self.info.get('username'))
         self.assertIsNotNone(self.info.get('password'))
         self.assertIsNotNone(self.info.get('uuid'))
+        self.assertIsNotNone(self.info.get('force_boot_device'))
 
         # make sure error is raised when info, eg. username, is missing
         info = dict(INFO_DICT)
@@ -296,6 +298,18 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
                 task, states.POWER_ON)
         power_on_mock.assert_called_once_with(self.info)
 
+    @mock.patch.object(driver_utils, 'ensure_next_boot_device', autospec=True)
+    @mock.patch.object(ipminative, '_power_on', autospec=True)
+    def test_set_power_on_with_next_boot(self, power_on_mock, mock_next_boot):
+        power_on_mock.return_value = states.POWER_ON
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.driver.power.set_power_state(
+                task, states.POWER_ON)
+            mock_next_boot.assert_called_once_with(task, self.info)
+        power_on_mock.assert_called_once_with(self.info)
+
     @mock.patch.object(ipminative, '_power_off', autospec=True)
     def test_set_power_off_ok(self, power_off_mock):
         power_off_mock.return_value = states.POWER_OFF
@@ -331,6 +345,40 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
         # PXE is converted to 'network' internally by ipminative
         ipmicmd.set_bootdev.assert_called_once_with('network', persist=False)
 
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
+    def test_force_set_boot_device_ok(self, ipmi_mock):
+        ipmicmd = ipmi_mock.return_value
+        ipmicmd.set_bootdev.return_value = None
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            task.node.driver_info['ipmi_force_boot_device'] = True
+            self.driver.management.set_boot_device(task, boot_devices.PXE)
+            task.node.refresh()
+            self.assertEqual(
+                False,
+                task.node.driver_internal_info['is_next_boot_persistent']
+            )
+        # PXE is converted to 'network' internally by ipminative
+        ipmicmd.set_bootdev.assert_called_once_with('network', persist=False)
+
+    @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
+    def test_set_boot_device_with_persistent(self, ipmi_mock):
+        ipmicmd = ipmi_mock.return_value
+        ipmicmd.set_bootdev.return_value = None
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            task.node.driver_info['ipmi_force_boot_device'] = True
+            self.driver.management.set_boot_device(task,
+                                                   boot_devices.PXE,
+                                                   True)
+            self.assertEqual(
+                boot_devices.PXE,
+                task.node.driver_internal_info['persistent_boot_device'])
+        # PXE is converted to 'network' internally by ipminative
+        ipmicmd.set_bootdev.assert_called_once_with('network', persist=False)
+
     def test_set_boot_device_bad_device(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidParameterValue,
@@ -338,13 +386,15 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
                               task,
                               'fake-device')
 
+    @mock.patch.object(driver_utils, 'ensure_next_boot_device', autospec=True)
     @mock.patch.object(ipminative, '_reboot', autospec=True)
-    def test_reboot_ok(self, reboot_mock):
+    def test_reboot_ok(self, reboot_mock, mock_next_boot):
         reboot_mock.return_value = None
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             self.driver.power.reboot(task)
+            mock_next_boot.assert_called_once_with(task, self.info)
         reboot_mock.assert_called_once_with(self.info)
 
     @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
@@ -410,6 +460,14 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             expected = {'boot_device': None, 'persistent': None}
             self.assertEqual(expected,
                              self.driver.management.get_boot_device(task))
+
+    def test_get_force_boot_device_persistent(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.driver_info['ipmi_force_boot_device'] = True
+            task.node.driver_internal_info['persistent_boot_device'] = 'pxe'
+            bootdev = self.driver.management.get_boot_device(task)
+            self.assertEqual('pxe', bootdev['boot_device'])
+            self.assertTrue(bootdev['persistent'])
 
     def test_management_interface_validate_good(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
