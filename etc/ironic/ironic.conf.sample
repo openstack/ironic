@@ -1,15 +1,6 @@
 [DEFAULT]
 
 #
-# Options defined in oslo.service.periodic_task
-#
-
-# Some periodic tasks can be run in a separate process. Should
-# we run them here? (boolean value)
-#run_external_periodic_tasks=true
-
-
-#
 # Options defined in oslo.service.service
 #
 
@@ -29,77 +20,12 @@
 
 
 #
-# Options defined in oslo.messaging
+# Options defined in oslo.service.periodic_task
 #
 
-# Size of RPC connection pool. (integer value)
-#rpc_conn_pool_size=30
-
-# ZeroMQ bind address. Should be a wildcard (*), an ethernet
-# interface, or IP. The "host" option should point or resolve
-# to this address. (string value)
-#rpc_zmq_bind_address=*
-
-# MatchMaker driver. (string value)
-#rpc_zmq_matchmaker=local
-
-# ZeroMQ receiver listening port. (integer value)
-#rpc_zmq_port=9501
-
-# Number of ZeroMQ contexts, defaults to 1. (integer value)
-#rpc_zmq_contexts=1
-
-# Maximum number of ingress messages to locally buffer per
-# topic. Default is unlimited. (integer value)
-#rpc_zmq_topic_backlog=<None>
-
-# Directory for holding IPC sockets. (string value)
-#rpc_zmq_ipc_dir=/var/run/openstack
-
-# Name of this node. Must be a valid hostname, FQDN, or IP
-# address. Must match "host" option, if running Nova. (string
-# value)
-#rpc_zmq_host=ironic
-
-# Seconds to wait before a cast expires (TTL). Only supported
-# by impl_zmq. (integer value)
-#rpc_cast_timeout=30
-
-# Heartbeat frequency. (integer value)
-#matchmaker_heartbeat_freq=300
-
-# Heartbeat time-to-live. (integer value)
-#matchmaker_heartbeat_ttl=600
-
-# Size of executor thread pool. (integer value)
-# Deprecated group/name - [DEFAULT]/rpc_thread_pool_size
-#executor_thread_pool_size=64
-
-# The Drivers(s) to handle sending notifications. Possible
-# values are messaging, messagingv2, routing, log, test, noop
-# (multi valued)
-#notification_driver=
-
-# AMQP topic used for OpenStack notifications. (list value)
-# Deprecated group/name - [rpc_notifier2]/topics
-#notification_topics=notifications
-
-# Seconds to wait for a response from a call. (integer value)
-#rpc_response_timeout=60
-
-# A URL representing the messaging driver to use and its full
-# configuration. If not set, we fall back to the rpc_backend
-# option and driver specific configuration. (string value)
-#transport_url=<None>
-
-# The messaging driver to use, defaults to rabbit. Other
-# drivers include qpid and zmq. (string value)
-#rpc_backend=rabbit
-
-# The default exchange under which topics are scoped. May be
-# overridden by an exchange name specified in the
-# transport_url option. (string value)
-#control_exchange=openstack
+# Some periodic tasks can be run in a separate process. Should
+# we run them here? (boolean value)
+#run_external_periodic_tasks=true
 
 
 #
@@ -193,6 +119,80 @@
 # Enables or disables fatal status of deprecations. (boolean
 # value)
 #fatal_deprecations=false
+
+
+#
+# Options defined in oslo.messaging
+#
+
+# Size of RPC connection pool. (integer value)
+#rpc_conn_pool_size=30
+
+# ZeroMQ bind address. Should be a wildcard (*), an ethernet
+# interface, or IP. The "host" option should point or resolve
+# to this address. (string value)
+#rpc_zmq_bind_address=*
+
+# MatchMaker driver. (string value)
+#rpc_zmq_matchmaker=local
+
+# ZeroMQ receiver listening port. (integer value)
+#rpc_zmq_port=9501
+
+# Number of ZeroMQ contexts, defaults to 1. (integer value)
+#rpc_zmq_contexts=1
+
+# Maximum number of ingress messages to locally buffer per
+# topic. Default is unlimited. (integer value)
+#rpc_zmq_topic_backlog=<None>
+
+# Directory for holding IPC sockets. (string value)
+#rpc_zmq_ipc_dir=/var/run/openstack
+
+# Name of this node. Must be a valid hostname, FQDN, or IP
+# address. Must match "host" option, if running Nova. (string
+# value)
+#rpc_zmq_host=ironic
+
+# Seconds to wait before a cast expires (TTL). Only supported
+# by impl_zmq. (integer value)
+#rpc_cast_timeout=30
+
+# Heartbeat frequency. (integer value)
+#matchmaker_heartbeat_freq=300
+
+# Heartbeat time-to-live. (integer value)
+#matchmaker_heartbeat_ttl=600
+
+# Size of executor thread pool. (integer value)
+# Deprecated group/name - [DEFAULT]/rpc_thread_pool_size
+#executor_thread_pool_size=64
+
+# The Drivers(s) to handle sending notifications. Possible
+# values are messaging, messagingv2, routing, log, test, noop
+# (multi valued)
+#notification_driver=
+
+# AMQP topic used for OpenStack notifications. (list value)
+# Deprecated group/name - [rpc_notifier2]/topics
+#notification_topics=notifications
+
+# Seconds to wait for a response from a call. (integer value)
+#rpc_response_timeout=60
+
+# A URL representing the messaging driver to use and its full
+# configuration. If not set, we fall back to the rpc_backend
+# option and driver specific configuration. (string value)
+#transport_url=<None>
+
+# The messaging driver to use, defaults to rabbit. Other
+# drivers include qpid and zmq. (string value)
+#rpc_backend=rabbit
+
+# The default exchange under which topics are scoped. May be
+# overridden by an exchange name specified in the
+# transport_url option. (string value)
+#control_exchange=openstack
 
 
 #
@@ -979,6 +979,14 @@
 # (integer value)
 #swift_object_expiry_timeout=900
 
+# Set this to True to use http web server to host floppy
+# images and generated boot ISO. This requires http_root and
+# http_url to be configured in the [deploy] section of the
+# config file. If this is set to False, then Ironic will use
+# Swift to host the floppy images and generated boot_iso.
+# (boolean value)
+#use_web_server_for_images=false
+
 
 #
 # Options defined in ironic.drivers.modules.ilo.deploy
@@ -1175,6 +1183,10 @@
 
 # Verify HTTPS connections. (boolean value)
 #insecure=false
+
+# The region in which the identity server can be found.
+# (string value)
+#region_name=<None>
 
 # Directory used to cache files related to PKI tokens. (string
 # value)

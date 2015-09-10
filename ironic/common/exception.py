@@ -595,3 +595,8 @@ class UcsConnectionError(IronicException):
 
 class WolOperationError(IronicException):
     pass
+
+
+class ImageUploadFailed(IronicException):
+    message = _("Failed to upload %(image_name)s image to web server "
+                "%(web_server)s, reason: %(reason)s")

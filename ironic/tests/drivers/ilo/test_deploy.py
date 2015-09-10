@@ -28,6 +28,7 @@ from ironic.common import image_service
 from ironic.common import images
 from ironic.common import states
 from ironic.common import swift
+from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent
@@ -177,7 +178,6 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
                                   capability_mock, boot_object_name_mock,
                                   swift_api_mock,
                                   create_boot_iso_mock, tempfile_mock):
-        CONF.keystone_authtoken.auth_uri = 'http://authurl'
         CONF.ilo.swift_ilo_container = 'ilo-cont'
         CONF.pxe.pxe_append_params = 'kernel-params'
 
@@ -196,7 +196,6 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
         boot_object_name_mock.return_value = 'abcdef'
         create_boot_iso_mock.return_value = '/path/to/boot-iso'
         capability_mock.return_value = 'uefi'
-
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             boot_iso_actual = ilo_deploy._get_boot_iso(task, 'root-uuid')
@@ -219,6 +218,69 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             boot_iso_expected = 'swift:abcdef'
             self.assertEqual(boot_iso_expected, boot_iso_actual)
 
+    @mock.patch.object(ilo_common, 'copy_image_to_web_server', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(tempfile, 'NamedTemporaryFile', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(images, 'create_boot_iso', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy, '_get_boot_iso_object_name', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(driver_utils, 'get_node_capability', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(images, 'get_image_properties', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_parse_deploy_info', spec_set=True,
+                       autospec=True)
+    def test__get_boot_iso_create_use_webserver_true_ramdisk_webserver(
+            self, deploy_info_mock, image_props_mock,
+            capability_mock, boot_object_name_mock,
+            create_boot_iso_mock, tempfile_mock,
+            copy_file_mock):
+        CONF.ilo.swift_ilo_container = 'ilo-cont'
+        CONF.ilo.use_web_server_for_images = True
+        CONF.deploy.http_url = "http://10.10.1.30/httpboot"
+        CONF.deploy.http_root = "/httpboot"
+        CONF.pxe.pxe_append_params = 'kernel-params'
+
+        fileobj_mock = mock.MagicMock(spec=file)
+        fileobj_mock.name = 'tmpfile'
+        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle.__enter__.return_value = fileobj_mock
+        tempfile_mock.return_value = mock_file_handle
+
+        ramdisk_href = "http://10.10.1.30/httpboot/ramdisk"
+        kernel_href = "http://10.10.1.30/httpboot/kernel"
+        deploy_info_mock.return_value = {'image_source': 'image-uuid',
+                                         'ilo_deploy_iso': 'deploy_iso_uuid'}
+        image_props_mock.return_value = {'boot_iso': None,
+                                         'kernel_id': kernel_href,
+                                         'ramdisk_id': ramdisk_href}
+        boot_object_name_mock.return_value = 'abcdef'
+        create_boot_iso_mock.return_value = '/path/to/boot-iso'
+        capability_mock.return_value = 'uefi'
+        copy_file_mock.return_value = "http://10.10.1.30/httpboot/abcdef"
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            boot_iso_actual = ilo_deploy._get_boot_iso(task, 'root-uuid')
+            deploy_info_mock.assert_called_once_with(task.node)
+            image_props_mock.assert_called_once_with(
+                task.context, 'image-uuid',
+                ['boot_iso', 'kernel_id', 'ramdisk_id'])
+            boot_object_name_mock.assert_called_once_with(task.node)
+            create_boot_iso_mock.assert_called_once_with(task.context,
+                                                         'tmpfile',
+                                                         kernel_href,
+                                                         ramdisk_href,
+                                                         'deploy_iso_uuid',
+                                                         'root-uuid',
+                                                         'kernel-params',
+                                                         'uefi')
+            boot_iso_expected = 'http://10.10.1.30/httpboot/abcdef'
+            self.assertEqual(boot_iso_expected, boot_iso_actual)
+            copy_file_mock.assert_called_once_with(fileobj_mock.name,
+                                                   'abcdef')
+
     @mock.patch.object(ilo_deploy, '_get_boot_iso_object_name', spec_set=True,
                        autospec=True)
     @mock.patch.object(swift, 'SwiftAPI', spec_set=True, autospec=True)
@@ -234,6 +296,20 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
         ilo_deploy._clean_up_boot_iso_for_instance(self.node)
         swift_obj_mock.delete_object.assert_called_once_with('ilo-cont',
                                                              'boot-object')
+
+    @mock.patch.object(utils, 'unlink_without_raise', spec_set=True,
+                       autospec=True)
+    def test__clean_up_boot_iso_for_instance_on_webserver(self, unlink_mock):
+
+        CONF.ilo.use_web_server_for_images = True
+        CONF.deploy.http_root = "/webserver"
+        i_info = self.node.instance_info
+        i_info['ilo_boot_iso'] = 'http://x.y.z.a/webserver/boot-object'
+        self.node.instance_info = i_info
+        self.node.save()
+        boot_iso_path = "/webserver/boot-object"
+        ilo_deploy._clean_up_boot_iso_for_instance(self.node)
+        unlink_mock.assert_called_once_with(boot_iso_path)
 
     @mock.patch.object(ilo_deploy, '_get_boot_iso_object_name', spec_set=True,
                        autospec=True)
@@ -685,6 +761,19 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             task.driver.deploy.clean_up(task)
             destroy_images_mock.assert_called_once_with(task.node.uuid)
+            clean_up_boot_mock.assert_called_once_with(task.node)
+
+    @mock.patch.object(ilo_deploy, '_clean_up_boot_iso_for_instance',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'destroy_floppy_image_from_web_server',
+                       spec_set=True, autospec=True)
+    def test_clean_up_of_webserver_images(self, destroy_images_mock,
+                                          clean_up_boot_mock):
+        CONF.ilo.use_web_server_for_images = True
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.deploy.clean_up(task)
+            destroy_images_mock.assert_called_once_with(task.node)
             clean_up_boot_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(ilo_deploy, '_prepare_node_for_deploy', spec_set=True,
