@@ -12,7 +12,7 @@ to look at earlier versions of this document for guidance.
 
 
 Service overview
-~~~~~~~~~~~~~~~~
+================
 
 The Bare Metal service is a collection of components that provides support to
 manage and provision physical machines.
@@ -1526,7 +1526,7 @@ API version for all commands, you can set the environment variable
 ``IRONIC_API_VERSION``.
 
 API version 1.10 and below
-..........................
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Below is an example of creating a node with API version 1.10. After creation,
 the node will be in the ``available`` provision state.
@@ -1558,7 +1558,7 @@ Other API versions below 1.10 may be substituted in place of 1.10.
     +--------------------------------------+-------+---------------+-------------+--------------------+-------------+
 
 API version 1.11 and above
-..........................
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Beginning with API version 1.11, the initial provision state for newly created
 nodes is ``enroll``. In the examples below, other API versions above 1.11 may be
