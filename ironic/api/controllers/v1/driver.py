@@ -47,6 +47,16 @@ _DRIVER_PROPERTIES = {}
 # versions, the API service should be restarted.
 _VENDOR_METHODS = {}
 
+# RAID (logical disk) configuration information for drivers:
+#   key = driver name;
+#   value = dictionary of RAID configuration information of that driver:
+#             key = property name.
+#             value = description of the property
+# NOTE(rloo). This is cached for the lifetime of the API service. If one or
+# more conductor services are restarted with new driver versions, the API
+# service should be restarted.
+_RAID_PROPERTIES = {}
+
 
 class Driver(base.APIBase):
     """API representation of a driver."""
@@ -171,15 +181,20 @@ class DriverRaidController(rest.RestController):
         """
         if not api_utils.allow_raid_config():
             raise exception.NotAcceptable()
-        topic = pecan.request.rpcapi.get_topic_for_driver(driver_name)
-        try:
-            return pecan.request.rpcapi.get_raid_logical_disk_properties(
-                pecan.request.context, driver_name, topic=topic)
-        except exception.UnsupportedDriverExtension as e:
-            # Change error code as 404 seems appropriate because RAID is a
-            # standard interface and all drivers might not have it.
-            e.code = http_client.NOT_FOUND
-            raise
+
+        if driver_name not in _RAID_PROPERTIES:
+            topic = pecan.request.rpcapi.get_topic_for_driver(driver_name)
+            try:
+                info = pecan.request.rpcapi.get_raid_logical_disk_properties(
+                    pecan.request.context, driver_name, topic=topic)
+            except exception.UnsupportedDriverExtension as e:
+                # Change error code as 404 seems appropriate because RAID is a
+                # standard interface and all drivers might not have it.
+                e.code = http_client.NOT_FOUND
+                raise
+
+            _RAID_PROPERTIES[driver_name] = info
+        return _RAID_PROPERTIES[driver_name]
 
 
 class DriversController(rest.RestController):
