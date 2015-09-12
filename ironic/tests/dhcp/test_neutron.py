@@ -393,6 +393,41 @@ class TestNeutron(db_base.DbTestCase):
                 'admin_state_up': True, 'mac_address': self.ports[0].address}})
             rollback_mock.assert_called_once_with(task)
 
+    @mock.patch.object(neutron.NeutronDHCPApi, '_rollback_cleaning_ports')
+    @mock.patch.object(client.Client, 'create_port')
+    def test_create_cleaning_ports_fail_delayed(self, create_mock,
+                                                rollback_mock):
+        """Check ports are cleaned up on failure to create them
+
+        This test checks that the port clean-up occurs
+        when the port create call was successful,
+        but the port in fact was not created.
+
+        """
+        # NOTE(pas-ha) this is trying to emulate the complex port object
+        # with both methods and dictionary access with methods on elements
+        mockport = mock.MagicMock()
+        create_mock.return_value = mockport
+        # fail only on second 'or' branch to fool lazy eval
+        # and actually execute both expressions to assert on both mocks
+        mockport.get.return_value = True
+        mockitem = mock.Mock()
+        mockport.__getitem__.return_value = mockitem
+        mockitem.get.return_value = None
+        api = dhcp_factory.DHCPFactory().provider
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.NodeCleaningFailure,
+                              api.create_cleaning_ports,
+                              task)
+            create_mock.assert_called_once_with({'port': {
+                'network_id': '00000000-0000-0000-0000-000000000000',
+                'admin_state_up': True, 'mac_address': self.ports[0].address}})
+            rollback_mock.assert_called_once_with(task)
+            mockport.get.assert_called_once_with('port')
+            mockitem.get.assert_called_once_with('id')
+            mockport.__getitem__.assert_called_once_with('port')
+
     @mock.patch.object(client.Client, 'create_port')
     def test_create_cleaning_ports_bad_config(self, create_mock):
         # Check an error is raised if the cleaning network is not set
