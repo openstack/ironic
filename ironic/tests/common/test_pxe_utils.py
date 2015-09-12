@@ -164,9 +164,9 @@ class TestPXEUtils(db_base.DbTestCase):
         ]
         get_macs_mock.return_value = macs
         create_link_calls = [
-            mock.call(u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+            mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/tftpboot/pxelinux.cfg/01-00-11-22-33-44-55-66'),
-            mock.call(u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+            mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/tftpboot/pxelinux.cfg/01-00-11-22-33-44-55-67')
         ]
         unlink_calls = [
@@ -191,13 +191,13 @@ class TestPXEUtils(db_base.DbTestCase):
         ]
         get_macs_mock.return_value = macs
         create_link_calls = [
-            mock.call(u'/httpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+            mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/httpboot/pxelinux.cfg/00-11-22-33-44-55-66'),
-            mock.call(u'/httpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+            mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/httpboot/pxelinux.cfg/00112233445566'),
-            mock.call(u'/httpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+            mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/httpboot/pxelinux.cfg/00-11-22-33-44-55-67'),
-            mock.call(u'/httpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+            mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/httpboot/pxelinux.cfg/00112233445567'),
         ]
         unlink_calls = [
@@ -225,7 +225,7 @@ class TestPXEUtils(db_base.DbTestCase):
 
         provider_mock.get_ip_addresses.return_value = [ip_address]
         create_link_calls = [
-            mock.call(u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+            mock.call(u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       u'/tftpboot/10.10.0.1.conf'),
         ]
         with task_manager.acquire(self.context, self.node.uuid) as task:

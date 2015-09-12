@@ -85,7 +85,9 @@ def _link_mac_pxe_configs(task):
 
     def create_link(mac_path):
         utils.unlink_without_raise(mac_path)
-        utils.create_link_without_raise(pxe_config_file_path, mac_path)
+        relative_source_path = os.path.relpath(
+            pxe_config_file_path, os.path.dirname(mac_path))
+        utils.create_link_without_raise(relative_source_path, mac_path)
 
     pxe_config_file_path = get_pxe_config_file_path(task.node.uuid)
     for mac in driver_utils.get_node_mac_addresses(task):
@@ -119,7 +121,9 @@ def _link_ip_address_pxe_configs(task, hex_form):
         ip_address_path = _get_pxe_ip_address_path(port_ip_address,
                                                    hex_form)
         utils.unlink_without_raise(ip_address_path)
-        utils.create_link_without_raise(pxe_config_file_path,
+        relative_source_path = os.path.relpath(
+            pxe_config_file_path, os.path.dirname(ip_address_path))
+        utils.create_link_without_raise(relative_source_path,
                                         ip_address_path)
 
 
