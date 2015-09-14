@@ -630,16 +630,16 @@ them to the Image service:
 
    - Add the kernel and ramdisk images to the Image service::
 
-        glance image-create --name my-kernel --is-public True \
-        --disk-format aki  < my-image.vmlinuz
+        glance image-create --name my-kernel --visibility public \
+        --disk-format aki --container-format aki  < my-image.vmlinuz
 
      Store the image uuid obtained from the above step as
      *$MY_VMLINUZ_UUID*.
 
      ::
 
-        glance image-create --name my-image.initrd --is-public True \
-        --disk-format ari  < my-image.initrd
+        glance image-create --name my-image.initrd --visibility public \
+        --disk-format ari --container-format ari  < my-image.initrd
 
      Store the image UUID obtained from the above step as
      *$MY_INITRD_UUID*.
@@ -649,7 +649,7 @@ them to the Image service:
      images with this OS image. These two operations can be done by
      executing the following command::
 
-        glance image-create --name my-image --is-public True \
+        glance image-create --name my-image --visibility public \
         --disk-format qcow2 --container-format bare --property \
         kernel_id=$MY_VMLINUZ_UUID --property \
         ramdisk_id=$MY_INITRD_UUID < my-image.qcow2
@@ -657,7 +657,7 @@ them to the Image service:
    - *Note:* To deploy a whole disk image, a kernel_id and a ramdisk_id
      shouldn't be associated with the image. An example is as follows::
 
-         glance image-create --name my-whole-disk-image --is-public True \
+         glance image-create --name my-whole-disk-image --visibility public \
          --disk-format qcow2 \
          --container-format bare < my-whole-disk-image.qcow2
 
@@ -666,16 +666,16 @@ them to the Image service:
    Add the *my-deploy-ramdisk.kernel* and
    *my-deploy-ramdisk.initramfs* images to the Image service::
 
-        glance image-create --name deploy-vmlinuz --is-public True \
-        --disk-format aki < my-deploy-ramdisk.kernel
+        glance image-create --name deploy-vmlinuz --visibility public \
+        --disk-format aki --container-format aki < my-deploy-ramdisk.kernel
 
    Store the image UUID obtained from the above step as
    *$DEPLOY_VMLINUZ_UUID*.
 
    ::
 
-        glance image-create --name deploy-initrd --is-public True \
-        --disk-format ari < my-deploy-ramdisk.initramfs
+        glance image-create --name deploy-initrd --visibility public \
+        --disk-format ari --container-format ari < my-deploy-ramdisk.initramfs
 
    Store the image UUID obtained from the above step as
    *$DEPLOY_INITRD_UUID*.
