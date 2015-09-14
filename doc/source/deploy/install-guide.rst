@@ -1118,22 +1118,22 @@ The web console can be configured in Bare Metal service in the following way:
 
   1. Install openssl, for example::
 
-    Ubuntu:
-         sudo apt-get install openssl
+        Ubuntu:
+             sudo apt-get install openssl
 
-    Fedora/RHEL7/CentOS7:
-         sudo yum install openssl
+        Fedora/RHEL7/CentOS7:
+             sudo yum install openssl
 
   2. Generate the SSL certificate, here is an example, you can find more about openssl on
      the `openssl page`_::
 
-    cd /tmp/ca
-    openssl genrsa -des3 -out my.key 1024
-    openssl req -new -key my.key  -out my.csr
-    cp my.key my.key.org
-    openssl rsa -in my.key.org -out my.key
-    openssl x509 -req -days 3650 -in my.csr -signkey my.key -out my.crt
-    cat my.crt my.key > certificate.pem
+        cd /tmp/ca
+        openssl genrsa -des3 -out my.key 1024
+        openssl req -new -key my.key  -out my.csr
+        cp my.key my.key.org
+        openssl rsa -in my.key.org -out my.key
+        openssl x509 -req -days 3650 -in my.csr -signkey my.key -out my.crt
+        cat my.crt my.key > certificate.pem
 
 * Customize the console section in the Bare Metal service configuration
   file (/etc/ironic/ironic.conf), if you want to use SSL certificate in
