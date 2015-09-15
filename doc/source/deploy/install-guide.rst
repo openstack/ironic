@@ -139,13 +139,16 @@ MySQL database that is used by other OpenStack services.
 Install the Bare Metal service
 ------------------------------
 
-#. Install from packages::
+#. Install from packages and configure services::
 
     Ubuntu 14.04 (trusty) or higher:
-        apt-get install ironic-api ironic-conductor python-ironicclient
+        sudo apt-get install ironic-api ironic-conductor python-ironicclient
 
     RHEL7/CentOS7/Fedora 21 or higher:
-        yum install openstack-ironic-api openstack-ironic-conductor python-ironicclient
+        sudo yum install openstack-ironic-api openstack-ironic-conductor \
+        python-ironicclient
+        sudo systemctl enable openstack-ironic-api openstack-ironic-conductor
+        sudo systemctl start openstack-ironic-api openstack-ironic-conductor
 
 
 Configure the Bare Metal service
