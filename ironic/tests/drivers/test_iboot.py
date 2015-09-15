@@ -257,6 +257,8 @@ class IBootDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IBootDriverTestCase, self).setUp()
+        self.config(max_retry=0, group='iboot')
+        self.config(retry_interval=0, group='iboot')
         mgr_utils.mock_the_extension_manager(driver='fake_iboot')
         self.driver = driver_factory.get_driver('fake_iboot')
         self.node = obj_utils.create_test_node(
