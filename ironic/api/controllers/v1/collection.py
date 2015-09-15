@@ -44,5 +44,5 @@ class Collection(base.APIBase):
             'args': q_args, 'limit': limit,
             'marker': self.collection[-1].uuid}
 
-        return link.Link.make_link('next', pecan.request.host_url,
+        return link.Link.make_link('next', pecan.request.public_url,
                                    resource_url, next_args).href

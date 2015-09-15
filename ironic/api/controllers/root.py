@@ -37,7 +37,7 @@ class Version(base.APIBase):
     def convert(id):
         version = Version()
         version.id = id
-        version.links = [link.Link.make_link('self', pecan.request.host_url,
+        version.links = [link.Link.make_link('self', pecan.request.public_url,
                                              id, '', bookmark=True)]
         return version
 

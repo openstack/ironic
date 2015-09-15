@@ -16,6 +16,7 @@
 import json
 
 import mock
+from oslo_config import cfg
 from six.moves import http_client
 from testtools.matchers import HasLength
 
@@ -74,6 +75,31 @@ class TestListDrivers(base.FunctionalTest):
     def test_drivers_get_one_not_found(self):
         response = self.get_json('/drivers/%s' % self.d1, expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
+
+    def _test_links(self, public_url=None):
+        cfg.CONF.set_override('public_endpoint', public_url, 'api')
+        self.register_fake_conductors()
+        data = self.get_json('/drivers/%s' % self.d1)
+        self.assertIn('links', data.keys())
+        self.assertEqual(2, len(data['links']))
+        self.assertIn(self.d1, data['links'][0]['href'])
+        for l in data['links']:
+            bookmark = l['rel'] == 'bookmark'
+            self.assertTrue(self.validate_link(l['href'], bookmark=bookmark))
+
+        if public_url is not None:
+            expected = [{'href': '%s/v1/drivers/%s' % (public_url, self.d1),
+                         'rel': 'self'},
+                        {'href': '%s/drivers/%s' % (public_url, self.d1),
+                         'rel': 'bookmark'}]
+            for i in expected:
+                self.assertIn(i, data['links'])
+
+    def test_links(self):
+        self._test_links()
+
+    def test_links_public_url(self):
+        self._test_links(public_url='http://foo')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'driver_vendor_passthru')
     def test_driver_vendor_passthru_sync(self, mocked_driver_vendor_passthru):

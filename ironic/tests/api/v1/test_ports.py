@@ -161,7 +161,8 @@ class TestListPorts(test_api_base.FunctionalTest):
         uuids = [n['uuid'] for n in data['ports']]
         six.assertCountEqual(self, ports, uuids)
 
-    def test_links(self):
+    def _test_links(self, public_url=None):
+        cfg.CONF.set_override('public_endpoint', public_url, 'api')
         uuid = uuidutils.generate_uuid()
         obj_utils.create_test_port(self.context,
                                    uuid=uuid,
@@ -173,6 +174,20 @@ class TestListPorts(test_api_base.FunctionalTest):
         for l in data['links']:
             bookmark = l['rel'] == 'bookmark'
             self.assertTrue(self.validate_link(l['href'], bookmark=bookmark))
+
+        if public_url is not None:
+            expected = [{'href': '%s/v1/ports/%s' % (public_url, uuid),
+                         'rel': 'self'},
+                        {'href': '%s/ports/%s' % (public_url, uuid),
+                         'rel': 'bookmark'}]
+            for i in expected:
+                self.assertIn(i, data['links'])
+
+    def test_links(self):
+        self._test_links()
+
+    def test_links_public_url(self):
+        self._test_links(public_url='http://foo')
 
     def test_collection_links(self):
         ports = []

@@ -86,7 +86,7 @@ class V1(base.APIBase):
     def convert():
         v1 = V1()
         v1.id = "v1"
-        v1.links = [link.Link.make_link('self', pecan.request.host_url,
+        v1.links = [link.Link.make_link('self', pecan.request.public_url,
                                         'v1', '', bookmark=True),
                     link.Link.make_link('describedby',
                                         'http://docs.openstack.org',
@@ -96,31 +96,31 @@ class V1(base.APIBase):
                     ]
         v1.media_types = [MediaType('application/json',
                           'application/vnd.openstack.ironic.v1+json')]
-        v1.chassis = [link.Link.make_link('self', pecan.request.host_url,
+        v1.chassis = [link.Link.make_link('self', pecan.request.public_url,
                                           'chassis', ''),
                       link.Link.make_link('bookmark',
-                                          pecan.request.host_url,
+                                          pecan.request.public_url,
                                           'chassis', '',
                                           bookmark=True)
                       ]
-        v1.nodes = [link.Link.make_link('self', pecan.request.host_url,
+        v1.nodes = [link.Link.make_link('self', pecan.request.public_url,
                                         'nodes', ''),
                     link.Link.make_link('bookmark',
-                                        pecan.request.host_url,
+                                        pecan.request.public_url,
                                         'nodes', '',
                                         bookmark=True)
                     ]
-        v1.ports = [link.Link.make_link('self', pecan.request.host_url,
+        v1.ports = [link.Link.make_link('self', pecan.request.public_url,
                                         'ports', ''),
                     link.Link.make_link('bookmark',
-                                        pecan.request.host_url,
+                                        pecan.request.public_url,
                                         'ports', '',
                                         bookmark=True)
                     ]
-        v1.drivers = [link.Link.make_link('self', pecan.request.host_url,
+        v1.drivers = [link.Link.make_link('self', pecan.request.public_url,
                                           'drivers', ''),
                       link.Link.make_link('bookmark',
-                                          pecan.request.host_url,
+                                          pecan.request.public_url,
                                           'drivers', '',
                                           bookmark=True)
                       ]

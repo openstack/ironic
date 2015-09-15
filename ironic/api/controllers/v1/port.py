@@ -137,7 +137,7 @@ class Port(base.APIBase):
         if fields is not None:
             api_utils.check_for_invalid_fields(fields, port.as_dict())
 
-        return cls._convert_with_links(port, pecan.request.host_url,
+        return cls._convert_with_links(port, pecan.request.public_url,
                                        fields=fields)
 
     @classmethod

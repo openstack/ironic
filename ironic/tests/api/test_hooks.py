@@ -36,6 +36,7 @@ class FakeRequest(object):
         self.context = context
         self.environ = environ or {}
         self.version = (1, 0)
+        self.host_url = 'http://127.0.0.1:6385'
 
 
 class FakeRequestState(object):
@@ -281,3 +282,22 @@ class TestTrustedCallHookCompatJuno(TestTrustedCallHook):
 
     def test_trusted_call_hook_public_api(self):
         self.skipTest('no public_api trusted call policy in juno')
+
+
+class TestPublicUrlHook(base.FunctionalTest):
+
+    def test_before_host_url(self):
+        headers = fake_headers()
+        reqstate = FakeRequestState(headers=headers)
+        trusted_call_hook = hooks.PublicUrlHook()
+        trusted_call_hook.before(reqstate)
+        self.assertEqual(reqstate.request.host_url,
+                         reqstate.request.public_url)
+
+    def test_before_public_endpoint(self):
+        cfg.CONF.set_override('public_endpoint', 'http://foo', 'api')
+        headers = fake_headers()
+        reqstate = FakeRequestState(headers=headers)
+        trusted_call_hook = hooks.PublicUrlHook()
+        trusted_call_hook.before(reqstate)
+        self.assertEqual('http://foo', reqstate.request.public_url)
