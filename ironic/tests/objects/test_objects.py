@@ -19,7 +19,6 @@ import iso8601
 
 from oslo_context import context
 from oslo_utils import timeutils
-import six
 
 from ironic.common import exception
 from ironic.objects import base
@@ -30,6 +29,7 @@ from ironic.tests import base as test_base
 gettext.install('ironic')
 
 
+@base.IronicObjectRegistry.register
 class MyObj(base.IronicObject):
     VERSION = '1.5'
 
@@ -87,40 +87,9 @@ class MyObj2(object):
         pass
 
 
+@base.IronicObjectRegistry.register_if(False)
 class TestSubclassedObject(MyObj):
-    fields = {'new_field': str}
-
-
-class TestMetaclass(test_base.TestCase):
-    def test_obj_tracking(self):
-
-        @six.add_metaclass(base.IronicObjectMetaclass)
-        class NewBaseClass(object):
-            fields = {}
-
-            @classmethod
-            def obj_name(cls):
-                return cls.__name__
-
-        class Test1(NewBaseClass):
-            @staticmethod
-            def obj_name():
-                return 'fake1'
-
-        class Test2(NewBaseClass):
-            pass
-
-        class Test2v2(NewBaseClass):
-            @staticmethod
-            def obj_name():
-                return 'Test2'
-
-        expected = {'fake1': [Test1], 'Test2': [Test2, Test2v2]}
-
-        self.assertEqual(expected, NewBaseClass._obj_classes)
-        # The following should work, also.
-        self.assertEqual(expected, Test1._obj_classes)
-        self.assertEqual(expected, Test2._obj_classes)
+    fields = {'new_field': fields.StringField()}
 
 
 class TestUtils(test_base.TestCase):
@@ -237,8 +206,9 @@ class _TestObject(object):
         self.assertEqual('loaded!', obj.bar)
 
     def test_load_in_base(self):
+        @base.IronicObjectRegistry.register_if(False)
         class Foo(base.IronicObject):
-            fields = {'foobar': int}
+            fields = {'foobar': fields.IntegerField()}
         obj = Foo(self.context)
 
         self.assertRaisesRegexp(
@@ -415,8 +385,9 @@ class _TestObject(object):
         self.assertEqual({}, obj.obj_get_changes())
 
     def test_obj_fields(self):
+        @base.IronicObjectRegistry.register_if(False)
         class TestObj(base.IronicObject):
-            fields = {'foo': int}
+            fields = {'foo': fields.IntegerField()}
             obj_extra_fields = ['bar']
 
             @property
@@ -428,6 +399,7 @@ class _TestObject(object):
                          set(obj.obj_fields))
 
     def test_refresh_object(self):
+        @base.IronicObjectRegistry.register_if(False)
         class TestObj(base.IronicObject):
             fields = {'foo': fields.IntegerField(),
                       'bar': fields.StringField()}

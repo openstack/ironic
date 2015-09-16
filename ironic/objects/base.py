@@ -14,14 +14,12 @@
 
 """Ironic common internal object model"""
 
-import collections
 import copy
 
 from oslo_context import context
 from oslo_log import log as logging
 from oslo_utils import versionutils
 from oslo_versionedobjects import base as object_base
-import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -35,59 +33,11 @@ LOG = logging.getLogger('object')
 
 def get_attrname(name):
     """Return the mangled name of the attribute's underlying storage."""
-    return '_%s' % name
+    return '_obj_' + name
 
 
-def make_class_properties(cls):
-    # NOTE(danms/comstud): Inherit fields from super classes.
-    # mro() returns the current class first and returns 'object' last, so
-    # those can be skipped.  Also be careful to not overwrite any fields
-    # that already exist.  And make sure each cls has its own copy of
-    # fields and that it is not sharing the dict with a super class.
-    cls.fields = dict(cls.fields)
-    for supercls in cls.mro()[1:-1]:
-        if not hasattr(supercls, 'fields'):
-            continue
-        for name, field in supercls.fields.items():
-            if name not in cls.fields:
-                cls.fields[name] = field
-    for name, field in cls.fields.items():
-
-        def getter(self, name=name):
-            attrname = get_attrname(name)
-            if not hasattr(self, attrname):
-                self.obj_load_attr(name)
-            return getattr(self, attrname)
-
-        def setter(self, value, name=name, field=field):
-            self._changed_fields.add(name)
-            try:
-                field_value = field.coerce(self, name, value)
-                return setattr(self, get_attrname(name), field_value)
-            except Exception:
-                attr = "%s.%s" % (self.obj_name(), name)
-                LOG.exception(_LE('Error setting %(attr)s'),
-                              {'attr': attr})
-                raise
-
-        setattr(cls, name, property(getter, setter))
-
-
-class IronicObjectMetaclass(type):
-    """Metaclass that allows tracking of object classes."""
-
-    # NOTE(danms): This is what controls whether object operations are
-    # remoted. If this is not None, use it to remote things over RPC.
-    indirection_api = None
-
-    def __init__(cls, names, bases, dict_):
-        if not hasattr(cls, '_obj_classes'):
-            # This will be set in the 'IronicObject' class.
-            cls._obj_classes = collections.defaultdict(list)
-        else:
-            # Add the subclass to IronicObject._obj_classes
-            make_class_properties(cls)
-            cls._obj_classes[cls.obj_name()].append(cls)
+class IronicObjectRegistry(object_base.VersionedObjectRegistry):
+    pass
 
 
 # These are decorators that mark an object's method as remotable.
@@ -166,7 +116,6 @@ def check_object_version(server, client):
             dict(client=client_minor, server=server_minor))
 
 
-@six.add_metaclass(IronicObjectMetaclass)
 class IronicObject(object_base.VersionedObjectDictCompat):
     """Base class and object factory.
 
@@ -176,6 +125,8 @@ class IronicObject(object_base.VersionedObjectDictCompat):
     necessary "get" classmethod routines as well as "save" object methods
     as appropriate.
     """
+
+    indirection_api = None
 
     OBJ_SERIAL_NAMESPACE = 'ironic_object'
     # Version of this object (see rules above check_object_version())
@@ -218,14 +169,15 @@ class IronicObject(object_base.VersionedObjectDictCompat):
     @classmethod
     def obj_class_from_name(cls, objname, objver):
         """Returns a class from the registry based on a name and version."""
-        if objname not in cls._obj_classes:
+        if objname not in IronicObjectRegistry.obj_classes():
             LOG.error(_LE('Unable to instantiate unregistered object type '
                           '%(objtype)s'), dict(objtype=objname))
             raise exception.UnsupportedObjectError(objtype=objname)
 
         latest = None
         compatible_match = None
-        for objclass in cls._obj_classes[objname]:
+        obj_classes = IronicObjectRegistry.obj_classes()
+        for objclass in obj_classes[objname]:
             if objclass.VERSION == objver:
                 return objclass
 
