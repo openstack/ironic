@@ -1901,7 +1901,7 @@ class AgentCleaningTestCase(db_base.DbTestCase):
                      'step': 'update_firmware',
                      'priority': 30},
                     {'interface': 'raid',
-                     'step': 'create_raid',
+                     'step': 'create_configuration',
                      'priority': 10},
                 ]
             }

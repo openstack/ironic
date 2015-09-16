@@ -27,6 +27,7 @@ from ironic.common.i18n import _LI
 from ironic.common import image_service
 from ironic.common import keystone
 from ironic.common import paths
+from ironic.common import raid
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
@@ -466,3 +467,138 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
         # check once all in-tree drivers have a boot interface.
         if task.driver.boot:
             task.driver.boot.clean_up_ramdisk(task)
+
+
+class AgentRAID(base.RAIDInterface):
+    """Implementation of RAIDInterface which uses agent ramdisk."""
+
+    def get_properties(self):
+        """Return the properties of the interface."""
+        return {}
+
+    @base.clean_step(priority=0)
+    def create_configuration(self, task,
+                             create_root_volume=True,
+                             create_nonroot_volumes=True):
+        """Create a RAID configuration on a bare metal using agent ramdisk.
+
+        This method creates a RAID configuration on the given node.
+
+        :param task: a TaskManager instance.
+        :param create_root_volume: If True, a root volume is created
+            during RAID configuration. Otherwise, no root volume is
+            created. Default is True.
+        :param create_nonroot_volumes: If True, non-root volumes are
+            created. If False, no non-root volumes are created. Default
+            is True.
+        :returns: states.CLEANWAIT if operation was successfully invoked.
+        :raises: MissingParameterValue, if node.target_raid_config is missing
+            or was found to be empty after skipping root volume and/or non-root
+            volumes.
+        """
+        node = task.node
+        LOG.debug("Agent RAID create_configuration invoked for node %(node)s "
+                  "with create_root_volume=%(create_root_volume)s and "
+                  "create_nonroot_volumes=%(create_nonroot_volumes)s with the "
+                  "following target_raid_config: %(target_raid_config)s.",
+                  {'node': node.uuid,
+                   'create_root_volume': create_root_volume,
+                   'create_nonroot_volumes': create_nonroot_volumes,
+                   'target_raid_config': node.target_raid_config})
+
+        if not node.target_raid_config:
+            raise exception.MissingParameterValue(
+                _("Node %s has no target RAID configuration.") % node.uuid)
+
+        target_raid_config = node.target_raid_config.copy()
+        error_msg = None
+
+        error_msg_list = []
+        if not create_root_volume:
+            target_raid_config['logical_disks'] = [
+                x for x in target_raid_config['logical_disks']
+                if x.get('is_root_volume', False) is False]
+            error_msg_list.append(_("skipping root volume"))
+
+        if not create_nonroot_volumes:
+            error_msg_list.append(_("skipping non-root volumes"))
+
+            target_raid_config['logical_disks'] = [
+                x for x in target_raid_config['logical_disks']
+                if x.get('is_root_volume', False) is True]
+
+        if not target_raid_config['logical_disks']:
+            error_msg = _(' and ').join(error_msg_list)
+            raise exception.MissingParameterValue(
+                _("Node %(node)s has empty target RAID configuration "
+                  "after %(msg)s.") % {'node': node.uuid, 'msg': error_msg})
+
+        # Rewrite it back to the node object, but no need to save it as
+        # we need to just send this to the agent ramdisk.
+        node.driver_internal_info['target_raid_config'] = target_raid_config
+
+        LOG.debug("Calling agent RAID create_configuration for node %(node)s "
+                  "with the following target RAID configuration: %(target)s",
+                  {'node': node.uuid, 'target': target_raid_config})
+        step = node.clean_step
+        return deploy_utils.agent_execute_clean_step(task, step)
+
+    @staticmethod
+    @agent_base_vendor.post_clean_step_hook(
+        interface='raid', step='create_configuration')
+    def _create_configuration_final(task, command):
+        """Clean step hook after a RAID configuration was created.
+
+        This method is invoked as a post clean step hook by the Ironic
+        conductor once a create raid configuration is completed successfully.
+        The node (properties, capabilities, RAID information) will be updated
+        to reflect the actual RAID configuration that was created.
+
+        :param task: a TaskManager instance.
+        :param command: A command result structure of the RAID operation
+            returned from agent ramdisk on query of the status of command(s).
+        :raises: InvalidParameterValue, if 'current_raid_config' has more than
+            one root volume or if node.properties['capabilities'] is malformed.
+        :raises: IronicException, if clean_result couldn't be found within
+            the 'command' argument passed.
+        """
+        try:
+            clean_result = command['command_result']['clean_result']
+        except KeyError:
+            raise exception.IronicException(
+                _("Agent ramdisk didn't return a proper command result while "
+                  "cleaning %(node)s. It returned '%(result)s' after command "
+                  "execution.") % {'node': task.node.uuid,
+                                   'result': command})
+
+        raid.update_raid_info(task.node, clean_result)
+
+    @base.clean_step(priority=0)
+    def delete_configuration(self, task):
+        """Deletes RAID configuration on the given node.
+
+        :param task: a TaskManager instance.
+        :returns: states.CLEANWAIT if operation was successfully invoked
+        """
+        LOG.debug("Agent RAID delete_configuration invoked for node %s.",
+                  task.node.uuid)
+        step = task.node.clean_step
+        return deploy_utils.agent_execute_clean_step(task, step)
+
+    @staticmethod
+    @agent_base_vendor.post_clean_step_hook(
+        interface='raid', step='delete_configuration')
+    def _delete_configuration_final(task, command):
+        """Clean step hook after RAID configuration was deleted.
+
+        This method is invoked as a post clean step hook by the Ironic
+        conductor once a delete raid configuration is completed successfully.
+        It sets node.raid_config to empty dictionary.
+
+        :param task: a TaskManager instance.
+        :param command: A command result structure of the RAID operation
+            returned from agent ramdisk on query of the status of command(s).
+        :returns: None
+        """
+        task.node.raid_config = {}
+        task.node.save()

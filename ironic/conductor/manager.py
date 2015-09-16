@@ -199,9 +199,10 @@ CLEANING_INTERFACE_PRIORITY = {
     # by which interface is implementing the clean step. The clean step of the
     # interface with the highest value here, will be executed first in that
     # case.
-    'power': 3,
-    'management': 2,
-    'deploy': 1
+    'power': 4,
+    'management': 3,
+    'deploy': 2,
+    'raid': 1,
 }
 SYNC_EXCLUDED_STATES = (states.DEPLOYWAIT, states.CLEANWAIT, states.ENROLL)
 

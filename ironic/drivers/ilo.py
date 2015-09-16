@@ -20,6 +20,7 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
+from ironic.drivers.modules import agent
 from ironic.drivers.modules.ilo import deploy
 from ironic.drivers.modules.ilo import inspect
 from ironic.drivers.modules.ilo import management
@@ -72,3 +73,4 @@ class IloVirtualMediaAgentDriver(base.BaseDriver):
         self.management = management.IloManagement()
         self.vendor = deploy.IloVirtualMediaAgentVendorInterface()
         self.inspect = inspect.IloInspect()
+        self.raid = agent.AgentRAID()

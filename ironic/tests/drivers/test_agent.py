@@ -20,11 +20,14 @@ from oslo_config import cfg
 from ironic.common import exception
 from ironic.common import image_service
 from ironic.common import keystone
+from ironic.common import raid
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent
+from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import agent_client
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import pxe
 from ironic.tests.conductor import utils as mgr_utils
@@ -636,3 +639,183 @@ class TestAgentVendor(db_base.DbTestCase):
             mock_get_cmd.return_value = [{'command_name': 'prepare_image',
                                           'command_status': 'RUNNING'}]
             self.assertFalse(self.passthru.deploy_is_done(task))
+
+
+class AgentRAIDTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(AgentRAIDTestCase, self).setUp()
+        mgr_utils.mock_the_extension_manager(driver="fake_agent")
+        self.passthru = agent.AgentVendorInterface()
+        self.target_raid_config = {
+            "logical_disks": [
+                {'size_gb': 200, 'raid_level': 0, 'is_root_volume': True},
+                {'size_gb': 200, 'raid_level': 5}
+            ]}
+        self.clean_step = {'step': 'create_configuration',
+                           'interface': 'raid'}
+        n = {
+            'driver': 'fake_agent',
+            'instance_info': INSTANCE_INFO,
+            'driver_info': DRIVER_INFO,
+            'driver_internal_info': DRIVER_INTERNAL_INFO,
+            'target_raid_config': self.target_raid_config,
+            'clean_step': self.clean_step,
+        }
+        self.node = object_utils.create_test_node(self.context, **n)
+
+    @mock.patch.object(deploy_utils, 'agent_get_clean_steps', autospec=True)
+    def test_get_clean_steps(self, get_steps_mock):
+        get_steps_mock.return_value = [
+            {'step': 'create_configuration', 'interface': 'raid',
+             'priority': 1},
+            {'step': 'delete_configuration', 'interface': 'raid',
+             'priority': 2}]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            ret = task.driver.raid.get_clean_steps(task)
+
+        self.assertEqual(0, ret[0]['priority'])
+        self.assertEqual(0, ret[1]['priority'])
+
+    @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
+                       autospec=True)
+    def test_create_configuration(self, execute_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            execute_mock.return_value = states.CLEANWAIT
+
+            return_value = task.driver.raid.create_configuration(task)
+
+            self.assertEqual(states.CLEANWAIT, return_value)
+            self.assertEqual(
+                self.target_raid_config,
+                task.node.driver_internal_info['target_raid_config'])
+            execute_mock.assert_called_once_with(task, self.clean_step)
+
+    @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
+                       autospec=True)
+    def test_create_configuration_skip_root(self, execute_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            execute_mock.return_value = states.CLEANWAIT
+
+            return_value = task.driver.raid.create_configuration(
+                task, create_root_volume=False)
+
+            self.assertEqual(states.CLEANWAIT, return_value)
+            execute_mock.assert_called_once_with(task, self.clean_step)
+            exp_target_raid_config = {
+                "logical_disks": [
+                    {'size_gb': 200, 'raid_level': 5}
+                ]}
+            self.assertEqual(
+                exp_target_raid_config,
+                task.node.driver_internal_info['target_raid_config'])
+
+    @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
+                       autospec=True)
+    def test_create_configuration_skip_nonroot(self, execute_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            execute_mock.return_value = states.CLEANWAIT
+
+            return_value = task.driver.raid.create_configuration(
+                task, create_nonroot_volumes=False)
+
+            self.assertEqual(states.CLEANWAIT, return_value)
+            execute_mock.assert_called_once_with(task, self.clean_step)
+            exp_target_raid_config = {
+                "logical_disks": [
+                    {'size_gb': 200, 'raid_level': 0, 'is_root_volume': True},
+                ]}
+            self.assertEqual(
+                exp_target_raid_config,
+                task.node.driver_internal_info['target_raid_config'])
+
+    @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
+                       autospec=True)
+    def test_create_configuration_no_target_raid_config_after_skipping(
+            self, execute_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(
+                exception.MissingParameterValue,
+                task.driver.raid.create_configuration,
+                task, create_root_volume=False,
+                create_nonroot_volumes=False)
+
+            self.assertFalse(execute_mock.called)
+
+    @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
+                       autospec=True)
+    def test_create_configuration_empty_target_raid_config(
+            self, execute_mock):
+        execute_mock.return_value = states.CLEANING
+        self.node.target_raid_config = {}
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.MissingParameterValue,
+                              task.driver.raid.create_configuration,
+                              task)
+            self.assertFalse(execute_mock.called)
+
+    @mock.patch.object(raid, 'update_raid_info', autospec=True)
+    def test__create_configuration_final(
+            self, update_raid_info_mock):
+        command = {'command_result': {'clean_result': 'foo'}}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            raid_mgmt = agent.AgentRAID
+            raid_mgmt._create_configuration_final(task, command)
+            update_raid_info_mock.assert_called_once_with(task.node, 'foo')
+
+    @mock.patch.object(raid, 'update_raid_info', autospec=True)
+    def test__create_configuration_final_registered(
+            self, update_raid_info_mock):
+        self.node.clean_step = {'interface': 'raid',
+                                'step': 'create_configuration'}
+        command = {'command_result': {'clean_result': 'foo'}}
+        create_hook = agent_base_vendor._get_post_clean_step_hook(self.node)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            create_hook(task, command)
+            update_raid_info_mock.assert_called_once_with(task.node, 'foo')
+
+    @mock.patch.object(raid, 'update_raid_info', autospec=True)
+    def test__create_configuration_final_bad_command_result(
+            self, update_raid_info_mock):
+        command = {}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            raid_mgmt = agent.AgentRAID
+            self.assertRaises(exception.IronicException,
+                              raid_mgmt._create_configuration_final,
+                              task, command)
+            self.assertFalse(update_raid_info_mock.called)
+
+    @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
+                       autospec=True)
+    def test_delete_configuration(self, execute_mock):
+        execute_mock.return_value = states.CLEANING
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            return_value = task.driver.raid.delete_configuration(task)
+
+            execute_mock.assert_called_once_with(task, self.clean_step)
+            self.assertEqual(states.CLEANING, return_value)
+
+    def test__delete_configuration_final(self):
+        command = {'command_result': {'clean_result': 'foo'}}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.raid_config = {'foo': 'bar'}
+            raid_mgmt = agent.AgentRAID
+            raid_mgmt._delete_configuration_final(task, command)
+
+        self.node.refresh()
+        self.assertEqual({}, self.node.raid_config)
+
+    def test__delete_configuration_final_registered(
+            self):
+        self.node.clean_step = {'interface': 'raid',
+                                'step': 'delete_configuration'}
+        self.node.raid_config = {'foo': 'bar'}
+        command = {'command_result': {'clean_result': 'foo'}}
+        delete_hook = agent_base_vendor._get_post_clean_step_hook(self.node)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            delete_hook(task, command)
+
+        self.node.refresh()
+        self.assertEqual({}, self.node.raid_config)

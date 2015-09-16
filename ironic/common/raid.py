@@ -105,7 +105,6 @@ def update_raid_info(node, raid_config):
     current = raid_config.copy()
     current['last_updated'] = str(datetime.datetime.utcnow())
     node.raid_config = current
-    node.target_raid_config = None
 
     # Current RAID configuration can have 0 or 1 root volumes. If there
     # are > 1 root volumes, then it's invalid.  We check for this condition
