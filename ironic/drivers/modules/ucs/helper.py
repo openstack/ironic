@@ -16,10 +16,9 @@
 Ironic Cisco UCSM helper functions
 """
 
-import functools
-
 from oslo_log import log as logging
 from oslo_utils import importutils
+import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -55,7 +54,7 @@ def requires_ucs_client(func):
         mentioned above before and after calling the actual function.
     """
 
-    @functools.wraps(func)
+    @six.wraps(func)
     def wrapper(self, task, *args, **kwargs):
         if kwargs.get('helper') is None:
             kwargs['helper'] = CiscoUcsHelper(task)

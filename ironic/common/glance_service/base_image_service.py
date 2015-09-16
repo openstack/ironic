@@ -15,7 +15,6 @@
 #    under the License.
 
 
-import functools
 import os
 import sys
 import time
@@ -61,7 +60,7 @@ def _translate_plain_exception(exc_value):
 
 def check_image_service(func):
     """Creates a glance client if doesn't exists and calls the function."""
-    @functools.wraps(func)
+    @six.wraps(func)
     def wrapper(self, *args, **kwargs):
         """Wrapper around methods calls.
 

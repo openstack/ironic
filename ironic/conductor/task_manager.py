@@ -94,13 +94,12 @@ raised in the background thread.):
 
 """
 
-import functools
-
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import timeutils
 import retrying
+import six
 
 from ironic.common import driver_factory
 from ironic.common import exception
@@ -121,7 +120,7 @@ def require_exclusive_lock(f):
     as the first parameter after "self".
 
     """
-    @functools.wraps(f)
+    @six.wraps(f)
     def wrapper(*args, **kwargs):
         # NOTE(dtantsur): this code could be written simpler, but then unit
         # testing decorated functions is pretty hard, as we usually pass a Mock
