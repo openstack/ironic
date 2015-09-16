@@ -16,8 +16,6 @@
 
 """Ironic base exception handling.
 
-Includes decorator for re-raising Ironic-type exceptions.
-
 SHOULD include dedicated exception logging.
 
 """
