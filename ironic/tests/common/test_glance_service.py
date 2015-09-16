@@ -32,7 +32,6 @@ from ironic.common.glance_service import base_image_service
 from ironic.common.glance_service import service_utils
 from ironic.common import image_service as service
 from ironic.tests import base
-from ironic.tests import matchers
 from ironic.tests import stubs
 
 
@@ -166,10 +165,11 @@ class TestGlanceImageService(base.TestCase):
             'properties': {'instance_id': '42', 'user_id': 'fake'},
             'owner': None,
         }
-        self.assertThat(image_meta, matchers.DictMatches(expected))
+
+        self.assertDictEqual(expected, image_meta)
 
         image_metas = self.service.detail()
-        self.assertThat(image_metas[0], matchers.DictMatches(expected))
+        self.assertDictEqual(expected, image_metas[0])
 
     def test_create_without_instance_id(self):
         """Test creating an image without an instance ID.
@@ -200,7 +200,7 @@ class TestGlanceImageService(base.TestCase):
             'owner': None,
         }
         actual = self.service.show(image_id)
-        self.assertThat(actual, matchers.DictMatches(expected))
+        self.assertDictEqual(expected, actual)
 
     def test_create(self):
         fixture = self._make_fixture(name='test image')
@@ -270,7 +270,7 @@ class TestGlanceImageService(base.TestCase):
                 'owner': None,
             }
 
-            self.assertThat(meta, matchers.DictMatches(expected))
+            self.assertDictEqual(expected, meta)
             i = i + 1
 
     def test_detail_limit(self):
@@ -326,7 +326,7 @@ class TestGlanceImageService(base.TestCase):
                 'deleted': None,
                 'owner': None,
             }
-            self.assertThat(meta, matchers.DictMatches(expected))
+            self.assertDictEqual(expected, meta)
             i = i + 1
 
     def test_detail_invalid_marker(self):
