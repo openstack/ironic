@@ -75,11 +75,14 @@ class ConductorAPI(object):
     |           driver_vendor_passthru to a dictionary
     |    1.30 - Added set_target_raid_config and
     |           get_raid_logical_disk_properties
+    |    1.31 - Added Versioned Objects indirection API methods:
+    |           object_class_action_versions, object_action and
+    |           object_backport_versions
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.30'
+    RPC_API_VERSION = '1.31'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -589,3 +592,74 @@ class ConductorAPI(object):
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.30')
         return cctxt.call(context, 'get_raid_logical_disk_properties',
                           driver_name=driver_name)
+
+    def object_class_action_versions(self, context, objname, objmethod,
+                                     object_versions, args, kwargs):
+        """Perform an action on a VersionedObject class.
+
+        We want any conductor to handle this, so it is intentional that there
+        is no topic argument for this method.
+
+        :param context: The context within which to perform the action
+        :param objname: The registry name of the object
+        :param objmethod: The name of the action method to call
+        :param object_versions: A dict of {objname: version} mappings
+        :param args: The positional arguments to the action method
+        :param kwargs: The keyword arguments to the action method
+        :raises: NotImplemented when an operator makes an error during upgrade
+        :returns: The result of the action method, which may (or may not)
+            be an instance of the implementing VersionedObject class.
+        """
+        if not self.client.can_send_version('1.31'):
+            raise NotImplemented(_('Incompatible conductor version - '
+                                 'please upgrade ironic-conductor first'))
+        cctxt = self.client.prepare(topic=self.topic, version='1.31')
+        return cctxt.call(context, 'object_class_action_versions',
+                          objname=objname, objmethod=objmethod,
+                          object_versions=object_versions,
+                          args=args, kwargs=kwargs)
+
+    def object_action(self, context, objinst, objmethod, args, kwargs):
+        """Perform an action on a VersionedObject instance.
+
+        We want any conductor to handle this, so it is intentional that there
+        is no topic argument for this method.
+
+        :param context: The context within which to perform the action
+        :param objinst: The object instance on which to perform the action
+        :param objmethod: The name of the action method to call
+        :param args: The positional arguments to the action method
+        :param kwargs: The keyword arguments to the action method
+        :raises: NotImplemented when an operator makes an error during upgrade
+        :returns: A tuple with the updates made to the object and
+            the result of the action method
+        """
+        if not self.client.can_send_version('1.31'):
+            raise NotImplemented(_('Incompatible conductor version - '
+                                 'please upgrade ironic-conductor first'))
+        cctxt = self.client.prepare(topic=self.topic, version='1.31')
+        return cctxt.call(context, 'object_action', objinst=objinst,
+                          objmethod=objmethod, args=args, kwargs=kwargs)
+
+    def object_backport_versions(self, context, objinst, object_versions):
+        """Perform a backport of an object instance.
+
+        The default behavior of the base VersionedObjectSerializer, upon
+        receiving an object with a version newer than what is in the local
+        registry, is to call this method to request a backport of the object.
+
+        We want any conductor to handle this, so it is intentional that there
+        is no topic argument for this method.
+
+        :param context: The context within which to perform the backport
+        :param objinst: An instance of a VersionedObject to be backported
+        :param object_versions: A dict of {objname: version} mappings
+        :raises: NotImplemented when an operator makes an error during upgrade
+        :returns: The downgraded instance of objinst
+        """
+        if not self.client.can_send_version('1.31'):
+            raise NotImplemented(_('Incompatible conductor version - '
+                                 'please upgrade ironic-conductor first'))
+        cctxt = self.client.prepare(topic=self.topic, version='1.31')
+        return cctxt.call(context, 'object_backport_versions', objinst=objinst,
+                          object_versions=object_versions)

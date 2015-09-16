@@ -77,6 +77,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils
 from ironic.db import api as dbapi
 from ironic import objects
+from ironic.objects import base as objects_base
 
 MANAGER_TOPIC = 'ironic.conductor_manager'
 WORKER_SPAWN_lOCK = "conductor_worker_spawn"
@@ -211,7 +212,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.30'
+    RPC_API_VERSION = '1.31'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -2029,6 +2030,108 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 driver=driver_name, extension='raid')
 
         return driver.raid.get_logical_disk_properties()
+
+    def _object_dispatch(self, target, method, context, args, kwargs):
+        """Dispatch a call to an object method.
+
+        This ensures that object methods get called and any exception
+        that is raised gets wrapped in an ExpectedException for forwarding
+        back to the caller (without spamming the conductor logs).
+        """
+        try:
+            # NOTE(danms): Keep the getattr inside the try block since
+            # a missing method is really a client problem
+            return getattr(target, method)(context, *args, **kwargs)
+        except Exception:
+            # NOTE(danms): This is oslo.messaging fu. ExpectedException()
+            # grabs sys.exc_info here and forwards it along. This allows the
+            # caller to see the exception information, but causes us *not* to
+            # log it as such in this service. This is something that is quite
+            # critical so that things that conductor does on behalf of another
+            # node are not logged as exceptions in conductor logs. Otherwise,
+            # you'd have the same thing logged in both places, even though an
+            # exception here *always* means that the caller screwed up, so
+            # there's no reason to log it here.
+            raise messaging.ExpectedException()
+
+    def object_class_action_versions(self, context, objname, objmethod,
+                                     object_versions, args, kwargs):
+        """Perform an action on a VersionedObject class.
+
+        :param context: The context within which to perform the action
+        :param objname: The registry name of the object
+        :param objmethod: The name of the action method to call
+        :param object_versions: A dict of {objname: version} mappings
+        :param args: The positional arguments to the action method
+        :param kwargs: The keyword arguments to the action method
+        :returns: The result of the action method, which may (or may not)
+        be an instance of the implementing VersionedObject class.
+        """
+        objclass = objects_base.IronicObject.obj_class_from_name(
+            objname, object_versions[objname])
+        result = self._object_dispatch(objclass, objmethod, context,
+                                       args, kwargs)
+        # NOTE(danms): The RPC layer will convert to primitives for us,
+        # but in this case, we need to honor the version the client is
+        # asking for, so we do it before returning here.
+        if isinstance(result, objects_base.IronicObject):
+            result = result.obj_to_primitive(
+                target_version=object_versions[objname],
+                version_manifest=object_versions)
+        return result
+
+    def object_action(self, context, objinst, objmethod, args, kwargs):
+        """Perform an action on a VersionedObject instance.
+
+        :param context: The context within which to perform the action
+        :param objinst: The object instance on which to perform the action
+        :param objmethod: The name of the action method to call
+        :param args: The positional arguments to the action method
+        :param kwargs: The keyword arguments to the action method
+        :returns: A tuple with the updates made to the object and
+                  the result of the action method
+        """
+
+        oldobj = objinst.obj_clone()
+        result = self._object_dispatch(objinst, objmethod, context,
+                                       args, kwargs)
+        updates = dict()
+        # NOTE(danms): Diff the object with the one passed to us and
+        # generate a list of changes to forward back
+        for name, field in objinst.fields.items():
+            if not objinst.obj_attr_is_set(name):
+                # Avoid demand-loading anything
+                continue
+            if (not oldobj.obj_attr_is_set(name) or
+                    getattr(oldobj, name) != getattr(objinst, name)):
+                updates[name] = field.to_primitive(objinst, name,
+                                                   getattr(objinst, name))
+        # This is safe since a field named this would conflict with the
+        # method anyway
+        updates['obj_what_changed'] = objinst.obj_what_changed()
+        return updates, result
+
+    def object_backport_versions(self, context, objinst, object_versions):
+        """Perform a backport of an object instance.
+
+        The default behavior of the base VersionedObjectSerializer, upon
+        receiving an object with a version newer than what is in the local
+        registry, is to call this method to request a backport of the object.
+
+        :param context: The context within which to perform the backport
+        :param objinst: An instance of a VersionedObject to be backported
+        :param object_versions: A dict of {objname: version} mappings
+        :returns: The downgraded instance of objinst
+        """
+        target = object_versions[objinst.obj_name()]
+        LOG.debug('Backporting %(obj)s to %(ver)s with versions %(manifest)s',
+                  {'obj': objinst.obj_name(),
+                   'ver': target,
+                   'manifest': ','.join(
+                       ['%s=%s' % (name, ver)
+                        for name, ver in object_versions.items()])})
+        return objinst.obj_to_primitive(target_version=target,
+                                        version_manifest=object_versions)
 
 
 def get_vendor_passthru_metadata(route_dict):

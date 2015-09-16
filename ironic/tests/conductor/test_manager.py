@@ -27,6 +27,8 @@ from oslo_db import exception as db_exception
 import oslo_messaging as messaging
 from oslo_utils import strutils
 from oslo_utils import uuidutils
+from oslo_versionedobjects import base as ovo_base
+from oslo_versionedobjects import fields
 
 from ironic.common import boot_devices
 from ironic.common import driver_factory
@@ -41,6 +43,7 @@ from ironic.db import api as dbapi
 from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import fake
 from ironic import objects
+from ironic.objects import base as obj_base
 from ironic.tests import base as tests_base
 from ironic.tests.conductor import utils as mgr_utils
 from ironic.tests.db import base as tests_db_base
@@ -4354,3 +4357,105 @@ class ManagerCheckDeployingStatusTestCase(_ServiceSetUpMixin,
             'provision_updated_at',
             callback_method=conductor_utils.cleanup_after_timeout,
             err_handler=manager.provisioning_error_handler)
+
+
+class TestIndirectionApiConductor(tests_db_base.DbTestCase):
+
+    def setUp(self):
+        super(TestIndirectionApiConductor, self).setUp()
+        self.conductor = manager.ConductorManager('test-host', 'test-topic')
+
+    def _test_object_action(self, is_classmethod, raise_exception,
+                            return_object=False):
+        @obj_base.IronicObjectRegistry.register
+        class TestObject(obj_base.IronicObject):
+            context = self.context
+
+            def foo(self, context, raise_exception=False, return_object=False):
+                if raise_exception:
+                    raise Exception('test')
+                elif return_object:
+                    return obj
+                else:
+                    return 'test'
+
+            @classmethod
+            def bar(cls, context, raise_exception=False, return_object=False):
+                if raise_exception:
+                    raise Exception('test')
+                elif return_object:
+                    return obj
+                else:
+                    return 'test'
+
+        obj = TestObject(self.context)
+        if is_classmethod:
+            versions = ovo_base.obj_tree_get_versions(TestObject.obj_name())
+            result = self.conductor.object_class_action_versions(
+                self.context, TestObject.obj_name(), 'bar', versions,
+                tuple(), {'raise_exception': raise_exception,
+                          'return_object': return_object})
+        else:
+            updates, result = self.conductor.object_action(
+                self.context, obj, 'foo', tuple(),
+                {'raise_exception': raise_exception,
+                 'return_object': return_object})
+        if return_object:
+            self.assertEqual(obj, result)
+        else:
+            self.assertEqual('test', result)
+
+    def test_object_action(self):
+        self._test_object_action(False, False)
+
+    def test_object_action_on_raise(self):
+        self.assertRaises(messaging.ExpectedException,
+                          self._test_object_action, False, True)
+
+    def test_object_action_on_object(self):
+        self._test_object_action(False, False, True)
+
+    def test_object_class_action(self):
+        self._test_object_action(True, False)
+
+    def test_object_class_action_on_raise(self):
+        self.assertRaises(messaging.ExpectedException,
+                          self._test_object_action, True, True)
+
+    def test_object_class_action_on_object(self):
+        self._test_object_action(True, False, False)
+
+    def test_object_action_copies_object(self):
+        @obj_base.IronicObjectRegistry.register
+        class TestObject(obj_base.IronicObject):
+            fields = {'dict': fields.DictOfStringsField()}
+
+            def touch_dict(self, context):
+                self.dict['foo'] = 'bar'
+                self.obj_reset_changes()
+
+        obj = TestObject(self.context)
+        obj.dict = {}
+        obj.obj_reset_changes()
+        updates, result = self.conductor.object_action(
+            self.context, obj, 'touch_dict', tuple(), {})
+        # NOTE(danms): If conductor did not properly copy the object, then
+        # the new and reference copies of the nested dict object will be
+        # the same, and thus 'dict' will not be reported as changed
+        self.assertIn('dict', updates)
+        self.assertEqual({'foo': 'bar'}, updates['dict'])
+
+    def test_object_backport_versions(self):
+        fake_backported_obj = 'fake-backported-obj'
+        obj_name = 'fake-obj'
+        test_obj = mock.Mock()
+        test_obj.obj_name.return_value = obj_name
+        test_obj.obj_to_primitive.return_value = fake_backported_obj
+        fake_version_manifest = {obj_name: '1.0'}
+
+        result = self.conductor.object_backport_versions(
+            self.context, test_obj, fake_version_manifest)
+
+        self.assertEqual(result, fake_backported_obj)
+        test_obj.obj_to_primitive.assert_called_once_with(
+            target_version='1.0', version_manifest=fake_version_manifest)
