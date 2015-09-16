@@ -10,7 +10,7 @@
                     "raid_level": {
                         "type": "string",
                         "enum": [ "0", "1", "2", "5", "6", "1+0", "5+0", "6+0" ],
-                        "description": "RAID level for the logical disk. Required."
+                        "description": "RAID level for the logical disk. Valid values are '0', '1', '2', '5', '6', '1+0', '5+0' and '6+0'. Required."
                     },
                     "size_gb": {
                         "anyOf": [{
@@ -22,7 +22,7 @@
                                    "type": "string",
                                    "enum": [ "MAX" ]
                                   }],
-                        "description": "Size in GiB (Integer) for the logical disk. Use 'MAX' as size_gb if this logical disk is supposed to use rest of the space available. Required."
+                        "description": "Size in GiB (Integer) for the logical disk. Use 'MAX' as size_gb if this logical disk is supposed to use the rest of the space available. Required."
                     },
                     "volume_name": {
                         "type": "string",
@@ -39,27 +39,27 @@
                     "disk_type": {
                         "type": "string",
                         "enum": [ "hdd", "ssd" ],
-                        "description": "The type of disk preferred. Valid values are 'hdd' and 'ssd'. If this is not specified, disk type will not be a selection criteria for choosing backing physical disks. Optional."
+                        "description": "The type of disk preferred. Valid values are 'hdd' and 'ssd'. If this is not specified, disk type will not be a selection criterion for choosing backing physical disks. Optional."
                     },
                     "interface_type": {
                         "type": "string",
                         "enum": [ "sata", "scsi", "sas" ],
-                        "description": "The interface type of disk. Valid values are 'sata', 'scsi' and 'sas'. If this is not specified, interface type will not be a selection criteria for choosing backing physical disks. Optional."
+                        "description": "The interface type of disk. Valid values are 'sata', 'scsi' and 'sas'. If this is not specified, interface type will not be a selection criterion for choosing backing physical disks. Optional."
                     },
                     "number_of_physical_disks": {
                         "type": "integer",
                         "minimum": 0,
                         "exclusiveMinimum": true,
-                        "description": "Number of physical disks to use for this logical disk. Will be defaulted by the driver to minimum number of disks required for that RAID level. Optional."
+                        "description": "Number of physical disks to use for this logical disk. By default, the driver uses the minimum number of disks required for that RAID level. Optional."
                     },
                     "controller": {
                         "type": "string",
-                        "description": "Controller to use for this logical disk. If not specified, driver will choose a suitable RAID controller on the bare metal node. Optional."
+                        "description": "Controller to use for this logical disk. If not specified, the driver will choose a suitable RAID controller on the bare metal node. Optional."
                     },
                     "physical_disks": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "The physical disks to use for this logical disk. If not specified, driver will choose a suitable physical disks to use. Optional"
+                        "description": "The physical disks to use for this logical disk. If not specified, the driver will choose suitable physical disks to use. Optional."
                     }
                 },
                 "required": ["raid_level", "size_gb"],
