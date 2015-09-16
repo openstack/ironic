@@ -153,3 +153,16 @@ class NoExceptionTracebackHook(hooks.PecanHook):
             # Replace the whole json. Cannot change original one beacause it's
             # generated on the fly.
             state.response.json = json_body
+
+
+class PublicUrlHook(hooks.PecanHook):
+    """Attach the right public_url to the request.
+
+    Attach the right public_url to the request so resources can create
+    links even when the API service is behind a proxy or SSL terminator.
+
+    """
+
+    def before(self, state):
+        state.request.public_url = (cfg.CONF.api.public_endpoint or
+                                    state.request.host_url)

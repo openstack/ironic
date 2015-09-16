@@ -684,7 +684,7 @@ class Node(base.APIBase):
         assert_juno_provision_state_name(node)
         hide_fields_in_newer_versions(node)
         show_password = pecan.request.context.show_password
-        return cls._convert_with_links(node, pecan.request.host_url,
+        return cls._convert_with_links(node, pecan.request.public_url,
                                        fields=fields,
                                        show_password=show_password)
 

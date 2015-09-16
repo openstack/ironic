@@ -54,7 +54,8 @@ def setup_app(pecan_config=None, extra_hooks=None):
                  hooks.DBHook(),
                  hooks.ContextHook(pecan_config.app.acl_public_routes),
                  hooks.RPCHook(),
-                 hooks.NoExceptionTracebackHook()]
+                 hooks.NoExceptionTracebackHook(),
+                 hooks.PublicUrlHook()]
     if extra_hooks:
         app_hooks.extend(extra_hooks)
 

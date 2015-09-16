@@ -108,7 +108,7 @@ class Chassis(base.APIBase):
         if fields is not None:
             api_utils.check_for_invalid_fields(fields, chassis.as_dict())
 
-        return cls._convert_with_links(chassis, pecan.request.host_url,
+        return cls._convert_with_links(chassis, pecan.request.public_url,
                                        fields)
 
     @classmethod

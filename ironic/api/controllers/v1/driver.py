@@ -77,10 +77,10 @@ class Driver(base.APIBase):
         driver.hosts = hosts
         driver.links = [
             link.Link.make_link('self',
-                                pecan.request.host_url,
+                                pecan.request.public_url,
                                 'drivers', name),
             link.Link.make_link('bookmark',
-                                pecan.request.host_url,
+                                pecan.request.public_url,
                                 'drivers', name,
                                 bookmark=True)
         ]

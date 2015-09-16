@@ -322,7 +322,8 @@ class TestListNodes(test_api_base.FunctionalTest):
         self.assertEqual(len(nodes), len(data['nodes']))
         self.assertEqual(sorted(node_names), sorted(names))
 
-    def test_links(self):
+    def _test_links(self, public_url=None):
+        cfg.CONF.set_override('public_endpoint', public_url, 'api')
         uuid = uuidutils.generate_uuid()
         obj_utils.create_test_node(self.context, uuid=uuid)
         data = self.get_json('/nodes/%s' % uuid)
@@ -332,6 +333,20 @@ class TestListNodes(test_api_base.FunctionalTest):
         for l in data['links']:
             bookmark = l['rel'] == 'bookmark'
             self.assertTrue(self.validate_link(l['href'], bookmark=bookmark))
+
+        if public_url is not None:
+            expected = [{'href': '%s/v1/nodes/%s' % (public_url, uuid),
+                         'rel': 'self'},
+                        {'href': '%s/nodes/%s' % (public_url, uuid),
+                         'rel': 'bookmark'}]
+            for i in expected:
+                self.assertIn(i, data['links'])
+
+    def test_links(self):
+        self._test_links()
+
+    def test_links_public_url(self):
+        self._test_links(public_url='http://foo')
 
     def test_collection_links(self):
         nodes = []
