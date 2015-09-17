@@ -240,6 +240,23 @@ class SSHPrivateMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(processutils, 'ssh_execute', autospec=True)
     @mock.patch.object(ssh, '_get_hosts_name_for_node', autospec=True)
+    def test__get_power_status_on_unquoted(self, get_hosts_name_mock,
+                                           exec_ssh_mock):
+        info = ssh._parse_driver_info(self.node)
+        exec_ssh_mock.return_value = (
+            'ExactNodeName', '')
+        get_hosts_name_mock.return_value = "ExactNodeName"
+
+        pstate = ssh._get_power_status(self.sshclient, info)
+
+        ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
+                             info['cmd_set']['list_running'])
+        self.assertEqual(states.POWER_ON, pstate)
+        exec_ssh_mock.assert_called_once_with(self.sshclient, ssh_cmd)
+        get_hosts_name_mock.assert_called_once_with(self.sshclient, info)
+
+    @mock.patch.object(processutils, 'ssh_execute', autospec=True)
+    @mock.patch.object(ssh, '_get_hosts_name_for_node', autospec=True)
     def test__get_power_status_on(self, get_hosts_name_mock, exec_ssh_mock):
         info = ssh._parse_driver_info(self.node)
         exec_ssh_mock.return_value = (
