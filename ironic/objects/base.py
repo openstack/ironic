@@ -14,7 +14,6 @@
 
 """Ironic common internal object model"""
 
-from oslo_context import context
 from oslo_log import log as logging
 from oslo_versionedobjects import base as object_base
 
@@ -28,59 +27,6 @@ LOG = logging.getLogger('object')
 
 class IronicObjectRegistry(object_base.VersionedObjectRegistry):
     pass
-
-
-# These are decorators that mark an object's method as remotable.
-# If the metaclass is configured to forward object methods to an
-# indirection service, these will result in making an RPC call
-# instead of directly calling the implementation in the object. Instead,
-# the object implementation on the remote end will perform the
-# requested action and the result will be returned here.
-def remotable_classmethod(fn):
-    """Decorator for remotable classmethods."""
-    def wrapper(cls, context, *args, **kwargs):
-        if IronicObject.indirection_api:
-            result = IronicObject.indirection_api.object_class_action(
-                context, cls.obj_name(), fn.__name__, cls.VERSION,
-                args, kwargs)
-        else:
-            result = fn(cls, context, *args, **kwargs)
-            if isinstance(result, IronicObject):
-                result._context = context
-        return result
-    return classmethod(wrapper)
-
-
-# See comment above for remotable_classmethod()
-#
-# Note that this will use either the provided context, or the one
-# stashed in the object. If neither are present, the object is
-# "orphaned" and remotable methods cannot be called.
-def remotable(fn):
-    """Decorator for remotable object methods."""
-    def wrapper(self, *args, **kwargs):
-        ctxt = self._context
-        try:
-            if isinstance(args[0], (context.RequestContext)):
-                ctxt = args[0]
-                args = args[1:]
-        except IndexError:
-            pass
-        if ctxt is None:
-            raise exception.OrphanedObjectError(method=fn.__name__,
-                                                objtype=self.obj_name())
-        if IronicObject.indirection_api:
-            updates, result = IronicObject.indirection_api.object_action(
-                ctxt, self, fn.__name__, args, kwargs)
-            for key, value in updates.items():
-                if key in self.fields:
-                    field = self.fields[key]
-                    self[key] = field.from_primitive(self, key, value)
-            self._changed_fields = set(updates.get('obj_what_changed', []))
-            return result
-        else:
-            return fn(self, ctxt, *args, **kwargs)
-    return wrapper
 
 
 # Object versioning rules
