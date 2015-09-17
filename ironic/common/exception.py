@@ -345,10 +345,6 @@ class SSHCommandFailed(IronicException):
     message = _("Failed to execute command via SSH: %(cmd)s.")
 
 
-class UnsupportedObjectError(IronicException):
-    message = _('Unsupported object type %(objtype)s')
-
-
 class OrphanedObjectError(IronicException):
     message = _('Cannot call %(method)s on orphaned %(objtype)s object')
 

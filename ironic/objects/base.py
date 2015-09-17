@@ -14,26 +14,16 @@
 
 """Ironic common internal object model"""
 
-import copy
-
 from oslo_context import context
 from oslo_log import log as logging
-from oslo_utils import versionutils
 from oslo_versionedobjects import base as object_base
 
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common.i18n import _LE
 from ironic.objects import fields as object_fields
-from ironic.objects import utils as obj_utils
 
 
 LOG = logging.getLogger('object')
-
-
-def get_attrname(name):
-    """Return the mangled name of the attribute's underlying storage."""
-    return '_obj_' + name
 
 
 class IronicObjectRegistry(object_base.VersionedObjectRegistry):
@@ -84,7 +74,8 @@ def remotable(fn):
                 ctxt, self, fn.__name__, args, kwargs)
             for key, value in updates.items():
                 if key in self.fields:
-                    self[key] = self._attr_from_primitive(key, value)
+                    field = self.fields[key]
+                    self[key] = field.from_primitive(self, key, value)
             self._changed_fields = set(updates.get('obj_what_changed', []))
             return result
         else:
@@ -116,7 +107,7 @@ def check_object_version(server, client):
             dict(client=client_minor, server=server_minor))
 
 
-class IronicObject(object_base.VersionedObjectDictCompat):
+class IronicObject(object_base.VersionedObject):
     """Base class and object factory.
 
     This forms the base of all objects that can be remoted or instantiated
@@ -126,226 +117,15 @@ class IronicObject(object_base.VersionedObjectDictCompat):
     as appropriate.
     """
 
-    indirection_api = None
-
     OBJ_SERIAL_NAMESPACE = 'ironic_object'
-    # Version of this object (see rules above check_object_version())
-    VERSION = '1.0'
+    OBJ_PROJECT_NAMESPACE = 'ironic'
 
-    # The fields present in this object as key:typefn pairs. For example:
-    #
-    # fields = { 'foo': int,
-    #            'bar': str,
-    #            'baz': lambda x: str(x).ljust(8),
-    #          }
-    #
-    # NOTE(danms): The base IronicObject class' fields will be inherited
-    # by subclasses, but that is a special case. Objects inheriting from
-    # other objects will not receive this merging of fields contents.
+    # TODO(lintan) Refactor these fields and create PersistentObject and
+    # TimeStampObject like Nova when it is necessary.
     fields = {
         'created_at': object_fields.DateTimeField(nullable=True),
         'updated_at': object_fields.DateTimeField(nullable=True),
     }
-    obj_extra_fields = []
-
-    _attr_created_at_from_primitive = obj_utils.dt_deserializer
-    _attr_updated_at_from_primitive = obj_utils.dt_deserializer
-    _attr_created_at_to_primitive = obj_utils.dt_serializer('created_at')
-    _attr_updated_at_to_primitive = obj_utils.dt_serializer('updated_at')
-
-    def __init__(self, context, **kwargs):
-        self._changed_fields = set()
-        self._context = context
-        self.update(kwargs)
-
-    @classmethod
-    def obj_name(cls):
-        """Get canonical object name.
-
-        This object name will be used over the wire for remote hydration.
-        """
-        return cls.__name__
-
-    @classmethod
-    def obj_class_from_name(cls, objname, objver):
-        """Returns a class from the registry based on a name and version."""
-        if objname not in IronicObjectRegistry.obj_classes():
-            LOG.error(_LE('Unable to instantiate unregistered object type '
-                          '%(objtype)s'), dict(objtype=objname))
-            raise exception.UnsupportedObjectError(objtype=objname)
-
-        latest = None
-        compatible_match = None
-        obj_classes = IronicObjectRegistry.obj_classes()
-        for objclass in obj_classes[objname]:
-            if objclass.VERSION == objver:
-                return objclass
-
-            version_bits = tuple([int(x) for x in objclass.VERSION.split(".")])
-            if latest is None:
-                latest = version_bits
-            elif latest < version_bits:
-                latest = version_bits
-
-            if versionutils.is_compatible(objver, objclass.VERSION):
-                compatible_match = objclass
-
-        if compatible_match:
-            return compatible_match
-
-        latest_ver = '%i.%i' % latest
-        raise exception.IncompatibleObjectVersion(objname=objname,
-                                                  objver=objver,
-                                                  supported=latest_ver)
-
-    def _attr_from_primitive(self, attribute, value):
-        """Attribute deserialization dispatcher.
-
-        This calls self._attr_foo_from_primitive(value) for an attribute
-        foo with value, if it exists, otherwise it assumes the value
-        is suitable for the attribute's setter method.
-        """
-        handler = '_attr_%s_from_primitive' % attribute
-        if hasattr(self, handler):
-            return getattr(self, handler)(value)
-        return value
-
-    @classmethod
-    def _obj_from_primitive(cls, context, objver, primitive):
-        self = cls(context)
-        self.VERSION = objver
-        objdata = primitive['ironic_object.data']
-        changes = primitive.get('ironic_object.changes', [])
-        for name in self.fields:
-            if name in objdata:
-                setattr(self, name,
-                        self._attr_from_primitive(name, objdata[name]))
-        self._changed_fields = set([x for x in changes if x in self.fields])
-        return self
-
-    @classmethod
-    def obj_from_primitive(cls, primitive, context=None):
-        """Simple base-case hydration.
-
-        This calls self._attr_from_primitive() for each item in fields.
-        """
-        if primitive['ironic_object.namespace'] != 'ironic':
-            # NOTE(danms): We don't do anything with this now, but it's
-            # there for "the future"
-            raise exception.UnsupportedObjectError(
-                objtype='%s.%s' % (primitive['ironic_object.namespace'],
-                                   primitive['ironic_object.name']))
-        objname = primitive['ironic_object.name']
-        objver = primitive['ironic_object.version']
-        objclass = cls.obj_class_from_name(objname, objver)
-        return objclass._obj_from_primitive(context, objver, primitive)
-
-    def __deepcopy__(self, memo):
-        """Efficiently make a deep copy of this object."""
-
-        # NOTE(danms): A naive deepcopy would copy more than we need,
-        # and since we have knowledge of the volatile bits of the
-        # object, we can be smarter here. Also, nested entities within
-        # some objects may be uncopyable, so we can avoid those sorts
-        # of issues by copying only our field data.
-
-        nobj = self.__class__(self._context)
-        for name in self.fields:
-            if self.obj_attr_is_set(name):
-                nval = copy.deepcopy(getattr(self, name), memo)
-                setattr(nobj, name, nval)
-        nobj._changed_fields = set(self._changed_fields)
-        return nobj
-
-    def obj_clone(self):
-        """Create a copy."""
-        return copy.deepcopy(self)
-
-    def _attr_to_primitive(self, attribute):
-        """Attribute serialization dispatcher.
-
-        This calls self._attr_foo_to_primitive() for an attribute foo,
-        if it exists, otherwise it assumes the attribute itself is
-        primitive-enough to be sent over the RPC wire.
-        """
-        handler = '_attr_%s_to_primitive' % attribute
-        if hasattr(self, handler):
-            return getattr(self, handler)()
-        else:
-            return getattr(self, attribute)
-
-    def obj_to_primitive(self):
-        """Simple base-case dehydration.
-
-        This calls self._attr_to_primitive() for each item in fields.
-        """
-        primitive = dict()
-        for name in self.fields:
-            if hasattr(self, get_attrname(name)):
-                primitive[name] = self._attr_to_primitive(name)
-        obj = {'ironic_object.name': self.obj_name(),
-               'ironic_object.namespace': 'ironic',
-               'ironic_object.version': self.VERSION,
-               'ironic_object.data': primitive}
-        if self.obj_what_changed():
-            obj['ironic_object.changes'] = list(self.obj_what_changed())
-        return obj
-
-    def obj_load_attr(self, attrname):
-        """Load an additional attribute from the real object.
-
-        This should use self._conductor, and cache any data that might
-        be useful for future load operations.
-        """
-        raise NotImplementedError(
-            _("Cannot load '%(attrname)s' in the base class") %
-            {'attrname': attrname})
-
-    def save(self, context):
-        """Save the changed fields back to the store.
-
-        This is optional for subclasses, but is presented here in the base
-        class for consistency among those that do.
-        """
-        raise NotImplementedError(_("Cannot save anything in the base class"))
-
-    def obj_get_changes(self):
-        """Returns a dict of changed fields and their new values."""
-        changes = {}
-        for key in self.obj_what_changed():
-            changes[key] = self[key]
-        return changes
-
-    def obj_what_changed(self):
-        """Returns a set of fields that have been modified."""
-        return self._changed_fields
-
-    def obj_reset_changes(self, fields=None):
-        """Reset the list of fields that have been changed.
-
-        Note that this is NOT "revert to previous values"
-        """
-        if fields:
-            self._changed_fields -= set(fields)
-        else:
-            self._changed_fields.clear()
-
-    def obj_attr_is_set(self, attrname):
-        """Test object to see if attrname is present.
-
-        Returns True if the named attribute has a value set, or
-        False if not. Raises AttributeError if attrname is not
-        a valid attribute for this object.
-        """
-        if attrname not in self.obj_fields:
-            raise AttributeError(
-                _("%(objname)s object has no attribute '%(attrname)s'") %
-                {'objname': self.obj_name(), 'attrname': attrname})
-        return hasattr(self, get_attrname(attrname))
-
-    @property
-    def obj_fields(self):
-        return list(self.fields) + self.obj_extra_fields
 
     def as_dict(self):
         return dict((k, getattr(self, k))
@@ -360,7 +140,7 @@ class IronicObject(object_base.VersionedObjectDictCompat):
         object.
         """
         for field in self.fields:
-            if (hasattr(self, get_attrname(field)) and
+            if (self.obj_attr_is_set(field) and
                     self[field] != loaded_object[field]):
                 self[field] = loaded_object[field]
 

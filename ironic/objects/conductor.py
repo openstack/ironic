@@ -14,6 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_versionedobjects import base as object_base
+
 from ironic.common.i18n import _
 from ironic.db import api as db_api
 from ironic.objects import base
@@ -21,7 +23,7 @@ from ironic.objects import fields as object_fields
 
 
 @base.IronicObjectRegistry.register
-class Conductor(base.IronicObject):
+class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
 
     dbapi = db_api.get_instance()
 

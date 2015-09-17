@@ -15,6 +15,7 @@
 
 from oslo_utils import strutils
 from oslo_utils import uuidutils
+from oslo_versionedobjects import base as object_base
 
 from ironic.common import exception
 from ironic.db import api as db_api
@@ -23,7 +24,7 @@ from ironic.objects import fields as object_fields
 
 
 @base.IronicObjectRegistry.register
-class Node(base.IronicObject):
+class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.0: Initial version
     # Version 1.1: Added instance_info
     # Version 1.2: Add get() and get_by_id() and make get_by_uuid()
