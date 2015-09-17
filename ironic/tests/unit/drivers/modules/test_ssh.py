@@ -288,22 +288,6 @@ class SSHPrivateMethodsTestCase(db_base.DbTestCase):
         get_hosts_name_mock.assert_called_once_with(self.sshclient, info)
 
     @mock.patch.object(processutils, 'ssh_execute', autospec=True)
-    @mock.patch.object(ssh, '_get_hosts_name_for_node', autospec=True)
-    def test__get_power_status_error(self, get_hosts_name_mock, exec_ssh_mock):
-
-        info = ssh._parse_driver_info(self.node)
-
-        info['macs'] = ["11:11:11:11:11:11", "52:54:00:cf:2d:31"]
-        get_hosts_name_mock.return_value = None
-        self.assertRaises(exception.NodeNotFound,
-                          ssh._get_power_status,
-                          self.sshclient,
-                          info)
-
-        get_hosts_name_mock.assert_called_once_with(self.sshclient, info)
-        self.assertFalse(exec_ssh_mock.called)
-
-    @mock.patch.object(processutils, 'ssh_execute', autospec=True)
     def test__get_power_status_exception(self, exec_ssh_mock):
         info = ssh._parse_driver_info(self.node)
         exec_ssh_mock.side_effect = processutils.ProcessExecutionError
@@ -352,10 +336,12 @@ class SSHPrivateMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(processutils, 'ssh_execute', autospec=True)
     def test__get_hosts_name_for_node_no_match(self, exec_ssh_mock):
+        self.config(group='ssh', get_vm_name_attempts=2)
+        self.config(group='ssh', get_vm_name_retry_interval=0)
         info = ssh._parse_driver_info(self.node)
         info['macs'] = ["11:11:11:11:11:11", "22:22:22:22:22:22"]
         exec_ssh_mock.side_effect = iter([('NodeName', ''),
-                                          ('52:54:00:cf:2d:31', '')])
+                                          ('52:54:00:cf:2d:31', '')] * 2)
 
         ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
                              info['cmd_set']['list_all'])
@@ -365,11 +351,36 @@ class SSHPrivateMethodsTestCase(db_base.DbTestCase):
 
         cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
         expected = [mock.call(self.sshclient, ssh_cmd),
-                    mock.call(self.sshclient, cmd_to_exec)]
+                    mock.call(self.sshclient, cmd_to_exec)] * 2
+
+        self.assertRaises(exception.NodeNotFound,
+                          ssh._get_hosts_name_for_node, self.sshclient, info)
+        self.assertEqual(expected, exec_ssh_mock.call_args_list)
+
+    @mock.patch.object(processutils, 'ssh_execute', autospec=True)
+    def test__get_hosts_name_for_node_match_after_retry(self, exec_ssh_mock):
+        self.config(group='ssh', get_vm_name_attempts=2)
+        self.config(group='ssh', get_vm_name_retry_interval=0)
+        info = ssh._parse_driver_info(self.node)
+        info['macs'] = ["11:11:11:11:11:11", "22:22:22:22:22:22"]
+        exec_ssh_mock.side_effect = iter([('NodeName', ''),
+                                          ('', ''),
+                                          ('NodeName', ''),
+                                          ('11:11:11:11:11:11', '')])
+
+        ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
+                             info['cmd_set']['list_all'])
+
+        cmd_to_exec = "%s %s" % (info['cmd_set']['base_cmd'],
+                                 info['cmd_set']['get_node_macs'])
+
+        cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', 'NodeName')
+        expected = [mock.call(self.sshclient, ssh_cmd),
+                    mock.call(self.sshclient, cmd_to_exec)] * 2
 
         found_name = ssh._get_hosts_name_for_node(self.sshclient, info)
 
-        self.assertIsNone(found_name)
+        self.assertEqual('NodeName', found_name)
         self.assertEqual(expected, exec_ssh_mock.call_args_list)
 
     @mock.patch.object(processutils, 'ssh_execute', autospec=True)
