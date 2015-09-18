@@ -157,6 +157,9 @@ Drivers
 .. rest-controller:: ironic.api.controllers.v1.driver:DriversController
    :webprefix: /v1/drivers
 
+.. rest-controller:: ironic.api.controllers.v1.driver:DriverRaidController
+   :webprefix: /v1/drivers/(driver_name)/raid
+
 .. rest-controller:: ironic.api.controllers.v1.driver:DriverPassthruController
    :webprefix: /v1/drivers/(driver_name)/vendor_passthru
 
