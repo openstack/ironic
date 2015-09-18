@@ -386,6 +386,17 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         ret_val = self._test_get_deploy_info()
         self.assertEqual(3266, ret_val['port'])
 
+    def test_get_deploy_info_whole_disk_image(self):
+        instance_info = self.node.instance_info
+        instance_info['configdrive'] = 'My configdrive'
+        self.node.instance_info = instance_info
+        self.node.driver_internal_info['is_whole_disk_image'] = True
+        kwargs = {'address': '1.1.1.1', 'iqn': 'target-iqn'}
+        ret_val = iscsi_deploy.get_deploy_info(self.node, **kwargs)
+        self.assertEqual('1.1.1.1', ret_val['address'])
+        self.assertEqual('target-iqn', ret_val['iqn'])
+        self.assertEqual('My configdrive', ret_val['configdrive'])
+
     @mock.patch.object(iscsi_deploy, 'continue_deploy', autospec=True)
     def test_do_agent_iscsi_deploy_okay(self, continue_deploy_mock):
         agent_client_mock = mock.MagicMock(spec_set=agent_client.AgentClient)

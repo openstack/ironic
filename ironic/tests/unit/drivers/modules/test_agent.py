@@ -662,6 +662,7 @@ class TestAgentVendor(db_base.DbTestCase):
         expected_image_info = {
             'urls': [test_temp_url],
             'id': 'fake-image',
+            'node_uuid': self.node.uuid,
             'checksum': 'checksum',
             'disk_format': 'qcow2',
             'container_format': 'bare',

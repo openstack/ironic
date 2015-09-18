@@ -258,6 +258,7 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
             if no_proxy is not None:
                 image_info['no_proxy'] = no_proxy
 
+        image_info['node_uuid'] = node.uuid
         iwdi = node.driver_internal_info.get('is_whole_disk_image')
         if not iwdi:
             for label in PARTITION_IMAGE_LABELS:
@@ -272,7 +273,6 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
             disk_label = deploy_utils.get_disk_label(node)
             if disk_label is not None:
                 image_info['disk_label'] = disk_label
-            image_info['node_uuid'] = node.uuid
 
         # Tell the client to download and write the image with the given args
         self._client.prepare_image(node, image_info)

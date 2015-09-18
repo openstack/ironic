@@ -1,0 +1,7 @@
+---
+features:
+  - Added configdrive support for whole disk images
+    for iSCSI based deploy.
+    This will work for UEFI only or BIOS only images.
+    It will not work for hybrid images which are
+    capable of booting from BIOS and UEFI boot mode.
