@@ -18,8 +18,7 @@ BASE_VERSION = 1
 
 # Here goes a short log of changes in every version.
 # Refer to doc/source/webapi/v1.rst for a detailed explanation of what
-# each version contains, and don't forget to update it when introducing
-# a new version.
+# each version contains.
 #
 # v1.0: corresponds to Juno API, not supported since Kilo
 # v1.1: API at the point in time when versioning support was added,
@@ -56,7 +55,9 @@ MINOR_10_UNRESTRICTED_NODE_NAME = 10
 MINOR_11_ENROLL_STATE = 11
 MINOR_12_RAID_CONFIG = 12
 
-# When adding another version, update MINOR_MAX_VERSION
+# When adding another version, update MINOR_MAX_VERSION and also update
+# doc/source/webapi/v1.rst with a detailed explanation of what the version has
+# changed.
 MINOR_MAX_VERSION = MINOR_12_RAID_CONFIG
 
 # String representations of the minor and maximum versions
