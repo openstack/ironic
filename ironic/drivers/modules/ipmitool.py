@@ -254,7 +254,7 @@ def _parse_driver_info(node):
 
     address = info.get('ipmi_address')
     username = info.get('ipmi_username')
-    password = info.get('ipmi_password')
+    password = six.text_type(info.get('ipmi_password', ''))
     port = info.get('ipmi_terminal_port')
     priv_level = info.get('ipmi_priv_level', 'ADMINISTRATOR')
     bridging_type = info.get('ipmi_bridging', 'no')

@@ -578,6 +578,17 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
             self.assertEqual(mock.call('single_bridge'),
                              mock_support.call_args)
 
+    def test__parse_driver_info_numeric_password(
+            self, mock_sleep):
+        # ipmi_password must not be converted to int / float
+        # even if it includes just numbers.
+        info = dict(INFO_DICT)
+        info['ipmi_password'] = 12345678
+        node = obj_utils.get_test_node(self.context, driver_info=info)
+        ret = ipmi._parse_driver_info(node)
+        self.assertEqual(six.u('12345678'), ret['password'])
+        self.assertIsInstance(ret['password'], six.text_type)
+
     def test__parse_driver_info_ipmi_prot_version_1_5(self, mock_sleep):
         info = dict(INFO_DICT)
         info['ipmi_protocol_version'] = '1.5'
