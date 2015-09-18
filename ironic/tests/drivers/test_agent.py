@@ -19,6 +19,7 @@ from oslo_config import cfg
 
 from ironic.common import exception
 from ironic.common import image_service
+from ironic.common import images
 from ironic.common import keystone
 from ironic.common import raid
 from ironic.common import states
@@ -140,6 +141,51 @@ class TestAgentMethods(db_base.DbTestCase):
             self.assertRaises(exception.ImageRefValidationFailed,
                               agent.build_instance_info_for_deploy, task)
 
+    @mock.patch.object(images, 'download_size', autospec=True)
+    def test_check_image_size(self, size_mock):
+        size_mock.return_value = 10 * 1024 * 1024
+        mgr_utils.mock_the_extension_manager(driver='fake_agent')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.properties['memory_mb'] = 10
+            agent.check_image_size(task, 'fake-image')
+            size_mock.assert_called_once_with(self.context, 'fake-image')
+
+    @mock.patch.object(images, 'download_size', autospec=True)
+    def test_check_image_size_without_memory_mb(self, size_mock):
+        mgr_utils.mock_the_extension_manager(driver='fake_agent')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.properties.pop('memory_mb', None)
+            agent.check_image_size(task, 'fake-image')
+            self.assertFalse(size_mock.called)
+
+    @mock.patch.object(images, 'download_size', autospec=True)
+    def test_check_image_size_fail(self, size_mock):
+        size_mock.return_value = 11 * 1024 * 1024
+
+        mgr_utils.mock_the_extension_manager(driver='fake_agent')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.properties['memory_mb'] = 10
+            self.assertRaises(exception.InvalidParameterValue,
+                              agent.check_image_size,
+                              task, 'fake-image')
+            size_mock.assert_called_once_with(self.context, 'fake-image')
+
+    @mock.patch.object(images, 'download_size', autospec=True)
+    def test_check_image_size_fail_by_agent_consumed_memory(self, size_mock):
+        self.config(memory_consumed_by_agent=2, group='agent')
+        size_mock.return_value = 9 * 1024 * 1024
+        mgr_utils.mock_the_extension_manager(driver='fake_agent')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.properties['memory_mb'] = 10
+            self.assertRaises(exception.InvalidParameterValue,
+                              agent.check_image_size,
+                              task, 'fake-image')
+            size_mock.assert_called_once_with(self.context, 'fake-image')
+
 
 class TestAgentDeploy(db_base.DbTestCase):
     def setUp(self):
@@ -160,17 +206,20 @@ class TestAgentDeploy(db_base.DbTestCase):
         expected = agent.COMMON_PROPERTIES
         self.assertEqual(expected, self.driver.get_properties())
 
+    @mock.patch.object(images, 'download_size', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
-    def test_validate(self, pxe_boot_validate_mock):
+    def test_validate(self, pxe_boot_validate_mock, size_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             self.driver.validate(task)
             pxe_boot_validate_mock.assert_called_once_with(
                 task.driver.boot, task)
+            size_mock.assert_called_once_with(self.context, 'fake-image')
 
+    @mock.patch.object(images, 'download_size', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
     def test_validate_driver_info_manage_agent_boot_false(
-            self, pxe_boot_validate_mock):
+            self, pxe_boot_validate_mock, size_mock):
         self.config(manage_agent_boot=False, group='agent')
         self.node.driver_info = {}
         self.node.save()
@@ -178,6 +227,7 @@ class TestAgentDeploy(db_base.DbTestCase):
                 self.context, self.node['uuid'], shared=False) as task:
             self.driver.validate(task)
         self.assertFalse(pxe_boot_validate_mock.called)
+        size_mock.assert_called_once_with(self.context, 'fake-image')
 
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
     def test_validate_instance_info_missing_params(
@@ -209,9 +259,10 @@ class TestAgentDeploy(db_base.DbTestCase):
             pxe_boot_validate_mock.assert_called_once_with(
                 task.driver.boot, task)
 
+    @mock.patch.object(images, 'download_size', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
     def test_validate_agent_fail_partition_image(
-            self, pxe_boot_validate_mock):
+            self, pxe_boot_validate_mock, size_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             task.node.driver_internal_info['is_whole_disk_image'] = False
@@ -219,10 +270,12 @@ class TestAgentDeploy(db_base.DbTestCase):
                               self.driver.validate, task)
             pxe_boot_validate_mock.assert_called_once_with(
                 task.driver.boot, task)
+            size_mock.assert_called_once_with(self.context, 'fake-image')
 
+    @mock.patch.object(images, 'download_size', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
     def test_validate_invalid_root_device_hints(
-            self, pxe_boot_validate_mock):
+            self, pxe_boot_validate_mock, size_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.properties['root_device'] = {'size': 'not-int'}
@@ -230,6 +283,7 @@ class TestAgentDeploy(db_base.DbTestCase):
                               task.driver.deploy.validate, task)
             pxe_boot_validate_mock.assert_called_once_with(
                 task.driver.boot, task)
+            size_mock.assert_called_once_with(self.context, 'fake-image')
 
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
     def test_deploy(self, power_mock):
