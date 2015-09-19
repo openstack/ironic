@@ -20,7 +20,6 @@ Abstract base classes for drivers.
 import abc
 import collections
 import copy
-import functools
 import inspect
 import json
 import os
@@ -624,7 +623,7 @@ def _passthru(http_methods, method=None, async=True, driver_passthru=False,
 
         passthru_logmessage = _LE('vendor_passthru failed with method %s')
 
-        @functools.wraps(func)
+        @six.wraps(func)
         def passthru_handler(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
@@ -1043,7 +1042,7 @@ def driver_periodic_task(parallel=True, **other):
     semaphore = eventlet.semaphore.BoundedSemaphore()
 
     def decorator2(func):
-        @functools.wraps(func)
+        @six.wraps(func)
         def wrapper(*args, **kwargs):
             if parallel:
                 def _internal():
