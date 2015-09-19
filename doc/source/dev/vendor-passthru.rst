@@ -18,7 +18,7 @@ endpoints: A driver vendor passthru and a node vendor passthru.
 
 ::
 
-  GET http://<address>:<port>/v1/drives/pxe_ipmitool/vendor_passthru/authentication_types
+  GET http://<address>:<port>/v1/drivers/pxe_ipmitool/vendor_passthru/authentication_types
 
 * The node vendor passthru allows drivers to expose custom functionality
   on per-node basis. For example the same driver `pxe_ipmitool` exposing a
