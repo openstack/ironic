@@ -75,7 +75,16 @@ class AgentAndIPMINativeDriver(base.BaseDriver):
         self.deploy = agent.AgentDeploy()
         self.management = ipminative.NativeIPMIManagement()
         self.console = ipminative.NativeIPMIShellinaboxConsole()
-        self.vendor = agent.AgentVendorInterface()
+        self.agent_vendor = agent.AgentVendorInterface()
+        self.ipminative_vendor = ipminative.VendorPassthru()
+        self.mapping = {
+            'send_raw': self.ipminative_vendor,
+            'bmc_reset': self.ipminative_vendor,
+            'heartbeat': self.agent_vendor,
+        }
+        self.driver_passthru_mapping = {'lookup': self.agent_vendor}
+        self.vendor = utils.MixinVendorInterface(self.mapping,
+                                                 self.driver_passthru_mapping)
         self.raid = agent.AgentRAID()
 
 
