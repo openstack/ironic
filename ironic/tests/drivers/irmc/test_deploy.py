@@ -518,7 +518,13 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(irmc_deploy, '_prepare_floppy_image', spec_set=True,
                        autospec=True)
+    @mock.patch.object(irmc_deploy, '_detach_virtual_fd', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_deploy, '_detach_virtual_cd', spec_set=True,
+                       autospec=True)
     def test_setup_vmedia_for_boot_with_parameters(self,
+                                                   _detach_virtual_cd_mock,
+                                                   _detach_virtual_fd_mock,
                                                    _prepare_floppy_image_mock,
                                                    _attach_virtual_fd_mock,
                                                    _attach_virtual_cd_mock):
@@ -529,6 +535,9 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             irmc_deploy.setup_vmedia_for_boot(task, iso_filename, parameters)
+
+            _detach_virtual_cd_mock.assert_called_once_with(task.node)
+            _detach_virtual_fd_mock.assert_called_once_with(task.node)
             _prepare_floppy_image_mock.assert_called_once_with(task,
                                                                parameters)
             _attach_virtual_fd_mock.assert_called_once_with(task.node,
@@ -537,13 +546,22 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
                                                             iso_filename)
 
     @mock.patch.object(irmc_deploy, '_attach_virtual_cd', autospec=True)
+    @mock.patch.object(irmc_deploy, '_detach_virtual_fd', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_deploy, '_detach_virtual_cd', spec_set=True,
+                       autospec=True)
     def test_setup_vmedia_for_boot_without_parameters(
             self,
+            _detach_virtual_cd_mock,
+            _detach_virtual_fd_mock,
             _attach_virtual_cd_mock):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             irmc_deploy.setup_vmedia_for_boot(task, 'bootable_iso_filename')
+
+            _detach_virtual_cd_mock.assert_called_once_with(task.node)
+            _detach_virtual_fd_mock.assert_called_once_with(task.node)
             _attach_virtual_cd_mock.assert_called_once_with(
                 task.node,
                 'bootable_iso_filename')
@@ -1492,3 +1510,27 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                 efi_system_part_uuid='efi-system-part-uuid')
             reboot_and_finish_deploy_mock.assert_called_once_with(
                 mock.ANY, task)
+
+
+class IRMCVirtualMediaAgentVendorInterfaceTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(IRMCVirtualMediaAgentVendorInterfaceTestCase, self).setUp()
+        mgr_utils.mock_the_extension_manager(driver="agent_irmc")
+        self.node = obj_utils.create_test_node(
+            self.context, driver='agent_irmc', driver_info=INFO_DICT)
+
+    @mock.patch.object(agent.AgentVendorInterface, 'reboot_to_instance',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(irmc_deploy, '_cleanup_vmedia_boot', autospec=True)
+    def test_reboot_to_instance(self,
+                                _cleanup_vmedia_boot_mock,
+                                agent_reboot_to_instance_mock):
+        kwargs = {}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.vendor.reboot_to_instance(task, **kwargs)
+
+            _cleanup_vmedia_boot_mock.assert_called_once_with(task)
+            agent_reboot_to_instance_mock.assert_called_once_with(
+                mock.ANY, task, **kwargs)

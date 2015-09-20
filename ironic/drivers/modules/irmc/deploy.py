@@ -370,6 +370,9 @@ def setup_vmedia_for_boot(task, bootable_iso_filename, parameters=None):
     LOG.info(_LI("Setting up node %s to boot from virtual media"),
              task.node.uuid)
 
+    _detach_virtual_cd(task.node)
+    _detach_virtual_fd(task.node)
+
     if parameters:
         floppy_image_filename = _prepare_floppy_image(task, parameters)
         _attach_virtual_fd(task.node, floppy_image_filename)
@@ -909,3 +912,17 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
             self._configure_vmedia_boot(task, root_uuid)
 
         self.reboot_and_finish_deploy(task)
+
+
+class IRMCVirtualMediaAgentVendorInterface(agent.AgentVendorInterface):
+    """Interface for vendor passthru related actions."""
+
+    def reboot_to_instance(self, task, **kwargs):
+        node = task.node
+        LOG.debug('Preparing to reboot to instance for node %s',
+                  node.uuid)
+
+        _cleanup_vmedia_boot(task)
+
+        super(IRMCVirtualMediaAgentVendorInterface,
+              self).reboot_to_instance(task, **kwargs)

@@ -21,7 +21,6 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
-from ironic.drivers.modules import agent
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import deploy
 from ironic.drivers.modules.irmc import management
@@ -71,4 +70,4 @@ class IRMCVirtualMediaAgentDriver(base.BaseDriver):
         self.deploy = deploy.IRMCVirtualMediaAgentDeploy()
         self.console = ipmitool.IPMIShellinaboxConsole()
         self.management = management.IRMCManagement()
-        self.vendor = agent.AgentVendorInterface()
+        self.vendor = deploy.IRMCVirtualMediaAgentVendorInterface()

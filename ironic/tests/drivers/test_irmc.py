@@ -84,7 +84,8 @@ class IRMCVirtualMediaAgentTestCase(testtools.TestCase):
                               irmc.ipmitool.IPMIShellinaboxConsole)
         self.assertIsInstance(driver.management,
                               irmc.management.IRMCManagement)
-        self.assertIsInstance(driver.vendor, irmc.agent.AgentVendorInterface)
+        self.assertIsInstance(driver.vendor,
+                              irmc.deploy.IRMCVirtualMediaAgentVendorInterface)
 
     @mock.patch.object(irmc.importutils, 'try_import')
     def test___init___try_import_exception(self, mock_try_import):
