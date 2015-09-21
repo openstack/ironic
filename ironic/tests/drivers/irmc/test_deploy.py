@@ -904,7 +904,7 @@ class IRMCVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'get_single_nic_with_vif_port_id',
                        spec_set=True, autospec=True)
-    @mock.patch.object(agent, 'build_agent_options', spec_set=True,
+    @mock.patch.object(deploy_utils, 'build_agent_options', spec_set=True,
                        autospec=True)
     @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options',
                        spec_set=True, autospec=True)
@@ -1004,7 +1004,7 @@ class IRMCVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(irmc_deploy, '_reboot_into_deploy_iso',
                        spec_set=True, autospec=True)
-    @mock.patch.object(agent, 'build_agent_options', spec_set=True,
+    @mock.patch.object(deploy_utils, 'build_agent_options', spec_set=True,
                        autospec=True)
     def test_deploy(self, build_agent_options_mock,
                     _reboot_into_deploy_iso_mock):

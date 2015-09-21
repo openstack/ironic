@@ -362,7 +362,7 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_deploy, '_reboot_into', spec_set=True,
                        autospec=True)
-    @mock.patch.object(agent, 'build_agent_options', spec_set=True,
+    @mock.patch.object(deploy_utils, 'build_agent_options', spec_set=True,
                        autospec=True)
     def test__prepare_agent_vmedia_boot(self, build_options_mock,
                                         reboot_into_mock, eject_mock):
@@ -734,7 +734,7 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(deploy_utils, 'get_single_nic_with_vif_port_id',
                        spec_set=True, autospec=True)
-    @mock.patch.object(agent, 'build_agent_options', spec_set=True,
+    @mock.patch.object(deploy_utils, 'build_agent_options', spec_set=True,
                        autospec=True)
     @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options',
                        spec_set=True, autospec=True)

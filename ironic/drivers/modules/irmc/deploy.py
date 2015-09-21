@@ -602,7 +602,7 @@ class IRMCVirtualMediaIscsiDeploy(base.DeployInterface):
         iscsi_deploy.check_image_size(task)
 
         deploy_ramdisk_opts = iscsi_deploy.build_deploy_ramdisk_options(node)
-        agent_opts = agent.build_agent_options(node)
+        agent_opts = deploy_utils.build_agent_options(node)
         deploy_ramdisk_opts.update(agent_opts)
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
         deploy_ramdisk_opts['BOOTIF'] = deploy_nic_mac
@@ -706,7 +706,7 @@ class IRMCVirtualMediaAgentDeploy(base.DeployInterface):
             image.
         :raises: IRMCOperationError, if some operation on iRMC fails.
         """
-        deploy_ramdisk_opts = agent.build_agent_options(task.node)
+        deploy_ramdisk_opts = deploy_utils.build_agent_options(task.node)
         _reboot_into_deploy_iso(task, deploy_ramdisk_opts)
 
         return states.DEPLOYWAIT

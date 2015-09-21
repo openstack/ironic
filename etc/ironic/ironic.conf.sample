@@ -1,34 +1,6 @@
 [DEFAULT]
 
 #
-# Options defined in oslo.service.service
-#
-
-# Enable eventlet backdoor.  Acceptable values are 0, <port>,
-# and <start>:<end>, where 0 results in listening on a random
-# tcp port number; <port> results in listening on the
-# specified port number (and not enabling backdoor if that
-# port is in use); and <start>:<end> results in listening on
-# the smallest unused port number within the specified range
-# of port numbers.  The chosen port is displayed in the
-# service's log file. (string value)
-#backdoor_port=<None>
-
-# Enables or disables logging values of all registered options
-# when starting a service (at DEBUG level). (boolean value)
-#log_options=true
-
-
-#
-# Options defined in oslo.service.periodic_task
-#
-
-# Some periodic tasks can be run in a separate process. Should
-# we run them here? (boolean value)
-#run_external_periodic_tasks=true
-
-
-#
 # Options defined in oslo.log
 #
 
@@ -119,6 +91,34 @@
 # Enables or disables fatal status of deprecations. (boolean
 # value)
 #fatal_deprecations=false
+
+
+#
+# Options defined in oslo.service.service
+#
+
+# Enable eventlet backdoor.  Acceptable values are 0, <port>,
+# and <start>:<end>, where 0 results in listening on a random
+# tcp port number; <port> results in listening on the
+# specified port number (and not enabling backdoor if that
+# port is in use); and <start>:<end> results in listening on
+# the smallest unused port number within the specified range
+# of port numbers.  The chosen port is displayed in the
+# service's log file. (string value)
+#backdoor_port=<None>
+
+# Enables or disables logging values of all registered options
+# when starting a service (at DEBUG level). (boolean value)
+#log_options=true
+
+
+#
+# Options defined in oslo.service.periodic_task
+#
+
+# Some periodic tasks can be run in a separate process. Should
+# we run them here? (boolean value)
+#run_external_periodic_tasks=true
 
 
 #
@@ -362,16 +362,6 @@
 # is deprecated and will be removed in Mitaka release. Please
 # use [pxe]pxe_config_template instead. (string value)
 #agent_pxe_config_template=$pybasedir/drivers/modules/agent_config.template
-
-# Priority to run in-band erase devices via the Ironic Python
-# Agent ramdisk. If unset, will use the priority set in the
-# ramdisk (defaults to 10 for the GenericHardwareManager). If
-# set to 0, will not run during cleaning. (integer value)
-#agent_erase_devices_priority=<None>
-
-# Number of iterations to be run for erasing devices. (integer
-# value)
-#agent_erase_devices_iterations=1
 
 # Whether Ironic will manage booting of the agent ramdisk. If
 # set to False, you will need to configure your mechanism to
@@ -817,6 +807,18 @@
 
 # ironic-conductor node's HTTP root path. (string value)
 #http_root=/httpboot
+
+# Priority to run in-band erase devices via the Ironic Python
+# Agent ramdisk. If unset, will use the priority set in the
+# ramdisk (defaults to 10 for the GenericHardwareManager). If
+# set to 0, will not run during cleaning. (integer value)
+# Deprecated group/name - [agent]/agent_erase_devices_priority
+#erase_devices_priority=<None>
+
+# Number of iterations to be run for erasing devices. (integer
+# value)
+# Deprecated group/name - [agent]/agent_erase_devices_iterations
+#erase_devices_iterations=1
 
 
 [dhcp]

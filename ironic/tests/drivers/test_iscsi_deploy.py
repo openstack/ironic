@@ -31,7 +31,6 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
-from ironic.drivers.modules import agent
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
@@ -993,7 +992,7 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             prepare_instance_mock.assert_called_once_with(
                 task.driver.boot, task)
 
-    @mock.patch.object(agent, 'build_agent_options', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options',
                        autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)

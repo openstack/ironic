@@ -36,6 +36,7 @@ import requests
 import six
 from six.moves.urllib import parse
 
+from ironic.common import dhcp_factory
 from ironic.common import disk_partitioner
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -44,6 +45,7 @@ from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
 from ironic.common import image_service
 from ironic.common import images
+from ironic.common import keystone
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import utils as manager_utils
@@ -73,6 +75,21 @@ deploy_opts = [
                default='/httpboot',
                help='ironic-conductor node\'s HTTP root path.',
                deprecated_group='pxe'),
+    # TODO(rameshg87): Remove the deprecated names for the below two options in
+    # Mitaka release.
+    cfg.IntOpt('erase_devices_priority',
+               deprecated_name='agent_erase_devices_priority',
+               deprecated_group='agent',
+               help=_('Priority to run in-band erase devices via the Ironic '
+                      'Python Agent ramdisk. If unset, will use the priority '
+                      'set in the ramdisk (defaults to 10 for the '
+                      'GenericHardwareManager). If set to 0, will not run '
+                      'during cleaning.')),
+    cfg.IntOpt('erase_devices_iterations',
+               deprecated_name='agent_erase_devices_iterations',
+               deprecated_group='agent',
+               default=1,
+               help=_('Number of iterations to be run for erasing devices.')),
 ]
 CONF = cfg.CONF
 CONF.register_opts(deploy_opts, group='deploy')
@@ -1006,9 +1023,8 @@ def agent_add_clean_params(task):
 
     :param task: a TaskManager instance.
     """
-    agent_params = CONF.agent
     info = task.node.driver_internal_info
-    passes = agent_params.agent_erase_devices_iterations
+    passes = CONF.deploy.erase_devices_iterations
     info['agent_erase_devices_iterations'] = passes
     task.node.driver_internal_info = info
     task.node.save()
@@ -1262,3 +1278,153 @@ def get_boot_option(node):
     """
     capabilities = parse_instance_info_capabilities(node)
     return capabilities.get('boot_option', 'netboot').lower()
+
+
+def prepare_cleaning_ports(task):
+    """Prepare the Ironic ports of the node for cleaning.
+
+    This method deletes the cleaning ports currently existing
+    for all the ports of the node and then creates a new one
+    for each one of them.  It also adds 'vif_port_id' to port.extra
+    of each Ironic port, after creating the cleaning ports.
+
+    :param task: a TaskManager object containing the node
+    :raises NodeCleaningFailure: if the previous cleaning ports cannot
+        be removed or if new cleaning ports cannot be created
+    """
+    provider = dhcp_factory.DHCPFactory()
+    # If we have left over ports from a previous cleaning, remove them
+    if getattr(provider.provider, 'delete_cleaning_ports', None):
+        # Allow to raise if it fails, is caught and handled in conductor
+        provider.provider.delete_cleaning_ports(task)
+
+    # Create cleaning ports if necessary
+    if getattr(provider.provider, 'create_cleaning_ports', None):
+        # Allow to raise if it fails, is caught and handled in conductor
+        ports = provider.provider.create_cleaning_ports(task)
+
+        # Add vif_port_id for each of the ports because some boot
+        # interfaces expects these to prepare for booting ramdisk.
+        for port in task.ports:
+            extra_dict = port.extra
+            try:
+                extra_dict['vif_port_id'] = ports[port.uuid]
+            except KeyError:
+                # This is an internal error in Ironic.  All DHCP providers
+                # implementing create_cleaning_ports are supposed to
+                # return a VIF port ID for all Ironic ports.  But
+                # that doesn't seem to be true here.
+                error = (_("When creating cleaning ports, DHCP provider "
+                           "didn't return VIF port ID for %s") % port.uuid)
+                raise exception.NodeCleaningFailure(
+                    node=task.node.uuid, reason=error)
+            else:
+                port.extra = extra_dict
+                port.save()
+
+
+def tear_down_cleaning_ports(task):
+    """Deletes the cleaning ports created for each of the Ironic ports.
+
+    This method deletes the cleaning port created before cleaning
+    was started.
+
+    :param task: a TaskManager object containing the node
+    :raises NodeCleaningFailure: if the cleaning ports cannot be
+        removed.
+    """
+    # If we created cleaning ports, delete them
+    provider = dhcp_factory.DHCPFactory()
+    if getattr(provider.provider, 'delete_cleaning_ports', None):
+        # Allow to raise if it fails, is caught and handled in conductor
+        provider.provider.delete_cleaning_ports(task)
+
+        for port in task.ports:
+            if 'vif_port_id' in port.extra:
+                extra_dict = port.extra
+                extra_dict.pop('vif_port_id', None)
+                port.extra = extra_dict
+                port.save()
+
+
+def build_agent_options(node):
+    """Build the options to be passed to the agent ramdisk.
+
+    :param node: an ironic node object
+    :returns: a dictionary containing the parameters to be passed to
+        agent ramdisk.
+    """
+    ironic_api = (CONF.conductor.api_url or
+                  keystone.get_service_url()).rstrip('/')
+    agent_config_opts = {
+        'ipa-api-url': ironic_api,
+        'ipa-driver-name': node.driver,
+        # NOTE: The below entry is a temporary workaround for bug/1433812
+        'coreos.configdrive': 0,
+    }
+    root_device = parse_root_device_hints(node)
+    if root_device:
+        agent_config_opts['root_device'] = root_device
+
+    return agent_config_opts
+
+
+def prepare_inband_cleaning(task, manage_boot=True):
+    """Prepares the node to boot into agent for in-band cleaning.
+
+    This method does the following:
+    1. Prepares the cleaning ports for the bare metal
+       node and updates the clean parameters in node's driver_internal_info.
+    2. If 'manage_boot' parameter is set to true, it also calls the
+       'prepare_ramdisk' method of boot interface to boot the agent ramdisk.
+    3. Reboots the bare metal node.
+
+    :param task: a TaskManager object containing the node
+    :param manage_boot: If this is set to True, this method calls the
+        'prepare_ramdisk' method of boot interface to boot the agent
+        ramdisk. If False, it skips preparing the boot agent ramdisk using
+        boot interface, and assumes that the environment is setup to
+        automatically boot agent ramdisk every time bare metal node is
+        rebooted.
+    :returns: states.CLEANWAIT to signify an asynchronous prepare.
+    :raises NodeCleaningFailure: if the previous cleaning ports cannot
+        be removed or if new cleaning ports cannot be created
+    """
+    prepare_cleaning_ports(task)
+
+    # Append required config parameters to node's driver_internal_info
+    # to pass to IPA.
+    agent_add_clean_params(task)
+
+    if manage_boot:
+        ramdisk_opts = build_agent_options(task.node)
+        task.driver.boot.prepare_ramdisk(task, ramdisk_opts)
+    manager_utils.node_power_action(task, states.REBOOT)
+
+    # Tell the conductor we are waiting for the agent to boot.
+    return states.CLEANWAIT
+
+
+def tear_down_inband_cleaning(task, manage_boot=True):
+    """Tears down the environment setup for in-band cleaning.
+
+    This method does the following:
+    1. Powers off the bare metal node.
+    2. If 'manage_boot' parameter is set to true, it also
+    calls the 'clean_up_ramdisk' method of boot interface to clean up
+    the environment that was set for booting agent ramdisk.
+    3. Deletes the cleaning ports which were setup as part
+    of cleaning.
+
+    :param task: a TaskManager object containing the node
+    :param manage_boot: If this is set to True, this method calls the
+        'clean_up_ramdisk' method of boot interface to boot the agent
+        ramdisk. If False, it skips this step.
+    :raises NodeCleaningFailure: if the cleaning ports cannot be
+        removed.
+    """
+    manager_utils.node_power_action(task, states.POWER_OFF)
+    if manage_boot:
+        task.driver.boot.clean_up_ramdisk(task)
+
+    tear_down_cleaning_ports(task)
