@@ -110,6 +110,20 @@ def _get_boot_device_map(virt_type):
 
 
 def _get_command_sets(virt_type):
+    """Retrieves the virt_type-specific commands to control power
+
+    Required commands are as follows:
+
+    base_cmd: Used by most sub-commands as the primary executable
+    list_all: Lists all VMs (by virt_type identifier) that can be managed.
+        One name per line, must not be quoted.
+    list_running: Lists all running VMs (by virt_type identifier).
+        One name per line, can be quoted.
+    start_cmd / stop_cmd: Starts or stops the identified VM
+    get_node_macs: Retrieves all MACs for an identified VM.
+        One MAC per line, any standard format (see _normalize_mac)
+    get_boot_device / set_boot_device: Gets or sets the primary boot device
+    """
     if virt_type == 'vbox':
         return {
             'base_cmd': 'LC_ALL=C /usr/bin/VBoxManage',
@@ -368,11 +382,10 @@ def _get_power_status(ssh_obj, driver_info):
         for node in running_list:
             if not node:
                 continue
-            # 'node' here is an formatted output from the virt cli's. The
-            # node name is always quoted but can contain other information.
-            # vbox returns '"NodeName" {b43c4982-110c-4c29-9325-d5f41b053513}'
-            # so we must use the 'in' comparison here and not '=='
-            if quoted_node_name in node:
+            # 'node' here is a formatted output from the virt cli's. The
+            # node name is either an exact match or quoted (optionally with
+            # other information, e.g. vbox returns '"NodeName" {<uuid>}')
+            if (quoted_node_name in node) or (node_name == node):
                 power_state = states.POWER_ON
                 break
         if not power_state:
