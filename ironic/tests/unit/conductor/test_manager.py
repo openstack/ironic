@@ -211,6 +211,11 @@ class StartStopTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         res = objects.Conductor.get_by_hostname(self.context, self.hostname)
         self.assertEqual(self.hostname, res['hostname'])
 
+    @mock.patch.object(manager.ConductorManager, 'init_host')
+    def test_stop_uninitialized_conductor(self, mock_init):
+        self._start_service()
+        self.service.del_host()
+
     @mock.patch.object(driver_factory.DriverFactory, '__getitem__',
                        lambda *args: mock.MagicMock())
     def test_start_registers_driver_names(self):

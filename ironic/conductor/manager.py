@@ -327,6 +327,10 @@ class ConductorManager(periodic_task.PeriodicTasks):
                 self.add_periodic_task(method)
 
     def del_host(self, deregister=True):
+        # Conductor deregistration fails if called on non-initialized
+        # conductor (e.g. when rpc server is unreachable).
+        if not hasattr(self, 'conductor'):
+            return
         self._keepalive_evt.set()
         if deregister:
             try:
