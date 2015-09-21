@@ -472,13 +472,12 @@ class AgentRAID(base.RAIDInterface):
                 _("Node %s has no target RAID configuration.") % node.uuid)
 
         target_raid_config = node.target_raid_config.copy()
-        error_msg = None
 
         error_msg_list = []
         if not create_root_volume:
             target_raid_config['logical_disks'] = [
                 x for x in target_raid_config['logical_disks']
-                if x.get('is_root_volume', False) is False]
+                if not x.get('is_root_volume')]
             error_msg_list.append(_("skipping root volume"))
 
         if not create_nonroot_volumes:
@@ -486,7 +485,7 @@ class AgentRAID(base.RAIDInterface):
 
             target_raid_config['logical_disks'] = [
                 x for x in target_raid_config['logical_disks']
-                if x.get('is_root_volume', False) is True]
+                if x.get('is_root_volume')]
 
         if not target_raid_config['logical_disks']:
             error_msg = _(' and ').join(error_msg_list)

@@ -34,8 +34,11 @@ API Versions History
 
 **1.12**
 
-    Add ability to get/set ``node.target_raid_config`` and to get
-    ``node.raid_config``.
+    This API version adds the following the following abilities:
+
+    * Get/set ``node.target_raid_config`` and to get
+      ``node.raid_config``.
+    * Retrieve the logical disk properties for the driver.
 
 **1.11** (breaking change)
 
