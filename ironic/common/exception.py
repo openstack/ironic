@@ -593,4 +593,4 @@ class ImageUploadFailed(IronicException):
 
 
 class CIMCException(IronicException):
-    message = _("Cisco IMC exception occured for node %(node)s: %(error)s")
+    message = _("Cisco IMC exception occurred for node %(node)s: %(error)s")

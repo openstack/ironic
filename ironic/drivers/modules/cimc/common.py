@@ -34,7 +34,7 @@ LOG = logging.getLogger(__name__)
 
 
 def parse_driver_info(node):
-    """Parses and creates Cisco driver info
+    """Parses and creates Cisco driver info.
 
     :param node: An Ironic node object.
     :returns: dictionary that contains node.driver_info parameter/values.
@@ -71,7 +71,7 @@ def handle_login(task, handle, info):
 
 @contextmanager
 def cimc_handle(task):
-    """Context manager for creating a CIMC handle and logging into it
+    """Context manager for creating a CIMC handle and logging into it.
 
     :param task: The current task object.
     :raises: CIMCException if login fails
