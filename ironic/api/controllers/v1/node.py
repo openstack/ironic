@@ -67,7 +67,13 @@ MIN_VERB_VERSIONS = {
     ir_states.VERBS['provide']: versions.MINOR_4_MANAGEABLE_STATE,
 
     ir_states.VERBS['inspect']: versions.MINOR_6_INSPECT_STATE,
+    ir_states.VERBS['abort']: versions.MINOR_13_ABORT_VERB,
 }
+
+# States where calling do_provisioning_action makes sense
+PROVISION_ACTION_STATES = (ir_states.VERBS['manage'],
+                           ir_states.VERBS['provide'],
+                           ir_states.VERBS['abort'])
 
 
 def hide_fields_in_newer_versions(obj):
@@ -425,7 +431,7 @@ class NodeStatesController(rest.RestController):
         of the requested action.
 
         :param node_ident: UUID or logical name of a node.
-        :param target: The desired provision state of the node.
+        :param target: The desired provision state of the node or verb.
         :param configdrive: Optional. A gzipped and base64 encoded
             configdrive. Only valid when setting provision state
             to "active".
@@ -487,8 +493,7 @@ class NodeStatesController(rest.RestController):
         elif target == ir_states.VERBS['inspect']:
             pecan.request.rpcapi.inspect_hardware(
                 pecan.request.context, rpc_node.uuid, topic=topic)
-        elif target in (
-                ir_states.VERBS['manage'], ir_states.VERBS['provide']):
+        elif target in PROVISION_ACTION_STATES:
             pecan.request.rpcapi.do_provisioning_action(
                 pecan.request.context, rpc_node.uuid, target, topic)
         else:

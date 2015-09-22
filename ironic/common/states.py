@@ -45,6 +45,7 @@ VERBS = {
     'manage': 'manage',
     'provide': 'provide',
     'inspect': 'inspect',
+    'abort': 'abort',
 }
 """ Mapping of state-changing events that are PUT to the REST API
 
@@ -288,6 +289,9 @@ machine.add_transition(CLEANING, AVAILABLE, 'done')
 # If cleaning fails, wait for operator intervention
 machine.add_transition(CLEANING, CLEANFAIL, 'fail')
 machine.add_transition(CLEANWAIT, CLEANFAIL, 'fail')
+
+# While waiting for a clean step to be finished, cleaning may be aborted
+machine.add_transition(CLEANWAIT, CLEANFAIL, 'abort')
 
 # Cleaning may also wait on external callbacks
 machine.add_transition(CLEANING, CLEANWAIT, 'wait')

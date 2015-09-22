@@ -32,6 +32,11 @@ always requests the newest supported API version.
 API Versions History
 --------------------
 
+**1.13**
+
+    Add a new verb ``abort`` to the API used to abort nodes in
+    ``CLEANWAIT`` state.
+
 **1.12**
 
     This API version adds the following the following abilities:
