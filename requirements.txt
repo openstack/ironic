@@ -1,7 +1,7 @@
 # The order of packages is significant, because pip processes them in the order
 # of appearance. Changing the order has an impact on the overall integration
 # process, which may cause wedges in the gate later.
-pbr<2.0,>=1.6
+pbr>=1.6
 SQLAlchemy<1.1.0,>=0.9.9
 alembic>=0.8.0
 automaton>=0.5.0 # Apache-2.0
