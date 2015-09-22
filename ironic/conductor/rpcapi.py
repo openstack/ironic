@@ -556,7 +556,7 @@ class ConductorAPI(object):
         :param context: request context.
         :param node_id: node id or uuid.
         :param target_raid_config: Dictionary containing the target RAID
-            configuration.
+            configuration. It may be an empty dictionary as well.
         :param topic: RPC topic. Defaults to self.topic.
         :raises: UnsupportedDriverExtension if the node's driver doesn't
             support RAID configuration.

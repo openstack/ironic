@@ -2086,7 +2086,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :param context: request context.
         :param node_id: node id or uuid.
         :param target_raid_config: Dictionary containing the target RAID
-            configuration.
+            configuration. It may be an empty dictionary as well.
         :raises: UnsupportedDriverExtension, if the node's driver doesn't
             support RAID configuration.
         :raises: InvalidParameterValue, if validation of target raid config
@@ -2106,7 +2106,10 @@ class ConductorManager(periodic_task.PeriodicTasks):
             if not getattr(task.driver, 'raid', None):
                 raise exception.UnsupportedDriverExtension(
                     driver=task.driver, extension='raid')
-            task.driver.raid.validate_raid_config(task, target_raid_config)
+            # Operator may try to unset node.target_raid_config.  So, try to
+            # validate only if it is not empty.
+            if target_raid_config:
+                task.driver.raid.validate_raid_config(task, target_raid_config)
             node.target_raid_config = target_raid_config
             node.save()
 
