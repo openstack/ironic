@@ -2886,6 +2886,15 @@ class RaidTestCases(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.node.refresh()
         self.assertEqual(raid_config, self.node.target_raid_config)
 
+    def test_set_target_raid_config_empty(self):
+        self.node.target_raid_config = {'foo': 'bar'}
+        self.node.save()
+        raid_config = {}
+        self.service.set_target_raid_config(
+            self.context, self.node.uuid, raid_config)
+        self.node.refresh()
+        self.assertEqual({}, self.node.target_raid_config)
+
     def test_set_target_raid_config_iface_not_supported(self):
         raid_config = {'logical_disks': [{'size_gb': 100, 'raid_level': '1'}]}
         self.driver.raid = None

@@ -357,7 +357,7 @@ class NodeStatesController(rest.RestController):
 
         :param node_ident: the UUID or logical name of a node.
         :param target_raid_config: Desired target RAID configuration of
-            the node
+            the node. It may be an empty dictionary as well.
         :raises: UnsupportedDriverExtension, if the node's driver doesn't
             support RAID configuration.
         :raises: InvalidParameterValue, if validation of target raid config
