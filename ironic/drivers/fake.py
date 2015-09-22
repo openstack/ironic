@@ -25,6 +25,8 @@ from ironic.drivers import base
 from ironic.drivers.modules import agent
 from ironic.drivers.modules.amt import management as amt_mgmt
 from ironic.drivers.modules.amt import power as amt_power
+from ironic.drivers.modules.cimc import management as cimc_mgmt
+from ironic.drivers.modules.cimc import power as cimc_power
 from ironic.drivers.modules.drac import management as drac_mgmt
 from ironic.drivers.modules.drac import power as drac_power
 from ironic.drivers.modules import fake
@@ -268,6 +270,19 @@ class FakeUcsDriver(base.BaseDriver):
         self.power = ucs_power.Power()
         self.deploy = fake.FakeDeploy()
         self.management = ucs_mgmt.UcsManagement()
+
+
+class FakeCIMCDriver(base.BaseDriver):
+    """Fake CIMC driver."""
+
+    def __init__(self):
+        if not importutils.try_import('ImcSdk'):
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_("Unable to import ImcSdk library"))
+        self.power = cimc_power.Power()
+        self.deploy = fake.FakeDeploy()
+        self.management = cimc_mgmt.CIMCManagement()
 
 
 class FakeWakeOnLanDriver(base.BaseDriver):

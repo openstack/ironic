@@ -232,3 +232,12 @@ if not ucssdk:
     if 'ironic.drivers.modules.ucs' in sys.modules:
         six.moves.reload_module(
             sys.modules['ironic.drivers.modules.ucs'])
+
+imcsdk = importutils.try_import('ImcSdk')
+if not imcsdk:
+    imcsdk = mock.MagicMock()
+    imcsdk.ImcException = Exception
+    sys.modules['ImcSdk'] = imcsdk
+    if 'ironic.drivers.modules.cimc' in sys.modules:
+        six.moves.reload_module(
+            sys.modules['ironic.drivers.modules.cimc'])
