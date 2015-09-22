@@ -43,7 +43,7 @@ Install the ``ImcSdk`` module
 #. Install it::
 
    $ cd ImcSdk-0.7.1
-   $ python setup.py install
+   $ sudo python setup.py install
 
 Tested Platforms
 ~~~~~~~~~~~~~~~~
@@ -53,10 +53,10 @@ This driver works with UCS C-Series servers and has been tested with:
 
 Configuring and Enabling the driver
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-1. Add ``pxe_cimc`` and/or ``agent_cimc`` to the list of ``enabled_drivers`` in
+1. Add ``pxe_iscsi_cimc`` and/or ``pxe_agent_cimc`` to the list of ``enabled_drivers`` in
    ``/etc/ironic/ironic.conf``.  For example::
 
-    enabled_drivers = pxe_ipmitool,pxe_cimc,agent_cimc
+    enabled_drivers = pxe_ipmitool,pxe_iscsi_cimc,pxe_agent_cimc
 
 2. Restart the Ironic conductor service:
 
@@ -68,8 +68,8 @@ Configuring and Enabling the driver
 
       $ sudo systemctl restart openstack-ironic-conductor
 
-Registering Standalone UCS node in Ironic
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Registering CIMC Managed UCS node in Ironic
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Nodes configured for CIMC driver should have the ``driver`` property set to
 ``pxe_iscsi_cimc`` or ``pxe_agent_cimc``.  The following configuration values are
 also required in ``driver_info``:
@@ -77,14 +77,14 @@ also required in ``driver_info``:
 - ``cimc_address``: IP address or hostname for CIMC
 - ``cimc_username``: CIMC login user name
 - ``cimc_password``: CIMC login password for the above CIMC user.
-- ``deploy_kernel``: The Glance UUID of the deployment kernel.
-- ``deploy_ramdisk``: The Glance UUID of the deployment ramdisk.
+- ``deploy_kernel``: Identifier for the deployment kernel e.g. a Glance UUID
+- ``deploy_ramdisk``: Identifier for the deployment ramdisk e.g. a Glance UUID
 
 The following sequence of commands can be used to enroll a UCS Standalone node.
 
   Create Node::
 
-    ironic node-create -d <pxe_cimc/agent_cimc> -i cimc_address=<CIMC hostname/ip-address> -i cimc_username=<cimc_username> -i cimc_password=<cimc_password> -i deploy_kernel=<glance_uuid_of_deploy_kernel> -i deploy_ramdisk=<glance_uuid_of_deploy_ramdisk> -p cpus=<number_of_cpus> -p memory_mb=<memory_size_in_MB> -p local_gb=<local_disk_size_in_GB> -p cpu_arch=<cpu_arch>
+    ironic node-create -d <pxe_iscsi_cimc OR pxe_agent_cimc> -i cimc_address=<CIMC hostname OR ip-address> -i cimc_username=<cimc_username> -i cimc_password=<cimc_password> -i deploy_kernel=<glance_uuid_of_deploy_kernel> -i deploy_ramdisk=<glance_uuid_of_deploy_ramdisk> -p cpus=<number_of_cpus> -p memory_mb=<memory_size_in_MB> -p local_gb=<local_disk_size_in_GB> -p cpu_arch=<cpu_arch>
 
   The above command 'ironic node-create' will return UUID of the node, which is the value of $NODE in the following command.
 
