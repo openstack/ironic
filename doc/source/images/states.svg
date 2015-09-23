@@ -77,28 +77,28 @@
 </g>
 <!-- clean failed -->
 <g id="node13" class="node"><title>clean failed</title>
-<ellipse fill="none" stroke="black" cx="894" cy="-171.716" rx="41.4846" ry="18"/>
-<text text-anchor="middle" x="894" y="-168.916" font-family="Times,serif" font-size="11.00" fill="red">clean failed</text>
+<ellipse fill="none" stroke="black" cx="894" cy="-175.716" rx="41.4846" ry="18"/>
+<text text-anchor="middle" x="894" y="-172.916" font-family="Times,serif" font-size="11.00" fill="red">clean failed</text>
 </g>
 <!-- cleaning&#45;&gt;clean failed -->
 <g id="edge22" class="edge"><title>cleaning&#45;&gt;clean failed</title>
-<path fill="none" stroke="black" d="M558.7,-214.391C566.33,-214.526 574.456,-214.647 582,-214.716 694.502,-215.739 724.187,-215.187 834,-190.716 839.787,-189.426 845.815,-187.812 851.714,-186.072"/>
-<polygon fill="black" stroke="black" points="852.932,-189.359 861.452,-183.061 850.864,-182.671 852.932,-189.359"/>
+<path fill="none" stroke="black" d="M558.7,-214.391C566.33,-214.526 574.456,-214.647 582,-214.716 694.421,-215.738 723.782,-214.888 834,-192.716 839.356,-191.639 844.932,-190.311 850.425,-188.877"/>
+<polygon fill="black" stroke="black" points="851.438,-192.229 860.159,-186.212 849.589,-185.477 851.438,-192.229"/>
 <text text-anchor="middle" x="711" y="-217.516" font-family="Times,serif" font-size="14.00" fill="red">on_fail</text>
 </g>
 <!-- clean wait -->
 <g id="node14" class="node"><title>clean wait</title>
-<ellipse fill="none" stroke="black" cx="711" cy="-171.716" rx="37.7689" ry="18"/>
-<text text-anchor="middle" x="711" y="-168.916" font-family="Times,serif" font-size="11.00">clean wait</text>
+<ellipse fill="none" stroke="black" cx="711" cy="-172.716" rx="37.7689" ry="18"/>
+<text text-anchor="middle" x="711" y="-169.916" font-family="Times,serif" font-size="11.00">clean wait</text>
 </g>
 <!-- cleaning&#45;&gt;clean wait -->
 <g id="edge23" class="edge"><title>cleaning&#45;&gt;clean wait</title>
-<path fill="none" stroke="black" d="M555.785,-206.193C564.219,-204.042 573.466,-201.735 582,-199.716 609.919,-193.111 641.397,-186.218 666.151,-180.924"/>
-<polygon fill="black" stroke="black" points="666.921,-184.338 675.972,-178.832 665.462,-177.492 666.921,-184.338"/>
+<path fill="none" stroke="black" d="M555.775,-206.153C564.209,-204.001 573.459,-201.703 582,-199.716 609.802,-193.248 641.157,-186.623 665.876,-181.554"/>
+<polygon fill="black" stroke="black" points="666.59,-184.981 675.688,-179.552 665.19,-178.122 666.59,-184.981"/>
 <text text-anchor="middle" x="614" y="-203.516" font-family="Times,serif" font-size="14.00">on_wait</text>
 </g>
 <!-- inspecting&#45;&gt;manageable -->
-<g id="edge29" class="edge"><title>inspecting&#45;&gt;manageable</title>
+<g id="edge30" class="edge"><title>inspecting&#45;&gt;manageable</title>
 <path fill="none" stroke="black" d="M497.268,-10.0453C472.407,-1.50053 435.692,6.24228 408,-8.71602 383.592,-21.9006 367.649,-50.0684 358.563,-71.4028"/>
 <polygon fill="black" stroke="black" points="355.214,-70.3533 354.756,-80.9382 361.715,-72.9491 355.214,-70.3533"/>
 <text text-anchor="middle" x="439" y="-12.516" font-family="Times,serif" font-size="14.00">on_done</text>
@@ -109,7 +109,7 @@
 <text text-anchor="middle" x="711" y="-48.916" font-family="Times,serif" font-size="11.00" fill="red">inspect failed</text>
 </g>
 <!-- inspecting&#45;&gt;inspect failed -->
-<g id="edge30" class="edge"><title>inspecting&#45;&gt;inspect failed</title>
+<g id="edge31" class="edge"><title>inspecting&#45;&gt;inspect failed</title>
 <path fill="none" stroke="black" d="M555.167,-32.9407C563.668,-35.9192 573.106,-38.828 582,-40.716 605.461,-45.6963 631.797,-48.4335 654.453,-49.9333"/>
 <polygon fill="black" stroke="black" points="654.389,-53.4357 664.58,-50.539 654.806,-46.4482 654.389,-53.4357"/>
 <text text-anchor="middle" x="614" y="-53.516" font-family="Times,serif" font-size="14.00" fill="red">on_fail</text>
@@ -187,13 +187,13 @@
 <text text-anchor="middle" x="1567" y="-503.916" font-family="Times,serif" font-size="11.00" fill="red">error</text>
 </g>
 <!-- deleting&#45;&gt;error -->
-<g id="edge27" class="edge"><title>deleting&#45;&gt;error</title>
+<g id="edge28" class="edge"><title>deleting&#45;&gt;error</title>
 <path fill="none" stroke="black" d="M1447.13,-462.077C1468.44,-458.408 1498.03,-456.279 1522,-465.716 1531.42,-469.424 1540.01,-476.202 1547.06,-483.195"/>
 <polygon fill="black" stroke="black" points="1544.69,-485.786 1554.06,-490.73 1549.82,-481.022 1544.69,-485.786"/>
 <text text-anchor="middle" x="1495" y="-469.516" font-family="Times,serif" font-size="14.00" fill="red">on_error</text>
 </g>
 <!-- deleting&#45;&gt;cleaning -->
-<g id="edge28" class="edge"><title>deleting&#45;&gt;cleaning</title>
+<g id="edge29" class="edge"><title>deleting&#45;&gt;cleaning</title>
 <path fill="none" stroke="black" d="M1411.84,-451.056C1396.42,-402.353 1345.8,-269.716 1252,-269.716 710,-269.716 710,-269.716 710,-269.716 655.486,-269.716 595.679,-246.713 559.756,-230.193"/>
 <polygon fill="black" stroke="black" points="560.819,-226.825 550.281,-225.729 557.836,-233.157 560.819,-226.825"/>
 <text text-anchor="middle" x="985" y="-273.516" font-family="Times,serif" font-size="14.00">on_clean</text>
@@ -247,31 +247,37 @@
 <text text-anchor="middle" x="1251" y="-472.516" font-family="Times,serif" font-size="14.00">on_delete</text>
 </g>
 <!-- clean failed&#45;&gt;manageable -->
-<g id="edge26" class="edge"><title>clean failed&#45;&gt;manageable</title>
-<path fill="none" stroke="black" d="M856.766,-163.595C829.67,-157.735 791.653,-149.964 758,-144.716 629.452,-124.67 476.866,-109.87 399.461,-102.993"/>
-<polygon fill="black" stroke="black" points="399.768,-99.5069 389.499,-102.115 399.153,-106.48 399.768,-99.5069"/>
-<text text-anchor="middle" x="614" y="-132.516" font-family="Times,serif" font-size="14.00">on_manage</text>
+<g id="edge27" class="edge"><title>clean failed&#45;&gt;manageable</title>
+<path fill="none" stroke="black" d="M868.182,-161.613C857.91,-156.4 845.686,-150.974 834,-147.716 753.331,-125.225 507.525,-108.224 400.124,-101.666"/>
+<polygon fill="black" stroke="black" points="400.06,-98.1557 389.867,-101.046 399.637,-105.143 400.06,-98.1557"/>
+<text text-anchor="middle" x="614" y="-123.516" font-family="Times,serif" font-size="14.00">on_manage</text>
 </g>
 <!-- clean wait&#45;&gt;clean failed -->
 <g id="edge24" class="edge"><title>clean wait&#45;&gt;clean failed</title>
-<path fill="none" stroke="black" d="M749.065,-171.716C775.895,-171.716 812.487,-171.716 842.061,-171.716"/>
-<polygon fill="black" stroke="black" points="842.202,-175.216 852.202,-171.716 842.202,-168.216 842.202,-175.216"/>
-<text text-anchor="middle" x="805" y="-175.516" font-family="Times,serif" font-size="14.00" fill="red">on_fail</text>
+<path fill="none" stroke="black" d="M749.065,-173.33C775.987,-173.777 812.74,-174.386 842.367,-174.877"/>
+<polygon fill="black" stroke="black" points="842.465,-178.379 852.522,-175.045 842.581,-171.38 842.465,-178.379"/>
+<text text-anchor="middle" x="805" y="-177.516" font-family="Times,serif" font-size="14.00" fill="red">on_fail</text>
+</g>
+<!-- clean wait&#45;&gt;clean failed -->
+<g id="edge25" class="edge"><title>clean wait&#45;&gt;clean failed</title>
+<path fill="none" stroke="black" d="M742.239,-162.376C752.79,-159.262 764.795,-156.262 776,-154.716 801.536,-151.193 808.598,-150.33 834,-154.716 840.767,-155.884 847.785,-157.754 854.52,-159.909"/>
+<polygon fill="black" stroke="black" points="853.527,-163.268 864.122,-163.22 855.809,-156.651 853.527,-163.268"/>
+<text text-anchor="middle" x="805" y="-158.516" font-family="Times,serif" font-size="14.00">on_abort</text>
 </g>
 <!-- clean wait&#45;&gt;cleaning -->
-<g id="edge25" class="edge"><title>clean wait&#45;&gt;cleaning</title>
-<path fill="none" stroke="black" d="M677.338,-163.241C650.793,-157.967 612.829,-154.155 582,-165.716 568.704,-170.702 556.51,-180.519 547.002,-189.982"/>
-<polygon fill="black" stroke="black" points="544.315,-187.729 539.982,-197.397 549.398,-192.542 544.315,-187.729"/>
-<text text-anchor="middle" x="614" y="-169.516" font-family="Times,serif" font-size="14.00">on_resume</text>
+<g id="edge26" class="edge"><title>clean wait&#45;&gt;cleaning</title>
+<path fill="none" stroke="black" d="M677.37,-164.327C650.843,-159.103 612.888,-155.316 582,-166.716 568.983,-171.52 556.959,-180.93 547.494,-190.076"/>
+<polygon fill="black" stroke="black" points="544.962,-187.66 540.483,-197.261 549.972,-192.549 544.962,-187.66"/>
+<text text-anchor="middle" x="614" y="-170.516" font-family="Times,serif" font-size="14.00">on_resume</text>
 </g>
 <!-- inspect failed&#45;&gt;manageable -->
-<g id="edge31" class="edge"><title>inspect failed&#45;&gt;manageable</title>
+<g id="edge32" class="edge"><title>inspect failed&#45;&gt;manageable</title>
 <path fill="none" stroke="black" d="M666.121,-56.1673C641.392,-58.7631 609.948,-62.2094 582,-65.716 518.364,-73.7005 445.159,-84.3015 398.048,-91.3077"/>
 <polygon fill="black" stroke="black" points="397.488,-87.8525 388.114,-92.7894 398.521,-94.7759 397.488,-87.8525"/>
 <text text-anchor="middle" x="526" y="-82.516" font-family="Times,serif" font-size="14.00">on_manage</text>
 </g>
 <!-- inspect failed&#45;&gt;inspecting -->
-<g id="edge32" class="edge"><title>inspect failed&#45;&gt;inspecting</title>
+<g id="edge33" class="edge"><title>inspect failed&#45;&gt;inspecting</title>
 <path fill="none" stroke="black" d="M684.081,-36.9956C672.763,-31.3645 659.104,-25.6041 646,-22.716 622.225,-17.4761 595.123,-16.8482 572.796,-17.6967"/>
 <polygon fill="black" stroke="black" points="572.395,-14.2121 562.579,-18.1985 572.738,-21.2036 572.395,-14.2121"/>
 <text text-anchor="middle" x="614" y="-26.516" font-family="Times,serif" font-size="14.00">on_inspect</text>
