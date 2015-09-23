@@ -32,6 +32,12 @@ always requests the newest supported API version.
 API Versions History
 --------------------
 
+**1.14**
+
+    Make the following endpoints discoverable via Ironic API:
+    * '/v1/nodes/<UUID or logical name>/states'
+    * '/v1/drivers/<driver name>/properties'
+
 **1.13**
 
     Add a new verb ``abort`` to the API used to abort nodes in

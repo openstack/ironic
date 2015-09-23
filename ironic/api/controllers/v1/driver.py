@@ -70,6 +70,9 @@ class Driver(base.APIBase):
     links = wsme.wsattr([link.Link], readonly=True)
     """A list containing self and bookmark links"""
 
+    properties = wsme.wsattr([link.Link], readonly=True)
+    """A list containing links to driver properties"""
+
     @staticmethod
     def convert_with_links(name, hosts):
         driver = Driver()
@@ -84,6 +87,16 @@ class Driver(base.APIBase):
                                 'drivers', name,
                                 bookmark=True)
         ]
+        if api_utils.allow_links_node_states_and_driver_properties():
+            driver.properties = [
+                link.Link.make_link('self',
+                                    pecan.request.public_url,
+                                    'drivers', name + "/properties"),
+                link.Link.make_link('bookmark',
+                                    pecan.request.public_url,
+                                    'drivers', name + "/properties",
+                                    bookmark=True)
+            ]
         return driver
 
     @classmethod

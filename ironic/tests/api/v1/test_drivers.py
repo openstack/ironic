@@ -64,13 +64,25 @@ class TestListDrivers(base.FunctionalTest):
         self.assertThat(data['drivers'], HasLength(0))
         self.assertEqual([], data['drivers'])
 
-    def test_drivers_get_one_ok(self):
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_driver_properties')
+    def test_drivers_get_one_ok(self, mock_driver_properties):
+        # get_driver_properties mock is required by validate_link()
         self.register_fake_conductors()
-        data = self.get_json('/drivers/%s' % self.d1)
+        data = self.get_json('/drivers/%s' % self.d1,
+                             headers={api_base.Version.string: '1.14'})
         self.assertEqual(self.d1, data['name'])
         self.assertEqual([self.h1], data['hosts'])
+        self.assertIn('properties', data.keys())
         self.validate_link(data['links'][0]['href'])
         self.validate_link(data['links'][1]['href'])
+        self.validate_link(data['properties'][0]['href'])
+        self.validate_link(data['properties'][1]['href'])
+
+    def test_driver_properties_hidden_in_lower_version(self):
+        self.register_fake_conductors()
+        data = self.get_json('/drivers/%s' % self.d1,
+                             headers={api_base.Version.string: '1.8'})
+        self.assertNotIn('properties', data.keys())
 
     def test_drivers_get_one_not_found(self):
         response = self.get_json('/drivers/%s' % self.d1, expect_errors=True)
