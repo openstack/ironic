@@ -18,6 +18,7 @@ from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.drivers.modules import deploy_utils
 
 REQUIRED_PROPERTIES = {
