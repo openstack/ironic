@@ -1,11 +1,11 @@
 .. _install-guide:
 
-=====================================
-Bare Metal service Installation Guide
-=====================================
+==================
+Installation Guide
+==================
 
 This document is continually updated and reflects the latest
-available code of OpenStack Bare Metal service (ironic).
+available code of the Bare Metal service (ironic).
 Users of releases may encounter differences and are encouraged
 to look at earlier versions of this document for guidance.
 
