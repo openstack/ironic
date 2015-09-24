@@ -64,12 +64,13 @@ There are three categories of driver interfaces:
   Ironic's API.  If a driver implements this interface, it must adhere to the
   standard. This is presented to encourage vendors to work together with the
   Ironic project and implement common features in a consistent way, thus
-  reducing the burden on consumers of the API.
-  The Standard interfaces are `management` and `console`.
+  reducing the burden on consumers of the API. The Standard interfaces are
+  `management`, `console`, `boot`, `inspect`, and `raid`.
 - The `Vendor` interface allows an exemption to the API contract when a vendor
   wishes to expose unique functionality provided by their hardware and is
-  unable to do so within the `core` or `standard` interfaces. In this case, Ironic
-  will merely relay the message from the API service to the appropriate driver.
+  unable to do so within the `Core` or `Standard` interfaces. In this case,
+  Ironic will merely relay the message from the API service to the appropriate
+  driver.
 
 Driver-Specific Periodic Tasks
 ------------------------------
