@@ -28,6 +28,7 @@ from six.moves import socketserver
 from ironic.api import app
 from ironic.common.i18n import _LI
 from ironic.common import service as ironic_service
+from ironic.objects import base
 
 CONF = cfg.CONF
 
@@ -41,6 +42,9 @@ class ThreadedSimpleServer(socketserver.ThreadingMixIn,
 def main():
     # Parse config file and command line options, then start logging
     ironic_service.prepare_service(sys.argv)
+
+    # Enable object backporting via the conductor
+    base.IronicObject.indirection_api = base.IronicObjectIndirectionAPI()
 
     # Build and start the WSGI app
     host = CONF.api.host_ip

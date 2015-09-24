@@ -22,6 +22,7 @@ import copy
 
 import mock
 from oslo_config import cfg
+from oslo_messaging import _utils as messaging_utils
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -145,6 +146,10 @@ class RPCAPITestCase(base.DbTestCase):
         self.fake_args = None
         self.fake_kwargs = None
 
+        def _fake_can_send_version_method(version):
+            return messaging_utils.version_is_compatible(
+                rpcapi.RPC_API_VERSION, version)
+
         def _fake_prepare_method(*args, **kwargs):
             for kwd in kwargs:
                 self.assertEqual(kwargs[kwd], target[kwd])
@@ -156,16 +161,21 @@ class RPCAPITestCase(base.DbTestCase):
             if expected_retval:
                 return expected_retval
 
-        with mock.patch.object(rpcapi.client, "prepare") as mock_prepared:
-            mock_prepared.side_effect = _fake_prepare_method
+        with mock.patch.object(rpcapi.client,
+                               "can_send_version") as mock_can_send_version:
+            mock_can_send_version.side_effect = _fake_can_send_version_method
+            with mock.patch.object(rpcapi.client, "prepare") as mock_prepared:
+                mock_prepared.side_effect = _fake_prepare_method
 
-            with mock.patch.object(rpcapi.client, rpc_method) as mock_method:
-                mock_method.side_effect = _fake_rpc_method
-                retval = getattr(rpcapi, method)(self.context, **kwargs)
-                self.assertEqual(retval, expected_retval)
-                expected_args = [self.context, method, expected_msg]
-                for arg, expected_arg in zip(self.fake_args, expected_args):
-                    self.assertEqual(arg, expected_arg)
+                with mock.patch.object(rpcapi.client,
+                                       rpc_method) as mock_method:
+                    mock_method.side_effect = _fake_rpc_method
+                    retval = getattr(rpcapi, method)(self.context, **kwargs)
+                    self.assertEqual(retval, expected_retval)
+                    expected_args = [self.context, method, expected_msg]
+                    for arg, expected_arg in zip(self.fake_args,
+                                                 expected_args):
+                        self.assertEqual(arg, expected_arg)
 
     def test_update_node(self):
         self._test_rpcapi('update_node',
@@ -306,3 +316,29 @@ class RPCAPITestCase(base.DbTestCase):
                           version='1.30',
                           node_id=self.fake_node['uuid'],
                           target_raid_config='config')
+
+    def test_object_action(self):
+        self._test_rpcapi('object_action',
+                          'call',
+                          version='1.31',
+                          objinst='fake-object',
+                          objmethod='foo',
+                          args=tuple(),
+                          kwargs=dict())
+
+    def test_object_class_action_versions(self):
+        self._test_rpcapi('object_class_action_versions',
+                          'call',
+                          version='1.31',
+                          objname='fake-object',
+                          objmethod='foo',
+                          object_versions={'fake-object': '1.0'},
+                          args=tuple(),
+                          kwargs=dict())
+
+    def test_object_backport_versions(self):
+        self._test_rpcapi('object_backport_versions',
+                          'call',
+                          version='1.31',
+                          objinst='fake-object',
+                          object_versions={'fake-object': '1.0'})

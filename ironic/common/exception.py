@@ -350,10 +350,6 @@ class UnsupportedDriverExtension(Invalid):
                 '(disabled or not implemented).')
 
 
-class IncompatibleObjectVersion(IronicException):
-    message = _('Version %(objver)s of %(objname)s is not supported')
-
-
 class GlanceConnectionFailed(IronicException):
     message = _("Connection to glance host %(host)s:%(port)s failed: "
                 "%(reason)s")

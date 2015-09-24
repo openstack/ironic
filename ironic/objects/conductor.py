@@ -42,7 +42,11 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         conductor.obj_reset_changes()
         return conductor
 
-    @object_base.remotable_classmethod
+    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
+    # methods can be used in the future to replace current explicit RPC calls.
+    # Implications of calling new remote procedures should be thought through.
+    # @object_base.remotable_classmethod
+    @classmethod
     def get_by_hostname(cls, context, hostname):
         """Get a Conductor record by its hostname.
 
@@ -58,7 +62,10 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         raise NotImplementedError(
             _('Cannot update a conductor record directly.'))
 
-    @object_base.remotable
+    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
+    # methods can be used in the future to replace current explicit RPC calls.
+    # Implications of calling new remote procedures should be thought through.
+    # @object_base.remotable
     def refresh(self, context=None):
         """Loads and applies updates for this Conductor.
 
@@ -77,7 +84,10 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                  hostname=self.hostname)
         self.obj_refresh(current)
 
-    @object_base.remotable
+    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
+    # methods can be used in the future to replace current explicit RPC calls.
+    # Implications of calling new remote procedures should be thought through.
+    # @object_base.remotable
     def touch(self, context):
         """Touch this conductor's DB record, marking it as up-to-date."""
         self.dbapi.touch_conductor(self.hostname)
