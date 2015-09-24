@@ -2,6 +2,89 @@
 Release Notes
 =============
 
+4.2.0
+=====
+
+This release is proposed as the stable Liberty release for Ironic, and brings
+with it some bug fixes and small features. Full release details are available
+on Launchpad: https://launchpad.net/ironic/liberty/4.2.0.
+
+* Deprecated the bash ramdisk
+
+  The older bash ramdisk built by diskimage-builder is now deprecated and
+  support will be removed at the beginning of the "N" development cycle. Users
+  should migrate to a ramdisk running ironic-python-agent, which now also
+  supports the pxe_* drivers that the bash ramdisk was responsible for.
+  For more info on building an ironic-python-agent ramdisk, see:
+  http://docs.openstack.org/developer/ironic/deploy/install-guide.html#building-or-downloading-a-deploy-ramdisk-image
+
+* Raised API version to 1.14
+
+  * 1.12 allows setting RAID properties for a node; however support for
+    putting this configuration on a node is not yet implemented for in-tree
+    drivers; this will be added in a future release.
+
+  * 1.13 adds a new 'abort' verb to the provision state API. This may be used
+    to abort cleaning for nodes in the CLEANWAIT state.
+
+  * 1.14 makes the following endpoints discoverable in the API:
+
+    * /v1/nodes/<UUID or logical name>/states
+
+    * /v1/drivers/<driver name>/properties
+
+* Implemented a new Boot interface for drivers
+
+  This change enhances the driver interface for driver authors, and should not
+  affect users of Ironic, by splitting control of booting a server from the
+  DeployInterface. The BootInterface is responsible for booting an image on a
+  server, while the DeployInterface is responsible for deploying a tenant image
+  to a server.
+
+  This has been implemented in most in-tree drivers, and is a
+  backwards-compatible change for out-of-tree drivers. The following in-tree
+  drivers will be updated in a forth-coming release:
+
+  * agent_ilo
+
+  * agent_irmc
+
+  * iscsi_ilo
+
+  * iscsi_irmc
+
+* Implemented a new RAID interface for drivers
+
+  This change enhances the driver interface for driver authors. Drivers may
+  begin implementing this interface to support RAID configuration for nodes.
+  This is not yet implemented for any in-tree drivers.
+
+* Image size is now checked before deployment with agent drivers
+
+  The agent must download the tenant image in full before writing it to disk.
+  As such, the server being deployed must have enough RAM for running the
+  agent and storing the image. This is now checked before Ironic tells the
+  agent to deploy an image. An optional config [agent]memory_consumed_by_agent
+  is provided. When Ironic does this check, this config option may be set to
+  factor in the amount of RAM to reserve for running the agent.
+
+* Added Cisco IMC driver
+
+  This driver supports managing Cisco UCS C-series servers through the
+  CIMC API, rather than IPMI. Documentation is available at:
+  http://docs.openstack.org/developer/ironic/drivers/cimc.html
+
+* iLO virtual media drivers can work without Swift
+
+  iLO virtual media drivers (iscsi_ilo and agent_ilo) can work standalone
+  without Swift, by configuring an HTTP(S) server for hosting the
+  deploy/boot images. A web server needs to be running on every conductor
+  node and needs to be configured in ironic.conf.
+
+  iLO driver documentation is available at:
+  http://docs.openstack.org/developer/ironic/drivers/ilo.html
+
+
 4.1.0
 =====
 
