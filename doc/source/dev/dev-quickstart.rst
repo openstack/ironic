@@ -12,6 +12,10 @@ The gate currently runs the unit tests under both
 Python 2.7 and Python 3.4.  It is strongly encouraged to run the unit tests
 locally under one, the other, or both prior to submitting a patch.
 
+.. Note:: The unit test environment setup should be done on a clean installed
+    VM or system. Sharing the environment with devstack testing is not
+    recommended due to conflicting configuration with system dependencies.
+
 .. seealso::
 
     http://docs.openstack.org/infra/manual/developers.html#development-workflow
