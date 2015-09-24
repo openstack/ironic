@@ -4,10 +4,9 @@
 Bare Metal service Installation Guide
 =====================================
 
-This document pertains to the current code (on master branch) of OpenStack
-Bare Metal service (ironic) and should be accurate for the Kilo (2015.1)
-release of the Bare Metal service.
-Users of earlier releases may encounter differences, and are encouraged
+This document is continually updated and reflects the latest
+available code of OpenStack Bare Metal service (ironic).
+Users of releases may encounter differences and are encouraged
 to look at earlier versions of this document for guidance.
 
 
