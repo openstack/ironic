@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 4.1.1.dev38\n"
+"Project-Id-Version: ironic 4.1.0.106.gecf6fc1\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-09-17 06:25+0000\n"
+"POT-Creation-Date: 2015-09-24 21:22+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -51,91 +51,91 @@ msgid ""
 "object is not a string: %s,"
 msgstr ""
 
-#: ironic/conductor/manager.py:288
+#: ironic/conductor/manager.py:289
 #, python-format
 msgid ""
 "A conductor with hostname %(hostname)s was previously registered. "
 "Updating registration"
 msgstr ""
 
-#: ironic/conductor/manager.py:376
+#: ironic/conductor/manager.py:377
 msgid "Conductor could not connect to database while heartbeating."
 msgstr ""
 
-#: ironic/conductor/manager.py:919
+#: ironic/conductor/manager.py:974
 msgid ""
 "Returning CLEANING for asynchronous prepare cleaning has been deprecated."
 " Please use CLEANWAIT instead."
 msgstr ""
 
-#: ironic/conductor/manager.py:987
+#: ironic/conductor/manager.py:1026
 msgid ""
 "Returning CLEANING for asynchronous clean steps has been deprecated. "
 "Please use CLEANWAIT instead."
 msgstr ""
 
-#: ironic/conductor/manager.py:1224
+#: ironic/conductor/manager.py:1329
 #, python-format
 msgid ""
 "During checking for deploying state, node %s was not found and presumed "
 "deleted by another process. Skipping."
 msgstr ""
 
-#: ironic/conductor/manager.py:1229
+#: ironic/conductor/manager.py:1334
 #, python-format
 msgid ""
 "During checking for deploying state, when releasing the lock of the node "
 "%s, it was locked by another process. Skipping."
 msgstr ""
 
-#: ironic/conductor/manager.py:1235
+#: ironic/conductor/manager.py:1340
 #, python-format
 msgid ""
 "During checking for deploying state, when releasing the lock of the node "
 "%s, it was already unlocked."
 msgstr ""
 
-#: ironic/conductor/manager.py:1625
+#: ironic/conductor/manager.py:1730
 #, python-format
 msgid ""
 "No VIF found for instance %(instance)s port %(port)s when attempting to "
 "update port MAC address."
 msgstr ""
 
-#: ironic/conductor/manager.py:1683
+#: ironic/conductor/manager.py:1788
 #, python-format
 msgid ""
 "get_sensors_data is not implemented for driver %(driver)s, node_uuid is "
 "%(node)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1688
+#: ironic/conductor/manager.py:1793
 #, python-format
 msgid ""
 "During get_sensors_data, could not parse sensor data for node %(node)s. "
 "Error: %(err)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1693
+#: ironic/conductor/manager.py:1798
 #, python-format
 msgid ""
 "During get_sensors_data, could not get sensor data for node %(node)s. "
 "Error: %(err)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:1698
+#: ironic/conductor/manager.py:1803
 #, python-format
 msgid ""
 "During send_sensor_data, node %(node)s was not found and presumed deleted"
 " by another process."
 msgstr ""
 
-#: ironic/conductor/manager.py:1703
+#: ironic/conductor/manager.py:1808
 #, python-format
 msgid "Failed to get sensor data for node %(node)s. Error: %(error)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1833
+#: ironic/conductor/manager.py:1938
 #, python-format
 msgid ""
 "Driver '%s' is missing a task argument to the method "
@@ -143,14 +143,14 @@ msgid ""
 " code to include a task argument."
 msgstr ""
 
-#: ironic/conductor/manager.py:2058
+#: ironic/conductor/manager.py:2268
 #, python-format
 msgid ""
 "No free conductor workers available to perform an action on node "
 "%(node)s, setting node's power state back to %(power_state)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:2086
+#: ironic/conductor/manager.py:2296
 #, python-format
 msgid ""
 "No free conductor workers available to perform an action on node "
@@ -158,28 +158,28 @@ msgid ""
 "target_provision_state to %(tgt_prov_state)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:2270
+#: ironic/conductor/manager.py:2480
 #, python-format
 msgid ""
 "During sync_power_state, could not get power state for node %(node)s, "
 "attempt %(attempt)s of %(retries)s. Error: %(err)s."
 msgstr ""
 
-#: ironic/conductor/manager.py:2309
+#: ironic/conductor/manager.py:2519
 #, python-format
 msgid ""
 "During sync_power_state, node %(node)s state '%(actual)s' does not match "
 "expected state. Changing hardware state to '%(state)s'."
 msgstr ""
 
-#: ironic/conductor/manager.py:2327
+#: ironic/conductor/manager.py:2537
 #, python-format
 msgid ""
 "During sync_power_state, node %(node)s state does not match expected "
 "state '%(state)s'. Updating recorded state to '%(actual)s'."
 msgstr ""
 
-#: ironic/conductor/task_manager.py:400
+#: ironic/conductor/task_manager.py:399
 #, python-format
 msgid "Task's on_error hook failed to call %(method)s on node %(node)s"
 msgstr ""
@@ -220,7 +220,7 @@ msgid ""
 " on the following ports: %(ports)s."
 msgstr ""
 
-#: ironic/drivers/base.py:1055
+#: ironic/drivers/base.py:1058
 msgid ""
 "Using periodic tasks with parallel=False is deprecated, \"parallel\" "
 "argument will be ignored starting with the Mitaka release"
@@ -229,6 +229,13 @@ msgstr ""
 #: ironic/drivers/utils.py:145
 #, python-format
 msgid "Ignoring malformed capability '%s'. Format should be 'key:val'."
+msgstr ""
+
+#: ironic/drivers/modules/agent.py:151
+#, python-format
+msgid ""
+"Skip the image size check as memory_mb is not defined in properties on "
+"node %s."
 msgstr ""
 
 #: ironic/drivers/modules/agent_base_vendor.py:497
@@ -260,7 +267,7 @@ msgstr ""
 msgid "No console pid found for node %s while trying to stop shellinabox console."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:1039
+#: ironic/drivers/modules/deploy_utils.py:1055
 #, python-format
 msgid ""
 "ipmitool is unable to set boot device while the node %s is in UEFI boot "
@@ -353,12 +360,12 @@ msgid ""
 "%(cmd)s\". Error: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/iscsi_deploy.py:793
-#: ironic/drivers/modules/iscsi_deploy.py:815
-#: ironic/drivers/modules/ilo/deploy.py:898
-#: ironic/drivers/modules/ilo/deploy.py:928
-#: ironic/drivers/modules/irmc/deploy.py:803
-#: ironic/drivers/modules/irmc/deploy.py:833
+#: ironic/drivers/modules/iscsi_deploy.py:792
+#: ironic/drivers/modules/iscsi_deploy.py:814
+#: ironic/drivers/modules/ilo/deploy.py:962
+#: ironic/drivers/modules/ilo/deploy.py:992
+#: ironic/drivers/modules/irmc/deploy.py:806
+#: ironic/drivers/modules/irmc/deploy.py:836
 #, python-format
 msgid ""
 "The node %s is using the bash deploy ramdisk for its deployment. This "
@@ -429,7 +436,7 @@ msgid ""
 " %(state)s."
 msgstr ""
 
-#: ironic/drivers/modules/ssh.py:703
+#: ironic/drivers/modules/ssh.py:716
 #, python-format
 msgid ""
 "Failed to get boot device for node %(node)s, virt_type %(vtype)s does not"
@@ -468,7 +475,30 @@ msgid ""
 "%(response_code)s. Retry attempt %(count)d"
 msgstr ""
 
-#: ironic/drivers/modules/ilo/deploy.py:403
+#: ironic/drivers/modules/ilo/deploy.py:91
+#, python-format
+msgid ""
+"Boot iso recreation failed during take over. Reason: %(reason)s. The node"
+" %(node)s may not come up with current boot_iso %(boot_iso)s. "
+msgstr ""
+
+#: ironic/drivers/modules/ilo/deploy.py:102
+#, python-format
+msgid ""
+"Boot iso recreation failed during take over. The node %(node)s may not "
+"come up with current boot_iso %(boot_iso)s. "
+msgstr ""
+
+#: ironic/drivers/modules/ilo/deploy.py:108
+#, python-format
+msgid ""
+"There is not enough information to recreate boot iso. The UUID for the "
+"root partition could not be found. The boot-iso cannot be created without"
+" root_uuid. The node %(node)s may not come up with current boot_iso "
+"%(boot_iso)s "
+msgstr ""
+
+#: ironic/drivers/modules/ilo/deploy.py:450
 #, python-format
 msgid "Secure boot mode is not supported for node %s"
 msgstr ""
