@@ -407,14 +407,15 @@ def _delete_master_path_if_stale(master_path, href, ctx):
                          "cached image up to date."), {'href': href})
             return True
         master_mtime = utils.unix_file_modification_datetime(master_path)
-        if img_mtime < master_mtime:
+        if img_mtime <= master_mtime:
             return True
         # Delete image from cache as it is outdated
         LOG.info(_LI('Image %(href)s was last modified at %(remote_time)s. '
-                     'Deleting the cached copy since it was last modified at '
-                     '%(local_time)s and may be outdated.'),
+                     'Deleting the cached copy "%(cached_file)s since it was '
+                     'last modified at %(local_time)s and may be outdated.'),
                  {'href': href, 'remote_time': img_mtime,
-                  'local_time': master_mtime})
+                  'local_time': master_mtime, 'cached_file': master_path})
+
         os.unlink(master_path)
     return False
 
