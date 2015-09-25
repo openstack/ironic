@@ -244,6 +244,22 @@ class TestUpdateImages(base.TestCase):
         self.assertTrue(res)
 
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    def test__delete_master_path_if_stale_master_same_time(self, mock_gis,
+                                                           mock_unlink):
+        # When times identical should not delete cached file
+        touch(self.master_path)
+        mtime = utils.unix_file_modification_datetime(self.master_path)
+        href = 'http://awesomefreeimages.al/img999'
+        mock_gis.return_value.show.return_value = {
+            'updated_at': mtime
+        }
+        res = image_cache._delete_master_path_if_stale(self.master_path, href,
+                                                       None)
+        mock_gis.assert_called_once_with(href, context=None)
+        self.assertFalse(mock_unlink.called)
+        self.assertTrue(res)
+
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test__delete_master_path_if_stale_out_of_date(self, mock_gis,
                                                       mock_unlink):
         touch(self.master_path)
