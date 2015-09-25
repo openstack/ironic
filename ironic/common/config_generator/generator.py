@@ -155,9 +155,7 @@ def _import_module(mod_str):
 def _is_in_group(opt, group):
     """Check if opt is in group."""
     for value in group._opts.values():
-        # NOTE(llu): Temporary workaround for bug #1262148, wait until
-        # newly released oslo.config support '==' operator.
-        if not(value['opt'] != opt):
+        if value['opt'] is opt:
             return True
     return False
 
@@ -215,7 +213,7 @@ def _list_opts(obj):
 def print_group_opts(group, opts_by_module):
     print("[%s]" % group)
     print('')
-    for mod, opts in opts_by_module:
+    for mod, opts in sorted(opts_by_module, key=lambda x: x[0]):
         print('#')
         print('# Options defined in %s' % mod)
         print('#')
