@@ -39,7 +39,8 @@ opts = [
                help=_('Maximum retries for iBoot operations')),
     cfg.IntOpt('retry_interval',
                default=1,
-               help=_('Time between retry attempts for iBoot operations')),
+               help=_('Time (in seconds) between retry attempts for iBoot '
+                      'operations')),
 ]
 
 CONF = cfg.CONF
@@ -115,7 +116,7 @@ def _switch(driver_info, enabled):
     def _wait_for_switch(mutable):
         if mutable['retries'] > CONF.iboot.max_retry:
             LOG.warning(_LW(
-                'Reached maximum number of attempts ( %(attempts)d ) to set '
+                'Reached maximum number of attempts (%(attempts)d) to set '
                 'power state for node %(node)s to "%(op)s"'),
                 {'attempts': mutable['retries'], 'node': driver_info['uuid'],
                  'op': states.POWER_ON if enabled else states.POWER_OFF})
@@ -146,7 +147,7 @@ def _power_status(driver_info):
 
         if mutable['retries'] > CONF.iboot.max_retry:
             LOG.warning(_LW(
-                'Reached maximum number of attempts ( %(attempts)d ) to get '
+                'Reached maximum number of attempts (%(attempts)d) to get '
                 'power state for node %(node)s'),
                 {'attempts': mutable['retries'], 'node': driver_info['uuid']})
             raise loopingcall.LoopingCallDone()
