@@ -695,7 +695,7 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
     }
 
     try:
-        for part, part_dev in six.iteritems(uuids_to_return):
+        for part, part_dev in uuids_to_return.items():
             if part_dev:
                 uuids_to_return[part] = block_uuid(part_dev)
 
