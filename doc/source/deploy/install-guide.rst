@@ -647,6 +647,11 @@ An example of this is shown in the `Enrollment`_ section.
     --ip-version=4 --gateway=$GATEWAY_IP --allocation-pool \
     start=$START_IP,end=$END_IP --enable-dhcp
 
+Configuring Tenant Networks
+===========================
+
+See :ref:`multitenancy`
+
 .. _CleaningNetworkSetup:
 
 Configure the Bare Metal service for cleaning
@@ -667,9 +672,6 @@ Configure the Bare Metal service for cleaning
     [neutron]
     ...
 
-    # UUID of the network to create Neutron ports on, when booting
-    # to a ramdisk for cleaning using Neutron DHCP. (string value)
-    #cleaning_network_uuid=<None>
     cleaning_network_uuid = NETWORK_UUID
 
 #. Restart the Bare Metal service's ironic-conductor::
