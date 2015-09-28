@@ -320,7 +320,7 @@ class NeutronDHCPApi(base.BaseDHCP):
             if not port.get('port') or not port['port'].get('id'):
                 self._rollback_cleaning_ports(task)
                 msg = (_('Failed to create cleaning ports for node '
-                         '%(node)s') % task.node.uuid)
+                         '%(node)s') % {'node': task.node.uuid})
                 LOG.error(msg)
                 raise exception.NodeCleaningFailure(msg)
             # Match return value of get_node_vif_ids()

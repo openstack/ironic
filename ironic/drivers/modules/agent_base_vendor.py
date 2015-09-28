@@ -510,7 +510,7 @@ class BaseAgentVendor(base.VendorInterface):
         ports = self._find_ports_by_macs(context, mac_addresses)
         if not ports:
             raise exception.NodeNotFound(_(
-                'No ports matching the given MAC addresses %sexist in the '
+                'No ports matching the given MAC addresses %s exist in the '
                 'database.') % mac_addresses)
         node_id = self._get_node_id(ports)
         try:
