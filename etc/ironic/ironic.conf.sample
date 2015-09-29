@@ -1167,7 +1167,7 @@
 # Options defined in ironic.common.keystone
 #
 
-# The region used for getting endpoints of OpenStackservices.
+# The region used for getting endpoints of OpenStack services.
 # (string value)
 #region_name=<None>
 
