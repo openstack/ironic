@@ -6,16 +6,16 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 4.1.0.106.gecf6fc1\n"
+"Project-Id-Version: ironic 4.2.1.dev6\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-09-24 21:22+0200\n"
+"POT-Creation-Date: 2015-09-29 06:28+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.0\n"
+"Generated-By: Babel 2.1.1\n"
 
 #: ironic/netconf.py:28
 msgid ""
@@ -913,7 +913,7 @@ msgid "Deploy iso didn't contain efiboot.img or grub.cfg"
 msgstr ""
 
 #: ironic/common/keystone.py:27
-msgid "The region used for getting endpoints of OpenStackservices."
+msgid "The region used for getting endpoints of OpenStack services."
 msgstr ""
 
 #: ironic/common/keystone.py:54
@@ -1795,7 +1795,7 @@ msgstr ""
 
 #: ironic/drivers/modules/agent_base_vendor.py:512
 #, python-format
-msgid "No ports matching the given MAC addresses %sexist in the database."
+msgid "No ports matching the given MAC addresses %s exist in the database."
 msgstr ""
 
 #: ironic/drivers/modules/agent_base_vendor.py:560
