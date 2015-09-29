@@ -872,14 +872,14 @@
 # Options defined in ironic.drivers.modules.drac.client
 #
 
-# In case there is a communication failure, the DRAC client is
-# going to resend the request as many times as defined in this
+# In case there is a communication failure, the DRAC client
+# resends the request as many times as defined in this
 # setting. (integer value)
 #client_retry_count=5
 
-# In case there is a communication failure, the DRAC client is
-# going to wait for as many seconds as defined in this setting
-# before resending the request. (integer value)
+# In case there is a communication failure, the DRAC client
+# waits for as many seconds as defined in this setting before
+# resending the request. (integer value)
 #client_retry_delay=5
 
 

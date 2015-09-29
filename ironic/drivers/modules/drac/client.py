@@ -33,12 +33,12 @@ opts = [
     cfg.IntOpt('client_retry_count',
                default=5,
                help=_('In case there is a communication failure, the DRAC '
-                      'client is going to resend the request as many times as '
+                      'client resends the request as many times as '
                       'defined in this setting.')),
     cfg.IntOpt('client_retry_delay',
                default=5,
                help=_('In case there is a communication failure, the DRAC '
-                      'client is going to wait for as many seconds as defined '
+                      'client waits for as many seconds as defined '
                       'in this setting before resending the request.'))
 ]
 
