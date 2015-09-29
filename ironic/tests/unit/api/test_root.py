@@ -16,7 +16,7 @@
 from ironic.tests.unit.api import base
 
 
-class TestRoot(base.FunctionalTest):
+class TestRoot(base.BaseApiTest):
 
     def test_get_root(self):
         data = self.get_json('/', path_prefix='')
@@ -25,7 +25,7 @@ class TestRoot(base.FunctionalTest):
         [self.assertNotIn(f, ['', []]) for f in data.keys()]
 
 
-class TestV1Root(base.FunctionalTest):
+class TestV1Root(base.BaseApiTest):
 
     def test_get_v1_root(self):
         data = self.get_json('/')

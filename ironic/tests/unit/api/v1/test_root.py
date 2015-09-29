@@ -20,7 +20,7 @@ from ironic.tests.unit.api import base as api_base
 from ironic.tests.unit import base as test_base
 
 
-class TestV1Routing(api_base.FunctionalTest):
+class TestV1Routing(api_base.BaseApiTest):
     def setUp(self):
         super(TestV1Routing, self).setUp()
 

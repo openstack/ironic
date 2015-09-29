@@ -15,7 +15,7 @@
 #    under the License.
 
 """
-:mod:`Ironic.tests` -- ironic Unittests
+:mod:`ironic.tests.unit` -- ironic unit tests
 =====================================================
 
 .. automodule:: ironic.tests.unit

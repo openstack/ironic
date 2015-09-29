@@ -33,7 +33,7 @@ PATH_PREFIX = '/v1'
 cfg.CONF.import_group('keystone_authtoken', 'keystonemiddleware.auth_token')
 
 
-class FunctionalTest(base.DbTestCase):
+class BaseApiTest(base.DbTestCase):
     """Pecan controller functional testing class.
 
     Used for functional tests of Pecan controllers where you need to
@@ -44,7 +44,7 @@ class FunctionalTest(base.DbTestCase):
     SOURCE_DATA = {'test_source': {'somekey': '666'}}
 
     def setUp(self):
-        super(FunctionalTest, self).setUp()
+        super(BaseApiTest, self).setUp()
         cfg.CONF.set_override("auth_version", "v2.0",
                               group='keystone_authtoken')
         cfg.CONF.set_override("admin_user", "admin",

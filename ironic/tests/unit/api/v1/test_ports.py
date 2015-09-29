@@ -58,7 +58,7 @@ class TestPortObject(base.TestCase):
         self.assertEqual(wtypes.Unset, port.extra)
 
 
-class TestListPorts(test_api_base.FunctionalTest):
+class TestListPorts(test_api_base.BaseApiTest):
 
     def setUp(self):
         super(TestListPorts, self).setUp()
@@ -343,7 +343,7 @@ class TestListPorts(test_api_base.FunctionalTest):
 
 
 @mock.patch.object(rpcapi.ConductorAPI, 'update_port')
-class TestPatch(test_api_base.FunctionalTest):
+class TestPatch(test_api_base.BaseApiTest):
 
     def setUp(self):
         super(TestPatch, self).setUp()
@@ -643,7 +643,7 @@ class TestPatch(test_api_base.FunctionalTest):
         self.assertEqual(address.lower(), kargs.address)
 
 
-class TestPost(test_api_base.FunctionalTest):
+class TestPost(test_api_base.BaseApiTest):
 
     def setUp(self):
         super(TestPost, self).setUp()
@@ -772,7 +772,7 @@ class TestPost(test_api_base.FunctionalTest):
 
 
 @mock.patch.object(rpcapi.ConductorAPI, 'destroy_port')
-class TestDelete(test_api_base.FunctionalTest):
+class TestDelete(test_api_base.BaseApiTest):
 
     def setUp(self):
         super(TestDelete, self).setUp()

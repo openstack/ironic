@@ -21,7 +21,7 @@ from ironic.api.controllers import base as cbase
 from ironic.tests.unit.api import base
 
 
-class TestBase(base.FunctionalTest):
+class TestBase(base.BaseApiTest):
 
     def test_api_setup(self):
         pass
@@ -35,7 +35,7 @@ class TestBase(base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
 
-class TestVersion(base.FunctionalTest):
+class TestVersion(base.BaseApiTest):
 
     @mock.patch('ironic.api.controllers.base.Version.parse_headers')
     def test_init(self, mock_parse):

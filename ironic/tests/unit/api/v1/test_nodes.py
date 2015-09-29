@@ -52,7 +52,7 @@ class TestNodeObject(base.TestCase):
         self.assertEqual(wtypes.Unset, node.instance_uuid)
 
 
-class TestListNodes(test_api_base.FunctionalTest):
+class TestListNodes(test_api_base.BaseApiTest):
 
     def setUp(self):
         super(TestListNodes, self).setUp()
@@ -837,7 +837,7 @@ class TestListNodes(test_api_base.FunctionalTest):
         mock_vdi.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
 
-class TestPatch(test_api_base.FunctionalTest):
+class TestPatch(test_api_base.BaseApiTest):
 
     def setUp(self):
         super(TestPatch, self).setUp()
@@ -1307,7 +1307,7 @@ class TestPatch(test_api_base.FunctionalTest):
             self.assertEqual(http_client.OK, response.status_code)
 
 
-class TestPost(test_api_base.FunctionalTest):
+class TestPost(test_api_base.BaseApiTest):
 
     def setUp(self):
         super(TestPost, self).setUp()
@@ -1592,7 +1592,7 @@ class TestPost(test_api_base.FunctionalTest):
         self.assertFalse(get_methods_mock.called)
 
 
-class TestDelete(test_api_base.FunctionalTest):
+class TestDelete(test_api_base.BaseApiTest):
 
     def setUp(self):
         super(TestDelete, self).setUp()
@@ -1707,7 +1707,7 @@ class TestDelete(test_api_base.FunctionalTest):
                                             topic='test-topic')
 
 
-class TestPut(test_api_base.FunctionalTest):
+class TestPut(test_api_base.BaseApiTest):
 
     def setUp(self):
         super(TestPut, self).setUp()
