@@ -2185,12 +2185,12 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
             driver_info=DRV_INFO_DICT,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
-        d_info = pxe._parse_instance_info(node)
+        inst_info = utils.get_image_instance_info(node)
         image_service_mock.return_value.show.return_value = {
             'properties': {'kernel_id': '1111', 'ramdisk_id': '2222'},
         }
 
-        utils.validate_image_properties(self.context, d_info,
+        utils.validate_image_properties(self.context, inst_info,
                                         ['kernel_id', 'ramdisk_id'])
         image_service_mock.assert_called_once_with(
             node.instance_info['image_source'], context=self.context
@@ -2205,14 +2205,14 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
             driver_info=DRV_INFO_DICT,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
-        d_info = pxe._parse_instance_info(node)
+        inst_info = utils.get_image_instance_info(node)
         image_service_mock.return_value.show.return_value = {
             'properties': {'kernel_id': '1111'},
         }
 
         self.assertRaises(exception.MissingParameterValue,
                           utils.validate_image_properties,
-                          self.context, d_info, ['kernel_id', 'ramdisk_id'])
+                          self.context, inst_info, ['kernel_id', 'ramdisk_id'])
         image_service_mock.assert_called_once_with(
             node.instance_info['image_source'], context=self.context
         )
@@ -2220,28 +2220,28 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test_validate_image_properties_glance_image_not_authorized(
             self, image_service_mock):
-        d_info = {'image_source': 'uuid'}
+        inst_info = {'image_source': 'uuid'}
         show_mock = image_service_mock.return_value.show
         show_mock.side_effect = exception.ImageNotAuthorized(image_id='uuid')
         self.assertRaises(exception.InvalidParameterValue,
                           utils.validate_image_properties, self.context,
-                          d_info, [])
+                          inst_info, [])
 
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test_validate_image_properties_glance_image_not_found(
             self, image_service_mock):
-        d_info = {'image_source': 'uuid'}
+        inst_info = {'image_source': 'uuid'}
         show_mock = image_service_mock.return_value.show
         show_mock.side_effect = exception.ImageNotFound(image_id='uuid')
         self.assertRaises(exception.InvalidParameterValue,
                           utils.validate_image_properties, self.context,
-                          d_info, [])
+                          inst_info, [])
 
     def test_validate_image_properties_invalid_image_href(self):
-        d_info = {'image_source': 'emule://uuid'}
+        inst_info = {'image_source': 'emule://uuid'}
         self.assertRaises(exception.InvalidParameterValue,
                           utils.validate_image_properties, self.context,
-                          d_info, [])
+                          inst_info, [])
 
     @mock.patch.object(image_service.HttpImageService, 'show', autospec=True)
     def test_validate_image_properties_nonglance_image(
@@ -2259,8 +2259,8 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
             driver_info=DRV_INFO_DICT,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
-        d_info = pxe._parse_instance_info(node)
-        utils.validate_image_properties(self.context, d_info,
+        inst_info = utils.get_image_instance_info(node)
+        utils.validate_image_properties(self.context, inst_info,
                                         ['kernel', 'ramdisk'])
         image_service_show_mock.assert_called_once_with(
             mock.ANY, instance_info['image_source'])
@@ -2283,7 +2283,77 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
             driver_info=DRV_INFO_DICT,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
-        d_info = pxe._parse_instance_info(node)
+        inst_info = utils.get_image_instance_info(node)
         self.assertRaises(exception.InvalidParameterValue,
                           utils.validate_image_properties, self.context,
-                          d_info, ['kernel', 'ramdisk'])
+                          inst_info, ['kernel', 'ramdisk'])
+
+
+class ValidateParametersTestCase(db_base.DbTestCase):
+
+    def _test__get_img_instance_info(
+            self, instance_info=INST_INFO_DICT,
+            driver_info=DRV_INFO_DICT,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT):
+        # make sure we get back the expected things
+        node = obj_utils.create_test_node(
+            self.context,
+            driver='fake_pxe',
+            instance_info=instance_info,
+            driver_info=driver_info,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT,
+        )
+
+        info = utils.get_image_instance_info(node)
+        self.assertIsNotNone(info.get('image_source'))
+        return info
+
+    def test__get_img_instance_info_good(self):
+        self._test__get_img_instance_info()
+
+    def test__get_img_instance_info_good_non_glance_image(self):
+        instance_info = INST_INFO_DICT.copy()
+        instance_info['image_source'] = 'http://image'
+        instance_info['kernel'] = 'http://kernel'
+        instance_info['ramdisk'] = 'http://ramdisk'
+
+        info = self._test__get_img_instance_info(instance_info=instance_info)
+
+        self.assertIsNotNone(info.get('ramdisk'))
+        self.assertIsNotNone(info.get('kernel'))
+
+    def test__get_img_instance_info_non_glance_image_missing_kernel(self):
+        instance_info = INST_INFO_DICT.copy()
+        instance_info['image_source'] = 'http://image'
+        instance_info['ramdisk'] = 'http://ramdisk'
+
+        self.assertRaises(
+            exception.MissingParameterValue,
+            self._test__get_img_instance_info,
+            instance_info=instance_info)
+
+    def test__get_img_instance_info_non_glance_image_missing_ramdisk(self):
+        instance_info = INST_INFO_DICT.copy()
+        instance_info['image_source'] = 'http://image'
+        instance_info['kernel'] = 'http://kernel'
+
+        self.assertRaises(
+            exception.MissingParameterValue,
+            self._test__get_img_instance_info,
+            instance_info=instance_info)
+
+    def test__get_img_instance_info_missing_image_source(self):
+        instance_info = INST_INFO_DICT.copy()
+        del instance_info['image_source']
+
+        self.assertRaises(
+            exception.MissingParameterValue,
+            self._test__get_img_instance_info,
+            instance_info=instance_info)
+
+    def test__get_img_instance_info_whole_disk_image(self):
+        driver_internal_info = DRV_INTERNAL_INFO_DICT.copy()
+        driver_internal_info['is_whole_disk_image'] = True
+
+        self._test__get_img_instance_info(
+            driver_internal_info=driver_internal_info)
