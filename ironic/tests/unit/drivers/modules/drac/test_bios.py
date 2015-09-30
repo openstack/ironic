@@ -30,8 +30,8 @@ from ironic.drivers.modules.drac import resource_uris
 from ironic.tests.unit.conductor import utils as mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
-from ironic.tests.unit.drivers.drac import bios_wsman_mock
-from ironic.tests.unit.drivers.drac import utils as test_utils
+from ironic.tests.unit.drivers.modules.drac import bios_wsman_mock
+from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
 from six.moves.urllib.parse import unquote
 

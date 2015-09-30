@@ -22,7 +22,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules.cimc import common
 from ironic.drivers.modules.cimc import power
-from ironic.tests.unit.drivers.cimc import test_common
+from ironic.tests.unit.drivers.modules.cimc import test_common
 
 imcsdk = importutils.try_import('ImcSdk')
 
