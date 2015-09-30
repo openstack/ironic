@@ -29,6 +29,7 @@ from ironic.drivers.modules.amt import vendor as amt_vendor
 from ironic.drivers.modules.cimc import management as cimc_mgmt
 from ironic.drivers.modules.cimc import power as cimc_power
 from ironic.drivers.modules import iboot
+from ironic.drivers.modules.ilo import console as ilo_console
 from ironic.drivers.modules.ilo import deploy as ilo_deploy
 from ironic.drivers.modules.ilo import inspect as ilo_inspect
 from ironic.drivers.modules.ilo import management as ilo_management
@@ -212,7 +213,7 @@ class PXEAndIloDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = ilo_deploy.IloPXEDeploy()
         self.vendor = ilo_vendor.VendorPassthru()
-        self.console = ilo_deploy.IloConsoleInterface()
+        self.console = ilo_console.IloConsoleInterface()
         self.management = ilo_management.IloManagement()
         self.inspect = ilo_inspect.IloInspect()
         self.raid = agent.AgentRAID()

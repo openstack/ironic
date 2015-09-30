@@ -31,7 +31,6 @@ from ironic.drivers.modules import agent
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import boot as ilo_boot
 from ironic.drivers.modules.ilo import common as ilo_common
-from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
 
@@ -361,29 +360,3 @@ class IloPXEDeploy(iscsi_deploy.ISCSIDeploy):
         manager_utils.node_power_action(task, states.POWER_OFF)
         _disable_secure_boot_if_supported(task)
         return super(IloPXEDeploy, self).tear_down(task)
-
-
-class IloConsoleInterface(ipmitool.IPMIShellinaboxConsole):
-    """A ConsoleInterface that uses ipmitool and shellinabox."""
-
-    def get_properties(self):
-        d = ilo_common.REQUIRED_PROPERTIES.copy()
-        d.update(ilo_common.CONSOLE_PROPERTIES)
-        return d
-
-    def validate(self, task):
-        """Validate the Node console info.
-
-        :param task: a task from TaskManager.
-        :raises: InvalidParameterValue
-        :raises: MissingParameterValue when a required parameter is missing
-
-        """
-        node = task.node
-        driver_info = ilo_common.parse_driver_info(node)
-        if 'console_port' not in driver_info:
-            raise exception.MissingParameterValue(_(
-                "Missing 'console_port' parameter in node's driver_info."))
-
-        ilo_common.update_ipmi_properties(task)
-        super(IloConsoleInterface, self).validate(task)
