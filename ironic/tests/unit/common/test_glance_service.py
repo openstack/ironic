@@ -25,6 +25,7 @@ import mock
 from oslo_config import cfg
 from oslo_context import context
 from oslo_serialization import jsonutils
+from six.moves.urllib import parse as urlparse
 import testtools
 
 from ironic.common import exception
@@ -685,6 +686,65 @@ class TestGlanceSwiftTempURL(base.TestCase):
             method='GET')
 
     @mock.patch('swiftclient.utils.generate_temp_url', autospec=True)
+    def test_swift_temp_url_radosgw(self, tempurl_mock):
+        self.config(temp_url_endpoint_type='radosgw', group='glance')
+        path = ('/v1'
+                '/glance'
+                '/757274c4-2856-4bd2-bb20-9a4a231e187b')
+        tempurl_mock.return_value = (
+            path + '?temp_url_sig=hmacsig&temp_url_expires=1400001200')
+
+        self.service._validate_temp_url_config = mock.Mock()
+
+        temp_url = self.service.swift_temp_url(image_info=self.fake_image)
+
+        self.assertEqual(
+            (urlparse.urljoin(CONF.glance.swift_endpoint_url, 'swift') +
+             tempurl_mock.return_value),
+            temp_url)
+        tempurl_mock.assert_called_with(
+            path=path,
+            seconds=CONF.glance.swift_temp_url_duration,
+            key=CONF.glance.swift_temp_url_key,
+            method='GET')
+
+    @mock.patch('swiftclient.utils.generate_temp_url', autospec=True)
+    def test_swift_temp_url_radosgw_endpoint_with_swift(self, tempurl_mock):
+        self.config(swift_endpoint_url='https://swift.radosgw.com/swift',
+                    group='glance')
+        self.config(temp_url_endpoint_type='radosgw', group='glance')
+        path = ('/v1'
+                '/glance'
+                '/757274c4-2856-4bd2-bb20-9a4a231e187b')
+        tempurl_mock.return_value = (
+            path + '?temp_url_sig=hmacsig&temp_url_expires=1400001200')
+
+        self.service._validate_temp_url_config = mock.Mock()
+
+        temp_url = self.service.swift_temp_url(image_info=self.fake_image)
+
+        self.assertEqual(
+            CONF.glance.swift_endpoint_url + tempurl_mock.return_value,
+            temp_url)
+        tempurl_mock.assert_called_with(
+            path=path,
+            seconds=CONF.glance.swift_temp_url_duration,
+            key=CONF.glance.swift_temp_url_key,
+            method='GET')
+
+    @mock.patch('swiftclient.utils.generate_temp_url', autospec=True)
+    def test_swift_temp_url_radosgw_endpoint_invalid(self, tempurl_mock):
+        self.config(swift_endpoint_url='https://swift.radosgw.com/eggs/',
+                    group='glance')
+        self.config(temp_url_endpoint_type='radosgw', group='glance')
+        self.service._validate_temp_url_config = mock.Mock()
+
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.service.swift_temp_url,
+                          self.fake_image)
+        self.assertFalse(tempurl_mock.called)
+
+    @mock.patch('swiftclient.utils.generate_temp_url', autospec=True)
     def test_swift_temp_url_multiple_containers(self, tempurl_mock):
 
         self.config(swift_store_multiple_containers_seed=8,
@@ -731,6 +791,11 @@ class TestGlanceSwiftTempURL(base.TestCase):
         self.config(swift_account=None, group='glance')
         self.assertRaises(exception.MissingParameterValue,
                           self.service._validate_temp_url_config)
+
+    def test__validate_temp_url_no_account_exception_radosgw(self):
+        self.config(swift_account=None, group='glance')
+        self.config(temp_url_endpoint_type='radosgw', group='glance')
+        self.service._validate_temp_url_config()
 
     def test__validate_temp_url_endpoint_negative_duration(self):
         self.config(swift_temp_url_duration=-1,
