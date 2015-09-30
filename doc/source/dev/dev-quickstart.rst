@@ -163,11 +163,11 @@ Option 1: Manual Install
     # sudo apt-get install mysql-server
 
     # Fedora 21/RHEL7/CentOS7:
-    # sudo yum install mariadb
+    # sudo yum install mariadb mariadb-server
     # sudo systemctl start mariadb.service
 
     # Fedora 22 or higher:
-    # sudo dnf install mariadb
+    # sudo dnf install mariadb mariadb-server
     # sudo systemctl start mariadb.service
 
     # openSUSE/SLE 12:
