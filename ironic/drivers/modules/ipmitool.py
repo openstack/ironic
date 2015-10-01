@@ -1095,7 +1095,7 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
 
         path = _console_pwfile_path(driver_info['uuid'])
         pw_file = console_utils.make_persistent_password_file(
-            path, driver_info['password'])
+            path, driver_info['password'] or '\0')
 
         ipmi_cmd = ("/:%(uid)s:%(gid)s:HOME:ipmitool -H %(address)s"
                     " -I lanplus -U %(user)s -f %(pwfile)s"
