@@ -102,7 +102,7 @@ def fake_headers(admin=False):
     return headers
 
 
-class TestNoExceptionTracebackHook(base.FunctionalTest):
+class TestNoExceptionTracebackHook(base.BaseApiTest):
 
     TRACE = [u'Traceback (most recent call last):',
              u'  File "/opt/stack/ironic/ironic/openstack/common/rpc/amqp.py",'
@@ -177,7 +177,7 @@ class TestNoExceptionTracebackHook(base.FunctionalTest):
         self.assertEqual(self.MSG_WITH_TRACE, actual_msg)
 
 
-class TestContextHook(base.FunctionalTest):
+class TestContextHook(base.BaseApiTest):
     @mock.patch.object(context, 'RequestContext')
     def test_context_hook_not_admin(self, mock_ctx):
         headers = fake_headers(admin=False)
@@ -249,7 +249,7 @@ class TestContextHook(base.FunctionalTest):
             roles=headers['X-Roles'].split(','))
 
 
-class TestTrustedCallHook(base.FunctionalTest):
+class TestTrustedCallHook(base.BaseApiTest):
     def test_trusted_call_hook_not_admin(self):
         headers = fake_headers(admin=False)
         reqstate = FakeRequestState(headers=headers)
@@ -284,7 +284,7 @@ class TestTrustedCallHookCompatJuno(TestTrustedCallHook):
         self.skipTest('no public_api trusted call policy in juno')
 
 
-class TestPublicUrlHook(base.FunctionalTest):
+class TestPublicUrlHook(base.BaseApiTest):
 
     def test_before_host_url(self):
         headers = fake_headers()

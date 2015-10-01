@@ -44,7 +44,7 @@ class TestChassisObject(base.TestCase):
         self.assertEqual(wtypes.Unset, chassis.description)
 
 
-class TestListChassis(test_api_base.FunctionalTest):
+class TestListChassis(test_api_base.BaseApiTest):
 
     def test_empty(self):
         data = self.get_json('/chassis')
@@ -231,7 +231,7 @@ class TestListChassis(test_api_base.FunctionalTest):
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
 
-class TestPatch(test_api_base.FunctionalTest):
+class TestPatch(test_api_base.BaseApiTest):
 
     def setUp(self):
         super(TestPatch, self).setUp()
@@ -379,7 +379,7 @@ class TestPatch(test_api_base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
 
 
-class TestPost(test_api_base.FunctionalTest):
+class TestPost(test_api_base.BaseApiTest):
 
     @mock.patch.object(timeutils, 'utcnow')
     def test_create_chassis(self, mock_utcnow):
@@ -446,7 +446,7 @@ class TestPost(test_api_base.FunctionalTest):
         self.assertEqual(descr, result['description'])
 
 
-class TestDelete(test_api_base.FunctionalTest):
+class TestDelete(test_api_base.BaseApiTest):
 
     def test_delete_chassis(self):
         chassis = obj_utils.create_test_chassis(self.context)

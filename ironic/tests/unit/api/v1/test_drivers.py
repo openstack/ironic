@@ -27,7 +27,7 @@ from ironic.conductor import rpcapi
 from ironic.tests.unit.api import base
 
 
-class TestListDrivers(base.FunctionalTest):
+class TestListDrivers(base.BaseApiTest):
     d1 = 'fake-driver1'
     d2 = 'fake-driver2'
     h1 = 'fake-host1'
@@ -274,7 +274,7 @@ class TestListDrivers(base.FunctionalTest):
 
 @mock.patch.object(rpcapi.ConductorAPI, 'get_driver_properties')
 @mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for_driver')
-class TestDriverProperties(base.FunctionalTest):
+class TestDriverProperties(base.BaseApiTest):
 
     def test_driver_properties_fake(self, mock_topic, mock_properties):
         # Can get driver properties for fake driver.

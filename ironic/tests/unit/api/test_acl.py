@@ -28,7 +28,7 @@ cfg.CONF.import_opt('cache', 'keystonemiddleware.auth_token',
                     group='keystone_authtoken')
 
 
-class TestACL(base.FunctionalTest):
+class TestACL(base.BaseApiTest):
 
     def setUp(self):
         super(TestACL, self).setUp()
