@@ -481,9 +481,7 @@ def destroy_disk_metadata(dev, node_uuid):
     LOG.debug("Start destroy disk metadata for node %(node)s.",
               {'node': node_uuid})
     try:
-        utils.execute('dd', 'if=/dev/zero', 'of=%s' % dev,
-                      'bs=512', 'count=36', run_as_root=True,
-                      check_exit_code=[0])
+        utils.dd('/dev/zero', dev, 'bs=512', 'count=36')
     except processutils.ProcessExecutionError as err:
         with excutils.save_and_reraise_exception():
             LOG.error(_LE("Failed to erase beginning of disk for node "
@@ -506,9 +504,8 @@ def destroy_disk_metadata(dev, node_uuid):
     else:
         seek_value = block_sz - 36
         try:
-            utils.execute('dd', 'if=/dev/zero', 'of=%s' % dev,
-                          'bs=512', 'count=36', 'seek=%d' % seek_value,
-                          run_as_root=True, check_exit_code=[0])
+            utils.dd('/dev/zero', dev, 'bs=512', 'count=36',
+                     'seek=%d' % seek_value)
         except processutils.ProcessExecutionError as err:
             with excutils.save_and_reraise_exception():
                 LOG.error(_LE("Failed to erase the end of the disk on node "
