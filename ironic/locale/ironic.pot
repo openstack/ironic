@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 4.2.1.dev6\n"
+"Project-Id-Version: ironic 4.2.1.dev32\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-09-29 06:28+0000\n"
+"POT-Creation-Date: 2015-10-02 06:30+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1946,43 +1946,43 @@ msgid ""
 "times."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:543
+#: ironic/drivers/modules/deploy_utils.py:540
 #, python-format
 msgid ""
 "Can't download the configdrive content for node %(node)s from '%(url)s'. "
 "Reason: %(reason)s"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:552
+#: ironic/drivers/modules/deploy_utils.py:549
 #, python-format
 msgid ""
 "Config drive for node %s is not base64 encoded or the content is "
 "malformed."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:555
+#: ironic/drivers/modules/deploy_utils.py:552
 #, python-format
 msgid " Downloaded from \"%s\"."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:569
+#: ironic/drivers/modules/deploy_utils.py:566
 #, python-format
 msgid ""
 "Encountered error while decompressing and writing config drive for node "
 "%(node)s. Error: %(exc)s"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:644
+#: ironic/drivers/modules/deploy_utils.py:641
 #, python-format
 msgid "Root device '%s' not found"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:654
+#: ironic/drivers/modules/deploy_utils.py:651
 #, python-format
 msgid "'%(partition)s' device '%(part_device)s' not found"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:746
+#: ironic/drivers/modules/deploy_utils.py:743
 #: ironic/drivers/modules/iscsi_deploy.py:245
 #, python-format
 msgid ""
@@ -1990,67 +1990,67 @@ msgid ""
 "%(image_mb)d MB, Root size: %(root_mb)d MB"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:796
+#: ironic/drivers/modules/deploy_utils.py:793
 #, python-format
 msgid "Parent device '%s' not found"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:847
+#: ironic/drivers/modules/deploy_utils.py:844
 #, python-format
 msgid "%(error_msg)s. Missing are: %(missing_info)s"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:941
+#: ironic/drivers/modules/deploy_utils.py:938
 #, python-format
 msgid ""
 "Error parsing capabilities from Node %s instance_info field. A dictionary"
 " or a \"jsonified\" dictionary is expected."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:975
+#: ironic/drivers/modules/deploy_utils.py:972
 #, python-format
 msgid "get_clean_steps for node %(node)s returned invalid result: %(result)s"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:1011
+#: ironic/drivers/modules/deploy_utils.py:1008
 #, python-format
 msgid "Agent on node %(node)s returned bad command result: %(result)s"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:1083
+#: ironic/drivers/modules/deploy_utils.py:1080
 #, python-format
 msgid ""
 "The hints \"%(invalid_hints)s\" are invalid. Valid hints are: "
 "\"%(valid_hints)s\""
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:1093
+#: ironic/drivers/modules/deploy_utils.py:1090
 msgid "Root device hint \"size\" is not an integer value."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:1197
+#: ironic/drivers/modules/deploy_utils.py:1194
 #, python-format
 msgid ""
 "The parameter '%(capability)s' from %(field)s has an invalid value: "
 "'%(value)s'. Acceptable values are: %(valid_values)s."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:1249
+#: ironic/drivers/modules/deploy_utils.py:1246
 #, python-format
 msgid "Failed to connect to Glance to get the properties of the image %s"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:1253
+#: ironic/drivers/modules/deploy_utils.py:1250
 #, python-format
 msgid "Image %s can not be found."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:1265
+#: ironic/drivers/modules/deploy_utils.py:1262
 #, python-format
 msgid "Image %(image)s is missing the following properties: %(properties)s"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:1317
+#: ironic/drivers/modules/deploy_utils.py:1314
 #, python-format
 msgid ""
 "When creating cleaning ports, DHCP provider didn't return VIF port ID for"
@@ -2098,43 +2098,43 @@ msgid "Maximum retries for iBoot operations"
 msgstr ""
 
 #: ironic/drivers/modules/iboot.py:42
-msgid "Time between retry attempts for iBoot operations"
+msgid "Time (in seconds) between retry attempts for iBoot operations"
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:54
+#: ironic/drivers/modules/iboot.py:55
 msgid "IP address of the node. Required."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:55 ironic/drivers/modules/seamicro.py:72
+#: ironic/drivers/modules/iboot.py:56 ironic/drivers/modules/seamicro.py:72
 msgid "username. Required."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:56 ironic/drivers/modules/seamicro.py:70
+#: ironic/drivers/modules/iboot.py:57 ironic/drivers/modules/seamicro.py:70
 msgid "password. Required."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:59
+#: ironic/drivers/modules/iboot.py:60
 msgid "iBoot PDU relay id; default is 1. Optional."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:60
+#: ironic/drivers/modules/iboot.py:61
 msgid "iBoot PDU port; default is 9100. Optional."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:71
+#: ironic/drivers/modules/iboot.py:72
 #, python-format
 msgid "Missing the following iBoot credentials in node's driver_info: %s."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:83
+#: ironic/drivers/modules/iboot.py:84
 msgid "iBoot PDU relay id must be an integer."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:90
+#: ironic/drivers/modules/iboot.py:91
 msgid "iBoot PDU port must be an integer."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:238 ironic/drivers/modules/ipmitool.py:750
+#: ironic/drivers/modules/iboot.py:239 ironic/drivers/modules/ipmitool.py:750
 #: ironic/drivers/modules/snmp.py:701 ironic/drivers/modules/ssh.py:588
 #, python-format
 msgid "set_power_state called with invalid power state %s."
@@ -3063,15 +3063,14 @@ msgstr ""
 
 #: ironic/drivers/modules/drac/client.py:35
 msgid ""
-"In case there is a communication failure, the DRAC client is going to "
-"resend the request as many times as defined in this setting."
+"In case there is a communication failure, the DRAC client resends the "
+"request as many times as defined in this setting."
 msgstr ""
 
 #: ironic/drivers/modules/drac/client.py:40
 msgid ""
-"In case there is a communication failure, the DRAC client is going to "
-"wait for as many seconds as defined in this setting before resending the "
-"request."
+"In case there is a communication failure, the DRAC client waits for as "
+"many seconds as defined in this setting before resending the request."
 msgstr ""
 
 #: ironic/drivers/modules/drac/common.py:26
@@ -3460,13 +3459,13 @@ msgid ""
 msgstr ""
 
 #: ironic/drivers/modules/irmc/deploy.py:145
-#: ironic/tests/drivers/irmc/test_deploy.py:136
+#: ironic/tests/unit/drivers/irmc/test_deploy.py:136
 #, python-format
 msgid "Deploy ISO file, %(deploy_iso)s, not found for node: %(node)s."
 msgstr ""
 
 #: ironic/drivers/modules/irmc/deploy.py:177
-#: ironic/tests/drivers/irmc/test_deploy.py:233
+#: ironic/tests/unit/drivers/irmc/test_deploy.py:233
 #, python-format
 msgid "Boot ISO file, %(boot_iso)s, not found for node: %(node)s."
 msgstr ""

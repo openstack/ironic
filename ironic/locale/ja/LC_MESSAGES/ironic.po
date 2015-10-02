@@ -7,10 +7,10 @@
 # KATO Tomoyuki <kato.tomoyuki@jp.fujitsu.com>, 2015. #zanata
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 4.2.1.dev6\n"
+"Project-Id-Version: ironic 4.2.1.dev18\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-09-29 06:28+0000\n"
-"PO-Revision-Date: 2015-09-29 06:28+0000\n"
+"POT-Creation-Date: 2015-10-02 06:30+0000\n"
+"PO-Revision-Date: 2015-09-29 08:07+0000\n"
 "Last-Translator: KATO Tomoyuki <kato.tomoyuki@jp.fujitsu.com>\n"
 "Language: ja\n"
 "Language-Team: Japanese (http://www.transifex.com/openstack/ironic/language/"
@@ -24,6 +24,10 @@ msgstr ""
 #, python-format
 msgid " Downloaded from \"%s\"."
 msgstr "「%s」からダウンロードされました。"
+
+#, python-format
+msgid " after the completion of step \"%s\""
+msgstr "手順「%s」の完了後"
 
 #, fuzzy
 msgid " and "
@@ -243,6 +247,14 @@ msgid "Asynchronous exception for node %(node)s: %(msg)s exception: %(e)s"
 msgstr "ノード %(node)s の非同期例外: %(msg)s 例外: %(e)s"
 
 #, python-format
+msgid ""
+"Attribute %(attr)s cannot be set to value %(val)d. It must be between "
+"%(lower)d and %(upper)d."
+msgstr ""
+"%(attr)s 属性は、値を %(val)d に設定できません。%(lower)d から %(upper)d まで"
+"の間である必要があります。"
+
+#, python-format
 msgid "Attribute %(attr)s cannot be set to value %(val)s. It must be in %(ok)r"
 msgstr ""
 "%(attr)s 属性は値を %(val)s に設定できません。%(ok)r にある必要があります。"
@@ -358,6 +370,10 @@ msgstr "既存のノードの UUID を上書きできません。"
 
 msgid "Cannot overwrite UUID for an existing Port."
 msgstr "既存のポートの UUID を上書きできません。"
+
+#, python-format
+msgid "Cannot set read-only BIOS settings \"%r\""
+msgstr "読み込み専用の BIOS 設定「%r」を設定できません"
 
 msgid "Cannot update a conductor record directly."
 msgstr "conductor のレコードを直接更新することはできません。"
@@ -859,6 +875,9 @@ msgid "Failed to connect to Glance to get the properties of the image %s"
 msgstr ""
 "イメージ %s のプロパティーを取得するために Glance に接続できませんでした"
 
+msgid "Failed to continue agent deployment."
+msgstr "エージェントのデプロイの続行に失敗しました。"
+
 msgid "Failed to continue iSCSI deployment."
 msgstr "iSCSI デプロイメントを続行できませんでした。"
 
@@ -1103,6 +1122,14 @@ msgid ""
 msgstr ""
 "ノード %(node_id)s の IPMI 再起動に以下のエラーで失敗しました: %(error)s"
 
+#, python-format
+msgid ""
+"IPMI send raw bytes '%(bytes)s' failed for node %(node_id)s with the "
+"following error: %(error)s"
+msgstr ""
+"IPMI が、ローバイト「%(bytes)s」をノード %(node_id)s に次のエラーで送信できま"
+"せんでした: %(error)s"
+
 msgid "IPMI terminal port is not an integer."
 msgstr "IPMI ターミナルポートが整数ではありません。"
 
@@ -1245,6 +1272,10 @@ msgstr ""
 #, python-format
 msgid "Invalid protocol %s."
 msgstr "無効なプロトコル %s"
+
+#, python-format
+msgid "Invalid raw bytes string: '%s'"
+msgstr "無効なローバイト文字列: '%s'"
 
 msgid "Invalid resource state."
 msgstr "リソース状態が無効です。"
@@ -1478,6 +1509,23 @@ msgstr "権限がありません。"
 msgid "Number of retries when downloading an image from glance."
 msgstr "glance からイメージをダウンロードするとき、再試行する回数。"
 
+msgid ""
+"On ironic-conductor node, directory where master TFTP images are stored on "
+"disk."
+msgstr ""
+"ironic-conductor ノードにおいて、マスター TFTP イメージがディスク上に保存され"
+"るディレクトリー。"
+
+msgid ""
+"On ironic-conductor node, template file for PXE configuration for UEFI boot "
+"loader."
+msgstr ""
+"ironic-conductor ノードにおいて、UEFI ブートローダーの PXE 設定のテンプレート"
+"ファイル。"
+
+msgid "On ironic-conductor node, template file for PXE configuration."
+msgstr "ironic-conductor ノードにおいて、PXE 設定のテンプレートファイル。"
+
 msgid "On ironic-conductor node, the path to the main iPXE script file."
 msgstr ""
 "ironic-conductor ノードにおける、メインの iPXE スクリプトファイルのパス。"
@@ -1636,6 +1684,9 @@ msgstr ""
 "RAID 設定は複数のルートボリュームを持てません。%d 個のルートボリュームが指定"
 "されました。"
 
+msgid "Raw bytes string requires two bytes at least."
+msgstr "ローバイト文字列は少なくとも 2 バイト必要です。"
+
 msgid "Request not acceptable."
 msgstr "要求は受け入れられませんでした。"
 
@@ -1768,6 +1819,9 @@ msgstr ""
 
 msgid "SeaMicro terminal port is not an integer."
 msgstr "SeaMicro のターミナルポートが整数ではありません。"
+
+msgid "Seconds between conductor heart beats."
+msgstr "conductor のハートビート間隔の秒数"
 
 msgid "Seconds between running periodic tasks."
 msgstr "定期タスクの実行間隔 (秒単位)。"
@@ -1941,6 +1995,11 @@ msgstr ""
 "ヒント「%(invalid_hints)s」は無効です。有効なヒントは以下のとおりです: "
 "「%(valid_hints)s」"
 
+msgid ""
+"The maximum number of items returned in a single response from a collection "
+"resource."
+msgstr "コレクションリソースから 1 回の応答で最大数の項目が返されました。"
+
 #, python-format
 msgid "The method %(method)s does not support HTTP %(http)s"
 msgstr "メソッド %(method)s では HTTP %(http)s はサポートされていません"
@@ -1976,8 +2035,8 @@ msgstr "要求されたアクション「%(action)s」を認識できません�
 msgid "The sort_key value %(key)s is an invalid field for sorting"
 msgstr "sort_key の値 %(key)s が、並び替えのために有効な項目ではありません。"
 
-msgid "Time between retry attempts for iBoot operations"
-msgstr "iBoot 処理の再試行間隔"
+msgid "Time (in seconds) to wait for the console subprocess to start."
+msgstr "コンソールのサブプロセスの起動を待機する時間 (秒単位)"
 
 msgid "Timeout (in seconds) for iLO operations"
 msgstr "iLO 操作のタイムアウト (秒単位)"
@@ -2007,6 +2066,13 @@ msgstr "UCS Manager サービスプロファイル名。必須。"
 
 msgid "URL for connecting to neutron."
 msgstr "neutron に接続するための URL。"
+
+msgid ""
+"URL of Ironic API service. If not set ironic can get the current value from "
+"the keystone service catalog."
+msgstr ""
+"Ironic API サービスの URL。設定されていない場合、ironic は keystone のサービ"
+"スカタログから現在の値を取得できます。"
 
 msgid "UUID (from Glance) of the deployment ISO. Required."
 msgstr "デプロイメント ISO の (Glance からの) UUID。必須。"
@@ -2449,6 +2515,11 @@ msgid ""
 msgstr ""
 "set_boot_device がノード %(node_id)s の無効なデバイス %(device)s を使用して呼"
 "び出されました。"
+
+#, python-format
+msgid "set_power_state called for %(node)s with invalid state %(state)s"
+msgstr ""
+"%(node)s の set_power_state が、無効な状態 %(state)s で呼び出されました"
 
 #, python-format
 msgid ""

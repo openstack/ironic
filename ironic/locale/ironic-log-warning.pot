@@ -6,16 +6,16 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 4.1.0.106.gecf6fc1\n"
+"Project-Id-Version: ironic 4.2.1.dev32\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-09-24 21:22+0200\n"
+"POT-Creation-Date: 2015-10-02 06:30+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.0\n"
+"Generated-By: Babel 2.1.1\n"
 
 #: ironic/common/disk_partitioner.py:133
 #, python-format
@@ -267,35 +267,35 @@ msgstr ""
 msgid "No console pid found for node %s while trying to stop shellinabox console."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:1055
+#: ironic/drivers/modules/deploy_utils.py:1052
 #, python-format
 msgid ""
 "ipmitool is unable to set boot device while the node %s is in UEFI boot "
 "mode. Please set the boot device manually."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:117
+#: ironic/drivers/modules/iboot.py:118
 #, python-format
 msgid ""
-"Reached maximum number of attempts ( %(attempts)d ) to set power state "
-"for node %(node)s to \"%(op)s\""
+"Reached maximum number of attempts (%(attempts)d) to set power state for "
+"node %(node)s to \"%(op)s\""
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:130
+#: ironic/drivers/modules/iboot.py:131
 #, python-format
 msgid ""
 "Cannot call set power state for node '%(node)s' at relay '%(relay)s'. "
 "iBoot switch() failed."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:148
+#: ironic/drivers/modules/iboot.py:149
 #, python-format
 msgid ""
-"Reached maximum number of attempts ( %(attempts)d ) to get power state "
-"for node %(node)s"
+"Reached maximum number of attempts (%(attempts)d) to get power state for "
+"node %(node)s"
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:164
+#: ironic/drivers/modules/iboot.py:165
 #, python-format
 msgid ""
 "Cannot get power state for node '%(node)s' at relay '%(relay)s'. iBoot "
