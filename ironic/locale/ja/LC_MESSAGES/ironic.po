@@ -1,0 +1,2626 @@
+# Japanese translations for ironic.
+# Copyright (C) 2015 ORGANIZATION
+# This file is distributed under the same license as the ironic project.
+#
+# Translators:
+# Tomoyuki KATO <tomo@dream.daynight.jp>, 2013
+# Akihiro Motoki <amotoki@gmail.com>, 2015. #zanata
+# KATO Tomoyuki <kato.tomoyuki@jp.fujitsu.com>, 2015. #zanata
+msgid ""
+msgstr ""
+"Project-Id-Version: ironic 4.2.1.dev18\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2015-10-02 06:31+0000\n"
+"PO-Revision-Date: 2015-10-02 02:51+0000\n"
+"Last-Translator: Akihiro Motoki <amotoki@gmail.com>\n"
+"Language: ja\n"
+"Language-Team: Japanese (http://www.transifex.com/openstack/ironic/language/"
+"ja/)\n"
+"Plural-Forms: nplurals=1; plural=0\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.1.1\n"
+
+#, python-format
+msgid " Downloaded from \"%s\"."
+msgstr "「%s」からダウンロードされました。"
+
+#, python-format
+msgid " after the completion of step \"%s\""
+msgstr "手順「%s」の完了後"
+
+#, fuzzy
+msgid " and "
+msgstr " および "
+
+#, python-format
+msgid "\"%s\" is not a valid \"msftocs_base_url\""
+msgstr "「%s」は有効な「msftocs_base_url」ではありません。"
+
+#, python-format
+msgid "\"%s\" is not a valid \"msftocs_blade_id\""
+msgstr "「%s」は有効な「msftocs_blade_id」ではありません。"
+
+#, python-format
+msgid "\"msftocs_blade_id\" must be greater than 0. The provided value is: %s"
+msgstr "「msftocs_blade_id」は 0 より大きい必要があります。指定された値: %s"
+
+msgid "\"swift_temp_url_duration\" must be a positive integer."
+msgstr "「swift_temp_url_duration」は正の整数である必要があります。"
+
+#, python-format
+msgid "%(err)s"
+msgstr "%(err)s"
+
+#, python-format
+msgid "%(error_msg)s. Missing are: %(missing_info)s"
+msgstr "%(error_msg)s。不足情報: %(missing_info)s"
+
+#, python-format
+msgid ""
+"%(exec_error)s\n"
+"Command: %(command)s"
+msgstr ""
+"%(exec_error)s\n"
+"コマンド: %(command)s"
+
+#, python-format
+msgid "%(operation)s failed, error: %(error)s"
+msgstr "%(operation)s が失敗しました。エラー: %(error)s"
+
+#, python-format
+msgid "%(operation)s not supported. error: %(error)s"
+msgstr "%(operation)s はサポートされていません。エラー: %(error)s"
+
+#, python-format
+msgid "%(param)s not provided"
+msgstr "%(param)s が指定されていません"
+
+#, python-format
+msgid "%s is not JSON serializable"
+msgstr "%s が JSON シリアライズ可能ではありません"
+
+#, python-format
+msgid "%s is not an integer value."
+msgstr "%s は整数値ではありません。"
+
+#, python-format
+msgid "'%(partition)s' device '%(part_device)s' not found"
+msgstr "「%(partition)s」のデバイス「%(part_device)s」が見つかりません"
+
+#, python-format
+msgid "'%s' contains non-ASCII symbol."
+msgstr "「%s」に非 ASCII 記号が含まれています。"
+
+#, python-format
+msgid "'%s' is a mandatory attribute and can not be removed"
+msgstr "「%s」は必須属性であり、削除できません"
+
+#, python-format
+msgid "'%s' is an internal attribute and can not be updated"
+msgstr "「%s」は内部属性であり、更新できません"
+
+#, python-format
+msgid "'%s' not supplied to DracDriver."
+msgstr "「%s」が DracDriver に提供されていません。"
+
+msgid "'add' and 'replace' operations need a value"
+msgstr "'add' と 'replace' 処理には、値が必要です。"
+
+msgid "'drac_path' contains non-ASCII symbol."
+msgstr "「drac_path」に非 ASCII 記号が含まれています。"
+
+msgid "'drac_port' is not an integer value."
+msgstr "「drac_port」が整数値ではありません。"
+
+msgid "'drac_protocol' contains non-ASCII symbol."
+msgstr "「drac_protocol」に非 ASCII 記号が含まれています。"
+
+msgid "'irmc_auth_method' has unsupported value."
+msgstr "「irmc_auth_method」にサポートされない値があります。"
+
+msgid "'irmc_client_timeout' is not integer type."
+msgstr "「irmc_client_timeout」が整数ではありません。"
+
+msgid "'irmc_port' has unsupported value."
+msgstr "「irmc_port」にサポートされない値があります。"
+
+msgid "'irmc_sensor_method' has unsupported value."
+msgstr "「irmc_sensor_method」にサポートされない値があります。"
+
+msgid "'qemu-img info' parsing failed."
+msgstr "「qemu-img info」の解析に失敗しました。"
+
+#, python-format
+msgid "'set_power_state' called with invalid power state '%s'"
+msgstr "無効な電源状態「%s」で「set_power_state」が呼び出されました"
+
+msgid "'virtualbox_port' is not an integer."
+msgstr "「virtualbox_port」が整数ではありません。"
+
+msgid ""
+"(list of) filename(s) of optional private key(s) for authentication. One of "
+"this, ssh_key_contents, or ssh_password must be specified."
+msgstr ""
+"認証に使用するオプションの秘密鍵のファイル名 (の一覧)。この中の 1 つ、"
+"ssh_key_contents、または ssh_password のいずれかを指定する必要があります。"
+
+#, python-format
+msgid "A chassis with UUID %(uuid)s already exists."
+msgstr "UUID %(uuid)s のシャーシは既に存在します。"
+
+#, python-format
+msgid "A node with UUID %(uuid)s already exists."
+msgstr "UUID %(uuid)s のノードは既に存在します。"
+
+#, python-format
+msgid "A node with name %(name)s already exists."
+msgstr "名前が %(name)s のノードは既に存在します。"
+
+#, python-format
+msgid "A port with MAC address %(mac)s already exists."
+msgstr "MAC アドレス %(mac)s のポートは既に存在します。"
+
+#, python-format
+msgid "A port with UUID %(uuid)s already exists."
+msgstr "UUID %(uuid)s のポートは既に存在します。"
+
+#, python-format
+msgid "AMT call failed: %(cmd)s."
+msgstr "AMT 呼び出しに失敗しました: %(cmd)s。"
+
+#, python-format
+msgid "AMT driver requires the following to be set in node's driver_info: %s."
+msgstr ""
+"AMT ドライバーはノードの driver_info に次のパラメーターの設定を必要とします: "
+"%s。"
+
+msgid "API endpoint. Required."
+msgstr "API エンドポイント。必須。"
+
+msgid "API version to use for communicating with the ramdisk agent."
+msgstr "ramdisk エージェントと通信するために使用する API バージョン。"
+
+#, python-format
+msgid ""
+"Adding a config drive is only supported when setting provision state to %s"
+msgstr ""
+"コンフィグドライブの追加は、配備状態が %s に設定されている場合にのみサポート"
+"されます"
+
+#, python-format
+msgid "Adding a new attribute (%s) to the root of  the resource is not allowed"
+msgstr "リソースのルートへの新規属性 (%s) の追加は許可されません"
+
+msgid "Additional append parameters for baremetal PXE boot."
+msgstr "ベアメタル PXE ブート向けの追加の append パラメーター。"
+
+msgid "Agent driver requires agent_url in driver_internal_info"
+msgstr ""
+"エージェントドライバーは driver_internal_info 内に agent_url を必要とします"
+
+#, python-format
+msgid "Agent on node %(node)s returned bad command result: %(result)s"
+msgstr ""
+"ノード %(node)s 上のエージェントから正しくないコマンド結果が返されました: "
+"%(result)s"
+
+#, python-format
+msgid ""
+"Agent returned error for clean step %(step)s on node %(node)s : %(err)s."
+msgstr ""
+"エージェントからノード %(node)s でのクリーニングステップ %(step)s に関するエ"
+"ラーが返されました: %(err)s。"
+
+#, fuzzy, python-format
+msgid ""
+"Agent returned unknown status for clean step %(step)s on node %(node)s : "
+"%(err)s."
+msgstr ""
+"エージェントからノード %(node)s でのクリーニング・ステップ %(step)s に関して"
+"不明な状況が返されました: %(err)s。"
+
+msgid ""
+"An exclusive lock is required, but the current context has a shared lock."
+msgstr ""
+"排他ロックが要求されましたが、現在のコンテキストには共有ロックがあります。"
+
+msgid ""
+"An integer value between 0 and 32 is required for "
+"swift_store_multiple_containers_seed."
+msgstr ""
+"swift_store_multiple_containers_seed には 0 から 32 までの整数値が必要です。"
+
+msgid "An unknown exception occurred."
+msgstr "不明な例外が発生しました。"
+
+#, python-format
+msgid ""
+"Another job with ID %(job_id)s is already created  to configure %(target)s. "
+"Wait until existing job is completed or is canceled"
+msgstr ""
+"別の ID %(job_id)s のジョブが、すでに %(target)s を設定するために作成されてい"
+"ます。既存のジョブが完了するか、取り消されるまで待ってください。"
+
+#, python-format
+msgid "Asynchronous exception for node %(node)s: %(msg)s exception: %(e)s"
+msgstr "ノード %(node)s の非同期例外: %(msg)s 例外: %(e)s"
+
+#, python-format
+msgid ""
+"Attribute %(attr)s cannot be set to value %(val)d. It must be between "
+"%(lower)d and %(upper)d."
+msgstr ""
+"%(attr)s 属性は値 %(val)d には設定できません。%(lower)d から %(upper)d までの"
+"間である必要があります。"
+
+#, python-format
+msgid "Attribute %(attr)s cannot be set to value %(val)s. It must be in %(ok)r"
+msgstr ""
+"%(attr)s 属性は値 %(val)s には設定できません。%(ok)r にある必要があります。"
+
+msgid ""
+"Authentication method for iRMC operations; either 'basic' or 'digest'. The "
+"default value is 'basic'. Optional."
+msgstr ""
+"iRMC 操作の認証方式。「basic」または「digest」。デフォルト値は「basic」。オプ"
+"ション。"
+
+msgid ""
+"Authentication method to be used for iRMC operations, either \"basic\" or "
+"\"digest\""
+msgstr "iRMC の操作に使用する認証方式。「basic」か「digest」のどちらか。"
+
+msgid "Available commands"
+msgstr "利用できるコマンド"
+
+msgid ""
+"Base url of the OCS chassis manager REST API, e.g.: http://10.0.0.1:8000. "
+"Required."
+msgstr ""
+"OCS シャーシマネージャーの REST API のベース URL。例: http://10.0.0.1:8000。"
+"必須。"
+
+msgid ""
+"Blade id, must be a number between 1 and the maximum number of blades "
+"available in the chassis. Required."
+msgstr ""
+"ブレード ID。有効な値は 1 からシャーシ内で利用できるブレードの最大数の間で"
+"す。必須。"
+
+msgid "Block size to use when writing to the nodes disk."
+msgstr "ノードのディスク書き込み時に使用するブロック容量。"
+
+#, python-format
+msgid "Boot ISO file, %(boot_iso)s, not found for node: %(node)s."
+msgstr ""
+"ノード %(node)s のブート ISO ファイル %(boot_iso)s が見つかりませんでした。"
+
+msgid "Bootfile DHCP parameter for UEFI boot mode."
+msgstr "UEFI ブートモードの起動ファイルの DHCP のパラメーター。"
+
+msgid "Bootfile DHCP parameter."
+msgstr "起動ファイルの DHCP のパラメーター。"
+
+msgid "Broadcast IP address; defaults to 255.255.255.255. Optional."
+msgstr ""
+"ブロードキャスト IP アドレス。デフォルトは 255.255.255.255。オプション。"
+
+msgid "CIMC Manager admin username. Required."
+msgstr "CIMC Manager の管理ユーザー名。必須。"
+
+msgid "CIMC Manager password. Required."
+msgstr "CIMC Manager のパスワード。必須。"
+
+#, python-format
+msgid ""
+"Can't download the configdrive content for node %(node)s from '%(url)s'. "
+"Reason: %(reason)s"
+msgstr ""
+"ノード %(node)s のコンフィグドライブ内容を %(url)s からダウンロードできませ"
+"ん。理由: %(reason)s"
+
+#, python-format
+msgid "Cannot compile public API routes: %s"
+msgstr "パブリック API ルートをコンパイルできません: %s"
+
+#, python-format
+msgid ""
+"Cannot complete the requested action because chassis %(chassis)s contains "
+"nodes."
+msgstr ""
+"シャーシ %(chassis)s にノードが含まれているため、要求されたアクションを完了で"
+"きません。"
+
+#, python-format
+msgid ""
+"Cannot continue cleaning on %(node)s, node is in %(state)s state, should be "
+"%(clean_state)s"
+msgstr ""
+"%(node)s のクリーニングを続行できません。ノードが %(state)s 状態で"
+"す。%(clean_state)s でなければなりません"
+
+#, python-format
+msgid ""
+"Cannot create directory '%(path)s' for console PID file. Reason: %(reason)s."
+msgstr ""
+"コンソール PID ファイルのディレクトリー「%(path)s」を作成できません。理由: "
+"%(reason)s。"
+
+#, python-format
+msgid "Cannot create node with invalid name %(name)s"
+msgstr "無効な名前 %(name)s でノードを作成することはできません"
+
+msgid "Cannot deploy whole disk image with swap or ephemeral size set"
+msgstr ""
+"スワップまたは一時サイズ設定ではディスクイメージ全体をデプロイできません"
+
+msgid ""
+"Cannot determine image size as there is no Content-Length header specified "
+"in response to HEAD request."
+msgstr ""
+"HEAD 要求に対する応答で Content-Length ヘッダーが指定されていないため、イメー"
+"ジ容量を判別できません。"
+
+msgid "Cannot overwrite UUID for an existing Chassis."
+msgstr "既存のシャーシの UUID を上書きできません。"
+
+msgid "Cannot overwrite UUID for an existing Node."
+msgstr "既存のノードの UUID を上書きできません。"
+
+msgid "Cannot overwrite UUID for an existing Port."
+msgstr "既存のポートの UUID を上書きできません。"
+
+#, python-format
+msgid "Cannot set read-only BIOS settings \"%r\""
+msgstr "読み込み専用の BIOS 設定「%r」を設定できません"
+
+msgid "Cannot update a conductor record directly."
+msgstr "conductor のレコードを直接更新することはできません。"
+
+msgid ""
+"Cannot validate PXE bootloader. Some parameters were missing in node's "
+"driver_info"
+msgstr ""
+"PXE ブートローダーを検証できません。いくつかのパラメーターがノードの "
+"driver_info に不足しています。"
+
+msgid ""
+"Cannot validate iSCSI deploy. Some parameters were missing in node's "
+"instance_info"
+msgstr ""
+"iSCSI デプロイを検証できません。ノードの instance_info でいくつかのパラメー"
+"ターが不足しています。"
+
+#, python-format
+msgid ""
+"Cannot validate parameter for iSCSI deploy. Invalid parameter %(param)s. "
+"Reason: %(reason)s"
+msgstr ""
+"iSCSI デプロイのパラメーターを検証できません。無効なパラメーター: %(param)s、"
+"理由: %(reason)s"
+
+#, python-format
+msgid "Chassis %(chassis)s could not be found."
+msgstr "シャーシ %(chassis)s が見つかりませんでした。"
+
+msgid "Chassis id not specified."
+msgstr "シャーシ ID が指定されていません。"
+
+#, python-format
+msgid "Cisco IMC exception occurred for node %(node)s: %(error)s"
+msgstr "Cisco IMC 例外がノード %(node)s で発生しました: %(error)s"
+
+#, python-format
+msgid ""
+"Cisco UCS client: connection failed for node %(node)s. Reason: %(error)s"
+msgstr ""
+"Cisco UCS クライアント: %(node)s ノードの接続に失敗しました。理由: %(error)s"
+
+#, python-format
+msgid ""
+"Cisco UCS client: operation %(operation)s failed for node %(node)s. Reason: "
+"%(error)s"
+msgstr ""
+"Cisco UCS クライアント:  %(node)s ノードの %(operation)s 処理に失敗しました。"
+"理由: %(error)s"
+
+#, python-format
+msgid "Clean step %(step)s failed on node %(node)s with error: %(err)s"
+msgstr ""
+"クリーニングステップ %(step)s がノード %(node)s で失敗しました。エラー: "
+"%(err)s"
+
+#, python-format
+msgid "Clean step '%s' not found. 'proliantutils' package needs to be updated."
+msgstr ""
+"クリーニングステップ「%s」が見つかりません。「proliantutils」パッケージは更新"
+"が必要です。"
+
+#, python-format
+msgid "Cleanup failed for node %(node)s after deploy timeout:  %(error)s"
+msgstr ""
+"デプロイのタイムアウト後、ノード %(node)s のクリーンアップに失敗しました: "
+"%(error)s"
+
+#, python-format
+msgid "Colliding attributes %r"
+msgstr "相反する属性 %r"
+
+#, python-format
+msgid ""
+"Command: %(command)s.\n"
+"Exit code: %(return_code)s.\n"
+"Stdout: %(stdout)r\n"
+"Stderr: %(stderr)r"
+msgstr ""
+"コマンド: %(command)s。\n"
+"終了コード: %(return_code)s。\n"
+"標準出力: %(stdout)r\n"
+"標準エラー: %(stderr)r"
+
+#, python-format
+msgid "Conductor %(conductor)s already registered."
+msgstr "コンダクター %(conductor)s は既に登録されています。"
+
+#, python-format
+msgid ""
+"Conductor %(conductor)s cannot be started because no drivers were loaded."
+msgstr ""
+"ドライバーが読み込まれていないため、コンダクター %(conductor)s を開始できませ"
+"ん。"
+
+#, python-format
+msgid "Conductor %(conductor)s could not be found."
+msgstr "コンダクター %(conductor)s が見つかりませんでした。"
+
+#, python-format
+msgid ""
+"Config drive for node %s is not base64 encoded or the content is malformed."
+msgstr ""
+"ノード %s のコンフィグドライブが Base64 エンコードされていないか、内容の形式"
+"が誤っています。"
+
+msgid "Conflict."
+msgstr "競合があります。"
+
+#, python-format
+msgid ""
+"Conflict: Whole disk image being used for deploy, but cannot be used with "
+"node %(node_uuid)s configured to use UEFI boot with netboot option"
+msgstr ""
+"競合: ディスク・イメージ全体がデプロイに使用されていますが、netboot オプショ"
+"ン指定で UEFI を使用するように構成されたノード %(node_uuid)s では使用できませ"
+"ん"
+
+#, python-format
+msgid ""
+"Conflict: iPXE is enabled, but cannot be used with node%(node_uuid)s "
+"configured to use UEFI boot"
+msgstr ""
+"競合: iPXE が有効になっていますが、UEFI ブートを使用するように構成されたノー"
+"ド %(node_uuid)s では使用できません"
+
+msgid "Connection failed"
+msgstr "接続が失敗しました"
+
+#, python-format
+msgid "Connection to glance host %(host)s:%(port)s failed: %(reason)s"
+msgstr "Glance ホスト %(host)s:%(port)s への接続に失敗しました: %(reason)s"
+
+#, python-format
+msgid "Console access is not enabled on node %(node)s"
+msgstr "ノード %(node)s でコンソールアクセスが有効になっていません"
+
+#, python-format
+msgid "Console subprocess failed to start. %(error)s"
+msgstr "コンソールのサブプロセスの開始に失敗しました。%(error)s"
+
+#, python-format
+msgid "Converted to raw, but format is now %s"
+msgstr "ロー形式に変換されましたが、現在の形式は %s です"
+
+msgid "Copying floppy image file"
+msgstr "フロッピーイメージファイルのコピー中"
+
+#, python-format
+msgid "Could not authorize in Keystone: %s"
+msgstr "keystone で認可できませんでした: %s"
+
+#, python-format
+msgid ""
+"Could not create cleaning port on network %(net)s from %(node)s. %(exc)s"
+msgstr ""
+"%(node)s からネットワーク %(net)s にクリーニングポートを作成できませんでし"
+"た。%(exc)s"
+
+#, python-format
+msgid "Could not find config at %(path)s"
+msgstr "%(path)s に config がありませんでした"
+
+#, python-format
+msgid "Could not find pid in pid file %(pid_path)s"
+msgstr "pid ファイル %(pid_path)s に pid が見つかりませんでした"
+
+#, python-format
+msgid "Could not find the following driver(s): %(driver_name)s."
+msgstr "次のドライバーが見つかりませんでした。%(driver_name)s"
+
+#, python-format
+msgid ""
+"Could not get cleaning network vif for %(node)s from Neutron, possible "
+"network issue. %(exc)s"
+msgstr ""
+"%(node)s のクリーニングネットワークの仮想インターフェースを Neutron から取得"
+"できませんでした。ネットワークの問題が考えられます。%(exc)s"
+
+#, python-format
+msgid ""
+"Could not remove cleaning ports on network %(net)s from %(node)s, possible "
+"network issue. %(exc)s"
+msgstr ""
+"ネットワーク %(net)s 上でクリーニング・ポートを %(node)s から削除できませんで"
+"した。ネットワークの問題が考えられます。%(exc)s"
+
+#, python-format
+msgid "Could not restart cleaning on node %(node)s: %(err)s."
+msgstr "ノード %(node)s でクリーニングを再開できませんでした: %(err)s。"
+
+#, python-format
+msgid "Could not stop the console for node '%(node)s'. Reason: %(err)s."
+msgstr "ノード「%(node)s」のコンソールを停止できませんでした。理由: %(err)s。"
+
+#, python-format
+msgid "Couldn't apply patch '%(patch)s'. Reason: %(reason)s"
+msgstr "パッチ「%(patch)s」を適用できませんでした。理由: %(reason)s"
+
+#, python-format
+msgid ""
+"Couldn't determine the UUID of the root partition or the disk identifier "
+"after deploying node %s"
+msgstr ""
+"ノード %s のデプロイ後にルートパーティションの UUID またはディスク ID を認識"
+"できませんでした"
+
+#, python-format
+msgid ""
+"Couldn't get the URL of the Ironic API service from the configuration file "
+"or keystone catalog. Keystone error: %s"
+msgstr ""
+"Ironic API サービスの URL を構成ファイルまたは keystone カタログから取得でき"
+"ませんでした。keystone エラー: %s"
+
+msgid "Create a new alembic revision. Use --message to set the message string."
+msgstr ""
+"新しい Alembic バージョンを作成します。--message を使用して、メッセージ文字列"
+"を設定します。"
+
+msgid "Create the database schema."
+msgstr "データベースのスキーマを作成します。"
+
+#, python-format
+msgid "Creating %(image_type)s image failed: %(error)s"
+msgstr "%(image_type)s イメージの作成に失敗しました: %(error)s"
+
+msgid ""
+"DHCP provider to use. \"neutron\" uses Neutron, and \"none\" uses a no-op "
+"provider."
+msgstr ""
+"使用する DHCP プロバイダー。「neutron」は Neutron、「none」は何もしないプロバ"
+"イダーを使用します。"
+
+#, python-format
+msgid ""
+"DRAC client failed. Last error (cURL error code): %(last_error)s, fault "
+"string: \"%(fault_string)s\" response_code: %(response_code)s"
+msgstr ""
+"DRAC クライアントで障害が発生しました。最終エラー (cURL エラーコード): "
+"%(last_error)s、エラー文字列: \"%(fault_string)s\"、応答コード: "
+"%(response_code)s"
+
+#, python-format
+msgid "DRAC operation failed. Message: %(message)s"
+msgstr "DRAC 操作が失敗しました。メッセージ: %(message)s"
+
+#, python-format
+msgid ""
+"DRAC operation yielded return value %(actual_return_value)s that is neither "
+"error nor expected %(expected_return_value)s"
+msgstr ""
+"DRAC 処理が、エラーでも予期された %(expected_return_value)s でもない戻り値 "
+"%(actual_return_value)s を受け取りました。"
+
+msgid "Default glance hostname or IP address."
+msgstr "デフォルトの glance ホスト名または IP アドレス。"
+
+msgid "Default glance port."
+msgstr "デフォルトの glance ポート。"
+
+msgid ""
+"Default protocol to use when connecting to glance. Set to https for SSL."
+msgstr ""
+"glance 接続時に使用するデフォルトのプロトコル。SSL には https を設定します。"
+
+#, python-format
+msgid "Deploy ISO file, %(deploy_iso)s, not found for node: %(node)s."
+msgstr ""
+"ノード %(node)s のデプロイ ISO ファイル %(deploy_iso)s が見つかりませんでし"
+"た。"
+
+#, python-format
+msgid "Deploy failed for instance %(instance)s. Error: %(error)s"
+msgstr "インスタンス %(instance)s のデプロイに失敗しました。エラー: %(error)s"
+
+msgid "Deploy iso didn't contain efiboot.img or grub.cfg"
+msgstr "デプロイ ISO に efiboot.img も grub.cfg も含まれていませんでした"
+
+#, python-format
+msgid "Deploy key %(key_sent)s does not match with %(expected_key)s"
+msgstr "デプロイキー %(key_sent)s が %(expected_key)s に一致しません"
+
+msgid "Deploy key does not match"
+msgstr "デプロイキーが一致しません"
+
+msgid ""
+"Deploy timed out, but an unhandled exception was encountered while aborting. "
+"More info may be found in the log file."
+msgstr ""
+"デプロイがタイムアウトになりましたが、中止中に未処理例外が発生しました。詳細"
+"情報はログファイルに記録されている可能性があります。"
+
+msgid "Deployment ISO image file name. Required."
+msgstr "デプロイ ISO イメージのファイル名。必須。"
+
+msgid "Destination port; defaults to 9. Optional."
+msgstr "宛先ポート。デフォルトは 9。オプション。"
+
+#, python-format
+msgid "Directory %(dir)s is not writable."
+msgstr "ディレクトリー %(dir)s が書き込みできません。"
+
+msgid "Directory where ironic binaries are installed."
+msgstr "ironic のバイナリーがインストールされるディレクトリー。"
+
+msgid "Directory where the ironic python module is installed."
+msgstr "ironic python モジュールがインストールされるディレクトリー。"
+
+#, python-format
+msgid ""
+"Disk partitioning failed on device %(device)s. Fuser exited with "
+"\"%(fuser_err)s\". Time out waiting for completion."
+msgstr ""
+"ディスクのパーティション作成がデバイス %(device)s で失敗しました。fuser が"
+"「%(fuser_err)s」で終了しました。コンパイルの待機中にタイムアウトになりまし"
+"た。"
+
+#, python-format
+msgid ""
+"Disk partitioning failed on device %(device)s. Processes with the following "
+"PIDs are holding it: %(pids)s. Time out waiting for completion."
+msgstr ""
+"ディスクのパーティション作成がデバイス %(device)s で失敗しました。PID "
+"%(pids)s のプロセスがこのデバイスを保持しています。コンパイルの待機中にタイム"
+"アウトになりました。"
+
+#, python-format
+msgid ""
+"Disk volume where '%(path)s' is located doesn't have enough disk space. "
+"Required %(required)d MiB, only %(actual)d MiB available space present."
+msgstr ""
+"「%(path)s」があるディスク・ボリュームに十分なディスク容量がありませ"
+"ん。%(required)d Mib が必要ですが、使用可能な容量は%(actual)d MiB のみです。"
+
+msgid ""
+"Downgrade the database schema to the oldest revision. While optional, one "
+"should generally use --revision to specify the alembic revision string to "
+"downgrade to."
+msgstr ""
+"データベースのスキーマを最も古いバージョンにダウングレードします。オプション"
+"ですが、 一般的には --revision を使用して、ダウングレードする Alembic バー"
+"ジョン文字列を指定すべきです。"
+
+#, python-format
+msgid "Driver %(driver)s could not be loaded. Reason: %(reason)s."
+msgstr "%(driver)s ドライバーを読み込めませんでした。理由: %(reason)s。"
+
+#, python-format
+msgid ""
+"Driver %(driver)s does not support %(extension)s (disabled or not "
+"implemented)."
+msgstr ""
+"ドライバー %(driver)s では %(extension)s はサポートされていません (有効化され"
+"ていないか、実装されていません)。"
+
+#, python-format
+msgid "During inspection, driver returned unexpected state %(state)s"
+msgstr "検査中にドライバーから予期しない状態 %(state)s が返されました"
+
+#, python-format
+msgid ""
+"During sync_power_state, max retries exceeded for node %(node)s, node state "
+"%(actual)s does not match expected state '%(state)s'. Updating DB state to "
+"'%(actual)s' Switching node to maintenance mode."
+msgstr ""
+"sync_power_state 中にノード %(node)s の最大再試行回数を超えました。ノード状"
+"態 %(actual)s が予期された状態「%(state)s」に一致しません。DB 状態を"
+"「%(actual)s」に更新し、ノードを保守モードに切り替えます。"
+
+#, python-format
+msgid "Eject virtual media %s"
+msgstr "仮想メディア %s を取り出します"
+
+msgid "Ejecting virtual cdrom"
+msgstr "仮想 CD-ROM の取り出し中"
+
+msgid "Ejecting virtual floppy"
+msgstr "仮想フロッピーの取り出し中"
+
+msgid "Enable iPXE boot."
+msgstr "iPXE ブートを有効化します。"
+
+msgid ""
+"Enable pecan debug mode. WARNING: this is insecure and should not be used in "
+"a production environment."
+msgstr ""
+"pecan デバッグモードを有効化します。警告: これはセキュリティーを低下させま"
+"す。本番環境において使用すべきではありません。"
+
+#, python-format
+msgid ""
+"Encountered error while decompressing and writing config drive for node "
+"%(node)s. Error: %(exc)s"
+msgstr ""
+"ノード %(node)s のコンフィグドライブの展開および書き込み中にエラーが検出され"
+"ました。エラー: %(exc)s"
+
+#, python-format
+msgid "Error %(op)s the console on node %(node)s. Reason: %(error)s"
+msgstr ""
+"ノード %(node)s のコンソール %(op)s にエラーが発生しました。理由: %(error)s"
+
+#, python-format
+msgid ""
+"Error parsing capabilities from Node %s instance_info field. A dictionary or "
+"a \"jsonified\" dictionary is expected."
+msgstr ""
+"ノード %s の instance_info フィールドのケイパビリティーの解析エラー。ディク"
+"ショナリーまたは「jsonified」ディクショナリーが必要です。"
+
+#, python-format
+msgid "Error rebooting node %(node)s after deploy. Error: %(error)s"
+msgstr ""
+"ノード %(node)s のデプロイ後の再起動がエラーになりました。エラー: %(error)s"
+
+#, python-format
+msgid "Error returned from deploy ramdisk: %s"
+msgstr "デプロイ RAM ディスクからエラーが返されました: %s"
+
+msgid ""
+"Error validating iLO virtual media deploy. Some parameters were missing in "
+"node's driver_info"
+msgstr ""
+"iLO 仮想メディアデプロイの検証エラー。いくつかのパラメーターがノードの"
+"driver_info にありませんでした"
+
+msgid ""
+"Error validating iRMC virtual media deploy. Some parameters were missing in "
+"node's driver_info"
+msgstr ""
+"iRMC 仮想メディアデプロイの検証でエラーが発生しました。いくつかのパラメーター"
+"がノードの driver_info にありませんでした。"
+
+msgid ""
+"Error validating input for boot_into_iso vendor passthru. Some parameters "
+"were not provided: "
+msgstr ""
+"boot_into_iso ベンダーパススルーの入力で検証エラーになりました。いくつかのパ"
+"ラメーターが指定されていません。"
+
+#, python-format
+msgid "ErrorDocumentMiddleware received an invalid status %s"
+msgstr "ErrorDocumentMiddleware が無効なステータス %s を受け取りました"
+
+#, python-format
+msgid ""
+"Essential properties are expected to be in dictionary format, received "
+"%(properties)s from node %(node)s."
+msgstr ""
+"必須プロパティーはディクショナリー形式でなければなりません。%(properties)s を"
+"ノード %(node)s から受け取りました。"
+
+#, python-format
+msgid "Expected a MAC address but received %(mac)s."
+msgstr "MAC アドレスが必要ですが、%(mac)s を受け取りました。"
+
+#, python-format
+msgid "Expected a logical name but received %(name)s."
+msgstr "論理名が必要ですが、%(name)s を受け取りました。"
+
+#, python-format
+msgid "Expected a logical name or uuid but received %(name)s."
+msgstr "論理名または UUID が必要ですが、%(name)s を受け取りました。"
+
+#, python-format
+msgid "Expected a uuid but received %(uuid)s."
+msgstr "UUID が必要ですが、%(uuid)s を受け取りました。"
+
+#, python-format
+msgid "Expected an uuid or int but received %(identity)s."
+msgstr "UUID または整数が必要ですが、%(identity)s を受け取りました。"
+
+msgid "Failed checking if deploy is done."
+msgstr "デプロイが実行されたかどうかの検査に失敗しました。"
+
+#, python-format
+msgid "Failed to change power state to '%(target)s'. Error: %(error)s"
+msgstr "電源状態を「%(target)s」に変更できませんでした。エラー: %(error)s"
+
+#, python-format
+msgid ""
+"Failed to change the boot device to %(boot_dev)s when deploying node "
+"%(node)s. Error: %(error)s"
+msgstr ""
+"ノード %(node)s のデプロイ中にブートデバイスを %(boot_dev)s に変更できません"
+"でした。エラー: %(error)s"
+
+#, python-format
+msgid "Failed to clean node %(node)s: %(reason)s"
+msgstr "ノード %(node)s のクリーニングに失敗しました: %(reason)s"
+
+msgid "Failed to connect to AMT service."
+msgstr "AMT サービスへの接続に失敗しました。"
+
+#, python-format
+msgid "Failed to connect to Glance to get the properties of the image %s"
+msgstr ""
+"イメージ %s のプロパティーを取得するために Glance に接続できませんでした"
+
+msgid "Failed to continue agent deployment."
+msgstr "エージェントのデプロイの続行に失敗しました。"
+
+msgid "Failed to continue iSCSI deployment."
+msgstr "iSCSI デプロイメントを続行できませんでした。"
+
+#, python-format
+msgid "Failed to create a file system. File system %(fs)s is not supported."
+msgstr ""
+"ファイルシステムの作成に失敗しました。ファイルシステム %(fs)s はサポートされ"
+"ていません。"
+
+#, python-format
+msgid "Failed to create cleaning ports for node %(node)s"
+msgstr "ノード %(node)s のクリーニングポートの作成に失敗しました"
+
+#, python-format
+msgid "Failed to create the password file. %(error)s"
+msgstr "パスワードファイルの作成に失敗しました。%(error)s"
+
+#, python-format
+msgid "Failed to deploy instance: %(reason)s"
+msgstr "インスタンスをデプロイできませんでした: %(reason)s"
+
+#, python-format
+msgid "Failed to deploy. Error: %s"
+msgstr "デプロイに失敗しました。エラー: %s"
+
+#, python-format
+msgid "Failed to download image %(image_href)s, reason: %(reason)s"
+msgstr "イメージ %(image_href)s のダウンロードに失敗しました。理由: %(reason)s"
+
+#, python-format
+msgid "Failed to establish SSH connection to host %(host)s."
+msgstr "ホスト %(host)s への SSH 接続を確立できませんでした。"
+
+#, python-format
+msgid "Failed to execute command via SSH: %(cmd)s."
+msgstr "SSH を介したコマンド %(cmd)s の実行に失敗しました。"
+
+#, python-format
+msgid "Failed to get IP address for any port on node %s."
+msgstr "ノード %s 上のどのポートの IP アドレスも取得できませんでした。"
+
+#, python-format
+msgid "Failed to get sensor data for node %(node)s. Error: %(error)s"
+msgstr ""
+"ノード %(node)s のセンサーデータの取得に失敗しました。エラー: %(error)s"
+
+#, python-format
+msgid "Failed to inspect hardware. Reason: %(error)s"
+msgstr "ハードウェアの検査に失敗しました。理由: %(error)s"
+
+#, python-format
+msgid ""
+"Failed to install a bootloader when deploying node %(node)s. Error: %(error)s"
+msgstr ""
+"ノード %(node)s のデプロイ中にブートローダーのインストールに失敗しました。エ"
+"ラー: %(error)s"
+
+#, python-format
+msgid "Failed to install bootloader on node %(node)s. Error: %(error)s."
+msgstr ""
+"ノード %(node)s においてブートローダーのインストールに失敗しました。エラー: "
+"%(error)s。"
+
+#, python-format
+msgid ""
+"Failed to notify ramdisk to reboot after bootloader installation. Error: %s"
+msgstr ""
+"ブートローダーのインストール後に再起動するよう RAM ディスクに通知できませんで"
+"した。エラー: %s"
+
+#, python-format
+msgid "Failed to parse sensor data for node %(node)s. Error: %(error)s"
+msgstr ""
+"ノード %(node)s のセンサーデータの解析に失敗しました。エラー: %(error)s"
+
+#, python-format
+msgid "Failed to prepare node %(node)s for cleaning: %(e)s"
+msgstr "ノード %(node)s のクリーニングのための準備に失敗しました: %(e)s"
+
+#, python-format
+msgid "Failed to prepare to deploy. Error: %s"
+msgstr "デプロイの準備に失敗しました。エラー: %s"
+
+#, python-format
+msgid ""
+"Failed to send Wake-On-Lan magic packets to node %(node)s port %(port)s. "
+"Error: %(error)s"
+msgstr ""
+"Wake-On-Lan のマジックパケットをノード %(node)s のポート %(port)s に送信でき"
+"ませんでした。エラー: %(error)s"
+
+#, python-format
+msgid "Failed to set DHCP BOOT options for any port on node %s."
+msgstr "ノード %s 上のポートの DHCP BOOT オプションの設定に失敗しました。"
+
+#, python-format
+msgid "Failed to set node power state to %(pstate)s."
+msgstr "ノードの電源状態を %(pstate)s に設定できませんでした。"
+
+#, python-format
+msgid "Failed to start inspection: %s"
+msgstr "検査の開始に失敗しました: %s"
+
+#, python-format
+msgid ""
+"Failed to start the iSCSI target to deploy the node %(node)s. Error: "
+"%(error)s"
+msgstr ""
+"ノード %(node)s をデプロイする iSCSI ターゲットの開始に失敗しました。エラー: "
+"%(error)s"
+
+#, python-format
+msgid "Failed to tear down from cleaning for node %s"
+msgstr "ノード %s のクリーニングからの取り外しに失敗しました"
+
+#, python-format
+msgid "Failed to tear down. Error: %s"
+msgstr "取り外しに失敗しました。エラー: %s"
+
+#, python-format
+msgid "Failed to toggle maintenance-mode flag for node %(node)s: %(reason)s"
+msgstr ""
+"ノード %(node)s の保守モードのフラグの切り替えに失敗しました: %(reason)s"
+
+#, python-format
+msgid ""
+"Failed to upload %(image_name)s image to web server %(web_server)s, reason: "
+"%(reason)s"
+msgstr ""
+"%(image_name)s イメージの Web サーバー %(web_server)s へのアップロードに失敗"
+"しました。理由: %(reason)s"
+
+#, python-format
+msgid "Failed to upload the configdrive to Swift. Error: %s"
+msgstr "コンフィグドライブの Swift へのアップロードに失敗しました。エラー: %s"
+
+#, python-format
+msgid ""
+"Failed to validate power driver interface. Can not clean node %(node)s. "
+"Error: %(msg)s"
+msgstr ""
+"電源ドライバーインターフェースの検証に失敗しました。ノード %(node)s をクリー"
+"ニングできません。エラー: %(msg)s"
+
+#, python-format
+msgid ""
+"Failed to validate power driver interface. Can not delete instance. Error: "
+"%(msg)s"
+msgstr ""
+"電源ドライバーインターフェースを検証できませんでした。インスタンスを削除でき"
+"ません。エラー: %(msg)s"
+
+#, python-format
+msgid "Field(s) \"%s\" are not valid"
+msgstr "フィールド \"%s\" が有効ではありません。"
+
+msgid "For heartbeat operation, \"agent_url\" must be specified."
+msgstr "ハートビート操作には「agent_url」を指定する必要があります。"
+
+msgid "Get boot device"
+msgstr "ブートデバイスの取得"
+
+#, python-format
+msgid "Get secure boot mode for node %s."
+msgstr "ノード %s のセキュアブートのモードを取得します。"
+
+#, python-format
+msgid "Got HTTP code %s instead of 200 in response to GET request."
+msgstr ""
+"GET 要求に対する応答として HTTP コード 200 ではなく %s を受け取りました。"
+
+#, python-format
+msgid "Got HTTP code %s instead of 200 in response to HEAD request."
+msgstr ""
+"HEAD 要求に対する応答として HTTP コード 200 ではなく %s を受け取りました。"
+
+#, python-format
+msgid "HTTP call failed: %s"
+msgstr "HTTP コールに失敗しました: %s"
+
+msgid "IP address of ironic-conductor node's TFTP server."
+msgstr "ironic-conductor ノードの TFTP サーバーの IP アドレス。"
+
+msgid "IP address of the node. Required."
+msgstr "ノードの IP アドレス。必須。"
+
+msgid ""
+"IP address of this host. If unset, will determine the IP programmatically. "
+"If unable to do so, will use \"127.0.0.1\"."
+msgstr ""
+"このホストの IP アドレス。設定されていない場合、プログラムにより自動判定され"
+"ます。判定できない場合、127.0.0.1 を使用します。"
+
+msgid "IP address or host name of the node. Required."
+msgstr "ノードの IP アドレスまたはホスト名。必須。"
+
+msgid "IP address or hostname of the DRAC card. Required."
+msgstr "DRAC カードの IP アドレスまたはホスト名。必須。"
+
+msgid "IP address or hostname of the VirtualBox host. Required."
+msgstr "VirtualBox ホストの IP アドレスまたはホスト名。必須。"
+
+msgid "IP address or hostname of the iLO. Required."
+msgstr "iLO の IP アドレスまたはホスト名。必須。"
+
+msgid "IP address or hostname of the iRMC. Required."
+msgstr "iRMC の IP アドレスまたはホスト名。必須。"
+
+msgid "IP address or hostname of the node to ssh into. Required."
+msgstr "SSH 接続先のノードの IP アドレスまたはホスト名。必須。"
+
+msgid "IP address or hostname of the node. Required."
+msgstr "ノードの IP アドレスまたはホスト名。必須。"
+
+msgid "IP of the node's BMC. Required."
+msgstr "ノードの BMC の IP。必須。"
+
+msgid "IP or Hostname of the CIMC. Required."
+msgstr "CIMC の IP またはホスト名。必須。"
+
+msgid "IP or Hostname of the UCS Manager. Required."
+msgstr "UCS Manager の IP またはホスト名。必須。"
+
+#, python-format
+msgid "IPMI call failed: %(cmd)s."
+msgstr "IPMI 呼び出しが失敗しました: %(cmd)s."
+
+#, python-format
+msgid ""
+"IPMI get power state failed for node %(node_id)s with the following error: "
+"%(error)s"
+msgstr ""
+"ノード %(node_id)s の IPMI 電源状態取得に次のエラーで失敗しました: %(error)s"
+
+msgid "IPMI password. Required."
+msgstr "IPMI パスワード。必須。"
+
+#, python-format
+msgid ""
+"IPMI power off failed for node %(node_id)s with the following error: "
+"%(error)s"
+msgstr ""
+"ノード %(node_id)s の IPMI 電源オフに次のエラーで失敗しました: %(error)s"
+
+#, python-format
+msgid ""
+"IPMI power reboot failed for node %(node_id)s with the following error: "
+"%(error)s"
+msgstr "ノード %(node_id)s の IPMI 再起動に次のエラーで失敗しました: %(error)s"
+
+#, python-format
+msgid ""
+"IPMI send raw bytes '%(bytes)s' failed for node %(node_id)s with the "
+"following error: %(error)s"
+msgstr ""
+"IPMI が  raw バイト \"%(bytes)s\" をノード %(node_id)s に送信しましたが、次の"
+"エラーで失敗しました: %(error)s"
+
+msgid "IPMI terminal port is not an integer."
+msgstr "IPMI ターミナルポートが整数ではありません。"
+
+msgid "IPMI username. Required."
+msgstr "IPMI ユーザー名。必須。"
+
+msgid "If True, convert backing images to \"raw\" disk image format."
+msgstr ""
+"True の場合、バックエンドのイメージを「raw」ディスクイメージ形式に変換しま"
+"す。"
+
+#, python-format
+msgid "Image %(image)s is missing the following properties: %(properties)s"
+msgstr "イメージ %(image)s に次のプロパティーがありません: %(properties)s"
+
+#, python-format
+msgid "Image %(image_id)s could not be found."
+msgstr "イメージ %(image_id)s が見つかりませんでした。"
+
+#, python-format
+msgid "Image %(image_id)s is unacceptable: %(reason)s"
+msgstr "イメージ %(image_id)s は受け入れられません: %(reason)s"
+
+#, python-format
+msgid "Image %s can not be found."
+msgstr "イメージ %s が見つかりません。"
+
+#, python-format
+msgid "Image download protocol %s is not supported."
+msgstr "イメージダウンロードのプロトコル %s はサポートされていません。"
+
+msgid "Inserting virtual cdrom"
+msgstr "仮想 CD-ROM の挿入中"
+
+msgid "Inserting virtual floppy"
+msgstr "仮想フロッピーの挿入中"
+
+#, python-format
+msgid "Inserting virtual media %s"
+msgstr "仮想メディア %s の接続中"
+
+#, python-format
+msgid "Inspecting hardware (get_power_state) on %s"
+msgstr "%s でハードウェア (get_power_state) を検査中"
+
+#, python-format
+msgid "Instance %(instance)s could not be found."
+msgstr "インスタンス %(instance)s が見つかりませんでした。"
+
+#, python-format
+msgid ""
+"Instance %(instance_uuid)s is already associated with a node, it cannot be "
+"associated with this other node %(node)s"
+msgstr ""
+"インスタンス %(instance_uuid)s は既にノードに関連付けられており、この他のノー"
+"ド %(node)s に関連付けることはできません。"
+
+msgid "Invalid 'seamicro_api_endpoint' parameter in node's driver_info."
+msgstr ""
+"ノードの driver_info にある「seamicro_api_endpoint」パラメーターが無効です。"
+
+#, python-format
+msgid "Invalid 'seamicro_api_version' parameter. Reason: %s."
+msgstr "無効な「seamicro_api_version」パラメーター。理由: %s。"
+
+msgid ""
+"Invalid 'seamicro_server_id' parameter in node's driver_info. Expected "
+"format of 'seamicro_server_id' is <int>/<int>"
+msgstr ""
+"ノードの driver_info にある「seamicro_server_id」パラメーターが無効です。期待"
+"される「seamicro_server_id」の形式は <int>/<int> です"
+
+#, python-format
+msgid ""
+"Invalid IPMI protocol version value %(version)s, the valid value can be one "
+"of %(valid_versions)s"
+msgstr ""
+"無効な IPMI プロトコルバージョンの値 %(version)s。有効な値は "
+"%(valid_versions)s のどれかです。"
+
+#, python-format
+msgid "Invalid IPv4 address %(ip_address)s."
+msgstr "IPv4 アドレス %(ip_address)s は無効です。"
+
+#, python-format
+msgid "Invalid VirtualMachine method '%s' passed to '_run_virtualbox_method'."
+msgstr ""
+"無効な VirtualMachine メソッド「%s」が「_run_virtualbox_method」に渡されまし"
+"た。"
+
+#, python-format
+msgid "Invalid XML: %s"
+msgstr "無効な XML: %s"
+
+#, python-format
+msgid "Invalid boot device %s specified."
+msgstr "無効なブートデバイス %s が指定されました。"
+
+#, python-format
+msgid "Invalid capabilities string '%s'."
+msgstr "無効なケイパビリティー文字列「%s」。"
+
+#, python-format
+msgid "Invalid configuration file. %(error_msg)s"
+msgstr "設定ファイルが無効です。%(error_msg)s"
+
+msgid "Invalid data supplied to HashRing.get_hosts."
+msgstr "HashRing.get_hosts に無効なデータが指定されました。"
+
+#, fuzzy, python-format
+msgid ""
+"Invalid filter dialect '%(invalid_filter)s'. Supported options are "
+"%(supported)s"
+msgstr ""
+"フィルター方言「%(invalid_filter)s」は無効です。サポートされるオプションは "
+"%(supported)s です"
+
+msgid "Invalid hosts supplied when building HashRing."
+msgstr "HashRing の構築時に無効なホストが指定されました。"
+
+#, python-format
+msgid "Invalid image href %(image_href)s."
+msgstr "無効なイメージ href %(image_href)s。"
+
+#, python-format
+msgid "Invalid input value \"%s\"."
+msgstr "無効な入力値「%s」"
+
+msgid "Invalid private key"
+msgstr "無効な秘密鍵"
+
+#, python-format
+msgid ""
+"Invalid privilege level value:%(priv_level)s, the valid value can be one of "
+"%(valid_levels)s"
+msgstr ""
+"特権レベルの値 %(priv_level)s は無効です。有効な値は %(valid_levels)s の いず"
+"れかです。"
+
+#, python-format
+msgid "Invalid protocol %s."
+msgstr "無効なプロトコル %s"
+
+#, python-format
+msgid "Invalid raw bytes string: '%s'"
+msgstr "無効な raw バイト文字列: '%s'"
+
+msgid "Invalid resource state."
+msgstr "リソース状態が無効です。"
+
+#, python-format
+msgid "Invalid sort direction: %s. Acceptable values are 'asc' or 'desc'"
+msgstr "%s は無効なソート方向です。「asc」または「desc」が有効です。"
+
+#, python-format
+msgid "Invalid value for %s header"
+msgstr "無効な %s ヘッダーの値"
+
+#, python-format
+msgid ""
+"Invalid value for ipmi_bridging: %(bridging_type)s, the valid value can be "
+"one of: %(bridging_types)s"
+msgstr ""
+"ipmi_bridging の値 %(bridging_type)s は無効です。有効な値は "
+"%(bridging_types)s のいずれかです。"
+
+msgid "Invalid volume id specified"
+msgstr "無効なボリューム ID が指定されました"
+
+#, python-format
+msgid "Item has no name: \"%s\""
+msgstr "項目の名前がありません: %s"
+
+msgid "Keystone API endpoint is missing"
+msgstr "keystone API エンドポイントがありません。"
+
+msgid "Limit must be positive"
+msgstr "「limit」は正の値でなければなりません"
+
+msgid "MSFT OCS call failed."
+msgstr "MSFT OCS コールに失敗しました。"
+
+#, python-format
+msgid "Malformed network interfaces lookup: %s"
+msgstr "ネットワークインターフェースのルックアップの形式が正しくありません: %s"
+
+msgid "Maximum interval (in seconds) for agent heartbeats."
+msgstr "エージェントのハートビートの最大間隔 (秒単位)。"
+
+msgid "Maximum retries for iBoot operations"
+msgstr "iBoot 処理の最大試行回数"
+
+msgid "Method not specified"
+msgstr "メソッドが指定されていません"
+
+msgid "Method not specified when calling vendor extension."
+msgstr "ベンダー拡張機能の呼び出し時にメソッドが指定されていません"
+
+msgid "Missing 'console_port' parameter in node's driver_info."
+msgstr "ノードの driver_info に「console_port」パラメーターがありません。"
+
+msgid "Missing 'ipmi_terminal_port' parameter in node's driver_info."
+msgstr ""
+"ノードの driver_info に「ipmi_terminal_port」パラメーターがありません。"
+
+msgid "Missing 'seamicro_terminal_port' parameter in node's driver_info"
+msgstr ""
+"ノードの driver_info に「seamicro_terminal_port」パラメーターがありません"
+
+msgid "Missing parameter version"
+msgstr "パラメーターのバージョンがありません"
+
+#, python-format
+msgid "Missing the following IPMI credentials in node's driver_info: %s."
+msgstr "ノードの driver_info に次の IPMI クレデンシャルがありません: %s。"
+
+#, python-format
+msgid "Missing the following iBoot credentials in node's driver_info: %s."
+msgstr "ノードの driver_info に次の iBoot クレデンシャルがありません: %s。"
+
+#, python-format
+msgid "Missing the following iRMC parameters in node's driver_info: %s."
+msgstr "ノードの driver_info に次の iRMC パラメーターがありません: %s。"
+
+#, python-format
+msgid ""
+"Mutually exclusive versions requested. Version %(ver)s requested but not "
+"supported by this service. The supported version range is: [%(min)s, "
+"%(max)s]."
+msgstr ""
+"相互排他的なバージョンが要求されました。バージョン %(ver)s が要求されました"
+"が、このサービスではサポートされていません。サポートされるバージョンの範囲は "
+"[%(min)s、%(max)s] です。"
+
+msgid "MySQL engine to use."
+msgstr "使用する MySQL エンジン。"
+
+msgid "Name of the VM in VirtualBox. Required."
+msgstr "VirtualBox の仮想マシン名。必須。"
+
+msgid "Neutron auth_strategy should be either \"noauth\" or \"keystone\"."
+msgstr ""
+"Neutron の auth_strategy は「noauth」または「keystone」のいずれかでなければな"
+"りません。"
+
+msgid "No Keystone service catalog loaded"
+msgstr "keystone のサービスカタログが読み込まれていません"
+
+#, python-format
+msgid ""
+"No VIFs found for node %(node)s when attempting to update DHCP BOOT options."
+msgstr ""
+"DHCP BOOT オプションの更新を試行中に、ノード %(node)s の仮想インターフェース"
+"が見つかりませんでした。"
+
+#, python-format
+msgid "No conductor service registered which supports driver %s."
+msgstr "ドライバー %s をサポートするコンダクターサービスが登録されていません。"
+
+msgid "No free conductor workers available"
+msgstr "コンダクターの利用可能な空きワーカーがありません。"
+
+#, python-format
+msgid "No handler for method %s"
+msgstr "%s メソッドのハンドラーがありません"
+
+msgid "No storage pools found for ironic"
+msgstr "ironic 用のストレージプールが見つかりません"
+
+#, python-format
+msgid "No valid host was found. Reason: %(reason)s"
+msgstr "有効なホストが見つかりませんでした。理由: %(reason)s"
+
+msgid "No vlan id provided"
+msgstr "VLAN ID が指定されていません"
+
+msgid "No volume size provided for creating volume"
+msgstr "ボリュームの作成でボリューム容量が指定されていません"
+
+#, python-format
+msgid "Node %(node)s could not be found."
+msgstr "ノード %(node)s が見つかりませんでした。"
+
+#, python-format
+msgid "Node %(node)s didn't return MACs %(macs)s in dictionary format."
+msgstr ""
+"ノード %(node)s からディクショナリー形式の MAC %(macs)s が返されませんでし"
+"た。"
+
+#, python-format
+msgid "Node %(node)s failed step %(step)s: %(exc)s"
+msgstr "ノード %(node)s でステップ %(step)s が実行されませんでした: %(exc)s"
+
+#, python-format
+msgid "Node %(node)s found not to be locked on release"
+msgstr "ノード %(node)s はリリース状態で、ロックされていませんでした。"
+
+#, python-format
+msgid "Node %(node)s got an invalid last step for %(state)s: %(step)s."
+msgstr ""
+"ノード %(node)s が %(state)s に関して無効な最終ステップを受け取りました: "
+"%(step)s。"
+
+#, python-format
+msgid "Node %(node)s is associated with instance %(instance)s."
+msgstr "ノード %(node)s はインスタンス %(instance)s に関連付けられています。"
+
+#, python-format
+msgid ""
+"Node %(node)s is configured to use the %(driver)s driver which currently "
+"does not support deploying partition images."
+msgstr ""
+"ノード %(node)s は、分割イメージのデプロイを現在サポートしていない "
+"%(driver)s ドライバーを使用するように設定されています。"
+
+#, python-format
+msgid ""
+"Node %(node)s is locked by host %(host)s, please retry after the current "
+"operation is completed."
+msgstr ""
+"ノード %(node)s がホスト %(host)s によりロックされています。現在の操作の完了"
+"後に再試行してください。"
+
+#, python-format
+msgid "Node %(node)s: Cannot change name to invalid name '%(name)s'"
+msgstr ""
+"ノード %(node)s: 名前を無効な名前「%(name)s」に変更することはできません"
+
+#, python-format
+msgid "Node %s can not be updated while a state transition is in progress."
+msgstr "状態遷移の進行中にノード %s を更新することはできません。"
+
+#, python-format
+msgid ""
+"Node %s can not update the driver while the console is enabled. Please stop "
+"the console first."
+msgstr ""
+"ノード %s は、コンソール有効時、ドライバーを更新できません。まずコンソールを"
+"停止してください。"
+
+#, python-format
+msgid "Node %s does not have any port associated with it."
+msgstr "ノード %s にポートが関連付けられていません。"
+
+#, python-format
+msgid ""
+"Node %s failed to validate deploy image info. Some parameters were missing"
+msgstr ""
+"ノード %s はデプロイイメージ情報の検証に失敗しました。いくつかのパラメーター"
+"が指定されていません"
+
+msgid "Node failed to check cleaning progress."
+msgstr "ノードが、クリーニング進行状況の確認に失敗しました。"
+
+msgid "Node failed to get image for deploy."
+msgstr "ノードがデプロイ用のイメージの取得に失敗しました。"
+
+msgid "Node failed to move to active state."
+msgstr "ノードを稼働状態に移行できませんでした。"
+
+msgid "Node failed to start the next cleaning step."
+msgstr "ノードが、次のクリーニング手順の開始に失敗しました。"
+
+msgid "Node identifier not specified."
+msgstr "ノード ID が指定されていません。"
+
+#, fuzzy, python-format
+msgid "Not authorized for image %(image_id)s."
+msgstr "イメージ %(image_id)s では許可されません。"
+
+msgid "Not authorized in Keystone."
+msgstr "keystone において許可されていません。"
+
+msgid "Not authorized."
+msgstr "権限がありません。"
+
+msgid "Number of retries when downloading an image from glance."
+msgstr "glance からイメージをダウンロードするとき、再試行する回数。"
+
+msgid ""
+"On ironic-conductor node, directory where master TFTP images are stored on "
+"disk."
+msgstr ""
+"ironic-conductor ノードにおいて、マスター TFTP イメージがディスク上に保存され"
+"るディレクトリー。"
+
+msgid ""
+"On ironic-conductor node, template file for PXE configuration for UEFI boot "
+"loader."
+msgstr ""
+"ironic-conductor ノードでの、UEFI ブートローダーの PXE 設定のテンプレートファ"
+"イル。"
+
+msgid "On ironic-conductor node, template file for PXE configuration."
+msgstr "ironic-conductor ノードでの、PXE 設定のテンプレートファイル。"
+
+msgid "On ironic-conductor node, the path to the main iPXE script file."
+msgstr ""
+"ironic-conductor ノードにおける、メインの iPXE スクリプトファイルのパス。"
+
+msgid ""
+"On the ironic-conductor node, directory where images are stored on disk."
+msgstr ""
+"ironic-conductor ノードにおいて、イメージがディスク上に保存されるディレクト"
+"リー。"
+
+msgid ""
+"On the ironic-conductor node, directory where master instance images are "
+"stored on disk."
+msgstr ""
+"ironic-conductor ノードにおいて、マスターインスタンスイメージがディスク上に保"
+"存されるディレクトリー。"
+
+#, python-format
+msgid "Operation failed: %s"
+msgstr "処理に失敗しました: %s"
+
+msgid "Operation not permitted."
+msgstr "操作が許可されていません。"
+
+msgid "PDU IPv4 address or hostname.  Required."
+msgstr "PDU のIPv4 アドレスまたはホスト名。必須。"
+
+msgid "PDU manufacturer driver.  Required."
+msgstr "PDU の製造元ドライバー。必須。"
+
+msgid "PDU power outlet index (1-based).  Required."
+msgstr "PDU 電源アウトレット番号 (基準は 1)。必須。"
+
+#, python-format
+msgid "Parameter 'bar' not passed to method '%s'."
+msgstr "「bar」パラメーターが「%s」メソッドに渡されませんでした。"
+
+msgid "Parameter 'bar' not passed to method 'first_method'."
+msgstr "bar パラメーターが first_method メソッドに渡されませんでした。"
+
+msgid "Parameter raw_bytes (string of bytes) was not specified."
+msgstr "raw_bytes (バイトのストリング) パラメーターが指定されませんでした。"
+
+#, python-format
+msgid "Parameters %s were not passed to ironic for deploy."
+msgstr "パラメーター %s がデプロイのために ironic に渡されませんでした。"
+
+#, python-format
+msgid "Parent device '%s' not found"
+msgstr "親デバイス「%s」が見つかりません"
+
+msgid "Password for 'virtualbox_username'. Default value is ''. Optional."
+msgstr ""
+"「virtualbox_username」のパスワード。デフォルト値は空白です。オプション。"
+
+msgid "Password for irmc_username. Required."
+msgstr "irmc_username のパスワード。必須。"
+
+msgid "Password to access the chassis manager REST API. Required."
+msgstr "シャーシマネージャーの REST API にアクセスするパスワード。必須。"
+
+msgid "Password. Required."
+msgstr "パスワード。必須。"
+
+#, python-format
+msgid "Path %(dir)s does not exist."
+msgstr "パス %(dir)s が存在しません。"
+
+msgid "Path to isolinux binary file."
+msgstr "isolinux バイナリーファイルのパス。"
+
+msgid "Path to serial console terminal program"
+msgstr "シリアルコンソールのターミナルプログラムのパス"
+
+#, python-format
+msgid "Port %(port)s could not be found."
+msgstr "ポート %(port)s が見つかりませんでした。"
+
+msgid "Port on which VirtualBox web service is listening."
+msgstr "VirtualBox web サービスがリッスンしているポート。"
+
+msgid "Port on which VirtualBox web service is listening. Optional."
+msgstr "VirtualBox Web サービスがリッスンしているポート。オプション。"
+
+msgid "Port to be used for iLO operations"
+msgstr "iLO 操作に使用するポート"
+
+msgid "Port to be used for iRMC operations, either 80 or 443"
+msgstr "iRMC の操作に使用するポート。80 か 443 のどちらか。"
+
+msgid ""
+"Port to be used for iRMC operations; either 80 or 443. The default value is "
+"443. Optional."
+msgstr ""
+"iRMC の操作に使用するポート。80 または 443。デフォルト値は 443。オプション。"
+
+#, python-format
+msgid ""
+"Ports matching mac addresses match multiple nodes. MACs: %(macs)s. Port ids: "
+"%(port_ids)s"
+msgstr ""
+"MAC アドレスに一致するポートが、複数のノードに一致します。MAC: %(macs)s、ポー"
+"ト ID: %(port_ids)s"
+
+msgid "Power driver returned ERROR state while trying to sync power state."
+msgstr "電源状態の同期を試行中に電源ドライバーが ERROR 状態を返しました。"
+
+msgid "Print the current version information and exit."
+msgstr "現在のバージョン情報を表示して、終了します。"
+
+msgid "Priority for reset_bios_to_default clean step."
+msgstr "reset_bios_to_default クリーニング手順の優先度。"
+
+msgid "Priority for reset_ilo clean step."
+msgstr "reset_ilo クリーニング手順の優先度。"
+
+msgid "Protocol used for AMT endpoint, support http/https"
+msgstr ""
+"AMT エンドポイントで使用されるプロトコル。http/https をサポートします。"
+
+msgid ""
+"Protocol used for AMT endpoint. one of http, https; default is \"http\". "
+"Optional."
+msgstr ""
+"AMT エンドポイントに使用するプロトコル。http または https のいずれかです。デ"
+"フォルトは「http」です。オプション。"
+
+#, python-format
+msgid "Provision state \"%s\" is not valid"
+msgstr "プロビジョニング状態 \"%s\" が有効ではありません。"
+
+#, python-format
+msgid "RAID config validation error: %s"
+msgstr "RAID 設定の検証エラー: %s"
+
+#, python-format
+msgid ""
+"RPC do_node_deploy failed to validate deploy or power info. Error: %(msg)s"
+msgstr ""
+"RPC do_node_deploy はデプロイ情報または電源情報の検証に失敗しました。エラー: "
+"%(msg)s"
+
+#, python-format
+msgid ""
+"RPC inspect_hardware failed to validate inspection or power info. Error: "
+"%(msg)s"
+msgstr ""
+"RPC inspect_hardware による検査情報または電源情報の検証に失敗しました。エ"
+"ラー: %(msg)s"
+
+#, python-format
+msgid ""
+"Raid config cannot have more than one root volume. %d root volumes were "
+"specified"
+msgstr ""
+"RAID 設定は複数のルートボリュームを持てません。%d 個のルートボリュームが指定"
+"されました。"
+
+msgid "Raw bytes string requires two bytes at least."
+msgstr "raw バイト文字列は少なくとも 2 バイト必要です。"
+
+msgid "Request not acceptable."
+msgstr "要求は受け入れられませんでした。"
+
+msgid "Requested OpenStack Images API is forbidden"
+msgstr "要求された OpenStack Image API は禁止されています"
+
+msgid ""
+"Requested action cannot be performed due to lack of free conductor workers."
+msgstr ""
+"コンダクターの空きワーカーが不足しているため、要求されたアクションを実行でき"
+"ません。"
+
+msgid "Resource already exists."
+msgstr "リソースがすでに存在します。"
+
+msgid "Resource could not be found."
+msgstr "リソースが見つかりませんでした。"
+
+msgid "Resource temporarily unavailable, please retry."
+msgstr "リソースが一時的に使用できません。再試行してください。"
+
+#, python-format
+msgid "Retrieve IP address on port: %(port_id)s failed."
+msgstr "ポート %(port_id)s での IP アドレスの取得に失敗しました。"
+
+#, python-format
+msgid "Root device '%s' not found"
+msgstr "ルートデバイス「%s」が見つかりません"
+
+msgid "Root device hint \"size\" is not an integer value."
+msgstr "ルートデバイスヒント「size」が整数値ではありません。"
+
+#, python-format
+msgid "SNMP community.  Required for versions %(v1)s, %(v2c)s"
+msgstr "SNMP コミュニティー。バージョン %(v1)s および %(v2c)s に必須。"
+
+#, python-format
+msgid "SNMP driver requires snmp_community to be set for version %s."
+msgstr ""
+"SNMP ドライバーのバージョン %s は snmp_community の設定を必要とします。"
+
+#, python-format
+msgid "SNMP driver requires snmp_security to be set for version %s."
+msgstr "SNMP ドライバーのバージョン %s は snmp_security の設定を必要とします。"
+
+#, python-format
+msgid ""
+"SNMP driver requires the following parameters to be set in node's "
+"driver_info: %s."
+msgstr ""
+"SNMP ドライバーはノードの driver_info で次のパラメーターの設定を必要としま"
+"す: %s。"
+
+#, python-format
+msgid "SNMP operation '%(operation)s' failed: %(error)s"
+msgstr "SNMP の操作「%(operation)s」が失敗しました: %(error)s"
+
+#, python-format
+msgid "SNMP port, default %(port)d"
+msgstr "SNMP ポート。デフォルトは %(port)d。"
+
+#, python-format
+msgid ""
+"SNMP protocol version: %(v1)s, %(v2c)s, %(v3)s  (optional, default %(v1)s)"
+msgstr ""
+"SNMP プロトコル・バージョン: %(v1)s、%(v2c)s、または %(v3)s (オプション。デ"
+"フォルトは %(v1)s)"
+
+#, python-format
+msgid "SNMP security name.  Required for version %(v3)s"
+msgstr "SNMP セキュリティー名。バージョン %(v3)s に必須。"
+
+#, python-format
+msgid "SNMPPowerDriver: SNMP UDP port must be numeric: %s"
+msgstr "SNMPPowerDriver: SNMP の UDP ポートは数値でなければなりません: %s"
+
+#, python-format
+msgid "SNMPPowerDriver: SNMP UDP port out of range: %d"
+msgstr "SNMPPowerDriver: SNMP の UDP ポートが範囲外です: %d"
+
+#, python-format
+msgid "SNMPPowerDriver: unknown SNMP version: '%s'"
+msgstr "SNMPPowerDriver: 不明な SNMP バージョン: %s"
+
+#, python-format
+msgid "SNMPPowerDriver: unknown driver: '%s'"
+msgstr "SNMPPowerDriver: 不明なドライバー: %s"
+
+#, python-format
+msgid "SSH connection cannot be established: %s"
+msgstr "SSH 接続を確立できません: %s"
+
+#, python-format
+msgid "SSH key file %s not found."
+msgstr "SSH 鍵ファイル %s が見つかりません。"
+
+#, python-format
+msgid "SSHPowerDriver '%(virt_type)s' is not a valid virt_type, "
+msgstr "SSHPowerDriver「%(virt_type)s」は有効な virt_type ではありません。"
+
+#, python-format
+msgid "SSHPowerDriver '%(virt_type)s' is not a valid virt_type."
+msgstr "SSHPowerDriver「%(virt_type)s」は有効な virt_type ではありません。"
+
+msgid ""
+"SSHPowerDriver requires one and only one of password, key_contents and "
+"key_filename to be set."
+msgstr ""
+"SSHPowerDriver は、唯一のパスワード、key_contents、および key_filename の設定"
+"を必要とします。"
+
+msgid "SSHPowerDriver requires ssh_port to be integer value"
+msgstr "SSHPowerDriver は ssh_port が整数値であることを必要とします"
+
+#, python-format
+msgid ""
+"SSHPowerDriver requires the following parameters to be set in node's "
+"driver_info: %s."
+msgstr ""
+"SSHPowerDriver はノードの driver_info で次のパラメーターの設定を必要としま"
+"す: %s"
+
+#, python-format
+msgid ""
+"SeaMicro driver requires the following parameters to be set in node's "
+"driver_info: %s."
+msgstr ""
+"SeaMicro ドライバーはノードの driver_info で次のパラメーターの設定を必要とし"
+"ます: %s。"
+
+msgid "SeaMicro terminal port is not an integer."
+msgstr "SeaMicro のターミナルポートが整数ではありません。"
+
+msgid "Seconds between conductor heart beats."
+msgstr "conductor のハートビート間隔の秒数"
+
+msgid "Seconds between running periodic tasks."
+msgstr "定期タスクの実行間隔 (秒単位)。"
+
+msgid "Sensor data retrieval method, either \"ipmitool\" or \"scci\""
+msgstr "センサーデータの取得方式。「ipmitool」か「scci」のどちらか。"
+
+msgid ""
+"Sensor data retrieval method; either 'ipmitool' or 'scci'. The default value "
+"is 'ipmitool'. Optional."
+msgstr ""
+"センサーデータ取得方式。「ipmitool」または「scci」のいずれかを指定します。デ"
+"フォルト値は「ipmitool」です。オプション。"
+
+#, python-format
+msgid "Server didn't return the key(s): %(key)s"
+msgstr "サーバーからキー %(key)s が返されませんでした"
+
+#, python-format
+msgid ""
+"Service type %(service_type)s with endpoint type %(endpoint_type)s not found "
+"in keystone service catalog."
+msgstr ""
+"エンドポイントタイプ %(endpoint_type)s のサービスタイプ %(service_type)s が "
+"keystone サービスカタログに見つかりませんでした。"
+
+#, python-format
+msgid "Setting %s as boot device"
+msgstr "%s をブートデバイスとして設定中"
+
+#, python-format
+msgid "Setting %s as boot mode"
+msgstr "ブートモードを %s に設定中"
+
+#, python-format
+msgid "Setting secure boot to %(flag)s for node %(node)s."
+msgstr "ノード %(node)s のセキュアブートを %(flag)s に設定中。"
+
+msgid "Snapshot list encountered but no header found!"
+msgstr "スナップショットの一覧が検出されましたが、ヘッダーが見つかりません。"
+
+msgid ""
+"Some mandatory input missing in 'pass_bootloader_info' vendor passthru from "
+"ramdisk."
+msgstr ""
+"一部の必須入力が RAM ディスクの pass_bootloader_info ベンダーパススルーにあり"
+"ません。"
+
+msgid "Specified image file not found."
+msgstr "指定されたイメージファイルが見つかりません。"
+
+#, python-format
+msgid "Swift operation '%(operation)s' failed: %(error)s"
+msgstr "Swift の操作「%(operation)s」が失敗しました: %(error)s"
+
+msgid ""
+"Swift temporary URLs require a Swift account string. You must provide "
+"\"swift_account\" as a config option."
+msgstr ""
+"Swift 一時 URL は Swift アカウント文字列を必要とします。設定オプションとして"
+"「swift_account」を指定する必要があります。"
+
+msgid ""
+"Swift temporary URLs require a Swift endpoint URL. You must provide "
+"\"swift_endpoint_url\" as a config option."
+msgstr ""
+"Swift 一時 URL は Swift エンドポイント URL を必要とします。設定オプションとし"
+"て「swift_endpoint_url」を指定する必要があります。"
+
+msgid ""
+"Swift temporary URLs require a shared secret to be created. You must provide "
+"\"swift_temp_url_key\" as a config option."
+msgstr ""
+"Swift 一時 URL は共有秘密鍵の作成を必要とします。設定オプションとして"
+"「swift_temp_url_key」を指定する必要があります。"
+
+#, python-format
+msgid "Target state '%s' does not exist"
+msgstr "ターゲット状態「%s」は存在しません"
+
+#, python-format
+msgid "Target state '%s' is not a 'stable' state"
+msgstr "ターゲット状態「%s」は「stable」状態ではありません"
+
+msgid "Template file for grub configuration file."
+msgstr "Template file for grub configuration file."
+
+msgid "Template file for isolinux configuration file."
+msgstr "isolinux 設定ファイルのテンプレートファイル。"
+
+msgid "Test if the value of bar is baz"
+msgstr "bar の値が baz かどうかをテストします"
+
+msgid "Test if the value of bar is kazoo"
+msgstr "bar の値が kazoo かどうかをテストします"
+
+msgid "Test if the value of bar is meow"
+msgstr "bar の値が meow かどうかをテストします"
+
+#, python-format
+msgid ""
+"The %(op)s operation can't be performed on node %(node)s because it's in "
+"maintenance mode."
+msgstr ""
+"ノード %(node)s は保守モードになっているため、%(op)s 操作を実行できません。"
+
+msgid "The IP address on which ironic-api listens."
+msgstr "ironic-api がリッスンする IP アドレス。"
+
+msgid "The Swift iLO container to store data."
+msgstr "データを保存するための Swift iLO コンテナー。"
+
+msgid "The TCP port on which ironic-api listens."
+msgstr "ironic-api がリッスンする TCP ポート。"
+
+#, python-format
+msgid "The driver '%s' is unknown."
+msgstr "ドライバー「%s」は不明です。"
+
+#, python-format
+msgid "The following errors were encountered while parsing config file:%s"
+msgstr "設定ファイルの構文解析中に以下のエラーが発生しました。%s"
+
+#, python-format
+msgid ""
+"The following errors were encountered while parsing driver_info:\n"
+"%s"
+msgstr ""
+"driver_info の解析中に次のエラーが検出されました:\n"
+"%s"
+
+#, python-format
+msgid ""
+"The following iLO parameters from the node's driver_info should be integers: "
+"%s"
+msgstr ""
+"ノードの driver_info からの次の iLO パラメーターは整数でなければなりません: "
+"%s"
+
+#, python-format
+msgid "The following parameters are missing in driver_info: %s"
+msgstr "次のパラメーターが driver_info にありません: %s"
+
+#, python-format
+msgid "The following parameters were missing: %s"
+msgstr "パラメーターが不足しています: %s"
+
+#, python-format
+msgid ""
+"The following required iLO parameters are missing from the node's "
+"driver_info: %s"
+msgstr "ノードの driver_info に次の必須 iLO パラメーターがありません: %s"
+
+#, python-format
+msgid ""
+"The following type errors were encountered while parsing driver_info:\n"
+"%s"
+msgstr ""
+"driver_info の解析中に次の形式エラーが検出されました:\n"
+"%s"
+
+#, python-format
+msgid "The given image info does not have a valid image id: %s"
+msgstr "指定されたイメージ情報には有効なイメージ ID がありません: %s"
+
+#, python-format
+msgid ""
+"The hints \"%(invalid_hints)s\" are invalid. Valid hints are: "
+"\"%(valid_hints)s\""
+msgstr ""
+"ヒント「%(invalid_hints)s」は無効です。有効なヒントは以下のとおりです: "
+"「%(valid_hints)s」"
+
+msgid ""
+"The maximum number of items returned in a single response from a collection "
+"resource."
+msgstr "コレクションリソースから 1 回の応答で最大数の項目が返されました。"
+
+#, python-format
+msgid "The method %(method)s does not support HTTP %(http)s"
+msgstr "メソッド %(method)s では HTTP %(http)s はサポートされていません"
+
+#, python-format
+msgid "The node %s didn't return 'macs' as the key with inspection."
+msgstr "ノード %s から検査に用いるキーとして「macs」が返されませんでした。"
+
+#, python-format
+msgid "The node %s didn't return 'properties' as the key with inspection."
+msgstr ""
+"ノード %s から検査に用いるキーとして「properties」が返されませんでした。"
+
+msgid "The provided endpoint is invalid"
+msgstr "指定されたエンドポイントが無効です"
+
+#, python-format
+msgid ""
+"The requested action \"%(action)s\" can not be performed on node \"%(node)s"
+"\" while it is in state \"%(state)s\"."
+msgstr ""
+"要求されたアクション「%(action)s」は、ノード「%(node)s」が状態「%(state)s」で"
+"ある間はそのノードに対して実行できません。"
+
+#, python-format
+msgid "The requested action \"%(action)s\" could not be understood."
+msgstr "要求されたアクション「%(action)s」を認識できませんでした。"
+
+#, python-format
+msgid "The sort_key value %(key)s is an invalid field for sorting"
+msgstr "sort_key の値 %(key)s が、並び替えでは使用できないフィールドです"
+
+msgid "Time (in seconds) to wait for the console subprocess to start."
+msgstr "コンソールのサブプロセスの起動を待機する時間 (秒単位)"
+
+msgid "Timeout (in seconds) for iLO operations"
+msgstr "iLO 操作のタイムアウト (秒単位)"
+
+msgid "Timeout (in seconds) for iRMC operations"
+msgstr "iRMC 処理のタイムアウト (秒単位)"
+
+msgid ""
+"Timeout (in seconds) for iRMC operations. The default value is 60. Optional."
+msgstr "iRMC 操作のタイムアウト (秒)。デフォルト値は 60。オプション。"
+
+#, python-format
+msgid "Timeout reached while waiting for callback for node %s"
+msgstr "ノード %s に対するコールバックを待機中にタイムアウトになりました"
+
+msgid "Top-level directory for maintaining ironic's state."
+msgstr "ironic の状態を維持するための最上位ディレクトリー。"
+
+msgid "UCS Manager admin/server-profile username. Required."
+msgstr "UCS Manager の管理者/サーバープロファイルのユーザー名。必須。"
+
+msgid "UCS Manager password. Required."
+msgstr "UCS Manager のパスワード。必須。"
+
+msgid "UCS Manager service-profile name. Required."
+msgstr "UCS Manager サービスプロファイル名。必須。"
+
+msgid "URL for connecting to neutron."
+msgstr "neutron に接続するための URL。"
+
+msgid ""
+"URL of Ironic API service. If not set ironic can get the current value from "
+"the keystone service catalog."
+msgstr ""
+"Ironic API サービスの URL。設定されていない場合、ironic は keystone のサービ"
+"スカタログから現在の値を取得できます。"
+
+msgid "UUID (from Glance) of the deployment ISO. Required."
+msgstr "デプロイメント ISO の (Glance からの) UUID。必須。"
+
+msgid "UUID (from Glance) of the deployment kernel. Required."
+msgstr "デプロイカーネルの (Glance からの) UUID。必須。"
+
+msgid ""
+"UUID (from Glance) of the ramdisk that is mounted at boot time. Required."
+msgstr "ブート時にマウントされた RAM ディスクの (Glance からの) UUID。必須。"
+
+msgid ""
+"UUID (from Glance) of the ramdisk with agent that is used at deploy time. "
+"Required."
+msgstr ""
+"デプロイ時に使用されるエージェントのある RAM ディスクの (Glance からの) "
+"UUID。必須。"
+
+msgid "Unable to communicate with the server."
+msgstr "サーバーと通信できません。"
+
+#, python-format
+msgid ""
+"Unable to decode response as JSON.\n"
+"Request URL: %(url)s\n"
+"Request body: \"%(body)s\"\n"
+"Response status code: %(code)s\n"
+"Response: \"%(response)s\""
+msgstr ""
+"応答として JSON をデコードできません。\n"
+"リクエスト URL: %(url)s\n"
+"リクエストボディー: \"%(body)s\"\n"
+"応答ステータスコード: %(code)s\n"
+"応答: \"%(response)s\""
+
+msgid "Unable to import ImcSdk library"
+msgstr "ImcSdk ライブラリーをインポートできません"
+
+msgid "Unable to import UcsSdk library"
+msgstr "UcsSdk ライブラリーをインポートできません"
+
+msgid "Unable to import iboot library"
+msgstr "iboot ライブラリーをインポートできません"
+
+msgid "Unable to import proliantutils library"
+msgstr "proliantutils ライブラリーをインポートできません"
+
+msgid "Unable to import pyghmi IPMI library"
+msgstr "pyghmi IPMI ライブラリーをインポートできません"
+
+msgid "Unable to import pyghmi library"
+msgstr "pyghmi ライブラリーをインポートできません"
+
+msgid "Unable to import pyremotevbox library"
+msgstr "pyremotevbox ライブラリーをインポートできません"
+
+msgid "Unable to import pysnmp library"
+msgstr "pysnmp ライブラリーをインポートできません"
+
+msgid "Unable to import python-scciclient library"
+msgstr "python-scciclient ライブラリーをインポートできません"
+
+msgid "Unable to import pywsman library"
+msgstr "pywsman ライブラリーをインポートできません"
+
+msgid "Unable to import seamicroclient library"
+msgstr "seamicroclient ライブラリーをインポートできません"
+
+msgid ""
+"Unable to locate usable ipmitool command in the system path when checking "
+"ipmitool version"
+msgstr ""
+"ipmitool バージョンの確認時に、使用可能な ipmitool コマンドがシステムのパスに"
+"見つかりませんでした"
+
+#, python-format
+msgid ""
+"Unable to stat device %(dev)s after attempting to verify %(attempts)d times."
+msgstr "%(attempts)d 回の検証試行後にデバイス %(dev)s を開始できません。"
+
+msgid "Unacceptable parameters."
+msgstr "受け入れられないパラメーター。"
+
+#, fuzzy, python-format
+msgid "Unknown lookup payload version: %s"
+msgstr "ルックアップ・ペイロード・バージョンが不明です: %s"
+
+#, python-format
+msgid "Unknown namespace %(ns)s for item: \"%(item)s\""
+msgstr "%(item)s 項目の無効な名前空間 %(ns)s"
+
+#, python-format
+msgid "Unsupported target_state: %s"
+msgstr "サポートされない target_state: %s"
+
+#, python-format
+msgid "Update DHCP options on port: %(port_id)s failed."
+msgstr "ポート %(port_id)s での DHCP オプションの更新に失敗しました。"
+
+#, python-format
+msgid "Update MAC address on port: %(port_id)s failed."
+msgstr "ポート %(port_id)s での MAC アドレスの更新に失敗しました。"
+
+msgid ""
+"Upgrade the database schema to the latest version. Optionally, use --"
+"revision to specify an alembic revision string to upgrade to."
+msgstr ""
+"データベースのスキーマを最新バージョンにアップグレードします。オプションとし"
+"て、--revision を使用して、アップグレードする Alembic バージョン文字列を指定"
+"することもできます。"
+
+msgid "Username for the VirtualBox host. Default value is ''. Optional."
+msgstr "VirtualBox ホストのユーザー名。デフォルト値は空白です。オプション。"
+
+msgid "Username for the iRMC with administrator privileges. Required."
+msgstr "管理者権限を持つ iRMC のユーザー名。必須。"
+
+msgid "Username to access the chassis manager REST API. Required."
+msgstr "シャーシマネージャーの REST API にアクセスするユーザー名。必須。"
+
+msgid "Username to log into AMT system. Required."
+msgstr "AMT システムにログインするためのユーザー名。必須。"
+
+msgid "Valid cleaning network UUID not provided"
+msgstr "有効なクリーニングネットワーク UUID が指定されていません"
+
+#, python-format
+msgid "Validation of image href %(image_href)s failed, reason: %(reason)s"
+msgstr "イメージ href %(image_href)s の検証に失敗しました。理由: %(reason)s"
+
+#, python-format
+msgid ""
+"Value '%s' for remote_image_share_root isn't a directory or doesn't exist."
+msgstr ""
+"remote_image_share_root の値「%s」が、ディレクトリーではないか、存在しませ"
+"ん。"
+
+#, python-format
+msgid ""
+"Value '%s' for remote_image_share_type is not supported value either 'NFS' "
+"or 'CIFS'."
+msgstr ""
+"remote_image_share_type の値「%s」はサポートされません。「NFS」と「CIFS」がサ"
+"ポートされます。"
+
+#, python-format
+msgid ""
+"Value for ipmi_bridging is provided as %s, but IPMI bridging is not "
+"supported by the IPMI utility installed on host. Ensure ipmitool version is "
+"> 1.8.11"
+msgstr ""
+"ipmi_bridging の値に %s が指定されましたが、IPMI ブリッジングはホストにインス"
+"トールされた IPMI ユーティリティーではサポートされていません。ipmitool バー"
+"ジョンが 1.8.11 より上であることを確認してください。"
+
+#, python-format
+msgid ""
+"Version %(ver)s was requested but the minor version is not supported by this "
+"service. The supported version range is: [%(min)s, %(max)s]."
+msgstr ""
+"バージョン %(ver)s が要求されましたが、このサービスでは、マイナーバージョンは"
+"サポートされていません。サポートされるバージョン範囲は [%(min)s、%(max)s] で"
+"す。"
+
+#, python-format
+msgid "VirtualBox operation '%(operation)s' failed. Error: %(error)s"
+msgstr "VirtualBox の処理「%(operation)s」が失敗しました。エラー: %(error)s"
+
+msgid ""
+"Wake-On-Lan needs at least one port resource to be registered in the node"
+msgstr ""
+"Wake-On-Lan は、少なくとも 1 つのポートがノードに登録されている必要があります"
+
+msgid "Wake-On-Lan port must be an integer"
+msgstr "Wake-On-Lan ポートは整数である必要があります"
+
+#, python-format
+msgid ""
+"When creating cleaning ports, DHCP provider didn't return VIF port ID for %s"
+msgstr ""
+"クリーニングポートの作成中、DHCP プロバイダーが %s の仮想インターフェースの"
+"ポート ID を返しませんでした。"
+
+#, python-format
+msgid ""
+"While executing step %(step)s on node %(node)s, step returned invalid value: "
+"%(val)s"
+msgstr ""
+"ノード %(node)s でステップ %(step)s を実行中に無効な値が返されました: %(val)s"
+
+#, python-format
+msgid "_set_power_state called with invalid power state '%s'"
+msgstr "無効な電源状態「%s」で _set_power_state が呼び出されました"
+
+#, python-format
+msgid "bad response: %s"
+msgstr "不正な応答: %s"
+
+msgid ""
+"bridging_type; default is \"no\". One of \"single\", \"dual\", \"no\". "
+"Optional."
+msgstr ""
+"bridging_type; デフォルトは「no」です。「single」、「dual」、「no」のいずれか"
+"を指定します。オプション。"
+
+msgid "delete object"
+msgstr "delete オブジェクト"
+
+msgid ""
+"destination address for bridged request. Required only if ipmi_bridging is "
+"set to \"single\" or \"dual\"."
+msgstr ""
+"ブリッジ要求の宛先アドレス。ipmi_bridging が「single」または「dual」に設定さ"
+"れている場合にのみ必要です。"
+
+msgid ""
+"destination channel for bridged request. Required only if ipmi_bridging is "
+"set to \"single\" or \"dual\"."
+msgstr ""
+"ブリッジ要求の宛先チャネル。ipmi_bridging が「single」または「dual」に設定さ"
+"れている場合にのみ必要です。"
+
+msgid "disabled"
+msgstr "無効化"
+
+msgid "disabling"
+msgstr "無効化中"
+
+msgid "enabled"
+msgstr "有効化"
+
+msgid "enabling"
+msgstr "有効化中"
+
+#, fuzzy, python-format
+msgid "fmt=%(fmt)s backed by: %(backing_file)s"
+msgstr "fmt=%(fmt)s の基盤: %(backing_file)s"
+
+#, python-format
+msgid "get_clean_steps for node %(node)s returned invalid result: %(result)s"
+msgstr ""
+"ノード %(node)s の get_clean_steps から無効な結果が返されました: %(result)s"
+
+msgid "getting boot device"
+msgstr "ブートデバイスの取得中"
+
+msgid "getting power status"
+msgstr "電源状態の取得中"
+
+msgid "head account"
+msgstr "head アカウント"
+
+msgid "head object"
+msgstr "head オブジェクト"
+
+msgid "iBoot PDU port must be an integer."
+msgstr "iBoot PDU ポートは整数でなければなりません。"
+
+msgid "iBoot PDU port; default is 9100. Optional."
+msgstr "iBoot PDU ポート。デフォルトは 9100。オプション。"
+
+msgid "iBoot PDU relay id must be an integer."
+msgstr "iBoot PDU リレー ID は整数でなければなりません。"
+
+msgid "iBoot PDU relay id; default is 1. Optional."
+msgstr "iBoot PDU リレー ID。デフォルトは 1。オプション。"
+
+msgid "iLO get_power_status"
+msgstr "iLO get_power_status"
+
+msgid "iLO license check"
+msgstr "iLO ライセンスチェック"
+
+msgid "iLO set_power_state"
+msgstr "iLO set_power_state"
+
+msgid "iPXE boot is enabled but no HTTP URL or HTTP root was specified."
+msgstr ""
+"iPXE ブートが有効になっていますが、HTTP URL も HTTP ルートも指定されませんで"
+"した。"
+
+#, python-format
+msgid "iRMC %(operation)s failed. Reason: %(error)s"
+msgstr "iRMC %(operation)s が失敗しました。理由: %(error)s"
+
+msgid "iRMC set_power_state"
+msgstr "iRMC 電源操作"
+
+#, python-format
+msgid "iRMC shared file system '%(share)s' is not mounted."
+msgstr "iRMC 共有ファイルシステム「%(share)s」がマウントされていません。"
+
+#, python-format
+msgid ""
+"iSCSI connection did not become active after attempting to verify %d times."
+msgstr "iSCSI 接続は %d 回の検証試行後にアクティブになりませんでした。"
+
+#, python-format
+msgid ""
+"iSCSI connection was not seen by the file system after attempting to verify "
+"%d times."
+msgstr ""
+"iSCSI 接続は %d 回の検証試行後にファイルシステムによって参照されませんでし"
+"た。"
+
+#, python-format
+msgid ""
+"image_source's image_checksum must be provided in instance_info for node %s"
+msgstr ""
+"image_source の image_checksum をノード %s の instance_info で指定する必要が"
+"あります"
+
+msgid "ironic-conductor node's TFTP root path."
+msgstr "ironic-conductor ノードの TFTP ルートパス。"
+
+msgid ""
+"ironic-inspector HTTP endpoint. If this is not set, the ironic-inspector "
+"client default (http://127.0.0.1:5050) will be used."
+msgstr ""
+"ironic-inspector の HTTP エンドポイント。設定されていない場合、ironic-"
+"inspector クライアントのデフォルト (http://127.0.0.1:5050) が使用されます。"
+
+#, python-format
+msgid "ironic-inspector inspection failed: %s"
+msgstr "ironic-inspector による検査に失敗しました: %s"
+
+msgid "ironic-inspector support is disabled"
+msgstr "ironic-inspector のサポートが無効化されています"
+
+msgid "libvirt URI"
+msgstr "libvirt URI"
+
+msgid ""
+"local IPMB address for bridged requests. Used only if ipmi_bridging is set "
+"to \"single\" or \"dual\". Optional."
+msgstr ""
+"ブリッジ要求のローカル IPMB アドレス。ipmi_bridging が「single」または"
+"「dual」に設定されている場合にのみ使用されます。オプション。"
+
+msgid ""
+"new password for iLO. Required if the clean step 'reset_ilo_credential' is "
+"enabled."
+msgstr ""
+"iLO の新規パスワード。クリーニングステップ「reset_ilo_credential」が有効に"
+"なっている場合は必須です。"
+
+#, python-format
+msgid "node %(node)s command status errored: %(error)s"
+msgstr "ノード %(node)s のコマンドステータスがエラーでした: %(error)s"
+
+msgid "node's UDP port to connect to. Only required for console access."
+msgstr "接続先のノードの UDP ポート。コンソールアクセスのみに必要です。"
+
+msgid "not supported"
+msgstr "サポートされていません"
+
+#, python-format
+msgid ""
+"parse ipmi sensor data failed, get nothing with input data: %(sensors_data)s"
+msgstr ""
+"ipmi センサーデータの解析に失敗しました。入力データ %(sensors_data)s から何も"
+"得られません"
+
+#, python-format
+msgid ""
+"parse ipmi sensor data failed, unknown sensor type data: %(sensors_data)s"
+msgstr ""
+"ipmi センサーデータの解析に失敗しました。不明なセンサータイプデータ: "
+"%(sensors_data)s"
+
+msgid "password for ilo_username. Required."
+msgstr "ilo_username のパスワード。必須。"
+
+msgid ""
+"password to use for authentication or for unlocking a private key. One of "
+"this, ssh_key_contents, or ssh_key_filename must be specified."
+msgstr ""
+"認証または秘密鍵のロック解除に使用するパスワード。この中の 1 つ、"
+"ssh_key_contents、または ssh_key_filename のいずれかを指定する必要がありま"
+"す。"
+
+msgid "password used for authentication. Required."
+msgstr "認証に使用するパスワード。必須。"
+
+msgid "password. Optional."
+msgstr "パスワード。オプション。"
+
+msgid "password. Required."
+msgstr "パスワード。必須。"
+
+msgid "path used for WS-Man endpoint; default is \"/wsman\". Optional."
+msgstr ""
+"WS-Man エンドポイントに使用するパス。デフォルトは「/wsman」。オプション。"
+
+msgid "port on the node to connect to; default is 22. Optional."
+msgstr "接続先のノードのポート。デフォルトは 22。オプション。"
+
+msgid "port to be used for iLO operations. Optional."
+msgstr "iLO 操作に使用するポート。オプション。"
+
+msgid "port used for WS-Man endpoint; default is 443. Optional."
+msgstr "WS-Man エンドポイントに使用するポート。デフォルトは 443。オプション。"
+
+msgid "post object"
+msgstr "post オブジェクト"
+
+msgid ""
+"private key(s). One of this, ssh_key_filename, or ssh_password must be "
+"specified."
+msgstr ""
+"秘密鍵。ssh_key_filename または ssh_password のどちらかを指定する必要がありま"
+"す。"
+
+#, python-format
+msgid "privilege level; default is ADMINISTRATOR. One of %s. Optional."
+msgstr ""
+"特権レベル。デフォルトは ADMINISTRATOR です。%s のいずれかです。オプション。"
+
+msgid ""
+"protocol used for WS-Man endpoint; one of http, https; default is \"https\". "
+"Optional."
+msgstr ""
+"WS-Man エンドポイントで使用するプロトコル。http または https のいずれかを指定"
+"します。デフォルトは「https」です。オプション。"
+
+msgid "provisioning"
+msgstr "プロビジョニング"
+
+msgid "put container"
+msgstr "put コンテナー"
+
+msgid "put object"
+msgstr "put オブジェクト"
+
+msgid "python-ironic-inspector-client Python module not found"
+msgstr "python-ironic-inspector-client Python モジュールが見つかりません"
+
+msgid "rebooting"
+msgstr "再起動中"
+
+msgid "server ID. Required."
+msgstr "サーバー ID。必須。"
+
+#, python-format
+msgid ""
+"set_boot_device called with invalid device %(device)s for node %(node_id)s."
+msgstr ""
+"set_boot_device がノード %(node_id)s の無効なデバイス %(device)s を使用して呼"
+"び出されました。"
+
+#, python-format
+msgid "set_power_state called for %(node)s with invalid state %(state)s"
+msgstr ""
+"%(node)s の set_power_state が、無効な状態 %(state)s で呼び出されました"
+
+#, python-format
+msgid ""
+"set_power_state called for Node %(node)s with invalid power state %(pstate)s."
+msgstr ""
+"set_power_state が、無効な電源状態 %(pstate)s を持つノード %(node)s に対して"
+"呼び出されました。"
+
+#, python-format
+msgid "set_power_state called with an invalid power state: %s."
+msgstr "無効な電源状態 %s で set_power_state が呼び出されました。"
+
+#, python-format
+msgid "set_power_state called with an invalid powerstate: %s."
+msgstr "set_power_state が無効な電源状態で呼び出されました: %s"
+
+#, python-format
+msgid "set_power_state called with invalid power state %s."
+msgstr "無効な電源状態 %s で set_power_state が呼び出されました。"
+
+#, python-format
+msgid "set_power_state called with invalid power state '%s'"
+msgstr "set_power_state が無効な電源状態「%s」で呼び出されました。"
+
+msgid "set_power_state called with invalid power state."
+msgstr "set_power_state が無効な電源状態で呼び出されました。"
+
+msgid "setting boot device"
+msgstr "ブートデバイスの設定中"
+
+msgid "setting power status"
+msgstr "電源状態の設定中"
+
+msgid "skipping non-root volumes"
+msgstr "非ルートボリュームのスキップ中"
+
+msgid "skipping root volume"
+msgstr "ルートボリュームのスキップ中"
+
+msgid ""
+"the version of the IPMI protocol; default is \"2.0\". One of \"1.5\", "
+"\"2.0\". Optional."
+msgstr ""
+"IPMI プロトコルのバージョン。デフォルトは  \"2.0\"。 \"1.5\"、\"2.0\" のいず"
+"れか。オプション。"
+
+msgid "timeout (in seconds) for iLO operations. Optional."
+msgstr "iLO 操作のタイムアウト (秒)。オプション。"
+
+msgid "timeout reached while inspecting the node"
+msgstr "ノードの検査中にタイムアウトに達しました"
+
+msgid ""
+"transit address for bridged request. Required only if ipmi_bridging is set "
+"to \"dual\"."
+msgstr ""
+"ブリッジ要求の通過アドレス。ipmi_bridging が「dual」に設定されている場合にの"
+"み必要です。"
+
+msgid ""
+"transit channel for bridged request. Required only if ipmi_bridging is set "
+"to \"dual\"."
+msgstr ""
+"ブリッジ要求の通過チャネル。ipmi_bridging が「dual」に設定されている場合にの"
+"み必要です。"
+
+msgid "username for the iLO with administrator privileges. Required."
+msgstr "管理者権限を持つ iLO のユーザー名。必須。"
+
+msgid "username to authenticate as. Required."
+msgstr "認証するユーザー名。必須。"
+
+msgid "username used for authentication. Required."
+msgstr "認証に使用するユーザー名。必須。"
+
+msgid "username. Required."
+msgstr "ユーザー名。必須。"
+
+msgid "username; default is NULL user. Optional."
+msgstr "ユーザー名。デフォルトは NULL。オプション。"
+
+msgid "version of SeaMicro API client; default is 2. Optional."
+msgstr "SeaMicro API クライアントのバージョン。デフォルトは 2。オプション。"
+
+msgid ""
+"virtualization software to use; one of vbox, virsh, vmware, parallels. "
+"Required."
+msgstr ""
+"使用する仮想化ソフトウェア。vbox、virsh、vmware、または parallels のどれかを"
+"指定します。必須。"
+
+msgid "whether to enable inspection using ironic-inspector"
+msgstr "ironic-inspector を使用した検査を有効化するかどうか"
