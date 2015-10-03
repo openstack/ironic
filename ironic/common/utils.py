@@ -552,7 +552,7 @@ def dd(src, dst, *args):
     """
     LOG.debug("Starting dd process.")
     execute('dd', 'if=%s' % src, 'of=%s' % dst, *args,
-            run_as_root=True, check_exit_code=[0])
+            use_standard_locale=True, run_as_root=True, check_exit_code=[0])
 
 
 def is_http_url(url):
