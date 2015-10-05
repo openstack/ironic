@@ -641,7 +641,7 @@ class BaseAgentVendor(base.VendorInterface):
         LOG.debug('Configuring local boot for node %s', node.uuid)
         if not node.driver_internal_info.get(
                 'is_whole_disk_image') and root_uuid:
-            LOG.debug('Installing the bootloader for node %(node)s on ',
+            LOG.debug('Installing the bootloader for node %(node)s on '
                       'partition %(part)s, EFI system partition %(efi)s',
                       {'node': node.uuid, 'part': root_uuid,
                        'efi': efi_system_part_uuid})
