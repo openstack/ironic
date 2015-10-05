@@ -20,6 +20,7 @@ from ironic.drivers import base
 from ironic.drivers.modules import agent
 from ironic.drivers.modules.cimc import management as cimc_mgmt
 from ironic.drivers.modules.cimc import power as cimc_power
+from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
@@ -57,6 +58,8 @@ class AgentAndIPMIToolDriver(base.BaseDriver):
             self.mapping,
             driver_passthru_mapping=self.driver_passthru_mapping)
         self.raid = agent.AgentRAID()
+        self.inspect = inspector.Inspector.create_if_enabled(
+            'AgentAndIPMIToolDriver')
 
 
 class AgentAndIPMINativeDriver(base.BaseDriver):
@@ -88,6 +91,8 @@ class AgentAndIPMINativeDriver(base.BaseDriver):
         self.vendor = utils.MixinVendorInterface(self.mapping,
                                                  self.driver_passthru_mapping)
         self.raid = agent.AgentRAID()
+        self.inspect = inspector.Inspector.create_if_enabled(
+            'AgentAndIPMINativeDriver')
 
 
 class AgentAndSSHDriver(base.BaseDriver):
@@ -110,6 +115,8 @@ class AgentAndSSHDriver(base.BaseDriver):
         self.management = ssh.SSHManagement()
         self.vendor = agent.AgentVendorInterface()
         self.raid = agent.AgentRAID()
+        self.inspect = inspector.Inspector.create_if_enabled(
+            'AgentAndSSHDriver')
 
 
 class AgentAndVirtualBoxDriver(base.BaseDriver):
