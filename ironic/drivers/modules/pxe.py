@@ -54,10 +54,12 @@ pxe_opts = [
                       'configuration for UEFI boot loader.')),
     cfg.StrOpt('tftp_server',
                default='$my_ip',
-               help=_('IP address of ironic-conductor node\'s TFTP server.')),
+               help=_("IP address of ironic-conductor node's TFTP server.")),
     cfg.StrOpt('tftp_root',
                default='/tftpboot',
-               help=_('ironic-conductor node\'s TFTP root path.')),
+               help=_("ironic-conductor node's TFTP root path. The "
+                      "ironic-conductor must have read/write access to this "
+                      "path.")),
     cfg.StrOpt('tftp_master_path',
                default='/tftpboot/master_images',
                help=_('On ironic-conductor node, directory where master TFTP '
