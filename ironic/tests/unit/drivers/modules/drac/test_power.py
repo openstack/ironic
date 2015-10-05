@@ -27,7 +27,7 @@ from ironic.drivers.modules.drac import resource_uris
 from ironic.tests.unit.conductor import utils as mgr_utils
 from ironic.tests.unit.db import base
 from ironic.tests.unit.db import utils as db_utils
-from ironic.tests.unit.drivers.drac import utils as test_utils
+from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.drivers import third_party_driver_mock_specs \
     as mock_specs
 
