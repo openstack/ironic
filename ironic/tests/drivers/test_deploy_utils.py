@@ -1375,8 +1375,8 @@ class MakePartitionsTestCase(tests_base.TestCase):
         if boot_option == "local":
             expected_mkpart.extend(['set', '2', 'boot', 'on'])
         parted_cmd = self.parted_static_cmd + expected_mkpart
-        parted_call = mock.call(*parted_cmd, run_as_root=True,
-                                check_exit_code=[0])
+        parted_call = mock.call(*parted_cmd, use_standard_locale=True,
+                                run_as_root=True, check_exit_code=[0])
         fuser_cmd = ['fuser', 'fake-dev']
         fuser_call = mock.call(*fuser_cmd, run_as_root=True,
                                check_exit_code=[0, 1])
@@ -1399,7 +1399,8 @@ class MakePartitionsTestCase(tests_base.TestCase):
                               self.ephemeral_mb, self.configdrive_mb,
                               '12345678-1234-1234-1234-1234567890abcxyz')
 
-        parted_call = mock.call(*cmd, run_as_root=True, check_exit_code=[0])
+        parted_call = mock.call(*cmd, use_standard_locale=True,
+                                run_as_root=True, check_exit_code=[0])
         mock_exc.assert_has_calls([parted_call])
 
 
