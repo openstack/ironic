@@ -330,4 +330,9 @@ def dhcp_options_for_instance(task):
                       'opt_value': CONF.pxe.tftp_server})
     dhcp_opts.append({'opt_name': 'tftp-server',
                       'opt_value': CONF.pxe.tftp_server})
+
+    # Append the IP version for all the configuration options
+    for opt in dhcp_opts:
+        opt.update({'ip_version': int(CONF.pxe.ip_version)})
+
     return dhcp_opts

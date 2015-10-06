@@ -1747,6 +1747,10 @@
 # file. (string value)
 #ipxe_boot_script=$pybasedir/drivers/modules/boot.ipxe
 
+# The IP version that will be used for PXE booting. Can be
+# either 4 or 6. Defaults to 4. EXPERIMENTAL (integer value)
+#ip_version=4
+
 
 [seamicro]
 

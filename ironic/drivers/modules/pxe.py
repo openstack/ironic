@@ -80,6 +80,11 @@ pxe_opts = [
                    'drivers/modules/boot.ipxe'),
                help=_('On ironic-conductor node, the path to the main iPXE '
                       'script file.')),
+    cfg.StrOpt('ip_version',
+               default='4',
+               choices=['4', '6'],
+               help=_('The IP version that will be used for PXE booting. '
+                      'Can be either 4 or 6. Defaults to 4. EXPERIMENTAL')),
 ]
 
 LOG = logging.getLogger(__name__)

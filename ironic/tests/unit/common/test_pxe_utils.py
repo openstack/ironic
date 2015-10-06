@@ -361,19 +361,29 @@ class TestPXEUtils(db_base.DbTestCase):
                                       'config'),
                          pxe_utils.get_pxe_config_file_path(self.node.uuid))
 
-    def test_dhcp_options_for_instance(self):
+    def _dhcp_options_for_instance(self, ip_version=4):
+        self.config(ip_version=ip_version, group='pxe')
         self.config(tftp_server='192.0.2.1', group='pxe')
         self.config(pxe_bootfile_name='fake-bootfile', group='pxe')
         expected_info = [{'opt_name': 'bootfile-name',
-                          'opt_value': 'fake-bootfile'},
+                          'opt_value': 'fake-bootfile',
+                          'ip_version': ip_version},
                          {'opt_name': 'server-ip-address',
-                          'opt_value': '192.0.2.1'},
+                          'opt_value': '192.0.2.1',
+                          'ip_version': ip_version},
                          {'opt_name': 'tftp-server',
-                          'opt_value': '192.0.2.1'}
+                          'opt_value': '192.0.2.1',
+                          'ip_version': ip_version},
                          ]
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertEqual(expected_info,
                              pxe_utils.dhcp_options_for_instance(task))
+
+    def test_dhcp_options_for_instance(self):
+        self._dhcp_options_for_instance(ip_version=4)
+
+    def test_dhcp_options_for_instance_ipv6(self):
+        self._dhcp_options_for_instance(ip_version=6)
 
     def _test_get_deploy_kr_info(self, expected_dir):
         node_uuid = 'fake-node'
@@ -422,13 +432,17 @@ class TestPXEUtils(db_base.DbTestCase):
         self.config(dhcp_provider='isc', group='dhcp')
         expected_boot_script_url = 'http://192.0.3.2:1234/boot.ipxe'
         expected_info = [{'opt_name': '!175,bootfile-name',
-                          'opt_value': 'fake-bootfile'},
+                          'opt_value': 'fake-bootfile',
+                          'ip_version': 4},
                          {'opt_name': 'server-ip-address',
-                          'opt_value': '192.0.2.1'},
+                          'opt_value': '192.0.2.1',
+                          'ip_version': 4},
                          {'opt_name': 'tftp-server',
-                          'opt_value': '192.0.2.1'},
+                          'opt_value': '192.0.2.1',
+                          'ip_version': 4},
                          {'opt_name': 'bootfile-name',
-                          'opt_value': expected_boot_script_url}]
+                          'opt_value': expected_boot_script_url,
+                          'ip_version': 4}]
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertItemsEqual(expected_info,
                                   pxe_utils.dhcp_options_for_instance(task))
@@ -436,13 +450,17 @@ class TestPXEUtils(db_base.DbTestCase):
         self.config(dhcp_provider='neutron', group='dhcp')
         expected_boot_script_url = 'http://192.0.3.2:1234/boot.ipxe'
         expected_info = [{'opt_name': 'tag:!ipxe,bootfile-name',
-                          'opt_value': 'fake-bootfile'},
+                          'opt_value': 'fake-bootfile',
+                          'ip_version': 4},
                          {'opt_name': 'server-ip-address',
-                          'opt_value': '192.0.2.1'},
+                          'opt_value': '192.0.2.1',
+                          'ip_version': 4},
                          {'opt_name': 'tftp-server',
-                          'opt_value': '192.0.2.1'},
+                          'opt_value': '192.0.2.1',
+                          'ip_version': 4},
                          {'opt_name': 'tag:ipxe,bootfile-name',
-                          'opt_value': expected_boot_script_url}]
+                          'opt_value': expected_boot_script_url,
+                          'ip_version': 4}]
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertItemsEqual(expected_info,
                                   pxe_utils.dhcp_options_for_instance(task))
