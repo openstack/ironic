@@ -314,6 +314,9 @@ def create_isolinux_image_for_uefi(output_file, deploy_iso, kernel, ramdisk,
 
 def qemu_img_info(path):
     """Return an object containing the parsed output from qemu-img info."""
+    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+    # planned to be deleted here. If need to modify this function, please also
+    # do the same modification in ironic-lib
     if not os.path.exists(path):
         return imageutils.QemuImgInfo()
 
@@ -324,6 +327,9 @@ def qemu_img_info(path):
 
 def convert_image(source, dest, out_format, run_as_root=False):
     """Convert image to other format."""
+    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+    # planned to be deleted here. If need to modify this function, please also
+    # do the same modification in ironic-lib
     cmd = ('qemu-img', 'convert', '-O', out_format, source, dest)
     utils.execute(*cmd, run_as_root=run_as_root)
 

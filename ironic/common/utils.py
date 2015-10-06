@@ -61,6 +61,9 @@ LOG = logging.getLogger(__name__)
 
 
 def _get_root_helper():
+    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+    # planned to be deleted here. If need to modify this function, please
+    # also do the same modification in ironic-lib
     return 'sudo ironic-rootwrap %s' % CONF.rootwrap_config
 
 
@@ -431,6 +434,9 @@ def mkfs(fs, path, label=None):
     :param path: Path to file or block device to format
     :param label: Volume label to use
     """
+    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+    # planned to be deleted here. If need to modify this function, please also
+    # do the same modification in ironic-lib
     if fs == 'swap':
         args = ['mkswap']
     else:
@@ -461,6 +467,9 @@ def mkfs(fs, path, label=None):
 
 
 def unlink_without_raise(path):
+    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+    # planned to be deleted here. If need to modify this function, please also
+    # do the same modification in ironic-lib
     try:
         os.unlink(path)
     except OSError as e:
@@ -550,12 +559,18 @@ def dd(src, dst, *args):
     :raises: processutils.ProcessExecutionError if it failed
         to run the process.
     """
+    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+    # planned to be deleted here. If need to modify this function, please also
+    # do the same modification in ironic-lib
     LOG.debug("Starting dd process.")
     execute('dd', 'if=%s' % src, 'of=%s' % dst, *args,
             use_standard_locale=True, run_as_root=True, check_exit_code=[0])
 
 
 def is_http_url(url):
+    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+    # planned to be deleted here. If need to modify this function, please also
+    # do the same modification in ironic-lib
     url = url.lower()
     return url.startswith('http://') or url.startswith('https://')
 

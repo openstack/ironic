@@ -241,6 +241,9 @@ def get_disk_identifier(dev):
     :param dev: Path for the already populated disk device.
     :returns The Disk Identifier.
     """
+    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+    # planned to be deleted here. If need to modify this function, please also
+    # do the same modification in ironic-lib
     disk_identifier = utils.execute('hexdump', '-s', '440', '-n', '4',
                                     '-e', '''\"0x%08x\"''',
                                     dev,
@@ -275,6 +278,9 @@ def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
         path as Value for the partitions created by this method.
 
     """
+    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+    # planned to be deleted here. If need to modify this function, please also
+    # do the same modification in ironic-lib
     LOG.debug("Starting to partition the disk device: %(dev)s "
               "for node %(node)s",
               {'dev': dev, 'node': node_uuid})
@@ -329,6 +335,9 @@ def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
 
 def is_block_device(dev):
     """Check whether a device is block or not."""
+    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+    # planned to be deleted here. If need to modify this function, please also
+    # do the same modification in ironic-lib
     attempts = CONF.deploy.iscsi_verify_attempts
     for attempt in range(attempts):
         try:
@@ -349,10 +358,16 @@ def is_block_device(dev):
 
 def dd(src, dst):
     """Execute dd from src to dst."""
+    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+    # planned to be deleted here. If need to modify this function, please also
+    # do the same modification in ironic-lib
     utils.dd(src, dst, 'bs=%s' % CONF.deploy.dd_block_size, 'oflag=direct')
 
 
 def populate_image(src, dst):
+    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+    # planned to be deleted here. If need to modify this function, please also
+    # do the same modification in ironic-lib
     data = images.qemu_img_info(src)
     if data.file_format == 'raw':
         dd(src, dst)
@@ -362,6 +377,9 @@ def populate_image(src, dst):
 
 def block_uuid(dev):
     """Get UUID of a block device."""
+    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+    # planned to be deleted here. If need to modify this function, please also
+    # do the same modification in ironic-lib
     out, _err = utils.execute('blkid', '-s', 'UUID', '-o', 'value', dev,
                               run_as_root=True,
                               check_exit_code=[0])
@@ -450,6 +468,9 @@ def get_dev(address, port, iqn, lun):
 
 def get_image_mb(image_path, virtual_size=True):
     """Get size of an image in Megabyte."""
+    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+    # planned to be deleted here. If need to modify this function, please also
+    # do the same modification in ironic-lib
     mb = 1024 * 1024
     if not virtual_size:
         image_byte = os.path.getsize(image_path)
@@ -462,6 +483,9 @@ def get_image_mb(image_path, virtual_size=True):
 
 def get_dev_block_size(dev):
     """Get the device size in 512 byte sectors."""
+    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+    # planned to be deleted here. If need to modify this function, please also
+    # do the same modification in ironic-lib
     block_sz, cmderr = utils.execute('blockdev', '--getsz', dev,
                                      run_as_root=True, check_exit_code=[0])
     return int(block_sz)
@@ -476,6 +500,10 @@ def destroy_disk_metadata(dev, node_uuid):
        - the last 18KiB to clear GPT and other metadata like: LVM, veritas,
          MDADM, DMRAID, ...
     """
+    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+    # planned to be deleted here. If need to modify this function, please also
+    # do the same modification in ironic-lib
+
     # NOTE(NobodyCam): This is needed to work around bug:
     # https://bugs.launchpad.net/ironic/+bug/1317647
     LOG.debug("Start destroy disk metadata for node %(node)s.",
@@ -530,6 +558,9 @@ def _get_configdrive(configdrive, node_uuid):
         configdrive file.
 
     """
+    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+    # planned to be deleted here. If need to modify this function, please also
+    # do the same modification in ironic-lib
     # Check if the configdrive option is a HTTP URL or the content directly
     is_url = utils.is_http_url(configdrive)
     if is_url:
@@ -606,6 +637,10 @@ def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
         NOTE: If key exists but value is None, it means partition doesn't
               exist.
     """
+    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+    # planned to be deleted here. If need to modify this function, please also
+    # do the same modification in ironic-lib
+
     # the only way for preserve_ephemeral to be set to true is if we are
     # rebuilding an instance with --preserve_ephemeral.
     commit = not preserve_ephemeral

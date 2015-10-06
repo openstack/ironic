@@ -94,6 +94,9 @@ class DiskPartitioner(object):
         :returns: The partition number.
 
         """
+        # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+        # planned to be deleted here. If need to modify this function, please
+        # also do the same modification in ironic-lib
         self._partitions.append({'size': size,
                                  'type': part_type,
                                  'fs_type': fs_type,
@@ -107,10 +110,16 @@ class DiskPartitioner(object):
                   partition layout.
 
         """
+        # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+        # planned to be deleted here. If need to modify this function, please
+        # also do the same modification in ironic-lib
         return enumerate(self._partitions, 1)
 
     def _wait_for_disk_to_become_available(self, retries, max_retries, pids,
                                            stderr):
+        # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+        # planned to be deleted here. If need to modify this function, please
+        # also do the same modification in ironic-lib
         retries[0] += 1
         if retries[0] > max_retries:
             raise loopingcall.LoopingCallDone()
@@ -135,6 +144,9 @@ class DiskPartitioner(object):
 
     def commit(self):
         """Write to the disk."""
+        # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+        # planned to be deleted here. If need to modify this function, please
+        # also do the same modification in ironic-lib
         LOG.debug("Committing partitions to disk.")
         cmd_args = ['mklabel', self._disk_label]
         # NOTE(lucasagomes): Lead in with 1MiB to allow room for the
@@ -187,6 +199,9 @@ def list_partitions(device):
     :returns: list of dictionaries (one per partition) with keys:
               number, start, end, size (in MiB), filesystem, flags
     """
+    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
+    # planned to be deleted here. If need to modify this function, please also
+    # do the same modification in ironic-lib
     output = utils.execute(
         'parted', '-s', '-m', device, 'unit', 'MiB', 'print',
         use_standard_locale=True, run_as_root=True)[0]
