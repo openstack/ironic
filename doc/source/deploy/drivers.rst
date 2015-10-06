@@ -118,8 +118,17 @@ CIMC driver
 
 OneView driver
 --------------
-
+=======
 .. toctree::
   :maxdepth: 1
 
   ../drivers/oneview
+
+
+XenServer ssh driver
+--------------------
+
+.. toctree::
+  :maxdepth: 1
+
+  ../drivers/xenserver
