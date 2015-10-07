@@ -76,7 +76,7 @@ class DiskPartitioner(object):
         #                    need to log it again here.
         utils.execute('parted', '-a', self._alignment, '-s', self._device,
                       '--', 'unit', 'MiB', *args, check_exit_code=[0],
-                      run_as_root=True)
+                      use_standard_locale=True, run_as_root=True)
 
     def add_partition(self, size, part_type='primary', fs_type='',
                       bootable=False):
