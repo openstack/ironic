@@ -14,6 +14,7 @@ doc/source/api/
 dist
 build
 eggs
+.eggs
 parts
 var
 sdist
