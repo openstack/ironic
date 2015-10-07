@@ -103,15 +103,12 @@ To run the unit tests under py34 and also run the pep8 tests::
     # run all tests (unit under py34 and pep8)
     tox -epy34 -epep8
 
-To run a specific test, use a positional argument for the unit tests::
+You may pass options to the test programs using positional arguments.
+To run a specific unit test, this passes the -r option and desired test
+(regex string) to `os-testr <https://pypi.python.org/pypi/os-testr>`_::
 
     # run a specific test for Python 2.7
-    tox -epy27 -- test_conductor
-
-You may pass options to the test programs using positional arguments::
-
-    # run all the Python 2.7 unit tests (in parallel!)
-    tox -epy27 -- --parallel
+    tox -epy27 -- -r test_conductor
 
 To run only the pep8/flake8 syntax and style checks::
 
