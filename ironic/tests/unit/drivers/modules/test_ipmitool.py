@@ -1487,6 +1487,25 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                               task)
         mock_exec.assert_called_once_with(self.node.uuid, mock.ANY, mock.ANY)
 
+    @mock.patch.object(console_utils, 'make_persistent_password_file',
+                       autospec=True)
+    @mock.patch.object(console_utils, 'start_shellinabox_console',
+                       autospec=True)
+    def test_start_console_empty_password(self, mock_exec, mock_pass):
+        driver_info = self.node.driver_info
+        del driver_info['ipmi_password']
+        self.node.driver_info = driver_info
+        self.node.save()
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.driver.console.start_console(task)
+
+        mock_pass.assert_called_once_with(mock.ANY, '\0')
+        mock_exec.assert_called_once_with(self.info['uuid'],
+                                          self.info['port'],
+                                          mock.ANY)
+
     @mock.patch.object(console_utils, 'stop_shellinabox_console',
                        autospec=True)
     def test_stop_console(self, mock_exec):
