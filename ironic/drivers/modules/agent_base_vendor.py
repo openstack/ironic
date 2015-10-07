@@ -607,9 +607,7 @@ class BaseAgentVendor(base.VendorInterface):
                     {'node_uuid': node.uuid,
                      'timeout': (wait * (attempts - 1)) / 1000,
                      'error': e})
-                manager_utils.node_power_action(task, states.REBOOT)
-            else:
-                manager_utils.node_power_action(task, states.POWER_ON)
+            manager_utils.node_power_action(task, states.REBOOT)
         except Exception as e:
             msg = (_('Error rebooting node %(node)s after deploy. '
                      'Error: %(error)s') %

@@ -511,7 +511,7 @@ class TestAgentVendor(db_base.DbTestCase):
             power_off_mock.assert_called_once_with(task.node)
             get_power_state_mock.assert_called_once_with(task)
             node_power_action_mock.assert_called_once_with(
-                task, states.POWER_ON)
+                task, states.REBOOT)
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
 
@@ -548,7 +548,7 @@ class TestAgentVendor(db_base.DbTestCase):
             power_off_mock.assert_called_once_with(task.node)
             get_power_state_mock.assert_called_once_with(task)
             node_power_action_mock.assert_called_once_with(
-                task, states.POWER_ON)
+                task, states.REBOOT)
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
 
