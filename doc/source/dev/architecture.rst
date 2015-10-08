@@ -105,7 +105,7 @@ For example 'spacing=5' means every 5 seconds.
 
     This is deprecated as of Liberty release, and the parallel argument will be
     ignored starting in the Mitaka cycle, as such task would prevent all other
-    periodic tasks from starting while it is is running.
+    periodic tasks from starting while it is running.
 
 .. note::
     By default periodic task names are derived from method names,
