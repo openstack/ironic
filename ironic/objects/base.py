@@ -14,13 +14,9 @@
 
 """Ironic common internal object model"""
 
-from oslo_log import log as logging
 from oslo_versionedobjects import base as object_base
 
 from ironic.objects import fields as object_fields
-
-
-LOG = logging.getLogger('object')
 
 
 class IronicObjectRegistry(object_base.VersionedObjectRegistry):
