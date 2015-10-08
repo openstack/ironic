@@ -33,6 +33,7 @@ from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
+import retrying
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -48,7 +49,16 @@ from ironic.drivers import utils as driver_utils
 libvirt_opts = [
     cfg.StrOpt('libvirt_uri',
                default='qemu:///system',
-               help=_('libvirt URI'))
+               help=_('libvirt URI.')),
+    cfg.IntOpt('get_vm_name_attempts',
+               default=3,
+               help=_("Number of attempts to try to get VM name used by the "
+                      "host that corresponds to a node's MAC address.")),
+    cfg.IntOpt('get_vm_name_retry_interval',
+               default=3,
+               help=_("Number of seconds to wait between attempts to get "
+                      "VM name used by the host that corresponds to a "
+                      "node's MAC address.")),
 ]
 
 CONF = cfg.CONF
@@ -236,6 +246,8 @@ def _get_boot_device(ssh_obj, driver_info):
     :raises: SSHCommandFailed on an error from ssh.
     :raises: NotImplementedError if the virt_type does not support
         getting the boot device.
+    :raises: NodeNotFound if could not find a VM corresponding to any
+        of the provided MACs.
 
     """
     cmd_to_exec = driver_info['cmd_set'].get('get_boot_device')
@@ -261,6 +273,8 @@ def _set_boot_device(ssh_obj, driver_info, device):
     :raises: SSHCommandFailed on an error from ssh.
     :raises: NotImplementedError if the virt_type does not support
         setting the boot device.
+    :raises: NodeNotFound if could not find a VM corresponding to any
+        of the provided MACs.
 
     """
     cmd_to_exec = driver_info['cmd_set'].get('set_boot_device')
@@ -363,39 +377,33 @@ def _get_power_status(ssh_obj, driver_info):
     :param ssh_obj: paramiko.SSHClient, an active ssh connection.
     :param driver_info: information for accessing the node.
     :returns: one of ironic.common.states POWER_OFF, POWER_ON.
-    :raises: NodeNotFound
+    :raises: NodeNotFound if could not find a VM corresponding to any
+        of the provided MACs.
 
     """
     power_state = None
     node_name = _get_hosts_name_for_node(ssh_obj, driver_info)
-    if node_name:
-        # Get a list of vms running on the host. If the command supports
-        # it, explicitly specify the desired node."
-        cmd_to_exec = "%s %s" % (driver_info['cmd_set']['base_cmd'],
-                                 driver_info['cmd_set']['list_running'])
-        cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', node_name)
-        running_list = _ssh_execute(ssh_obj, cmd_to_exec)
+    # Get a list of vms running on the host. If the command supports
+    # it, explicitly specify the desired node."
+    cmd_to_exec = "%s %s" % (driver_info['cmd_set']['base_cmd'],
+                             driver_info['cmd_set']['list_running'])
+    cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', node_name)
+    running_list = _ssh_execute(ssh_obj, cmd_to_exec)
 
-        # Command should return a list of running vms. If the current node is
-        # not listed then we can assume it is not powered on.
-        quoted_node_name = '"%s"' % node_name
-        for node in running_list:
-            if not node:
-                continue
-            # 'node' here is a formatted output from the virt cli's. The
-            # node name is either an exact match or quoted (optionally with
-            # other information, e.g. vbox returns '"NodeName" {<uuid>}')
-            if (quoted_node_name in node) or (node_name == node):
-                power_state = states.POWER_ON
-                break
-        if not power_state:
-            power_state = states.POWER_OFF
-    else:
-        err_msg = _LE('Node "%(host)s" with MAC address %(mac)s not found.')
-        LOG.error(err_msg, {'host': driver_info['host'],
-                            'mac': driver_info['macs']})
-
-        raise exception.NodeNotFound(node=driver_info['host'])
+    # Command should return a list of running vms. If the current node is
+    # not listed then we can assume it is not powered on.
+    quoted_node_name = '"%s"' % node_name
+    for node in running_list:
+        if not node:
+            continue
+        # 'node' here is a formatted output from the virt cli's. The
+        # node name is either an exact match or quoted (optionally with
+        # other information, e.g. vbox returns '"NodeName" {<uuid>}')
+        if (quoted_node_name in node) or (node_name == node):
+            power_state = states.POWER_ON
+            break
+    if not power_state:
+        power_state = states.POWER_OFF
 
     return power_state
 
@@ -415,41 +423,56 @@ def _get_hosts_name_for_node(ssh_obj, driver_info):
 
     :param ssh_obj: paramiko.SSHClient, an active ssh connection.
     :param driver_info: information for accessing the node.
-    :returns: the name or None if not found.
+    :returns: the name of the node.
+    :raises: NodeNotFound if could not find a VM corresponding to any of
+        the provided MACs
 
     """
-    matched_name = None
-    cmd_to_exec = "%s %s" % (driver_info['cmd_set']['base_cmd'],
-                             driver_info['cmd_set']['list_all'])
-    full_node_list = _ssh_execute(ssh_obj, cmd_to_exec)
-    LOG.debug("Retrieved Node List: %s" % repr(full_node_list))
-    # for each node check Mac Addresses
-    for node in full_node_list:
-        if not node:
-            continue
-        LOG.debug("Checking Node: %s's Mac address." % node)
+
+    @retrying.retry(
+        retry_on_result=lambda v: v is None,
+        retry_on_exception=lambda _: False,  # Do not retry on SSHCommandFailed
+        stop_max_attempt_number=CONF.ssh.get_vm_name_attempts,
+        wait_fixed=CONF.ssh.get_vm_name_retry_interval * 1000)
+    def _with_retries():
+        matched_name = None
         cmd_to_exec = "%s %s" % (driver_info['cmd_set']['base_cmd'],
-                                 driver_info['cmd_set']['get_node_macs'])
-        cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', node)
-        hosts_node_mac_list = _ssh_execute(ssh_obj, cmd_to_exec)
-
-        for host_mac in hosts_node_mac_list:
-            if not host_mac:
+                                 driver_info['cmd_set']['list_all'])
+        full_node_list = _ssh_execute(ssh_obj, cmd_to_exec)
+        LOG.debug("Retrieved Node List: %s" % repr(full_node_list))
+        # for each node check Mac Addresses
+        for node in full_node_list:
+            if not node:
                 continue
-            for node_mac in driver_info['macs']:
-                if not node_mac:
-                    continue
-                if _normalize_mac(host_mac) in _normalize_mac(node_mac):
-                    LOG.debug("Found Mac address: %s" % node_mac)
-                    matched_name = node
-                    break
+            LOG.debug("Checking Node: %s's Mac address." % node)
+            cmd_to_exec = "%s %s" % (driver_info['cmd_set']['base_cmd'],
+                                     driver_info['cmd_set']['get_node_macs'])
+            cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', node)
+            hosts_node_mac_list = _ssh_execute(ssh_obj, cmd_to_exec)
 
+            for host_mac in hosts_node_mac_list:
+                if not host_mac:
+                    continue
+                for node_mac in driver_info['macs']:
+                    if _normalize_mac(host_mac) in _normalize_mac(node_mac):
+                        LOG.debug("Found Mac address: %s" % node_mac)
+                        matched_name = node
+                        break
+
+                if matched_name:
+                    break
             if matched_name:
                 break
-        if matched_name:
-            break
 
-    return matched_name
+        return matched_name
+
+    try:
+        return _with_retries()
+    except retrying.RetryError:
+        raise exception.NodeNotFound(
+            _("SSH driver was not able to find a VM with any of the "
+              "specified MACs: %(macs)s for node %(node)s.") %
+            {'macs': driver_info['macs'], 'node': driver_info['uuid']})
 
 
 def _power_on(ssh_obj, driver_info):
@@ -549,7 +572,8 @@ class SSHPower(base.PowerInterface):
         :raises: InvalidParameterValue if any connection parameters are
             incorrect.
         :raises: MissingParameterValue when a required parameter is missing
-        :raises: NodeNotFound.
+        :raises: NodeNotFound if could not find a VM corresponding to any
+            of the provided MACs.
         :raises: SSHCommandFailed on an error from ssh.
         :raises: SSHConnectFailed if ssh failed to connect to the node.
         """
@@ -570,7 +594,8 @@ class SSHPower(base.PowerInterface):
         :raises: InvalidParameterValue if any connection parameters are
             incorrect, or if the desired power state is invalid.
         :raises: MissingParameterValue when a required parameter is missing
-        :raises: NodeNotFound.
+        :raises: NodeNotFound if could not find a VM corresponding to any
+            of the provided MACs.
         :raises: PowerStateFailure if it failed to set power state to pstate.
         :raises: SSHCommandFailed on an error from ssh.
         :raises: SSHConnectFailed if ssh failed to connect to the node.
@@ -601,7 +626,8 @@ class SSHPower(base.PowerInterface):
         :raises: InvalidParameterValue if any connection parameters are
             incorrect.
         :raises: MissingParameterValue when a required parameter is missing
-        :raises: NodeNotFound.
+        :raises: NodeNotFound if could not find a VM corresponding to any
+            of the provided MACs.
         :raises: PowerStateFailure if it failed to set power state to POWER_ON.
         :raises: SSHCommandFailed on an error from ssh.
         :raises: SSHConnectFailed if ssh failed to connect to the node.
@@ -664,6 +690,8 @@ class SSHManagement(base.ManagementInterface):
         :raises: SSHCommandFailed on an error from ssh.
         :raises: NotImplementedError if the virt_type does not support
             setting the boot device.
+        :raises: NodeNotFound if could not find a VM corresponding to any
+            of the provided MACs.
 
         """
         node = task.node
@@ -697,6 +725,8 @@ class SSHManagement(base.ManagementInterface):
         :raises: MissingParameterValue if a required parameter is missing
         :raises: SSHConnectFailed if ssh failed to connect to the node.
         :raises: SSHCommandFailed on an error from ssh.
+        :raises: NodeNotFound if could not find a VM corresponding to any
+            of the provided MACs.
         :returns: a dictionary containing:
 
             :boot_device: the boot device, one of

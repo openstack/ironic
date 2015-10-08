@@ -1779,8 +1779,17 @@
 # Options defined in ironic.drivers.modules.ssh
 #
 
-# libvirt URI (string value)
+# libvirt URI. (string value)
 #libvirt_uri=qemu:///system
+
+# Number of attempts to try to get VM name used by the host
+# that corresponds to a node's MAC address. (integer value)
+#get_vm_name_attempts=3
+
+# Number of seconds to wait between attempts to get VM name
+# used by the host that corresponds to a node's MAC address.
+# (integer value)
+#get_vm_name_retry_interval=3
 
 
 [swift]
