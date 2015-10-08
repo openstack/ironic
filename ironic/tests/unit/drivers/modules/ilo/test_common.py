@@ -481,6 +481,55 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
                 'ilo_cont', 'image-node-uuid')
             eject_mock.assert_called_once_with(task)
 
+    @mock.patch.object(ilo_common.LOG, 'exception', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'eject_vmedia_devices',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(swift, 'SwiftAPI', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, '_get_floppy_image_name', spec_set=True,
+                       autospec=True)
+    def test_cleanup_vmedia_boot_exc(self, get_name_mock, swift_api_mock,
+                                     eject_mock, log_mock):
+        exc = exception.SwiftOperationError('error')
+        swift_obj_mock = swift_api_mock.return_value
+        swift_obj_mock.delete_object.side_effect = exc
+        CONF.ilo.swift_ilo_container = 'ilo_cont'
+
+        get_name_mock.return_value = 'image-node-uuid'
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_common.cleanup_vmedia_boot(task)
+            swift_obj_mock.delete_object.assert_called_once_with(
+                'ilo_cont', 'image-node-uuid')
+            self.assertTrue(log_mock.called)
+            eject_mock.assert_called_once_with(task)
+
+    @mock.patch.object(ilo_common.LOG, 'warning', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'eject_vmedia_devices',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(swift, 'SwiftAPI', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, '_get_floppy_image_name', spec_set=True,
+                       autospec=True)
+    def test_cleanup_vmedia_boot_exc_resource_not_found(self, get_name_mock,
+                                                        swift_api_mock,
+                                                        eject_mock, log_mock):
+        exc = exception.SwiftObjectNotFoundError('error')
+        swift_obj_mock = swift_api_mock.return_value
+        swift_obj_mock.delete_object.side_effect = exc
+        CONF.ilo.swift_ilo_container = 'ilo_cont'
+
+        get_name_mock.return_value = 'image-node-uuid'
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_common.cleanup_vmedia_boot(task)
+            swift_obj_mock.delete_object.assert_called_once_with(
+                'ilo_cont', 'image-node-uuid')
+            self.assertTrue(log_mock.called)
+            eject_mock.assert_called_once_with(task)
+
     @mock.patch.object(ilo_common, 'eject_vmedia_devices',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'destroy_floppy_image_from_web_server',

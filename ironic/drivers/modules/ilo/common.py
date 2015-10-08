@@ -31,6 +31,7 @@ from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
+from ironic.common.i18n import _LW
 from ironic.common import images
 from ironic.common import swift
 from ironic.common import utils
@@ -514,9 +515,13 @@ def cleanup_vmedia_boot(task):
         try:
             swift_api = swift.SwiftAPI()
             swift_api.delete_object(container, object_name)
+        except exception.SwiftObjectNotFoundError as e:
+            LOG.warning(_LW("Temporary object associated with virtual floppy "
+                            "was already deleted from Swift. Error: %s"), e)
         except exception.SwiftOperationError as e:
-            LOG.exception(_LE("Error while deleting %(object_name)s from "
-                              "%(container)s. Error: %(error)s"),
+            LOG.exception(_LE("Error while deleting temporary swift object "
+                              "%(object_name)s from %(container)s associated "
+                              "with virtual floppy. Error: %(error)s"),
                           {'object_name': object_name, 'container': container,
                            'error': e})
     else:

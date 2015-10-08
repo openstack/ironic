@@ -297,6 +297,28 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
         swift_obj_mock.delete_object.assert_called_once_with('ilo-cont',
                                                              'boot-object')
 
+    @mock.patch.object(ilo_deploy.LOG, 'exception', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_get_boot_iso_object_name', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(swift, 'SwiftAPI', spec_set=True, autospec=True)
+    def test__clean_up_boot_iso_for_instance_exc(self, swift_mock,
+                                                 boot_object_name_mock,
+                                                 log_mock):
+        swift_obj_mock = swift_mock.return_value
+        exc = exception.SwiftObjectNotFoundError('error')
+        swift_obj_mock.delete_object.side_effect = exc
+        CONF.ilo.swift_ilo_container = 'ilo-cont'
+        boot_object_name_mock.return_value = 'boot-object'
+        i_info = self.node.instance_info
+        i_info['ilo_boot_iso'] = 'swift:bootiso'
+        self.node.instance_info = i_info
+        self.node.save()
+        ilo_deploy._clean_up_boot_iso_for_instance(self.node)
+        swift_obj_mock.delete_object.assert_called_once_with('ilo-cont',
+                                                             'boot-object')
+        self.assertTrue(log_mock.called)
+
     @mock.patch.object(utils, 'unlink_without_raise', spec_set=True,
                        autospec=True)
     def test__clean_up_boot_iso_for_instance_on_webserver(self, unlink_mock):
