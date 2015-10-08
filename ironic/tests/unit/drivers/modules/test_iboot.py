@@ -259,6 +259,7 @@ class IBootDriverTestCase(db_base.DbTestCase):
         super(IBootDriverTestCase, self).setUp()
         self.config(max_retry=0, group='iboot')
         self.config(retry_interval=0, group='iboot')
+        self.config(reboot_delay=0, group='iboot')
         mgr_utils.mock_the_extension_manager(driver='fake_iboot')
         self.driver = driver_factory.get_driver('fake_iboot')
         self.node = obj_utils.create_test_node(
@@ -310,14 +311,19 @@ class IBootDriverTestCase(db_base.DbTestCase):
                               task.driver.power.set_power_state,
                               task, states.NOSTATE)
 
+    @mock.patch.object(iboot, '_sleep_switch', spec_set=types.FunctionType)
     @mock.patch.object(iboot, '_power_status', autospec=True)
     @mock.patch.object(iboot, '_switch', spec_set=types.FunctionType)
-    def test_reboot_good(self, mock_switch, mock_power_status):
-        manager = mock.MagicMock(spec_set=['switch'])
+    def test_reboot_good(self, mock_switch, mock_power_status,
+                         mock_sleep_switch):
+        self.config(reboot_delay=3, group='iboot')
+        manager = mock.MagicMock(spec_set=['switch', 'sleep'])
         mock_power_status.return_value = states.POWER_ON
 
         manager.attach_mock(mock_switch, 'switch')
+        manager.attach_mock(mock_sleep_switch, 'sleep')
         expected = [mock.call.switch(self.info, False),
+                    mock.call.sleep(3),
                     mock.call.switch(self.info, True)]
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -325,14 +331,19 @@ class IBootDriverTestCase(db_base.DbTestCase):
 
         self.assertEqual(manager.mock_calls, expected)
 
+    @mock.patch.object(iboot, '_sleep_switch', spec_set=types.FunctionType)
     @mock.patch.object(iboot, '_power_status', autospec=True)
     @mock.patch.object(iboot, '_switch', spec_set=types.FunctionType)
-    def test_reboot_bad(self, mock_switch, mock_power_status):
-        manager = mock.MagicMock(spec_set=['switch'])
+    def test_reboot_bad(self, mock_switch, mock_power_status,
+                        mock_sleep_switch):
+        self.config(reboot_delay=3, group='iboot')
+        manager = mock.MagicMock(spec_set=['switch', 'sleep'])
         mock_power_status.return_value = states.POWER_OFF
 
         manager.attach_mock(mock_switch, 'switch')
+        manager.attach_mock(mock_sleep_switch, 'sleep')
         expected = [mock.call.switch(self.info, False),
+                    mock.call.sleep(3),
                     mock.call.switch(self.info, True)]
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
