@@ -23,7 +23,7 @@ from oslo_db import options as db_options
 from oslo_db.sqlalchemy import models
 from oslo_db.sqlalchemy import types as db_types
 import six.moves.urllib.parse as urlparse
-from sqlalchemy import Boolean, Column, DateTime
+from sqlalchemy import Boolean, Column, DateTime, Index
 from sqlalchemy import ForeignKey, Integer
 from sqlalchemy import schema, String, Text
 from sqlalchemy.ext.declarative import declarative_base
@@ -165,3 +165,15 @@ class Port(Base):
     address = Column(String(18))
     node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
     extra = Column(db_types.JsonEncodedDict)
+
+
+class NodeTag(Base):
+    """Represents a tag of a bare metal node."""
+
+    __tablename__ = 'node_tags'
+    __table_args__ = (
+        Index('node_tags_idx', 'tag'),
+        table_args())
+    node_id = Column(Integer, ForeignKey('nodes.id'),
+                     primary_key=True, nullable=False)
+    tag = Column(String(255), primary_key=True, nullable=False)
