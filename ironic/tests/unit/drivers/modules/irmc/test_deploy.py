@@ -58,6 +58,7 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
 
     def setUp(self):
         irmc_deploy._check_share_fs_mounted_patcher.start()
+        self.addCleanup(irmc_deploy._check_share_fs_mounted_patcher.stop)
         super(IRMCDeployPrivateMethodsTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver='iscsi_irmc')
         self.node = obj_utils.create_test_node(
@@ -798,6 +799,7 @@ class IRMCVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
 
     def setUp(self):
         irmc_deploy._check_share_fs_mounted_patcher.start()
+        self.addCleanup(irmc_deploy._check_share_fs_mounted_patcher.stop)
         super(IRMCVirtualMediaIscsiDeployTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver="iscsi_irmc")
         self.node = obj_utils.create_test_node(
@@ -985,6 +987,7 @@ class IRMCVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
 
     def setUp(self):
         irmc_deploy._check_share_fs_mounted_patcher.start()
+        self.addCleanup(irmc_deploy._check_share_fs_mounted_patcher.stop)
         super(IRMCVirtualMediaAgentDeployTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver="agent_irmc")
         self.node = obj_utils.create_test_node(
@@ -1051,6 +1054,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
 
     def setUp(self):
         irmc_deploy._check_share_fs_mounted_patcher.start()
+        self.addCleanup(irmc_deploy._check_share_fs_mounted_patcher.stop)
         super(VendorPassthruTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver="iscsi_irmc")
         self.node = obj_utils.create_test_node(
@@ -1515,6 +1519,8 @@ class VendorPassthruTestCase(db_base.DbTestCase):
 class IRMCVirtualMediaAgentVendorInterfaceTestCase(db_base.DbTestCase):
 
     def setUp(self):
+        irmc_deploy._check_share_fs_mounted_patcher.start()
+        self.addCleanup(irmc_deploy._check_share_fs_mounted_patcher.stop)
         super(IRMCVirtualMediaAgentVendorInterfaceTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver="agent_irmc")
         self.node = obj_utils.create_test_node(
