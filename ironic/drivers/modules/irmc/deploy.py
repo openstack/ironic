@@ -67,7 +67,7 @@ opts = [
                help='share name of remote_image_server'),
     cfg.StrOpt('remote_image_user_name',
                help='User name of remote_image_server'),
-    cfg.StrOpt('remote_image_user_password',
+    cfg.StrOpt('remote_image_user_password', secret=True,
                help='Password of remote_image_user_name'),
     cfg.StrOpt('remote_image_user_domain',
                default='',
