@@ -469,7 +469,7 @@ class TestImageCacheCleanUp(base.TestCase):
                           'uuid', 'fake', 'fake')
         self.assertTrue(mock_rmtree.called)
 
-    @mock.patch.object(image_cache.LOG, 'warn', autospec=True)
+    @mock.patch.object(image_cache.LOG, 'warning', autospec=True)
     @mock.patch.object(image_cache.ImageCache, '_clean_up_too_old',
                        autospec=True)
     @mock.patch.object(image_cache.ImageCache, '_clean_up_ensure_cache_size',

@@ -143,8 +143,8 @@ def get_node_capability(node, capability):
             if parts[0].strip() == capability:
                 return parts[1].strip()
         else:
-            LOG.warn(_LW("Ignoring malformed capability '%s'. "
-                         "Format should be 'key:val'."), node_capability)
+            LOG.warning(_LW("Ignoring malformed capability '%s'. "
+                            "Format should be 'key:val'."), node_capability)
 
 
 def add_node_capability(task, capability, value):

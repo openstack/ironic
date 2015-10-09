@@ -1055,7 +1055,7 @@ def driver_periodic_task(parallel=True, **other):
 
                 eventlet.greenthread.spawn_n(_internal)
             else:
-                LOG.warn(_LW(
+                LOG.warning(_LW(
                     'Using periodic tasks with parallel=False is deprecated, '
                     '"parallel" argument will be ignored starting with '
                     'the Mitaka release'))

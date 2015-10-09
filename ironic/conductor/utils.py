@@ -89,15 +89,15 @@ def node_power_action(task, new_state):
             node['power_state'] = new_state
             node['target_power_state'] = states.NOSTATE
             node.save()
-            LOG.warn(_LW("Not going to change node power state because "
-                         "current state = requested state = '%(state)s'."),
-                     {'state': curr_state})
+            LOG.warning(_LW("Not going to change node power state because "
+                            "current state = requested state = '%(state)s'."),
+                        {'state': curr_state})
             return
 
         if curr_state == states.ERROR:
             # be optimistic and continue action
-            LOG.warn(_LW("Driver returns ERROR power state for node %s."),
-                     node.uuid)
+            LOG.warning(_LW("Driver returns ERROR power state for node %s."),
+                        node.uuid)
 
     # Set the target_power_state and clear any last_error, if we're
     # starting a new operation. This will expose to other processes

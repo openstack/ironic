@@ -356,8 +356,8 @@ def set_config(task, **kwargs):
             attrib_names.append(k)
 
     if unchanged_attribs:
-        LOG.warn(_LW('Ignoring unchanged BIOS settings %r'),
-                 unchanged_attribs)
+        LOG.warning(_LW('Ignoring unchanged BIOS settings %r'),
+                    unchanged_attribs)
 
     if invalid_attribs_msgs or read_only_keys:
         raise exception.DracOperationFailed(

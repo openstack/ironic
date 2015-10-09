@@ -220,7 +220,7 @@ class IloManagementTestCase(db_base.DbTestCase):
         ilo_management._execute_ilo_clean_step(
             self.node, 'fake-step', 'args', kwarg='kwarg')
         clean_step_mock.assert_called_once_with('args', kwarg='kwarg')
-        self.assertTrue(log_mock.warn.called)
+        self.assertTrue(log_mock.warning.called)
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)

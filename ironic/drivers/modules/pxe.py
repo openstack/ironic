@@ -134,10 +134,11 @@ def _get_pxe_conf_option(task, opt_name):
                                               CONF.pybasedir)
 
         if current_value != default_value:
-            LOG.warn(_LW("The CONF option [agent]agent_%(opt_name)s is "
-                         "deprecated and will be removed in Mitaka release of "
-                         "Ironic. Please use [pxe]%(opt_name)s instead."),
-                     {'opt_name': opt_name})
+            LOG.warning(
+                _LW("The CONF option [agent]agent_%(opt_name)s is "
+                    "deprecated and will be removed in Mitaka release of "
+                    "Ironic. Please use [pxe]%(opt_name)s instead."),
+                {'opt_name': opt_name})
             return current_value
 
     # Either task.driver.deploy is ISCSIDeploy() or the default value hasn't
@@ -541,16 +542,18 @@ class PXEBoot(base.BootInterface):
                 ]
             except KeyError:
                 if not iwdi:
-                    LOG.warn(_LW("The UUID for the root partition can't be "
-                                 "found, unable to switch the pxe config from "
-                                 "deployment mode to service (boot) mode for "
-                                 "node %(node)s"), {"node": task.node.uuid})
+                    LOG.warning(
+                        _LW("The UUID for the root partition can't be "
+                            "found, unable to switch the pxe config from "
+                            "deployment mode to service (boot) mode for "
+                            "node %(node)s"), {"node": task.node.uuid})
                 else:
-                    LOG.warn(_LW("The disk id for the whole disk image can't "
-                                 "be found, unable to switch the pxe config "
-                                 "from deployment mode to service (boot) mode "
-                                 "for node %(node)s"),
-                             {"node": task.node.uuid})
+                    LOG.warning(
+                        _LW("The disk id for the whole disk image can't "
+                            "be found, unable to switch the pxe config "
+                            "from deployment mode to service (boot) mode "
+                            "for node %(node)s"),
+                        {"node": task.node.uuid})
             else:
                 pxe_config_path = pxe_utils.get_pxe_config_file_path(
                     task.node.uuid)

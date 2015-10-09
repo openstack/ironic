@@ -214,10 +214,10 @@ def list_partitions(device):
     for line in lines:
         match = _PARTED_PRINT_RE.match(line)
         if match is None:
-            LOG.warn(_LW("Partition information from parted for device "
-                         "%(device)s does not match "
-                         "expected format: %(line)s"),
-                     dict(device=device, line=line))
+            LOG.warning(_LW("Partition information from parted for device "
+                            "%(device)s does not match "
+                            "expected format: %(line)s"),
+                        dict(device=device, line=line))
             continue
         # Cast int fields to ints (some are floats and we round them down)
         groups = [int(float(x)) if i < 4 else x

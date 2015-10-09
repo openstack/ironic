@@ -201,10 +201,11 @@ class ImageCache(object):
             return
         amount = self._clean_up_ensure_cache_size(survived, amount)
         if amount is not None and amount > 0:
-            LOG.warn(_LW("Cache clean up was unable to reclaim %(required)d "
-                         "MiB of disk space, still %(left)d MiB required"),
-                     {'required': amount_copy / 1024 / 1024,
-                      'left': amount / 1024 / 1024})
+            LOG.warning(
+                _LW("Cache clean up was unable to reclaim %(required)d "
+                    "MiB of disk space, still %(left)d MiB required"),
+                {'required': amount_copy / 1024 / 1024,
+                 'left': amount / 1024 / 1024})
 
     def _clean_up_too_old(self, listing, amount):
         """Clean up stage 1: drop images that are older than TTL.
@@ -228,9 +229,9 @@ class ImageCache(object):
                 try:
                     os.unlink(file_name)
                 except EnvironmentError as exc:
-                    LOG.warn(_LW("Unable to delete file %(name)s from "
-                                 "master image cache: %(exc)s"),
-                             {'name': file_name, 'exc': exc})
+                    LOG.warning(_LW("Unable to delete file %(name)s from "
+                                    "master image cache: %(exc)s"),
+                                {'name': file_name, 'exc': exc})
                 else:
                     if amount is not None:
                         amount -= stat.st_size
@@ -267,9 +268,9 @@ class ImageCache(object):
             try:
                 os.unlink(file_name)
             except EnvironmentError as exc:
-                LOG.warn(_LW("Unable to delete file %(name)s from "
-                             "master image cache: %(exc)s"),
-                         {'name': file_name, 'exc': exc})
+                LOG.warning(_LW("Unable to delete file %(name)s from "
+                                "master image cache: %(exc)s"),
+                            {'name': file_name, 'exc': exc})
             else:
                 total_size -= stat.st_size
                 if amount is not None:
@@ -402,9 +403,9 @@ def _delete_master_path_if_stale(master_path, href, ctx):
         if not img_mtime:
             # This means that href is not a glance image and doesn't have an
             # updated_at attribute
-            LOG.warn(_LW("Image service couldn't determine last "
-                         "modification time of %(href)s, considering "
-                         "cached image up to date."), {'href': href})
+            LOG.warning(_LW("Image service couldn't determine last "
+                            "modification time of %(href)s, considering "
+                            "cached image up to date."), {'href': href})
             return True
         master_mtime = utils.unix_file_modification_datetime(master_path)
         if img_mtime <= master_mtime:

@@ -243,7 +243,8 @@ class TestInspectPrivateMethods(db_base.DbTestCase):
         db_obj.create_port.assert_any_call(port_dict1)
         db_obj.create_port.assert_any_call(port_dict2)
 
-    @mock.patch.object(ilo_inspect.LOG, 'warn', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_inspect.LOG, 'warning',
+                       spec_set=True, autospec=True)
     @mock.patch.object(dbapi, 'get_instance', spec_set=True, autospec=True)
     def test__create_ports_if_not_exist_mac_exception(self,
                                                       instance_mock,

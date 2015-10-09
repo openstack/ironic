@@ -279,10 +279,10 @@ class NeutronDHCPApi(base.BaseDHCP):
                 failures.append(port.uuid)
 
         if failures:
-            LOG.warn(_LW("Some errors were encountered on node %(node)s"
-                         " while retrieving IP address on the following"
-                         " ports: %(ports)s."),
-                     {'node': task.node.uuid, 'ports': failures})
+            LOG.warning(_LW("Some errors were encountered on node %(node)s"
+                            " while retrieving IP address on the following"
+                            " ports: %(ports)s."),
+                        {'node': task.node.uuid, 'ports': failures})
 
         return ip_addresses
 
