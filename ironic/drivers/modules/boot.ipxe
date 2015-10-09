@@ -1,10 +1,17 @@
 #!ipxe
 
-# load the MAC-specific file or fail if it's not found
-chain pxelinux.cfg/${mac:hexhyp} || goto error_no_config
+# NOTE(lucasagomes): Loop over all network devices and boot from
+# the first one capable of booting. For more information see:
+# https://bugs.launchpad.net/ironic/+bug/1504482
+set netid:int32 -1
+:loop
+inc netid
+isset ${net${netid}/mac} || goto loop_done
+echo Attempting to boot from MAC ${net${netid}/mac:hexhyp}
+chain pxelinux.cfg/${net${netid}/mac:hexhyp} || goto loop
 
-:error_no_config
-echo PXE boot failed. No configuration found for MAC ${mac}
+:loop_done
+echo PXE boot failed! No configuration found for any of the present NICs.
 echo Press any key to reboot...
 prompt --timeout 180
 reboot
