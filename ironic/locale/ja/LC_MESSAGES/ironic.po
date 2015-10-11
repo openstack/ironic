@@ -4,13 +4,14 @@
 #
 # Translators:
 # Tomoyuki KATO <tomo@dream.daynight.jp>, 2013
+# Akihiro Motoki <amotoki@gmail.com>, 2015. #zanata
 # KATO Tomoyuki <kato.tomoyuki@jp.fujitsu.com>, 2015. #zanata
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 4.2.1.dev18\n"
+"Project-Id-Version: ironic 4.2.1.dev78\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-10-02 06:30+0000\n"
-"PO-Revision-Date: 2015-09-29 08:07+0000\n"
+"POT-Creation-Date: 2015-10-11 06:26+0000\n"
+"PO-Revision-Date: 2015-10-09 05:15+0000\n"
 "Last-Translator: KATO Tomoyuki <kato.tomoyuki@jp.fujitsu.com>\n"
 "Language: ja\n"
 "Language-Team: Japanese (http://www.transifex.com/openstack/ironic/language/"
@@ -105,7 +106,7 @@ msgid "'%s' not supplied to DracDriver."
 msgstr "「%s」が DracDriver に提供されていません。"
 
 msgid "'add' and 'replace' operations need a value"
-msgstr "add と replace 処理は、値が必要です。"
+msgstr "'add' と 'replace' 処理には、値が必要です。"
 
 msgid "'drac_path' contains non-ASCII symbol."
 msgstr "「drac_path」に非 ASCII 記号が含まれています。"
@@ -193,7 +194,7 @@ msgid "Adding a new attribute (%s) to the root of  the resource is not allowed"
 msgstr "リソースのルートへの新規属性 (%s) の追加は許可されません"
 
 msgid "Additional append parameters for baremetal PXE boot."
-msgstr "ベアメタル PXE ブート向けの追加 append パラメーター。"
+msgstr "ベアメタル PXE ブート向けの追加の append パラメーター。"
 
 msgid "Agent driver requires agent_url in driver_internal_info"
 msgstr ""
@@ -251,13 +252,13 @@ msgid ""
 "Attribute %(attr)s cannot be set to value %(val)d. It must be between "
 "%(lower)d and %(upper)d."
 msgstr ""
-"%(attr)s 属性は、値を %(val)d に設定できません。%(lower)d から %(upper)d まで"
-"の間である必要があります。"
+"%(attr)s 属性は値 %(val)d には設定できません。%(lower)d から %(upper)d までの"
+"間である必要があります。"
 
 #, python-format
 msgid "Attribute %(attr)s cannot be set to value %(val)s. It must be in %(ok)r"
 msgstr ""
-"%(attr)s 属性は値を %(val)s に設定できません。%(ok)r にある必要があります。"
+"%(attr)s 属性は値 %(val)s には設定できません。%(ok)r にある必要があります。"
 
 msgid ""
 "Authentication method for iRMC operations; either 'basic' or 'digest'. The "
@@ -285,8 +286,8 @@ msgid ""
 "Blade id, must be a number between 1 and the maximum number of blades "
 "available in the chassis. Required."
 msgstr ""
-"ブレード ID。1 からシャーシ内で利用できるブレードの最大数の間である必要があり"
-"ます。必須。"
+"ブレード ID。有効な値は 1 からシャーシ内で利用できるブレードの最大数の間で"
+"す。必須。"
 
 msgid "Block size to use when writing to the nodes disk."
 msgstr "ノードのディスク書き込み時に使用するブロック容量。"
@@ -297,10 +298,10 @@ msgstr ""
 "ノード %(node)s のブート ISO ファイル %(boot_iso)s が見つかりませんでした。"
 
 msgid "Bootfile DHCP parameter for UEFI boot mode."
-msgstr "UEFI ブートモードの DHCP の起動ファイルのパラメーター。"
+msgstr "UEFI ブートモードの起動ファイルの DHCP のパラメーター。"
 
 msgid "Bootfile DHCP parameter."
-msgstr "DHCP の起動ファイルのパラメーター。"
+msgstr "起動ファイルの DHCP のパラメーター。"
 
 msgid "Broadcast IP address; defaults to 255.255.255.255. Optional."
 msgstr ""
@@ -619,10 +620,6 @@ msgstr ""
 "%(response_code)s"
 
 #, python-format
-msgid "DRAC operation failed. Message: %(message)s"
-msgstr "DRAC 操作が失敗しました。メッセージ: %(message)s"
-
-#, python-format
 msgid ""
 "DRAC operation yielded return value %(actual_return_value)s that is neither "
 "error nor expected %(expected_return_value)s"
@@ -715,9 +712,9 @@ msgid ""
 "should generally use --revision to specify the alembic revision string to "
 "downgrade to."
 msgstr ""
-"データベースのスキーマを最古バージョンにダウングレードします。オプションとし"
-"て、一般的に --revision を使用して、ダウングレードする Alembic バージョン文字"
-"列を指定すべきです。"
+"データベースのスキーマを最も古いバージョンにダウングレードします。オプション"
+"ですが、 一般的には --revision を使用して、ダウングレードする Alembic バー"
+"ジョン文字列を指定すべきです。"
 
 #, python-format
 msgid "Driver %(driver)s could not be loaded. Reason: %(reason)s."
@@ -762,7 +759,7 @@ msgid ""
 "Enable pecan debug mode. WARNING: this is insecure and should not be used in "
 "a production environment."
 msgstr ""
-"Pecan デバッグモードを有効化します。警告: これはセキュリティーを低下させま"
+"pecan デバッグモードを有効化します。警告: これはセキュリティーを低下させま"
 "す。本番環境において使用すべきではありません。"
 
 #, python-format
@@ -962,6 +959,14 @@ msgid "Failed to prepare to deploy. Error: %s"
 msgstr "デプロイの準備に失敗しました。エラー: %s"
 
 #, python-format
+msgid ""
+"Failed to send Wake-On-Lan magic packets to node %(node)s port %(port)s. "
+"Error: %(error)s"
+msgstr ""
+"Wake-On-Lan のマジックパケットをノード %(node)s のポート %(port)s に送信でき"
+"ませんでした。エラー: %(error)s"
+
+#, python-format
 msgid "Failed to set DHCP BOOT options for any port on node %s."
 msgstr "ノード %s 上のポートの DHCP BOOT オプションの設定に失敗しました。"
 
@@ -1024,7 +1029,7 @@ msgstr ""
 
 #, python-format
 msgid "Field(s) \"%s\" are not valid"
-msgstr "項目「%s」が有効ではありません。"
+msgstr "フィールド \"%s\" が有効ではありません。"
 
 msgid "For heartbeat operation, \"agent_url\" must be specified."
 msgstr "ハートビート操作には「agent_url」を指定する必要があります。"
@@ -1060,8 +1065,8 @@ msgid ""
 "IP address of this host. If unset, will determine the IP programmatically. "
 "If unable to do so, will use \"127.0.0.1\"."
 msgstr ""
-"このホストの IP アドレス。設定されていない場合、プログラムにより自動判断され"
-"ます。判断できない場合、127.0.0.1 を使用します。"
+"このホストの IP アドレス。設定されていない場合、プログラムにより自動判定され"
+"ます。判定できない場合、127.0.0.1 を使用します。"
 
 msgid "IP address or host name of the node. Required."
 msgstr "ノードの IP アドレスまたはホスト名。必須。"
@@ -1102,8 +1107,7 @@ msgid ""
 "IPMI get power state failed for node %(node_id)s with the following error: "
 "%(error)s"
 msgstr ""
-"ノード %(node_id)s の IPMI 電源状態取得に以下のエラーで失敗しました: "
-"%(error)s"
+"ノード %(node_id)s の IPMI 電源状態取得に次のエラーで失敗しました: %(error)s"
 
 msgid "IPMI password. Required."
 msgstr "IPMI パスワード。必須。"
@@ -1113,22 +1117,21 @@ msgid ""
 "IPMI power off failed for node %(node_id)s with the following error: "
 "%(error)s"
 msgstr ""
-"ノード %(node_id)s の IPMI 電源オフに以下のエラーで失敗しました: %(error)s"
+"ノード %(node_id)s の IPMI 電源オフに次のエラーで失敗しました: %(error)s"
 
 #, python-format
 msgid ""
 "IPMI power reboot failed for node %(node_id)s with the following error: "
 "%(error)s"
-msgstr ""
-"ノード %(node_id)s の IPMI 再起動に以下のエラーで失敗しました: %(error)s"
+msgstr "ノード %(node_id)s の IPMI 再起動に次のエラーで失敗しました: %(error)s"
 
 #, python-format
 msgid ""
 "IPMI send raw bytes '%(bytes)s' failed for node %(node_id)s with the "
 "following error: %(error)s"
 msgstr ""
-"IPMI が、ローバイト「%(bytes)s」をノード %(node_id)s に次のエラーで送信できま"
-"せんでした: %(error)s"
+"IPMI が  raw バイト \"%(bytes)s\" をノード %(node_id)s に送信しましたが、次の"
+"エラーで失敗しました: %(error)s"
 
 msgid "IPMI terminal port is not an integer."
 msgstr "IPMI ターミナルポートが整数ではありません。"
@@ -1275,7 +1278,7 @@ msgstr "無効なプロトコル %s"
 
 #, python-format
 msgid "Invalid raw bytes string: '%s'"
-msgstr "無効なローバイト文字列: '%s'"
+msgstr "無効な raw バイト文字列: '%s'"
 
 msgid "Invalid resource state."
 msgstr "リソース状態が無効です。"
@@ -1520,11 +1523,11 @@ msgid ""
 "On ironic-conductor node, template file for PXE configuration for UEFI boot "
 "loader."
 msgstr ""
-"ironic-conductor ノードにおいて、UEFI ブートローダーの PXE 設定のテンプレート"
-"ファイル。"
+"ironic-conductor ノードでの、UEFI ブートローダーの PXE 設定のテンプレートファ"
+"イル。"
 
 msgid "On ironic-conductor node, template file for PXE configuration."
-msgstr "ironic-conductor ノードにおいて、PXE 設定のテンプレートファイル。"
+msgstr "ironic-conductor ノードでの、PXE 設定のテンプレートファイル。"
 
 msgid "On ironic-conductor node, the path to the main iPXE script file."
 msgstr ""
@@ -1644,7 +1647,7 @@ msgstr "reset_ilo クリーニング手順の優先度。"
 
 msgid "Protocol used for AMT endpoint, support http/https"
 msgstr ""
-"AMT エンドポイントのに使用されるプロトコル。http/https をサポートします。"
+"AMT エンドポイントで使用されるプロトコル。http/https をサポートします。"
 
 msgid ""
 "Protocol used for AMT endpoint. one of http, https; default is \"http\". "
@@ -1655,7 +1658,7 @@ msgstr ""
 
 #, python-format
 msgid "Provision state \"%s\" is not valid"
-msgstr "配備状態「%s」が有効ではありません。"
+msgstr "プロビジョニング状態 \"%s\" が有効ではありません。"
 
 #, python-format
 msgid "RAID config validation error: %s"
@@ -1685,7 +1688,7 @@ msgstr ""
 "されました。"
 
 msgid "Raw bytes string requires two bytes at least."
-msgstr "ローバイト文字列は少なくとも 2 バイト必要です。"
+msgstr "raw バイト文字列は少なくとも 2 バイト必要です。"
 
 msgid "Request not acceptable."
 msgstr "要求は受け入れられませんでした。"
@@ -1967,7 +1970,7 @@ msgstr "次のパラメーターが driver_info にありません: %s"
 
 #, python-format
 msgid "The following parameters were missing: %s"
-msgstr "以下のパラメーターが不足しています: %s"
+msgstr "パラメーターが不足しています: %s"
 
 #, python-format
 msgid ""
@@ -2033,7 +2036,7 @@ msgstr "要求されたアクション「%(action)s」を認識できません�
 
 #, python-format
 msgid "The sort_key value %(key)s is an invalid field for sorting"
-msgstr "sort_key の値 %(key)s が、並び替えのために有効な項目ではありません。"
+msgstr "sort_key の値 %(key)s が、並び替えでは使用できないフィールドです"
 
 msgid "Time (in seconds) to wait for the console subprocess to start."
 msgstr "コンソールのサブプロセスの起動を待機する時間 (秒単位)"
@@ -2182,7 +2185,7 @@ msgid ""
 msgstr ""
 "データベースのスキーマを最新バージョンにアップグレードします。オプションとし"
 "て、--revision を使用して、アップグレードする Alembic バージョン文字列を指定"
-"します。"
+"することもできます。"
 
 msgid "Username for the VirtualBox host. Default value is ''. Optional."
 msgstr "VirtualBox ホストのユーザー名。デフォルト値は空白です。オプション。"
@@ -2385,8 +2388,12 @@ msgstr ""
 "image_source の image_checksum をノード %s の instance_info で指定する必要が"
 "あります"
 
-msgid "ironic-conductor node's TFTP root path."
-msgstr "ironic-conductor ノードの TFTP ルートパス。"
+msgid ""
+"ironic-inspector HTTP endpoint. If this is not set, the ironic-inspector "
+"client default (http://127.0.0.1:5050) will be used."
+msgstr ""
+"ironic-inspector の HTTP エンドポイント。設定されていない場合、ironic-"
+"inspector クライアントのデフォルト (http://127.0.0.1:5050) が使用されます。"
 
 #, python-format
 msgid "ironic-inspector inspection failed: %s"
@@ -2394,9 +2401,6 @@ msgstr "ironic-inspector による検査に失敗しました: %s"
 
 msgid "ironic-inspector support is disabled"
 msgstr "ironic-inspector のサポートが無効化されています"
-
-msgid "libvirt URI"
-msgstr "libvirt URI"
 
 msgid ""
 "local IPMB address for bridged requests. Used only if ipmi_bridging is set "
@@ -2563,8 +2567,8 @@ msgid ""
 "the version of the IPMI protocol; default is \"2.0\". One of \"1.5\", "
 "\"2.0\". Optional."
 msgstr ""
-"IPMI プロトコルのバージョン。デフォルトは 「2.0」。「1.5」、「2.0」のどれか。"
-"オプション。"
+"IPMI プロトコルのバージョン。デフォルトは  \"2.0\"。 \"1.5\"、\"2.0\" のいず"
+"れか。オプション。"
 
 msgid "timeout (in seconds) for iLO operations. Optional."
 msgstr "iLO 操作のタイムアウト (秒)。オプション。"
