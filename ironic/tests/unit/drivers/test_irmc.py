@@ -27,6 +27,7 @@ class IRMCVirtualMediaIscsiTestCase(testtools.TestCase):
 
     def setUp(self):
         irmc.deploy._check_share_fs_mounted_patcher.start()
+        self.addCleanup(irmc.deploy._check_share_fs_mounted_patcher.stop)
         super(IRMCVirtualMediaIscsiTestCase, self).setUp()
 
     @mock.patch.object(irmc.importutils, 'try_import', spec_set=True,
@@ -67,6 +68,7 @@ class IRMCVirtualMediaAgentTestCase(testtools.TestCase):
 
     def setUp(self):
         irmc.deploy._check_share_fs_mounted_patcher.start()
+        self.addCleanup(irmc.deploy._check_share_fs_mounted_patcher.stop)
         super(IRMCVirtualMediaAgentTestCase, self).setUp()
 
     @mock.patch.object(irmc.importutils, 'try_import', spec_set=True,
