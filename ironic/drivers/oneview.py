@@ -23,7 +23,6 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
 from ironic.drivers.modules import agent
-from ironic.drivers.modules import fake
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import management
@@ -88,23 +87,3 @@ class ISCSIPXEOneViewDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = iscsi_deploy.ISCSIDeploy()
         self.vendor = iscsi_deploy.VendorPassthru()
-
-
-class FakeOneViewDriver(base.BaseDriver):
-    """Fake OneView driver. For testing purposes. """
-
-    def __init__(self):
-        if not importutils.try_import('oneview_client.client'):
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to import python-oneviewclient library"))
-
-        # Checks connectivity to OneView and version compatibility on driver
-        # initialization
-        oneview_client = common.get_oneview_client()
-        oneview_client.verify_oneview_version()
-        oneview_client.verify_credentials()
-        self.power = power.OneViewPower()
-        self.management = management.OneViewManagement()
-        self.boot = fake.FakeBoot()
-        self.deploy = fake.FakeDeploy()
