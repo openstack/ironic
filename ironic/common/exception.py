@@ -45,11 +45,6 @@ CONF = cfg.CONF
 CONF.register_opts(exc_log_opts)
 
 
-def _cleanse_dict(original):
-    """Strip all admin_password, new_pass, rescue_pass keys from a dict."""
-    return dict((k, v) for k, v in original.items() if "_pass" not in k)
-
-
 class IronicException(Exception):
     """Base Ironic Exception
 
@@ -114,12 +109,6 @@ class IronicException(Exception):
     def __unicode__(self):
         """Return a unicode representation of the exception message."""
         return unicode(self.args[0])
-
-    def format_message(self):
-        if self.__class__.__name__.endswith('_Remote'):
-            return self.args[0]
-        else:
-            return six.text_type(self)
 
 
 class NotAuthorized(IronicException):
