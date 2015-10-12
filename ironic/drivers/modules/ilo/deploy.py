@@ -731,6 +731,12 @@ class IloVirtualMediaAgentVendorInterface(agent.AgentVendorInterface):
         super(IloVirtualMediaAgentVendorInterface,
               self).reboot_to_instance(task, **kwargs)
 
+    @task_manager.require_exclusive_lock
+    def continue_deploy(self, task, **kwargs):
+        ilo_common.cleanup_vmedia_boot(task)
+        super(IloVirtualMediaAgentVendorInterface,
+              self).continue_deploy(task, **kwargs)
+
 
 class IloPXEDeploy(iscsi_deploy.ISCSIDeploy):
 

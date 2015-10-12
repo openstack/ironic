@@ -1858,3 +1858,18 @@ class IloVirtualMediaAgentVendorInterfaceTestCase(db_base.DbTestCase):
             self.assertFalse(func_update_secure_boot_mode.called)
             agent_reboot_to_instance_mock.assert_called_once_with(
                 mock.ANY, task, **kwargs)
+
+    @mock.patch.object(ilo_common, 'cleanup_vmedia_boot',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(agent.AgentVendorInterface, 'continue_deploy',
+                       spec_set=True, autospec=True)
+    def test_continue_deploy(self, agent_continue_deploy_mock,
+                             cleanup_mock):
+        CONF.ilo.use_web_server_for_images = True
+        kwargs = {'address': '123456'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.vendor.continue_deploy(task, **kwargs)
+            cleanup_mock.assert_called_once_with(task)
+            agent_continue_deploy_mock.assert_called_once_with(
+                mock.ANY, task, **kwargs)
