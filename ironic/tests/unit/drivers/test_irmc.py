@@ -58,7 +58,7 @@ class IRMCVirtualMediaIscsiTestCase(testtools.TestCase):
                        spec_set=True, autospec=True)
     def test___init___share_fs_not_mounted_exception(self, __init___mock):
         __init___mock.side_effect = iter(
-            [exception.IRMCSharedFileSystemNotMounted()])
+            [exception.IRMCSharedFileSystemNotMounted(share='/share')])
 
         self.assertRaises(exception.IRMCSharedFileSystemNotMounted,
                           irmc.IRMCVirtualMediaIscsiDriver)
@@ -100,7 +100,7 @@ class IRMCVirtualMediaAgentTestCase(testtools.TestCase):
                        spec_set=True, autospec=True)
     def test___init___share_fs_not_mounted_exception(self, __init___mock):
         __init___mock.side_effect = iter([
-            exception.IRMCSharedFileSystemNotMounted()])
+            exception.IRMCSharedFileSystemNotMounted(share='/share')])
 
         self.assertRaises(exception.IRMCSharedFileSystemNotMounted,
                           irmc.IRMCVirtualMediaAgentDriver)

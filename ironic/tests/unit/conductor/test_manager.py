@@ -173,7 +173,7 @@ def _mock_record_keepalive(func_or_class):
     return mock.patch.object(
         manager.ConductorManager,
         '_conductor_service_record_keepalive',
-        lambda: None)(func_or_class)
+        lambda _: None)(func_or_class)
 
 
 @_mock_record_keepalive
@@ -3674,6 +3674,7 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
         self.assertFalse(mac_update_mock.called)
 
 
+@_mock_record_keepalive
 class ManagerTestProperties(tests_db_base.DbTestCase):
 
     def setUp(self):
@@ -4374,6 +4375,7 @@ class DestroyPortTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.assertEqual(exception.NodeLocked, exc.exc_info[0])
 
 
+@_mock_record_keepalive
 @mock.patch.object(manager.ConductorManager, '_fail_if_in_state')
 @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
 @mock.patch.object(dbapi.IMPL, 'get_offline_conductors')
@@ -4381,9 +4383,6 @@ class ManagerCheckDeployingStatusTestCase(_ServiceSetUpMixin,
                                           tests_db_base.DbTestCase):
     def setUp(self):
         super(ManagerCheckDeployingStatusTestCase, self).setUp()
-        self.service = manager.ConductorManager('hostname', 'test-topic')
-        self.service.dbapi = self.dbapi
-
         self._start_service()
 
         self.node = obj_utils.create_test_node(
