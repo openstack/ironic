@@ -20,6 +20,8 @@
 
 """Test class for SNMP power driver module."""
 
+import time
+
 import mock
 from oslo_config import cfg
 from pysnmp.entity.rfc3413.oneliner import cmdgen
@@ -753,6 +755,23 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
                  mock.call(driver._snmp_oid(), driver.value_power_on)]
         mock_client.set.assert_has_calls(calls)
         mock_client.get.assert_called_once_with(driver._snmp_oid())
+
+    @mock.patch.object(time, 'sleep', autospec=True)
+    def test_power_reset_delay_option(self, mock_sleep, mock_get_client):
+        # Test for 'reboot_delay' config option
+        self.config(reboot_delay=5, group='snmp')
+        mock_client = mock_get_client.return_value
+        driver = snmp._get_driver(self.node)
+        mock_client.get.side_effect = [driver.value_power_off,
+                                       driver.value_power_on]
+        pstate = driver.power_reset()
+        calls = [mock.call(driver._snmp_oid(), driver.value_power_off),
+                 mock.call(driver._snmp_oid(), driver.value_power_on)]
+        mock_client.set.assert_has_calls(calls)
+        calls = [mock.call(driver._snmp_oid())] * 2
+        mock_client.get.assert_has_calls(calls)
+        self.assertEqual(states.POWER_ON, pstate)
+        mock_sleep.assert_called_once_with(5)
 
     def test_power_reset_on_snmp_get_failure(self, mock_get_client):
         # Ensure SNMP failure exceptions raised during a reset power on get

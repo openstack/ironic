@@ -28,6 +28,7 @@ models.
 """
 
 import abc
+import time
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -55,7 +56,14 @@ else:
 opts = [
     cfg.IntOpt('power_timeout',
                default=10,
-               help=_('Seconds to wait for power action to be completed'))
+               help=_('Seconds to wait for power action to be completed')),
+    # NOTE(yuriyz): some of SNMP-enabled hardware have own options for pause
+    # between off and on. This option guarantees minimal value.
+    cfg.IntOpt('reboot_delay',
+               default=0,
+               min=0,
+               help=_('Time (in seconds) to sleep between when rebooting '
+                      '(powering off and on again)'))
 ]
 
 LOG = logging.getLogger(__name__)
@@ -310,6 +318,7 @@ class SNMPDriverBase(object):
         power_result = self.power_off()
         if power_result != states.POWER_OFF:
             return states.ERROR
+        time.sleep(CONF.snmp.reboot_delay)
         power_result = self.power_on()
         if power_result != states.POWER_ON:
             return states.ERROR
