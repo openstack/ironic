@@ -103,6 +103,24 @@ SCCICLIENT_IRMC_SCCI_SPEC = (
     'get_virtual_fd_set_params_cmd',
 )
 
+ONEVIEWCLIENT_SPEC = (
+    'client',
+    'states',
+    'exceptions',
+)
+
+ONEVIEWCLIENT_CLIENT_CLS_SPEC = (
+)
+
+ONEVIEWCLIENT_STATES_SPEC = (
+    'ONEVIEW_POWER_OFF',
+    'ONEVIEW_POWERING_OFF',
+    'ONEVIEW_POWER_ON',
+    'ONEVIEW_POWERING_ON',
+    'ONEVIEW_RESETTING',
+    'ONEVIEW_ERROR',
+)
+
 # seamicro
 SEAMICRO_SPEC = (
     'client',
