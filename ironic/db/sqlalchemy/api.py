@@ -117,6 +117,40 @@ def add_port_filter_by_node(query, value):
         return query.filter(models.Node.uuid == value)
 
 
+def add_portgroup_filter(query, value):
+    """Adds a portgroup-specific filter to a query.
+
+    Filters results by address, if supplied value is a valid MAC
+    address. Otherwise attempts to filter results by identity.
+
+    :param query: Initial query to add filter to.
+    :param value: Value for filtering results by.
+    :return: Modified query.
+    """
+    if utils.is_valid_mac(value):
+        return query.filter_by(address=value)
+    else:
+        return add_identity_filter(query, value)
+
+
+def add_portgroup_filter_by_node(query, value):
+    if strutils.is_int_like(value):
+        return query.filter_by(node_id=value)
+    else:
+        query = query.join(models.Node,
+                           models.Portgroup.node_id == models.Node.id)
+        return query.filter(models.Node.uuid == value)
+
+
+def add_port_filter_by_portgroup(query, value):
+    if strutils.is_int_like(value):
+        return query.filter_by(portgroup_id=value)
+    else:
+        query = query.join(models.Portgroup,
+                           models.Port.portgroup_id == models.Portgroup.id)
+        return query.filter(models.Portgroup.uuid == value)
+
+
 def add_node_filter_by_chassis(query, value):
     if strutils.is_int_like(value):
         return query.filter_by(chassis_id=value)
@@ -325,6 +359,11 @@ class Connection(api.Connection):
             port_query = add_port_filter_by_node(port_query, node_id)
             port_query.delete()
 
+            portgroup_query = model_query(models.Portgroup)
+            portgroup_query = add_portgroup_filter_by_node(portgroup_query,
+                                                           node_id)
+            portgroup_query.delete()
+
             query.delete()
 
     def update_node(self, node_id, values):
@@ -410,6 +449,13 @@ class Connection(api.Connection):
         return _paginate_query(models.Port, limit, marker,
                                sort_key, sort_dir, query)
 
+    def get_ports_by_portgroup_id(self, portgroup_id, limit=None, marker=None,
+                                  sort_key=None, sort_dir=None):
+        query = model_query(models.Port)
+        query = query.filter_by(portgroup_id=portgroup_id)
+        return _paginate_query(models.Port, limit, marker,
+                               sort_key, sort_dir, query)
+
     def create_port(self, values):
         if not values.get('uuid'):
             values['uuid'] = uuidutils.generate_uuid()
@@ -452,6 +498,109 @@ class Connection(api.Connection):
             count = query.delete()
             if count == 0:
                 raise exception.PortNotFound(port=port_id)
+
+    def get_portgroup_by_id(self, portgroup_id):
+        query = model_query(models.Portgroup).filter_by(id=portgroup_id)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.PortgroupNotFound(portgroup=portgroup_id)
+
+    def get_portgroup_by_uuid(self, portgroup_uuid):
+        query = model_query(models.Portgroup).filter_by(uuid=portgroup_uuid)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.PortgroupNotFound(portgroup=portgroup_uuid)
+
+    def get_portgroup_by_address(self, address):
+        query = model_query(models.Portgroup).filter_by(address=address)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.PortgroupNotFound(portgroup=address)
+
+    def get_portgroup_by_name(self, name):
+        query = model_query(models.Portgroup).filter_by(name=name)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.PortgroupNotFound(portgroup=name)
+
+    def get_portgroup_list(self, limit=None, marker=None,
+                           sort_key=None, sort_dir=None):
+        return _paginate_query(models.Portgroup, limit, marker,
+                               sort_key, sort_dir)
+
+    def get_portgroups_by_node_id(self, node_id, limit=None, marker=None,
+                                  sort_key=None, sort_dir=None):
+        query = model_query(models.Portgroup)
+        query = query.filter_by(node_id=node_id)
+        return _paginate_query(models.Portgroup, limit, marker,
+                               sort_key, sort_dir, query)
+
+    def create_portgroup(self, values):
+        if not values.get('uuid'):
+            values['uuid'] = uuidutils.generate_uuid()
+
+        portgroup = models.Portgroup()
+        portgroup.update(values)
+        with _session_for_write() as session:
+            try:
+                session.add(portgroup)
+                session.flush()
+            except db_exc.DBDuplicateEntry as exc:
+                if 'name' in exc.columns:
+                    raise exception.PortgroupDuplicateName(name=values['name'])
+                elif 'address' in exc.columns:
+                    raise exception.PortgroupMACAlreadyExists(
+                        mac=values['address'])
+                raise exception.PortgroupAlreadyExists(uuid=values['uuid'])
+            return portgroup
+
+    def update_portgroup(self, portgroup_id, values):
+        if 'uuid' in values:
+            msg = _("Cannot overwrite UUID for an existing portgroup.")
+            raise exception.InvalidParameterValue(err=msg)
+
+        with _session_for_write() as session:
+            try:
+                query = model_query(models.Portgroup)
+                query = add_portgroup_filter(query, portgroup_id)
+                ref = query.one()
+                ref.update(values)
+                session.flush()
+            except NoResultFound:
+                raise exception.PortgroupNotFound(portgroup=portgroup_id)
+            except db_exc.DBDuplicateEntry as exc:
+                if 'name' in exc.columns:
+                    raise exception.PortgroupDuplicateName(name=values['name'])
+                elif 'address' in exc.columns:
+                    raise exception.PortgroupMACAlreadyExists(
+                        mac=values['address'])
+                else:
+                    raise exc
+            return ref
+
+    def destroy_portgroup(self, portgroup_id):
+        def portgroup_not_empty(session):
+            """Checks whether the portgroup does not have ports."""
+
+            query = model_query(models.Port)
+            query = add_port_filter_by_portgroup(query, portgroup_id)
+
+            return query.count() != 0
+
+        with _session_for_write() as session:
+            if portgroup_not_empty(session):
+                raise exception.PortgroupNotEmpty(portgroup=portgroup_id)
+
+            query = model_query(models.Portgroup, session=session)
+            query = add_identity_filter(query, portgroup_id)
+
+            count = query.delete()
+            if count == 0:
+                raise exception.PortgroupNotFound(portgroup=portgroup_id)
 
     def get_chassis_by_id(self, chassis_id):
         query = model_query(models.Chassis).filter_by(id=chassis_id)

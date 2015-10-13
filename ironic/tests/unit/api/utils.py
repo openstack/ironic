@@ -103,6 +103,11 @@ def port_post_data(**kw):
     port = utils.get_test_port(**kw)
     # node_id is not part of the API object
     port.pop('node_id')
+    # TODO(vsaienko): remove when API part is added
+    port.pop('local_link_connection')
+    port.pop('pxe_enabled')
+    # portgroup_id is not part of the API object
+    port.pop('portgroup_id')
     internal = port_controller.PortPatchType.internal_attrs()
     return remove_internal(port, internal)
 

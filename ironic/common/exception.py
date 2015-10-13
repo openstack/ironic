@@ -161,6 +161,18 @@ class PortAlreadyExists(Conflict):
     _msg_fmt = _("A port with UUID %(uuid)s already exists.")
 
 
+class PortgroupAlreadyExists(Conflict):
+    _msg_fmt = _("A portgroup with UUID %(uuid)s already exists.")
+
+
+class PortgroupDuplicateName(Conflict):
+    _msg_fmt = _("A portgroup with name %(name)s already exists.")
+
+
+class PortgroupMACAlreadyExists(Conflict):
+    _msg_fmt = _("A portgroup with MAC address %(mac)s already exists.")
+
+
 class InstanceAssociated(Conflict):
     _msg_fmt = _("Instance %(instance_uuid)s is already associated with a "
                  "node, it cannot be associated with this other node %(node)s")
@@ -253,6 +265,15 @@ class InstanceNotFound(NotFound):
 
 class NodeNotFound(NotFound):
     _msg_fmt = _("Node %(node)s could not be found.")
+
+
+class PortgroupNotFound(NotFound):
+    _msg_fmt = _("Portgroup %(portgroup)s could not be found.")
+
+
+class PortgroupNotEmpty(Invalid):
+    _msg_fmt = _("Cannot complete the requested action because portgroup "
+                 "%(portgroup)s contains ports.")
 
 
 class NodeAssociated(InvalidState):

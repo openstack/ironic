@@ -261,6 +261,21 @@ class Connection(object):
         """
 
     @abc.abstractmethod
+    def get_ports_by_portgroup_id(self, portgroup_id, limit=None, marker=None,
+                                  sort_key=None, sort_dir=None):
+        """List all the ports for a given portgroup.
+
+        :param portgroup_id: The integer portgroup ID.
+        :param limit: Maximum number of ports to return.
+        :param marker: The last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted
+        :param sort_dir: Direction in which results should be sorted
+                         (asc, desc)
+        :returns: A list of ports.
+        """
+
+    @abc.abstractmethod
     def create_port(self, values):
         """Create a new port.
 
@@ -281,6 +296,120 @@ class Connection(object):
         """Destroy an port.
 
         :param port_id: The id or MAC of a port.
+        """
+
+    @abc.abstractmethod
+    def get_portgroup_by_id(self, portgroup_id):
+        """Return a network portgroup representation.
+
+        :param portgroup_id: The id of a portgroup.
+        :returns: A portgroup.
+        :raises: PortgroupNotFound
+        """
+
+    @abc.abstractmethod
+    def get_portgroup_by_uuid(self, portgroup_uuid):
+        """Return a network portgroup representation.
+
+        :param portgroup_uuid: The uuid of a portgroup.
+        :returns: A portgroup.
+        :raises: PortgroupNotFound
+        """
+
+    @abc.abstractmethod
+    def get_portgroup_by_address(self, address):
+        """Return a network portgroup representation.
+
+        :param address: The MAC address of a portgroup.
+        :returns: A portgroup.
+        :raises: PortgroupNotFound
+        """
+
+    @abc.abstractmethod
+    def get_portgroup_by_name(self, name):
+        """Return a network portgroup representation.
+
+        :param name: The logical name of a portgroup.
+        :returns: A portgroup.
+        :raises: PortgroupNotFound
+        """
+
+    @abc.abstractmethod
+    def get_portgroup_list(self, limit=None, marker=None,
+                           sort_key=None, sort_dir=None):
+        """Return a list of portgroups.
+
+        :param limit: Maximum number of portgroups to return.
+        :param marker: The last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted.
+        :param sort_dir: Direction in which results should be sorted.
+                         (asc, desc)
+        :returns: A list of portgroups.
+        """
+
+    @abc.abstractmethod
+    def get_portgroups_by_node_id(self, node_id, limit=None, marker=None,
+                                  sort_key=None, sort_dir=None):
+        """List all the portgroups for a given node.
+
+        :param node_id: The integer node ID.
+        :param limit: Maximum number of portgroups to return.
+        :param marker: The last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted
+        :param sort_dir: Direction in which results should be sorted
+                         (asc, desc)
+        :returns: A list of portgroups.
+        """
+
+    @abc.abstractmethod
+    def create_portgroup(self, values):
+        """Create a new portgroup.
+
+        :param values: Dict of values with the the following keys:
+                       'id'
+                       'uuid'
+                       'name'
+                       'node_id'
+                       'address'
+                       'extra'
+                       'created_at'
+                       'updated_at'
+        :returns: A portgroup
+        :raises: PortgroupDuplicateName
+        :raises: PortgroupMACAlreadyExists
+        :raises: PortgroupAlreadyExists
+        """
+
+    @abc.abstractmethod
+    def update_portgroup(self, portgroup_id, values):
+        """Update properties of a portgroup.
+
+        :param portgroup_id: The UUID or MAC of a portgroup.
+        :param values: Dict of values to update.
+                       May contain the following keys:
+                       'uuid'
+                       'name'
+                       'node_id'
+                       'address'
+                       'extra'
+                       'created_at'
+                       'updated_at'
+        :returns: A portgroup.
+        :raises: InvalidParameterValue
+        :raises: PortgroupNotFound
+        :raises: PortgroupDuplicateName
+        :raises: PortgroupMACAlreadyExists
+        """
+
+    @abc.abstractmethod
+    def destroy_portgroup(self, portgroup_id):
+        """Destroy a portgroup.
+
+        :param portgroup_id: The UUID or MAC of a portgroup.
+        :raises: PortgroupNotEmpty
+        :raises: PortgroupNotFound
         """
 
     @abc.abstractmethod
