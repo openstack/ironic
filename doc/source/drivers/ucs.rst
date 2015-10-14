@@ -59,7 +59,7 @@ Nodes configured for UCS driver should have the ``driver`` property set to
 ``pxe_ucs/agent_ucs``.  The following configuration values are also required in
 ``driver_info``:
 
-- ``ucs_hostname``: IP address or hostname of the UCS Manager
+- ``ucs_address``: IP address or hostname of the UCS Manager
 - ``ucs_username``: UCS Manager login user name with administrator or
    server_profile privileges.
 - ``ucs_password``: UCS Manager login password for the above UCS Manager user.
@@ -71,7 +71,7 @@ The following sequence of commands can be used to enroll a UCS node.
 
   Create Node::
 
-    ironic node-create -d <pxe_ucs/agent_ucs> -i ucs_hostname=<UCS Manager hostname/ip-address> -i ucs_username=<ucsm_username> -i ucs_password=<ucsm_password> -i ucs_service_profile=<serivce_profile_dn_being_enrolled> -i deploy_kernel=<glance_uuid_of_deploy_kernel> -i deploy_ramdisk=<glance_uuid_of_deploy_ramdisk> -p cpus=<number_of_cpus> -p memory_mb=<memory_size_in_MB> -p local_gb=<local_disk_size_in_GB> -p cpu_arch=<cpu_arch>
+    ironic node-create -d <pxe_ucs/agent_ucs> -i ucs_address=<UCS Manager hostname/ip-address> -i ucs_username=<ucsm_username> -i ucs_password=<ucsm_password> -i ucs_service_profile=<serivce_profile_dn_being_enrolled> -i deploy_kernel=<glance_uuid_of_deploy_kernel> -i deploy_ramdisk=<glance_uuid_of_deploy_ramdisk> -p cpus=<number_of_cpus> -p memory_mb=<memory_size_in_MB> -p local_gb=<local_disk_size_in_GB> -p cpu_arch=<cpu_arch>
 
   The above command 'ironic node-create' will return UUID of the node, which is the value of $NODE in the following command.
 
