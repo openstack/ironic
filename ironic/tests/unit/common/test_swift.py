@@ -136,6 +136,27 @@ class SwiftTestCase(base.TestCase):
         connection_obj_mock.delete_object.assert_called_once_with('container',
                                                                   'object')
 
+    def test_delete_object_exc_resource_not_found(self, connection_mock):
+        swiftapi = swift.SwiftAPI()
+        exc = swift_exception.ClientException("Resource not found",
+                                              http_status=404)
+        connection_obj_mock = connection_mock.return_value
+        connection_obj_mock.delete_object.side_effect = exc
+        self.assertRaises(exception.SwiftObjectNotFoundError,
+                          swiftapi.delete_object, 'container', 'object')
+        connection_obj_mock.delete_object.assert_called_once_with('container',
+                                                                  'object')
+
+    def test_delete_object_exc(self, connection_mock):
+        swiftapi = swift.SwiftAPI()
+        exc = swift_exception.ClientException("Operation error")
+        connection_obj_mock = connection_mock.return_value
+        connection_obj_mock.delete_object.side_effect = exc
+        self.assertRaises(exception.SwiftOperationError,
+                          swiftapi.delete_object, 'container', 'object')
+        connection_obj_mock.delete_object.assert_called_once_with('container',
+                                                                  'object')
+
     def test_head_object(self, connection_mock):
         swiftapi = swift.SwiftAPI()
         connection_obj_mock = connection_mock.return_value

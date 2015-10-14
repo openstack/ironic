@@ -546,6 +546,11 @@ class SwiftOperationError(IronicException):
     _msg_fmt = _("Swift operation '%(operation)s' failed: %(error)s")
 
 
+class SwiftObjectNotFoundError(SwiftOperationError):
+    _msg_fmt = _("Swift object %(object)s from container %(container)s "
+                 "not found. Operation '%(operation)s' failed.")
+
+
 class SNMPFailure(IronicException):
     _msg_fmt = _("SNMP operation '%(operation)s' failed: %(error)s")
 

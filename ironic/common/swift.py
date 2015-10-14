@@ -151,12 +151,18 @@ class SwiftAPI(object):
         :param container: The name of the container in which Swift object
             is placed.
         :param object: The name of the object in Swift to be deleted.
+        :raises: SwiftObjectNotFoundError, if object is not found in Swift.
         :raises: SwiftOperationError, if operation with Swift fails.
         """
         try:
             self.connection.delete_object(container, object)
         except swift_exceptions.ClientException as e:
             operation = _("delete object")
+            if e.http_status == 404:
+                raise exception.SwiftObjectNotFoundError(object=object,
+                                                         container=container,
+                                                         operation=operation)
+
             raise exception.SwiftOperationError(operation=operation, error=e)
 
     def head_object(self, container, object):
