@@ -355,8 +355,7 @@ permissions, but does provide a script to perform the task::
 
 Switch to the stack user and clone DevStack::
 
-    sudo su stack
-    cd ~
+    sudo su - stack
     git clone https://github.com/openstack-dev/devstack.git devstack
 
 Create devstack/local.conf with minimal settings required to enable Ironic.
