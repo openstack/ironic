@@ -42,6 +42,9 @@ from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules.msftocs import management as msftocs_management
 from ironic.drivers.modules.msftocs import power as msftocs_power
+from ironic.drivers.modules.oneview import common as oneview_common
+from ironic.drivers.modules.oneview import management as oneview_management
+from ironic.drivers.modules.oneview import power as oneview_power
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import seamicro
 from ironic.drivers.modules import snmp
@@ -290,4 +293,24 @@ class FakeWakeOnLanDriver(base.BaseDriver):
 
     def __init__(self):
         self.power = wol.WakeOnLanPower()
+        self.deploy = fake.FakeDeploy()
+
+
+class FakeOneViewDriver(base.BaseDriver):
+    """Fake OneView driver. For testing purposes. """
+
+    def __init__(self):
+        if not importutils.try_import('oneview_client.client'):
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_("Unable to import python-oneviewclient library"))
+
+        # Checks connectivity to OneView and version compatibility on driver
+        # initialization
+        oneview_client = oneview_common.get_oneview_client()
+        oneview_client.verify_oneview_version()
+        oneview_client.verify_credentials()
+        self.power = oneview_power.OneViewPower()
+        self.management = oneview_management.OneViewManagement()
+        self.boot = fake.FakeBoot()
         self.deploy = fake.FakeDeploy()
