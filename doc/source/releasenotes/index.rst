@@ -84,6 +84,41 @@ on Launchpad: https://launchpad.net/ironic/liberty/4.2.0.
   iLO driver documentation is available at:
   http://docs.openstack.org/developer/ironic/drivers/ilo.html
 
+Known issues
+~~~~~~~~~~~~
+
+* Out of tree drivers may be broken by this release. The AgentDeploy and
+  ISCSIDeploy (formerly known as PXEDeploy) classes now depend on drivers to
+  utilize an instance of a BootInterface. For drivers that exist out of tree,
+  that use these deploy classes, an error will be thrown during
+  deployment. There is a simple fix. For drivers that expect these deploy
+  classes to handle PXE booting, one can add the following code to the driver's
+  `__init__` method::
+
+    from ironic.drivers.modules import pxe
+
+    class YourDriver(...):
+        def __init__(self):
+            # ...
+            self.boot = pxe.PXEBoot()
+
+  A driver that handles booting itself (for example, a driver that implements
+  booting from virtual media) should use the following to make calls to the boot
+  interface a no-op::
+
+    from ironic.drivers.modules import fake
+
+    class YourDriver(...)
+        def __init__(self):
+            # ...
+            self.boot = fake.FakeBoot()
+
+  Additionally, as mentioned before, `ironic.drivers.modules.pxe.PXEDeploy`
+  has moved to `ironic.drivers.modules.iscsi_deploy.ISCSIDeploy`, which will
+  break drivers that use this class.
+
+  The Ironic team apologizes profusely for this inconvenience.
+
 
 4.1.0
 =====
