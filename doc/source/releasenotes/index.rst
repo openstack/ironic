@@ -2,6 +2,18 @@
 Release Notes
 =============
 
+4.2.1
+=====
+
+This release is a patch release on top of 4.2.0, as part of the stable
+Liberty series. Full details are available on Launchpad:
+https://launchpad.net/ironic/liberty/4.2.1.
+
+* Import Japanese translations - our first major translation addition!
+
+* Fix a couple of locale issues with deployments, when running on a system
+  using the Japanese locale
+
 4.2.0
 =====
 
