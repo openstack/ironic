@@ -876,7 +876,7 @@ steps on the ironic conductor node to configure the PXE UEFI environment.
         GRUB_DIR=/tftpboot/EFI/centos
 
     Create directory GRUB_DIR
-      sudo mkdir $GRUB_DIR
+      sudo mkdir -p $GRUB_DIR
 
   This file is used to redirect grub to baremetal node specific config file.
   It redirects it to specific grub config file based on DHCP IP assigned to
