@@ -29,6 +29,7 @@ from ironic.common import keystone
 from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.common import utils
+from ironic.conductor import manager
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent_base_vendor
@@ -1048,6 +1049,61 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             clean_up_instance_mock.assert_called_once_with(
                 task.driver.boot, task)
 
+    @mock.patch.object(deploy_utils, 'prepare_inband_cleaning', autospec=True)
+    def test_prepare_cleaning(self, prepare_inband_cleaning_mock):
+        prepare_inband_cleaning_mock.return_value = states.CLEANWAIT
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertEqual(
+                states.CLEANWAIT, task.driver.deploy.prepare_cleaning(task))
+            prepare_inband_cleaning_mock.assert_called_once_with(
+                task, manage_boot=True)
+
+    @mock.patch.object(deploy_utils, 'tear_down_inband_cleaning',
+                       autospec=True)
+    def test_tear_down_cleaning(self, tear_down_cleaning_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.deploy.tear_down_cleaning(task)
+            tear_down_cleaning_mock.assert_called_once_with(
+                task, manage_boot=True)
+
+    @mock.patch('ironic.drivers.modules.deploy_utils.agent_get_clean_steps',
+                autospec=True)
+    def test_get_clean_steps(self, mock_get_clean_steps):
+        # Test getting clean steps
+        self.config(group='deploy', erase_devices_priority=10)
+        mock_steps = [{'priority': 10, 'interface': 'deploy',
+                       'step': 'erase_devices'}]
+        self.node.driver_internal_info = {'agent_url': 'foo'}
+        self.node.save()
+        mock_get_clean_steps.return_value = mock_steps
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            steps = task.driver.deploy.get_clean_steps(task)
+            mock_get_clean_steps.assert_called_once_with(
+                task, interface='deploy',
+                override_priorities={
+                    'erase_devices': 10})
+        self.assertEqual(mock_steps, steps)
+
+    @mock.patch('ironic.drivers.modules.deploy_utils.agent_get_clean_steps',
+                autospec=True)
+    def test_get_clean_steps_no_agent_url(self, mock_get_clean_steps):
+        # Test getting clean steps
+        self.node.driver_internal_info = {}
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            steps = task.driver.deploy.get_clean_steps(task)
+
+        self.assertEqual([], steps)
+        self.assertFalse(mock_get_clean_steps.called)
+
+    @mock.patch.object(deploy_utils, 'agent_execute_clean_step', autospec=True)
+    def test_execute_clean_step(self, agent_execute_clean_step_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.deploy.execute_clean_step(
+                task, {'some-step': 'step-info'})
+            agent_execute_clean_step_mock.assert_called_once_with(
+                task, {'some-step': 'step-info'})
+
 
 class TestVendorPassthru(db_base.DbTestCase):
 
@@ -1077,6 +1133,16 @@ class TestVendorPassthru(db_base.DbTestCase):
                                         address='123456', iqn='aaa-bbb',
                                         key='fake-56789')
 
+    def test_validate_pass_deploy_info_during_cleaning(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.provision_state = states.CLEANWAIT
+            # Assert that it doesn't raise.
+            self.assertIsNone(
+                task.driver.vendor.validate(task, method='pass_deploy_info',
+                                            address='123456', iqn='aaa-bbb',
+                                            key='fake-56789'))
+
     def test_validate_fail(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -1093,6 +1159,41 @@ class TestVendorPassthru(db_base.DbTestCase):
                               task, method='pass_deploy_info',
                               address='123456', iqn='aaa-bbb',
                               key='fake-12345')
+
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'notify_conductor_resume_clean',
+                       autospec=True)
+    @mock.patch.object(manager, 'set_node_cleaning_steps', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'LOG', spec=['warning'])
+    def test__initiate_cleaning(self, log_mock, set_node_cleaning_steps_mock,
+                                notify_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.vendor._initiate_cleaning(task)
+
+        log_mock.warning.assert_called_once_with(mock.ANY, mock.ANY)
+        set_node_cleaning_steps_mock.assert_called_once_with(task)
+        notify_mock.assert_called_once_with(self.driver.vendor, task)
+
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'notify_conductor_resume_clean',
+                       autospec=True)
+    @mock.patch.object(manager, 'cleaning_error_handler', autospec=True)
+    @mock.patch.object(manager, 'set_node_cleaning_steps', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'LOG', spec=['warning'])
+    def test__initiate_cleaning_exception(
+            self, log_mock, set_node_cleaning_steps_mock,
+            cleaning_error_handler_mock, notify_mock):
+        set_node_cleaning_steps_mock.side_effect = RuntimeError()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.vendor._initiate_cleaning(task)
+
+        log_mock.warning.assert_called_once_with(mock.ANY, mock.ANY)
+        set_node_cleaning_steps_mock.assert_called_once_with(task)
+        cleaning_error_handler_mock.assert_called_once_with(task, mock.ANY)
+        self.assertFalse(notify_mock.called)
 
     @mock.patch.object(fake.FakeBoot, 'prepare_instance', autospec=True)
     @mock.patch.object(deploy_utils, 'notify_ramdisk_to_proceed',
@@ -1218,6 +1319,20 @@ class TestVendorPassthru(db_base.DbTestCase):
             # lock elevated w/o exception
             self.assertEqual(1, mock_deploy_info.call_count,
                              "pass_deploy_info was not called once.")
+
+    @mock.patch.object(iscsi_deploy.VendorPassthru,
+                       '_initiate_cleaning', autospec=True)
+    def test_pass_deploy_info_cleaning(self, initiate_cleaning_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.provision_state = states.CLEANWAIT
+            task.driver.vendor.pass_deploy_info(
+                task, address='123456', iqn='aaa-bbb', key='fake-56789')
+            initiate_cleaning_mock.assert_called_once_with(
+                task.driver.vendor, task)
+            # Asserting if we are still on CLEANWAIT state confirms that
+            # we return from pass_deploy_info method after initiating
+            # cleaning.
+            self.assertEqual(states.CLEANWAIT, task.node.provision_state)
 
     def test_vendor_routes(self):
         expected = ['heartbeat', 'pass_deploy_info',

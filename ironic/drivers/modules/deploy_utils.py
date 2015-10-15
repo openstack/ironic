@@ -1443,7 +1443,17 @@ def prepare_inband_cleaning(task, manage_boot=True):
 
     if manage_boot:
         ramdisk_opts = build_agent_options(task.node)
+
+        # TODO(rameshg87): Below code is to make sure that bash ramdisk
+        # invokes pass_deploy_info vendor passthru when it is booted
+        # for cleaning. Remove the below code once we stop supporting
+        # bash ramdisk in Ironic. Do a late import to avoid circular
+        # import.
+        from ironic.drivers.modules import iscsi_deploy
+        ramdisk_opts.update(
+            iscsi_deploy.build_deploy_ramdisk_options(task.node))
         task.driver.boot.prepare_ramdisk(task, ramdisk_opts)
+
     manager_utils.node_power_action(task, states.REBOOT)
 
     # Tell the conductor we are waiting for the agent to boot.

@@ -211,7 +211,7 @@ class BaseAgentVendor(base.VendorInterface):
                                                     'payload version: %s')
                                                   % version)
 
-    def _notify_conductor_resume_clean(self, task):
+    def notify_conductor_resume_clean(self, task):
         LOG.debug('Sending RPC to conductor to resume cleaning for node %s',
                   task.node.uuid)
         uuid = task.node.uuid
@@ -265,7 +265,7 @@ class BaseAgentVendor(base.VendorInterface):
                         'step': node.clean_step})
                 LOG.exception(msg)
                 return manager.cleaning_error_handler(task, msg)
-            self._notify_conductor_resume_clean(task)
+            self.notify_conductor_resume_clean(task)
 
         elif command.get('command_status') == 'SUCCEEDED':
             clean_step_hook = _get_post_clean_step_hook(node)
@@ -290,7 +290,7 @@ class BaseAgentVendor(base.VendorInterface):
 
             LOG.info(_LI('Agent on node %s returned cleaning command success, '
                          'moving to next clean step'), node.uuid)
-            self._notify_conductor_resume_clean(task)
+            self.notify_conductor_resume_clean(task)
         else:
             msg = (_('Agent returned unknown status for clean step %(step)s '
                      'on node %(node)s : %(err)s.') %
@@ -361,7 +361,7 @@ class BaseAgentVendor(base.VendorInterface):
                               node.uuid)
                     msg = _('Node failed to start the next cleaning step.')
                     manager.set_node_cleaning_steps(task)
-                    self._notify_conductor_resume_clean(task)
+                    self.notify_conductor_resume_clean(task)
                 else:
                     msg = _('Node failed to check cleaning progress.')
                     self.continue_cleaning(task, **kwargs)

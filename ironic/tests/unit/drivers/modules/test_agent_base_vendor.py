@@ -325,7 +325,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
     @mock.patch.object(manager, 'set_node_cleaning_steps', autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       '_notify_conductor_resume_clean', autospec=True)
+                       'notify_conductor_resume_clean', autospec=True)
     def test_heartbeat_resume_clean(self, mock_notify, mock_set_steps,
                                     mock_touch):
         kwargs = {
@@ -407,7 +407,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
     @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'reboot_to_instance',
                        autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       '_notify_conductor_resume_clean', autospec=True)
+                       'notify_conductor_resume_clean', autospec=True)
     def test_heartbeat_noops_maintenance_mode(self, ncrc_mock, rti_mock,
                                               cd_mock):
         """Ensures that heartbeat() no-ops for a maintenance node."""
@@ -685,7 +685,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
 
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       '_notify_conductor_resume_clean', autospec=True)
+                       'notify_conductor_resume_clean', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
     def test_continue_cleaning(self, status_mock, notify_mock):
@@ -712,7 +712,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
     @mock.patch.object(agent_base_vendor,
                        '_get_post_clean_step_hook', autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       '_notify_conductor_resume_clean', autospec=True)
+                       'notify_conductor_resume_clean', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
     def test_continue_cleaning_with_hook(
@@ -739,7 +739,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             notify_mock.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       '_notify_conductor_resume_clean', autospec=True)
+                       'notify_conductor_resume_clean', autospec=True)
     @mock.patch.object(agent_base_vendor,
                        '_get_post_clean_step_hook', autospec=True)
     @mock.patch.object(manager, 'cleaning_error_handler', autospec=True)
@@ -772,7 +772,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.assertFalse(notify_mock.called)
 
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       '_notify_conductor_resume_clean', autospec=True)
+                       'notify_conductor_resume_clean', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
     def test_continue_cleaning_old_command(self, status_mock, notify_mock):
@@ -801,7 +801,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.assertFalse(notify_mock.called)
 
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       '_notify_conductor_resume_clean', autospec=True)
+                       'notify_conductor_resume_clean', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
     def test_continue_cleaning_running(self, status_mock, notify_mock):
@@ -835,7 +835,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
     @mock.patch('ironic.conductor.manager.set_node_cleaning_steps',
                 autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
-                       '_notify_conductor_resume_clean', autospec=True)
+                       'notify_conductor_resume_clean', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
     def test_continue_cleaning_clean_version_mismatch(
