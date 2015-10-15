@@ -15,9 +15,6 @@
 
 
 import datetime
-import filecmp
-import os
-import tempfile
 import time
 
 from glanceclient import exc as glance_exc
@@ -487,19 +484,16 @@ class TestGlanceImageService(base.TestCase):
         stub_service.download(image_id, writer)
         self.assertTrue(mock_sleep.called)
 
-    def test_download_file_url(self):
+    @mock.patch('sendfile.sendfile', autospec=True)
+    @mock.patch('os.path.getsize', autospec=True)
+    @mock.patch('%s.open' % __name__, new=mock.mock_open(), create=True)
+    def test_download_file_url(self, mock_getsize, mock_sendfile):
         # NOTE: only in v2 API
         class MyGlanceStubClient(stubs.StubGlanceClient):
 
             """A client that returns a file url."""
 
-            (outfd, s_tmpfname) = tempfile.mkstemp(prefix='directURLsrc')
-            outf = os.fdopen(outfd, 'wb')
-            inf = open('/dev/urandom', 'rb')
-            for i in range(10):
-                _data = inf.read(1024)
-                outf.write(_data)
-            outf.close()
+            s_tmpfname = '/whatever/source'
 
             def get(self, image_id):
                 return type('GlanceTestDirectUrlMeta', (object,),
@@ -509,8 +503,6 @@ class TestGlanceImageService(base.TestCase):
         stub_context.user_id = 'fake'
         stub_context.project_id = 'fake'
         stub_client = MyGlanceStubClient()
-        (outfd, tmpfname) = tempfile.mkstemp(prefix='directURLdst')
-        writer = os.fdopen(outfd, 'w')
 
         stub_service = service.GlanceImageService(stub_client,
                                                   context=stub_context,
@@ -518,15 +510,26 @@ class TestGlanceImageService(base.TestCase):
         image_id = 1  # doesn't matter
 
         self.config(allowed_direct_url_schemes=['file'], group='glance')
-        stub_service.download(image_id, writer)
-        writer.close()
 
-        # compare the two files
-        rc = filecmp.cmp(tmpfname, stub_client.s_tmpfname)
-        self.assertTrue(rc, "The file %s and %s should be the same" %
-                        (tmpfname, stub_client.s_tmpfname))
-        os.remove(stub_client.s_tmpfname)
-        os.remove(tmpfname)
+        # patching open in base_image_service module namespace
+        # to make call-spec assertions
+        with mock.patch('ironic.common.glance_service.base_image_service.open',
+                        new=mock.mock_open(), create=True) as mock_ironic_open:
+            with open('/whatever/target', 'w') as mock_target_fd:
+                stub_service.download(image_id, mock_target_fd)
+
+        # assert the image data was neither read nor written
+        # but rather sendfiled
+        mock_ironic_open.assert_called_once_with(MyGlanceStubClient.s_tmpfname,
+                                                 'r')
+        mock_source_fd = mock_ironic_open()
+        self.assertFalse(mock_source_fd.read.called)
+        self.assertFalse(mock_target_fd.write.called)
+        mock_sendfile.assert_called_once_with(
+            mock_target_fd.fileno(),
+            mock_source_fd.fileno(),
+            0,
+            mock_getsize(MyGlanceStubClient.s_tmpfname))
 
     def test_client_forbidden_converts_to_imagenotauthed(self):
         class MyGlanceStubClient(stubs.StubGlanceClient):
