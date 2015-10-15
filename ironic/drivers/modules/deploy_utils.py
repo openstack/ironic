@@ -988,15 +988,22 @@ def parse_instance_info_capabilities(node):
     return capabilities
 
 
-def agent_get_clean_steps(task):
+def agent_get_clean_steps(task, interface=None, override_priorities=None):
     """Get the list of clean steps from the agent.
 
     #TODO(JoshNang) move to BootInterface
 
     :param task: a TaskManager object containing the node
+    :param interface: The interface for which clean steps
+        are to be returned. If this is not provided, it returns the
+        clean steps for all interfaces.
+    :param override_priorities: a dictionary with keys being step names and
+        values being new priorities for them. If a step isn't in this
+        dictionary, the step's original priority is used.
     :raises: NodeCleaningFailure if the agent returns invalid results
     :returns: A list of clean step dictionaries
     """
+    override_priorities = override_priorities or {}
     client = agent_client.AgentClient()
     ports = objects.Port.list_by_node_id(
         task.context, task.node.id)
@@ -1019,10 +1026,16 @@ def agent_get_clean_steps(task):
     steps_list = [step for step_list in
                   result['clean_steps'].values()
                   for step in step_list]
-    # Filter steps to only return deploy steps
-    steps = [step for step in steps_list
-             if step.get('interface') == 'deploy']
-    return steps
+    result = []
+    for step in steps_list:
+        if interface and step.get('interface') != interface:
+            continue
+        new_priority = override_priorities.get(step.get('step'))
+        if new_priority is not None:
+            step['priority'] = new_priority
+        result.append(step)
+
+    return result
 
 
 def agent_execute_clean_step(task, step):

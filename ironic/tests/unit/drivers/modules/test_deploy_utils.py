@@ -29,6 +29,7 @@ from oslo_config import cfg
 from oslo_utils import uuidutils
 import requests
 import testtools
+from testtools import matchers
 
 from ironic.common import boot_devices
 from ironic.common import disk_partitioner
@@ -1933,11 +1934,78 @@ class AgentMethodsTestCase(db_base.DbTestCase):
 
             # Since steps are returned in dicts, they have non-deterministic
             # ordering
-            self.assertEqual(2, len(response))
+            self.assertThat(response, matchers.HasLength(3))
             self.assertIn(self.clean_steps['clean_steps'][
                 'GenericHardwareManager'][0], response)
             self.assertIn(self.clean_steps['clean_steps'][
                 'SpecificHardwareManager'][0], response)
+            self.assertIn(self.clean_steps['clean_steps'][
+                'SpecificHardwareManager'][1], response)
+
+    @mock.patch('ironic.objects.Port.list_by_node_id',
+                spec_set=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'get_clean_steps',
+                       autospec=True)
+    def test_get_clean_steps_custom_interface(
+            self, client_mock, list_ports_mock):
+        client_mock.return_value = {
+            'command_result': self.clean_steps}
+        list_ports_mock.return_value = self.ports
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            response = utils.agent_get_clean_steps(task, interface='raid')
+            client_mock.assert_called_once_with(mock.ANY, task.node,
+                                                self.ports)
+            self.assertEqual('1', task.node.driver_internal_info[
+                'hardware_manager_version'])
+
+            self.assertThat(response, matchers.HasLength(1))
+            self.assertIn(self.clean_steps['clean_steps'][
+                'SpecificHardwareManager'][1], response)
+
+    @mock.patch('ironic.objects.Port.list_by_node_id',
+                spec_set=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'get_clean_steps',
+                       autospec=True)
+    def test_get_clean_steps_override_priorities(
+            self, client_mock, list_ports_mock):
+        client_mock.return_value = {
+            'command_result': self.clean_steps}
+        list_ports_mock.return_value = self.ports
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            new_priorities = {'create_configuration': 42}
+            response = utils.agent_get_clean_steps(
+                task, interface='raid', override_priorities=new_priorities)
+            client_mock.assert_called_once_with(mock.ANY, task.node,
+                                                self.ports)
+            self.assertEqual('1', task.node.driver_internal_info[
+                'hardware_manager_version'])
+            self.assertEqual(42, response[0]['priority'])
+
+    @mock.patch('ironic.objects.Port.list_by_node_id',
+                spec_set=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'get_clean_steps',
+                       autospec=True)
+    def test_get_clean_steps_override_priorities_none(
+            self, client_mock, list_ports_mock):
+        client_mock.return_value = {
+            'command_result': self.clean_steps}
+        list_ports_mock.return_value = self.ports
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            # this is simulating the default value of a configuration option
+            new_priorities = {'create_configuration': None}
+            response = utils.agent_get_clean_steps(
+                task, interface='raid', override_priorities=new_priorities)
+            client_mock.assert_called_once_with(mock.ANY, task.node,
+                                                self.ports)
+            self.assertEqual('1', task.node.driver_internal_info[
+                'hardware_manager_version'])
+            self.assertEqual(10, response[0]['priority'])
 
     @mock.patch('ironic.objects.Port.list_by_node_id',
                 spec_set=types.FunctionType)
@@ -1951,7 +2019,7 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         list_ports_mock.return_value = self.ports
 
         with task_manager.acquire(
-                self.context, self.node['uuid'], shared=False) as task:
+                self.context, self.node.uuid, shared=False) as task:
             self.assertRaises(exception.NodeCleaningFailure,
                               utils.agent_get_clean_steps,
                               task)

@@ -1087,10 +1087,10 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
         }]
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            step = task.driver.deploy.get_clean_steps(task)
-            get_clean_step_mock.assert_called_once_with(task)
-            self.assertEqual(step[0].get('priority'),
-                             CONF.ilo.clean_priority_erase_devices)
+            task.driver.deploy.get_clean_steps(task)
+            get_clean_step_mock.assert_called_once_with(
+                task, interface='deploy',
+                override_priorities={'erase_devices': 20})
 
     @mock.patch.object(deploy_utils, 'agent_get_clean_steps', spec_set=True,
                        autospec=True)
@@ -1104,10 +1104,10 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
         }]
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            step = task.driver.deploy.get_clean_steps(task)
-            get_clean_step_mock.assert_called_once_with(task)
-            self.assertEqual(step[0].get('priority'),
-                             CONF.ilo.clean_priority_erase_devices)
+            task.driver.deploy.get_clean_steps(task)
+            get_clean_step_mock.assert_called_once_with(
+                task, interface='deploy',
+                override_priorities={'erase_devices': 0})
 
     @mock.patch.object(deploy_utils, 'agent_get_clean_steps', spec_set=True,
                        autospec=True)
@@ -1120,9 +1120,10 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
         }]
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            step = task.driver.deploy.get_clean_steps(task)
-            get_clean_step_mock.assert_called_once_with(task)
-            self.assertEqual(step[0].get('priority'), 10)
+            task.driver.deploy.get_clean_steps(task)
+            get_clean_step_mock.assert_called_once_with(
+                task, interface='deploy',
+                override_priorities={'erase_devices': None})
 
 
 class VendorPassthruTestCase(db_base.DbTestCase):
