@@ -277,3 +277,4 @@ class TestListType(base.TestCase):
                               v.validate("foo, ,,bar"))
         self.assertItemsEqual(['foo', 'bar'],
                               v.validate("foo,foo,foo,bar"))
+        self.assertIsInstance(v.validate('foo,bar'), list)

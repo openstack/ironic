@@ -196,12 +196,12 @@ class ListType(wtypes.UserType):
         """Validate and convert the input to a ListType.
 
         :param value: A comma separated string of values
-        :returns: A list of values.
+        :returns: A list of unique values, whose order is not guaranteed.
         """
         items = [v.strip().lower() for v in six.text_type(value).split(',')]
         # filter() to remove empty items
         # set() to remove duplicated items
-        return set(filter(None, items))
+        return list(set(filter(None, items)))
 
     @staticmethod
     def frombasetype(value):
