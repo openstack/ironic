@@ -333,3 +333,82 @@ class CleanupAfterTimeoutTestCase(tests_base.TestCase):
         self.task.driver.deploy.clean_up.assert_called_once_with(self.task)
         self.assertEqual([mock.call()] * 2, self.node.save.call_args_list)
         self.assertIn('Deploy timed out', self.node.last_error)
+
+
+class NodeCleaningStepsTestCase(base.DbTestCase):
+    def setUp(self):
+        super(NodeCleaningStepsTestCase, self).setUp()
+        mgr_utils.mock_the_extension_manager()
+
+        self.power_update = {
+            'step': 'update_firmware', 'priority': 10, 'interface': 'power'}
+        self.deploy_update = {
+            'step': 'update_firmware', 'priority': 10, 'interface': 'deploy'}
+        self.deploy_erase = {
+            'step': 'erase_disks', 'priority': 20, 'interface': 'deploy'}
+        self.clean_steps = [self.deploy_erase, self.power_update,
+                            self.deploy_update]
+        self.deploy_raid = {
+            'step': 'build_raid', 'priority': 0, 'interface': 'deploy'}
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_clean_steps')
+    def test__get_cleaning_steps(self, mock_power_steps, mock_deploy_steps):
+        # Test getting cleaning steps, with one driver returning None, two
+        # conflicting priorities, and asserting they are ordered properly.
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE)
+
+        mock_power_steps.return_value = [self.power_update]
+        mock_deploy_steps.return_value = [self.deploy_erase,
+                                          self.deploy_update]
+
+        with task_manager.acquire(
+                self.context, node['id'], shared=False) as task:
+            steps = conductor_utils._get_cleaning_steps(task, enabled=False)
+
+        self.assertEqual(self.clean_steps, steps)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_clean_steps')
+    def test__get_cleaning_steps_only_enabled(self, mock_power_steps,
+                                              mock_deploy_steps):
+        # Test getting only cleaning steps, with one driver returning None, two
+        # conflicting priorities, and asserting they are ordered properly.
+        # Should discard zap step
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE)
+
+        mock_power_steps.return_value = [self.power_update]
+        mock_deploy_steps.return_value = [self.deploy_erase,
+                                          self.deploy_update,
+                                          self.deploy_raid]
+
+        with task_manager.acquire(
+                self.context, node['id'], shared=True) as task:
+            steps = conductor_utils._get_cleaning_steps(task, enabled=True)
+
+        self.assertEqual(self.clean_steps, steps)
+
+    @mock.patch.object(conductor_utils, '_get_cleaning_steps')
+    def test_set_node_cleaning_steps(self, mock_steps):
+        mock_steps.return_value = self.clean_steps
+
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE,
+            last_error=None,
+            clean_step=None)
+
+        with task_manager.acquire(
+                self.context, node['id'], shared=False) as task:
+            conductor_utils.set_node_cleaning_steps(task)
+            node.refresh()
+            self.assertEqual(self.clean_steps,
+                             task.node.driver_internal_info['clean_steps'])
+            self.assertEqual({}, node.clean_step)

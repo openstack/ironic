@@ -31,7 +31,6 @@ from ironic.common.i18n import _LW
 from ironic.common import keystone
 from ironic.common import states
 from ironic.common import utils
-from ironic.conductor import manager
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
@@ -875,14 +874,14 @@ class VendorPassthru(agent_base_vendor.BaseAgentVendor):
                 "Please use the ironic-python-agent (IPA) ramdisk "
                 "instead for node %s. "), task.node.uuid)
         try:
-            manager.set_node_cleaning_steps(task)
+            manager_utils.set_node_cleaning_steps(task)
             self.notify_conductor_resume_clean(task)
         except Exception as e:
             last_error = (
                 _('Encountered exception for node %(node)s '
                   'while initiating cleaning. Error:  %(error)s') %
                 {'node': task.node.uuid, 'error': e})
-            return manager.cleaning_error_handler(task, last_error)
+            return manager_utils.cleaning_error_handler(task, last_error)
 
     @base.passthru(['POST'])
     @task_manager.require_exclusive_lock
