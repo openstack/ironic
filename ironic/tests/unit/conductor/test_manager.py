@@ -3830,7 +3830,6 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
         self.assertFalse(acquire_mock.called)
-        self.service.ring_manager.reset.assert_called_once_with()
 
     def test_already_mapped(self, get_nodeinfo_mock, mapped_mock,
                             acquire_mock):
@@ -3846,7 +3845,6 @@ class ManagerSyncLocalStateTestCase(_CommonMixIn, tests_db_base.DbTestCase):
         self._assert_get_nodeinfo_args(get_nodeinfo_mock)
         mapped_mock.assert_called_once_with(self.node.uuid, self.node.driver)
         self.assertFalse(acquire_mock.called)
-        self.service.ring_manager.reset.assert_called_once_with()
 
     def test_good(self, get_nodeinfo_mock, mapped_mock, acquire_mock):
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()

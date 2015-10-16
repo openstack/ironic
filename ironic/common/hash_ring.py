@@ -16,6 +16,7 @@
 import bisect
 import hashlib
 import threading
+import time
 
 from oslo_config import cfg
 import six
@@ -47,6 +48,9 @@ hash_opts = [
                       'conductor services to prepare deployment environments '
                       'and potentially allow the Ironic cluster to recover '
                       'more quickly if a conductor instance is terminated.')),
+    cfg.IntOpt('hash_ring_reset_interval',
+               default=180,
+               help=_('Interval (in seconds) between hash ring resets.')),
 ]
 
 CONF = cfg.CONF
@@ -166,17 +170,21 @@ class HashRingManager(object):
 
     def __init__(self):
         self.dbapi = dbapi.get_instance()
+        self.updated_at = time.time()
 
     @property
     def ring(self):
+        interval = CONF.hash_ring_reset_interval
+        limit = time.time() - interval
         # Hot path, no lock
-        if self._hash_rings is not None:
+        if self._hash_rings is not None and self.updated_at >= limit:
             return self._hash_rings
 
         with self._lock:
-            if self._hash_rings is None:
+            if self._hash_rings is None or self.updated_at < limit:
                 rings = self._load_hash_rings()
                 self.__class__._hash_rings = rings
+                self.updated_at = time.time()
             return self._hash_rings
 
     def _load_hash_rings(self):

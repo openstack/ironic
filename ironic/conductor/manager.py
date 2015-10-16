@@ -1406,7 +1406,6 @@ class ConductorManager(periodic_task.PeriodicTasks):
         The ensuing actions could include preparing a PXE environment,
         updating the DHCP server, and so on.
         """
-        self.ring_manager.reset()
         filters = {'reserved': False,
                    'maintenance': False,
                    'provision_state': states.ACTIVE}

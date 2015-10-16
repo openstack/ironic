@@ -67,6 +67,10 @@
 # (integer value)
 #hash_distribution_replicas=1
 
+# Interval (in seconds) between hash ring resets. (integer
+# value)
+#hash_ring_reset_interval=180
+
 
 #
 # Options defined in ironic.common.images

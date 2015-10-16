@@ -14,6 +14,7 @@
 #    under the License.
 
 import hashlib
+import time
 
 import mock
 from oslo_config import cfg
@@ -249,3 +250,14 @@ class HashRingManagerTestCase(db_base.DbTestCase):
         self.assertRaises(exception.DriverNotFound,
                           self.ring_manager.__getitem__,
                           'driver1')
+
+    def test_hash_ring_manager_refresh(self):
+        CONF.set_override('hash_ring_reset_interval', 30)
+        # Initialize the ring manager to make _hash_rings not None, then
+        # hash ring will refresh only when time interval exceeded.
+        self.assertRaises(exception.DriverNotFound,
+                          self.ring_manager.__getitem__,
+                          'driver1')
+        self.register_conductors()
+        self.ring_manager.updated_at = time.time() - 30
+        self.ring_manager.__getitem__('driver1')
