@@ -39,6 +39,7 @@ from six.moves.urllib import parse
 from ironic.common import dhcp_factory
 from ironic.common import disk_partitioner
 from ironic.common import exception
+from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
@@ -1483,3 +1484,33 @@ def tear_down_inband_cleaning(task, manage_boot=True):
         task.driver.boot.clean_up_ramdisk(task)
 
     tear_down_cleaning_ports(task)
+
+
+def get_image_instance_info(node):
+    """Gets the image information from the node.
+
+    Get image information for the given node instance from its
+    'instance_info' property.
+
+    :param node: a single Node.
+    :returns: A dict with required image properties retrieved from
+        node's 'instance_info'.
+    :raises: MissingParameterValue, if image_source is missing in node's
+        instance_info. Also raises same exception if kernel/ramdisk is
+        missing in instance_info for non-glance images.
+    """
+    info = {}
+    info['image_source'] = node.instance_info.get('image_source')
+
+    is_whole_disk_image = node.driver_internal_info.get('is_whole_disk_image')
+    if not is_whole_disk_image:
+        if not service_utils.is_glance_image(info['image_source']):
+            info['kernel'] = node.instance_info.get('kernel')
+            info['ramdisk'] = node.instance_info.get('ramdisk')
+
+    error_msg = (_("Cannot validate image information for node %s because one "
+                   "or more parameters are missing from its instance_info.")
+                 % node.uuid)
+    check_for_missing_params(info, error_msg)
+
+    return info
