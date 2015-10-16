@@ -15,6 +15,7 @@
 
 from oslo_config import cfg
 from oslo_utils import uuidutils
+from six.moves.urllib import parse as urlparse
 from swiftclient import utils as swift_utils
 
 from ironic.common import exception as exc
@@ -31,7 +32,10 @@ glance_opts = [
                        'via the direct_url.  Currently supported schemes: '
                        '[file].')),
     # To upload this key to Swift:
-    # swift post -m Temp-Url-Key:correcthorsebatterystaple
+    # swift post -m Temp-Url-Key:secretkey
+    # When using radosgw, temp url key could be uploaded via the above swift
+    # command, or with:
+    # radosgw-admin user modify --uid=user --temp-url-key=secretkey
     cfg.StrOpt('swift_temp_url_key',
                help=_('The secret token given to Swift to allow temporary URL '
                       'downloads. Required for temporary URLs.'),
@@ -47,25 +51,27 @@ glance_opts = [
         'swift_endpoint_url',
         help=_('The "endpoint" (scheme, hostname, optional port) for '
                'the Swift URL of the form '
-               '"endpoint_url/api_version/account/container/object_id". '
+               '"endpoint_url/api_version/[account/]container/object_id". '
                'Do not include trailing "/". '
-               'For example, use "https://swift.example.com". '
+               'For example, use "https://swift.example.com". In case of '
+               'using RADOS Gateway, endpoint may also contain /swift path, '
+               'if it does not, it will be appended. '
                'Required for temporary URLs.')),
     cfg.StrOpt(
         'swift_api_version',
         default='v1',
         help=_('The Swift API version to create a temporary URL for. '
                'Defaults to "v1". Swift temporary URL format: '
-               '"endpoint_url/api_version/account/container/object_id"')),
+               '"endpoint_url/api_version/[account/]container/object_id"')),
     cfg.StrOpt(
         'swift_account',
         help=_('The account that Glance uses to communicate with '
                'Swift. The format is "AUTH_uuid". "uuid" is the '
                'UUID for the account configured in the glance-api.conf. '
-               'Required for temporary URLs. For example: '
-               '"AUTH_a422b2-91f3-2f46-74b7-d7c9e8958f5d30". '
+               'Required for temporary URLs when Glance backend is Swift. '
+               'For example: "AUTH_a422b2-91f3-2f46-74b7-d7c9e8958f5d30". '
                'Swift temporary URL format: '
-               '"endpoint_url/api_version/account/container/object_id"')),
+               '"endpoint_url/api_version/[account/]container/object_id"')),
     cfg.StrOpt(
         'swift_container',
         default='glance',
@@ -73,7 +79,7 @@ glance_opts = [
                'images in. Defaults to "glance", which is the default '
                'in glance-api.conf. '
                'Swift temporary URL format: '
-               '"endpoint_url/api_version/account/container/object_id"')),
+               '"endpoint_url/api_version/[account/]container/object_id"')),
     cfg.IntOpt('swift_store_multiple_containers_seed',
                default=0,
                help=_('This should match a config by the same name in the '
@@ -83,6 +89,11 @@ glance_opts = [
                       'value between 1 and 32, a single-tenant store will use '
                       'multiple containers to store images, and this value '
                       'will determine how many containers are created.')),
+    cfg.StrOpt('temp_url_endpoint_type',
+               default='swift',
+               help=_('Type of the endpoint to use for temporary URLs. It '
+                      'depends on an actual Glance backend used. Possible '
+                      'values are "swift" and "radosgw".'))
 ]
 
 CONF = cfg.CONF
@@ -146,14 +157,28 @@ class GlanceImageService(base_image_service.BaseImageService,
                 % image_info)
 
         url_fragments = {
-            'endpoint_url': CONF.glance.swift_endpoint_url,
             'api_version': CONF.glance.swift_api_version,
             'account': CONF.glance.swift_account,
             'container': self._get_swift_container(image_info['id']),
             'object_id': image_info['id']
         }
 
-        template = '/{api_version}/{account}/{container}/{object_id}'
+        endpoint_url = CONF.glance.swift_endpoint_url
+        if CONF.glance.temp_url_endpoint_type == 'radosgw':
+            chunks = urlparse.urlsplit(CONF.glance.swift_endpoint_url)
+            if not chunks.path:
+                endpoint_url = urlparse.urljoin(
+                    endpoint_url, 'swift')
+            elif chunks.path != '/swift':
+                raise exc.InvalidParameterValue(
+                    _('Swift endpoint URL should only contain scheme, '
+                      'hostname, optional port and optional /swift path '
+                      'without trailing slash; provided value is: %s')
+                    % endpoint_url)
+            template = '/{api_version}/{container}/{object_id}'
+        else:
+            template = '/{api_version}/{account}/{container}/{object_id}'
+
         url_path = template.format(**url_fragments)
         path = swift_utils.generate_temp_url(
             path=url_path,
@@ -162,7 +187,7 @@ class GlanceImageService(base_image_service.BaseImageService,
             method='GET')
 
         return '{endpoint_url}{url_path}'.format(
-            endpoint_url=url_fragments['endpoint_url'], url_path=path)
+            endpoint_url=endpoint_url, url_path=path)
 
     def _validate_temp_url_config(self):
         """Validate the required settings for a temporary URL."""
@@ -174,7 +199,8 @@ class GlanceImageService(base_image_service.BaseImageService,
             raise exc.MissingParameterValue(_(
                 'Swift temporary URLs require a Swift endpoint URL. '
                 'You must provide "swift_endpoint_url" as a config option.'))
-        if not CONF.glance.swift_account:
+        if (not CONF.glance.swift_account and
+                CONF.glance.temp_url_endpoint_type == 'swift'):
             raise exc.MissingParameterValue(_(
                 'Swift temporary URLs require a Swift account string. '
                 'You must provide "swift_account" as a config option.'))

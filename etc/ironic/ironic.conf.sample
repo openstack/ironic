@@ -906,32 +906,34 @@
 
 # The "endpoint" (scheme, hostname, optional port) for the
 # Swift URL of the form
-# "endpoint_url/api_version/account/container/object_id". Do
+# "endpoint_url/api_version/[account/]container/object_id". Do
 # not include trailing "/". For example, use
-# "https://swift.example.com". Required for temporary URLs.
-# (string value)
+# "https://swift.example.com". In case of using RADOS Gateway,
+# endpoint may also contain /swift path, if it does not, it
+# will be appended. Required for temporary URLs. (string
+# value)
 #swift_endpoint_url=<None>
 
 # The Swift API version to create a temporary URL for.
 # Defaults to "v1". Swift temporary URL format:
-# "endpoint_url/api_version/account/container/object_id"
+# "endpoint_url/api_version/[account/]container/object_id"
 # (string value)
 #swift_api_version=v1
 
 # The account that Glance uses to communicate with Swift. The
 # format is "AUTH_uuid". "uuid" is the UUID for the account
 # configured in the glance-api.conf. Required for temporary
-# URLs. For example:
+# URLs when Glance backend is Swift. For example:
 # "AUTH_a422b2-91f3-2f46-74b7-d7c9e8958f5d30". Swift temporary
 # URL format:
-# "endpoint_url/api_version/account/container/object_id"
+# "endpoint_url/api_version/[account/]container/object_id"
 # (string value)
 #swift_account=<None>
 
 # The Swift container Glance is configured to store its images
 # in. Defaults to "glance", which is the default in glance-
 # api.conf. Swift temporary URL format:
-# "endpoint_url/api_version/account/container/object_id"
+# "endpoint_url/api_version/[account/]container/object_id"
 # (string value)
 #swift_container=glance
 
@@ -943,6 +945,11 @@
 # will determine how many containers are created. (integer
 # value)
 #swift_store_multiple_containers_seed=0
+
+# Type of the endpoint to use for temporary URLs. It depends
+# on an actual Glance backend used. Possible values are
+# "swift" and "radosgw". (string value)
+#temp_url_endpoint_type=swift
 
 
 #
