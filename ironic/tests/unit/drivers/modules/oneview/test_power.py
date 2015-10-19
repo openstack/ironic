@@ -29,20 +29,8 @@ from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
+
 oneview_exceptions = importutils.try_import('oneview_client.exceptions')
-
-# TODO(afaranha) move this variable to db_utils.get_test_oneview_properties()
-PROPERTIES_DICT = {'cpu_arch': 'x86_64',
-                   'cpus': '8',
-                   'local_gb': '10',
-                   'memory_mb': '4096',
-                   'capabilities': 'server_hardware_type_uri:fake_sht_uri,'
-                                   'enclosure_group_uri:fake_eg_uri',
-                   }
-
-DRIVER_INFO_DICT = {'server_hardware_uri': 'fake_uri',
-                    'server_profile_template_uri': 'fake_spt_uri',
-                    }
 
 POWER_ON = 'On'
 POWER_OFF = 'Off'

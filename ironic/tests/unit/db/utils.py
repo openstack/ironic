@@ -334,13 +334,13 @@ def get_test_oneview_properties():
         "cpus": "8",
         "local_gb": "10",
         "memory_mb": "4096",
-        "capabilities": "server_hardware_type_uri:fake_sht_uri,"
-                        "enclosure_group_uri:fake_eg_uri"
+        "capabilities": ("server_hardware_type_uri:fake_sht_uri,"
+                         "enclosure_group_uri:fake_eg_uri,"
+                         "server_profile_template_uri:fake_spt_uri"),
     }
 
 
 def get_test_oneview_driver_info():
     return {
-        'server_hardware_uri': 'fake_uri',
-        'server_profile_template_uri': 'fake_spt_uri'
+        'server_hardware_uri': 'fake_sh_uri',
     }

@@ -21,6 +21,7 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
+from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.drivers import utils
 
@@ -54,17 +55,27 @@ CONF = cfg.CONF
 CONF.register_opts(opts, group='oneview')
 
 REQUIRED_ON_DRIVER_INFO = {
-    'server_hardware_uri': _("Server Hardware URI. Required."),
-    'server_profile_template_uri': _("Server Profile Template URI to clone "
-                                     "from. Required."),
+    'server_hardware_uri': _("Server Hardware URI. Required in driver_info."),
 }
 
 REQUIRED_ON_PROPERTIES = {
-    'server_hardware_type_uri': _("Server Hardware Type URI. Required."),
+    'server_hardware_type_uri': _(
+        "Server Hardware Type URI. Required in properties/capabilities."
+    ),
 }
 
+# TODO(gabriel-bezerra): Move 'server_profile_template_uri' to
+# REQUIRED_ON_PROPERTIES after Mitaka. See methods get_oneview_info,
+# verify_node_info from this file; and test_verify_node_info_missing_spt
+# and test_deprecated_spt_in_driver_info* from test_common tests.
 OPTIONAL_ON_PROPERTIES = {
-    'enclosure_group_uri': _("Enclosure Group URI.")
+    'enclosure_group_uri': _(
+        "Enclosure Group URI. Optional in properties/capabilities."),
+
+    'server_profile_template_uri': _(
+        "Server Profile Template URI to clone from. "
+        "Deprecated in driver_info. "
+        "Required in properties/capabilities."),
 }
 
 COMMON_PROPERTIES = {}
@@ -112,6 +123,30 @@ def verify_node_info(node):
 
     _verify_node_info('properties/capabilities', capabilities_dict,
                       REQUIRED_ON_PROPERTIES)
+
+    # TODO(gabriel-bezerra): Remove this after Mitaka
+    try:
+        _verify_node_info('properties/capabilities', capabilities_dict,
+                          ['server_profile_template_uri'])
+
+    except exception.MissingParameterValue:
+        try:
+            _verify_node_info('driver_info', driver_info,
+                              ['server_profile_template_uri'])
+
+            LOG.warning(
+                _LW("Using 'server_profile_template_uri' in driver_info is "
+                    "now deprecated and will be ignored in future releases. "
+                    "Node %s should have it in its properties/capabilities "
+                    "instead."),
+                node.uuid
+            )
+        except exception.MissingParameterValue:
+            raise exception.MissingParameterValue(
+                _("Missing 'server_profile_template_uri' parameter value in "
+                  "properties/capabilities")
+            )
+    # end
     _verify_node_info('driver_info', driver_info,
                       REQUIRED_ON_DRIVER_INFO)
 
@@ -144,8 +179,10 @@ def get_oneview_info(node):
         'enclosure_group_uri':
             capabilities_dict.get('enclosure_group_uri'),
         'server_profile_template_uri':
+            capabilities_dict.get('server_profile_template_uri') or
             driver_info.get('server_profile_template_uri'),
     }
+
     return oneview_info
 
 
