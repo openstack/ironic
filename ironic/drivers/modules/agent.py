@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import time
-
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import excutils
@@ -34,7 +32,6 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import agent_base_vendor
-from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
 
 
@@ -86,16 +83,6 @@ REQUIRED_PROPERTIES = {
                         'used at deploy time. Required.'),
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES
-
-
-def _time():
-    """Broken out for testing."""
-    return time.time()
-
-
-def _get_client():
-    client = agent_client.AgentClient()
-    return client
 
 
 def build_instance_info_for_deploy(task):
