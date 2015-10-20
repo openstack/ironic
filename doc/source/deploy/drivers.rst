@@ -114,3 +114,12 @@ CIMC driver
   :maxdepth: 1
 
   ../drivers/cimc
+
+
+OneView driver
+--------------
+
+.. toctree::
+  :maxdepth: 1
+
+  ../drivers/oneview
