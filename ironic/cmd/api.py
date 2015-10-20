@@ -64,3 +64,7 @@ def main():
         wsgi.serve_forever()
     except KeyboardInterrupt:
         pass
+
+
+if __name__ == '__main__':
+    sys.exit(main())
