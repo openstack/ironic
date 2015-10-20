@@ -82,11 +82,6 @@ LOG = log.getLogger(__name__)
 POST_CLEAN_STEP_HOOKS = {}
 
 
-def _time():
-    """Broken out for testing."""
-    return time.time()
-
-
 def _get_client():
     client = agent_client.AgentClient()
     return client
@@ -319,7 +314,7 @@ class BaseAgentVendor(base.VendorInterface):
             'Heartbeat from %(node)s, last heartbeat at %(heartbeat)s.',
             {'node': node.uuid,
              'heartbeat': driver_internal_info.get('agent_last_heartbeat')})
-        driver_internal_info['agent_last_heartbeat'] = int(_time())
+        driver_internal_info['agent_last_heartbeat'] = int(time.time())
         try:
             driver_internal_info['agent_url'] = kwargs['agent_url']
         except KeyError:
