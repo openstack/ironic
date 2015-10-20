@@ -25,7 +25,7 @@ from ironic.common import exception
 from ironic.common.glance_service.v1 import image_service as glance_v1_service
 from ironic.common import image_service
 from ironic.common import keystone
-from ironic.tests.unit import base
+from ironic.tests import base
 
 if six.PY3:
     import io

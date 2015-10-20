@@ -17,7 +17,7 @@ from stevedore import dispatch
 
 from ironic.common import driver_factory
 from ironic.common import exception
-from ironic.tests.unit import base
+from ironic.tests import base
 
 
 class FakeEp(object):

@@ -26,7 +26,7 @@ from ironic.common import paths
 from ironic.db import api as dbapi
 from ironic.db.sqlalchemy import migration
 from ironic.db.sqlalchemy import models
-from ironic.tests.unit import base
+from ironic.tests import base
 
 
 CONF = cfg.CONF

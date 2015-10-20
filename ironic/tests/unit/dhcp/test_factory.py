@@ -23,7 +23,7 @@ from ironic.common import exception
 from ironic.dhcp import base as base_class
 from ironic.dhcp import neutron
 from ironic.dhcp import none
-from ironic.tests.unit import base
+from ironic.tests import base
 
 
 class TestDHCPFactory(base.TestCase):

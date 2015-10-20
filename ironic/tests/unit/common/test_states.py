@@ -17,7 +17,7 @@
 import six
 
 from ironic.common import states
-from ironic.tests.unit import base
+from ironic.tests import base
 
 
 class StatesTest(base.TestCase):

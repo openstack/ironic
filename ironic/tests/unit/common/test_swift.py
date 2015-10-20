@@ -24,7 +24,7 @@ from swiftclient import utils as swift_utils
 
 from ironic.common import exception
 from ironic.common import swift
-from ironic.tests.unit import base
+from ironic.tests import base
 
 CONF = cfg.CONF
 

@@ -21,7 +21,7 @@ from oslo_config import cfg
 from ironic.common import exception
 from ironic.drivers.modules.amt import common as amt_common
 from ironic.drivers.modules.amt import resource_uris
-from ironic.tests.unit import base
+from ironic.tests import base
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils

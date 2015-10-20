@@ -25,8 +25,8 @@ import wsme
 from ironic.api.controllers.v1 import utils
 from ironic.common import exception
 from ironic import objects
+from ironic.tests import base
 from ironic.tests.unit.api import utils as test_api_utils
-from ironic.tests.unit import base
 
 CONF = cfg.CONF
 

@@ -51,7 +51,7 @@ import sqlalchemy.exc
 from ironic.common.i18n import _LE
 from ironic.db.sqlalchemy import migration
 from ironic.db.sqlalchemy import models
-from ironic.tests.unit import base
+from ironic.tests import base
 
 LOG = logging.getLogger(__name__)
 

@@ -15,7 +15,7 @@
 #    under the License.
 
 from ironic.common import fsm
-from ironic.tests.unit import base
+from ironic.tests import base
 
 
 class FSMTest(base.TestCase):

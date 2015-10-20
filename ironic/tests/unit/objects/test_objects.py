@@ -25,7 +25,7 @@ import six
 
 from ironic.objects import base
 from ironic.objects import fields
-from ironic.tests.unit import base as test_base
+from ironic.tests import base as test_base
 
 gettext.install('ironic')
 

@@ -16,7 +16,7 @@
 
 from ironic.common import exception
 from ironic.objects import fields
-from ironic.tests.unit import base as test_base
+from ironic.tests import base as test_base
 
 
 class TestMacAddressField(test_base.TestCase):

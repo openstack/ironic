@@ -30,7 +30,7 @@ import six.moves.builtins as __builtin__
 
 from ironic.common import exception
 from ironic.common import utils
-from ironic.tests.unit import base
+from ironic.tests import base
 
 CONF = cfg.CONF
 

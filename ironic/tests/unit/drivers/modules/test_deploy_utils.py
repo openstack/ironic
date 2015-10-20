@@ -46,7 +46,7 @@ from ironic.drivers.modules import deploy_utils as utils
 from ironic.drivers.modules import image_cache
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
-from ironic.tests.unit import base as tests_base
+from ironic.tests import base as tests_base
 from ironic.tests.unit.conductor import utils as mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils

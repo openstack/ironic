@@ -16,7 +16,7 @@ import mock
 import six
 
 from ironic.common import exception
-from ironic.tests.unit import base
+from ironic.tests import base
 
 
 class DeprecatedException(exception.IronicException):

@@ -16,7 +16,7 @@
 #    under the License.
 
 from ironic.common import policy
-from ironic.tests.unit import base
+from ironic.tests import base
 
 
 class PolicyTestCase(base.TestCase):

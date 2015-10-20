@@ -28,7 +28,7 @@ from ironic.common import fsm
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic import objects
-from ironic.tests.unit import base as tests_base
+from ironic.tests import base as tests_base
 from ironic.tests.unit.db import base as tests_db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
