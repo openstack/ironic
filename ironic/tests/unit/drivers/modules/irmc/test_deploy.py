@@ -243,7 +243,8 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(iscsi_deploy, 'parse_instance_info', spec_set=True,
                        autospec=True)
-    def test__parse_deploy_info_ok(self, instance_info_mock):
+    @mock.patch('os.path.isfile', autospec=True)
+    def test__parse_deploy_info_ok(self, mock_isfile, instance_info_mock):
         CONF.irmc.remote_image_share_root = '/etc'
         instance_info_mock.return_value = {'a': 'b'}
         driver_info_expected = {'a': 'b',
@@ -255,6 +256,11 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
             task.node.instance_info['irmc_boot_iso'] = 'fstab'
             driver_info_actual = irmc_deploy._parse_deploy_info(task.node)
             self.assertEqual(driver_info_expected, driver_info_actual)
+            boot_iso_path = os.path.join(
+                CONF.irmc.remote_image_share_root,
+                task.node.instance_info['irmc_boot_iso']
+            )
+            mock_isfile.assert_any_call(boot_iso_path)
 
     @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
                        autospec=True)
