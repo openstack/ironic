@@ -28,7 +28,7 @@ from ironic.drivers.modules import agent_client
 from ironic.drivers.modules.oneview import power
 from ironic.drivers.modules.oneview import vendor
 from ironic.drivers.modules import pxe
-from ironic.tests.unit.conductor import utils as mgr_utils
+from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils

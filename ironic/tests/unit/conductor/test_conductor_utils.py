@@ -20,7 +20,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as conductor_utils
 from ironic import objects
 from ironic.tests import base as tests_base
-from ironic.tests.unit.conductor import utils as mgr_utils
+from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base
 from ironic.tests.unit.db import utils
 from ironic.tests.unit.objects import utils as obj_utils

@@ -22,7 +22,7 @@ import mock
 from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers.modules.msftocs import common as msftocs_common
-from ironic.tests.unit.conductor import utils as mgr_utils
+from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
