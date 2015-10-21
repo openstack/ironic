@@ -2963,9 +2963,9 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         self.service = manager.ConductorManager('hostname', 'test-topic')
         self.driver = mock.Mock(spec_set=drivers_base.BaseDriver)
         self.power = self.driver.power
-        self.node = mock.Mock(spec_set=objects.Node,
-                              maintenance=False,
-                              provision_state=states.AVAILABLE)
+        self.node = obj_utils.create_test_node(
+            self.context, driver='fake', maintenance=False,
+            provision_state=states.AVAILABLE)
         self.task = mock.Mock(spec_set=['context', 'driver', 'node',
                                         'upgrade_lock', 'shared'])
         self.task.context = self.context
@@ -2998,7 +2998,6 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         self.assertFalse(self.power.validate.called)
         self.power.get_power_state.assert_called_once_with(self.task)
         self.assertEqual('fake-power', self.node.power_state)
-        self.assertFalse(self.node.save.called)
         self.assertFalse(node_power_action.called)
         self.assertFalse(self.task.upgrade_lock.called)
 
@@ -3007,7 +3006,6 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
 
         self.power.validate.assert_called_once_with(self.task)
         self.power.get_power_state.assert_called_once_with(self.task)
-        self.node.save.assert_called_once_with()
         self.assertFalse(node_power_action.called)
         self.assertEqual(states.POWER_ON, self.node.power_state)
         self.task.upgrade_lock.assert_called_once_with()
@@ -3018,7 +3016,6 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
 
         self.power.validate.assert_called_once_with(self.task)
         self.assertFalse(self.power.get_power_state.called)
-        self.assertFalse(self.node.save.called)
         self.assertFalse(node_power_action.called)
         self.assertIsNone(self.node.power_state)
 
@@ -3028,7 +3025,6 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
 
         self.assertFalse(self.power.validate.called)
         self.power.get_power_state.assert_called_once_with(self.task)
-        self.assertFalse(self.node.save.called)
         self.assertFalse(node_power_action.called)
         self.assertEqual('fake', self.node.power_state)
         self.assertEqual(1,
@@ -3038,7 +3034,6 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         self._do_sync_power_state('fake', states.ERROR)
         self.assertFalse(self.power.validate.called)
         self.power.get_power_state.assert_called_once_with(self.task)
-        self.assertFalse(self.node.save.called)
         self.assertFalse(node_power_action.called)
         self.assertEqual('fake', self.node.power_state)
         self.assertEqual(1,
@@ -3049,7 +3044,6 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
 
         self.assertFalse(self.power.validate.called)
         self.power.get_power_state.assert_called_once_with(self.task)
-        self.node.save.assert_called_once_with()
         self.assertFalse(node_power_action.called)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
         self.task.upgrade_lock.assert_called_once_with()
@@ -3062,7 +3056,6 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
 
         self.assertFalse(self.power.validate.called)
         self.power.get_power_state.assert_called_once_with(self.task)
-        self.assertFalse(self.node.save.called)
         node_power_action.assert_called_once_with(self.task, states.POWER_ON)
         self.assertEqual(states.POWER_ON, self.node.power_state)
         self.task.upgrade_lock.assert_called_once_with()
@@ -3076,7 +3069,6 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         # Just testing that this test doesn't raise.
         self.assertFalse(self.power.validate.called)
         self.power.get_power_state.assert_called_once_with(self.task)
-        self.assertFalse(self.node.save.called)
         node_power_action.assert_called_once_with(self.task, states.POWER_ON)
         self.assertEqual(states.POWER_ON, self.node.power_state)
         self.assertEqual(1,
@@ -3093,7 +3085,6 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         power_exp_calls = [mock.call(self.task)] * 2
         self.assertEqual(power_exp_calls,
                          self.power.get_power_state.call_args_list)
-        self.node.save.assert_called_once_with()
         node_power_action.assert_called_once_with(self.task, states.POWER_ON)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
         self.assertEqual(2,
@@ -3113,7 +3104,6 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         power_exp_calls = [mock.call(self.task)] * 3
         self.assertEqual(power_exp_calls,
                          self.power.get_power_state.call_args_list)
-        self.node.save.assert_called_once_with()
         npa_exp_calls = [mock.call(self.task, states.POWER_ON)] * 2
         self.assertEqual(npa_exp_calls, node_power_action.call_args_list)
         self.assertEqual(states.POWER_OFF, self.node.power_state)
@@ -3133,7 +3123,6 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         power_exp_calls = [mock.call(self.task)] * 3
         self.assertEqual(power_exp_calls,
                          self.power.get_power_state.call_args_list)
-        self.assertFalse(self.node.save.called)
         npa_exp_calls = [mock.call(self.task, states.POWER_ON)] * 2
         self.assertEqual(npa_exp_calls, node_power_action.call_args_list)
         self.assertEqual(states.POWER_ON, self.node.power_state)
@@ -3147,16 +3136,17 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
 
         node_power_action.side_effect = exception.IronicException('test')
         self._do_sync_power_state('fake',
-                                  exception.IronicException('foo'))
+                                  exception.IronicException('SpongeBob'))
 
         self.assertFalse(self.power.validate.called)
         self.power.get_power_state.assert_called_once_with(self.task)
 
         self.assertIsNone(self.node.power_state)
         self.assertTrue(self.node.maintenance)
-        self.assertTrue(self.node.save.called)
 
         self.assertFalse(node_power_action.called)
+        # make sure the actual error is in the last_error attribute
+        self.assertIn('SpongeBob', self.node.last_error)
 
     def test_maintenance_on_upgrade_lock(self, node_power_action):
         self.node.maintenance = True
@@ -3166,7 +3156,6 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         self.assertFalse(self.power.validate.called)
         self.power.get_power_state.assert_called_once_with(self.task)
         self.assertEqual(states.POWER_ON, self.node.power_state)
-        self.assertFalse(self.node.save.called)
         self.assertFalse(node_power_action.called)
         self.task.upgrade_lock.assert_called_once_with()
 
@@ -3178,7 +3167,6 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         self.assertFalse(self.power.validate.called)
         self.power.get_power_state.assert_called_once_with(self.task)
         self.assertEqual(states.POWER_ON, self.node.power_state)
-        self.assertFalse(self.node.save.called)
         self.assertFalse(node_power_action.called)
         self.task.upgrade_lock.assert_called_once_with()
 
@@ -3192,7 +3180,6 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
 
         self.assertFalse(self.power.validate.called)
         self.power.get_power_state.assert_called_once_with(self.task)
-        self.assertFalse(self.node.save.called)
         self.assertFalse(node_power_action.called)
         self.task.upgrade_lock.assert_called_once_with()
 
