@@ -285,6 +285,26 @@ class TestContextHook(base.BaseApiTest):
             is_admin=False,
             roles=headers['X-Roles'].split(','))
 
+    @mock.patch.object(context, 'RequestContext')
+    def test_context_hook_after_add_request_id(self, mock_ctx):
+        headers = fake_headers(admin=True)
+        reqstate = FakeRequestState(headers=headers)
+        reqstate.set_context()
+        reqstate.request.context.request_id = 'fake-id'
+        context_hook = hooks.ContextHook(None)
+        context_hook.after(reqstate)
+        self.assertIn('Openstack-Request-Id',
+                      reqstate.response.headers)
+        self.assertEqual(
+            'fake-id',
+            reqstate.response.headers['Openstack-Request-Id'])
+
+    def test_context_hook_after_miss_context(self):
+        response = self.get_json('/bad/path',
+                                 expect_errors=True)
+        self.assertNotIn('Openstack-Request-Id',
+                         response.headers)
+
 
 class TestTrustedCallHook(base.BaseApiTest):
     def test_trusted_call_hook_not_admin(self):
