@@ -95,6 +95,7 @@ def node_post_data(**kw):
     node.pop('chassis_id')
     node.pop('target_raid_config')
     node.pop('raid_config')
+    node.pop('tags')
     internal = node_controller.NodePatchType.internal_attrs()
     return remove_internal(node, internal)
 

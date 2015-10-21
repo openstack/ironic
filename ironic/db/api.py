@@ -543,3 +543,64 @@ class Connection(object):
         :param node_id: The id of a node.
         :raises: NodeNotFound
         """
+
+    @abc.abstractmethod
+    def set_node_tags(self, node_id, tags):
+        """Replace all of the node tags with specified list of tags.
+
+        This ignores duplicate tags in the specified list.
+
+        :param node_id: The id of a node.
+        :param tags: List of tags.
+        :returns: A list of NodeTag objects.
+        :raises: NodeNotFound if the node is not found.
+        """
+
+    @abc.abstractmethod
+    def unset_node_tags(self, node_id):
+        """Remove all tags of the node.
+
+        :param node_id: The id of a node.
+        :raises: NodeNotFound if the node is not found.
+        """
+
+    @abc.abstractmethod
+    def get_node_tags_by_node_id(self, node_id):
+        """Get node tags based on its id.
+
+        :param node_id: The id of a node.
+        :returns: A list of NodeTag objects.
+        :raises: NodeNotFound if the node is not found.
+        """
+
+    @abc.abstractmethod
+    def add_node_tag(self, node_id, tag):
+        """Add tag to the node.
+
+        If the node_id and tag pair already exists, this should still
+        succeed.
+
+        :param node_id: The id of a node.
+        :param tag: A tag string.
+        :returns: the NodeTag object.
+        :raises: NodeNotFound if the node is not found.
+        """
+
+    @abc.abstractmethod
+    def delete_node_tag(self, node_id, tag):
+        """Delete specified tag from the node.
+
+        :param node_id: The id of a node.
+        :param tag: A tag string.
+        :raises: NodeNotFound if the node is not found.
+        :raises: NodeTagNotFound if the tag is not found.
+        """
+
+    @abc.abstractmethod
+    def node_tag_exists(self, node_id, tag):
+        """Check if the specified tag exist on the node.
+
+        :param node_id: The id of a node.
+        :param tag: A tag string.
+        :returns: True if the tag exists otherwise False.
+        """
