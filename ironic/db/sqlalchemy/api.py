@@ -578,8 +578,9 @@ class Connection(api.Connection):
 
         if nodes:
             nodes = ', '.join(nodes)
-            LOG.warn(_LW('Cleared reservations held by %(hostname)s: '
-                         '%(nodes)s'), {'hostname': hostname, 'nodes': nodes})
+            LOG.warning(
+                _LW('Cleared reservations held by %(hostname)s: '
+                    '%(nodes)s'), {'hostname': hostname, 'nodes': nodes})
 
     def get_active_driver_dict(self, interval=None):
         if interval is None:

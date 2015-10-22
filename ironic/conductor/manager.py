@@ -286,9 +286,10 @@ class ConductorManager(periodic_task.PeriodicTasks):
         except exception.ConductorAlreadyRegistered:
             # This conductor was already registered and did not shut down
             # properly, so log a warning and update the record.
-            LOG.warn(_LW("A conductor with hostname %(hostname)s "
-                         "was previously registered. Updating registration"),
-                     {'hostname': self.host})
+            LOG.warning(
+                _LW("A conductor with hostname %(hostname)s "
+                    "was previously registered. Updating registration"),
+                {'hostname': self.host})
             cdr = self.dbapi.register_conductor({'hostname': self.host,
                                                  'drivers': self.drivers},
                                                 update_existing=True)
@@ -1789,27 +1790,27 @@ class ConductorManager(periodic_task.PeriodicTasks):
                     sensors_data = task.driver.management.get_sensors_data(
                         task)
             except NotImplementedError:
-                LOG.warn(_LW(
+                LOG.warning(_LW(
                     'get_sensors_data is not implemented for driver'
                     ' %(driver)s, node_uuid is %(node)s'),
                     {'node': node_uuid, 'driver': driver})
             except exception.FailedToParseSensorData as fps:
-                LOG.warn(_LW(
+                LOG.warning(_LW(
                     "During get_sensors_data, could not parse "
                     "sensor data for node %(node)s. Error: %(err)s."),
                     {'node': node_uuid, 'err': str(fps)})
             except exception.FailedToGetSensorData as fgs:
-                LOG.warn(_LW(
+                LOG.warning(_LW(
                     "During get_sensors_data, could not get "
                     "sensor data for node %(node)s. Error: %(err)s."),
                     {'node': node_uuid, 'err': str(fgs)})
             except exception.NodeNotFound:
-                LOG.warn(_LW(
+                LOG.warning(_LW(
                     "During send_sensor_data, node %(node)s was not "
                     "found and presumed deleted by another process."),
                     {'node': node_uuid})
             except Exception as e:
-                LOG.warn(_LW(
+                LOG.warning(_LW(
                     "Failed to get sensor data for node %(node)s. "
                     "Error: %(error)s"), {'node': node_uuid, 'error': str(e)})
             else:

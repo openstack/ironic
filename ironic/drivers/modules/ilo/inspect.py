@@ -56,9 +56,9 @@ def _create_ports_if_not_exist(node, macs):
             LOG.info(_LI("Port created for MAC address %(address)s for node "
                          "%(node)s"), {'address': mac, 'node': node.uuid})
         except exception.MACAlreadyExists:
-            LOG.warn(_LW("Port already exists for MAC address %(address)s "
-                         "for node %(node)s"),
-                     {'address': mac, 'node': node.uuid})
+            LOG.warning(_LW("Port already exists for MAC address %(address)s "
+                            "for node %(node)s"),
+                        {'address': mac, 'node': node.uuid})
 
 
 def _get_essential_properties(node, ilo_object):

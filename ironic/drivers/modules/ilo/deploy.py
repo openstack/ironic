@@ -447,8 +447,8 @@ def _disable_secure_boot_if_supported(task):
     # attempted deploy. Handling this exception here, will help the
     # user to tear down such a Node.
     except exception.IloOperationNotSupported:
-        LOG.warn(_LW('Secure boot mode is not supported for node %s'),
-                 task.node.uuid)
+        LOG.warning(_LW('Secure boot mode is not supported for node %s'),
+                    task.node.uuid)
 
 
 class IloVirtualMediaIscsiDeploy(base.DeployInterface):

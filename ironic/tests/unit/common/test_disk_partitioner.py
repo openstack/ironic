@@ -186,7 +186,7 @@ BYT;
             'parted', '-s', '-m', '/dev/fake', 'unit', 'MiB', 'print',
             use_standard_locale=True, run_as_root=True)
 
-    @mock.patch.object(disk_partitioner.LOG, 'warn', autospec=True)
+    @mock.patch.object(disk_partitioner.LOG, 'warning', autospec=True)
     def test_incorrect(self, log_mock, execute_mock):
         output = """
 BYT;

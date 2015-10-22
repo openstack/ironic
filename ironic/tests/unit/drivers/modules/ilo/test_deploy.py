@@ -843,7 +843,8 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
             self.assertNotIn('boot_iso_created_in_web_server', dinfo)
             self.assertNotIn('root_uuid_or_disk_id', dinfo)
 
-    @mock.patch.object(ilo_deploy.LOG, 'warn', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy.LOG, 'warning',
+                       spec_set=True, autospec=True)
     @mock.patch.object(ilo_deploy, 'exception', spec_set=True, autospec=True)
     @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', spec_set=True,
                        autospec=True)
@@ -987,7 +988,8 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
             update_secure_boot_mode_mock.assert_called_once_with(task, False)
             self.assertEqual(states.DELETED, returned_state)
 
-    @mock.patch.object(ilo_deploy.LOG, 'warn', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy.LOG, 'warning',
+                       spec_set=True, autospec=True)
     @mock.patch.object(ilo_deploy, 'exception', spec_set=True, autospec=True)
     @mock.patch.object(ilo_deploy, '_update_secure_boot_mode', spec_set=True,
                        autospec=True)
@@ -1730,7 +1732,8 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
             pxe_tear_down_mock.assert_called_once_with(mock.ANY, task)
             self.assertEqual(states.DELETED, returned_state)
 
-    @mock.patch.object(ilo_deploy.LOG, 'warn', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_deploy.LOG, 'warning',
+                       spec_set=True, autospec=True)
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'tear_down',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_deploy, 'exception', spec_set=True, autospec=True)

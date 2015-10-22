@@ -98,9 +98,9 @@ def _execute_ilo_clean_step(node, step, *args, **kwargs):
     except ilo_error.IloCommandNotSupportedError:
         # This clean step is not supported on Gen8 and below servers.
         # Log the failure and continue with cleaning.
-        LOG.warn(_LW("'%(step)s' clean step is not supported on node "
-                     "%(uuid)s. Skipping the clean step."),
-                 {'step': step, 'uuid': node.uuid})
+        LOG.warning(_LW("'%(step)s' clean step is not supported on node "
+                        "%(uuid)s. Skipping the clean step."),
+                    {'step': step, 'uuid': node.uuid})
     except ilo_error.IloError as ilo_exception:
         raise exception.NodeCleaningFailure(_(
             "Clean step %(step)s failed "
