@@ -182,6 +182,11 @@ class FakeDracDriver(base.BaseDriver):
                 driver=self.__class__.__name__,
                 reason=_('Unable to import pywsman library'))
 
+        if not importutils.try_import('dracclient'):
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_('Unable to import python-dracclient library'))
+
         self.power = drac_power.DracPower()
         self.deploy = fake.FakeDeploy()
         self.management = drac_mgmt.DracManagement()

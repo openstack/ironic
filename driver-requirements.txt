@@ -12,6 +12,7 @@ python-oneviewclient<2.1.0,>=2.0.2
 python-scciclient>=0.3.0
 python-seamicroclient>=0.4.0
 UcsSdk==0.8.2.2
+python-dracclient>=0.0.5
 
 # The drac and amt driver import a python module called "pywsman", however,
 # this does not exist on pypi.

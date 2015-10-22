@@ -484,6 +484,10 @@ class IloOperationNotSupported(IronicException):
     _msg_fmt = _("%(operation)s not supported. error: %(error)s")
 
 
+class DracOperationError(IronicException):
+    _msg_fmt = _('DRAC operation failed. Reason: %(error)s')
+
+
 class DracRequestFailed(IronicException):
     pass
 

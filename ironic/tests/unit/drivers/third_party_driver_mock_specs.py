@@ -16,6 +16,23 @@
 """This module provides mock 'specs' for third party modules that can be used
 when needing to mock those third party modules"""
 
+# python-dracclient
+DRACCLIENT_SPEC = (
+    'client',
+    'constants',
+    'exceptions'
+)
+
+DRACCLIENT_CLIENT_MOD_SPEC = (
+    'DRACClient',
+)
+
+DRACCLIENT_CONSTANTS_MOD_SPEC = (
+    'POWER_OFF',
+    'POWER_ON',
+    'REBOOT'
+)
+
 # iboot
 IBOOT_SPEC = (
     'iBootInterface',
