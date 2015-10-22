@@ -19,6 +19,8 @@
 Ironic iBoot PDU power manager.
 """
 
+import time
+
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_service import loopingcall
@@ -41,6 +43,11 @@ opts = [
                default=1,
                help=_('Time (in seconds) between retry attempts for iBoot '
                       'operations')),
+    cfg.IntOpt('reboot_delay',
+               default=5,
+               min=0,
+               help=_('Time (in seconds) to sleep between when rebooting '
+                      '(powering off and on again).'))
 ]
 
 CONF = cfg.CONF
@@ -137,6 +144,11 @@ def _switch(driver_info, enabled):
                                                  mutable)
     timer.start(interval=CONF.iboot.retry_interval).wait()
     return mutable['response']
+
+
+def _sleep_switch(seconds):
+    """Function broken out for testing purpose."""
+    time.sleep(seconds)
 
 
 def _power_status(driver_info):
@@ -258,6 +270,7 @@ class IBootPower(base.PowerInterface):
         """
         driver_info = _parse_driver_info(task.node)
         _switch(driver_info, False)
+        _sleep_switch(CONF.iboot.reboot_delay)
         _switch(driver_info, True)
 
         state = _power_status(driver_info)
