@@ -48,10 +48,9 @@ glance_opts = [
     cfg.StrOpt('glance_host',
                default='$my_ip',
                help=_('Default glance hostname or IP address.')),
-    cfg.IntOpt('glance_port',
-               default=9292,
-               min=1, max=65535,
-               help=_('Default glance port.')),
+    cfg.PortOpt('glance_port',
+                default=9292,
+                help=_('Default glance port.')),
     cfg.StrOpt('glance_protocol',
                default='http',
                help=_('Default protocol to use when connecting to glance. '

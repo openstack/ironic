@@ -21,10 +21,9 @@ API_SERVICE_OPTS = [
     cfg.StrOpt('host_ip',
                default='0.0.0.0',
                help=_('The IP address on which ironic-api listens.')),
-    cfg.IntOpt('port',
-               default=6385,
-               min=1, max=65535,
-               help=_('The TCP port on which ironic-api listens.')),
+    cfg.PortOpt('port',
+                default=6385,
+                help=_('The TCP port on which ironic-api listens.')),
     cfg.IntOpt('max_limit',
                default=1000,
                help=_('The maximum number of items returned in a single '

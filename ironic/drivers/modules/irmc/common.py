@@ -26,10 +26,10 @@ from ironic.common.i18n import _
 scci = importutils.try_import('scciclient.irmc.scci')
 
 opts = [
-    cfg.IntOpt('port',
-               default=443,
-               help=_('Port to be used for iRMC operations, either 80 or '
-                      '443')),
+    cfg.PortOpt('port',
+                default=443,
+                help=_('Port to be used for iRMC operations, either 80 or '
+                       '443')),
     cfg.StrOpt('auth_method',
                default='basic',
                help=_('Authentication method to be used for iRMC operations, '
