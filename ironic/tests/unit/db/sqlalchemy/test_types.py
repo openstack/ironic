@@ -46,7 +46,7 @@ class SqlAlchemyCustomTypesTestCase(base.DbTestCase):
                           self.dbapi.create_chassis,
                           {'extra': ['this is not a dict']})
 
-    def test_JSONEncodedLict_default_value(self):
+    def test_JSONEncodedList_default_value(self):
         # Create conductor w/o extra specified.
         cdr1_id = 321321
         self.dbapi.register_conductor({'hostname': 'test_host1',
