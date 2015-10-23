@@ -8,14 +8,13 @@
 # KATO Tomoyuki <kato.tomoyuki@jp.fujitsu.com>, 2015. #zanata
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 4.2.1.dev78\n"
+"Project-Id-Version: ironic 4.2.1.dev157\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-10-11 06:26+0000\n"
+"POT-Creation-Date: 2015-10-23 06:32+0000\n"
 "PO-Revision-Date: 2015-10-09 05:15+0000\n"
 "Last-Translator: KATO Tomoyuki <kato.tomoyuki@jp.fujitsu.com>\n"
 "Language: ja\n"
-"Language-Team: Japanese (http://www.transifex.com/openstack/ironic/language/"
-"ja/)\n"
+"Language-Team: Japanese\n"
 "Plural-Forms: nplurals=1; plural=0\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
@@ -1723,10 +1722,6 @@ msgid "Root device hint \"size\" is not an integer value."
 msgstr "ルートデバイスヒント「size」が整数値ではありません。"
 
 #, python-format
-msgid "SNMP community.  Required for versions %(v1)s, %(v2c)s"
-msgstr "SNMP コミュニティー。バージョン %(v1)s および %(v2c)s に必須。"
-
-#, python-format
 msgid "SNMP driver requires snmp_community to be set for version %s."
 msgstr ""
 "SNMP ドライバーのバージョン %s は snmp_community の設定を必要とします。"
@@ -1750,13 +1745,6 @@ msgstr "SNMP の操作「%(operation)s」が失敗しました: %(error)s"
 #, python-format
 msgid "SNMP port, default %(port)d"
 msgstr "SNMP ポート。デフォルトは %(port)d。"
-
-#, python-format
-msgid ""
-"SNMP protocol version: %(v1)s, %(v2c)s, %(v3)s  (optional, default %(v1)s)"
-msgstr ""
-"SNMP プロトコル・バージョン: %(v1)s、%(v2c)s、または %(v3)s (オプション。デ"
-"フォルトは %(v1)s)"
 
 #, python-format
 msgid "SNMP security name.  Required for version %(v3)s"

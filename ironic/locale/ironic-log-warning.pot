@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 4.2.1.dev78\n"
+"Project-Id-Version: ironic 4.2.1.dev157\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-10-11 06:26+0000\n"
+"POT-Creation-Date: 2015-10-23 06:32+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -29,7 +29,7 @@ msgid ""
 "expected format: %(line)s"
 msgstr ""
 
-#: ironic/common/exception.py:81
+#: ironic/common/exception.py:76
 #, python-format
 msgid ""
 "Exception class: %s Using the 'message' attribute in an exception has "
@@ -47,56 +47,56 @@ msgstr ""
 msgid "Failed to remove dir %(path)s, error: %(e)s"
 msgstr ""
 
-#: ironic/common/utils.py:504
+#: ironic/common/utils.py:505
 #, python-format
 msgid "Failed to create symlink from %(source)s to %(link)s, error: %(e)s"
 msgstr ""
 
-#: ironic/common/utils.py:518
+#: ironic/common/utils.py:519
 #, python-format
 msgid ""
 "Failed to remove trailing character. Returning original object. Supplied "
 "object is not a string: %s,"
 msgstr ""
 
-#: ironic/conductor/manager.py:289
+#: ironic/conductor/manager.py:290
 #, python-format
 msgid ""
 "A conductor with hostname %(hostname)s was previously registered. "
 "Updating registration"
 msgstr ""
 
-#: ironic/conductor/manager.py:381
+#: ironic/conductor/manager.py:382
 msgid "Conductor could not connect to database while heartbeating."
 msgstr ""
 
-#: ironic/conductor/manager.py:978
+#: ironic/conductor/manager.py:979
 msgid ""
 "Returning CLEANING for asynchronous prepare cleaning has been deprecated."
 " Please use CLEANWAIT instead."
 msgstr ""
 
-#: ironic/conductor/manager.py:1030
+#: ironic/conductor/manager.py:1031
 msgid ""
 "Returning CLEANING for asynchronous clean steps has been deprecated. "
 "Please use CLEANWAIT instead."
 msgstr ""
 
-#: ironic/conductor/manager.py:1333
+#: ironic/conductor/manager.py:1334
 #, python-format
 msgid ""
 "During checking for deploying state, node %s was not found and presumed "
 "deleted by another process. Skipping."
 msgstr ""
 
-#: ironic/conductor/manager.py:1338
+#: ironic/conductor/manager.py:1339
 #, python-format
 msgid ""
 "During checking for deploying state, when releasing the lock of the node "
 "%s, it was locked by another process. Skipping."
 msgstr ""
 
-#: ironic/conductor/manager.py:1344
+#: ironic/conductor/manager.py:1345
 #, python-format
 msgid ""
 "During checking for deploying state, when releasing the lock of the node "
@@ -204,7 +204,7 @@ msgstr ""
 msgid "Driver returns ERROR power state for node %s."
 msgstr ""
 
-#: ironic/db/sqlalchemy/api.py:581
+#: ironic/db/sqlalchemy/api.py:582
 #, python-format
 msgid "Cleared reservations held by %(hostname)s: %(nodes)s"
 msgstr ""
@@ -234,29 +234,30 @@ msgid ""
 "argument will be ignored starting with the Mitaka release"
 msgstr ""
 
-#: ironic/drivers/utils.py:145
+#: ironic/drivers/utils.py:146
 #, python-format
 msgid "Ignoring malformed capability '%s'. Format should be 'key:val'."
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:151
+#: ironic/drivers/modules/agent.py:138
 #, python-format
 msgid ""
 "Skip the image size check as memory_mb is not defined in properties on "
 "node %s."
 msgstr ""
 
-#: ironic/drivers/modules/agent_base_vendor.py:497
+#: ironic/drivers/modules/agent_base_vendor.py:492
 #, python-format
 msgid "Malformed MAC: %s"
 msgstr ""
 
-#: ironic/drivers/modules/agent_base_vendor.py:540
+#: ironic/drivers/modules/agent_base_vendor.py:535
 #, python-format
 msgid "MAC address %s not found in database"
 msgstr ""
 
-#: ironic/drivers/modules/agent_base_vendor.py:605
+#: ironic/drivers/modules/agent_base_vendor.py:600
+#: ironic/drivers/modules/oneview/vendor.py:96
 #, python-format
 msgid ""
 "Failed to soft power off node %(node_uuid)s in at least %(timeout)d "
@@ -275,55 +276,55 @@ msgstr ""
 msgid "No console pid found for node %s while trying to stop shellinabox console."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:1087
+#: ironic/drivers/modules/deploy_utils.py:1101
 #, python-format
 msgid ""
 "ipmitool is unable to set boot device while the node %s is in UEFI boot "
 "mode. Please set the boot device manually."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:118
+#: ironic/drivers/modules/iboot.py:125
 #, python-format
 msgid ""
 "Reached maximum number of attempts (%(attempts)d) to set power state for "
 "node %(node)s to \"%(op)s\""
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:131
+#: ironic/drivers/modules/iboot.py:138
 #, python-format
 msgid ""
 "Cannot call set power state for node '%(node)s' at relay '%(relay)s'. "
 "iBoot switch() failed."
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:149
+#: ironic/drivers/modules/iboot.py:161
 #, python-format
 msgid ""
 "Reached maximum number of attempts (%(attempts)d) to get power state for "
 "node %(node)s"
 msgstr ""
 
-#: ironic/drivers/modules/iboot.py:165
+#: ironic/drivers/modules/iboot.py:177
 #, python-format
 msgid ""
 "Cannot get power state for node '%(node)s' at relay '%(relay)s'. iBoot "
 "get_relays() failed."
 msgstr ""
 
-#: ironic/drivers/modules/image_cache.py:204
+#: ironic/drivers/modules/image_cache.py:205
 #, python-format
 msgid ""
 "Cache clean up was unable to reclaim %(required)d MiB of disk space, "
 "still %(left)d MiB required"
 msgstr ""
 
-#: ironic/drivers/modules/image_cache.py:231
-#: ironic/drivers/modules/image_cache.py:270
+#: ironic/drivers/modules/image_cache.py:232
+#: ironic/drivers/modules/image_cache.py:271
 #, python-format
 msgid "Unable to delete file %(name)s from master image cache: %(exc)s"
 msgstr ""
 
-#: ironic/drivers/modules/image_cache.py:405
+#: ironic/drivers/modules/image_cache.py:406
 #, python-format
 msgid ""
 "Image service couldn't determine last modification time of %(href)s, "
@@ -368,10 +369,10 @@ msgid ""
 "%(cmd)s\". Error: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/iscsi_deploy.py:792
-#: ironic/drivers/modules/iscsi_deploy.py:814
-#: ironic/drivers/modules/ilo/deploy.py:962
-#: ironic/drivers/modules/ilo/deploy.py:992
+#: ironic/drivers/modules/iscsi_deploy.py:851
+#: ironic/drivers/modules/iscsi_deploy.py:897
+#: ironic/drivers/modules/ilo/deploy.py:965
+#: ironic/drivers/modules/ilo/deploy.py:995
 #: ironic/drivers/modules/irmc/deploy.py:806
 #: ironic/drivers/modules/irmc/deploy.py:836
 #, python-format
@@ -381,7 +382,14 @@ msgid ""
 "(IPA) ramdisk instead."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:137
+#: ironic/drivers/modules/iscsi_deploy.py:871
+#, python-format
+msgid ""
+"Bash deploy ramdisk doesn't support in-band cleaning. Please use the "
+"ironic-python-agent (IPA) ramdisk instead for node %s. "
+msgstr ""
+
+#: ironic/drivers/modules/pxe.py:138
 #, python-format
 msgid ""
 "The CONF option [agent]agent_%(opt_name)s is deprecated and will be "
@@ -389,28 +397,28 @@ msgid ""
 "instead."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:534
+#: ironic/drivers/modules/pxe.py:506
 #, python-format
 msgid ""
 "Could not get deploy image info to clean up images for node %(node)s: "
 "%(err)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:573
+#: ironic/drivers/modules/pxe.py:546
 #, python-format
 msgid ""
 "The UUID for the root partition can't be found, unable to switch the pxe "
 "config from deployment mode to service (boot) mode for node %(node)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:578
+#: ironic/drivers/modules/pxe.py:552
 #, python-format
 msgid ""
 "The disk id for the whole disk image can't be found, unable to switch the"
 " pxe config from deployment mode to service (boot) mode for node %(node)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:619
+#: ironic/drivers/modules/pxe.py:590
 #, python-format
 msgid ""
 "Could not get instance image info to clean up images for node %(node)s: "
@@ -432,12 +440,12 @@ msgstr ""
 msgid "Reboot failed for node %s."
 msgstr ""
 
-#: ironic/drivers/modules/snmp.py:363
+#: ironic/drivers/modules/snmp.py:372
 #, python-format
 msgid "SNMP PDU %(addr)s outlet %(outlet)s: unrecognised power state %(state)s."
 msgstr ""
 
-#: ironic/drivers/modules/snmp.py:529
+#: ironic/drivers/modules/snmp.py:538
 #, python-format
 msgid ""
 "Eaton Power SNMP PDU %(addr)s outlet %(outlet)s: unrecognised power state"
@@ -481,6 +489,13 @@ msgid ""
 "Empty response on calling %(action)s on client. Last error (cURL error "
 "code): %(last_error)s, fault string: \"%(fault_string)s\" response_code: "
 "%(response_code)s. Retry attempt %(count)d"
+msgstr ""
+
+#: ironic/drivers/modules/ilo/common.py:519
+#, python-format
+msgid ""
+"Temporary object associated with virtual floppy was already deleted from "
+"Swift. Error: %s"
 msgstr ""
 
 #: ironic/drivers/modules/ilo/deploy.py:91

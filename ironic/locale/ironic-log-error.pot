@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 4.2.1.dev78\n"
+"Project-Id-Version: ironic 4.2.1.dev157\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-10-11 06:27+0000\n"
+"POT-Creation-Date: 2015-10-23 06:32+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -22,7 +22,7 @@ msgstr ""
 msgid "Error parsing HTTP response: %s"
 msgstr ""
 
-#: ironic/common/exception.py:94
+#: ironic/common/exception.py:89
 msgid "Exception in string format operation"
 msgstr ""
 
@@ -87,12 +87,12 @@ msgid ""
 "option."
 msgstr ""
 
-#: ironic/conductor/manager.py:806
+#: ironic/conductor/manager.py:807
 #, python-format
 msgid "Error in tear_down of node %(node)s: %(err)s"
 msgstr ""
 
-#: ironic/conductor/manager.py:1112
+#: ironic/conductor/manager.py:1113
 #, python-format
 msgid ""
 "Failed to tear down cleaning for node %(node)s after aborting the "
@@ -176,73 +176,73 @@ msgstr ""
 msgid "vendor_passthru failed with method %s"
 msgstr ""
 
-#: ironic/drivers/modules/agent.py:131
+#: ironic/drivers/modules/agent.py:118
 #, python-format
 msgid ""
 "Agent deploy supports only HTTP(S) URLs as instance_info['image_source']."
 " Either %s is not a valid HTTP(S) URL or is not reachable."
 msgstr ""
 
-#: ironic/drivers/modules/agent_base_vendor.py:520
+#: ironic/drivers/modules/agent_base_vendor.py:515
 #, python-format
 msgid "Could not find matching node for the provided MACs %s."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:515
+#: ironic/drivers/modules/deploy_utils.py:516
 #, python-format
 msgid ""
 "Failed to erase beginning of disk for node %(node)s. Command: "
 "%(command)s. Error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:527
+#: ironic/drivers/modules/deploy_utils.py:528
 #, python-format
 msgid ""
 "Failed to get disk block count for node %(node)s. Command: %(command)s. "
 "Error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:539
+#: ironic/drivers/modules/deploy_utils.py:540
 #, python-format
 msgid ""
 "Failed to erase the end of the disk on node %(node)s. Command: "
 "%(command)s. Error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:736
+#: ironic/drivers/modules/deploy_utils.py:737
 #, python-format
 msgid "Failed to detect %s"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:834
-#: ironic/drivers/modules/deploy_utils.py:840
+#: ironic/drivers/modules/deploy_utils.py:835
+#: ironic/drivers/modules/deploy_utils.py:841
 #, python-format
 msgid "Deploy to address %s failed."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:835
+#: ironic/drivers/modules/deploy_utils.py:836
 #, python-format
 msgid "Command: %s"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:836
+#: ironic/drivers/modules/deploy_utils.py:837
 #, python-format
 msgid "StdOut: %r"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:837
+#: ironic/drivers/modules/deploy_utils.py:838
 #, python-format
 msgid "StdErr: %r"
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:922
+#: ironic/drivers/modules/deploy_utils.py:923
 #, python-format
 msgid ""
 "Internal error. Node %(node)s in provision state \"%(state)s\" could not "
 "transition to a failed state."
 msgstr ""
 
-#: ironic/drivers/modules/deploy_utils.py:930
+#: ironic/drivers/modules/deploy_utils.py:931
 #, python-format
 msgid ""
 "Node %s failed to power off while handling deploy failure. This may be a "
@@ -312,20 +312,20 @@ msgstr ""
 msgid "IPMI \"bmc reset\" failed for node %(node_id)s with error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/iscsi_deploy.py:624
-#: ironic/drivers/modules/iscsi_deploy.py:847
-#: ironic/drivers/modules/iscsi_deploy.py:886
-#: ironic/drivers/modules/ilo/deploy.py:1032
+#: ironic/drivers/modules/iscsi_deploy.py:625
+#: ironic/drivers/modules/iscsi_deploy.py:936
+#: ironic/drivers/modules/iscsi_deploy.py:975
+#: ironic/drivers/modules/ilo/deploy.py:1035
 #: ironic/drivers/modules/irmc/deploy.py:871
 #, python-format
 msgid "Deploy failed for instance %(instance)s. Error: %(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:324
+#: ironic/drivers/modules/pxe.py:296
 msgid "Whole disk image with netboot is not supported in UEFI boot mode."
 msgstr ""
 
-#: ironic/drivers/modules/pxe.py:436
+#: ironic/drivers/modules/pxe.py:408
 msgid "UEFI boot mode is not supported with iPXE boot enabled."
 msgstr ""
 
@@ -486,16 +486,18 @@ msgid ""
 "%(target_power_state)s. Reason: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/ilo/common.py:491
+#: ironic/drivers/modules/ilo/common.py:492
 #, python-format
 msgid ""
 "Error while ejecting virtual media %(device)s from node %(uuid)s. Error: "
 "%(error)s"
 msgstr ""
 
-#: ironic/drivers/modules/ilo/common.py:518
+#: ironic/drivers/modules/ilo/common.py:522
 #, python-format
-msgid "Error while deleting %(object_name)s from %(container)s. Error: %(error)s"
+msgid ""
+"Error while deleting temporary swift object %(object_name)s from "
+"%(container)s associated with virtual floppy. Error: %(error)s"
 msgstr ""
 
 #: ironic/drivers/modules/ilo/deploy.py:167
@@ -518,7 +520,7 @@ msgstr ""
 msgid "Failed to clean up boot ISO for node %(node)s. Error: %(error)s."
 msgstr ""
 
-#: ironic/drivers/modules/ilo/deploy.py:926
+#: ironic/drivers/modules/ilo/deploy.py:929
 #, python-format
 msgid "Cannot get boot ISO for node %s"
 msgstr ""
@@ -587,6 +589,18 @@ msgstr ""
 #: ironic/drivers/modules/msftocs/power.py:104
 #, python-format
 msgid "Reboot failed. Error: %(err_msg)s"
+msgstr ""
+
+#: ironic/drivers/modules/oneview/common.py:248
+#, python-format
+msgid ""
+"Failed to get server profile from OneView appliance fornode %(node)s. "
+"Error: %(message)s"
+msgstr ""
+
+#: ironic/drivers/modules/oneview/power.py:79
+#, python-format
+msgid "Error getting power state for node %(node)s. Error:%(error)s"
 msgstr ""
 
 #: ironic/drivers/modules/ucs/helper.py:118
