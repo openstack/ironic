@@ -388,10 +388,12 @@ def set_config(task, **kwargs):
 
 
 @task_manager.require_exclusive_lock
-def commit_config(task):
+def commit_config(task, reboot=False):
     """Commits pending changes added by set_config
 
     :param task: is the ironic task for running the config job.
+    :param reboot: indicates whether a reboot job should be automatically
+                   created with the config job.
     :raises: DracClientError on an error from pywsman library.
     :raises: DracPendingConfigJobExists if the job is already created.
     :raises: DracOperationFailed if the client received response with an
@@ -402,7 +404,7 @@ def commit_config(task):
     """
     node = task.node
     management.check_for_config_job(node)
-    management.create_config_job(node)
+    management.create_config_job(node, reboot)
 
 
 @task_manager.require_exclusive_lock
