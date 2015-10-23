@@ -76,6 +76,9 @@ def setup_app(pecan_config=None, extra_hooks=None):
         wrap_app=middleware.ParsableErrorMiddleware,
     )
 
+    if pecan_config.app.enable_acl:
+        app = acl.install(app, cfg.CONF, pecan_config.app.acl_public_routes)
+
     # Create a CORS wrapper, and attach ironic-specific defaults that must be
     # included in all CORS responses.
     app = cors_middleware.CORS(app, CONF)
@@ -84,9 +87,6 @@ def setup_app(pecan_config=None, extra_hooks=None):
         allow_methods=['GET', 'PUT', 'POST', 'DELETE', 'PATCH'],
         expose_headers=[Version.max_string, Version.min_string, Version.string]
     )
-
-    if pecan_config.app.enable_acl:
-        return acl.install(app, cfg.CONF, pecan_config.app.acl_public_routes)
 
     return app
 
