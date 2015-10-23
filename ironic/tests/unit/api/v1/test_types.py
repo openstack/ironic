@@ -25,7 +25,7 @@ from wsme import types as wtypes
 from ironic.api.controllers.v1 import types
 from ironic.common import exception
 from ironic.common import utils
-from ironic.tests.unit import base
+from ironic.tests import base
 
 
 class TestMacAddressType(base.TestCase):

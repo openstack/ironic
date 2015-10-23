@@ -20,7 +20,7 @@ from testtools.matchers import HasLength
 from ironic.common import disk_partitioner
 from ironic.common import exception
 from ironic.common import utils
-from ironic.tests.unit import base
+from ironic.tests import base
 
 
 @mock.patch.object(eventlet.greenthread, 'sleep', lambda seconds: None)

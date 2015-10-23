@@ -22,7 +22,7 @@ import mock
 
 from ironic.common import exception
 from ironic.drivers.modules.drac import client as drac_client
-from ironic.tests.unit import base
+from ironic.tests import base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.drivers import third_party_driver_mock_specs \

@@ -30,7 +30,7 @@ from ironic.common import states
 from ironic.conductor import manager as conductor_manager
 from ironic.conductor import rpcapi as conductor_rpcapi
 from ironic import objects
-from ironic.tests.unit import base as tests_base
+from ironic.tests import base as tests_base
 from ironic.tests.unit.db import base
 from ironic.tests.unit.db import utils as dbutils
 

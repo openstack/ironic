@@ -16,8 +16,8 @@ import mock
 from webob import exc as webob_exc
 
 from ironic.api.controllers import v1 as v1_api
+from ironic.tests import base as test_base
 from ironic.tests.unit.api import base as api_base
-from ironic.tests.unit import base as test_base
 
 
 class TestV1Routing(api_base.BaseApiTest):

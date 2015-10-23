@@ -33,9 +33,9 @@ from ironic.api.controllers.v1 import port as api_port
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import exception
 from ironic.conductor import rpcapi
+from ironic.tests import base
 from ironic.tests.unit.api import base as test_api_base
 from ironic.tests.unit.api import utils as apiutils
-from ironic.tests.unit import base
 from ironic.tests.unit.db import utils as dbutils
 from ironic.tests.unit.objects import utils as obj_utils
 

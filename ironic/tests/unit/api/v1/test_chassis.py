@@ -29,9 +29,9 @@ from wsme import types as wtypes
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import chassis as api_chassis
+from ironic.tests import base
 from ironic.tests.unit.api import base as test_api_base
 from ironic.tests.unit.api import utils as apiutils
-from ironic.tests.unit import base
 from ironic.tests.unit.objects import utils as obj_utils
 
 

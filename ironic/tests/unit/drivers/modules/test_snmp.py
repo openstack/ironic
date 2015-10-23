@@ -31,7 +31,7 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules import snmp as snmp
-from ironic.tests.unit import base
+from ironic.tests import base
 from ironic.tests.unit.conductor import utils as mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils

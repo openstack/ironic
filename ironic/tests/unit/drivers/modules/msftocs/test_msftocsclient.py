@@ -23,7 +23,7 @@ from requests import exceptions as requests_exceptions
 
 from ironic.common import exception
 from ironic.drivers.modules.msftocs import msftocsclient
-from ironic.tests.unit import base
+from ironic.tests import base
 
 
 FAKE_BOOT_RESPONSE = (

@@ -37,9 +37,9 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import rpcapi
 from ironic import objects
+from ironic.tests import base
 from ironic.tests.unit.api import base as test_api_base
 from ironic.tests.unit.api import utils as test_api_utils
-from ironic.tests.unit import base
 from ironic.tests.unit.objects import utils as obj_utils
 
 

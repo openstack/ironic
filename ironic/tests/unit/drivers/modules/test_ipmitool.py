@@ -42,7 +42,7 @@ from ironic.conductor import task_manager
 from ironic.drivers.modules import console_utils
 from ironic.drivers.modules import ipmitool as ipmi
 from ironic.drivers import utils as driver_utils
-from ironic.tests.unit import base
+from ironic.tests import base
 from ironic.tests.unit.conductor import utils as mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils

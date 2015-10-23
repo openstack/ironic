@@ -29,7 +29,7 @@ from ironic.common import exception
 from ironic.common.glance_service import base_image_service
 from ironic.common.glance_service import service_utils
 from ironic.common import image_service as service
-from ironic.tests.unit import base
+from ironic.tests import base
 from ironic.tests.unit import stubs
 
 

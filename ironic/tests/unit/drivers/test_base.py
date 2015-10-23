@@ -21,7 +21,7 @@ import mock
 from ironic.common import exception
 from ironic.common import raid
 from ironic.drivers import base as driver_base
-from ironic.tests.unit import base
+from ironic.tests import base
 
 
 class FakeVendorInterface(driver_base.VendorInterface):

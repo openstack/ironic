@@ -18,7 +18,7 @@ Tests for the versions constants and methods.
 import re
 
 from ironic.api.controllers.v1 import versions
-from ironic.tests.unit import base
+from ironic.tests import base
 
 
 class TestVersionConstants(base.TestCase):

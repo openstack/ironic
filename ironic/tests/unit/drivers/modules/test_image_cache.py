@@ -31,7 +31,7 @@ from ironic.common import image_service
 from ironic.common import images
 from ironic.common import utils
 from ironic.drivers.modules import image_cache
-from ironic.tests.unit import base
+from ironic.tests import base
 
 
 def touch(filename):

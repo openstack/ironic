@@ -17,7 +17,7 @@ import json
 from ironic.common import exception
 from ironic.common import raid
 from ironic.drivers import base as drivers_base
-from ironic.tests.unit import base
+from ironic.tests import base
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 from ironic.tests.unit import raid_constants

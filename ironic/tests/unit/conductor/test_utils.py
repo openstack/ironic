@@ -17,7 +17,7 @@
 
 """Tests for Ironic Manager test utils."""
 
-from ironic.tests.unit import base
+from ironic.tests import base
 from ironic.tests.unit.conductor import utils
 
 

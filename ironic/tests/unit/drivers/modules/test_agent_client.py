@@ -20,7 +20,7 @@ import six
 
 from ironic.common import exception
 from ironic.drivers.modules import agent_client
-from ironic.tests.unit import base
+from ironic.tests import base
 
 
 class MockResponse(object):

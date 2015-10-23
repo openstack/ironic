@@ -22,7 +22,7 @@ from testtools import matchers
 
 from ironic.common import exception
 from ironic.common import hash_ring
-from ironic.tests.unit import base
+from ironic.tests import base
 from ironic.tests.unit.db import base as db_base
 
 CONF = cfg.CONF
