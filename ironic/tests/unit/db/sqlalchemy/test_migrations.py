@@ -393,6 +393,20 @@ class MigrationCheckersMixin(object):
         node = nodes.select(nodes.c.uuid == uuid).execute().first()
         self.assertEqual(bigstring, node['driver'])
 
+    def _check_48d6c242bb9b(self, engine, data):
+        node_tags = db_utils.get_table(engine, 'node_tags')
+        col_names = [column.name for column in node_tags.c]
+        self.assertIn('tag', col_names)
+        self.assertIsInstance(node_tags.c.tag.type,
+                              sqlalchemy.types.String)
+        nodes = db_utils.get_table(engine, 'nodes')
+        data = {'id': '123', 'name': 'node1'}
+        nodes.insert().execute(data)
+        data = {'node_id': '123', 'tag': 'tag1'}
+        node_tags.insert().execute(data)
+        tag = node_tags.select(node_tags.c.node_id == '123').execute().first()
+        self.assertEqual('tag1', tag['tag'])
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')
