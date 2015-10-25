@@ -41,6 +41,7 @@ Overview
   Configuration Reference (Kilo) <http://docs.openstack.org/kilo/config-reference/content/ch_configuring-openstack-bare-metal.html>
   deploy/drivers
   deploy/cleaning
+  deploy/troubleshooting
 
 Commands
 --------
