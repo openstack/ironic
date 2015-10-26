@@ -25,6 +25,7 @@ Currently supported environments are:
     Virsh       (virsh)
     VMware      (vmware)
     Parallels   (parallels)
+    XenServer   (xenserver)
 """
 
 import os
@@ -71,7 +72,7 @@ REQUIRED_PROPERTIES = {
                      "Required."),
     'ssh_username': _("username to authenticate as. Required."),
     'ssh_virt_type': _("virtualization software to use; one of vbox, virsh, "
-                       "vmware, parallels. Required.")
+                       "vmware, parallels, xenserver. Required.")
 }
 OTHER_PROPERTIES = {
     'ssh_key_contents': _("private key(s). One of this, ssh_key_filename, "
@@ -106,6 +107,12 @@ def _get_boot_device_map(virt_type):
             boot_devices.DISK: 'disk',
             boot_devices.PXE: 'net',
             boot_devices.CDROM: 'dvd',
+        }
+    elif virt_type == 'xenserver':
+        return {
+            boot_devices.DISK: 'c',
+            boot_devices.PXE: 'n',
+            boot_devices.CDROM: 'd',
         }
     elif virt_type == 'parallels':
         return {
@@ -227,6 +234,32 @@ def _get_command_sets(virt_type):
             'get_boot_device': (
                 "{_BaseCmd_} list -i {_NodeName_} | "
                 "awk '/^Boot order:/ {print $3}'"),
+        }
+    elif virt_type == 'xenserver':
+        return {
+            'base_cmd': 'LC_ALL=C /opt/xensource/bin/xe',
+            # Note(bobba): XenServer appears to have a condition where
+            #              vm-start can return before the power-state
+            #              has been updated to 'running'.  Ironic
+            #              expects the power-state to be updated
+            #              immediately, so may find that power-state
+            #              is still 'halted' and attempt to start the
+            #              VM a second time.  Sleep to avoid the race.
+            'start_cmd': 'vm-start uuid={_NodeName_} && sleep 10s',
+            'stop_cmd': 'vm-shutdown uuid={_NodeName_} force=true',
+            'list_all': "vm-list --minimal | tr ',' '\n'",
+            'list_running': (
+                "vm-list power-state=running --minimal |"
+                " tr ',' '\n'"),
+            'get_node_macs': (
+                "vif-list vm-uuid={_NodeName_}"
+                " params=MAC --minimal | tr ',' '\n'"),
+            'set_boot_device': (
+                "{_BaseCmd_} vm-param-set uuid={_NodeName_}"
+                " HVM-boot-params:order='{_BootDevice_}'"),
+            'get_boot_device': (
+                "{_BaseCmd_} vm-param-get uuid={_NodeName_}"
+                " --param-name=HVM-boot-params param-key=order | cut -b 1"),
         }
     else:
         raise exception.InvalidParameterValue(_(
