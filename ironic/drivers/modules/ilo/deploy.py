@@ -156,7 +156,12 @@ def _get_boot_iso(task, root_uuid):
 
     # Option 1 - Check if user has provided ilo_boot_iso in node's
     # instance_info
-    if task.node.instance_info.get('ilo_boot_iso'):
+    driver_internal_info = task.node.driver_internal_info
+    boot_iso_created_in_web_server = (
+        driver_internal_info.get('boot_iso_created_in_web_server'))
+
+    if (task.node.instance_info.get('ilo_boot_iso')
+            and not boot_iso_created_in_web_server):
         LOG.debug("Using ilo_boot_iso provided in node's instance_info")
         boot_iso = task.node.instance_info['ilo_boot_iso']
         if not service_utils.is_glance_image(boot_iso):
