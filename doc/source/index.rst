@@ -38,7 +38,7 @@ Overview
   deploy/user-guide
   Installation Guide <deploy/install-guide>
   Upgrade Guide <deploy/upgrade-guide>
-  Configuration Reference (Kilo) <http://docs.openstack.org/kilo/config-reference/content/ch_configuring-openstack-bare-metal.html>
+  Configuration Reference (Liberty) <http://docs.openstack.org/liberty/config-reference/content/ch_configuring-openstack-bare-metal.html>
   deploy/drivers
   deploy/cleaning
 
