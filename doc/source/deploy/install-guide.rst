@@ -988,9 +988,11 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
     Fedora/RHEL7/CentOS7:
         cp /usr/share/ipxe/undionly.kpxe /tftpboot
 
-    *Note: If the packaged version of the iPXE boot image doesn't
-    work for you or you want to build one from source take a look at
-    http://ipxe.org/download for more information on preparing iPXE image.*
+   .. note::
+      If the packaged version of the iPXE boot image doesn't work, you
+      can download a prebuilt one from http://boot.ipxe.org/undionly.kpxe
+      or build one image from source, see http://ipxe.org/download for
+      more information.
 
 #. Enable/Configure iPXE in the Bare Metal Service's configuration file
    (/etc/ironic/ironic.conf)::
