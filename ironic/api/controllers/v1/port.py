@@ -36,13 +36,6 @@ from ironic import objects
 _DEFAULT_RETURN_FIELDS = ('uuid', 'address')
 
 
-class PortPatchType(types.JsonPatchType):
-
-    @staticmethod
-    def mandatory_attrs():
-        return ['/address', '/node_uuid']
-
-
 class Port(base.APIBase):
     """API representation of a port.
 
@@ -153,6 +146,10 @@ class Port(base.APIBase):
         fields = None if expand else _DEFAULT_RETURN_FIELDS
         return cls._convert_with_links(sample, 'http://localhost:6385',
                                        fields=fields)
+
+
+class PortPatchType(types.JsonPatchType):
+    _api_base = Port
 
 
 class PortCollection(collection.Collection):
