@@ -322,6 +322,41 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             '1be26c0b-03f2-4d2e-ae87-c02d7f33c123: Failed checking if deploy '
             'is done. exception: LlamaException')
 
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'deploy_has_started',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'deploy_is_done',
+                       autospec=True)
+    @mock.patch.object(agent_base_vendor.LOG, 'exception', autospec=True)
+    def test_heartbeat_deploy_done_raises_with_event(self, log_mock, done_mock,
+                                                     failed_mock,
+                                                     deploy_started_mock):
+        deploy_started_mock.return_value = True
+        kwargs = {
+            'agent_url': 'http://127.0.0.1:9999/bar'
+        }
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=True) as task:
+
+            def driver_failure(*args, **kwargs):
+                # simulate driver failure that both advances the FSM
+                # and raises an exception
+                task.node.provision_state = states.DEPLOYFAIL
+                raise Exception('LlamaException')
+
+            task.node.provision_state = states.DEPLOYWAIT
+            task.node.target_provision_state = states.ACTIVE
+            done_mock.side_effect = driver_failure
+            self.passthru.heartbeat(task, **kwargs)
+            # task.node.provision_state being set to DEPLOYFAIL
+            # within the driver_failue, hearbeat should not call
+            # deploy_utils.set_failed_state anymore
+            self.assertFalse(failed_mock.called)
+        log_mock.assert_called_once_with(
+            'Asynchronous exception for node '
+            '1be26c0b-03f2-4d2e-ae87-c02d7f33c123: Failed checking if deploy '
+            'is done. exception: LlamaException')
+
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
     @mock.patch.object(manager, 'set_node_cleaning_steps', autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
