@@ -368,7 +368,7 @@ class BaseAgentVendor(base.VendorInterface):
             LOG.exception(last_error)
             if node.provision_state in (states.CLEANING, states.CLEANWAIT):
                 manager.cleaning_error_handler(task, last_error)
-            else:
+            elif node.provision_state in (states.DEPLOYING, states.DEPLOYWAIT):
                 deploy_utils.set_failed_state(task, last_error)
 
     @base.driver_passthru(['POST'], async=False)
