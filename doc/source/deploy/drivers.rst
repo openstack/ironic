@@ -118,7 +118,7 @@ CIMC driver
 
 OneView driver
 --------------
-=======
+
 .. toctree::
   :maxdepth: 1
 
