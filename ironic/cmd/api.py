@@ -36,7 +36,7 @@ def main():
 
     # Build and start the WSGI app
     launcher = ironic_service.process_launcher()
-    server = ironic_service.WSGIService('ironic_api')
+    server = ironic_service.WSGIService('ironic_api', CONF.api.enable_ssl_api)
     launcher.launch_service(server, workers=server.workers)
     launcher.wait()
 

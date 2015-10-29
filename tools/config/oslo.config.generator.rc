@@ -1,2 +1,2 @@
-export IRONIC_CONFIG_GENERATOR_EXTRA_LIBRARIES='oslo.db oslo.messaging oslo.middleware.cors keystonemiddleware.auth_token oslo.concurrency oslo.policy oslo.log oslo.service.service oslo.service.periodic_task'
+export IRONIC_CONFIG_GENERATOR_EXTRA_LIBRARIES='oslo.db oslo.messaging oslo.middleware.cors keystonemiddleware.auth_token oslo.concurrency oslo.policy oslo.log oslo.service.service oslo.service.periodic_task oslo.service.sslutils'
 export IRONIC_CONFIG_GENERATOR_EXTRA_MODULES=

@@ -504,6 +504,14 @@
 # (integer value)
 #api_workers=<None>
 
+# Enable the integrated stand-alone API to service requests
+# via HTTPS instead of HTTP. If there is a front-end service
+# performing HTTPS offloading from the service, this option
+# should be False; note, you will want to change public API
+# endpoint to represent SSL termination URL with
+# 'public_endpoint' option. (boolean value)
+#enable_ssl_api=false
+
 
 [cimc]
 
@@ -1895,6 +1903,27 @@
 # used by the host that corresponds to a node's MAC address.
 # (integer value)
 #get_vm_name_retry_interval=3
+
+
+[ssl]
+
+#
+# Options defined in oslo.service.sslutils
+#
+
+# CA certificate file to use to verify connecting clients.
+# (string value)
+#ca_file=<None>
+
+# Certificate file to use when starting the server securely.
+# (string value)
+#cert_file=<None>
+
+# Private key file to use when starting the server securely.
+# (string value)
+#key_file=<None>
+
+
 
 
 [swift]
