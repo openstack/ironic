@@ -100,6 +100,15 @@ following config::
   [ilo]
   clean_priority_erase_devices=0
 
+Generic hardware manager first tries to perform ATA disk erase by using
+``hdparm`` utility.  If ATA disk erase is not supported, it performs software
+based disk erase using ``shred`` utility.  By default, the number of iterations
+performed by ``shred`` for software based disk erase is 1.  To configure
+the number of iterations, use the following config::
+
+  [deploy]
+  erase_devices_iterations=1
+
 
 What cleaning step is running?
 ------------------------------
