@@ -97,6 +97,31 @@ which is the value of *$NODE* in the following command.
     ironic port-create -n $NODE -a <MAC address>
 
 
+agent_wol
+^^^^^^^^^
+
+Overview
+~~~~~~~~
+
+The ``agent_wol`` driver uses the Wake-On-Lan technology to control the
+power state, PXE/iPXE technology for booting and the Ironic Python Agent
+for deploying the node.
+
+Additional requirements
+~~~~~~~~~~~~~~~~~~~~~~~
+
+* Boot device order should be set to "PXE, DISK" in the BIOS setup
+
+* BIOS must try next boot device if PXE boot failed
+
+* Cleaning should be disabled, see :ref:`cleaning`
+
+* Node should be powered off before start of deploy
+
+Configuration steps are the same as for ``pxe_wol`` driver, replace "pxe_wol"
+with "agent_wol".
+
+
 References
 ==========
 .. [1] Wake-On-Lan - https://en.wikipedia.org/wiki/Wake-on-LAN
