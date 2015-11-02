@@ -22,6 +22,7 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
+from ironic.drivers.modules import agent
 from ironic.drivers.modules.amt import management as amt_management
 from ironic.drivers.modules.amt import power as amt_power
 from ironic.drivers.modules.amt import vendor as amt_vendor
@@ -80,6 +81,7 @@ class PXEAndIPMIToolDriver(base.BaseDriver):
         self.vendor = utils.MixinVendorInterface(
             self.mapping,
             driver_passthru_mapping=self.driver_passthru_mapping)
+        self.raid = agent.AgentRAID()
 
 
 class PXEAndSSHDriver(base.BaseDriver):
@@ -102,6 +104,7 @@ class PXEAndSSHDriver(base.BaseDriver):
         self.vendor = iscsi_deploy.VendorPassthru()
         self.inspect = inspector.Inspector.create_if_enabled(
             'PXEAndSSHDriver')
+        self.raid = agent.AgentRAID()
 
 
 class PXEAndIPMINativeDriver(base.BaseDriver):
@@ -138,6 +141,7 @@ class PXEAndIPMINativeDriver(base.BaseDriver):
                                                  self.driver_passthru_mapping)
         self.inspect = inspector.Inspector.create_if_enabled(
             'PXEAndIPMINativeDriver')
+        self.raid = agent.AgentRAID()
 
 
 class PXEAndSeaMicroDriver(base.BaseDriver):
@@ -210,6 +214,7 @@ class PXEAndIloDriver(base.BaseDriver):
         self.console = ilo_deploy.IloConsoleInterface()
         self.management = ilo_management.IloManagement()
         self.inspect = ilo_inspect.IloInspect()
+        self.raid = agent.AgentRAID()
 
 
 class PXEAndSNMPDriver(base.BaseDriver):
@@ -280,6 +285,7 @@ class PXEAndVirtualBoxDriver(base.BaseDriver):
         self.deploy = iscsi_deploy.ISCSIDeploy()
         self.management = virtualbox.VirtualBoxManagement()
         self.vendor = iscsi_deploy.VendorPassthru()
+        self.raid = agent.AgentRAID()
 
 
 class PXEAndAMTDriver(base.BaseDriver):
