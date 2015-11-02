@@ -302,6 +302,22 @@ class IBootDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(iboot, '_power_status', autospec=True)
     @mock.patch.object(iboot, '_switch', autospec=True)
+    def test_set_power_state_retry(self, mock_switch, mock_power_status):
+        self.config(max_retry=2, group='iboot')
+        mock_power_status.return_value = states.POWER_OFF
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.PowerStateFailure,
+                              task.driver.power.set_power_state,
+                              task, states.POWER_ON)
+
+        # ensure functions were called with the valid parameters
+        mock_switch.assert_called_once_with(self.info, True)
+        # 1 + 2 retries
+        self.assertEqual(3, mock_power_status.call_count)
+
+    @mock.patch.object(iboot, '_power_status', autospec=True)
+    @mock.patch.object(iboot, '_switch', autospec=True)
     def test_set_power_state_invalid_parameter(self, mock_switch,
                                                mock_power_status):
         mock_power_status.return_value = states.POWER_ON

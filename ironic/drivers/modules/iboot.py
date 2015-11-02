@@ -151,6 +151,18 @@ def _sleep_switch(seconds):
     time.sleep(seconds)
 
 
+def _check_power_state(driver_info, pstate):
+    """Function to check power state is correct. Up to max retries."""
+    # always try once + number of retries
+    for num in range(0, 1 + CONF.iboot.max_retry):
+        state = _power_status(driver_info)
+        if state == pstate:
+            return
+        if num < CONF.iboot.max_retry:
+            time.sleep(CONF.iboot.retry_interval)
+    raise exception.PowerStateFailure(pstate=pstate)
+
+
 def _power_status(driver_info):
     conn = _get_connection(driver_info)
     relay_id = driver_info['relay_id']
@@ -251,9 +263,7 @@ class IBootPower(base.PowerInterface):
                 _("set_power_state called with invalid "
                   "power state %s.") % pstate)
 
-        state = _power_status(driver_info)
-        if state != pstate:
-            raise exception.PowerStateFailure(pstate=pstate)
+        _check_power_state(driver_info, pstate)
 
     @task_manager.require_exclusive_lock
     def reboot(self, task):
@@ -272,7 +282,4 @@ class IBootPower(base.PowerInterface):
         _switch(driver_info, False)
         _sleep_switch(CONF.iboot.reboot_delay)
         _switch(driver_info, True)
-
-        state = _power_status(driver_info)
-        if state != states.POWER_ON:
-            raise exception.PowerStateFailure(pstate=states.POWER_ON)
+        _check_power_state(driver_info, states.POWER_ON)
