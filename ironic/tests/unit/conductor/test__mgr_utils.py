@@ -18,24 +18,24 @@
 """Tests for Ironic Manager test utils."""
 
 from ironic.tests import base
-from ironic.tests.unit.conductor import utils
+from ironic.tests.unit.conductor import mgr_utils
 
 
 class UtilsTestCase(base.TestCase):
 
     def test_fails_to_load_extension(self):
         self.assertRaises(AttributeError,
-                          utils.mock_the_extension_manager,
+                          mgr_utils.mock_the_extension_manager,
                           'fake',
                           'bad.namespace')
         self.assertRaises(AttributeError,
-                          utils.mock_the_extension_manager,
+                          mgr_utils.mock_the_extension_manager,
                           'no-such-driver',
                           'ironic.drivers')
 
     def test_get_mockable_ext_mgr(self):
-        (mgr, ext) = utils.mock_the_extension_manager('fake',
-                                                      'ironic.drivers')
+        (mgr, ext) = mgr_utils.mock_the_extension_manager('fake',
+                                                          'ironic.drivers')
 
         # confirm that stevedore did not scan the actual entrypoints
         self.assertNotEqual(mgr._extension_manager.namespace, 'ironic.drivers')

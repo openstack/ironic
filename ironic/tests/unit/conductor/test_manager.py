@@ -45,7 +45,7 @@ from ironic.drivers.modules import fake
 from ironic import objects
 from ironic.objects import base as obj_base
 from ironic.tests import base as tests_base
-from ironic.tests.unit.conductor import utils as mgr_utils
+from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as tests_db_base
 from ironic.tests.unit.db import utils
 from ironic.tests.unit.objects import utils as obj_utils

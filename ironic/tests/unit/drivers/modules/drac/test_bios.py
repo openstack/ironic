@@ -27,7 +27,7 @@ from ironic.drivers.modules.drac import bios
 from ironic.drivers.modules.drac import client as drac_client
 from ironic.drivers.modules.drac import management as drac_mgmt
 from ironic.drivers.modules.drac import resource_uris
-from ironic.tests.unit.conductor import utils as mgr_utils
+from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.drac import bios_wsman_mock

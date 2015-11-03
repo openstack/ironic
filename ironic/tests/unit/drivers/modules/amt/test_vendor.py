@@ -20,7 +20,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules.amt import management as amt_mgmt
 from ironic.drivers.modules import iscsi_deploy
-from ironic.tests.unit.conductor import utils as mgr_utils
+from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
