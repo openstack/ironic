@@ -25,6 +25,7 @@ from ironic.drivers.modules import agent as agent_module
 from ironic.drivers.modules.amt import management as amt_management
 from ironic.drivers.modules.amt import power as amt_power
 from ironic.drivers.modules import pxe
+from ironic.drivers.modules import wol
 
 
 class AgentAndAMTDriverTestCase(testtools.TestCase):
@@ -47,3 +48,14 @@ class AgentAndAMTDriverTestCase(testtools.TestCase):
 
         self.assertRaises(exception.DriverLoadError,
                           agent.AgentAndAMTDriver)
+
+
+class AgentAndWakeOnLanDriverTestCase(testtools.TestCase):
+
+    def test___init__(self):
+        driver = agent.AgentAndWakeOnLanDriver()
+
+        self.assertIsInstance(driver.power, wol.WakeOnLanPower)
+        self.assertIsInstance(driver.boot, pxe.PXEBoot)
+        self.assertIsInstance(driver.deploy, agent_module.AgentDeploy)
+        self.assertIsInstance(driver.vendor, agent_module.AgentVendorInterface)

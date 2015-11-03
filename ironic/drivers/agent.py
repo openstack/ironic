@@ -30,6 +30,7 @@ from ironic.drivers.modules import ssh
 from ironic.drivers.modules.ucs import management as ucs_mgmt
 from ironic.drivers.modules.ucs import power as ucs_power
 from ironic.drivers.modules import virtualbox
+from ironic.drivers.modules import wol
 from ironic.drivers import utils
 
 
@@ -211,4 +212,20 @@ class AgentAndCIMCDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = agent.AgentDeploy()
         self.management = cimc_mgmt.CIMCManagement()
+        self.vendor = agent.AgentVendorInterface()
+
+
+class AgentAndWakeOnLanDriver(base.BaseDriver):
+    """Agent + WakeOnLan driver.
+
+    This driver implements the `core` functionality, combining
+    :class:`ironic.drivers.modules.wol.WakeOnLanPower` for power on with
+    :class:'ironic.driver.modules.agent.AgentDeploy' (for image deployment.)
+    Implementations are in those respective classes;
+    this class is merely the glue between them.
+    """
+    def __init__(self):
+        self.power = wol.WakeOnLanPower()
+        self.boot = pxe.PXEBoot()
+        self.deploy = agent.AgentDeploy()
         self.vendor = agent.AgentVendorInterface()
