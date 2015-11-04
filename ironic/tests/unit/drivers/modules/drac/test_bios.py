@@ -185,8 +185,20 @@ class DracBiosTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             task.node = self.node
             bios.commit_config(task)
-        self.assertTrue(mock_cfcj.called)
-        self.assertTrue(mock_ccj.called)
+        mock_cfcj.assert_called_once_with(self.node)
+        mock_ccj.assert_called_once_with(self.node, False)
+
+    @mock.patch.object(drac_mgmt, 'check_for_config_job',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(drac_mgmt, 'create_config_job', spec_set=True,
+                       autospec=True)
+    def test_commit_config_with_reboot(self, mock_ccj, mock_cfcj, client):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node = self.node
+            bios.commit_config(task, reboot=True)
+        mock_cfcj.assert_called_once_with(self.node)
+        mock_ccj.assert_called_once_with(self.node, True)
 
     @mock.patch.object(drac_client.Client, 'wsman_invoke', spec_set=True,
                        autospec=True)
