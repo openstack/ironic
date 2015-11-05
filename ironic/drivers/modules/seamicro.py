@@ -126,7 +126,7 @@ def _parse_driver_info(node):
     api_version = info.get('seamicro_api_version', "2")
     port = info.get('seamicro_terminal_port')
 
-    if port:
+    if port is not None:
         try:
             port = int(port)
         except ValueError:

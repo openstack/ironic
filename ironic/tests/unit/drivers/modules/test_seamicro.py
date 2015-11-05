@@ -128,6 +128,14 @@ class SeaMicroValidateParametersTestCase(db_base.DbTestCase):
                           seamicro._parse_driver_info,
                           node)
 
+    def test__parse_driver_info_empty_terminal_port(self):
+        info = dict(INFO_DICT)
+        info['seamicro_terminal_port'] = ''
+        node = obj_utils.get_test_node(self.context, driver_info=info)
+        self.assertRaises(exception.InvalidParameterValue,
+                          seamicro._parse_driver_info,
+                          node)
+
 
 @mock.patch('eventlet.greenthread.sleep', lambda n: None)
 class SeaMicroPrivateMethodsTestCase(db_base.DbTestCase):
