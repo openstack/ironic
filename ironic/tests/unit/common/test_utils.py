@@ -685,3 +685,20 @@ class GetUpdatedCapabilitiesTestCase(base.TestCase):
         set2 = set(cap_returned.split(','))
         self.assertEqual(set1, set2)
         self.assertIsInstance(cap_returned, str)
+
+    def test_validate_network_port(self):
+        port = utils.validate_network_port('1')
+        self.assertEqual(1, port)
+        port = utils.validate_network_port('65535')
+        self.assertEqual(65535, port)
+
+    def test_validate_network_port_fail(self):
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.validate_network_port,
+                          '65536')
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.validate_network_port,
+                          '-1')
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.validate_network_port,
+                          'invalid')

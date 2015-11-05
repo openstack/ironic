@@ -688,3 +688,22 @@ def unix_file_modification_datetime(file_name):
             os.path.getmtime(file_name), tz=pytz.utc
         )
     )
+
+
+def validate_network_port(port):
+    """Validates the given port.
+
+    :param port: TCP/UDP port.
+    :raises: InvalidParameterValue, if the port is invalid.
+    """
+
+    try:
+        port = int(port)
+    except ValueError:
+        raise exception.InvalidParameterValue(_(
+            'Port number "%s" is not a valid integer.') % port)
+    if port < 1 or port > 65535:
+        raise exception.InvalidParameterValue(_(
+            'Port number "%s" is out of range. Valid port '
+            'numbers must be between 1 and 65535.') % port)
+    return port

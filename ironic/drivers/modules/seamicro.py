@@ -34,6 +34,7 @@ from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LW
 from ironic.common import states
+from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules import console_utils
@@ -127,11 +128,7 @@ def _parse_driver_info(node):
     port = info.get('seamicro_terminal_port')
 
     if port is not None:
-        try:
-            port = int(port)
-        except ValueError:
-            raise exception.InvalidParameterValue(_(
-                "SeaMicro terminal port is not an integer."))
+        port = utils.validate_network_port(port)
 
     r = re.compile(r"(^[0-9]+)/([0-9]+$)")
     if not r.match(server_id):

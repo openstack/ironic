@@ -274,11 +274,7 @@ def _parse_driver_info(node):
             {'version': protocol_version, 'valid_versions': valid_versions})
 
     if port is not None:
-        try:
-            port = int(port)
-        except ValueError:
-            raise exception.InvalidParameterValue(_(
-                "IPMI terminal port is not an integer."))
+        port = utils.validate_network_port(port)
 
     # check if ipmi_bridging has proper value
     if bridging_type == 'no':
