@@ -13,16 +13,26 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from ironic.api.controllers.v1 import versions
 from ironic.tests.unit.api import base
 
 
 class TestRoot(base.BaseApiTest):
 
     def test_get_root(self):
-        data = self.get_json('/', path_prefix='')
-        self.assertEqual('v1', data['default_version']['id'])
+        response = self.get_json('/', path_prefix='')
         # Check fields are not empty
-        [self.assertNotIn(f, ['', []]) for f in data.keys()]
+        [self.assertNotIn(f, ['', []]) for f in response]
+
+        self.assertEqual('OpenStack Ironic API', response['name'])
+        self.assertTrue(response['description'])
+        self.assertEqual([response['default_version']], response['versions'])
+
+        version1 = response['default_version']
+        self.assertEqual('v1', version1['id'])
+        self.assertEqual('CURRENT', version1['status'])
+        self.assertEqual(versions.MIN_VERSION_STRING, version1['min_version'])
+        self.assertEqual(versions.MAX_VERSION_STRING, version1['version'])
 
 
 class TestV1Root(base.BaseApiTest):
