@@ -50,6 +50,99 @@ Prerequisites
   ``ironic-conductor`` is running. On most distros, this is provided as part
   of the ``ipmitool`` package.
 
+Different Configuration for ilo drivers
+=======================================
+
+Glance Configuration
+^^^^^^^^^^^^^^^^^^^^
+
+1. Configure Glance image service with its storage backend as Swift. See
+   `here <http://docs.openstack.org/developer/glance/configuring.html#configuring-the-swift-storage-backend>`_
+   for configuration instructions.
+
+2. Set a temp-url key for Glance user in Swift. For example, if you have
+   configured Glance with user ``glance-swift`` and tenant as ``service``,
+   then run the below command::
+
+    swift --os-username=service:glance-swift post -m temp-url-key:mysecretkeyforglance
+
+3. Fill the required parameters in the ``[glance]`` section   in
+   ``/etc/ironic/ironic.conf``. Normally you would be required to fill in the
+   following details.::
+
+    [glance]
+    swift_temp_url_key=mysecretkeyforglance
+    swift_endpoint_url=https://10.10.1.10:8080
+    swift_api_version=v1
+    swift_account=AUTH_51ea2fb400c34c9eb005ca945c0dc9e1
+    swift_container=glance
+
+  The details can be retrieved by running the below command:
+
+  .. code-block:: bash
+
+   $ swift --os-username=service:glance-swift stat -v | grep -i url
+
+   StorageURL:     http://10.10.1.10:8080/v1/AUTH_51ea2fb400c34c9eb005ca945c0dc9e1
+   Meta Temp-Url-Key: mysecretkeyforglance
+
+
+4. Swift must be accessible with the same admin credentials configured in
+   Ironic. For example, if Ironic is configured with the below credentials in
+   ``/etc/ironic/ironic.conf``.::
+
+    [keystone_authtoken]
+    admin_password = password
+    admin_user = ironic
+    admin_tenant_name = service
+
+   Ensure ``auth_version`` in ``keystone_authtoken`` to 2.
+
+   Then, the below command should work.:
+
+   .. code-block:: bash
+
+    $ swift --os-username ironic --os-password password --os-tenant-name service --auth-version 2 stat
+
+                         Account: AUTH_22af34365a104e4689c46400297f00cb
+                      Containers: 2
+                         Objects: 18
+                           Bytes: 1728346241
+    Objects in policy "policy-0": 18
+      Bytes in policy "policy-0": 1728346241
+               Meta Temp-Url-Key: mysecretkeyforglance
+                     X-Timestamp: 1409763763.84427
+                      X-Trans-Id: tx51de96a28f27401eb2833-005433924b
+                    Content-Type: text/plain; charset=utf-8
+                   Accept-Ranges: bytes
+
+5. Restart the Ironic conductor service.::
+
+    $ service ironic-conductor restart
+
+Enable driver
+=============
+
+1. Build a deploy ISO (and kernel and ramdisk) image, see :ref:`BuildingDibBasedDeployRamdisk`
+
+2. See `Glance Configuration`_ for configuring glance image service with its storage
+   backend as ``swift``.
+
+3. Upload this image to Glance.::
+
+    glance image-create --name deploy-ramdisk.iso --disk-format iso --container-format bare < deploy-ramdisk.iso
+
+4. Add the driver name to the list of ``enabled_drivers`` in
+   ``/etc/ironic/ironic.conf``.  For example, for `iscsi_ilo` driver::
+
+    enabled_drivers = fake,pxe_ssh,pxe_ipmitool,iscsi_ilo
+
+   Similarly it can be added for ``agent_ilo`` and ``pxe_ilo`` drivers.
+
+5. Restart the ironic conductor service.::
+
+    $ service ironic-conductor restart
+
 Drivers
 =======
 
@@ -157,75 +250,7 @@ Deploy Process
 Configuring and Enabling the driver
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-1. Build a deploy ISO image, see :ref:`BuildingDibBasedDeployRamdisk`
-
-2. Upload this image to glance.::
-
-    glance image-create --name deploy-ramdisk.iso --disk-format iso --container-format bare < deploy-ramdisk.iso
-
-3. Configure glance image service with its storage backend as swift. See
-   `here <http://docs.openstack.org/developer/glance/configuring.html#configuring-the-swift-storage-backend>`_
-   for configuration instructions.
-
-4. Set a temp-url key for glance user in swift. For example, if you have
-   configured glance with user ``glance-swift`` and tenant as ``service``,
-   then run the below command::
-
-    swift --os-username=service:glance-swift post -m temp-url-key:mysecretkeyforglance
-
-5. Fill the required parameters in the ``[glance]`` section   in
-   ``/etc/ironic/ironic.conf``. Normally you would be required to fill in the
-   following details.::
-
-    [glance]
-    swift_temp_url_key=mysecretkeyforglance
-    swift_endpoint_url=http://10.10.1.10:8080
-    swift_api_version=v1
-    swift_account=AUTH_51ea2fb400c34c9eb005ca945c0dc9e1
-    swift_container=glance
-
-  The details can be retrieved by running the below command:::
-
-   $ swift --os-username=service:glance-swift stat -v | grep -i url
-   StorageURL:     http://10.10.1.10:8080/v1/AUTH_51ea2fb400c34c9eb005ca945c0dc9e1
-   Meta Temp-Url-Key: mysecretkeyforglance
-
-
-6. Swift must be accessible with the same admin credentials configured in
-   ironic. For example, if ironic is configured with the below credentials in
-   ``/etc/ironic/ironic.conf``.::
-
-    [keystone_authtoken]
-    admin_password = password
-    admin_user = ironic
-    admin_tenant_name = service
-
-   Ensure ``auth_version`` in ``keystone_authtoken`` to 2.
-
-   Then, the below command should work.::
-
-    $ swift --os-username ironic --os-password password --os-tenant-name service --auth-version 2 stat
-                         Account: AUTH_22af34365a104e4689c46400297f00cb
-                      Containers: 2
-                         Objects: 18
-                           Bytes: 1728346241
-    Objects in policy "policy-0": 18
-      Bytes in policy "policy-0": 1728346241
-               Meta Temp-Url-Key: mysecretkeyforglance
-                     X-Timestamp: 1409763763.84427
-                      X-Trans-Id: tx51de96a28f27401eb2833-005433924b
-                    Content-Type: text/plain; charset=utf-8
-                   Accept-Ranges: bytes
-
-
-7. Add ``iscsi_ilo`` to the list of ``enabled_drivers`` in
-   ``/etc/ironic/ironic.conf``.  For example:::
-
-    enabled_drivers = fake,pxe_ssh,pxe_ipmitool,iscsi_ilo
-
-8. Restart the ironic conductor service.::
-
-    $ service ironic-conductor restart
+Refer `Glance Configuration`_ and `Enable driver`_.
 
 Registering ProLiant node in ironic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -354,76 +379,7 @@ Deploy Process
 Configuring and Enabling the driver
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-1. Build a deploy ISO image, see :ref:`BuildingDibBasedDeployRamdisk`.
-
-2. Upload the IPA ramdisk image to glance.::
-
-    glance image-create --name ipa-ramdisk.iso --disk-format iso --container-format bare < ipa-coreos.iso
-
-3. Configure glance image service with its storage backend as swift. See
-   `here <http://docs.openstack.org/developer/glance/configuring.html#configuring-the-swift-storage-backend>`_
-   for configuration instructions.
-
-4. Set a temp-url key for glance user in swift. For example, if you have
-   configured glance with user ``glance-swift`` and tenant as ``service``,
-   then run the below command::
-
-    swift --os-username=service:glance-swift post -m temp-url-key:mysecretkeyforglance
-
-5. Fill the required parameters in the ``[glance]`` section   in
-   ``/etc/ironic/ironic.conf``. Normally you would be required to fill in the
-   following details.::
-
-    [glance]
-    swift_temp_url_key=mysecretkeyforglance
-    swift_endpoint_url=http://10.10.1.10:8080
-    swift_api_version=v1
-    swift_account=AUTH_51ea2fb400c34c9eb005ca945c0dc9e1
-    swift_container=glance
-
-  The details can be retrieved by running the below command:::
-
-   $ swift --os-username=service:glance-swift stat -v | grep -i url
-   StorageURL:     http://10.10.1.10:8080/v1/AUTH_51ea2fb400c34c9eb005ca945c0dc9e1
-   Meta Temp-Url-Key: mysecretkeyforglance
-
-
-6. Swift must be accessible with the same admin credentials configured in
-   ironic. For example, if Ironic is configured with the below credentials in
-   ``/etc/ironic/ironic.conf``.::
-
-    [keystone_authtoken]
-    admin_password = password
-    admin_user = ironic
-    admin_tenant_name = service
-
-   Ensure ``auth_version`` in ``keystone_authtoken`` to 2.
-
-   Then, the below command should work.::
-
-    $ swift --os-username ironic --os-password password --os-tenant-name service --auth-version 2 stat
-                         Account: AUTH_22af34365a104e4689c46400297f00cb
-                      Containers: 2
-                         Objects: 18
-                           Bytes: 1728346241
-    Objects in policy "policy-0": 18
-      Bytes in policy "policy-0": 1728346241
-               Meta Temp-Url-Key: mysecretkeyforglance
-                     X-Timestamp: 1409763763.84427
-                      X-Trans-Id: tx51de96a28f27401eb2833-005433924b
-                    Content-Type: text/plain; charset=utf-8
-                   Accept-Ranges: bytes
-
-
-7. Add ``agent_ilo`` to the list of ``enabled_drivers`` in
-   ``/etc/ironic/ironic.conf``.  For example:::
-
-    enabled_drivers = fake,pxe_ssh,pxe_ipmitool,agent_ilo
-
-8. Restart the ironic conductor service.::
-
-    $ service ironic-conductor restart
-
+Refer `Glance Configuration`_ and `Enable driver`_.
 
 Registering ProLiant node in ironic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -516,12 +472,12 @@ Configuring and Enabling the driver
     glance image-create --name deploy-ramdisk.kernel --disk-format aki --container-format aki < deploy-ramdisk.kernel
     glance image-create --name deploy-ramdisk.initramfs --disk-format ari --container-format ari < deploy-ramdisk.initramfs
 
-7. Add ``pxe_ilo`` to the list of ``enabled_drivers`` in
+3. Add ``pxe_ilo`` to the list of ``enabled_drivers`` in
    ``/etc/ironic/ironic.conf``.  For example:::
 
     enabled_drivers = fake,pxe_ssh,pxe_ipmitool,pxe_ilo
 
-8. Restart the ironic conductor service.::
+4. Restart the ironic conductor service.::
 
     service ironic-conductor restart
 
