@@ -1689,13 +1689,13 @@ class ConductorManager(periodic_task.PeriodicTasks):
             else:
                 task.driver.console.stop_console(task)
         except Exception as e:
-            with excutils.save_and_reraise_exception():
-                op = _('enabling') if enabled else _('disabling')
-                msg = (_('Error %(op)s the console on node %(node)s. '
-                         'Reason: %(error)s') % {'op': op,
-                                                 'node': node.uuid,
-                                                 'error': e})
-                node.last_error = msg
+            op = _('enabling') if enabled else _('disabling')
+            msg = (_('Error %(op)s the console on node %(node)s. '
+                     'Reason: %(error)s') % {'op': op,
+                                             'node': node.uuid,
+                                             'error': e})
+            node.last_error = msg
+            LOG.error(msg)
         else:
             node.console_enabled = enabled
             node.last_error = None
