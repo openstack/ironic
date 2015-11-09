@@ -22,6 +22,7 @@ from ironic.drivers.modules.amt import management as amt_management
 from ironic.drivers.modules.amt import power as amt_power
 from ironic.drivers.modules.cimc import management as cimc_mgmt
 from ironic.drivers.modules.cimc import power as cimc_power
+from ironic.drivers.modules import iboot
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
@@ -226,6 +227,27 @@ class AgentAndWakeOnLanDriver(base.BaseDriver):
     """
     def __init__(self):
         self.power = wol.WakeOnLanPower()
+        self.boot = pxe.PXEBoot()
+        self.deploy = agent.AgentDeploy()
+        self.vendor = agent.AgentVendorInterface()
+
+
+class AgentAndIBootDriver(base.BaseDriver):
+    """Agent + IBoot PDU driver.
+
+    This driver implements the `core` functionality, combining
+    :class:`ironic.drivers.modules.iboot.IBootPower` for power
+    on/off and reboot with
+    :class:'ironic.driver.modules.agent.AgentDeploy' (for image deployment.)
+    Implementations are in those respective classes;
+    this class is merely the glue between them.
+    """
+    def __init__(self):
+        if not importutils.try_import('iboot'):
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_("Unable to import iboot library"))
+        self.power = iboot.IBootPower()
         self.boot = pxe.PXEBoot()
         self.deploy = agent.AgentDeploy()
         self.vendor = agent.AgentVendorInterface()
