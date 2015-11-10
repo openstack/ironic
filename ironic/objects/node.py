@@ -18,9 +18,12 @@ from oslo_utils import uuidutils
 from oslo_versionedobjects import base as object_base
 
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.db import api as db_api
 from ironic.objects import base
 from ironic.objects import fields as object_fields
+
+REQUIRED_INT_PROPERTIES = ['local_gb', 'cpus', 'memory_mb']
 
 
 @base.IronicObjectRegistry.register
@@ -40,7 +43,9 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.11: Add clean_step
     # Version 1.12: Add raid_config and target_raid_config
     # Version 1.13: Add touch_provisioning()
-    VERSION = '1.13'
+    # Version 1.14: Add _validate_property_values() and make create()
+    #               and save() validate the input of property values.
+    VERSION = '1.14'
 
     dbapi = db_api.get_instance()
 
@@ -105,6 +110,33 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             node[field] = db_node[field]
         node.obj_reset_changes()
         return node
+
+    def _validate_property_values(self, properties):
+        """Check if the input of local_gb, cpus and memory_mb are valid.
+
+        :param properties: a dict contains the node's information.
+        """
+        if not properties:
+            return
+        invalid_msgs_list = []
+        for param in REQUIRED_INT_PROPERTIES:
+            value = properties.get(param)
+            if value is None:
+                continue
+            try:
+                int_value = int(value)
+                assert int_value >= 0
+            except (ValueError, AssertionError):
+                msg = (('%(param)s=%(value)s') %
+                       {'param': param, 'value': value})
+                invalid_msgs_list.append(msg)
+
+        if invalid_msgs_list:
+            msg = (_('The following properties for node %(node)s '
+                     'should be non-negative integers, '
+                     'but provided values are: %(msgs)s') %
+                   {'node': self.uuid, 'msgs': ', '.join(invalid_msgs_list)})
+            raise exception.InvalidParameterValue(msg)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -263,9 +295,12 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                         argument, even though we don't use it.
                         A context should be set when instantiating the
                         object, e.g.: Node(context)
-
+        :raises: InvalidParameterValue if some property values are invalid.
         """
         values = self.obj_get_changes()
+        properties = values.get('properties')
+        if properties:
+            self._validate_property_values(properties)
         db_node = self.dbapi.create_node(values)
         self._from_db_object(self, db_node)
 
@@ -304,8 +339,12 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                         argument, even though we don't use it.
                         A context should be set when instantiating the
                         object, e.g.: Node(context)
+        :raises: InvalidParameterValue if some property values are invalid.
         """
         updates = self.obj_get_changes()
+        properties = updates.get('properties')
+        if properties:
+            self._validate_property_values(properties)
         if 'driver' in updates and 'driver_internal_info' not in updates:
             # Clean driver_internal_info when changes driver
             self.driver_internal_info = {}
