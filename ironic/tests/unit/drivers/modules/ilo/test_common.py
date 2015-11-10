@@ -24,11 +24,14 @@ from oslo_config import cfg
 from oslo_utils import importutils
 import six
 
+from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import images
 from ironic.common import swift
 from ironic.common import utils
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
@@ -721,3 +724,46 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             ilo_common.destroy_floppy_image_from_web_server(task.node)
             get_floppy_name_mock.assert_called_once_with(task.node)
             utils_mock.assert_called_once_with('/webserver/image-uuid')
+
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'setup_vmedia_for_boot', spec_set=True,
+                       autospec=True)
+    def test_setup_vmedia(self,
+                          func_setup_vmedia_for_boot,
+                          func_set_boot_device):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            parameters = {'a': 'b'}
+            iso = '733d1c44-a2ea-414b-aca7-69decf20d810'
+            ilo_common.setup_vmedia(task, iso, parameters)
+            func_setup_vmedia_for_boot.assert_called_once_with(task, iso,
+                                                               parameters)
+            func_set_boot_device.assert_called_once_with(task,
+                                                         boot_devices.CDROM)
+
+    @mock.patch.object(deploy_utils, 'is_secure_boot_requested', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'set_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    def test__update_secure_boot_mode_passed_true(self,
+                                                  func_set_secure_boot_mode,
+                                                  func_is_secure_boot_req):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            func_is_secure_boot_req.return_value = True
+            ilo_common.update_secure_boot_mode(task, True)
+            func_set_secure_boot_mode.assert_called_once_with(task, True)
+
+    @mock.patch.object(deploy_utils, 'is_secure_boot_requested', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'set_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    def test__update_secure_boot_mode_passed_false(self,
+                                                   func_set_secure_boot_mode,
+                                                   func_is_secure_boot_req):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            func_is_secure_boot_req.return_value = False
+            ilo_common.update_secure_boot_mode(task, False)
+            self.assertFalse(func_set_secure_boot_mode.called)
