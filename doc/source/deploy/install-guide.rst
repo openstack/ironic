@@ -283,6 +283,10 @@ so that the Bare Metal service is configured for your needs.
     # [hostname|IP]:port. (string value)
     #glance_api_servers=<None>
 
+   Note: Swift backend for the Image service should be installed and configured
+   for ``agent_*`` drivers. Starting with Mitaka the Bare Metal service also
+   supports Ceph Object Gateway (RADOS Gateway) as the Image service's backend
+   (:ref:`radosgw support`).
 
 #. Create the Bare Metal service database tables::
 
