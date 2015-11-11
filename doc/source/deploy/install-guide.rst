@@ -2169,7 +2169,7 @@ CoreOS tools
         sudo systemctl start docker
 
     Ubuntu:
-        sudo service docker.io start
+        sudo service docker start
 
 #. Create the image::
 
