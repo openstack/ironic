@@ -119,11 +119,7 @@ def _parse_driver_info(node):
     # terminal port must be an integer
     port = info.get('ipmi_terminal_port')
     if port is not None:
-        try:
-            port = int(port)
-        except ValueError:
-            raise exception.InvalidParameterValue(_(
-                "IPMI terminal port is not an integer."))
+        port = utils.validate_network_port(port)
     bmc_info['port'] = port
 
     return bmc_info
