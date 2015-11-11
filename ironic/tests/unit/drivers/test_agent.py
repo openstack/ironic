@@ -24,6 +24,7 @@ from ironic.drivers import agent
 from ironic.drivers.modules import agent as agent_module
 from ironic.drivers.modules.amt import management as amt_management
 from ironic.drivers.modules.amt import power as amt_power
+from ironic.drivers.modules import iboot
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import wol
 
@@ -56,6 +57,17 @@ class AgentAndWakeOnLanDriverTestCase(testtools.TestCase):
         driver = agent.AgentAndWakeOnLanDriver()
 
         self.assertIsInstance(driver.power, wol.WakeOnLanPower)
+        self.assertIsInstance(driver.boot, pxe.PXEBoot)
+        self.assertIsInstance(driver.deploy, agent_module.AgentDeploy)
+        self.assertIsInstance(driver.vendor, agent_module.AgentVendorInterface)
+
+
+class AgentAndIBootDriverTestCase(testtools.TestCase):
+
+    def test___init__(self):
+        driver = agent.AgentAndIBootDriver()
+
+        self.assertIsInstance(driver.power, iboot.IBootPower)
         self.assertIsInstance(driver.boot, pxe.PXEBoot)
         self.assertIsInstance(driver.deploy, agent_module.AgentDeploy)
         self.assertIsInstance(driver.vendor, agent_module.AgentVendorInterface)
