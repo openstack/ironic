@@ -387,6 +387,10 @@
 # when starting a service (at DEBUG level). (boolean value)
 #log_options=true
 
+# Specify a timeout after which a gracefully shutdown server
+# will exit. Zero value means endless wait. (integer value)
+#graceful_shutdown_timeout=0
+
 
 [agent]
 
@@ -479,7 +483,7 @@
 # The IP address on which ironic-api listens. (string value)
 #host_ip=0.0.0.0
 
-# The TCP port on which ironic-api listens. (integer value)
+# The TCP port on which ironic-api listens. (port value)
 #port=6385
 
 # The maximum number of items returned in a single response
@@ -1001,7 +1005,7 @@
 # Default glance hostname or IP address. (string value)
 #glance_host=$my_ip
 
-# Default glance port. (integer value)
+# Default glance port. (port value)
 #glance_port=9292
 
 # Default protocol to use when connecting to glance. Set to
@@ -1054,7 +1058,7 @@
 # Timeout (in seconds) for iLO operations (integer value)
 #client_timeout=60
 
-# Port to be used for iLO operations (integer value)
+# Port to be used for iLO operations (port value)
 #client_port=443
 
 # The Swift iLO container to store data. (string value)
@@ -1170,8 +1174,8 @@
 # Options defined in ironic.drivers.modules.irmc.common
 #
 
-# Port to be used for iRMC operations, either 80 or 443
-# (integer value)
+# Port to be used for iRMC operations, either 80 or 443 (port
+# value)
 #port=443
 
 # Authentication method to be used for iRMC operations, either
@@ -1904,7 +1908,7 @@
 # Options defined in ironic.drivers.modules.virtualbox
 #
 
-# Port on which VirtualBox web service is listening. (integer
+# Port on which VirtualBox web service is listening. (port
 # value)
 #port=18083
 
