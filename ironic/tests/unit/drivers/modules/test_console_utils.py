@@ -17,14 +17,15 @@
 
 """Test class for console_utils driver module."""
 
+import errno
 import os
 import random
+import signal
 import string
 import subprocess
 import tempfile
 
 import mock
-from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_utils import netutils
 
@@ -136,23 +137,23 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
                           self.info['uuid'])
 
     @mock.patch.object(utils, 'unlink_without_raise', autospec=True)
-    @mock.patch.object(utils, 'execute', autospec=True)
+    @mock.patch.object(os, 'kill', autospec=True)
     @mock.patch.object(console_utils, '_get_console_pid', autospec=True)
-    def test__stop_console(self, mock_pid, mock_execute, mock_unlink):
+    def test__stop_console(self, mock_pid, mock_kill, mock_unlink):
         pid_file = console_utils._get_console_pid_file(self.info['uuid'])
-        mock_pid.return_value = '12345'
+        mock_pid.return_value = 12345
 
         console_utils._stop_console(self.info['uuid'])
 
         mock_pid.assert_called_once_with(self.info['uuid'])
-        mock_execute.assert_called_once_with('kill', mock_pid.return_value,
-                                             check_exit_code=[0, 99])
+        mock_kill.assert_called_once_with(mock_pid.return_value,
+                                          signal.SIGTERM)
         mock_unlink.assert_called_once_with(pid_file)
 
     @mock.patch.object(utils, 'unlink_without_raise', autospec=True)
-    @mock.patch.object(utils, 'execute', autospec=True)
+    @mock.patch.object(os, 'kill', autospec=True)
     @mock.patch.object(console_utils, '_get_console_pid', autospec=True)
-    def test__stop_console_nopid(self, mock_pid, mock_execute, mock_unlink):
+    def test__stop_console_nopid(self, mock_pid, mock_kill, mock_unlink):
         pid_file = console_utils._get_console_pid_file(self.info['uuid'])
         mock_pid.side_effect = iter(
             [exception.NoConsolePid(pid_path="/tmp/blah")])
@@ -162,24 +163,40 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
                           self.info['uuid'])
 
         mock_pid.assert_called_once_with(self.info['uuid'])
-        self.assertFalse(mock_execute.called)
+        self.assertFalse(mock_kill.called)
         mock_unlink.assert_called_once_with(pid_file)
 
     @mock.patch.object(utils, 'unlink_without_raise', autospec=True)
-    @mock.patch.object(utils, 'execute', autospec=True)
+    @mock.patch.object(os, 'kill', autospec=True)
     @mock.patch.object(console_utils, '_get_console_pid', autospec=True)
-    def test__stop_console_nokill(self, mock_pid, mock_execute, mock_unlink):
+    def test__stop_console_shellinabox_not_running(self, mock_pid,
+                                                   mock_kill, mock_unlink):
         pid_file = console_utils._get_console_pid_file(self.info['uuid'])
-        mock_pid.return_value = '12345'
-        mock_execute.side_effect = iter([processutils.ProcessExecutionError()])
+        mock_pid.return_value = 12345
+        mock_kill.side_effect = OSError(errno.ESRCH, 'message')
 
-        self.assertRaises(processutils.ProcessExecutionError,
+        console_utils._stop_console(self.info['uuid'])
+
+        mock_pid.assert_called_once_with(self.info['uuid'])
+        mock_kill.assert_called_once_with(mock_pid.return_value,
+                                          signal.SIGTERM)
+        mock_unlink.assert_called_once_with(pid_file)
+
+    @mock.patch.object(utils, 'unlink_without_raise', autospec=True)
+    @mock.patch.object(os, 'kill', autospec=True)
+    @mock.patch.object(console_utils, '_get_console_pid', autospec=True)
+    def test__stop_console_exception(self, mock_pid, mock_kill, mock_unlink):
+        pid_file = console_utils._get_console_pid_file(self.info['uuid'])
+        mock_pid.return_value = 12345
+        mock_kill.side_effect = OSError(2, 'message')
+
+        self.assertRaises(exception.ConsoleError,
                           console_utils._stop_console,
                           self.info['uuid'])
 
         mock_pid.assert_called_once_with(self.info['uuid'])
-        mock_execute.assert_called_once_with('kill', mock_pid.return_value,
-                                             check_exit_code=[0, 99])
+        mock_kill.assert_called_once_with(mock_pid.return_value,
+                                          signal.SIGTERM)
         mock_unlink.assert_called_once_with(pid_file)
 
     def _get_shellinabox_console(self, scheme):
@@ -334,15 +351,5 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         mock_stop.side_effect = iter([exception.NoConsolePid('/tmp/blah')])
 
         console_utils.stop_shellinabox_console(self.info['uuid'])
-
-        mock_stop.assert_called_once_with(self.info['uuid'])
-
-    @mock.patch.object(console_utils, '_stop_console', autospec=True)
-    def test_stop_shellinabox_console_fail_nokill(self, mock_stop):
-        mock_stop.side_effect = iter([processutils.ProcessExecutionError()])
-
-        self.assertRaises(exception.ConsoleError,
-                          console_utils.stop_shellinabox_console,
-                          self.info['uuid'])
 
         mock_stop.assert_called_once_with(self.info['uuid'])

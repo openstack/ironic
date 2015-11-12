@@ -19,7 +19,9 @@
 Ironic console utilities.
 """
 
+import errno
 import os
+import signal
 import subprocess
 import time
 
@@ -122,8 +124,16 @@ def _stop_console(node_uuid):
     try:
         console_pid = _get_console_pid(node_uuid)
 
-        # Allow exitcode 99 (RC_UNAUTHORIZED)
-        utils.execute('kill', str(console_pid), check_exit_code=[0, 99])
+        os.kill(console_pid, signal.SIGTERM)
+    except OSError as exc:
+        if exc.errno != errno.ESRCH:
+            msg = (_("Could not stop the console for node '%(node)s'. "
+                     "Reason: %(err)s.") % {'node': node_uuid, 'err': exc})
+            raise exception.ConsoleError(message=msg)
+        else:
+            LOG.warning(_LW("Console process for node %s is not running "
+                            "but pid file exists while trying to stop "
+                            "shellinabox console."), node_uuid)
     finally:
         utils.unlink_without_raise(_get_console_pid_file(node_uuid))
 
@@ -261,7 +271,3 @@ def stop_shellinabox_console(node_uuid):
     except exception.NoConsolePid:
         LOG.warning(_LW("No console pid found for node %s while trying to "
                         "stop shellinabox console."), node_uuid)
-    except processutils.ProcessExecutionError as exc:
-            msg = (_("Could not stop the console for node '%(node)s'. "
-                     "Reason: %(err)s.") % {'node': node_uuid, 'err': exc})
-            raise exception.ConsoleError(message=msg)
