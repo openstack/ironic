@@ -1936,16 +1936,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
             if not getattr(task.driver, 'management', None):
                 raise exception.UnsupportedDriverExtension(
                     driver=task.node.driver, extension='management')
-            if task.driver.management.get_supported_boot_devices_task_arg:
-                return task.driver.management.get_supported_boot_devices(task)
-            else:
-                LOG.warning(_LW("Driver '%s' is missing a task "
-                                "argument to the method "
-                                "get_supported_boot_devices() which "
-                                "has been deprecated. Please update the code "
-                                "to include a task argument."),
-                            task.node.driver)
-                return task.driver.management.get_supported_boot_devices()
+            return task.driver.management.get_supported_boot_devices(task)
 
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,

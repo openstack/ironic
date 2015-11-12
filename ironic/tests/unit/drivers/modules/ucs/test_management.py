@@ -53,9 +53,12 @@ class UcsManagementTestCase(db_base.DbTestCase):
         self.assertEqual(expected, self.interface.get_properties())
 
     def test_get_supported_boot_devices(self):
-        expected = [boot_devices.PXE, boot_devices.DISK, boot_devices.CDROM]
-        self.assertEqual(sorted(expected),
-                         sorted(self.interface.get_supported_boot_devices()))
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            expected = [boot_devices.PXE, boot_devices.DISK,
+                        boot_devices.CDROM]
+            self.assertEqual(
+                sorted(expected),
+                sorted(self.interface.get_supported_boot_devices(task)))
 
     @mock.patch('ironic.drivers.modules.ucs.helper.ucs_helper',
                 spec_set=True, autospec=True)
