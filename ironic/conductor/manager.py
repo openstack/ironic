@@ -2412,8 +2412,8 @@ def do_node_deploy(task, conductor_id, configdrive=None):
 
 
 @task_manager.require_exclusive_lock
-def handle_sync_power_state_max_retries_exceeded(task,
-                                                 actual_power_state):
+def handle_sync_power_state_max_retries_exceeded(task, actual_power_state,
+                                                 exception=None):
     """Handles power state sync exceeding the max retries.
 
     When synchronizing the power state between a node and the DB has exceeded
@@ -2423,6 +2423,8 @@ def handle_sync_power_state_max_retries_exceeded(task,
     :param task: a TaskManager instance with an exclusive lock
     :param actual_power_state: the actual power state of the node; a power
            state from ironic.common.states
+    :param exception: the exception object that caused the sync power state
+           to fail, if present.
     """
     node = task.node
     msg = (_("During sync_power_state, max retries exceeded "
@@ -2432,6 +2434,10 @@ def handle_sync_power_state_max_retries_exceeded(task,
              "Switching node to maintenance mode.") %
            {'node': node.uuid, 'actual': actual_power_state,
             'state': node.power_state})
+
+    if exception is not None:
+        msg += _(" Error: %s") % exception
+
     node.power_state = actual_power_state
     node.last_error = msg
     node.maintenance = True
@@ -2479,7 +2485,8 @@ def do_sync_power_state(task, count):
         # Stop if any exception is raised when getting the power state
         if count > max_retries:
             task.upgrade_lock()
-            handle_sync_power_state_max_retries_exceeded(task, power_state)
+            handle_sync_power_state_max_retries_exceeded(task, power_state,
+                                                         exception=e)
         else:
             LOG.warning(_LW("During sync_power_state, could not get power "
                             "state for node %(node)s, attempt %(attempt)s of "
