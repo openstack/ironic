@@ -90,6 +90,15 @@ class IloValidateParametersTestCase(db_base.DbTestCase):
         self.node.driver_info['client_port'] = 'qwe'
         self.assertRaises(exception.InvalidParameterValue,
                           ilo_common.parse_driver_info, self.node)
+        self.node.driver_info['client_port'] = '65536'
+        self.assertRaises(exception.InvalidParameterValue,
+                          ilo_common.parse_driver_info, self.node)
+        self.node.driver_info['console_port'] = 'invalid'
+        self.assertRaises(exception.InvalidParameterValue,
+                          ilo_common.parse_driver_info, self.node)
+        self.node.driver_info['console_port'] = '-1'
+        self.assertRaises(exception.InvalidParameterValue,
+                          ilo_common.parse_driver_info, self.node)
 
     def test_parse_driver_info_missing_multiple_params(self):
         del self.node.driver_info['ilo_password']
@@ -103,13 +112,11 @@ class IloValidateParametersTestCase(db_base.DbTestCase):
 
     def test_parse_driver_info_invalid_multiple_params(self):
         self.node.driver_info['client_timeout'] = 'qwe'
-        self.node.driver_info['console_port'] = 'not-int'
         try:
             ilo_common.parse_driver_info(self.node)
             self.fail("parse_driver_info did not throw exception.")
         except exception.InvalidParameterValue as e:
             self.assertIn('client_timeout', str(e))
-            self.assertIn('console_port', str(e))
 
 
 class IloCommonMethodsTestCase(db_base.DbTestCase):

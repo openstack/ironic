@@ -164,18 +164,21 @@ def parse_driver_info(node):
     not_integers = []
     for param in OPTIONAL_PROPERTIES:
         value = info.get(param, CONF.ilo.get(param))
-        try:
-            d_info[param] = int(value)
-        except ValueError:
-            not_integers.append(param)
-
-    for param in CONSOLE_PROPERTIES:
-        value = info.get(param)
-        if value:
+        if param == "client_port":
+            d_info[param] = utils.validate_network_port(value, param)
+        else:
             try:
                 d_info[param] = int(value)
             except ValueError:
                 not_integers.append(param)
+
+    for param in CONSOLE_PROPERTIES:
+        value = info.get(param)
+        if value:
+            # Currently there's only "console_port" parameter
+            # in CONSOLE_PROPERTIES
+            if param == "console_port":
+                d_info[param] = utils.validate_network_port(value, param)
 
     if not_integers:
         raise exception.InvalidParameterValue(_(

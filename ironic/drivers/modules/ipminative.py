@@ -119,7 +119,7 @@ def _parse_driver_info(node):
     # terminal port must be an integer
     port = info.get('ipmi_terminal_port')
     if port is not None:
-        port = utils.validate_network_port(port)
+        port = utils.validate_network_port(port, 'ipmi_terminal_port')
     bmc_info['port'] = port
 
     return bmc_info

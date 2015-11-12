@@ -19,6 +19,7 @@ from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import utils
 
 pywsman = importutils.try_import('pywsman')
 
@@ -76,15 +77,14 @@ def parse_driver_info(node):
     except UnicodeEncodeError:
         error_msgs.append(_("'drac_protocol' contains non-ASCII symbol."))
 
-    try:
-        parsed_driver_info['drac_port'] = int(parsed_driver_info['drac_port'])
-    except ValueError:
-        error_msgs.append(_("'drac_port' is not an integer value."))
-
     if error_msgs:
         msg = (_('The following errors were encountered while parsing '
                  'driver_info:\n%s') % '\n'.join(error_msgs))
         raise exception.InvalidParameterValue(msg)
+
+    port = parsed_driver_info['drac_port']
+    parsed_driver_info['drac_port'] = utils.validate_network_port(
+        port, 'drac_port')
 
     return parsed_driver_info
 

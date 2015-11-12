@@ -30,6 +30,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LW
 from ironic.common import states
+from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers import base
 
@@ -91,11 +92,7 @@ def _parse_driver_info(node):
             _("iBoot PDU relay id must be an integer."))
 
     port = info.get('iboot_port', 9100)
-    try:
-        port = int(port)
-    except ValueError:
-        raise exception.InvalidParameterValue(
-            _("iBoot PDU port must be an integer."))
+    port = utils.validate_network_port(port, 'iboot_port')
 
     return {
         'address': address,
