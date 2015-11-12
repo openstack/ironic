@@ -118,7 +118,7 @@ def _stop_console(node_uuid):
 
     :param node_uuid: the UUID of the node
     :raises: NoConsolePid if no console PID was found
-    :raises: processutils.ProcessExecutionError if unable to stop the process
+    :raises: ConsoleError if unable to stop the console process
     """
 
     try:
