@@ -621,15 +621,20 @@ them to the Image service:
    - Build the image your users will run (Ubuntu image has been taken as
      an example)::
 
-       disk-image-create ubuntu baremetal dhcp-all-interfaces grub2 -o my-image
+       Partition images:
+           disk-image-create ubuntu baremetal dhcp-all-interfaces grub2 -o my-image
 
-     The above command creates *my-image.qcow2*, *my-image.vmlinuz* and
-     *my-image.initrd* files. If you want to use Fedora image, replace
-     *ubuntu* with *fedora* in the above command. The *grub2* element is
-     only needed if local boot will be used to deploy *my-image.qcow2*,
-     otherwise the images *my-image.vmlinuz* and *my-image.initrd*
-     will be used for PXE booting after deploying the bare metal with
-     *my-image.qcow2*.
+       Whole disk images:
+           disk-image-create ubuntu vm dhcp-all-interfaces grub2 -o my-image
+
+     The partition image command creates *my-image.qcow2*, *my-image.vmlinuz* and
+     *my-image.initrd* files. The *grub2* element in the partition image creation
+     command is only needed if local boot will be used to deploy *my-image.qcow2*,
+     otherwise the images *my-image.vmlinuz* and *my-image.initrd* will be used for
+     PXE booting after deploying the bare metal with *my-image.qcow2*.
+
+     If you want to use Fedora image, replace *ubuntu* with *fedora* in the chosen
+     command.
 
    - To build the deploy image take a look at the `Building or
      downloading a deploy ramdisk image`_ section.
