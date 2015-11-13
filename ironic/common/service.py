@@ -118,21 +118,21 @@ class RPCService(service.Service):
 
 def prepare_service(argv=[]):
     log.register_options(cfg.CONF)
-    log.set_defaults(default_log_levels=['amqp=WARN',
-                                         'amqplib=WARN',
+    log.set_defaults(default_log_levels=['amqp=WARNING',
+                                         'amqplib=WARNING',
                                          'qpid.messaging=INFO',
-                                         'oslo.messaging=INFO',
-                                         'sqlalchemy=WARN',
+                                         'oslo_messaging=INFO',
+                                         'sqlalchemy=WARNING',
                                          'keystoneclient=INFO',
                                          'stevedore=INFO',
-                                         'eventlet.wsgi.server=WARN',
-                                         'iso8601=WARN',
-                                         'paramiko=WARN',
-                                         'requests=WARN',
-                                         'neutronclient=WARN',
-                                         'glanceclient=WARN',
-                                         'ironic.openstack.common=WARN',
-                                         'urllib3.connectionpool=WARN',
+                                         'eventlet.wsgi.server=WARNING',
+                                         'iso8601=WARNING',
+                                         'paramiko=WARNING',
+                                         'requests=WARNING',
+                                         'neutronclient=WARNING',
+                                         'glanceclient=WARNING',
+                                         'ironic.openstack.common=WARNING',
+                                         'urllib3.connectionpool=WARNING',
                                          ])
     config.parse_args(argv)
     log.setup(cfg.CONF, 'ironic')
