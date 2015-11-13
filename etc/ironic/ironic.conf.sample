@@ -954,8 +954,8 @@
 # Swift URL of the form
 # "endpoint_url/api_version/[account/]container/object_id". Do
 # not include trailing "/". For example, use
-# "https://swift.example.com". In case of using RADOS Gateway,
-# endpoint may also contain /swift path, if it does not, it
+# "https://swift.example.com". If using RADOS Gateway,
+# endpoint may also contain /swift path; if it does not, it
 # will be appended. Required for temporary URLs. (string
 # value)
 #swift_endpoint_url=<None>
@@ -992,9 +992,9 @@
 # value)
 #swift_store_multiple_containers_seed=0
 
-# Type of the endpoint to use for temporary URLs. It depends
-# on an actual Glance backend used. Possible values are
-# "swift" and "radosgw". (string value)
+# Type of endpoint to use for temporary URLs. If the Glance
+# backend is Swift, use "swift"; if it is CEPH with RADOS
+# gateway, use "radosgw". (string value)
 #temp_url_endpoint_type=swift
 
 
