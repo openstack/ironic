@@ -748,13 +748,6 @@ class ManagementInterface(BaseInterface):
         :raises: MissingParameterValue
         """
 
-    @property
-    def get_supported_boot_devices_task_arg(self):
-        # NOTE(MattMan): remove this method in next cycle(Mitaka) as task
-        #                parameter will be mandatory then.
-        argspec = inspect.getargspec(self.get_supported_boot_devices)
-        return len(argspec.args) > 1
-
     @abc.abstractmethod
     def get_supported_boot_devices(self, task):
         """Get a list of the supported boot devices.
