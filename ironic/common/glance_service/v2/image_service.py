@@ -53,10 +53,9 @@ glance_opts = [
                'the Swift URL of the form '
                '"endpoint_url/api_version/[account/]container/object_id". '
                'Do not include trailing "/". '
-               'For example, use "https://swift.example.com". In case of '
-               'using RADOS Gateway, endpoint may also contain /swift path, '
-               'if it does not, it will be appended. '
-               'Required for temporary URLs.')),
+               'For example, use "https://swift.example.com". If using RADOS '
+               'Gateway, endpoint may also contain /swift path; if it does '
+               'not, it will be appended. Required for temporary URLs.')),
     cfg.StrOpt(
         'swift_api_version',
         default='v1',
@@ -91,9 +90,10 @@ glance_opts = [
                       'will determine how many containers are created.')),
     cfg.StrOpt('temp_url_endpoint_type',
                default='swift',
-               help=_('Type of the endpoint to use for temporary URLs. It '
-                      'depends on an actual Glance backend used. Possible '
-                      'values are "swift" and "radosgw".'))
+               choices=['swift', 'radosgw'],
+               help=_('Type of endpoint to use for temporary URLs. If the '
+                      'Glance backend is Swift, use "swift"; if it is CEPH '
+                      'with RADOS gateway, use "radosgw".'))
 ]
 
 CONF = cfg.CONF
