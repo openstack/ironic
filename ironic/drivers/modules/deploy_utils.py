@@ -97,7 +97,8 @@ CONF.register_opts(deploy_opts, group='deploy')
 
 LOG = logging.getLogger(__name__)
 
-VALID_ROOT_DEVICE_HINTS = set(('size', 'model', 'wwn', 'serial', 'vendor'))
+VALID_ROOT_DEVICE_HINTS = set(('size', 'model', 'wwn', 'serial', 'vendor',
+                               'wwn_with_extension', 'wwn_vendor_extension'))
 
 SUPPORTED_CAPABILITIES = {
     'boot_option': ('local', 'netboot'),

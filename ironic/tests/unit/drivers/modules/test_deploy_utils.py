@@ -1156,10 +1156,12 @@ class OtherFunctionTestCase(db_base.DbTestCase):
     def test_parse_root_device_hints(self):
         self.node.properties['root_device'] = {
             'wwn': 123456, 'model': 'foo-model', 'size': 123,
-            'serial': 'foo-serial', 'vendor': 'foo-vendor'
+            'serial': 'foo-serial', 'vendor': 'foo-vendor',
+            'wwn_with_extension': 123456111, 'wwn_vendor_extension': 111,
         }
         expected = ('model=foo-model,serial=foo-serial,size=123,'
-                    'vendor=foo-vendor,wwn=123456')
+                    'vendor=foo-vendor,wwn=123456,wwn_vendor_extension=111,'
+                    'wwn_with_extension=123456111')
         result = utils.parse_root_device_hints(self.node)
         self.assertEqual(expected, result)
 
