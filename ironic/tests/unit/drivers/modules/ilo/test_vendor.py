@@ -13,11 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Test class for common methods used by iLO modules."""
+"""Test class for vendor methods used by iLO modules."""
 
 import mock
 from oslo_config import cfg
-import six
 
 from ironic.common import exception
 from ironic.common import states
@@ -33,10 +32,6 @@ from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
-
-if six.PY3:
-    import io
-    file = io.BytesIO
 
 INFO_DICT = db_utils.get_test_ilo_info()
 CONF = cfg.CONF

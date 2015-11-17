@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Test class for common methods used by iLO modules."""
+"""Test class for boot methods used by iLO modules."""
 
 import tempfile
 
@@ -46,6 +46,26 @@ if six.PY3:
 
 INFO_DICT = db_utils.get_test_ilo_info()
 CONF = cfg.CONF
+
+
+class IloBootCommonMethodsTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(IloBootCommonMethodsTestCase, self).setUp()
+        mgr_utils.mock_the_extension_manager(driver="iscsi_ilo")
+        self.node = obj_utils.create_test_node(
+            self.context, driver='iscsi_ilo', driver_info=INFO_DICT)
+
+    def test_parse_driver_info(self):
+        self.node.driver_info['ilo_deploy_iso'] = 'deploy-iso'
+        expected_driver_info = {'ilo_deploy_iso': 'deploy-iso'}
+
+        actual_driver_info = ilo_boot.parse_driver_info(self.node)
+        self.assertEqual(expected_driver_info, actual_driver_info)
+
+    def test_parse_driver_info_exc(self):
+        self.assertRaises(exception.MissingParameterValue,
+                          ilo_boot.parse_driver_info, self.node)
 
 
 class IloBootPrivateMethodsTestCase(db_base.DbTestCase):
@@ -480,17 +500,27 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     def test_clean_up_instance(self, cleanup_iso_mock,
                                cleanup_vmedia_mock):
-        CONF.ilo.use_web_server_for_images = False
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['boot_iso_created_in_web_server'] = False
+            driver_internal_info['root_uuid_or_disk_id'] = (
+                "12312642-09d3-467f-8e09-12385826a123")
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
             task.driver.boot.clean_up_instance(task)
             cleanup_iso_mock.assert_called_once_with(task.node)
             cleanup_vmedia_mock.assert_called_once_with(task)
+            driver_internal_info = task.node.driver_internal_info
+            boot_iso_created = driver_internal_info.get(
+                'boot_iso_created_in_web_server')
+            root_uuid = driver_internal_info.get('root_uuid_or_disk_id')
+            self.assertIsNone(boot_iso_created)
+            self.assertIsNone(root_uuid)
 
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
     def test_clean_up_ramdisk(self, cleanup_vmedia_mock):
-        CONF.ilo.use_web_server_for_images = False
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.boot.clean_up_ramdisk(task)
@@ -529,12 +559,13 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
     def test_prepare_instance_partition_image(
             self, cleanup_vmedia_boot_mock,
             configure_vmedia_mock):
-        self.node.driver_internal_info = {'root_uuid_or_disk_id': "some_uuid"}
+        self.node.driver_internal_info = {'root_uuid_or_disk_id': (
+            "12312642-09d3-467f-8e09-12385826a123")}
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.boot.prepare_instance(task)
 
             cleanup_vmedia_boot_mock.assert_called_once_with(task)
-            configure_vmedia_mock.assert_called_once_with(mock.ANY, task,
-                                                          "some_uuid")
+            configure_vmedia_mock.assert_called_once_with(
+                mock.ANY, task, "12312642-09d3-467f-8e09-12385826a123")
