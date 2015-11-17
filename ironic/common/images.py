@@ -390,10 +390,14 @@ def image_to_raw(image_href, path, path_tmp):
             os.rename(path_tmp, path)
 
 
-def download_size(context, image_href, image_service=None):
-    if not image_service:
+def image_show(context, image_href, image_service=None):
+    if image_service is None:
         image_service = service.get_image_service(image_href, context=context)
-    return image_service.show(image_href)['size']
+    return image_service.show(image_href)
+
+
+def download_size(context, image_href, image_service=None):
+    return image_show(context, image_href, image_service)['size']
 
 
 def converted_size(path):

@@ -187,17 +187,25 @@ class IronicImagesTestCase(base.TestCase):
         rename_mock.assert_called_once_with('path_tmp', 'path')
 
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
-    def test_download_size_no_image_service(self, image_service_mock):
-        images.download_size('context', 'image_href')
+    def test_image_show_no_image_service(self, image_service_mock):
+        images.image_show('context', 'image_href')
         image_service_mock.assert_called_once_with('image_href',
                                                    context='context')
         image_service_mock.return_value.show.assert_called_once_with(
             'image_href')
 
-    def test_download_size_image_service(self):
+    def test_image_show_image_service(self):
         image_service_mock = mock.MagicMock()
-        images.download_size('context', 'image_href', image_service_mock)
+        images.image_show('context', 'image_href', image_service_mock)
         image_service_mock.show.assert_called_once_with('image_href')
+
+    @mock.patch.object(images, 'image_show', autospec=True)
+    def test_download_size(self, show_mock):
+        show_mock.return_value = {'size': 123456}
+        size = images.download_size('context', 'image_href', 'image_service')
+        self.assertEqual(123456, size)
+        show_mock.assert_called_once_with('context', 'image_href',
+                                          'image_service')
 
     @mock.patch.object(images, 'qemu_img_info', autospec=True)
     def test_converted_size(self, qemu_img_info_mock):
