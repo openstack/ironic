@@ -21,6 +21,7 @@ Ironic console utilities.
 
 import errno
 import os
+import psutil
 import signal
 import subprocess
 import time
@@ -224,11 +225,12 @@ def start_shellinabox_console(node_uuid, port, console_cmd):
     def _wait(node_uuid, popen_obj):
         locals['returncode'] = popen_obj.poll()
 
-        # check if the console pid is created.
+        # check if the console pid is created and the process is running.
         # if it is, then the shellinaboxd is invoked successfully as a daemon.
         # otherwise check the error.
         if locals['returncode'] is not None:
-            if locals['returncode'] == 0 and os.path.exists(pid_file):
+            if (locals['returncode'] == 0 and os.path.exists(pid_file) and
+                psutil.pid_exists(_get_console_pid(node_uuid))):
                 raise loopingcall.LoopingCallDone()
             else:
                 (stdout, stderr) = popen_obj.communicate()
