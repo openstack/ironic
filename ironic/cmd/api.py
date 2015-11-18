@@ -17,26 +17,14 @@
 
 """The Ironic Service API."""
 
-import logging
 import sys
-from wsgiref import simple_server
 
 from oslo_config import cfg
-from oslo_log import log
-from six.moves import socketserver
 
-from ironic.api import app
-from ironic.common.i18n import _LI
 from ironic.common import service as ironic_service
 from ironic.objects import base
 
 CONF = cfg.CONF
-
-
-class ThreadedSimpleServer(socketserver.ThreadingMixIn,
-                           simple_server.WSGIServer):
-    """A Mixin class to make the API service greenthread-able."""
-    pass
 
 
 def main():
@@ -47,24 +35,10 @@ def main():
     base.IronicObject.indirection_api = base.IronicObjectIndirectionAPI()
 
     # Build and start the WSGI app
-    host = CONF.api.host_ip
-    port = CONF.api.port
-    wsgi = simple_server.make_server(
-        host, port,
-        app.VersionSelectorApplication(),
-        server_class=ThreadedSimpleServer)
-
-    LOG = log.getLogger(__name__)
-    LOG.info(_LI("Serving on http://%(host)s:%(port)s"),
-             {'host': host, 'port': port})
-    LOG.debug("Configuration:")
-    CONF.log_opt_values(LOG, logging.DEBUG)
-
-    try:
-        wsgi.serve_forever()
-    except KeyboardInterrupt:
-        pass
-
+    launcher = ironic_service.process_launcher()
+    server = ironic_service.WSGIService('ironic_api')
+    launcher.launch_service(server, workers=server.workers)
+    launcher.wait()
 
 if __name__ == '__main__':
     sys.exit(main())
