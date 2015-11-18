@@ -1887,37 +1887,6 @@ class DoNodeCleanTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self._do_next_clean_step_first_step_async(states.CLEANING)
 
     @mock.patch('ironic.drivers.modules.fake.FakePower.execute_clean_step')
-    def _do_next_clean_step_continue_from_last_step(self, return_state,
-                                                    mock_execute):
-        # Resume an in-progress cleaning after the first async step
-        node = obj_utils.create_test_node(
-            self.context, driver='fake',
-            provision_state=states.CLEANING,
-            target_provision_state=states.AVAILABLE,
-            last_error=None,
-            clean_step=self.clean_steps[0])
-        mock_execute.return_value = return_state
-
-        self._start_service()
-
-        with task_manager.acquire(
-                self.context, node['id'], shared=False) as task:
-            self.service._do_next_clean_step(task, self.next_clean_steps)
-
-        self.service._worker_pool.waitall()
-        node.refresh()
-
-        self.assertEqual(states.CLEANWAIT, node.provision_state)
-        self.assertEqual(self.clean_steps[1], node.clean_step)
-        mock_execute.assert_called_once_with(mock.ANY, self.clean_steps[1])
-
-    def test_do_next_clean_step_continue_from_last_step(self):
-        self._do_next_clean_step_continue_from_last_step(states.CLEANWAIT)
-
-    def test_do_next_clean_step_continue_from_last_step_backward_compat(self):
-        self._do_next_clean_step_continue_from_last_step(states.CLEANING)
-
-    @mock.patch('ironic.drivers.modules.fake.FakePower.execute_clean_step')
     def _do_next_clean_step_continue_from_last_cleaning(self, return_state,
                                                         mock_execute):
         # Resume an in-progress cleaning after the first async step
