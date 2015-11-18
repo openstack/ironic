@@ -123,17 +123,18 @@ class CleanStepTestCase(base.TestCase):
         # they are listed correctly, and attempt to execute one of them
 
         method_mock = mock.MagicMock(spec_set=[])
+        method_args_mock = mock.MagicMock(spec_set=[])
         task_mock = mock.MagicMock(spec_set=[])
 
         class TestClass(driver_base.BaseInterface):
             interface_type = 'test'
 
             @driver_base.clean_step(priority=0)
-            def zap_method(self, task):
+            def manual_method(self, task):
                 pass
 
             @driver_base.clean_step(priority=10, abortable=True)
-            def clean_method(self, task):
+            def automated_method(self, task):
                 method_mock(task)
 
             def not_clean_method(self, task):
@@ -143,18 +144,36 @@ class CleanStepTestCase(base.TestCase):
             interface_type = 'test2'
 
             @driver_base.clean_step(priority=0)
-            def zap_method2(self, task):
+            def manual_method2(self, task):
                 pass
 
             @driver_base.clean_step(priority=20, abortable=True)
-            def clean_method2(self, task):
+            def automated_method2(self, task):
                 method_mock(task)
 
             def not_clean_method2(self, task):
                 pass
 
+        class TestClass3(driver_base.BaseInterface):
+            interface_type = 'test3'
+
+            @driver_base.clean_step(priority=0, abortable=True, argsinfo={
+                                    'arg1': {'description': 'desc1',
+                                             'required': True}})
+            def manual_method3(self, task, **kwargs):
+                method_args_mock(task, **kwargs)
+
+            @driver_base.clean_step(priority=15, argsinfo={
+                                    'arg10': {'description': 'desc10'}})
+            def automated_method3(self, task, **kwargs):
+                pass
+
+            def not_clean_method3(self, task):
+                pass
+
         obj = TestClass()
         obj2 = TestClass2()
+        obj3 = TestClass3()
 
         self.assertEqual(2, len(obj.get_clean_steps(task_mock)))
         # Ensure the steps look correct
@@ -162,13 +181,13 @@ class CleanStepTestCase(base.TestCase):
         self.assertTrue(obj.get_clean_steps(task_mock)[0]['abortable'])
         self.assertEqual('test', obj.get_clean_steps(
             task_mock)[0]['interface'])
-        self.assertEqual('clean_method', obj.get_clean_steps(
+        self.assertEqual('automated_method', obj.get_clean_steps(
             task_mock)[0]['step'])
         self.assertEqual(0, obj.get_clean_steps(task_mock)[1]['priority'])
         self.assertFalse(obj.get_clean_steps(task_mock)[1]['abortable'])
         self.assertEqual('test', obj.get_clean_steps(
             task_mock)[1]['interface'])
-        self.assertEqual('zap_method', obj.get_clean_steps(
+        self.assertEqual('manual_method', obj.get_clean_steps(
             task_mock)[1]['step'])
 
         # Ensure the second obj get different clean steps
@@ -178,18 +197,44 @@ class CleanStepTestCase(base.TestCase):
         self.assertTrue(obj2.get_clean_steps(task_mock)[0]['abortable'])
         self.assertEqual('test2', obj2.get_clean_steps(
             task_mock)[0]['interface'])
-        self.assertEqual('clean_method2', obj2.get_clean_steps(
+        self.assertEqual('automated_method2', obj2.get_clean_steps(
             task_mock)[0]['step'])
         self.assertEqual(0, obj2.get_clean_steps(task_mock)[1]['priority'])
-        self.assertFalse(obj.get_clean_steps(task_mock)[1]['abortable'])
+        self.assertFalse(obj2.get_clean_steps(task_mock)[1]['abortable'])
         self.assertEqual('test2', obj2.get_clean_steps(
             task_mock)[1]['interface'])
-        self.assertEqual('zap_method2', obj2.get_clean_steps(
+        self.assertEqual('manual_method2', obj2.get_clean_steps(
             task_mock)[1]['step'])
+        self.assertIsNone(obj2.get_clean_steps(task_mock)[0]['argsinfo'])
+
+        # Ensure the third obj has different clean steps
+        self.assertEqual(2, len(obj3.get_clean_steps(task_mock)))
+        self.assertEqual(15, obj3.get_clean_steps(task_mock)[0]['priority'])
+        self.assertFalse(obj3.get_clean_steps(task_mock)[0]['abortable'])
+        self.assertEqual('test3', obj3.get_clean_steps(
+            task_mock)[0]['interface'])
+        self.assertEqual('automated_method3', obj3.get_clean_steps(
+            task_mock)[0]['step'])
+        self.assertEqual({'arg10': {'description': 'desc10'}},
+                         obj3.get_clean_steps(task_mock)[0]['argsinfo'])
+        self.assertEqual(0, obj3.get_clean_steps(task_mock)[1]['priority'])
+        self.assertTrue(obj3.get_clean_steps(task_mock)[1]['abortable'])
+        self.assertEqual(obj3.interface_type, obj3.get_clean_steps(
+            task_mock)[1]['interface'])
+        self.assertEqual('manual_method3', obj3.get_clean_steps(
+            task_mock)[1]['step'])
+        self.assertEqual({'arg1': {'description': 'desc1', 'required': True}},
+                         obj3.get_clean_steps(task_mock)[1]['argsinfo'])
 
         # Ensure we can execute the function.
         obj.execute_clean_step(task_mock, obj.get_clean_steps(task_mock)[0])
         method_mock.assert_called_once_with(task_mock)
+
+        args = {'arg1': 'val1'}
+        clean_step = {'interface': 'test3', 'step': 'manual_method3',
+                      'args': args}
+        obj3.execute_clean_step(task_mock, clean_step)
+        method_args_mock.assert_called_once_with(task_mock, **args)
 
 
 class MyRAIDInterface(driver_base.RAIDInterface):

@@ -166,6 +166,7 @@ class BaseInterface(object):
                 step = {'step': method.__name__,
                         'priority': method._clean_step_priority,
                         'abortable': method._clean_step_abortable,
+                        'argsinfo': method._clean_step_argsinfo,
                         'interface': instance.interface_type}
                 instance.clean_steps.append(step)
         LOG.debug('Found clean steps %(steps)s for interface %(interface)s',
@@ -188,7 +189,10 @@ class BaseInterface(object):
     def execute_clean_step(self, task, step):
         """Execute the clean step on task.node.
 
-        A clean step should take a single argument: a TaskManager object.
+        A clean step must take a single positional argument: a TaskManager
+        object. It may take one or more keyword variable arguments (for
+        use with manual cleaning only.)
+
         A step can be executed synchronously or asynchronously. A step should
         return None if the method has completed synchronously or
         states.CLEANWAIT if the step will continue to execute asynchronously.
@@ -202,7 +206,11 @@ class BaseInterface(object):
             states.CLEANWAIT if the step will continue to execute
             asynchronously.
         """
-        return getattr(self, step['step'])(task)
+        args = step.get('args')
+        if args is not None:
+            return getattr(self, step['step'])(task, **args)
+        else:
+            return getattr(self, step['step'])(task)
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -310,10 +318,10 @@ class DeployInterface(BaseInterface):
         """
 
     def prepare_cleaning(self, task):
-        """Prepare the node for cleaning or zapping tasks.
+        """Prepare the node for cleaning tasks.
 
         For example, nodes that use the Ironic Python Agent will need to
-        boot the ramdisk in order to do in-band cleaning and zapping tasks.
+        boot the ramdisk in order to do in-band cleaning tasks.
 
         If the function is asynchronous, the driver will need to handle
         settings node.driver_internal_info['clean_steps'] and node.clean_step,
@@ -333,9 +341,9 @@ class DeployInterface(BaseInterface):
         pass
 
     def tear_down_cleaning(self, task):
-        """Tear down after cleaning or zapping is completed.
+        """Tear down after cleaning is completed.
 
-        Given that cleaning or zapping is complete, do all cleanup and tear
+        Given that cleaning is complete, do all cleanup and tear
         down necessary to allow the node to be deployed to again.
 
         NOTE(JoshNang) this should be moved to BootInterface when it gets
@@ -972,33 +980,36 @@ class RAIDInterface(BaseInterface):
         return raid.get_logical_disk_properties(self.raid_schema)
 
 
-def clean_step(priority, abortable=False):
-    """Decorator for cleaning and zapping steps.
+def clean_step(priority, abortable=False, argsinfo=None):
+    """Decorator for cleaning steps.
 
-    If priority is greater than 0, the function will be executed as part
-    of the CLEANING (sync) or CLEANWAIT (async) state for any node using
-    the interface with the decorated clean step. During the cleaning,
-    a list of steps will be ordered by priority for all interfaces
-    associated with the node, and then execute_clean_step() will be
-    called on each step. Steps will be executed based on priority,
-    with the highest priority step being called first, the next highest
-    priority being call next, and so on.
+    Cleaning steps may be used in manual or automated cleaning.
 
-    Decorated clean steps should take a single argument, a TaskManager object.
+    For automated cleaning, only steps with priorities greater than 0 are
+    used. These steps are ordered by priority from highest value to lowest
+    value. For steps with the same priority, they are ordered by driver
+    interface priority (see conductor.manager.CLEANING_INTERFACE_PRIORITY).
+    execute_clean_step() will be called on each step.
 
-    Any step with this decorator will be available for ZAPPING, even if
-    priority is set to 0. Zapping steps will be executed in a similar fashion
-    to cleaning and with the same TaskManager object, but the priority ordering
-    is determined by the user when calling the zapping API.
+    For manual cleaning, the clean steps will be executed in a similar fashion
+    to automated cleaning, but the steps and order of execution must be
+    explicitly specified by the user when invoking the cleaning API.
 
-    Clean steps can be either synchronous or asynchronous. If the step is
-    synchronous, it should return `None` when finished, and the conductor will
-    continue on to the next step. If the step is asynchronous, the step should
-    return `states.CLEANWAIT` to signal to the conductor. When the step is
-    complete, the step should make an RPC call to `continue_node_clean` to move
-    to the next step in cleaning.
+    Decorated clean steps must take as the only positional argument, a
+    TaskManager object. Clean steps used in manual cleaning may also take
+    keyword variable arguments (as described in argsinfo).
 
-    Example::
+    Clean steps can be either synchronous or asynchronous.  If the step is
+    synchronous, it should return `None` when finished, and the conductor
+    will continue on to the next step. While the clean step is executing, the
+    node will be in `states.CLEANING` provision state. If the step is
+    asynchronous, the step should return `states.CLEANWAIT` to the
+    conductor before it starts the asynchronous work.  When the step is
+    complete, the step should make an RPC call to `continue_node_clean` to
+    move to the next step in cleaning. The node will be in `states.CLEANWAIT`
+    provision state during the asynchronous work.
+
+    Examples::
 
         class MyInterface(base.BaseInterface):
             # CONF.example_cleaning_priority should be an int CONF option
@@ -1006,14 +1017,28 @@ def clean_step(priority, abortable=False):
             def example_cleaning(self, task):
                 # do some cleaning
 
+            @base.clean_step(abortable=True, argsinfo=
+                             {'size': {'description': 'size of widget (MB)',
+                                       'required': True}})
+            def advanced_clean(self, task, **kwargs):
+                # do some advanced cleaning
+
     :param priority: an integer priority, should be a CONF option
     :param abortable: Boolean value. Whether the clean step is abortable
-                      or not; defaults to False.
+        or not; defaults to False.
+    :param argsinfo: a dictionary of keyword arguments where key is the name of
+        the argument and value is a dictionary as follows::
+
+            ‘description’: <description>. This should include possible values.
+            ‘required’: Boolean. True if this argument is required. If so, it
+                        must be specified in the clean request; false if it is
+                        optional.
     """
     def decorator(func):
         func._is_clean_step = True
         func._clean_step_priority = priority
         func._clean_step_abortable = abortable
+        func._clean_step_argsinfo = argsinfo
         return func
     return decorator
 
