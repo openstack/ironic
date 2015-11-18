@@ -1154,8 +1154,12 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         self.assertEqual(2, utils.get_image_mb('x', True))
 
     def test_parse_root_device_hints(self):
-        self.node.properties['root_device'] = {'wwn': 123456}
-        expected = 'wwn=123456'
+        self.node.properties['root_device'] = {
+            'wwn': 123456, 'model': 'foo-model', 'size': 123,
+            'serial': 'foo-serial', 'vendor': 'foo-vendor'
+        }
+        expected = ('model=foo-model,serial=foo-serial,size=123,'
+                    'vendor=foo-vendor,wwn=123456')
         result = utils.parse_root_device_hints(self.node)
         self.assertEqual(expected, result)
 

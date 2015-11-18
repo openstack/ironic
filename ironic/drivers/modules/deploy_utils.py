@@ -1139,7 +1139,7 @@ def parse_root_device_hints(node):
                 _('Root device hint "size" is not an integer value.'))
 
     hints = []
-    for key, value in root_device.items():
+    for key, value in sorted(root_device.items()):
         # NOTE(lucasagomes): We can't have spaces in the PXE config
         # file, so we are going to url/percent encode the value here
         # and decode on the other end.
