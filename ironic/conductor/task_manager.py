@@ -214,7 +214,8 @@ class TaskManager(object):
                 self.node.provision_state = states.AVAILABLE
                 self.node.save()
 
-            self.fsm.initialize(self.node.provision_state)
+            self.fsm.initialize(start_state=self.node.provision_state,
+                                target_state=self.node.target_provision_state)
 
         except Exception:
             with excutils.save_and_reraise_exception():
@@ -319,7 +320,7 @@ class TaskManager(object):
         self.release_resources()
 
     def process_event(self, event, callback=None, call_args=None,
-                      call_kwargs=None, err_handler=None):
+                      call_kwargs=None, err_handler=None, target_state=None):
         """Process the given event for the task's current state.
 
         :param event: the name of the event to process
@@ -330,13 +331,15 @@ class TaskManager(object):
                 callback fails, eg. because there are no workers available
                 (err_handler should accept arguments node, prev_prov_state, and
                 prev_target_state)
+        :param target_state: if specified, the target provision state for the
+               node. Otherwise, use the target state from the fsm
         :raises: InvalidState if the event is not allowed by the associated
                  state machine
         """
         # Advance the state model for the given event. Note that this doesn't
         # alter the node in any way. This may raise InvalidState, if this event
         # is not allowed in the current state.
-        self.fsm.process_event(event)
+        self.fsm.process_event(event, target_state=target_state)
 
         # stash current states in the error handler if callback is set,
         # in case we fail to get a worker from the pool

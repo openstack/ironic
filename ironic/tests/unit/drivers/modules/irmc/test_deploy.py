@@ -1404,7 +1404,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                                      _configure_vmedia_boot_mock,
                                      reboot_and_finish_deploy_mock):
         self.node.provision_state = states.DEPLOYWAIT
-        self.node.target_provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
         self.node.save()
         do_agent_iscsi_deploy_mock.return_value = {
             'root uuid': 'some-root-uuid'}
@@ -1436,7 +1436,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                                        configure_local_boot_mock,
                                        reboot_and_finish_deploy_mock):
         self.node.provision_state = states.DEPLOYWAIT
-        self.node.target_provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
         self.node.instance_info = {
             'capabilities': {'boot_option': 'local'}}
         self.node.save()
@@ -1470,7 +1470,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                                               configure_local_boot_mock,
                                               reboot_and_finish_deploy_mock):
         self.node.provision_state = states.DEPLOYWAIT
-        self.node.target_provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
         self.node.driver_internal_info = {'is_whole_disk_image': True}
         self.node.save()
         do_agent_iscsi_deploy_mock.return_value = {
@@ -1501,7 +1501,7 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                                             configure_local_boot_mock,
                                             reboot_and_finish_deploy_mock):
         self.node.provision_state = states.DEPLOYWAIT
-        self.node.target_provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
         self.node.instance_info = {
             'capabilities': {'boot_option': 'local'}}
         self.node.save()
