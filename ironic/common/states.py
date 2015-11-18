@@ -46,6 +46,7 @@ VERBS = {
     'provide': 'provide',
     'inspect': 'inspect',
     'abort': 'abort',
+    'clean': 'clean',
 }
 """ Mapping of state-changing events that are PUT to the REST API
 
@@ -298,11 +299,17 @@ machine.add_transition(CLEANING, CLEANWAIT, 'wait')
 machine.add_transition(CLEANWAIT, CLEANING, 'resume')
 
 # An operator may want to move a CLEANFAIL node to MANAGEABLE, to perform
-# other actions like zapping
+# other actions like cleaning
 machine.add_transition(CLEANFAIL, MANAGEABLE, 'manage')
 
-# From MANAGEABLE, a node may move to available after going through cleaning
+# From MANAGEABLE, a node may move to available after going through automated
+# cleaning
 machine.add_transition(MANAGEABLE, CLEANING, 'provide')
+
+# From MANAGEABLE, a node may be manually cleaned, going back to manageable
+# after cleaning is completed
+machine.add_transition(MANAGEABLE, CLEANING, 'clean')
+machine.add_transition(CLEANING, MANAGEABLE, 'manage')
 
 # From AVAILABLE, a node may be made unavailable by managing it
 machine.add_transition(AVAILABLE, MANAGEABLE, 'manage')
