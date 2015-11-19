@@ -279,10 +279,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                         http_method, info):
         """RPC method to encapsulate vendor action.
 
-        Synchronously validate driver specific info or get driver status,
-        and if successful invokes the vendor method. If the method mode
-        is 'async' the conductor will start background worker to perform
-        vendor action.
+        Synchronously validate driver specific info, and if successful invoke
+        the vendor method. If the method mode is 'async' the conductor will
+        start background worker to perform vendor action.
 
         :param context: an admin context.
         :param node_id: the id or uuid of a node.
@@ -295,7 +294,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                  vendor interface or method is unsupported.
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
-        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NodeLocked if the vendor passthru method requires an exclusive
+                 lock but the node is locked by another conductor
         :returns: A dictionary containing:
 
             :return: The response of the invoked vendor method
@@ -308,11 +308,11 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         """
         LOG.debug("RPC vendor_passthru called for node %s." % node_id)
-        # NOTE(max_lobur): Even though not all vendor_passthru calls may
-        # require an exclusive lock, we need to do so to guarantee that the
-        # state doesn't unexpectedly change between doing a vendor.validate
-        # and vendor.vendor_passthru.
-        with task_manager.acquire(context, node_id, shared=False,
+        # NOTE(mariojv): Not all vendor passthru methods require an exclusive
+        # lock on a node, so we acquire a shared lock initially. If a method
+        # requires an exclusive lock, we'll acquire one after checking
+        # vendor_opts before starting validation.
+        with task_manager.acquire(context, node_id, shared=True,
                                   purpose='calling vendor passthru') as task:
             if not getattr(task.driver, 'vendor', None):
                 raise exception.UnsupportedDriverExtension(
@@ -333,6 +333,11 @@ class ConductorManager(base_manager.BaseConductorManager):
                 raise exception.InvalidParameterValue(
                     _('The method %(method)s does not support HTTP %(http)s') %
                     {'method': driver_method, 'http': http_method})
+
+            # Change shared lock to exclusive if a vendor method requires
+            # it. Vendor methods default to requiring an exclusive lock.
+            if vendor_opts['require_exclusive_lock']:
+                task.upgrade_lock()
 
             vendor_iface.validate(task, method=driver_method,
                                   http_method=http_method, **info)

@@ -53,9 +53,10 @@ A method:
   + For synchronous methods, a 200 (OK) HTTP status code is returned to
     indicate that the request was fulfilled. The response may include a body.
 
-While performing the request, a lock is held on the node, and other
-requests for the node will be delayed and may fail with an HTTP 409
-(Conflict) error code.
+* can require an exclusive lock on the node. This only occurs if the method
+  doesn't specify require_exclusive_lock=False in the decorator. If an
+  exclusive lock is held on the node, other requests for the node will be
+  delayed and may fail with an HTTP 409 (Conflict) error code.
 
 This endpoint exposes a node's driver directly, and as such, it is
 expressly not part of Ironic's standard REST API. There is only a

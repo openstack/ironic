@@ -1,0 +1,5 @@
+---
+features:
+  - Adds the ability for node vendor passthru methods to use shared locks.
+    Default behavior of always acquiring an exclusive lock for node vendor
+    passthru methods is unchanged.

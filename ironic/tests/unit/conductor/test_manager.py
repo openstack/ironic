@@ -290,8 +290,9 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin,
 class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin,
                              tests_db_base.DbTestCase):
 
+    @mock.patch.object(task_manager.TaskManager, 'upgrade_lock')
     @mock.patch.object(task_manager.TaskManager, 'spawn_after')
-    def test_vendor_passthru_async(self, mock_spawn):
+    def test_vendor_passthru_async(self, mock_spawn, mock_upgrade):
         node = obj_utils.create_test_node(self.context, driver='fake')
         info = {'bar': 'baz'}
         self._start_service()
@@ -307,13 +308,17 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertIsNone(response['return'])
         self.assertTrue(response['async'])
 
+        # Assert lock was upgraded to an exclusive one
+        self.assertEqual(1, mock_upgrade.call_count)
+
         node.refresh()
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
 
+    @mock.patch.object(task_manager.TaskManager, 'upgrade_lock')
     @mock.patch.object(task_manager.TaskManager, 'spawn_after')
-    def test_vendor_passthru_sync(self, mock_spawn):
+    def test_vendor_passthru_sync(self, mock_spawn, mock_upgrade):
         node = obj_utils.create_test_node(self.context, driver='fake')
         info = {'bar': 'meow'}
         self._start_service()
@@ -329,9 +334,38 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertTrue(response['return'])
         self.assertFalse(response['async'])
 
+        # Assert lock was upgraded to an exclusive one
+        self.assertEqual(1, mock_upgrade.call_count)
+
         node.refresh()
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
+        self.assertIsNone(node.reservation)
+
+    @mock.patch.object(task_manager.TaskManager, 'upgrade_lock')
+    @mock.patch.object(task_manager.TaskManager, 'spawn_after')
+    def test_vendor_passthru_shared_lock(self, mock_spawn, mock_upgrade):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        info = {'bar': 'woof'}
+        self._start_service()
+
+        response = self.service.vendor_passthru(self.context, node.uuid,
+                                                'fourth_method_shared_lock',
+                                                'POST', info)
+        # Waiting to make sure the below assertions are valid.
+        self._stop_service()
+
+        # Assert spawn_after was called
+        self.assertTrue(mock_spawn.called)
+        self.assertIsNone(response['return'])
+        self.assertTrue(response['async'])
+
+        # Assert lock was never upgraded to an exclusive one
+        self.assertFalse(mock_upgrade.called)
+
+        node.refresh()
+        self.assertIsNone(node.last_error)
+        # Verify there's no reservation on the node
         self.assertIsNone(node.reservation)
 
     def test_vendor_passthru_http_method_not_supported(self):
