@@ -1360,7 +1360,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
                           tests_db_base.DbTestCase):
     def setUp(self):
         super(DoNodeCleanTestCase, self).setUp()
-        self.config(clean_nodes=True, group='conductor')
+        self.config(automated_clean=True, group='conductor')
         self.power_update = {
             'step': 'update_firmware', 'priority': 10, 'interface': 'power'}
         self.deploy_update = {
@@ -1627,7 +1627,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
     def __do_node_clean_validate_fail(self, mock_validate, clean_steps=None):
         # InvalidParameterValue should be cause node to go to CLEANFAIL
-        self.config(clean_nodes=True, group='conductor')
         mock_validate.side_effect = exception.InvalidParameterValue('error')
         tgt_prov_state = states.MANAGEABLE if clean_steps else states.AVAILABLE
         node = obj_utils.create_test_node(
@@ -1650,7 +1649,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
 
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
     def test__do_node_clean_automated_disabled(self, mock_validate):
-        self.config(clean_nodes=False, group='conductor')
+        self.config(automated_clean=False, group='conductor')
         node = obj_utils.create_test_node(
             self.context, driver='fake',
             provision_state=states.CLEANING,
@@ -1675,7 +1674,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
     def __do_node_clean_prepare_clean_fail(self, mock_prep, clean_steps=None):
         # Exception from task.driver.deploy.prepare_cleaning should cause node
         # to go to CLEANFAIL
-        self.config(clean_nodes=True, group='conductor')
         mock_prep.side_effect = exception.InvalidParameterValue('error')
         tgt_prov_state = states.MANAGEABLE if clean_steps else states.AVAILABLE
         node = obj_utils.create_test_node(
@@ -1698,7 +1696,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare_cleaning')
     def __do_node_clean_prepare_clean_wait(self, mock_prep, clean_steps=None):
-        self.config(clean_nodes=True, group='conductor')
         mock_prep.return_value = states.CLEANWAIT
         tgt_prov_state = states.MANAGEABLE if clean_steps else states.AVAILABLE
         node = obj_utils.create_test_node(
@@ -1722,7 +1719,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
     @mock.patch.object(conductor_utils, 'set_node_cleaning_steps')
     def __do_node_clean_steps_fail(self, mock_steps, clean_steps=None,
                                    invalid_exc=True):
-        self.config(clean_nodes=True, group='conductor')
         if invalid_exc:
             mock_steps.side_effect = exception.InvalidParameterValue('invalid')
         else:

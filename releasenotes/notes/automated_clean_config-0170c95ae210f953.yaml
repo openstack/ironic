@@ -1,0 +1,5 @@
+---
+deprecations:
+  - The [conductor]/clean_nodes config is deprecated and will be removed in the
+    Newton cycle. It has been replaced by the [conductor]/automated_clean
+    config.
