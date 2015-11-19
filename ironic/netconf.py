@@ -25,6 +25,7 @@ CONF = cfg.CONF
 netconf_opts = [
     cfg.StrOpt('my_ip',
                default=netutils.get_my_ipv4(),
+               sample_default='127.0.0.1',
                help=_('IP address of this host. If unset, will determine the '
                       'IP programmatically. If unable to do so, will use '
                       '"127.0.0.1".')),

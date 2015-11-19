@@ -1,0 +1,9 @@
+---
+other:
+    Adopt oslo-config-generator to generate sample config files.
+    New config options from Ironic code should register with
+    ironic/conf/opts.py. New external libraries should register
+    with tools/config/ironic-config-generator.conf.
+    A deprecated option should add a deprecated group even if it
+    didn't alter its group, otherwise the deprecated group will
+    use 'DEFAULT' by default.
