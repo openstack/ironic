@@ -21,6 +21,7 @@ from oslo_utils import fileutils
 from oslo_utils import strutils
 from six.moves.urllib import parse
 
+from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_service_utils
 from ironic.common.i18n import _
@@ -738,6 +739,8 @@ class ISCSIDeploy(base.DeployInterface):
         destroy_images(task.node.uuid)
         task.driver.boot.clean_up_ramdisk(task)
         task.driver.boot.clean_up_instance(task)
+        provider = dhcp_factory.DHCPFactory()
+        provider.clean_dhcp(task)
 
     def take_over(self, task):
         pass

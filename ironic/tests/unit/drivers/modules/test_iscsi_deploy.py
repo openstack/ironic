@@ -23,6 +23,7 @@ from oslo_config import cfg
 from oslo_utils import fileutils
 from oslo_utils import uuidutils
 
+from ironic.common import dhcp_factory
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import keystone
@@ -962,6 +963,7 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
         self.task.node = self.node
         self.task.driver = self.driver
         self.task.context = self.context
+        dhcp_factory.DHCPFactory._dhcp_provider = None
 
     def test_get_properties(self):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1035,11 +1037,14 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             node_power_action_mock.assert_called_once_with(task,
                                                            states.POWER_OFF)
 
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory._set_dhcp_provider')
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.clean_dhcp')
     @mock.patch.object(pxe.PXEBoot, 'clean_up_instance', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     @mock.patch.object(iscsi_deploy, 'destroy_images', autospec=True)
     def test_clean_up(self, destroy_images_mock, clean_up_ramdisk_mock,
-                      clean_up_instance_mock):
+                      clean_up_instance_mock, clean_dhcp_mock,
+                      set_dhcp_provider_mock):
         with task_manager.acquire(self.context,
                                   self.node.uuid, shared=False) as task:
             task.driver.deploy.clean_up(task)
@@ -1048,6 +1053,8 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                 task.driver.boot, task)
             clean_up_instance_mock.assert_called_once_with(
                 task.driver.boot, task)
+            set_dhcp_provider_mock.assert_called_once_with()
+            clean_dhcp_mock.assert_called_once_with(task)
 
     @mock.patch.object(deploy_utils, 'prepare_inband_cleaning', autospec=True)
     def test_prepare_cleaning(self, prepare_inband_cleaning_mock):
@@ -1495,11 +1502,15 @@ class CleanUpFullFlowTestCase(db_base.DbTestCase):
         os.link(self.config_path, self.mac_path)
         os.link(self.master_kernel_path, self.kernel_path)
         os.link(self.master_instance_path, self.image_path)
+        dhcp_factory.DHCPFactory._dhcp_provider = None
 
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory._set_dhcp_provider')
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.clean_dhcp')
     @mock.patch.object(pxe, '_get_instance_image_info', autospec=True)
     @mock.patch.object(pxe, '_get_deploy_image_info', autospec=True)
     def test_clean_up_with_master(self, mock_get_deploy_image_info,
-                                  mock_get_instance_image_info):
+                                  mock_get_instance_image_info,
+                                  clean_dhcp_mock, set_dhcp_provider_mock):
         image_info = {'kernel': ('kernel_uuid',
                                  self.kernel_path)}
         mock_get_instance_image_info.return_value = image_info
@@ -1511,6 +1522,8 @@ class CleanUpFullFlowTestCase(db_base.DbTestCase):
             mock_get_instance_image_info.assert_called_with(task.node,
                                                             task.context)
             mock_get_deploy_image_info.assert_called_with(task.node)
+            set_dhcp_provider_mock.assert_called_once_with()
+            clean_dhcp_mock.assert_called_once_with(task)
         for path in ([self.kernel_path, self.image_path, self.config_path]
                      + self.files):
             self.assertFalse(os.path.exists(path),

@@ -90,3 +90,12 @@ class BaseDHCP(object):
         :param task: a TaskManager instance.
         :returns: List of IP addresses associated with task.ports
         """
+
+    def clean_dhcp_opts(self, task):
+        """Clean up the DHCP BOOT options for all ports in `task`.
+
+        :param task: A TaskManager instance.
+
+        :raises: FailedToCleanDHCPOpts
+        """
+        pass

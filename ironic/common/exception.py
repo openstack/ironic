@@ -267,6 +267,10 @@ class FailedToUpdateDHCPOptOnPort(IronicException):
     _msg_fmt = _("Update DHCP options on port: %(port_id)s failed.")
 
 
+class FailedToCleanDHCPOpts(IronicException):
+    _msg_fmt = _("Clean up DHCP options on node: %(node)s failed.")
+
+
 class FailedToGetIPAddressOnPort(IronicException):
     _msg_fmt = _("Retrieve IP address on port: %(port_id)s failed.")
 

@@ -17,6 +17,7 @@ from oslo_log import log
 from oslo_utils import excutils
 from oslo_utils import units
 
+from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
@@ -266,6 +267,8 @@ class AgentDeploy(base.DeployInterface):
         """
         if CONF.agent.manage_agent_boot:
             task.driver.boot.clean_up_ramdisk(task)
+        provider = dhcp_factory.DHCPFactory()
+        provider.clean_dhcp(task)
 
     def take_over(self, task):
         """Take over management of this node from a dead conductor.
