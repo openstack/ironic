@@ -646,10 +646,18 @@ class ConductorManager(base_manager.BaseConductorManager):
                 state=node.provision_state)
         self._do_node_clean(task)
 
-    def _get_node_next_clean_steps(self, task):
+    def _get_node_next_clean_steps(self, task, skip_current_step=True):
         """Get the task's node's next clean steps.
 
+        This returns the list of remaining (ordered) clean steps to be done
+        on the node. If no clean steps have been started yet, all the clean
+        steps are returned. Otherwise, the clean steps after the current
+        clean step are returned. The current clean step is also returned if
+        'skip_current_step' is False.
+
         :param task: A TaskManager object
+        :param skip_current_step: True to skip the current clean step; False to
+                                  include it.
         :raises: NodeCleaningFailure if an internal error occurred when
                  getting the next clean steps
         :returns: ordered list of clean step dictionaries
@@ -662,9 +670,12 @@ class ConductorManager(base_manager.BaseConductorManager):
             return next_steps
 
         try:
-            # Trim off the last clean step (now finished) and
-            # all previous steps
-            next_steps = next_steps[next_steps.index(node.clean_step) + 1:]
+            # Trim off all previous steps up to (and maybe including) the
+            # current clean step.
+            ind = next_steps.index(node.clean_step)
+            if skip_current_step:
+                ind += 1
+            next_steps = next_steps[ind:]
         except ValueError:
             msg = (_('Node %(node)s got an invalid last step for '
                      '%(state)s: %(step)s.') %
@@ -782,7 +793,17 @@ class ConductorManager(base_manager.BaseConductorManager):
                      'state': node.provision_state,
                      'clean_state': states.CLEANWAIT})
 
-            next_steps = self._get_node_next_clean_steps(task)
+            info = node.driver_internal_info
+            try:
+                skip_current_step = info.pop('skip_current_clean_step')
+            except KeyError:
+                skip_current_step = True
+            else:
+                node.driver_internal_info = info
+                node.save()
+
+            next_steps = self._get_node_next_clean_steps(
+                task, skip_current_step=skip_current_step)
 
             # If this isn't the final clean step in the cleaning operation
             # and it is flagged to abort after the clean step that just
