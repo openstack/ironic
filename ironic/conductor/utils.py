@@ -175,7 +175,8 @@ def provisioning_error_handler(e, node, provision_state,
     """Set the node's provisioning states if error occurs.
 
     This hook gets called upon an exception being raised when spawning
-    the worker to do the deployment or tear down of a node.
+    the worker to do some provisioning to a node like deployment, tear down,
+    or cleaning.
 
     :param e: the exception object that was raised.
     :param node: an Ironic node object.
@@ -202,10 +203,13 @@ def provisioning_error_handler(e, node, provision_state,
 
 def cleaning_error_handler(task, msg, tear_down_cleaning=True,
                            set_fail_state=True):
-    """Put a failed node in CLEANFAIL or ZAPFAIL and maintenance."""
+    """Put a failed node in CLEANFAIL and maintenance."""
     # Reset clean step, msg should include current step
     if task.node.provision_state in (states.CLEANING, states.CLEANWAIT):
         task.node.clean_step = {}
+    # For manual cleaning, the target provision state is MANAGEABLE, whereas
+    # for automated cleaning, it is AVAILABLE.
+    manual_clean = task.node.target_provision_state == states.MANAGEABLE
     task.node.last_error = msg
     task.node.maintenance = True
     task.node.maintenance_reason = msg
@@ -219,7 +223,8 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
             LOG.exception(msg)
 
     if set_fail_state:
-        task.process_event('fail')
+        target_state = states.MANAGEABLE if manual_clean else None
+        task.process_event('fail', target_state=target_state)
 
 
 def power_state_error_handler(e, node, power_state):
@@ -253,14 +258,18 @@ def _step_key(step):
             CLEANING_INTERFACE_PRIORITY[step.get('interface')])
 
 
-def _get_cleaning_steps(task, enabled=False):
-    """Get sorted cleaning steps for task.node
+def _get_cleaning_steps(task, enabled=False, sort=True):
+    """Get cleaning steps for task.node.
 
     :param task: A TaskManager object
     :param enabled: If True, returns only enabled (priority > 0) steps. If
         False, returns all clean steps.
-    :returns: A list of clean steps dictionaries, sorted with largest priority
-        as the first item
+    :param sort: If True, the steps are sorted from highest priority to lowest
+        priority. For steps having the same priority, they are sorted from
+        highest interface priority to lowest.
+    :raises: NodeCleaningFailure if there was a problem getting the
+        clean steps.
+    :returns: A list of clean step dictionaries
     """
     # Iterate interfaces and get clean steps from each
     steps = list()
@@ -270,17 +279,120 @@ def _get_cleaning_steps(task, enabled=False):
             interface_steps = [x for x in interface.get_clean_steps(task)
                                if not enabled or x['priority'] > 0]
             steps.extend(interface_steps)
-    # Sort the steps from higher priority to lower priority
-    return sorted(steps, key=_step_key, reverse=True)
+    if sort:
+        # Sort the steps from higher priority to lower priority
+        steps = sorted(steps, key=_step_key, reverse=True)
+    return steps
 
 
 def set_node_cleaning_steps(task):
-    """Get the list of clean steps, save them to the node."""
-    # Get the prioritized steps, store them.
+    """Set up the node with clean step information for cleaning.
+
+    For automated cleaning, get the clean steps from the driver.
+    For manual cleaning, the user's clean steps are known but need to be
+    validated against the driver's clean steps.
+
+    :raises: InvalidParameterValue if there is a problem with the user's
+             clean steps.
+    :raises: NodeCleaningFailure if there was a problem getting the
+             clean steps.
+    """
     node = task.node
-    driver_internal_info = node.driver_internal_info
-    driver_internal_info['clean_steps'] = _get_cleaning_steps(task,
-                                                              enabled=True)
-    node.driver_internal_info = driver_internal_info
+    # For manual cleaning, the target provision state is MANAGEABLE, whereas
+    # for automated cleaning, it is AVAILABLE.
+    manual_clean = node.target_provision_state == states.MANAGEABLE
+
+    if not manual_clean:
+        # Get the prioritized steps for automated cleaning
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info['clean_steps'] = _get_cleaning_steps(task,
+                                                                  enabled=True)
+        node.driver_internal_info = driver_internal_info
+    else:
+        # For manual cleaning, the list of cleaning steps was specified by the
+        # user and already saved in node.driver_internal_info['clean_steps'].
+        # Now that we know what the driver's available clean steps are, we can
+        # do further checks to validate the user's clean steps.
+        steps = node.driver_internal_info['clean_steps']
+        _validate_user_clean_steps(task, steps)
+
     node.clean_step = {}
     node.save()
+
+
+def _validate_user_clean_steps(task, user_steps):
+    """Validate the user-specified clean steps.
+
+    :param task: A TaskManager object
+    :param user_steps: a list of clean steps. A clean step is a dictionary
+        with required keys 'interface' and 'step', and optional key 'args'::
+
+              { 'interface': <driver_interface>,
+                'step': <name_of_clean_step>,
+                'args': {<arg1>: <value1>, ..., <argn>: <valuen>} }
+
+            For example::
+
+              { 'interface': deploy',
+                'step': 'upgrade_firmware',
+                'args': {'force': True} }
+    :raises: InvalidParameterValue if validation of clean steps fails.
+    :raises: NodeCleaningFailure if there was a problem getting the
+        clean steps from the driver.
+    """
+
+    def step_id(step):
+        return '.'.join([step['step'], step['interface']])
+
+    errors = []
+
+    # The clean steps from the driver. A clean step dictionary is of the form:
+    #   { 'interface': <driver_interface>,
+    #      'step': <name_of_clean_step>,
+    #      'priority': <integer>
+    #      'abortable': Optional. <Boolean>.
+    #      'argsinfo': Optional. A dictionary of {<arg_name>:<arg_info_dict>}
+    #                  entries. <arg_info_dict> is a dictionary with
+    #                  { 'description': <description>,
+    #                    'required': <Boolean> }
+    #   }
+    driver_steps = {}
+    for s in _get_cleaning_steps(task, enabled=False, sort=False):
+        driver_steps[step_id(s)] = s
+
+    for user_step in user_steps:
+        # Check if this user_specified clean step isn't supported by the driver
+        try:
+            driver_step = driver_steps[step_id(user_step)]
+        except KeyError:
+            error = (_('node does not support this clean step: %(step)s')
+                     % {'step': user_step})
+            errors.append(error)
+            continue
+
+        # Check that the user-specified arguments are valid
+        argsinfo = driver_step.get('argsinfo') or {}
+        user_args = user_step.get('args') or {}
+        invalid = set(user_args) - set(argsinfo)
+        if invalid:
+            error = _('clean step %(step)s has these invalid arguments: '
+                      '%(invalid)s') % {'step': user_step,
+                                        'invalid': ', '.join(invalid)}
+            errors.append(error)
+
+        # Check that all required arguments were specified by the user
+        missing = []
+        for (arg_name, arg_info) in argsinfo.items():
+            if arg_info.get('required', False) and arg_name not in user_args:
+                msg = arg_name
+                if arg_info.get('description'):
+                    msg += ' (%(desc)s)' % {'desc': arg_info['description']}
+                missing.append(msg)
+        if missing:
+            error = _('clean step %(step)s is missing these required keyword '
+                      'arguments: %(miss)s') % {'step': user_step,
+                                                'miss': ', '.join(missing)}
+            errors.append(error)
+
+    if errors:
+        raise exception.InvalidParameterValue('; '.join(errors))

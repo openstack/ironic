@@ -346,10 +346,14 @@ class NodeCleaningStepsTestCase(base.DbTestCase):
             'step': 'update_firmware', 'priority': 10, 'interface': 'deploy'}
         self.deploy_erase = {
             'step': 'erase_disks', 'priority': 20, 'interface': 'deploy'}
+        # Automated cleaning should be executed in this order
         self.clean_steps = [self.deploy_erase, self.power_update,
                             self.deploy_update]
+        # Manual clean step
         self.deploy_raid = {
-            'step': 'build_raid', 'priority': 0, 'interface': 'deploy'}
+            'step': 'build_raid', 'priority': 0, 'interface': 'deploy',
+            'argsinfo': {'arg1': {'description': 'desc1', 'required': True},
+                         'arg2': {'description': 'desc2'}}}
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps')
     @mock.patch('ironic.drivers.modules.fake.FakePower.get_clean_steps')
@@ -366,10 +370,28 @@ class NodeCleaningStepsTestCase(base.DbTestCase):
                                           self.deploy_update]
 
         with task_manager.acquire(
-                self.context, node['id'], shared=False) as task:
+                self.context, node.uuid, shared=False) as task:
             steps = conductor_utils._get_cleaning_steps(task, enabled=False)
 
         self.assertEqual(self.clean_steps, steps)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps')
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_clean_steps')
+    def test__get_cleaning_steps_unsorted(self, mock_power_steps,
+                                          mock_deploy_steps):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.CLEANING,
+            target_provision_state=states.MANAGEABLE)
+
+        mock_deploy_steps.return_value = [self.deploy_raid,
+                                          self.deploy_update,
+                                          self.deploy_erase]
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            steps = conductor_utils._get_cleaning_steps(task, enabled=False,
+                                                        sort=False)
+        self.assertEqual(mock_deploy_steps.return_value, steps)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps')
     @mock.patch('ironic.drivers.modules.fake.FakePower.get_clean_steps')
@@ -377,7 +399,7 @@ class NodeCleaningStepsTestCase(base.DbTestCase):
                                               mock_deploy_steps):
         # Test getting only cleaning steps, with one driver returning None, two
         # conflicting priorities, and asserting they are ordered properly.
-        # Should discard zap step
+        # Should discard zero-priority (manual) clean step
         node = obj_utils.create_test_node(
             self.context, driver='fake',
             provision_state=states.CLEANING,
@@ -389,13 +411,15 @@ class NodeCleaningStepsTestCase(base.DbTestCase):
                                           self.deploy_raid]
 
         with task_manager.acquire(
-                self.context, node['id'], shared=True) as task:
+                self.context, node.uuid, shared=True) as task:
             steps = conductor_utils._get_cleaning_steps(task, enabled=True)
 
         self.assertEqual(self.clean_steps, steps)
 
+    @mock.patch.object(conductor_utils, '_validate_user_clean_steps')
     @mock.patch.object(conductor_utils, '_get_cleaning_steps')
-    def test_set_node_cleaning_steps(self, mock_steps):
+    def test_set_node_cleaning_steps_automated(self, mock_steps,
+                                               mock_validate_user_steps):
         mock_steps.return_value = self.clean_steps
 
         node = obj_utils.create_test_node(
@@ -406,9 +430,111 @@ class NodeCleaningStepsTestCase(base.DbTestCase):
             clean_step=None)
 
         with task_manager.acquire(
-                self.context, node['id'], shared=False) as task:
+                self.context, node.uuid, shared=False) as task:
             conductor_utils.set_node_cleaning_steps(task)
             node.refresh()
             self.assertEqual(self.clean_steps,
                              task.node.driver_internal_info['clean_steps'])
             self.assertEqual({}, node.clean_step)
+            mock_steps.assert_called_once_with(task, enabled=True)
+            self.assertFalse(mock_validate_user_steps.called)
+
+    @mock.patch.object(conductor_utils, '_validate_user_clean_steps')
+    @mock.patch.object(conductor_utils, '_get_cleaning_steps')
+    def test_set_node_cleaning_steps_manual(self, mock_steps,
+                                            mock_validate_user_steps):
+        clean_steps = [self.deploy_raid]
+        mock_steps.return_value = self.clean_steps
+
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.CLEANING,
+            target_provision_state=states.MANAGEABLE,
+            last_error=None,
+            clean_step=None,
+            driver_internal_info={'clean_steps': clean_steps})
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            conductor_utils.set_node_cleaning_steps(task)
+            node.refresh()
+            self.assertEqual(clean_steps,
+                             task.node.driver_internal_info['clean_steps'])
+            self.assertEqual({}, node.clean_step)
+            self.assertFalse(mock_steps.called)
+            mock_validate_user_steps.assert_called_once_with(task, clean_steps)
+
+    @mock.patch.object(conductor_utils, '_get_cleaning_steps')
+    def test__validate_user_clean_steps(self, mock_steps):
+        node = obj_utils.create_test_node(self.context)
+        mock_steps.return_value = self.clean_steps
+
+        user_steps = [{'step': 'update_firmware', 'interface': 'power'},
+                      {'step': 'erase_disks', 'interface': 'deploy'}]
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            conductor_utils._validate_user_clean_steps(task, user_steps)
+            mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+    @mock.patch.object(conductor_utils, '_get_cleaning_steps')
+    def test__validate_user_clean_steps_no_steps(self, mock_steps):
+        node = obj_utils.create_test_node(self.context)
+        mock_steps.return_value = self.clean_steps
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            conductor_utils._validate_user_clean_steps(task, [])
+            mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+    @mock.patch.object(conductor_utils, '_get_cleaning_steps')
+    def test__validate_user_clean_steps_get_steps_exception(self, mock_steps):
+        node = obj_utils.create_test_node(self.context)
+        mock_steps.side_effect = exception.NodeCleaningFailure('bad')
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            self.assertRaises(exception.NodeCleaningFailure,
+                              conductor_utils._validate_user_clean_steps,
+                              task, [])
+            mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+    @mock.patch.object(conductor_utils, '_get_cleaning_steps')
+    def test__validate_user_clean_steps_not_supported(self, mock_steps):
+        node = obj_utils.create_test_node(self.context)
+        mock_steps.return_value = [self.power_update, self.deploy_raid]
+        user_steps = [{'step': 'update_firmware', 'interface': 'power'},
+                      {'step': 'bad_step', 'interface': 'deploy'}]
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            self.assertRaisesRegexp(exception.InvalidParameterValue,
+                                    "does not support.*bad_step",
+                                    conductor_utils._validate_user_clean_steps,
+                                    task, user_steps)
+            mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+    @mock.patch.object(conductor_utils, '_get_cleaning_steps')
+    def test__validate_user_clean_steps_invalid_arg(self, mock_steps):
+        node = obj_utils.create_test_node(self.context)
+        mock_steps.return_value = self.clean_steps
+        user_steps = [{'step': 'update_firmware', 'interface': 'power',
+                       'args': {'arg1': 'val1', 'arg2': 'val2'}},
+                      {'step': 'erase_disks', 'interface': 'deploy'}]
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            self.assertRaisesRegexp(exception.InvalidParameterValue,
+                                    "update_firmware.*invalid.*arg1",
+                                    conductor_utils._validate_user_clean_steps,
+                                    task, user_steps)
+            mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+    @mock.patch.object(conductor_utils, '_get_cleaning_steps')
+    def test__validate_user_clean_steps_missing_required_arg(self, mock_steps):
+        node = obj_utils.create_test_node(self.context)
+        mock_steps.return_value = [self.power_update, self.deploy_raid]
+        user_steps = [{'step': 'update_firmware', 'interface': 'power'},
+                      {'step': 'build_raid', 'interface': 'deploy'}]
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            self.assertRaisesRegexp(exception.InvalidParameterValue,
+                                    "build_raid.*missing.*arg1",
+                                    conductor_utils._validate_user_clean_steps,
+                                    task, user_steps)
+            mock_steps.assert_called_once_with(task, enabled=False, sort=False)
