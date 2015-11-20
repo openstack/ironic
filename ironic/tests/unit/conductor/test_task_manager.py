@@ -462,7 +462,9 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
         t = task_manager.TaskManager('fake', 'fake')
         copy_mock.assert_called_once_with()
         self.assertIs(m, t.fsm)
-        m.initialize.assert_called_once_with(self.node.provision_state)
+        m.initialize.assert_called_once_with(
+            start_state=self.node.provision_state,
+            target_state=self.node.target_provision_state)
 
 
 class TaskManagerStateModelTestCases(tests_base.TestCase):
@@ -508,7 +510,8 @@ class TaskManagerStateModelTestCases(tests_base.TestCase):
         self.task.process_event(
             self.task, 'fake', callback=cb, call_args=[arg],
             call_kwargs={'mock': kwarg})
-        self.fsm.process_event.assert_called_once_with('fake')
+        self.fsm.process_event.assert_called_once_with('fake',
+                                                       target_state=None)
         self.task.spawn_after.assert_called_with(cb, arg, mock=kwarg)
         self.assertEqual(1, self.task.node.save.call_count)
         self.assertIsNone(self.node.last_error)
@@ -530,10 +533,27 @@ class TaskManagerStateModelTestCases(tests_base.TestCase):
 
         self.task.set_spawn_error_hook.assert_called_once_with(
             er, self.node, provision_state, target_provision_state)
-        self.fsm.process_event.assert_called_once_with('fake')
+        self.fsm.process_event.assert_called_once_with('fake',
+                                                       target_state=None)
         self.task.spawn_after.assert_called_with(cb, arg, mock=kwarg)
         self.assertEqual(1, self.task.node.save.call_count)
         self.assertIsNone(self.node.last_error)
+        self.assertNotEqual(provision_state, self.node.provision_state)
+        self.assertNotEqual(target_provision_state,
+                            self.node.target_provision_state)
+
+    def test_process_event_sets_target_state(self):
+        event = 'fake'
+        tgt_state = 'target'
+        provision_state = 'provision_state'
+        target_provision_state = 'target_provision_state'
+        self.node.provision_state = provision_state
+        self.node.target_provision_state = target_provision_state
+        self.task.process_event = task_manager.TaskManager.process_event
+        self.task.process_event(self.task, event, target_state=tgt_state)
+        self.fsm.process_event.assert_called_once_with(event,
+                                                       target_state=tgt_state)
+        self.assertEqual(1, self.task.node.save.call_count)
         self.assertNotEqual(provision_state, self.node.provision_state)
         self.assertNotEqual(target_provision_state,
                             self.node.target_provision_state)

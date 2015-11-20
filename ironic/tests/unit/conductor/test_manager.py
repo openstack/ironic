@@ -1488,7 +1488,7 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
     def test_do_provisioning_action_worker_pool_full(self, mock_spawn):
         prv_state = states.MANAGEABLE
-        tgt_prv_state = states.CLEANING
+        tgt_prv_state = states.NOSTATE
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           provision_state=prv_state,
                                           target_provision_state=tgt_prv_state,

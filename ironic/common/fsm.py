@@ -61,8 +61,6 @@ class FSM(machines.FiniteMachine):
 
     add_transition = _translate_excp(machines.FiniteMachine.add_transition)
 
-    process_event = _translate_excp(machines.FiniteMachine.process_event)
-
     @property
     def target_state(self):
         return self._target_state
@@ -81,13 +79,7 @@ class FSM(machines.FiniteMachine):
 
         Further arguments are interpreted as for parent method ``add_state``.
         """
-        if target is not None:
-            if target not in self._states:
-                raise excp.InvalidState(
-                    _("Target state '%s' does not exist") % target)
-            if not self._states[target]['stable']:
-                raise excp.InvalidState(
-                    _("Target state '%s' is not a 'stable' state") % target)
+        self._validate_target_state(target)
         super(FSM, self).add_state(state, terminal=terminal,
                                    on_enter=on_enter, on_exit=on_exit)
         self._states[state].update({
@@ -104,8 +96,52 @@ class FSM(machines.FiniteMachine):
         if self._states[self._current.name]['target'] is not None:
             self._target_state = self._states[self._current.name]['target']
 
+    def _validate_target_state(self, target):
+        """Validate the target state.
+
+        A target state must be a valid state that is 'stable'.
+
+        :param target: The target state
+        :raises: exception.InvalidState if it is an invalid target state
+        """
+        if target is None:
+            return
+
+        if target not in self._states:
+            raise excp.InvalidState(
+                _("Target state '%s' does not exist") % target)
+        if not self._states[target]['stable']:
+            raise excp.InvalidState(
+                _("Target state '%s' is not a 'stable' state") % target)
+
     @_translate_excp
-    def initialize(self, start_state=None):
+    def initialize(self, start_state=None, target_state=None):
+        """Initialize the FSM.
+
+        :param start_state: the FSM is initialized to start from this state
+        :param target_state: if specified, the FSM is initialized to this
+                             target state. Otherwise use the default target
+                             state
+        """
         super(FSM, self).initialize(start_state=start_state)
         current_state = self._current.name
-        self._target_state = self._states[current_state]['target']
+        self._validate_target_state(target_state)
+        self._target_state = (target_state or
+                              self._states[current_state]['target'])
+
+    @_translate_excp
+    def process_event(self, event, target_state=None):
+        """process the event.
+
+        :param event: the event to be processed
+        :param target_state: if specified, the 'final' target state for the
+                             event. Otherwise, use the default target state
+        """
+        super(FSM, self).process_event(event)
+        if target_state:
+            # NOTE(rloo): _post_process_event() was invoked at the end of
+            #             the above super().process_event() call. At this
+            #             point, the default target state is being used but
+            #             we want to use the specified state instead.
+            self._validate_target_state(target_state)
+            self._target_state = target_state
