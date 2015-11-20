@@ -24,19 +24,10 @@ from ironic.conductor import task_manager
 from ironic.drivers.modules.oneview import common
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
+from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 oneview_states = importutils.try_import('oneview_client.states')
-
-PROPERTIES_DICT = {"cpu_arch": "x86_64",
-                   "cpus": "8",
-                   "local_gb": "10",
-                   "memory_mb": "4096",
-                   "capabilities": "server_hardware_type_uri:fake_sht_uri,"
-                                   "enclosure_group_uri:fake_eg_uri"}
-
-DRIVER_INFO_DICT = {'server_hardware_uri': 'fake_sh_uri',
-                    'server_profile_template_uri': 'fake_spt_uri'}
 
 
 class OneViewCommonTestCase(db_base.DbTestCase):
@@ -44,8 +35,9 @@ class OneViewCommonTestCase(db_base.DbTestCase):
     def setUp(self):
         super(OneViewCommonTestCase, self).setUp()
         self.node = obj_utils.create_test_node(
-            self.context, driver='fake_oneview', properties=PROPERTIES_DICT,
-            driver_info=DRIVER_INFO_DICT,
+            self.context, driver='fake_oneview',
+            properties=db_utils.get_test_oneview_properties(),
+            driver_info=db_utils.get_test_oneview_driver_info(),
         )
         self.config(manager_url='https://1.2.3.4', group='oneview')
         self.config(username='user', group='oneview')
@@ -61,7 +53,8 @@ class OneViewCommonTestCase(db_base.DbTestCase):
             "cpus": "8",
             "local_gb": "10",
             "memory_mb": "4096",
-            "capabilities": "enclosure_group_uri:fake_eg_uri"
+            "capabilities": ("enclosure_group_uri:fake_eg_uri,"
+                             "server_profile_template_uri:fake_spt_uri")
         }
 
         exc = self.assertRaises(
@@ -75,9 +68,7 @@ class OneViewCommonTestCase(db_base.DbTestCase):
                          str(exc))
 
     def test_verify_node_info_missing_node_driver_info(self):
-        self.node.driver_info = {
-            'server_hardware_uri': 'fake_sh_uri'
-        }
+        self.node.driver_info = {}
 
         exc = self.assertRaises(
             exception.MissingParameterValue,
@@ -85,8 +76,26 @@ class OneViewCommonTestCase(db_base.DbTestCase):
             self.node
         )
         self.assertEqual("Missing the keys for the following OneView data in "
-                         "node's driver_info: server_profile_template_uri.",
+                         "node's driver_info: server_hardware_uri.",
                          str(exc))
+
+    def test_verify_node_info_missing_spt(self):
+        properties = db_utils.get_test_oneview_properties()
+        properties["capabilities"] = ("server_hardware_type_uri:fake_sht_uri,"
+                                      "enclosure_group_uri:fake_eg_uri")
+
+        self.node.properties = properties
+
+        exc = self.assertRaises(
+            exception.MissingParameterValue,
+            common.verify_node_info,
+            self.node
+        )
+        # TODO(gabriel-bezerra): Simplify this after Mitaka
+        self.assertEqual(
+            ("Missing 'server_profile_template_uri' parameter value in "
+             "properties/capabilities"),
+            str(exc))
 
     def test_get_oneview_info(self):
         complete_node = self.node
@@ -101,6 +110,93 @@ class OneViewCommonTestCase(db_base.DbTestCase):
             expected_node_info,
             common.get_oneview_info(complete_node)
         )
+
+    def test_get_oneview_info_missing_spt(self):
+        driver_info = db_utils.get_test_oneview_driver_info()
+
+        properties = db_utils.get_test_oneview_properties()
+        properties["capabilities"] = ("server_hardware_type_uri:fake_sht_uri,"
+                                      "enclosure_group_uri:fake_eg_uri")
+
+        self.node.driver_info = driver_info
+        self.node.properties = properties
+
+        incomplete_node = self.node
+        expected_node_info = {
+            'server_hardware_uri': 'fake_sh_uri',
+            'server_hardware_type_uri': 'fake_sht_uri',
+            'enclosure_group_uri': 'fake_eg_uri',
+            'server_profile_template_uri': None,
+        }
+
+        self.assertEqual(
+            expected_node_info,
+            common.get_oneview_info(incomplete_node)
+        )
+
+    # TODO(gabriel-bezerra): Remove this after Mitaka
+    @mock.patch.object(common, 'LOG', autospec=True)
+    def test_deprecated_spt_in_driver_info(self, log_mock):
+        # the current model has server_profile_template_uri in
+        # properties/capabilities instead of driver_info
+
+        driver_info = db_utils.get_test_oneview_driver_info()
+        driver_info['server_profile_template_uri'] = 'fake_spt_uri'
+
+        properties = db_utils.get_test_oneview_properties()
+        properties["capabilities"] = ("server_hardware_type_uri:fake_sht_uri,"
+                                      "enclosure_group_uri:fake_eg_uri")
+
+        self.node.driver_info = driver_info
+        self.node.properties = properties
+
+        deprecated_node = self.node
+        expected_node_info = {
+            'server_hardware_uri': 'fake_sh_uri',
+            'server_hardware_type_uri': 'fake_sht_uri',
+            'enclosure_group_uri': 'fake_eg_uri',
+            'server_profile_template_uri': 'fake_spt_uri',
+        }
+
+        self.assertEqual(
+            expected_node_info,
+            common.get_oneview_info(deprecated_node)
+        )
+
+        # must be valid
+        common.verify_node_info(deprecated_node)
+
+        log_mock.warning.assert_called_once_with(
+            "Using 'server_profile_template_uri' in driver_info is "
+            "now deprecated and will be ignored in future releases. "
+            "Node %s should have it in its properties/capabilities "
+            "instead.",
+            self.node.uuid
+        )
+
+    # TODO(gabriel-bezerra): Remove this after Mitaka
+    def test_deprecated_spt_in_driver_info_and_in_capabilites(self):
+        # information in capabilities precedes driver_info
+        driver_info = db_utils.get_test_oneview_driver_info()
+        driver_info['server_profile_template_uri'] = 'unused_fake_spt_uri'
+
+        self.node.driver_info = driver_info
+
+        deprecated_node = self.node
+        expected_node_info = {
+            'server_hardware_uri': 'fake_sh_uri',
+            'server_hardware_type_uri': 'fake_sht_uri',
+            'enclosure_group_uri': 'fake_eg_uri',
+            'server_profile_template_uri': 'fake_spt_uri',
+        }
+
+        self.assertEqual(
+            expected_node_info,
+            common.get_oneview_info(deprecated_node)
+        )
+
+        # must be valid
+        common.verify_node_info(deprecated_node)
 
     def test__verify_node_info(self):
         common._verify_node_info("properties",

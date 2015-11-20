@@ -174,13 +174,13 @@ etc. In this case, to be enrolled, the node must have the following parameters:
 * In ``driver_info``
 
   - ``server_hardware_uri``: URI of the Server Hardware on OneView.
-  - ``server_profile_template_uri``: URI of the Server Profile Template used
-    to create the Server Profile of the Server Hardware.
 
 * In ``properties/capabilities``
 
   - ``server_hardware_type_uri``: URI of the Server Hardware Type of the
     Server Hardware.
+  - ``server_profile_template_uri``: URI of the Server Profile Template used
+    to create the Server Profile of the Server Hardware.
   - ``enclosure_group_uri`` (optional): URI of the Enclosure Group of the
     Server Hardware.
 
@@ -191,14 +191,13 @@ To enroll a node with any of the OneView drivers, do::
 To update the ``driver_info`` field of a newly enrolled OneView node, do::
 
   $ ironic node-update $NODE_UUID add \
-    driver_info/server_hardware_uri=$SH_URI \
-    driver_info/server_profile_template_uri=$SPT_URI
+    driver_info/server_hardware_uri=$SH_URI
 
 To update the ``properties/capabilities`` namespace of a newly enrolled
 OneView node, do::
 
   $ ironic node-update $NODE_UUID add \
-    properties/capabilities=server_hardware_type_uri:$SHT_URI,enclosure_group_uri:$EG_URI
+    properties/capabilities=server_hardware_type_uri:$SHT_URI,enclosure_group_uri:$EG_URI,server_profile_template_uri=$SPT_URI
 
 In order to deploy, a Server Profile consistent with the Server Profile
 Template of the node MUST be applied to the Server Hardware it represents.
