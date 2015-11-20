@@ -1593,6 +1593,8 @@ class DoNodeDeployTearDownTestCase(_ServiceSetUpMixin,
             tear_mock.assert_called_once_with(task.driver.deploy, task)
             if step_name:
                 self.assertIn(step_name, task.node.last_error)
+            # assert node's clean_step was cleaned up
+            self.assertEqual({}, task.node.clean_step)
 
     def test__do_node_clean_abort(self):
         self._test__do_node_clean_abort(None)

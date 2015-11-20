@@ -1127,6 +1127,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
             info_message += msg
 
         node.last_error = last_error
+        node.clean_step = None
         node.save()
         LOG.info(info_message)
 
