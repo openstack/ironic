@@ -128,7 +128,7 @@ def _parse_driver_info(node):
     port = info.get('seamicro_terminal_port')
 
     if port is not None:
-        port = utils.validate_network_port(port)
+        port = utils.validate_network_port(port, 'seamicro_terminal_port')
 
     r = re.compile(r"(^[0-9]+)/([0-9]+$)")
     if not r.match(server_id):

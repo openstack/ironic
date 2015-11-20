@@ -274,7 +274,7 @@ def _parse_driver_info(node):
             {'version': protocol_version, 'valid_versions': valid_versions})
 
     if port is not None:
-        port = utils.validate_network_port(port)
+        port = utils.validate_network_port(port, 'ipmi_terminal_port')
 
     # check if ipmi_bridging has proper value
     if bridging_type == 'no':

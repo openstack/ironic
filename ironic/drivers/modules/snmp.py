@@ -40,6 +40,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LW
 from ironic.common import states
+from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers import base
 
@@ -603,11 +604,8 @@ def _parse_driver_info(node):
 
     # In absence of a configured UDP port, default to the standard port
     port_str = info.get('snmp_port', SNMP_PORT)
-    try:
-        snmp_info['port'] = int(port_str)
-    except ValueError:
-        raise exception.InvalidParameterValue(_(
-            "SNMPPowerDriver: SNMP UDP port must be numeric: %s") % port_str)
+    snmp_info['port'] = utils.validate_network_port(port_str, 'snmp_port')
+
     if snmp_info['port'] < 1 or snmp_info['port'] > 65535:
         raise exception.InvalidParameterValue(_(
             "SNMPPowerDriver: SNMP UDP port out of range: %d")

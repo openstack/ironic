@@ -690,20 +690,23 @@ def unix_file_modification_datetime(file_name):
     )
 
 
-def validate_network_port(port):
+def validate_network_port(port, port_name="Port"):
     """Validates the given port.
 
     :param port: TCP/UDP port.
+    :param port_name: Name of the port.
+    :returns: An integer port number.
     :raises: InvalidParameterValue, if the port is invalid.
     """
-
     try:
         port = int(port)
     except ValueError:
         raise exception.InvalidParameterValue(_(
-            'Port number "%s" is not a valid integer.') % port)
+            '%(port_name)s "%(port)s" is not a valid integer.') %
+            {'port_name': port_name, 'port': port})
     if port < 1 or port > 65535:
         raise exception.InvalidParameterValue(_(
-            'Port number "%s" is out of range. Valid port '
-            'numbers must be between 1 and 65535.') % port)
+            '%(port_name)s "%(port)s" is out of range. Valid port '
+            'numbers must be between 1 and 65535.') %
+            {'port_name': port_name, 'port': port})
     return port

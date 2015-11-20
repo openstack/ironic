@@ -27,6 +27,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LI
 from ironic.common import states
+from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers import base
 
@@ -85,11 +86,7 @@ def _parse_parameters(task):
     driver_info = task.node.driver_info
     host = driver_info.get('wol_host', '255.255.255.255')
     port = driver_info.get('wol_port', 9)
-    try:
-        port = int(port)
-    except ValueError:
-        raise exception.InvalidParameterValue(_(
-            'Wake-On-Lan port must be an integer'))
+    port = utils.validate_network_port(port, 'wol_port')
 
     if len(task.ports) < 1:
         raise exception.MissingParameterValue(_(

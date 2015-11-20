@@ -23,6 +23,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common import states
+from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers import base
 
@@ -117,11 +118,8 @@ def _parse_driver_info(node):
             d_info_param_name = _strip_virtualbox_from_param_name(param)
             d_info[d_info_param_name] = info[param]
 
-    try:
-        d_info['port'] = int(d_info.get('port', CONF.virtualbox.port))
-    except ValueError:
-        msg = _("'virtualbox_port' is not an integer.")
-        raise exception.InvalidParameterValue(msg)
+    port = d_info.get('port', CONF.virtualbox.port)
+    d_info['port'] = utils.validate_network_port(port, 'virtualbox_port')
 
     return d_info
 
