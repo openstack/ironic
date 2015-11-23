@@ -104,6 +104,7 @@ class FakeSSHDriver(base.BaseDriver):
         self.power = ssh.SSHPower()
         self.deploy = fake.FakeDeploy()
         self.management = ssh.SSHManagement()
+        self.console = ssh.ShellinaboxConsole()
 
 
 class FakeIPMINativeDriver(base.BaseDriver):

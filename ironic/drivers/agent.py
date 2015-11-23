@@ -121,6 +121,7 @@ class AgentAndSSHDriver(base.BaseDriver):
         self.raid = agent.AgentRAID()
         self.inspect = inspector.Inspector.create_if_enabled(
             'AgentAndSSHDriver')
+        self.console = ssh.ShellinaboxConsole()
 
 
 class AgentAndVirtualBoxDriver(base.BaseDriver):
