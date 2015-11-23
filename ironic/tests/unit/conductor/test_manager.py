@@ -2064,6 +2064,20 @@ class DoNodeCleanTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
             steps = self.service._get_node_next_clean_steps(task)
             self.assertEqual(self.next_clean_steps, steps)
 
+    def test__get_node_next_clean_steps_unset_clean_step(self):
+        driver_internal_info = {'clean_steps': self.clean_steps}
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.CLEANWAIT,
+            target_provision_state=states.AVAILABLE,
+            driver_internal_info=driver_internal_info,
+            last_error=None,
+            clean_step=None)
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            steps = self.service._get_node_next_clean_steps(task)
+            self.assertEqual(self.clean_steps, steps)
+
     def test__get_node_next_clean_steps_bad_clean_step(self):
         driver_internal_info = {'clean_steps': self.clean_steps}
         node = obj_utils.create_test_node(
