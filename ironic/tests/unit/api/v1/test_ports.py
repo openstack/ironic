@@ -562,6 +562,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
+        self.assertIn('mandatory attribute', response.json['error_message'])
         self.assertFalse(mock_upd.called)
 
     def test_add_root(self, mock_upd):

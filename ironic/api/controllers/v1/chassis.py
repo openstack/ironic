@@ -36,10 +36,6 @@ from ironic import objects
 _DEFAULT_RETURN_FIELDS = ('uuid', 'description')
 
 
-class ChassisPatchType(types.JsonPatchType):
-    pass
-
-
 class Chassis(base.APIBase):
     """API representation of a chassis.
 
@@ -120,6 +116,11 @@ class Chassis(base.APIBase):
         fields = None if expand else _DEFAULT_RETURN_FIELDS
         return cls._convert_with_links(sample, 'http://localhost:6385',
                                        fields=fields)
+
+
+class ChassisPatchType(types.JsonPatchType):
+
+    _api_base = Chassis
 
 
 class ChassisCollection(collection.Collection):

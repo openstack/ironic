@@ -88,12 +88,15 @@ class TestUuidOrNameType(base.TestCase):
                           types.UuidOrNameType.validate, 'inval#uuid%or*name')
 
 
+class MyBaseType(object):
+    """Helper class, patched by objects of type MyPatchType"""
+    mandatory = wsme.wsattr(wtypes.text, mandatory=True)
+
+
 class MyPatchType(types.JsonPatchType):
     """Helper class for TestJsonPatchType tests."""
-
-    @staticmethod
-    def mandatory_attrs():
-        return ['/mandatory']
+    _api_base = MyBaseType
+    _extra_non_removable_attrs = {'/non_removable'}
 
     @staticmethod
     def internal_attrs():
@@ -158,6 +161,12 @@ class TestJsonPatchType(base.TestCase):
 
     def test_cannot_remove_mandatory_attr(self):
         patch = [{'op': 'remove', 'path': '/mandatory'}]
+        ret = self._patch_json(patch, True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
+        self.assertTrue(ret.json['faultstring'])
+
+    def test_cannot_remove_extra_non_removable_attr(self):
+        patch = [{'op': 'remove', 'path': '/non_removable'}]
         ret = self._patch_json(patch, True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
         self.assertTrue(ret.json['faultstring'])

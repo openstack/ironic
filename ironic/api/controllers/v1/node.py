@@ -110,26 +110,6 @@ def check_allow_management_verbs(verb):
         raise exception.NotAcceptable()
 
 
-class NodePatchType(types.JsonPatchType):
-
-    @staticmethod
-    def internal_attrs():
-        defaults = types.JsonPatchType.internal_attrs()
-        # TODO(lucasagomes): Include maintenance once the endpoint
-        # v1/nodes/<uuid>/maintenance do more things than updating the DB.
-        return defaults + ['/console_enabled', '/last_error',
-                           '/power_state', '/provision_state', '/reservation',
-                           '/target_power_state', '/target_provision_state',
-                           '/provision_updated_at', '/maintenance_reason',
-                           '/driver_internal_info', '/inspection_finished_at',
-                           '/inspection_started_at', '/clean_step',
-                           '/raid_config', '/target_raid_config']
-
-    @staticmethod
-    def mandatory_attrs():
-        return ['/chassis_uuid', '/driver']
-
-
 class BootDeviceController(rest.RestController):
 
     _custom_actions = {
@@ -733,6 +713,26 @@ class Node(base.APIBase):
         fields = None if expand else _DEFAULT_RETURN_FIELDS
         return cls._convert_with_links(sample, 'http://localhost:6385',
                                        fields=fields)
+
+
+class NodePatchType(types.JsonPatchType):
+
+    _api_base = Node
+
+    _extra_non_removable_attrs = {'/chassis_uuid'}
+
+    @staticmethod
+    def internal_attrs():
+        defaults = types.JsonPatchType.internal_attrs()
+        # TODO(lucasagomes): Include maintenance once the endpoint
+        # v1/nodes/<uuid>/maintenance do more things than updating the DB.
+        return defaults + ['/console_enabled', '/last_error',
+                           '/power_state', '/provision_state', '/reservation',
+                           '/target_power_state', '/target_provision_state',
+                           '/provision_updated_at', '/maintenance_reason',
+                           '/driver_internal_info', '/inspection_finished_at',
+                           '/inspection_started_at', '/clean_step',
+                           '/raid_config', '/target_raid_config']
 
 
 class NodeCollection(collection.Collection):
