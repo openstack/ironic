@@ -1,0 +1,11 @@
+---
+prelude: >
+    A major bug was fixed where clean steps do not run.
+critical:
+  - This fixes a bug where Ironic skipped all clean steps,
+    which may leave the previous tenant's data on disk
+    available to new users.
+security:
+  - This fixes a bug where Ironic skipped all clean steps,
+    which may leave the previous tenant's data on disk
+    available to new users.
