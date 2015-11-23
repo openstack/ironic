@@ -17,6 +17,7 @@ import types
 import mock
 from oslo_config import cfg
 
+from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common import image_service
 from ironic.common import images
@@ -48,6 +49,7 @@ class TestAgentMethods(db_base.DbTestCase):
         super(TestAgentMethods, self).setUp()
         self.node = object_utils.create_test_node(self.context,
                                                   driver='fake_agent')
+        dhcp_factory.DHCPFactory._dhcp_provider = None
 
     @mock.patch.object(image_service, 'GlanceImageService', autospec=True)
     def test_build_instance_info_for_deploy_glance_image(self, glance_mock):
@@ -175,6 +177,7 @@ class TestAgentDeploy(db_base.DbTestCase):
         self.node = object_utils.create_test_node(self.context, **n)
         self.ports = [
             object_utils.create_test_port(self.context, node_id=self.node.id)]
+        dhcp_factory.DHCPFactory._dhcp_provider = None
 
     def test_get_properties(self):
         expected = agent.COMMON_PROPERTIES
@@ -333,20 +336,31 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertFalse(build_options_mock.called)
             self.assertFalse(pxe_prepare_ramdisk_mock.called)
 
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory._set_dhcp_provider')
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.clean_dhcp')
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk')
-    def test_clean_up(self, pxe_clean_up_ramdisk_mock):
+    def test_clean_up(self, pxe_clean_up_ramdisk_mock, clean_dhcp_mock,
+                      set_dhcp_provider_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             self.driver.clean_up(task)
             pxe_clean_up_ramdisk_mock.assert_called_once_with(task)
+            set_dhcp_provider_mock.assert_called_once_with()
+            clean_dhcp_mock.assert_called_once_with(task)
 
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory._set_dhcp_provider')
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.clean_dhcp')
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk')
-    def test_clean_up_manage_agent_boot_false(self, pxe_clean_up_ramdisk_mock):
+    def test_clean_up_manage_agent_boot_false(self, pxe_clean_up_ramdisk_mock,
+                                              clean_dhcp_mock,
+                                              set_dhcp_provider_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             self.config(group='agent', manage_agent_boot=False)
             self.driver.clean_up(task)
             self.assertFalse(pxe_clean_up_ramdisk_mock.called)
+            set_dhcp_provider_mock.assert_called_once_with()
+            clean_dhcp_mock.assert_called_once_with(task)
 
     @mock.patch('ironic.drivers.modules.deploy_utils.agent_get_clean_steps',
                 autospec=True)

@@ -94,6 +94,13 @@ class DHCPFactory(object):
         """
         self.provider.update_dhcp_opts(task, dhcp_opts, ports)
 
+    def clean_dhcp(self, task):
+        """Clean up the DHCP BOOT options for this node.
+
+        :param task: A TaskManager instance.
+        """
+        self.provider.clean_dhcp_opts(task)
+
     @property
     def provider(self):
         return self._dhcp_provider
