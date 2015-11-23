@@ -239,6 +239,74 @@ class IloBootPrivateMethodsTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(ilo_boot, '_parse_deploy_info', spec_set=True,
                        autospec=True)
+    def test__get_boot_iso_recreate_boot_iso_use_webserver(
+            self, deploy_info_mock, image_props_mock,
+            capability_mock, boot_object_name_mock,
+            create_boot_iso_mock, tempfile_mock,
+            copy_file_mock):
+        CONF.ilo.swift_ilo_container = 'ilo-cont'
+        CONF.ilo.use_web_server_for_images = True
+        CONF.deploy.http_url = "http://10.10.1.30/httpboot"
+        CONF.deploy.http_root = "/httpboot"
+        CONF.pxe.pxe_append_params = 'kernel-params'
+
+        fileobj_mock = mock.MagicMock(spec=file)
+        fileobj_mock.name = 'tmpfile'
+        mock_file_handle = mock.MagicMock(spec=file)
+        mock_file_handle.__enter__.return_value = fileobj_mock
+        tempfile_mock.return_value = mock_file_handle
+
+        ramdisk_href = "http://10.10.1.30/httpboot/ramdisk"
+        kernel_href = "http://10.10.1.30/httpboot/kernel"
+        deploy_info_mock.return_value = {'image_source': 'image-uuid',
+                                         'ilo_deploy_iso': 'deploy_iso_uuid'}
+        image_props_mock.return_value = {'boot_iso': None,
+                                         'kernel_id': kernel_href,
+                                         'ramdisk_id': ramdisk_href}
+        boot_object_name_mock.return_value = 'new_boot_iso'
+        create_boot_iso_mock.return_value = '/path/to/boot-iso'
+        capability_mock.return_value = 'uefi'
+        copy_file_mock.return_value = "http://10.10.1.30/httpboot/new_boot_iso"
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['boot_iso_created_in_web_server'] = True
+            instance_info = task.node.instance_info
+            old_boot_iso = 'http://10.10.1.30/httpboot/old_boot_iso'
+            instance_info['ilo_boot_iso'] = old_boot_iso
+            boot_iso_actual = ilo_boot._get_boot_iso(task, 'root-uuid')
+            deploy_info_mock.assert_called_once_with(task.node)
+            image_props_mock.assert_called_once_with(
+                task.context, 'image-uuid',
+                ['boot_iso', 'kernel_id', 'ramdisk_id'])
+            boot_object_name_mock.assert_called_once_with(task.node)
+            create_boot_iso_mock.assert_called_once_with(task.context,
+                                                         'tmpfile',
+                                                         kernel_href,
+                                                         ramdisk_href,
+                                                         'deploy_iso_uuid',
+                                                         'root-uuid',
+                                                         'kernel-params',
+                                                         'uefi')
+            boot_iso_expected = 'http://10.10.1.30/httpboot/new_boot_iso'
+            self.assertEqual(boot_iso_expected, boot_iso_actual)
+            copy_file_mock.assert_called_once_with(fileobj_mock.name,
+                                                   'new_boot_iso')
+
+    @mock.patch.object(ilo_common, 'copy_image_to_web_server', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(tempfile, 'NamedTemporaryFile', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(images, 'create_boot_iso', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_boot, '_get_boot_iso_object_name', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(driver_utils, 'get_node_capability', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(images, 'get_image_properties', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_boot, '_parse_deploy_info', spec_set=True,
+                       autospec=True)
     def test__get_boot_iso_create_use_webserver_true_ramdisk_webserver(
             self, deploy_info_mock, image_props_mock,
             capability_mock, boot_object_name_mock,
