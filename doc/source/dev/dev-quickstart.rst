@@ -12,9 +12,9 @@ The gate currently runs the unit tests under both
 Python 2.7 and Python 3.4.  It is strongly encouraged to run the unit tests
 locally under one, the other, or both prior to submitting a patch.
 
-.. Note:: The unit test environment setup should be done on a clean installed
-    VM or system. Sharing the environment with devstack testing is not
-    recommended due to conflicting configuration with system dependencies.
+.. note::
+    Do not run unit tests on the same environment as devstack due to
+    conflicting configuration with system dependencies.
 
 .. seealso::
 
@@ -59,10 +59,10 @@ Using Python 3.4:
 
     sudo dnf install python3-devel
 
-Install these on all distros::
+If your distro has at least tox 1.8, use similar command to install
+``python-tox`` package. Otherwise install this on all distros::
 
-    sudo easy_install nose
-    sudo pip install virtualenv setuptools-git flake8 tox testrepository
+    sudo pip install -U tox
 
 
 You may need to explicitly upgrade virtualenv if you've installed the one
@@ -78,15 +78,11 @@ Ironic source code should be pulled directly from git::
     git clone https://git.openstack.org/openstack/ironic
     cd ironic
 
-Set up a local environment for development and testing should be done with tox::
+Set up a local environment for development and testing should be done with tox,
+for example::
 
     # create a virtualenv for development
     tox -evenv --notest
-
-Activate the virtual environment whenever you want to work in it.
-All further commands in this section should be run with the venv active::
-
-    source .tox/venv/bin/activate
 
 All unit tests should be run using tox. To run Ironic's entire test suite::
 
@@ -113,10 +109,6 @@ To run a specific unit test, this passes the -r option and desired test
 To run only the pep8/flake8 syntax and style checks::
 
     tox -epep8
-
-When you're done, deactivate the virtualenv::
-
-    deactivate
 
 ===============================
 Exercising the Services Locally
