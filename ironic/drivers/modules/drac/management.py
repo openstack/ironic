@@ -232,6 +232,8 @@ def create_config_job(node, reboot=False):
     set_boot_device().
 
     :param node: an ironic node object.
+    :param reboot: indicates whether a reboot job should be automatically
+                   created with the config job.
     :raises: DracClientError if the client received unexpected response.
     :raises: DracOperationFailed if the client received response with an
              error message.
