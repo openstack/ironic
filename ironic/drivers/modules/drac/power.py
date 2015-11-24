@@ -24,6 +24,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.drac import common as drac_common
+from ironic.drivers.modules.drac import management as drac_management
 
 drac_constants = importutils.try_import('dracclient.constants')
 drac_exceptions = importutils.try_import('dracclient.exceptions')
@@ -62,6 +63,20 @@ def _get_power_state(node):
     return POWER_STATES[drac_power_state]
 
 
+def _commit_boot_list_change(node):
+    driver_internal_info = node.driver_internal_info
+
+    if ('drac_boot_device' in driver_internal_info and
+            driver_internal_info['drac_boot_device'] is not None):
+        boot_device = driver_internal_info['drac_boot_device']
+        drac_management.set_boot_device(node, boot_device['boot_device'],
+                                        boot_device['persistent'])
+
+        driver_internal_info['drac_boot_device'] = None
+        node.driver_internal_info = driver_internal_info
+        node.save()
+
+
 def _set_power_state(node, power_state):
     """Turns the server power on/off or do a reboot.
 
@@ -70,6 +85,8 @@ def _set_power_state(node, power_state):
     :raises: InvalidParameterValue if required DRAC credentials are missing.
     :raises: DracOperationError on an error from python-dracclient
     """
+
+    _commit_boot_list_change(node)
 
     client = drac_common.get_drac_client(node)
     target_power_state = REVERSE_POWER_STATES[power_state]
