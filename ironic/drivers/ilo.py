@@ -22,6 +22,7 @@ from ironic.common.i18n import _
 from ironic.drivers import base
 from ironic.drivers.modules import agent
 from ironic.drivers.modules.ilo import boot
+from ironic.drivers.modules.ilo import console
 from ironic.drivers.modules.ilo import deploy
 from ironic.drivers.modules.ilo import inspect
 from ironic.drivers.modules.ilo import management
@@ -48,7 +49,7 @@ class IloVirtualMediaIscsiDriver(base.BaseDriver):
         self.power = power.IloPower()
         self.boot = boot.IloVirtualMediaBoot()
         self.deploy = deploy.IloVirtualMediaIscsiDeploy()
-        self.console = deploy.IloConsoleInterface()
+        self.console = console.IloConsoleInterface()
         self.management = management.IloManagement()
         self.vendor = vendor.VendorPassthru()
         self.inspect = inspect.IloInspect()
@@ -72,7 +73,7 @@ class IloVirtualMediaAgentDriver(base.BaseDriver):
 
         self.power = power.IloPower()
         self.deploy = deploy.IloVirtualMediaAgentDeploy()
-        self.console = deploy.IloConsoleInterface()
+        self.console = console.IloConsoleInterface()
         self.management = management.IloManagement()
         self.vendor = vendor.IloVirtualMediaAgentVendorInterface()
         self.inspect = inspect.IloInspect()

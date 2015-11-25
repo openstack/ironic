@@ -27,7 +27,7 @@ from ironic.drivers.modules.amt import vendor as amt_vendor
 from ironic.drivers.modules.cimc import management as cimc_management
 from ironic.drivers.modules.cimc import power as cimc_power
 from ironic.drivers.modules import iboot
-from ironic.drivers.modules.ilo import deploy as ilo_deploy
+from ironic.drivers.modules.ilo import console as ilo_console
 from ironic.drivers.modules.ilo import inspect as ilo_inspect
 from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules.ilo import power as ilo_power
@@ -159,7 +159,7 @@ class PXEDriversTestCase(testtools.TestCase):
         self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
         self.assertIsInstance(driver.vendor, iscsi_deploy.VendorPassthru)
         self.assertIsInstance(driver.console,
-                              ilo_deploy.IloConsoleInterface)
+                              ilo_console.IloConsoleInterface)
         self.assertIsInstance(driver.management,
                               ilo_management.IloManagement)
         self.assertIsInstance(driver.inspect, ilo_inspect.IloInspect)
