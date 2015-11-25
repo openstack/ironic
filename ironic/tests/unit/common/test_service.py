@@ -12,10 +12,13 @@
 
 import mock
 from oslo_concurrency import processutils
+from oslo_config import cfg
 
 from ironic.common import exception
 from ironic.common import service
 from ironic.tests import base
+
+CONF = cfg.CONF
 
 
 class TestWSGIService(base.TestCase):
@@ -60,3 +63,13 @@ class TestWSGIService(base.TestCase):
                           service.WSGIService,
                           'ironic_api')
         self.assertFalse(wsgi_server.called)
+
+    @mock.patch.object(service.wsgi, 'Server')
+    def test_wsgi_service_with_ssl_enabled(self, wsgi_server):
+        self.config(enable_ssl_api=True, group='api')
+        srv = service.WSGIService('ironic_api', CONF.api.enable_ssl_api)
+        wsgi_server.assert_called_once_with(CONF, 'ironic_api',
+                                            srv.app,
+                                            host='0.0.0.0',
+                                            port=6385,
+                                            use_ssl=True)

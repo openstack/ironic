@@ -150,10 +150,11 @@ def process_launcher():
 class WSGIService(service.ServiceBase):
     """Provides ability to launch ironic API from wsgi app."""
 
-    def __init__(self, name):
+    def __init__(self, name, use_ssl=False):
         """Initialize, but do not start the WSGI server.
 
         :param name: The name of the WSGI server given to the loader.
+        :param use_ssl: Wraps the socket in an SSL context if True.
         :returns: None
         """
         self.name = name
@@ -167,7 +168,8 @@ class WSGIService(service.ServiceBase):
 
         self.server = wsgi.Server(CONF, name, self.app,
                                   host=CONF.api.host_ip,
-                                  port=CONF.api.port)
+                                  port=CONF.api.port,
+                                  use_ssl=use_ssl)
 
     def start(self):
         """Start serving this service using loaded configuration.
