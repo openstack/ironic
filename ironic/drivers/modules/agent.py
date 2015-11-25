@@ -208,6 +208,9 @@ class AgentDeploy(base.DeployInterface):
         # Validate the root device hints
         deploy_utils.parse_root_device_hints(node)
 
+        # Validate node capabilities
+        deploy_utils.validate_capabilities(node)
+
     @task_manager.require_exclusive_lock
     def deploy(self, task):
         """Perform a deployment to a node.

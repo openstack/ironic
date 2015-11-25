@@ -21,6 +21,7 @@ import testtools
 
 from ironic.common import exception
 from ironic.drivers import irmc
+from ironic.drivers.modules import agent
 from ironic.drivers.modules import iscsi_deploy
 
 
@@ -82,14 +83,14 @@ class IRMCVirtualMediaAgentTestCase(testtools.TestCase):
         driver = irmc.IRMCVirtualMediaAgentDriver()
 
         self.assertIsInstance(driver.power, irmc.power.IRMCPower)
-        self.assertIsInstance(driver.deploy,
-                              irmc.deploy.IRMCVirtualMediaAgentDeploy)
+        self.assertIsInstance(driver.boot,
+                              irmc.boot.IRMCVirtualMediaBoot)
+        self.assertIsInstance(driver.deploy, agent.AgentDeploy)
         self.assertIsInstance(driver.console,
                               irmc.ipmitool.IPMIShellinaboxConsole)
         self.assertIsInstance(driver.management,
                               irmc.management.IRMCManagement)
-        self.assertIsInstance(driver.vendor,
-                              irmc.deploy.IRMCVirtualMediaAgentVendorInterface)
+        self.assertIsInstance(driver.vendor, irmc.agent.AgentVendorInterface)
 
     @mock.patch.object(irmc.importutils, 'try_import')
     def test___init___try_import_exception(self, mock_try_import):
@@ -98,7 +99,7 @@ class IRMCVirtualMediaAgentTestCase(testtools.TestCase):
         self.assertRaises(exception.DriverLoadError,
                           irmc.IRMCVirtualMediaAgentDriver)
 
-    @mock.patch.object(irmc.deploy.IRMCVirtualMediaAgentDeploy, '__init__',
+    @mock.patch.object(irmc.boot.IRMCVirtualMediaBoot, '__init__',
                        spec_set=True, autospec=True)
     def test___init___share_fs_not_mounted_exception(self, __init___mock):
         __init___mock.side_effect = iter([

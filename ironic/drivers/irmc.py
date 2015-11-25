@@ -21,9 +21,9 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
+from ironic.drivers.modules import agent
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import boot
-from ironic.drivers.modules.irmc import deploy
 from ironic.drivers.modules.irmc import management
 from ironic.drivers.modules.irmc import power
 from ironic.drivers.modules import iscsi_deploy
@@ -69,7 +69,8 @@ class IRMCVirtualMediaAgentDriver(base.BaseDriver):
                 reason=_("Unable to import python-scciclient library"))
 
         self.power = power.IRMCPower()
-        self.deploy = deploy.IRMCVirtualMediaAgentDeploy()
+        self.boot = boot.IRMCVirtualMediaBoot()
+        self.deploy = agent.AgentDeploy()
         self.console = ipmitool.IPMIShellinaboxConsole()
         self.management = management.IRMCManagement()
-        self.vendor = deploy.IRMCVirtualMediaAgentVendorInterface()
+        self.vendor = agent.AgentVendorInterface()
