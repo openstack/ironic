@@ -19,14 +19,12 @@ from oslo_config import cfg
 from oslo_log import log as logging
 
 from ironic.common import boot_devices
-from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
-from ironic.drivers import base
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import boot as ilo_boot
@@ -178,7 +176,7 @@ class IloVirtualMediaIscsiDeploy(iscsi_deploy.ISCSIDeploy):
         super(IloVirtualMediaIscsiDeploy, self).prepare(task)
 
 
-class IloVirtualMediaAgentDeploy(base.DeployInterface):
+class IloVirtualMediaAgentDeploy(agent.AgentDeploy):
     """Interface for deploy-related actions."""
 
     def get_properties(self):
@@ -188,71 +186,28 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
         """
         return ilo_boot.COMMON_PROPERTIES
 
-    def validate(self, task):
-        """Validate the driver-specific Node deployment info.
-
-        :param task: a TaskManager instance
-        :raises: MissingParameterValue if some parameters are missing.
-        """
-
-        deploy_utils.validate_capabilities(task.node)
-        ilo_boot.parse_driver_info(task.node)
-
-    @task_manager.require_exclusive_lock
-    def deploy(self, task):
-        """Perform a deployment to a node.
-
-        Prepares the options for the agent ramdisk and sets the node to boot
-        from virtual media cdrom.
-
-        :param task: a TaskManager instance.
-        :returns: states.DEPLOYWAIT
-        :raises: ImageCreationFailed, if it failed while creating the floppy
-            image.
-        :raises: IloOperationError, if some operation on iLO fails.
-        """
-        _prepare_agent_vmedia_boot(task)
-
-        return states.DEPLOYWAIT
-
     @task_manager.require_exclusive_lock
     def tear_down(self, task):
         """Tear down a previous deployment on the task's node.
 
         :param task: a TaskManager instance.
         :returns: states.DELETED
+        :raises: IloOperationError, if some operation on iLO failed.
         """
         manager_utils.node_power_action(task, states.POWER_OFF)
         _disable_secure_boot_if_supported(task)
-        return states.DELETED
+        return super(IloVirtualMediaAgentDeploy, self).tear_down(task)
 
     def prepare(self, task):
         """Prepare the deployment environment for this node.
 
         :param task: a TaskManager instance.
+        :raises: IloOperationError, if some operation on iLO failed.
         """
         if task.node.provision_state != states.ACTIVE:
-            node = task.node
-            node.instance_info = agent.build_instance_info_for_deploy(task)
-            node.save()
             _prepare_node_for_deploy(task)
 
-    def clean_up(self, task):
-        """Clean up the deployment environment for this node.
-
-        Ejects the attached virtual media from the iLO and also removes
-        the floppy image from Swift, if it exists.
-
-        :param task: a TaskManager instance.
-        """
-        ilo_common.cleanup_vmedia_boot(task)
-
-    def take_over(self, task):
-        """Take over management of this node from a dead conductor.
-
-        :param task: a TaskManager instance.
-        """
-        pass
+        super(IloVirtualMediaAgentDeploy, self).prepare(task)
 
     def get_clean_steps(self, task):
         """Get the list of clean steps from the agent.
@@ -260,49 +215,17 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
         :param task: a TaskManager object containing the node
         :returns: A list of clean step dictionaries
         """
+
+        # TODO(stendulker): All drivers use CONF.deploy.erase_devices_priority
+        # agent_ilo driver should also use the same. Defect has been filed for
+        # the same.
+        # https://bugs.launchpad.net/ironic/+bug/1515871
         new_priorities = {
             'erase_devices': CONF.ilo.clean_priority_erase_devices,
         }
         return deploy_utils.agent_get_clean_steps(
             task, interface='deploy',
             override_priorities=new_priorities)
-
-    def execute_clean_step(self, task, step):
-        """Execute a clean step asynchronously on the agent.
-
-        :param task: a TaskManager object containing the node
-        :param step: a clean step dictionary to execute
-        :returns: states.CLEANWAIT to signify the step will be completed async
-        """
-        return deploy_utils.agent_execute_clean_step(task, step)
-
-    def prepare_cleaning(self, task):
-        """Boot into the agent to prepare for cleaning."""
-        # Create cleaning ports if necessary
-        provider = dhcp_factory.DHCPFactory().provider
-
-        # If we have left over ports from a previous cleaning, remove them
-        if getattr(provider, 'delete_cleaning_ports', None):
-            provider.delete_cleaning_ports(task)
-
-        if getattr(provider, 'create_cleaning_ports', None):
-            provider.create_cleaning_ports(task)
-
-        # Append required config parameters to node's driver_internal_info
-        # to pass to IPA.
-        deploy_utils.agent_add_clean_params(task)
-
-        _prepare_agent_vmedia_boot(task)
-        # Tell the conductor we are waiting for the agent to boot.
-        return states.CLEANWAIT
-
-    def tear_down_cleaning(self, task):
-        """Clean up the PXE and DHCP files after cleaning."""
-        manager_utils.node_power_action(task, states.POWER_OFF)
-        # If we created cleaning ports, delete them
-        provider = dhcp_factory.DHCPFactory().provider
-        if getattr(provider, 'delete_cleaning_ports', None):
-            provider.delete_cleaning_ports(task)
 
 
 class IloPXEDeploy(iscsi_deploy.ISCSIDeploy):

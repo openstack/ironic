@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Test class for common methods used by iLO modules."""
+"""Test class for deploy methods used by iLO modules."""
 
 import mock
 from oslo_config import cfg
@@ -26,7 +26,6 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import deploy_utils
-from ironic.drivers.modules.ilo import boot as ilo_boot
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import deploy as ilo_deploy
 from ironic.drivers.modules import iscsi_deploy
@@ -52,32 +51,6 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager(driver="iscsi_ilo")
         self.node = obj_utils.create_test_node(
             self.context, driver='iscsi_ilo', driver_info=INFO_DICT)
-
-    @mock.patch.object(manager_utils, 'node_power_action',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'eject_vmedia_devices',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'setup_vmedia', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(deploy_utils, 'build_agent_options', spec_set=True,
-                       autospec=True)
-    def test__prepare_agent_vmedia_boot(self, build_options_mock,
-                                        setup_media_mock, eject_mock,
-                                        power_action_mock):
-        deploy_opts = {'a': 'b'}
-        build_options_mock.return_value = deploy_opts
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.node.driver_info['ilo_deploy_iso'] = 'deploy-iso-uuid'
-
-            ilo_deploy._prepare_agent_vmedia_boot(task)
-
-            eject_mock.assert_called_once_with(task)
-            build_options_mock.assert_called_once_with(task.node)
-            setup_media_mock.assert_called_once_with(task,
-                                                     'deploy-iso-uuid',
-                                                     deploy_opts)
-            power_action_mock.assert_called_once_with(task, states.REBOOT)
 
     @mock.patch.object(ilo_common, 'set_secure_boot_mode', spec_set=True,
                        autospec=True)
@@ -319,45 +292,28 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(
             self.context, driver='agent_ilo', driver_info=INFO_DICT)
 
-    @mock.patch.object(deploy_utils, 'validate_capabilities',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(ilo_boot, 'parse_driver_info', spec_set=True,
+    @mock.patch.object(agent.AgentDeploy, 'tear_down', spec_set=True,
                        autospec=True)
-    def test_validate(self,
-                      parse_driver_info_mock,
-                      validate_capability_mock):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.deploy.validate(task)
-            validate_capability_mock.assert_called_once_with(task.node)
-            parse_driver_info_mock.assert_called_once_with(task.node)
-
-    @mock.patch.object(ilo_deploy, '_prepare_agent_vmedia_boot', spec_set=True,
-                       autospec=True)
-    def test_deploy(self, vmedia_boot_mock):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            returned_state = task.driver.deploy.deploy(task)
-            vmedia_boot_mock.assert_called_once_with(task)
-            self.assertEqual(states.DEPLOYWAIT, returned_state)
-
     @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
                        autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
                        autospec=True)
     def test_tear_down(self,
                        node_power_action_mock,
-                       update_secure_boot_mode_mock):
+                       update_secure_boot_mode_mock,
+                       agent_teardown_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            agent_teardown_mock.return_value = states.DELETED
             returned_state = task.driver.deploy.tear_down(task)
             node_power_action_mock.assert_called_once_with(task,
                                                            states.POWER_OFF)
             update_secure_boot_mode_mock.assert_called_once_with(task, False)
             self.assertEqual(states.DELETED, returned_state)
 
-    @mock.patch.object(ilo_deploy.LOG, 'warning',
-                       spec_set=True, autospec=True)
+    @mock.patch.object(agent.AgentDeploy, 'tear_down', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy.LOG, 'warning', spec_set=True, autospec=True)
     @mock.patch.object(ilo_deploy, 'exception', spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
                        autospec=True)
@@ -367,83 +323,47 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
                                         node_power_action_mock,
                                         update_secure_boot_mode_mock,
                                         exception_mock,
-                                        mock_log):
+                                        mock_log,
+                                        agent_teardown_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            agent_teardown_mock.return_value = states.DELETED
             exception_mock.IloOperationNotSupported = Exception
             update_secure_boot_mode_mock.side_effect = Exception
             returned_state = task.driver.deploy.tear_down(task)
             node_power_action_mock.assert_called_once_with(task,
                                                            states.POWER_OFF)
             update_secure_boot_mode_mock.assert_called_once_with(task, False)
+            agent_teardown_mock.assert_called_once_with(mock.ANY, task)
             self.assertTrue(mock_log.called)
             self.assertEqual(states.DELETED, returned_state)
 
     @mock.patch.object(ilo_deploy, '_prepare_node_for_deploy', spec_set=True,
                        autospec=True)
-    @mock.patch.object(agent, 'build_instance_info_for_deploy', spec_set=True,
+    @mock.patch.object(agent.AgentDeploy, 'prepare', spec_set=True,
                        autospec=True)
     def test_prepare(self,
-                     build_instance_info_mock,
+                     agent_prepare_mock,
                      func_prepare_node_for_deploy):
-        deploy_opts = {'a': 'b'}
-        build_instance_info_mock.return_value = deploy_opts
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.prepare(task)
-            self.assertEqual(deploy_opts, task.node.instance_info)
             func_prepare_node_for_deploy.assert_called_once_with(task)
+            agent_prepare_mock.assert_called_once_with(mock.ANY, task)
 
+    @mock.patch.object(agent.AgentDeploy, 'prepare', spec_set=True,
+                       autospec=True)
     @mock.patch.object(ilo_deploy, '_prepare_node_for_deploy', spec_set=True,
                        autospec=True)
-    @mock.patch.object(agent, 'build_instance_info_for_deploy', spec_set=True,
-                       autospec=True)
     def test_prepare_active_node(self,
-                                 build_instance_info_mock,
-                                 func_prepare_node_for_deploy):
+                                 func_prepare_node_for_deploy,
+                                 agent_prepare_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.provision_state = states.ACTIVE
             task.driver.deploy.prepare(task)
-            self.assertFalse(build_instance_info_mock.called)
             self.assertFalse(func_prepare_node_for_deploy.called)
-
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.delete_cleaning_ports',
-                spec_set=True, autospec=True)
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.create_cleaning_ports',
-                spec_set=True, autospec=True)
-    @mock.patch.object(ilo_deploy, '_prepare_agent_vmedia_boot', spec_set=True,
-                       autospec=True)
-    def test_prepare_cleaning(self, vmedia_boot_mock, create_port_mock,
-                              delete_mock):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            returned_state = task.driver.deploy.prepare_cleaning(task)
-            vmedia_boot_mock.assert_called_once_with(task)
-            self.assertEqual(states.CLEANWAIT, returned_state)
-            create_port_mock.assert_called_once_with(mock.ANY, task)
-            delete_mock.assert_called_once_with(mock.ANY, task)
-            self.assertEqual(task.node.driver_internal_info.get(
-                             'agent_erase_devices_iterations'), 1)
-
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.delete_cleaning_ports',
-                spec_set=True, autospec=True)
-    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
-                       autospec=True)
-    def test_tear_down_cleaning(self, power_mock, delete_mock):
-        with task_manager.acquire(
-                self.context, self.node['uuid'], shared=False) as task:
-            task.driver.deploy.tear_down_cleaning(task)
-            power_mock.assert_called_once_with(task, states.POWER_OFF)
-            delete_mock.assert_called_once_with(mock.ANY, task)
-
-    @mock.patch.object(deploy_utils, 'agent_execute_clean_step', spec_set=True,
-                       autospec=True)
-    def test_execute_clean_step(self, execute_mock):
-        with task_manager.acquire(
-                self.context, self.node['uuid'], shared=False) as task:
-            task.driver.deploy.execute_clean_step(task, 'fake-step')
-            execute_mock.assert_called_once_with(task, 'fake-step')
+            agent_prepare_mock.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(deploy_utils, 'agent_get_clean_steps', spec_set=True,
                        autospec=True)

@@ -72,6 +72,7 @@ class IloVirtualMediaAgentDriver(base.BaseDriver):
                 reason=_("Unable to import proliantutils library"))
 
         self.power = power.IloPower()
+        self.boot = boot.IloVirtualMediaBoot()
         self.deploy = deploy.IloVirtualMediaAgentDeploy()
         self.console = console.IloConsoleInterface()
         self.management = management.IloManagement()
