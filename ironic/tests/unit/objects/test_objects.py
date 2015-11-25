@@ -21,6 +21,7 @@ import mock
 from oslo_context import context
 from oslo_versionedobjects import base as object_base
 from oslo_versionedobjects import exception as object_exception
+from oslo_versionedobjects import fixture as object_fixture
 import six
 
 from ironic.objects import base
@@ -414,6 +415,33 @@ class _TestObject(object):
 
 class TestObject(_LocalTest, _TestObject):
     pass
+
+
+# The hashes are help developers to check if the change of objects need a
+# version bump. It is md5 hash of object fields and remotable methods.
+# The fingerprint values should only be changed if there is a version bump.
+expected_object_fingerprints = {
+    'Node': '1.14-9ee8ab283b06398545880dfdedb49891',
+    'MyObj': '1.5-4f5efe8f0fcaf182bbe1c7fe3ba858db',
+    'Chassis': '1.3-d656e039fd8ae9f34efc232ab3980905',
+    'Port': '1.4-f5aa3ff81d1459d6d7e6d9d9dceed351',
+    'Conductor': '1.0-5091f249719d4a465062a1b3dc7f860d'
+}
+
+
+class TestObjectVersions(test_base.TestCase):
+
+    def test_object_version_check(self):
+        classes = base.IronicObjectRegistry.obj_classes()
+        checker = object_fixture.ObjectVersionChecker(obj_classes=classes)
+        # Compute the difference between actual fingerprints and
+        # expect fingerprints. expect = actual = {} if there is no change.
+        expect, actual = checker.test_hashes(expected_object_fingerprints)
+        self.assertEqual(expect, actual,
+                         "Some objects fields or remotable methods have been "
+                         "modified. Please make sure the version of those "
+                         "objects have been bumped and then update "
+                         "expected_object_fingerprints with the new hashes. ")
 
 
 class TestObjectSerializer(test_base.TestCase):
