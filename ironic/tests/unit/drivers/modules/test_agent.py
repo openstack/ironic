@@ -117,29 +117,34 @@ class TestAgentMethods(db_base.DbTestCase):
             self.assertRaises(exception.ImageRefValidationFailed,
                               agent.build_instance_info_for_deploy, task)
 
-    @mock.patch.object(images, 'download_size', autospec=True)
-    def test_check_image_size(self, size_mock):
-        size_mock.return_value = 10 * 1024 * 1024
+    @mock.patch.object(images, 'image_show', autospec=True)
+    def test_check_image_size(self, show_mock):
+        show_mock.return_value = {
+            'size': 10 * 1024 * 1024,
+            'disk_format': 'qcow2',
+        }
         mgr_utils.mock_the_extension_manager(driver='fake_agent')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.properties['memory_mb'] = 10
             agent.check_image_size(task, 'fake-image')
-            size_mock.assert_called_once_with(self.context, 'fake-image')
+            show_mock.assert_called_once_with(self.context, 'fake-image')
 
-    @mock.patch.object(images, 'download_size', autospec=True)
-    def test_check_image_size_without_memory_mb(self, size_mock):
+    @mock.patch.object(images, 'image_show', autospec=True)
+    def test_check_image_size_without_memory_mb(self, show_mock):
         mgr_utils.mock_the_extension_manager(driver='fake_agent')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.properties.pop('memory_mb', None)
             agent.check_image_size(task, 'fake-image')
-            self.assertFalse(size_mock.called)
+            self.assertFalse(show_mock.called)
 
-    @mock.patch.object(images, 'download_size', autospec=True)
-    def test_check_image_size_fail(self, size_mock):
-        size_mock.return_value = 11 * 1024 * 1024
-
+    @mock.patch.object(images, 'image_show', autospec=True)
+    def test_check_image_size_fail(self, show_mock):
+        show_mock.return_value = {
+            'size': 11 * 1024 * 1024,
+            'disk_format': 'qcow2',
+        }
         mgr_utils.mock_the_extension_manager(driver='fake_agent')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -147,12 +152,15 @@ class TestAgentMethods(db_base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               agent.check_image_size,
                               task, 'fake-image')
-            size_mock.assert_called_once_with(self.context, 'fake-image')
+            show_mock.assert_called_once_with(self.context, 'fake-image')
 
-    @mock.patch.object(images, 'download_size', autospec=True)
-    def test_check_image_size_fail_by_agent_consumed_memory(self, size_mock):
+    @mock.patch.object(images, 'image_show', autospec=True)
+    def test_check_image_size_fail_by_agent_consumed_memory(self, show_mock):
         self.config(memory_consumed_by_agent=2, group='agent')
-        size_mock.return_value = 9 * 1024 * 1024
+        show_mock.return_value = {
+            'size': 9 * 1024 * 1024,
+            'disk_format': 'qcow2',
+        }
         mgr_utils.mock_the_extension_manager(driver='fake_agent')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -160,7 +168,41 @@ class TestAgentMethods(db_base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               agent.check_image_size,
                               task, 'fake-image')
-            size_mock.assert_called_once_with(self.context, 'fake-image')
+            show_mock.assert_called_once_with(self.context, 'fake-image')
+
+    @mock.patch.object(images, 'image_show', autospec=True)
+    def test_check_image_size_raw_stream_enabled(self, show_mock):
+        CONF.set_override('stream_raw_images', True, 'agent')
+        # Image is bigger than memory but it's raw and will be streamed
+        # so the test should pass
+        show_mock.return_value = {
+            'size': 15 * 1024 * 1024,
+            'disk_format': 'raw',
+        }
+        mgr_utils.mock_the_extension_manager(driver='fake_agent')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.properties['memory_mb'] = 10
+            agent.check_image_size(task, 'fake-image')
+            show_mock.assert_called_once_with(self.context, 'fake-image')
+
+    @mock.patch.object(images, 'image_show', autospec=True)
+    def test_check_image_size_raw_stream_disabled(self, show_mock):
+        CONF.set_override('stream_raw_images', False, 'agent')
+        show_mock.return_value = {
+            'size': 15 * 1024 * 1024,
+            'disk_format': 'raw',
+        }
+        mgr_utils.mock_the_extension_manager(driver='fake_agent')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.properties['memory_mb'] = 10
+            # Image is raw but stream is disabled, so test should fail since
+            # the image is bigger than the RAM size
+            self.assertRaises(exception.InvalidParameterValue,
+                              agent.check_image_size,
+                              task, 'fake-image')
+            show_mock.assert_called_once_with(self.context, 'fake-image')
 
 
 class TestAgentDeploy(db_base.DbTestCase):
@@ -185,25 +227,26 @@ class TestAgentDeploy(db_base.DbTestCase):
 
     @mock.patch.object(deploy_utils, 'validate_capabilities',
                        spec_set=True, autospec=True)
-    @mock.patch.object(images, 'download_size', autospec=True)
+    @mock.patch.object(images, 'image_show', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
-    def test_validate(self, pxe_boot_validate_mock, size_mock,
+    def test_validate(self, pxe_boot_validate_mock, show_mock,
                       validate_capability_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             self.driver.validate(task)
             pxe_boot_validate_mock.assert_called_once_with(
                 task.driver.boot, task)
-            size_mock.assert_called_once_with(self.context, 'fake-image')
+            show_mock.assert_called_once_with(self.context, 'fake-image')
             validate_capability_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(deploy_utils, 'validate_capabilities',
                        spec_set=True, autospec=True)
-    @mock.patch.object(images, 'download_size', autospec=True)
+    @mock.patch.object(images, 'image_show', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
     def test_validate_driver_info_manage_agent_boot_false(
-            self, pxe_boot_validate_mock, size_mock,
+            self, pxe_boot_validate_mock, show_mock,
             validate_capability_mock):
+
         self.config(manage_agent_boot=False, group='agent')
         self.node.driver_info = {}
         self.node.save()
@@ -211,7 +254,7 @@ class TestAgentDeploy(db_base.DbTestCase):
                 self.context, self.node['uuid'], shared=False) as task:
             self.driver.validate(task)
             self.assertFalse(pxe_boot_validate_mock.called)
-            size_mock.assert_called_once_with(self.context, 'fake-image')
+            show_mock.assert_called_once_with(self.context, 'fake-image')
             validate_capability_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
@@ -244,10 +287,10 @@ class TestAgentDeploy(db_base.DbTestCase):
             pxe_boot_validate_mock.assert_called_once_with(
                 task.driver.boot, task)
 
-    @mock.patch.object(images, 'download_size', autospec=True)
+    @mock.patch.object(images, 'image_show', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
     def test_validate_agent_fail_partition_image(
-            self, pxe_boot_validate_mock, size_mock):
+            self, pxe_boot_validate_mock, show_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             task.node.driver_internal_info['is_whole_disk_image'] = False
@@ -255,12 +298,12 @@ class TestAgentDeploy(db_base.DbTestCase):
                               self.driver.validate, task)
             pxe_boot_validate_mock.assert_called_once_with(
                 task.driver.boot, task)
-            size_mock.assert_called_once_with(self.context, 'fake-image')
+            show_mock.assert_called_once_with(self.context, 'fake-image')
 
-    @mock.patch.object(images, 'download_size', autospec=True)
+    @mock.patch.object(images, 'image_show', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
     def test_validate_invalid_root_device_hints(
-            self, pxe_boot_validate_mock, size_mock):
+            self, pxe_boot_validate_mock, show_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.properties['root_device'] = {'size': 'not-int'}
@@ -268,7 +311,7 @@ class TestAgentDeploy(db_base.DbTestCase):
                               task.driver.deploy.validate, task)
             pxe_boot_validate_mock.assert_called_once_with(
                 task.driver.boot, task)
-            size_mock.assert_called_once_with(self.context, 'fake-image')
+            show_mock.assert_called_once_with(self.context, 'fake-image')
 
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
     def test_deploy(self, power_mock):
@@ -453,6 +496,7 @@ class TestAgentVendor(db_base.DbTestCase):
         self.node = object_utils.create_test_node(self.context, **n)
 
     def test_continue_deploy(self):
+        CONF.set_override('stream_raw_images', False, 'agent')
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
@@ -463,6 +507,7 @@ class TestAgentVendor(db_base.DbTestCase):
             'checksum': 'checksum',
             'disk_format': 'qcow2',
             'container_format': 'bare',
+            'stream_raw_images': False,
         }
 
         client_mock = mock.MagicMock(spec_set=['prepare_image'])
@@ -489,6 +534,7 @@ class TestAgentVendor(db_base.DbTestCase):
             'checksum': 'checksum',
             'disk_format': 'qcow2',
             'container_format': 'bare',
+            'stream_raw_images': True,
         }
 
         client_mock = mock.MagicMock(spec_set=['prepare_image'])

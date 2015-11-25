@@ -422,6 +422,15 @@
 # memory consumed by the agent ramdisk image. (integer value)
 #memory_consumed_by_agent=0
 
+# Whether the agent ramdisk should stream raw images directly
+# onto the disk or not. By streaming raw images directly onto
+# the disk the agent ramdisk will not spend time copying the
+# image to a tmpfs partition (therefore consuming less memory)
+# prior to writing it to the disk. Unless the disk where the
+# image will be copied to is really slow, this option should
+# be set to True. Defaults to True. (boolean value)
+#stream_raw_images=true
+
 
 #
 # Options defined in ironic.drivers.modules.agent_base_vendor
