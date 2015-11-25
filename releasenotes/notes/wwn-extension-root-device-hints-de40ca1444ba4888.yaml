@@ -1,0 +1,4 @@
+---
+features:
+  - Adds root device hints for `wwn_with_extension` and
+    `wwn_vendor_extension`.

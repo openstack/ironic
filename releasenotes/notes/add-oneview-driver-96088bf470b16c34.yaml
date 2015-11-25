@@ -1,0 +1,4 @@
+---
+features:
+  - Adds `agent_pxe_oneview` and `iscsi_pxe_oneview` drivers
+    for integration with the HP OneView Management System.

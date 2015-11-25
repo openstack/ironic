@@ -1,0 +1,3 @@
+---
+other:
+  - iLO drivers are now based on the new BootInterface.

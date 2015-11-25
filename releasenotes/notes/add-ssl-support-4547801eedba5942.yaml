@@ -1,0 +1,5 @@
+---
+features:
+  - The ironic-api service now supports SSL when running
+    the service directly (as opposed to behind mod_wsgi or
+    similar).

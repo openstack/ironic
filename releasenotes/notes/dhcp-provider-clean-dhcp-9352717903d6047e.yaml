@@ -1,0 +1,5 @@
+---
+other:
+  - Adds a `clean_dhcp_opts` method to the DHCP provider
+    base class, to give DHCP providers a method to clean up
+    DHCP reservations if needed.

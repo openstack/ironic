@@ -1,0 +1,4 @@
+---
+fixes:
+  - Fixes an issue where `node.last_error` did not show
+    the actual issue when the periodic power state sync failed.

@@ -1,0 +1,4 @@
+---
+fixes:
+  - Fixes an issue where iPXE may try to boot from the wrong
+    MAC address, resulting in deploy failures.

@@ -1,0 +1,4 @@
+---
+critical:
+  - Fixes an issue where the next cleaning for a node would
+    hang if the previous cleaning was aborted.

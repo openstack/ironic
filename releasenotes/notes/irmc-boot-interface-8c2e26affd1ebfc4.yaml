@@ -1,0 +1,3 @@
+---
+other:
+  - iRMC drivers are now based on the new BootInterface.
