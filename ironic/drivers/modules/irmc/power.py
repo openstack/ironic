@@ -19,17 +19,16 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 
-from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common import states
 from ironic.conductor import task_manager
-from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import ipmitool
+from ironic.drivers.modules.irmc import boot as irmc_boot
 from ironic.drivers.modules.irmc import common as irmc_common
-from ironic.drivers.modules.irmc import deploy as irmc_deploy
+
 
 scci = importutils.try_import('scciclient.irmc.scci')
 
@@ -41,28 +40,6 @@ if scci:
     STATES_MAP = {states.POWER_OFF: scci.POWER_OFF,
                   states.POWER_ON: scci.POWER_ON,
                   states.REBOOT: scci.POWER_RESET}
-
-
-def _attach_boot_iso_if_needed(task):
-    """Attaches boot ISO for a deployed node if it exists.
-
-    This method checks the instance info of the bare metal node for a
-    boot ISO. If the instance info has a value of key 'irmc_boot_iso',
-    it indicates that 'boot_option' is 'netboot'. Threfore it attaches
-    the boot ISO on the bare metal node and then sets the node to boot from
-    virtual media cdrom.
-
-    :param task: a TaskManager instance containing the node to act on.
-    :raises: IRMCOperationError if attaching virtual media failed.
-    :raises: InvalidParameterValue if the validation of the
-        ManagementInterface fails.
-    """
-    d_info = task.node.driver_internal_info
-    node_state = task.node.provision_state
-
-    if 'irmc_boot_iso' in d_info and node_state == states.ACTIVE:
-        irmc_deploy.setup_vmedia_for_boot(task, d_info['irmc_boot_iso'])
-        manager_utils.node_set_boot_device(task, boot_devices.CDROM)
 
 
 def _set_power_state(task, target_state):
@@ -80,7 +57,7 @@ def _set_power_state(task, target_state):
     irmc_client = irmc_common.get_irmc_client(node)
 
     if target_state in (states.POWER_ON, states.REBOOT):
-        _attach_boot_iso_if_needed(task)
+        irmc_boot.attach_boot_iso_if_needed(task)
 
     try:
         irmc_client(STATES_MAP[target_state])
