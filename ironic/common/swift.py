@@ -58,11 +58,11 @@ class SwiftAPI(object):
     """API for communicating with Swift."""
 
     def __init__(self,
-                 user=CONF.keystone_authtoken.admin_user,
-                 tenant_name=CONF.keystone_authtoken.admin_tenant_name,
-                 key=CONF.keystone_authtoken.admin_password,
-                 auth_url=CONF.keystone_authtoken.auth_uri,
-                 auth_version=CONF.keystone_authtoken.auth_version):
+                 user=None,
+                 tenant_name=None,
+                 key=None,
+                 auth_url=None,
+                 auth_version=None):
         """Constructor for creating a SwiftAPI object.
 
         :param user: the name of the user for Swift account
@@ -71,6 +71,11 @@ class SwiftAPI(object):
         :param auth_url: the url for authentication
         :param auth_version: the version of api to use for authentication
         """
+        user = user or CONF.keystone_authtoken.admin_user
+        tenant_name = tenant_name or CONF.keystone_authtoken.admin_tenant_name
+        key = key or CONF.keystone_authtoken.admin_password
+        auth_url = auth_url or CONF.keystone_authtoken.auth_uri
+        auth_version = auth_version or CONF.keystone_authtoken.auth_version
         auth_url = keystone.get_keystone_url(auth_url, auth_version)
         params = {'retries': CONF.swift.swift_max_retries,
                   'insecure': CONF.keystone_authtoken.insecure,

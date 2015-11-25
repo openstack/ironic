@@ -12,8 +12,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import sys
-
 import mock
 from oslo_config import cfg
 import six
@@ -48,11 +46,6 @@ class SwiftTestCase(base.TestCase):
         self.config(swift_max_retries=2, group='swift')
         self.config(insecure=0, group='keystone_authtoken')
         self.config(cafile='/path/to/ca/file', group='keystone_authtoken')
-
-        # The constructor of SwiftAPI accepts arguments whose
-        # default values are values of some config options above. So reload
-        # the module to make sure the required values are set.
-        six.moves.reload_module(sys.modules['ironic.common.swift'])
 
     def test___init__(self, connection_mock):
         swift.SwiftAPI()
