@@ -92,31 +92,25 @@ Configure the Identity service for the Bare Metal service
    The service uses this to authenticate with the Identity service.
    Use the ``service`` tenant and give the user the ``admin`` role::
 
-    keystone user-create --name=ironic --pass=IRONIC_PASSWORD --email=ironic@example.com
-    keystone user-role-add --user=ironic --tenant=service --role=admin
+    openstack user create --password IRONIC_PASSWORD \
+    --email ironic@example.com ironic
+    openstack role add --project service --user ironic admin
 
 #. You must register the Bare Metal service with the Identity service so that
    other OpenStack services can locate it. To register the service::
 
-    keystone service-create --name=ironic --type=baremetal \
-    --description="Ironic bare metal provisioning service"
+    openstack service create --name ironic --description \
+    "Ironic baremetal provisioning service" baremetal
 
 #. Use the ``id`` property that is returned from the Identity service when
    registering the service (above), to create the endpoint,
    and replace IRONIC_NODE with your Bare Metal service's API node::
 
-    keystone endpoint-create \
-    --service-id=the_service_id_above \
-    --publicurl=http://IRONIC_NODE:6385 \
-    --internalurl=http://IRONIC_NODE:6385 \
-    --adminurl=http://IRONIC_NODE:6385
-
-.. error::
-    If the keystone endpoint-create operation returns an error about not being
-    able to find the region "regionOne", the error is due to this keystone bug:
-    https://bugs.launchpad.net/keystone/+bug/1400589. As a workaround until
-    that bug is fixed you can force the creation of "RegionOne" by passing
-    --region=RegionOne as an argument to the keystone endpoint-create command.
+    openstack endpoint create --region RegionOne \
+    --publicurl http://IRONIC_NODE:6385 \
+    --internalurl http://IRONIC_NODE:6385 \
+    --adminurl http://IRONIC_NODE:6385 \
+    baremetal
 
 Set up the database for Bare Metal
 ----------------------------------
