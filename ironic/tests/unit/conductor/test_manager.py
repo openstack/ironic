@@ -4509,3 +4509,64 @@ class TestIndirectionApiConductor(tests_db_base.DbTestCase):
         self.assertEqual(result, fake_backported_obj)
         test_obj.obj_to_primitive.assert_called_once_with(
             target_version='1.0', version_manifest=fake_version_manifest)
+
+
+@_mock_record_keepalive
+class DoNodeTakeOverTestCase(_ServiceSetUpMixin,
+                             tests_db_base.DbTestCase):
+
+    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    def test__do_takeover(self, mock_prepare, mock_take_over,
+                          mock_start_console):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        self.service._do_takeover(task)
+        node.refresh()
+        self.assertIsNone(node.last_error)
+        self.assertFalse(node.console_enabled)
+        mock_prepare.assert_called_once_with(mock.ANY)
+        mock_take_over.assert_called_once_with(mock.ANY)
+        self.assertFalse(mock_start_console.called)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    def test__do_takeover_with_console_enabled(self, mock_prepare,
+                                               mock_take_over,
+                                               mock_start_console):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          console_enabled=True)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        self.service._do_takeover(task)
+        node.refresh()
+        self.assertIsNone(node.last_error)
+        self.assertTrue(node.console_enabled)
+        mock_prepare.assert_called_once_with(mock.ANY)
+        mock_take_over.assert_called_once_with(mock.ANY)
+        mock_start_console.assert_called_once_with(mock.ANY)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    def test__do_takeover_with_console_exception(self, mock_prepare,
+                                                 mock_take_over,
+                                                 mock_start_console):
+        self._start_service()
+        mock_start_console.side_effect = Exception()
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          console_enabled=True)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        self.service._do_takeover(task)
+        node.refresh()
+        self.assertIsNotNone(node.last_error)
+        self.assertFalse(node.console_enabled)
+        mock_prepare.assert_called_once_with(mock.ANY)
+        mock_take_over.assert_called_once_with(mock.ANY)
+        mock_start_console.assert_called_once_with(mock.ANY)

@@ -1366,6 +1366,20 @@ class ConductorManager(periodic_task.PeriodicTasks):
                   {'cdr': self.host, 'node': task.node.uuid})
         task.driver.deploy.prepare(task)
         task.driver.deploy.take_over(task)
+        # NOTE(zhenguo): If console enabled, take over the console session
+        # as well.
+        if task.node.console_enabled:
+            try:
+                task.driver.console.start_console(task)
+            except Exception as err:
+                msg = (_('Failed to start console while taking over the '
+                         'node %(node)s: %(err)s.') % {'node': task.node.uuid,
+                                                       'err': err})
+                LOG.error(msg)
+                # If taking over console failed, set node's console_enabled
+                # back to False and set node's last error.
+                task.node.last_error = msg
+                task.node.console_enabled = False
         # NOTE(lucasagomes): Set the ID of the new conductor managing
         #                    this node
         task.node.conductor_affinity = self.conductor.id
