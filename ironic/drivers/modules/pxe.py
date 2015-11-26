@@ -63,7 +63,8 @@ pxe_opts = [
     cfg.StrOpt('tftp_master_path',
                default='/tftpboot/master_images',
                help=_('On ironic-conductor node, directory where master TFTP '
-                      'images are stored on disk.')),
+                      'images are stored on disk. '
+                      'Setting to <None> disables image caching.')),
     # NOTE(dekehn): Additional boot files options may be created in the event
     #  other architectures require different boot files.
     cfg.StrOpt('pxe_bootfile_name',

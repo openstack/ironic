@@ -1886,7 +1886,8 @@
 #images_path=/var/lib/ironic/images/
 
 # On the ironic-conductor node, directory where master
-# instance images are stored on disk. (string value)
+# instance images are stored on disk. Setting to <None>
+# disables image caching. (string value)
 #instance_master_path=/var/lib/ironic/master_images
 
 # Maximum size (in MiB) of cache for master images, including
@@ -1923,7 +1924,8 @@
 #tftp_root=/tftpboot
 
 # On ironic-conductor node, directory where master TFTP images
-# are stored on disk. (string value)
+# are stored on disk. Setting to <None> disables image
+# caching. (string value)
 #tftp_master_path=/tftpboot/master_images
 
 # Bootfile DHCP parameter. (string value)
