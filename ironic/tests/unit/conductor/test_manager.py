@@ -1639,49 +1639,6 @@ class DoNodeCleanTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.deploy_raid = {
             'step': 'build_raid', 'priority': 0, 'interface': 'deploy'}
 
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps')
-    @mock.patch('ironic.drivers.modules.fake.FakePower.get_clean_steps')
-    def test__get_cleaning_steps(self, mock_power_steps, mock_deploy_steps):
-        # Test getting cleaning steps, with one driver returning None, two
-        # conflicting priorities, and asserting they are ordered properly.
-        node = obj_utils.create_test_node(
-            self.context, driver='fake',
-            provision_state=states.CLEANING,
-            target_provision_state=states.AVAILABLE)
-
-        mock_power_steps.return_value = [self.power_update]
-        mock_deploy_steps.return_value = [self.deploy_erase,
-                                          self.deploy_update]
-
-        with task_manager.acquire(
-                self.context, node['id'], shared=False) as task:
-            steps = manager._get_cleaning_steps(task, enabled=False)
-
-        self.assertEqual(self.clean_steps, steps)
-
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps')
-    @mock.patch('ironic.drivers.modules.fake.FakePower.get_clean_steps')
-    def test__get_cleaning_steps_only_enabled(self, mock_power_steps,
-                                              mock_deploy_steps):
-        # Test getting only cleaning steps, with one driver returning None, two
-        # conflicting priorities, and asserting they are ordered properly.
-        # Should discard zap step
-        node = obj_utils.create_test_node(
-            self.context, driver='fake',
-            provision_state=states.CLEANING,
-            target_provision_state=states.AVAILABLE)
-
-        mock_power_steps.return_value = [self.power_update]
-        mock_deploy_steps.return_value = [self.deploy_erase,
-                                          self.deploy_update,
-                                          self.deploy_raid]
-
-        with task_manager.acquire(
-                self.context, node['id'], shared=True) as task:
-            steps = manager._get_cleaning_steps(task, enabled=True)
-
-        self.assertEqual(self.clean_steps, steps)
-
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
     def test_continue_node_clean_worker_pool_full(self, mock_spawn):
         # Test the appropriate exception is raised if the worker pool is full
@@ -1827,7 +1784,7 @@ class DoNodeCleanTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.assertEqual({}, node.clean_step)
         self.assertIsNone(node.driver_internal_info.get('clean_steps'))
 
-    @mock.patch('ironic.conductor.manager.set_node_cleaning_steps')
+    @mock.patch.object(conductor_utils, 'set_node_cleaning_steps')
     @mock.patch('ironic.conductor.manager.ConductorManager.'
                 '_do_next_clean_step')
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
@@ -2092,25 +2049,6 @@ class DoNodeCleanTestCase(_ServiceSetUpMixin, tests_db_base.DbTestCase):
                                                  self.clean_steps[0])
         # Make sure we don't execute any other step and return
         self.assertFalse(power_exec_mock.called)
-
-    @mock.patch('ironic.conductor.manager._get_cleaning_steps')
-    def test_set_node_cleaning_steps(self, mock_steps):
-        mock_steps.return_value = self.clean_steps
-
-        node = obj_utils.create_test_node(
-            self.context, driver='fake',
-            provision_state=states.CLEANING,
-            target_provision_state=states.AVAILABLE,
-            last_error=None,
-            clean_step=None)
-
-        with task_manager.acquire(
-                self.context, node['id'], shared=False) as task:
-            manager.set_node_cleaning_steps(task)
-            node.refresh()
-            self.assertEqual(self.clean_steps,
-                             task.node.driver_internal_info['clean_steps'])
-            self.assertEqual({}, node.clean_step)
 
     def test__get_node_next_clean_steps(self):
         driver_internal_info = {'clean_steps': self.clean_steps}
@@ -3426,7 +3364,7 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
             'fail',
             callback=self.service._spawn_worker,
             call_args=(conductor_utils.cleanup_after_timeout, self.task),
-            err_handler=manager.provisioning_error_handler)
+            err_handler=conductor_utils.provisioning_error_handler)
 
     def test_acquire_node_disappears(self, get_nodeinfo_mock, mapped_mock,
                                      acquire_mock):
@@ -3513,7 +3451,7 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
             'fail',
             callback=self.service._spawn_worker,
             call_args=(conductor_utils.cleanup_after_timeout, self.task2),
-            err_handler=manager.provisioning_error_handler)
+            err_handler=conductor_utils.provisioning_error_handler)
 
     def test_exiting_no_worker_avail(self, get_nodeinfo_mock, mapped_mock,
                                      acquire_mock):
@@ -3538,7 +3476,7 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
             'fail',
             callback=self.service._spawn_worker,
             call_args=(conductor_utils.cleanup_after_timeout, self.task),
-            err_handler=manager.provisioning_error_handler)
+            err_handler=conductor_utils.provisioning_error_handler)
 
     def test_exiting_with_other_exception(self, get_nodeinfo_mock,
                                           mapped_mock, acquire_mock):
@@ -3564,7 +3502,7 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
             'fail',
             callback=self.service._spawn_worker,
             call_args=(conductor_utils.cleanup_after_timeout, self.task),
-            err_handler=manager.provisioning_error_handler)
+            err_handler=conductor_utils.provisioning_error_handler)
 
     def test_worker_limit(self, get_nodeinfo_mock, mapped_mock, acquire_mock):
         self.config(periodic_max_workers=2, group='conductor')
@@ -3590,7 +3528,7 @@ class ManagerCheckDeployTimeoutsTestCase(_CommonMixIn,
             'fail',
             callback=self.service._spawn_worker,
             call_args=(conductor_utils.cleanup_after_timeout, self.task),
-            err_handler=manager.provisioning_error_handler)
+            err_handler=conductor_utils.provisioning_error_handler)
         self.assertEqual([process_event_call] * 2,
                          self.task.process_event.call_args_list)
 
@@ -4349,7 +4287,7 @@ class ManagerCheckDeployingStatusTestCase(_ServiceSetUpMixin,
             mock.ANY, {'id': self.node.id}, states.DEPLOYING,
             'provision_updated_at',
             callback_method=conductor_utils.cleanup_after_timeout,
-            err_handler=manager.provisioning_error_handler)
+            err_handler=conductor_utils.provisioning_error_handler)
         # assert node was released
         self.assertIsNone(self.node.reservation)
 
@@ -4406,7 +4344,7 @@ class ManagerCheckDeployingStatusTestCase(_ServiceSetUpMixin,
             mock.ANY, {'id': self.node.id}, states.DEPLOYING,
             'provision_updated_at',
             callback_method=conductor_utils.cleanup_after_timeout,
-            err_handler=manager.provisioning_error_handler)
+            err_handler=conductor_utils.provisioning_error_handler)
 
 
 class TestIndirectionApiConductor(tests_db_base.DbTestCase):

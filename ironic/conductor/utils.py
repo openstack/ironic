@@ -17,12 +17,24 @@ from oslo_utils import excutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.conductor import task_manager
 
 LOG = log.getLogger(__name__)
+
+CLEANING_INTERFACE_PRIORITY = {
+    # When two clean steps have the same priority, their order is determined
+    # by which interface is implementing the clean step. The clean step of the
+    # interface with the highest value here, will be executed first in that
+    # case.
+    'power': 4,
+    'management': 3,
+    'deploy': 2,
+    'raid': 1,
+}
 
 
 @task_manager.require_exclusive_lock
@@ -156,3 +168,119 @@ def cleanup_after_timeout(task):
                                 'exception was encountered while aborting. '
                                 'More info may be found in the log file.')
         node.save()
+
+
+def provisioning_error_handler(e, node, provision_state,
+                               target_provision_state):
+    """Set the node's provisioning states if error occurs.
+
+    This hook gets called upon an exception being raised when spawning
+    the worker to do the deployment or tear down of a node.
+
+    :param e: the exception object that was raised.
+    :param node: an Ironic node object.
+    :param provision_state: the provision state to be set on
+        the node.
+    :param target_provision_state: the target provision state to be
+        set on the node.
+
+    """
+    if isinstance(e, exception.NoFreeConductorWorker):
+        # NOTE(deva): there is no need to clear conductor_affinity
+        #             because it isn't updated on a failed deploy
+        node.provision_state = provision_state
+        node.target_provision_state = target_provision_state
+        node.last_error = (_("No free conductor workers available"))
+        node.save()
+        LOG.warning(_LW("No free conductor workers available to perform "
+                        "an action on node %(node)s, setting node's "
+                        "provision_state back to %(prov_state)s and "
+                        "target_provision_state to %(tgt_prov_state)s."),
+                    {'node': node.uuid, 'prov_state': provision_state,
+                     'tgt_prov_state': target_provision_state})
+
+
+def cleaning_error_handler(task, msg, tear_down_cleaning=True,
+                           set_fail_state=True):
+    """Put a failed node in CLEANFAIL or ZAPFAIL and maintenance."""
+    # Reset clean step, msg should include current step
+    if task.node.provision_state in (states.CLEANING, states.CLEANWAIT):
+        task.node.clean_step = {}
+    task.node.last_error = msg
+    task.node.maintenance = True
+    task.node.maintenance_reason = msg
+    task.node.save()
+    if tear_down_cleaning:
+        try:
+            task.driver.deploy.tear_down_cleaning(task)
+        except Exception as e:
+            msg = (_LE('Failed to tear down cleaning on node %(uuid)s, '
+                       'reason: %(err)s'), {'err': e, 'uuid': task.node.uuid})
+            LOG.exception(msg)
+
+    if set_fail_state:
+        task.process_event('fail')
+
+
+def power_state_error_handler(e, node, power_state):
+    """Set the node's power states if error occurs.
+
+    This hook gets called upon an exception being raised when spawning
+    the worker thread to change the power state of a node.
+
+    :param e: the exception object that was raised.
+    :param node: an Ironic node object.
+    :param power_state: the power state to set on the node.
+
+    """
+    if isinstance(e, exception.NoFreeConductorWorker):
+        node.power_state = power_state
+        node.target_power_state = states.NOSTATE
+        node.last_error = (_("No free conductor workers available"))
+        node.save()
+        LOG.warning(_LW("No free conductor workers available to perform "
+                        "an action on node %(node)s, setting node's "
+                        "power state back to %(power_state)s."),
+                    {'node': node.uuid, 'power_state': power_state})
+
+
+def _step_key(step):
+    """Sort by priority, then interface priority in event of tie.
+
+    :param step: cleaning step dict to get priority for.
+    """
+    return (step.get('priority'),
+            CLEANING_INTERFACE_PRIORITY[step.get('interface')])
+
+
+def _get_cleaning_steps(task, enabled=False):
+    """Get sorted cleaning steps for task.node
+
+    :param task: A TaskManager object
+    :param enabled: If True, returns only enabled (priority > 0) steps. If
+        False, returns all clean steps.
+    :returns: A list of clean steps dictionaries, sorted with largest priority
+        as the first item
+    """
+    # Iterate interfaces and get clean steps from each
+    steps = list()
+    for interface in CLEANING_INTERFACE_PRIORITY:
+        interface = getattr(task.driver, interface)
+        if interface:
+            interface_steps = [x for x in interface.get_clean_steps(task)
+                               if not enabled or x['priority'] > 0]
+            steps.extend(interface_steps)
+    # Sort the steps from higher priority to lower priority
+    return sorted(steps, key=_step_key, reverse=True)
+
+
+def set_node_cleaning_steps(task):
+    """Get the list of clean steps, save them to the node."""
+    # Get the prioritized steps, store them.
+    node = task.node
+    driver_internal_info = node.driver_internal_info
+    driver_internal_info['clean_steps'] = _get_cleaning_steps(task,
+                                                              enabled=True)
+    node.driver_internal_info = driver_internal_info
+    node.clean_step = {}
+    node.save()

@@ -30,7 +30,6 @@ from ironic.common import keystone
 from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.common import utils
-from ironic.conductor import manager
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent_base_vendor
@@ -1170,7 +1169,7 @@ class TestVendorPassthru(db_base.DbTestCase):
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
                        'notify_conductor_resume_clean',
                        autospec=True)
-    @mock.patch.object(manager, 'set_node_cleaning_steps', autospec=True)
+    @mock.patch.object(manager_utils, 'set_node_cleaning_steps', autospec=True)
     @mock.patch.object(iscsi_deploy, 'LOG', spec=['warning'])
     def test__initiate_cleaning(self, log_mock, set_node_cleaning_steps_mock,
                                 notify_mock):
@@ -1185,8 +1184,8 @@ class TestVendorPassthru(db_base.DbTestCase):
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
                        'notify_conductor_resume_clean',
                        autospec=True)
-    @mock.patch.object(manager, 'cleaning_error_handler', autospec=True)
-    @mock.patch.object(manager, 'set_node_cleaning_steps', autospec=True)
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
+    @mock.patch.object(manager_utils, 'set_node_cleaning_steps', autospec=True)
     @mock.patch.object(iscsi_deploy, 'LOG', spec=['warning'])
     def test__initiate_cleaning_exception(
             self, log_mock, set_node_cleaning_steps_mock,

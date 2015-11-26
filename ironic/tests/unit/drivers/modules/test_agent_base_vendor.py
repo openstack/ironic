@@ -23,7 +23,6 @@ import mock
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import states
-from ironic.conductor import manager
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent_base_vendor
@@ -358,7 +357,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             'is done. exception: LlamaException')
 
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
-    @mock.patch.object(manager, 'set_node_cleaning_steps', autospec=True)
+    @mock.patch.object(manager_utils, 'set_node_cleaning_steps', autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
                        'notify_conductor_resume_clean', autospec=True)
     def test_heartbeat_resume_clean(self, mock_notify, mock_set_steps,
@@ -408,7 +407,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             mock_touch.reset_mock()
             mock_continue.reset_mock()
 
-    @mock.patch('ironic.conductor.manager.cleaning_error_handler')
+    @mock.patch.object(manager_utils, 'cleaning_error_handler')
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
                        'continue_cleaning', autospec=True)
     def test_heartbeat_continue_cleaning_fails(self, mock_continue,
@@ -777,7 +776,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                        'notify_conductor_resume_clean', autospec=True)
     @mock.patch.object(agent_base_vendor,
                        '_get_post_clean_step_hook', autospec=True)
-    @mock.patch.object(manager, 'cleaning_error_handler', autospec=True)
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
     def test_continue_cleaning_with_hook_fails(
@@ -851,8 +850,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.passthru.continue_cleaning(task)
             self.assertFalse(notify_mock.called)
 
-    @mock.patch('ironic.conductor.manager.cleaning_error_handler',
-                autospec=True)
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
     def test_continue_cleaning_fail(self, status_mock, error_mock):
@@ -867,8 +865,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.passthru.continue_cleaning(task)
             error_mock.assert_called_once_with(task, mock.ANY)
 
-    @mock.patch('ironic.conductor.manager.set_node_cleaning_steps',
-                autospec=True)
+    @mock.patch.object(manager_utils, 'set_node_cleaning_steps', autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
                        'notify_conductor_resume_clean', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
@@ -887,8 +884,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             steps_mock.assert_called_once_with(task)
             notify_mock.assert_called_once_with(mock.ANY, task)
 
-    @mock.patch('ironic.conductor.manager.cleaning_error_handler',
-                autospec=True)
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
     def test_continue_cleaning_unknown(self, status_mock, error_mock):
