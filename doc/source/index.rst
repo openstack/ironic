@@ -21,10 +21,9 @@ on the latest code, and may not represent the state of the project at any
 specific prior release.
 
 For information on any current or prior version of Ironic, see `the release
-notes`_ and `the wiki pages`_.
+notes`_.
 
-.. _the release notes: releasenotes/index.html
-.. _the wiki pages: https://wiki.openstack.org/wiki/Ironic/ReleaseNotes
+.. _the release notes: http://docs.openstack.org/releasenotes/ironic/
 
 Admin Guide
 ===========
@@ -43,6 +42,7 @@ Overview
   deploy/drivers
   deploy/cleaning
   deploy/troubleshooting
+  Release Notes <http://docs.openstack.org/releasenotes/ironic/>
 
 Commands
 --------
