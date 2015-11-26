@@ -10,7 +10,6 @@ WebOb>=1.2.3
 greenlet>=0.3.2
 netaddr!=0.7.16,>=0.7.12
 paramiko>=1.13.0
-iso8601>=0.1.9
 python-neutronclient>=2.6.0
 python-glanceclient>=0.18.0
 python-keystoneclient!=1.8.0,>=1.6.0
