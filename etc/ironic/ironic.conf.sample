@@ -264,6 +264,10 @@
 # message. (string value)
 #instance_uuid_format="[instance: %(uuid)s] "
 
+# Format string for user_identity field of the
+# logging_context_format_string (string value)
+#logging_user_identity_format=%(user)s %(tenant)s %(domain)s %(user_domain)s %(project_domain)s
+
 # Enables or disables fatal status of deprecations. (boolean
 # value)
 #fatal_deprecations=false
@@ -274,6 +278,7 @@
 #
 
 # Size of RPC connection pool. (integer value)
+# Deprecated group/name - [DEFAULT]/rpc_conn_pool_size
 #rpc_conn_pool_size=30
 
 # ZeroMQ bind address. Should be a wildcard (*), an ethernet
@@ -320,6 +325,16 @@
 # value)
 #zmq_use_broker=true
 
+# Minimal port number for random ports range. (integer value)
+#rpc_zmq_min_port=49152
+
+# Maximal port number for random ports range. (integer value)
+#rpc_zmq_max_port=65536
+
+# Number of retries to find free port number before fail with
+# ZMQBindError. (integer value)
+#rpc_zmq_bind_port_retries=100
+
 # Host to locate redis. (string value)
 #host=127.0.0.1
 
@@ -337,6 +352,11 @@
 # values are messaging, messagingv2, routing, log, test, noop
 # (multi valued)
 #notification_driver=
+
+# A URL representing the messaging driver to use for
+# notifications. If not set, we fall back to the same
+# configuration used for RPC. (string value)
+#notification_transport_url=<None>
 
 # AMQP topic used for OpenStack notifications. (list value)
 # Deprecated group/name - [rpc_notifier2]/topics
@@ -389,7 +409,7 @@
 
 # Specify a timeout after which a gracefully shutdown server
 # will exit. Zero value means endless wait. (integer value)
-#graceful_shutdown_timeout=0
+#graceful_shutdown_timeout=60
 
 
 [agent]
@@ -694,7 +714,7 @@
 #
 
 # Indicate whether this resource may be shared with the domain
-# received in the requests "origin" header. (string value)
+# received in the requests "origin" header. (list value)
 #allowed_origin=<None>
 
 # Indicate that the actual request can include user
@@ -725,7 +745,7 @@
 #
 
 # Indicate whether this resource may be shared with the domain
-# received in the requests "origin" header. (string value)
+# received in the requests "origin" header. (list value)
 #allowed_origin=<None>
 
 # Indicate that the actual request can include user
@@ -764,9 +784,11 @@
 #
 
 # The file name to use with SQLite. (string value)
+# Deprecated group/name - [DEFAULT]/sqlite_db
 #sqlite_db=oslo.sqlite
 
 # If True, SQLite uses synchronous mode. (boolean value)
+# Deprecated group/name - [DEFAULT]/sqlite_synchronous
 #sqlite_synchronous=true
 
 # The back end to use for the database. (string value)
@@ -887,9 +909,11 @@
 
 # ironic-conductor node's HTTP server URL. Example:
 # http://192.1.2.3:8080 (string value)
+# Deprecated group/name - [pxe]/http_url
 #http_url=<None>
 
 # ironic-conductor node's HTTP root path. (string value)
+# Deprecated group/name - [pxe]/http_root
 #http_root=/httpboot
 
 # Priority to run in-band erase devices via the Ironic Python
@@ -1158,15 +1182,18 @@
 
 # whether to enable inspection using ironic-inspector (boolean
 # value)
+# Deprecated group/name - [discoverd]/enabled
 #enabled=false
 
 # ironic-inspector HTTP endpoint. If this is not set, the
 # ironic-inspector client default (http://127.0.0.1:5050) will
 # be used. (string value)
+# Deprecated group/name - [discoverd]/service_url
 #service_url=<None>
 
 # period (in seconds) to check status of nodes on inspection
 # (integer value)
+# Deprecated group/name - [discoverd]/status_check_period
 #status_check_period=60
 
 
@@ -1194,27 +1221,7 @@
 [irmc]
 
 #
-# Options defined in ironic.drivers.modules.irmc.common
-#
-
-# Port to be used for iRMC operations, either 80 or 443 (port
-# value)
-#port=443
-
-# Authentication method to be used for iRMC operations, either
-# "basic" or "digest" (string value)
-#auth_method=basic
-
-# Timeout (in seconds) for iRMC operations (integer value)
-#client_timeout=60
-
-# Sensor data retrieval method, either "ipmitool" or "scci"
-# (string value)
-#sensor_method=ipmitool
-
-
-#
-# Options defined in ironic.drivers.modules.irmc.deploy
+# Options defined in ironic.drivers.modules.irmc.boot
 #
 
 # Ironic conductor node's "NFS" or "CIFS" root path (string
@@ -1239,6 +1246,26 @@
 
 # Domain name of remote_image_user_name (string value)
 #remote_image_user_domain=
+
+
+#
+# Options defined in ironic.drivers.modules.irmc.common
+#
+
+# Port to be used for iRMC operations, either 80 or 443 (port
+# value)
+#port=443
+
+# Authentication method to be used for iRMC operations, either
+# "basic" or "digest" (string value)
+#auth_method=basic
+
+# Timeout (in seconds) for iRMC operations (integer value)
+#client_timeout=60
+
+# Sensor data retrieval method, either "ipmitool" or "scci"
+# (string value)
+#sensor_method=ipmitool
 
 
 [keystone]
@@ -1516,6 +1543,7 @@
 #
 
 # Enables or disables inter-process locks. (boolean value)
+# Deprecated group/name - [DEFAULT]/disable_process_locking
 #disable_process_locking=false
 
 # Directory to use for lock files.  For security, the
@@ -1523,6 +1551,7 @@
 # running the processes that need locking. Defaults to
 # environment variable OSLO_LOCK_PATH. If external locks are
 # used, a lock path must be set. (string value)
+# Deprecated group/name - [DEFAULT]/lock_path
 #lock_path=<None>
 
 
@@ -1534,61 +1563,77 @@
 
 # address prefix used when sending to a specific server
 # (string value)
+# Deprecated group/name - [amqp1]/server_request_prefix
 #server_request_prefix=exclusive
 
 # address prefix used when broadcasting to all servers (string
 # value)
+# Deprecated group/name - [amqp1]/broadcast_prefix
 #broadcast_prefix=broadcast
 
 # address prefix when sending to any server in group (string
 # value)
+# Deprecated group/name - [amqp1]/group_request_prefix
 #group_request_prefix=unicast
 
 # Name for the AMQP container (string value)
+# Deprecated group/name - [amqp1]/container_name
 #container_name=<None>
 
 # Timeout for inactive connections (in seconds) (integer
 # value)
+# Deprecated group/name - [amqp1]/idle_timeout
 #idle_timeout=0
 
 # Debug: dump AMQP frames to stdout (boolean value)
+# Deprecated group/name - [amqp1]/trace
 #trace=false
 
 # CA certificate PEM file to verify server certificate (string
 # value)
+# Deprecated group/name - [amqp1]/ssl_ca_file
 #ssl_ca_file=
 
 # Identifying certificate PEM file to present to clients
 # (string value)
+# Deprecated group/name - [amqp1]/ssl_cert_file
 #ssl_cert_file=
 
 # Private key PEM file used to sign cert_file certificate
 # (string value)
+# Deprecated group/name - [amqp1]/ssl_key_file
 #ssl_key_file=
 
 # Password for decrypting ssl_key_file (if encrypted) (string
 # value)
+# Deprecated group/name - [amqp1]/ssl_key_password
 #ssl_key_password=<None>
 
 # Accept clients using either SSL or plain TCP (boolean value)
+# Deprecated group/name - [amqp1]/allow_insecure_clients
 #allow_insecure_clients=false
 
 # Space separated list of acceptable SASL mechanisms (string
 # value)
+# Deprecated group/name - [amqp1]/sasl_mechanisms
 #sasl_mechanisms=
 
 # Path to directory that contains the SASL configuration
 # (string value)
+# Deprecated group/name - [amqp1]/sasl_config_dir
 #sasl_config_dir=
 
 # Name of configuration file (without .conf suffix) (string
 # value)
+# Deprecated group/name - [amqp1]/sasl_config_name
 #sasl_config_name=
 
 # User name for message broker authentication (string value)
+# Deprecated group/name - [amqp1]/username
 #username=
 
 # Password for message broker authentication (string value)
+# Deprecated group/name - [amqp1]/password
 #password=
 
 
@@ -1604,6 +1649,7 @@
 #amqp_durable_queues=false
 
 # Auto-delete queues in AMQP. (boolean value)
+# Deprecated group/name - [DEFAULT]/amqp_auto_delete
 #amqp_auto_delete=false
 
 # Send a single AMQP reply to call message. The current
@@ -1619,36 +1665,46 @@
 #send_single_reply=false
 
 # Qpid broker hostname. (string value)
+# Deprecated group/name - [DEFAULT]/qpid_hostname
 #qpid_hostname=localhost
 
 # Qpid broker port. (integer value)
+# Deprecated group/name - [DEFAULT]/qpid_port
 #qpid_port=5672
 
 # Qpid HA cluster host:port pairs. (list value)
+# Deprecated group/name - [DEFAULT]/qpid_hosts
 #qpid_hosts=$qpid_hostname:$qpid_port
 
 # Username for Qpid connection. (string value)
+# Deprecated group/name - [DEFAULT]/qpid_username
 #qpid_username=
 
 # Password for Qpid connection. (string value)
+# Deprecated group/name - [DEFAULT]/qpid_password
 #qpid_password=
 
 # Space separated list of SASL mechanisms to use for auth.
 # (string value)
+# Deprecated group/name - [DEFAULT]/qpid_sasl_mechanisms
 #qpid_sasl_mechanisms=
 
 # Seconds between connection keepalive heartbeats. (integer
 # value)
+# Deprecated group/name - [DEFAULT]/qpid_heartbeat
 #qpid_heartbeat=60
 
 # Transport to use, either 'tcp' or 'ssl'. (string value)
+# Deprecated group/name - [DEFAULT]/qpid_protocol
 #qpid_protocol=tcp
 
 # Whether to disable the Nagle algorithm. (boolean value)
+# Deprecated group/name - [DEFAULT]/qpid_tcp_nodelay
 #qpid_tcp_nodelay=true
 
 # The number of prefetched messages held by receiver. (integer
 # value)
+# Deprecated group/name - [DEFAULT]/qpid_receiver_capacity
 #qpid_receiver_capacity=1
 
 # The qpid topology version to use.  Version 1 is what was
@@ -1657,6 +1713,7 @@
 # to work.  Users should update to version 2 when they are
 # able to take everything down, as it requires a clean break.
 # (integer value)
+# Deprecated group/name - [DEFAULT]/qpid_topology_version
 #qpid_topology_version=1
 
 
@@ -1672,6 +1729,7 @@
 #amqp_durable_queues=false
 
 # Auto-delete queues in AMQP. (boolean value)
+# Deprecated group/name - [DEFAULT]/amqp_auto_delete
 #amqp_auto_delete=false
 
 # Send a single AMQP reply to call message. The current
@@ -1689,20 +1747,25 @@
 # SSL version to use (valid only if SSL enabled). Valid values
 # are TLSv1 and SSLv23. SSLv2, SSLv3, TLSv1_1, and TLSv1_2 may
 # be available on some distributions. (string value)
+# Deprecated group/name - [DEFAULT]/kombu_ssl_version
 #kombu_ssl_version=
 
 # SSL key file (valid only if SSL enabled). (string value)
+# Deprecated group/name - [DEFAULT]/kombu_ssl_keyfile
 #kombu_ssl_keyfile=
 
 # SSL cert file (valid only if SSL enabled). (string value)
+# Deprecated group/name - [DEFAULT]/kombu_ssl_certfile
 #kombu_ssl_certfile=
 
 # SSL certification authority file (valid only if SSL
 # enabled). (string value)
+# Deprecated group/name - [DEFAULT]/kombu_ssl_ca_certs
 #kombu_ssl_ca_certs=
 
 # How long to wait before reconnecting in response to an AMQP
 # consumer cancel notification. (floating point value)
+# Deprecated group/name - [DEFAULT]/kombu_reconnect_delay
 #kombu_reconnect_delay=1.0
 
 # How long to wait before considering a reconnect attempt to
@@ -1712,28 +1775,36 @@
 
 # The RabbitMQ broker address where a single node is used.
 # (string value)
+# Deprecated group/name - [DEFAULT]/rabbit_host
 #rabbit_host=localhost
 
 # The RabbitMQ broker port where a single node is used.
 # (integer value)
+# Deprecated group/name - [DEFAULT]/rabbit_port
 #rabbit_port=5672
 
 # RabbitMQ HA cluster host:port pairs. (list value)
+# Deprecated group/name - [DEFAULT]/rabbit_hosts
 #rabbit_hosts=$rabbit_host:$rabbit_port
 
 # Connect over SSL for RabbitMQ. (boolean value)
+# Deprecated group/name - [DEFAULT]/rabbit_use_ssl
 #rabbit_use_ssl=false
 
 # The RabbitMQ userid. (string value)
+# Deprecated group/name - [DEFAULT]/rabbit_userid
 #rabbit_userid=guest
 
 # The RabbitMQ password. (string value)
+# Deprecated group/name - [DEFAULT]/rabbit_password
 #rabbit_password=guest
 
 # The RabbitMQ login method. (string value)
+# Deprecated group/name - [DEFAULT]/rabbit_login_method
 #rabbit_login_method=AMQPLAIN
 
 # The RabbitMQ virtual host. (string value)
+# Deprecated group/name - [DEFAULT]/rabbit_virtual_host
 #rabbit_virtual_host=/
 
 # How frequently to retry connecting with RabbitMQ. (integer
@@ -1742,15 +1813,18 @@
 
 # How long to backoff for between retries when connecting to
 # RabbitMQ. (integer value)
+# Deprecated group/name - [DEFAULT]/rabbit_retry_backoff
 #rabbit_retry_backoff=2
 
 # Maximum number of RabbitMQ connection retries. Default is 0
 # (infinite retry count). (integer value)
+# Deprecated group/name - [DEFAULT]/rabbit_max_retries
 #rabbit_max_retries=0
 
 # Use HA queues in RabbitMQ (x-ha-policy: all). If you change
 # this option, you must wipe the RabbitMQ database. (boolean
 # value)
+# Deprecated group/name - [DEFAULT]/rabbit_ha_queues
 #rabbit_ha_queues=false
 
 # Number of seconds after which the Rabbit broker is
@@ -1764,6 +1838,7 @@
 
 # Deprecated, use rpc_backend=kombu+memory or rpc_backend=fake
 # (boolean value)
+# Deprecated group/name - [DEFAULT]/fake_rabbit
 #fake_rabbit=false
 
 
@@ -1774,10 +1849,12 @@
 #
 
 # The JSON file that defines policies. (string value)
+# Deprecated group/name - [DEFAULT]/policy_file
 #policy_file=policy.json
 
 # Default rule. Enforced when a requested rule is not found.
 # (string value)
+# Deprecated group/name - [DEFAULT]/policy_default_rule
 #policy_default_rule=default
 
 # Directories where policy configuration files are stored.
@@ -1786,6 +1863,7 @@
 # file defined by policy_file must exist for these directories
 # to be searched.  Missing or empty directories are ignored.
 # (multi valued)
+# Deprecated group/name - [DEFAULT]/policy_dirs
 #policy_dirs=policy.d
 
 
@@ -1922,17 +2000,27 @@
 
 # CA certificate file to use to verify connecting clients.
 # (string value)
+# Deprecated group/name - [DEFAULT]/ssl_ca_file
 #ca_file=<None>
 
 # Certificate file to use when starting the server securely.
 # (string value)
+# Deprecated group/name - [DEFAULT]/ssl_cert_file
 #cert_file=<None>
 
 # Private key file to use when starting the server securely.
 # (string value)
+# Deprecated group/name - [DEFAULT]/ssl_key_file
 #key_file=<None>
 
+# SSL version to use (valid only if SSL enabled). Valid values
+# are TLSv1 and SSLv23. SSLv2, SSLv3, TLSv1_1, and TLSv1_2 may
+# be available on some distributions. (string value)
+#version=<None>
 
+# Sets the list of available ciphers. value should be a string
+# in the OpenSSL cipher list format. (string value)
+#ciphers=<None>
 
 
 [swift]

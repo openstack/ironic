@@ -278,12 +278,13 @@ def _print_opt(opt):
     print('#', "\n# ".join(textwrap.wrap(opt_help, WORDWRAP_WIDTH)))
     if opt.deprecated_opts:
         for deprecated_opt in opt.deprecated_opts:
-            if deprecated_opt.name:
-                deprecated_group = (deprecated_opt.group if
-                                    deprecated_opt.group else "DEFAULT")
-                print('# Deprecated group/name - [%s]/%s' %
-                      (deprecated_group,
-                       deprecated_opt.name))
+            deprecated_name = (deprecated_opt.name if
+                               deprecated_opt.name else opt_name)
+            deprecated_group = (deprecated_opt.group if
+                                deprecated_opt.group else "DEFAULT")
+            print('# Deprecated group/name - [%s]/%s' %
+                  (deprecated_group,
+                   deprecated_name))
     try:
         if opt_default is None:
             print('#%s=<None>' % opt_name)
