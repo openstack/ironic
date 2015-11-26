@@ -19,6 +19,7 @@
 
 import errno
 import os
+import psutil
 import random
 import signal
 import string
@@ -245,12 +246,19 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
                           'password')
 
     @mock.patch.object(subprocess, 'Popen', autospec=True)
+    @mock.patch.object(console_utils, '_get_console_pid', autospec=True)
+    @mock.patch.object(psutil, 'pid_exists', autospec=True)
     @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',
                        autospec=True)
     @mock.patch.object(console_utils, '_stop_console', autospec=True)
-    def test_start_shellinabox_console(self, mock_stop, mock_dir_exists,
+    def test_start_shellinabox_console(self, mock_stop,
+                                       mock_dir_exists,
+                                       mock_pid_exists,
+                                       mock_pid,
                                        mock_popen):
         mock_popen.return_value.poll.return_value = 0
+        mock_pid.return_value = 12345
+        mock_pid_exists.return_value = True
 
         # touch the pid file
         pid_file = console_utils._get_console_pid_file(self.info['uuid'])
@@ -264,20 +272,29 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
 
         mock_stop.assert_called_once_with(self.info['uuid'])
         mock_dir_exists.assert_called_once_with()
+        mock_pid.assert_called_once_with(self.info['uuid'])
+        mock_pid_exists.assert_called_once_with(12345)
         mock_popen.assert_called_once_with(mock.ANY,
                                            stdout=subprocess.PIPE,
                                            stderr=subprocess.PIPE)
         mock_popen.return_value.poll.assert_called_once_with()
 
     @mock.patch.object(subprocess, 'Popen', autospec=True)
+    @mock.patch.object(console_utils, '_get_console_pid', autospec=True)
+    @mock.patch.object(psutil, 'pid_exists', autospec=True)
     @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',
                        autospec=True)
     @mock.patch.object(console_utils, '_stop_console', autospec=True)
-    def test_start_shellinabox_console_nopid(self, mock_stop, mock_dir_exists,
+    def test_start_shellinabox_console_nopid(self, mock_stop,
+                                             mock_dir_exists,
+                                             mock_pid_exists,
+                                             mock_pid,
                                              mock_popen):
         # no existing PID file before starting
         mock_stop.side_effect = iter([exception.NoConsolePid('/tmp/blah')])
         mock_popen.return_value.poll.return_value = 0
+        mock_pid.return_value = 12345
+        mock_pid_exists.return_value = True
 
         # touch the pid file
         pid_file = console_utils._get_console_pid_file(self.info['uuid'])
@@ -291,6 +308,8 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
 
         mock_stop.assert_called_once_with(self.info['uuid'])
         mock_dir_exists.assert_called_once_with()
+        mock_pid.assert_called_once_with(self.info['uuid'])
+        mock_pid_exists.assert_called_once_with(12345)
         mock_popen.assert_called_once_with(mock.ANY,
                                            stdout=subprocess.PIPE,
                                            stderr=subprocess.PIPE)
@@ -313,6 +332,43 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
 
         mock_stop.assert_called_once_with(self.info['uuid'])
         mock_dir_exists.assert_called_once_with()
+        mock_popen.assert_called_once_with(mock.ANY,
+                                           stdout=subprocess.PIPE,
+                                           stderr=subprocess.PIPE)
+        mock_popen.return_value.poll.assert_called_once_with()
+
+    @mock.patch.object(subprocess, 'Popen', autospec=True)
+    @mock.patch.object(console_utils, '_get_console_pid', autospec=True)
+    @mock.patch.object(psutil, 'pid_exists', autospec=True)
+    @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',
+                       autospec=True)
+    @mock.patch.object(console_utils, '_stop_console', autospec=True)
+    def test_start_shellinabox_console_fail_no_pid(self, mock_stop,
+                                                   mock_dir_exists,
+                                                   mock_pid_exists,
+                                                   mock_pid,
+                                                   mock_popen):
+        mock_popen.return_value.poll.return_value = 0
+        mock_pid.return_value = 12345
+        mock_pid_exists.return_value = False
+        mock_popen.return_value.communicate.return_value = ('output', 'error')
+
+        # touch the pid file
+        pid_file = console_utils._get_console_pid_file(self.info['uuid'])
+        open(pid_file, 'a').close()
+        self.addCleanup(os.remove, pid_file)
+        self.assertTrue(os.path.exists(pid_file))
+
+        self.assertRaises(exception.ConsoleSubprocessFailed,
+                          console_utils.start_shellinabox_console,
+                          self.info['uuid'],
+                          self.info['port'],
+                          'ls&')
+
+        mock_stop.assert_called_once_with(self.info['uuid'])
+        mock_dir_exists.assert_called_once_with()
+        mock_pid.assert_called_once_with(self.info['uuid'])
+        mock_pid_exists.assert_called_once_with(12345)
         mock_popen.assert_called_once_with(mock.ANY,
                                            stdout=subprocess.PIPE,
                                            stderr=subprocess.PIPE)

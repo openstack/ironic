@@ -42,3 +42,4 @@ oslo.messaging!=2.8.0,>2.6.1 # Apache-2.0
 retrying!=1.3.0,>=1.2.3 # Apache-2.0
 oslo.versionedobjects>=0.13.0
 jsonschema!=2.5.0,<3.0.0,>=2.0.0
+psutil<2.0.0,>=1.1.1
