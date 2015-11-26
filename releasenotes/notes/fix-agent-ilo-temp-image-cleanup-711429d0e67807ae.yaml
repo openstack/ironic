@@ -1,0 +1,4 @@
+---
+fixes:
+  - Fixes an issue where the `agent_ilo` driver did not correctly
+    clean up temporary files created during the deploy process.

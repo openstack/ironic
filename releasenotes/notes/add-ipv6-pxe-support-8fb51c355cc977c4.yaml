@@ -1,0 +1,5 @@
+---
+features:
+  - Adds experimental support for IPv6 PXE booting.
+    This is configurable via the [pxe]ip_version
+    configuration option.

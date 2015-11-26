@@ -1,0 +1,5 @@
+---
+features:
+  - Adds support for using Glance with a Ceph backend
+    via the RADOS Gateway Swift API, with the Agent deploy
+    driver.

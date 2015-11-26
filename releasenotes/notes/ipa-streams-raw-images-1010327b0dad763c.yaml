@@ -1,0 +1,16 @@
+---
+features:
+  - The Agent deploy driver now streams raw images
+    directly to disk (instead of staging in memory) by
+    default.
+upgrade:
+  - The Agent deploy driver now streams raw images
+    directly to disk (instead of staging in memory) by
+    default; this can be turned off by setting the
+    [agent]stream_raw_images configuration option to False.
+    Streaming may be undesirable if the disk the image is being
+    written is significantly slower than the network.
+fixes:
+  - Because the agent deploy driver now streams raw images
+    directly to disk, images larger than the RAM available
+    to the deploy ramdisk will no longer fail to deploy.

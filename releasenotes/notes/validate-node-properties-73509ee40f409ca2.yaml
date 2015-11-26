@@ -1,0 +1,5 @@
+---
+fixes:
+  - The `cpus`, `local_gb`, and `memory_mb` properties
+    of a node are now validated at input time to ensure
+    they are non-negative numbers.

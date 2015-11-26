@@ -1,0 +1,6 @@
+---
+upgrade:
+  - The `task` parameter to
+    `ManagementInterface.get_supported_boot_devices` was
+    previously deprecated as optional, and is now mandatory
+    for all implementations of ManagementInterface.

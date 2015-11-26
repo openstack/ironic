@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The API root endpoint (GET /) now returns version
+    information for the server; specifically:
+
+    * min_version - minimum API version supported by the server;
+    * version - maximum API version supported by the server;
+    * status - version status, "CURRENT" for v1.

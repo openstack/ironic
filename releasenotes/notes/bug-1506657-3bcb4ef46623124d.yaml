@@ -1,0 +1,12 @@
+---
+upgrade:
+  - Adds a new configuration option, hash_ring_reset_interval,
+    to control how often the conductor's view of the hash ring
+    is reset. This has a default of 180 seconds, the same as
+    the default for the sync_local_state periodic task that
+    used to handle this reset.
+critical:
+  - Fixes a bug where the conductor's view of the hash
+    ring was never refreshed if the sync_local_state
+    periodic task was disabled. For more info, see
+    https://bugs.launchpad.net/ironic/+bug/1506657.

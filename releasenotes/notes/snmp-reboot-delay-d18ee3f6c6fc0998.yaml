@@ -1,0 +1,8 @@
+---
+upgrade:
+  - Adds a configuration option for the Iboot driver,
+    [iboot]reboot_delay, to allow adding a pause between
+    power off and power on.
+fixes:
+  - Fixes an issue where some SNMP power controllers will
+    not power back on after a deploy.

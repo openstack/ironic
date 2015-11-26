@@ -1,0 +1,5 @@
+---
+features:
+  - Adds support for in-band clean steps in the iSCSI
+    deploy driver, when using ironic-python-agent as
+    the ramdisk.
