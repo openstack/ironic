@@ -75,7 +75,24 @@ def get_allowed_exmods():
     return ALLOWED_EXMODS + EXTRA_EXMODS
 
 
-class RequestContextSerializer(messaging.RequestContextSerializer):
+class RequestContextSerializer(messaging.Serializer):
+
+    def __init__(self, base):
+        self._base = base
+
+    def serialize_entity(self, context, entity):
+        if not self._base:
+            return entity
+        return self._base.serialize_entity(context, entity)
+
+    def deserialize_entity(self, context, entity):
+        if not self._base:
+            return entity
+        return self._base.deserialize_entity(context, entity)
+
+    def serialize_context(self, context):
+        return context.to_dict()
+
     def deserialize_context(self, context):
         return ironic_context.RequestContext.from_dict(context)
 
