@@ -5,13 +5,20 @@
 # https://bugs.launchpad.net/ironic/+bug/1504482
 set netid:int32 -1
 :loop
-inc netid
+inc netid || chain pxelinux.cfg/${mac:hexhyp} || goto old_rom
 isset ${net${netid}/mac} || goto loop_done
 echo Attempting to boot from MAC ${net${netid}/mac:hexhyp}
 chain pxelinux.cfg/${net${netid}/mac:hexhyp} || goto loop
 
 :loop_done
 echo PXE boot failed! No configuration found for any of the present NICs.
+echo Press any key to reboot...
+prompt --timeout 180
+reboot
+
+:old_rom
+echo PXE boot failed! No configuration found for NIC ${mac:hexhyp}.
+echo Please update your iPXE ROM and retry.
 echo Press any key to reboot...
 prompt --timeout 180
 reboot

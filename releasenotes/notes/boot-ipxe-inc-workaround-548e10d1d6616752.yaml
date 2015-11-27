@@ -1,0 +1,5 @@
+---
+fixes:
+  - Make boot.ipxe fallback to its previous behavior on *really* old iPXE
+    ROMs where 'inc' command is not available at all, see
+    https://launchpad.net/bugs/1507738.
