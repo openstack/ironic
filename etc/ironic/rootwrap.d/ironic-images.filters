@@ -1,4 +1,4 @@
-# ironic-rootwrap command filters to maniputalte images
+# ironic-rootwrap command filters to manipulate images
 # This file should be owned by (and only-writeable by) the root user
 
 [Filters]
