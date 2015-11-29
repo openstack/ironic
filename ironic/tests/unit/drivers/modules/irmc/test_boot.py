@@ -992,13 +992,17 @@ class IRMCVirtualMediaBootTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             task.node.instance_info['irmc_boot_iso'] = 'glance://deploy_iso'
             task.node.driver_internal_info['irmc_boot_iso'] = 'irmc_boot.iso'
+            task.node.driver_internal_info = {'root_uuid_or_disk_id': (
+                "12312642-09d3-467f-8e09-12385826a123")}
 
             task.driver.boot.clean_up_instance(task)
 
             _remove_share_file_mock.assert_called_once_with(
                 irmc_boot._get_boot_iso_name(task.node))
-            self.assertFalse(
-                task.node.driver_internal_info.get('irmc_boot_iso'))
+            self.assertNotIn('irmc_boot_iso',
+                             task.node.driver_internal_info)
+            self.assertNotIn('root_uuid_or_disk_id',
+                             task.node.driver_internal_info)
             _cleanup_vmedia_boot_mock.assert_called_once_with(task)
 
     @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,

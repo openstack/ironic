@@ -552,7 +552,7 @@ def check_share_fs_mounted():
 
 
 class IRMCVirtualMediaBoot(base.BootInterface):
-    """Interface for iSCSI deploy-related actions."""
+    """iRMC Virtual Media boot-related actions."""
 
     def __init__(self):
         """Constructor of IRMCVirtualMediaBoot.
@@ -659,6 +659,7 @@ class IRMCVirtualMediaBoot(base.BootInterface):
         _remove_share_file(_get_boot_iso_name(task.node))
         driver_internal_info = task.node.driver_internal_info
         driver_internal_info.pop('irmc_boot_iso', None)
+        driver_internal_info.pop('root_uuid_or_disk_id', None)
         task.node.driver_internal_info = driver_internal_info
         task.node.save()
         _cleanup_vmedia_boot(task)
