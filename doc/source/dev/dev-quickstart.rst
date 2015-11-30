@@ -200,7 +200,7 @@ Option 1: Manual Install
     mysql -u root -e "create schema ironic"
 
     # and switch the DB connection from sqlite to something else, eg. mysql
-    sed -i "s/#connection=.*/connection=mysql:\/\/root@localhost\/ironic/" etc/ironic/ironic.conf.local
+    sed -i "s/#connection=.*/connection=mysql\+pymysql:\/\/root@localhost\/ironic/" etc/ironic/ironic.conf.local
 
 At this point, you can continue to Step 2.
 
