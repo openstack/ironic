@@ -67,6 +67,11 @@ Introduction
   dev/dev-quickstart
   dev/vendor-passthru
 
+.. toctree::
+  :maxdepth: 1
+
+  dev/faq
+
 API References
 --------------
 
