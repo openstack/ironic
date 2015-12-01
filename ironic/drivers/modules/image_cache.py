@@ -64,6 +64,7 @@ class ImageCache(object):
         """Constructor.
 
         :param master_dir: cache directory to work on
+                           Value of None disables image caching.
         :param cache_size: desired maximum cache size in bytes
         :param cache_ttl: cache entity TTL in seconds
         """
