@@ -1,0 +1,5 @@
+---
+features:
+  - Adds support for manual cleaning. This is available with API
+    version 1.15. For more information, see
+    http://specs.openstack.org/openstack/ironic-specs/specs/approved/manual-cleaning.html

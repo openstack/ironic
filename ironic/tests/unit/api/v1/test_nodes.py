@@ -2013,6 +2013,66 @@ class TestPut(test_api_base.BaseApiTest):
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
 
+    def test_provision_with_cleansteps_not_clean(self):
+        self.node.provision_state = states.MANAGEABLE
+        self.node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['provide'],
+                             'clean_steps': 'foo'},
+                            headers={api_base.Version.string: "1.4"},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+
+    def test_clean_unsupported(self):
+        self.node.provision_state = states.MANAGEABLE
+        self.node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['clean']},
+                            headers={api_base.Version.string: "1.14"},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
+
+    def test_clean_no_cleansteps(self):
+        self.node.provision_state = states.MANAGEABLE
+        self.node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['clean']},
+                            headers={api_base.Version.string: "1.15"},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_node_clean')
+    @mock.patch.object(api_node, '_check_clean_steps')
+    def test_clean_check_steps_fail(self, mock_check, mock_rpcapi):
+        self.node.provision_state = states.MANAGEABLE
+        self.node.save()
+        mock_check.side_effect = exception.InvalidParameterValue('bad')
+        clean_steps = [{"step": "upgrade_firmware", "interface": "deploy"}]
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['clean'],
+                             'clean_steps': clean_steps},
+                            headers={api_base.Version.string: "1.15"},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        mock_check.assert_called_once_with(clean_steps)
+        self.assertFalse(mock_rpcapi.called)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_node_clean')
+    @mock.patch.object(api_node, '_check_clean_steps')
+    def test_clean(self, mock_check, mock_rpcapi):
+        self.node.provision_state = states.MANAGEABLE
+        self.node.save()
+        clean_steps = [{"step": "upgrade_firmware", "interface": "deploy"}]
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['clean'],
+                             'clean_steps': clean_steps},
+                            headers={api_base.Version.string: "1.15"})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        mock_check.assert_called_once_with(clean_steps)
+        mock_rpcapi.assert_called_once_with(mock.ANY, self.node.uuid,
+                                            clean_steps, 'test-topic')
+
     def test_set_console_mode_enabled(self):
         with mock.patch.object(rpcapi.ConductorAPI,
                                'set_console_mode') as mock_scm:
@@ -2258,3 +2318,59 @@ class TestPut(test_api_base.BaseApiTest):
                                                          mock_get):
         self._test_set_node_maintenance_mode(mock_update, mock_get, None,
                                              self.node.name, is_by_name=True)
+
+
+class TestCheckCleanSteps(base.TestCase):
+    def test__check_clean_steps_not_list(self):
+        clean_steps = {"step": "upgrade_firmware", "interface": "deploy"}
+        self.assertRaisesRegexp(exception.InvalidParameterValue,
+                                'list',
+                                api_node._check_clean_steps, clean_steps)
+
+    def test__check_clean_steps_step_not_dict(self):
+        clean_steps = ['clean step']
+        self.assertRaisesRegexp(exception.InvalidParameterValue,
+                                'dictionary',
+                                api_node._check_clean_steps, clean_steps)
+
+    def test__check_clean_steps_step_key_invalid(self):
+        clean_steps = [{"unknown": "upgrade_firmware", "interface": "deploy"}]
+        self.assertRaisesRegexp(exception.InvalidParameterValue,
+                                'Unrecognized',
+                                api_node._check_clean_steps, clean_steps)
+
+    def test__check_clean_steps_step_missing_interface(self):
+        clean_steps = [{"step": "upgrade_firmware"}]
+        self.assertRaisesRegexp(exception.InvalidParameterValue,
+                                'interface',
+                                api_node._check_clean_steps, clean_steps)
+
+    def test__check_clean_steps_step_missing_step_value(self):
+        clean_steps = [{"step": None, "interface": "deploy"}]
+        self.assertRaisesRegexp(exception.InvalidParameterValue,
+                                'step',
+                                api_node._check_clean_steps, clean_steps)
+
+    def test__check_clean_steps_step_interface_value_invalid(self):
+        clean_steps = [{"step": "upgrade_firmware", "interface": "not"}]
+        self.assertRaisesRegexp(exception.InvalidParameterValue,
+                                '"interface" value must be one of',
+                                api_node._check_clean_steps, clean_steps)
+
+    def test__check_clean_steps_step_args_value_invalid(self):
+        clean_steps = [{"step": "upgrade_firmware", "interface": "deploy",
+                        "args": "invalid args"}]
+        self.assertRaisesRegexp(exception.InvalidParameterValue,
+                                'args',
+                                api_node._check_clean_steps, clean_steps)
+
+    def test__check_clean_steps_valid(self):
+        clean_steps = [{"step": "upgrade_firmware", "interface": "deploy"}]
+        api_node._check_clean_steps(clean_steps)
+
+        step1 = {"step": "upgrade_firmware", "interface": "deploy",
+                 "args": {"arg1": "value1", "arg2": "value2"}}
+        api_node._check_clean_steps([step1])
+
+        step2 = {"step": "configure raid", "interface": "raid"}
+        api_node._check_clean_steps([step1, step2])

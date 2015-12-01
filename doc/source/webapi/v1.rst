@@ -32,6 +32,12 @@ always requests the newest supported API version.
 API Versions History
 --------------------
 
+**1.15**
+
+    Add ability to do manual cleaning when a node is in the manageable
+    provision state via PUT v1/nodes/<identifier>/states/provision,
+    target:clean, clean_steps:[...].
+
 **1.14**
 
     Make the following endpoints discoverable via Ironic API:

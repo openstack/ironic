@@ -37,6 +37,7 @@ from ironic.api import expose
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states as ir_states
+from ironic.conductor import utils as conductor_utils
 from ironic import objects
 
 
@@ -68,6 +69,7 @@ MIN_VERB_VERSIONS = {
 
     ir_states.VERBS['inspect']: versions.MINOR_6_INSPECT_STATE,
     ir_states.VERBS['abort']: versions.MINOR_13_ABORT_VERB,
+    ir_states.VERBS['clean']: versions.MINOR_15_MANUAL_CLEAN,
 }
 
 # States where calling do_provisioning_action makes sense
@@ -399,8 +401,10 @@ class NodeStatesController(rest.RestController):
         pecan.response.location = link.build_url('nodes', url_args)
 
     @expose.expose(None, types.uuid_or_name, wtypes.text,
-                   wtypes.text, status_code=http_client.ACCEPTED)
-    def provision(self, node_ident, target, configdrive=None):
+                   wtypes.text, types.jsontype,
+                   status_code=http_client.ACCEPTED)
+    def provision(self, node_ident, target, configdrive=None,
+                  clean_steps=None):
         """Asynchronous trigger the provisioning of the node.
 
         This will set the target provision state of the node, and a
@@ -415,11 +419,34 @@ class NodeStatesController(rest.RestController):
         :param configdrive: Optional. A gzipped and base64 encoded
             configdrive. Only valid when setting provision state
             to "active".
+        :param clean_steps: An ordered list of cleaning steps that will be
+            performed on the node. A cleaning step is a dictionary with
+            required keys 'interface' and 'step', and optional key 'args'. If
+            specified, the value for 'args' is a keyword variable argument
+            dictionary that is passed to the cleaning step method.::
+
+              { 'interface': <driver_interface>,
+                'step': <name_of_clean_step>,
+                'args': {<arg1>: <value1>, ..., <argn>: <valuen>} }
+
+            For example (this isn't a real example, this cleaning step
+            doesn't exist)::
+
+              { 'interface': 'deploy',
+                'step': 'upgrade_firmware',
+                'args': {'force': True} }
+
+            This is required (and only valid) when target is "clean".
         :raises: NodeLocked (HTTP 409) if the node is currently locked.
         :raises: ClientSideError (HTTP 409) if the node is already being
                  provisioned.
+        :raises: InvalidParameterValue (HTTP 400), if validation of
+                 clean_steps or power driver interface fails.
         :raises: InvalidStateRequested (HTTP 400) if the requested transition
                  is not possible from the current state.
+        :raises: NodeInMaintenance (HTTP 400), if operation cannot be
+                 performed because the node is in maintenance mode.
+        :raises: NoFreeConductorWorker (HTTP 503) if no workers are available.
         :raises: NotAcceptable (HTTP 406) if the API version specified does
                  not allow the requested state transition.
         """
@@ -456,6 +483,12 @@ class NodeStatesController(rest.RestController):
             raise wsme.exc.ClientSideError(
                 msg, status_code=http_client.BAD_REQUEST)
 
+        if clean_steps and target != ir_states.VERBS['clean']:
+            msg = (_('"clean_steps" is only valid when setting target '
+                     'provision state to %s') % ir_states.VERBS['clean'])
+            raise wsme.exc.ClientSideError(
+                msg, status_code=http_client.BAD_REQUEST)
+
         # Note that there is a race condition. The node state(s) could change
         # by the time the RPC call is made and the TaskManager manager gets a
         # lock.
@@ -473,6 +506,15 @@ class NodeStatesController(rest.RestController):
         elif target == ir_states.VERBS['inspect']:
             pecan.request.rpcapi.inspect_hardware(
                 pecan.request.context, rpc_node.uuid, topic=topic)
+        elif target == ir_states.VERBS['clean']:
+            if not clean_steps:
+                msg = (_('"clean_steps" is required when setting target '
+                         'provision state to %s') % ir_states.VERBS['clean'])
+                raise wsme.exc.ClientSideError(
+                    msg, status_code=http_client.BAD_REQUEST)
+            _check_clean_steps(clean_steps)
+            pecan.request.rpcapi.do_node_clean(
+                pecan.request.context, rpc_node.uuid, clean_steps, topic)
         elif target in PROVISION_ACTION_STATES:
             pecan.request.rpcapi.do_provisioning_action(
                 pecan.request.context, rpc_node.uuid, target, topic)
@@ -484,6 +526,56 @@ class NodeStatesController(rest.RestController):
         # Set the HTTP Location Header
         url_args = '/'.join([node_ident, 'states'])
         pecan.response.location = link.build_url('nodes', url_args)
+
+
+def _check_clean_steps(clean_steps):
+    """Ensure all necessary keys are present and correct in clean steps.
+
+    Check that the user-specified clean steps are in the expected format and
+    include the required information.
+
+    :param clean_steps: a list of clean steps. For more details, see the
+        clean_steps parameter of :func:`NodeStatesController.provision`.
+    :raises: InvalidParameterValue if validation of clean steps fails.
+    """
+    if not isinstance(clean_steps, list):
+        raise exception.InvalidParameterValue(_('clean_steps must be a '
+                                                'list of dictionaries.'))
+    all_errors = []
+    interfaces = conductor_utils.CLEANING_INTERFACE_PRIORITY.keys()
+    for step in clean_steps:
+        if not isinstance(step, dict):
+            all_errors.append(_('Clean step must be a dictionary; invalid '
+                                'step: %(step)s.') % {'step': step})
+            continue
+
+        errors = []
+        unknown = set(step) - set(['interface', 'step', 'args'])
+        if unknown:
+            errors.append(_('Unrecognized keys %(keys)s')
+                          % {'keys': ', '.join(unknown)})
+
+        for key in ['interface', 'step']:
+            if key not in step or not step[key]:
+                errors.append(_('Missing value for key "%(key)s"')
+                              % {'key': key})
+            elif key == 'interface':
+                if step[key] not in interfaces:
+                    errors.append(_('"interface" value must be one of '
+                                    '%(valid)s')
+                                  % {'valid': ', '.join(interfaces)})
+
+        args = step.get('args')
+        if args is not None and not isinstance(args, dict):
+            errors.append(_('"args" must be a dictionary'))
+
+        if errors:
+            errors.append(_('invalid step: %(step)s.') % {'step': step})
+            all_errors.append('; '.join(errors))
+
+    if all_errors:
+        raise exception.InvalidParameterValue(
+            _('Invalid clean_steps. %s') % ' '.join(all_errors))
 
 
 class Node(base.APIBase):
