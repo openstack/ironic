@@ -41,6 +41,7 @@ Overview
   Configuration Reference (Liberty) <http://docs.openstack.org/liberty/config-reference/content/ch_configuring-openstack-bare-metal.html>
   deploy/drivers
   deploy/cleaning
+  deploy/troubleshooting
 
 Commands
 --------
