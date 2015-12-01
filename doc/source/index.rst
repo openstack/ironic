@@ -39,6 +39,7 @@ Overview
   Installation Guide <deploy/install-guide>
   Upgrade Guide <deploy/upgrade-guide>
   Configuration Reference (Liberty) <http://docs.openstack.org/liberty/config-reference/content/ch_configuring-openstack-bare-metal.html>
+  drivers/ipa
   deploy/drivers
   deploy/cleaning
   deploy/troubleshooting

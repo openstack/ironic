@@ -7,19 +7,11 @@ Enabling drivers
 Ironic-Python-Agent (agent)
 ---------------------------
 
-To enable IPA, add the appropriate ironic agent driver to the ``enabled_drivers``
-line of the ironic.conf file.
+Ironic-Python-Agent is an agent that handles *ironic* bare metal
+nodes in various actions such as inspection and deployment of such
+nodes, and runs processes inside of a ramdisk.
 
-Several variants are currently supported, they are:
-    * agent_ilo
-    * agent_ipmitool
-    * agent_pyghmi
-    * agent_ssh
-    * agent_vbox
-
-.. note:: Starting with the Kilo release IPA ramdisk may also be used with ironic PXE drivers.
-
-For more information see the `ironic-python-agent GitHub repo <https://github.com/openstack/ironic-python-agent/>`_
+For more information on this, see :ref:`IPA`.
 
 DRAC
 ----

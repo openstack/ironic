@@ -351,8 +351,9 @@ Switch to the stack user and clone DevStack::
     git clone https://github.com/openstack-dev/devstack.git devstack
 
 Create devstack/local.conf with minimal settings required to enable Ironic.
-Note that Ironic under devstack can only support running *either* the PXE
-or the agent driver, not both. The default is the PXE driver.::
+You can use either of two drivers for deploy: pxe_* or agent_*, see :ref:`IPA`
+for explanation. An example local.conf that enables both types of drivers
+and uses the ``pxe_ssh`` driver by default::
 
     cd devstack
     cat >local.conf <<END
@@ -363,6 +364,8 @@ or the agent driver, not both. The default is the PXE driver.::
     RABBIT_PASSWORD=password
     SERVICE_PASSWORD=password
     SERVICE_TOKEN=password
+    SWIFT_HASH=password
+    SWIFT_TEMPURL_KEY=password
 
     # Enable Ironic API and Ironic Conductor
     enable_service ironic
@@ -379,6 +382,12 @@ or the agent driver, not both. The default is the PXE driver.::
     enable_service q-meta
     enable_service neutron
 
+    # Enable Swift for agent_* drivers
+    enable_service s-proxy
+    enable_service s-object
+    enable_service s-container
+    enable_service s-account
+
     # Disable Horizon
     disable_service horizon
 
@@ -388,10 +397,21 @@ or the agent driver, not both. The default is the PXE driver.::
     # Disable Cinder
     disable_service cinder c-sch c-api c-vol
 
+    # Swift temp URL's are required for agent_* drivers.
+    SWIFT_ENABLE_TEMPURLS=True
+
     # Create 3 virtual machines to pose as Ironic's baremetal nodes.
     IRONIC_VM_COUNT=3
     IRONIC_VM_SSH_PORT=22
     IRONIC_BAREMETAL_BASIC_OPS=True
+    IRONIC_DEPLOY_DRIVER_ISCSI_WITH_IPA=True
+
+    # Enable Ironic drivers.
+    IRONIC_ENABLED_DRIVERS=fake,agent_ssh,agent_ipmitool,pxe_ssh,pxe_ipmitool
+
+    # Change this to alter the default driver for nodes created by devstack.
+    # This driver should be in the enabled list above.
+    IRONIC_DEPLOY_DRIVER=pxe_ssh
 
     # The parameters below represent the minimum possible values to create
     # functional nodes.
@@ -400,6 +420,9 @@ or the agent driver, not both. The default is the PXE driver.::
 
     # Size of the ephemeral partition in GB. Use 0 for no ephemeral partition.
     IRONIC_VM_EPHEMERAL_DISK=0
+
+    # To build your own IPA ramdisk from source, set this to True
+    IRONIC_BUILD_DEPLOY_RAMDISK=False
 
     VIRT_DRIVER=ironic
 
@@ -414,31 +437,6 @@ or the agent driver, not both. The default is the PXE driver.::
     LOGFILE=$HOME/devstack.log
     LOGDIR=$HOME/logs
     IRONIC_VM_LOG_DIR=$HOME/ironic-bm-logs
-
-    END
-
-If running with the agent driver (instead of PXE driver), add these additional
-settings to local.conf::
-
-    cat >>local.conf <<END
-    # Agent driver requires swift with tempurls
-    # Enable swift services
-    enable_service s-proxy
-    enable_service s-object
-    enable_service s-container
-    enable_service s-account
-
-    # Enable tempurls and set credentials
-    SWIFT_HASH=password
-    SWIFT_TEMPURL_KEY=password
-    SWIFT_ENABLE_TEMPURLS=True
-
-    # Enable agent driver
-    IRONIC_ENABLED_DRIVERS=fake,agent_ssh,agent_ipmitool
-    IRONIC_DEPLOY_DRIVER=agent_ssh
-
-    # To build your own IPA ramdisk from source, set this to True
-    IRONIC_BUILD_DEPLOY_RAMDISK=False
 
     END
 
