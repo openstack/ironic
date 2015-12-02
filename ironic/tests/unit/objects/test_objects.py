@@ -94,20 +94,11 @@ class TestSubclassedObject(MyObj):
     fields = {'new_field': fields.StringField()}
 
 
-class _BaseTestCase(test_base.TestCase):
-    def setUp(self):
-        super(_BaseTestCase, self).setUp()
-        self.remote_object_calls = list()
-
-
-class _LocalTest(_BaseTestCase):
+class _LocalTest(test_base.TestCase):
     def setUp(self):
         super(_LocalTest, self).setUp()
         # Just in case
         base.IronicObject.indirection_api = None
-
-    def assertRemotes(self):
-        self.assertEqual([], self.remote_object_calls)
 
 
 @contextlib.contextmanager
@@ -223,14 +214,12 @@ class _TestObject(object):
         obj = MyObj.query(ctxt1)
         obj.update_test(ctxt2)
         self.assertEqual('alternate-context', obj.bar)
-        self.assertRemotes()
 
     def test_orphaned_object(self):
         obj = MyObj.query(self.context)
         obj._context = None
         self.assertRaises(object_exception.OrphanedObjectError,
                           obj.update_test)
-        self.assertRemotes()
 
     def test_changed_1(self):
         obj = MyObj.query(self.context)
@@ -239,7 +228,6 @@ class _TestObject(object):
         obj.update_test(self.context)
         self.assertEqual(set(['foo', 'bar']), obj.obj_what_changed())
         self.assertEqual(123, obj.foo)
-        self.assertRemotes()
 
     def test_changed_2(self):
         obj = MyObj.query(self.context)
@@ -248,7 +236,6 @@ class _TestObject(object):
         obj.save()
         self.assertEqual(set([]), obj.obj_what_changed())
         self.assertEqual(123, obj.foo)
-        self.assertRemotes()
 
     def test_changed_3(self):
         obj = MyObj.query(self.context)
@@ -258,7 +245,6 @@ class _TestObject(object):
         self.assertEqual(set([]), obj.obj_what_changed())
         self.assertEqual(321, obj.foo)
         self.assertEqual('refreshed', obj.bar)
-        self.assertRemotes()
 
     def test_changed_4(self):
         obj = MyObj.query(self.context)
@@ -268,21 +254,18 @@ class _TestObject(object):
         self.assertEqual(set(['foo']), obj.obj_what_changed())
         self.assertEqual(42, obj.foo)
         self.assertEqual('meow', obj.bar)
-        self.assertRemotes()
 
     def test_static_result(self):
         obj = MyObj.query(self.context)
         self.assertEqual('bar', obj.bar)
         result = obj.marco()
         self.assertEqual('polo', result)
-        self.assertRemotes()
 
     def test_updates(self):
         obj = MyObj.query(self.context)
         self.assertEqual(1, obj.foo)
         obj.update_test()
         self.assertEqual('updated', obj.bar)
-        self.assertRemotes()
 
     def test_base_attributes(self):
         dt = datetime.datetime(1955, 11, 5, 0, 0, tzinfo=iso8601.iso8601.Utc())
