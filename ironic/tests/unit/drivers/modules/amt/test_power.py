@@ -48,27 +48,35 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
         CONF.set_override('max_attempts', 2, 'amt')
         CONF.set_override('action_wait', 0, 'amt')
 
+    @mock.patch.object(amt_common, 'awake_amt_interface', spec_set=True,
+                       autospec=True)
     @mock.patch.object(amt_common, 'get_wsman_client', spec_set=True,
                        autospec=True)
-    def test__set_power_state(self, mock_client_pywsman):
+    def test__set_power_state(self, mock_client_pywsman, mock_aw):
         namespace = resource_uris.CIM_PowerManagementService
         mock_client = mock_client_pywsman.return_value
         amt_power._set_power_state(self.node, states.POWER_ON)
         mock_client.wsman_invoke.assert_called_once_with(
             mock.ANY, namespace, 'RequestPowerStateChange', mock.ANY)
+        self.assertTrue(mock_aw.called)
 
+    @mock.patch.object(amt_common, 'awake_amt_interface', spec_set=True,
+                       autospec=True)
     @mock.patch.object(amt_common, 'get_wsman_client', spec_set=True,
                        autospec=True)
-    def test__set_power_state_fail(self, mock_client_pywsman):
+    def test__set_power_state_fail(self, mock_client_pywsman, mock_aw):
         mock_client = mock_client_pywsman.return_value
         mock_client.wsman_invoke.side_effect = exception.AMTFailure('x')
         self.assertRaises(exception.AMTFailure,
                           amt_power._set_power_state,
                           self.node, states.POWER_ON)
+        self.assertTrue(mock_aw.called)
 
+    @mock.patch.object(amt_common, 'awake_amt_interface', spec_set=True,
+                       autospec=True)
     @mock.patch.object(amt_common, 'get_wsman_client', spec_set=True,
                        autospec=True)
-    def test__power_status(self, mock_gwc):
+    def test__power_status(self, mock_gwc, mock_aw):
         namespace = resource_uris.CIM_AssociatedPowerManagementService
         result_xml = test_utils.build_soap_xml([{'PowerState':
                                                  '2'}],
@@ -96,15 +104,19 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
         mock_client.wsman_get.return_value = mock_doc
         self.assertEqual(
             states.ERROR, amt_power._power_status(self.node))
+        self.assertTrue(mock_aw.called)
 
+    @mock.patch.object(amt_common, 'awake_amt_interface', spec_set=True,
+                       autospec=True)
     @mock.patch.object(amt_common, 'get_wsman_client', spec_set=True,
                        autospec=True)
-    def test__power_status_fail(self, mock_gwc):
+    def test__power_status_fail(self, mock_gwc, mock_aw):
         mock_client = mock_gwc.return_value
         mock_client.wsman_get.side_effect = exception.AMTFailure('x')
         self.assertRaises(exception.AMTFailure,
                           amt_power._power_status,
                           self.node)
+        self.assertTrue(mock_aw.called)
 
     @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device',
                        spec_set=True, autospec=True)

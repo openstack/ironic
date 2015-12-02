@@ -489,6 +489,15 @@
 # value)
 #protocol=http
 
+# Time interval (in seconds) for successive awake call
+# to AMT interface, this depends on the IdleTimeout
+# setting on AMT interface. AMT Interface will go to
+# sleep after 60 seconds of inactivity by default.
+# IdleTimeout=0 means AMT will not go to sleep at all.
+# Setting awake_interval=0 will disable awake call. (integer
+# value)
+#awake_interval=60
+
 
 #
 # Options defined in ironic.drivers.modules.amt.power

@@ -97,6 +97,7 @@ def _set_power_state(node, target_state):
     :raises: AMTFailure
     :raises: AMTConnectFailure
     """
+    amt_common.awake_amt_interface(node)
     client = amt_common.get_wsman_client(node)
 
     method = 'RequestPowerStateChange'
@@ -125,8 +126,8 @@ def _power_status(node):
     :returns: one of ironic.common.states POWER_OFF, POWER_ON or ERROR.
     :raises: AMTFailure.
     :raises: AMTConnectFailure.
-
     """
+    amt_common.awake_amt_interface(node)
     client = amt_common.get_wsman_client(node)
     namespace = resource_uris.CIM_AssociatedPowerManagementService
     try:

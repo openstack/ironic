@@ -10,12 +10,13 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-
 """
 Common functionalities for AMT Driver
 """
+import time
 from xml.etree import ElementTree
 
+from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
@@ -25,6 +26,7 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
+from ironic.common import utils
 
 
 pywsman = importutils.try_import('pywsman')
@@ -50,6 +52,15 @@ opts = [
                default='http',
                help=_('Protocol used for AMT endpoint, '
                       'support http/https')),
+    cfg.IntOpt('awake_interval',
+               default=60,
+               min=0,
+               help=_('Time interval (in seconds) for successive awake call '
+                      'to AMT interface, this depends on the IdleTimeout '
+                      'setting on AMT interface. AMT Interface will go to '
+                      'sleep after 60 seconds of inactivity by default. '
+                      'IdleTimeout=0 means AMT will not go to sleep at all. '
+                      'Setting awake_interval=0 will disable awake call.')),
 ]
 
 CONF = cfg.CONF
@@ -74,6 +85,9 @@ AMT_PROTOCOL_PORT_MAP = {
 
 # ReturnValue constants
 RET_SUCCESS = '0'
+
+# A dict cache last awake call to AMT Interface
+AMT_AWAKE_CACHE = {}
 
 
 class Client(object):
@@ -206,3 +220,36 @@ def xml_find(doc, namespace, item):
     query = ('.//{%(namespace)s}%(item)s' % {'namespace': namespace,
                                              'item': item})
     return tree.find(query)
+
+
+def awake_amt_interface(node):
+    """Wake up AMT interface.
+
+    AMT interface goes to sleep after a period of time if the host is off.
+    This method will ping AMT interface to wake it up. Because there is
+    no guarantee that the AMT address in driver_info is correct, only
+    ping the IP five times which is enough to wake it up.
+
+    :param node: an Ironic node object.
+    :raises: AMTConnectFailure if unable to connect to the server.
+    """
+    awake_interval = CONF.amt.awake_interval
+    if awake_interval == 0:
+        return
+
+    now = time.time()
+    last_awake = AMT_AWAKE_CACHE.get(node.uuid, 0)
+    if now - last_awake > awake_interval:
+        cmd_args = ['ping', '-i', 0.2, '-c', 5,
+                    node.driver_info['amt_address']]
+        try:
+            utils.execute(*cmd_args)
+        except processutils.ProcessExecutionError as err:
+            LOG.error(_LE('Unable to awake AMT interface on node '
+                          '%(node_id)s. Error: %(error)s'),
+                      {'node_id': node.uuid, 'error': err})
+            raise exception.AMTConnectFailure()
+        else:
+            LOG.debug(('Successfully awakened AMT interface on node '
+                       '%(node_id)s.'), {'node_id': node.uuid})
+            AMT_AWAKE_CACHE[node.uuid] = now

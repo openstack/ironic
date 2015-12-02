@@ -16,9 +16,12 @@ Test class for AMT Common
 """
 
 import mock
+from oslo_concurrency import processutils
 from oslo_config import cfg
+import time
 
 from ironic.common import exception
+from ironic.common import utils
 from ironic.drivers.modules.amt import common as amt_common
 from ironic.drivers.modules.amt import resource_uris
 from ironic.tests import base
@@ -171,3 +174,37 @@ class AMTCommonClientTestCase(base.TestCase):
                           client.wsman_invoke,
                           options, namespace, method)
         mock_pywsman.invoke.assert_called_once_with(options, namespace, method)
+
+
+class AwakeAMTInterfaceTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(AwakeAMTInterfaceTestCase, self).setUp()
+        self.info = INFO_DICT
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake_amt',
+                                               driver_info=self.info)
+
+    @mock.patch.object(utils, 'execute', spec_set=True, autospec=True)
+    def test_awake_amt_interface(self, mock_ex):
+        amt_common.awake_amt_interface(self.node)
+        expected_args = ['ping', '-i', 0.2, '-c', 5, '1.2.3.4']
+        mock_ex.assert_called_once_with(*expected_args)
+
+    @mock.patch.object(utils, 'execute', spec_set=True, autospec=True)
+    def test_awake_amt_interface_fail(self, mock_ex):
+        mock_ex.side_effect = processutils.ProcessExecutionError('x')
+        self.assertRaises(exception.AMTConnectFailure,
+                          amt_common.awake_amt_interface,
+                          self.node)
+
+    @mock.patch.object(utils, 'execute', spec_set=True, autospec=True)
+    def test_awake_amt_interface_in_cache_time(self, mock_ex):
+        amt_common.AMT_AWAKE_CACHE[self.node.uuid] = time.time()
+        amt_common.awake_amt_interface(self.node)
+        self.assertFalse(mock_ex.called)
+
+    @mock.patch.object(utils, 'execute', spec_set=True, autospec=True)
+    def test_awake_amt_interface_disable(self, mock_ex):
+        CONF.set_override('awake_interval', 0, 'amt')
+        amt_common.awake_amt_interface(self.node)
+        self.assertFalse(mock_ex.called)

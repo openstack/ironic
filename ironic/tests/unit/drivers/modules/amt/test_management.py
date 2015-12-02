@@ -46,7 +46,9 @@ class AMTManagementInteralMethodsTestCase(db_base.DbTestCase):
                                                driver='fake_amt',
                                                driver_info=INFO_DICT)
 
-    def test__set_boot_device_order(self, mock_client_pywsman):
+    @mock.patch.object(amt_common, 'awake_amt_interface', spec_set=True,
+                       autospec=True)
+    def test__set_boot_device_order(self, mock_aw, mock_client_pywsman):
         namespace = resource_uris.CIM_BootConfigSetting
         device = boot_devices.PXE
         result_xml = test_utils.build_soap_xml([{'ReturnValue': '0'}],
@@ -59,8 +61,11 @@ class AMTManagementInteralMethodsTestCase(db_base.DbTestCase):
 
         mock_pywsman.invoke.assert_called_once_with(
             mock.ANY, namespace, 'ChangeBootOrder', mock.ANY)
+        self.assertTrue(mock_aw.called)
 
-    def test__set_boot_device_order_fail(self, mock_client_pywsman):
+    @mock.patch.object(amt_common, 'awake_amt_interface', spec_set=True,
+                       autospec=True)
+    def test__set_boot_device_order_fail(self, mock_aw, mock_client_pywsman):
         namespace = resource_uris.CIM_BootConfigSetting
         device = boot_devices.PXE
         result_xml = test_utils.build_soap_xml([{'ReturnValue': '2'}],
@@ -79,8 +84,11 @@ class AMTManagementInteralMethodsTestCase(db_base.DbTestCase):
 
         self.assertRaises(exception.AMTConnectFailure,
                           amt_mgmt._set_boot_device_order, self.node, device)
+        self.assertTrue(mock_aw.called)
 
-    def test__enable_boot_config(self, mock_client_pywsman):
+    @mock.patch.object(amt_common, 'awake_amt_interface', spec_set=True,
+                       autospec=True)
+    def test__enable_boot_config(self, mock_aw, mock_client_pywsman):
         namespace = resource_uris.CIM_BootService
         result_xml = test_utils.build_soap_xml([{'ReturnValue': '0'}],
                                                namespace)
@@ -92,8 +100,11 @@ class AMTManagementInteralMethodsTestCase(db_base.DbTestCase):
 
         mock_pywsman.invoke.assert_called_once_with(
             mock.ANY, namespace, 'SetBootConfigRole', mock.ANY)
+        self.assertTrue(mock_aw.called)
 
-    def test__enable_boot_config_fail(self, mock_client_pywsman):
+    @mock.patch.object(amt_common, 'awake_amt_interface', spec_set=True,
+                       autospec=True)
+    def test__enable_boot_config_fail(self, mock_aw, mock_client_pywsman):
         namespace = resource_uris.CIM_BootService
         result_xml = test_utils.build_soap_xml([{'ReturnValue': '2'}],
                                                namespace)
@@ -111,6 +122,7 @@ class AMTManagementInteralMethodsTestCase(db_base.DbTestCase):
 
         self.assertRaises(exception.AMTConnectFailure,
                           amt_mgmt._enable_boot_config, self.node)
+        self.assertTrue(mock_aw.called)
 
 
 class AMTManagementTestCase(db_base.DbTestCase):

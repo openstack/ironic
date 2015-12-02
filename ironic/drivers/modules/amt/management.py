@@ -72,6 +72,7 @@ def _set_boot_device_order(node, boot_device):
     :raises: AMTFailure
     :raises: AMTConnectFailure
     """
+    amt_common.awake_amt_interface(node)
     client = amt_common.get_wsman_client(node)
     device = amt_common.BOOT_DEVICES_MAPPING[boot_device]
     doc = _generate_change_boot_order_input(device)
@@ -129,6 +130,7 @@ def _enable_boot_config(node):
     :raises: AMTFailure
     :raises: AMTConnectFailure
     """
+    amt_common.awake_amt_interface(node)
     client = amt_common.get_wsman_client(node)
     method = 'SetBootConfigRole'
     doc = _generate_enable_boot_config_input()
