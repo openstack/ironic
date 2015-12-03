@@ -201,9 +201,9 @@ OneView node, do::
 
 In order to deploy, a Server Profile consistent with the Server Profile
 Template of the node MUST be applied to the Server Hardware it represents.
-Server Profiles to be utilized for deployments MUST have configuration such
-that its **first Network Interface** ``boot`` property is set to "Primary"
-and connected to Ironic's provisioning network.
+Server Profile Templates and Server Profiles to be utilized for deployments
+MUST have configuration such that its **first Network Interface** ``boot``
+property is set to "Primary" and connected to Ironic's provisioning network.
 
 To tell Ironic which NIC should be connected to the provisioning network, do::
 
