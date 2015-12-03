@@ -1,0 +1,14 @@
+---
+upgrade:
+  - Adds a config [amt]awake_interval for the interval to
+    wake up the AMT interface for a node. This should
+    correspond to the IdleTimeout config option on the
+    AMT interface. Setting to 0 will disable waking the
+    AMT interface, just like setting IdleTimeout=0 on the
+    AMT interface will disable the AMT interface from sleeping
+    when idle.
+fixes:
+  - Fixes an issue with talking to a sleeping AMT interface
+    by waking up the interface before sending commands, if
+    needed. This is configured with the [amt]awake_interval
+    config option.
