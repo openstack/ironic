@@ -606,13 +606,15 @@ class ConductorAPI(object):
         :param object_versions: A dict of {objname: version} mappings
         :param args: The positional arguments to the action method
         :param kwargs: The keyword arguments to the action method
-        :raises: NotImplemented when an operator makes an error during upgrade
+        :raises: NotImplementedError when an operator makes an error during
+            upgrade
         :returns: The result of the action method, which may (or may not)
             be an instance of the implementing VersionedObject class.
         """
         if not self.client.can_send_version('1.31'):
-            raise NotImplemented(_('Incompatible conductor version - '
-                                 'please upgrade ironic-conductor first'))
+            raise NotImplementedError(_('Incompatible conductor version - '
+                                        'please upgrade ironic-conductor '
+                                        'first'))
         cctxt = self.client.prepare(topic=self.topic, version='1.31')
         return cctxt.call(context, 'object_class_action_versions',
                           objname=objname, objmethod=objmethod,
@@ -630,13 +632,15 @@ class ConductorAPI(object):
         :param objmethod: The name of the action method to call
         :param args: The positional arguments to the action method
         :param kwargs: The keyword arguments to the action method
-        :raises: NotImplemented when an operator makes an error during upgrade
+        :raises: NotImplementedError when an operator makes an error during
+            upgrade
         :returns: A tuple with the updates made to the object and
             the result of the action method
         """
         if not self.client.can_send_version('1.31'):
-            raise NotImplemented(_('Incompatible conductor version - '
-                                 'please upgrade ironic-conductor first'))
+            raise NotImplementedError(_('Incompatible conductor version - '
+                                        'please upgrade ironic-conductor '
+                                        'first'))
         cctxt = self.client.prepare(topic=self.topic, version='1.31')
         return cctxt.call(context, 'object_action', objinst=objinst,
                           objmethod=objmethod, args=args, kwargs=kwargs)
@@ -654,12 +658,14 @@ class ConductorAPI(object):
         :param context: The context within which to perform the backport
         :param objinst: An instance of a VersionedObject to be backported
         :param object_versions: A dict of {objname: version} mappings
-        :raises: NotImplemented when an operator makes an error during upgrade
+        :raises: NotImplementedError when an operator makes an error during
+            upgrade
         :returns: The downgraded instance of objinst
         """
         if not self.client.can_send_version('1.31'):
-            raise NotImplemented(_('Incompatible conductor version - '
-                                 'please upgrade ironic-conductor first'))
+            raise NotImplementedError(_('Incompatible conductor version - '
+                                        'please upgrade ironic-conductor '
+                                        'first'))
         cctxt = self.client.prepare(topic=self.topic, version='1.31')
         return cctxt.call(context, 'object_backport_versions', objinst=objinst,
                           object_versions=object_versions)
