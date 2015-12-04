@@ -1,0 +1,7 @@
+---
+upgrade:
+  - Updated python-scciclient required version number for iRMC driver
+    to 0.3.0 which fixed the bug '#1518999' and '#1519000'.
+fixes:
+  - Updated python-scciclient required version number for iRMC driver
+    to 0.3.0 which fixed the bug '#1518999' and '#1519000'.
