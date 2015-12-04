@@ -179,6 +179,7 @@ class AMTCommonClientTestCase(base.TestCase):
 class AwakeAMTInterfaceTestCase(db_base.DbTestCase):
     def setUp(self):
         super(AwakeAMTInterfaceTestCase, self).setUp()
+        amt_common.AMT_AWAKE_CACHE = {}
         self.info = INFO_DICT
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_amt',
