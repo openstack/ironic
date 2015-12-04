@@ -197,10 +197,10 @@ Option 1: Manual Install
     # ironic defaults to storing data in ./ironic/ironic.sqlite
 
     # If using MySQL, you need to create the initial database
-    mysql -u root -e "create schema ironic"
+    mysql -u root -pMYSQL_ROOT_PWD -e "create schema ironic"
 
     # and switch the DB connection from sqlite to something else, eg. mysql
-    sed -i "s/#connection=.*/connection=mysql\+pymysql:\/\/root@localhost\/ironic/" etc/ironic/ironic.conf.local
+    sed -i "s/#connection=.*/connection=mysql\+pymysql:\/\/root:MYSQL_ROOT_PWD@localhost\/ironic/" etc/ironic/ironic.conf.local
 
 At this point, you can continue to Step 2.
 
