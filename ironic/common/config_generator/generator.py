@@ -39,6 +39,7 @@ import stevedore.named
 
 oslo_i18n.install('ironic')
 
+OPT = "Opt"
 STROPT = "StrOpt"
 BOOLOPT = "BoolOpt"
 INTOPT = "IntOpt"
@@ -49,6 +50,7 @@ MULTISTROPT = "MultiStrOpt"
 PORTOPT = "PortOpt"
 
 OPT_TYPES = {
+    OPT: 'type of value is unknown',
     STROPT: 'string value',
     BOOLOPT: 'boolean value',
     INTOPT: 'integer value',
@@ -59,9 +61,7 @@ OPT_TYPES = {
     PORTOPT: 'port value',
 }
 
-OPTION_REGEX = re.compile(r"(%s)" % "|".join([STROPT, BOOLOPT, INTOPT,
-                                              FLOATOPT, LISTOPT, DICTOPT,
-                                              MULTISTROPT, PORTOPT]))
+OPTION_REGEX = re.compile(r"(%s)" % "|".join(OPT_TYPES))
 
 PY_EXT = ".py"
 BASEDIR = os.path.abspath(os.path.join(os.path.dirname(__file__),
@@ -291,13 +291,15 @@ def _print_opt(opt):
         else:
             _print_type(opt_type, opt_name, opt_default)
         print('')
-    except Exception:
-        sys.stderr.write('Error in option "%s"\n' % opt_name)
+    except Exception as e:
+        sys.stderr.write('Error in option "%s": %s\n' % (opt_name, str(e)))
         sys.exit(1)
 
 
 def _print_type(opt_type, opt_name, opt_default):
-    if opt_type == STROPT:
+    if opt_type == OPT:
+        print('#%s=%s' % (opt_name, str(opt_default)))
+    elif opt_type == STROPT:
         assert(isinstance(opt_default, six.string_types))
         print('#%s=%s' % (opt_name, _sanitize_default(opt_name,
                                                       opt_default)))
@@ -329,6 +331,8 @@ def _print_type(opt_type, opt_name, opt_default):
             opt_default = ['']
         for default in opt_default:
             print('#%s=%s' % (opt_name, default))
+    else:
+        raise ValueError("unknown oslo_config type %s" % opt_type)
 
 
 def main():
