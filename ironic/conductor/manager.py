@@ -835,10 +835,11 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         """
         node = task.node
-        if not node.clean_step:
-            return []
-
         next_steps = node.driver_internal_info.get('clean_steps', [])
+        if not node.clean_step:
+            # first time through, return all steps
+            return next_steps
+
         try:
             # Trim off the last clean step (now finished) and
             # all previous steps
