@@ -16,6 +16,7 @@ import mock
 from oslo_config import cfg
 import six
 from six.moves import builtins as __builtin__
+from six.moves import http_client
 from swiftclient import client as swift_client
 from swiftclient import exceptions as swift_exception
 from swiftclient import utils as swift_utils
@@ -131,8 +132,8 @@ class SwiftTestCase(base.TestCase):
 
     def test_delete_object_exc_resource_not_found(self, connection_mock):
         swiftapi = swift.SwiftAPI()
-        exc = swift_exception.ClientException("Resource not found",
-                                              http_status=404)
+        exc = swift_exception.ClientException(
+            "Resource not found", http_status=http_client.NOT_FOUND)
         connection_obj_mock = connection_mock.return_value
         connection_obj_mock.delete_object.side_effect = exc
         self.assertRaises(exception.SwiftObjectNotFoundError,

@@ -17,6 +17,7 @@ Tests to assert that various incorporated middleware works as expected.
 
 from oslo_config import cfg
 import oslo_middleware.cors as cors_middleware
+from six.moves import http_client
 
 from ironic.tests.unit.api import base
 
@@ -40,6 +41,14 @@ class TestCORSMiddleware(base.BaseApiTest):
         # Create the application.
         super(TestCORSMiddleware, self).setUp()
 
+    @staticmethod
+    def _response_string(status_code):
+        """Helper function to return string in form of 'CODE DESCRIPTION'.
+
+        For example: '200 OK'
+        """
+        return '{} {}'.format(status_code, http_client.responses[status_code])
+
     def test_valid_cors_options_request(self):
         response = self.app \
             .options('/',
@@ -49,7 +58,8 @@ class TestCORSMiddleware(base.BaseApiTest):
                      })
 
         # Assert response status.
-        self.assertEqual(response.status, '200 OK')
+        self.assertEqual(
+            self._response_string(http_client.OK), response.status)
         self.assertIn('Access-Control-Allow-Origin', response.headers)
         self.assertEqual('http://valid.example.com',
                          response.headers['Access-Control-Allow-Origin'])
@@ -63,7 +73,8 @@ class TestCORSMiddleware(base.BaseApiTest):
                      })
 
         # Assert response status.
-        self.assertEqual(response.status, '200 OK')
+        self.assertEqual(
+            self._response_string(http_client.OK), response.status)
         self.assertNotIn('Access-Control-Allow-Origin', response.headers)
 
     def test_valid_cors_get_request(self):
@@ -74,7 +85,8 @@ class TestCORSMiddleware(base.BaseApiTest):
                  })
 
         # Assert response status.
-        self.assertEqual(response.status, '200 OK')
+        self.assertEqual(
+            self._response_string(http_client.OK), response.status)
         self.assertIn('Access-Control-Allow-Origin', response.headers)
         self.assertEqual('http://valid.example.com',
                          response.headers['Access-Control-Allow-Origin'])
@@ -87,5 +99,6 @@ class TestCORSMiddleware(base.BaseApiTest):
                  })
 
         # Assert response status.
-        self.assertEqual(response.status, '200 OK')
+        self.assertEqual(
+            self._response_string(http_client.OK), response.status)
         self.assertNotIn('Access-Control-Allow-Origin', response.headers)

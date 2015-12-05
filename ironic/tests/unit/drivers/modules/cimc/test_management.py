@@ -15,6 +15,7 @@
 import mock
 
 from oslo_utils import importutils
+from six.moves import http_client
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -110,7 +111,8 @@ class CIMCManagementTestCase(test_common.CIMCBaseTestCase):
                                   shared=False) as task:
             with mock_handle(task) as handle:
                 method = imcsdk.ImcCore.ExternalMethod("ConfigConfMo")
-                handle.xml_query.return_value.error_code = "404"
+                handle.xml_query.return_value.error_code = (
+                    str(http_client.NOT_FOUND))
 
                 self.assertRaises(exception.CIMCException,
                                   task.driver.management.set_boot_device,

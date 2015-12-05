@@ -16,6 +16,7 @@
 
 from oslo_config import cfg
 from oslo_log import log as logging
+from six.moves import http_client
 from six.moves.urllib import parse
 from swiftclient import client as swift_client
 from swiftclient import exceptions as swift_exceptions
@@ -163,7 +164,7 @@ class SwiftAPI(object):
             self.connection.delete_object(container, object)
         except swift_exceptions.ClientException as e:
             operation = _("delete object")
-            if e.http_status == 404:
+            if e.http_status == http_client.NOT_FOUND:
                 raise exception.SwiftObjectNotFoundError(object=object,
                                                          container=container,
                                                          operation=operation)

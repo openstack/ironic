@@ -17,6 +17,7 @@ import json
 import mock
 import requests
 import six
+from six.moves import http_client
 
 from ironic.common import exception
 from ironic.drivers.modules import agent_client
@@ -24,7 +25,7 @@ from ironic.tests import base
 
 
 class MockResponse(object):
-    status_code = 200
+    status_code = http_client.OK
 
     def __init__(self, text):
         assert isinstance(text, six.string_types)
