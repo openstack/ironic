@@ -268,11 +268,12 @@ def _print_opt(opt, group):
     if not opt_help:
         sys.stderr.write('WARNING: "%s" is missing help string.\n' % opt_name)
         opt_help = ""
-    try:
-        opt_type = OPTION_REGEX.search(str(type(opt))).group(0)
-    except (ValueError, AttributeError) as err:
-        sys.stderr.write("%s\n" % err)
-        sys.exit(1)
+    result = OPTION_REGEX.search(str(type(opt)))
+    if not result:
+        raise ValueError(
+            "Config option: {!r} Unknown option type: {}\n".format(
+                opt_name, type(opt)))
+    opt_type = result.group(0)
     opt_help = u'%s (%s)' % (opt_help,
                              OPT_TYPES[opt_type])
     print('#', "\n# ".join(textwrap.wrap(opt_help, WORDWRAP_WIDTH)))
