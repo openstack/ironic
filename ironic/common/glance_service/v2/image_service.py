@@ -13,8 +13,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
+import time
+
 from oslo_config import cfg
 from oslo_utils import uuidutils
+import six
 from six.moves.urllib import parse as urlparse
 from swiftclient import utils as swift_utils
 
@@ -46,7 +50,27 @@ glance_opts = [
                       'will be valid for. Defaults to 20 minutes. If some '
                       'deploys get a 401 response code when trying to '
                       'download from the temporary URL, try raising this '
-                      'duration.')),
+                      'duration. This value must be greater than or equal to '
+                      'the value for '
+                      'swift_temp_url_expected_download_start_delay')),
+    cfg.BoolOpt('swift_temp_url_cache_enabled',
+                default=False,
+                help=_('Whether to cache generated Swift temporary URLs. '
+                       'Setting it to true is only useful when an image '
+                       'caching proxy is used. Defaults to False.')),
+    cfg.IntOpt('swift_temp_url_expected_download_start_delay',
+               default=0, min=0,
+               help=_('This is the delay (in seconds) from the time of the '
+                      'deploy request (when the Swift temporary URL is '
+                      'generated) to when the IPA ramdisk starts up and URL '
+                      'is used for the image download. This value is used to '
+                      'check if the Swift temporary URL duration is large '
+                      'enough to let the image download begin. Also if '
+                      'temporary URL caching is enabled this will determine '
+                      'if a cached entry will still be valid when the '
+                      'download starts. swift_temp_url_duration value must be '
+                      'greater than or equal to this option\'s value. '
+                      'Defaults to 0.')),
     cfg.StrOpt(
         'swift_endpoint_url',
         help=_('The "endpoint" (scheme, hostname, optional port) for '
@@ -93,15 +117,28 @@ glance_opts = [
                choices=['swift', 'radosgw'],
                help=_('Type of endpoint to use for temporary URLs. If the '
                       'Glance backend is Swift, use "swift"; if it is CEPH '
-                      'with RADOS gateway, use "radosgw".'))
+                      'with RADOS gateway, use "radosgw".')),
 ]
 
 CONF = cfg.CONF
 CONF.register_opts(glance_opts, group='glance')
 
+TempUrlCacheElement = collections.namedtuple('TempUrlCacheElement',
+                                             ['url', 'url_expires_at'])
+
 
 class GlanceImageService(base_image_service.BaseImageService,
                          service.ImageService):
+
+    # A dictionary containing cached temp URLs in namedtuples
+    # in format:
+    # {
+    #     <image_id> : (
+    #          url=<temp_url>,
+    #          url_expires_at=<expiration_time>
+    #     )
+    # }
+    _cache = {}
 
     def detail(self, **kwargs):
         return self._detail(method='list', **kwargs)
@@ -124,10 +161,50 @@ class GlanceImageService(base_image_service.BaseImageService,
     def delete(self, image_id):
         return self._delete(image_id, method='delete')
 
+    def _generate_temp_url(self, path, seconds, key, method, endpoint,
+                           image_id):
+        """Get Swift temporary URL.
+
+        Generates (or returns the cached one if caching is enabled) a
+        temporary URL that gives unauthenticated access to the Swift object.
+
+        :param path: The full path to the Swift object. Example:
+            /v1/AUTH_account/c/o.
+        :param seconds: The amount of time in seconds the temporary URL will
+            be valid for.
+        :param key: The secret temporary URL key set on the Swift cluster.
+        :param method: A HTTP method, typically either GET or PUT, to allow for
+            this temporary URL.
+        :param endpoint: Endpoint URL of Swift service.
+        :param image_id: UUID of a Glance image.
+        :returns: temporary URL
+        """
+
+        if CONF.glance.swift_temp_url_cache_enabled:
+            self._remove_expired_items_from_cache()
+            if image_id in self._cache:
+                return self._cache[image_id].url
+
+        path = swift_utils.generate_temp_url(
+            path=path, seconds=seconds, key=key, method=method)
+
+        temp_url = '{endpoint_url}{url_path}'.format(
+            endpoint_url=endpoint, url_path=path)
+
+        if CONF.glance.swift_temp_url_cache_enabled:
+            query = urlparse.urlparse(temp_url).query
+            exp_time_str = dict(urlparse.parse_qsl(query))['temp_url_expires']
+            self._cache[image_id] = TempUrlCacheElement(
+                url=temp_url, url_expires_at=int(exp_time_str)
+            )
+
+        return temp_url
+
     def swift_temp_url(self, image_info):
         """Generate a no-auth Swift temporary URL.
 
-        This function will generate the temporary Swift URL using the image
+        This function will generate (or return the cached one if temp URL
+        cache is enabled) the temporary Swift URL using the image
         id from Glance and the config options: 'swift_endpoint_url',
         'swift_api_version', 'swift_account' and 'swift_container'.
         The temporary URL will be valid for 'swift_temp_url_duration' seconds.
@@ -156,11 +233,13 @@ class GlanceImageService(base_image_service.BaseImageService,
                 'The given image info does not have a valid image id: %s')
                 % image_info)
 
+        image_id = image_info['id']
+
         url_fragments = {
             'api_version': CONF.glance.swift_api_version,
             'account': CONF.glance.swift_account,
-            'container': self._get_swift_container(image_info['id']),
-            'object_id': image_info['id']
+            'container': self._get_swift_container(image_id),
+            'object_id': image_id
         }
 
         endpoint_url = CONF.glance.swift_endpoint_url
@@ -180,14 +259,15 @@ class GlanceImageService(base_image_service.BaseImageService,
             template = '/{api_version}/{account}/{container}/{object_id}'
 
         url_path = template.format(**url_fragments)
-        path = swift_utils.generate_temp_url(
+
+        return self._generate_temp_url(
             path=url_path,
             seconds=CONF.glance.swift_temp_url_duration,
             key=CONF.glance.swift_temp_url_key,
-            method='GET')
-
-        return '{endpoint_url}{url_path}'.format(
-            endpoint_url=endpoint_url, url_path=path)
+            method='GET',
+            endpoint=endpoint_url,
+            image_id=image_id
+        )
 
     def _validate_temp_url_config(self):
         """Validate the required settings for a temporary URL."""
@@ -204,9 +284,13 @@ class GlanceImageService(base_image_service.BaseImageService,
             raise exc.MissingParameterValue(_(
                 'Swift temporary URLs require a Swift account string. '
                 'You must provide "swift_account" as a config option.'))
-        if CONF.glance.swift_temp_url_duration < 0:
+        if (CONF.glance.swift_temp_url_duration <
+                CONF.glance.swift_temp_url_expected_download_start_delay):
             raise exc.InvalidParameterValue(_(
-                '"swift_temp_url_duration" must be a positive integer.'))
+                '"swift_temp_url_duration" must be greater than or equal to '
+                '"[glance]swift_temp_url_expected_download_start_delay" '
+                'option, otherwise the Swift temporary URL may expire before '
+                'the download starts.'))
         seed_num_chars = CONF.glance.swift_store_multiple_containers_seed
         if (seed_num_chars is None or seed_num_chars < 0
                 or seed_num_chars > 32):
@@ -260,3 +344,18 @@ class GlanceImageService(base_image_service.BaseImageService,
             raise exc.ImageNotFound(image_id=image_id)
 
         return getattr(image_meta, 'direct_url', None)
+
+    def _remove_expired_items_from_cache(self):
+        """Remove expired items from temporary URL cache
+
+        This function removes entries that will expire before the expected
+        usage time.
+        """
+        max_valid_time = (
+            int(time.time()) +
+            CONF.glance.swift_temp_url_expected_download_start_delay)
+        keys_to_remove = [
+            k for k, v in six.iteritems(self._cache)
+            if (v.url_expires_at < max_valid_time)]
+        for k in keys_to_remove:
+            del self._cache[k]
