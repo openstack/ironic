@@ -235,7 +235,7 @@ class TestListDrivers(base.BaseApiTest):
         ret = self.get_json(path,
                             headers={api_base.Version.string: "1.4"},
                             expect_errors=True)
-        self.assertEqual(406, ret.status_code)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'get_raid_logical_disk_properties')
     def test_raid_logical_disk_properties_cached(self, disk_prop_mock):
@@ -266,7 +266,7 @@ class TestListDrivers(base.BaseApiTest):
         ret = self.get_json(path,
                             headers={api_base.Version.string: "1.12"},
                             expect_errors=True)
-        self.assertEqual(404, ret.status_code)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
         self.assertTrue(ret.json['error_message'])
         disk_prop_mock.assert_called_once_with(mock.ANY, self.d1,
                                                topic=mock.ANY)

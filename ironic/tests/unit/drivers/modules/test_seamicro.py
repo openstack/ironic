@@ -18,6 +18,7 @@ import mock
 from oslo_utils import uuidutils
 from seamicroclient import client as seamicro_client
 from seamicroclient import exceptions as seamicro_client_exception
+from six.moves import http_client
 
 from ironic.common import boot_devices
 from ironic.common import driver_factory
@@ -442,7 +443,8 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(seamicro, '_get_server', autospec=True)
     def test_set_node_vlan_id_fail(self, mock_get_server):
         def fake_set_untagged_vlan(self, **kwargs):
-            raise seamicro_client_exception.ClientException(500)
+            raise seamicro_client_exception.ClientException(
+                http_client.INTERNAL_SERVER_ERROR)
 
         vlan_id = "12"
         server = self.Server(active="true")
@@ -490,7 +492,8 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
     def test_attach_volume_fail(self, mock_validate_volume,
                                 mock_get_server):
         def fake_attach_volume(self, **kwargs):
-            raise seamicro_client_exception.ClientException(500)
+            raise seamicro_client_exception.ClientException(
+                http_client.INTERNAL_SERVER_ERROR)
 
         volume_id = '0/p6-1/vol1'
         mock_validate_volume.return_value = True
@@ -553,7 +556,8 @@ class SeaMicroPowerDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(seamicro, '_get_server', autospec=True)
     def test_set_boot_device_fail(self, mock_get_server):
         def fake_set_boot_order(self, **kwargs):
-            raise seamicro_client_exception.ClientException(500)
+            raise seamicro_client_exception.ClientException(
+                http_client.INTERNAL_SERVER_ERROR)
 
         boot_device = "pxe"
         server = self.Server(active="true")

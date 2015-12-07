@@ -1987,7 +1987,7 @@ class TestPut(test_api_base.BaseApiTest):
                             {'target': states.VERBS['abort']},
                             headers={api_base.Version.string: "1.12"},
                             expect_errors=True)
-        self.assertEqual(406, ret.status_code)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
     def test_abort_cleanwait(self, mock_dpa):
@@ -1997,7 +1997,7 @@ class TestPut(test_api_base.BaseApiTest):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.VERBS['abort']},
                             headers={api_base.Version.string: "1.13"})
-        self.assertEqual(202, ret.status_code)
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         mock_dpa.assert_called_once_with(mock.ANY, self.node.uuid,
                                          states.VERBS['abort'],
@@ -2011,7 +2011,7 @@ class TestPut(test_api_base.BaseApiTest):
                             {'target': states.VERBS['abort']},
                             headers={api_base.Version.string: "1.13"},
                             expect_errors=True)
-        self.assertEqual(400, ret.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
 
     def test_set_console_mode_enabled(self):
         with mock.patch.object(rpcapi.ConductorAPI,
@@ -2107,7 +2107,7 @@ class TestPut(test_api_base.BaseApiTest):
         ret = self.put_json(
             '/nodes/%s/states/raid' % self.node.uuid, raid_config,
             headers={api_base.Version.string: "1.12"})
-        self.assertEqual(204, ret.status_code)
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         self.assertEqual(b'', ret.body)
         set_raid_config_mock.assert_called_once_with(
             mock.ANY, mock.ANY, self.node.uuid, raid_config, topic=mock.ANY)
@@ -2120,7 +2120,7 @@ class TestPut(test_api_base.BaseApiTest):
             '/nodes/%s/states/raid' % self.node.uuid, raid_config,
             headers={api_base.Version.string: "1.5"},
             expect_errors=True)
-        self.assertEqual(406, ret.status_code)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
         self.assertFalse(set_raid_config_mock.called)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'set_target_raid_config',
@@ -2134,7 +2134,7 @@ class TestPut(test_api_base.BaseApiTest):
             '/nodes/%s/states/raid' % self.node.uuid, raid_config,
             headers={api_base.Version.string: "1.12"},
             expect_errors=True)
-        self.assertEqual(404, ret.status_code)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
         self.assertTrue(ret.json['error_message'])
         set_raid_config_mock.assert_called_once_with(
             mock.ANY, mock.ANY, self.node.uuid, raid_config, topic=mock.ANY)
@@ -2149,7 +2149,7 @@ class TestPut(test_api_base.BaseApiTest):
             '/nodes/%s/states/raid' % self.node.uuid, raid_config,
             headers={api_base.Version.string: "1.12"},
             expect_errors=True)
-        self.assertEqual(400, ret.status_code)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertTrue(ret.json['error_message'])
         set_raid_config_mock.assert_called_once_with(
             mock.ANY, mock.ANY, self.node.uuid, raid_config, topic=mock.ANY)
