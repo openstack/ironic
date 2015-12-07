@@ -5,5 +5,8 @@
 .. toctree::
    :maxdepth: 1
 
-   liberty
-   unreleased
+   Current (4.3.0 - unreleased) <unreleased>
+   Liberty (4.0.0 - 4.2.x) <liberty>
+   Kilo (2015.1) <https://wiki.openstack.org/wiki/Ironic/ReleaseNotes/Kilo>
+   Juno (2014.2) <https://wiki.openstack.org/wiki/Ironic/ReleaseNotes/Juno>
+   Icehouse (2014.1) <https://wiki.openstack.org/wiki/Ironic/ReleaseNotes/Icehouse>
