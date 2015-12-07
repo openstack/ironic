@@ -313,6 +313,22 @@ class TestAgentDeploy(db_base.DbTestCase):
                 task.driver.boot, task)
             show_mock.assert_called_once_with(self.context, 'fake-image')
 
+    @mock.patch.object(images, 'image_show', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
+    def test_validate_invalid_proxies(self, pxe_boot_validate_mock, show_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.driver_info.update({
+                'image_https_proxy': 'git://spam.ni',
+                'image_http_proxy': 'http://spam.ni',
+                'image_no_proxy': '1' * 500})
+            self.assertRaisesRegexp(exception.InvalidParameterValue,
+                                    'image_https_proxy.*image_no_proxy',
+                                    task.driver.deploy.validate, task)
+            pxe_boot_validate_mock.assert_called_once_with(
+                task.driver.boot, task)
+            show_mock.assert_called_once_with(self.context, 'fake-image')
+
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
     def test_deploy(self, power_mock):
         with task_manager.acquire(
@@ -495,10 +511,13 @@ class TestAgentVendor(db_base.DbTestCase):
         }
         self.node = object_utils.create_test_node(self.context, **n)
 
-    def test_continue_deploy(self):
-        CONF.set_override('stream_raw_images', False, 'agent')
+    def _test_continue_deploy(self, additional_driver_info=None,
+                              additional_expected_image_info=None):
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
+        driver_info = self.node.driver_info
+        driver_info.update(additional_driver_info or {})
+        self.node.driver_info = driver_info
         self.node.save()
         test_temp_url = 'http://image'
         expected_image_info = {
@@ -507,8 +526,9 @@ class TestAgentVendor(db_base.DbTestCase):
             'checksum': 'checksum',
             'disk_format': 'qcow2',
             'container_format': 'bare',
-            'stream_raw_images': False,
+            'stream_raw_images': CONF.agent.stream_raw_images,
         }
+        expected_image_info.update(additional_expected_image_info or {})
 
         client_mock = mock.MagicMock(spec_set=['prepare_image'])
         self.passthru._client = client_mock
@@ -522,33 +542,35 @@ class TestAgentVendor(db_base.DbTestCase):
             self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
             self.assertEqual(states.ACTIVE,
                              task.node.target_provision_state)
+
+    def test_continue_deploy(self):
+        self._test_continue_deploy()
+
+    def test_continue_deploy_with_proxies(self):
+        self._test_continue_deploy(
+            additional_driver_info={'image_https_proxy': 'https://spam.ni',
+                                    'image_http_proxy': 'spam.ni',
+                                    'image_no_proxy': '.eggs.com'},
+            additional_expected_image_info={
+                'proxies': {'https': 'https://spam.ni',
+                            'http': 'spam.ni'},
+                'no_proxy': '.eggs.com'}
+        )
+
+    def test_continue_deploy_with_no_proxy_without_proxies(self):
+        self._test_continue_deploy(
+            additional_driver_info={'image_no_proxy': '.eggs.com'}
+        )
 
     def test_continue_deploy_image_source_is_url(self):
-        self.node.provision_state = states.DEPLOYWAIT
-        self.node.target_provision_state = states.ACTIVE
-        self.node.save()
-        test_temp_url = 'http://image'
-        expected_image_info = {
-            'urls': [test_temp_url],
-            'id': self.node.instance_info['image_source'],
-            'checksum': 'checksum',
-            'disk_format': 'qcow2',
-            'container_format': 'bare',
-            'stream_raw_images': True,
-        }
-
-        client_mock = mock.MagicMock(spec_set=['prepare_image'])
-        self.passthru._client = client_mock
-
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            self.passthru.continue_deploy(task)
-
-            client_mock.prepare_image.assert_called_with(task.node,
-                                                         expected_image_info)
-            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
-            self.assertEqual(states.ACTIVE,
-                             task.node.target_provision_state)
+        instance_info = self.node.instance_info
+        instance_info['image_source'] = 'http://example.com/woof.img'
+        self.node.instance_info = instance_info
+        self._test_continue_deploy(
+            additional_expected_image_info={
+                'id': 'woof.img'
+            }
+        )
 
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state',
