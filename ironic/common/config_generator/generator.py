@@ -221,7 +221,7 @@ def print_group_opts(group, opts_by_module):
         print('#')
         print('')
         for opt in opts:
-            _print_opt(opt)
+            _print_opt(opt, group)
         print('')
 
 
@@ -263,7 +263,7 @@ def _sanitize_default(name, value):
     return value
 
 
-def _print_opt(opt):
+def _print_opt(opt, group):
     opt_name, opt_default, opt_help = opt.dest, opt.default, opt.help
     if not opt_help:
         sys.stderr.write('WARNING: "%s" is missing help string.\n' % opt_name)
@@ -281,7 +281,7 @@ def _print_opt(opt):
             deprecated_name = (deprecated_opt.name if
                                deprecated_opt.name else opt_name)
             deprecated_group = (deprecated_opt.group if
-                                deprecated_opt.group else "DEFAULT")
+                                deprecated_opt.group else group)
             print('# Deprecated group/name - [%s]/%s' %
                   (deprecated_group,
                    deprecated_name))
