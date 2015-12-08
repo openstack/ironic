@@ -22,22 +22,6 @@ CONF = cfg.CONF
 
 
 class TestWSGIService(base.TestCase):
-
-    @mock.patch.object(service.app, 'VersionSelectorApplication')
-    def test_reset_pool_size_to_default(self, mock_app):
-        test_service = service.WSGIService("test_service")
-        test_service.start()
-
-        # Stopping the service, which in turn sets pool size to 0
-        test_service.stop()
-        self.assertEqual(0, test_service.server._pool.size)
-
-        # Resetting pool size to default
-        test_service.reset()
-        test_service.start()
-        self.assertTrue(test_service.server._pool.size > 0)
-        self.assertTrue(mock_app.called)
-
     @mock.patch.object(service.wsgi, 'Server')
     def test_workers_set_default(self, wsgi_server):
         test_service = service.WSGIService("ironic_api")
