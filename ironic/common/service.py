@@ -131,6 +131,7 @@ def prepare_service(argv=[]):
                                          'keystoneclient=INFO',
                                          'stevedore=INFO',
                                          'eventlet.wsgi.server=WARNING',
+                                         'iso8601=WARNING',
                                          'paramiko=WARNING',
                                          'requests=WARNING',
                                          'neutronclient=WARNING',
