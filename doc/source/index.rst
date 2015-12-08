@@ -64,6 +64,7 @@ Introduction
   dev/architecture
   dev/states
   dev/contributing
+  dev/code-contribution-guide
 
 .. toctree::
   dev/dev-quickstart
