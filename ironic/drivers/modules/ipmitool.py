@@ -76,6 +76,7 @@ REQUIRED_PROPERTIES = {
 }
 OPTIONAL_PROPERTIES = {
     'ipmi_password': _("password. Optional."),
+    'ipmi_port': _("remote IPMI RMCP port. Optional."),
     'ipmi_priv_level': _("privilege level; default is ADMINISTRATOR. One of "
                          "%s. Optional.") % ', '.join(VALID_PRIV_LEVELS),
     'ipmi_username': _("username; default is NULL user. Optional."),
@@ -255,6 +256,7 @@ def _parse_driver_info(node):
     address = info.get('ipmi_address')
     username = info.get('ipmi_username')
     password = six.text_type(info.get('ipmi_password', ''))
+    dest_port = info.get('ipmi_port')
     port = info.get('ipmi_terminal_port')
     priv_level = info.get('ipmi_priv_level', 'ADMINISTRATOR')
     bridging_type = info.get('ipmi_bridging', 'no')
@@ -275,6 +277,9 @@ def _parse_driver_info(node):
 
     if port is not None:
         port = utils.validate_network_port(port, 'ipmi_terminal_port')
+
+    if dest_port is not None:
+        dest_port = utils.validate_network_port(dest_port, 'ipmi_port')
 
     # check if ipmi_bridging has proper value
     if bridging_type == 'no':
@@ -325,6 +330,7 @@ def _parse_driver_info(node):
 
     return {
         'address': address,
+        'dest_port': dest_port,
         'username': username,
         'password': password,
         'port': port,
@@ -361,6 +367,11 @@ def _exec_ipmitool(driver_info, command):
             driver_info['address'],
             '-L', driver_info['priv_level']
             ]
+
+    if driver_info['dest_port']:
+        args.append('-p')
+        args.append(driver_info['dest_port'])
+
     if driver_info['username']:
         args.append('-U')
         args.append(driver_info['username'])

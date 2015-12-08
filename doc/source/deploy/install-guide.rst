@@ -1460,6 +1460,12 @@ and may be combined if desired.
     driver_info/ipmi_password=$PASS \
     driver_info/ipmi_address=$ADDRESS
 
+.. note::
+   If IPMI is running on a port other than 623 (the default). The port must
+   be added to ``driver_info`` by specifying the ``ipmi_port`` value.
+   Example:
+    ironic node-update $NODE_UUID add driver_info/ipmi_port=$PORT_NUMBER
+
    Note that you may also specify all ``driver_info`` parameters during
    ``node-create`` by passing the **-i** option multiple times.
 

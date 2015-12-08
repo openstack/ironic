@@ -1,0 +1,5 @@
+---
+features:
+  - Add support for ipmitool's port (-p) option. This
+    allows ipmitool support for operators that do not
+    use the default port (623) as their IPMI port.
