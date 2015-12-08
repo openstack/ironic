@@ -27,6 +27,15 @@ For more information see the `alembic documentation`_.
 
 .. _`alembic documentation`: https://alembic.readthedocs.org/en/latest/tutorial.html#create-a-migration-script
 
+...know if a release note is needed for my change?
+--------------------------------------------------
+
+`Reno documentation`_ contains a description of what can be added to each
+section of a release note. If, after reading this, you're still unsure about
+whether to add a release note for your change or not, keep in mind that it is
+intended to contain information for deployers, so changes to unit tests or
+documentation are unlikely to require one.
+
 ...create a new release note?
 -----------------------------
 
@@ -53,4 +62,4 @@ Then edit the result file.
 
 For more information see the `reno documentation`_.
 
-.. _`reno documentation`: http://docs.openstack.org/developer/reno/usage.html#creating-new-release-notes
+.. _`reno documentation`: http://docs.openstack.org/developer/reno/usage.html
