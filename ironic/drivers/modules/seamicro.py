@@ -663,14 +663,10 @@ class ShellinaboxConsole(base.ConsoleInterface):
         """Stop the remote console session for the node.
 
         :param task: a task from TaskManager
-        :raises: MissingParameterValue if required seamicro parameters are
-                 missing
         :raises: ConsoleError if unable to stop the console
-        :raises: InvalidParameterValue if required parameter are invalid.
         """
 
-        driver_info = _parse_driver_info(task.node)
-        console_utils.stop_shellinabox_console(driver_info['uuid'])
+        console_utils.stop_shellinabox_console(task.node.uuid)
 
     def get_console(self, task):
         """Get the type and connection information about the console.
