@@ -1,5 +1,1 @@
-============================
-Current Series Release Notes
-============================
-
-.. release-notes::
+.. include:: current-series.rst
