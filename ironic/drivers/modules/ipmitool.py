@@ -1132,15 +1132,13 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
         """Stop the remote console session for the node.
 
         :param task: a task from TaskManager
-        :raises: InvalidParameterValue if required ipmi parameters are missing
         :raises: ConsoleError if unable to stop the console
         """
-        driver_info = _parse_driver_info(task.node)
         try:
-            console_utils.stop_shellinabox_console(driver_info['uuid'])
+            console_utils.stop_shellinabox_console(task.node.uuid)
         finally:
             utils.unlink_without_raise(
-                _console_pwfile_path(driver_info['uuid']))
+                _console_pwfile_path(task.node.uuid))
 
     def get_console(self, task):
         """Get the type and connection information about the console."""

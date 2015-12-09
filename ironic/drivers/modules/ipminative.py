@@ -611,17 +611,12 @@ class NativeIPMIShellinaboxConsole(base.ConsoleInterface):
         """Stop the remote console session for the node.
 
         :param task: a TaskManager instance containing the node to act on.
-        :raises: MissingParameterValue when required IPMI credentials or
-            the IPMI terminal port are missing
-        :raises: InvalidParameterValue when the IPMI terminal port is not
-                an integer.
         :raises: ConsoleError if unable to stop the console process.
         """
-        driver_info = _parse_driver_info(task.node)
         try:
-            console_utils.stop_shellinabox_console(driver_info['uuid'])
+            console_utils.stop_shellinabox_console(task.node.uuid)
         finally:
-            password_file = _console_pwfile_path(driver_info['uuid'])
+            password_file = _console_pwfile_path(task.node.uuid)
             utils.unlink_without_raise(password_file)
 
     def get_console(self, task):
