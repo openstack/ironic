@@ -488,38 +488,6 @@ class DracOperationError(IronicException):
     _msg_fmt = _('DRAC operation failed. Reason: %(error)s')
 
 
-class DracRequestFailed(IronicException):
-    pass
-
-
-class DracClientError(DracRequestFailed):
-    _msg_fmt = _('DRAC client failed. '
-                 'Last error (cURL error code): %(last_error)s, '
-                 'fault string: "%(fault_string)s" '
-                 'response_code: %(response_code)s')
-
-
-class DracOperationFailed(DracRequestFailed):
-    _msg_fmt = _('DRAC operation failed. _msg_fmt: %(_msg_fmt)s')
-
-
-class DracUnexpectedReturnValue(DracRequestFailed):
-    _msg_fmt = _('DRAC operation yielded return value %(actual_return_value)s '
-                 'that is neither error nor expected '
-                 '%(expected_return_value)s')
-
-
-class DracPendingConfigJobExists(IronicException):
-    _msg_fmt = _('Another job with ID %(job_id)s is already created  '
-                 'to configure %(target)s. Wait until existing job '
-                 'is completed or is canceled')
-
-
-class DracInvalidFilterDialect(IronicException):
-    _msg_fmt = _('Invalid filter dialect \'%(invalid_filter)s\'. '
-                 'Supported options are %(supported)s')
-
-
 class FailedToGetSensorData(IronicException):
     _msg_fmt = _("Failed to get sensor data for node %(node)s. "
                  "Error: %(error)s")

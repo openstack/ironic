@@ -1,0 +1,13 @@
+---
+fixes:
+  - DRAC driver migrated from ``pywsman`` to ``python-dracclient`` fixing
+    the driver lockup issue caused by the python interpreter not handling
+    signals when execution handed to the c library.
+  - Fixes an issue with setting the boot device multiple times without a reboot
+    in the DRAC driver by setting the boot device only before power management
+    operations.
+upgrade:
+  - Dependency for DRAC driver changed from ``pywsman`` to
+    ``python-dracclient``. Exceptions thrown by the driver and return values of
+    the ``set_bios_config``, ``commit_bios_config`` and ``abandon_bios_config``
+    methods changed on the vendor-passthru interface.

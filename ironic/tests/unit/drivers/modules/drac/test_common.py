@@ -15,11 +15,8 @@
 Test class for common methods used by DRAC modules.
 """
 
-from xml.etree import ElementTree
-
 import dracclient.client
 import mock
-from testtools.matchers import HasLength
 
 from ironic.common import exception
 from ironic.drivers.modules.drac import common as drac_common
@@ -124,35 +121,3 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
         drac_common.get_drac_client(node)
 
         self.assertEqual(mock_dracclient.mock_calls, [expected_call])
-
-    def test_find_xml(self):
-        namespace = 'http://fake'
-        value = 'fake_value'
-        test_doc = ElementTree.fromstring("""<Envelope xmlns:ns1="%(ns)s">
-                         <Body>
-                           <ns1:test_element>%(value)s</ns1:test_element>
-                         </Body>
-                       </Envelope>""" % {'ns': namespace, 'value': value})
-
-        result = drac_common.find_xml(test_doc, 'test_element', namespace)
-        self.assertEqual(value, result.text)
-
-    def test_find_xml_find_all(self):
-        namespace = 'http://fake'
-        value1 = 'fake_value1'
-        value2 = 'fake_value2'
-        test_doc = ElementTree.fromstring("""<Envelope xmlns:ns1="%(ns)s">
-                         <Body>
-                           <ns1:test_element>%(value1)s</ns1:test_element>
-                           <ns1:cat>meow</ns1:cat>
-                           <ns1:test_element>%(value2)s</ns1:test_element>
-                           <ns1:dog>bark</ns1:dog>
-                         </Body>
-                       </Envelope>""" % {'ns': namespace, 'value1': value1,
-                                         'value2': value2})
-
-        result = drac_common.find_xml(test_doc, 'test_element',
-                                      namespace, find_all=True)
-        self.assertThat(result, HasLength(2))
-        result_text = [v.text for v in result]
-        self.assertEqual(sorted([value1, value2]), sorted(result_text))
