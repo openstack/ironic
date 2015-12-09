@@ -489,13 +489,12 @@
 # value)
 #protocol=http
 
-# Time interval (in seconds) for successive awake call
-# to AMT interface, this depends on the IdleTimeout
-# setting on AMT interface. AMT Interface will go to
-# sleep after 60 seconds of inactivity by default.
-# IdleTimeout=0 means AMT will not go to sleep at all.
-# Setting awake_interval=0 will disable awake call. (integer
-# value)
+# Time interval (in seconds) for successive awake call to AMT
+# interface, this depends on the IdleTimeout setting on AMT
+# interface. AMT Interface will go to sleep after 60 seconds
+# of inactivity by default. IdleTimeout=0 means AMT will not
+# go to sleep at all. Setting awake_interval=0 will disable
+# awake call. (integer value)
 #awake_interval=60
 
 
@@ -584,6 +583,17 @@
 [conductor]
 
 #
+# Options defined in ironic.conductor.base_manager
+#
+
+# The size of the workers greenthread pool. (integer value)
+#workers_pool_size=100
+
+# Seconds between conductor heart beats. (integer value)
+#heartbeat_interval=10
+
+
+#
 # Options defined in ironic.conductor.manager
 #
 
@@ -591,9 +601,6 @@
 # current value from the keystone service catalog. (string
 # value)
 #api_url=<None>
-
-# Seconds between conductor heart beats. (integer value)
-#heartbeat_interval=10
 
 # Maximum time (in seconds) since the last check-in of a
 # conductor. A conductor is considered inactive when this time
@@ -627,9 +634,6 @@
 # simultaneously by a periodic task. Should be less than RPC
 # thread pool size. (integer value)
 #periodic_max_workers=8
-
-# The size of the workers greenthread pool. (integer value)
-#workers_pool_size=100
 
 # Number of attempts to grab a node lock. (integer value)
 #node_locked_retry_attempts=3
@@ -1343,7 +1347,7 @@
 # Optionally specify a list of memcached server(s) to use for
 # caching. If left undefined, tokens will instead be cached
 # in-process. (list value)
-# Deprecated group/name - [DEFAULT]/memcache_servers
+# Deprecated group/name - [keystone_authtoken]/memcache_servers
 #memcached_servers=<None>
 
 # In order to prevent excessive effort spent validating
