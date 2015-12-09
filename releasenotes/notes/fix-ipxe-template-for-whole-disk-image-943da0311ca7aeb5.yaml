@@ -1,0 +1,4 @@
+---
+fixes:
+  - Fixes an issue with the provided iPXE template where whole disk images
+    could not be booted. See https://bugs.launchpad.net/ironic/+bug/1524403.

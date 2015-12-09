@@ -16,6 +16,4 @@ initrd {{ pxe_options.ari_path }}
 boot
 
 :boot_whole_disk
-kernel chain.c32
-append mbr:{{ DISK_IDENTIFIER }}
-boot
+sanboot --no-describe
