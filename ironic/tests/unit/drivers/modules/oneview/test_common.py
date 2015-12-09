@@ -97,6 +97,51 @@ class OneViewCommonTestCase(db_base.DbTestCase):
              "properties/capabilities"),
             str(exc))
 
+    def test_verify_node_info_missing_sh(self):
+        driver_info = db_utils.get_test_oneview_driver_info()
+
+        del driver_info["server_hardware_uri"]
+        properties = db_utils.get_test_oneview_properties()
+        properties["capabilities"] = (
+            "server_hardware_type_uri:fake_sht_uri,"
+            "enclosure_group_uri:fake_eg_uri,"
+            "server_profile_template_uri:fake_spt_uri"
+        )
+
+        self.node.properties = properties
+        self.node.driver_info = driver_info
+        exc = self.assertRaises(
+            exception.MissingParameterValue,
+            common.verify_node_info,
+            self.node
+        )
+        # TODO(gabriel-bezerra): Simplify this after Mitaka
+        self.assertEqual(
+            ("Missing the keys for the following OneView data in node's "
+             "driver_info: server_hardware_uri."),
+            str(exc))
+
+    def test_verify_node_info_missing_sht(self):
+        driver_info = db_utils.get_test_oneview_driver_info()
+        properties = db_utils.get_test_oneview_properties()
+        properties["capabilities"] = (
+            "enclosure_group_uri:fake_eg_uri,"
+            "server_profile_template_uri:fake_spt_uri"
+        )
+
+        self.node.properties = properties
+        self.node.driver_info = driver_info
+        exc = self.assertRaises(
+            exception.MissingParameterValue,
+            common.verify_node_info,
+            self.node
+        )
+        # TODO(gabriel-bezerra): Simplify this after Mitaka
+        self.assertEqual(
+            ("Missing the keys for the following OneView data in node's "
+             "properties/capabilities: server_hardware_type_uri."),
+            str(exc))
+
     def test_get_oneview_info(self):
         complete_node = self.node
         expected_node_info = {
@@ -127,6 +172,33 @@ class OneViewCommonTestCase(db_base.DbTestCase):
             'server_hardware_type_uri': 'fake_sht_uri',
             'enclosure_group_uri': 'fake_eg_uri',
             'server_profile_template_uri': None,
+        }
+
+        self.assertEqual(
+            expected_node_info,
+            common.get_oneview_info(incomplete_node)
+        )
+
+    def test_get_oneview_info_missing_sh(self):
+        driver_info = db_utils.get_test_oneview_driver_info()
+
+        del driver_info["server_hardware_uri"]
+        properties = db_utils.get_test_oneview_properties()
+        properties["capabilities"] = (
+            "server_hardware_type_uri:fake_sht_uri,"
+            "enclosure_group_uri:fake_eg_uri,"
+            "server_profile_template_uri:fake_spt_uri"
+        )
+
+        self.node.driver_info = driver_info
+        self.node.properties = properties
+
+        incomplete_node = self.node
+        expected_node_info = {
+            'server_hardware_uri': None,
+            'server_hardware_type_uri': 'fake_sht_uri',
+            'enclosure_group_uri': 'fake_eg_uri',
+            'server_profile_template_uri': 'fake_spt_uri',
         }
 
         self.assertEqual(
