@@ -1,0 +1,7 @@
+---
+fixes:
+  - In conductor/rpcapi.py, object_backport_version(),
+    object_action() and object_class_action_versions()
+    misspell NotImplementedError with NotImplemented
+    which returns nothing useful to users.
+    See https://bugs.launchpad.net/ironic/+bug/1524163.
