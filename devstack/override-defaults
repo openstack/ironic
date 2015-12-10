@@ -1,5 +1,0 @@
-#!/bin/bash
-
-# NOTE(jroll) this is used for the transition to a devstack plugin in
-# the ironic tree, and can be removed when the transition is complete.
-IRONIC_USING_PLUGIN=True
