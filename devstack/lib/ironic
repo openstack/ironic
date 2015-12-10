@@ -817,6 +817,10 @@ function upload_baremetal_ironic_deploy {
 }
 
 function prepare_baremetal_basic_ops {
+    if [[ "$IRONIC_BAREMETAL_BASIC_OPS" != "True" ]]; then
+        return 0
+    fi
+
     if ! is_ironic_hardware; then
         configure_ironic_auxiliary
     fi
@@ -830,6 +834,9 @@ function prepare_baremetal_basic_ops {
 }
 
 function cleanup_baremetal_basic_ops {
+    if [[ "$IRONIC_BAREMETAL_BASIC_OPS" != "True" ]]; then
+        return 0
+    fi
     rm -f $IRONIC_VM_MACS_CSV_FILE
     if [ -f $IRONIC_KEY_FILE ]; then
         local key
