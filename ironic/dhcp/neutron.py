@@ -77,8 +77,7 @@ def _build_client(token=None):
     if CONF.neutron.auth_strategy == 'noauth':
         params['endpoint_url'] = CONF.neutron.url
         params['auth_strategy'] = 'noauth'
-    elif (CONF.neutron.auth_strategy == 'keystone' and
-          token is None):
+    else:
         params['endpoint_url'] = (CONF.neutron.url or
                                   keystone.get_service_url('neutron'))
         params['username'] = CONF.keystone_authtoken.admin_user
@@ -87,10 +86,7 @@ def _build_client(token=None):
         params['auth_url'] = (CONF.keystone_authtoken.auth_uri or '')
         if CONF.keystone.region_name:
             params['region_name'] = CONF.keystone.region_name
-    else:
         params['token'] = token
-        params['endpoint_url'] = CONF.neutron.url
-        params['auth_strategy'] = None
 
     return clientv20.Client(**params)
 
