@@ -30,6 +30,7 @@ import socket
 import sys
 import textwrap
 
+import mock
 from oslo_config import cfg
 import oslo_i18n
 from oslo_utils import importutils
@@ -73,6 +74,11 @@ def raise_extension_exception(extmanager, ep, err):
     raise
 
 
+# Don't let the system hostname or FQDN affect config file values. Certain 3rd
+# party libraries use either 'gethostbyname' or 'getfqdn' to set the default
+# value.
+@mock.patch.object(socket, 'gethostname', lambda: 'localhost')
+@mock.patch.object(socket, 'getfqdn', lambda: 'localhost')
 def generate(argv):
     parser = argparse.ArgumentParser(
         description='generate sample configuration file',
@@ -238,8 +244,6 @@ def _get_my_ip():
 
 def _sanitize_default(name, value):
     """Set up a reasonably sensible default for pybasedir, my_ip and host."""
-    hostname = socket.gethostname()
-    fqdn = socket.getfqdn()
     if value.startswith(sys.prefix):
         # NOTE(jd) Don't use os.path.join, because it is likely to think the
         # second part is an absolute pathname and therefore drop the first
@@ -251,13 +255,6 @@ def _sanitize_default(name, value):
         return value.replace(BASEDIR, '')
     elif value == _get_my_ip():
         return '10.0.0.1'
-    elif value in (hostname, fqdn):
-        if 'host' in name:
-            return 'ironic'
-    elif value.endswith(hostname):
-        return value.replace(hostname, 'ironic')
-    elif value.endswith(fqdn):
-        return value.replace(fqdn, 'ironic')
     elif value.strip() != value:
         return '"%s"' % value
     return value

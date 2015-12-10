@@ -125,7 +125,7 @@
 # the node name must be valid within an AMQP key, and if using
 # ZeroMQ, a valid hostname, FQDN, or IP address. (string
 # value)
-#host=ironic
+#host=localhost
 
 
 #
@@ -164,20 +164,20 @@
 # Options defined in oslo.log
 #
 
-# Print debugging output (set logging level to DEBUG instead
-# of default INFO level). (boolean value)
+# If set to true, the logging level will be set to DEBUG
+# instead of the default INFO level. (boolean value)
 #debug=false
 
-# If set to false, will disable INFO logging level, making
-# WARNING the default. (boolean value)
+# If set to false, the logging level will be set to WARNING
+# instead of the default INFO level. (boolean value)
 #verbose=true
 
 # The name of a logging configuration file. This file is
 # appended to any existing logging configuration files. For
 # details about logging configuration files, see the Python
 # logging module documentation. Note that when logging
-# configuration files are used then all logging configuration
-# is set in the configuration file and other logging
+# configuration files are used all logging configuration is
+# defined in the configuration file and other logging
 # configuration options are ignored (for example, log_format).
 # (string value)
 # Deprecated group/name - [DEFAULT]/log_config
@@ -191,29 +191,30 @@
 # ignored if log_config_append is set. (string value)
 #log_format=<None>
 
-# Format string for %%(asctime)s in log records. Default:
-# %(default)s . This option is ignored if log_config_append is
-# set. (string value)
+# Defines the format string for %%(asctime)s in log records.
+# Default: %(default)s . This option is ignored if
+# log_config_append is set. (string value)
 #log_date_format=%Y-%m-%d %H:%M:%S
 
-# (Optional) Name of log file to output to. If no default is
-# set, logging will go to stdout. This option is ignored if
-# log_config_append is set. (string value)
+# (Optional) Name of log file to send logging output to. If no
+# default is set, logging will go to stderr as defined by
+# use_stderr. This option is ignored if log_config_append is
+# set. (string value)
 # Deprecated group/name - [DEFAULT]/logfile
 #log_file=<None>
 
-# (Optional) The base directory used for relative --log-file
+# (Optional) The base directory used for relative log_file
 # paths. This option is ignored if log_config_append is set.
 # (string value)
 # Deprecated group/name - [DEFAULT]/logdir
 #log_dir=<None>
 
-# (Optional) Uses logging handler designed to watch file
-# system. When log file is moved or removed this handler will
-# open a new log file with specified path instantaneously. It
-# makes sense only if log-file option is specified and Linux
-# platform is used. This option is ignored if
-# log_config_append is set. (boolean value)
+# Uses logging handler designed to watch file system. When log
+# file is moved or removed this handler will open a new log
+# file with specified path instantaneously. It makes sense
+# only if log_file option is specified and Linux platform is
+# used. This option is ignored if log_config_append is set.
+# (boolean value)
 #watch_log_file=false
 
 # Use syslog for logging. Existing syslog format is DEPRECATED
@@ -221,11 +222,11 @@
 # ignored if log_config_append is set. (boolean value)
 #use_syslog=false
 
-# (Optional) Enables or disables syslog rfc5424 format for
-# logging. If enabled, prefixes the MSG part of the syslog
-# message with APP-NAME (RFC5424). The format without the APP-
-# NAME is deprecated in Kilo, and will be removed in Mitaka,
-# along with this option. This option is ignored if
+# Enables or disables syslog rfc5424 format for logging. If
+# enabled, prefixes the MSG part of the syslog message with
+# APP-NAME (RFC5424). The format without the APP-NAME is
+# deprecated in Kilo, and will be removed in Mitaka, along
+# with this option. This option is ignored if
 # log_config_append is set. (boolean value)
 #use_syslog_rfc_format=true
 
@@ -241,20 +242,24 @@
 # value)
 #logging_context_format_string=%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [%(request_id)s %(user_identity)s] %(instance)s%(message)s
 
-# Format string to use for log messages without context.
-# (string value)
+# Format string to use for log messages when context is
+# undefined. (string value)
 #logging_default_format_string=%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] %(instance)s%(message)s
 
-# Data to append to log format when level is DEBUG. (string
-# value)
+# Additional data to append to log message when logging level
+# for the message is DEBUG. (string value)
 #logging_debug_format_suffix=%(funcName)s %(pathname)s:%(lineno)d
 
 # Prefix each line of exception output with this format.
 # (string value)
 #logging_exception_prefix=%(asctime)s.%(msecs)03d %(process)d ERROR %(name)s %(instance)s
 
-# List of logger=LEVEL pairs. This option is ignored if
-# log_config_append is set. (list value)
+# Defines the format string for %(user_identity)s that is used
+# in logging_context_format_string. (string value)
+#logging_user_identity_format=%(user)s %(tenant)s %(domain)s %(user_domain)s %(project_domain)s
+
+# List of package logging levels in logger=LEVEL pairs. This
+# option is ignored if log_config_append is set. (list value)
 #default_log_levels=amqp=WARN,amqplib=WARN,boto=WARN,qpid=WARN,sqlalchemy=WARN,suds=INFO,oslo.messaging=INFO,iso8601=WARN,requests.packages.urllib3.connectionpool=WARN,urllib3.connectionpool=WARN,websocket=WARN,requests.packages.urllib3.util.retry=WARN,urllib3.util.retry=WARN,keystonemiddleware=WARN,routes.middleware=WARN,stevedore=WARN,taskflow=WARN,keystoneauth=WARN
 
 # Enables or disables publication of error events. (boolean
@@ -268,10 +273,6 @@
 # The format for an instance UUID that is passed with the log
 # message. (string value)
 #instance_uuid_format="[instance: %(uuid)s] "
-
-# Format string for user_identity field of the
-# logging_context_format_string (string value)
-#logging_user_identity_format=%(user)s %(tenant)s %(domain)s %(user_domain)s %(project_domain)s
 
 # Enables or disables fatal status of deprecations. (boolean
 # value)
@@ -311,7 +312,7 @@
 # Name of this node. Must be a valid hostname, FQDN, or IP
 # address. Must match "host" option, if running Nova. (string
 # value)
-#rpc_zmq_host=ironic
+#rpc_zmq_host=localhost
 
 # Seconds to wait before a cast expires (TTL). Only supported
 # by impl_zmq. (integer value)
@@ -1394,13 +1395,12 @@
 #revocation_cache_time=10
 
 # (Optional) If defined, indicate whether token data should be
-# authenticated or authenticated and encrypted. Acceptable
-# values are MAC or ENCRYPT.  If MAC, token data is
-# authenticated (with HMAC) in the cache. If ENCRYPT, token
-# data is encrypted and authenticated in the cache. If the
-# value is not one of these options or empty, auth_token will
-# raise an exception on initialization. (string value)
-#memcache_security_strategy=<None>
+# authenticated or authenticated and encrypted. If MAC, token
+# data is authenticated (with HMAC) in the cache. If ENCRYPT,
+# token data is encrypted and authenticated in the cache. If
+# the value is not one of these options or empty, auth_token
+# will raise an exception on initialization. (string value)
+#memcache_security_strategy=None
 
 # (Optional, mandatory if memcache_security_strategy is
 # defined) This string is used for key derivation. (string
@@ -1466,44 +1466,6 @@
 # should be set to a single value for better performance.
 # (list value)
 #hash_algorithms=md5
-
-# Prefix to prepend at the beginning of the path. Deprecated,
-# use identity_uri. (string value)
-#auth_admin_prefix=
-
-# Host providing the admin Identity API endpoint. Deprecated,
-# use identity_uri. (string value)
-#auth_host=127.0.0.1
-
-# Port of the admin Identity API endpoint. Deprecated, use
-# identity_uri. (integer value)
-#auth_port=35357
-
-# Protocol of the admin Identity API endpoint (http or https).
-# Deprecated, use identity_uri. (string value)
-#auth_protocol=https
-
-# Complete admin Identity API endpoint. This should specify
-# the unversioned root endpoint e.g. https://localhost:35357/
-# (string value)
-#identity_uri=<None>
-
-# This option is deprecated and may be removed in a future
-# release. Single shared secret with the Keystone
-# configuration used for bootstrapping a Keystone
-# installation, or otherwise bypassing the normal
-# authentication process. This option should not be used, use
-# `admin_user` and `admin_password` instead. (string value)
-#admin_token=<None>
-
-# Service username. (string value)
-#admin_user=<None>
-
-# Service user password. (string value)
-#admin_password=<None>
-
-# Service tenant name. (string value)
-#admin_tenant_name=admin
 
 # Authentication type to load (type of value is unknown)
 # Deprecated group/name - [keystone_authtoken]/auth_plugin
