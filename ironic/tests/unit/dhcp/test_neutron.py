@@ -79,7 +79,10 @@ class TestNeutron(db_base.DbTestCase):
                     'ca_cert': 'test-file',
                     'token': token,
                     'endpoint_url': 'test-url',
-                    'auth_strategy': None}
+                    'username': 'test-admin-user',
+                    'tenant_name': 'test-admin-tenant',
+                    'password': 'test-admin-password',
+                    'auth_url': 'test-auth-uri'}
 
         mock_client_init.return_value = None
         neutron._build_client(token=token)
@@ -91,6 +94,7 @@ class TestNeutron(db_base.DbTestCase):
                     'retries': 2,
                     'insecure': False,
                     'ca_cert': 'test-file',
+                    'token': None,
                     'endpoint_url': 'test-url',
                     'username': 'test-admin-user',
                     'tenant_name': 'test-admin-tenant',
@@ -107,6 +111,7 @@ class TestNeutron(db_base.DbTestCase):
                     'retries': 2,
                     'insecure': False,
                     'ca_cert': 'test-file',
+                    'token': None,
                     'endpoint_url': 'test-url',
                     'username': 'test-admin-user',
                     'tenant_name': 'test-admin-tenant',
