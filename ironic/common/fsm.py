@@ -65,6 +65,18 @@ class FSM(machines.FiniteMachine):
     def target_state(self):
         return self._target_state
 
+    def is_stable(self, state):
+        """Is the state stable?
+
+        :param state: the state of interest
+        :raises: InvalidState if the state is invalid
+        :returns True if it is a stable state; False otherwise
+        """
+        try:
+            return self._states[state]['stable']
+        except KeyError:
+            raise excp.InvalidState(_("State '%s' does not exist") % state)
+
     @_translate_excp
     def add_state(self, state, on_enter=None, on_exit=None,
                   target=None, terminal=None, stable=False):
@@ -110,7 +122,7 @@ class FSM(machines.FiniteMachine):
         if target not in self._states:
             raise excp.InvalidState(
                 _("Target state '%s' does not exist") % target)
-        if not self._states[target]['stable']:
+        if not self.is_stable(target):
             raise excp.InvalidState(
                 _("Target state '%s' is not a 'stable' state") % target)
 

@@ -30,6 +30,15 @@ class FSMTest(base.TestCase):
         m.add_transition('wakeup', 'working', 'walk')
         self.fsm = m
 
+    def test_is_stable(self):
+        self.assertTrue(self.fsm.is_stable('working'))
+
+    def test_is_stable_not(self):
+        self.assertFalse(self.fsm.is_stable('daydream'))
+
+    def test_is_stable_invalid_state(self):
+        self.assertRaises(excp.InvalidState, self.fsm.is_stable, 'foo')
+
     def test_target_state_stable(self):
         # Test to verify that adding a new state with a 'target' state pointing
         # to a 'stable' state does not raise an exception
