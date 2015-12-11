@@ -34,6 +34,7 @@ GITDIR["python-ironicclient"]=$DEST/python-ironicclient
 GITDIR["ironic-lib"]=$DEST/ironic-lib
 
 IRONIC_DIR=$DEST/ironic
+IRONIC_DEVSTACK_DIR=$IRONIC_DIR/devstack
 IRONIC_PYTHON_AGENT_DIR=$DEST/ironic-python-agent
 IRONIC_DATA_DIR=$DATA_DIR/ironic
 IRONIC_STATE_PATH=/var/lib/ironic
@@ -60,8 +61,8 @@ IRONIC_IPMIINFO_FILE=${IRONIC_IPMIINFO_FILE:-$IRONIC_DATA_DIR/hardware_info}
 
 # Set up defaults for functional / integration testing
 IRONIC_NODE_UUID=${IRONIC_NODE_UUID:-`uuidgen`}
-IRONIC_SCRIPTS_DIR=${IRONIC_SCRIPTS_DIR:-$TOP_DIR/tools/ironic/scripts}
-IRONIC_TEMPLATES_DIR=${IRONIC_TEMPLATES_DIR:-$TOP_DIR/tools/ironic/templates}
+IRONIC_SCRIPTS_DIR=${IRONIC_SCRIPTS_DIR:-$IRONIC_DEVSTACK_DIR/tools/ironic/scripts}
+IRONIC_TEMPLATES_DIR=${IRONIC_TEMPLATES_DIR:-$IRONIC_DEVSTACK_DIR/tools/ironic/templates}
 IRONIC_BAREMETAL_BASIC_OPS=$(trueorfalse False IRONIC_BAREMETAL_BASIC_OPS)
 IRONIC_ENABLED_DRIVERS=${IRONIC_ENABLED_DRIVERS:-fake,pxe_ssh,pxe_ipmitool}
 IRONIC_SSH_USERNAME=${IRONIC_SSH_USERNAME:-`whoami`}
@@ -177,7 +178,7 @@ function is_deployed_with_ipa_ramdisk {
     return 1
 }
 
-# install_ironic() - Collect source and prepare
+# install_ironic() - Install the things!
 function install_ironic {
     # make sure all needed service were enabled
     local req_services="key"
@@ -195,7 +196,6 @@ function install_ironic {
         setup_dev_lib "ironic-lib"
     fi
 
-    git_clone $IRONIC_REPO $IRONIC_DIR $IRONIC_BRANCH
     setup_develop $IRONIC_DIR
 
     if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
