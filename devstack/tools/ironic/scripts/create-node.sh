@@ -62,6 +62,18 @@ else
 fi
 VOL_NAME="${NAME}.${DISK_FORMAT}"
 
+# Create bridge and add VM interface to it.
+# Additional interface will be added to this bridge and
+# it will be plugged to OVS.
+# This is needed in order to have interface in OVS even
+# when VM is in shutdown state
+
+sudo brctl addbr br-$NAME
+sudo ip link set br-$NAME up
+sudo ovs-vsctl add-port $BRIDGE ovs-$NAME -- set Interface ovs-$NAME type=internal
+sudo ip link set ovs-$NAME up
+sudo brctl addif br-$NAME ovs-$NAME
+
 if ! virsh list --all | grep -q $NAME; then
     virsh vol-list --pool $LIBVIRT_STORAGE_POOL | grep -q $VOL_NAME &&
         virsh vol-delete $VOL_NAME --pool $LIBVIRT_STORAGE_POOL >&2
@@ -73,7 +85,7 @@ if ! virsh list --all | grep -q $NAME; then
     $TOP_DIR/scripts/configure-vm.py \
         --bootdev network --name $NAME --image "$volume_path" \
         --arch $ARCH --cpus $CPU --memory $MEM --libvirt-nic-driver $LIBVIRT_NIC_DRIVER \
-        --emulator $EMULATOR --network $BRIDGE --disk-format $DISK_FORMAT $VM_LOGGING >&2
+        --emulator $EMULATOR --bridge br-$NAME --disk-format $DISK_FORMAT $VM_LOGGING >&2
 
     # Createa Virtual BMC for the node if IPMI is used
     if [[ $(type -P vbmc) != "" ]]; then
