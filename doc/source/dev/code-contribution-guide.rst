@@ -1,8 +1,8 @@
 .. _code-contribution-guide:
 
-==================================
-Code Contribution Guide for Ironic
-==================================
+=======================
+Code Contribution Guide
+=======================
 
 This document provides some necessary points for developers to consider when
 writing and reviewing Ironic code. The checklist will help developers get things
@@ -19,16 +19,16 @@ Ironic API RPC Versions
 *  When the signature(arguments) of an RPC method is changed, the following things
    need to be considered:
 
- - Client-side (conductor/rpcapi.py) and server-side (conductor/manager.py)
-   should both increment the RPC version by one and the RPC versions must be the same of
-   the client and server.
+ - The RPC version must be incremented and be the same value for both the client
+   (conductor/rpcapi.py, used by ironic-api) and the server (conductor/manager.py,
+   used by ironic-conductor).
  - New arguments of the method can only be added as optional. Existing arguments cannot be
    removed or changed in incompatible ways (with the method in older RPC versions).
  - Client-side can pin a version cap by passing ``version_cap`` to the constructor
    of oslo_messaging.RPCClient. Methods which change arguments should run
    client.can_send_version() to see if the version of the request is compatible with the
    version cap of RPC Client, otherwise the request needs to be created to work with a
-   previous version that is suppoted.
+   previous version that is supported.
  - Server-side should tolerate the older version of requests in order to keep
    working during the progress of live upgrade. The behavior of server-side should
    depend on the input parameters passed from the client-side.
@@ -52,5 +52,3 @@ Object Versions
    signtures of remotable methods, which helps developers to check if the change of
    objects need a version bump. The object fingerprint should only be updated with a
    version bump.
-
-
