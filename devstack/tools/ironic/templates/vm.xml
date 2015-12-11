@@ -6,7 +6,7 @@
     <type arch='%(arch)s' machine='pc-1.0'>hvm</type>
     <boot dev='%(bootdev)s'/>
     <bootmenu enable='no'/>
-    %(bios_serial)s
+    <bios useserial='yes'/>
   </os>
   <features>
     <acpi/>
@@ -40,7 +40,7 @@
       <model type='cirrus' vram='9216' heads='1'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
     </video>
-    %(console_log)s
+    %(console)s
     <memballoon model='virtio'>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x07' function='0x0'/>
     </memballoon>
