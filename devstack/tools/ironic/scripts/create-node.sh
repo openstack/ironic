@@ -78,4 +78,5 @@ fi
 
 # echo mac
 VM_MAC=$(virsh dumpxml $NAME | grep "mac address" | head -1 | cut -d\' -f2)
-echo $VM_MAC $VBMC_PORT
+switch_id=$(ip link show dev $BRIDGE | egrep -o "ether [A-Za-z0-9:]+"|sed "s/ether\ //")
+echo $VM_MAC $VBMC_PORT $BRIDGE $switch_id ovs-$NAME

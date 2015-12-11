@@ -207,6 +207,11 @@ IRONIC_AUTH_STRATEGY=${IRONIC_AUTH_STRATEGY:-keystone}
 IRONIC_TERMINAL_SSL=$(trueorfalse False IRONIC_TERMINAL_SSL)
 IRONIC_TERMINAL_CERT_DIR=${IRONIC_TERMINAL_CERT_DIR:-$IRONIC_DATA_DIR/terminal_cert/}
 
+# This flag is used to allow adding Link-Local-Connection info
+# to ironic port-create command. LLC info is obtained from
+# IRONIC_{VM,HW}_NODES_FILE
+IRONIC_USE_LINK_LOCAL=$(trueorfalse False IRONIC_USE_LINK_LOCAL)
+
 # get_pxe_boot_file() - Get the PXE/iPXE boot file path
 function get_pxe_boot_file {
     local relpath=syslinux/pxelinux.0
@@ -832,6 +837,21 @@ function enroll_nodes {
                 vbmc_port=$(echo $hardware_info | awk '{print $2}')
                 node_options+=" -i ipmi_port=$vbmc_port"
             fi
+            # Local-link-connection options
+            if [[ "${IRONIC_USE_LINK_LOCAL}" == "True" ]]; then
+                local llc_opts=""
+                local switch_info
+                local switch_id
+                local port_id
+
+                switch_info=$(echo $hardware_info |awk '{print $3}')
+                switch_id=$(echo $hardware_info |awk '{print $4}')
+                port_id=$(echo $hardware_info |awk '{print $5}')
+
+                llc_opts="-l switch_id=${switch_id} -l switch_info=${switch_info} -l port_id=${port_id}"
+
+                local ironic_api_version='--ironic-api-version latest'
+            fi
         else
             # Currently we require all hardware platform have same CPU/RAM/DISK info
             # in future, this can be enhanced to support different type, and then
@@ -887,7 +907,9 @@ function enroll_nodes {
             ironic node-update $node_id add properties/root_device='{"vendor": "0x1af4"}'
         fi
 
-        ironic port-create --address $mac_address --node $node_id
+        # In case we using portgroups, we should API version that support them.
+        # Othervise API will return 406 ERROR
+        ironic $ironic_api_version port-create --address $mac_address --node $node_id $llc_opts
 
         total_nodes=$((total_nodes+1))
         total_cpus=$((total_cpus+$ironic_node_cpu))
