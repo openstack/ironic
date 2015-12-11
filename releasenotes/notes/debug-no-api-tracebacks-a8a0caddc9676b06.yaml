@@ -1,0 +1,7 @@
+---
+upgrade:
+  - Adds a config option 'debug_tracebacks_in_api' to allow
+    the API service to return tracebacks in API responses
+    in an error condition.
+fixes:
+  - No longer returns tracebacks for API errors in debug mode.

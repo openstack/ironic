@@ -145,7 +145,7 @@ class TestNoExceptionTracebackHook(base.BaseApiTest):
         actual_msg = json.loads(response.json['error_message'])['faultstring']
         self.assertEqual(expected_msg, actual_msg)
 
-    def test_hook_without_traceback(self):
+    def _test_hook_without_traceback(self):
         msg = "Error message without traceback \n but \n multiline"
         self.root_convert_mock.side_effect = Exception(msg)
 
@@ -154,18 +154,41 @@ class TestNoExceptionTracebackHook(base.BaseApiTest):
         actual_msg = json.loads(response.json['error_message'])['faultstring']
         self.assertEqual(msg, actual_msg)
 
-    def test_hook_server_debug_on_serverfault(self):
+    def test_hook_without_traceback(self):
+        self._test_hook_without_traceback()
+
+    def test_hook_without_traceback_debug(self):
         cfg.CONF.set_override('debug', True)
+        self._test_hook_without_traceback()
+
+    def test_hook_without_traceback_debug_tracebacks(self):
+        cfg.CONF.set_override('debug_tracebacks_in_api', True)
+        self._test_hook_without_traceback()
+
+    def _test_hook_on_serverfault(self):
         self.root_convert_mock.side_effect = Exception(self.MSG_WITH_TRACE)
 
         response = self.get_json('/', path_prefix='', expect_errors=True)
 
         actual_msg = json.loads(
             response.json['error_message'])['faultstring']
-        self.assertEqual(self.MSG_WITHOUT_TRACE, actual_msg)
+        return actual_msg
 
-    def test_hook_server_debug_on_clientfault(self):
+    def test_hook_on_serverfault(self):
+        msg = self._test_hook_on_serverfault()
+        self.assertEqual(self.MSG_WITHOUT_TRACE, msg)
+
+    def test_hook_on_serverfault_debug(self):
         cfg.CONF.set_override('debug', True)
+        msg = self._test_hook_on_serverfault()
+        self.assertEqual(self.MSG_WITHOUT_TRACE, msg)
+
+    def test_hook_on_serverfault_debug_tracebacks(self):
+        cfg.CONF.set_override('debug_tracebacks_in_api', True)
+        msg = self._test_hook_on_serverfault()
+        self.assertEqual(self.MSG_WITH_TRACE, msg)
+
+    def _test_hook_on_clientfault(self):
         client_error = Exception(self.MSG_WITH_TRACE)
         client_error.code = http_client.BAD_REQUEST
         self.root_convert_mock.side_effect = client_error
@@ -174,7 +197,21 @@ class TestNoExceptionTracebackHook(base.BaseApiTest):
 
         actual_msg = json.loads(
             response.json['error_message'])['faultstring']
-        self.assertEqual(self.MSG_WITH_TRACE, actual_msg)
+        return actual_msg
+
+    def test_hook_on_clientfault(self):
+        msg = self._test_hook_on_clientfault()
+        self.assertEqual(self.MSG_WITHOUT_TRACE, msg)
+
+    def test_hook_on_clientfault_debug(self):
+        cfg.CONF.set_override('debug', True)
+        msg = self._test_hook_on_clientfault()
+        self.assertEqual(self.MSG_WITHOUT_TRACE, msg)
+
+    def test_hook_on_clientfault_debug_tracebacks(self):
+        cfg.CONF.set_override('debug_tracebacks_in_api', True)
+        msg = self._test_hook_on_clientfault()
+        self.assertEqual(self.MSG_WITH_TRACE, msg)
 
 
 class TestContextHook(base.BaseApiTest):
