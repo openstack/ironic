@@ -37,6 +37,15 @@ if is_service_enabled ir-api ir-cond; then
             # Initialize ironic
             init_ironic
 
+            if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
+                echo_summary "Creating bridge and VMs"
+                create_bridge_and_vms
+            fi
+            if [[ -n "${IRONIC_PROVISION_NETWORK_NAME}" ]]; then
+                echo_summary "Configuring Ironic provisioning network"
+                configure_ironic_provision_network
+            fi
+
             # Start the ironic API and ironic taskmgr components
             echo_summary "Starting Ironic"
             start_ironic
@@ -51,6 +60,7 @@ if is_service_enabled ir-api ir-cond; then
     # unstack - Called by unstack.sh before other services are shut down.
 
         stop_ironic
+        cleanup_ironic_provision_network
         cleanup_baremetal_basic_ops
     fi
 
