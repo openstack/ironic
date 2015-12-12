@@ -78,8 +78,9 @@ def _build_client(token=None):
         params['endpoint_url'] = CONF.neutron.url
         params['auth_strategy'] = 'noauth'
     else:
-        params['endpoint_url'] = (CONF.neutron.url or
-                                  keystone.get_service_url('neutron'))
+        params['endpoint_url'] = (
+            CONF.neutron.url or
+            keystone.get_service_url(service_type='network'))
         params['username'] = CONF.keystone_authtoken.admin_user
         params['tenant_name'] = CONF.keystone_authtoken.admin_tenant_name
         params['password'] = CONF.keystone_authtoken.admin_password
