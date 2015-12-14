@@ -818,6 +818,16 @@ function build_tinyipa_ramdisk {
     cd -
 }
 
+# install_diskimage_builder() - Collect source and prepare or install from pip
+function install_diskimage_builder {
+    if use_library_from_git "diskimage-builder"; then
+        git_clone_by_name "diskimage-builder"
+        setup_dev_lib "diskimage-builder"
+    else
+        pip_install_gr "diskimage-builder"
+    fi
+}
+
 # build deploy kernel+ramdisk, then upload them to glance
 # this function sets ``IRONIC_DEPLOY_KERNEL_ID``, ``IRONIC_DEPLOY_RAMDISK_ID``
 function upload_baremetal_ironic_deploy {
@@ -826,7 +836,7 @@ function upload_baremetal_ironic_deploy {
 
     # install diskimage-builder
     if [[ $(type -P ramdisk-image-create) == "" ]]; then
-        pip_install_gr "diskimage-builder"
+        install_diskimage_builder
     fi
 
     if [ -z "$IRONIC_DEPLOY_KERNEL" -o -z "$IRONIC_DEPLOY_RAMDISK" ]; then
