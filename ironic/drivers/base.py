@@ -980,6 +980,60 @@ class RAIDInterface(BaseInterface):
         return raid.get_logical_disk_properties(self.raid_schema)
 
 
+def _validate_argsinfo(argsinfo):
+    """Validate args info.
+
+    This method validates args info, so that the values are the expected
+    data types and required values are specified.
+
+    :param argsinfo: a dictionary of keyword arguments where key is the name of
+        the argument and value is a dictionary as follows::
+
+            ‘description’: <description>. Required. This should include
+                           possible values.
+            ‘required’: Boolean. Optional; default is False. True if this
+                        argument is required.  If so, it must be specified in
+                        the clean request; false if it is optional.
+    :raises InvalidParameterValue if any of the arguments are invalid
+    """
+    if not argsinfo:
+        return
+
+    if not isinstance(argsinfo, dict):
+        raise exception.InvalidParameterValue(
+            _('"argsinfo" must be a dictionary instead of "%s"') %
+            argsinfo)
+    for (arg, info) in argsinfo.items():
+        if not isinstance(info, dict):
+            raise exception.InvalidParameterValue(
+                _('Argument "%(arg)s" must be a dictionary instead of '
+                  '"%(val)s".') % {'arg': arg, 'val': info})
+        has_description = False
+        for (key, value) in info.items():
+            if key == 'description':
+                if not isinstance(value, six.string_types):
+                    raise exception.InvalidParameterValue(
+                        _('For argument "%(arg)s", "description" must be a '
+                          'string value instead of "%(value)s".') %
+                        {'arg': arg, 'value': value})
+                has_description = True
+            elif key == 'required':
+                if not isinstance(value, bool):
+                    raise exception.InvalidParameterValue(
+                        _('For argument "%(arg)s", "required" must be a '
+                          'Boolean value instead of "%(value)s".') %
+                        {'arg': arg, 'value': value})
+            else:
+                raise exception.InvalidParameterValue(
+                    _('Argument "%(arg)s" has an invalid key named "%(key)s". '
+                      'It must be "description" or "required".')
+                    % {'key': key, 'arg': arg})
+        if not has_description:
+            raise exception.InvalidParameterValue(
+                _('Argument "%(arg)s" is missing a "description".') %
+                {'arg': arg})
+
+
 def clean_step(priority, abortable=False, argsinfo=None):
     """Decorator for cleaning steps.
 
@@ -1029,15 +1083,30 @@ def clean_step(priority, abortable=False, argsinfo=None):
     :param argsinfo: a dictionary of keyword arguments where key is the name of
         the argument and value is a dictionary as follows::
 
-            ‘description’: <description>. This should include possible values.
-            ‘required’: Boolean. True if this argument is required. If so, it
-                        must be specified in the clean request; false if it is
-                        optional.
+            ‘description’: <description>. Required. This should include
+                           possible values.
+            ‘required’: Boolean. Optional; default is False. True if this
+                        argument is required.  If so, it must be specified in
+                        the clean request; false if it is optional.
+    :raises InvalidParameterValue if any of the arguments are invalid
     """
     def decorator(func):
         func._is_clean_step = True
-        func._clean_step_priority = priority
-        func._clean_step_abortable = abortable
+        if isinstance(priority, int):
+            func._clean_step_priority = priority
+        else:
+            raise exception.InvalidParameterValue(
+                _('"priority" must be an integer value instead of "%s"')
+                % priority)
+
+        if isinstance(abortable, bool):
+            func._clean_step_abortable = abortable
+        else:
+            raise exception.InvalidParameterValue(
+                _('"abortable" must be a Boolean value instead of "%s"')
+                % abortable)
+
+        _validate_argsinfo(argsinfo)
         func._clean_step_argsinfo = argsinfo
         return func
     return decorator
