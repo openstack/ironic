@@ -243,7 +243,7 @@ def create_pxe_config(task, pxe_options, template=None):
                                    pxe_config_disk_ident)
     utils.write_to_file(pxe_config_file_path, pxe_config)
 
-    if is_uefi_boot_mode:
+    if is_uefi_boot_mode and not CONF.pxe.ipxe_enabled:
         _link_ip_address_pxe_configs(task, hex_form)
     else:
         _link_mac_pxe_configs(task)
@@ -257,7 +257,9 @@ def clean_up_pxe_config(task):
     """
     LOG.debug("Cleaning up PXE config for node %s", task.node.uuid)
 
-    if deploy_utils.get_boot_mode_for_deploy(task.node) == 'uefi':
+    is_uefi_boot_mode = (deploy_utils.get_boot_mode_for_deploy(task.node) ==
+                         'uefi')
+    if is_uefi_boot_mode and not CONF.pxe.ipxe_enabled:
         api = dhcp_factory.DHCPFactory().provider
         ip_addresses = api.get_ip_addresses(task)
         if not ip_addresses:
@@ -297,6 +299,12 @@ def dhcp_options_for_instance(task):
     :param task: A TaskManager instance.
     """
     dhcp_opts = []
+
+    if deploy_utils.get_boot_mode_for_deploy(task.node) == 'uefi':
+        boot_file = CONF.pxe.uefi_pxe_bootfile_name
+    else:
+        boot_file = CONF.pxe.pxe_bootfile_name
+
     if CONF.pxe.ipxe_enabled:
         script_name = os.path.basename(CONF.pxe.ipxe_boot_script)
         ipxe_script_url = '/'.join([CONF.deploy.http_url, script_name])
@@ -307,22 +315,17 @@ def dhcp_options_for_instance(task):
             # Neutron use dnsmasq as default DHCP agent, add extra config
             # to neutron "dhcp-match=set:ipxe,175" and use below option
             dhcp_opts.append({'opt_name': 'tag:!ipxe,bootfile-name',
-                              'opt_value': CONF.pxe.pxe_bootfile_name})
+                              'opt_value': boot_file})
             dhcp_opts.append({'opt_name': 'tag:ipxe,bootfile-name',
                               'opt_value': ipxe_script_url})
         else:
             # !175 == non-iPXE.
             # http://ipxe.org/howto/dhcpd#ipxe-specific_options
             dhcp_opts.append({'opt_name': '!175,bootfile-name',
-                              'opt_value': CONF.pxe.pxe_bootfile_name})
+                              'opt_value': boot_file})
             dhcp_opts.append({'opt_name': 'bootfile-name',
                               'opt_value': ipxe_script_url})
     else:
-        if deploy_utils.get_boot_mode_for_deploy(task.node) == 'uefi':
-            boot_file = CONF.pxe.uefi_pxe_bootfile_name
-        else:
-            boot_file = CONF.pxe.pxe_bootfile_name
-
         dhcp_opts.append({'opt_name': 'bootfile-name',
                           'opt_value': boot_file})
 

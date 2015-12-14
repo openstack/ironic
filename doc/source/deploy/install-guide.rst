@@ -985,20 +985,20 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
     Fedora 22 or higher:
         dnf install ipxe-bootimgs
 
-#. Copy the iPXE boot image (undionly.kpxe) to ``/tftpboot``. The binary
-   might be found at::
+#. Copy the iPXE boot image (``undionly.kpxe`` for **BIOS** and
+   ``ipxe.efi`` for **UEFI**) to ``/tftpboot``. The binary might
+   be found at::
 
     Ubuntu:
-        cp /usr/lib/ipxe/undionly.kpxe /tftpboot
+        cp /usr/lib/ipxe/{undionly.kpxe,ipxe.efi} /tftpboot
 
     Fedora/RHEL7/CentOS7:
-        cp /usr/share/ipxe/undionly.kpxe /tftpboot
+        cp /usr/share/ipxe/{undionly.kpxe,ipxe.efi} /tftpboot
 
    .. note::
-      If the packaged version of the iPXE boot image doesn't work, you
-      can download a prebuilt one from http://boot.ipxe.org/undionly.kpxe
-      or build one image from source, see http://ipxe.org/download for
-      more information.
+      If the packaged version of the iPXE boot image doesn't work, you can
+      download a prebuilt one from http://boot.ipxe.org or build one image
+      from source, see http://ipxe.org/download for more information.
 
 #. Enable/Configure iPXE in the Bare Metal Service's configuration file
    (/etc/ironic/ironic.conf)::
@@ -1011,8 +1011,15 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
     # Neutron bootfile DHCP parameter. (string value)
     pxe_bootfile_name=undionly.kpxe
 
+    # Bootfile DHCP parameter for UEFI boot mode. (string value)
+    uefi_pxe_bootfile_name=ipxe.efi
+
     # Template file for PXE configuration. (string value)
     pxe_config_template=$pybasedir/drivers/modules/ipxe_config.template
+
+    # Template file for PXE configuration for UEFI boot loader.
+    # (string value)
+    uefi_pxe_config_template=$pybasedir/drivers/modules/ipxe_config.template
 
 #. Restart the ``ironic-conductor`` process::
 

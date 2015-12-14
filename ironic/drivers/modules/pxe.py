@@ -404,14 +404,6 @@ class PXEBoot(base.BootInterface):
                 raise exception.MissingParameterValue(_(
                     "iPXE boot is enabled but no HTTP URL or HTTP "
                     "root was specified."))
-            # iPXE and UEFI should not be configured together.
-            if boot_mode == 'uefi':
-                LOG.error(_LE("UEFI boot mode is not supported with "
-                              "iPXE boot enabled."))
-                raise exception.InvalidParameterValue(_(
-                    "Conflict: iPXE is enabled, but cannot be used with node"
-                    "%(node_uuid)s configured to use UEFI boot") %
-                    {'node_uuid': node.uuid})
 
         if boot_mode == 'uefi':
             validate_boot_option_for_uefi(node)
