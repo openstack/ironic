@@ -64,9 +64,12 @@ additional functionality:
   introspection by PXE booting unregistered hardware into a "discovery ramdisk".
 - diskimage-builder_; May be used to customize machine images, create and
   discovery deploy ramdisks, if necessary.
+- bifrost_; a set of Ansible playbooks that automates the task of deploying a
+  base image onto a set of known hardware using ironic.
 
 .. _ironic-inspector: https://github.com/openstack/ironic-inspector
 .. _diskimage-builder: https://github.com/openstack/diskimage-builder
+.. _bifrost: https://github.com/openstack/bifrost
 
 
 .. todo: include coreos-image-builder reference here, once the split is done
