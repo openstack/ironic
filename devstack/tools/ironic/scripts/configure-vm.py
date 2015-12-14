@@ -60,7 +60,7 @@ def main():
                         help="What boot device to use (hd/network).")
     parser.add_argument('--network', default="brbm",
                         help='The libvirt network name to use')
-    parser.add_argument('--libvirt-nic-driver', default='e1000',
+    parser.add_argument('--libvirt-nic-driver', default='virtio',
                         help='The libvirt network driver to use')
     parser.add_argument('--console-log',
                         help='File to log console')
