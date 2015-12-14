@@ -18,11 +18,13 @@ from futurist import periodics
 import mock
 from oslo_config import cfg
 from oslo_db import exception as db_exception
+from oslo_utils import uuidutils
 
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.conductor import base_manager
 from ironic.conductor import manager
+from ironic.conductor import task_manager
 from ironic.drivers import base as drivers_base
 from ironic import objects
 from ironic.tests import base as tests_base
@@ -218,3 +220,84 @@ class ManagerSpawnWorkerTestCase(tests_base.TestCase):
 
         self.assertRaises(exception.NoFreeConductorWorker,
                           self.service._spawn_worker, 'fake')
+
+
+class StartConsolesTestCase(mgr_utils.ServiceSetUpMixin,
+                            tests_db_base.DbTestCase):
+    def test__start_consoles(self):
+        obj_utils.create_test_node(self.context,
+                                   driver='fake',
+                                   console_enabled=True)
+        obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            driver='fake',
+            console_enabled=True
+        )
+        obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            driver='fake'
+        )
+        self._start_service()
+        with mock.patch.object(self.driver.console,
+                               'start_console') as mock_start_console:
+            self.service._start_consoles(self.context)
+            self.assertEqual(2, mock_start_console.call_count)
+
+    def test__start_consoles_no_console_enabled(self):
+        obj_utils.create_test_node(self.context,
+                                   driver='fake',
+                                   console_enabled=False)
+        self._start_service()
+        with mock.patch.object(self.driver.console,
+                               'start_console') as mock_start_console:
+            self.service._start_consoles(self.context)
+            self.assertFalse(mock_start_console.called)
+
+    def test__start_consoles_failed(self):
+        test_node = obj_utils.create_test_node(self.context,
+                                               driver='fake',
+                                               console_enabled=True)
+        self._start_service()
+        with mock.patch.object(self.driver.console,
+                               'start_console') as mock_start_console:
+            mock_start_console.side_effect = Exception()
+            self.service._start_consoles(self.context)
+            mock_start_console.assert_called_once_with(mock.ANY)
+            test_node.refresh()
+            self.assertFalse(test_node.console_enabled)
+            self.assertIsNotNone(test_node.last_error)
+
+    @mock.patch.object(base_manager, 'LOG')
+    def test__start_consoles_node_locked(self, log_mock):
+        test_node = obj_utils.create_test_node(self.context,
+                                               driver='fake',
+                                               console_enabled=True,
+                                               reservation='fake-host')
+        self._start_service()
+        with mock.patch.object(self.driver.console,
+                               'start_console') as mock_start_console:
+            self.service._start_consoles(self.context)
+            self.assertFalse(mock_start_console.called)
+            test_node.refresh()
+            self.assertTrue(test_node.console_enabled)
+            self.assertIsNone(test_node.last_error)
+            self.assertTrue(log_mock.warning.called)
+
+    @mock.patch.object(base_manager, 'LOG')
+    def test__start_consoles_node_not_found(self, log_mock):
+        test_node = obj_utils.create_test_node(self.context,
+                                               driver='fake',
+                                               console_enabled=True)
+        self._start_service()
+        with mock.patch.object(task_manager, 'acquire') as mock_acquire:
+            mock_acquire.side_effect = exception.NodeNotFound(node='not found')
+            with mock.patch.object(self.driver.console,
+                                   'start_console') as mock_start_console:
+                self.service._start_consoles(self.context)
+                self.assertFalse(mock_start_console.called)
+                test_node.refresh()
+                self.assertTrue(test_node.console_enabled)
+                self.assertIsNone(test_node.last_error)
+                self.assertTrue(log_mock.warning.called)

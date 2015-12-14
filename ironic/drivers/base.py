@@ -544,6 +544,8 @@ class ConsoleInterface(object):
     def start_console(self, task):
         """Start a remote console for the task's node.
 
+        This method should not raise an exception if console already started.
+
         :param task: a TaskManager instance containing the node to act on.
         """
 
