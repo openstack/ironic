@@ -136,7 +136,6 @@ def prepare_service(argv=[]):
                                          'requests=WARNING',
                                          'neutronclient=WARNING',
                                          'glanceclient=WARNING',
-                                         'ironic.openstack.common=WARNING',
                                          'urllib3.connectionpool=WARNING',
                                          ])
     config.parse_args(argv)
