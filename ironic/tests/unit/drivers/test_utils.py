@@ -148,7 +148,7 @@ class UtilsTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             task.node.driver_info['ipmi_force_boot_device'] = True
             ret = driver_utils.force_persistent_boot(task, 'pxe', True)
-            self.assertEqual(None, ret)
+            self.assertIsNone(ret)
             task.node.refresh()
             self.assertIn('persistent_boot_device',
                           task.node.driver_internal_info)
@@ -157,7 +157,7 @@ class UtilsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             ret = driver_utils.force_persistent_boot(task, 'pxe', False)
-            self.assertEqual(None, ret)
+            self.assertIsNone(ret)
             task.node.refresh()
             self.assertEqual(
                 False,
