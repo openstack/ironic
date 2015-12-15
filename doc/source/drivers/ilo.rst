@@ -120,6 +120,47 @@ Glance Configuration
 
     $ service ironic-conductor restart
 
+Web server configuration on conductor
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* The HTTP(S) web server can be configured in many ways. For apache
+  web server on Ubuntu, refer `here <https://help.ubuntu.com/lts/serverguide/httpd.html>`_
+
+* Following config variables need to be set in
+  ``/etc/ironic/ironic.conf``:
+
+  * ``use_web_server_for_images`` in ``[ilo]`` section::
+
+     [ilo]
+     use_web_server_for_images = True
+
+  * ``http_url`` and ``http_root`` in ``[deploy]`` section::
+
+     [deploy]
+     # Ironic compute node's http root path. (string value)
+     http_root=/httpboot
+
+     # Ironic compute node's HTTP server URL. Example:
+     # http://192.1.2.3:8080 (string value)
+     http_url=http://192.168.0.2:8080
+
+``use_web_server_for_images``: If the variable is set to ``false``, ``iscsi_ilo``
+and ``agent_ilo`` uses swift containers to host the intermediate floppy
+image and the boot ISO. If the variable is set to ``true``, these drivers
+uses the local web server for hosting the intermediate files. The default value
+for ``use_web_server_for_images`` is False.
+
+``http_url``: The value for this variable is prefixed with the generated
+intermediate files to generate a URL which is attached in the virtual media.
+
+``http_root``: It is the directory location to which ironic conductor copies
+the intermediate floppy image and the boot ISO.
+
+.. note::
+   HTTPS is strongly recommended over HTTP web server configuration for security
+   enhancement. The ``iscsi_ilo`` and ``agent_ilo`` will send the instance's
+   configdrive over an encrypted channel if web server is HTTPS enabled.
+
 Enable driver
 =============
 
@@ -208,6 +249,7 @@ Features
 * HW Sensors
 * Works well for machines with resource constraints (lesser amount of memory).
 * Support for out-of-band hardware inspection.
+* Swiftless deploy for intermediate images
 
 Requirements
 ~~~~~~~~~~~~
@@ -269,6 +311,10 @@ Hardware Inspection
 ~~~~~~~~~~~~~~~~~~~
 Refer to `Hardware Inspection Support`_ for more information.
 
+Swiftless deploy for intermediate deploy and boot images
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Refer to `Swiftless deploy for intermediate images`_ for more information.
+
 agent_ilo driver
 ^^^^^^^^^^^^^^^^
 
@@ -323,6 +369,7 @@ Features
 * Support to use default in-band cleaning operations supported by
   Ironic Python Agent. For more details, see :ref:`InbandvsOutOfBandCleaning`.
 * Support for out-of-band hardware inspection.
+* Swiftless deploy for intermediate images.
 
 Requirements
 ~~~~~~~~~~~~
@@ -381,6 +428,10 @@ Refer to `Node Cleaning Support`_ for more information.
 Hardware Inspection
 ~~~~~~~~~~~~~~~~~~~
 Refer to `Hardware Inspection Support`_ for more information.
+
+Swiftless deploy for intermediate deploy and boot images
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Refer to `Swiftless deploy for intermediate images`_ for more information.
 
 pxe_ilo driver
 ^^^^^^^^^^^^^^
@@ -727,6 +778,25 @@ for scheduling::
 
   nova flavor-key my-baremetal-flavor set capabilities:secure_boot="true"
 
+Swiftless deploy for intermediate images
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``iscsi_ilo`` and ``agent_ilo`` drivers can deploy and boot the server
+with and without ``swift`` being used for hosting the intermediate
+temporary floppy image (holding metadata for deploy kernel and ramdisk)
+and the boot ISO (which is required for ``iscsi_ilo`` only). A local HTTP(S)
+web server on each conductor node needs to be configured. Refer
+`Web server configuration on conductor`_ for more information. The HTTPS
+web server needs to be enabled (instead of HTTP web server) in order to
+send management information and images in encrypted channel over HTTPS.
+
+Deploy Process
+~~~~~~~~~~~~~~
+
+Refer to `Netboot in swiftless deploy for intermediate images`_ for partition
+image support and refer to `Localboot in swiftless deploy for intermediate images`_
+for whole disk image support.
+
 Deploy Process
 ==============
 
@@ -812,5 +882,87 @@ Localboot with glance and swift
       Conductor -> Baremetal [label = "Sets boot device to disk"];
       Conductor -> IPA [label = "Power off the node"];
       Conductor -> iLO [label = "Power on the node"];
+      Baremetal -> Baremetal [label = "Boot user image from disk"];
+   }
+
+Netboot in swiftless deploy for intermediate images
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. seqdiag::
+   :scale: 80
+
+   diagram {
+      Glance; Conductor; Baremetal; ConductorWebserver; IPA; iLO;
+      activation = none;
+      span_height = 1;
+      edge_length = 250;
+      default_note_color = white;
+      default_fontsize = 14;
+
+      Conductor -> iLO [label = "Powers off the node"];
+      Conductor -> Glance [label = "Download user image"];
+      Conductor -> Glance [label = "Get the metadata for deploy ISO"];
+      Conductor -> Conductor [label = "Generates swift tempURL for deploy ISO"];
+      Conductor -> Conductor [label = "Creates the FAT32 image containing Ironic API URL and driver name"];
+      Conductor -> ConductorWebserver [label = "Uploads the FAT32 image"];
+      Conductor -> iLO [label = "Attaches the FAT32 image URL as virtual media floppy"];
+      Conductor -> iLO [label = "Attaches the deploy ISO swift tempURL as virtual media CDROM"];
+      Conductor -> iLO [label = "Sets one time boot to CDROM"];
+      Conductor -> iLO [label = "Reboot the node"];
+      iLO -> Swift [label = "Downloads deploy ISO"];
+      Baremetal -> iLO [label = "Boots deploy kernel/ramdisk from iLO virtual media CDROM"];
+      IPA -> Conductor [label = "Lookup node"];
+      Conductor -> IPA [label = "Provides node UUID"];
+      IPA -> Conductor [label = "Heartbeat"];
+      Conductor -> IPA [label = "Exposes the disk over iSCSI"];
+      Conductor -> Conductor [label = "Connects to bare metal's disk over iSCSI and writes image"];
+      Conductor -> Conductor [label = "Generates the boot ISO"];
+      Conductor -> ConductorWebserver [label = "Uploads the boot ISO"];
+      Conductor -> iLO [label = "Attaches boot ISO URL as virtual media CDROM"];
+      Conductor -> iLO [label = "Sets boot device to CDROM"];
+      Conductor -> IPA [label = "Power off the node"];
+      Conductor -> iLO [label = "Power on the node"];
+      iLO -> ConductorWebserver [label = "Downloads boot ISO"];
+      iLO -> Baremetal [label = "Boots the instance kernel/ramdisk from iLO virtual media CDROM"];
+      Baremetal -> Baremetal [label = "Instance kernel finds root partition and continues booting from disk"];
+   }
+
+
+Localboot in swiftless deploy for intermediate images
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. seqdiag::
+   :scale: 80
+
+   diagram {
+      Glance; Conductor; Baremetal; ConductorWebserver; IPA; iLO;
+      activation = none;
+      span_height = 1;
+      edge_length = 250;
+      default_note_color = white;
+      default_fontsize = 14;
+
+      Conductor -> iLO [label = "Powers off the node"];
+      Conductor -> Glance [label = "Get the metadata for deploy ISO"];
+      Glance -> Conductor [label = "Returns the metadata for deploy ISO"];
+      Conductor -> Conductor [label = "Generates swift tempURL for deploy ISO"];
+      Conductor -> Conductor [label = "Creates the FAT32 image containing Ironic API URL and driver name"];
+      Conductor -> ConductorWebserver [label = "Uploads the FAT32 image"];
+      Conductor -> iLO [label = "Attaches the FAT32 image URL as virtual media floppy"];
+      Conductor -> iLO [label = "Attaches the deploy ISO swift tempURL as virtual media CDROM"];
+      Conductor -> iLO [label = "Sets one time boot to CDROM"];
+      Conductor -> iLO [label = "Reboot the node"];
+      iLO -> Swift [label = "Downloads deploy ISO"];
+      Baremetal -> iLO [label = "Boots deploy kernel/ramdisk from iLO virtual media CDROM"];
+      IPA -> Conductor [label = "Lookup node"];
+      Conductor -> IPA [label = "Provides node UUID"];
+      IPA -> Conductor [label = "Heartbeat"];
+      Conductor -> IPA [label = "Sends the user image HTTP(s) URL"];
+      IPA -> Swift [label = "Retrieves the user image on bare metal"];
+      IPA -> IPA [label = "Writes user image to disk"];
+      IPA -> Conductor [label = "Heartbeat"];
+      Conductor -> Baremetal [label = "Sets boot device to disk"];
+      Conductor -> IPA [label = "Power off the node"];
+      Conductor -> Baremetal [label = "Power on the node"];
       Baremetal -> Baremetal [label = "Boot user image from disk"];
    }
