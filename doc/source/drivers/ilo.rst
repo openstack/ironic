@@ -222,35 +222,14 @@ Requirements
 
 Deploy Process
 ~~~~~~~~~~~~~~
-* Admin configures the ProLiant bare metal node for iscsi_ilo driver. The
-  ironic node configured will have the ``ilo_deploy_iso`` property in its
-  ``driver_info``.  This will contain the glance UUID of the ISO
-  deploy ramdisk image.
-* Ironic gets a request to deploy a glance image on the bare metal node.
-* ``iscsi_ilo`` driver powers off the bare metal node.
-* The driver generates a swift-temp-url for the deploy ramdisk image
-  and attaches it as virtual media CDROM on the iLO.
-* The driver creates a small FAT32 image containing parameters to
-  the deploy ramdisk. This image is uploaded to swift and its swift-temp-url
-  is attached as virtual media Floppy on the iLO.
-* The driver sets the node to boot one-time from CDROM.
-* The driver powers on the bare metal node.
-* The deploy kernel/ramdisk is booted on the bare metal node.  The ramdisk
-  exposes the local disk over iSCSI and requests ironic conductor to complete
-  the deployment.
-* The driver on the ironic conductor writes the glance image to the
-  bare metal node's disk.
-* The driver bundles the boot kernel/ramdisk for the glance deploy
-  image into an ISO and then uploads it to swift. This ISO image will be used
-  for booting the deployed instance.
-* The driver reboots the node.
-* On the first and subsequent reboots ``iscsi_ilo`` driver attaches this boot
-  ISO image in swift as virtual media CDROM and then sets iLO to boot from it.
+
+Refer to `Netboot with glance and swift`_ for the deploy process of partition image
+and `Localboot with glance and swift`_ for the deploy process of whole disk image.
 
 Configuring and Enabling the driver
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Refer `Glance Configuration`_ and `Enable driver`_.
+Refer to `Glance Configuration`_ and `Enable driver`_.
 
 Registering ProLiant node in ironic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -357,29 +336,13 @@ Requirements
 
 Deploy Process
 ~~~~~~~~~~~~~~
-* Admin configures the ProLiant bare metal node for ``agent_ilo`` driver. The
-  ironic node configured will have the ``ilo_deploy_iso`` property in its
-  ``driver_info``.  This will contain the glance UUID of the ISO deploy agent
-  image containing the agent.
-* Ironic gets a request to deploy a glance image on the bare metal node.
-* Driver powers off the bare metal node.
-* Driver generates a swift-temp-url for the deploy agent image
-  and attaches it as virtual media CDROM on the iLO.
-* Driver creates a small FAT32 image containing parameters to
-  the agent ramdisk. This image is uploaded to swift and its swift-temp-url
-  is attached as virtual media Floppy on the iLO.
-* Driver sets the node to boot one-time from CDROM.
-* Driver powers on the bare metal node.
-* The deploy kernel/ramdisk containing the agent is booted on the bare metal
-  node.  The agent ramdisk talks to the ironic conductor, downloads the image
-  directly from swift and writes the node's disk.
-* Driver sets the node to permanently boot from disk and then reboots
-  the node.
+
+Refer to `Localboot with glance and swift`_ for details.
 
 Configuring and Enabling the driver
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Refer `Glance Configuration`_ and `Enable driver`_.
+Refer to `Glance Configuration`_ and `Enable driver`_.
 
 Registering ProLiant node in ironic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -763,3 +726,91 @@ for scheduling::
   nova flavor-key my-baremetal-flavor set capabilities:ilo_firmware_version="<in> 2.10"
 
   nova flavor-key my-baremetal-flavor set capabilities:secure_boot="true"
+
+Deploy Process
+==============
+
+Netboot with glance and swift
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. seqdiag::
+   :scale: 80
+
+   diagram {
+      Glance; Conductor; Baremetal; Swift; IPA; iLO;
+      activation = none;
+      span_height = 1;
+      edge_length = 250;
+      default_note_color = white;
+      default_fontsize = 14;
+
+      Conductor -> iLO [label = "Powers off the node"];
+      Conductor -> Glance [label = "Download user image"];
+      Conductor -> Glance [label = "Get the metadata for deploy ISO"];
+      Conductor -> Conductor [label = "Generates swift tempURL for deploy ISO"];
+      Conductor -> Conductor [label = "Creates the FAT32 image containing Ironic API URL and driver name"];
+      Conductor -> Swift [label = "Uploads the FAT32 image"];
+      Conductor -> Conductor [label = "Generates swift tempURL for FAT32 image"];
+      Conductor -> iLO [label = "Attaches the FAT32 image swift tempURL as virtual media floppy"];
+      Conductor -> iLO [label = "Attaches the deploy ISO swift tempURL as virtual media CDROM"];
+      Conductor -> iLO [label = "Sets one time boot to CDROM"];
+      Conductor -> iLO [label = "Reboot the node"];
+      iLO -> Swift [label = "Downloads deploy ISO"];
+      Baremetal -> iLO [label = "Boots deploy kernel/ramdisk from iLO virtual media CDROM"];
+      IPA -> Conductor [label = "Lookup node"];
+      Conductor -> IPA [label = "Provides node UUID"];
+      IPA -> Conductor [label = "Heartbeat"];
+      Conductor -> IPA [label = "Exposes the disk over iSCSI"];
+      Conductor -> Conductor [label = "Connects to bare metal's disk over iSCSI and writes image"];
+      Conductor -> Conductor [label = "Generates the boot ISO"];
+      Conductor -> Swift [label = "Uploads the boot ISO"];
+      Conductor -> Conductor [label = "Generates swift tempURL for boot ISO"];
+      Conductor -> iLO [label = "Attaches boot ISO swift tempURL as virtual media CDROM"];
+      Conductor -> iLO [label = "Sets boot device to CDROM"];
+      Conductor -> IPA [label = "Power off the node"];
+      Conductor -> iLO [label = "Power on the node"];
+      iLO -> Swift [label = "Downloads boot ISO"];
+      iLO -> Baremetal [label = "Boots the instance kernel/ramdisk from iLO virtual media CDROM"];
+      Baremetal -> Baremetal [label = "Instance kernel finds root partition and continues booting from disk"];
+   }
+
+
+Localboot with glance and swift
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. seqdiag::
+   :scale: 80
+
+   diagram {
+      Glance; Conductor; Baremetal; Swift; IPA; iLO;
+      activation = none;
+      span_height = 1;
+      edge_length = 250;
+      default_note_color = white;
+      default_fontsize = 14;
+
+      Conductor -> iLO [label = "Powers off the node"];
+      Conductor -> Glance [label = "Get the metadata for deploy ISO"];
+      Glance -> Conductor [label = "Returns the metadata for deploy ISO"];
+      Conductor -> Conductor [label = "Generates swift tempURL for deploy ISO"];
+      Conductor -> Conductor [label = "Creates the FAT32 image containing ironic API URL and driver name"];
+      Conductor -> Swift [label = "Uploads the FAT32 image"];
+      Conductor -> Conductor [label = "Generates swift tempURL for FAT32 image"];
+      Conductor -> iLO [label = "Attaches the FAT32 image swift tempURL as virtual media floppy"];
+      Conductor -> iLO [label = "Attaches the deploy ISO swift tempURL as virtual media CDROM"];
+      Conductor -> iLO [label = "Sets one time boot to CDROM"];
+      Conductor -> iLO [label = "Reboot the node"];
+      iLO -> Swift [label = "Downloads deploy ISO"];
+      Baremetal -> iLO [label = "Boots deploy kernel/ramdisk from iLO virtual media CDROM"];
+      IPA -> Conductor [label = "Lookup node"];
+      Conductor -> IPA [label = "Provides node UUID"];
+      IPA -> Conductor [label = "Heartbeat"];
+      Conductor -> IPA [label = "Sends the user image HTTP(s) URL"];
+      IPA -> Swift [label = "Retrieves the user image on bare metal"];
+      IPA -> IPA [label = "Writes user image to disk"];
+      IPA -> Conductor [label = "Heartbeat"];
+      Conductor -> Baremetal [label = "Sets boot device to disk"];
+      Conductor -> IPA [label = "Power off the node"];
+      Conductor -> iLO [label = "Power on the node"];
+      Baremetal -> Baremetal [label = "Boot user image from disk"];
+   }
