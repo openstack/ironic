@@ -1,0 +1,13 @@
+#!/bin/bash
+
+VM_LOG=%LOG_DIR%/$1
+VM_ACTION=$2
+
+if [ $VM_ACTION = "release" ]; then
+    if [ ! -f "${VM_LOG}_console.log" ]; then
+        return 0
+    fi
+
+    NOW=$(date +"%d-%m-%Y-%H:%M:%S")
+    mv "${VM_LOG}_console.log" "${VM_LOG}_console_${NOW}.log"
+fi

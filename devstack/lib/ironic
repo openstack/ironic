@@ -35,6 +35,7 @@ GITDIR["ironic-lib"]=$DEST/ironic-lib
 
 IRONIC_DIR=$DEST/ironic
 IRONIC_DEVSTACK_DIR=$IRONIC_DIR/devstack
+IRONIC_DEVSTACK_FILES_DIR=$IRONIC_DEVSTACK_DIR/files
 IRONIC_PYTHON_AGENT_DIR=$DEST/ironic-python-agent
 IRONIC_DATA_DIR=$DATA_DIR/ironic
 IRONIC_STATE_PATH=/var/lib/ironic
@@ -89,6 +90,7 @@ IRONIC_AUTHORIZED_KEYS_FILE=${IRONIC_AUTHORIZED_KEYS_FILE:-$HOME/.ssh/authorized
 # By default, baremetal VMs will console output to file.
 IRONIC_VM_LOG_CONSOLE=${IRONIC_VM_LOG_CONSOLE:-True}
 IRONIC_VM_LOG_DIR=${IRONIC_VM_LOG_DIR:-$IRONIC_DATA_DIR/logs/}
+IRONIC_VM_LOG_ROTATE=$(trueorfalse True IRONIC_VM_LOG_ROTATE)
 
 # Use DIB to create deploy ramdisk and kernel.
 IRONIC_BUILD_DEPLOY_RAMDISK=$(trueorfalse True IRONIC_BUILD_DEPLOY_RAMDISK)
@@ -239,6 +241,7 @@ function _config_ironic_apache_wsgi {
 # runs that would need to clean up.
 function cleanup_ironic {
     sudo rm -rf $IRONIC_AUTH_CACHE_DIR $IRONIC_CONF_DIR
+    sudo rm -rf $IRONIC_VM_LOG_DIR/*
 }
 
 # configure_ironic_dirs() - Create all directories required by Ironic and
@@ -547,11 +550,34 @@ function create_ovs_taps {
     neutron net-update $ironic_net_id --shared true
 }
 
+function setup_qemu_log_hook {
+    local libvirt_service_name
+    local qemu_hook=/etc/libvirt/hooks/qemu
+
+    # Copy the qemu hook to the right directory
+    sudo cp $IRONIC_DEVSTACK_FILES_DIR/hooks/qemu $qemu_hook
+    sudo sed -e "
+        s|%LOG_DIR%|$IRONIC_VM_LOG_DIR|g;
+    " -i $qemu_hook
+
+    # Restart the libvirt daemon
+    libvirt_service_name="libvirt-bin"
+    if is_fedora; then
+        libvirt_service_name="libvirtd"
+    fi
+
+    restart_service $libvirt_service_name
+}
+
 function create_bridge_and_vms {
     # Call libvirt setup scripts in a new shell to ensure any new group membership
     sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/setup-network"
     if [[ "$IRONIC_VM_LOG_CONSOLE" == "True" ]] ; then
         local log_arg="$IRONIC_VM_LOG_DIR"
+
+        if [[ "$IRONIC_VM_LOG_ROTATE" == "True" ]] ; then
+            setup_qemu_log_hook
+        fi
     else
         local log_arg=""
     fi
