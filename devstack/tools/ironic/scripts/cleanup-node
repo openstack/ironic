@@ -20,6 +20,6 @@ virsh list | grep -q $NAME && virsh destroy $NAME
 virsh list --inactive | grep -q $NAME && virsh undefine $NAME
 
 if virsh pool-list | grep -q $LIBVIRT_STORAGE_POOL ; then
-  virsh vol-list $LIBVIRT_STORAGE_POOL | grep -q $VOL_NAME &&
-      virsh vol-delete $VOL_NAME --pool $LIBVIRT_STORAGE_POOL
+    virsh vol-list $LIBVIRT_STORAGE_POOL | grep -q $VOL_NAME &&
+        virsh vol-delete $VOL_NAME --pool $LIBVIRT_STORAGE_POOL
 fi

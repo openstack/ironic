@@ -40,12 +40,12 @@ fi
 
 pool_state=$(virsh pool-info $LIBVIRT_STORAGE_POOL | grep State | awk '{ print $2 }')
 if [ "$pool_state" != "running" ] ; then
-  [ ! -d /var/lib/libvirt/images ] && sudo mkdir /var/lib/libvirt/images
-  virsh pool-start $LIBVIRT_STORAGE_POOL >&2
+    [ ! -d /var/lib/libvirt/images ] && sudo mkdir /var/lib/libvirt/images
+    virsh pool-start $LIBVIRT_STORAGE_POOL >&2
 fi
 
 if [ -n "$LOGDIR" ] ; then
-  mkdir -p "$LOGDIR"
+    mkdir -p "$LOGDIR"
 fi
 
 PREALLOC=
@@ -54,25 +54,24 @@ if [ -f /etc/debian_version ]; then
 fi
 
 if [ -n "$LOGDIR" ] ; then
-  VM_LOGGING="--console-log $LOGDIR/${NAME}_console.log"
+    VM_LOGGING="--console-log $LOGDIR/${NAME}_console.log"
 else
-  VM_LOGGING=""
+    VM_LOGGING=""
 fi
 VOL_NAME="${NAME}.qcow2"
 
 if ! virsh list --all | grep -q $NAME; then
-  virsh vol-list --pool $LIBVIRT_STORAGE_POOL | grep -q $VOL_NAME &&
-      virsh vol-delete $VOL_NAME --pool $LIBVIRT_STORAGE_POOL >&2
-  virsh vol-create-as $LIBVIRT_STORAGE_POOL ${VOL_NAME} ${DISK}G --format qcow2 $PREALLOC >&2
-  volume_path=$(virsh vol-path --pool $LIBVIRT_STORAGE_POOL $VOL_NAME)
-  # Pre-touch the VM to set +C, as it can only be set on empty files.
-  sudo touch "$volume_path"
-  sudo chattr +C "$volume_path" || true
-  $TOP_DIR/scripts/configure-vm \
-    --bootdev network --name $NAME --image "$volume_path" \
-    --arch $ARCH --cpus $CPU --memory $MEM --libvirt-nic-driver $LIBVIRT_NIC_DRIVER \
-    --emulator $EMULATOR --network $BRIDGE $VM_LOGGING >&2
-
+    virsh vol-list --pool $LIBVIRT_STORAGE_POOL | grep -q $VOL_NAME &&
+        virsh vol-delete $VOL_NAME --pool $LIBVIRT_STORAGE_POOL >&2
+    virsh vol-create-as $LIBVIRT_STORAGE_POOL ${VOL_NAME} ${DISK}G --format qcow2 $PREALLOC >&2
+    volume_path=$(virsh vol-path --pool $LIBVIRT_STORAGE_POOL $VOL_NAME)
+    # Pre-touch the VM to set +C, as it can only be set on empty files.
+    sudo touch "$volume_path"
+    sudo chattr +C "$volume_path" || true
+    $TOP_DIR/scripts/configure-vm \
+        --bootdev network --name $NAME --image "$volume_path" \
+        --arch $ARCH --cpus $CPU --memory $MEM --libvirt-nic-driver $LIBVIRT_NIC_DRIVER \
+        --emulator $EMULATOR --network $BRIDGE $VM_LOGGING >&2
 fi
 
 # echo mac
