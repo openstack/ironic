@@ -56,28 +56,16 @@ class OneViewCommonTestCase(db_base.DbTestCase):
             "capabilities": ("enclosure_group_uri:fake_eg_uri,"
                              "server_profile_template_uri:fake_spt_uri")
         }
-
-        exc = self.assertRaises(
-            exception.MissingParameterValue,
-            common.verify_node_info,
-            self.node
-        )
-        self.assertEqual("Missing the keys for the following OneView data in "
-                         "node's properties/capabilities: "
-                         "server_hardware_type_uri.",
-                         str(exc))
+        with self.assertRaisesRegexp(exception.MissingParameterValue,
+                                     "server_hardware_type_uri"):
+            common.verify_node_info(self.node)
 
     def test_verify_node_info_missing_node_driver_info(self):
         self.node.driver_info = {}
 
-        exc = self.assertRaises(
-            exception.MissingParameterValue,
-            common.verify_node_info,
-            self.node
-        )
-        self.assertEqual("Missing the keys for the following OneView data in "
-                         "node's driver_info: server_hardware_uri.",
-                         str(exc))
+        with self.assertRaisesRegexp(exception.MissingParameterValue,
+                                     "server_hardware_uri"):
+            common.verify_node_info(self.node)
 
     def test_verify_node_info_missing_spt(self):
         properties = db_utils.get_test_oneview_properties()
@@ -85,17 +73,9 @@ class OneViewCommonTestCase(db_base.DbTestCase):
                                       "enclosure_group_uri:fake_eg_uri")
 
         self.node.properties = properties
-
-        exc = self.assertRaises(
-            exception.MissingParameterValue,
-            common.verify_node_info,
-            self.node
-        )
-        # TODO(gabriel-bezerra): Simplify this after Mitaka
-        self.assertEqual(
-            ("Missing 'server_profile_template_uri' parameter value in "
-             "properties/capabilities"),
-            str(exc))
+        with self.assertRaisesRegexp(exception.MissingParameterValue,
+                                     "server_profile_template_uri"):
+            common.verify_node_info(self.node)
 
     def test_verify_node_info_missing_sh(self):
         driver_info = db_utils.get_test_oneview_driver_info()
@@ -110,16 +90,9 @@ class OneViewCommonTestCase(db_base.DbTestCase):
 
         self.node.properties = properties
         self.node.driver_info = driver_info
-        exc = self.assertRaises(
-            exception.MissingParameterValue,
-            common.verify_node_info,
-            self.node
-        )
-        # TODO(gabriel-bezerra): Simplify this after Mitaka
-        self.assertEqual(
-            ("Missing the keys for the following OneView data in node's "
-             "driver_info: server_hardware_uri."),
-            str(exc))
+        with self.assertRaisesRegexp(exception.MissingParameterValue,
+                                     "server_hardware_uri"):
+            common.verify_node_info(self.node)
 
     def test_verify_node_info_missing_sht(self):
         driver_info = db_utils.get_test_oneview_driver_info()
@@ -131,16 +104,9 @@ class OneViewCommonTestCase(db_base.DbTestCase):
 
         self.node.properties = properties
         self.node.driver_info = driver_info
-        exc = self.assertRaises(
-            exception.MissingParameterValue,
-            common.verify_node_info,
-            self.node
-        )
-        # TODO(gabriel-bezerra): Simplify this after Mitaka
-        self.assertEqual(
-            ("Missing the keys for the following OneView data in node's "
-             "properties/capabilities: server_hardware_type_uri."),
-            str(exc))
+        with self.assertRaisesRegexp(exception.MissingParameterValue,
+                                     "server_hardware_type_uri"):
+            common.verify_node_info(self.node)
 
     def test_get_oneview_info(self):
         complete_node = self.node
@@ -289,17 +255,11 @@ class OneViewCommonTestCase(db_base.DbTestCase):
         )
 
     def test__verify_node_info_missing_values_empty_string(self):
-        exc_expected_msg = ("Missing parameter value for: 'properties:a'"
-                            ", 'properties:b'")
-
-        self.assertRaisesRegexp(
-            exception.MissingParameterValue,
-            exc_expected_msg,
-            common._verify_node_info,
-            "properties",
-            {"a": '', "b": None, "c": "something"},
-            ["a", "b", "c"]
-        )
+        with self.assertRaisesRegexp(exception.MissingParameterValue,
+                                     "'properties:a', 'properties:b'"):
+            common._verify_node_info("properties",
+                                     {"a": '', "b": None, "c": "something"},
+                                     ["a", "b", "c"])
 
     def _test_translate_oneview_states(self, power_state_to_translate,
                                        expected_translated_power_state):
