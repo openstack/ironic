@@ -1855,6 +1855,25 @@ can not be found.
 .. _`link`: https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/7/html/Storage_Administration_Guide/persistent_naming.html
 
 
+.. _EnableHTTPSinSwift:
+
+Enabling HTTPS in Swift
+=======================
+
+The drivers using virtual media use swift for storing boot images
+and node configuration information (contains sensitive information for Ironic
+conductor to provision bare metal hardware).  By default, HTTPS is not enabled
+in swift. HTTPS is required to encrypt all communication between swift and Ironic
+conductor and swift and bare metal (via virtual media).  It can be enabled in one
+of the following ways:
+
+* Using an SSL termination proxy. For more information, `see here
+  <http://docs.openstack.org/security-guide/content/tls-proxies-and-http-services.html>`_
+
+* Using native SSL support in swift (recommended only for testing
+  purpose by swift). For more information,
+  `see here <http://docs.openstack.org/developer/swift/deployment_guide.html>`_
+
 Using Bare Metal service as a standalone service
 ================================================
 

@@ -50,7 +50,6 @@ Prerequisites
   ``ironic-conductor`` is running. On most distros, this is provided as part
   of the ``ipmitool`` package.
 
-
 Drivers
 =======
 
@@ -68,11 +67,17 @@ Target Users
 ~~~~~~~~~~~~
 
 * Users who do not want to use PXE/TFTP protocol on their data centres.
-* Current PXE driver passes management info in clear-text to the
-  bare metal node. ``iscsi_ilo`` driver enhances the security
-  by passing management info over encrypted management network. This
-  driver may be used by users who have concerns on PXE drivers security
-  issues and want to have a security enhanced PXE-less deployment mechanism.
+
+* Users who have concerns with PXE protocol's security issues and want to have a
+  security enhanced PXE-less deployment mechanism.
+
+  The PXE driver passes management information in clear-text to the
+  bare metal node.  However, if swift proxy server has an HTTPS
+  endpoint (See :ref:`EnableHTTPSinSwift` for more information), the
+  ``iscsi_ilo`` driver provides enhanced security by passing
+  management information to and from swift endpoint over HTTPS.  The
+  management information, deploy ramdisk and boot images for the instance will
+  be retrieved over encrypted management network via iLO virtual media.
 
 Tested Platforms
 ~~~~~~~~~~~~~~~~
@@ -100,8 +105,9 @@ Features
 * UEFI Boot Support
 * UEFI Secure Boot Support
 * Passing management information via secure, encrypted management network
-  (virtual media) if swift proxy server has an HTTPs endpoint. Provisioning
-  is done using iSCSI over data network, so this driver has the  benefit
+  (virtual media) if swift proxy server has an HTTPS endpoint. See
+  :ref:`EnableHTTPSinSwift` for more info.  User image provisioning is done
+  using iSCSI over data network, so this driver has the benefit
   of security enhancement with the same performance. It segregates management
   info from data channel.
 * Support for out-of-band cleaning operations.
@@ -274,6 +280,16 @@ https://wiki.openstack.org/wiki/Ironic-python-agent.
 Target Users
 ~~~~~~~~~~~~
 * Users who do not want to use PXE/TFTP protocol on their data centres.
+* Users who have concerns on PXE based agent driver's security and
+  want to have a security enhanced PXE-less deployment mechanism.
+
+  The PXE based agent drivers pass management information in clear-text to
+  the bare metal node.  However, if swift proxy server has an HTTPS
+  endpoint (See :ref:`EnableHTTPSinSwift` for more information),
+  the ``agent_ilo`` driver provides enhanced security by passing authtoken
+  and management information to and from swift endpoint over HTTPS.  The
+  management information and deploy ramdisk will be retrieved over encrypted
+  management network via iLO.
 
 Tested Platforms
 ~~~~~~~~~~~~~~~~
