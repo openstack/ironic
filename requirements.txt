@@ -13,6 +13,7 @@ paramiko>=1.13.0
 python-neutronclient>=2.6.0
 python-glanceclient>=1.2.0
 python-keystoneclient!=1.8.0,>=1.6.0
+ironic-lib>=0.5.0
 python-swiftclient>=2.2.0
 pytz>=2013.6
 stevedore>=1.5.0 # Apache-2.0

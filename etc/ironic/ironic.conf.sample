@@ -911,18 +911,6 @@
 # Options defined in ironic.drivers.modules.deploy_utils
 #
 
-# Size of EFI system partition in MiB when configuring UEFI
-# systems for local boot. (integer value)
-#efi_system_partition_size=200
-
-# Block size to use when writing to the nodes disk. (string
-# value)
-#dd_block_size=1M
-
-# Maximum attempts to verify an iSCSI connection is active,
-# sleeping 1 second between attempts. (integer value)
-#iscsi_verify_attempts=3
-
 # ironic-conductor node's HTTP server URL. Example:
 # http://192.1.2.3:8080 (string value)
 # Deprecated group/name - [pxe]/http_url
@@ -959,7 +947,7 @@
 [disk_partitioner]
 
 #
-# Options defined in ironic.common.disk_partitioner
+# Options defined in ironic_lib.disk_partitioner
 #
 
 # After Ironic has completed creating the partition table, it
@@ -973,6 +961,25 @@
 # after that, the disk partitioning will be treated as having
 # failed. (integer value)
 #check_device_max_retries=20
+
+
+[disk_utils]
+
+#
+# Options defined in ironic_lib.disk_utils
+#
+
+# Size of EFI system partition in MiB when configuring UEFI
+# systems for local boot. (integer value)
+#efi_system_partition_size=200
+
+# Block size to use when writing to the nodes disk. (string
+# value)
+#dd_block_size=1M
+
+# Maximum attempts to verify an iSCSI connection is active,
+# sleeping 1 second between attempts. (integer value)
+#iscsi_verify_attempts=3
 
 
 [drac]
@@ -1282,6 +1289,18 @@
 # Sensor data retrieval method, either "ipmitool" or "scci"
 # (string value)
 #sensor_method=ipmitool
+
+
+[ironic_lib]
+
+#
+# Options defined in ironic_lib.utils
+#
+
+# Command that is prefixed to commands that are run as root.
+# If not specified, no commands are run as root. (string
+# value)
+#root_helper=sudo ironic-rootwrap /etc/ironic/rootwrap.conf
 
 
 [keystone]

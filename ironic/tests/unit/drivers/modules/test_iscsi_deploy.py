@@ -18,6 +18,7 @@
 import os
 import tempfile
 
+from ironic_lib import disk_utils
 import mock
 from oslo_config import cfg
 from oslo_utils import fileutils
@@ -344,7 +345,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         self.node = obj_utils.create_test_node(self.context, **n)
 
-    @mock.patch.object(deploy_utils, 'get_image_mb', autospec=True)
+    @mock.patch.object(disk_utils, 'get_image_mb', autospec=True)
     def test_check_image_size(self, get_image_mb_mock):
         get_image_mb_mock.return_value = 1000
         with task_manager.acquire(self.context, self.node.uuid,
@@ -354,7 +355,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             get_image_mb_mock.assert_called_once_with(
                 iscsi_deploy._get_image_file_path(task.node.uuid))
 
-    @mock.patch.object(deploy_utils, 'get_image_mb', autospec=True)
+    @mock.patch.object(disk_utils, 'get_image_mb', autospec=True)
     def test_check_image_size_fails(self, get_image_mb_mock):
         get_image_mb_mock.return_value = 1025
         with task_manager.acquire(self.context, self.node.uuid,

@@ -14,38 +14,28 @@
 #    under the License.
 
 
-import base64
 import contextlib
-import gzip
-import math
 import os
 import re
-import shutil
 import socket
-import stat
-import tempfile
 import time
 
+from ironic_lib import disk_utils
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_utils import excutils
-from oslo_utils import units
-import requests
 import six
 from six.moves.urllib import parse
 
 from ironic.common import dhcp_factory
-from ironic.common import disk_partitioner
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
-from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
 from ironic.common import image_service
-from ironic.common import images
 from ironic.common import keystone
 from ironic.common import states
 from ironic.common import utils
@@ -57,17 +47,6 @@ from ironic import objects
 
 
 deploy_opts = [
-    cfg.IntOpt('efi_system_partition_size',
-               default=200,
-               help=_('Size of EFI system partition in MiB when configuring '
-                      'UEFI systems for local boot.')),
-    cfg.StrOpt('dd_block_size',
-               default='1M',
-               help=_('Block size to use when writing to the nodes disk.')),
-    cfg.IntOpt('iscsi_verify_attempts',
-               default=3,
-               help=_('Maximum attempts to verify an iSCSI connection is '
-                      'active, sleeping 1 second between attempts.')),
     cfg.StrOpt('http_url',
                help='ironic-conductor node\'s HTTP server URL. '
                     'Example: http://192.1.2.3:8080',
@@ -94,6 +73,14 @@ deploy_opts = [
 ]
 CONF = cfg.CONF
 CONF.register_opts(deploy_opts, group='deploy')
+
+# TODO(Faizan): Move this logic to common/utils.py and deprecate
+# rootwrap_config.
+# This is required to set the default value of ironic_lib option
+# only if rootwrap_config does not contain the default value.
+if CONF.rootwrap_config != '/etc/ironic/rootwrap.conf':
+    root_helper = 'sudo ironic-rootwrap %s' % CONF.rootwrap_config
+    CONF.set_default('root_helper', root_helper, 'ironic_lib')
 
 LOG = logging.getLogger(__name__)
 
@@ -151,7 +138,7 @@ def check_file_system_for_iscsi_device(portal_address,
     check_dir = "/dev/disk/by-path/ip-%s:%s-iscsi-%s-lun-1" % (portal_address,
                                                                portal_port,
                                                                target_iqn)
-    total_checks = CONF.deploy.iscsi_verify_attempts
+    total_checks = CONF.disk_utils.iscsi_verify_attempts
     for attempt in range(total_checks):
         if os.path.exists(check_dir):
             break
@@ -171,7 +158,7 @@ def verify_iscsi_connection(target_iqn):
     """Verify iscsi connection."""
     LOG.debug("Checking for iSCSI target to become active.")
 
-    for attempt in range(CONF.deploy.iscsi_verify_attempts):
+    for attempt in range(CONF.disk_utils.iscsi_verify_attempts):
         out, _err = utils.execute('iscsiadm',
                                   '-m', 'node',
                                   '-S',
@@ -183,10 +170,10 @@ def verify_iscsi_connection(target_iqn):
         LOG.debug("iSCSI connection not active. Rechecking. Attempt "
                   "%(attempt)d out of %(total)d",
                   {"attempt": attempt + 1,
-                   "total": CONF.deploy.iscsi_verify_attempts})
+                   "total": CONF.disk_utils.iscsi_verify_attempts})
     else:
         msg = _("iSCSI connection did not become active after attempting to "
-                "verify %d times.") % CONF.deploy.iscsi_verify_attempts
+                "verify %d times.") % CONF.disk_utils.iscsi_verify_attempts
         LOG.error(msg)
         raise exception.InstanceDeployFailure(msg)
 
@@ -229,163 +216,6 @@ def delete_iscsi(portal_address, portal_port, target_iqn):
                   check_exit_code=[0, 21],
                   attempts=5,
                   delay_on_retry=True)
-
-
-def get_disk_identifier(dev):
-    """Get the disk identifier from the disk being exposed by the ramdisk.
-
-    This disk identifier is appended to the pxe config which will then be
-    used by chain.c32 to detect the correct disk to chainload. This is helpful
-    in deployments to nodes with multiple disks.
-
-    http://www.syslinux.org/wiki/index.php/Comboot/chain.c32#mbr:
-
-    :param dev: Path for the already populated disk device.
-    :returns The Disk Identifier.
-    """
-    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
-    # planned to be deleted here. If need to modify this function, please also
-    # do the same modification in ironic-lib
-    disk_identifier = utils.execute('hexdump', '-s', '440', '-n', '4',
-                                    '-e', '''\"0x%08x\"''',
-                                    dev,
-                                    run_as_root=True,
-                                    check_exit_code=[0],
-                                    attempts=5,
-                                    delay_on_retry=True)
-    return disk_identifier[0]
-
-
-def make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
-                    configdrive_mb, node_uuid, commit=True,
-                    boot_option="netboot", boot_mode="bios"):
-    """Partition the disk device.
-
-    Create partitions for root, swap, ephemeral and configdrive on a
-    disk device.
-
-    :param root_mb: Size of the root partition in mebibytes (MiB).
-    :param swap_mb: Size of the swap partition in mebibytes (MiB). If 0,
-        no partition will be created.
-    :param ephemeral_mb: Size of the ephemeral partition in mebibytes (MiB).
-        If 0, no partition will be created.
-    :param configdrive_mb: Size of the configdrive partition in
-        mebibytes (MiB). If 0, no partition will be created.
-    :param commit: True/False. Default for this setting is True. If False
-        partitions will not be written to disk.
-    :param boot_option: Can be "local" or "netboot". "netboot" by default.
-    :param boot_mode: Can be "bios" or "uefi". "bios" by default.
-    :param node_uuid: Node's uuid. Used for logging.
-    :returns: A dictionary containing the partition type as Key and partition
-        path as Value for the partitions created by this method.
-
-    """
-    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
-    # planned to be deleted here. If need to modify this function, please also
-    # do the same modification in ironic-lib
-    LOG.debug("Starting to partition the disk device: %(dev)s "
-              "for node %(node)s",
-              {'dev': dev, 'node': node_uuid})
-    part_template = dev + '-part%d'
-    part_dict = {}
-
-    # For uefi localboot, switch partition table to gpt and create the efi
-    # system partition as the first partition.
-    if boot_mode == "uefi" and boot_option == "local":
-        dp = disk_partitioner.DiskPartitioner(dev, disk_label="gpt")
-        part_num = dp.add_partition(CONF.deploy.efi_system_partition_size,
-                                    fs_type='fat32',
-                                    bootable=True)
-        part_dict['efi system partition'] = part_template % part_num
-    else:
-        dp = disk_partitioner.DiskPartitioner(dev)
-
-    if ephemeral_mb:
-        LOG.debug("Add ephemeral partition (%(size)d MB) to device: %(dev)s "
-                  "for node %(node)s",
-                  {'dev': dev, 'size': ephemeral_mb, 'node': node_uuid})
-        part_num = dp.add_partition(ephemeral_mb)
-        part_dict['ephemeral'] = part_template % part_num
-    if swap_mb:
-        LOG.debug("Add Swap partition (%(size)d MB) to device: %(dev)s "
-                  "for node %(node)s",
-                  {'dev': dev, 'size': swap_mb, 'node': node_uuid})
-        part_num = dp.add_partition(swap_mb, fs_type='linux-swap')
-        part_dict['swap'] = part_template % part_num
-    if configdrive_mb:
-        LOG.debug("Add config drive partition (%(size)d MB) to device: "
-                  "%(dev)s for node %(node)s",
-                  {'dev': dev, 'size': configdrive_mb, 'node': node_uuid})
-        part_num = dp.add_partition(configdrive_mb)
-        part_dict['configdrive'] = part_template % part_num
-
-    # NOTE(lucasagomes): Make the root partition the last partition. This
-    # enables tools like cloud-init's growroot utility to expand the root
-    # partition until the end of the disk.
-    LOG.debug("Add root partition (%(size)d MB) to device: %(dev)s "
-              "for node %(node)s",
-              {'dev': dev, 'size': root_mb, 'node': node_uuid})
-    part_num = dp.add_partition(root_mb, bootable=(boot_option == "local" and
-                                                   boot_mode == "bios"))
-    part_dict['root'] = part_template % part_num
-
-    if commit:
-        # write to the disk
-        dp.commit()
-    return part_dict
-
-
-def is_block_device(dev):
-    """Check whether a device is block or not."""
-    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
-    # planned to be deleted here. If need to modify this function, please also
-    # do the same modification in ironic-lib
-    attempts = CONF.deploy.iscsi_verify_attempts
-    for attempt in range(attempts):
-        try:
-            s = os.stat(dev)
-        except OSError as e:
-            LOG.debug("Unable to stat device %(dev)s. Attempt %(attempt)d "
-                      "out of %(total)d. Error: %(err)s",
-                      {"dev": dev, "attempt": attempt + 1,
-                       "total": attempts, "err": e})
-            time.sleep(1)
-        else:
-            return stat.S_ISBLK(s.st_mode)
-    msg = _("Unable to stat device %(dev)s after attempting to verify "
-            "%(attempts)d times.") % {'dev': dev, 'attempts': attempts}
-    LOG.error(msg)
-    raise exception.InstanceDeployFailure(msg)
-
-
-def dd(src, dst):
-    """Execute dd from src to dst."""
-    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
-    # planned to be deleted here. If need to modify this function, please also
-    # do the same modification in ironic-lib
-    utils.dd(src, dst, 'bs=%s' % CONF.deploy.dd_block_size, 'oflag=direct')
-
-
-def populate_image(src, dst):
-    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
-    # planned to be deleted here. If need to modify this function, please also
-    # do the same modification in ironic-lib
-    data = images.qemu_img_info(src)
-    if data.file_format == 'raw':
-        dd(src, dst)
-    else:
-        images.convert_image(src, dst, 'raw', True)
-
-
-def block_uuid(dev):
-    """Get UUID of a block device."""
-    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
-    # planned to be deleted here. If need to modify this function, please also
-    # do the same modification in ironic-lib
-    out, _err = utils.execute('blkid', '-s', 'UUID', '-o', 'value', dev,
-                              run_as_root=True,
-                              check_exit_code=[0])
-    return out.strip()
 
 
 def _replace_lines_in_file(path, regex_pattern, replacement):
@@ -468,278 +298,6 @@ def get_dev(address, port, iqn, lun):
     return dev
 
 
-def get_image_mb(image_path, virtual_size=True):
-    """Get size of an image in Megabyte."""
-    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
-    # planned to be deleted here. If need to modify this function, please also
-    # do the same modification in ironic-lib
-    mb = 1024 * 1024
-    if not virtual_size:
-        image_byte = os.path.getsize(image_path)
-    else:
-        image_byte = images.converted_size(image_path)
-    # round up size to MB
-    image_mb = int((image_byte + mb - 1) / mb)
-    return image_mb
-
-
-def get_dev_block_size(dev):
-    """Get the device size in 512 byte sectors."""
-    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
-    # planned to be deleted here. If need to modify this function, please also
-    # do the same modification in ironic-lib
-    block_sz, cmderr = utils.execute('blockdev', '--getsz', dev,
-                                     run_as_root=True, check_exit_code=[0])
-    return int(block_sz)
-
-
-def destroy_disk_metadata(dev, node_uuid):
-    """Destroy metadata structures on node's disk.
-
-       Ensure that node's disk appears to be blank without zeroing the entire
-       drive. To do this we will zero:
-       - the first 18KiB to clear MBR / GPT data
-       - the last 18KiB to clear GPT and other metadata like: LVM, veritas,
-         MDADM, DMRAID, ...
-    """
-    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
-    # planned to be deleted here. If need to modify this function, please also
-    # do the same modification in ironic-lib
-
-    # NOTE(NobodyCam): This is needed to work around bug:
-    # https://bugs.launchpad.net/ironic/+bug/1317647
-    LOG.debug("Start destroy disk metadata for node %(node)s.",
-              {'node': node_uuid})
-    try:
-        utils.dd('/dev/zero', dev, 'bs=512', 'count=36')
-    except processutils.ProcessExecutionError as err:
-        with excutils.save_and_reraise_exception():
-            LOG.error(_LE("Failed to erase beginning of disk for node "
-                          "%(node)s. Command: %(command)s. Error: %(error)s."),
-                      {'node': node_uuid,
-                       'command': err.cmd,
-                       'error': err.stderr})
-
-    # now wipe the end of the disk.
-    # get end of disk seek value
-    try:
-        block_sz = get_dev_block_size(dev)
-    except processutils.ProcessExecutionError as err:
-        with excutils.save_and_reraise_exception():
-            LOG.error(_LE("Failed to get disk block count for node %(node)s. "
-                          "Command: %(command)s. Error: %(error)s."),
-                      {'node': node_uuid,
-                       'command': err.cmd,
-                       'error': err.stderr})
-    else:
-        seek_value = block_sz - 36
-        try:
-            utils.dd('/dev/zero', dev, 'bs=512', 'count=36',
-                     'seek=%d' % seek_value)
-        except processutils.ProcessExecutionError as err:
-            with excutils.save_and_reraise_exception():
-                LOG.error(_LE("Failed to erase the end of the disk on node "
-                              "%(node)s. Command: %(command)s. "
-                              "Error: %(error)s."),
-                          {'node': node_uuid,
-                           'command': err.cmd,
-                           'error': err.stderr})
-    LOG.info(_LI("Disk metadata on %(dev)s successfully destroyed for node "
-                 "%(node)s"), {'dev': dev, 'node': node_uuid})
-
-
-def _get_configdrive(configdrive, node_uuid):
-    """Get the information about size and location of the configdrive.
-
-    :param configdrive: Base64 encoded Gzipped configdrive content or
-        configdrive HTTP URL.
-    :param node_uuid: Node's uuid. Used for logging.
-    :raises: InstanceDeployFailure if it can't download or decode the
-       config drive.
-    :returns: A tuple with the size in MiB and path to the uncompressed
-        configdrive file.
-
-    """
-    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
-    # planned to be deleted here. If need to modify this function, please also
-    # do the same modification in ironic-lib
-    # Check if the configdrive option is a HTTP URL or the content directly
-    is_url = utils.is_http_url(configdrive)
-    if is_url:
-        try:
-            data = requests.get(configdrive).content
-        except requests.exceptions.RequestException as e:
-            raise exception.InstanceDeployFailure(
-                _("Can't download the configdrive content for node %(node)s "
-                  "from '%(url)s'. Reason: %(reason)s") %
-                {'node': node_uuid, 'url': configdrive, 'reason': e})
-    else:
-        data = configdrive
-
-    try:
-        data = six.BytesIO(base64.b64decode(data))
-    except TypeError:
-        error_msg = (_('Config drive for node %s is not base64 encoded '
-                       'or the content is malformed.') % node_uuid)
-        if is_url:
-            error_msg += _(' Downloaded from "%s".') % configdrive
-        raise exception.InstanceDeployFailure(error_msg)
-
-    configdrive_file = tempfile.NamedTemporaryFile(delete=False,
-                                                   prefix='configdrive',
-                                                   dir=CONF.tempdir)
-    configdrive_mb = 0
-    with gzip.GzipFile('configdrive', 'rb', fileobj=data) as gunzipped:
-        try:
-            shutil.copyfileobj(gunzipped, configdrive_file)
-        except EnvironmentError as e:
-            # Delete the created file
-            utils.unlink_without_raise(configdrive_file.name)
-            raise exception.InstanceDeployFailure(
-                _('Encountered error while decompressing and writing '
-                  'config drive for node %(node)s. Error: %(exc)s') %
-                {'node': node_uuid, 'exc': e})
-        else:
-            # Get the file size and convert to MiB
-            configdrive_file.seek(0, os.SEEK_END)
-            bytes_ = configdrive_file.tell()
-            configdrive_mb = int(math.ceil(float(bytes_) / units.Mi))
-        finally:
-            configdrive_file.close()
-
-        return (configdrive_mb, configdrive_file.name)
-
-
-def work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
-                 image_path, node_uuid, preserve_ephemeral=False,
-                 configdrive=None, boot_option="netboot",
-                 boot_mode="bios"):
-    """Create partitions and copy an image to the root partition.
-
-    :param dev: Path for the device to work on.
-    :param root_mb: Size of the root partition in megabytes.
-    :param swap_mb: Size of the swap partition in megabytes.
-    :param ephemeral_mb: Size of the ephemeral partition in megabytes. If 0,
-        no ephemeral partition will be created.
-    :param ephemeral_format: The type of file system to format the ephemeral
-        partition.
-    :param image_path: Path for the instance's disk image.
-    :param node_uuid: node's uuid. Used for logging.
-    :param preserve_ephemeral: If True, no filesystem is written to the
-        ephemeral block device, preserving whatever content it had (if the
-        partition table has not changed).
-    :param configdrive: Optional. Base64 encoded Gzipped configdrive content
-                        or configdrive HTTP URL.
-    :param boot_option: Can be "local" or "netboot". "netboot" by default.
-    :param boot_mode: Can be "bios" or "uefi". "bios" by default.
-    :returns: a dictionary containing the following keys:
-        'root uuid': UUID of root partition
-        'efi system partition uuid': UUID of the uefi system partition
-                                     (if boot mode is uefi).
-        NOTE: If key exists but value is None, it means partition doesn't
-              exist.
-    """
-    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
-    # planned to be deleted here. If need to modify this function, please also
-    # do the same modification in ironic-lib
-
-    # the only way for preserve_ephemeral to be set to true is if we are
-    # rebuilding an instance with --preserve_ephemeral.
-    commit = not preserve_ephemeral
-    # now if we are committing the changes to disk clean first.
-    if commit:
-        destroy_disk_metadata(dev, node_uuid)
-
-    try:
-        # If requested, get the configdrive file and determine the size
-        # of the configdrive partition
-        configdrive_mb = 0
-        configdrive_file = None
-        if configdrive:
-            configdrive_mb, configdrive_file = _get_configdrive(configdrive,
-                                                                node_uuid)
-
-        part_dict = make_partitions(dev, root_mb, swap_mb, ephemeral_mb,
-                                    configdrive_mb, node_uuid,
-                                    commit=commit,
-                                    boot_option=boot_option,
-                                    boot_mode=boot_mode)
-        LOG.info(_LI("Successfully completed the disk device"
-                     " %(dev)s partitioning for node %(node)s"),
-                 {'dev': dev, "node": node_uuid})
-
-        ephemeral_part = part_dict.get('ephemeral')
-        swap_part = part_dict.get('swap')
-        configdrive_part = part_dict.get('configdrive')
-        root_part = part_dict.get('root')
-
-        if not is_block_device(root_part):
-            raise exception.InstanceDeployFailure(
-                _("Root device '%s' not found") % root_part)
-
-        for part in ('swap', 'ephemeral', 'configdrive',
-                     'efi system partition'):
-            part_device = part_dict.get(part)
-            LOG.debug("Checking for %(part)s device (%(dev)s) on node "
-                      "%(node)s.",
-                      {'part': part, 'dev': part_device, 'node': node_uuid})
-            if part_device and not is_block_device(part_device):
-                raise exception.InstanceDeployFailure(
-                    _("'%(partition)s' device '%(part_device)s' not found") %
-                    {'partition': part, 'part_device': part_device})
-
-        # If it's a uefi localboot, then we have created the efi system
-        # partition.  Create a fat filesystem on it.
-        if boot_mode == "uefi" and boot_option == "local":
-            efi_system_part = part_dict.get('efi system partition')
-            utils.mkfs('vfat', efi_system_part, 'efi-part')
-
-        if configdrive_part:
-            # Copy the configdrive content to the configdrive partition
-            dd(configdrive_file, configdrive_part)
-            LOG.info(_LI("Configdrive for node %(node)s successfully copied "
-                         "onto partition %(partition)s"),
-                     {'node': node_uuid, 'partition': configdrive_part})
-
-    finally:
-        # If the configdrive was requested make sure we delete the file
-        # after copying the content to the partition
-        if configdrive_file:
-            utils.unlink_without_raise(configdrive_file)
-
-    populate_image(image_path, root_part)
-    LOG.info(_LI("Image for %(node)s successfully populated"),
-             {'node': node_uuid})
-
-    if swap_part:
-        utils.mkfs('swap', swap_part, 'swap1')
-        LOG.info(_LI("Swap partition %(swap)s successfully formatted "
-                     "for node %(node)s"),
-                 {'swap': swap_part, 'node': node_uuid})
-
-    if ephemeral_part and not preserve_ephemeral:
-        utils.mkfs(ephemeral_format, ephemeral_part, "ephemeral0")
-        LOG.info(_LI("Ephemeral partition %(ephemeral)s successfully "
-                     "formatted for node %(node)s"),
-                 {'ephemeral': ephemeral_part, 'node': node_uuid})
-
-    uuids_to_return = {
-        'root uuid': root_part,
-        'efi system partition uuid': part_dict.get('efi system partition')
-    }
-
-    try:
-        for part, part_dev in uuids_to_return.items():
-            if part_dev:
-                uuids_to_return[part] = block_uuid(part_dev)
-
-    except processutils.ProcessExecutionError:
-        with excutils.save_and_reraise_exception():
-            LOG.error(_LE("Failed to detect %s"), part)
-
-    return uuids_to_return
-
-
 def deploy_partition_image(
         address, port, iqn, lun, image_path,
         root_mb, swap_mb, ephemeral_mb, ephemeral_format, node_uuid,
@@ -775,7 +333,7 @@ def deploy_partition_image(
         NOTE: If key exists but value is None, it means partition doesn't
               exist.
     """
-    image_mb = get_image_mb(image_path)
+    image_mb = disk_utils.get_image_mb(image_path)
     if image_mb > root_mb:
         msg = (_('Root partition is too small for requested image. Image '
                  'virtual size: %(image_mb)d MB, Root size: %(root_mb)d MB')
@@ -783,7 +341,7 @@ def deploy_partition_image(
         raise exception.InstanceDeployFailure(msg)
 
     with _iscsi_setup_and_handle_errors(address, port, iqn, lun) as dev:
-        uuid_dict_returned = work_on_disk(
+        uuid_dict_returned = disk_utils.work_on_disk(
             dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format, image_path,
             node_uuid, preserve_ephemeral=preserve_ephemeral,
             configdrive=configdrive, boot_option=boot_option,
@@ -808,8 +366,8 @@ def deploy_disk_image(address, port, iqn, lun,
     """
     with _iscsi_setup_and_handle_errors(address, port, iqn,
                                         lun) as dev:
-        populate_image(image_path, dev)
-        disk_identifier = get_disk_identifier(dev)
+        disk_utils.populate_image(image_path, dev)
+        disk_identifier = disk_utils.get_disk_identifier(dev)
 
     return {'disk identifier': disk_identifier}
 
@@ -826,7 +384,7 @@ def _iscsi_setup_and_handle_errors(address, port, iqn, lun):
     dev = get_dev(address, port, iqn, lun)
     discovery(address, port)
     login_iscsi(address, port, iqn)
-    if not is_block_device(dev):
+    if not disk_utils.is_block_device(dev):
         raise exception.InstanceDeployFailure(_("Parent device '%s' not found")
                                               % dev)
     try:
