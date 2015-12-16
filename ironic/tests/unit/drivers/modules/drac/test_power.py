@@ -12,164 +12,107 @@
 # under the License.
 
 """
-Test class for DRAC Power Driver
+Test class for DRAC power interface
 """
 
+from dracclient import constants as drac_constants
+from dracclient import exceptions as drac_exceptions
 import mock
 
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
-from ironic.drivers.modules.drac import client as drac_client
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import power as drac_power
-from ironic.drivers.modules.drac import resource_uris
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base
 from ironic.tests.unit.db import utils as db_utils
-from ironic.tests.unit.drivers.modules.drac import utils as test_utils
-from ironic.tests.unit.drivers import third_party_driver_mock_specs \
-    as mock_specs
+from ironic.tests.unit.objects import utils as obj_utils
 
 INFO_DICT = db_utils.get_test_drac_info()
 
 
-@mock.patch.object(drac_client, 'pywsman', spec_set=mock_specs.PYWSMAN_SPEC)
-@mock.patch.object(drac_power, 'pywsman', spec_set=mock_specs.PYWSMAN_SPEC)
-class DracPowerInternalMethodsTestCase(base.DbTestCase):
-
-    def setUp(self):
-        super(DracPowerInternalMethodsTestCase, self).setUp()
-        driver_info = INFO_DICT
-        self.node = db_utils.create_test_node(
-            driver='fake_drac',
-            driver_info=driver_info,
-            instance_uuid='instance_uuid_123')
-
-    def test__get_power_state(self, mock_power_pywsman, mock_client_pywsman):
-        result_xml = test_utils.build_soap_xml(
-            [{'EnabledState': '2'}], resource_uris.DCIM_ComputerSystem)
-        mock_xml = test_utils.mock_wsman_root(result_xml)
-        mock_pywsman_client = mock_client_pywsman.Client.return_value
-        mock_pywsman_client.enumerate.return_value = mock_xml
-
-        self.assertEqual(states.POWER_ON,
-                         drac_power._get_power_state(self.node))
-
-        mock_pywsman_client.enumerate.assert_called_once_with(
-            mock.ANY, mock.ANY, resource_uris.DCIM_ComputerSystem)
-
-    def test__set_power_state(self, mock_power_pywsman, mock_client_pywsman):
-        result_xml = test_utils.build_soap_xml(
-            [{'ReturnValue': drac_client.RET_SUCCESS}],
-            resource_uris.DCIM_ComputerSystem)
-        mock_xml = test_utils.mock_wsman_root(result_xml)
-        mock_pywsman_client = mock_client_pywsman.Client.return_value
-        mock_pywsman_client.invoke.return_value = mock_xml
-
-        mock_pywsman_clientopts = (
-            mock_client_pywsman.ClientOptions.return_value)
-
-        drac_power._set_power_state(self.node, states.POWER_ON)
-
-        mock_pywsman_clientopts.add_selector.assert_has_calls([
-            mock.call('CreationClassName', 'DCIM_ComputerSystem'),
-            mock.call('Name', 'srv:system')
-        ], any_order=True)
-        mock_pywsman_clientopts.add_property.assert_called_once_with(
-            'RequestedState', '2')
-
-        mock_pywsman_client.invoke.assert_called_once_with(
-            mock.ANY, resource_uris.DCIM_ComputerSystem,
-            'RequestStateChange', None)
-
-    def test__set_power_state_fail(self, mock_power_pywsman,
-                                   mock_client_pywsman):
-        result_xml = test_utils.build_soap_xml(
-            [{'ReturnValue': drac_client.RET_ERROR,
-              'Message': 'error message'}],
-            resource_uris.DCIM_ComputerSystem)
-
-        mock_xml = test_utils.mock_wsman_root(result_xml)
-        mock_pywsman_client = mock_client_pywsman.Client.return_value
-        mock_pywsman_client.invoke.return_value = mock_xml
-
-        mock_pywsman_clientopts = (
-            mock_client_pywsman.ClientOptions.return_value)
-
-        self.assertRaises(exception.DracOperationFailed,
-                          drac_power._set_power_state, self.node,
-                          states.POWER_ON)
-
-        mock_pywsman_clientopts.add_selector.assert_has_calls([
-            mock.call('CreationClassName', 'DCIM_ComputerSystem'),
-            mock.call('Name', 'srv:system')
-        ], any_order=True)
-        mock_pywsman_clientopts.add_property.assert_called_once_with(
-            'RequestedState', '2')
-
-        mock_pywsman_client.invoke.assert_called_once_with(
-            mock.ANY, resource_uris.DCIM_ComputerSystem,
-            'RequestStateChange', None)
-
-
+@mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                   autospec=True)
 class DracPowerTestCase(base.DbTestCase):
 
     def setUp(self):
         super(DracPowerTestCase, self).setUp()
-        driver_info = INFO_DICT
-        mgr_utils.mock_the_extension_manager(driver="fake_drac")
-        self.node = db_utils.create_test_node(
-            driver='fake_drac',
-            driver_info=driver_info,
-            instance_uuid='instance_uuid_123')
+        mgr_utils.mock_the_extension_manager(driver='fake_drac')
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake_drac',
+                                               driver_info=INFO_DICT)
 
-    def test_get_properties(self):
+    def test_get_properties(self, mock_get_drac_client):
         expected = drac_common.COMMON_PROPERTIES
         driver = drac_power.DracPower()
         self.assertEqual(expected, driver.get_properties())
 
-    @mock.patch.object(drac_power, '_get_power_state', spec_set=True,
-                       autospec=True)
-    def test_get_power_state(self, mock_get_power_state):
-        mock_get_power_state.return_value = states.POWER_ON
-        driver = drac_power.DracPower()
-        task = mock.Mock()
-        task.node.return_value = self.node
+    def test_get_power_state(self, mock_get_drac_client):
+        mock_client = mock_get_drac_client.return_value
+        mock_client.get_power_state.return_value = drac_constants.POWER_ON
 
-        self.assertEqual(states.POWER_ON, driver.get_power_state(task))
-        mock_get_power_state.assert_called_once_with(task.node)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            power_state = task.driver.power.get_power_state(task)
 
-    @mock.patch.object(drac_power, '_set_power_state', spec_set=True,
-                       autospec=True)
-    def test_set_power_state(self, mock_set_power_state):
+        self.assertEqual(states.POWER_ON, power_state)
+        mock_client.get_power_state.assert_called_once_with()
+
+    def test_get_power_state_fail(self, mock_get_drac_client):
+        mock_client = mock_get_drac_client.return_value
+        exc = drac_exceptions.BaseClientException('boom')
+        mock_client.get_power_state.side_effect = exc
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.DracOperationError,
+                              task.driver.power.get_power_state, task)
+
+        mock_client.get_power_state.assert_called_once_with()
+
+    def test_set_power_state(self, mock_get_drac_client):
+        mock_client = mock_get_drac_client.return_value
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.power.set_power_state(task, states.POWER_ON)
-            mock_set_power_state.assert_called_once_with(task.node,
-                                                         states.POWER_ON)
+            task.driver.power.set_power_state(task, states.POWER_OFF)
 
-    @mock.patch.object(drac_power, '_set_power_state', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(drac_power, '_get_power_state', spec_set=True,
-                       autospec=True)
-    def test_reboot(self, mock_get_power_state, mock_set_power_state):
-        mock_get_power_state.return_value = states.POWER_ON
+        drac_power_state = drac_power.REVERSE_POWER_STATES[states.POWER_OFF]
+        mock_client.set_power_state.assert_called_once_with(drac_power_state)
+
+    def test_set_power_state_fail(self, mock_get_drac_client):
+        mock_client = mock_get_drac_client.return_value
+        exc = drac_exceptions.BaseClientException('boom')
+        mock_client.set_power_state.side_effect = exc
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.DracOperationError,
+                              task.driver.power.set_power_state, task,
+                              states.POWER_OFF)
+
+        drac_power_state = drac_power.REVERSE_POWER_STATES[states.POWER_OFF]
+        mock_client.set_power_state.assert_called_once_with(drac_power_state)
+
+    def test_reboot_while_powered_on(self, mock_get_drac_client):
+        mock_client = mock_get_drac_client.return_value
+        mock_client.get_power_state.return_value = drac_constants.POWER_ON
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.power.reboot(task)
-            mock_set_power_state.assert_called_once_with(task.node,
-                                                         states.REBOOT)
 
-    @mock.patch.object(drac_power, '_set_power_state', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(drac_power, '_get_power_state', spec_set=True,
-                       autospec=True)
-    def test_reboot_in_power_off(self, mock_get_power_state,
-                                 mock_set_power_state):
-        mock_get_power_state.return_value = states.POWER_OFF
+        drac_power_state = drac_power.REVERSE_POWER_STATES[states.REBOOT]
+        mock_client.set_power_state.assert_called_once_with(drac_power_state)
+
+    def test_reboot_while_powered_off(self, mock_get_drac_client):
+        mock_client = mock_get_drac_client.return_value
+        mock_client.get_power_state.return_value = drac_constants.POWER_OFF
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.power.reboot(task)
-            mock_set_power_state.assert_called_once_with(task.node,
-                                                         states.POWER_ON)
+
+        drac_power_state = drac_power.REVERSE_POWER_STATES[states.POWER_ON]
+        mock_client.set_power_state.assert_called_once_with(drac_power_state)

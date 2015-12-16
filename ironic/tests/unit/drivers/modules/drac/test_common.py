@@ -17,6 +17,8 @@ Test class for common methods used by DRAC modules.
 
 from xml.etree import ElementTree
 
+import dracclient.client
+import mock
 from testtools.matchers import HasLength
 
 from ironic.common import exception
@@ -86,6 +88,15 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
         info = drac_common.parse_driver_info(node)
         self.assertEqual('https', info.get('drac_protocol'))
 
+    def test_parse_driver_info_invalid_protocol(self):
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake_drac',
+                                          driver_info=INFO_DICT)
+        node.driver_info['drac_protocol'] = 'foo'
+
+        self.assertRaises(exception.InvalidParameterValue,
+                          drac_common.parse_driver_info, node)
+
     def test_parse_driver_info_missing_username(self):
         node = obj_utils.create_test_node(self.context,
                                           driver='fake_drac',
@@ -101,6 +112,18 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
         del node.driver_info['drac_password']
         self.assertRaises(exception.InvalidParameterValue,
                           drac_common.parse_driver_info, node)
+
+    @mock.patch.object(dracclient.client, 'DRACClient', autospec=True)
+    def test_get_drac_client(self, mock_dracclient):
+        expected_call = mock.call('1.2.3.4', 'admin', 'fake', 443, '/wsman',
+                                  'https')
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake_drac',
+                                          driver_info=INFO_DICT)
+
+        drac_common.get_drac_client(node)
+
+        self.assertEqual(mock_dracclient.mock_calls, [expected_call])
 
     def test_find_xml(self):
         namespace = 'http://fake'

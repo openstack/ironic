@@ -22,6 +22,9 @@ from ironic.common.i18n import _
 from ironic.common import utils
 
 pywsman = importutils.try_import('pywsman')
+drac_client = importutils.try_import('dracclient.client')
+drac_constants = importutils.try_import('dracclient.constants')
+
 
 REQUIRED_PROPERTIES = {
     'drac_host': _('IP address or hostname of the DRAC card. Required.'),
@@ -74,6 +77,10 @@ def parse_driver_info(node):
     try:
         parsed_driver_info['drac_protocol'] = str(
             driver_info.get('drac_protocol', 'https'))
+
+        if parsed_driver_info['drac_protocol'] not in ['http', 'https']:
+            error_msgs.append(_("'drac_protocol' must be either 'http' or "
+                                "'https'."))
     except UnicodeEncodeError:
         error_msgs.append(_("'drac_protocol' contains non-ASCII symbol."))
 
@@ -87,6 +94,25 @@ def parse_driver_info(node):
         port, 'drac_port')
 
     return parsed_driver_info
+
+
+def get_drac_client(node):
+    """Returns a DRACClient object from python-dracclient library.
+
+    :param node: an ironic node object.
+    :returns: a DRACClient object.
+    :raises: InvalidParameterValue if mandatory information is missing on the
+             node or on invalid input.
+    """
+    driver_info = parse_driver_info(node)
+    client = drac_client.DRACClient(driver_info['drac_host'],
+                                    driver_info['drac_username'],
+                                    driver_info['drac_password'],
+                                    driver_info['drac_port'],
+                                    driver_info['drac_path'],
+                                    driver_info['drac_protocol'])
+
+    return client
 
 
 def find_xml(doc, item, namespace, find_all=False):

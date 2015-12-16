@@ -12,11 +12,10 @@
 # under the License.
 
 """
-DRAC Power Driver using the Base Server Profile
+DRAC power interface
 """
 
 from oslo_log import log as logging
-from oslo_utils import excutils
 from oslo_utils import importutils
 
 from ironic.common import exception
@@ -24,80 +23,74 @@ from ironic.common.i18n import _LE
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
-from ironic.drivers.modules.drac import client as drac_client
 from ironic.drivers.modules.drac import common as drac_common
-from ironic.drivers.modules.drac import resource_uris
 
-pywsman = importutils.try_import('pywsman')
+drac_constants = importutils.try_import('dracclient.constants')
+drac_exceptions = importutils.try_import('dracclient.exceptions')
 
 LOG = logging.getLogger(__name__)
 
-POWER_STATES = {
-    '2': states.POWER_ON,
-    '3': states.POWER_OFF,
-    '11': states.REBOOT,
-}
+if drac_constants:
+    POWER_STATES = {
+        drac_constants.POWER_ON: states.POWER_ON,
+        drac_constants.POWER_OFF: states.POWER_OFF,
+        drac_constants.REBOOT: states.REBOOT
+    }
 
-REVERSE_POWER_STATES = dict((v, k) for (k, v) in POWER_STATES.items())
+    REVERSE_POWER_STATES = dict((v, k) for (k, v) in POWER_STATES.items())
 
 
 def _get_power_state(node):
-    """Returns the current power state of the node
+    """Returns the current power state of the node.
 
-    :param node: The node.
-    :returns: power state, one of :mod: `ironic.common.states`.
-    :raises: DracClientError if the client received unexpected response.
+    :param node: an ironic node object.
+    :returns: the power state, one of :mod:`ironic.common.states`.
     :raises: InvalidParameterValue if required DRAC credentials are missing.
+    :raises: DracOperationError on an error from python-dracclient
     """
 
-    client = drac_client.get_wsman_client(node)
-    filter_query = ('select EnabledState,ElementName from DCIM_ComputerSystem '
-                    'where Name="srv:system"')
+    client = drac_common.get_drac_client(node)
+
     try:
-        doc = client.wsman_enumerate(resource_uris.DCIM_ComputerSystem,
-                                     filter_query=filter_query)
-    except exception.DracClientError as exc:
-        with excutils.save_and_reraise_exception():
-            LOG.error(_LE('DRAC driver failed to get power state for node '
-                          '%(node_uuid)s. Reason: %(error)s.'),
-                      {'node_uuid': node.uuid, 'error': exc})
+        drac_power_state = client.get_power_state()
+    except drac_exceptions.BaseClientException as exc:
+        LOG.error(_LE('DRAC driver failed to get power state for node '
+                      '%(node_uuid)s. Reason: %(error)s.'),
+                  {'node_uuid': node.uuid, 'error': exc})
+        raise exception.DracOperationError(error=exc)
 
-    enabled_state = drac_common.find_xml(doc, 'EnabledState',
-                                         resource_uris.DCIM_ComputerSystem)
-    return POWER_STATES[enabled_state.text]
+    return POWER_STATES[drac_power_state]
 
 
-def _set_power_state(node, target_state):
+def _set_power_state(node, power_state):
     """Turns the server power on/off or do a reboot.
 
     :param node: an ironic node object.
-    :param target_state: target state of the node.
-    :raises: DracClientError if the client received unexpected response.
-    :raises: InvalidParameterValue if an invalid power state was specified.
+    :param power_state: a power state from :mod:`ironic.common.states`.
+    :raises: InvalidParameterValue if required DRAC credentials are missing.
+    :raises: DracOperationError on an error from python-dracclient
     """
 
-    client = drac_client.get_wsman_client(node)
-    selectors = {'CreationClassName': 'DCIM_ComputerSystem',
-                 'Name': 'srv:system'}
-    properties = {'RequestedState': REVERSE_POWER_STATES[target_state]}
+    client = drac_common.get_drac_client(node)
+    target_power_state = REVERSE_POWER_STATES[power_state]
 
     try:
-        client.wsman_invoke(resource_uris.DCIM_ComputerSystem,
-                            'RequestStateChange', selectors, properties)
-    except exception.DracRequestFailed as exc:
-        with excutils.save_and_reraise_exception():
-            LOG.error(_LE('DRAC driver failed to set power state for node '
-                          '%(node_uuid)s to %(target_power_state)s. '
-                          'Reason: %(error)s.'),
-                      {'node_uuid': node.uuid,
-                       'target_power_state': target_state,
-                       'error': exc})
+        client.set_power_state(target_power_state)
+    except drac_exceptions.BaseClientException as exc:
+        LOG.error(_LE('DRAC driver failed to set power state for node '
+                      '%(node_uuid)s to %(power_state)s. '
+                      'Reason: %(error)s.'),
+                  {'node_uuid': node.uuid,
+                   'power_state': power_state,
+                   'error': exc})
+        raise exception.DracOperationError(error=exc)
 
 
 class DracPower(base.PowerInterface):
     """Interface for power-related actions."""
 
     def get_properties(self):
+        """Return the properties of the interface."""
         return drac_common.COMMON_PROPERTIES
 
     def validate(self, task):
@@ -114,39 +107,36 @@ class DracPower(base.PowerInterface):
         return drac_common.parse_driver_info(task.node)
 
     def get_power_state(self, task):
-        """Return the power state of the task's node.
+        """Return the power state of the node.
 
         :param task: a TaskManager instance containing the node to act on.
-        :returns: a power state. One of :mod:`ironic.common.states`.
-        :raises: DracClientError if the client received unexpected response.
+        :returns: the power state, one of :mod:`ironic.common.states`.
+        :raises: InvalidParameterValue if required DRAC credentials are
+                 missing.
+        :raises: DracOperationError on an error from python-dracclient.
         """
         return _get_power_state(task.node)
 
     @task_manager.require_exclusive_lock
     def set_power_state(self, task, power_state):
-        """Set the power state of the task's node.
+        """Set the power state of the node.
 
         :param task: a TaskManager instance containing the node to act on.
-        :param power_state: Any power state from :mod:`ironic.common.states`.
-        :raises: DracClientError if the client received unexpected response.
-        :raises: DracOperationFailed if the client received response with an
-                 error message.
-        :raises: DracUnexpectedReturnValue if the client received a response
-                 with unexpected return value.
-
+        :param power_state: a power state from :mod:`ironic.common.states`.
+        :raises: InvalidParameterValue if required DRAC credentials are
+                 missing.
+        :raises: DracOperationError on an error from python-dracclient.
         """
         _set_power_state(task.node, power_state)
 
     @task_manager.require_exclusive_lock
     def reboot(self, task):
-        """Perform a hard reboot of the task's node.
+        """Perform a reboot of the task's node.
 
         :param task: a TaskManager instance containing the node to act on.
-        :raises: DracClientError if the client received unexpected response.
-        :raises: DracOperationFailed if the client received response with an
-                 error message.
-        :raises: DracUnexpectedReturnValue if the client received a response
-                 with unexpected return value.
+        :raises: InvalidParameterValue if required DRAC credentials are
+                 missing.
+        :raises: DracOperationError on an error from python-dracclient.
         """
 
         current_power_state = _get_power_state(task.node)
