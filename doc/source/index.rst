@@ -68,6 +68,8 @@ Developer's Guide
   dev/code-contribution-guide
   dev/dev-quickstart
   dev/vendor-passthru
+  dev/ironic-multitenant-networking
+
   dev/faq
 
 Indices and tables
