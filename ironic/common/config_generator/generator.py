@@ -150,7 +150,7 @@ def _import_module(mod_str):
         else:
             return importutils.import_module(mod_str)
     except Exception as e:
-        sys.stderr.write("Error importing module %s: %s\n" % (mod_str, str(e)))
+        sys.stderr.write("Error importing module %s: %s\n" % (mod_str, e))
         return None
 
 
@@ -271,7 +271,7 @@ def _print_opt(opt, group):
     try:
         opt_type = OPTION_REGEX.search(str(type(opt))).group(0)
     except (ValueError, AttributeError) as err:
-        sys.stderr.write("%s\n" % str(err))
+        sys.stderr.write("%s\n" % err)
         sys.exit(1)
     opt_help = u'%s (%s)' % (opt_help,
                              OPT_TYPES[opt_type])
@@ -292,13 +292,13 @@ def _print_opt(opt, group):
             _print_type(opt_type, opt_name, opt_default)
         print('')
     except Exception as e:
-        sys.stderr.write('Error in option "%s": %s\n' % (opt_name, str(e)))
+        sys.stderr.write('Error in option "%s": %s\n' % (opt_name, e))
         sys.exit(1)
 
 
 def _print_type(opt_type, opt_name, opt_default):
     if opt_type == OPT:
-        print('#%s=%s' % (opt_name, str(opt_default)))
+        print('#%s=%s' % (opt_name, opt_default))
     elif opt_type == STROPT:
         assert(isinstance(opt_default, six.string_types))
         print('#%s=%s' % (opt_name, _sanitize_default(opt_name,
