@@ -390,10 +390,10 @@ function configure_ironic_conductor {
         iniset $IRONIC_CONF_FILE agent heartbeat_timeout 30
     fi
 
-    # FIXME: this really needs to be tested in the gate.
-    # For now, any test using the agent ramdisk should skip cleaning
-    # because it is too slow to run in the gate.
-    iniset $IRONIC_CONF_FILE agent agent_erase_devices_priority 0
+    # FIXME: this really needs to be tested in the gate.  For now, any
+    # test using the agent ramdisk should skip the erase_devices clean
+    # step  because it is too slow to run in the gate.
+    iniset $IRONIC_CONF_FILE deploy erase_devices_priority 0
 
     if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
         local pxebin
