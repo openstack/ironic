@@ -576,7 +576,7 @@ function setup_qemu_log_hook {
 
 function create_bridge_and_vms {
     # Call libvirt setup scripts in a new shell to ensure any new group membership
-    sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/setup-network"
+    sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/setup-network.sh"
     if [[ "$IRONIC_VM_LOG_CONSOLE" == "True" ]] ; then
         local log_arg="$IRONIC_VM_LOG_DIR"
 
@@ -588,7 +588,7 @@ function create_bridge_and_vms {
     fi
     local vm_name
     for vm_name in $(_ironic_bm_vm_names); do
-        sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/create-node $vm_name \
+        sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/create-node.sh $vm_name \
             $IRONIC_VM_SPECS_CPU $IRONIC_VM_SPECS_RAM $IRONIC_VM_SPECS_DISK \
             amd64 $IRONIC_VM_NETWORK_BRIDGE $IRONIC_VM_EMULATOR \
             $log_arg" >> $IRONIC_VM_MACS_CSV_FILE
@@ -880,7 +880,7 @@ function cleanup_baremetal_basic_ops {
 
     local vm_name
     for vm_name in $(_ironic_bm_vm_names); do
-        sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/cleanup-node $vm_name $IRONIC_VM_NETWORK_BRIDGE"
+        sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/cleanup-node.sh $vm_name $IRONIC_VM_NETWORK_BRIDGE"
     done
 
     sudo rm -rf /etc/xinetd.d/tftp /etc/init/tftpd-hpa.override
