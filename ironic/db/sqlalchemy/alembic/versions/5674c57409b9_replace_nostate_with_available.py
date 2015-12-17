@@ -43,10 +43,3 @@ def upgrade():
         node.update().where(
             node.c.provision_state == null()).values(
                 {'provision_state': op.inline_literal(AVAILABLE)}))
-
-
-def downgrade():
-    op.execute(
-        node.update().where(
-            node.c.provision_state == op.inline_literal(AVAILABLE)).values(
-                {'provision_state': None}))

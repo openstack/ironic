@@ -30,8 +30,3 @@ def upgrade():
     op.add_column('nodes', sa.Column('name', sa.String(length=63),
                   nullable=True))
     op.create_unique_constraint('uniq_nodes0name', 'nodes', ['name'])
-
-
-def downgrade():
-    op.drop_constraint('uniq_nodes0name', 'nodes', type_='unique')
-    op.drop_column('nodes', 'name')

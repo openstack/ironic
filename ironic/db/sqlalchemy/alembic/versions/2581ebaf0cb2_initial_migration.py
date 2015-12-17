@@ -99,8 +99,3 @@ def upgrade():
         mysql_DEFAULT_CHARSET='UTF8'
     )
     # end Alembic commands
-
-
-def downgrade():
-    raise NotImplementedError(('Downgrade from initial migration is'
-                              ' unsupported.'))

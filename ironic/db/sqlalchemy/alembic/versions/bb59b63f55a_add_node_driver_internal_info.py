@@ -30,7 +30,3 @@ def upgrade():
     op.add_column('nodes', sa.Column('driver_internal_info',
                                      sa.Text(),
                                      nullable=True))
-
-
-def downgrade():
-    op.drop_column('nodes', 'driver_internal_info')

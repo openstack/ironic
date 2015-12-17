@@ -98,7 +98,7 @@ def patch_with_engine(engine):
 
 
 class WalkVersionsMixin(object):
-    def _walk_versions(self, engine=None, alembic_cfg=None, downgrade=True):
+    def _walk_versions(self, engine=None, alembic_cfg=None):
         # Determine latest version script from the repo, then
         # upgrade from 1 through to the latest, with no data
         # in the databases. This just checks that the schema itself
@@ -116,31 +116,6 @@ class WalkVersionsMixin(object):
             for version in reversed(versions):
                 self._migrate_up(engine, alembic_cfg,
                                  version.revision, with_data=True)
-
-            if downgrade:
-                for version in versions:
-                    self._migrate_down(engine, alembic_cfg, version.revision)
-
-    def _migrate_down(self, engine, config, version, with_data=False):
-        try:
-            self.migration_api.downgrade(version, config=config)
-        except NotImplementedError:
-            # NOTE(sirp): some migrations, namely release-level
-            # migrations, don't support a downgrade.
-            return False
-
-        self.assertEqual(version, self.migration_api.version(config))
-
-        # NOTE(sirp): `version` is what we're downgrading to (i.e. the 'target'
-        # version). So if we have any downgrade checks, they need to be run for
-        # the previous (higher numbered) migration.
-        if with_data:
-            post_downgrade = getattr(
-                self, "_post_downgrade_%s" % (version), None)
-            if post_downgrade:
-                post_downgrade(engine)
-
-        return True
 
     def _migrate_up(self, engine, config, version, with_data=False):
         """migrate up to a new version of the db.
@@ -201,29 +176,9 @@ class TestWalkVersions(base.TestCase, WalkVersionsMixin):
         self._pre_upgrade_141.assert_called_with(self.engine)
         self._check_141.assert_called_with(self.engine, test_value)
 
-    def test_migrate_down(self):
-        self.migration_api.version.return_value = '42'
-
-        self.assertTrue(self._migrate_down(self.engine, self.config, '42'))
-        self.migration_api.version.assert_called_with(self.config)
-
-    def test_migrate_down_not_implemented(self):
-        self.migration_api.downgrade.side_effect = NotImplementedError
-        self.assertFalse(self._migrate_down(self.engine, self.config, '42'))
-
-    def test_migrate_down_with_data(self):
-        self._post_downgrade_043 = mock.MagicMock()
-        self.migration_api.version.return_value = '043'
-
-        self._migrate_down(self.engine, self.config, '043', True)
-
-        self._post_downgrade_043.assert_called_with(self.engine)
-
     @mock.patch.object(script, 'ScriptDirectory')
     @mock.patch.object(WalkVersionsMixin, '_migrate_up')
-    @mock.patch.object(WalkVersionsMixin, '_migrate_down')
-    def test_walk_versions_all_default(self, _migrate_up, _migrate_down,
-                                       script_directory):
+    def test_walk_versions_all_default(self, _migrate_up, script_directory):
         fc = script_directory.from_config()
         fc.walk_revisions.return_value = self.versions
         self.migration_api.version.return_value = None
@@ -236,20 +191,14 @@ class TestWalkVersions(base.TestCase, WalkVersionsMixin):
                     with_data=True) for v in reversed(self.versions)]
         self.assertEqual(self._migrate_up.call_args_list, upgraded)
 
-        downgraded = [mock.call(self.engine, self.config, v.revision)
-                      for v in self.versions]
-        self.assertEqual(self._migrate_down.call_args_list, downgraded)
-
     @mock.patch.object(script, 'ScriptDirectory')
     @mock.patch.object(WalkVersionsMixin, '_migrate_up')
-    @mock.patch.object(WalkVersionsMixin, '_migrate_down')
-    def test_walk_versions_all_false(self, _migrate_up, _migrate_down,
-                                     script_directory):
+    def test_walk_versions_all_false(self, _migrate_up, script_directory):
         fc = script_directory.from_config()
         fc.walk_revisions.return_value = self.versions
         self.migration_api.version.return_value = None
 
-        self._walk_versions(self.engine, self.config, downgrade=False)
+        self._walk_versions(self.engine, self.config)
 
         upgraded = [mock.call(self.engine, self.config, v.revision,
                     with_data=True) for v in reversed(self.versions)]
@@ -264,7 +213,7 @@ class MigrationCheckersMixin(object):
         self.migration_api = migration
 
     def test_walk_versions(self):
-        self._walk_versions(self.engine, self.config, downgrade=False)
+        self._walk_versions(self.engine, self.config)
 
     def test_connect_fail(self):
         """Test that we can trigger a database connection failure

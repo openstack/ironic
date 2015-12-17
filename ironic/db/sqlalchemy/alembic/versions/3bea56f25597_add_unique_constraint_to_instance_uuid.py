@@ -32,8 +32,3 @@ def upgrade():
     op.create_unique_constraint("uniq_nodes0instance_uuid", "nodes",
                                 ["instance_uuid"])
     op.drop_index('node_instance_uuid', 'nodes')
-
-
-def downgrade():
-    op.drop_constraint("uniq_nodes0instance_uuid", "nodes", type_='unique')
-    op.create_index('node_instance_uuid', 'nodes', ['instance_uuid'])

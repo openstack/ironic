@@ -30,7 +30,3 @@ def upgrade():
     op.alter_column('nodes', 'driver',
                     existing_type=sa.String(length=15),
                     type_=sa.String(length=255))
-
-
-def downgrade():
-    pass

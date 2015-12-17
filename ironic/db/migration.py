@@ -36,10 +36,6 @@ def upgrade(version=None):
     return get_backend().upgrade(version)
 
 
-def downgrade(version=None):
-    return get_backend().downgrade(version)
-
-
 def version():
     return get_backend().version()
 
