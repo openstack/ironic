@@ -265,6 +265,29 @@ class BaremetalClient(base.BaremetalClient):
                                  target)
 
     @base.handle_errors
+    def set_node_provision_state(self, node_uuid, state, configdrive=None):
+        """Set provision state of the specified node.
+
+        :param node_uuid: The unique identifier of the node.
+        :state: desired state to set
+                (active/rebuild/deleted/inspect/manage/provide).
+        :config_drive: A gzipped, base64-encoded configuration drive string.
+        """
+        data = {'target': state, 'configdrive': configdrive}
+        return self._put_request('nodes/%s/states/provision' % node_uuid,
+                                 data)
+
+    @base.handle_errors
+    def set_node_raid_config(self, node_uuid, target_raid_config):
+        """Set raid config of the specified node.
+
+        :param node_uuid: The unique identifier of the node.
+        :target_raid_config: desired RAID configuration of the node.
+        """
+        return self._put_request('nodes/%s/states/raid' % node_uuid,
+                                 target_raid_config)
+
+    @base.handle_errors
     def validate_driver_interface(self, node_uuid):
         """Get all driver interfaces of a specific node.
 

@@ -15,7 +15,10 @@ import functools
 from oslo_serialization import jsonutils as json
 import six
 from six.moves.urllib import parse as urllib
+from tempest.lib.common import api_version_utils
 from tempest.lib.common import rest_client
+
+BAREMETAL_MICROVERSION = None
 
 
 def handle_errors(f):
@@ -41,7 +44,26 @@ def handle_errors(f):
 class BaremetalClient(rest_client.RestClient):
     """Base Tempest REST client for Ironic API."""
 
+    api_microversion_header_name = 'X-OpenStack-Ironic-API-Version'
     uri_prefix = ''
+
+    def get_headers(self):
+        headers = super(BaremetalClient, self).get_headers()
+        if BAREMETAL_MICROVERSION:
+            headers[self.api_microversion_header_name] = BAREMETAL_MICROVERSION
+        return headers
+
+    def request(self, method, url, extra_headers=False, headers=None,
+                body=None):
+        resp, resp_body = super(BaremetalClient, self).request(
+            method, url, extra_headers, headers, body)
+        if (BAREMETAL_MICROVERSION and
+            BAREMETAL_MICROVERSION != api_version_utils.LATEST_MICROVERSION):
+            api_version_utils.assert_version_header_matches_request(
+                self.api_microversion_header_name,
+                BAREMETAL_MICROVERSION,
+                resp)
+        return resp, resp_body
 
     def serialize(self, object_dict):
         """Serialize an Ironic object."""

@@ -66,4 +66,20 @@ BaremetalGroup = [
     #            help="Timeout for unprovisioning an Ironic node. "
     #                 "Takes longer since Kilo as Ironic performs an extra "
     #                 "step in Node cleaning.")
+    cfg.StrOpt('min_microversion',
+               default=None,
+               help="Lower version of the test target microversion range. "
+                    "The format is 'X.Y', where 'X' and 'Y' are int values. "
+                    "Tempest selects tests based on the range between "
+                    "min_microversion and max_microversion. "
+                    "If both values are None, Tempest avoids tests which "
+                    "require a microversion."),
+    cfg.StrOpt('max_microversion',
+               default='latest',
+               help="Upper version of the test target microversion range. "
+                    "The format is 'X.Y', where 'X' and 'Y' are int values. "
+                    "Tempest selects tests based on the range between "
+                    "min_microversion and max_microversion. "
+                    "If both values are None, Tempest avoids tests which "
+                    "require a microversion."),
 ]
