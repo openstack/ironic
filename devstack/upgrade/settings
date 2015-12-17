@@ -1,0 +1,5 @@
+# eventually this will be handled by this being in the ironic tree
+if is_service_enabled ir-api; then
+   register_project_for_upgrade ironic
+   register_db_to_save ironic
+fi
