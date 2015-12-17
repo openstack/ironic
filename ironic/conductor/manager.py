@@ -1335,7 +1335,7 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         """
         # NOTE(dtantsur): we allow deleting a node in maintenance mode even if
-        # we would disallow it otherwise. That's done for recoveting hopelessly
+        # we would disallow it otherwise. That's done for recovering hopelessly
         # broken nodes (e.g. with broken BMC).
         with task_manager.acquire(context, node_id,
                                   purpose='node deletion') as task:
