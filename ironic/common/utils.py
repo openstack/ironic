@@ -231,6 +231,43 @@ def is_hostname_safe(hostname):
     return _is_hostname_safe_re.match(hostname) is not None
 
 
+def is_valid_no_proxy(no_proxy):
+    """Check no_proxy validity
+
+    Check if no_proxy value that will be written to environment variable by
+    ironic-python-agent is valid.
+
+    :param no_proxy: the value that requires validity check. Expected to be a
+        comma-separated list of host names, IP addresses and domain names
+        (with optional :port).
+    :returns: True if no_proxy is valid, False otherwise.
+    """
+    if not isinstance(no_proxy, six.string_types):
+        return False
+    hostname_re = re.compile('(?!-)[A-Z\d-]{1,63}(?<!-)$', re.IGNORECASE)
+    for hostname in no_proxy.split(','):
+        hostname = hostname.strip().split(':')[0]
+        if not hostname:
+            continue
+        max_length = 253
+        if hostname.startswith('.'):
+            # It is allowed to specify a dot in the beginning of the value to
+            # indicate that it is a domain name, which means there will be at
+            # least one additional character in full hostname. *. is also
+            # possible but may be not supported by some clients, so is not
+            # considered valid here.
+            hostname = hostname[1:]
+            max_length = 251
+
+        if len(hostname) > max_length:
+            return False
+
+        if not all(hostname_re.match(part) for part in hostname.split('.')):
+            return False
+
+    return True
+
+
 def validate_and_normalize_mac(address):
     """Validate a MAC address and return normalized form.
 

@@ -443,6 +443,34 @@ class GenericUtilsTestCase(base.TestCase):
                          utils.unix_file_modification_datetime('foo'))
         mtime_mock.assert_called_once_with('foo')
 
+    def test_is_valid_no_proxy(self):
+        proxy0 = 'a' * 63 + '.' + '0' * 63 + '.c.' + 'd' * 61 + '.' + 'e' * 61
+        proxy1 = 'A' * 63 + '.' + '0' * 63 + '.C.' + 'D' * 61 + '.' + 'E' * 61
+        proxy2 = ('A' * 64 + '.' + '0' * 63 + '.C.' + 'D' * 61 + '.' +
+                  'E' * 61)  # too long (> 253)
+        proxy3 = 'a' * 100
+        proxy4 = 'a..com'
+        proxy5 = ('.' + 'a' * 62 + '.' + '0' * 62 + '.c.' + 'd' * 61 + '.' +
+                  'e' * 61)
+        proxy6 = ('.' + 'a' * 63 + '.' + '0' * 62 + '.c.' + 'd' * 61 + '.' +
+                  'e' * 61)  # too long (> 251 after deleting .)
+        proxy7 = ('*.' + 'a' * 60 + '.' + '0' * 60 + '.c.' + 'd' * 61 + '.' +
+                  'e' * 61)  # starts with *.
+        proxy8 = 'c.-a.com'
+        proxy9 = 'c.a-.com'
+        proxy10 = ',,example.com:3128,'
+        valid_with_whitespaces = ' , '.join([proxy0, proxy1, proxy5, proxy10])
+        all_valid = ','.join([proxy0, proxy1, proxy5, proxy10])
+        self.assertTrue(utils.is_valid_no_proxy(all_valid))
+        self.assertTrue(utils.is_valid_no_proxy(valid_with_whitespaces))
+        self.assertFalse(utils.is_valid_no_proxy(proxy2))
+        self.assertFalse(utils.is_valid_no_proxy(proxy3))
+        self.assertFalse(utils.is_valid_no_proxy(proxy4))
+        self.assertFalse(utils.is_valid_no_proxy(proxy6))
+        self.assertFalse(utils.is_valid_no_proxy(proxy7))
+        self.assertFalse(utils.is_valid_no_proxy(proxy8))
+        self.assertFalse(utils.is_valid_no_proxy(proxy9))
+
 
 class MkfsTestCase(base.TestCase):
 
