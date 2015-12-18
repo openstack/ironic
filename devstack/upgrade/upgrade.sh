@@ -49,8 +49,8 @@ set -o xtrace
 
 function is_nova_migration {
     # Deterine whether we're "upgrading" from another compute driver
-    local old_driver=$(source $BASE_DEVSTACK_DIR/functions; source $BASE_DEVSTACK_DIR/localrc; echo $VIRT_DRIVER)
-    [ "$old_driver" != "ironic" ]
+    _ironic_old_driver=$(source $BASE_DEVSTACK_DIR/functions; source $BASE_DEVSTACK_DIR/localrc; echo $VIRT_DRIVER)
+    [ "$_ironic_old_driver" != "ironic" ]
 }
 
 # Duplicate all required devstack setup that is needed before starting
