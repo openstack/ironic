@@ -30,13 +30,16 @@ Install prerequisites (for python 2.7):
 
     sudo yum install python-devel openssl-devel python-pip mysql-devel libxml2-devel libxslt-devel postgresql-devel git git-review libffi-devel gettext ipmitool psmisc graphviz gcc libjpeg-turbo-devel
 
+  If using RHEL and yum reports "No package python-pip available" and "No
+  package git-review available", use the EPEL software repository.
+  Instructions can be found at `<http://fedoraproject.org/wiki/EPEL/FAQ#howtouse>`_.
+
 - Fedora 22 or higher::
 
     sudo dnf install python-devel openssl-devel python-pip mysql-devel libxml2-devel libxslt-devel postgresql-devel git git-review libffi-devel gettext ipmitool psmisc graphviz gcc libjpeg-turbo-devel
 
-  If using RHEL and yum reports "No package python-pip available" and "No
-  package git-review available", use the EPEL software repository.
-  Instructions can be found at `<http://fedoraproject.org/wiki/EPEL/FAQ#howtouse>`_.
+  Additionally, if using Fedora 23, ``redhat-rpm-config`` package should be
+  installed so that development virtualenv can be built successfully.
 
 - openSUSE/SLE 12::
 
