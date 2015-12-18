@@ -31,7 +31,7 @@ from oslo_utils import excutils
 import six
 
 from ironic.common import exception
-from ironic.common.i18n import _LE, _LW
+from ironic.common.i18n import _, _LE, _LW
 from ironic.common import raid
 
 LOG = logging.getLogger(__name__)
