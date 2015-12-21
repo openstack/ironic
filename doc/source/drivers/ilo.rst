@@ -713,16 +713,18 @@ The following iLO drivers support node cleaning -
 * ``iscsi_ilo``
 * ``agent_ilo``
 
-Supported Cleaning Operations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+For more information on node cleaning, see :ref:`cleaning`
 
-* The cleaning operations supported are:
+Supported **Automated** Cleaning Operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* The automated cleaning operations supported are:
 
   -``reset_ilo``:
     Resets the iLO. By default, enabled with priority 1.
   -``reset_bios_to_default``:
-    Resets system ROM sttings to default. By default, enabled with priority 10.
-    This clean step is supported only on Gen9 and above servers.
+    Resets system ROM settings to default. By default, enabled with priority
+    10. This clean step is supported only on Gen9 and above servers.
   -``reset_secure_boot_keys_to_default``:
     Resets secure boot keys to manufacturer's defaults. This step is supported
     only on Gen9 and above servers. By default, enabled with priority 20 .
@@ -736,15 +738,16 @@ Supported Cleaning Operations
 * For in-band cleaning operations supported by ``agent_ilo`` driver, see
   :ref:`InbandvsOutOfBandCleaning`.
 
-* All the cleaning steps have an explicit configuration option for priority.
-  In order to disable or change the priority of the clean steps, respective
-  configuration option for priority should be updated in ironic.conf.
+* All the automated cleaning steps have an explicit configuration option for
+  priority. In order to disable or change the priority of the automated clean
+  steps, respective configuration option for priority should be updated in
+  ironic.conf.
 
 * Updating clean step priority to 0, will disable that particular clean step
-  and will not run during cleaning.
+  and will not run during automated cleaning.
 
-* Configuration Options for the clean steps are listed under ``[ilo]`` section in
-  ironic.conf ::
+* Configuration Options for the automated clean steps are listed under
+  ``[ilo]`` section in ironic.conf ::
 
   - clean_priority_reset_ilo=1
   - clean_priority_reset_bios_to_default=10
@@ -753,7 +756,31 @@ Supported Cleaning Operations
   - clean_priority_reset_ilo_credential=30
   - clean_priority_erase_devices=10
 
-For more information on node cleaning, see :ref:`cleaning`
+For more information on node automated cleaning, see :ref:`automated_cleaning`
+
+Supported **Manual** Cleaning Operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* The manual cleaning operations supported are:
+
+  -``activate_license``:
+    Activates the iLO Advanced license. This is an out-of-band manual cleaning
+    step associated with ``management`` interface. See
+    `Activating iLO Advanced license as manual clean step`_ for user guidance
+    on usage. Please note that this operation cannot be performed using virtual
+    media based drivers like ``iscsi_ilo`` and ``agent_ilo`` as they need this
+    type of advanced license already active to use virtual media to boot into
+    to start cleaning operation. Virtual media is an advanced feature. If an
+    advanced license is already active and the user wants to overwrite the
+    current license key, for example in case of a multi-server activation key
+    delivered with a flexible-quantity kit or after completing an Activation
+    Key Agreement (AKA), then these drivers can still be used for executing
+    this cleaning step.
+
+* iLO with firmware version 1.5 is minimally required to support all the
+  operations.
+
+For more information on node manual cleaning, see :ref:`manual_cleaning`
 
 Hardware Inspection Support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1206,3 +1233,33 @@ Localboot in standalone ironic
       Conductor -> Baremetal [label = "Power on the node"];
       Baremetal -> Baremetal [label = "Boot user image from disk"];
    }
+
+Activating iLO Advanced license as manual clean step
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+iLO drivers can activate the iLO Advanced license key as a manual cleaning
+step. Any manual cleaning step can only be initiated when a node is in the
+``manageable`` state. Once the manual cleaning is finished, the node will be
+put in the ``manageable`` state again. User can follow steps from
+:ref:`manual_cleaning` to initiate manual cleaning operation on a node.
+
+An example of a manual clean step to activate license as the only clean step
+could be::
+
+    'clean_steps': [{
+        'interface': 'management',
+        'step': 'activate_license',
+        'args': {
+            'ilo_license_key': 'ABC12-XXXXX-XXXXX-XXXXX-YZ345'
+        }
+    }]
+
+The different attributes of ``activate_license`` clean step are as follows:
+
+  .. csv-table::
+   :header: "Attribute", "Description"
+   :widths: 30, 120
+
+   "``interface``", "Interface of clean step, here ``management``"
+   "``step``", "Name of clean step, here ``activate_license``"
+   "``args``", "Keyword-argument entry (<name>: <value>) being passed to clean step"
+   "``args.ilo_license_key``", "The HPE iLO Advanced license key to activate enterprise features. This is mandatory."
