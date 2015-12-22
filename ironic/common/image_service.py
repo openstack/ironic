@@ -51,6 +51,7 @@ glance_opts = [
                 help=_('Default glance port.')),
     cfg.StrOpt('glance_protocol',
                default='http',
+               choices=['http', 'https'],
                help=_('Default protocol to use when connecting to glance. '
                       'Set to https for SSL.')),
     cfg.ListOpt('glance_api_servers',
@@ -67,6 +68,7 @@ glance_opts = [
                       'glance.')),
     cfg.StrOpt('auth_strategy',
                default='keystone',
+               choices=['keystone', 'noauth'],
                help=_('Authentication strategy to use when connecting to '
                       'glance. Only "keystone" and "noauth" are currently '
                       'supported by ironic.')),

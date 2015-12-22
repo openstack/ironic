@@ -209,3 +209,8 @@ class AwakeAMTInterfaceTestCase(db_base.DbTestCase):
         CONF.set_override('awake_interval', 0, 'amt')
         amt_common.awake_amt_interface(self.node)
         self.assertFalse(mock_ex.called)
+
+    def test_out_range_protocol(self):
+        self.assertRaises(ValueError, cfg.CONF.set_override,
+                          'protocol', 'fake', 'amt',
+                          enforce_type=True)

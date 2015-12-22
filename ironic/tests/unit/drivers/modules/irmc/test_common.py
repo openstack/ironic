@@ -18,6 +18,8 @@ Test class for common methods used by iRMC modules.
 
 import mock
 
+from oslo_config import cfg
+
 from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers.modules.irmc import common as irmc_common
@@ -166,3 +168,15 @@ class IRMCCommonMethodsTestCase(db_base.DbTestCase):
             auth_method=self.info['irmc_auth_method'],
             client_timeout=self.info['irmc_client_timeout'])
         self.assertEqual('get_report', returned_mock_scci_get_report)
+
+    def test_out_range_port(self):
+        self.assertRaises(ValueError, cfg.CONF.set_override,
+                          'port', 60, 'irmc', enforce_type=True)
+
+    def test_out_range_auth_method(self):
+        self.assertRaises(ValueError, cfg.CONF.set_override,
+                          'auth_method', 'fake', 'irmc', enforce_type=True)
+
+    def test_out_range_sensor_method(self):
+        self.assertRaises(ValueError, cfg.CONF.set_override,
+                          'sensor_method', 'fake', 'irmc', enforce_type=True)

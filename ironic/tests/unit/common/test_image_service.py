@@ -15,6 +15,7 @@ import os
 import shutil
 
 import mock
+from oslo_config import cfg
 import requests
 import sendfile
 import six
@@ -330,3 +331,13 @@ class ServiceGetterTestCase(base.TestCase):
         image_href = 'usenet://alt.binaries.dvd/image.qcow2'
         self.assertRaises(exception.ImageRefValidationFailed,
                           image_service.get_image_service, image_href)
+
+    def test_out_range_auth_strategy(self):
+        self.assertRaises(ValueError, cfg.CONF.set_override,
+                          'auth_strategy', 'fake', 'glance',
+                          enforce_type=True)
+
+    def test_out_range_glance_protocol(self):
+        self.assertRaises(ValueError, cfg.CONF.set_override,
+                          'glance_protocol', 'fake', 'glance',
+                          enforce_type=True)

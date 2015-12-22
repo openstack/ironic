@@ -15,8 +15,10 @@
 #    under the License.
 
 import mock
+
 from neutronclient.common import exceptions as neutron_client_exc
 from neutronclient.v2_0 import client
+from oslo_config import cfg
 from oslo_utils import uuidutils
 
 from ironic.common import dhcp_factory
@@ -62,13 +64,6 @@ class TestNeutron(db_base.DbTestCase):
                              'mac_address': '52:54:00:cf:2d:32'}
 
         dhcp_factory.DHCPFactory._dhcp_provider = None
-
-    def test__build_client_invalid_auth_strategy(self):
-        self.config(auth_strategy='wrong_config', group='neutron')
-        token = 'test-token-123'
-        self.assertRaises(exception.ConfigInvalid,
-                          neutron._build_client,
-                          token=token)
 
     @mock.patch.object(client.Client, "__init__")
     def test__build_client_with_token(self, mock_client_init):
@@ -487,3 +482,8 @@ class TestNeutron(db_base.DbTestCase):
             list_mock.assert_called_once_with(
                 network_id='00000000-0000-0000-0000-000000000000')
             delete_mock.assert_called_once_with(self.neutron_port['id'])
+
+    def test_out_range_auth_strategy(self):
+        self.assertRaises(ValueError, cfg.CONF.set_override,
+                          'auth_strategy', 'fake', 'neutron',
+                          enforce_type=True)
