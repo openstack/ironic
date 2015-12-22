@@ -47,7 +47,7 @@ neutron_opts = [
                default='keystone',
                choices=['keystone', 'noauth'],
                help=_('Default authentication strategy to use when connecting '
-                      'to neutron. Can be either "keystone" or "noauth". '
+                      'to neutron. '
                       'Running neutron in noauth mode (related to but not '
                       'affected by this setting) is insecure and should only '
                       'be used for testing.')),

@@ -59,7 +59,7 @@ opts = [
                default='CIFS',
                choices=['CIFS', 'NFS'],
                ignore_case=True,
-               help=_('Share type of virtual media, either "NFS" or "CIFS"')),
+               help=_('Share type of virtual media')),
     cfg.StrOpt('remote_image_share_name',
                default='share',
                help=_('share name of remote_image_server')),

@@ -51,8 +51,7 @@ opts = [
     cfg.StrOpt('protocol',
                default='http',
                choices=['http', 'https'],
-               help=_('Protocol used for AMT endpoint, '
-                      'support http/https')),
+               help=_('Protocol used for AMT endpoint')),
     cfg.IntOpt('awake_interval',
                default=60,
                min=0,

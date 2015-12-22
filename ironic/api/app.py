@@ -31,9 +31,9 @@ api_opts = [
         'auth_strategy',
         default='keystone',
         choices=['noauth', 'keystone'],
-        help=_('Authentication strategy used by ironic-api: one of "keystone" '
-               'or "noauth". "noauth" should not be used in a production '
-               'environment because all authentication will be disabled.')),
+        help=_('Authentication strategy used by ironic-api. "noauth" should '
+               'not be used in a production environment because all '
+               'authentication will be disabled.')),
     cfg.BoolOpt('debug_tracebacks_in_api',
                 default=False,
                 help=_('Return server tracebacks in the API response for any '

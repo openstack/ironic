@@ -4,10 +4,9 @@
 # Options defined in ironic.api.app
 #
 
-# Authentication strategy used by ironic-api: one of
-# "keystone" or "noauth". "noauth" should not be used in a
-# production environment because all authentication will be
-# disabled. (string value)
+# Authentication strategy used by ironic-api. "noauth" should
+# not be used in a production environment because all
+# authentication will be disabled. (string value)
 # Possible values: noauth, keystone
 #auth_strategy=keystone
 
@@ -281,6 +280,7 @@
 #rpc_zmq_bind_address=*
 
 # MatchMaker driver. (string value)
+# Possible values: redis, dummy
 #rpc_zmq_matchmaker=redis
 
 # Type of concurrency used. Either "native" or "eventlet"
@@ -468,8 +468,7 @@
 # Options defined in ironic.drivers.modules.amt.common
 #
 
-# Protocol used for AMT endpoint, support http/https (string
-# value)
+# Protocol used for AMT endpoint (string value)
 # Possible values: http, https
 #protocol=http
 
@@ -1093,8 +1092,7 @@
 #glance_num_retries=0
 
 # Authentication strategy to use when connecting to glance.
-# Only "keystone" and "noauth" are currently supported by
-# ironic. (string value)
+# (string value)
 # Possible values: keystone, noauth
 #auth_strategy=keystone
 
@@ -1254,8 +1252,7 @@
 # IP of remote image server (string value)
 #remote_image_server=<None>
 
-# Share type of virtual media, either "NFS" or "CIFS" (string
-# value)
+# Share type of virtual media (string value)
 # Possible values: CIFS, NFS
 #remote_image_share_type=CIFS
 
@@ -1276,26 +1273,23 @@
 # Options defined in ironic.drivers.modules.irmc.common
 #
 
-# Port to be used for iRMC operations, either 80 or 443 (port
-# value)
+# Port to be used for iRMC operations (port value)
 # Possible values: 443, 80
 #port=443
 
-# Authentication method to be used for iRMC operations, either
-# "basic" or "digest" (string value)
+# Authentication method to be used for iRMC operations (string
+# value)
 # Possible values: basic, digest
 #auth_method=basic
 
 # Timeout (in seconds) for iRMC operations (integer value)
 #client_timeout=60
 
-# Sensor data retrieval method, either "ipmitool" or "scci"
-# (string value)
+# Sensor data retrieval method. (string value)
 # Possible values: ipmitool, scci
 #sensor_method=ipmitool
 
-# SNMP protocol version, either "v1", "v2c" or "v3" (string
-# value)
+# SNMP protocol version (string value)
 # Possible values: v1, v2c, v3
 #snmp_version=v2c
 
@@ -1541,10 +1535,9 @@
 #retries=3
 
 # Default authentication strategy to use when connecting to
-# neutron. Can be either "keystone" or "noauth". Running
-# neutron in noauth mode (related to but not affected by this
-# setting) is insecure and should only be used for testing.
-# (string value)
+# neutron. Running neutron in noauth mode (related to but not
+# affected by this setting) is insecure and should only be
+# used for testing. (string value)
 # Possible values: keystone, noauth
 #auth_strategy=keystone
 
@@ -2061,8 +2054,8 @@
 # iPXE. Defaults to 0 (no timeout) (integer value)
 #ipxe_timeout=0
 
-# The IP version that will be used for PXE booting. Can be
-# either 4 or 6. Defaults to 4. EXPERIMENTAL (string value)
+# The IP version that will be used for PXE booting. Defaults
+# to 4. EXPERIMENTAL (string value)
 # Possible values: 4, 6
 #ip_version=4
 

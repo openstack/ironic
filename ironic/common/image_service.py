@@ -70,8 +70,7 @@ glance_opts = [
                default='keystone',
                choices=['keystone', 'noauth'],
                help=_('Authentication strategy to use when connecting to '
-                      'glance. Only "keystone" and "noauth" are currently '
-                      'supported by ironic.')),
+                      'glance.')),
 ]
 
 CONF.register_opts(glance_opts, group='glance')
