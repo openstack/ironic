@@ -68,7 +68,7 @@ if ! virsh list --all | grep -q $NAME; then
     # Pre-touch the VM to set +C, as it can only be set on empty files.
     sudo touch "$volume_path"
     sudo chattr +C "$volume_path" || true
-    $TOP_DIR/scripts/configure-vm \
+    $TOP_DIR/scripts/configure-vm.py \
         --bootdev network --name $NAME --image "$volume_path" \
         --arch $ARCH --cpus $CPU --memory $MEM --libvirt-nic-driver $LIBVIRT_NIC_DRIVER \
         --emulator $EMULATOR --network $BRIDGE $VM_LOGGING >&2

@@ -18,7 +18,7 @@ find  "$@"  -not \( -type d -name .?\* -prune \)    \
             -not -name \*~                          \
             -not -name \*.xml                       \
             -not -name \*.template                  \
-            -not -wholename \*scripts/configure-vm  \
+            -not -name \*.py                        \
             \(                                      \
                 -name \*.sh -or                     \
                 -wholename \*/lib/\* -or            \
