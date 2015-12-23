@@ -19,6 +19,7 @@ import os
 import tempfile
 
 from ironic_lib import disk_utils
+from ironic_lib import utils as ironic_utils
 import mock
 from oslo_config import cfg
 from oslo_utils import fileutils
@@ -386,7 +387,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                                       'disk'),
                          image_path)
 
-    @mock.patch.object(utils, 'unlink_without_raise', autospec=True)
+    @mock.patch.object(ironic_utils, 'unlink_without_raise', autospec=True)
     @mock.patch.object(utils, 'rmtree_without_raise', autospec=True)
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
     def test_destroy_images(self, mock_cache, mock_rmtree, mock_unlink):

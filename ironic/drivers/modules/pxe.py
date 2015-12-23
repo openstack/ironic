@@ -18,6 +18,7 @@ PXE Boot Interface
 import os
 import shutil
 
+from ironic_lib import utils as ironic_utils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import fileutils
@@ -33,7 +34,6 @@ from ironic.common import image_service as service
 from ironic.common import paths
 from ironic.common import pxe_utils
 from ironic.common import states
-from ironic.common import utils
 from ironic.drivers import base
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import deploy_utils
@@ -360,7 +360,7 @@ def _clean_up_pxe_env(task, images_info):
     """
     for label in images_info:
         path = images_info[label][1]
-        utils.unlink_without_raise(path)
+        ironic_utils.unlink_without_raise(path)
 
     pxe_utils.clean_up_pxe_config(task)
     TFTPImageCache().clean_up()

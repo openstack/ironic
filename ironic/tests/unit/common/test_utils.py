@@ -43,18 +43,6 @@ class BareMetalUtilsTestCase(base.TestCase):
         s = utils.random_alnum(100)
         self.assertEqual(100, len(s))
 
-    def test_unlink(self):
-        with mock.patch.object(os, "unlink", autospec=True) as unlink_mock:
-            unlink_mock.return_value = None
-            utils.unlink_without_raise("/fake/path")
-            unlink_mock.assert_called_once_with("/fake/path")
-
-    def test_unlink_ENOENT(self):
-        with mock.patch.object(os, "unlink", autospec=True) as unlink_mock:
-            unlink_mock.side_effect = OSError(errno.ENOENT)
-            utils.unlink_without_raise("/fake/path")
-            unlink_mock.assert_called_once_with("/fake/path")
-
     def test_create_link(self):
         with mock.patch.object(os, "symlink", autospec=True) as symlink_mock:
             symlink_mock.return_value = None
@@ -472,57 +460,6 @@ class GenericUtilsTestCase(base.TestCase):
         self.assertFalse(utils.is_valid_no_proxy(proxy9))
 
 
-class MkfsTestCase(base.TestCase):
-
-    @mock.patch.object(utils, 'execute', autospec=True)
-    def test_mkfs(self, execute_mock):
-        utils.mkfs('ext4', '/my/block/dev')
-        utils.mkfs('msdos', '/my/msdos/block/dev')
-        utils.mkfs('swap', '/my/swap/block/dev')
-
-        expected = [mock.call('mkfs', '-t', 'ext4', '-F', '/my/block/dev',
-                              run_as_root=True,
-                              use_standard_locale=True),
-                    mock.call('mkfs', '-t', 'msdos', '/my/msdos/block/dev',
-                              run_as_root=True,
-                              use_standard_locale=True),
-                    mock.call('mkswap', '/my/swap/block/dev',
-                              run_as_root=True,
-                              use_standard_locale=True)]
-        self.assertEqual(expected, execute_mock.call_args_list)
-
-    @mock.patch.object(utils, 'execute', autospec=True)
-    def test_mkfs_with_label(self, execute_mock):
-        utils.mkfs('ext4', '/my/block/dev', 'ext4-vol')
-        utils.mkfs('msdos', '/my/msdos/block/dev', 'msdos-vol')
-        utils.mkfs('swap', '/my/swap/block/dev', 'swap-vol')
-
-        expected = [mock.call('mkfs', '-t', 'ext4', '-F', '-L', 'ext4-vol',
-                              '/my/block/dev', run_as_root=True,
-                              use_standard_locale=True),
-                    mock.call('mkfs', '-t', 'msdos', '-n', 'msdos-vol',
-                              '/my/msdos/block/dev', run_as_root=True,
-                              use_standard_locale=True),
-                    mock.call('mkswap', '-L', 'swap-vol',
-                              '/my/swap/block/dev', run_as_root=True,
-                              use_standard_locale=True)]
-        self.assertEqual(expected, execute_mock.call_args_list)
-
-    @mock.patch.object(utils, 'execute', autospec=True)
-    def test_mkfs_with_unsupported_fs(self, execute_mock):
-        execute_mock.side_effect = iter([processutils.ProcessExecutionError(
-            stderr=os.strerror(errno.ENOENT))])
-        self.assertRaises(exception.FileSystemNotSupported,
-                          utils.mkfs, 'foo', '/my/block/dev')
-
-    @mock.patch.object(utils, 'execute', autospec=True)
-    def test_mkfs_with_unexpected_error(self, execute_mock):
-        execute_mock.side_effect = iter([processutils.ProcessExecutionError(
-            stderr='fake')])
-        self.assertRaises(processutils.ProcessExecutionError, utils.mkfs,
-                          'ext4', '/my/block/dev', 'ext4-vol')
-
-
 class TempFilesTestCase(base.TestCase):
 
     def test_tempdir(self):
@@ -650,17 +587,6 @@ class TempFilesTestCase(base.TestCase):
         self.assertRaises(exception.InsufficientDiskSpace,
                           utils._check_dir_free_space, "/fake/path")
         mock_stat.assert_called_once_with("/fake/path")
-
-
-class IsHttpUrlTestCase(base.TestCase):
-
-    def test_is_http_url(self):
-        self.assertTrue(utils.is_http_url('http://127.0.0.1'))
-        self.assertTrue(utils.is_http_url('https://127.0.0.1'))
-        self.assertTrue(utils.is_http_url('HTTP://127.1.2.3'))
-        self.assertTrue(utils.is_http_url('HTTPS://127.3.2.1'))
-        self.assertFalse(utils.is_http_url('Zm9vYmFy'))
-        self.assertFalse(utils.is_http_url('11111111'))
 
 
 class GetUpdatedCapabilitiesTestCase(base.TestCase):

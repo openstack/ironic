@@ -20,6 +20,7 @@ import os
 import shutil
 import tempfile
 
+from ironic_lib import utils as ironic_utils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
@@ -325,7 +326,7 @@ def destroy_floppy_image_from_web_server(node):
 
     object_name = _get_floppy_image_name(node)
     image_path = os.path.join(CONF.deploy.http_root, object_name)
-    utils.unlink_without_raise(image_path)
+    ironic_utils.unlink_without_raise(image_path)
 
 
 def attach_vmedia(node, device, url):

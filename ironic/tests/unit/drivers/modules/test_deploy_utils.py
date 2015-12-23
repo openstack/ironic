@@ -20,7 +20,7 @@ import time
 import types
 
 from ironic_lib import disk_utils
-from ironic_lib import utils as lib_utils
+from ironic_lib import utils as ironic_utils
 import mock
 from oslo_config import cfg
 from oslo_utils import uuidutils
@@ -784,7 +784,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         self.assertFalse(disk_utils_mock.get_dev_block_size.called)
         self.assertEqual(root_uuid, uuid_dict_returned['root uuid'])
 
-    @mock.patch.object(lib_utils, 'unlink_without_raise', autospec=True)
+    @mock.patch.object(ironic_utils, 'unlink_without_raise', autospec=True)
     def test_deploy_partition_image_with_configdrive(self, mock_unlink):
         """Check loosely all functions are called with right args."""
         address = '127.0.0.1'

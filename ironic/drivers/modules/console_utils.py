@@ -26,6 +26,7 @@ import signal
 import subprocess
 import time
 
+from ironic_lib import utils as ironic_utils
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -136,7 +137,7 @@ def _stop_console(node_uuid):
                             "but pid file exists while trying to stop "
                             "shellinabox console."), node_uuid)
     finally:
-        utils.unlink_without_raise(_get_console_pid_file(node_uuid))
+        ironic_utils.unlink_without_raise(_get_console_pid_file(node_uuid))
 
 
 def make_persistent_password_file(path, password):
