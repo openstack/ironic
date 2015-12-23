@@ -45,6 +45,7 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers import base
+from ironic.drivers.modules import console_utils
 from ironic.drivers import utils as driver_utils
 
 libvirt_opts = [
@@ -87,6 +88,10 @@ OTHER_PROPERTIES = {
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OTHER_PROPERTIES)
+CONSOLE_PROPERTIES = {
+    'ssh_terminal_port': _("node's UDP port to connect to. Only required for "
+                           "console access and only applicable for 'virsh'.")
+}
 
 # NOTE(dguerri) Generic boot device map. Virtualisation types that don't define
 # a more specific one, will use this.
@@ -369,6 +374,11 @@ def _parse_driver_info(node):
     key_contents = info.get('ssh_key_contents')
     key_filename = info.get('ssh_key_filename')
     virt_type = info.get('ssh_virt_type')
+    terminal_port = info.get('ssh_terminal_port')
+
+    if terminal_port is not None:
+        terminal_port = utils.validate_network_port(terminal_port,
+                                                    'ssh_terminal_port')
 
     # NOTE(deva): we map 'address' from API to 'host' for common utils
     res = {
@@ -376,7 +386,8 @@ def _parse_driver_info(node):
         'username': username,
         'port': port,
         'virt_type': virt_type,
-        'uuid': node.uuid
+        'uuid': node.uuid,
+        'terminal_port': terminal_port
     }
 
     cmd_set = _get_command_sets(virt_type)
@@ -788,3 +799,80 @@ class SSHManagement(base.ManagementInterface):
 
         """
         raise NotImplementedError()
+
+
+class ShellinaboxConsole(base.ConsoleInterface):
+    """A ConsoleInterface that uses ssh and shellinabox."""
+
+    def get_properties(self):
+        properties = COMMON_PROPERTIES.copy()
+        properties.update(CONSOLE_PROPERTIES)
+        return properties
+
+    def validate(self, task):
+        """Validate the Node console info.
+
+        :param task: a task from TaskManager.
+        :raises: MissingParameterValue if required ssh parameters are
+                 missing
+        :raises: InvalidParameterValue if required parameters are invalid.
+        """
+        driver_info = _parse_driver_info(task.node)
+
+        if driver_info['virt_type'] != 'virsh':
+            raise exception.InvalidParameterValue(_(
+                "not supported for non-virsh types"))
+
+        if not driver_info['terminal_port']:
+            raise exception.MissingParameterValue(_(
+                "Missing 'ssh_terminal_port' parameter in node's "
+                "'driver_info'"))
+
+    def start_console(self, task):
+        """Start a remote console for the node.
+
+        :param task: a task from TaskManager
+        :raises: MissingParameterValue if required ssh parameters are
+                 missing
+        :raises: ConsoleError if the directory for the PID file cannot be
+                 created
+        :raises: ConsoleSubprocessFailed when invoking the subprocess failed
+        :raises: InvalidParameterValue if required parameters are invalid.
+        """
+
+        driver_info = _parse_driver_info(task.node)
+        driver_info['macs'] = driver_utils.get_node_mac_addresses(task)
+        ssh_obj = _get_connection(task.node)
+        node_name = _get_hosts_name_for_node(ssh_obj, driver_info)
+
+        ssh_cmd = ("/:%(uid)s:%(gid)s:HOME:virsh console %(node)s"
+                   % {'uid': os.getuid(),
+                      'gid': os.getgid(),
+                      'node': node_name})
+
+        console_utils.start_shellinabox_console(driver_info['uuid'],
+                                                driver_info['terminal_port'],
+                                                ssh_cmd)
+
+    def stop_console(self, task):
+        """Stop the remote console session for the node.
+
+        :param task: a task from TaskManager
+        :raises: ConsoleError if unable to stop the console
+        """
+
+        console_utils.stop_shellinabox_console(task.node.uuid)
+
+    def get_console(self, task):
+        """Get the type and connection information about the console.
+
+        :param task: a task from TaskManager
+        :raises: MissingParameterValue if required ssh parameters are
+                 missing
+        :raises: InvalidParameterValue if required parameter are invalid.
+        """
+
+        driver_info = _parse_driver_info(task.node)
+        url = console_utils.get_shellinabox_console_url(
+            driver_info['terminal_port'])
+        return {'type': 'shellinabox', 'url': url}

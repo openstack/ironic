@@ -29,6 +29,7 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
+from ironic.drivers.modules import console_utils
 from ironic.drivers.modules import ssh
 from ironic.drivers import utils as driver_utils
 from ironic.tests.unit.conductor import mgr_utils
@@ -619,11 +620,9 @@ class SSHDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(utils, 'ssh_connect', autospec=True)
     def test__validate_info_ssh_connect_failed(self, ssh_connect_mock):
-        info = ssh._parse_driver_info(self.node)
-
         ssh_connect_mock.side_effect = iter(
             [exception.SSHConnectFailed(host='fake')])
-        with task_manager.acquire(self.context, info['uuid'],
+        with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.power.validate, task)
@@ -632,11 +631,17 @@ class SSHDriverTestCase(db_base.DbTestCase):
 
     def test_get_properties(self):
         expected = ssh.COMMON_PROPERTIES
+        expected2 = list(ssh.COMMON_PROPERTIES) + list(ssh.CONSOLE_PROPERTIES)
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertEqual(expected, task.driver.power.get_properties())
-            self.assertEqual(expected, task.driver.get_properties())
             self.assertEqual(expected, task.driver.management.get_properties())
+            self.assertEqual(
+                sorted(expected2),
+                sorted(task.driver.console.get_properties().keys()))
+            self.assertEqual(
+                sorted(expected2),
+                sorted(task.driver.get_properties().keys()))
 
     def test_validate_fail_no_port(self):
         new_node = obj_utils.create_test_node(
@@ -1075,3 +1080,126 @@ class SSHDriverTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, node.uuid) as task:
             self.assertRaises(exception.MissingParameterValue,
                               task.driver.management.validate, task)
+
+    def test_console_validate(self):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=True) as task:
+            task.node.driver_info['ssh_virt_type'] = 'virsh'
+            task.node.driver_info['ssh_terminal_port'] = 123
+            task.driver.console.validate(task)
+
+    def test_console_validate_missing_port(self):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=True) as task:
+            task.node.driver_info['ssh_virt_type'] = 'virsh'
+            task.node.driver_info.pop('ssh_terminal_port', None)
+            self.assertRaises(exception.MissingParameterValue,
+                              task.driver.console.validate, task)
+
+    def test_console_validate_not_virsh(self):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=True) as task:
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   'not supported for non-virsh types',
+                                   task.driver.console.validate, task)
+
+    def test_console_validate_invalid_port(self):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=True) as task:
+            task.node.driver_info['ssh_terminal_port'] = ''
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   'is not a valid integer',
+                                   task.driver.console.validate, task)
+
+    @mock.patch.object(ssh, '_get_connection', autospec=True)
+    @mock.patch.object(ssh, '_get_hosts_name_for_node', autospec=True)
+    @mock.patch.object(console_utils, 'start_shellinabox_console',
+                       autospec=True)
+    def test_start_console(self, mock_exec,
+                           get_hosts_name_mock, mock_get_conn):
+        info = ssh._parse_driver_info(self.node)
+        mock_exec.return_value = None
+        get_hosts_name_mock.return_value = "NodeName"
+        mock_get_conn.return_value = self.sshclient
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.driver.console.start_console(task)
+
+        mock_exec.assert_called_once_with(info['uuid'],
+                                          info['terminal_port'],
+                                          mock.ANY)
+
+    @mock.patch.object(ssh, '_get_connection', autospec=True)
+    @mock.patch.object(ssh, '_get_hosts_name_for_node', autospec=True)
+    @mock.patch.object(console_utils, 'start_shellinabox_console',
+                       autospec=True)
+    def test_start_console_fail(self, mock_exec,
+                                get_hosts_name_mock, mock_get_conn):
+        get_hosts_name_mock.return_value = "NodeName"
+        mock_get_conn.return_value = self.sshclient
+        mock_exec.side_effect = exception.ConsoleSubprocessFailed(
+            error='error')
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.assertRaises(exception.ConsoleSubprocessFailed,
+                              self.driver.console.start_console,
+                              task)
+        mock_exec.assert_called_once_with(self.node.uuid, mock.ANY, mock.ANY)
+
+    @mock.patch.object(ssh, '_get_connection', autospec=True)
+    @mock.patch.object(ssh, '_get_hosts_name_for_node', autospec=True)
+    @mock.patch.object(console_utils, 'start_shellinabox_console',
+                       autospec=True)
+    def test_start_console_fail_nodir(self, mock_exec,
+                                      get_hosts_name_mock, mock_get_conn):
+        get_hosts_name_mock.return_value = "NodeName"
+        mock_get_conn.return_value = self.sshclient
+        mock_exec.side_effect = exception.ConsoleError()
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.assertRaises(exception.ConsoleError,
+                              self.driver.console.start_console,
+                              task)
+        mock_exec.assert_called_once_with(self.node.uuid, mock.ANY, mock.ANY)
+
+    @mock.patch.object(console_utils, 'stop_shellinabox_console',
+                       autospec=True)
+    def test_stop_console(self, mock_exec):
+        mock_exec.return_value = None
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.driver.console.stop_console(task)
+
+        mock_exec.assert_called_once_with(self.node.uuid)
+
+    @mock.patch.object(console_utils, 'stop_shellinabox_console',
+                       autospec=True)
+    def test_stop_console_fail(self, mock_stop):
+        mock_stop.side_effect = exception.ConsoleError()
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.assertRaises(exception.ConsoleError,
+                              self.driver.console.stop_console,
+                              task)
+
+        mock_stop.assert_called_once_with(self.node.uuid)
+
+    @mock.patch.object(console_utils, 'get_shellinabox_console_url',
+                       autospec=True)
+    def test_get_console(self, mock_exec):
+        url = 'http://localhost:4201'
+        mock_exec.return_value = url
+        expected = {'type': 'shellinabox', 'url': url}
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            task.node.driver_info['ssh_terminal_port'] = 6900
+            console_info = self.driver.console.get_console(task)
+
+        self.assertEqual(expected, console_info)
+        mock_exec.assert_called_once_with(6900)

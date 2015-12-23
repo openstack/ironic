@@ -107,6 +107,7 @@ class PXEAndSSHDriver(base.BaseDriver):
         self.inspect = inspector.Inspector.create_if_enabled(
             'PXEAndSSHDriver')
         self.raid = agent.AgentRAID()
+        self.console = ssh.ShellinaboxConsole()
 
 
 class PXEAndIPMINativeDriver(base.BaseDriver):
