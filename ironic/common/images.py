@@ -27,6 +27,7 @@ from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import fileutils
+from oslo_utils import imageutils
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
@@ -35,7 +36,6 @@ from ironic.common.i18n import _LE
 from ironic.common import image_service as service
 from ironic.common import paths
 from ironic.common import utils
-from ironic.openstack.common import imageutils
 
 LOG = logging.getLogger(__name__)
 
