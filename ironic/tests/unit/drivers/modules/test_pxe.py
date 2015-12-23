@@ -582,20 +582,6 @@ class PXEBootTestCase(db_base.DbTestCase):
             self.assertRaises(exception.MissingParameterValue,
                               task.driver.boot.validate, task)
 
-    @mock.patch.object(base_image_service.BaseImageService, '_show',
-                       autospec=True)
-    def test_validate_fail_invalid_config_uefi_ipxe(self, mock_glance):
-        properties = {'capabilities': 'boot_mode:uefi,cap2:value2'}
-        mock_glance.return_value = {'properties': {'kernel_id': 'fake-kernel',
-                                                   'ramdisk_id': 'fake-initr'}}
-        self.config(ipxe_enabled=True, group='pxe')
-        self.config(http_url='dummy_url', group='deploy')
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            task.node.properties = properties
-            self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.boot.validate, task)
-
     def test_validate_fail_invalid_config_uefi_whole_disk_image(self):
         properties = {'capabilities': 'boot_mode:uefi,boot_option:netboot'}
         instance_info = {"boot_option": "netboot"}
