@@ -232,7 +232,7 @@ function _cleanup_ironic_apache_wsgi {
 function _config_ironic_apache_wsgi {
     local ironic_apache_conf
     ironic_apache_conf=$(apache_site_config_for ironic)
-    sudo cp $FILES/apache-ironic.template $ironic_apache_conf
+    sudo cp $IRONIC_DEVSTACK_FILES_DIR/apache-ironic.template $ironic_apache_conf
     sudo sed -e "
         s|%PUBLICPORT%|$IRONIC_HTTP_PORT|g;
         s|%HTTPROOT%|$IRONIC_HTTP_DIR|g;
