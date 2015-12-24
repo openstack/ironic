@@ -47,15 +47,18 @@ Install prerequisites (for python 2.7):
   `<http://software.opensuse.org/download.html?project=graphics&package=graphviz-plugins>`_.
 
 
-Using Python 3.4:
+To use Python 3.4, follow the instructions above to install prerequisites and
+additionally install the following packages:
 
-  Follow the instructions above to install prerequisites and on:
+- On Ubuntu/Debian::
 
-  - Fedora 21/RHEL7/CentOS7::
+    sudo apt-get install python3-dev
+
+- On Fedora 21/RHEL7/CentOS7::
 
     sudo yum install python3-devel
 
-  - Fedora 22 higher::
+- On Fedora 22 and higher::
 
     sudo dnf install python3-devel
 
@@ -324,9 +327,9 @@ If you make some code changes and want to test their effects, install
 again with "python setup.py develop", stop the services with Ctrl-C,
 and restart them.
 
-================================
+==============================
 Deploying Ironic with DevStack
-================================
+==============================
 
 DevStack may be configured to deploy Ironic, setup Nova to use the Ironic
 driver and provide hardware resources (network, baremetal compute nodes)
@@ -366,6 +369,9 @@ and uses the ``pxe_ssh`` driver by default::
     SERVICE_TOKEN=password
     SWIFT_HASH=password
     SWIFT_TEMPURL_KEY=password
+
+    # Enable Ironic plugin
+    enable_plugin ironic git://git.openstack.org/openstack/ironic
 
     # Enable Ironic API and Ironic Conductor
     enable_service ironic
