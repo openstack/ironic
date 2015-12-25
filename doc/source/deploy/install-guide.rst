@@ -768,10 +768,10 @@ node(s) where ``ironic-conductor`` is running.
 #. Install tftp server and the syslinux package with the PXE boot images::
 
     Ubuntu: (Up to and including 14.04)
-        sudo apt-get install tftpd-hpa syslinux-common syslinux
+        sudo apt-get install xinetd tftpd-hpa syslinux-common syslinux
 
     Ubuntu: (14.10 and after)
-        sudo apt-get install tftpd-hpa syslinux-common pxelinux
+        sudo apt-get install xinetd tftpd-hpa syslinux-common pxelinux
 
     Fedora 21/RHEL7/CentOS7:
         sudo yum install tftp-server syslinux-tftpboot
@@ -779,7 +779,31 @@ node(s) where ``ironic-conductor`` is running.
     Fedora 22 or higher:
          sudo dnf install tftp-server syslinux-tftpboot
 
-#. Setup tftp server to serve ``/tftpboot``.
+#. Using xinetd to setup tftp server and serve ``/tftpboot``. Editing or create
+   ``/etc/xinetd.d/tftp`` as below::
+
+    service tftp
+    {
+      protocol        = udp
+      port            = 69
+      socket_type     = dgram
+      wait            = yes
+      user            = root
+      server          = /usr/sbin/in.tftpd
+      server_args     = -v -v -v -v -v --map-file /tftpboot/map-file /tftpboot
+      disable         = no
+      # This is a workaround for Fedora, where TFTP will listen only on
+      # IPv6 endpoint, if IPv4 flag is not used.
+      flags           = IPv4
+    }
+
+   and restart xinetd service::
+
+    Ubuntu:
+        sudo service xinetd restart
+
+    Fedora:
+        sudo systemctl restart xinetd
 
 #. Copy the PXE image to ``/tftpboot``. The PXE image might be found at [1]_::
 
@@ -815,11 +839,6 @@ node(s) where ``ironic-conductor`` is running.
     echo 're ^/tftpboot/ /tftpboot/' >> /tftpboot/map-file
     echo 're ^(^/) /tftpboot/\1' >> /tftpboot/map-file
     echo 're ^([^/]) /tftpboot/\1' >> /tftpboot/map-file
-
-#. Enable tftp map file, modify ``/etc/xinetd.d/tftp`` as below and restart xinetd
-   service::
-
-    server_args = -v -v -v -v -v --map-file /tftpboot/map-file /tftpboot
 
 .. [1] On **Fedora/RHEL** the ``syslinux-tftpboot`` package already install
        the library modules and PXE image at ``/tftpboot``. If the TFTP server
