@@ -182,7 +182,7 @@ so that the Bare Metal service is configured for your needs.
    setting one or more of these options. Replace RABBIT_HOST with the
    address of the RabbitMQ server.::
 
-    [DEFAULT]
+    [oslo_messaging_rabbit]
     ...
     # The RabbitMQ broker address where a single node is used
     # (string value)
