@@ -17,7 +17,6 @@ Common functionalities shared between different iRMC modules.
 """
 
 from oslo_config import cfg
-from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
@@ -46,7 +45,6 @@ opts = [
 CONF = cfg.CONF
 CONF.register_opts(opts, group='irmc')
 
-LOG = logging.getLogger(__name__)
 
 REQUIRED_PROPERTIES = {
     'irmc_address': _("IP address or hostname of the iRMC. Required."),

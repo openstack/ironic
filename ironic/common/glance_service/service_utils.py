@@ -19,7 +19,6 @@ import itertools
 import random
 
 from oslo_config import cfg
-from oslo_log import log
 from oslo_serialization import jsonutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
@@ -30,7 +29,6 @@ from ironic.common import exception
 from ironic.common import image_service
 
 CONF = cfg.CONF
-LOG = log.getLogger(__name__)
 
 _GLANCE_API_SERVER = None
 """ iterator that cycles (indefinitely) over glance API servers. """

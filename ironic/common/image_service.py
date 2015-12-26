@@ -21,7 +21,6 @@ import os
 import shutil
 
 from oslo_config import cfg
-from oslo_log import log as logging
 from oslo_utils import importutils
 import requests
 import sendfile
@@ -34,7 +33,6 @@ from ironic.common.i18n import _
 from ironic.common import keystone
 from ironic.common import utils
 
-LOG = logging.getLogger(__name__)
 
 IMAGE_CHUNK_SIZE = 1024 * 1024  # 1mb
 

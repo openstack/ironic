@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from oslo_config import cfg
-from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import importutils
 
@@ -40,7 +39,6 @@ opts = [
 CONF = cfg.CONF
 CONF.register_opts(opts, group='cimc')
 
-LOG = logging.getLogger(__name__)
 
 if imcsdk:
     CIMC_TO_IRONIC_POWER_STATE = {
