@@ -22,12 +22,12 @@ Handling of VM disk images.
 import os
 import shutil
 
+from ironic_lib import disk_utils
 import jinja2
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import fileutils
-from oslo_utils import imageutils
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
@@ -312,28 +312,6 @@ def create_isolinux_image_for_uefi(output_file, deploy_iso, kernel, ramdisk,
             raise exception.ImageCreationFailed(image_type='iso', error=e)
 
 
-def qemu_img_info(path):
-    """Return an object containing the parsed output from qemu-img info."""
-    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
-    # planned to be deleted here. If need to modify this function, please also
-    # do the same modification in ironic-lib
-    if not os.path.exists(path):
-        return imageutils.QemuImgInfo()
-
-    out, err = utils.execute('env', 'LC_ALL=C', 'LANG=C',
-                             'qemu-img', 'info', path)
-    return imageutils.QemuImgInfo(out)
-
-
-def convert_image(source, dest, out_format, run_as_root=False):
-    """Convert image to other format."""
-    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
-    # planned to be deleted here. If need to modify this function, please also
-    # do the same modification in ironic-lib
-    cmd = ('qemu-img', 'convert', '-O', out_format, source, dest)
-    utils.execute(*cmd, run_as_root=run_as_root)
-
-
 def fetch(context, image_href, path, force_raw=False):
     # TODO(vish): Improve context handling and add owner and auth data
     #             when it is added to glance.  Right now there is no
@@ -355,7 +333,7 @@ def fetch(context, image_href, path, force_raw=False):
 
 def image_to_raw(image_href, path, path_tmp):
     with fileutils.remove_path_on_error(path_tmp):
-        data = qemu_img_info(path_tmp)
+        data = disk_utils.qemu_img_info(path_tmp)
 
         fmt = data.file_format
         if fmt is None:
@@ -375,10 +353,10 @@ def image_to_raw(image_href, path, path_tmp):
             LOG.debug("%(image)s was %(format)s, converting to raw" %
                       {'image': image_href, 'format': fmt})
             with fileutils.remove_path_on_error(staged):
-                convert_image(path_tmp, staged, 'raw')
+                disk_utils.convert_image(path_tmp, staged, 'raw')
                 os.unlink(path_tmp)
 
-                data = qemu_img_info(staged)
+                data = disk_utils.qemu_img_info(staged)
                 if data.file_format != "raw":
                     raise exception.ImageConvertFailed(
                         image_id=image_href,
@@ -410,7 +388,7 @@ def converted_size(path):
     :returns: virtual size of the image or 0 if conversion not needed.
 
     """
-    data = qemu_img_info(path)
+    data = disk_utils.qemu_img_info(path)
     return data.virtual_size
 
 
