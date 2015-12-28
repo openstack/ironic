@@ -26,4 +26,11 @@
 
 import eventlet
 
+from ironic import objects
+
 eventlet.monkey_patch(os=False)
+
+# NOTE(comstud): Make sure we have all of the objects loaded. We do this
+# at module import time, because we may be using mock decorators in our
+# tests that run at import time.
+objects.register_all()

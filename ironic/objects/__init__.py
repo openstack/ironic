@@ -12,18 +12,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from ironic.objects import chassis
-from ironic.objects import conductor
-from ironic.objects import node
-from ironic.objects import port
+# NOTE(comstud): You may scratch your head as you see code that imports
+# this module and then accesses attributes for objects such as Node,
+# etc, yet you do not see these attributes in here. Never fear, there is
+# a little bit of magic. When objects are registered, an attribute is set
+# on this module automatically, pointing to the newest/latest version of
+# the object.
 
 
-Chassis = chassis.Chassis
-Conductor = conductor.Conductor
-Node = node.Node
-Port = port.Port
-
-__all__ = (Chassis,
-           Conductor,
-           Node,
-           Port)
+def register_all():
+    # NOTE(danms): You must make sure your object gets imported in this
+    # function in order for it to be registered by services that may
+    # need to receive it via RPC.
+    __import__('ironic.objects.chassis')
+    __import__('ironic.objects.conductor')
+    __import__('ironic.objects.node')
+    __import__('ironic.objects.port')

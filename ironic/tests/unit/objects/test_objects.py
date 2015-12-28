@@ -496,3 +496,37 @@ class TestObjectSerializer(test_base.TestCase):
     def test_deserialize_entity_newer_version_passes_revision(self):
         "Test object with unsupported (newer) version and revision"
         self._test_deserialize_entity_newer('1.7', '1.6.1', my_version='1.6.1')
+
+
+class TestRegistry(test_base.TestCase):
+    @mock.patch('ironic.objects.base.objects')
+    def test_hook_chooses_newer_properly(self, mock_objects):
+        reg = base.IronicObjectRegistry()
+        reg.registration_hook(MyObj, 0)
+
+        class MyNewerObj(object):
+            VERSION = '1.123'
+
+            @classmethod
+            def obj_name(cls):
+                return 'MyObj'
+
+        self.assertEqual(MyObj, mock_objects.MyObj)
+        reg.registration_hook(MyNewerObj, 0)
+        self.assertEqual(MyNewerObj, mock_objects.MyObj)
+
+    @mock.patch('ironic.objects.base.objects')
+    def test_hook_keeps_newer_properly(self, mock_objects):
+        reg = base.IronicObjectRegistry()
+        reg.registration_hook(MyObj, 0)
+
+        class MyOlderObj(object):
+            VERSION = '1.1'
+
+            @classmethod
+            def obj_name(cls):
+                return 'MyObj'
+
+        self.assertEqual(MyObj, mock_objects.MyObj)
+        reg.registration_hook(MyOlderObj, 0)
+        self.assertEqual(MyObj, mock_objects.MyObj)
