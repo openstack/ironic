@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import boot_devices
@@ -22,7 +21,6 @@ from ironic.drivers.modules.cimc import common
 
 imcsdk = importutils.try_import('ImcSdk')
 
-LOG = logging.getLogger(__name__)
 
 CIMC_TO_IRONIC_BOOT_DEVICE = {
     'storage-read-write': boot_devices.DISK,

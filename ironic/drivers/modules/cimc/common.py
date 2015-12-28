@@ -14,7 +14,6 @@
 
 from contextlib import contextmanager
 
-from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
@@ -30,8 +29,6 @@ REQUIRED_PROPERTIES = {
 COMMON_PROPERTIES = REQUIRED_PROPERTIES
 
 imcsdk = importutils.try_import('ImcSdk')
-
-LOG = logging.getLogger(__name__)
 
 
 def parse_driver_info(node):

@@ -15,7 +15,6 @@
 #    under the License.
 
 from oslo_config import cfg
-from oslo_log import log as logging
 from six.moves import http_client
 from six.moves.urllib import parse
 from swiftclient import client as swift_client
@@ -51,8 +50,6 @@ CONF.import_opt('insecure', 'keystonemiddleware.auth_token',
                 group='keystone_authtoken')
 CONF.import_opt('cafile', 'keystonemiddleware.auth_token',
                 group='keystone_authtoken')
-
-LOG = logging.getLogger(__name__)
 
 
 class SwiftAPI(object):
