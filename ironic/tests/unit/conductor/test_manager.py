@@ -1909,7 +1909,7 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
     def test_get_driver_known(self):
         self._start_service()
         driver = self.service._get_driver('fake')
-        self.assertTrue(isinstance(driver, drivers_base.BaseDriver))
+        self.assertIsInstance(driver, drivers_base.BaseDriver)
 
     def test_get_driver_unknown(self):
         self._start_service()
