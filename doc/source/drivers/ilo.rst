@@ -10,8 +10,8 @@ iLO drivers enable to take advantage of features of iLO management engine in
 HPE ProLiant servers.  iLO drivers are targeted for HPE ProLiant Gen 8 systems
 and above which have `iLO 4 management engine <http://www8.hp.com/us/en/products/servers/ilo>`_.
 
-For more detailed iLO driver document of Juno, Kilo and Liberty releases, and
-up-to-date information (like tested platforms, known issues, etc), please check the
+For more details, please refer the iLO driver document of Juno, Kilo and Liberty releases,
+and for up-to-date information (like tested platforms, known issues, etc), please check the
 `iLO driver wiki page <https://wiki.openstack.org/wiki/Ironic/Drivers/iLODrivers>`_.
 
 Currently there are 3 iLO drivers:
@@ -250,6 +250,7 @@ Features
 * Works well for machines with resource constraints (lesser amount of memory).
 * Support for out-of-band hardware inspection.
 * Swiftless deploy for intermediate images
+* HTTP(S) Based Deploy.
 
 Requirements
 ~~~~~~~~~~~~
@@ -315,6 +316,10 @@ Swiftless deploy for intermediate deploy and boot images
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Refer to `Swiftless deploy for intermediate images`_ for more information.
 
+HTTP(S) Based Deploy
+~~~~~~~~~~~~~~~~~~~~
+Refer to `HTTP(S) Based Deploy Support`_ for more information.
+
 agent_ilo driver
 ^^^^^^^^^^^^^^^^
 
@@ -370,6 +375,7 @@ Features
   Ironic Python Agent. For more details, see :ref:`InbandvsOutOfBandCleaning`.
 * Support for out-of-band hardware inspection.
 * Swiftless deploy for intermediate images.
+* HTTP(S) Based Deploy.
 
 Requirements
 ~~~~~~~~~~~~
@@ -433,6 +439,10 @@ Swiftless deploy for intermediate deploy and boot images
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Refer to `Swiftless deploy for intermediate images`_ for more information.
 
+HTTP(S) Based Deploy
+~~~~~~~~~~~~~~~~~~~~
+Refer to `HTTP(S) Based Deploy Support`_ for more information.
+
 pxe_ilo driver
 ^^^^^^^^^^^^^^
 
@@ -471,6 +481,7 @@ Features
 * Support for out-of-band hardware inspection.
 * Supports UEFI Boot mode
 * Supports UEFI Secure Boot
+* HTTP(S) Based Deploy.
 
 Requirements
 ~~~~~~~~~~~~
@@ -533,6 +544,10 @@ Refer to `Node Cleaning Support`_ for more information.
 Hardware Inspection
 ~~~~~~~~~~~~~~~~~~~
 Refer to `Hardware Inspection Support`_ for more information.
+
+HTTP(S) Based Deploy
+~~~~~~~~~~~~~~~~~~~~
+Refer to `HTTP(S) Based Deploy Support`_ for more information.
 
 Functionalities across drivers
 ==============================
@@ -790,12 +805,36 @@ web server on each conductor node needs to be configured. Refer
 web server needs to be enabled (instead of HTTP web server) in order to
 send management information and images in encrypted channel over HTTPS.
 
+.. note::
+    This feature assumes that the user inputs are on Glance which uses swift
+    as backend. If swift dependency has to be eliminated, please refer to
+    `HTTP(S) Based Deploy Support`_ also.
+
 Deploy Process
 ~~~~~~~~~~~~~~
 
 Refer to `Netboot in swiftless deploy for intermediate images`_ for partition
 image support and refer to `Localboot in swiftless deploy for intermediate images`_
 for whole disk image support.
+
+HTTP(S) Based Deploy Support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The user input for the images given in ``driver_info`` like ``ilo_deploy_iso``,
+``deploy_kernel`` and ``deploy_ramdisk`` and in ``instance_info`` like
+``image_source``, ``kernel``, ``ramdisk`` and ``ilo_boot_iso`` may also be given as
+HTTP(S) URLs.
+
+The HTTP(S) web server can be configured in many ways. For the Apache
+web server on Ubuntu, refer `here <https://help.ubuntu.com/lts/serverguide/httpd.html>`_.
+The web server may reside on a different system than the conductor nodes, but its URL
+must be reachable by the conductor and the baremetal nodes.
+
+Deploy Process
+~~~~~~~~~~~~~~
+
+Refer to `Netboot with HTTP(S) based deploy`_ for partition image boot and refer to
+`Localboot with HTTP(S) based deploy`_ for whole disk image boot.
 
 Deploy Process
 ==============
@@ -844,7 +883,6 @@ Netboot with glance and swift
       Baremetal -> Baremetal [label = "Instance kernel finds root partition and continues booting from disk"];
    }
 
-
 Localboot with glance and swift
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -875,7 +913,7 @@ Localboot with glance and swift
       IPA -> Conductor [label = "Lookup node"];
       Conductor -> IPA [label = "Provides node UUID"];
       IPA -> Conductor [label = "Heartbeat"];
-      Conductor -> IPA [label = "Sends the user image HTTP(s) URL"];
+      Conductor -> IPA [label = "Sends the user image HTTP(S) URL"];
       IPA -> Swift [label = "Retrieves the user image on bare metal"];
       IPA -> IPA [label = "Writes user image to disk"];
       IPA -> Conductor [label = "Heartbeat"];
@@ -957,8 +995,87 @@ Localboot in swiftless deploy for intermediate images
       IPA -> Conductor [label = "Lookup node"];
       Conductor -> IPA [label = "Provides node UUID"];
       IPA -> Conductor [label = "Heartbeat"];
-      Conductor -> IPA [label = "Sends the user image HTTP(s) URL"];
+      Conductor -> IPA [label = "Sends the user image HTTP(S) URL"];
       IPA -> Swift [label = "Retrieves the user image on bare metal"];
+      IPA -> IPA [label = "Writes user image to disk"];
+      IPA -> Conductor [label = "Heartbeat"];
+      Conductor -> Baremetal [label = "Sets boot device to disk"];
+      Conductor -> IPA [label = "Power off the node"];
+      Conductor -> Baremetal [label = "Power on the node"];
+      Baremetal -> Baremetal [label = "Boot user image from disk"];
+   }
+
+Netboot with HTTP(S) based deploy
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. seqdiag::
+   :scale: 80
+
+   diagram {
+      Webserver; Conductor; Baremetal; Swift; IPA; iLO;
+      activation = none;
+      span_height = 1;
+      edge_length = 250;
+      default_note_color = white;
+      default_fontsize = 14;
+
+      Conductor -> iLO [label = "Powers off the node"];
+      Conductor -> Webserver [label = "Download user image"];
+      Conductor -> Conductor [label = "Creates the FAT32 image containing Ironic API URL and driver name"];
+      Conductor -> Swift [label = "Uploads the FAT32 image"];
+      Conductor -> Conductor [label = "Generates swift tempURL for FAT32 image"];
+      Conductor -> iLO [label = "Attaches the FAT32 image swift tempURL as virtual media floppy"];
+      Conductor -> iLO [label = "Attaches the deploy ISO URL as virtual media CDROM"];
+      Conductor -> iLO [label = "Sets one time boot to CDROM"];
+      Conductor -> iLO [label = "Reboot the node"];
+      iLO -> Webserver [label = "Downloads deploy ISO"];
+      Baremetal -> iLO [label = "Boots deploy kernel/ramdisk from iLO virtual media CDROM"];
+      IPA -> Conductor [label = "Lookup node"];
+      Conductor -> IPA [label = "Provides node UUID"];
+      IPA -> Conductor [label = "Heartbeat"];
+      Conductor -> IPA [label = "Exposes the disk over iSCSI"];
+      Conductor -> Conductor [label = "Connects to bare metal's disk over iSCSI and writes image"];
+      Conductor -> Conductor [label = "Generates the boot ISO"];
+      Conductor -> Swift [label = "Uploads the boot ISO"];
+      Conductor -> Conductor [label = "Generates swift tempURL for boot ISO"];
+      Conductor -> iLO [label = "Attaches boot ISO swift tempURL as virtual media CDROM"];
+      Conductor -> iLO [label = "Sets boot device to CDROM"];
+      Conductor -> IPA [label = "Power off the node"];
+      Conductor -> iLO [label = "Power on the node"];
+      iLO -> Swift [label = "Downloads boot ISO"];
+      iLO -> Baremetal [label = "Boots the instance kernel/ramdisk from iLO virtual media CDROM"];
+      Baremetal -> Baremetal [label = "Instance kernel finds root partition and continues booting from disk"];
+   }
+
+Localboot with HTTP(S) based deploy
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. seqdiag::
+   :scale: 80
+
+   diagram {
+      Webserver; Conductor; Baremetal; Swift; IPA; iLO;
+      activation = none;
+      span_height = 1;
+      edge_length = 250;
+      default_note_color = white;
+      default_fontsize = 14;
+
+      Conductor -> iLO [label = "Powers off the node"];
+      Conductor -> Conductor [label = "Creates the FAT32 image containing ironic API URL and driver name"];
+      Conductor -> Swift [label = "Uploads the FAT32 image"];
+      Conductor -> Conductor [label = "Generates swift tempURL for FAT32 image"];
+      Conductor -> iLO [label = "Attaches the FAT32 image swift tempURL as virtual media floppy"];
+      Conductor -> iLO [label = "Attaches the deploy ISO URL as virtual media CDROM"];
+      Conductor -> iLO [label = "Sets one time boot to CDROM"];
+      Conductor -> iLO [label = "Reboot the node"];
+      iLO -> Webserver [label = "Downloads deploy ISO"];
+      Baremetal -> iLO [label = "Boots deploy kernel/ramdisk from iLO virtual media CDROM"];
+      IPA -> Conductor [label = "Lookup node"];
+      Conductor -> IPA [label = "Provides node UUID"];
+      IPA -> Conductor [label = "Heartbeat"];
+      Conductor -> IPA [label = "Sends the user image HTTP(S) URL"];
+      IPA -> Webserver [label = "Retrieves the user image on bare metal"];
       IPA -> IPA [label = "Writes user image to disk"];
       IPA -> Conductor [label = "Heartbeat"];
       Conductor -> Baremetal [label = "Sets boot device to disk"];
