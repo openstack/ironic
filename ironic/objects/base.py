@@ -14,13 +14,27 @@
 
 """Ironic common internal object model"""
 
+from oslo_utils import versionutils
 from oslo_versionedobjects import base as object_base
 
+from ironic import objects
 from ironic.objects import fields as object_fields
 
 
 class IronicObjectRegistry(object_base.VersionedObjectRegistry):
-    pass
+    def registration_hook(self, cls, index):
+        # NOTE(jroll): blatantly stolen from nova
+        # NOTE(danms): This is called when an object is registered,
+        # and is responsible for maintaining ironic.objects.$OBJECT
+        # as the highest-versioned implementation of a given object.
+        version = versionutils.convert_version_to_tuple(cls.VERSION)
+        if not hasattr(objects, cls.obj_name()):
+            setattr(objects, cls.obj_name(), cls)
+        else:
+            cur_version = versionutils.convert_version_to_tuple(
+                getattr(objects, cls.obj_name()).VERSION)
+            if version >= cur_version:
+                setattr(objects, cls.obj_name(), cls)
 
 
 class IronicObject(object_base.VersionedObject):

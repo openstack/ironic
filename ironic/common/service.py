@@ -33,6 +33,7 @@ from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
 from ironic.common import rpc
+from ironic import objects
 from ironic.objects import base as objects_base
 
 
@@ -140,6 +141,7 @@ def prepare_service(argv=[]):
                                          ])
     config.parse_args(argv)
     log.setup(CONF, 'ironic')
+    objects.register_all()
 
 
 def process_launcher():
