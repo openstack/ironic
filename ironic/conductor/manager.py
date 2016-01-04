@@ -1630,7 +1630,8 @@ class ConductorManager(base_manager.BaseConductorManager):
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.FailedToUpdateMacOnPort,
                                    exception.MACAlreadyExists,
-                                   exception.InvalidState)
+                                   exception.InvalidState,
+                                   exception.FailedToUpdateDHCPOptOnPort)
     def update_port(self, context, port_obj):
         """Update a port.
 
@@ -1702,6 +1703,31 @@ class ConductorManager(base_manager.BaseConductorManager):
                         "port %(port)s when attempting to update port MAC "
                         "address."),
                         {'port': port_uuid, 'instance': node.instance_uuid})
+
+            if 'extra' in port_obj.obj_what_changed():
+                orignal_port = objects.Port.get_by_id(context, port_obj.id)
+                updated_client_id = port_obj.extra.get('client-id')
+                if (orignal_port.extra.get('client-id') !=
+                    updated_client_id):
+                    vif = port_obj.extra.get('vif_port_id')
+                    # DHCP Option with opt_value=None will remove it
+                    # from the neutron port
+                    if vif:
+                        api = dhcp_factory.DHCPFactory()
+                        client_id_opt = {'opt_name': 'client-id',
+                                         'opt_value': updated_client_id}
+
+                        api.provider.update_port_dhcp_opts(
+                            vif, [client_id_opt], token=context.auth_token)
+                    # Log warning if there is no vif_port_id and an instance
+                    # is associated with the node.
+                    elif node.instance_uuid:
+                        LOG.warning(_LW(
+                            "No VIF found for instance %(instance)s "
+                            "port %(port)s when attempting to update port "
+                            "client-id."),
+                            {'port': port_uuid,
+                             'instance': node.instance_uuid})
 
             port_obj.save()
 

@@ -112,6 +112,9 @@ class TestNeutronClient(base.TestCase):
 
 class TestNeutronNetworkActions(db_base.DbTestCase):
 
+    _CLIENT_ID = (
+        '20:00:55:04:01:fe:80:00:00:00:00:00:00:00:02:c9:02:00:23:13:92')
+
     def setUp(self):
         super(TestNeutronNetworkActions, self).setUp()
         mgr_utils.mock_the_extension_manager(driver='fake')
@@ -133,7 +136,7 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
-    def test_add_ports_to_vlan_network(self):
+    def _test_add_ports_to_vlan_network(self, is_client_id):
         # Ports will be created only if pxe_enabled is True
         object_utils.create_test_port(
             self.context, node_id=self.node.id,
@@ -142,6 +145,11 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             pxe_enabled=False
         )
         port = self.ports[0]
+        if is_client_id:
+            extra = port.extra
+            extra['client-id'] = self._CLIENT_ID
+            port.extra = extra
+            port.save()
         expected_body = {
             'port': {
                 'network_id': self.network_uuid,
@@ -156,6 +164,9 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                 }
             }
         }
+        if is_client_id:
+            expected_body['port']['extra_dhcp_opts'] = (
+                [{'opt_name': 'client-id', 'opt_value': self._CLIENT_ID}])
         # Ensure we can create ports
         self.client_mock.create_port.return_value = {
             'port': self.neutron_port}
@@ -166,8 +177,19 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             self.client_mock.create_port.assert_called_once_with(
                 expected_body)
 
-    def test_add_ports_to_flat_network(self):
+    def test_add_ports_to_vlan_network(self):
+        self._test_add_ports_to_vlan_network(is_client_id=False)
+
+    def test_add_ports_with_client_id_to_vlan_network(self):
+        self._test_add_ports_to_vlan_network(is_client_id=True)
+
+    def _test_add_ports_to_flat_network(self, is_client_id):
         port = self.ports[0]
+        if is_client_id:
+            extra = port.extra
+            extra['client-id'] = self._CLIENT_ID
+            port.extra = extra
+            port.save()
         expected_body = {
             'port': {
                 'network_id': self.network_uuid,
@@ -181,6 +203,9 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                 }
             }
         }
+        if is_client_id:
+            expected_body['port']['extra_dhcp_opts'] = (
+                [{'opt_name': 'client-id', 'opt_value': self._CLIENT_ID}])
         # Ensure we can create ports
         self.client_mock.create_port.return_value = {
             'port': self.neutron_port}
@@ -191,6 +216,12 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             self.assertEqual(expected, ports)
             self.client_mock.create_port.assert_called_once_with(
                 expected_body)
+
+    def test_add_ports_to_flat_network(self):
+        self._test_add_ports_to_flat_network(is_client_id=False)
+
+    def test_add_ports_with_client_id_to_flat_network(self):
+        self._test_add_ports_to_flat_network(is_client_id=True)
 
     def test_add_ports_to_flat_network_no_neutron_port_id(self):
         port = self.ports[0]
