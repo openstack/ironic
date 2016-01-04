@@ -16,7 +16,7 @@
 #    under the License.
 
 """
-DRAC Management Driver
+DRAC management interface
 """
 
 from oslo_log import log as logging
@@ -25,14 +25,17 @@ from oslo_utils import importutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.drac import client as drac_client
 from ironic.drivers.modules.drac import common as drac_common
+from ironic.drivers.modules.drac import job as drac_job
 from ironic.drivers.modules.drac import resource_uris
 
-pywsman = importutils.try_import('pywsman')
+
+drac_exceptions = importutils.try_import('dracclient.exceptions')
 
 LOG = logging.getLogger(__name__)
 
@@ -45,186 +48,79 @@ _BOOT_DEVICES_MAP = {
 TARGET_DEVICE = 'BIOS.Setup.1-1'
 
 # RebootJobType constants
-
 _GRACEFUL_REBOOT_WITH_FORCED_SHUTDOWN = '3'
 
-# IsNext constants
-
-PERSISTENT = '1'
-""" Is the next boot config the system will use. """
-
-ONE_TIME_BOOT = '3'
-""" Is the next boot config the system will use, one time boot only. """
+# BootMode constants
+PERSISTENT_BOOT_MODE = 'IPL'
+NON_PERSISTENT_BOOT_MODE = 'OneTime'
 
 
-def _get_boot_device(node, controller_version=None):
-    if controller_version is None:
-        controller_version = _get_lifecycle_controller_version(node)
+def _get_boot_device(node, drac_boot_devices=None):
+    client = drac_common.get_drac_client(node)
 
-    boot_list = _get_next_boot_list(node)
-    persistent = boot_list['is_next'] == PERSISTENT
-    boot_list_id = boot_list['instance_id']
+    try:
+        boot_modes = client.list_boot_modes()
+        next_boot_modes = [mode.id for mode in boot_modes if mode.is_next]
+        if NON_PERSISTENT_BOOT_MODE in next_boot_modes:
+            next_boot_mode = NON_PERSISTENT_BOOT_MODE
+        else:
+            next_boot_mode = next_boot_modes[0]
 
-    boot_device_id = _get_boot_device_for_boot_list(node, boot_list_id,
-                                                    controller_version)
-    boot_device = next((key for (key, value) in _BOOT_DEVICES_MAP.items()
-                        if value in boot_device_id), None)
-    return {'boot_device': boot_device, 'persistent': persistent}
+        if drac_boot_devices is None:
+            drac_boot_devices = client.list_boot_devices()
+        drac_boot_device = drac_boot_devices[next_boot_mode][0]
+
+        boot_device = next(key for (key, value) in _BOOT_DEVICES_MAP.items()
+                           if value in drac_boot_device.id)
+        return {'boot_device': boot_device,
+                'persistent': next_boot_mode == PERSISTENT_BOOT_MODE}
+    except (drac_exceptions.BaseClientException, IndexError) as exc:
+        LOG.error(_LE('DRAC driver failed to get next boot mode for '
+                      'node %(node_uuid)s. Reason: %(error)s.'),
+                  {'node_uuid': node.uuid, 'error': exc})
+        raise exception.DracOperationError(error=exc)
 
 
-def _get_next_boot_list(node):
-    """Get the next boot list.
+def set_boot_device(node, device, persistent=False):
+    """Set the boot device for a node.
 
-    The DCIM_BootConfigSetting resource represents each boot list (eg.
-    IPL/BIOS, BCV, UEFI, vFlash Partition, One Time Boot).
-    The DCIM_BootSourceSetting resource represents each of the boot list boot
-    devices or sources that are shown under their corresponding boot list.
+    Set the boot device to use on next boot of the node.
 
     :param node: an ironic node object.
-    :raises: DracClientError on an error from pywsman library.
-    :returns: a dictionary containing:
-
-        :instance_id: the instance id of the boot list.
-        :is_next: whether it's the next device to boot or not. One of
-                  PERSISTENT, ONE_TIME_BOOT constants.
+    :param device: the boot device, one of
+                   :mod:`ironic.common.boot_devices`.
+    :param persistent: Boolean value. True if the boot device will
+                       persist to all future boots, False if not.
+                       Default: False.
+    :raises: DracOperationError on an error from python-dracclient.
     """
-    client = drac_client.get_wsman_client(node)
-    filter_query = ('select * from DCIM_BootConfigSetting where IsNext=%s '
-                    'or IsNext=%s' % (PERSISTENT, ONE_TIME_BOOT))
-    try:
-        doc = client.wsman_enumerate(resource_uris.DCIM_BootConfigSetting,
-                                     filter_query=filter_query)
-    except exception.DracClientError as exc:
-        with excutils.save_and_reraise_exception():
-            LOG.error(_LE('DRAC driver failed to get next boot mode for '
-                          'node %(node_uuid)s. Reason: %(error)s.'),
-                      {'node_uuid': node.uuid, 'error': exc})
 
-    items = drac_common.find_xml(doc, 'DCIM_BootConfigSetting',
-                                 resource_uris.DCIM_BootConfigSetting,
-                                 find_all=True)
+    drac_job.validate_job_queue(node)
 
-    # This list will have 2 items maximum, one for the persistent element
-    # and another one for the OneTime if set
-    boot_list = None
-    for i in items:
-        boot_list_id = drac_common.find_xml(
-            i, 'InstanceID', resource_uris.DCIM_BootConfigSetting).text
-        is_next = drac_common.find_xml(
-            i, 'IsNext', resource_uris.DCIM_BootConfigSetting).text
+    client = drac_common.get_drac_client(node)
+    drac_boot_devices = client.list_boot_devices()
 
-        boot_list = {'instance_id': boot_list_id, 'is_next': is_next}
-        # If OneTime is set we should return it, because that's
-        # where the next boot device is
-        if is_next == ONE_TIME_BOOT:
-            break
+    current_boot_device = _get_boot_device(node, drac_boot_devices)
+    # If we are already booting from the right device, do nothing.
+    if current_boot_device == {'boot_device': device,
+                               'persistent': persistent}:
+        LOG.debug('DRAC already set to boot from %s', device)
+        return
 
-    return boot_list
+    drac_boot_device = next(drac_device.id for drac_device
+                            in drac_boot_devices[PERSISTENT_BOOT_MODE]
+                            if _BOOT_DEVICES_MAP[device] in drac_device.id)
 
-
-def _get_boot_device_for_boot_list(node, boot_list_id, controller_version):
-    """Get the next boot device for a given boot list.
-
-    The DCIM_BootConfigSetting resource represents each boot list (eg.
-    IPL/BIOS, BCV, UEFI, vFlash Partition, One Time Boot).
-    The DCIM_BootSourceSetting resource represents each of the boot list boot
-    devices or sources that are shown under their corresponding boot list.
-
-    :param node: ironic node object.
-    :param boot_list_id: boot list id.
-    :param controller_version: version of the Lifecycle controller.
-    :raises: DracClientError on an error from pywsman library.
-    :returns: boot device id.
-    """
-    client = drac_client.get_wsman_client(node)
-
-    if controller_version < '2.0.0':
-        filter_query = ('select * from DCIM_BootSourceSetting where '
-                        'PendingAssignedSequence=0')
+    if persistent:
+        boot_list = PERSISTENT_BOOT_MODE
     else:
-        filter_query = ('select * from DCIM_BootSourceSetting where '
-                        'PendingAssignedSequence=0 and '
-                        'BootSourceType="%s"' % boot_list_id)
-    try:
-        doc = client.wsman_enumerate(resource_uris.DCIM_BootSourceSetting,
-                                     filter_query=filter_query)
-    except exception.DracClientError as exc:
-        with excutils.save_and_reraise_exception():
-            LOG.error(_LE('DRAC driver failed to get the current boot '
-                          'device for node %(node_uuid)s. '
-                          'Reason: %(error)s.'),
-                      {'node_uuid': node.uuid, 'error': exc})
+        boot_list = NON_PERSISTENT_BOOT_MODE
 
-    if controller_version < '2.0.0':
-        boot_devices = drac_common.find_xml(
-            doc, 'InstanceID', resource_uris.DCIM_BootSourceSetting,
-            find_all=True)
-        for device in boot_devices:
-            if device.text.startswith(boot_list_id):
-                boot_device_id = device.text
-                break
-    else:
-        boot_device_id = drac_common.find_xml(
-            doc, 'InstanceID', resource_uris.DCIM_BootSourceSetting).text
-
-    return boot_device_id
+    client.change_boot_device_order(boot_list, drac_boot_device)
+    client.commit_pending_bios_changes()
 
 
-def _get_boot_list_for_boot_device(node, device, controller_version):
-    """Get the boot list for a given boot device.
-
-    The DCIM_BootConfigSetting resource represents each boot list (eg.
-    IPL/BIOS, BCV, UEFI, vFlash Partition, One Time Boot).
-    The DCIM_BootSourceSetting resource represents each of the boot list boot
-    devices or sources that are shown under their corresponding boot list.
-
-    :param node: ironic node object.
-    :param device: boot device.
-    :param controller_version: version of the Lifecycle controller.
-    :raises: DracClientError on an error from pywsman library.
-    :returns: dictionary containing:
-
-        :boot_list: boot list.
-        :boot_device_id: boot device id.
-    """
-    client = drac_client.get_wsman_client(node)
-
-    if controller_version < '2.0.0':
-        filter_query = None
-    else:
-        filter_query = ("select * from DCIM_BootSourceSetting where "
-                        "InstanceID like '%%#%s%%'" %
-                        _BOOT_DEVICES_MAP[device])
-
-    try:
-        doc = client.wsman_enumerate(resource_uris.DCIM_BootSourceSetting,
-                                     filter_query=filter_query)
-    except exception.DracClientError as exc:
-        with excutils.save_and_reraise_exception():
-            LOG.error(_LE('DRAC driver failed to set the boot device '
-                          'for node %(node_uuid)s. Can\'t find the ID '
-                          'for the %(device)s type. Reason: %(error)s.'),
-                      {'node_uuid': node.uuid, 'error': exc,
-                       'device': device})
-
-    if controller_version < '2.0.0':
-        boot_devices = drac_common.find_xml(
-            doc, 'InstanceID', resource_uris.DCIM_BootSourceSetting,
-            find_all=True)
-        for boot_device in boot_devices:
-            if _BOOT_DEVICES_MAP[device] in boot_device.text:
-                boot_device_id = boot_device.text
-                boot_list = boot_device_id.split(':')[0]
-                break
-    else:
-        boot_device_id = drac_common.find_xml(
-            doc, 'InstanceID', resource_uris.DCIM_BootSourceSetting).text
-        boot_list = drac_common.find_xml(
-            doc, 'BootSourceType', resource_uris.DCIM_BootSourceSetting).text
-
-    return {'boot_list': boot_list, 'boot_device_id': boot_device_id}
-
-
+# TODO(ifarkas): delete this during BIOS vendor_passthru refactor
 def create_config_job(node, reboot=False):
     """Create a configuration job.
 
@@ -263,6 +159,7 @@ def create_config_job(node, reboot=False):
                       {'node_uuid': node.uuid, 'error': exc})
 
 
+# TODO(ifarkas): delete this during BIOS vendor_passthru refactor
 def check_for_config_job(node):
     """Check if a configuration job is already created.
 
@@ -303,33 +200,10 @@ def check_for_config_job(node):
                                                        target=TARGET_DEVICE)
 
 
-def _get_lifecycle_controller_version(node):
-    """Returns the Lifecycle controller version of the DRAC card of the node
-
-    :param node: the node.
-    :returns: the Lifecycle controller version.
-    :raises: DracClientError if the client received unexpected response.
-    :raises: InvalidParameterValue if required DRAC credentials are missing.
-    """
-    client = drac_client.get_wsman_client(node)
-    filter_query = ('select LifecycleControllerVersion from DCIM_SystemView')
-    try:
-        doc = client.wsman_enumerate(resource_uris.DCIM_SystemView,
-                                     filter_query=filter_query)
-    except exception.DracClientError as exc:
-        with excutils.save_and_reraise_exception():
-            LOG.error(_LE('DRAC driver failed to get power state for node '
-                          '%(node_uuid)s. Reason: %(error)s.'),
-                      {'node_uuid': node.uuid, 'error': exc})
-
-    version = drac_common.find_xml(doc, 'LifecycleControllerVersion',
-                                   resource_uris.DCIM_SystemView).text
-    return version
-
-
 class DracManagement(base.ManagementInterface):
 
     def get_properties(self):
+        """Return the properties of the interface."""
         return drac_common.COMMON_PROPERTIES
 
     def validate(self, task):
@@ -349,12 +223,34 @@ class DracManagement(base.ManagementInterface):
     def get_supported_boot_devices(self, task):
         """Get a list of the supported boot devices.
 
-        :param task: a task from TaskManager.
+        :param task: a TaskManager instance containing the node to act on.
         :returns: A list with the supported boot devices defined
                   in :mod:`ironic.common.boot_devices`.
 
         """
         return list(_BOOT_DEVICES_MAP.keys())
+
+    def get_boot_device(self, task):
+        """Get the current boot device for a node.
+
+        Returns the current boot device of the node.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :raises: DracOperationError on an error from python-dracclient.
+        :returns: a dictionary containing:
+            :boot_device: the boot device, one of
+                :mod:`ironic.common.boot_devices` or None if it is unknown.
+            :persistent: whether the boot device will persist to all
+                future boots or not, None if it is unknown.
+
+        """
+        node = task.node
+
+        if ('drac_boot_device' in node.driver_internal_info and
+                node.driver_internal_info['drac_boot_device'] is not None):
+            return node.driver_internal_info['drac_boot_device']
+        else:
+            return _get_boot_device(node)
 
     @task_manager.require_exclusive_lock
     def set_boot_device(self, task, device, persistent=False):
@@ -362,80 +258,35 @@ class DracManagement(base.ManagementInterface):
 
         Set the boot device to use on next reboot of the node.
 
-        :param task: a task from TaskManager.
+        :param task: a TaskManager instance containing the node to act on.
         :param device: the boot device, one of
                        :mod:`ironic.common.boot_devices`.
         :param persistent: Boolean value. True if the boot device will
                            persist to all future boots, False if not.
                            Default: False.
-        :raises: DracClientError if the client received unexpected response.
-        :raises: DracOperationFailed if the client received response with an
-                 error message.
-        :raises: DracUnexpectedReturnValue if the client received a response
-                 with unexpected return value.
-        :raises: InvalidParameterValue if an invalid boot device is
-                 specified.
-        :raises: DracPendingConfigJobExists on an error when creating the job.
-
+        :raises: InvalidParameterValue if an invalid boot device is specified.
         """
+        node = task.node
 
-        client = drac_client.get_wsman_client(task.node)
-        controller_version = _get_lifecycle_controller_version(task.node)
-        current_boot_device = _get_boot_device(task.node, controller_version)
+        if device not in _BOOT_DEVICES_MAP:
+            raise exception.InvalidParameterValue(
+                _("set_boot_device called with invalid device '%(device)s' "
+                  "for node %(node_id)s.") % {'device': device,
+                                              'node_id': node.uuid})
 
-        # If we are already booting from the right device, do nothing.
-        if current_boot_device == {'boot_device': device,
-                                   'persistent': persistent}:
-            LOG.debug('DRAC already set to boot from %s', device)
-            return
-
-        # Check for an existing configuration job
-        check_for_config_job(task.node)
-
-        # Querying the boot device attributes
-        boot_device = _get_boot_list_for_boot_device(task.node, device,
-                                                     controller_version)
-        boot_list = boot_device['boot_list']
-        boot_device_id = boot_device['boot_device_id']
-
-        if not persistent:
-            boot_list = 'OneTime'
-
-        # Send the request to DRAC
-        selectors = {'InstanceID': boot_list}
-        properties = {'source': boot_device_id}
-        try:
-            client.wsman_invoke(resource_uris.DCIM_BootConfigSetting,
-                                'ChangeBootOrderByInstanceID', selectors,
-                                properties, drac_client.RET_SUCCESS)
-        except exception.DracRequestFailed as exc:
-            with excutils.save_and_reraise_exception():
-                LOG.error(_LE('DRAC driver failed to set the boot device for '
-                              'node %(node_uuid)s to %(target_boot_device)s. '
-                              'Reason: %(error)s.'),
-                          {'node_uuid': task.node.uuid,
-                           'target_boot_device': device,
-                           'error': exc})
-
-        # Create a configuration job
-        create_config_job(task.node)
-
-    def get_boot_device(self, task):
-        """Get the current boot device for a node.
-
-        Returns the current boot device of the node.
-
-        :param task: a task from TaskManager.
-        :raises: DracClientError on an error from pywsman library.
-        :returns: a dictionary containing:
-
-            :boot_device: the boot device, one of
-                :mod:`ironic.common.boot_devices` or None if it is unknown.
-            :persistent: Whether the boot device will persist to all
-                future boots or not, None if it is unknown.
-
-        """
-        return _get_boot_device(task.node)
+        # NOTE(ifarkas): DRAC interface doesn't allow changing the boot device
+        #                multiple times in a row without a reboot. This is
+        #                because a change need to be committed via a
+        #                configuration job, and further configuration jobs
+        #                cannot be created until the previous one is processed
+        #                at the next boot. As a workaround, saving it to
+        #                driver_internal_info and committing the change during
+        #                power state change.
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info['drac_boot_device'] = {'boot_device': device,
+                                                    'persistent': persistent}
+        node.driver_internal_info = driver_internal_info
+        node.save()
 
     def get_sensors_data(self, task):
         """Get sensors data.
