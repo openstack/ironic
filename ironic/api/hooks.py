@@ -138,9 +138,8 @@ class NoExceptionTracebackHook(hooks.PecanHook):
             return
 
         json_body = state.response.json
-        # Do not remove traceback when server in debug mode (except 'Server'
-        # errors when 'debuginfo' will be used for traces).
-        if cfg.CONF.debug and json_body.get('faultcode') != 'Server':
+        # Do not remove traceback when traceback config is set
+        if cfg.CONF.debug_tracebacks_in_api:
             return
 
         faultstring = json_body.get('faultstring')

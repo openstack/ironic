@@ -70,3 +70,9 @@ A few things should be checked in this case:
    log, it means the conductor run into a special error during deployment.
    So you can check the log carefully to fix or work around and then try
    again.
+
+API Errors
+==========
+
+The `debug_tracebacks_in_api` config option may be set to return tracebacks
+in the API response for all 4xx and 5xx errors.
