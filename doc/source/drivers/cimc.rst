@@ -32,17 +32,17 @@ Install the ``ImcSdk`` module
 .. note::
 
   Install the ``ImcSdk`` module on the Ironic conductor node. Required version is
-  0.7.1.
+  0.7.2.
 
 #. Download the tar.gz from: https://communities.cisco.com/docs/DOC-56257
 
 #. Unpack it::
 
-   $ tar xvf ImcSdk-0.7.1.tar.gz
+   $ tar xvf ImcSdk-0.7.2.tar.gz
 
 #. Install it::
 
-   $ cd ImcSdk-0.7.1
+   $ cd ImcSdk-0.7.2
    $ sudo python setup.py install
 
 Tested Platforms
