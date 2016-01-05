@@ -53,6 +53,7 @@ IRONIC_HW_NODE_CPU=${IRONIC_HW_NODE_CPU:-1}
 IRONIC_HW_NODE_RAM=${IRONIC_HW_NODE_RAM:-512}
 IRONIC_HW_NODE_DISK=${IRONIC_HW_NODE_DISK:-10}
 IRONIC_HW_EPHEMERAL_DISK=${IRONIC_HW_EPHEMERAL_DISK:-0}
+IRONIC_HW_ARCH=${IRONIC_HW_ARCH:-x86_64}
 # The file is composed of multiple lines, each line includes four field
 # separated by white space: IPMI address, MAC address, IPMI username
 # and IPMI password.
@@ -623,6 +624,7 @@ function enroll_nodes {
         local ironic_node_ram=$IRONIC_VM_SPECS_RAM
         local ironic_node_disk=$IRONIC_VM_SPECS_DISK
         local ironic_ephemeral_disk=$IRONIC_VM_EPHEMERAL_DISK
+        local ironic_node_arch=x86_64
         local ironic_hwinfo_file=$IRONIC_VM_MACS_CSV_FILE
         local node_options="\
             -i deploy_kernel=$IRONIC_DEPLOY_KERNEL_ID \
@@ -637,6 +639,7 @@ function enroll_nodes {
         local ironic_node_ram=$IRONIC_HW_NODE_RAM
         local ironic_node_disk=$IRONIC_HW_NODE_DISK
         local ironic_ephemeral_disk=$IRONIC_HW_EPHEMERAL_DISK
+        local ironic_node_arch=$IRONIC_HW_ARCH
         if [[ -z "${IRONIC_DEPLOY_DRIVER##*_ipmitool}" ]]; then
             local ironic_hwinfo_file=$IRONIC_IPMIINFO_FILE
         fi
@@ -680,7 +683,7 @@ function enroll_nodes {
             -p cpus=$ironic_node_cpu\
             -p memory_mb=$ironic_node_ram\
             -p local_gb=$ironic_node_disk\
-            -p cpu_arch=x86_64 \
+            -p cpu_arch=$ironic_node_arch \
             $node_options \
             | grep " uuid " | get_field 2)
 
@@ -694,7 +697,7 @@ function enroll_nodes {
     adjusted_disk=$(($ironic_node_disk - $ironic_ephemeral_disk))
     nova flavor-create --ephemeral $ironic_ephemeral_disk baremetal auto $ironic_node_ram $adjusted_disk $ironic_node_cpu
 
-    nova flavor-key baremetal set "cpu_arch"="x86_64"
+    nova flavor-key baremetal set "cpu_arch"="$ironic_node_arch"
 
     if [ "$VIRT_DRIVER" == "ironic" ]; then
         wait_for_nova_resources "count" $total_nodes
