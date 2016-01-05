@@ -133,6 +133,7 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
         boot_device = drac_mgmt.set_boot_device(
             self.node, ironic.common.boot_devices.PXE, persistent=False)
 
+        mock_validate_job_queue.assert_called_once_with(self.node)
         mock_client.change_boot_device_order.assert_called_once_with(
             'OneTime', 'BIOS.Setup.1-1#BootSeq#NIC.Embedded.1-1-1')
         mock_client.commit_pending_bios_changes.assert_called_once_with()
@@ -159,6 +160,7 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
         boot_device = drac_mgmt.set_boot_device(
             self.node, ironic.common.boot_devices.PXE, persistent=True)
 
+        mock_validate_job_queue.assert_called_once_with(self.node)
         self.assertEqual(0, mock_client.change_boot_device_order.call_count)
         self.assertEqual(0, mock_client.commit_pending_bios_changes.call_count)
 
@@ -251,9 +253,11 @@ class DracManagementTestCase(db_base.DbTestCase):
             expected_boot_device = {
                 'boot_device': ironic.common.boot_devices.DISK,
                 'persistent': True}
-            self.assertEqual(
-                task.node.driver_internal_info['drac_boot_device'],
-                expected_boot_device)
+
+        self.node.refresh()
+        self.assertEqual(
+            self.node.driver_internal_info['drac_boot_device'],
+            expected_boot_device)
 
     def test_set_boot_device_fail(self, mock_get_drac_client):
         with task_manager.acquire(self.context, self.node.uuid,

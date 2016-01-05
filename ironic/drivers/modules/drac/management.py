@@ -98,26 +98,33 @@ def set_boot_device(node, device, persistent=False):
     drac_job.validate_job_queue(node)
 
     client = drac_common.get_drac_client(node)
-    drac_boot_devices = client.list_boot_devices()
 
-    current_boot_device = _get_boot_device(node, drac_boot_devices)
-    # If we are already booting from the right device, do nothing.
-    if current_boot_device == {'boot_device': device,
-                               'persistent': persistent}:
-        LOG.debug('DRAC already set to boot from %s', device)
-        return
+    try:
+        drac_boot_devices = client.list_boot_devices()
 
-    drac_boot_device = next(drac_device.id for drac_device
-                            in drac_boot_devices[PERSISTENT_BOOT_MODE]
-                            if _BOOT_DEVICES_MAP[device] in drac_device.id)
+        current_boot_device = _get_boot_device(node, drac_boot_devices)
+        # If we are already booting from the right device, do nothing.
+        if current_boot_device == {'boot_device': device,
+                                   'persistent': persistent}:
+            LOG.debug('DRAC already set to boot from %s', device)
+            return
 
-    if persistent:
-        boot_list = PERSISTENT_BOOT_MODE
-    else:
-        boot_list = NON_PERSISTENT_BOOT_MODE
+        drac_boot_device = next(drac_device.id for drac_device
+                                in drac_boot_devices[PERSISTENT_BOOT_MODE]
+                                if _BOOT_DEVICES_MAP[device] in drac_device.id)
 
-    client.change_boot_device_order(boot_list, drac_boot_device)
-    client.commit_pending_bios_changes()
+        if persistent:
+            boot_list = PERSISTENT_BOOT_MODE
+        else:
+            boot_list = NON_PERSISTENT_BOOT_MODE
+
+        client.change_boot_device_order(boot_list, drac_boot_device)
+        client.commit_pending_bios_changes()
+    except drac_exceptions.BaseClientException as exc:
+        LOG.error(_LE('DRAC driver failed to change boot device order for '
+                      'node %(node_uuid)s. Reason: %(error)s.'),
+                  {'node_uuid': node.uuid, 'error': exc})
+        raise exception.DracOperationError(error=exc)
 
 
 # TODO(ifarkas): delete this during BIOS vendor_passthru refactor
@@ -246,11 +253,11 @@ class DracManagement(base.ManagementInterface):
         """
         node = task.node
 
-        if ('drac_boot_device' in node.driver_internal_info and
-                node.driver_internal_info['drac_boot_device'] is not None):
-            return node.driver_internal_info['drac_boot_device']
-        else:
-            return _get_boot_device(node)
+        boot_device = node.driver_internal_info.get('drac_boot_device')
+        if boot_device is not None:
+            return boot_device
+
+        return _get_boot_device(node)
 
     @task_manager.require_exclusive_lock
     def set_boot_device(self, task, device, persistent=False):

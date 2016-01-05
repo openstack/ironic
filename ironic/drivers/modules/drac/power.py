@@ -66,9 +66,8 @@ def _get_power_state(node):
 def _commit_boot_list_change(node):
     driver_internal_info = node.driver_internal_info
 
-    if ('drac_boot_device' in driver_internal_info and
-            driver_internal_info['drac_boot_device'] is not None):
-        boot_device = driver_internal_info['drac_boot_device']
+    boot_device = node.driver_internal_info.get('drac_boot_device')
+    if boot_device is not None:
         drac_management.set_boot_device(node, boot_device['boot_device'],
                                         boot_device['persistent'])
 
@@ -86,6 +85,14 @@ def _set_power_state(node, power_state):
     :raises: DracOperationError on an error from python-dracclient
     """
 
+    # NOTE(ifarkas): DRAC interface doesn't allow changing the boot device
+    #                multiple times in a row without a reboot. This is
+    #                because a change need to be committed via a
+    #                configuration job, and further configuration jobs
+    #                cannot be created until the previous one is processed
+    #                at the next boot. As a workaround, it is saved to
+    #                driver_internal_info during set_boot_device and committing
+    #                it here.
     _commit_boot_list_change(node)
 
     client = drac_common.get_drac_client(node)
