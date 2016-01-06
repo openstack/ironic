@@ -135,8 +135,8 @@ IRONIC_HTTP_PORT=${IRONIC_HTTP_PORT:-8088}
 # it should just run by default.
 IRONIC_DEPLOY_DRIVER_ISCSI_WITH_IPA=$(trueorfalse False IRONIC_DEPLOY_DRIVER_ISCSI_WITH_IPA)
 
-# The path to the QEMU hook, used if IRONIC_VM_LOG_ROTATE is True
-IRONIC_QEMU_HOOK_PATH=${IRONIC_QEMU_HOOK_PATH:-/etc/libvirt/hooks/qemu}
+# The path to the libvirt hooks directory, used if IRONIC_VM_LOG_ROTATE is True
+IRONIC_LIBVIRT_HOOKS_PATH=${IRONIC_LIBVIRT_HOOKS_PATH:-/etc/libvirt/hooks/}
 
 # get_pxe_boot_file() - Get the PXE/iPXE boot file path
 function get_pxe_boot_file {
@@ -517,7 +517,7 @@ function stop_ironic {
     fi
 
     # Remove the hook to disable log rotate
-    sudo rm -rf $IRONIC_QEMU_HOOK_PATH
+    sudo rm -rf $IRONIC_LIBVIRT_HOOKS_PATH/qemu
 }
 
 function create_ovs_taps {
@@ -560,11 +560,14 @@ function create_ovs_taps {
 function setup_qemu_log_hook {
     local libvirt_service_name
 
+    # Make sure the libvirt hooks directory exist
+    sudo mkdir -p $IRONIC_LIBVIRT_HOOKS_PATH
+
     # Copy the qemu hook to the right directory
-    sudo cp $IRONIC_DEVSTACK_FILES_DIR/hooks/qemu $IRONIC_QEMU_HOOK_PATH
+    sudo cp $IRONIC_DEVSTACK_FILES_DIR/hooks/qemu $IRONIC_LIBVIRT_HOOKS_PATH/qemu
     sudo sed -e "
         s|%LOG_DIR%|$IRONIC_VM_LOG_DIR|g;
-    " -i $IRONIC_QEMU_HOOK_PATH
+    " -i $IRONIC_LIBVIRT_HOOKS_PATH/qemu
 
     # Restart the libvirt daemon
     libvirt_service_name="libvirt-bin"
