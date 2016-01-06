@@ -713,41 +713,16 @@ The flavor is mapped to the bare metal node through the hardware specifications.
 
    *Note: You can replace auto with your own flavor id.*
 
-#. A flavor can include a set of key/value pairs called extra_specs.
-   In case of Icehouse version of the Bare Metal service, you need to associate the
-   deploy ramdisk and deploy kernel images to the flavor as flavor-keys.
-   But in case of Juno and higher versions, this is deprecated. Because these
-   may vary between nodes in a heterogeneous environment, the deploy kernel
-   and ramdisk images should be associated with each node's driver_info.
+#. Set the architecture as extra_specs information of the flavor. This
+   will be used to match against the properties of bare metal nodes::
 
-   - **Icehouse** version of Bare Metal service::
+    nova flavor-key my-baremetal-flavor set cpu_arch=$ARCH
 
-      nova flavor-key my-baremetal-flavor set \
-      cpu_arch=$ARCH \
-      "baremetal:deploy_kernel_id"=$DEPLOY_VMLINUZ_UUID \
-      "baremetal:deploy_ramdisk_id"=$DEPLOY_INITRD_UUID
+#. Associate the deploy ramdisk and kernel images with the ironic node::
 
-   - **Juno** version of Bare Metal service::
-
-      nova flavor-key my-baremetal-flavor set cpu_arch=$ARCH
-
-     Associate the deploy ramdisk and deploy kernel images each of your
-     node's driver_info::
-
-      ironic node-update $NODE_UUID add \
-      driver_info/pxe_deploy_kernel=$DEPLOY_VMLINUZ_UUID \
-      driver_info/pxe_deploy_ramdisk=$DEPLOY_INITRD_UUID
-
-   - **Kilo** and higher versions of Bare Metal service::
-
-      nova flavor-key my-baremetal-flavor set cpu_arch=$ARCH
-
-     Associate the deploy ramdisk and deploy kernel images each of your
-     node's driver_info::
-
-      ironic node-update $NODE_UUID add \
-      driver_info/deploy_kernel=$DEPLOY_VMLINUZ_UUID \
-      driver_info/deploy_ramdisk=$DEPLOY_INITRD_UUID
+    ironic node-update $NODE_UUID add \
+    driver_info/deploy_kernel=$DEPLOY_VMLINUZ_UUID \
+    driver_info/deploy_ramdisk=$DEPLOY_INITRD_UUID
 
 
 Setup the drivers for the Bare Metal service
