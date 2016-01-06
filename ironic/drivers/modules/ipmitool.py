@@ -36,6 +36,7 @@ import subprocess
 import tempfile
 import time
 
+from ironic_lib import utils as ironic_utils
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -1126,7 +1127,7 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
                                                     ipmi_cmd)
         except (exception.ConsoleError, exception.ConsoleSubprocessFailed):
             with excutils.save_and_reraise_exception():
-                utils.unlink_without_raise(path)
+                ironic_utils.unlink_without_raise(path)
 
     def stop_console(self, task):
         """Stop the remote console session for the node.
@@ -1137,7 +1138,7 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
         try:
             console_utils.stop_shellinabox_console(task.node.uuid)
         finally:
-            utils.unlink_without_raise(
+            ironic_utils.unlink_without_raise(
                 _console_pwfile_path(task.node.uuid))
 
     def get_console(self, task):

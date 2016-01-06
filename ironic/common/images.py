@@ -23,6 +23,7 @@ import os
 import shutil
 
 from ironic_lib import disk_utils
+from ironic_lib import utils as ironic_utils
 import jinja2
 from oslo_concurrency import processutils
 from oslo_config import cfg
@@ -119,7 +120,8 @@ def create_vfat_image(output_file, files_info=None, parameters=None,
         creating filesystem, copying files, etc.
     """
     try:
-        utils.dd('/dev/zero', output_file, 'count=1', "bs=%dKiB" % fs_size_kib)
+        ironic_utils.dd('/dev/zero', output_file, 'count=1',
+                        "bs=%dKiB" % fs_size_kib)
     except processutils.ProcessExecutionError as e:
         raise exception.ImageCreationFailed(image_type='vfat', error=e)
 
@@ -129,7 +131,7 @@ def create_vfat_image(output_file, files_info=None, parameters=None,
             # The label helps ramdisks to find the partition containing
             # the parameters (by using /dev/disk/by-label/ir-vfd-dev).
             # NOTE: FAT filesystem label can be up to 11 characters long.
-            utils.mkfs('vfat', output_file, label="ir-vfd-dev")
+            ironic_utils.mkfs('vfat', output_file, label="ir-vfd-dev")
             utils.mount(output_file, tmpdir, '-o', 'umask=0')
         except processutils.ProcessExecutionError as e:
             raise exception.ImageCreationFailed(image_type='vfat', error=e)

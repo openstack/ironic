@@ -16,6 +16,7 @@
 
 import os
 
+from ironic_lib import utils as ironic_utils
 import jinja2
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -84,7 +85,7 @@ def _link_mac_pxe_configs(task):
     """
 
     def create_link(mac_path):
-        utils.unlink_without_raise(mac_path)
+        ironic_utils.unlink_without_raise(mac_path)
         relative_source_path = os.path.relpath(
             pxe_config_file_path, os.path.dirname(mac_path))
         utils.create_link_without_raise(relative_source_path, mac_path)
@@ -120,7 +121,7 @@ def _link_ip_address_pxe_configs(task, hex_form):
     for port_ip_address in ip_addrs:
         ip_address_path = _get_pxe_ip_address_path(port_ip_address,
                                                    hex_form)
-        utils.unlink_without_raise(ip_address_path)
+        ironic_utils.unlink_without_raise(ip_address_path)
         relative_source_path = os.path.relpath(
             pxe_config_file_path, os.path.dirname(ip_address_path))
         utils.create_link_without_raise(relative_source_path,
@@ -276,18 +277,18 @@ def clean_up_pxe_config(task):
             except exception.InvalidIPv4Address:
                 continue
             # Cleaning up config files created for grub2.
-            utils.unlink_without_raise(ip_address_path)
+            ironic_utils.unlink_without_raise(ip_address_path)
             # Cleaning up config files created for elilo.
-            utils.unlink_without_raise(hex_ip_path)
+            ironic_utils.unlink_without_raise(hex_ip_path)
     else:
         for mac in driver_utils.get_node_mac_addresses(task):
-            utils.unlink_without_raise(_get_pxe_mac_path(mac))
+            ironic_utils.unlink_without_raise(_get_pxe_mac_path(mac))
             # TODO(lucasagomes): Backward compatibility with :hexraw,
             # to be removed in Mitaka.
             # see: https://bugs.launchpad.net/ironic/+bug/1441710
             if CONF.pxe.ipxe_enabled:
-                utils.unlink_without_raise(_get_pxe_mac_path(mac,
-                                           delimiter=''))
+                ironic_utils.unlink_without_raise(_get_pxe_mac_path(mac,
+                                                  delimiter=''))
 
     utils.rmtree_without_raise(os.path.join(get_root_dir(),
                                             task.node.uuid))

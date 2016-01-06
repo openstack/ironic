@@ -19,6 +19,7 @@ import os
 import shutil
 import tempfile
 
+from ironic_lib import utils as ironic_utils
 import mock
 from oslo_config import cfg
 from oslo_utils import importutils
@@ -28,7 +29,6 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import images
 from ironic.common import swift
-from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils
@@ -718,7 +718,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         copy_mock.assert_called_once_with(source, image_path)
         self.assertFalse(chmod_mock.called)
 
-    @mock.patch.object(utils, 'unlink_without_raise', spec_set=True,
+    @mock.patch.object(ironic_utils, 'unlink_without_raise', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_common, '_get_floppy_image_name', spec_set=True,
                        autospec=True)

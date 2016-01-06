@@ -19,6 +19,7 @@ import os
 import shutil
 import tempfile
 
+from ironic_lib import utils as ironic_utils
 import mock
 from oslo_config import cfg
 from oslo_serialization import jsonutils as json
@@ -30,7 +31,6 @@ from ironic.common import exception
 from ironic.common.glance_service import base_image_service
 from ironic.common import pxe_utils
 from ironic.common import states
-from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import pxe
@@ -486,7 +486,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         self.assertFalse(mock_log.called)
 
 
-@mock.patch.object(utils, 'unlink_without_raise', autospec=True)
+@mock.patch.object(ironic_utils, 'unlink_without_raise', autospec=True)
 @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
 @mock.patch.object(pxe, 'TFTPImageCache', autospec=True)
 class CleanUpPxeEnvTestCase(db_base.DbTestCase):

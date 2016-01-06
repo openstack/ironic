@@ -19,6 +19,7 @@ import os
 import shutil
 
 from ironic_lib import disk_utils
+from ironic_lib import utils as ironic_utils
 import mock
 from oslo_concurrency import processutils
 from oslo_config import cfg
@@ -284,10 +285,10 @@ class FsImageTestCase(base.TestCase):
     @mock.patch.object(images, '_create_root_fs', autospec=True)
     @mock.patch.object(utils, 'tempdir', autospec=True)
     @mock.patch.object(utils, 'write_to_file', autospec=True)
-    @mock.patch.object(utils, 'dd', autospec=True)
+    @mock.patch.object(ironic_utils, 'dd', autospec=True)
     @mock.patch.object(utils, 'umount', autospec=True)
     @mock.patch.object(utils, 'mount', autospec=True)
-    @mock.patch.object(utils, 'mkfs', autospec=True)
+    @mock.patch.object(ironic_utils, 'mkfs', autospec=True)
     def test_create_vfat_image(
             self, mkfs_mock, mount_mock, umount_mock, dd_mock, write_mock,
             tempdir_mock, create_root_fs_mock):
@@ -319,10 +320,10 @@ class FsImageTestCase(base.TestCase):
 
     @mock.patch.object(images, '_create_root_fs', autospec=True)
     @mock.patch.object(utils, 'tempdir', autospec=True)
-    @mock.patch.object(utils, 'dd', autospec=True)
+    @mock.patch.object(ironic_utils, 'dd', autospec=True)
     @mock.patch.object(utils, 'umount', autospec=True)
     @mock.patch.object(utils, 'mount', autospec=True)
-    @mock.patch.object(utils, 'mkfs', autospec=True)
+    @mock.patch.object(ironic_utils, 'mkfs', autospec=True)
     def test_create_vfat_image_always_umount(
             self, mkfs_mock, mount_mock, umount_mock, dd_mock,
             tempdir_mock, create_root_fs_mock):
@@ -338,7 +339,7 @@ class FsImageTestCase(base.TestCase):
 
         umount_mock.assert_called_once_with('tempdir')
 
-    @mock.patch.object(utils, 'dd', autospec=True)
+    @mock.patch.object(ironic_utils, 'dd', autospec=True)
     def test_create_vfat_image_dd_fails(self, dd_mock):
 
         dd_mock.side_effect = processutils.ProcessExecutionError
@@ -346,8 +347,8 @@ class FsImageTestCase(base.TestCase):
                           images.create_vfat_image, 'tgt_file')
 
     @mock.patch.object(utils, 'tempdir', autospec=True)
-    @mock.patch.object(utils, 'dd', autospec=True)
-    @mock.patch.object(utils, 'mkfs', autospec=True)
+    @mock.patch.object(ironic_utils, 'dd', autospec=True)
+    @mock.patch.object(ironic_utils, 'mkfs', autospec=True)
     def test_create_vfat_image_mkfs_fails(self, mkfs_mock, dd_mock,
                                           tempdir_mock):
 
@@ -361,10 +362,10 @@ class FsImageTestCase(base.TestCase):
 
     @mock.patch.object(images, '_create_root_fs', autospec=True)
     @mock.patch.object(utils, 'tempdir', autospec=True)
-    @mock.patch.object(utils, 'dd', autospec=True)
+    @mock.patch.object(ironic_utils, 'dd', autospec=True)
     @mock.patch.object(utils, 'umount', autospec=True)
     @mock.patch.object(utils, 'mount', autospec=True)
-    @mock.patch.object(utils, 'mkfs', autospec=True)
+    @mock.patch.object(ironic_utils, 'mkfs', autospec=True)
     def test_create_vfat_image_umount_fails(
             self, mkfs_mock, mount_mock, umount_mock, dd_mock,
             tempdir_mock, create_root_fs_mock):

@@ -21,6 +21,7 @@ Ironic Native IPMI power manager.
 
 import os
 
+from ironic_lib import utils as ironic_utils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
@@ -605,7 +606,7 @@ class NativeIPMIShellinaboxConsole(base.ConsoleInterface):
                                                     console_cmd)
         except exception.ConsoleError:
             with excutils.save_and_reraise_exception():
-                utils.unlink_without_raise(path)
+                ironic_utils.unlink_without_raise(path)
 
     def stop_console(self, task):
         """Stop the remote console session for the node.
@@ -617,7 +618,7 @@ class NativeIPMIShellinaboxConsole(base.ConsoleInterface):
             console_utils.stop_shellinabox_console(task.node.uuid)
         finally:
             password_file = _console_pwfile_path(task.node.uuid)
-            utils.unlink_without_raise(password_file)
+            ironic_utils.unlink_without_raise(password_file)
 
     def get_console(self, task):
         """Get the type and connection information about the console.

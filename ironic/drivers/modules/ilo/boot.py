@@ -18,6 +18,7 @@ Boot Interface for iLO drivers and its supporting methods.
 import os
 import tempfile
 
+from ironic_lib import utils as ironic_utils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
@@ -32,7 +33,6 @@ from ironic.common.i18n import _LW
 from ironic.common import image_service
 from ironic.common import images
 from ironic.common import swift
-from ironic.common import utils
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
@@ -223,7 +223,7 @@ def _clean_up_boot_iso_for_instance(node):
         ilo_boot_iso_name = os.path.basename(result.path)
         boot_iso_path = os.path.join(
             CONF.deploy.http_root, ilo_boot_iso_name)
-        utils.unlink_without_raise(boot_iso_path)
+        ironic_utils.unlink_without_raise(boot_iso_path)
 
 
 def _parse_deploy_info(node):

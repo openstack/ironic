@@ -17,6 +17,7 @@
 
 import tempfile
 
+from ironic_lib import utils as ironic_utils
 import mock
 from oslo_config import cfg
 import six
@@ -27,7 +28,6 @@ from ironic.common.glance_service import service_utils
 from ironic.common import image_service
 from ironic.common import images
 from ironic.common import swift
-from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils
@@ -395,7 +395,7 @@ class IloBootPrivateMethodsTestCase(db_base.DbTestCase):
                                                              'boot-object')
         self.assertTrue(log_mock.called)
 
-    @mock.patch.object(utils, 'unlink_without_raise', spec_set=True,
+    @mock.patch.object(ironic_utils, 'unlink_without_raise', spec_set=True,
                        autospec=True)
     def test__clean_up_boot_iso_for_instance_on_webserver(self, unlink_mock):
 

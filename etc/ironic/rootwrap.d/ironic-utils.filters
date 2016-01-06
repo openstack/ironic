@@ -6,8 +6,5 @@
 iscsiadm: CommandFilter, iscsiadm, root
 
 # ironic/common/utils.py
-mkswap: CommandFilter, mkswap, root
-mkfs: CommandFilter, mkfs, root
 mount: CommandFilter, mount, root
 umount: CommandFilter, umount, root
-dd: CommandFilter, dd, root

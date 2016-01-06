@@ -20,6 +20,7 @@ import os
 import shutil
 import tempfile
 
+from ironic_lib import utils as ironic_utils
 import mock
 from oslo_config import cfg
 import six
@@ -30,7 +31,6 @@ from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common import images
 from ironic.common import states
-from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils
@@ -620,7 +620,7 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
                 [mock.call(_get_floppy_image_name_mock(task.node)),
                  mock.call(_get_deploy_iso_name_mock(task.node))])
 
-    @mock.patch.object(utils, 'unlink_without_raise', spec_set=True,
+    @mock.patch.object(ironic_utils, 'unlink_without_raise', spec_set=True,
                        autospec=True)
     def test__remove_share_file(self, unlink_without_raise_mock):
         CONF.irmc.remote_image_share_name = '/'

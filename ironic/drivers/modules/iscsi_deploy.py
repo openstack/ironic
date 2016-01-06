@@ -16,6 +16,7 @@
 import os
 
 from ironic_lib import disk_utils
+from ironic_lib import utils as ironic_utils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import fileutils
@@ -281,7 +282,7 @@ def destroy_images(node_uuid):
 
     :param node_uuid: the uuid of the ironic node.
     """
-    utils.unlink_without_raise(_get_image_file_path(node_uuid))
+    ironic_utils.unlink_without_raise(_get_image_file_path(node_uuid))
     utils.rmtree_without_raise(_get_image_dir_path(node_uuid))
     InstanceImageCache().clean_up()
 
