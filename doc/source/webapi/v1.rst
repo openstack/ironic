@@ -32,6 +32,9 @@ always requests the newest supported API version.
 API Versions History
 --------------------
 
+**1.16**
+    Add ability to filter nodes by driver.
+
 **1.15**
 
     Add ability to do manual cleaning when a node is in the manageable

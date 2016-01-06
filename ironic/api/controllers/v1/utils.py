@@ -214,6 +214,20 @@ def check_for_invalid_state_and_allow_filter(provision_state):
                 _('Provision state "%s" is not valid') % provision_state)
 
 
+def check_allow_specify_driver(driver):
+    """Check if filtering nodes by driver is allowed.
+
+    Version 1.16 of the API allows filter nodes by driver.
+    """
+    if (driver is not None and pecan.request.version.minor <
+            versions.MINOR_16_DRIVER_FILTER):
+        raise exception.NotAcceptable(_(
+            "Request not acceptable. The minimal required API version "
+            "should be %(base)s.%(opr)s") %
+            {'base': versions.BASE_VERSION,
+             'opr': versions.MINOR_16_DRIVER_FILTER})
+
+
 def initial_node_provision_state():
     """Return node state to use by default when creating new nodes.
 

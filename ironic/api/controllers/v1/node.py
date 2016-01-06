@@ -974,8 +974,8 @@ class NodesController(rest.RestController):
 
     def _get_nodes_collection(self, chassis_uuid, instance_uuid, associated,
                               maintenance, provision_state, marker, limit,
-                              sort_key, sort_dir, resource_url=None,
-                              fields=None):
+                              sort_key, sort_dir, driver=None,
+                              resource_url=None, fields=None):
         if self.from_chassis and not chassis_uuid:
             raise exception.MissingParameterValue(
                 _("Chassis id not specified."))
@@ -1005,6 +1005,8 @@ class NodesController(rest.RestController):
                 filters['maintenance'] = maintenance
             if provision_state:
                 filters['provision_state'] = provision_state
+            if driver:
+                filters['driver'] = driver
 
             nodes = objects.Node.list(pecan.request.context, limit, marker_obj,
                                       sort_key=sort_key, sort_dir=sort_dir,
@@ -1083,14 +1085,15 @@ class NodesController(rest.RestController):
 
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
                    types.boolean, wtypes.text, types.uuid, int, wtypes.text,
-                   wtypes.text, types.listtype)
+                   wtypes.text, wtypes.text, types.listtype)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
                 maintenance=None, provision_state=None, marker=None,
-                limit=None, sort_key='id', sort_dir='asc', fields=None):
+                limit=None, sort_key='id', sort_dir='asc', driver=None,
+                fields=None):
         """Retrieve a list of nodes.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
-                           that chassis.
+                             that chassis.
         :param instance_uuid: Optional UUID of an instance, to find the node
                               associated with that instance.
         :param associated: Optional boolean whether to return a list of
@@ -1105,25 +1108,28 @@ class NodesController(rest.RestController):
         :param limit: maximum number of resources to return in a single result.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
+        :param driver: Optional string value to get only nodes using that
+                       driver.
         :param fields: Optional, a list with a specified set of fields
-            of the resource to be returned.
+                       of the resource to be returned.
         """
         api_utils.check_allow_specify_fields(fields)
         api_utils.check_for_invalid_state_and_allow_filter(provision_state)
+        api_utils.check_allow_specify_driver(driver)
         if fields is None:
             fields = _DEFAULT_RETURN_FIELDS
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
                                           associated, maintenance,
                                           provision_state, marker,
                                           limit, sort_key, sort_dir,
-                                          fields=fields)
+                                          driver, fields=fields)
 
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
                    types.boolean, wtypes.text, types.uuid, int, wtypes.text,
-                   wtypes.text)
+                   wtypes.text, wtypes.text)
     def detail(self, chassis_uuid=None, instance_uuid=None, associated=None,
                maintenance=None, provision_state=None, marker=None,
-               limit=None, sort_key='id', sort_dir='asc'):
+               limit=None, sort_key='id', sort_dir='asc', driver=None):
         """Retrieve a list of nodes with detail.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -1142,8 +1148,11 @@ class NodesController(rest.RestController):
         :param limit: maximum number of resources to return in a single result.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
+        :param driver: Optional string value to get only nodes using that
+                       driver.
         """
         api_utils.check_for_invalid_state_and_allow_filter(provision_state)
+        api_utils.check_allow_specify_driver(driver)
         # /detail should only work against collections
         parent = pecan.request.path.split('/')[:-1][-1]
         if parent != "nodes":
@@ -1154,7 +1163,7 @@ class NodesController(rest.RestController):
                                           associated, maintenance,
                                           provision_state, marker,
                                           limit, sort_key, sort_dir,
-                                          resource_url)
+                                          driver, resource_url)
 
     @expose.expose(wtypes.text, types.uuid_or_name, types.uuid)
     def validate(self, node=None, node_uuid=None):

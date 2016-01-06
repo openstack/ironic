@@ -695,6 +695,38 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
         self.assertTrue(response.json['error_message'])
 
+    def test_get_nodes_by_driver(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='pxe_ssh')
+        node1 = obj_utils.create_test_node(self.context,
+                                           uuid=uuidutils.generate_uuid(),
+                                           driver='fake')
+
+        data = self.get_json('/nodes?driver=pxe_ssh',
+                             headers={api_base.Version.string: "1.16"})
+        uuids = [n['uuid'] for n in data['nodes']]
+        self.assertIn(node.uuid, uuids)
+        self.assertNotIn(node1.uuid, uuids)
+        data = self.get_json('/nodes?driver=fake',
+                             headers={api_base.Version.string: "1.16"})
+        uuids = [n['uuid'] for n in data['nodes']]
+        self.assertIn(node1.uuid, uuids)
+        self.assertNotIn(node.uuid, uuids)
+
+    def test_get_nodes_by_invalid_driver(self):
+        data = self.get_json('/nodes?driver=test',
+                             headers={api_base.Version.string: "1.16"})
+        self.assertEqual(0, len(data['nodes']))
+
+    def test_get_nodes_by_driver_invalid_api_version(self):
+        response = self.get_json(
+            '/nodes?driver=fake',
+            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
     def test_get_console_information(self):
         node = obj_utils.create_test_node(self.context)
         expected_console_info = {'test': 'test-data'}
