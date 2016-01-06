@@ -84,13 +84,13 @@ upgrade has completed.
 
 Cleaning
 --------
-A new feature in Kilo is support for the cleaning of nodes between workloads to
-ensure the node is ready for another workload. This can include erasing the
-hard drives, updating firmware, and other steps. For more information, see
-:ref:`cleaning`.
+A new feature in Kilo is support for the automated cleaning of nodes between
+workloads to ensure the node is ready for another workload. This can include
+erasing the hard drives, updating firmware, and other steps. For more
+information, see :ref:`automated_cleaning`.
 
-If Ironic is configured with cleaning enabled (defaults to True) and to use
-Neutron as the DHCP provider (also the default), you will need to set the
+If Ironic is configured with automated cleaning enabled (defaults to True) and
+to use Neutron as the DHCP provider (also the default), you will need to set the
 `cleaning_network_uuid` option in the Ironic configuration file before starting
 the Kilo Ironic service. See :ref:`CleaningNetworkSetup` for information on
 how to set up the cleaning network for Ironic.

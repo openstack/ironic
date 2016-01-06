@@ -658,9 +658,8 @@ Configure the Bare Metal service for cleaning
     [neutron]
     ...
 
-    # UUID of the network to create Neutron ports on when booting
-    # to a ramdisk for cleaning/zapping using Neutron DHCP (string
-    # value)
+    # UUID of the network to create Neutron ports on, when booting
+    # to a ramdisk for cleaning using Neutron DHCP. (string value)
     #cleaning_network_uuid=<None>
     cleaning_network_uuid = NETWORK_UUID
 
@@ -1731,7 +1730,7 @@ To move a node from ``enroll`` to ``manageable`` provision state::
     +------------------------+--------------------------------------------------------------------+
 
 When a node is moved from the ``manageable`` to ``available`` provision
-state, the node will be cleaned if configured to do so (see
+state, the node will go through automated cleaning if configured to do so (see
 :ref:`CleaningNetworkSetup`).
 To move a node from ``manageable`` to ``available`` provision state::
 

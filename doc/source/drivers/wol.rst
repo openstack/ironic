@@ -114,7 +114,7 @@ Additional requirements
 
 * BIOS must try next boot device if PXE boot failed
 
-* Cleaning should be disabled, see :ref:`cleaning`
+* Automated cleaning should be disabled, see :ref:`automated_cleaning`
 
 * Node should be powered off before start of deploy
 

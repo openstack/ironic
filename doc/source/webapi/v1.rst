@@ -61,10 +61,10 @@ API Versions History
 
     Newly registered nodes begin in the ``enroll`` provision state by default,
     instead of ``available``. To get them to the ``available`` state,
-    the ``manage`` action must first be ran, to verify basic hardware control.
-    On success the node moves to ``manageable`` provision state, then the
-    ``provide`` action must be run, which will clean the node and
-    make it available.
+    the ``manage`` action must first be run to verify basic hardware control.
+    On success the node moves to ``manageable`` provision state. Then the
+    ``provide`` action must be run. Automated cleaning of the node is done and
+    the node is made ``available``.
 
 **1.10**
 
