@@ -2090,3 +2090,20 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                           ipmi._parse_ipmi_sensors_data,
                           self.node,
                           fake_sensors_data)
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_dump_sdr_ok(self, mock_exec):
+        mock_exec.return_value = (None, None)
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            ipmi.dump_sdr(task, 'foo_file')
+
+        mock_exec.assert_called_once_with(self.info, 'sdr dump foo_file')
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_dump_sdr_fail(self, mock_exec):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            mock_exec.side_effect = processutils.ProcessExecutionError()
+            self.assertRaises(exception.IPMIFailure, ipmi.dump_sdr, task,
+                              'foo_file')
+        mock_exec.assert_called_once_with(self.info, 'sdr dump foo_file')
