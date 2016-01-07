@@ -15,7 +15,7 @@
 
 import json
 
-import eventlet
+from futurist import periodics
 import mock
 
 from ironic.common import exception
@@ -85,36 +85,21 @@ class PassthruDecoratorTestCase(base.TestCase):
                             inst2.driver_routes['driver_noexception']['func'])
 
 
-@mock.patch.object(eventlet.greenthread, 'spawn_n', autospec=True,
-                   side_effect=lambda func, *args, **kw: func(*args, **kw))
 class DriverPeriodicTaskTestCase(base.TestCase):
-    def test(self, spawn_mock):
+    def test(self):
         method_mock = mock.MagicMock(spec_set=[])
-        function_mock = mock.MagicMock(spec_set=[])
 
         class TestClass(object):
             @driver_base.driver_periodic_task(spacing=42)
             def method(self, foo, bar=None):
                 method_mock(foo, bar=bar)
 
-        @driver_base.driver_periodic_task(spacing=100, parallel=False)
-        def function():
-            function_mock()
-
         obj = TestClass()
         self.assertEqual(42, obj.method._periodic_spacing)
-        self.assertTrue(obj.method._periodic_task)
-        self.assertEqual('ironic.tests.unit.drivers.test_base.method',
-                         obj.method._periodic_name)
-        self.assertEqual('ironic.tests.unit.drivers.test_base.function',
-                         function._periodic_name)
+        self.assertTrue(periodics.is_periodic(obj.method))
 
         obj.method(1, bar=2)
         method_mock.assert_called_once_with(1, bar=2)
-        self.assertEqual(1, spawn_mock.call_count)
-        function()
-        function_mock.assert_called_once_with()
-        self.assertEqual(1, spawn_mock.call_count)
 
 
 class CleanStepDecoratorTestCase(base.TestCase):

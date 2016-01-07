@@ -15,13 +15,13 @@
 import inspect
 import threading
 
-from eventlet import greenpool
-from oslo_concurrency import lockutils
+import futurist
+from futurist import periodics
+from futurist import rejection
 from oslo_config import cfg
 from oslo_context import context as ironic_context
 from oslo_db import exception as db_exception
 from oslo_log import log
-from oslo_service import periodic_task
 from oslo_utils import excutils
 
 from ironic.common import driver_factory
@@ -40,8 +40,10 @@ from ironic.db import api as dbapi
 
 conductor_opts = [
     cfg.IntOpt('workers_pool_size',
-               default=100,
-               help=_('The size of the workers greenthread pool.')),
+               default=100, min=3,
+               help=_('The size of the workers greenthread pool. '
+                      'Note that 2 threads will be reserved by the conductor '
+                      'itself for handling heart beats and periodic tasks.')),
     cfg.IntOpt('heartbeat_interval',
                default=10,
                help=_('Seconds between conductor heart beats.')),
@@ -51,18 +53,18 @@ conductor_opts = [
 CONF = cfg.CONF
 CONF.register_opts(conductor_opts, 'conductor')
 LOG = log.getLogger(__name__)
-WORKER_SPAWN_lOCK = "conductor_worker_spawn"
 
 
-class BaseConductorManager(periodic_task.PeriodicTasks):
+class BaseConductorManager(object):
 
     def __init__(self, host, topic):
-        super(BaseConductorManager, self).__init__(CONF)
+        super(BaseConductorManager, self).__init__()
         if not host:
             host = CONF.host
         self.host = host
         self.topic = topic
         self.notifier = rpc.get_notifier()
+        self._started = False
 
     def _get_driver(self, driver_name):
         """Get the driver.
@@ -78,15 +80,29 @@ class BaseConductorManager(periodic_task.PeriodicTasks):
         except KeyError:
             raise exception.DriverNotFound(driver_name=driver_name)
 
-    def init_host(self):
+    def init_host(self, admin_context=None):
+        """Initialize the conductor host.
+
+        :param admin_context: the admin context to pass to periodic tasks.
+        :raises: RuntimeError when conductor is already running
+        :raises: NoDriversLoaded when no drivers are enabled on the conductor
+        """
+        if self._started:
+            raise RuntimeError(_('Attempt to start an already running '
+                                 'conductor manager'))
+
         self.dbapi = dbapi.get_instance()
 
         self._keepalive_evt = threading.Event()
         """Event for the keepalive thread."""
 
-        self._worker_pool = greenpool.GreenPool(
-            size=CONF.conductor.workers_pool_size)
-        """GreenPool of background workers for performing tasks async."""
+        # TODO(dtantsur): make the threshold configurable?
+        rejection_func = rejection.reject_when_reached(
+            CONF.conductor.workers_pool_size)
+        self._executor = futurist.GreenThreadPoolExecutor(
+            max_workers=CONF.conductor.workers_pool_size,
+            check_and_reject=rejection_func)
+        """Executor for performing tasks async."""
 
         self.ring_manager = hash.HashRingManager()
         """Consistent hash ring which maps drivers to conductors."""
@@ -106,15 +122,36 @@ class BaseConductorManager(periodic_task.PeriodicTasks):
             LOG.error(msg, self.host)
             raise exception.NoDriversLoaded(conductor=self.host)
 
-        # Collect driver-specific periodic tasks
+        # Collect driver-specific periodic tasks.
+        # Conductor periodic tasks accept context argument, driver periodic
+        # tasks accept this manager and context. We have to ensure that the
+        # same driver interface class is not traversed twice, otherwise
+        # we'll have several instances of the same task.
+        LOG.debug('Collecting periodic tasks')
+        self._periodic_task_callables = []
+        periodic_task_classes = set()
+        self._collect_periodic_tasks(self, (admin_context,))
         for driver_obj in driver_factory.drivers().values():
-            self._collect_periodic_tasks(driver_obj)
+            self._collect_periodic_tasks(driver_obj, (self, admin_context))
             for iface_name in (driver_obj.core_interfaces +
                                driver_obj.standard_interfaces +
                                ['vendor']):
                 iface = getattr(driver_obj, iface_name, None)
-                if iface:
-                    self._collect_periodic_tasks(iface)
+                if iface and iface.__class__ not in periodic_task_classes:
+                    self._collect_periodic_tasks(iface, (self, admin_context))
+                    periodic_task_classes.add(iface.__class__)
+
+        if (len(self._periodic_task_callables) >
+                CONF.conductor.workers_pool_size):
+            LOG.warning(_LW('This conductor has %(tasks)d periodic tasks '
+                            'enabled, but only %(workers)d task workers '
+                            'allowed by [conductor]workers_pool_size option'),
+                        {'tasks': len(self._periodic_task_callables),
+                         'workers': CONF.conductor.workers_pool_size})
+
+        self._periodic_tasks = periodics.PeriodicWorker(
+            self._periodic_task_callables,
+            executor_factory=periodics.ExistingExecutor(self._executor))
 
         # clear all locks held by this conductor before registering
         self.dbapi.clear_node_reservations_for_conductor(self.host)
@@ -133,6 +170,12 @@ class BaseConductorManager(periodic_task.PeriodicTasks):
                                                  'drivers': self.drivers},
                                                 update_existing=True)
         self.conductor = cdr
+
+        # Start periodic tasks
+        self._periodic_tasks_worker = self._executor.submit(
+            self._periodic_tasks.start, allow_empty=True)
+        self._periodic_tasks_worker.add_done_callback(
+            self._on_periodic_tasks_stop)
 
         # NOTE(lucasagomes): If the conductor server dies abruptly
         # mid deployment (OMM Killer, power outage, etc...) we
@@ -161,10 +204,7 @@ class BaseConductorManager(periodic_task.PeriodicTasks):
                 LOG.critical(_LC('Failed to start keepalive'))
                 self.del_host()
 
-    def _collect_periodic_tasks(self, obj):
-        for n, method in inspect.getmembers(obj, inspect.ismethod):
-            if getattr(method, '_periodic_enabled', False):
-                self.add_periodic_task(method)
+        self._started = True
 
     def del_host(self, deregister=True):
         # Conductor deregistration fails if called on non-initialized
@@ -190,11 +230,34 @@ class BaseConductorManager(periodic_task.PeriodicTasks):
         # Waiting here to give workers the chance to finish. This has the
         # benefit of releasing locks workers placed on nodes, as well as
         # having work complete normally.
-        self._worker_pool.waitall()
+        self._periodic_tasks.stop()
+        self._periodic_tasks.wait()
+        self._executor.shutdown(wait=True)
+        self._started = False
 
-    def periodic_tasks(self, context, raise_on_error=False):
-        """Periodic tasks are run at pre-specified interval."""
-        return self.run_periodic_tasks(context, raise_on_error=raise_on_error)
+    def _collect_periodic_tasks(self, obj, args):
+        """Collect periodic tasks from a given object.
+
+        Populates self._periodic_task_callables with tuples
+        (callable, args, kwargs).
+
+        :param obj: object containing periodic tasks as methods
+        :param args: tuple with arguments to pass to every task
+        """
+        for name, member in inspect.getmembers(obj):
+            if periodics.is_periodic(member):
+                LOG.debug('Found periodic task %(owner)s.%(member)s',
+                          {'owner': obj.__class__.__name__,
+                           'member': name})
+                self._periodic_task_callables.append((member, args, {}))
+
+    def _on_periodic_tasks_stop(self, fut):
+        try:
+            fut.result()
+        except Exception as exc:
+            LOG.critical(_LC('Periodic tasks worker has failed: %s'), exc)
+        else:
+            LOG.info(_LI('Successfully shut down periodic tasks'))
 
     def iter_nodes(self, fields=None, **kwargs):
         """Iterate over nodes mapped to this conductor.
@@ -217,7 +280,6 @@ class BaseConductorManager(periodic_task.PeriodicTasks):
             if self._mapped_to_this_conductor(*result[:2]):
                 yield result
 
-    @lockutils.synchronized(WORKER_SPAWN_lOCK, 'ironic-')
     def _spawn_worker(self, func, *args, **kwargs):
 
         """Create a greenthread to run func(*args, **kwargs).
@@ -225,13 +287,13 @@ class BaseConductorManager(periodic_task.PeriodicTasks):
         Spawns a greenthread if there are free slots in pool, otherwise raises
         exception. Execution control returns immediately to the caller.
 
-        :returns: GreenThread object.
+        :returns: Future object.
         :raises: NoFreeConductorWorker if worker pool is currently full.
 
         """
-        if self._worker_pool.free():
-            return self._worker_pool.spawn(func, *args, **kwargs)
-        else:
+        try:
+            return self._executor.submit(func, *args, **kwargs)
+        except futurist.RejectedSubmission:
             raise exception.NoFreeConductorWorker()
 
     def _conductor_service_record_keepalive(self):

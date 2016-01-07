@@ -24,9 +24,9 @@ import inspect
 import json
 import os
 
-import eventlet
+from futurist import periodics
+from oslo_config import cfg
 from oslo_log import log as logging
-from oslo_service import periodic_task
 from oslo_utils import excutils
 import six
 
@@ -38,6 +38,10 @@ LOG = logging.getLogger(__name__)
 
 RAID_CONFIG_SCHEMA = os.path.join(os.path.dirname(__file__),
                                   'raid_config_schema.json')
+
+
+CONF = cfg.CONF
+CONF.import_opt('periodic_interval', 'ironic.common.service')
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -1116,45 +1120,36 @@ def clean_step(priority, abortable=False, argsinfo=None):
     return decorator
 
 
-def driver_periodic_task(parallel=True, **other):
+def driver_periodic_task(**kwargs):
     """Decorator for a driver-specific periodic task.
 
+    Deprecated, please use futurist directly.
     Example::
 
+        from futurist import periodics
+
         class MyDriver(base.BaseDriver):
-            @base.driver_periodic_task(spacing=42)
+            @periodics.periodic(spacing=42)
             def task(self, manager, context):
                 # do some job
 
-    :param parallel: If True (default), this task is run in a separate thread.
-            If False, this task will be run in the conductor's periodic task
-            loop, rather than a separate greenthread. This parameter is
-            deprecated and will be ignored starting with Mitaka cycle.
-    :param other: arguments to pass to @periodic_task.periodic_task
+    :param kwargs: arguments to pass to @periodics.periodic
     """
-    # TODO(dtantsur): drop all this magic once
-    # https://review.openstack.org/#/c/134303/ lands
-    semaphore = eventlet.semaphore.BoundedSemaphore()
+    LOG.warning(_LW('driver_periodic_task decorator is deprecated, please '
+                    'use futurist.periodics.periodic directly'))
+    # Previously we accepted more arguments, make a backward compatibility
+    # layer for out-of-tree drivers.
+    new_kwargs = {}
+    for arg in ('spacing', 'enabled', 'run_immediately'):
+        try:
+            new_kwargs[arg] = kwargs.pop(arg)
+        except KeyError:
+            pass
+    new_kwargs.setdefault('spacing', CONF.periodic_interval)
 
-    def decorator2(func):
-        @six.wraps(func)
-        def wrapper(*args, **kwargs):
-            if parallel:
-                def _internal():
-                    with semaphore:
-                        func(*args, **kwargs)
+    if kwargs:
+        LOG.warning(_LW('The following arguments are not supported by '
+                        'futurist.periodics.periodic and are ignored: %s'),
+                    ', '.join(kwargs))
 
-                eventlet.greenthread.spawn_n(_internal)
-            else:
-                LOG.warning(_LW(
-                    'Using periodic tasks with parallel=False is deprecated, '
-                    '"parallel" argument will be ignored starting with '
-                    'the Mitaka release'))
-                func(*args, **kwargs)
-
-        # NOTE(dtantsur): name should be unique
-        other.setdefault('name', '%s.%s' % (func.__module__, func.__name__))
-        decorator = periodic_task.periodic_task(**other)
-        return decorator(wrapper)
-
-    return decorator2
+    return periodics.periodic(**new_kwargs)

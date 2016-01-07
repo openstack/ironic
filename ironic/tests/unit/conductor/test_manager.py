@@ -70,7 +70,7 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
             self.service.change_node_power_state(self.context,
                                                  node.uuid,
                                                  states.POWER_ON)
-            self.service._worker_pool.waitall()
+            self._stop_service()
 
             get_power_mock.assert_called_once_with(mock.ANY)
             node.refresh()
@@ -103,7 +103,7 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
 
         # In this test worker should not be spawned, but waiting to make sure
         # the below perform_mock assertion is valid.
-        self.service._worker_pool.waitall()
+        self._stop_service()
         self.assertFalse(pwr_act_mock.called, 'node_power_action has been '
                                               'unexpectedly called.')
         # Verify existing reservation wasn't broken.
@@ -162,7 +162,7 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
                 self.service.change_node_power_state(self.context,
                                                      node.uuid,
                                                      new_state)
-                self.service._worker_pool.waitall()
+                self._stop_service()
 
                 get_power_mock.assert_called_once_with(mock.ANY)
                 set_power_mock.assert_called_once_with(mock.ANY, new_state)
@@ -298,7 +298,7 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin,
                                                 'first_method', 'POST',
                                                 info)
         # Waiting to make sure the below assertions are valid.
-        self.service._worker_pool.waitall()
+        self._stop_service()
 
         # Assert spawn_after was called
         self.assertTrue(mock_spawn.called)
@@ -320,7 +320,7 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin,
                                                 'third_method_sync',
                                                 'POST', info)
         # Waiting to make sure the below assertions are valid.
-        self.service._worker_pool.waitall()
+        self._stop_service()
 
         # Assert no workers were used
         self.assertFalse(mock_spawn.called)
@@ -438,7 +438,7 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin,
             self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
 
             # Waiting to make sure the below assertions are valid.
-            self.service._worker_pool.waitall()
+            self._stop_service()
 
             node.refresh()
             self.assertIsNone(node.last_error)
@@ -715,7 +715,7 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                               provision_state=states.AVAILABLE)
 
             self.service.do_node_deploy(self.context, node.uuid)
-            self.service._worker_pool.waitall()
+            self._stop_service()
             node.refresh()
             self.assertEqual(states.DEPLOYING, node.provision_state)
             self.assertEqual(states.ACTIVE, node.target_provision_state)
@@ -745,7 +745,7 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             driver_internal_info={'is_whole_disk_image': False})
 
         self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
         self.assertEqual(states.DEPLOYING, node.provision_state)
         self.assertEqual(states.ACTIVE, node.target_provision_state)
@@ -774,7 +774,7 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             instance_info={'image_source': uuidutils.generate_uuid()})
 
         self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
         self.assertEqual(states.DEPLOYWAIT, node.provision_state)
         self.assertEqual(states.ACTIVE, node.target_provision_state)
@@ -798,7 +798,7 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             target_provision_state=states.NOSTATE)
 
         self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
         self.assertEqual(states.ACTIVE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
@@ -822,7 +822,7 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             target_provision_state=states.NOSTATE)
 
         self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
         self.assertEqual(states.ACTIVE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
@@ -845,7 +845,7 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             target_provision_state=states.NOSTATE)
 
         self.service.do_node_deploy(self.context, node.uuid, rebuild=True)
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
         self.assertEqual(states.ACTIVE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
@@ -893,7 +893,7 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                     self.context, node.uuid)
             # Compare true exception hidden by @messaging.expected_exceptions
             self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
-            self.service._worker_pool.waitall()
+            self._stop_service()
             node.refresh()
             # Make sure things were rolled back
             self.assertEqual(prv_state, node.provision_state)
@@ -1049,7 +1049,7 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
             provision_updated_at=datetime.datetime(2000, 1, 1, 0, 0))
 
         self.service._check_deploy_timeouts(self.context)
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
         self.assertEqual(states.DEPLOYFAIL, node.provision_state)
         self.assertEqual(states.ACTIVE, node.target_provision_state)
@@ -1067,7 +1067,7 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
             provision_updated_at=datetime.datetime(2000, 1, 1, 0, 0))
 
         self.service._check_cleanwait_timeouts(self.context)
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
         self.assertEqual(states.CLEANFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
@@ -1162,8 +1162,9 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
             target_provision_state=states.AVAILABLE,
             driver_internal_info={'is_whole_disk_image': False})
 
+        self._start_service()
         self.service.do_node_tear_down(self.context, node.uuid)
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
         # Node will be moved to AVAILABLE after cleaning, not tested here
         self.assertEqual(states.CLEANING, node.provision_state)
@@ -1176,7 +1177,6 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
     def test__do_node_tear_down_from_valid_states(self):
         valid_states = [states.ACTIVE, states.DEPLOYWAIT, states.DEPLOYFAIL,
                         states.ERROR]
-        self._start_service()
         for state in valid_states:
             self._test_do_node_tear_down_from_state(state)
 
@@ -1207,7 +1207,7 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
                                 self.context, node.uuid)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
         # Assert instance_info/driver_internal_info was not touched
         self.assertEqual(fake_instance_info, node.instance_info)
@@ -1236,7 +1236,7 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
                                 self.context, node.uuid, 'provide')
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
         # Make sure things were rolled back
         self.assertEqual(prv_state, node.provision_state)
@@ -1463,7 +1463,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
                                 self.context, node.uuid, clean_steps)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
-        self.service._worker_pool.waitall()
+        self._stop_service()
         mock_validate.assert_called_once_with(mock.ANY)
         mock_spawn.assert_called_with(self.service._do_node_clean, mock.ANY,
                                       clean_steps)
@@ -1492,9 +1492,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
                           self.service.continue_node_clean,
                           self.context, node.uuid)
 
-        self.service._worker_pool.waitall()
-        node.refresh()
-
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
     def test_continue_node_clean_wrong_state(self, mock_spawn):
         # Test the appropriate exception is raised if node isn't already
@@ -1511,7 +1508,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
                           self.service.continue_node_clean,
                           self.context, node.uuid)
 
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
         # Make sure things were rolled back
         self.assertEqual(prv_state, node.provision_state)
@@ -1533,7 +1530,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
                                           clean_step=self.clean_steps[0])
         self._start_service()
         self.service.continue_node_clean(self.context, node.uuid)
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
         self.assertEqual(states.CLEANING, node.provision_state)
         self.assertEqual(tgt_prv_state, node.target_provision_state)
@@ -1561,7 +1558,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
             driver_internal_info=driver_info, clean_step=self.clean_steps[0])
         self._start_service()
         self.service.continue_node_clean(self.context, node.uuid)
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
         if skip:
             expected_step_index = 1
@@ -1591,7 +1588,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
 
         self._start_service()
         self.service.continue_node_clean(self.context, node.uuid)
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
         self.assertEqual(states.CLEANFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
@@ -1619,7 +1616,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
 
         self._start_service()
         self.service.continue_node_clean(self.context, node.uuid)
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
         self.assertEqual(tgt_prov_state, node.provision_state)
         self.assertIsNone(node.target_provision_state)
@@ -1667,7 +1664,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
             self.service._do_node_clean(task)
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
 
         # Assert that the node was moved to available without cleaning
@@ -1779,7 +1776,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
                 self.context, node.uuid, shared=False) as task:
             self.service._do_node_clean(task, clean_steps=clean_steps)
 
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
 
         mock_validate.assert_called_once_with(task)
@@ -1827,7 +1824,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
                 self.context, node.uuid, shared=False) as task:
             self.service._do_next_clean_step(task, 0)
 
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
 
         self.assertEqual(states.CLEANWAIT, node.provision_state)
@@ -1868,7 +1865,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
                 self.context, node.uuid, shared=False) as task:
             self.service._do_next_clean_step(task, self.next_clean_step_index)
 
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
 
         self.assertEqual(states.CLEANWAIT, node.provision_state)
@@ -1907,7 +1904,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
                 self.context, node.uuid, shared=False) as task:
             self.service._do_next_clean_step(task, None)
 
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
 
         # Cleaning should be complete without calling additional steps
@@ -1947,7 +1944,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
                 self.context, node.uuid, shared=False) as task:
             self.service._do_next_clean_step(task, 0)
 
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
 
         # Cleaning should be complete
@@ -1992,7 +1989,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
             self.service._do_next_clean_step(task, 0)
             tear_mock.assert_called_once_with(task.driver.deploy, task)
 
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
 
         # Make sure we go to CLEANFAIL, clear clean_steps
@@ -2034,7 +2031,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
                 self.context, node.uuid, shared=False) as task:
             self.service._do_next_clean_step(task, 0)
 
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
 
         # Make sure we go to CLEANFAIL, clear clean_steps
@@ -2075,7 +2072,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
                     self.context, node.uuid, shared=False) as task:
                 self.service._do_next_clean_step(task, None)
 
-            self.service._worker_pool.waitall()
+            self._stop_service()
             node.refresh()
 
             # Cleaning should be complete without calling additional steps
@@ -2114,7 +2111,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
                 self.context, node.uuid, shared=False) as task:
             self.service._do_next_clean_step(task, 0)
 
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
 
         # Make sure we go to CLEANFAIL, clear clean_steps
@@ -2232,7 +2229,7 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin,
                 self.context, node['id'], shared=False) as task:
             self.service._do_node_verify(task)
 
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
 
         mock_validate.assert_called_once_with(task)
@@ -2261,7 +2258,7 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin,
                 self.context, node['id'], shared=False) as task:
             self.service._do_node_verify(task)
 
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
 
         mock_validate.assert_called_once_with(task)
@@ -2289,7 +2286,7 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin,
                 self.context, node['id'], shared=False) as task:
             self.service._do_node_verify(task)
 
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
 
         mock_get_power_state.assert_called_once_with(task)
@@ -2394,14 +2391,14 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
                                     self.context, node.uuid, True)
             # Compare true exception hidden by @messaging.expected_exceptions
             self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
-            self.service._worker_pool.waitall()
+            self._stop_service()
             spawn_mock.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
     def test_set_console_mode_enabled(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
         self._start_service()
         self.service.set_console_mode(self.context, node.uuid, True)
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
         self.assertTrue(node.console_enabled)
 
@@ -2409,7 +2406,7 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
         node = obj_utils.create_test_node(self.context, driver='fake')
         self._start_service()
         self.service.set_console_mode(self.context, node.uuid, False)
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
         self.assertFalse(node.console_enabled)
 
@@ -2425,7 +2422,7 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.UnsupportedDriverExtension,
                          exc.exc_info[0])
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
 
     def test_set_console_mode_validation_fail(self):
@@ -2449,7 +2446,7 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
                                'start_console') as mock_sc:
             mock_sc.side_effect = exception.IronicException('test-error')
             self.service.set_console_mode(self.context, node.uuid, True)
-            self.service._worker_pool.waitall()
+            self._stop_service()
             mock_sc.assert_called_once_with(mock.ANY)
             node.refresh()
             self.assertIsNotNone(node.last_error)
@@ -2463,7 +2460,7 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
                                'stop_console') as mock_sc:
             mock_sc.side_effect = exception.IronicException('test-error')
             self.service.set_console_mode(self.context, node.uuid, False)
-            self.service._worker_pool.waitall()
+            self._stop_service()
             mock_sc.assert_called_once_with(mock.ANY)
             node.refresh()
             self.assertIsNotNone(node.last_error)
@@ -2475,7 +2472,7 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
         with mock.patch.object(self.driver.console,
                                'start_console') as mock_sc:
             self.service.set_console_mode(self.context, node.uuid, True)
-            self.service._worker_pool.waitall()
+            self._stop_service()
             self.assertFalse(mock_sc.called)
 
     def test_disable_console_already_disabled(self):
@@ -2485,7 +2482,7 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
         with mock.patch.object(self.driver.console,
                                'stop_console') as mock_sc:
             self.service.set_console_mode(self.context, node.uuid, False)
-            self.service._worker_pool.waitall()
+            self._stop_service()
             self.assertFalse(mock_sc.called)
 
     def test_get_console(self):
@@ -3063,32 +3060,6 @@ class RaidTestCases(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.node.refresh()
         self.assertEqual({'foo': 'bar'}, self.node.target_raid_config)
         self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
-
-
-class ManagerSpawnWorkerTestCase(tests_base.TestCase):
-    def setUp(self):
-        super(ManagerSpawnWorkerTestCase, self).setUp()
-        self.service = manager.ConductorManager('hostname', 'test-topic')
-
-    def test__spawn_worker(self):
-        worker_pool = mock.Mock(spec_set=['free', 'spawn'])
-        worker_pool.free.return_value = True
-        self.service._worker_pool = worker_pool
-
-        self.service._spawn_worker('fake', 1, 2, foo='bar', cat='meow')
-
-        worker_pool.spawn.assert_called_once_with(
-            'fake', 1, 2, foo='bar', cat='meow')
-
-    def test__spawn_worker_none_free(self):
-        worker_pool = mock.Mock(spec_set=['free', 'spawn'])
-        worker_pool.free.return_value = False
-        self.service._worker_pool = worker_pool
-
-        self.assertRaises(exception.NoFreeConductorWorker,
-                          self.service._spawn_worker, 'fake')
-
-        self.assertFalse(worker_pool.spawn.called)
 
 
 @mock.patch.object(conductor_utils, 'node_power_action')
@@ -4184,7 +4155,7 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin,
             inspection_started_at=datetime.datetime(2000, 1, 1, 0, 0))
 
         self.service._check_inspect_timeouts(self.context)
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
         self.assertEqual(states.INSPECTFAIL, node.provision_state)
         self.assertEqual(states.MANAGEABLE, node.target_provision_state)
@@ -4207,7 +4178,7 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin,
                                 self.context, node.uuid)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
-        self.service._worker_pool.waitall()
+        self._stop_service()
         node.refresh()
         # Make sure things were rolled back
         self.assertEqual(prv_state, node.provision_state)

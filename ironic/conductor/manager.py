@@ -46,10 +46,10 @@ import datetime
 import tempfile
 
 import eventlet
+from futurist import periodics
 from oslo_config import cfg
 from oslo_log import log
 import oslo_messaging as messaging
-from oslo_service import periodic_task
 from oslo_utils import excutils
 from oslo_utils import uuidutils
 
@@ -1200,8 +1200,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                     action=action, node=node.uuid,
                     state=node.provision_state)
 
-    @periodic_task.periodic_task(
-        spacing=CONF.conductor.sync_power_state_interval)
+    @periodics.periodic(spacing=CONF.conductor.sync_power_state_interval)
     def _sync_power_states(self, context):
         """Periodic task to sync power states for the nodes.
 
@@ -1269,8 +1268,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 # Yield on every iteration
                 eventlet.sleep(0)
 
-    @periodic_task.periodic_task(
-        spacing=CONF.conductor.check_provision_state_interval)
+    @periodics.periodic(spacing=CONF.conductor.check_provision_state_interval)
     def _check_deploy_timeouts(self, context):
         """Periodically checks whether a deploy RPC call has timed out.
 
@@ -1292,8 +1290,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         self._fail_if_in_state(context, filters, states.DEPLOYWAIT,
                                sort_key, callback_method, err_handler)
 
-    @periodic_task.periodic_task(
-        spacing=CONF.conductor.check_provision_state_interval)
+    @periodics.periodic(spacing=CONF.conductor.check_provision_state_interval)
     def _check_deploying_status(self, context):
         """Periodically checks the status of nodes in DEPLOYING state.
 
@@ -1376,8 +1373,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         task.node.conductor_affinity = self.conductor.id
         task.node.save()
 
-    @periodic_task.periodic_task(
-        spacing=CONF.conductor.check_provision_state_interval)
+    @periodics.periodic(spacing=CONF.conductor.check_provision_state_interval)
     def _check_cleanwait_timeouts(self, context):
         """Periodically checks for nodes being cleaned.
 
@@ -1402,8 +1398,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                                last_error=last_error,
                                keep_target_state=True)
 
-    @periodic_task.periodic_task(
-        spacing=CONF.conductor.sync_local_state_interval)
+    @periodics.periodic(spacing=CONF.conductor.sync_local_state_interval)
     def _sync_local_state(self, context):
         """Perform any actions necessary to sync local state.
 
@@ -1826,8 +1821,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         driver = self._get_driver(driver_name)
         return driver.get_properties()
 
-    @periodic_task.periodic_task(
-        spacing=CONF.conductor.send_sensor_data_interval)
+    @periodics.periodic(spacing=CONF.conductor.send_sensor_data_interval)
     def _send_sensor_data(self, context):
         """Periodically sends sensor data to Ceilometer."""
         # do nothing if send_sensor_data option is False
@@ -2061,8 +2055,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                     action='inspect', node=task.node.uuid,
                     state=task.node.provision_state)
 
-    @periodic_task.periodic_task(
-        spacing=CONF.conductor.check_provision_state_interval)
+    @periodics.periodic(spacing=CONF.conductor.check_provision_state_interval)
     def _check_inspect_timeouts(self, context):
         """Periodically checks inspect_timeout and fails upon reaching it.
 

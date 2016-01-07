@@ -13,6 +13,8 @@
 """Test class for Ironic BaseConductorManager."""
 
 import eventlet
+import futurist
+from futurist import periodics
 import mock
 from oslo_config import cfg
 from oslo_db import exception as db_exception
@@ -23,6 +25,7 @@ from ironic.conductor import base_manager
 from ironic.conductor import manager
 from ironic.drivers import base as drivers_base
 from ironic import objects
+from ironic.tests import base as tests_base
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as tests_db_base
 from ironic.tests.unit.objects import utils as obj_utils
@@ -86,6 +89,7 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
             res = objects.Conductor.get_by_hostname(self.context,
                                                     self.hostname)
             self.assertEqual(init_names, res['drivers'])
+            self._stop_service()
 
             # verify that restart registers new driver names
             self.config(enabled_drivers=restart_names)
@@ -98,12 +102,10 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
     @mock.patch.object(driver_factory.DriverFactory, '__getitem__')
     def test_start_registers_driver_specific_tasks(self, get_mock):
         init_names = ['fake1']
-        expected_name = 'ironic.tests.unit.conductor.test_base_manager.task'
-        expected_name2 = 'ironic.tests.unit.conductor.test_base_manager.iface'
         self.config(enabled_drivers=init_names)
 
         class TestInterface(object):
-            @drivers_base.driver_periodic_task(spacing=100500)
+            @periodics.periodic(spacing=100500)
             def iface(self):
                 pass
 
@@ -113,28 +115,27 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
 
             iface = TestInterface()
 
-            @drivers_base.driver_periodic_task(spacing=42)
+            @periodics.periodic(spacing=42)
             def task(self, context):
                 pass
 
+            @drivers_base.driver_periodic_task()
+            def deprecated_task(self, context):
+                pass
+
         obj = Driver()
-        self.assertTrue(obj.task._periodic_enabled)
         get_mock.return_value = mock.Mock(obj=obj)
 
         with mock.patch.object(
                 driver_factory.DriverFactory()._extension_manager,
                 'names') as mock_names:
             mock_names.return_value = init_names
-            self._start_service()
-        tasks = dict(self.service._periodic_tasks)
-        self.assertEqual(obj.task, tasks[expected_name])
-        self.assertEqual(obj.iface.iface, tasks[expected_name2])
-        self.assertEqual(42,
-                         self.service._periodic_spacing[expected_name])
-        self.assertEqual(100500,
-                         self.service._periodic_spacing[expected_name2])
-        self.assertIn(expected_name, self.service._periodic_last_run)
-        self.assertIn(expected_name2, self.service._periodic_last_run)
+            self._start_service(start_periodic_tasks=True)
+
+        tasks = {c[0] for c in self.service._periodic_task_callables}
+        for t in (obj.task, obj.iface.iface, obj.deprecated_task):
+            self.assertTrue(periodics.is_periodic(t))
+            self.assertIn(t, tasks)
 
     @mock.patch.object(driver_factory.DriverFactory, '__init__')
     def test_start_fails_on_missing_driver(self, mock_df):
@@ -153,6 +154,17 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.assertRaises(exception.NoDriversLoaded,
                           self.service.init_host)
         self.assertTrue(log_mock.error.called)
+
+    def test_prevent_double_start(self):
+        self._start_service()
+        self.assertRaisesRegexp(RuntimeError, 'already running',
+                                self.service.init_host)
+
+    @mock.patch.object(base_manager, 'LOG')
+    def test_warning_on_low_workers_pool(self, log_mock):
+        CONF.set_override('workers_pool_size', 3, 'conductor')
+        self._start_service()
+        self.assertTrue(log_mock.warning.called)
 
     @mock.patch.object(eventlet.greenpool.GreenPool, 'waitall')
     def test_del_host_waits_on_workerpool(self, wait_mock):
@@ -185,3 +197,23 @@ class KeepAliveTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
                 mock_is_set.side_effect = [False, False, False, True]
                 self.service._conductor_service_record_keepalive()
             self.assertEqual(3, mock_touch.call_count)
+
+
+class ManagerSpawnWorkerTestCase(tests_base.TestCase):
+    def setUp(self):
+        super(ManagerSpawnWorkerTestCase, self).setUp()
+        self.service = manager.ConductorManager('hostname', 'test-topic')
+        self.executor = mock.Mock(spec=futurist.GreenThreadPoolExecutor)
+        self.service._executor = self.executor
+
+    def test__spawn_worker(self):
+        self.service._spawn_worker('fake', 1, 2, foo='bar', cat='meow')
+
+        self.executor.submit.assert_called_once_with(
+            'fake', 1, 2, foo='bar', cat='meow')
+
+    def test__spawn_worker_none_free(self):
+        self.executor.submit.side_effect = futurist.RejectedSubmission()
+
+        self.assertRaises(exception.NoFreeConductorWorker,
+                          self.service._spawn_worker, 'fake')

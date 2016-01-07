@@ -16,6 +16,7 @@ Modules required to work with ironic_inspector:
 """
 
 import eventlet
+from futurist import periodics
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
@@ -121,8 +122,8 @@ class Inspector(base.InspectInterface):
         eventlet.spawn_n(_start_inspection, task.node.uuid, task.context)
         return states.INSPECTING
 
-    @base.driver_periodic_task(spacing=CONF.inspector.status_check_period,
-                               enabled=CONF.inspector.enabled)
+    @periodics.periodic(spacing=CONF.inspector.status_check_period,
+                        enabled=CONF.inspector.enabled)
     def _periodic_check_result(self, manager, context):
         """Periodic task checking results of inspection."""
         filters = {'provision_state': states.INSPECTING}

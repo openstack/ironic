@@ -40,7 +40,8 @@ from ironic.objects import base as objects_base
 service_opts = [
     cfg.IntOpt('periodic_interval',
                default=60,
-               help=_('Seconds between running periodic tasks.')),
+               help=_('Default interval for running driver periodic tasks.'),
+               deprecated_for_removal=True),
     cfg.StrOpt('host',
                default=socket.getfqdn(),
                help=_('Name of this node. This can be an opaque identifier. '
@@ -79,11 +80,7 @@ class RPCService(service.Service):
         self.rpcserver.start()
 
         self.handle_signal()
-        self.manager.init_host()
-        self.tg.add_dynamic_timer(
-            self.manager.periodic_tasks,
-            periodic_interval_max=CONF.periodic_interval,
-            context=admin_context)
+        self.manager.init_host(admin_context)
 
         LOG.info(_LI('Created RPC server for service %(service)s on host '
                      '%(host)s.'),

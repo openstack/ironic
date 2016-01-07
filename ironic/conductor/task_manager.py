@@ -383,15 +383,15 @@ class TaskManager(object):
             #     for some reason, this is true.
             # All of the above are asserted in tests such that we'll
             # catch if eventlet ever changes this behavior.
-            thread = None
+            fut = None
             try:
-                thread = self._spawn_method(*self._spawn_args,
-                                            **self._spawn_kwargs)
+                fut = self._spawn_method(*self._spawn_args,
+                                         **self._spawn_kwargs)
 
                 # NOTE(comstud): Trying to use a lambda here causes
                 # the callback to not occur for some reason. This
                 # also makes it easier to test.
-                thread.link(self._thread_release_resources)
+                fut.add_done_callback(self._thread_release_resources)
                 # Don't unlock! The unlock will occur when the
                 # thread finshes.
                 return
@@ -408,9 +408,9 @@ class TaskManager(object):
                                     {'method': self._on_error_method.__name__,
                                     'node': self.node.uuid})
 
-                    if thread is not None:
-                        # This means the link() failed for some
+                    if fut is not None:
+                        # This means the add_done_callback() failed for some
                         # reason. Nuke the thread.
-                        thread.cancel()
+                        fut.cancel()
                     self.release_resources()
         self.release_resources()

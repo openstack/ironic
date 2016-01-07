@@ -1,0 +1,16 @@
+---
+prelude: >
+    This release features switch to Oslo Futurist library for asynchronous
+    thread execution and periodic tasks. Main benefit is that periodic tasks
+    are now executed truly in parallel, and not sequentially in one
+    green thread.
+upgrade:
+  - Configuration option "workers_pool_size" can no longer be less or equal
+    to 2. Please set it to greater value (the default is 100) before update.
+deprecations:
+  - Configuration option "periodic_interval" is deprecated.
+  - Using "driver_periodic_task" decorator is deprecated. Please update your
+    out-of-tree drivers to use "periodics.periodic" decorator from Futurist
+    library.
+fixes:
+  - Periodic tasks are no longer executed all in one thread.

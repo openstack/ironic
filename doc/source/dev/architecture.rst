@@ -77,12 +77,14 @@ Driver-Specific Periodic Tasks
 
 Drivers may run their own periodic tasks, i.e. actions run repeatedly after
 a certain amount of time. Such task is created by decorating a method on the
-driver itself or on any interface with driver_periodic_task_ decorator, e.g.
+driver itself or on any interface with periodic_ decorator, e.g.
 
 ::
 
+    from futurist import periodics
+
     class FakePower(base.PowerInterface):
-        @base.driver_periodic_task(spacing=42)
+        @periodics.periodic(spacing=42)
         def task(self, manager, context):
             pass  # do something
 
@@ -90,28 +92,13 @@ driver itself or on any interface with driver_periodic_task_ decorator, e.g.
         def __init__(self):
             self.power = FakePower()
 
-        @base.driver_periodic_task(spacing=42)
+        @periodics.periodic(spacing=42)
         def task2(self, manager, context):
             pass  # do something
 
 
 Here the ``spacing`` argument is a period in seconds for a given periodic task.
 For example 'spacing=5' means every 5 seconds.
-
-.. note::
-    The ``parallel`` argument may be passed to driver_periodic_task_.
-    If it's set to False, this task will be run in the periodic task loop,
-    rather than a separate greenthread.
-
-    This is deprecated as of Liberty release, and the parallel argument will be
-    ignored starting in the Mitaka cycle, as such task would prevent all other
-    periodic tasks from starting while it is running.
-
-.. note::
-    By default periodic task names are derived from method names,
-    so they should be unique within a Python module.
-    Use ``name`` argument to driver_periodic_task_ to override
-    automatically generated name.
 
 
 Message Routing
@@ -137,4 +124,4 @@ driver actions such as take-over or clean-up.
 .. _DB API: ../api/ironic.db.api.html
 .. _diskimage-builder: https://github.com/openstack/diskimage-builder
 .. _consistent hashing algorithm: ../api/ironic.common.hash_ring.html
-.. _driver_periodic_task: ../api/ironic.drivers.base.html#ironic.drivers.base.driver_periodic_task
+.. _periodic: http://docs.openstack.org/developer/futurist/api.html#futurist.periodics.periodic
