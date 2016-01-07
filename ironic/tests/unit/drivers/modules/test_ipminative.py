@@ -400,7 +400,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
     @mock.patch('pyghmi.ipmi.command.Command', autospec=True)
     def test_reboot_fail(self, ipmi_mock):
         ipmicmd = ipmi_mock.return_value
-        ipmicmd.set_power.return_value = {'powerstate': 'error'}
+        ipmicmd.set_power.return_value = {'error': 'Some IPMI error'}
 
         self.config(retry_timeout=500, group='ipmi')
         with task_manager.acquire(self.context,

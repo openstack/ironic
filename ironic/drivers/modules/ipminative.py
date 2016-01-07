@@ -221,13 +221,12 @@ def _reboot(driver_info):
         LOG.error(error)
         raise exception.IPMIFailure(error)
 
-    state = ret.get('powerstate')
-    if state == 'on':
-        return states.POWER_ON
-    else:
+    if 'error' in ret:
         error = _("bad response: %s") % ret
         LOG.error(msg, {'node_id': driver_info['uuid'], 'error': error})
         raise exception.PowerStateFailure(pstate=states.REBOOT)
+
+    return states.POWER_ON
 
 
 def _power_status(driver_info):
