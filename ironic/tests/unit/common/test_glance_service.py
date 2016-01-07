@@ -235,7 +235,7 @@ class TestGlanceImageService(base.TestCase):
 
         self.assertEqual(1, len(image_metas))
         self.assertEqual('test image', image_metas[0]['name'])
-        self.assertEqual(False, image_metas[0]['is_public'])
+        self.assertFalse(image_metas[0]['is_public'])
 
     def test_detail_marker(self):
         fixtures = []

@@ -256,7 +256,7 @@ class SeaMicroPrivateMethodsTestCase(db_base.DbTestCase):
         volume = self.Volume()
         mock_get_volume.return_value = volume
         valid = seamicro._validate_volume(self.info, volume.id)
-        self.assertEqual(valid, True)
+        self.assertTrue(valid)
 
     @mock.patch.object(seamicro, "_get_pools", autospec=True)
     def test__create_volume_fail(self, mock_get_pools):

@@ -249,7 +249,7 @@ class TestJsonType(base.TestCase):
         value = vt.validate(0.123)
         self.assertEqual(0.123, value)
         value = vt.validate(True)
-        self.assertEqual(True, value)
+        self.assertTrue(value)
         value = vt.validate([1, 2, 3])
         self.assertEqual([1, 2, 3], value)
         value = vt.validate({'foo': 'bar'})

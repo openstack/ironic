@@ -1682,7 +1682,7 @@ class TestDelete(test_api_base.BaseApiTest):
         response = self.delete('/nodes/%s/maintenance' % node.uuid)
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
-        self.assertEqual(False, node.maintenance)
+        self.assertFalse(node.maintenance)
         self.assertIsNone(node.maintenance_reason)
         mock_get.assert_called_once_with(mock.ANY, node.uuid)
         mock_update.assert_called_once_with(mock.ANY, mock.ANY,
@@ -1700,7 +1700,7 @@ class TestDelete(test_api_base.BaseApiTest):
                                headers={api_base.Version.string: "1.5"})
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
-        self.assertEqual(False, node.maintenance)
+        self.assertFalse(node.maintenance)
         self.assertIsNone(node.maintenance_reason)
         mock_get.assert_called_once_with(mock.ANY, node.name)
         mock_update.assert_called_once_with(mock.ANY, mock.ANY,
@@ -2227,7 +2227,7 @@ class TestPut(test_api_base.BaseApiTest):
                             request_body, headers=headers)
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        self.assertEqual(True, self.node.maintenance)
+        self.assertTrue(self.node.maintenance)
         self.assertEqual(reason, self.node.maintenance_reason)
         mock_get.assert_called_once_with(mock.ANY, node_ident)
         mock_update.assert_called_once_with(mock.ANY, mock.ANY,
