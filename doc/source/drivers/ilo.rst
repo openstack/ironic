@@ -251,6 +251,7 @@ Features
 * Support for out-of-band hardware inspection.
 * Swiftless deploy for intermediate images
 * HTTP(S) Based Deploy.
+* iLO drivers with standalone ironic.
 
 Requirements
 ~~~~~~~~~~~~
@@ -320,6 +321,10 @@ HTTP(S) Based Deploy
 ~~~~~~~~~~~~~~~~~~~~
 Refer to `HTTP(S) Based Deploy Support`_ for more information.
 
+iLO drivers with standalone ironic
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Refer to `Support for iLO drivers with Standalone Ironic`_ for more information.
+
 agent_ilo driver
 ^^^^^^^^^^^^^^^^
 
@@ -376,6 +381,7 @@ Features
 * Support for out-of-band hardware inspection.
 * Swiftless deploy for intermediate images.
 * HTTP(S) Based Deploy.
+* iLO drivers with standalone ironic.
 
 Requirements
 ~~~~~~~~~~~~
@@ -442,6 +448,10 @@ Refer to `Swiftless deploy for intermediate images`_ for more information.
 HTTP(S) Based Deploy
 ~~~~~~~~~~~~~~~~~~~~
 Refer to `HTTP(S) Based Deploy Support`_ for more information.
+
+iLO drivers with standalone ironic
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Refer to `Support for iLO drivers with Standalone Ironic`_ for more information.
 
 pxe_ilo driver
 ^^^^^^^^^^^^^^
@@ -548,6 +558,10 @@ Refer to `Hardware Inspection Support`_ for more information.
 HTTP(S) Based Deploy
 ~~~~~~~~~~~~~~~~~~~~
 Refer to `HTTP(S) Based Deploy Support`_ for more information.
+
+iLO drivers with standalone ironic
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Refer to `Support for iLO drivers with Standalone Ironic`_ for more information.
 
 Functionalities across drivers
 ==============================
@@ -828,13 +842,41 @@ HTTP(S) URLs.
 The HTTP(S) web server can be configured in many ways. For the Apache
 web server on Ubuntu, refer `here <https://help.ubuntu.com/lts/serverguide/httpd.html>`_.
 The web server may reside on a different system than the conductor nodes, but its URL
-must be reachable by the conductor and the baremetal nodes.
+must be reachable by the conductor and the bare metal nodes.
 
 Deploy Process
 ~~~~~~~~~~~~~~
 
 Refer to `Netboot with HTTP(S) based deploy`_ for partition image boot and refer to
 `Localboot with HTTP(S) based deploy`_ for whole disk image boot.
+
+
+Support for iLO drivers with Standalone Ironic
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is possible to use ironic as standalone services without other
+OpenStack services. iLO drivers can be used in standalone ironic.
+This feature is referred to as ``iLO drivers with standalone ironic`` in this document and is
+supported by following drivers:
+
+* ``pxe_ilo``
+* ``iscsi_ilo``
+* ``agent_ilo``
+
+Configuration
+~~~~~~~~~~~~~
+The HTTP(S) web server needs to be configured as described in `HTTP(S) Based Deploy Support`_
+and `Web server configuration on conductor`_ needs to be configured for hosting
+intermediate images on conductor as described in
+`Swiftless deploy for intermediate images`_.
+
+Deploy Process
+~~~~~~~~~~~~~~
+``iscsi_ilo`` supports both netboot and localboot, while ``agent_ilo`` supports
+only localboot. Refer to `Netboot in standalone ironic`_ and
+`Localboot in standalone ironic`_ for details of deploy process
+for netboot and localboot respectively. For ``pxe_ilo``, the deploy process
+is same as native ``pxe_ipmitool`` driver.
 
 Deploy Process
 ==============
@@ -1066,6 +1108,83 @@ Localboot with HTTP(S) based deploy
       Conductor -> Swift [label = "Uploads the FAT32 image"];
       Conductor -> Conductor [label = "Generates swift tempURL for FAT32 image"];
       Conductor -> iLO [label = "Attaches the FAT32 image swift tempURL as virtual media floppy"];
+      Conductor -> iLO [label = "Attaches the deploy ISO URL as virtual media CDROM"];
+      Conductor -> iLO [label = "Sets one time boot to CDROM"];
+      Conductor -> iLO [label = "Reboot the node"];
+      iLO -> Webserver [label = "Downloads deploy ISO"];
+      Baremetal -> iLO [label = "Boots deploy kernel/ramdisk from iLO virtual media CDROM"];
+      IPA -> Conductor [label = "Lookup node"];
+      Conductor -> IPA [label = "Provides node UUID"];
+      IPA -> Conductor [label = "Heartbeat"];
+      Conductor -> IPA [label = "Sends the user image HTTP(S) URL"];
+      IPA -> Webserver [label = "Retrieves the user image on bare metal"];
+      IPA -> IPA [label = "Writes user image to disk"];
+      IPA -> Conductor [label = "Heartbeat"];
+      Conductor -> Baremetal [label = "Sets boot device to disk"];
+      Conductor -> IPA [label = "Power off the node"];
+      Conductor -> Baremetal [label = "Power on the node"];
+      Baremetal -> Baremetal [label = "Boot user image from disk"];
+   }
+
+Netboot in standalone ironic
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. seqdiag::
+   :scale: 80
+
+   diagram {
+      Webserver; Conductor; Baremetal; ConductorWebserver; IPA; iLO;
+      activation = none;
+      span_height = 1;
+      edge_length = 250;
+      default_note_color = white;
+      default_fontsize = 14;
+
+      Conductor -> iLO [label = "Powers off the node"];
+      Conductor -> Webserver [label = "Download user image"];
+      Conductor -> Conductor [label = "Creates the FAT32 image containing Ironic API URL and driver name"];
+      Conductor -> ConductorWebserver[label = "Uploads the FAT32 image"];
+      Conductor -> iLO [label = "Attaches the FAT32 image URL as virtual media floppy"];
+      Conductor -> iLO [label = "Attaches the deploy ISO URL as virtual media CDROM"];
+      Conductor -> iLO [label = "Sets one time boot to CDROM"];
+      Conductor -> iLO [label = "Reboot the node"];
+      iLO -> Webserver [label = "Downloads deploy ISO"];
+      Baremetal -> iLO [label = "Boots deploy kernel/ramdisk from iLO virtual media CDROM"];
+      IPA -> Conductor [label = "Lookup node"];
+      Conductor -> IPA [label = "Provides node UUID"];
+      IPA -> Conductor [label = "Heartbeat"];
+      Conductor -> IPA [label = "Exposes the disk over iSCSI"];
+      Conductor -> Conductor [label = "Connects to bare metal's disk over iSCSI and writes image"];
+      Conductor -> Conductor [label = "Generates the boot ISO"];
+      Conductor -> ConductorWebserver [label = "Uploads the boot ISO"];
+      Conductor -> iLO [label = "Attaches boot ISO URL as virtual media CDROM"];
+      Conductor -> iLO [label = "Sets boot device to CDROM"];
+      Conductor -> IPA [label = "Power off the node"];
+      Conductor -> iLO [label = "Power on the node"];
+      iLO -> ConductorWebserver [label = "Downloads boot ISO"];
+      iLO -> Baremetal [label = "Boots the instance kernel/ramdisk from iLO virtual media CDROM"];
+      Baremetal -> Baremetal [label = "Instance kernel finds root partition and continues booting from disk"];
+   }
+
+Localboot in standalone ironic
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. seqdiag::
+   :scale: 80
+
+   diagram {
+      Webserver; Conductor; Baremetal; ConductorWebserver; IPA; iLO;
+      activation = none;
+      span_height = 1;
+      edge_length = 250;
+      default_note_color = white;
+      default_fontsize = 14;
+
+      Conductor -> iLO [label = "Powers off the node"];
+      Conductor -> Conductor [label = "Creates the FAT32 image containing Ironic API URL and driver name"];
+      Conductor -> ConductorWebserver [label = "Uploads the FAT32 image"];
+      Conductor -> Conductor [label = "Generates URL for FAT32 image"];
+      Conductor -> iLO [label = "Attaches the FAT32 image URL as virtual media floppy"];
       Conductor -> iLO [label = "Attaches the deploy ISO URL as virtual media CDROM"];
       Conductor -> iLO [label = "Sets one time boot to CDROM"];
       Conductor -> iLO [label = "Reboot the node"];
