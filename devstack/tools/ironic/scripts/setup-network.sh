@@ -16,8 +16,9 @@ BRIDGE_NAME=brbm$BRIDGE_SUFFIX
 
 export VIRSH_DEFAULT_CONNECT_URI="$LIBVIRT_CONNECT_URI"
 
-# Only add bridge if missing
+# Only add bridge if missing. Bring it UP.
 (sudo ovs-vsctl list-br | grep ${BRIDGE_NAME}$) || sudo ovs-vsctl add-br ${BRIDGE_NAME}
+sudo ifconfig ${BRIDGE_NAME} up
 
 # Remove bridge before replacing it.
 (virsh net-list | grep "${BRIDGE_NAME} ") && virsh net-destroy ${BRIDGE_NAME}
