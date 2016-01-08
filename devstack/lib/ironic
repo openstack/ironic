@@ -128,7 +128,7 @@ IRONIC_VM_LOG_ROTATE=$(trueorfalse True IRONIC_VM_LOG_ROTATE)
 # Use DIB to create deploy ramdisk and kernel.
 IRONIC_BUILD_DEPLOY_RAMDISK=$(trueorfalse True IRONIC_BUILD_DEPLOY_RAMDISK)
 
-# Ironic IPA ramdisk type, supported types are: coreos, tinyipa.
+# Ironic IPA ramdisk type, supported types are: coreos, tinyipa and dib.
 IRONIC_RAMDISK_TYPE=${IRONIC_RAMDISK_TYPE:-tinyipa}
 
 # If not use DIB, these files are used as deploy ramdisk/kernel.
@@ -154,6 +154,11 @@ case $IRONIC_RAMDISK_TYPE in
         die $LINENO "Unrecognised IRONIC_RAMDISK_TYPE: $IRONIC_RAMDISK_TYPE. Expected 'coreos' or 'tinyipa'"
     ;;
 esac
+
+# This refers the options for disk-image-create and the platform on which
+# to build the dib based ironic-python-agent ramdisk.
+# "ubuntu" is set as the default value.
+IRONIC_DIB_RAMDISK_OPTIONS=${IRONIC_DIB_RAMDISK_OPTIONS:-'ubuntu'}
 
 # Which deploy driver to use - valid choices right now
 # are ``pxe_ssh``, ``pxe_ipmitool``, ``agent_ssh`` and ``agent_ipmitool``.
@@ -984,8 +989,27 @@ function configure_ironic_auxiliary {
     ironic_ssh_check $IRONIC_KEY_FILE $IRONIC_VM_SSH_ADDRESS $IRONIC_VM_SSH_PORT $IRONIC_SSH_USERNAME $IRONIC_SSH_ATTEMPTS
 }
 
+function build_ipa_ramdisk {
+    local kernel_path=$1
+    local ramdisk_path=$2
+    case $IRONIC_RAMDISK_TYPE in
+        'coreos')
+            build_ipa_coreos_ramdisk $kernel_path $ramdisk_path
+            ;;
+        'tinyipa')
+            build_tinyipa_ramdisk $kernel_path $ramdisk_path
+            ;;
+        'dib')
+            build_ipa_dib_ramdisk $kernel_path $ramdisk_path
+            ;;
+        *)
+            die $LINENO "Unrecognised IRONIC_RAMDISK_TYPE: $IRONIC_RAMDISK_TYPE. Expected either of 'dib', 'coreos', or 'tinyipa'."
+            ;;
+    esac
+}
+
 function build_ipa_coreos_ramdisk {
-    echo "Building ironic-python-agent deploy ramdisk"
+    echo "Building coreos ironic-python-agent deploy ramdisk"
     local kernel_path=$1
     local ramdisk_path=$2
     # on fedora services do not start by default
@@ -1023,6 +1047,21 @@ function install_diskimage_builder {
     fi
 }
 
+function build_ipa_dib_ramdisk {
+    local kernel_path=$1
+    local ramdisk_path=$2
+    local tempdir
+    tempdir=$(mktemp -d --tmpdir=${DEST})
+    echo "Building IPA ramdisk with DIB options: $IRONIC_DIB_RAMDISK_OPTIONS"
+    disk-image-create "$IRONIC_DIB_RAMDISK_OPTIONS" \
+                    -o  "$tempdir/ironic-agent" \
+                    ironic-agent
+    chmod -R +r $tempdir
+    mv "$tempdir/ironic-agent.kernel" "$kernel_path"
+    mv "$tempdir/ironic-agent.initramfs" "$ramdisk_path"
+    rm -rf $tempdir
+}
+
 # build deploy kernel+ramdisk, then upload them to glance
 # this function sets ``IRONIC_DEPLOY_KERNEL_ID``, ``IRONIC_DEPLOY_RAMDISK_ID``
 function upload_baremetal_ironic_deploy {
@@ -1043,13 +1082,7 @@ function upload_baremetal_ironic_deploy {
             # we can build them only if we're not offline
             if [ "$OFFLINE" != "True" ]; then
                 if is_deployed_with_ipa_ramdisk; then
-                    if [ "$IRONIC_RAMDISK_TYPE" == "coreos" ]; then
-                        build_ipa_coreos_ramdisk $IRONIC_DEPLOY_KERNEL_PATH $IRONIC_DEPLOY_RAMDISK_PATH
-                    elif [ "$IRONIC_RAMDISK_TYPE" == "tinyipa" ]; then
-                        build_tinyipa_ramdisk $IRONIC_DEPLOY_KERNEL_PATH $IRONIC_DEPLOY_RAMDISK_PATH
-                    else
-                        die $LINENO "Unrecognised IRONIC_RAMDISK_TYPE: $IRONIC_RAMDISK_TYPE. Expected 'coreos' or 'tinyipa'"
-                    fi
+                    build_ipa_ramdisk $IRONIC_DEPLOY_KERNEL_PATH $IRONIC_DEPLOY_RAMDISK_PATH
                 else
                     # install diskimage-builder
                     if [[ $(type -P ramdisk-image-create) == "" ]]; then
