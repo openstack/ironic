@@ -66,7 +66,7 @@ Ironic:
    the spec/code is being worked on, then 'Fix Released' when it is
    implemented.
 
-#. If the RFE is not approved, the ironic-drivers team will move the bug to
+#. If the RFE is rejected, the ironic-drivers team will move the bug to
    "Won't Fix" status.
 
 When working on an RFE, please be sure to tag your commits properly:
