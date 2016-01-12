@@ -1816,6 +1816,14 @@ The list of support hints is:
 * vendor (STRING): device vendor
 * serial (STRING): disk serial number
 * size (INT): size of the device in GiB
+
+  .. note::
+    A node's 'local_gb' property is often set to a value 1 GiB less than the
+    actual disk size to account for partitioning (this is how DevStack, TripleO
+    and Ironic Inspector work, to name a few). However, in this case ``size``
+    should be the actual size. For example, for a 128 GiB disk ``local_gb``
+    will be 127, but size hint will be 128.
+
 * wwn (STRING): unique storage identifier
 * wwn_with_extension (STRING): unique storage identifier with the vendor extension appended
 * wwn_vendor_extension (STRING): unique vendor storage identifier
