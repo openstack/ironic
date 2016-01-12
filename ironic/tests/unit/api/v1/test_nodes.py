@@ -1968,13 +1968,6 @@ class TestPut(test_api_base.BaseApiTest):
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
 
-    def test_manage_raises_error_before_1_2(self):
-        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
-                            {'target': states.VERBS['manage']},
-                            headers={},
-                            expect_errors=True)
-        self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
-
     @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
     def test_provide_from_manage(self, mock_dpa):
         self.node.provision_state = states.MANAGEABLE
@@ -2026,13 +2019,6 @@ class TestPut(test_api_base.BaseApiTest):
             self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertEqual(0, mock_dpa.call_count)
 
-    def test_abort_unsupported(self):
-        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
-                            {'target': states.VERBS['abort']},
-                            headers={api_base.Version.string: "1.12"},
-                            expect_errors=True)
-        self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
-
     @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
     def test_abort_cleanwait(self, mock_dpa):
         self.node.provision_state = states.CLEANWAIT
@@ -2066,15 +2052,6 @@ class TestPut(test_api_base.BaseApiTest):
                             headers={api_base.Version.string: "1.4"},
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
-
-    def test_clean_unsupported(self):
-        self.node.provision_state = states.MANAGEABLE
-        self.node.save()
-        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
-                            {'target': states.VERBS['clean']},
-                            headers={api_base.Version.string: "1.14"},
-                            expect_errors=True)
-        self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
 
     def test_clean_no_cleansteps(self):
         self.node.provision_state = states.MANAGEABLE
