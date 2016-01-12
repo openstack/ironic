@@ -260,7 +260,8 @@ class BaseConductorManager(periodic_task.PeriodicTasks):
 
     def _fail_if_in_state(self, context, filters, provision_state,
                           sort_key, callback_method=None,
-                          err_handler=None, last_error=None):
+                          err_handler=None, last_error=None,
+                          keep_target_state=False):
         """Fail nodes that are in specified state.
 
         Retrieves nodes that satisfy the criteria in 'filters'.
@@ -285,6 +286,11 @@ class BaseConductorManager(periodic_task.PeriodicTasks):
                              if an error occurs trying to spawn an thread
                              to do the callback_method.
         :param: last_error: the error message to be updated in node.last_error
+        :param: keep_target_state: if True, a failed node will keep the same
+                                   target provision state it had before the
+                                   failure. Otherwise, the node's target
+                                   provision state will be determined by the
+                                   fsm.
 
         """
         node_iter = self.iter_nodes(filters=filters,
@@ -300,15 +306,19 @@ class BaseConductorManager(periodic_task.PeriodicTasks):
                             task.node.provision_state != provision_state):
                         continue
 
+                    target_state = (None if not keep_target_state else
+                                    task.node.target_provision_state)
+
                     # timeout has been reached - process the event 'fail'
                     if callback_method:
                         task.process_event('fail',
                                            callback=self._spawn_worker,
                                            call_args=(callback_method, task),
-                                           err_handler=err_handler)
+                                           err_handler=err_handler,
+                                           target_state=target_state)
                     else:
                         task.node.last_error = last_error
-                        task.process_event('fail')
+                        task.process_event('fail', target_state=target_state)
             except exception.NoFreeConductorWorker:
                 break
             except (exception.NodeLocked, exception.NodeNotFound):

@@ -184,7 +184,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.31'
+    RPC_API_VERSION = '1.32'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -652,6 +652,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         :param task: A TaskManager object
         :raises: NodeCleaningFailure if an internal error occurred when
                  getting the next clean steps
+        :returns: ordered list of clean step dictionaries
 
         """
         node = task.node
@@ -675,6 +676,71 @@ class ConductorManager(base_manager.BaseConductorManager):
                                                 reason=msg)
         return next_steps
 
+    @messaging.expected_exceptions(exception.InvalidParameterValue,
+                                   exception.InvalidStateRequested,
+                                   exception.NodeInMaintenance,
+                                   exception.NodeLocked,
+                                   exception.NoFreeConductorWorker)
+    def do_node_clean(self, context, node_id, clean_steps):
+        """RPC method to initiate manual cleaning.
+
+        :param context: an admin context.
+        :param node_id: the ID or UUID of a node.
+        :param clean_steps: an ordered list of clean steps that will be
+            performed on the node. A clean step is a dictionary with required
+            keys 'interface' and 'step', and optional key 'args'. If
+            specified, the 'args' arguments are passed to the clean step
+            method.::
+
+              { 'interface': <driver_interface>,
+                'step': <name_of_clean_step>,
+                'args': {<arg1>: <value1>, ..., <argn>: <valuen>} }
+
+            For example (this isn't a real example, this clean step
+            doesn't exist)::
+
+              { 'interface': deploy',
+                'step': 'upgrade_firmware',
+                'args': {'force': True} }
+        :raises: InvalidParameterValue if power validation fails.
+        :raises: InvalidStateRequested if the node is not in manageable state.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+        """
+        with task_manager.acquire(context, node_id, shared=False,
+                                  purpose='node manual cleaning') as task:
+            node = task.node
+
+            if node.maintenance:
+                raise exception.NodeInMaintenance(op=_('cleaning'),
+                                                  node=node.uuid)
+
+            # NOTE(rloo): _do_node_clean() will also make a similar call
+            # to validate the power, but we are doing it again here so that
+            # the user gets immediate feedback of any issues. This behaviour
+            # (of validating) is consistent with other methods like
+            # self.do_node_deploy().
+            try:
+                task.driver.power.validate(task)
+            except exception.InvalidParameterValue as e:
+                msg = (_('RPC do_node_clean failed to validate power info.'
+                         ' Cannot clean node %(node)s. Error: %(msg)s') %
+                       {'node': node.uuid, 'msg': e})
+                raise exception.InvalidParameterValue(msg)
+
+            try:
+                task.process_event(
+                    'clean',
+                    callback=self._spawn_worker,
+                    call_args=(self._do_node_clean, task, clean_steps),
+                    err_handler=utils.provisioning_error_handler,
+                    target_state=states.MANAGEABLE)
+            except exception.InvalidState:
+                raise exception.InvalidStateRequested(
+                    action='manual clean', node=node.uuid,
+                    state=node.provision_state)
+
     def continue_node_clean(self, context, node_id):
         """RPC method to continue cleaning a node.
 
@@ -697,26 +763,32 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='node cleaning') as task:
+            node = task.node
+            if node.target_provision_state == states.MANAGEABLE:
+                target_state = states.MANAGEABLE
+            else:
+                target_state = None
+
             # TODO(lucasagomes): CLEANING here for backwards compat
             # with previous code, otherwise nodes in CLEANING when this
             # is deployed would fail. Should be removed once the Mitaka
             # release starts.
-            if task.node.provision_state not in (states.CLEANWAIT,
-                                                 states.CLEANING):
+            if node.provision_state not in (states.CLEANWAIT,
+                                            states.CLEANING):
                 raise exception.InvalidStateRequested(_(
                     'Cannot continue cleaning on %(node)s, node is in '
                     '%(state)s state, should be %(clean_state)s') %
-                    {'node': task.node.uuid,
-                     'state': task.node.provision_state,
+                    {'node': node.uuid,
+                     'state': node.provision_state,
                      'clean_state': states.CLEANWAIT})
 
             next_steps = self._get_node_next_clean_steps(task)
 
             # If this isn't the final clean step in the cleaning operation
             # and it is flagged to abort after the clean step that just
-            # finished, we abort the cleaning operaation.
-            if task.node.clean_step.get('abort_after'):
-                step_name = task.node.clean_step['step']
+            # finished, we abort the cleaning operation.
+            if node.clean_step.get('abort_after'):
+                step_name = node.clean_step['step']
                 if next_steps:
                     LOG.debug('The cleaning operation for node %(node)s was '
                               'marked to be aborted after step "%(step)s '
@@ -727,21 +799,22 @@ class ConductorManager(base_manager.BaseConductorManager):
                         callback=self._spawn_worker,
                         call_args=(self._do_node_clean_abort,
                                    task, step_name),
-                        err_handler=utils.provisioning_error_handler)
+                        err_handler=utils.provisioning_error_handler,
+                        target_state=target_state)
                     return
 
                 LOG.debug('The cleaning operation for node %(node)s was '
                           'marked to be aborted after step "%(step)s" '
                           'completed. However, since there are no more '
                           'clean steps after this, the abort is not going '
-                          'to be done.', {'node': task.node.uuid,
+                          'to be done.', {'node': node.uuid,
                                           'step': step_name})
 
             # TODO(lucasagomes): This conditional is here for backwards
             # compat with previous code. Should be removed once the Mitaka
             # release starts.
-            if task.node.provision_state == states.CLEANWAIT:
-                task.process_event('resume')
+            if node.provision_state == states.CLEANWAIT:
+                task.process_event('resume', target_state=target_state)
 
             task.set_spawn_error_hook(utils.cleaning_error_handler, task.node,
                                       _('Failed to run next clean step'))
@@ -750,19 +823,29 @@ class ConductorManager(base_manager.BaseConductorManager):
                 self._do_next_clean_step,
                 task, next_steps)
 
-    def _do_node_clean(self, task):
-        """Internal RPC method to perform automated cleaning of a node."""
-        node = task.node
-        LOG.debug('Starting cleaning for node %s', node.uuid)
+    def _do_node_clean(self, task, clean_steps=None):
+        """Internal RPC method to perform cleaning of a node.
 
-        if not CONF.conductor.clean_nodes:
+        :param task: a TaskManager instance with an exclusive lock on its node
+        :param clean_steps: For a manual clean, the list of clean steps to
+                            perform. Is None For automated cleaning (default).
+                            For more information, see the clean_steps parameter
+                            of :func:`ConductorManager.do_node_clean`.
+        """
+        node = task.node
+        manual_clean = clean_steps is not None
+        clean_type = 'manual' if manual_clean else 'automated'
+        LOG.debug('Starting %(type)s cleaning for node %(node)s',
+                  {'type': clean_type, 'node': node.uuid})
+
+        if not manual_clean and not CONF.conductor.clean_nodes:
             # Skip cleaning, move to AVAILABLE.
             node.clean_step = None
             node.save()
 
             task.process_event('done')
-            LOG.info(_LI('Cleaning is disabled, node %s has been successfully '
-                         'moved to AVAILABLE state.'), node.uuid)
+            LOG.info(_LI('Automated cleaning is disabled, node %s has been '
+                         'successfully moved to AVAILABLE state.'), node.uuid)
             return
 
         try:
@@ -776,8 +859,15 @@ class ConductorManager(base_manager.BaseConductorManager):
                    {'node': node.uuid, 'msg': e})
             return utils.cleaning_error_handler(task, msg)
 
+        if manual_clean:
+            node.clean_step = {}
+            info = node.driver_internal_info
+            info['clean_steps'] = clean_steps
+            node.driver_internal_info = info
+            node.save()
+
         # Allow the deploy driver to set up the ramdisk again (necessary for
-        # IPA cleaning/zapping)
+        # IPA cleaning)
         try:
             prepare_result = task.driver.deploy.prepare_cleaning(task)
         except Exception as e:
@@ -798,10 +888,21 @@ class ConductorManager(base_manager.BaseConductorManager):
             # set node.driver_internal_info['clean_steps'] and
             # node.clean_step and then make an RPC call to
             # continue_node_cleaning to start cleaning.
-            task.process_event('wait')
+
+            # For manual cleaning, the target provision state is MANAGEABLE,
+            # whereas for automated cleaning, it is AVAILABLE (the default).
+            target_state = states.MANAGEABLE if manual_clean else None
+            task.process_event('wait', target_state=target_state)
             return
 
-        utils.set_node_cleaning_steps(task)
+        try:
+            utils.set_node_cleaning_steps(task)
+        except (exception.InvalidParameterValue,
+                exception.NodeCleaningFailure) as e:
+            msg = (_('Cannot clean node %(node)s. Error: %(msg)s')
+                   % {'node': node.uuid, 'msg': e})
+            return utils.cleaning_error_handler(task, msg)
+
         self._do_next_clean_step(
             task,
             node.driver_internal_info.get('clean_steps', []))
@@ -810,10 +911,16 @@ class ConductorManager(base_manager.BaseConductorManager):
         """Start executing cleaning/zapping steps.
 
         :param task: a TaskManager instance with an exclusive lock
-        :param steps: The list of remaining steps that need to be executed
-                      on the node
+        :param steps: The ordered list of remaining steps that need to be
+                      executed on the node. A step is a dictionary with
+                      required keys 'interface' and 'step'. 'args' is an
+                      optional key.
         """
         node = task.node
+        # For manual cleaning, the target provision state is MANAGEABLE,
+        # whereas for automated cleaning, it is AVAILABLE.
+        manual_clean = node.target_provision_state == states.MANAGEABLE
+
         LOG.info(_LI('Executing %(state)s on node %(node)s, remaining steps: '
                      '%(steps)s'), {'node': node.uuid, 'steps': steps,
                                     'state': node.provision_state})
@@ -854,7 +961,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                 LOG.info(_LI('Clean step %(step)s on node %(node)s being '
                              'executed asynchronously, waiting for driver.') %
                          {'node': node.uuid, 'step': step})
-                task.process_event('wait')
+                target_state = states.MANAGEABLE if manual_clean else None
+                task.process_event('wait', target_state=target_state)
                 return
             elif result is not None:
                 msg = (_('While executing step %(step)s on node '
@@ -870,6 +978,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         driver_internal_info = node.driver_internal_info
         driver_internal_info['clean_steps'] = None
         node.driver_internal_info = driver_internal_info
+        node.save()
         try:
             task.driver.deploy.tear_down_cleaning(task)
         except Exception as e:
@@ -880,7 +989,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                                                 tear_down_cleaning=False)
 
         LOG.info(_LI('Node %s cleaning complete'), node.uuid)
-        task.process_event('done')
+        event = 'manage' if manual_clean else 'done'
+        # NOTE(rloo): No need to specify target prov. state; we're done
+        task.process_event(event)
 
     def _do_node_verify(self, task):
         """Internal method to perform power credentials verification."""
@@ -967,8 +1078,9 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='provision action %s'
                                   % action) as task:
+            node = task.node
             if (action == states.VERBS['provide'] and
-                    task.node.provision_state == states.MANAGEABLE):
+                    node.provision_state == states.MANAGEABLE):
                 task.process_event(
                     'provide',
                     callback=self._spawn_worker,
@@ -977,7 +1089,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 return
 
             if (action == states.VERBS['manage'] and
-                    task.node.provision_state == states.ENROLL):
+                    node.provision_state == states.ENROLL):
                 task.process_event(
                     'manage',
                     callback=self._spawn_worker,
@@ -986,45 +1098,49 @@ class ConductorManager(base_manager.BaseConductorManager):
                 return
 
             if (action == states.VERBS['abort'] and
-                    task.node.provision_state == states.CLEANWAIT):
+                    node.provision_state == states.CLEANWAIT):
 
                 # Check if the clean step is abortable; if so abort it.
                 # Otherwise, indicate in that clean step, that cleaning
                 # should be aborted after that step is done.
-                if (task.node.clean_step and not
-                    task.node.clean_step.get('abortable')):
+                if (node.clean_step and not
+                    node.clean_step.get('abortable')):
                     LOG.info(_LI('The current clean step "%(clean_step)s" for '
                                  'node %(node)s is not abortable. Adding a '
                                  'flag to abort the cleaning after the clean '
                                  'step is completed.'),
-                             {'clean_step': task.node.clean_step['step'],
-                              'node': task.node.uuid})
-                    clean_step = task.node.clean_step
+                             {'clean_step': node.clean_step['step'],
+                              'node': node.uuid})
+                    clean_step = node.clean_step
                     if not clean_step.get('abort_after'):
                         clean_step['abort_after'] = True
-                        task.node.clean_step = clean_step
-                        task.node.save()
+                        node.clean_step = clean_step
+                        node.save()
                     return
 
                 LOG.debug('Aborting the cleaning operation during clean step '
                           '"%(step)s" for node %(node)s in provision state '
                           '"%(prov)s".',
-                          {'node': task.node.uuid,
-                           'prov': task.node.provision_state,
-                           'step': task.node.clean_step.get('step')})
+                          {'node': node.uuid,
+                           'prov': node.provision_state,
+                           'step': node.clean_step.get('step')})
+                target_state = None
+                if node.target_provision_state == states.MANAGEABLE:
+                    target_state = states.MANAGEABLE
                 task.process_event(
                     'abort',
                     callback=self._spawn_worker,
                     call_args=(self._do_node_clean_abort, task),
-                    err_handler=utils.provisioning_error_handler)
+                    err_handler=utils.provisioning_error_handler,
+                    target_state=target_state)
                 return
 
             try:
                 task.process_event(action)
             except exception.InvalidState:
                 raise exception.InvalidStateRequested(
-                    action=action, node=task.node.uuid,
-                    state=task.node.provision_state)
+                    action=action, node=node.uuid,
+                    state=node.provision_state)
 
     @periodic_task.periodic_task(
         spacing=CONF.conductor.sync_power_state_interval)
@@ -1225,7 +1341,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                        "running on the node.")
         self._fail_if_in_state(context, filters, states.CLEANWAIT,
                                'provision_updated_at',
-                               last_error=last_error)
+                               last_error=last_error,
+                               keep_target_state=True)
 
     @periodic_task.periodic_task(
         spacing=CONF.conductor.sync_local_state_interval)
@@ -1353,7 +1470,6 @@ class ConductorManager(base_manager.BaseConductorManager):
             # CLEANFAIL -> MANAGEABLE
             # INSPECTIONFAIL -> MANAGEABLE
             # DEPLOYFAIL -> DELETING
-            # ZAPFAIL -> MANAGEABLE (in the future)
             if (not node.maintenance and
                     node.provision_state not in states.DELETE_ALLOWED_STATES):
                 msg = (_('Can not delete node "%(node)s" while it is in '

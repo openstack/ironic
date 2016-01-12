@@ -318,6 +318,15 @@ class RPCAPITestCase(base.DbTestCase):
                           node_id=self.fake_node['uuid'],
                           target_raid_config='config')
 
+    def test_do_node_clean(self):
+        clean_steps = [{'step': 'upgrade_firmware', 'interface': 'deploy'},
+                       {'step': 'upgrade_bmc', 'interface': 'management'}]
+        self._test_rpcapi('do_node_clean',
+                          'call',
+                          version='1.32',
+                          node_id=self.fake_node['uuid'],
+                          clean_steps=clean_steps)
+
     def test_object_action(self):
         self._test_rpcapi('object_action',
                           'call',

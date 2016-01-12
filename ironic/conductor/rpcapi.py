@@ -78,11 +78,12 @@ class ConductorAPI(object):
     |    1.31 - Added Versioned Objects indirection API methods:
     |           object_class_action_versions, object_action and
     |           object_backport_versions
+    |    1.32 - Add do_node_clean
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.31'
+    RPC_API_VERSION = '1.32'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -592,6 +593,25 @@ class ConductorAPI(object):
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.30')
         return cctxt.call(context, 'get_raid_logical_disk_properties',
                           driver_name=driver_name)
+
+    def do_node_clean(self, context, node_id, clean_steps, topic=None):
+        """Signal to conductor service to perform manual cleaning on a node.
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param clean_steps: a list of clean step dictionaries.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: InvalidParameterValue if validation of power driver interface
+                 failed.
+        :raises: InvalidStateRequested if cleaning can not be performed.
+        :raises: NodeInMaintenance if node is in maintenance mode.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.32')
+        return cctxt.call(context, 'do_node_clean',
+                          node_id=node_id, clean_steps=clean_steps)
 
     def object_class_action_versions(self, context, objname, objmethod,
                                      object_versions, args, kwargs):
