@@ -1,0 +1,4 @@
+---
+fixes:
+  - Fixes an issue that prevented the node name to be
+    removed as part of the node update.

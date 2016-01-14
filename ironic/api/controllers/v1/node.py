@@ -1042,12 +1042,11 @@ class NodesController(rest.RestController):
         :raises: exception.NotAcceptable
         :raises: wsme.exc.ClientSideError
         """
-        if name:
-            if not api_utils.allow_node_logical_names():
-                raise exception.NotAcceptable()
-            if not api_utils.is_valid_node_name(name):
-                raise wsme.exc.ClientSideError(
-                    error_msg, status_code=http_client.BAD_REQUEST)
+        if not api_utils.allow_node_logical_names():
+            raise exception.NotAcceptable()
+        if not api_utils.is_valid_node_name(name):
+            raise wsme.exc.ClientSideError(
+                error_msg, status_code=http_client.BAD_REQUEST)
 
     def _update_changed_fields(self, node, rpc_node):
         """Update rpc_node based on changed fields in a node.
@@ -1220,9 +1219,10 @@ class NodesController(rest.RestController):
             e.code = http_client.BAD_REQUEST
             raise e
 
-        error_msg = _("Cannot create node with invalid name "
-                      "%(name)s") % {'name': node.name}
-        self._check_name_acceptable(node.name, error_msg)
+        if node.name:
+            error_msg = _("Cannot create node with invalid name "
+                          "%(name)s") % {'name': node.name}
+            self._check_name_acceptable(node.name, error_msg)
         node.provision_state = api_utils.initial_node_provision_state()
 
         new_node = objects.Node(pecan.request.context,
@@ -1270,9 +1270,11 @@ class NodesController(rest.RestController):
                 msg % node_ident, status_code=http_client.CONFLICT)
 
         name = api_utils.get_patch_value(patch, '/name')
-        error_msg = _("Node %(node)s: Cannot change name to invalid "
-                      "name '%(name)s'") % {'node': node_ident, 'name': name}
-        self._check_name_acceptable(name, error_msg)
+        if name:
+            error_msg = _("Node %(node)s: Cannot change name to invalid "
+                          "name '%(name)s'") % {'node': node_ident,
+                                                'name': name}
+            self._check_name_acceptable(name, error_msg)
         try:
             node_dict = rpc_node.as_dict()
             # NOTE(lucasagomes):

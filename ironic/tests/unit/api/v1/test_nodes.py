@@ -1276,6 +1276,18 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.CONFLICT, response.status_code)
         self.assertTrue(response.json['error_message'])
 
+    @mock.patch.object(api_node.NodesController, '_check_name_acceptable')
+    def test_patch_name_remove_ok(self, cna_mock):
+        self.mock_update_node.return_value = self.node
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
+                                   [{'path': '/name',
+                                     'op': 'remove'}],
+                                   headers={api_base.Version.string:
+                                            "1.5"})
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        self.assertFalse(cna_mock.called)
+
     @mock.patch.object(api_utils, 'get_rpc_node')
     def test_patch_update_drive_console_enabled(self, mock_rpc_node):
         self.node.console_enabled = True

@@ -56,6 +56,24 @@ class TestApiUtils(base.TestCase):
                           utils.validate_sort_dir,
                           'fake-sort')
 
+    def test_get_patch_value_no_path(self):
+        patch = [{'path': '/name', 'op': 'update', 'value': 'node-0'}]
+        path = '/invalid'
+        value = utils.get_patch_value(patch, path)
+        self.assertIsNone(value)
+
+    def test_get_patch_value_remove(self):
+        patch = [{'path': '/name', 'op': 'remove'}]
+        path = '/name'
+        value = utils.get_patch_value(patch, path)
+        self.assertIsNone(value)
+
+    def test_get_patch_value_success(self):
+        patch = [{'path': '/name', 'op': 'replace', 'value': 'node-x'}]
+        path = '/name'
+        value = utils.get_patch_value(patch, path)
+        self.assertEqual('node-x', value)
+
     def test_check_for_invalid_fields(self):
         requested = ['field_1', 'field_3']
         supported = ['field_1', 'field_2', 'field_3']
