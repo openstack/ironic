@@ -129,3 +129,16 @@ Both decorators accepts the same parameters:
    Each asynchronous request consumes a worker thread in the
    ``ironic-conductor`` process. This can lead to starvation of the
    thread pool, resulting in a denial of service.
+
+Backwards Compatibility
+=======================
+
+There is no requirement that changes to a vendor method be backwards
+compatible. However, for your users' sakes, we highly recommend that
+you do so.
+
+If you are changing the exceptions being raised, you might want to ensure
+that the same HTTP code is being returned to the user.
+
+For non-backwards compatibility, please make sure you add a release
+note that indicates this.
