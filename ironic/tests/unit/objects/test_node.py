@@ -75,6 +75,48 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         self.assertRaises(exception.InvalidIdentity,
                           objects.Node.get, self.context, 'not-a-uuid')
 
+    def test_get_by_name(self):
+        node_name = 'test'
+        fake_node = db_utils.get_test_node(name=node_name)
+        with mock.patch.object(self.dbapi, 'get_node_by_name',
+                               autospec=True) as mock_get_node:
+            mock_get_node.return_value = fake_node
+
+            node = objects.Node.get_by_name(self.context, node_name)
+
+            mock_get_node.assert_called_once_with(node_name)
+            self.assertEqual(self.context, node._context)
+
+    def test_get_by_name_node_not_found(self):
+        with mock.patch.object(self.dbapi, 'get_node_by_name',
+                               autospec=True) as mock_get_node:
+            node_name = 'non-existent'
+            mock_get_node.side_effect = exception.NodeNotFound(node=node_name)
+            self.assertRaises(exception.NodeNotFound,
+                              objects.Node.get_by_name, self.context,
+                              node_name)
+
+    def test_get_by_instance_uuid(self):
+        uuid = self.fake_node['instance_uuid']
+        with mock.patch.object(self.dbapi, 'get_node_by_instance',
+                               autospec=True) as mock_get_node:
+            mock_get_node.return_value = self.fake_node
+
+            node = objects.Node.get_by_instance_uuid(self.context, uuid)
+
+            mock_get_node.assert_called_once_with(uuid)
+            self.assertEqual(self.context, node._context)
+
+    def test_get_by_instance_not_found(self):
+        with mock.patch.object(self.dbapi, 'get_node_by_instance',
+                               autospec=True) as mock_get_node:
+            instance = 'non-existent'
+            mock_get_node.side_effect = \
+                exception.InstanceNotFound(instance=instance)
+            self.assertRaises(exception.InstanceNotFound,
+                              objects.Node.get_by_instance_uuid, self.context,
+                              instance)
+
     def test_get_by_port_addresses(self):
         with mock.patch.object(self.dbapi, 'get_node_by_port_addresses',
                                autospec=True) as mock_get_node:
