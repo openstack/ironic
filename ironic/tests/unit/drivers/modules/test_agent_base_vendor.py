@@ -357,11 +357,13 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             'is done. Exception: LlamaException')
 
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       '_refresh_clean_steps', autospec=True)
     @mock.patch.object(manager_utils, 'set_node_cleaning_steps', autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
                        'notify_conductor_resume_clean', autospec=True)
     def test_heartbeat_resume_clean(self, mock_notify, mock_set_steps,
-                                    mock_touch):
+                                    mock_refresh, mock_touch):
         kwargs = {
             'agent_url': 'http://127.0.0.1:9999/bar'
         }
@@ -374,12 +376,54 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                 self.passthru.heartbeat(task, **kwargs)
 
             mock_touch.assert_called_once_with(mock.ANY)
+            mock_refresh.assert_called_once_with(mock.ANY, task)
             mock_notify.assert_called_once_with(mock.ANY, task)
             mock_set_steps.assert_called_once_with(task)
             # Reset mocks for the next interaction
             mock_touch.reset_mock()
+            mock_refresh.reset_mock()
             mock_notify.reset_mock()
             mock_set_steps.reset_mock()
+
+    @mock.patch.object(manager_utils, 'cleaning_error_handler')
+    @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       '_refresh_clean_steps', autospec=True)
+    @mock.patch.object(manager_utils, 'set_node_cleaning_steps', autospec=True)
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'notify_conductor_resume_clean', autospec=True)
+    def test_heartbeat_resume_clean_fails(self, mock_notify, mock_set_steps,
+                                          mock_refresh, mock_touch,
+                                          mock_handler):
+        mocks = [mock_refresh, mock_set_steps, mock_notify]
+        kwargs = {
+            'agent_url': 'http://127.0.0.1:9999/bar'
+        }
+        self.node.clean_step = {}
+        self.node.save()
+        for state in (states.CLEANWAIT, states.CLEANING):
+            self.node.provision_state = state
+            self.node.save()
+            for i in range(len(mocks)):
+                before_failed_mocks = mocks[:i]
+                failed_mock = mocks[i]
+                after_failed_mocks = mocks[i + 1:]
+                failed_mock.side_effect = Exception()
+                with task_manager.acquire(
+                        self.context, self.node.uuid, shared=True) as task:
+                    self.passthru.heartbeat(task, **kwargs)
+
+                mock_touch.assert_called_once_with(mock.ANY)
+                mock_handler.assert_called_once_with(task, mock.ANY)
+                for called in before_failed_mocks + [failed_mock]:
+                    self.assertTrue(called.called)
+                for not_called in after_failed_mocks:
+                    self.assertFalse(not_called.called)
+
+                # Reset mocks for the next interaction
+                for m in mocks + [mock_touch, mock_handler]:
+                    m.reset_mock()
+                failed_mock.side_effect = None
 
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
@@ -897,25 +941,13 @@ class TestBaseAgentVendor(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'set_node_cleaning_steps', autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
                        'notify_conductor_resume_clean', autospec=True)
-    @mock.patch.object(agent_client.AgentClient, 'get_clean_steps',
-                       autospec=True)
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       '_refresh_clean_steps', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
     def _test_continue_cleaning_clean_version_mismatch(
-            self, status_mock, get_steps_mock, notify_mock, steps_mock,
+            self, status_mock, refresh_steps_mock, notify_mock, steps_mock,
             manual=False):
-        get_steps_mock.return_value = {
-            'command_status': 'CLEAN_VERSION_MISMATCH',
-            'command_name': 'get_clean_step',
-            'command_result': {
-                'hardware_manager_version': {'Generic': '1'},
-                'clean_steps': {
-                    'GenericHardwareManager': [
-                        {'interface': 'deploy',
-                         'step': 'erase_devices',
-                         'priority': 20}]}
-            }
-        }
         status_mock.return_value = [{
             'command_status': 'CLEAN_VERSION_MISMATCH',
             'command_name': 'execute_clean_step',
@@ -928,17 +960,12 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                                   shared=False) as task:
             self.passthru.continue_cleaning(task)
             notify_mock.assert_called_once_with(mock.ANY, task)
+            refresh_steps_mock.assert_called_once_with(mock.ANY, task)
             if manual:
-                get_steps_mock.assert_called_once_with(mock.ANY, task.node,
-                                                       task.ports)
                 self.assertFalse(
                     task.node.driver_internal_info['skip_current_clean_step'])
-                self.assertEqual(
-                    {'Generic': '1'},
-                    task.node.driver_internal_info['hardware_manager_version'])
                 self.assertFalse(steps_mock.called)
             else:
-                self.assertFalse(get_steps_mock.called)
                 steps_mock.assert_called_once_with(task)
                 self.assertFalse('skip_current_clean_step' in
                                  task.node.driver_internal_info)
@@ -950,25 +977,23 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         self._test_continue_cleaning_clean_version_mismatch(manual=True)
 
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
+    @mock.patch.object(manager_utils, 'set_node_cleaning_steps', autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
                        'notify_conductor_resume_clean', autospec=True)
-    @mock.patch.object(agent_client.AgentClient, 'get_clean_steps',
-                       autospec=True)
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       '_refresh_clean_steps', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
-    def test_continue_cleaning_manual_version_mismatch_bad(
-            self, status_mock, get_steps_mock, notify_mock, error_mock):
-        get_steps_mock.return_value = {
-            'command_status': 'CLEAN_VERSION_MISMATCH',
-            'command_name': 'get_clean_step',
-            'command_result': {
-                'hardware_manager_version': {'Generic': '1'}}
-        }
+    def test_continue_cleaning_clean_version_mismatch_fail(
+            self, status_mock, refresh_steps_mock, notify_mock, steps_mock,
+            error_mock, manual=False):
         status_mock.return_value = [{
             'command_status': 'CLEAN_VERSION_MISMATCH',
             'command_name': 'execute_clean_step',
+            'command_result': {'hardware_manager_version': {'Generic': '1'}}
         }]
-        tgt_prov_state = states.MANAGEABLE
+        refresh_steps_mock.side_effect = exception.NodeCleaningFailure("boo")
+        tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
         self.node.provision_state = states.CLEANWAIT
         self.node.target_provision_state = tgt_prov_state
         self.node.save()
@@ -976,12 +1001,11 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                                   shared=False) as task:
             self.passthru.continue_cleaning(task)
 
-            get_steps_mock.assert_called_once_with(mock.ANY, task.node,
-                                                   task.ports)
+            status_mock.assert_called_once_with(mock.ANY, task.node)
+            refresh_steps_mock.assert_called_once_with(mock.ANY, task)
             error_mock.assert_called_once_with(task, mock.ANY)
             self.assertFalse(notify_mock.called)
-            self.assertFalse('skip_current_clean_step' in
-                             task.node.driver_internal_info)
+            self.assertFalse(steps_mock.called)
 
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
@@ -1076,3 +1100,91 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         self.node.save()
         hook_returned = agent_base_vendor._get_post_clean_step_hook(self.node)
         self.assertIsNone(hook_returned)
+
+
+class TestRefreshCleanSteps(TestBaseAgentVendor):
+
+    def setUp(self):
+        super(TestRefreshCleanSteps, self).setUp()
+        self.node.driver_internal_info['agent_url'] = 'http://127.0.0.1:9999'
+        self.ports = [object_utils.create_test_port(self.context,
+                                                    node_id=self.node.id)]
+
+        self.clean_steps = {
+            'hardware_manager_version': '1',
+            'clean_steps': {
+                'GenericHardwareManager': [
+                    {'interface': 'deploy',
+                     'step': 'erase_devices',
+                     'priority': 20},
+                ],
+                'SpecificHardwareManager': [
+                    {'interface': 'deploy',
+                     'step': 'update_firmware',
+                     'priority': 30},
+                    {'interface': 'raid',
+                     'step': 'create_configuration',
+                     'priority': 10},
+                ]
+            }
+        }
+
+    @mock.patch.object(agent_client.AgentClient, 'get_clean_steps',
+                       autospec=True)
+    def test__refresh_clean_steps(self, client_mock):
+        client_mock.return_value = {
+            'command_result': self.clean_steps}
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.passthru._refresh_clean_steps(task)
+
+            client_mock.assert_called_once_with(mock.ANY, task.node,
+                                                task.ports)
+            self.assertEqual('1', task.node.driver_internal_info[
+                'hardware_manager_version'])
+            self.assertTrue('agent_cached_clean_steps_refreshed' in
+                            task.node.driver_internal_info)
+            steps = task.node.driver_internal_info['agent_cached_clean_steps']
+            # Since steps are returned in dicts, they have non-deterministic
+            # ordering
+            self.assertEqual(2, len(steps))
+            self.assertIn(self.clean_steps['clean_steps'][
+                'GenericHardwareManager'][0], steps['deploy'])
+            self.assertIn(self.clean_steps['clean_steps'][
+                'SpecificHardwareManager'][0], steps['deploy'])
+            self.assertEqual([self.clean_steps['clean_steps'][
+                'SpecificHardwareManager'][1]], steps['raid'])
+
+    @mock.patch.object(agent_client.AgentClient, 'get_clean_steps',
+                       autospec=True)
+    def test__refresh_clean_steps_missing_steps(self, client_mock):
+        del self.clean_steps['clean_steps']
+        client_mock.return_value = {
+            'command_result': self.clean_steps}
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertRaisesRegex(exception.NodeCleaningFailure,
+                                   'invalid result',
+                                   self.passthru._refresh_clean_steps,
+                                   task)
+            client_mock.assert_called_once_with(mock.ANY, task.node,
+                                                task.ports)
+
+    @mock.patch.object(agent_client.AgentClient, 'get_clean_steps',
+                       autospec=True)
+    def test__refresh_clean_steps_missing_interface(self, client_mock):
+        step = self.clean_steps['clean_steps']['SpecificHardwareManager'][1]
+        del step['interface']
+        client_mock.return_value = {
+            'command_result': self.clean_steps}
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertRaisesRegex(exception.NodeCleaningFailure,
+                                   'invalid clean step',
+                                   self.passthru._refresh_clean_steps,
+                                   task)
+            client_mock.assert_called_once_with(mock.ANY, task.node,
+                                                task.ports)

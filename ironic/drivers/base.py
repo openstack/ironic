@@ -182,6 +182,10 @@ class BaseInterface(object):
 
         :param task: A TaskManager object, useful for interfaces overriding
             this function
+        :raises NodeCleaningFailure: if there is a problem getting the steps
+            from the driver. For example, when a node (using an agent driver)
+            has just been enrolled and the agent isn't alive yet to be queried
+            for the available clean steps.
         :returns: A list of clean step dictionaries
         """
         return self.clean_steps

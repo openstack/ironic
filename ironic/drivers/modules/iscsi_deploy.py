@@ -751,7 +751,9 @@ class ISCSIDeploy(base.DeployInterface):
         """Get the list of clean steps from the agent.
 
         :param task: a TaskManager object containing the node
-
+        :raises NodeCleaningFailure: if the clean steps are not yet
+            available (cached), for example, when a node has just been
+            enrolled and has not been cleaned yet.
         :returns: A list of clean step dictionaries. If bash ramdisk is
             used for this node, it returns an empty list.
         """

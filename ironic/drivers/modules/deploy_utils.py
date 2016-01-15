@@ -550,9 +550,11 @@ def parse_instance_info_capabilities(node):
 
 
 def agent_get_clean_steps(task, interface=None, override_priorities=None):
-    """Get the list of clean steps from the agent.
+    """Get the list of cached clean steps from the agent.
 
     #TODO(JoshNang) move to BootInterface
+
+    The clean steps cache is updated at the beginning of cleaning.
 
     :param task: a TaskManager object containing the node
     :param interface: The interface for which clean steps
@@ -561,42 +563,34 @@ def agent_get_clean_steps(task, interface=None, override_priorities=None):
     :param override_priorities: a dictionary with keys being step names and
         values being new priorities for them. If a step isn't in this
         dictionary, the step's original priority is used.
-    :raises: NodeCleaningFailure if the agent returns invalid results
+    :raises NodeCleaningFailure: if the clean steps are not yet cached,
+        for example, when a node has just been enrolled and has not been
+        cleaned yet.
     :returns: A list of clean step dictionaries
     """
-    override_priorities = override_priorities or {}
-    client = agent_client.AgentClient()
-    ports = objects.Port.list_by_node_id(
-        task.context, task.node.id)
-    result = client.get_clean_steps(task.node, ports).get('command_result')
+    node = task.node
+    try:
+        all_steps = node.driver_internal_info['agent_cached_clean_steps']
+    except KeyError:
+        raise exception.NodeCleaningFailure(_('Cleaning steps are not yet '
+                                              'available for node %(node)s')
+                                            % {'node': node.uuid})
 
-    if ('clean_steps' not in result or
-            'hardware_manager_version' not in result):
-        raise exception.NodeCleaningFailure(_(
-            'get_clean_steps for node %(node)s returned invalid result:'
-            ' %(result)s') % ({'node': task.node.uuid, 'result': result}))
+    if interface:
+        steps = [step.copy() for step in all_steps.get(interface, [])]
+    else:
+        steps = [step.copy() for step_list in all_steps.values()
+                 for step in step_list]
 
-    driver_internal_info = task.node.driver_internal_info
-    driver_internal_info['hardware_manager_version'] = result[
-        'hardware_manager_version']
-    task.node.driver_internal_info = driver_internal_info
-    task.node.save()
+    if not steps or not override_priorities:
+        return steps
 
-    # Clean steps looks like {'HardwareManager': [{step1},{steps2}..]..}
-    # Flatten clean steps into one list
-    steps_list = [step for step_list in
-                  result['clean_steps'].values()
-                  for step in step_list]
-    result = []
-    for step in steps_list:
-        if interface and step.get('interface') != interface:
-            continue
+    for step in steps:
         new_priority = override_priorities.get(step.get('step'))
         if new_priority is not None:
             step['priority'] = new_priority
-        result.append(step)
 
-    return result
+    return steps
 
 
 def agent_execute_clean_step(task, step):
