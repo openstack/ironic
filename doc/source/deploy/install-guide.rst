@@ -1850,7 +1850,7 @@ conductor and swift and bare metal (via virtual media).  It can be enabled in on
 of the following ways:
 
 * Using an SSL termination proxy. For more information, `see here
-  <http://docs.openstack.org/security-guide/content/tls-proxies-and-http-services.html>`_
+  <http://docs.openstack.org/security-guide/secure-communication/tls-proxies-and-http-services.html>`_
 
 * Using native SSL support in swift (recommended only for testing
   purpose by swift). For more information,
@@ -2111,7 +2111,7 @@ but in order to use it we should follow some rules:
 
 * ``Cloud-init`` expects a specific format to the data. For
   more information about the expected file layout see [`link
-  <http://docs.openstack.org/user-guide/content/enable_config_drive.html#config_drive_contents>`_].
+  <http://docs.openstack.org/user-guide/cli_config_drive.html#configuration-drive-contents>`_].
 
 
 * Since the Bare Metal service uses a disk partition as the configuration drive,
