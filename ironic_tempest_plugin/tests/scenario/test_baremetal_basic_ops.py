@@ -110,7 +110,7 @@ class BaremetalBasicOps(baremetal_manager.BaremetalScenarioTest):
     @test.services('baremetal', 'compute', 'image', 'network')
     def test_baremetal_server_ops(self):
         self.add_keypair()
-        self.boot_instance()
+        self.instance, self.node = self.boot_instance()
         self.validate_ports()
         ip_address = self.get_server_ip(self.instance)
         self.get_remote_client(ip_address).validate_authentication()
@@ -125,4 +125,4 @@ class BaremetalBasicOps(baremetal_manager.BaremetalScenarioTest):
             self.create_timestamp(
                 ip_address, private_key=self.keypair['private_key'])
 
-        self.terminate_instance()
+        self.terminate_instance(self.instance)

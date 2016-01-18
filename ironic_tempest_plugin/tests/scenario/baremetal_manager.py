@@ -145,38 +145,65 @@ class BaremetalScenarioTest(manager.ScenarioTest):
             dest = self.get_remote_client(self.instance)
         dest.validate_authentication()
 
-    def boot_instance(self):
-        self.instance = self.create_server(
-            key_name=self.keypair['name'])
+    def boot_instance(self, clients=None, keypair=None,
+                      net_id=None, fixed_ip=None):
+        if clients is None:
+            servers_client = self.servers_client
+        else:
+            servers_client = clients.servers_client
+        if keypair is None:
+            keypair = self.keypair
 
-        self.wait_node(self.instance['id'])
-        self.node = self.get_node(instance_id=self.instance['id'])
+        if any([net_id, fixed_ip]):
+            network = {}
+            if net_id:
+                network['uuid'] = net_id
+            if fixed_ip:
+                network['fixed_ip'] = fixed_ip
+            instance = self.create_server(
+                key_name=keypair['name'],
+                networks=[network],
+                clients=clients
+            )
+        else:
+            instance = self.create_server(
+                key_name=keypair['name'],
+                clients=clients
+            )
 
-        self.wait_power_state(self.node['uuid'], BaremetalPowerStates.POWER_ON)
+        self.wait_node(instance['id'])
+        node = self.get_node(instance_id=instance['id'])
+
+        self.wait_power_state(node['uuid'], BaremetalPowerStates.POWER_ON)
 
         self.wait_provisioning_state(
-            self.node['uuid'],
+            node['uuid'],
             [BaremetalProvisionStates.DEPLOYWAIT,
              BaremetalProvisionStates.ACTIVE],
             timeout=CONF.baremetal.deploywait_timeout)
 
-        self.wait_provisioning_state(self.node['uuid'],
+        self.wait_provisioning_state(node['uuid'],
                                      BaremetalProvisionStates.ACTIVE,
                                      timeout=CONF.baremetal.active_timeout,
                                      interval=30)
 
-        waiters.wait_for_server_status(self.servers_client,
-                                       self.instance['id'], 'ACTIVE')
-        self.node = self.get_node(instance_id=self.instance['id'])
-        self.instance = (self.servers_client.show_server(self.instance['id'])
-                         ['server'])
+        waiters.wait_for_server_status(servers_client,
+                                       instance['id'], 'ACTIVE')
+        node = self.get_node(instance_id=instance['id'])
+        instance = servers_client.show_server(instance['id'])['server']
 
-    def terminate_instance(self):
-        self.servers_client.delete_server(self.instance['id'])
-        self.wait_power_state(self.node['uuid'],
+        return instance, node
+
+    def terminate_instance(self, instance, servers_client=None):
+        if servers_client is None:
+            servers_client = self.servers_client
+
+        node = self.get_node(instance_id=instance['id'])
+        servers_client.delete_server(instance['id'])
+        self.wait_power_state(node['uuid'],
                               BaremetalPowerStates.POWER_OFF)
         self.wait_provisioning_state(
-            self.node['uuid'],
+            node['uuid'],
             [BaremetalProvisionStates.NOSTATE,
              BaremetalProvisionStates.AVAILABLE],
             timeout=CONF.baremetal.unprovision_timeout,
