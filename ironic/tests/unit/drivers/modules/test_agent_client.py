@@ -25,11 +25,10 @@ from ironic.tests import base
 
 
 class MockResponse(object):
-    status_code = http_client.OK
-
-    def __init__(self, text):
+    def __init__(self, text, status_code=http_client.OK):
         assert isinstance(text, six.string_types)
         self.text = text
+        self.status_code = status_code
 
     def json(self):
         return json.loads(self.text)
@@ -132,6 +131,25 @@ class TestAgentClient(base.TestCase):
                          '%(node)s. Error: %(error)s' %
                          {'method': method, 'node': self.node.uuid,
                           'error': error}, str(e))
+
+    def test__command_error_code(self):
+        response_text = '{"faultstring": "you dun goofd"}'
+        self.client.session.post.return_value = MockResponse(
+            response_text, status_code=http_client.BAD_REQUEST)
+        method = 'standby.run_image'
+        image_info = {'image_id': 'test_image'}
+        params = {'image_info': image_info}
+
+        url = self.client._get_command_url(self.node)
+        body = self.client._get_command_body(method, params)
+
+        self.assertRaises(exception.AgentAPIError,
+                          self.client._command,
+                          self.node, method, params)
+        self.client.session.post.assert_called_once_with(
+            url,
+            data=body,
+            params={'wait': 'false'})
 
     def test_get_commands_status(self):
         with mock.patch.object(self.client.session, 'get',

@@ -753,3 +753,8 @@ class PortgroupPhysnetInconsistent(IronicException):
 class VifInvalidForAttach(Conflict):
     _msg_fmt = _("Unable to attach VIF %(vif)s to node %(node)s. Reason: "
                  "%(reason)s")
+
+
+class AgentAPIError(IronicException):
+    _msg_fmt = _('Agent API for node %(node)s returned status %(status)s with '
+                 'error %(error)s')
