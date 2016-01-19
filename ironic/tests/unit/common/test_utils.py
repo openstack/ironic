@@ -447,10 +447,15 @@ class GenericUtilsTestCase(base.TestCase):
         proxy8 = 'c.-a.com'
         proxy9 = 'c.a-.com'
         proxy10 = ',,example.com:3128,'
-        valid_with_whitespaces = ' , '.join([proxy0, proxy1, proxy5, proxy10])
-        all_valid = ','.join([proxy0, proxy1, proxy5, proxy10])
+        proxy11 = '192.168.1.1'  # IP should be valid
+        proxy12 = ''  # empty string should also be valid
+        valid_with_whitespaces = ' , '.join(
+            [proxy0, proxy1, proxy5, proxy10, proxy11]
+        )
+        all_valid = ','.join([proxy0, proxy1, proxy5, proxy10, proxy11])
         self.assertTrue(utils.is_valid_no_proxy(all_valid))
         self.assertTrue(utils.is_valid_no_proxy(valid_with_whitespaces))
+        self.assertTrue(utils.is_valid_no_proxy(proxy12))
         self.assertFalse(utils.is_valid_no_proxy(proxy2))
         self.assertFalse(utils.is_valid_no_proxy(proxy3))
         self.assertFalse(utils.is_valid_no_proxy(proxy4))
