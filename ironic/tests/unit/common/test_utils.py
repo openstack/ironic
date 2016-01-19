@@ -432,37 +432,47 @@ class GenericUtilsTestCase(base.TestCase):
         mtime_mock.assert_called_once_with('foo')
 
     def test_is_valid_no_proxy(self):
-        proxy0 = 'a' * 63 + '.' + '0' * 63 + '.c.' + 'd' * 61 + '.' + 'e' * 61
-        proxy1 = 'A' * 63 + '.' + '0' * 63 + '.C.' + 'D' * 61 + '.' + 'E' * 61
-        proxy2 = ('A' * 64 + '.' + '0' * 63 + '.C.' + 'D' * 61 + '.' +
-                  'E' * 61)  # too long (> 253)
-        proxy3 = 'a' * 100
-        proxy4 = 'a..com'
-        proxy5 = ('.' + 'a' * 62 + '.' + '0' * 62 + '.c.' + 'd' * 61 + '.' +
-                  'e' * 61)
-        proxy6 = ('.' + 'a' * 63 + '.' + '0' * 62 + '.c.' + 'd' * 61 + '.' +
-                  'e' * 61)  # too long (> 251 after deleting .)
-        proxy7 = ('*.' + 'a' * 60 + '.' + '0' * 60 + '.c.' + 'd' * 61 + '.' +
-                  'e' * 61)  # starts with *.
-        proxy8 = 'c.-a.com'
-        proxy9 = 'c.a-.com'
-        proxy10 = ',,example.com:3128,'
-        proxy11 = '192.168.1.1'  # IP should be valid
-        proxy12 = ''  # empty string should also be valid
-        valid_with_whitespaces = ' , '.join(
-            [proxy0, proxy1, proxy5, proxy10, proxy11]
-        )
-        all_valid = ','.join([proxy0, proxy1, proxy5, proxy10, proxy11])
-        self.assertTrue(utils.is_valid_no_proxy(all_valid))
-        self.assertTrue(utils.is_valid_no_proxy(valid_with_whitespaces))
-        self.assertTrue(utils.is_valid_no_proxy(proxy12))
-        self.assertFalse(utils.is_valid_no_proxy(proxy2))
-        self.assertFalse(utils.is_valid_no_proxy(proxy3))
-        self.assertFalse(utils.is_valid_no_proxy(proxy4))
-        self.assertFalse(utils.is_valid_no_proxy(proxy6))
-        self.assertFalse(utils.is_valid_no_proxy(proxy7))
-        self.assertFalse(utils.is_valid_no_proxy(proxy8))
-        self.assertFalse(utils.is_valid_no_proxy(proxy9))
+
+        # Valid values for 'no_proxy'
+        valid_no_proxy = [
+            ('a' * 63 + '.' + '0' * 63 + '.c.' + 'd' * 61 + '.' + 'e' * 61),
+            ('A' * 63 + '.' + '0' * 63 + '.C.' + 'D' * 61 + '.' + 'E' * 61),
+            ('.' + 'a' * 62 + '.' + '0' * 62 + '.c.' + 'd' * 61 + '.' +
+             'e' * 61),
+            ',,example.com:3128,',
+            '192.168.1.1',  # IP should be valid
+        ]
+        # Test each one individually, so if failure easier to determine which
+        # one failed.
+        for no_proxy in valid_no_proxy:
+            self.assertTrue(
+                utils.is_valid_no_proxy(no_proxy),
+                msg="'no_proxy' value should be valid: {}".format(no_proxy))
+        # Test valid when joined together
+        self.assertTrue(utils.is_valid_no_proxy(','.join(valid_no_proxy)))
+        # Test valid when joined together with whitespace
+        self.assertTrue(utils.is_valid_no_proxy(' , '.join(valid_no_proxy)))
+        # empty string should also be valid
+        self.assertTrue(utils.is_valid_no_proxy(''))
+
+        # Invalid values for 'no_proxy'
+        invalid_no_proxy = [
+            ('A' * 64 + '.' + '0' * 63 + '.C.' + 'D' * 61 + '.' +
+             'E' * 61),  # too long (> 253)
+            ('a' * 100),
+            'a..com',
+            ('.' + 'a' * 63 + '.' + '0' * 62 + '.c.' + 'd' * 61 + '.' +
+             'e' * 61),  # too long (> 251 after deleting .)
+            ('*.' + 'a' * 60 + '.' + '0' * 60 + '.c.' + 'd' * 61 + '.' +
+             'e' * 61),  # starts with *.
+            'c.-a.com',
+            'c.a-.com',
+        ]
+
+        for no_proxy in invalid_no_proxy:
+            self.assertFalse(
+                utils.is_valid_no_proxy(no_proxy),
+                msg="'no_proxy' value should be invalid: {}".format(no_proxy))
 
 
 class TempFilesTestCase(base.TestCase):
