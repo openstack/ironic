@@ -1,0 +1,3 @@
+---
+features:
+  - Root device hints extended to support the device name.

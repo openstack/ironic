@@ -85,7 +85,8 @@ if CONF.rootwrap_config != '/etc/ironic/rootwrap.conf':
 LOG = logging.getLogger(__name__)
 
 VALID_ROOT_DEVICE_HINTS = set(('size', 'model', 'wwn', 'serial', 'vendor',
-                               'wwn_with_extension', 'wwn_vendor_extension'))
+                               'wwn_with_extension', 'wwn_vendor_extension',
+                               'name'))
 
 SUPPORTED_CAPABILITIES = {
     'boot_option': ('local', 'netboot'),
