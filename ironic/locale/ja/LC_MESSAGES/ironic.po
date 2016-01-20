@@ -1,4 +1,4 @@
-# Japanese translations for ironic.
+# Translations template for ironic.
 # Copyright (C) 2015 ORGANIZATION
 # This file is distributed under the same license as the ironic project.
 #
@@ -6,20 +6,22 @@
 # Tomoyuki KATO <tomo@dream.daynight.jp>, 2013
 # Akihiro Motoki <amotoki@gmail.com>, 2015. #zanata
 # KATO Tomoyuki <kato.tomoyuki@jp.fujitsu.com>, 2015. #zanata
+# Yuta Hono <yuta.hono@ntt.com>, 2016. #zanata
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 4.2.2.dev2\n"
+"Project-Id-Version: ironic 4.2.3.dev12\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-11-09 06:17+0000\n"
-"PO-Revision-Date: 2015-10-02 02:51+0000\n"
-"Last-Translator: Akihiro Motoki <amotoki@gmail.com>\n"
-"Language: ja\n"
-"Language-Team: Japanese\n"
-"Plural-Forms: nplurals=1; plural=0\n"
+"POT-Creation-Date: 2016-01-18 16:34+0000\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.1.1\n"
+"PO-Revision-Date: 2016-01-19 04:53+0000\n"
+"Last-Translator: Yuta Hono <yuta.hono@ntt.com>\n"
+"Language: ja\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"Generated-By: Babel 2.0\n"
+"X-Generator: Zanata 3.7.3\n"
+"Language-Team: Japanese\n"
 
 #, python-format
 msgid " Downloaded from \"%s\"."
@@ -149,6 +151,13 @@ msgstr ""
 msgid "A chassis with UUID %(uuid)s already exists."
 msgstr "UUID %(uuid)s のシャーシは既に存在します。"
 
+msgid ""
+"A list of the glance api servers available to ironic. Prefix with https:// "
+"for SSL-based glance API servers. Format is [hostname|IP]:port."
+msgstr ""
+"ironic が利用可能な glance API サーバリスト。 SSLベースのglance API サーバー"
+"では https:// より始まります。フォーマットは [hostname|IP]:port です。"
+
 #, python-format
 msgid "A node with UUID %(uuid)s already exists."
 msgstr "UUID %(uuid)s のノードは既に存在します。"
@@ -219,6 +228,9 @@ msgid ""
 msgstr ""
 "エージェントからノード %(node)s でのクリーニング・ステップ %(step)s に関して"
 "不明な状況が返されました: %(err)s。"
+
+msgid "Allow to perform insecure SSL (https) requests to glance."
+msgstr "glance に対する非セキュアな SSL (https) 要求を実行することを許可します"
 
 msgid ""
 "An exclusive lock is required, but the current context has a shared lock."
@@ -940,6 +952,11 @@ msgid "Failed to install bootloader on node %(node)s. Error: %(error)s."
 msgstr ""
 "ノード %(node)s においてブートローダーのインストールに失敗しました。エラー: "
 "%(error)s。"
+
+#, python-format
+msgid "Failed to load DHCP provider %(dhcp_provider_name)s, reason: %(reason)s"
+msgstr ""
+"DHCP プロバイダー %(dhcp_provider_name)s をロード出来ません: %(reason)s"
 
 #, python-format
 msgid ""
@@ -2021,6 +2038,9 @@ msgstr ""
 
 msgid "The provided endpoint is invalid"
 msgstr "指定されたエンドポイントが無効です"
+
+msgid "The region used for getting endpoints of OpenStackservices."
+msgstr "OpenStack サービスのエンドポイントを取得するために使用するリージョン。"
 
 #, python-format
 msgid ""
