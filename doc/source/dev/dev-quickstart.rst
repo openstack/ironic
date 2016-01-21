@@ -376,11 +376,6 @@ and uses the ``pxe_ssh`` driver by default::
     # Enable Ironic plugin
     enable_plugin ironic git://git.openstack.org/openstack/ironic
 
-    # Enable Ironic API and Ironic Conductor
-    enable_service ironic
-    enable_service ir-api
-    enable_service ir-cond
-
     # Enable Neutron which is required by Ironic and disable nova-network.
     disable_service n-net
     disable_service n-novnc
