@@ -45,7 +45,7 @@ API Versions History
 
 **1.12**
 
-    This API version adds the following the following abilities:
+    This API version adds the following abilities:
 
     * Get/set ``node.target_raid_config`` and to get
       ``node.raid_config``.
