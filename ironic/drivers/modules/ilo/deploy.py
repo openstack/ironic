@@ -175,6 +175,20 @@ class IloVirtualMediaIscsiDeploy(iscsi_deploy.ISCSIDeploy):
 
         super(IloVirtualMediaIscsiDeploy, self).prepare(task)
 
+    def prepare_cleaning(self, task):
+        """Boot into the agent to prepare for cleaning.
+
+        :param task: a TaskManager object containing the node
+        :returns: states.CLEANWAIT to signify an asynchronous prepare.
+        :raises NodeCleaningFailure: if the previous cleaning ports cannot
+            be removed or if new cleaning ports cannot be created
+        :raises: IloOperationError, if some operation on iLO failed.
+        """
+        # Powering off the Node before initiating boot for node cleaning.
+        # If node is in system POST, setting boot device fails.
+        manager_utils.node_power_action(task, states.POWER_OFF)
+        return super(IloVirtualMediaIscsiDeploy, self).prepare_cleaning(task)
+
 
 class IloVirtualMediaAgentDeploy(agent.AgentDeploy):
     """Interface for deploy-related actions."""
@@ -208,6 +222,20 @@ class IloVirtualMediaAgentDeploy(agent.AgentDeploy):
             _prepare_node_for_deploy(task)
 
         super(IloVirtualMediaAgentDeploy, self).prepare(task)
+
+    def prepare_cleaning(self, task):
+        """Boot into the agent to prepare for cleaning.
+
+        :param task: a TaskManager object containing the node
+        :returns: states.CLEANWAIT to signify an asynchronous prepare.
+        :raises NodeCleaningFailure: if the previous cleaning ports cannot
+            be removed or if new cleaning ports cannot be created
+        :raises: IloOperationError, if some operation on iLO failed.
+        """
+        # Powering off the Node before initiating boot for node cleaning.
+        # If node is in system POST, setting boot device fails.
+        manager_utils.node_power_action(task, states.POWER_OFF)
+        return super(IloVirtualMediaAgentDeploy, self).prepare_cleaning(task)
 
     def get_clean_steps(self, task):
         """Get the list of clean steps from the agent.
@@ -286,3 +314,17 @@ class IloPXEDeploy(iscsi_deploy.ISCSIDeploy):
         manager_utils.node_power_action(task, states.POWER_OFF)
         _disable_secure_boot_if_supported(task)
         return super(IloPXEDeploy, self).tear_down(task)
+
+    def prepare_cleaning(self, task):
+        """Boot into the agent to prepare for cleaning.
+
+        :param task: a TaskManager object containing the node
+        :returns: states.CLEANWAIT to signify an asynchronous prepare.
+        :raises NodeCleaningFailure: if the previous cleaning ports cannot
+            be removed or if new cleaning ports cannot be created
+        :raises: IloOperationError, if some operation on iLO failed.
+        """
+        # Powering off the Node before initiating boot for node cleaning.
+        # If node is in system POST, setting boot device fails.
+        manager_utils.node_power_action(task, states.POWER_OFF)
+        return super(IloPXEDeploy, self).prepare_cleaning(task)

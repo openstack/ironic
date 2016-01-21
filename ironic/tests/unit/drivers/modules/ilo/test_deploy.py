@@ -283,6 +283,21 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
             self.assertFalse(func_prepare_node_for_deploy.called)
             iscsi_deploy_prepare_mock.assert_called_once_with(mock.ANY, task)
 
+    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare_cleaning',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
+    def test_prepare_cleaning(self, node_power_action_mock,
+                              iscsi_prep_clean_mock):
+        iscsi_prep_clean_mock.return_value = states.CLEANWAIT
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ret = task.driver.deploy.prepare_cleaning(task)
+            self.assertEqual(states.CLEANWAIT, ret)
+            node_power_action_mock.assert_called_once_with(task,
+                                                           states.POWER_OFF)
+            iscsi_prep_clean_mock.assert_called_once_with(mock.ANY, task)
+
 
 class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
 
@@ -415,6 +430,21 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
                 task, interface='deploy',
                 override_priorities={'erase_devices': None})
 
+    @mock.patch.object(agent.AgentDeploy, 'prepare_cleaning', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
+    def test_prepare_cleaning(self, node_power_action_mock,
+                              agent_prep_clean_mock):
+        agent_prep_clean_mock.return_value = states.CLEANWAIT
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ret = task.driver.deploy.prepare_cleaning(task)
+            self.assertEqual(states.CLEANWAIT, ret)
+            node_power_action_mock.assert_called_once_with(task,
+                                                           states.POWER_OFF)
+            agent_prep_clean_mock.assert_called_once_with(mock.ANY, task)
+
 
 class IloPXEDeployTestCase(db_base.DbTestCase):
 
@@ -531,3 +561,18 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
                                                            states.POWER_OFF)
             self.assertTrue(mock_log.called)
             self.assertEqual(states.DELETED, returned_state)
+
+    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare_cleaning',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
+    def test_prepare_cleaning(self, node_power_action_mock,
+                              iscsi_prep_clean_mock):
+        iscsi_prep_clean_mock.return_value = states.CLEANWAIT
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ret = task.driver.deploy.prepare_cleaning(task)
+            self.assertEqual(states.CLEANWAIT, ret)
+            node_power_action_mock.assert_called_once_with(task,
+                                                           states.POWER_OFF)
+            iscsi_prep_clean_mock.assert_called_once_with(mock.ANY, task)

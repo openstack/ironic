@@ -1,0 +1,7 @@
+---
+fixes:
+  - Fixes issue where automated cleaning fails for iLO
+    drivers.
+    Automated cleaning fails for iLO driver if iLO is
+    in System POST state. iLO does not allow setting
+    of boot device when it is in System POST state.
