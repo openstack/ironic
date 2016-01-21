@@ -170,7 +170,8 @@ class WSGIService(service.ServiceBase):
         self.server = wsgi.Server(CONF, name, self.app,
                                   host=CONF.api.host_ip,
                                   port=CONF.api.port,
-                                  use_ssl=use_ssl)
+                                  use_ssl=use_ssl,
+                                  logger_name=name)
 
     def start(self):
         """Start serving this service using loaded configuration.
