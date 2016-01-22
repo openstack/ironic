@@ -15,6 +15,7 @@
 DRAC VendorPassthruBios Driver
 """
 
+from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.drac import bios
 from ironic.drivers.modules.drac import common as drac_common
@@ -24,97 +25,89 @@ class DracVendorPassthru(base.VendorInterface):
     """Interface for DRAC specific BIOS configuration methods."""
 
     def get_properties(self):
-        """Returns the driver_info properties.
-
-        This method returns the driver_info properties for this driver.
-
-        :returns: a dictionary of propery names and their descriptions.
-        """
+        """Return the properties of the interface."""
         return drac_common.COMMON_PROPERTIES
 
     def validate(self, task, **kwargs):
-        """Validates the driver_info of a node.
+        """Validate the driver-specific info supplied.
 
-        This method validates the driver_info associated with the node that is
-        associated with the task.
+        This method validates whether the 'driver_info' property of the
+        supplied node contains the required information for this driver to
+        manage the power state of the node.
 
-        :param task: the ironic task used to identify the node.
+        :param task: a TaskManager instance containing the node to act on.
         :param kwargs: not used.
-        :raises: InvalidParameterValue if mandatory information is missing on
-                 the node or any driver_info is invalid.
-        :returns: a dict containing information from driver_info
-                  and default values.
+        :raises: InvalidParameterValue if required driver_info attribute
+                 is missing or invalid on the node.
         """
         return drac_common.parse_driver_info(task.node)
 
     @base.passthru(['GET'], async=False)
     def get_bios_config(self, task, **kwargs):
-        """Get BIOS settings.
+        """Get the BIOS configuration.
 
         This method is used to retrieve the BIOS settings from a node.
 
-        :param task: the ironic task used to identify the node.
+        :param task: a TaskManager instance containing the node to act on.
         :param kwargs: not used.
-        :raises: DracClientError on an error from pywsman.
-        :raises: DracOperationFailed when a BIOS setting cannot be parsed.
+        :raises: DracOperationError on an error from python-dracclient.
         :returns: a dictionary containing BIOS settings.
         """
-        return bios.get_config(task.node)
+        bios_attrs = {}
+        for name, bios_attr in bios.get_config(task.node).items():
+            # NOTE(ifarkas): call from python-dracclient returns list of
+            #                namedtuples, converting it to dict here.
+            bios_attrs[name] = bios_attr.__dict__
+
+        return bios_attrs
 
     @base.passthru(['POST'], async=False)
+    @task_manager.require_exclusive_lock
     def set_bios_config(self, task, **kwargs):
         """Change BIOS settings.
 
         This method is used to change the BIOS settings on a node.
 
-        :param task: the ironic task used to identify the node.
+        :param task: a TaskManager instance containing the node to act on.
         :param kwargs: a dictionary of {'AttributeName': 'NewValue'}
-        :raises: DracOperationFailed if any of the attributes cannot be set for
-                 any reason.
-        :raises: DracClientError on an error from the pywsman library.
-        :returns: A dictionary containing the commit_needed key with a boolean
-                  value indicating whether commit_config() needs to be called
-                  to make the changes.
+        :raises: DracOperationError on an error from python-dracclient.
+        :returns: A dictionary containing the commit_required key with a
+                  Boolean value indicating whether commit_bios_config() needs
+                  to be called to make the changes.
         """
-        return {'commit_needed': bios.set_config(task, **kwargs)}
+        return bios.set_config(task, **kwargs)
 
     @base.passthru(['POST'], async=False)
+    @task_manager.require_exclusive_lock
     def commit_bios_config(self, task, reboot=False, **kwargs):
         """Commit a BIOS configuration job.
 
         This method is used to commit a BIOS configuration job.
         submitted through set_bios_config().
 
-        :param task: the ironic task for running the config job.
+        :param task: a TaskManager instance containing the node to act on.
         :param reboot: indicates whether a reboot job should be automatically
                        created with the config job.
-        :param kwargs: additional arguments sent via vendor passthru.
-        :raises: DracClientError on an error from pywsman library.
-        :raises: DracPendingConfigJobExists if the job is already created.
-        :raises: DracOperationFailed if the client received response with an
-                 error message.
-        :raises: DracUnexpectedReturnValue if the client received a response
-                 with unexpected return value
-        :returns: A dictionary containing the committing key with no return
-                  value, and the reboot_needed key with a value of True.
+        :param kwargs: not used.
+        :raises: DracOperationError on an error from python-dracclient.
+        :returns: A dictionary containing the job_id key with the id of the
+                  newly created config job, and the reboot_required key
+                  indicating whether to node needs to be rebooted to start the
+                  config job.
         """
-        bios.commit_config(task, reboot=reboot)
-        return {'committing': None, 'reboot_needed': not reboot}
+        job_id = bios.commit_config(task, reboot=reboot)
+        return {'job_id': job_id, 'reboot_required': not reboot}
 
     @base.passthru(['DELETE'], async=False)
+    @task_manager.require_exclusive_lock
     def abandon_bios_config(self, task, **kwargs):
         """Abandon a BIOS configuration job.
 
-        This method is used to abandon a BIOS configuration job previously
+        This method is used to abandon a BIOS configuration previously
         submitted through set_bios_config().
 
-        :param task: the ironic task for abandoning the changes.
+        :param task: a TaskManager instance containing the node to act on.
         :param kwargs: not used.
-        :raises: DracClientError on an error from pywsman library.
-        :raises: DracOperationFailed on error reported back by DRAC.
-        :raises: DracUnexpectedReturnValue if the drac did not report success.
-        :returns: A dictionary containing the abandoned key with no return
-                  value.
+        :raises: DracOperationError on an error from python-dracclient.
         """
         bios.abandon_config(task)
-        return {'abandoned': None}

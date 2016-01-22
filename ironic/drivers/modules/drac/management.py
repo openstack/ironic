@@ -20,7 +20,6 @@ DRAC management interface
 """
 
 from oslo_log import log as logging
-from oslo_utils import excutils
 from oslo_utils import importutils
 
 from ironic.common import boot_devices
@@ -29,11 +28,8 @@ from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.conductor import task_manager
 from ironic.drivers import base
-from ironic.drivers.modules.drac import client as drac_client
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
-from ironic.drivers.modules.drac import resource_uris
-
 
 drac_exceptions = importutils.try_import('dracclient.exceptions')
 
@@ -44,11 +40,6 @@ _BOOT_DEVICES_MAP = {
     boot_devices.PXE: 'NIC',
     boot_devices.CDROM: 'Optical',
 }
-
-TARGET_DEVICE = 'BIOS.Setup.1-1'
-
-# RebootJobType constants
-_GRACEFUL_REBOOT_WITH_FORCED_SHUTDOWN = '3'
 
 # BootMode constants
 PERSISTENT_BOOT_MODE = 'IPL'
@@ -125,86 +116,6 @@ def set_boot_device(node, device, persistent=False):
                       'node %(node_uuid)s. Reason: %(error)s.'),
                   {'node_uuid': node.uuid, 'error': exc})
         raise exception.DracOperationError(error=exc)
-
-
-# TODO(ifarkas): delete this during BIOS vendor_passthru refactor
-def create_config_job(node, reboot=False):
-    """Create a configuration job.
-
-    This method is used to apply the pending values created by
-    set_boot_device().
-
-    :param node: an ironic node object.
-    :param reboot: indicates whether a reboot job should be automatically
-                   created with the config job.
-    :raises: DracClientError if the client received unexpected response.
-    :raises: DracOperationFailed if the client received response with an
-             error message.
-    :raises: DracUnexpectedReturnValue if the client received a response
-             with unexpected return value.
-    """
-    client = drac_client.get_wsman_client(node)
-    selectors = {'CreationClassName': 'DCIM_BIOSService',
-                 'Name': 'DCIM:BIOSService',
-                 'SystemCreationClassName': 'DCIM_ComputerSystem',
-                 'SystemName': 'DCIM:ComputerSystem'}
-    properties = {'Target': TARGET_DEVICE,
-                  'ScheduledStartTime': 'TIME_NOW'}
-
-    if reboot:
-        properties['RebootJobType'] = _GRACEFUL_REBOOT_WITH_FORCED_SHUTDOWN
-
-    try:
-        client.wsman_invoke(resource_uris.DCIM_BIOSService,
-                            'CreateTargetedConfigJob', selectors, properties,
-                            drac_client.RET_CREATED)
-    except exception.DracRequestFailed as exc:
-        with excutils.save_and_reraise_exception():
-            LOG.error(_LE('DRAC driver failed to create config job for node '
-                          '%(node_uuid)s. The changes are not applied. '
-                          'Reason: %(error)s.'),
-                      {'node_uuid': node.uuid, 'error': exc})
-
-
-# TODO(ifarkas): delete this during BIOS vendor_passthru refactor
-def check_for_config_job(node):
-    """Check if a configuration job is already created.
-
-    :param node: an ironic node object.
-    :raises: DracClientError on an error from pywsman library.
-    :raises: DracPendingConfigJobExists if the job is already created.
-
-    """
-    client = drac_client.get_wsman_client(node)
-    try:
-        doc = client.wsman_enumerate(resource_uris.DCIM_LifecycleJob)
-    except exception.DracClientError as exc:
-        with excutils.save_and_reraise_exception():
-            LOG.error(_LE('DRAC driver failed to list the configuration jobs '
-                          'for node %(node_uuid)s. Reason: %(error)s.'),
-                      {'node_uuid': node.uuid, 'error': exc})
-
-    items = drac_common.find_xml(doc, 'DCIM_LifecycleJob',
-                                 resource_uris.DCIM_LifecycleJob,
-                                 find_all=True)
-    for i in items:
-        name = drac_common.find_xml(i, 'Name', resource_uris.DCIM_LifecycleJob)
-        if TARGET_DEVICE not in name.text:
-            continue
-
-        job_status = drac_common.find_xml(
-            i, 'JobStatus', resource_uris.DCIM_LifecycleJob).text
-        # If job is already completed or failed we can
-        # create another one.
-        # The 'Completed with Errors' JobStatus can be returned by
-        # configuration jobs that set NIC or BIOS attributes.
-        # Job Control Documentation: http://goo.gl/o1dDD3 (Section 7.2.3.2)
-        if job_status.lower() not in ('completed', 'completed with errors',
-                                      'failed'):
-            job_id = drac_common.find_xml(i, 'InstanceID',
-                                          resource_uris.DCIM_LifecycleJob).text
-            raise exception.DracPendingConfigJobExists(job_id=job_id,
-                                                       target=TARGET_DEVICE)
 
 
 class DracManagement(base.ManagementInterface):
