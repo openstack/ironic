@@ -29,5 +29,5 @@ python-dracclient>=0.0.5
 # http://docs.openstack.org/developer/ironic/drivers/vbox.html
 pyremotevbox>=0.5.0
 
-# The CIMC drivers use the Cisco IMC SDK version 0.7.2, which is available from
-# https://communities.cisco.com/docs/DOC-56257
+# The CIMC drivers use the Cisco IMC SDK version 0.7.2 or greater
+ImcSdk>=0.7.2
