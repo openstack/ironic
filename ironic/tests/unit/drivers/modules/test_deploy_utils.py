@@ -1049,7 +1049,7 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
 
     def _create_config(self, ipxe=False, boot_mode=None, boot_loader='elilo'):
         (fd, fname) = tempfile.mkstemp()
-        if boot_mode == 'uefi':
+        if boot_mode == 'uefi' and not ipxe:
             if boot_loader == 'grub':
                 pxe_cfg = _UEFI_PXECONF_DEPLOY_GRUB
             else:
@@ -1161,6 +1161,30 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
         with open(fname, 'r') as f:
             pxeconf = f.read()
         self.assertEqual(_UEFI_PXECONF_BOOT_WHOLE_DISK_GRUB, pxeconf)
+
+    def test_switch_uefi_ipxe_config_partition_image(self):
+        boot_mode = 'uefi'
+        cfg.CONF.set_override('ipxe_enabled', True, 'pxe')
+        fname = self._create_config(boot_mode=boot_mode, ipxe=True)
+        utils.switch_pxe_config(fname,
+                                '12345678-1234-1234-1234-1234567890abcdef',
+                                boot_mode,
+                                False)
+        with open(fname, 'r') as f:
+            pxeconf = f.read()
+        self.assertEqual(_IPXECONF_BOOT_PARTITION, pxeconf)
+
+    def test_switch_uefi_ipxe_config_whole_disk_image(self):
+        boot_mode = 'uefi'
+        cfg.CONF.set_override('ipxe_enabled', True, 'pxe')
+        fname = self._create_config(boot_mode=boot_mode, ipxe=True)
+        utils.switch_pxe_config(fname,
+                                '0x12345678',
+                                boot_mode,
+                                True)
+        with open(fname, 'r') as f:
+            pxeconf = f.read()
+        self.assertEqual(_IPXECONF_BOOT_WHOLE_DISK, pxeconf)
 
 
 @mock.patch('time.sleep', lambda sec: None)

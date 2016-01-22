@@ -244,7 +244,7 @@ def _replace_boot_line(path, boot_mode, is_whole_disk_image,
     else:
         boot_disk_type = 'boot_partition'
 
-    if boot_mode == 'uefi':
+    if boot_mode == 'uefi' and not CONF.pxe.ipxe_enabled:
         pattern = '^((set )?default)=.*$'
         boot_line = '\\1=%s' % boot_disk_type
     else:
