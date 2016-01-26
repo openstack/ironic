@@ -255,6 +255,10 @@ class InstanceNotFound(NotFound):
     _msg_fmt = _("Instance %(instance)s could not be found.")
 
 
+class InputFileError(IronicException):
+    _msg_fmt = _("Error with file %(file_name)s. Reason: %(reason)s")
+
+
 class NodeNotFound(NotFound):
     _msg_fmt = _("Node %(node)s could not be found.")
 

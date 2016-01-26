@@ -1,0 +1,29 @@
+[DEFAULT]
+# default target endpoint type
+# should match the endpoint type defined in service catalog
+target_endpoint_type = None
+
+# possible end path of API requests
+# path of api requests for CADF target typeURI
+# Just need to include top resource path to identify class
+# of resources. Ex: Log audit event for API requests
+# path containing "nodes" keyword and node uuid.
+[path_keywords]
+nodes = node
+drivers = driver
+chassis = chassis
+ports = port
+states = state
+power = None
+provision = None
+maintenance = None
+validate = None
+boot_device = None
+supported = None
+console = None
+vendor_passthrus = vendor_passthru
+
+
+# map endpoint type defined in service catalog to CADF typeURI
+[service_endpoints]
+baremetal = service/compute/baremetal

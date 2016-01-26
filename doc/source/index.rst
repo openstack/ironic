@@ -42,6 +42,7 @@ Administrator's Guide
   deploy/inspection
   deploy/security
   deploy/adoption
+  deploy/api-audit-support
   deploy/troubleshooting
   Release Notes <http://docs.openstack.org/releasenotes/ironic/>
   Dashboard (horizon) plugin <http://docs.openstack.org/developer/ironic-ui/>

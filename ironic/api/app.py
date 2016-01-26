@@ -15,6 +15,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import keystonemiddleware.audit as audit_middleware
+from keystonemiddleware.audit import PycadfAuditApiConfigError
 from oslo_config import cfg
 import oslo_middleware.cors as cors_middleware
 import pecan
@@ -24,6 +26,7 @@ from ironic.api import config
 from ironic.api.controllers.base import Version
 from ironic.api import hooks
 from ironic.api import middleware
+from ironic.common import exception
 from ironic.conf import CONF
 
 
@@ -59,6 +62,19 @@ def setup_app(pecan_config=None, extra_hooks=None):
         hooks=app_hooks,
         wrap_app=middleware.ParsableErrorMiddleware,
     )
+
+    if CONF.audit.enabled:
+        try:
+            app = audit_middleware.AuditMiddleware(
+                app,
+                audit_map_file=CONF.audit.audit_map_file,
+                ignore_req_list=CONF.audit.ignore_req_list
+            )
+        except (EnvironmentError, OSError, PycadfAuditApiConfigError) as e:
+            raise exception.InputFileError(
+                file_name=CONF.audit.audit_map_file,
+                reason=e
+            )
 
     if pecan_config.app.enable_acl:
         app = acl.install(app, cfg.CONF, pecan_config.app.acl_public_routes)
