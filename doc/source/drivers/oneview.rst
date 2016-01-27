@@ -126,7 +126,7 @@ Overview
 ``agent_pxe_oneview`` driver uses PXEBoot for boot and AgentDeploy for deploy.
 
 Configuring and enabling the driver
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 1. Add ``agent_pxe_oneview`` to the list of ``enabled_drivers`` in
    ``/etc/ironic/ironic.conf``. For example::

@@ -48,7 +48,7 @@ Bug tracker
 
 Mailing list (prefix subjects with ``[ironic]`` for faster responses)
     http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-dev
-    
+
 Wiki
     http://wiki.openstack.org/Ironic
 
