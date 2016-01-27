@@ -1,4 +1,4 @@
-# Japanese translations for ironic.
+# Translations template for ironic.
 # Copyright (C) 2015 ORGANIZATION
 # This file is distributed under the same license as the ironic project.
 #
@@ -8,22 +8,19 @@
 # KATO Tomoyuki <kato.tomoyuki@jp.fujitsu.com>, 2015. #zanata
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 4.2.1.dev157\n"
+"Project-Id-Version: ironic 4.3.1.dev202\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-10-23 06:32+0000\n"
+"POT-Creation-Date: 2016-01-27 02:09+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 "PO-Revision-Date: 2015-10-09 05:15+0000\n"
 "Last-Translator: KATO Tomoyuki <kato.tomoyuki@jp.fujitsu.com>\n"
 "Language: ja\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"Generated-By: Babel 2.0\n"
+"X-Generator: Zanata 3.7.3\n"
 "Language-Team: Japanese\n"
-"Plural-Forms: nplurals=1; plural=0\n"
-"MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.1.1\n"
-
-#, python-format
-msgid " Downloaded from \"%s\"."
-msgstr "「%s」からダウンロードされました。"
 
 #, python-format
 msgid " after the completion of step \"%s\""
@@ -85,10 +82,6 @@ msgid "%s is not an integer value."
 msgstr "%s は整数値ではありません。"
 
 #, python-format
-msgid "'%(partition)s' device '%(part_device)s' not found"
-msgstr "「%(partition)s」のデバイス「%(part_device)s」が見つかりません"
-
-#, python-format
 msgid "'%s' contains non-ASCII symbol."
 msgstr "「%s」に非 ASCII 記号が含まれています。"
 
@@ -109,9 +102,6 @@ msgstr "'add' と 'replace' 処理には、値が必要です。"
 
 msgid "'drac_path' contains non-ASCII symbol."
 msgstr "「drac_path」に非 ASCII 記号が含まれています。"
-
-msgid "'drac_port' is not an integer value."
-msgstr "「drac_port」が整数値ではありません。"
 
 msgid "'drac_protocol' contains non-ASCII symbol."
 msgstr "「drac_protocol」に非 ASCII 記号が含まれています。"
@@ -134,9 +124,6 @@ msgstr "「qemu-img info」の解析に失敗しました。"
 #, python-format
 msgid "'set_power_state' called with invalid power state '%s'"
 msgstr "無効な電源状態「%s」で「set_power_state」が呼び出されました"
-
-msgid "'virtualbox_port' is not an integer."
-msgstr "「virtualbox_port」が整数ではありません。"
 
 msgid ""
 "(list of) filename(s) of optional private key(s) for authentication. One of "
@@ -246,19 +233,6 @@ msgstr ""
 msgid "Asynchronous exception for node %(node)s: %(msg)s exception: %(e)s"
 msgstr "ノード %(node)s の非同期例外: %(msg)s 例外: %(e)s"
 
-#, python-format
-msgid ""
-"Attribute %(attr)s cannot be set to value %(val)d. It must be between "
-"%(lower)d and %(upper)d."
-msgstr ""
-"%(attr)s 属性は値 %(val)d には設定できません。%(lower)d から %(upper)d までの"
-"間である必要があります。"
-
-#, python-format
-msgid "Attribute %(attr)s cannot be set to value %(val)s. It must be in %(ok)r"
-msgstr ""
-"%(attr)s 属性は値 %(val)s には設定できません。%(ok)r にある必要があります。"
-
 msgid ""
 "Authentication method for iRMC operations; either 'basic' or 'digest'. The "
 "default value is 'basic'. Optional."
@@ -288,9 +262,6 @@ msgstr ""
 "ブレード ID。有効な値は 1 からシャーシ内で利用できるブレードの最大数の間で"
 "す。必須。"
 
-msgid "Block size to use when writing to the nodes disk."
-msgstr "ノードのディスク書き込み時に使用するブロック容量。"
-
 #, python-format
 msgid "Boot ISO file, %(boot_iso)s, not found for node: %(node)s."
 msgstr ""
@@ -311,14 +282,6 @@ msgstr "CIMC Manager の管理ユーザー名。必須。"
 
 msgid "CIMC Manager password. Required."
 msgstr "CIMC Manager のパスワード。必須。"
-
-#, python-format
-msgid ""
-"Can't download the configdrive content for node %(node)s from '%(url)s'. "
-"Reason: %(reason)s"
-msgstr ""
-"ノード %(node)s のコンフィグドライブ内容を %(url)s からダウンロードできませ"
-"ん。理由: %(reason)s"
 
 #, python-format
 msgid "Cannot compile public API routes: %s"
@@ -370,10 +333,6 @@ msgstr "既存のノードの UUID を上書きできません。"
 
 msgid "Cannot overwrite UUID for an existing Port."
 msgstr "既存のポートの UUID を上書きできません。"
-
-#, python-format
-msgid "Cannot set read-only BIOS settings \"%r\""
-msgstr "読み込み専用の BIOS 設定「%r」を設定できません"
 
 msgid "Cannot update a conductor record directly."
 msgstr "conductor のレコードを直接更新することはできません。"
@@ -444,10 +403,6 @@ msgstr ""
 "%(error)s"
 
 #, python-format
-msgid "Colliding attributes %r"
-msgstr "相反する属性 %r"
-
-#, python-format
 msgid ""
 "Command: %(command)s.\n"
 "Exit code: %(return_code)s.\n"
@@ -474,13 +429,6 @@ msgstr ""
 msgid "Conductor %(conductor)s could not be found."
 msgstr "コンダクター %(conductor)s が見つかりませんでした。"
 
-#, python-format
-msgid ""
-"Config drive for node %s is not base64 encoded or the content is malformed."
-msgstr ""
-"ノード %s のコンフィグドライブが Base64 エンコードされていないか、内容の形式"
-"が誤っています。"
-
 msgid "Conflict."
 msgstr "競合があります。"
 
@@ -492,14 +440,6 @@ msgstr ""
 "競合: ディスク・イメージ全体がデプロイに使用されていますが、netboot オプショ"
 "ン指定で UEFI を使用するように構成されたノード %(node_uuid)s では使用できませ"
 "ん"
-
-#, python-format
-msgid ""
-"Conflict: iPXE is enabled, but cannot be used with node%(node_uuid)s "
-"configured to use UEFI boot"
-msgstr ""
-"競合: iPXE が有効になっていますが、UEFI ブートを使用するように構成されたノー"
-"ド %(node_uuid)s では使用できません"
 
 msgid "Connection failed"
 msgstr "接続が失敗しました"
@@ -682,24 +622,6 @@ msgstr "ironic python モジュールがインストールされるディレク�
 
 #, python-format
 msgid ""
-"Disk partitioning failed on device %(device)s. Fuser exited with "
-"\"%(fuser_err)s\". Time out waiting for completion."
-msgstr ""
-"ディスクのパーティション作成がデバイス %(device)s で失敗しました。fuser が"
-"「%(fuser_err)s」で終了しました。コンパイルの待機中にタイムアウトになりまし"
-"た。"
-
-#, python-format
-msgid ""
-"Disk partitioning failed on device %(device)s. Processes with the following "
-"PIDs are holding it: %(pids)s. Time out waiting for completion."
-msgstr ""
-"ディスクのパーティション作成がデバイス %(device)s で失敗しました。PID "
-"%(pids)s のプロセスがこのデバイスを保持しています。コンパイルの待機中にタイム"
-"アウトになりました。"
-
-#, python-format
-msgid ""
 "Disk volume where '%(path)s' is located doesn't have enough disk space. "
 "Required %(required)d MiB, only %(actual)d MiB available space present."
 msgstr ""
@@ -760,14 +682,6 @@ msgid ""
 msgstr ""
 "pecan デバッグモードを有効化します。警告: これはセキュリティーを低下させま"
 "す。本番環境において使用すべきではありません。"
-
-#, python-format
-msgid ""
-"Encountered error while decompressing and writing config drive for node "
-"%(node)s. Error: %(exc)s"
-msgstr ""
-"ノード %(node)s のコンフィグドライブの展開および書き込み中にエラーが検出され"
-"ました。エラー: %(exc)s"
 
 #, python-format
 msgid "Error %(op)s the console on node %(node)s. Reason: %(error)s"
@@ -862,9 +776,6 @@ msgstr ""
 #, python-format
 msgid "Failed to clean node %(node)s: %(reason)s"
 msgstr "ノード %(node)s のクリーニングに失敗しました: %(reason)s"
-
-msgid "Failed to connect to AMT service."
-msgstr "AMT サービスへの接続に失敗しました。"
 
 #, python-format
 msgid "Failed to connect to Glance to get the properties of the image %s"
@@ -1132,9 +1043,6 @@ msgstr ""
 "IPMI が  raw バイト \"%(bytes)s\" をノード %(node_id)s に送信しましたが、次の"
 "エラーで失敗しました: %(error)s"
 
-msgid "IPMI terminal port is not an integer."
-msgstr "IPMI ターミナルポートが整数ではありません。"
-
 msgid "IPMI username. Required."
 msgstr "IPMI ユーザー名。必須。"
 
@@ -1256,10 +1164,6 @@ msgstr "HashRing の構築時に無効なホストが指定されました。"
 msgid "Invalid image href %(image_href)s."
 msgstr "無効なイメージ href %(image_href)s。"
 
-#, python-format
-msgid "Invalid input value \"%s\"."
-msgstr "無効な入力値「%s」"
-
 msgid "Invalid private key"
 msgstr "無効な秘密鍵"
 
@@ -1300,10 +1204,6 @@ msgstr ""
 
 msgid "Invalid volume id specified"
 msgstr "無効なボリューム ID が指定されました"
-
-#, python-format
-msgid "Item has no name: \"%s\""
-msgstr "項目の名前がありません: %s"
 
 msgid "Keystone API endpoint is missing"
 msgstr "keystone API エンドポイントがありません。"
@@ -1512,13 +1412,6 @@ msgid "Number of retries when downloading an image from glance."
 msgstr "glance からイメージをダウンロードするとき、再試行する回数。"
 
 msgid ""
-"On ironic-conductor node, directory where master TFTP images are stored on "
-"disk."
-msgstr ""
-"ironic-conductor ノードにおいて、マスター TFTP イメージがディスク上に保存され"
-"るディレクトリー。"
-
-msgid ""
 "On ironic-conductor node, template file for PXE configuration for UEFI boot "
 "loader."
 msgstr ""
@@ -1537,13 +1430,6 @@ msgid ""
 msgstr ""
 "ironic-conductor ノードにおいて、イメージがディスク上に保存されるディレクト"
 "リー。"
-
-msgid ""
-"On the ironic-conductor node, directory where master instance images are "
-"stored on disk."
-msgstr ""
-"ironic-conductor ノードにおいて、マスターインスタンスイメージがディスク上に保"
-"存されるディレクトリー。"
 
 #, python-format
 msgid "Operation failed: %s"
@@ -1714,10 +1600,6 @@ msgstr "リソースが一時的に使用できません。再試行してくだ
 msgid "Retrieve IP address on port: %(port_id)s failed."
 msgstr "ポート %(port_id)s での IP アドレスの取得に失敗しました。"
 
-#, python-format
-msgid "Root device '%s' not found"
-msgstr "ルートデバイス「%s」が見つかりません"
-
 msgid "Root device hint \"size\" is not an integer value."
 msgstr "ルートデバイスヒント「size」が整数値ではありません。"
 
@@ -1749,10 +1631,6 @@ msgstr "SNMP ポート。デフォルトは %(port)d。"
 #, python-format
 msgid "SNMP security name.  Required for version %(v3)s"
 msgstr "SNMP セキュリティー名。バージョン %(v3)s に必須。"
-
-#, python-format
-msgid "SNMPPowerDriver: SNMP UDP port must be numeric: %s"
-msgstr "SNMPPowerDriver: SNMP の UDP ポートは数値でなければなりません: %s"
 
 #, python-format
 msgid "SNMPPowerDriver: SNMP UDP port out of range: %d"
@@ -1789,9 +1667,6 @@ msgstr ""
 "SSHPowerDriver は、唯一のパスワード、key_contents、および key_filename の設定"
 "を必要とします。"
 
-msgid "SSHPowerDriver requires ssh_port to be integer value"
-msgstr "SSHPowerDriver は ssh_port が整数値であることを必要とします"
-
 #, python-format
 msgid ""
 "SSHPowerDriver requires the following parameters to be set in node's "
@@ -1807,9 +1682,6 @@ msgid ""
 msgstr ""
 "SeaMicro ドライバーはノードの driver_info で次のパラメーターの設定を必要とし"
 "ます: %s。"
-
-msgid "SeaMicro terminal port is not an integer."
-msgstr "SeaMicro のターミナルポートが整数ではありません。"
 
 msgid "Seconds between conductor heart beats."
 msgstr "conductor のハートビート間隔の秒数"
@@ -1850,9 +1722,6 @@ msgstr "ブートモードを %s に設定中"
 #, python-format
 msgid "Setting secure boot to %(flag)s for node %(node)s."
 msgstr "ノード %(node)s のセキュアブートを %(flag)s に設定中。"
-
-msgid "Snapshot list encountered but no header found!"
-msgstr "スナップショットの一覧が検出されましたが、ヘッダーが見つかりません。"
 
 msgid ""
 "Some mandatory input missing in 'pass_bootloader_info' vendor passthru from "
@@ -2139,21 +2008,12 @@ msgstr ""
 "ipmitool バージョンの確認時に、使用可能な ipmitool コマンドがシステムのパスに"
 "見つかりませんでした"
 
-#, python-format
-msgid ""
-"Unable to stat device %(dev)s after attempting to verify %(attempts)d times."
-msgstr "%(attempts)d 回の検証試行後にデバイス %(dev)s を開始できません。"
-
 msgid "Unacceptable parameters."
 msgstr "受け入れられないパラメーター。"
 
 #, fuzzy, python-format
 msgid "Unknown lookup payload version: %s"
 msgstr "ルックアップ・ペイロード・バージョンが不明です: %s"
-
-#, python-format
-msgid "Unknown namespace %(ns)s for item: \"%(item)s\""
-msgstr "%(item)s 項目の無効な名前空間 %(ns)s"
 
 #, python-format
 msgid "Unsupported target_state: %s"
@@ -2237,9 +2097,6 @@ msgid ""
 msgstr ""
 "Wake-On-Lan は、少なくとも 1 つのポートがノードに登録されている必要があります"
 
-msgid "Wake-On-Lan port must be an integer"
-msgstr "Wake-On-Lan ポートは整数である必要があります"
-
 #, python-format
 msgid ""
 "When creating cleaning ports, DHCP provider didn't return VIF port ID for %s"
@@ -2318,9 +2175,6 @@ msgstr "head アカウント"
 
 msgid "head object"
 msgstr "head オブジェクト"
-
-msgid "iBoot PDU port must be an integer."
-msgstr "iBoot PDU ポートは整数でなければなりません。"
 
 msgid "iBoot PDU port; default is 9100. Optional."
 msgstr "iBoot PDU ポート。デフォルトは 9100。オプション。"
@@ -2595,13 +2449,6 @@ msgstr "ユーザー名。デフォルトは NULL。オプション。"
 
 msgid "version of SeaMicro API client; default is 2. Optional."
 msgstr "SeaMicro API クライアントのバージョン。デフォルトは 2。オプション。"
-
-msgid ""
-"virtualization software to use; one of vbox, virsh, vmware, parallels. "
-"Required."
-msgstr ""
-"使用する仮想化ソフトウェア。vbox、virsh、vmware、または parallels のどれかを"
-"指定します。必須。"
 
 msgid "whether to enable inspection using ironic-inspector"
 msgstr "ironic-inspector を使用した検査を有効化するかどうか"
