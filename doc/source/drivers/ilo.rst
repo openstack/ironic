@@ -56,9 +56,8 @@ Different Configuration for ilo drivers
 Glance Configuration
 ^^^^^^^^^^^^^^^^^^^^
 
-1. Configure Glance image service with its storage backend as Swift. See
-   `here <http://docs.openstack.org/developer/glance/configuring.html#configuring-the-swift-storage-backend>`_
-   for configuration instructions.
+1. `Configure Glance image service with its storage backend as Swift
+   <http://docs.openstack.org/developer/glance/configuring.html#configuring-the-swift-storage-backend>`_.
 
 2. Set a temp-url key for Glance user in Swift. For example, if you have
    configured Glance with user ``glance-swift`` and tenant as ``service``,
@@ -640,7 +639,8 @@ To enable ``secure_boot`` on a node add it to ``capabilities`` as below::
 
  ironic node-update <node-uuid> add properties/capabilities='secure_boot:true'
 
-Alternatively use `Hardware Inspection`_ to populate the secure boot capability.
+Alternatively see `Hardware Inspection Support`_ to know how to
+automatically populate the secure boot capability.
 
 Nodes having ``secure_boot`` set to ``true`` may be requested by adding an
 ``extra_spec`` to the nova flavor::
