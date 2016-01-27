@@ -128,6 +128,6 @@ Object Versions
    serialization. So objects should implement their own obj_make_compatible() to
    remove/alter attributes which was added/changed after the target version.
  - There is a test (object/test_objects.py) to generate the hash of object fields and the
-   signtures of remotable methods, which helps developers to check if the change of
+   signatures of remotable methods, which helps developers to check if the change of
    objects need a version bump. The object fingerprint should only be updated with a
    version bump.
