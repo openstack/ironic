@@ -1538,7 +1538,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 raise exception.UnsupportedDriverExtension(driver=node.driver,
                                                            extension='console')
             if not node.console_enabled:
-                raise exception.NodeConsoleNotEnabled(node=node_id)
+                raise exception.NodeConsoleNotEnabled(node=node.uuid)
 
             task.driver.console.validate(task)
             return task.driver.console.get_console(task)

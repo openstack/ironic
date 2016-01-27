@@ -236,7 +236,7 @@ class TaskManager(object):
                                              self.node_id)
             LOG.debug("Node %(node)s successfully reserved for %(purpose)s "
                       "(took %(time).2f seconds)",
-                      {'node': self.node_id, 'purpose': self._purpose,
+                      {'node': self.node.uuid, 'purpose': self._purpose,
                        'time': self._debug_timer.elapsed()})
             self._debug_timer.restart()
 
