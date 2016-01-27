@@ -703,6 +703,11 @@ function enroll_nodes {
     nova flavor-key baremetal set "cpu_arch"="$ironic_node_arch"
 
     if [ "$VIRT_DRIVER" == "ironic" ]; then
+        # NOTE(dtantsur): sometimes nova compute fails to start with ironic due
+        # to keystone restarting and not being able to authenticate us.
+        # Restart it just to be sure (and avoid gate problems like bug 1537076)
+        stop_nova_compute
+        start_nova_compute
         wait_for_nova_resources "count" $total_nodes
         wait_for_nova_resources "vcpus" $total_cpus
     fi
