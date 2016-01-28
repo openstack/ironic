@@ -1071,7 +1071,7 @@ def clean_step(priority, abortable=False, argsinfo=None):
             def example_cleaning(self, task):
                 # do some cleaning
 
-            @base.clean_step(abortable=True, argsinfo=
+            @base.clean_step(priority=0, abortable=True, argsinfo=
                              {'size': {'description': 'size of widget (MB)',
                                        'required': True}})
             def advanced_clean(self, task, **kwargs):
