@@ -30,6 +30,7 @@ api_opts = [
     cfg.StrOpt(
         'auth_strategy',
         default='keystone',
+        choices=['noauth', 'keystone'],
         help=_('Authentication strategy used by ironic-api: one of "keystone" '
                'or "noauth". "noauth" should not be used in a production '
                'environment because all authentication will be disabled.')),

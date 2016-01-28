@@ -27,10 +27,12 @@ scci = importutils.try_import('scciclient.irmc.scci')
 opts = [
     cfg.PortOpt('port',
                 default=443,
+                choices=[443, 80],
                 help=_('Port to be used for iRMC operations, either 80 or '
                        '443')),
     cfg.StrOpt('auth_method',
                default='basic',
+               choices=['basic', 'digest'],
                help=_('Authentication method to be used for iRMC operations, '
                       'either "basic" or "digest"')),
     cfg.IntOpt('client_timeout',
@@ -38,6 +40,7 @@ opts = [
                help=_('Timeout (in seconds) for iRMC operations')),
     cfg.StrOpt('sensor_method',
                default='ipmitool',
+               choices=['ipmitool', 'scci'],
                help=_('Sensor data retrieval method, either '
                       '"ipmitool" or "scci"')),
 ]

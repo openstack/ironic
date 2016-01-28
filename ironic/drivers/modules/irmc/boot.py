@@ -57,6 +57,8 @@ opts = [
                help=_('IP of remote image server')),
     cfg.StrOpt('remote_image_share_type',
                default='CIFS',
+               choices=['CIFS', 'NFS'],
+               ignore_case=True,
                help=_('Share type of virtual media, either "NFS" or "CIFS"')),
     cfg.StrOpt('remote_image_share_name',
                default='share',
@@ -81,8 +83,6 @@ REQUIRED_PROPERTIES = {
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES
 
-SUPPORTED_SHARE_TYPES = ('nfs', 'cifs')
-
 
 def _parse_config_option():
     """Parse config file options.
@@ -97,11 +97,6 @@ def _parse_config_option():
             _("Value '%s' for remote_image_share_root isn't a directory "
               "or doesn't exist.") %
             CONF.irmc.remote_image_share_root)
-    if CONF.irmc.remote_image_share_type.lower() not in SUPPORTED_SHARE_TYPES:
-        error_msgs.append(
-            _("Value '%s' for remote_image_share_type is not supported "
-              "value either 'NFS' or 'CIFS'.") %
-            CONF.irmc.remote_image_share_type)
     if error_msgs:
         msg = (_("The following errors were encountered while parsing "
                  "config file:%s") % error_msgs)

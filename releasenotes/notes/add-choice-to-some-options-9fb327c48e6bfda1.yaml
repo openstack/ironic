@@ -1,0 +1,15 @@
+---
+upgrade:
+  - Add ``choices`` parameter to config options. Invalid values will be
+    rejected when first accessing them, which can happen in the middle of
+    deployment.
+    * [DEFAULT]/auth_strategy         [keystone, noauth]
+    * [glance]/auth_strategy          [keystone, noauth]
+    * [glance]/glance_protocol        [http, https]
+    * [neutron]/auth_strategy         [keystone, noauth]
+    * [amt]/protocol                  [http, https]
+    * [irmc]/remote_image_share_type  [CIFS, NFS]
+    * [irmc]/port                     [443, 80]
+    * [irmc]/auth_method              [basic, digest]
+    * [irmc]/sensor_method            [ipmitool, scci]
+

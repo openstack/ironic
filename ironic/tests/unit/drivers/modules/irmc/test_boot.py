@@ -87,15 +87,6 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
                           irmc_boot._parse_config_option)
         isdir_mock.assert_called_once_with('/non_existed_root')
 
-    @mock.patch.object(os.path, 'isdir', spec_set=True, autospec=True)
-    def test__parse_config_option_wrong_share_type(self, isdir_mock):
-        CONF.irmc.remote_image_share_type = 'NTFS'
-        isdir_mock.return_value = True
-
-        self.assertRaises(exception.InvalidParameterValue,
-                          irmc_boot._parse_config_option)
-        isdir_mock.assert_called_once_with('/remote_image_share_root')
-
     @mock.patch.object(os.path, 'isfile', spec_set=True, autospec=True)
     def test__parse_driver_info_in_share(self, isfile_mock):
         """With required 'irmc_deploy_iso' in share."""
@@ -1029,3 +1020,12 @@ class IRMCVirtualMediaBootTestCase(db_base.DbTestCase):
                 task, 'boot.iso')
             node_set_boot_device.assert_called_once_with(
                 task, boot_devices.CDROM, persistent=True)
+
+    def test_remote_image_share_type_values(self):
+        cfg.CONF.set_override('remote_image_share_type', 'cifs', 'irmc',
+                              enforce_type=True)
+        cfg.CONF.set_override('remote_image_share_type', 'nfs', 'irmc',
+                              enforce_type=True)
+        self.assertRaises(ValueError, cfg.CONF.set_override,
+                          'remote_image_share_type', 'fake', 'irmc',
+                          enforce_type=True)

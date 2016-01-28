@@ -44,6 +44,7 @@ neutron_opts = [
                help=_('Client retries in the case of a failed request.')),
     cfg.StrOpt('auth_strategy',
                default='keystone',
+               choices=['keystone', 'noauth'],
                help=_('Default authentication strategy to use when connecting '
                       'to neutron. Can be either "keystone" or "noauth". '
                       'Running neutron in noauth mode (related to but not '
