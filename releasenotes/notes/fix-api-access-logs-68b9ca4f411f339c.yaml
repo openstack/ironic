@@ -1,0 +1,4 @@
+---
+fixes:
+    - API service once again records HTTP access logs. See
+      https://bugs.launchpad.net/ironic/+bug/1536828 for details.
