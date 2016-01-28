@@ -538,3 +538,109 @@ class NodeCleaningStepsTestCase(base.DbTestCase):
                                     conductor_utils._validate_user_clean_steps,
                                     task, user_steps)
             mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+
+class ErrorHandlersTestCase(tests_base.TestCase):
+    def setUp(self):
+        super(ErrorHandlersTestCase, self).setUp()
+        self.task = mock.Mock(spec=task_manager.TaskManager)
+        self.task.driver = mock.Mock(spec_set=['deploy'])
+        self.task.node = mock.Mock(spec_set=objects.Node)
+        self.node = self.task.node
+
+    @mock.patch.object(conductor_utils, 'LOG')
+    def test_provision_error_handler_no_worker(self, log_mock):
+        exc = exception.NoFreeConductorWorker()
+        conductor_utils.provisioning_error_handler(exc, self.node, 'state-one',
+                                                   'state-two')
+        self.node.save.assert_called_once_with()
+        self.assertEqual('state-one', self.node.provision_state)
+        self.assertEqual('state-two', self.node.target_provision_state)
+        self.assertIn('No free conductor workers', self.node.last_error)
+        self.assertTrue(log_mock.warning.called)
+
+    @mock.patch.object(conductor_utils, 'LOG')
+    def test_provision_error_handler_other_error(self, log_mock):
+        exc = Exception('foo')
+        conductor_utils.provisioning_error_handler(exc, self.node, 'state-one',
+                                                   'state-two')
+        self.assertFalse(self.node.save.called)
+        self.assertFalse(log_mock.warning.called)
+
+    def test_cleaning_error_handler(self):
+        self.node.provision_state = states.CLEANING
+        target = 'baz'
+        self.node.target_provision_state = target
+        msg = 'error bar'
+        conductor_utils.cleaning_error_handler(self.task, msg)
+        self.node.save.assert_called_once_with()
+        self.assertEqual({}, self.node.clean_step)
+        self.assertEqual(msg, self.node.last_error)
+        self.assertTrue(self.node.maintenance)
+        self.assertEqual(msg, self.node.maintenance_reason)
+        driver = self.task.driver.deploy
+        driver.tear_down_cleaning.assert_called_once_with(self.task)
+        self.task.process_event.assert_called_once_with('fail',
+                                                        target_state=None)
+
+    def test_cleaning_error_handler_manual(self):
+        target = states.MANAGEABLE
+        self.node.target_provision_state = target
+        conductor_utils.cleaning_error_handler(self.task, 'foo')
+        self.task.process_event.assert_called_once_with('fail',
+                                                        target_state=target)
+
+    def test_cleaning_error_handler_no_teardown(self):
+        target = states.MANAGEABLE
+        self.node.target_provision_state = target
+        conductor_utils.cleaning_error_handler(self.task, 'foo',
+                                               tear_down_cleaning=False)
+        self.assertFalse(self.task.driver.deploy.tear_down_cleaning.called)
+        self.task.process_event.assert_called_once_with('fail',
+                                                        target_state=target)
+
+    def test_cleaning_error_handler_no_fail(self):
+        conductor_utils.cleaning_error_handler(self.task, 'foo',
+                                               set_fail_state=False)
+        driver = self.task.driver.deploy
+        driver.tear_down_cleaning.assert_called_once_with(self.task)
+        self.assertFalse(self.task.process_event.called)
+
+    @mock.patch.object(conductor_utils, 'LOG')
+    def test_cleaning_error_handler_tear_down_error(self, log_mock):
+        driver = self.task.driver.deploy
+        driver.tear_down_cleaning.side_effect = Exception('bar')
+        conductor_utils.cleaning_error_handler(self.task, 'foo')
+        self.assertTrue(log_mock.exception.called)
+
+    @mock.patch.object(conductor_utils, 'LOG')
+    def test_spawn_cleaning_error_handler_no_worker(self, log_mock):
+        exc = exception.NoFreeConductorWorker()
+        conductor_utils.spawn_cleaning_error_handler(exc, self.node)
+        self.node.save.assert_called_once_with()
+        self.assertIn('No free conductor workers', self.node.last_error)
+        self.assertTrue(log_mock.warning.called)
+
+    @mock.patch.object(conductor_utils, 'LOG')
+    def test_spawn_cleaning_error_handler_other_error(self, log_mock):
+        exc = Exception('foo')
+        conductor_utils.spawn_cleaning_error_handler(exc, self.node)
+        self.assertFalse(self.node.save.called)
+        self.assertFalse(log_mock.warning.called)
+
+    @mock.patch.object(conductor_utils, 'LOG')
+    def test_power_state_error_handler_no_worker(self, log_mock):
+        exc = exception.NoFreeConductorWorker()
+        conductor_utils.power_state_error_handler(exc, self.node, 'newstate')
+        self.node.save.assert_called_once_with()
+        self.assertEqual('newstate', self.node.power_state)
+        self.assertEqual(states.NOSTATE, self.node.target_power_state)
+        self.assertIn('No free conductor workers', self.node.last_error)
+        self.assertTrue(log_mock.warning.called)
+
+    @mock.patch.object(conductor_utils, 'LOG')
+    def test_power_state_error_handler_other_error(self, log_mock):
+        exc = Exception('foo')
+        conductor_utils.power_state_error_handler(exc, self.node, 'foo')
+        self.assertFalse(self.node.save.called)
+        self.assertFalse(log_mock.warning.called)

@@ -350,15 +350,20 @@ class BaseAgentVendor(base.VendorInterface):
             # release starts.
             elif node.provision_state in (states.CLEANWAIT, states.CLEANING):
                 node.touch_provisioning()
-                if not node.clean_step:
-                    LOG.debug('Node %s just booted to start cleaning.',
-                              node.uuid)
-                    msg = _('Node failed to start the next cleaning step.')
-                    manager_utils.set_node_cleaning_steps(task)
-                    self.notify_conductor_resume_clean(task)
-                else:
-                    msg = _('Node failed to check cleaning progress.')
-                    self.continue_cleaning(task, **kwargs)
+                try:
+                    if not node.clean_step:
+                        LOG.debug('Node %s just booted to start cleaning.',
+                                  node.uuid)
+                        msg = _('Node failed to start the next cleaning step.')
+                        manager_utils.set_node_cleaning_steps(task)
+                        self.notify_conductor_resume_clean(task)
+                    else:
+                        msg = _('Node failed to check cleaning progress.')
+                        self.continue_cleaning(task, **kwargs)
+                except exception.NoFreeConductorWorker:
+                    # waiting for the next heartbeat, node.last_error and
+                    # logging message is filled already via conductor's hook
+                    pass
 
         except Exception as e:
             err_info = {'node': node.uuid, 'msg': msg, 'e': e}

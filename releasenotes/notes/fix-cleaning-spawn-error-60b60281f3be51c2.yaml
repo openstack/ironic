@@ -1,0 +1,4 @@
+---
+fixes:
+  - Fix issues with error handling when spawning a new thread to continue
+    cleaning. See https://bugs.launchpad.net/ironic/+bug/1539118.
