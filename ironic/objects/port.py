@@ -64,9 +64,12 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def get(cls, context, port_id):
-        """Find a port based on its id or uuid and return a Port object.
+        """Find a port.
 
-        :param port_id: the id *or* uuid of a port.
+        Find a port based on its id or uuid or MAC address and return a Port
+        object.
+
+        :param port_id: the id *or* uuid *or* MAC address of a port.
         :returns: a :class:`Port` object.
         :raises: InvalidIdentity
 
