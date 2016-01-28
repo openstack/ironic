@@ -303,7 +303,7 @@ so that the Bare Metal service is configured for your needs.
 Configuring ironic-api behind mod_wsgi
 --------------------------------------
 
-Bare Metal service comes with an example file  for configuring the
+Bare Metal service comes with an example file for configuring the
 ``ironic-api`` service to run behind Apache with mod_wsgi.
 
 1. Install the apache service::
@@ -859,13 +859,13 @@ steps on the ironic conductor node to configure the PXE UEFI environment.
     Create directory GRUB_DIR
       sudo mkdir -p $GRUB_DIR
 
-  This file is used to redirect grub to baremetal node specific config file.
-  It redirects it to specific grub config file based on DHCP IP assigned to
-  baremetal node.
+   This file is used to redirect grub to baremetal node specific config file.
+   It redirects it to specific grub config file based on DHCP IP assigned to
+   baremetal node.
 
-  .. literalinclude:: ../../../ironic/drivers/modules/master_grub_cfg.txt
+   .. literalinclude:: ../../../ironic/drivers/modules/master_grub_cfg.txt
 
-  Change the permission of grub.cfg::
+   Change the permission of grub.cfg::
 
     sudo chmod 644 $GRUB_DIR/grub.cfg
 
@@ -1445,14 +1445,15 @@ and may be combined if desired.
     driver_info/ipmi_password=$PASS \
     driver_info/ipmi_address=$ADDRESS
 
-.. note::
-   If IPMI is running on a port other than 623 (the default). The port must
-   be added to ``driver_info`` by specifying the ``ipmi_port`` value.
-   Example:
-    ironic node-update $NODE_UUID add driver_info/ipmi_port=$PORT_NUMBER
+   .. note::
+      If IPMI is running on a port other than 623 (the default). The port must
+      be added to ``driver_info`` by specifying the ``ipmi_port`` value.
+      Example::
 
-   Note that you may also specify all ``driver_info`` parameters during
-   ``node-create`` by passing the **-i** option multiple times.
+       ironic node-update $NODE_UUID add driver_info/ipmi_port=$PORT_NUMBER
+
+      Note that you may also specify all ``driver_info`` parameters during
+      ``node-create`` by passing the **-i** option multiple times.
 
 #. Update the node's properties to match the bare metal flavor you created
    earlier::
