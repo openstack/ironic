@@ -379,7 +379,7 @@ function configure_ironic_conductor {
         if [[ "$SWIFT_ENABLE_TEMPURLS" == "True" ]] ; then
             iniset $IRONIC_CONF_FILE glance swift_temp_url_key $SWIFT_TEMPURL_KEY
         else
-            die $LINENO "SWIFT_ENABLE_TEMPURLS must be True to use agent_ssh driver in Ironic."
+            die $LINENO "SWIFT_ENABLE_TEMPURLS must be True to use agent_* driver in Ironic."
         fi
         iniset $IRONIC_CONF_FILE glance swift_endpoint_url http://${HOST_IP}:${SWIFT_DEFAULT_BIND_PORT:-8080}
         iniset $IRONIC_CONF_FILE glance swift_api_version v1
