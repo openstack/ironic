@@ -269,6 +269,13 @@ def _parse_driver_info(node):
     protocol_version = str(info.get('ipmi_protocol_version', '2.0'))
     force_boot_device = info.get('ipmi_force_boot_device', False)
 
+    if not username:
+        LOG.warning(_LW('ipmi_username is not defined or empty for node %s: '
+                        'NULL user will be utilized.') % node.uuid)
+    if not password:
+        LOG.warning(_LW('ipmi_password is not defined or empty for node %s: '
+                        'NULL password will be utilized.') % node.uuid)
+
     if protocol_version not in VALID_PROTO_VERSIONS:
         valid_versions = ', '.join(VALID_PROTO_VERSIONS)
         raise exception.InvalidParameterValue(_(
