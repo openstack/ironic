@@ -17,6 +17,7 @@
 
 """Tests for :class:`ironic.conductor.task_manager`."""
 
+import futurist
 import mock
 from oslo_utils import uuidutils
 
@@ -658,3 +659,51 @@ class ExclusiveLockDecoratorTestCase(tests_base.TestCase):
                           _req_excl_lock_method,
                           *self.args_task_second,
                           **self.kwargs)
+
+
+class ThreadExceptionTestCase(tests_base.TestCase):
+    def setUp(self):
+        super(ThreadExceptionTestCase, self).setUp()
+        self.node = mock.Mock(spec=objects.Node)
+        self.node.last_error = None
+        self.task = mock.Mock(spec=task_manager.TaskManager)
+        self.task.node = self.node
+        self.task._write_exception = task_manager.TaskManager._write_exception
+        self.future_mock = mock.Mock(spec_set=['exception'])
+
+        def async_method_foo():
+            pass
+
+        self.task._spawn_args = (async_method_foo,)
+
+    def test_set_node_last_error(self):
+        self.future_mock.exception.return_value = Exception('fiasco')
+        self.task._write_exception(self.task, self.future_mock)
+        self.node.save.assert_called_once_with()
+        self.assertIn('fiasco', self.node.last_error)
+        self.assertIn('async_method_foo', self.node.last_error)
+
+    def test_set_node_last_error_exists(self):
+        self.future_mock.exception.return_value = Exception('fiasco')
+        self.node.last_error = 'oops'
+        self.task._write_exception(self.task, self.future_mock)
+        self.assertFalse(self.node.save.called)
+        self.assertFalse(self.future_mock.exception.called)
+        self.assertEqual('oops', self.node.last_error)
+
+    def test_set_node_last_error_no_error(self):
+        self.future_mock.exception.return_value = None
+        self.task._write_exception(self.task, self.future_mock)
+        self.assertFalse(self.node.save.called)
+        self.future_mock.exception.assert_called_once_with()
+        self.assertIsNone(self.node.last_error)
+
+    @mock.patch.object(task_manager.LOG, 'exception', spec_set=True,
+                       autospec=True)
+    def test_set_node_last_error_cancelled(self, log_mock):
+        self.future_mock.exception.side_effect = futurist.CancelledError()
+        self.task._write_exception(self.task, self.future_mock)
+        self.assertFalse(self.node.save.called)
+        self.future_mock.exception.assert_called_once_with()
+        self.assertIsNone(self.node.last_error)
+        self.assertTrue(log_mock.called)
