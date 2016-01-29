@@ -27,6 +27,7 @@ from sqlalchemy import Boolean, Column, DateTime, Index
 from sqlalchemy import ForeignKey, Integer
 from sqlalchemy import schema, String, Text
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import orm
 
 from ironic.common.i18n import _
 from ironic.common import paths
@@ -197,3 +198,10 @@ class NodeTag(Base):
     node_id = Column(Integer, ForeignKey('nodes.id'),
                      primary_key=True, nullable=False)
     tag = Column(String(255), primary_key=True, nullable=False)
+
+    node = orm.relationship(
+        "Node",
+        backref='tags',
+        primaryjoin='and_(NodeTag.node_id == Node.id)',
+        foreign_keys=node_id
+    )
