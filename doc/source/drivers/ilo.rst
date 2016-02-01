@@ -48,7 +48,8 @@ Prerequisites
 
 * ``ipmitool`` command must be present on the service node(s) where
   ``ironic-conductor`` is running. On most distros, this is provided as part
-  of the ``ipmitool`` package.
+  of the ``ipmitool`` package. Refer to `Hardware Inspection Support`_ for more
+  information on recommended version.
 
 Different Configuration for ilo drivers
 =======================================
@@ -768,8 +769,6 @@ The following iLO drivers support hardware inspection:
 
    * The RAID needs to be pre-configured prior to inspection otherwise
      proliantutils returns 0 for disk size.
-   * The iLO firmware version needs to be 2.10 or above for nic_capacity to be
-     discovered.
 
 The inspection process will discover the following essential properties
 (properties required for scheduling deployment):
@@ -797,6 +796,14 @@ Inspection can also discover the following extra capabilities for iLO drivers:
 * ``pci_gpu_devices``: number of gpu devices connected to the bare metal.
 
 * ``nic_capacity``: the max speed of the embedded NIC adapter.
+
+  .. note::
+
+     * The capability ``nic_capacity`` can only be discovered if ipmitool
+       version >= 1.8.15 is used on the conductor. The latest version can be
+       downloaded from `here <http://sourceforge.net/projects/ipmitool/>`__.
+     * The iLO firmware version needs to be 2.10 or above for nic_capacity to be
+       discovered.
 
 The operator can specify these capabilities in nova flavor for node to be selected
 for scheduling::
