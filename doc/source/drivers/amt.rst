@@ -61,16 +61,14 @@ A detailed reference is available here, and a short guide follows below:
   * Ubuntu: ``python-openwsman``'s most recent version is 2.4.3 which
     is enough.
 
-  * Or build it yourself from::
-
-    https://github.com/Openwsman/openwsman
+  * Or build it yourself from: https://github.com/Openwsman/openwsman
 
 * Enable the ``pxe_amt`` or ``agent_amt`` driver by adding it to the
   configuration option ``enabled_drivers`` (typically located at
   ``/etc/ironic/ironic.conf``) and restart the ``ironic-conductor``
   process::
 
-  service ironic-conductor restart
+    service ironic-conductor restart
 
 * Enroll an AMT node
 
