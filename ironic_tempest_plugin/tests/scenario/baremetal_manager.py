@@ -156,7 +156,7 @@ class BaremetalScenarioTest(manager.ScenarioTest):
             self.node['uuid'],
             [BaremetalProvisionStates.DEPLOYWAIT,
              BaremetalProvisionStates.ACTIVE],
-            timeout=15)
+            timeout=CONF.baremetal.deploywait_timeout)
 
         self.wait_provisioning_state(self.node['uuid'],
                                      BaremetalProvisionStates.ACTIVE,

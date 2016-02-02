@@ -44,6 +44,10 @@ BaremetalGroup = [
                         'publicURL', 'adminURL', 'internalURL'],
                help="The endpoint type to use for the baremetal provisioning "
                     "service"),
+    cfg.IntOpt('deploywait_timeout',
+               default=15,
+               help="Timeout for Ironic node to reach the "
+                    "wait-callback state after powering on."),
     cfg.IntOpt('active_timeout',
                default=300,
                help="Timeout for Ironic node to completely provision"),
