@@ -20,6 +20,10 @@ management operations on the baremetal node (instead of using IPMI). Unlike with
 iSCSI deploy in Agent deploy, the ramdisk is responsible for writing the image to
 the disk, instead of the conductor.
 
+The CIMC drivers can use the Ironic Inspector service for in-band inspection of
+equipment. For more information see the `Ironic Inspector documentation
+<http://docs.openstack.org/developer/ironic-inspector/>`_.
+
 Prerequisites
 =============
 

@@ -349,6 +349,8 @@ class PXEAndUcsDriver(base.BaseDriver):
         self.deploy = iscsi_deploy.ISCSIDeploy()
         self.management = ucs_mgmt.UcsManagement()
         self.vendor = iscsi_deploy.VendorPassthru()
+        self.inspect = inspector.Inspector.create_if_enabled(
+            'PXEAndUcsDriver')
 
 
 class PXEAndCIMCDriver(base.BaseDriver):
@@ -371,6 +373,8 @@ class PXEAndCIMCDriver(base.BaseDriver):
         self.deploy = iscsi_deploy.ISCSIDeploy()
         self.management = cimc_mgmt.CIMCManagement()
         self.vendor = iscsi_deploy.VendorPassthru()
+        self.inspect = inspector.Inspector.create_if_enabled(
+            'PXEAndCIMCDriver')
 
 
 class PXEAndWakeOnLanDriver(base.BaseDriver):
