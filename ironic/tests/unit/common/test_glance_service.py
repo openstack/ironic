@@ -22,12 +22,14 @@ import mock
 from oslo_config import cfg
 from oslo_context import context
 from oslo_serialization import jsonutils
+from oslo_utils import uuidutils
 from six.moves.urllib import parse as urlparse
 import testtools
 
 from ironic.common import exception
 from ironic.common.glance_service import base_image_service
 from ironic.common.glance_service import service_utils
+from ironic.common.glance_service.v2 import image_service as glance_v2
 from ironic.common import image_service as service
 from ironic.tests import base
 from ironic.tests.unit import stubs
@@ -689,6 +691,17 @@ class TestGlanceSwiftTempURL(base.TestCase):
             method='GET')
 
     @mock.patch('swiftclient.utils.generate_temp_url', autospec=True)
+    def test_swift_temp_url_invalid_image_info(self, tempurl_mock):
+        self.service._validate_temp_url_config = mock.Mock()
+        image_info = {}
+        self.assertRaises(exception.ImageUnacceptable,
+                          self.service.swift_temp_url, image_info)
+        image_info = {'id': 'not an id'}
+        self.assertRaises(exception.ImageUnacceptable,
+                          self.service.swift_temp_url, image_info)
+        self.assertFalse(tempurl_mock.called)
+
+    @mock.patch('swiftclient.utils.generate_temp_url', autospec=True)
     def test_swift_temp_url_radosgw(self, tempurl_mock):
         self.config(temp_url_endpoint_type='radosgw', group='glance')
         path = ('/v1'
@@ -800,8 +813,10 @@ class TestGlanceSwiftTempURL(base.TestCase):
         self.config(temp_url_endpoint_type='radosgw', group='glance')
         self.service._validate_temp_url_config()
 
-    def test__validate_temp_url_endpoint_negative_duration(self):
-        self.config(swift_temp_url_duration=-1,
+    def test__validate_temp_url_endpoint_less_than_download_delay(self):
+        self.config(swift_temp_url_expected_download_start_delay=1000,
+                    group='glance')
+        self.config(swift_temp_url_duration=15,
                     group='glance')
         self.assertRaises(exception.InvalidParameterValue,
                           self.service._validate_temp_url_config)
@@ -819,6 +834,215 @@ class TestGlanceSwiftTempURL(base.TestCase):
                     group='glance')
         self.assertRaises(exception.InvalidParameterValue,
                           self.service._validate_temp_url_config)
+
+
+class TestSwiftTempUrlCache(base.TestCase):
+
+    def setUp(self):
+        super(TestSwiftTempUrlCache, self).setUp()
+        client = stubs.StubGlanceClient()
+        self.context = context.RequestContext()
+        self.context.auth_token = 'fake'
+        self.config(swift_temp_url_expected_download_start_delay=100,
+                    group='glance')
+        self.config(swift_temp_url_key='correcthorsebatterystaple',
+                    group='glance')
+        self.config(swift_endpoint_url='https://swift.example.com',
+                    group='glance')
+        self.config(swift_account='AUTH_a422b2-91f3-2f46-74b7-d7c9e8958f5d30',
+                    group='glance')
+        self.config(swift_api_version='v1',
+                    group='glance')
+        self.config(swift_container='glance',
+                    group='glance')
+        self.config(swift_temp_url_duration=1200,
+                    group='glance')
+        self.config(swift_temp_url_cache_enabled=True,
+                    group='glance')
+        self.config(swift_store_multiple_containers_seed=0,
+                    group='glance')
+        self.glance_service = service.GlanceImageService(client, version=2,
+                                                         context=self.context)
+
+    @mock.patch('swiftclient.utils.generate_temp_url', autospec=True)
+    def test_add_items_to_cache(self, tempurl_mock):
+        fake_image = {
+            'id': uuidutils.generate_uuid()
+        }
+
+        path = ('/v1/AUTH_a422b2-91f3-2f46-74b7-d7c9e8958f5d30'
+                '/glance'
+                '/%s' % fake_image['id'])
+        exp_time = int(time.time()) + 1200
+        tempurl_mock.return_value = (
+            path + '?temp_url_sig=hmacsig&temp_url_expires=%s' % exp_time)
+
+        cleanup_mock = mock.Mock()
+        self.glance_service._remove_expired_items_from_cache = cleanup_mock
+        self.glance_service._validate_temp_url_config = mock.Mock()
+
+        temp_url = self.glance_service.swift_temp_url(
+            image_info=fake_image)
+
+        self.assertEqual(CONF.glance.swift_endpoint_url +
+                         tempurl_mock.return_value,
+                         temp_url)
+        cleanup_mock.assert_called_once_with()
+        tempurl_mock.assert_called_with(
+            path=path,
+            seconds=CONF.glance.swift_temp_url_duration,
+            key=CONF.glance.swift_temp_url_key,
+            method='GET')
+        self.assertEqual((temp_url, exp_time),
+                         self.glance_service._cache[fake_image['id']])
+
+    @mock.patch('swiftclient.utils.generate_temp_url', autospec=True)
+    def test_return_cached_tempurl(self, tempurl_mock):
+        fake_image = {
+            'id': uuidutils.generate_uuid()
+        }
+
+        exp_time = int(time.time()) + 1200
+        temp_url = CONF.glance.swift_endpoint_url + (
+            '/v1/AUTH_a422b2-91f3-2f46-74b7-d7c9e8958f5d30'
+            '/glance'
+            '/%(uuid)s'
+            '?temp_url_sig=hmacsig&temp_url_expires=%(exp_time)s' %
+            {'uuid': fake_image['id'], 'exp_time': exp_time}
+        )
+        self.glance_service._cache[fake_image['id']] = (
+            glance_v2.TempUrlCacheElement(url=temp_url,
+                                          url_expires_at=exp_time)
+        )
+
+        cleanup_mock = mock.Mock()
+        self.glance_service._remove_expired_items_from_cache = cleanup_mock
+        self.glance_service._validate_temp_url_config = mock.Mock()
+
+        self.assertEqual(
+            temp_url, self.glance_service.swift_temp_url(image_info=fake_image)
+        )
+
+        cleanup_mock.assert_called_once_with()
+        self.assertFalse(tempurl_mock.called)
+
+    @mock.patch('swiftclient.utils.generate_temp_url', autospec=True)
+    def test_do_not_return_expired_tempurls(self, tempurl_mock):
+        fake_image = {
+            'id': uuidutils.generate_uuid()
+        }
+        old_exp_time = int(time.time()) + 99
+        path = (
+            '/v1/AUTH_a422b2-91f3-2f46-74b7-d7c9e8958f5d30'
+            '/glance'
+            '/%s' % fake_image['id']
+        )
+        query = '?temp_url_sig=hmacsig&temp_url_expires=%s'
+        self.glance_service._cache[fake_image['id']] = (
+            glance_v2.TempUrlCacheElement(
+                url=(CONF.glance.swift_endpoint_url + path +
+                     query % old_exp_time),
+                url_expires_at=old_exp_time)
+        )
+
+        new_exp_time = int(time.time()) + 1200
+        tempurl_mock.return_value = (
+            path + query % new_exp_time)
+
+        self.glance_service._validate_temp_url_config = mock.Mock()
+
+        fresh_temp_url = self.glance_service.swift_temp_url(
+            image_info=fake_image)
+
+        self.assertEqual(CONF.glance.swift_endpoint_url +
+                         tempurl_mock.return_value,
+                         fresh_temp_url)
+        tempurl_mock.assert_called_with(
+            path=path,
+            seconds=CONF.glance.swift_temp_url_duration,
+            key=CONF.glance.swift_temp_url_key,
+            method='GET')
+        self.assertEqual(
+            (fresh_temp_url, new_exp_time),
+            self.glance_service._cache[fake_image['id']])
+
+    def test_remove_expired_items_from_cache(self):
+        expired_items = {
+            uuidutils.generate_uuid(): glance_v2.TempUrlCacheElement(
+                'fake-url-1',
+                int(time.time()) - 10
+            ),
+            uuidutils.generate_uuid(): glance_v2.TempUrlCacheElement(
+                'fake-url-2',
+                int(time.time()) + 90  # Agent won't be able to start in time
+            )
+        }
+        valid_items = {
+            uuidutils.generate_uuid(): glance_v2.TempUrlCacheElement(
+                'fake-url-3',
+                int(time.time()) + 1000
+            ),
+            uuidutils.generate_uuid(): glance_v2.TempUrlCacheElement(
+                'fake-url-4',
+                int(time.time()) + 2000
+            )
+        }
+        self.glance_service._cache.update(expired_items)
+        self.glance_service._cache.update(valid_items)
+        self.glance_service._remove_expired_items_from_cache()
+        for uuid in valid_items:
+            self.assertEqual(valid_items[uuid],
+                             self.glance_service._cache[uuid])
+        for uuid in expired_items:
+            self.assertNotIn(uuid, self.glance_service._cache)
+
+    @mock.patch('swiftclient.utils.generate_temp_url', autospec=True)
+    def _test__generate_temp_url(self, fake_image, tempurl_mock):
+        path = ('/v1/AUTH_a422b2-91f3-2f46-74b7-d7c9e8958f5d30'
+                '/glance'
+                '/%s' % fake_image['id'])
+        tempurl_mock.return_value = (
+            path + '?temp_url_sig=hmacsig&temp_url_expires=1400001200')
+
+        self.glance_service._validate_temp_url_config = mock.Mock()
+
+        temp_url = self.glance_service._generate_temp_url(
+            path, seconds=CONF.glance.swift_temp_url_duration,
+            key=CONF.glance.swift_temp_url_key, method='GET',
+            endpoint=CONF.glance.swift_endpoint_url,
+            image_id=fake_image['id']
+        )
+
+        self.assertEqual(CONF.glance.swift_endpoint_url +
+                         tempurl_mock.return_value,
+                         temp_url)
+        tempurl_mock.assert_called_with(
+            path=path,
+            seconds=CONF.glance.swift_temp_url_duration,
+            key=CONF.glance.swift_temp_url_key,
+            method='GET')
+
+    def test_swift_temp_url_cache_enabled(self):
+        fake_image = {
+            'id': uuidutils.generate_uuid()
+        }
+        rm_expired = mock.Mock()
+        self.glance_service._remove_expired_items_from_cache = rm_expired
+        self._test__generate_temp_url(fake_image)
+        rm_expired.assert_called_once_with()
+        self.assertIn(fake_image['id'], self.glance_service._cache)
+
+    def test_swift_temp_url_cache_disabled(self):
+        self.config(swift_temp_url_cache_enabled=False,
+                    group='glance')
+        fake_image = {
+            'id': uuidutils.generate_uuid()
+        }
+        rm_expired = mock.Mock()
+        self.glance_service._remove_expired_items_from_cache = rm_expired
+        self._test__generate_temp_url(fake_image)
+        self.assertFalse(rm_expired.called)
+        self.assertNotIn(fake_image['id'], self.glance_service._cache)
 
 
 class TestGlanceUrl(base.TestCase):
