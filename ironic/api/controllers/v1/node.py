@@ -94,7 +94,8 @@ _DEFAULT_RETURN_FIELDS = ('instance_uuid', 'maintenance', 'power_state',
 # States where calling do_provisioning_action makes sense
 PROVISION_ACTION_STATES = (ir_states.VERBS['manage'],
                            ir_states.VERBS['provide'],
-                           ir_states.VERBS['abort'])
+                           ir_states.VERBS['abort'],
+                           ir_states.VERBS['adopt'])
 
 _NODES_CONTROLLER_RESERVED_WORDS = None
 

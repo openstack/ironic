@@ -41,6 +41,14 @@ CLEANING_INTERFACE_PRIORITY = {
 def node_set_boot_device(task, device, persistent=False):
     """Set the boot device for a node.
 
+    Sets the boot device for a node if the node's driver interface
+    contains a 'management' interface.
+
+    If the node that the boot device change is being requested for
+    is in ADOPTING state, the boot device will not be set as that
+    change could potentially result in the future running state of
+    an adopted node being modified erroneously.
+
     :param task: a TaskManager instance.
     :param device: Boot device. Values are vendor-specific.
     :param persistent: Whether to set next-boot, or make the change
@@ -51,9 +59,14 @@ def node_set_boot_device(task, device, persistent=False):
     """
     if getattr(task.driver, 'management', None):
         task.driver.management.validate(task)
-        task.driver.management.set_boot_device(task,
-                                               device=device,
-                                               persistent=persistent)
+        # NOTE(TheJulia): When a node is in the ADOPTING state, we must
+        # not attempt to change the default boot device as a side effect
+        # of a driver's node takeover process as it is modifying
+        # a working machine.
+        if task.node.provision_state != states.ADOPTING:
+            task.driver.management.set_boot_device(task,
+                                                   device=device,
+                                                   persistent=persistent)
 
 
 @task_manager.require_exclusive_lock

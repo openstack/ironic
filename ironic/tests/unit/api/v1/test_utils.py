@@ -182,6 +182,17 @@ class TestApiUtils(base.TestCase):
         mock_request.version.minor = 10
         self.assertFalse(utils.allow_links_node_states_and_driver_properties())
 
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allow_adopt_verbs_fail(self, mock_request):
+        mock_request.version.minor = 16
+        self.assertRaises(exception.NotAcceptable,
+                          utils.check_allow_management_verbs, 'adopt')
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allow_adopt_verbs(self, mock_request):
+        mock_request.version.minor = 17
+        utils.check_allow_management_verbs('adopt')
+
 
 class TestNodeIdent(base.TestCase):
 

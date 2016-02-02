@@ -1,0 +1,14 @@
+---
+features:
+  - Addition of the provision state target verb of ``adopt``
+    which allows an operator to move a node into an ``active``
+    state from ``manageable`` state, without performing a deployment
+    operation on the node. This can be used to represent nodes that have
+    been previously deployed by other means that will now be managed by
+    ironic and be later released to the available hardware pool.
+other:
+  - When a node is enrolled into ironic, upon transition to the
+    ``manageable`` state, the current power state of the node is
+    recorded.  Once the node is adopted and in an ``active`` state,
+    that recorded power state will be enfored by ironic unless an
+    operator changes the power state in ironic.
