@@ -222,7 +222,7 @@ class Connection(api.Connection):
                 if count != 1:
                     # Nothing updated and node exists. Must already be
                     # locked.
-                    raise exception.NodeLocked(node=node_id,
+                    raise exception.NodeLocked(node=node.uuid,
                                                host=node['reservation'])
                 return node
             except NoResultFound:
@@ -239,9 +239,9 @@ class Connection(api.Connection):
                 if count != 1:
                     node = query.one()
                     if node['reservation'] is None:
-                        raise exception.NodeNotLocked(node=node_id)
+                        raise exception.NodeNotLocked(node=node.uuid)
                     else:
-                        raise exception.NodeLocked(node=node_id,
+                        raise exception.NodeLocked(node=node.uuid,
                                                    host=node['reservation'])
             except NoResultFound:
                 raise exception.NodeNotFound(node_id)
@@ -359,7 +359,7 @@ class Connection(api.Connection):
             # Prevent instance_uuid overwriting
             if values.get("instance_uuid") and ref.instance_uuid:
                 raise exception.NodeAssociated(
-                    node=node_id, instance=ref.instance_uuid)
+                    node=ref.uuid, instance=ref.instance_uuid)
 
             if 'provision_state' in values:
                 values['provision_updated_at'] = timeutils.utcnow()
