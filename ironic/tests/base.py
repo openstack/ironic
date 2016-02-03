@@ -30,20 +30,19 @@ import eventlet
 eventlet.monkey_patch(os=False)
 import fixtures
 from oslo_config import cfg
+from oslo_config import fixture as config_fixture
 from oslo_context import context as ironic_context
 from oslo_log import log as logging
 import testtools
 
+from ironic.common import config as ironic_config
 from ironic.common import hash_ring
 from ironic.objects import base as objects_base
-from ironic.tests.unit import conf_fixture
 from ironic.tests.unit import policy_fixture
 
 
 CONF = cfg.CONF
 logging.register_options(CONF)
-CONF.set_override('use_stderr', False)
-
 logging.setup(CONF, 'ironic')
 
 
@@ -85,7 +84,6 @@ class TestCase(testtools.TestCase):
             self.useFixture(fixtures.Timeout(test_timeout, gentle=True))
         self.useFixture(fixtures.NestedTempfile())
         self.useFixture(fixtures.TempHomeDir())
-        self.config(tempdir=tempfile.tempdir)
 
         if (os.environ.get('OS_STDOUT_CAPTURE') == 'True' or
                 os.environ.get('OS_STDOUT_CAPTURE') == '1'):
@@ -97,8 +95,7 @@ class TestCase(testtools.TestCase):
             self.useFixture(fixtures.MonkeyPatch('sys.stderr', stderr))
 
         self.log_fixture = self.useFixture(fixtures.FakeLogger())
-        self.useFixture(conf_fixture.ConfFixture(CONF))
-
+        self._set_config()
         # NOTE(danms): Make sure to reset us back to non-remote objects
         # for each test to avoid interactions. Also, backup the object
         # registry
@@ -111,7 +108,18 @@ class TestCase(testtools.TestCase):
         self.addCleanup(hash_ring.HashRingManager().reset)
         self.useFixture(fixtures.EnvironmentVariable('http_proxy'))
         self.policy = self.useFixture(policy_fixture.PolicyFixture())
-        CONF.set_override('fatal_exception_format_errors', True)
+
+    def _set_config(self):
+        self.cfg_fixture = self.useFixture(config_fixture.Config(CONF))
+        self.config(use_stderr=False,
+                    fatal_exception_format_errors=True,
+                    tempdir=tempfile.tempdir)
+        self.set_defaults(host='fake-mini',
+                          verbose=True)
+        self.set_defaults(connection="sqlite://",
+                          sqlite_synchronous=False,
+                          group='database')
+        ironic_config.parse_args([], default_config_files=[])
 
     def _restore_obj_registry(self):
         objects_base.IronicObjectRegistry._registry._obj_classes = (
@@ -126,9 +134,13 @@ class TestCase(testtools.TestCase):
 
     def config(self, **kw):
         """Override config options for a test."""
+        self.cfg_fixture.config(**kw)
+
+    def set_defaults(self, **kw):
+        """Set default values of config options."""
         group = kw.pop('group', None)
-        for k, v in kw.items():
-            CONF.set_override(k, v, group)
+        for o, v in kw.items():
+            self.cfg_fixture.set_default(o, v, group=group)
 
     def path_get(self, project_file=None):
         """Get the absolute path to a file. Used for testing the API.
