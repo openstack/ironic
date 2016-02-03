@@ -33,11 +33,6 @@ class PXEDracDriver(base.BaseDriver):
     """Drac driver using PXE for deploy."""
 
     def __init__(self):
-        if not importutils.try_import('pywsman'):
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_('Unable to import pywsman library'))
-
         if not importutils.try_import('dracclient'):
             raise exception.DriverLoadError(
                 driver=self.__class__.__name__,

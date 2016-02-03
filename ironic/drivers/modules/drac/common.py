@@ -21,7 +21,6 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import utils
 
-pywsman = importutils.try_import('pywsman')
 drac_client = importutils.try_import('dracclient.client')
 drac_constants = importutils.try_import('dracclient.constants')
 
@@ -113,24 +112,3 @@ def get_drac_client(node):
                                     driver_info['drac_protocol'])
 
     return client
-
-
-def find_xml(doc, item, namespace, find_all=False):
-    """Find the first or all elements in an ElementTree object.
-
-    :param doc: the element tree object.
-    :param item: the element name.
-    :param namespace: the namespace of the element.
-    :param find_all: Boolean value, if True find all elements, if False
-                     find only the first one. Defaults to False.
-    :returns: if find_all is False the element object will be returned
-              if found, None if not found. If find_all is True a list of
-              element objects will be returned or an empty list if no
-              elements were found.
-
-    """
-    query = ('.//{%(namespace)s}%(item)s' % {'namespace': namespace,
-                                             'item': item})
-    if find_all:
-        return doc.findall(query)
-    return doc.find(query)

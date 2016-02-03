@@ -127,21 +127,18 @@ if not oneview_client:
 
 
 # attempt to load the external 'pywsman' library, which is required by
-# the optional drivers.modules.drac and drivers.modules.amt module
+# the optional drivers.modules.amt module
 pywsman = importutils.try_import('pywsman')
 if not pywsman:
     pywsman = mock.MagicMock(spec_set=mock_specs.PYWSMAN_SPEC)
     sys.modules['pywsman'] = pywsman
     # Now that the external library has been mocked, if anything had already
     # loaded any of the drivers, reload them.
-    if 'ironic.drivers.modules.drac' in sys.modules:
-        six.moves.reload_module(sys.modules['ironic.drivers.modules.drac'])
     if 'ironic.drivers.modules.amt' in sys.modules:
         six.moves.reload_module(sys.modules['ironic.drivers.modules.amt'])
 
 # attempt to load the external 'python-dracclient' library, which is required
-# by the optional drivers.modules.drac module. 'python-dracclient' is going to
-# be used in the DRAC driver, once we will complete migration from 'pywsman'
+# by the optional drivers.modules.drac module
 dracclient = importutils.try_import('dracclient')
 if not dracclient:
     dracclient = mock.MagicMock(spec_set=mock_specs.DRACCLIENT_SPEC)
