@@ -816,8 +816,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             if node.provision_state == states.CLEANWAIT:
                 task.process_event('resume', target_state=target_state)
 
-            task.set_spawn_error_hook(utils.cleaning_error_handler, task.node,
-                                      _('Failed to run next clean step'))
+            task.set_spawn_error_hook(utils.spawn_cleaning_error_handler,
+                                      task.node)
             task.spawn_after(
                 self._spawn_worker,
                 self._do_next_clean_step,

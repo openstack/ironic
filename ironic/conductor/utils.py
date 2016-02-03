@@ -227,6 +227,15 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
         task.process_event('fail', target_state=target_state)
 
 
+def spawn_cleaning_error_handler(e, node):
+    """Handle spawning error for node cleaning."""
+    if isinstance(e, exception.NoFreeConductorWorker):
+        node.last_error = (_("No free conductor workers available"))
+        node.save()
+        LOG.warning(_LW("No free conductor workers available to perform "
+                        "cleaning on node %(node)s"), {'node': node.uuid})
+
+
 def power_state_error_handler(e, node, power_state):
     """Set the node's power states if error occurs.
 
