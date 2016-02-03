@@ -71,10 +71,6 @@ def _build_client(token=None):
         'ca_cert': CONF.keystone_authtoken.certfile,
     }
 
-    if CONF.neutron.auth_strategy not in ['noauth', 'keystone']:
-        raise exception.ConfigInvalid(_('Neutron auth_strategy should be '
-                                        'either "noauth" or "keystone".'))
-
     if CONF.neutron.auth_strategy == 'noauth':
         params['endpoint_url'] = CONF.neutron.url
         params['auth_strategy'] = 'noauth'
