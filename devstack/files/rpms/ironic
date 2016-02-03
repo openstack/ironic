@@ -2,6 +2,7 @@ docker-io
 ipmitool
 iptables
 ipxe-bootimgs
+gnupg
 libguestfs
 libvirt
 libvirt-python
