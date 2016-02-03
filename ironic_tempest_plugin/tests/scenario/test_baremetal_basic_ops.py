@@ -112,12 +112,9 @@ class BaremetalBasicOps(baremetal_manager.BaremetalScenarioTest):
         self.add_keypair()
         self.boot_instance()
         self.validate_ports()
-        self.verify_connectivity()
-        if CONF.validation.connect_method == 'floating':
-            floating_ip = self.create_floating_ip(self.instance)['ip']
-            self.verify_connectivity(ip=floating_ip)
-
-        vm_client = self.get_remote_client(self.instance)
+        ip_address = self.get_server_ip(self.instance)
+        self.get_remote_client(ip_address).validate_authentication()
+        vm_client = self.get_remote_client(ip_address)
 
         # We expect the ephemeral partition to be mounted on /mnt and to have
         # the same size as our flavor definition.
@@ -126,6 +123,6 @@ class BaremetalBasicOps(baremetal_manager.BaremetalScenarioTest):
             self.verify_partition(vm_client, 'ephemeral0', '/mnt', eph_size)
             # Create the test file
             self.create_timestamp(
-                floating_ip, private_key=self.keypair['private_key'])
+                ip_address, private_key=self.keypair['private_key'])
 
         self.terminate_instance()
