@@ -1802,16 +1802,9 @@ The node should be in MANAGEABLE state before inspection is initiated.
 Specifying the disk for deployment
 ==================================
 
-Starting with the Kilo release, Bare Metal service supports passing hints to the
-deploy ramdisk about which disk it should pick for the deployment. In
-Linux when a server has more than one SATA, SCSI or IDE disk controller,
-the order in which their corresponding device nodes are added is arbitrary
-[`link`_], resulting in devices like ``/dev/sda`` and ``/dev/sdb`` to
-switch around between reboots. Therefore, to guarantee that a specific
-disk is always chosen for the deployment, Bare Metal service introduced
-root device hints.
-
-The list of support hints is:
+Starting with the Kilo release, Bare Metal service supports passing
+hints to the deploy ramdisk about which disk it should pick for the
+deployment. The list of support hints is:
 
 * model (STRING): device identifier
 * vendor (STRING): device vendor
@@ -1828,6 +1821,17 @@ The list of support hints is:
 * wwn (STRING): unique storage identifier
 * wwn_with_extension (STRING): unique storage identifier with the vendor extension appended
 * wwn_vendor_extension (STRING): unique vendor storage identifier
+* name (STRING): the device name, e.g /dev/md0
+
+
+  .. warning::
+     The root device hint name should only be used for devices with
+     constant names (e.g RAID volumes). For SATA, SCSI and IDE disk
+     controllers this hint is not recommended because the order in which
+     the device nodes are added in Linux is arbitrary, resulting in
+     devices like /dev/sda and /dev/sdb `switching around at boot time
+     <https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/7/html/Storage_Administration_Guide/persistent_naming.html>`_.
+
 
 To associate one or more hints with a node, update the node's properties
 with a ``root_device`` key, for example::
@@ -1841,9 +1845,6 @@ can not be found.
 
 .. note::
     If multiple hints are specified, a device must satisfy all the hints.
-
-
-.. _`link`: https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/7/html/Storage_Administration_Guide/persistent_naming.html
 
 
 .. _EnableHTTPSinSwift:
