@@ -1859,12 +1859,12 @@ in swift. HTTPS is required to encrypt all communication between swift and Ironi
 conductor and swift and bare metal (via virtual media).  It can be enabled in one
 of the following ways:
 
-* Using an SSL termination proxy. For more information, `see here
+* `Using an SSL termination proxy
   <http://docs.openstack.org/security-guide/secure-communication/tls-proxies-and-http-services.html>`_
 
-* Using native SSL support in swift (recommended only for testing
-  purpose by swift). For more information,
-  `see here <http://docs.openstack.org/developer/swift/deployment_guide.html>`_
+* `Using native SSL support in swift
+  <http://docs.openstack.org/developer/swift/deployment_guide.html>`_
+  (recommended only for testing purpose by swift).
 
 Using Bare Metal service as a standalone service
 ================================================
@@ -2114,19 +2114,18 @@ the configuration drive and mount it, for example::
 Cloud-init integration
 ----------------------
 
-The configuration drive can be especially
-useful when used with ``cloud-init`` [`link
-<http://cloudinit.readthedocs.org/en/latest/topics/datasources.html#config-drive>`_],
+The configuration drive can be
+especially useful when used with `cloud-init
+<http://cloudinit.readthedocs.org/en/latest/topics/datasources.html#config-drive>`_,
 but in order to use it we should follow some rules:
 
-* ``Cloud-init`` expects a specific format to the data. For
-  more information about the expected file layout see [`link
-  <http://docs.openstack.org/user-guide/cli_config_drive.html#configuration-drive-contents>`_].
+* ``Cloud-init`` `expects a specific format to the data
+  <http://docs.openstack.org/user-guide/cli_config_drive.html#configuration-drive-contents>`_.
 
 
 * Since the Bare Metal service uses a disk partition as the configuration drive,
-  it will only work with ``cloud-init`` version **>= 0.7.5** [`link
-  <http://bazaar.launchpad.net/~cloud-init-dev/cloud-init/trunk/view/head:/ChangeLog>`_].
+  it will only work with
+  `cloud-init version >= 0.7.5 <http://bazaar.launchpad.net/~cloud-init-dev/cloud-init/trunk/view/head:/ChangeLog>`_.
 
 
 * ``Cloud-init`` has a collection of data source modules, so when
@@ -2136,9 +2135,8 @@ but in order to use it we should follow some rules:
 
     DIB_CLOUD_INIT_DATASOURCES="ConfigDrive, OpenStack" disk-image-create -o fedora-cloud-image fedora baremetal
 
-  See [`link
-  <http://docs.openstack.org/developer/diskimage-builder/elements/cloud-init-datasources/README.html>`_]
-  for more information.
+  For more information see `how to configure cloud-init data sources
+  <http://docs.openstack.org/developer/diskimage-builder/elements/cloud-init-datasources/README.html>`_.
 
 .. _BuildingDeployRamdisk:
 
