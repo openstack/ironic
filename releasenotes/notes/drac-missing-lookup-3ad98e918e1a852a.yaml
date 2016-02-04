@@ -1,0 +1,4 @@
+---
+fixes:
+  - Add missing "lookup" method to the pxe_drac driver vendor interface
+    enabling it to be deployed using the IPA ramdisk.
