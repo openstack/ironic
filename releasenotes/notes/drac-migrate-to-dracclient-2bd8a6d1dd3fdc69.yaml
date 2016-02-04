@@ -8,6 +8,7 @@ fixes:
     operations.
 upgrade:
   - Dependency for DRAC driver changed from ``pywsman`` to
-    ``python-dracclient``. Exceptions thrown by the driver and return values of
-    the ``set_bios_config``, ``commit_bios_config`` and ``abandon_bios_config``
-    methods changed on the vendor-passthru interface.
+    ``python-dracclient`` with version >= 0.0.5. Exceptions thrown by the
+    driver and return values of the ``set_bios_config``, ``commit_bios_config``
+    and ``abandon_bios_config`` methods changed on the vendor-passthru
+    interface.
