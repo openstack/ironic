@@ -28,6 +28,7 @@ import os
 import re
 import socket
 import sys
+import tempfile
 import textwrap
 
 import mock
@@ -79,6 +80,7 @@ def raise_extension_exception(extmanager, ep, err):
 # value.
 @mock.patch.object(socket, 'gethostname', lambda: 'localhost')
 @mock.patch.object(socket, 'getfqdn', lambda: 'localhost')
+@mock.patch.object(tempfile, 'gettempdir', lambda: '/tmp')
 def generate(argv):
     parser = argparse.ArgumentParser(
         description='generate sample configuration file',
