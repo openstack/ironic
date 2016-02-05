@@ -33,15 +33,6 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         'hostname': object_fields.StringField(),
     }
 
-    @staticmethod
-    def _from_db_object(conductor, db_obj):
-        """Converts a database entity to a formal object."""
-        for field in conductor.fields:
-            conductor[field] = db_obj[field]
-
-        conductor.obj_reset_changes()
-        return conductor
-
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
     # Implications of calling new remote procedures should be thought through.

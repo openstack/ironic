@@ -74,6 +74,21 @@ class IronicObject(object_base.VersionedObject):
                     self[field] != loaded_object[field]):
                 self[field] = loaded_object[field]
 
+    @staticmethod
+    def _from_db_object(obj, db_object):
+        """Converts a database entity to a formal object.
+
+        :param obj: An object of the class.
+        :param db_object: A DB model of the object
+        :return: The object of the class with the database entity added
+        """
+
+        for field in obj.fields:
+            obj[field] = db_object[field]
+
+        obj.obj_reset_changes()
+        return obj
+
 
 class IronicObjectIndirectionAPI(object_base.VersionedObjectIndirectionAPI):
     def __init__(self):

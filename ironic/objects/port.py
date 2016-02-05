@@ -51,15 +51,6 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     }
 
     @staticmethod
-    def _from_db_object(port, db_port):
-        """Converts a database entity to a formal object."""
-        for field in port.fields:
-            port[field] = db_port[field]
-
-        port.obj_reset_changes()
-        return port
-
-    @staticmethod
     def _from_db_object_list(db_objects, cls, context):
         """Converts a list of database entities to a list of formal objects."""
         return [Port._from_db_object(cls(context), obj) for obj in db_objects]
