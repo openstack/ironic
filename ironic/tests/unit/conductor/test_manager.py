@@ -2580,6 +2580,44 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(new_address, res.address)
         self.assertFalse(mac_update_mock.called)
 
+    def test_update_port_node_deleting_state(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.DELETING)
+        port = obj_utils.create_test_port(self.context,
+                                          node_id=node.id,
+                                          extra={'foo': 'bar'})
+        old_pxe = port.pxe_enabled
+        port.pxe_enabled = True
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_port,
+                                self.context, port)
+        self.assertEqual(exception.InvalidState, exc.exc_info[0])
+        port.refresh()
+        self.assertEqual(old_pxe, port.pxe_enabled)
+
+    def test_update_port_node_manageable_state(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.MANAGEABLE)
+        port = obj_utils.create_test_port(self.context,
+                                          node_id=node.id,
+                                          extra={'foo': 'bar'})
+        port.pxe_enabled = True
+        self.service.update_port(self.context, port)
+        port.refresh()
+        self.assertEqual(True, port.pxe_enabled)
+
+    def test_update_port_node_active_state_and_maintenance(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.ACTIVE,
+                                          maintenance=True)
+        port = obj_utils.create_test_port(self.context,
+                                          node_id=node.id,
+                                          extra={'foo': 'bar'})
+        port.pxe_enabled = True
+        self.service.update_port(self.context, port)
+        port.refresh()
+        self.assertEqual(True, port.pxe_enabled)
+
     def test__filter_out_unsupported_types_all(self):
         self._start_service()
         CONF.set_override('send_sensor_data_types', ['All'], group='conductor')
@@ -2778,6 +2816,80 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.UnsupportedDriverExtension,
                          exc.exc_info[0])
+
+
+@mgr_utils.mock_record_keepalive
+class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin,
+                              tests_db_base.DbTestCase):
+    def test_update_portgroup(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=node.id,
+                                                    extra={'foo': 'bar'})
+        new_extra = {'foo': 'baz'}
+        portgroup.extra = new_extra
+        self.service.update_portgroup(self.context, portgroup)
+        portgroup.refresh()
+        self.assertEqual(new_extra, portgroup.extra)
+
+    def test_update_portgroup_node_locked(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          reservation='fake-reserv')
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=node.id)
+        old_extra = portgroup.extra
+        portgroup.extra = {'foo': 'baz'}
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_portgroup,
+                                self.context, portgroup)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+        portgroup.refresh()
+        self.assertEqual(old_extra, portgroup.extra)
+
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
+    def test_update_portgroup_address(self, mac_update_mock):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        pg = obj_utils.create_test_portgroup(
+            self.context, node_id=node.id,
+            extra={'vif_portgroup_id': 'fake-id'})
+        new_address = '11:22:33:44:55:bb'
+        pg.address = new_address
+        self.service.update_portgroup(self.context, pg)
+        pg.refresh()
+        self.assertEqual(new_address, pg.address)
+        mac_update_mock.assert_called_once_with('fake-id', new_address,
+                                                token=self.context.auth_token)
+
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
+    def test_update_portgroup_address_fail(self, mac_update_mock):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        pg = obj_utils.create_test_portgroup(
+            self.context, node_id=node.id,
+            extra={'vif_portgroup_id': 'fake-id'})
+        old_address = pg.address
+        pg.address = '11:22:33:44:55:bb'
+        mac_update_mock.side_effect = (
+            exception.FailedToUpdateMacOnPort(port_id=pg.uuid))
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_portgroup,
+                                self.context, pg)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.FailedToUpdateMacOnPort, exc.exc_info[0])
+        pg.refresh()
+        self.assertEqual(old_address, pg.address)
+
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
+    def test_update_portgroup_address_no_vif_id(self, mac_update_mock):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        pg = obj_utils.create_test_port(self.context, node_id=node.id)
+
+        new_address = '11:22:33:44:55:bb'
+        pg.address = new_address
+        self.service.update_portgroup(self.context, pg)
+        pg.refresh()
+        self.assertEqual(new_address, pg.address)
+        self.assertFalse(mac_update_mock.called)
 
 
 @mgr_utils.mock_record_keepalive
@@ -4280,6 +4392,28 @@ class DestroyPortTestCase(mgr_utils.ServiceSetUpMixin,
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.destroy_port,
                                 self.context, port)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+
+
+@mgr_utils.mock_record_keepalive
+class DestroyPortgroupTestCase(mgr_utils.ServiceSetUpMixin,
+                               tests_db_base.DbTestCase):
+    def test_destroy_portgroup(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=node.id)
+        self.service.destroy_portgroup(self.context, portgroup)
+        self.assertRaises(exception.PortgroupNotFound, portgroup.refresh)
+
+    def test_destroy_portgroup_node_locked(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          reservation='fake-reserv')
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=node.id)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.destroy_portgroup,
+                                self.context, portgroup)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeLocked, exc.exc_info[0])
 
