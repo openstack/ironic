@@ -89,8 +89,18 @@ class DHCPFactory(object):
                              'opt_value': '123.123.123.456'},
                             {'opt_name': 'tftp-server',
                              'opt_value': '123.123.123.123'}]
-        :param ports: a list of Neutron port dicts to update DHCP options on.
-            If None, will get the list of ports from the Ironic port objects.
+
+        :param ports: A dict with keys 'ports' and 'portgroups' and
+            dicts as values. Each dict has key/value pairs of the form
+            <ironic UUID>:<neutron port UUID>. e.g.
+
+                          ::
+
+                           {'ports': {'port.uuid': vif.id},
+                            'portgroups': {'portgroup.uuid': vif.id}}
+
+            If the value is None, will get the list of ports/portgroups
+            from the Ironic port/portgroup objects.
         """
         self.provider.update_dhcp_opts(task, dhcp_opts, ports)
 

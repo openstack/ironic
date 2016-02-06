@@ -74,21 +74,27 @@ class BaseDHCP(object):
                           {'opt_name': 'tftp-server',
                            'opt_value': '123.123.123.123'}]
 
-         :param vifs: a dict of Neutron port dicts to update DHCP options on.
-            The keys should be Ironic port UUIDs, and the values should be
-            Neutron port UUIDs
-            If the value is None, will get the list of ports from the Ironic
-            port objects.
+        :param vifs: A dict with keys 'ports' and 'portgroups' and
+            dicts as values. Each dict has key/value pairs of the form
+            <ironic UUID>:<neutron port UUID>. e.g.
 
+                          ::
+
+                           {'ports': {'port.uuid': vif.id},
+                            'portgroups': {'portgroup.uuid': vif.id}}
+
+            If the value is None, will get the list of ports/portgroups
+            from the Ironic port/portgroup objects.
         :raises: FailedToUpdateDHCPOptOnPort
         """
 
     @abc.abstractmethod
     def get_ip_addresses(self, task):
-        """Get IP addresses for all ports in `task`.
+        """Get IP addresses for all ports/portgroups in `task`.
 
-        :param task: a TaskManager instance.
-        :returns: List of IP addresses associated with task.ports
+        :param task: A TaskManager instance.
+        :returns: List of IP addresses associated with
+            task's ports and portgroups.
         """
 
     def clean_dhcp_opts(self, task):

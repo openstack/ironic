@@ -30,8 +30,9 @@ class TestNetwork(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager(driver='fake')
         self.node = object_utils.create_test_node(self.context)
 
-    def test_get_node_vif_ids_no_ports(self):
-        expected = {}
+    def test_get_node_vif_ids_no_ports_no_portgroups(self):
+        expected = {'portgroups': {},
+                    'ports': {}}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             result = network.get_node_vif_ids(task)
         self.assertEqual(expected, result)
@@ -42,7 +43,19 @@ class TestNetwork(db_base.DbTestCase):
                                           uuid=uuidutils.generate_uuid(),
                                           extra={'vif_port_id': 'test-vif-A'},
                                           driver='fake')
-        expected = {port1.uuid: 'test-vif-A'}
+        expected = {'portgroups': {},
+                    'ports': {port1.uuid: 'test-vif-A'}}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = network.get_node_vif_ids(task)
+        self.assertEqual(expected, result)
+
+    def test_get_node_vif_ids_one_portgroup(self):
+        pg1 = db_utils.create_test_portgroup(
+            node_id=self.node.id,
+            extra={'vif_port_id': 'test-vif-A'})
+
+        expected = {'portgroups': {pg1.uuid: 'test-vif-A'},
+                    'ports': {}}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             result = network.get_node_vif_ids(task)
         self.assertEqual(expected, result)
@@ -58,7 +71,26 @@ class TestNetwork(db_base.DbTestCase):
                                           uuid=uuidutils.generate_uuid(),
                                           extra={'vif_port_id': 'test-vif-B'},
                                           driver='fake')
-        expected = {port1.uuid: 'test-vif-A', port2.uuid: 'test-vif-B'}
+        expected = {'portgroups': {},
+                    'ports': {port1.uuid: 'test-vif-A',
+                              port2.uuid: 'test-vif-B'}}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = network.get_node_vif_ids(task)
+        self.assertEqual(expected, result)
+
+    def test_get_node_vif_ids_two_portgroups(self):
+        pg1 = db_utils.create_test_portgroup(
+            node_id=self.node.id,
+            extra={'vif_port_id': 'test-vif-A'})
+        pg2 = db_utils.create_test_portgroup(
+            uuid=uuidutils.generate_uuid(),
+            address='dd:ee:ff:aa:bb:cc',
+            node_id=self.node.id,
+            name='barname',
+            extra={'vif_port_id': 'test-vif-B'})
+        expected = {'portgroups': {pg1.uuid: 'test-vif-A',
+                                   pg2.uuid: 'test-vif-B'},
+                    'ports': {}}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             result = network.get_node_vif_ids(task)
         self.assertEqual(expected, result)
