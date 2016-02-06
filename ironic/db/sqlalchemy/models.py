@@ -165,6 +165,26 @@ class Port(Base):
     address = Column(String(18))
     node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
     extra = Column(db_types.JsonEncodedDict)
+    local_link_connection = Column(db_types.JsonEncodedDict)
+    portgroup_id = Column(Integer, ForeignKey('portgroups.id'), nullable=True)
+    pxe_enabled = Column(Boolean, default=True)
+
+
+class Portgroup(Base):
+    """Represents a group of network ports of a bare metal node."""
+
+    __tablename__ = 'portgroups'
+    __table_args__ = (
+        schema.UniqueConstraint('uuid', name='uniq_portgroups0uuid'),
+        schema.UniqueConstraint('address', name='uniq_portgroups0address'),
+        schema.UniqueConstraint('name', name='uniq_portgroups0name'),
+        table_args())
+    id = Column(Integer, primary_key=True)
+    uuid = Column(String(36))
+    name = Column(String(255), nullable=True)
+    node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
+    address = Column(String(18))
+    extra = Column(db_types.JsonEncodedDict)
 
 
 class NodeTag(Base):

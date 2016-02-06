@@ -407,6 +407,43 @@ class MigrationCheckersMixin(object):
         tag = node_tags.select(node_tags.c.node_id == '123').execute().first()
         self.assertEqual('tag1', tag['tag'])
 
+    def _check_5ea1b0d310e(self, engine, data):
+        portgroup = db_utils.get_table(engine, 'portgroups')
+        col_names = [column.name for column in portgroup.c]
+        expected_names = ['created_at', 'updated_at', 'id', 'uuid', 'name',
+                          'node_id', 'address', 'extra']
+        self.assertEqual(sorted(expected_names), sorted(col_names))
+
+        self.assertIsInstance(portgroup.c.created_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(portgroup.c.updated_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(portgroup.c.id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(portgroup.c.uuid.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(portgroup.c.name.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(portgroup.c.node_id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(portgroup.c.address.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(portgroup.c.extra.type,
+                              sqlalchemy.types.TEXT)
+
+        ports = db_utils.get_table(engine, 'ports')
+        col_names = [column.name for column in ports.c]
+        self.assertIn('pxe_enabled', col_names)
+        self.assertIn('portgroup_id', col_names)
+        self.assertIn('local_link_connection', col_names)
+        self.assertIsInstance(ports.c.portgroup_id.type,
+                              sqlalchemy.types.Integer)
+        # in some backends bool type is integer
+        self.assertTrue(isinstance(ports.c.pxe_enabled.type,
+                                   sqlalchemy.types.Boolean) or
+                        isinstance(ports.c.pxe_enabled.type,
+                                   sqlalchemy.types.Integer))
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

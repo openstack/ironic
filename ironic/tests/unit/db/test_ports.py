@@ -30,7 +30,9 @@ class DbPortTestCase(base.DbTestCase):
         # replaces a test for creating a port.
         super(DbPortTestCase, self).setUp()
         self.node = db_utils.create_test_node()
-        self.port = db_utils.create_test_port(node_id=self.node.id)
+        self.portgroup = db_utils.create_test_portgroup(node_id=self.node.id)
+        self.port = db_utils.create_test_port(node_id=self.node.id,
+                                              portgroup_id=self.portgroup.id)
 
     def test_get_port_by_id(self):
         res = self.dbapi.get_port_by_id(self.port.id)
@@ -77,6 +79,13 @@ class DbPortTestCase(base.DbTestCase):
 
     def test_get_ports_by_node_id_that_does_not_exist(self):
         self.assertEqual([], self.dbapi.get_ports_by_node_id(99))
+
+    def test_get_ports_by_portgroup_id(self):
+        res = self.dbapi.get_ports_by_portgroup_id(self.portgroup.id)
+        self.assertEqual(self.port.address, res[0].address)
+
+    def test_get_ports_by_portgroup_id_that_does_not_exist(self):
+        self.assertEqual([], self.dbapi.get_ports_by_portgroup_id(99))
 
     def test_destroy_port(self):
         self.dbapi.destroy_port(self.port.id)
