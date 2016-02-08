@@ -14,8 +14,8 @@ python-seamicroclient>=0.4.0
 UcsSdk==0.8.2.2
 python-dracclient>=0.0.5
 
-# The amt driver import a python module called "pywsman", however, this does
-# not exist on pypi.
+# The amt driver imports a python module called "pywsman", but this does not
+# exist on pypi.
 # It is installed by the openwsman-python (on RH) or python-openwsman (on deb)
 # package, from https://github.com/Openwsman/openwsman/blob/master/bindings/python/Makefile.am#L29
 # There is *also* a "wsman" module on pypi ... but I think that's the wrong one.
