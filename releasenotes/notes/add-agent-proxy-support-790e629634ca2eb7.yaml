@@ -1,0 +1,20 @@
+---
+features:
+  - Pass proxy information from agent driver to IPA ramdisk, so that images
+    can be cached on the proxy server.
+issues:
+  - When using caching proxy with ``agent_*`` drivers, caching the image on the
+    proxy server might involve increasing [glance]swift_temp_url_duration
+    config option value. This way, the cached entry will be valid for a period
+    of time long enough to see the benefits of caching. Large temporary URL
+    duration might become a security issue in some cases.
+upgrade:
+  - Adds a [glance]swift_temp_url_cache_enabled configuration option to enable
+    Swift temporary URL caching. It is only useful if the caching proxy is
+    used. Also adds [glance]swift_temp_url_expected_download_start_delay, which
+    is used to check if the Swift temporary URL duration is long enough to let
+    the image download to start, and, if temporary URL caching is enabled, to
+    determine if a cached entry will be still valid when download starts. The
+    value of [glance]swift_temp_url_expected_download_start_delay must be less
+    than the value for the [glance]swift_temp_url_duration configuration
+    option.

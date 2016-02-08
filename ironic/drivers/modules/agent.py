@@ -16,6 +16,7 @@ from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import excutils
 from oslo_utils import units
+import six.moves.urllib_parse as urlparse
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
@@ -29,6 +30,7 @@ from ironic.common import images
 from ironic.common import paths
 from ironic.common import raid
 from ironic.common import states
+from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
@@ -92,7 +94,22 @@ REQUIRED_PROPERTIES = {
     'deploy_ramdisk': _('UUID (from Glance) of the ramdisk with agent that is '
                         'used at deploy time. Required.'),
 }
-COMMON_PROPERTIES = REQUIRED_PROPERTIES
+
+OPTIONAL_PROPERTIES = {
+    'image_http_proxy': _('URL of a proxy server for HTTP connections. '
+                          'Optional.'),
+    'image_https_proxy': _('URL of a proxy server for HTTPS connections. '
+                           'Optional.'),
+    'image_no_proxy': _('A comma-separated list of host names, IP addresses '
+                        'and domain names (with optional :port) that will be '
+                        'excluded from proxying. To denote a doman name, use '
+                        'a dot to prefix the domain name. This value will be '
+                        'ignored if ``image_http_proxy`` and '
+                        '``image_https_proxy`` are not specified. Optional.'),
+}
+
+COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
+COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 
 
 def build_instance_info_for_deploy(task):
@@ -171,6 +188,42 @@ def check_image_size(task, image_source):
         raise exception.InvalidParameterValue(msg)
 
 
+def validate_image_proxies(node):
+    """Check that the provided proxy parameters are valid.
+
+    :param node: an Ironic node.
+    :raises: InvalidParameterValue if any of the provided proxy parameters are
+        incorrect.
+    """
+    invalid_proxies = {}
+    for scheme in ('http', 'https'):
+        proxy_param = 'image_%s_proxy' % scheme
+        proxy = node.driver_info.get(proxy_param)
+        if proxy:
+            chunks = urlparse.urlparse(proxy)
+            # NOTE(vdrok) If no scheme specified, this is still a valid
+            # proxy address. It is also possible for a proxy to have a
+            # scheme different from the one specified in the image URL,
+            # e.g. it is possible to use https:// proxy for downloading
+            # http:// image.
+            if chunks.scheme not in ('', 'http', 'https'):
+                invalid_proxies[proxy_param] = proxy
+    msg = ''
+    if invalid_proxies:
+        msg += _("Proxy URL should either have HTTP(S) scheme "
+                 "or no scheme at all, the following URLs are "
+                 "invalid: %s.") % invalid_proxies
+    no_proxy = node.driver_info.get('image_no_proxy')
+    if no_proxy is not None and not utils.is_valid_no_proxy(no_proxy):
+        msg += _(
+            "image_no_proxy should be a list of host names, IP addresses "
+            "or domain names to exclude from proxying, the specified list "
+            "%s is incorrect. To denote a domain name, prefix it with a dot "
+            "(instead of e.g. '.*').") % no_proxy
+    if msg:
+        raise exception.InvalidParameterValue(msg)
+
+
 class AgentDeploy(base.DeployInterface):
     """Interface for deploy-related actions."""
 
@@ -226,6 +279,8 @@ class AgentDeploy(base.DeployInterface):
 
         # Validate node capabilities
         deploy_utils.validate_capabilities(node)
+
+        validate_image_proxies(node)
 
     @task_manager.require_exclusive_lock
     def deploy(self, task):
@@ -396,6 +451,18 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
                 'image_container_format'),
             'stream_raw_images': CONF.agent.stream_raw_images,
         }
+
+        proxies = {}
+        for scheme in ('http', 'https'):
+            proxy_param = 'image_%s_proxy' % scheme
+            proxy = node.driver_info.get(proxy_param)
+            if proxy:
+                proxies[scheme] = proxy
+        if proxies:
+            image_info['proxies'] = proxies
+            no_proxy = node.driver_info.get('image_no_proxy')
+            if no_proxy is not None:
+                image_info['no_proxy'] = no_proxy
 
         # Tell the client to download and write the image with the given args
         self._client.prepare_image(node, image_info)
