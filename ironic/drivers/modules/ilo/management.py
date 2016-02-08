@@ -46,7 +46,7 @@ MANAGEMENT_PROPERTIES.update(ilo_common.CLEAN_PROPERTIES)
 
 clean_step_opts = [
     cfg.IntOpt('clean_priority_reset_ilo',
-               default=1,
+               default=0,
                help=_('Priority for reset_ilo clean step.')),
     cfg.IntOpt('clean_priority_reset_bios_to_default',
                default=10,
