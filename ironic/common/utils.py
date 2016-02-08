@@ -390,9 +390,36 @@ def file_open(*args, **kwargs):
     return file(*args, **kwargs)
 
 
-def hash_file(file_like_object):
-    """Generate a hash for the contents of a file."""
-    checksum = hashlib.sha1()
+def _get_hash_object(hash_algo_name):
+    """Create a hash object based on given algorithm.
+
+    :param hash_algo_name: name of the hashing algorithm.
+    :raises: InvalidParameterValue, on unsupported or invalid input.
+    :returns: a hash object based on the given named algorithm.
+    """
+    algorithms = (hashlib.algorithms_guaranteed if six.PY3
+                  else hashlib.algorithms)
+    if hash_algo_name not in algorithms:
+        msg = (_("Unsupported/Invalid hash name '%s' provided.")
+               % hash_algo_name)
+        LOG.error(msg)
+        raise exception.InvalidParameterValue(msg)
+
+    return getattr(hashlib, hash_algo_name)()
+
+
+def hash_file(file_like_object, hash_algo='md5'):
+    """Generate a hash for the contents of a file.
+
+    It returns a hash of the file object as a string of double length,
+    containing only hexadecimal digits. It supports all the algorithms
+    hashlib does.
+    :param file_like_object: file like object whose hash to be calculated.
+    :param hash_algo: name of the hashing strategy, default being 'md5'.
+    :raises: InvalidParameterValue, on unsupported or invalid input.
+    :returns: a condensed digest of the bytes of contents.
+    """
+    checksum = _get_hash_object(hash_algo)
     for chunk in iter(lambda: file_like_object.read(32768), b''):
         checksum.update(chunk)
     return checksum.hexdigest()
