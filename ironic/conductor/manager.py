@@ -929,7 +929,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             node.driver_internal_info.get('clean_steps', []))
 
     def _do_next_clean_step(self, task, steps):
-        """Start executing cleaning/zapping steps.
+        """Start executing cleaning steps.
 
         :param task: a TaskManager instance with an exclusive lock
         :param steps: The ordered list of remaining steps that need to be

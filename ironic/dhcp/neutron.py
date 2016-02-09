@@ -52,9 +52,8 @@ neutron_opts = [
                       'affected by this setting) is insecure and should only '
                       'be used for testing.')),
     cfg.StrOpt('cleaning_network_uuid',
-               help=_('UUID of the network to create Neutron ports on when '
-                      'booting to a ramdisk for cleaning/zapping using '
-                      'Neutron DHCP'))
+               help=_('UUID of the network to create Neutron ports on, when '
+                      'booting to a ramdisk for cleaning using Neutron DHCP.'))
 ]
 
 CONF = cfg.CONF
