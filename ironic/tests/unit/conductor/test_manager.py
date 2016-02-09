@@ -1543,6 +1543,35 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
     def test_continue_node_clean_backward_compat(self):
         self._continue_node_clean(states.CLEANING)
 
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
+    def _continue_node_clean_skip_step(self, mock_spawn, skip=True):
+        # test that skipping current step mechanism works
+        driver_info = {'clean_steps': self.clean_steps}
+        if not skip:
+            driver_info['skip_current_clean_step'] = skip
+        node = obj_utils.create_test_node(
+            self.context, driver='fake', provision_state=states.CLEANWAIT,
+            target_provision_state=states.MANAGEABLE,
+            driver_internal_info=driver_info, clean_step=self.clean_steps[0])
+        self._start_service()
+        self.service.continue_node_clean(self.context, node.uuid)
+        self.service._worker_pool.waitall()
+        node.refresh()
+        if skip:
+            expected_steps = self.next_clean_steps
+        else:
+            self.assertFalse(
+                'skip_current_clean_step' in node.driver_internal_info)
+            expected_steps = self.clean_steps
+        mock_spawn.assert_called_with(self.service._do_next_clean_step,
+                                      mock.ANY, expected_steps)
+
+    def test_continue_node_clean_skip_step(self):
+        self._continue_node_clean_skip_step()
+
+    def test_continue_node_clean_no_skip_step(self):
+        self._continue_node_clean_skip_step(skip=False)
+
     def _continue_node_clean_abort(self, manual=False):
         last_clean_step = self.clean_steps[0]
         last_clean_step['abortable'] = False
@@ -2061,7 +2090,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
     def test__do_next_clean_step_manual_bad_step_return_value(self):
         self._do_next_clean_step_bad_step_return_value(manual=True)
 
-    def test__get_node_next_clean_steps(self):
+    def __get_node_next_clean_steps(self, skip=True):
         driver_internal_info = {'clean_steps': self.clean_steps}
         node = obj_utils.create_test_node(
             self.context, driver='fake',
@@ -2072,8 +2101,16 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
             clean_step=self.clean_steps[0])
 
         with task_manager.acquire(self.context, node.uuid) as task:
-            steps = self.service._get_node_next_clean_steps(task)
-            self.assertEqual(self.next_clean_steps, steps)
+            steps = self.service._get_node_next_clean_steps(
+                task, skip_current_step=skip)
+            expected = self.next_clean_steps if skip else self.clean_steps
+            self.assertEqual(expected, steps)
+
+    def test__get_node_next_clean_steps(self):
+        self.__get_node_next_clean_steps()
+
+    def test__get_node_next_clean_steps_no_skip(self):
+        self.__get_node_next_clean_steps(skip=False)
 
     def test__get_node_next_clean_steps_unset_clean_step(self):
         driver_internal_info = {'clean_steps': self.clean_steps}

@@ -319,7 +319,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         log_mock.assert_called_once_with(
             'Asynchronous exception for node '
             '1be26c0b-03f2-4d2e-ae87-c02d7f33c123: Failed checking if deploy '
-            'is done. exception: LlamaException')
+            'is done. Exception: LlamaException')
 
     @mock.patch.object(agent_base_vendor.BaseAgentVendor, 'deploy_has_started',
                        autospec=True)
@@ -354,7 +354,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         log_mock.assert_called_once_with(
             'Asynchronous exception for node '
             '1be26c0b-03f2-4d2e-ae87-c02d7f33c123: Failed checking if deploy '
-            'is done. exception: LlamaException')
+            'is done. Exception: LlamaException')
 
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
     @mock.patch.object(manager_utils, 'set_node_cleaning_steps', autospec=True)
@@ -897,21 +897,91 @@ class TestBaseAgentVendor(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'set_node_cleaning_steps', autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,
                        'notify_conductor_resume_clean', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_clean_steps',
+                       autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
-    def test_continue_cleaning_clean_version_mismatch(
-            self, status_mock, notify_mock, steps_mock):
-        # Test that cleaning is restarted if there is a version mismatch
+    def _test_continue_cleaning_clean_version_mismatch(
+            self, status_mock, get_steps_mock, notify_mock, steps_mock,
+            manual=False):
+        get_steps_mock.return_value = {
+            'command_status': 'CLEAN_VERSION_MISMATCH',
+            'command_name': 'get_clean_step',
+            'command_result': {
+                'hardware_manager_version': {'Generic': '1'},
+                'clean_steps': {
+                    'GenericHardwareManager': [
+                        {'interface': 'deploy',
+                         'step': 'erase_devices',
+                         'priority': 20}]}
+            }
+        }
         status_mock.return_value = [{
             'command_status': 'CLEAN_VERSION_MISMATCH',
             'command_name': 'execute_clean_step',
-            'command_result': {}
         }]
-        with task_manager.acquire(self.context, self.node['uuid'],
+        tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
+        self.node.provision_state = states.CLEANWAIT
+        self.node.target_provision_state = tgt_prov_state
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             self.passthru.continue_cleaning(task)
-            steps_mock.assert_called_once_with(task)
             notify_mock.assert_called_once_with(mock.ANY, task)
+            if manual:
+                get_steps_mock.assert_called_once_with(mock.ANY, task.node,
+                                                       task.ports)
+                self.assertFalse(
+                    task.node.driver_internal_info['skip_current_clean_step'])
+                self.assertEqual(
+                    {'Generic': '1'},
+                    task.node.driver_internal_info['hardware_manager_version'])
+                self.assertFalse(steps_mock.called)
+            else:
+                self.assertFalse(get_steps_mock.called)
+                steps_mock.assert_called_once_with(task)
+                self.assertFalse('skip_current_clean_step' in
+                                 task.node.driver_internal_info)
+
+    def test_continue_cleaning_automated_clean_version_mismatch(self):
+        self._test_continue_cleaning_clean_version_mismatch()
+
+    def test_continue_cleaning_manual_clean_version_mismatch(self):
+        self._test_continue_cleaning_clean_version_mismatch(manual=True)
+
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'notify_conductor_resume_clean', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_clean_steps',
+                       autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_continue_cleaning_manual_version_mismatch_bad(
+            self, status_mock, get_steps_mock, notify_mock, error_mock):
+        get_steps_mock.return_value = {
+            'command_status': 'CLEAN_VERSION_MISMATCH',
+            'command_name': 'get_clean_step',
+            'command_result': {
+                'hardware_manager_version': {'Generic': '1'}}
+        }
+        status_mock.return_value = [{
+            'command_status': 'CLEAN_VERSION_MISMATCH',
+            'command_name': 'execute_clean_step',
+        }]
+        tgt_prov_state = states.MANAGEABLE
+        self.node.provision_state = states.CLEANWAIT
+        self.node.target_provision_state = tgt_prov_state
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.passthru.continue_cleaning(task)
+
+            get_steps_mock.assert_called_once_with(mock.ANY, task.node,
+                                                   task.ports)
+            error_mock.assert_called_once_with(task, mock.ANY)
+            self.assertFalse(notify_mock.called)
+            self.assertFalse('skip_current_clean_step' in
+                             task.node.driver_internal_info)
 
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
