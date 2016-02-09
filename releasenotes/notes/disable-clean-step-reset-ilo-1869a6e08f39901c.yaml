@@ -1,0 +1,6 @@
+---
+fixes:
+  - Disables default execution of clean step 'reset_ilo'
+    during automated cleaning. Resetting of iLO is not
+    required during every invocation of automated
+    cleaning. If required, operator can enable the same.
