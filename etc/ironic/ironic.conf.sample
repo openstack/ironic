@@ -323,9 +323,9 @@
 # value)
 #rpc_poll_timeout=1
 
-# Configures zmq-messaging to use proxy with non PUB/SUB
-# patterns. (boolean value)
-#direct_over_proxy=true
+# Expiration timeout in seconds of a name service record about
+# existing target ( < 0 means no timeout). (integer value)
+#zmq_target_expire=120
 
 # Use PUB/SUB pattern for fanout methods. PUB/SUB always uses
 # proxy. (boolean value)
@@ -350,26 +350,27 @@
 # Password for Redis server (optional). (string value)
 #password=
 
+# List of Redis Sentinel hosts (fault tolerance mode) e.g.
+# [host:port, host1:port ... ] (list value)
+#sentinel_hosts=
+
+# Redis replica set name. (string value)
+#sentinel_group_name=oslo-messaging-zeromq
+
+# Time in ms to wait between connection attempts. (integer
+# value)
+#wait_timeout=500
+
+# Time in ms to wait before the transaction is killed.
+# (integer value)
+#check_timeout=20000
+
+# Timeout in ms on blocking socket operations (integer value)
+#socket_timeout=1000
+
 # Size of executor thread pool. (integer value)
 # Deprecated group/name - [DEFAULT]/rpc_thread_pool_size
 #executor_thread_pool_size=64
-
-# The Drivers(s) to handle sending notifications. Possible
-# values are messaging, messagingv2, routing, log, test, noop
-# (multi valued)
-# Deprecated group/name - [DEFAULT]/notification_driver
-#driver=
-
-# A URL representing the messaging driver to use for
-# notifications. If not set, we fall back to the same
-# configuration used for RPC. (string value)
-# Deprecated group/name - [DEFAULT]/notification_transport_url
-#transport_url=<None>
-
-# AMQP topic used for OpenStack notifications. (list value)
-# Deprecated group/name - [rpc_notifier2]/topics
-# Deprecated group/name - [DEFAULT]/notification_topics
-#topics=notifications
 
 # Seconds to wait for a response from a call. (integer value)
 #rpc_response_timeout=60
@@ -991,23 +992,6 @@
 #iscsi_verify_attempts=3
 
 
-[drac]
-
-#
-# Options defined in ironic.drivers.modules.drac.client
-#
-
-# In case there is a communication failure, the DRAC client
-# resends the request as many times as defined in this
-# setting. (integer value)
-#client_retry_count=5
-
-# In case there is a communication failure, the DRAC client
-# waits for as many seconds as defined in this setting before
-# resending the request. (integer value)
-#client_retry_delay=5
-
-
 [glance]
 
 #
@@ -1510,6 +1494,24 @@
 # Password for Redis server (optional). (string value)
 #password=
 
+# List of Redis Sentinel hosts (fault tolerance mode) e.g.
+# [host:port, host1:port ... ] (list value)
+#sentinel_hosts=
+
+# Redis replica set name. (string value)
+#sentinel_group_name=oslo-messaging-zeromq
+
+# Time in ms to wait between connection attempts. (integer
+# value)
+#wait_timeout=500
+
+# Time in ms to wait before the transaction is killed.
+# (integer value)
+#check_timeout=20000
+
+# Timeout in ms on blocking socket operations (integer value)
+#socket_timeout=1000
+
 
 [neutron]
 
@@ -1669,6 +1671,30 @@
 #password=
 
 
+[oslo_messaging_notifications]
+
+#
+# Options defined in oslo.messaging
+#
+
+# The Drivers(s) to handle sending notifications. Possible
+# values are messaging, messagingv2, routing, log, test, noop
+# (multi valued)
+# Deprecated group/name - [DEFAULT]/notification_driver
+#driver=
+
+# A URL representing the messaging driver to use for
+# notifications. If not set, we fall back to the same
+# configuration used for RPC. (string value)
+# Deprecated group/name - [DEFAULT]/notification_transport_url
+#transport_url=<None>
+
+# AMQP topic used for OpenStack notifications. (list value)
+# Deprecated group/name - [rpc_notifier2]/topics
+# Deprecated group/name - [DEFAULT]/notification_topics
+#topics=notifications
+
+
 [oslo_messaging_rabbit]
 
 #
@@ -1763,6 +1789,10 @@
 # Deprecated group/name - [DEFAULT]/rabbit_retry_backoff
 #rabbit_retry_backoff=2
 
+# Maximum interval of RabbitMQ connection retries. Default is
+# 30 seconds. (integer value)
+#rabbit_interval_max=30
+
 # Maximum number of RabbitMQ connection retries. Default is 0
 # (infinite retry count). (integer value)
 # Deprecated group/name - [DEFAULT]/rabbit_max_retries
@@ -1773,6 +1803,16 @@
 # value)
 # Deprecated group/name - [DEFAULT]/rabbit_ha_queues
 #rabbit_ha_queues=false
+
+# Positive integer representing duration in seconds for queue
+# TTL (x-expires). Queues which are unused for the duration of
+# the TTL are automatically deleted. The parameter affects
+# only reply and fanout queues. (integer value)
+#rabbit_transient_queues_ttl=600
+
+# Specifies the number of messages to prefetch. Setting to
+# zero allows unlimited messages. (integer value)
+#rabbit_qos_prefetch_count=0
 
 # Number of seconds after which the Rabbit broker is
 # considered down if heartbeat's keep-alive fails (0 disable
