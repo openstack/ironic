@@ -574,12 +574,16 @@ mode (Legacy BIOS or UEFI).
 * ``iscsi_ilo``
 * ``agent_ilo``
 
-The boot modes can be configured in ironic in the following way:
+* When boot mode capability is not configured:
 
-* When boot mode capability is not configured, these drivers preserve the
-  current boot mode of the bare metal ProLiant server. If operator/user
-  doesn't care about boot modes for servers, then the boot mode capability
-  need not be configured.
+  - If the pending boot mode is set on the node then iLO drivers use that boot
+    mode for provisioning the baremetal ProLiant servers.
+
+  - If the pending boot mode is not set on the node then iLO drivers use 'uefi'
+    boot mode for UEFI capable servers and "bios" when UEFI is not supported.
+
+* When boot mode capability is configured, the driver sets the pending boot
+  mode to the configured value.
 
 * Only one boot mode (either ``uefi`` or ``bios``) can be configured for
   the node.
