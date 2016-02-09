@@ -26,5 +26,5 @@ fi
 
 sudo brctl delif br-$NAME ovs-$NAME || true
 sudo ovs-vsctl del-port $NETWORK_BRIDGE ovs-$NAME || true
-sudo ifconfig br-$NAME down || true
+sudo ip link set dev  br-$NAME down || true
 sudo brctl delbr br-$NAME || true
