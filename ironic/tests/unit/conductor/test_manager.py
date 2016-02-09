@@ -5471,3 +5471,95 @@ class DoNodeAdoptionTestCase(
         self.service.heartbeat(self.context, node.uuid, 'http://callback')
         mock_spawn.assert_called_with(self.driver.deploy.heartbeat,
                                       mock.ANY, 'http://callback')
+
+
+@mgr_utils.mock_record_keepalive
+class DestroyVolumeConnectorTestCase(mgr_utils.ServiceSetUpMixin,
+                                     tests_db_base.DbTestCase):
+    def test_destroy_volume_connector(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+
+        volume_connector = obj_utils.create_test_volume_connector(
+            self.context, node_id=node.id)
+        self.service.destroy_volume_connector(self.context, volume_connector)
+        self.assertRaises(exception.VolumeConnectorNotFound,
+                          volume_connector.refresh)
+        self.assertRaises(exception.VolumeConnectorNotFound,
+                          self.dbapi.get_volume_connector_by_uuid,
+                          volume_connector.uuid)
+
+    def test_destroy_volume_connector_node_locked(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          reservation='fake-reserv')
+
+        volume_connector = obj_utils.create_test_volume_connector(
+            self.context, node_id=node.id)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.destroy_volume_connector,
+                                self.context, volume_connector)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+
+
+@mgr_utils.mock_record_keepalive
+class UpdateVolumeConnectorTestCase(mgr_utils.ServiceSetUpMixin,
+                                    tests_db_base.DbTestCase):
+    def test_update_volume_connector(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+
+        volume_connector = obj_utils.create_test_volume_connector(
+            self.context, node_id=node.id, extra={'foo': 'bar'})
+        new_extra = {'foo': 'baz'}
+        volume_connector.extra = new_extra
+        res = self.service.update_volume_connector(self.context,
+                                                   volume_connector)
+        self.assertEqual(new_extra, res.extra)
+
+    def test_update_volume_connector_node_locked(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          reservation='fake-reserv')
+
+        volume_connector = obj_utils.create_test_volume_connector(
+            self.context, node_id=node.id)
+        volume_connector.extra = {'foo': 'baz'}
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_volume_connector,
+                                self.context, volume_connector)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+
+    def test_update_volume_connector_type(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        volume_connector = obj_utils.create_test_volume_connector(
+            self.context, node_id=node.id, extra={'vol_id': 'fake-id'})
+        new_type = 'wwnn'
+        volume_connector.type = new_type
+        res = self.service.update_volume_connector(self.context,
+                                                   volume_connector)
+        self.assertEqual(new_type, res.type)
+
+    def test_update_volume_connector_uuid(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        volume_connector = obj_utils.create_test_volume_connector(
+            self.context, node_id=node.id)
+        volume_connector.uuid = uuidutils.generate_uuid()
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_volume_connector,
+                                self.context, volume_connector)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+
+    def test_update_volume_connector_duplicate(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        volume_connector1 = obj_utils.create_test_volume_connector(
+            self.context, node_id=node.id)
+        volume_connector2 = obj_utils.create_test_volume_connector(
+            self.context, node_id=node.id, uuid=uuidutils.generate_uuid(),
+            type='diff_type')
+        volume_connector2.type = volume_connector1.type
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_volume_connector,
+                                self.context, volume_connector2)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.VolumeConnectorTypeAndIdAlreadyExists,
+                         exc.exc_info[0])

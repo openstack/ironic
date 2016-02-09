@@ -400,3 +400,17 @@ class RPCAPITestCase(base.DbTestCase):
                           node_id='fake-node',
                           callback_url='http://ramdisk.url:port',
                           version='1.34')
+
+    def test_destroy_volume_connector(self):
+        fake_volume_connector = dbutils.get_test_volume_connector()
+        self._test_rpcapi('destroy_volume_connector',
+                          'call',
+                          version='1.35',
+                          connector=fake_volume_connector)
+
+    def test_update_volume_connector(self):
+        fake_volume_connector = dbutils.get_test_volume_connector()
+        self._test_rpcapi('update_volume_connector',
+                          'call',
+                          version='1.35',
+                          connector=fake_volume_connector)

@@ -161,3 +161,30 @@ def create_test_portgroup(ctxt, **kw):
     portgroup = get_test_portgroup(ctxt, **kw)
     portgroup.create()
     return portgroup
+
+
+def get_test_volume_connector(ctxt, **kw):
+    """Return a VolumeConnector object with appropriate attributes.
+
+    NOTE: The object leaves the attributes marked as changed, such
+    that a create() could be used to commit it to the DB.
+    """
+    db_volume_connector = db_utils.get_test_volume_connector(**kw)
+    # Let DB generate ID if it isn't specified explicitly
+    if 'id' not in kw:
+        del db_volume_connector['id']
+    volume_connector = objects.VolumeConnector(ctxt)
+    for key in db_volume_connector:
+        setattr(volume_connector, key, db_volume_connector[key])
+    return volume_connector
+
+
+def create_test_volume_connector(ctxt, **kw):
+    """Create and return a test volume connector object.
+
+    Create a volume connector in the DB and return a VolumeConnector object
+    with appropriate attributes.
+    """
+    volume_connector = get_test_volume_connector(ctxt, **kw)
+    volume_connector.create()
+    return volume_connector
