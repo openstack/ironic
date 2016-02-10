@@ -444,6 +444,16 @@ and uses the ``pxe_ssh`` driver by default::
 
     END
 
+.. note::
+    When running QEMU as non-root user (e.g. ``qemu`` on Fedora or ``libvirt-qemu`` on Ubuntu),
+    make sure ``IRONIC_VM_LOG_DIR`` points to a directory where QEMU will be able to write.
+    You can verify this with, for example::
+
+      # on Fedora
+      sudo -u qemu touch $HOME/ironic-bm-logs/test.log
+      # on Ubuntu
+      sudo -u libvirt-qemu touch $HOME/ironic-bm-logs/test.log
+
 Run stack.sh::
 
     ./stack.sh
