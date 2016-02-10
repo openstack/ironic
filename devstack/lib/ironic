@@ -436,15 +436,12 @@ function create_ironic_accounts {
         # NOTE(Shrews): This user MUST have admin level privileges!
         create_service_user "ironic" "admin"
 
-        if [[ "$KEYSTONE_CATALOG_BACKEND" = 'sql' ]]; then
-
-            get_or_create_service "ironic" "baremetal" "Ironic baremetal provisioning service"
-            get_or_create_endpoint "baremetal" \
-                "$REGION_NAME" \
-                "$IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT" \
-                "$IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT" \
-                "$IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT"
-        fi
+        get_or_create_service "ironic" "baremetal" "Ironic baremetal provisioning service"
+        get_or_create_endpoint "baremetal" \
+            "$REGION_NAME" \
+            "$IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT" \
+            "$IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT" \
+            "$IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT"
     fi
 }
 
