@@ -33,8 +33,3 @@ def upgrade():
     op.add_column('nodes', sa.Column('inspection_finished_at',
                                      sa.DateTime(),
                                      nullable=True))
-
-
-def downgrade():
-    op.drop_column('nodes', 'inspection_started_at')
-    op.drop_column('nodes', 'inspection_finished_at')

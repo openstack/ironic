@@ -31,8 +31,3 @@ def upgrade():
                   nullable=True))
     op.add_column('nodes', sa.Column('target_raid_config', sa.Text(),
                   nullable=True))
-
-
-def downgrade():
-    op.drop_column('nodes', 'raid_config')
-    op.drop_column('nodes', 'target_raid_config')

@@ -40,7 +40,3 @@ def upgrade():
         mysql_DEFAULT_CHARSET='UTF8'
     )
     op.create_index('node_tags_idx', 'node_tags', ['tag'], unique=False)
-
-
-def downgrade():
-    op.drop_table('node_tags')

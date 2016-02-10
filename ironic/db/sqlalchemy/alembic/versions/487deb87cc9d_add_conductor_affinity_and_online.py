@@ -36,10 +36,3 @@ def upgrade():
                   sa.ForeignKey('conductors.id',
                                 name='nodes_conductor_affinity_fk'),
                   nullable=True))
-
-
-def downgrade():
-    op.drop_constraint('nodes_conductor_affinity_fk', 'nodes',
-                       type_='foreignkey')
-    op.drop_column('nodes', 'conductor_affinity')
-    op.drop_column('conductors', 'online')

@@ -30,7 +30,3 @@ def upgrade():
     op.add_column('nodes', sa.Column('maintenance_reason',
                                      sa.Text(),
                                      nullable=True))
-
-
-def downgrade():
-    op.drop_column('nodes', 'maintenance_reason')

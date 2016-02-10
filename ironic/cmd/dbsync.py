@@ -36,9 +36,6 @@ class DBCommand(object):
     def upgrade(self):
         migration.upgrade(CONF.command.revision)
 
-    def downgrade(self):
-        migration.downgrade(CONF.command.revision)
-
     def revision(self):
         migration.revision(CONF.command.message, CONF.command.autogenerate)
 
@@ -61,14 +58,6 @@ def add_command_parsers(subparsers):
                "Optionally, use --revision to specify an alembic revision "
                "string to upgrade to."))
     parser.set_defaults(func=command_object.upgrade)
-    parser.add_argument('--revision', nargs='?')
-
-    parser = subparsers.add_parser(
-        'downgrade',
-        help=_("Downgrade the database schema to the oldest revision. "
-               "While optional, one should generally use --revision to "
-               "specify the alembic revision string to downgrade to."))
-    parser.set_defaults(func=command_object.downgrade)
     parser.add_argument('--revision', nargs='?')
 
     parser = subparsers.add_parser('stamp')
