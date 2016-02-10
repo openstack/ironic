@@ -69,3 +69,10 @@ class TestV1Root(base.BaseApiTest):
                             additional_expected_resources=['heartbeat',
                                                            'lookup',
                                                            'portgroups'])
+
+    def test_get_v1_32_root(self):
+        self._test_get_root(headers={'X-OpenStack-Ironic-API-Version': '1.32'},
+                            additional_expected_resources=['heartbeat',
+                                                           'lookup',
+                                                           'portgroups',
+                                                           'volume'])

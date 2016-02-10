@@ -133,3 +133,15 @@
 # Access IPA ramdisk functions
 #"baremetal:driver:ipa_lookup": "rule:public_api"
 
+# Retrieve Volume connector and target records
+#"baremetal:volume:get": "rule:is_admin or rule:is_observer"
+
+# Create Volume connector and target records
+#"baremetal:volume:create": "rule:is_admin"
+
+# Delete Volume connetor and target records
+#"baremetal:volume:delete": "rule:is_admin"
+
+# Update Volume connector and target records
+#"baremetal:volume:update": "rule:is_admin"
+

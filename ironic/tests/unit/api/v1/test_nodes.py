@@ -402,6 +402,17 @@ class TestListNodes(test_api_base.BaseApiTest):
             self.assertEqual(getattr(node, field),
                              new_data['nodes'][0][field])
 
+    def test_hide_fields_in_newer_versions_volume(self):
+        node = obj_utils.create_test_node(self.context)
+        data = self.get_json(
+            '/nodes/%s' % node.uuid,
+            headers={api_base.Version.string: '1.31'})
+        self.assertNotIn('volume', data)
+
+        data = self.get_json('/nodes/%s' % node.uuid,
+                             headers={api_base.Version.string: "1.32"})
+        self.assertIn('volume', data)
+
     def test_many(self):
         nodes = []
         for id in range(5):
@@ -629,6 +640,113 @@ class TestListNodes(test_api_base.BaseApiTest):
             node.uuid, pg.uuid), expect_errors=True,
             headers={api_base.Version.string: '1.24'})
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    def test_volume_subresource_link(self):
+        node = obj_utils.create_test_node(self.context)
+        data = self.get_json(
+            '/nodes/%s' % node.uuid,
+            headers={api_base.Version.string: '1.32'})
+        self.assertIn('volume', data)
+
+    def test_volume_subresource(self):
+        node = obj_utils.create_test_node(self.context)
+        data = self.get_json('/nodes/%s/volume' % node.uuid,
+                             headers={api_base.Version.string: '1.32'})
+        self.assertIn('connectors', data)
+        self.assertIn('targets', data)
+        self.assertIn('/volume/connectors',
+                      data['connectors'][0]['href'])
+        self.assertIn('/volume/connectors',
+                      data['connectors'][1]['href'])
+        self.assertIn('/volume/targets',
+                      data['targets'][0]['href'])
+        self.assertIn('/volume/targets',
+                      data['targets'][1]['href'])
+
+    def test_volume_subresource_invalid_api_version(self):
+        node = obj_utils.create_test_node(self.context)
+        response = self.get_json('/nodes/%s/volume' % node.uuid,
+                                 headers={api_base.Version.string: '1.31'},
+                                 expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+
+    def test_volume_connectors_subresource(self):
+        node = obj_utils.create_test_node(self.context)
+
+        for id_ in range(2):
+            obj_utils.create_test_volume_connector(
+                self.context, node_id=node.id, uuid=uuidutils.generate_uuid(),
+                connector_id='test-connector_id-%s' % id_)
+
+        data = self.get_json(
+            '/nodes/%s/volume/connectors' % node.uuid,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        self.assertEqual(2, len(data['connectors']))
+        self.assertNotIn('next', data)
+
+        # Test collection pagination
+        data = self.get_json(
+            '/nodes/%s/volume/connectors?limit=1' % node.uuid,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        self.assertEqual(1, len(data['connectors']))
+        self.assertIn('next', data)
+
+    def test_volume_connectors_subresource_noid(self):
+        node = obj_utils.create_test_node(self.context)
+        obj_utils.create_test_volume_connector(self.context, node_id=node.id)
+        # No node_id specified.
+        response = self.get_json(
+            '/nodes/volume/connectors',
+            expect_errors=True,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+
+    def test_volume_connectors_subresource_node_not_found(self):
+        non_existent_uuid = 'eeeeeeee-cccc-aaaa-bbbb-cccccccccccc'
+        response = self.get_json(
+            '/nodes/%s/volume/connectors' % non_existent_uuid,
+            expect_errors=True,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+
+    def test_volume_targets_subresource(self):
+        node = obj_utils.create_test_node(self.context)
+
+        for id_ in range(2):
+            obj_utils.create_test_volume_target(
+                self.context, node_id=node.id, uuid=uuidutils.generate_uuid(),
+                boot_index=id_)
+
+        data = self.get_json(
+            '/nodes/%s/volume/targets' % node.uuid,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        self.assertEqual(2, len(data['targets']))
+        self.assertNotIn('next', data)
+
+        # Test collection pagination
+        data = self.get_json(
+            '/nodes/%s/volume/targets?limit=1' % node.uuid,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        self.assertEqual(1, len(data['targets']))
+        self.assertIn('next', data)
+
+    def test_volume_targets_subresource_noid(self):
+        node = obj_utils.create_test_node(self.context)
+        obj_utils.create_test_volume_target(self.context, node_id=node.id)
+        # No node_id specified.
+        response = self.get_json(
+            '/nodes/volume/targets',
+            expect_errors=True,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+
+    def test_volume_targets_subresource_node_not_found(self):
+        non_existent_uuid = 'eeeeeeee-cccc-aaaa-bbbb-cccccccccccc'
+        response = self.get_json(
+            '/nodes/%s/volume/targets' % non_existent_uuid,
+            expect_errors=True,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     @mock.patch.object(timeutils, 'utcnow')
     def _test_node_states(self, mock_utcnow, api_version=None):
@@ -1380,6 +1498,37 @@ class TestPatch(test_api_base.BaseApiTest):
             [{'path': '/extra/foo', 'value': 'bar',
               'op': 'add'}], expect_errors=True,
             headers={'X-OpenStack-Ironic-API-Version': '1.24'})
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    def test_patch_volume_connectors_subresource_no_connector_id(self):
+        response = self.patch_json(
+            '/nodes/%s/volume/connectors' % self.node.uuid,
+            [{'path': '/extra/foo', 'value': 'bar', 'op': 'add'}],
+            expect_errors=True,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    def test_patch_volume_connectors_subresource(self):
+        connector = (
+            obj_utils.create_test_volume_connector(self.context,
+                                                   node_id=self.node.id))
+        response = self.patch_json(
+            '/nodes/%s/volume/connectors/%s' % (self.node.uuid,
+                                                connector.uuid),
+            [{'path': '/extra/foo', 'value': 'bar', 'op': 'add'}],
+            expect_errors=True,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    def test_patch_volume_targets_subresource(self):
+        target = obj_utils.create_test_volume_target(self.context,
+                                                     node_id=self.node.id)
+        response = self.patch_json(
+            '/nodes/%s/volume/targets/%s' % (self.node.uuid,
+                                             target.uuid),
+            [{'path': '/extra/foo', 'value': 'bar', 'op': 'add'}],
+            expect_errors=True,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     def test_remove_uuid(self):
@@ -2194,6 +2343,36 @@ class TestPost(test_api_base.BaseApiTest):
             headers={'X-OpenStack-Ironic-API-Version': '1.24'})
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
+    def test_post_volume_connectors_subresource_no_node_id(self):
+        node = obj_utils.create_test_node(self.context)
+        pdict = test_api_utils.volume_connector_post_data(node_id=None)
+        pdict['node_uuid'] = node.uuid
+        response = self.post_json(
+            '/nodes/volume/connectors', pdict,
+            expect_errors=True,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+
+    def test_post_volume_connectors_subresource(self):
+        node = obj_utils.create_test_node(self.context)
+        pdict = test_api_utils.volume_connector_post_data(node_id=None)
+        pdict['node_uuid'] = node.uuid
+        response = self.post_json(
+            '/nodes/%s/volume/connectors' % node.uuid, pdict,
+            expect_errors=True,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    def test_post_volume_targets_subresource(self):
+        node = obj_utils.create_test_node(self.context)
+        pdict = test_api_utils.volume_target_post_data(node_id=None)
+        pdict['node_uuid'] = node.uuid
+        response = self.post_json(
+            '/nodes/%s/volume/targets' % node.uuid, pdict,
+            expect_errors=True,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
     def test_create_node_no_mandatory_field_driver(self):
         ndict = test_api_utils.post_get_test_node()
         del ndict['driver']
@@ -2425,6 +2604,34 @@ class TestDelete(test_api_base.BaseApiTest):
             {'node_uuid': node.uuid, 'pg_uuid': pg.uuid},
             expect_errors=True,
             headers={'X-OpenStack-Ironic-API-Version': '1.24'})
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    def test_delete_volume_connectors_subresource_no_connector_id(self):
+        node = obj_utils.create_test_node(self.context)
+        response = self.delete(
+            '/nodes/%s/volume/connectors' % node.uuid,
+            expect_errors=True,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    def test_delete_volume_connectors_subresource(self):
+        node = obj_utils.create_test_node(self.context)
+        connector = obj_utils.create_test_volume_connector(self.context,
+                                                           node_id=node.id)
+        response = self.delete(
+            '/nodes/%s/volume/connectors/%s' % (node.uuid, connector.uuid),
+            expect_errors=True,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    def test_delete_volume_targets_subresource(self):
+        node = obj_utils.create_test_node(self.context)
+        target = obj_utils.create_test_volume_target(self.context,
+                                                     node_id=node.id)
+        response = self.delete(
+            '/nodes/%s/volume/targets/%s' % (node.uuid, target.uuid),
+            expect_errors=True,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     @mock.patch.object(notification_utils, '_emit_api_notification')

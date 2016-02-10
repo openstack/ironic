@@ -23,6 +23,8 @@ from ironic.api.controllers.v1 import chassis as chassis_controller
 from ironic.api.controllers.v1 import node as node_controller
 from ironic.api.controllers.v1 import port as port_controller
 from ironic.api.controllers.v1 import portgroup as portgroup_controller
+from ironic.api.controllers.v1 import volume_connector as vc_controller
+from ironic.api.controllers.v1 import volume_target as vt_controller
 from ironic.drivers import base as drivers_base
 from ironic.tests.unit.db import utils as db_utils
 
@@ -122,6 +124,24 @@ def port_post_data(**kw):
     port.pop('physical_network')
     internal = port_controller.PortPatchType.internal_attrs()
     return remove_internal(port, internal)
+
+
+def volume_connector_post_data(**kw):
+    connector = db_utils.get_test_volume_connector(**kw)
+    # These values are not part of the API object
+    connector.pop('node_id')
+    connector.pop('version')
+    internal = vc_controller.VolumeConnectorPatchType.internal_attrs()
+    return remove_internal(connector, internal)
+
+
+def volume_target_post_data(**kw):
+    target = db_utils.get_test_volume_target(**kw)
+    # These values are not part of the API object
+    target.pop('node_id')
+    target.pop('version')
+    internal = vt_controller.VolumeTargetPatchType.internal_attrs()
+    return remove_internal(target, internal)
 
 
 def chassis_post_data(**kw):

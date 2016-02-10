@@ -412,6 +412,13 @@ class TestApiUtils(base.TestCase):
         mock_request.version.minor = 29
         self.assertFalse(utils.allow_dynamic_drivers())
 
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_allow_volume(self, mock_request):
+        mock_request.version.minor = 32
+        self.assertTrue(utils.allow_volume())
+        mock_request.version.minor = 31
+        self.assertFalse(utils.allow_volume())
+
 
 class TestNodeIdent(base.TestCase):
 

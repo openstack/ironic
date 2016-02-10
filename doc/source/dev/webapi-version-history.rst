@@ -2,6 +2,28 @@
 REST API Version History
 ========================
 
+**1.32** (Pike)
+
+    Added new endpoints for remote volume configuration:
+
+    * GET /v1/volume as a root for volume resources
+    * GET /v1/volume/connectors for listing volume connectors
+    * POST /v1/volume/connectors for creating a volume connector
+    * GET /v1/volume/connectors/<UUID> for showing a volume connector
+    * PATCH /v1/volume/connectors/<UUID> for updating a volume connector
+    * DELETE /v1/volume/connectors/<UUID> for deleting a volume connector
+    * GET /v1/volume/targets for listing volume targets
+    * POST /v1/volume/targets for creating a volume target
+    * GET /v1/volume/targets/<UUID> for showing a volume target
+    * PATCH /v1/volume/targets/<UUID> for updating a volume target
+    * DELETE /v1/volume/targets/<UUID> for deleting a volume target
+
+    Volume resources also can be listed as sub resources of nodes:
+
+    * GET /v1/nodes/<node identifier>/volume
+    * GET /v1/nodes/<node identifier>/volume/connectors
+    * GET /v1/nodes/<node identifier>/volume/targets
+
 **1.31** (Ocata)
 
     Added the following fields to the node object, to allow getting and
@@ -237,4 +259,3 @@ REST API Version History
     supported version in Kilo.
 
 .. _fully qualified domain name: https://en.wikipedia.org/wiki/Fully_qualified_domain_name
-

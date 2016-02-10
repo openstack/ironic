@@ -549,6 +549,14 @@ def allow_dynamic_interfaces():
             versions.MINOR_31_DYNAMIC_INTERFACES)
 
 
+def allow_volume():
+    """Check if volume connectors and targets are allowed.
+
+    Version 1.32 of the API added support for volume connectors and targets
+    """
+    return pecan.request.version.minor >= versions.MINOR_32_VOLUME
+
+
 def get_controller_reserved_names(cls):
     """Get reserved names for a given controller.
 

@@ -27,6 +27,8 @@ from ironic.objects import node as node_objects
 from ironic.objects import notification
 from ironic.objects import port as port_objects
 from ironic.objects import portgroup as portgroup_objects
+from ironic.objects import volume_connector as volume_connector_objects
+from ironic.objects import volume_target as volume_target_objects
 
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
@@ -40,7 +42,13 @@ CRUD_NOTIFY_OBJ = {
     'port': (port_objects.PortCRUDNotification,
              port_objects.PortCRUDPayload),
     'portgroup': (portgroup_objects.PortgroupCRUDNotification,
-                  portgroup_objects.PortgroupCRUDPayload)
+                  portgroup_objects.PortgroupCRUDPayload),
+    'volumeconnector':
+        (volume_connector_objects.VolumeConnectorCRUDNotification,
+         volume_connector_objects.VolumeConnectorCRUDPayload),
+    'volumetarget':
+        (volume_target_objects.VolumeTargetCRUDNotification,
+         volume_target_objects.VolumeTargetCRUDPayload),
 }
 
 
