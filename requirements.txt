@@ -5,11 +5,11 @@ pbr>=1.6 # Apache-2.0
 SQLAlchemy<1.1.0,>=1.0.10 # MIT
 alembic>=0.8.0 # MIT
 automaton>=0.5.0 # Apache-2.0
-eventlet!=0.18.0,>=0.17.4 # MIT
+eventlet>=0.18.2 # MIT
 WebOb>=1.2.3 # MIT
 greenlet>=0.3.2 # MIT
 netaddr!=0.7.16,>=0.7.12 # BSD
-paramiko>=1.13.0 # LGPL
+paramiko>=1.16.0 # LGPL
 python-neutronclient>=2.6.0 # Apache-2.0
 python-glanceclient>=1.2.0 # Apache-2.0
 python-keystoneclient!=1.8.0,!=2.1.0,>=1.6.0 # Apache-2.0
