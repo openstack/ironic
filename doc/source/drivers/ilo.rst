@@ -721,8 +721,6 @@ Supported **Automated** Cleaning Operations
 
 * The automated cleaning operations supported are:
 
-  -``reset_ilo``:
-    Resets the iLO. By default, enabled with priority 1.
   -``reset_bios_to_default``:
     Resets system ROM settings to default. By default, enabled with priority
     10. This clean step is supported only on Gen9 and above servers.
@@ -735,6 +733,8 @@ Supported **Automated** Cleaning Operations
   -``clear_secure_boot_keys``:
     Clears all secure boot keys. This step is supported only on Gen9 and above
     servers. By default, this step is disabled.
+  -``reset_ilo``:
+    Resets the iLO. By default, this step is disabled.
 
 * For in-band cleaning operations supported by ``agent_ilo`` driver, see
   :ref:`InbandvsOutOfBandCleaning`.
@@ -750,7 +750,7 @@ Supported **Automated** Cleaning Operations
 * Configuration Options for the automated clean steps are listed under
   ``[ilo]`` section in ironic.conf ::
 
-  - clean_priority_reset_ilo=1
+  - clean_priority_reset_ilo=0
   - clean_priority_reset_bios_to_default=10
   - clean_priority_reset_secure_boot_keys_to_default=20
   - clean_priority_clear_secure_boot_keys=0
