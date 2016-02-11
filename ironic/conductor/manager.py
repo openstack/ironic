@@ -543,9 +543,10 @@ class ConductorManager(base_manager.BaseConductorManager):
                 task.driver.deploy.validate(task)
             except (exception.InvalidParameterValue,
                     exception.MissingParameterValue) as e:
-                raise exception.InstanceDeployFailure(_(
-                    "RPC do_node_deploy failed to validate deploy or "
-                    "power info. Error: %(msg)s") % {'msg': e})
+                raise exception.InstanceDeployFailure(
+                    _("RPC do_node_deploy failed to validate deploy or "
+                      "power info for node %(node_uuid)s. Error: %(msg)s") %
+                    {'node_uuid': node.uuid, 'msg': e})
 
             LOG.debug("do_node_deploy Calling event: %(event)s for node: "
                       "%(node)s", {'event': event, 'node': node.uuid})
