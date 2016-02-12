@@ -38,6 +38,7 @@ from ironic.drivers.modules.ilo import vendor as ilo_vendor
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
+from ironic.drivers.modules.irmc import inspect as irmc_inspect
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.drivers.modules import iscsi_deploy
@@ -264,6 +265,7 @@ class PXEAndIRMCDriver(base.BaseDriver):
         self.deploy = iscsi_deploy.ISCSIDeploy()
         self.management = irmc_management.IRMCManagement()
         self.vendor = iscsi_deploy.VendorPassthru()
+        self.inspect = irmc_inspect.IRMCInspect()
 
 
 class PXEAndVirtualBoxDriver(base.BaseDriver):

@@ -1302,6 +1302,20 @@
 # (string value)
 #sensor_method=ipmitool
 
+# SNMP protocol version, either "v1", "v2c" or "v3" (string
+# value)
+#snmp_version=v2c
+
+# SNMP port (port value)
+#snmp_port=161
+
+# SNMP community. Required for versions "v1" and "v2c" (string
+# value)
+#snmp_community=public
+
+# SNMP security name. Required for version "v3" (string value)
+#snmp_security=<None>
+
 
 [ironic_lib]
 

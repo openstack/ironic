@@ -50,6 +50,10 @@ class IRMCValidateParametersTestCase(db_base.DbTestCase):
         self.assertIsNotNone(info.get('irmc_port'))
         self.assertIsNotNone(info.get('irmc_auth_method'))
         self.assertIsNotNone(info.get('irmc_sensor_method'))
+        self.assertIsNotNone(info.get('irmc_snmp_version'))
+        self.assertIsNotNone(info.get('irmc_snmp_port'))
+        self.assertIsNotNone(info.get('irmc_snmp_community'))
+        self.assertFalse(info.get('irmc_snmp_security'))
 
     def test_parse_driver_option_default(self):
         self.node.driver_info = {
@@ -108,6 +112,34 @@ class IRMCValidateParametersTestCase(db_base.DbTestCase):
         except exception.MissingParameterValue as e:
             self.assertIn('irmc_password', str(e))
             self.assertIn('irmc_address', str(e))
+
+    def test_parse_driver_info_invalid_snmp_version(self):
+        self.node.driver_info['irmc_snmp_version'] = 'v3x'
+        self.assertRaises(exception.InvalidParameterValue,
+                          irmc_common.parse_driver_info, self.node)
+
+    def test_parse_driver_info_invalid_snmp_port(self):
+        self.node.driver_info['irmc_snmp_port'] = '161'
+        self.assertRaises(exception.InvalidParameterValue,
+                          irmc_common.parse_driver_info, self.node)
+
+    def test_parse_driver_info_invalid_snmp_community(self):
+        self.node.driver_info['irmc_snmp_version'] = 'v2c'
+        self.node.driver_info['irmc_snmp_community'] = 100
+        self.assertRaises(exception.InvalidParameterValue,
+                          irmc_common.parse_driver_info, self.node)
+
+    def test_parse_driver_info_invalid_snmp_security(self):
+        self.node.driver_info['irmc_snmp_version'] = 'v3'
+        self.node.driver_info['irmc_snmp_security'] = 100
+        self.assertRaises(exception.InvalidParameterValue,
+                          irmc_common.parse_driver_info, self.node)
+
+    def test_parse_driver_info_empty_snmp_security(self):
+        self.node.driver_info['irmc_snmp_version'] = 'v3'
+        self.node.driver_info['irmc_snmp_security'] = ''
+        self.assertRaises(exception.InvalidParameterValue,
+                          irmc_common.parse_driver_info, self.node)
 
 
 class IRMCCommonMethodsTestCase(db_base.DbTestCase):

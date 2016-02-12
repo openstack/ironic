@@ -15,6 +15,7 @@
 """
 Common functionalities shared between different iRMC modules.
 """
+import six
 
 from oslo_config import cfg
 from oslo_utils import importutils
@@ -43,6 +44,18 @@ opts = [
                choices=['ipmitool', 'scci'],
                help=_('Sensor data retrieval method, either '
                       '"ipmitool" or "scci"')),
+    cfg.StrOpt('snmp_version',
+               default='v2c',
+               choices=['v1', 'v2c', 'v3'],
+               help=_('SNMP protocol version, either "v1", "v2c" or "v3"')),
+    cfg.PortOpt('snmp_port',
+                default=161,
+                help=_('SNMP port')),
+    cfg.StrOpt('snmp_community',
+               default='public',
+               help=_('SNMP community. Required for versions "v1" and "v2c"')),
+    cfg.StrOpt('snmp_security',
+               help=_('SNMP security name. Required for version "v3"')),
 ]
 
 CONF = cfg.CONF
@@ -66,6 +79,14 @@ OPTIONAL_PROPERTIES = {
     'irmc_sensor_method': _("Sensor data retrieval method; either "
                             "'ipmitool' or 'scci'. The default value is "
                             "'ipmitool'. Optional."),
+    'irmc_snmp_version': _("SNMP protocol version; either 'v1', 'v2c', or "
+                           "'v3'. The default value is 'v2c'. Optional."),
+    'irmc_snmp_port': _("SNMP port. The default is 161. Optional."),
+    'irmc_snmp_community': _("SNMP community required for versions 'v1' and "
+                             "'v2c'. The default value is 'public'. "
+                             "Optional."),
+    'irmc_snmp_security': _("SNMP security name required for version 'v3'. "
+                            "Optional."),
 }
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
@@ -98,7 +119,7 @@ def parse_driver_info(node):
     # corresponding config names don't have 'irmc_' prefix
     opt = {param: info.get(param, CONF.irmc.get(param[len('irmc_'):]))
            for param in OPTIONAL_PROPERTIES}
-    d_info = dict(list(req.items()) + list(opt.items()))
+    d_info = dict(req, **opt)
 
     error_msgs = []
     if (d_info['irmc_auth_method'].lower() not in ('basic', 'digest')):
@@ -113,6 +134,25 @@ def parse_driver_info(node):
     if d_info['irmc_sensor_method'].lower() not in ('ipmitool', 'scci'):
         error_msgs.append(
             _("'irmc_sensor_method' has unsupported value."))
+    if d_info['irmc_snmp_version'].lower() not in ('v1', 'v2c', 'v3'):
+        error_msgs.append(
+            _("'irmc_snmp_version' has unsupported value."))
+    if not isinstance(d_info['irmc_snmp_port'], int):
+        error_msgs.append(
+            _("'irmc_snmp_port' is not integer type."))
+    if (d_info['irmc_snmp_version'].lower() in ('v1', 'v2c') and
+        d_info['irmc_snmp_community'] and
+        not isinstance(d_info['irmc_snmp_community'], six.string_types)):
+        error_msgs.append(
+            _("'irmc_snmp_community' is not string type."))
+    if d_info['irmc_snmp_version'].lower() == 'v3':
+        if d_info['irmc_snmp_security']:
+            if not isinstance(d_info['irmc_snmp_security'], six.string_types):
+                error_msgs.append(
+                    _("'irmc_snmp_security' is not string type."))
+        else:
+            error_msgs.append(
+                _("'irmc_snmp_security' has to be set for SNMP version 3."))
     if error_msgs:
         msg = (_("The following type errors were encountered while parsing "
                  "driver_info:\n%s") % "\n".join(error_msgs))
@@ -146,7 +186,7 @@ def get_irmc_client(node):
 
 
 def update_ipmi_properties(task):
-    """Update ipmi properties to node driver_info
+    """Update ipmi properties to node driver_info.
 
     :param task: A task from TaskManager.
     """

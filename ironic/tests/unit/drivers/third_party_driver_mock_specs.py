@@ -118,6 +118,7 @@ SCCICLIENT_IRMC_SCCI_SPEC = (
     'get_sensor_data',
     'get_virtual_cd_set_params_cmd',
     'get_virtual_fd_set_params_cmd',
+    'get_essential_properties',
 )
 
 ONEVIEWCLIENT_SPEC = (

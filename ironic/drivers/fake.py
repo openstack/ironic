@@ -38,6 +38,7 @@ from ironic.drivers.modules.ilo import power as ilo_power
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
+from ironic.drivers.modules.irmc import inspect as irmc_inspect
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.drivers.modules import iscsi_deploy
@@ -213,6 +214,7 @@ class FakeIRMCDriver(base.BaseDriver):
         self.power = irmc_power.IRMCPower()
         self.deploy = fake.FakeDeploy()
         self.management = irmc_management.IRMCManagement()
+        self.inspect = irmc_inspect.IRMCInspect()
 
 
 class FakeVirtualBoxDriver(base.BaseDriver):

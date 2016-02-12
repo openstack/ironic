@@ -175,6 +175,34 @@ class SNMPClient(object):
         name, val = var_binds[0]
         return val
 
+    def get_next(self, oid):
+        """Use PySNMP to perform an SNMP GET NEXT operation on a table object.
+
+        :param oid: The OID of the object to get.
+        :raises: SNMPFailure if an SNMP request fails.
+        :returns: A list of values of the requested table object.
+        """
+        try:
+            results = self.cmd_gen.nextCmd(self._get_auth(),
+                                           self._get_transport(),
+                                           oid)
+        except snmp_error.PySnmpError as e:
+            raise exception.SNMPFailure(operation="GET_NEXT", error=e)
+
+        error_indication, error_status, error_index, var_bind_table = results
+
+        if error_indication:
+            # SNMP engine-level error.
+            raise exception.SNMPFailure(operation="GET_NEXT",
+                                        error=error_indication)
+
+        if error_status:
+            # SNMP PDU error.
+            raise exception.SNMPFailure(operation="GET_NEXT",
+                                        error=error_status.prettyPrint())
+
+        return [val for row in var_bind_table for name, val in row]
+
     def set(self, oid, value):
         """Use PySNMP to perform an SNMP SET operation on a single object.
 
