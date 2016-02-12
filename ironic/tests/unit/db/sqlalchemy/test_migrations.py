@@ -393,6 +393,27 @@ class MigrationCheckersMixin(object):
                         isinstance(ports.c.pxe_enabled.type,
                                    sqlalchemy.types.Integer))
 
+    def _pre_upgrade_f6fdb920c182(self, engine):
+        # add some ports.
+        ports = db_utils.get_table(engine, 'ports')
+        data = [{'uuid': uuidutils.generate_uuid(), 'pxe_enabled': None},
+                {'uuid': uuidutils.generate_uuid(), 'pxe_enabled': None}]
+        ports.insert().values(data).execute()
+        return data
+
+    def _check_f6fdb920c182(self, engine, data):
+        ports = db_utils.get_table(engine, 'ports')
+        result = engine.execute(ports.select())
+
+        def _was_inserted(uuid):
+            for row in data:
+                if row['uuid'] == uuid:
+                    return True
+
+        for row in result:
+            if _was_inserted(row['uuid']):
+                self.assertTrue(row['pxe_enabled'])
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')
