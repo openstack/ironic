@@ -28,39 +28,42 @@ baremetal_group = cfg.OptGroup(name='baremetal',
                                     'live_migration, pause, rescue, resize, '
                                     'shelve, snapshot, and suspend')
 
+# NOTE(maurosr): Until liberty-eol we need to keep config options and tests
+# on tempest's tree to test stable branches and thus we have to comment the
+# options bellow to avoid duplication. Only new options should live here.
 BaremetalGroup = [
-    cfg.StrOpt('catalog_type',
-               default='baremetal',
-               help="Catalog type of the baremetal provisioning service"),
-    cfg.BoolOpt('driver_enabled',
-                default=True,
-                help="Whether the Ironic nova-compute driver is enabled"),
-    cfg.StrOpt('driver',
-               default='fake',
-               help="Driver name which Ironic uses"),
-    cfg.StrOpt('endpoint_type',
-               default='publicURL',
-               choices=['public', 'admin', 'internal',
-                        'publicURL', 'adminURL', 'internalURL'],
-               help="The endpoint type to use for the baremetal provisioning "
-                    "service"),
+    # cfg.StrOpt('catalog_type',
+    #            default='baremetal',
+    #            help="Catalog type of the baremetal provisioning service"),
+    # cfg.BoolOpt('driver_enabled',
+    #             default=True,
+    #             help="Whether the Ironic nova-compute driver is enabled"),
+    # cfg.StrOpt('driver',
+    #            default='fake',
+    #            help="Driver name which Ironic uses"),
+    # cfg.StrOpt('endpoint_type',
+    #            default='publicURL',
+    #            choices=['public', 'admin', 'internal',
+    #                     'publicURL', 'adminURL', 'internalURL'],
+    #            help="The endpoint type to use for the baremetal provisioning"
+    #                 " service"),
     cfg.IntOpt('deploywait_timeout',
                default=15,
                help="Timeout for Ironic node to reach the "
                     "wait-callback state after powering on."),
-    cfg.IntOpt('active_timeout',
-               default=300,
-               help="Timeout for Ironic node to completely provision"),
-    cfg.IntOpt('association_timeout',
-               default=30,
-               help="Timeout for association of Nova instance and Ironic "
-                    "node"),
-    cfg.IntOpt('power_timeout',
-               default=60,
-               help="Timeout for Ironic power transitions."),
-    cfg.IntOpt('unprovision_timeout',
-               default=300,
-               help="Timeout for unprovisioning an Ironic node. "
-                    "Takes longer since Kilo as Ironic performs an extra "
-                    "step in Node cleaning.")
+    # cfg.IntOpt('active_timeout',
+    #            default=300,
+    #            help="Timeout for Ironic node to completely provision"),
+    # cfg.IntOpt('association_timeout',
+    #            default=30,
+    #            help="Timeout for association of Nova instance and Ironic "
+    #                 "node"),
+    # cfg.IntOpt('power_timeout',
+    #            default=60,
+    #            help="Timeout for Ironic power transitions."),
+    # cfg.IntOpt('unprovision_timeout',
+    #            default=300,
+    #            help="Timeout for unprovisioning an Ironic node. "
+    #                 "Takes longer since Kilo as Ironic performs an extra "
+    #                 "step in Node cleaning.")
 ]
