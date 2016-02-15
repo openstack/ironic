@@ -129,6 +129,15 @@ IRONIC_HTTP_DIR=${IRONIC_HTTP_DIR:-$IRONIC_DATA_DIR/httpboot}
 IRONIC_HTTP_SERVER=${IRONIC_HTTP_SERVER:-$HOST_IP}
 IRONIC_HTTP_PORT=${IRONIC_HTTP_PORT:-8088}
 
+# Whether DevStack will be setup for bare metal or VMs
+IRONIC_IS_HARDWARE=$(trueorfalse False IRONIC_IS_HARDWARE)
+
+# The first port in the range to bind the Virtual BMCs. The number of
+# ports that will be used depends on $IRONIC_VM_COUNT variable, e.g if
+# $IRONIC_VM_COUNT=3 the ports 6230, 6231 and 6232 will be used for the
+# Virtual BMCs, one for each VM.
+IRONIC_VBMC_PORT_RANGE_START=${IRONIC_VBMC_PORT_RANGE_START:-6230}
+
 # NOTE(lucasagomes): This flag is used to differentiate the nodes that
 # uses IPA as their deploy ramdisk from nodes that uses the agent_* drivers
 # (which also uses IPA but depends on Swift Temp URLs to work). At present,
@@ -173,13 +182,13 @@ function is_ironic_enabled {
     return 1
 }
 
-function is_ironic_hardware {
-    is_ironic_enabled && [[ -n "${IRONIC_DEPLOY_DRIVER##*_ssh}" ]] && return 0
+function is_deployed_by_agent {
+    [[ -z "${IRONIC_DEPLOY_DRIVER%%agent*}" ]] && return 0
     return 1
 }
 
-function is_deployed_by_agent {
-    [[ -z "${IRONIC_DEPLOY_DRIVER%%agent*}" ]] && return 0
+function is_deployed_by_ipmitool {
+    [[ -z "${IRONIC_DEPLOY_DRIVER##*_ipmitool}" ]] && return 0
     return 1
 }
 
@@ -210,6 +219,10 @@ function install_ironic {
 
     if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
         install_apache_wsgi
+    fi
+
+    if is_deployed_by_ipmitool && [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
+        pip_install "virtualbmc"
     fi
 }
 
@@ -366,12 +379,17 @@ function configure_ironic_conductor {
             pxe_params+=" systemd.journald.forward_to_console=yes"
         fi
     fi
+
     # When booting with less than 1GB, we need to switch from default tmpfs
     # to ramfs for ramdisks to decompress successfully.
-    if (is_ironic_hardware && [[ "$IRONIC_HW_NODE_RAM" -lt 1024 ]]) ||
-        (! is_ironic_hardware && [[ "$IRONIC_VM_SPECS_RAM" -lt 1024 ]]); then
+    if ([[ "$IRONIC_IS_HARDWARE" == "True" ]] &&
+        [[ "$IRONIC_HW_NODE_RAM" -lt 1024 ]]) ||
+        ([[ "$IRONIC_IS_HARDWARE" == "False" ]] &&
+        [[ "$IRONIC_VM_SPECS_RAM" -lt 1024 ]]); then
+
         pxe_params+=" rootfstype=ramfs"
     fi
+
     if [[ -n "$pxe_params" ]]; then
         iniset $IRONIC_CONF_FILE pxe pxe_append_params "$pxe_params"
     fi
@@ -591,12 +609,15 @@ function create_bridge_and_vms {
     else
         local log_arg=""
     fi
+
+    local vbmc_port=$IRONIC_VBMC_PORT_RANGE_START
     local vm_name
     for vm_name in $(_ironic_bm_vm_names); do
         sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/create-node.sh $vm_name \
             $IRONIC_VM_SPECS_CPU $IRONIC_VM_SPECS_RAM $IRONIC_VM_SPECS_DISK \
             amd64 $IRONIC_VM_NETWORK_BRIDGE $IRONIC_VM_EMULATOR \
-            $log_arg" >> $IRONIC_VM_MACS_CSV_FILE
+            $vbmc_port $log_arg" >> $IRONIC_VM_MACS_CSV_FILE
+        vbmc_port=$((vbmc_port+1))
     done
     create_ovs_taps
 }
@@ -632,21 +653,32 @@ function enroll_nodes {
     local chassis_id
     chassis_id=$(ironic chassis-create -d "ironic test chassis" | grep " uuid " | get_field 2)
 
-    if ! is_ironic_hardware; then
+    if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
         local ironic_node_cpu=$IRONIC_VM_SPECS_CPU
         local ironic_node_ram=$IRONIC_VM_SPECS_RAM
         local ironic_node_disk=$IRONIC_VM_SPECS_DISK
         local ironic_ephemeral_disk=$IRONIC_VM_EPHEMERAL_DISK
         local ironic_node_arch=x86_64
         local ironic_hwinfo_file=$IRONIC_VM_MACS_CSV_FILE
-        local node_options="\
-            -i deploy_kernel=$IRONIC_DEPLOY_KERNEL_ID \
-            -i deploy_ramdisk=$IRONIC_DEPLOY_RAMDISK_ID \
-            -i ssh_virt_type=$IRONIC_SSH_VIRT_TYPE \
-            -i ssh_address=$IRONIC_VM_SSH_ADDRESS \
-            -i ssh_port=$IRONIC_VM_SSH_PORT \
-            -i ssh_username=$IRONIC_SSH_USERNAME \
-            -i ssh_key_filename=$IRONIC_KEY_FILE"
+
+        if is_deployed_by_ipmitool; then
+            local node_options="\
+                -i deploy_kernel=$IRONIC_DEPLOY_KERNEL_ID \
+                -i deploy_ramdisk=$IRONIC_DEPLOY_RAMDISK_ID \
+                -i ipmi_address=127.0.0.1 \
+                -i ipmi_username=admin \
+                -i ipmi_password=password"
+        else
+            local node_options="\
+                -i deploy_kernel=$IRONIC_DEPLOY_KERNEL_ID \
+                -i deploy_ramdisk=$IRONIC_DEPLOY_RAMDISK_ID \
+                -i ssh_virt_type=$IRONIC_SSH_VIRT_TYPE \
+                -i ssh_address=$IRONIC_VM_SSH_ADDRESS \
+                -i ssh_port=$IRONIC_VM_SSH_PORT \
+                -i ssh_username=$IRONIC_SSH_USERNAME \
+                -i ssh_key_filename=$IRONIC_KEY_FILE"
+        fi
+
     else
         local ironic_node_cpu=$IRONIC_HW_NODE_CPU
         local ironic_node_ram=$IRONIC_HW_NODE_RAM
@@ -661,9 +693,17 @@ function enroll_nodes {
     local total_nodes=0
     local total_cpus=0
     while read hardware_info; do
-        if ! is_ironic_hardware; then
-            local mac_address=$hardware_info
-        elif [[ -z "${IRONIC_DEPLOY_DRIVER##*_ipmitool}" ]]; then
+        if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
+            local mac_address
+            mac_address=$(echo $hardware_info | awk '{print $1}')
+
+            if is_deployed_by_ipmitool; then
+                local vbmc_port
+                vbmc_port=$(echo $hardware_info | awk '{print $2}')
+                node_options+=" -i ipmi_port=$vbmc_port"
+            fi
+
+        elif is_deployed_by_ipmitool; then
             local ipmi_address
             ipmi_address=$(echo $hardware_info |awk  '{print $1}')
             local mac_address
@@ -896,11 +936,11 @@ function prepare_baremetal_basic_ops {
         return 0
     fi
 
-    if ! is_ironic_hardware; then
+    if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
         configure_ironic_auxiliary
     fi
     upload_baremetal_ironic_deploy
-    if ! is_ironic_hardware; then
+    if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
         create_bridge_and_vms
     fi
     enroll_nodes
