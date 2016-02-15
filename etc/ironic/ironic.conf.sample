@@ -1096,6 +1096,11 @@
 # Possible values: keystone, noauth
 #auth_strategy=keystone
 
+# Optional path to a CA certificate bundle to be used to
+# validate the SSL certificate served by glance. It is used
+# when glance_api_insecure is set to False. (string value)
+#glance_cafile=<None>
+
 
 [iboot]
 

@@ -71,6 +71,10 @@ glance_opts = [
                choices=['keystone', 'noauth'],
                help=_('Authentication strategy to use when connecting to '
                       'glance.')),
+    cfg.StrOpt('glance_cafile',
+               help=_('Optional path to a CA certificate bundle to be used to '
+                      'validate the SSL certificate served by glance. It is '
+                      'used when glance_api_insecure is set to False.')),
 ]
 
 CONF.register_opts(glance_opts, group='glance')

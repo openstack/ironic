@@ -627,7 +627,8 @@ class TestGlanceImageService(base.TestCase):
                'token': self.context.auth_token})
 
     @mock.patch.object(glance_client, 'Client', autospec=True)
-    def test_get_image_service__no_client_set_https(self, mock_gclient):
+    def test_get_image_service__no_client_set_https_insecure(self,
+                                                             mock_gclient):
         def func(service, *args, **kwargs):
             return (self.endpoint, args, kwargs)
 
@@ -637,6 +638,7 @@ class TestGlanceImageService(base.TestCase):
 
         params = {'image_href': '%s/image_uuid' % endpoint}
         self.config(auth_strategy='keystone', group='glance')
+        self.config(glance_api_insecure=True, group='glance')
         wrapped_func = base_image_service.check_image_service(func)
 
         self.assertEqual((endpoint, (), params),
@@ -644,6 +646,29 @@ class TestGlanceImageService(base.TestCase):
         mock_gclient.assert_called_once_with(
             1, endpoint,
             **{'insecure': CONF.glance.glance_api_insecure,
+               'token': self.context.auth_token})
+
+    @mock.patch.object(glance_client, 'Client', autospec=True)
+    def test_get_image_service__no_client_set_https_secure(self, mock_gclient):
+        def func(service, *args, **kwargs):
+            return (self.endpoint, args, kwargs)
+
+        endpoint = 'https://123.123.123.123:9292'
+        mock_gclient.return_value.endpoint = endpoint
+        self.service.client = None
+
+        params = {'image_href': '%s/image_uuid' % endpoint}
+        self.config(auth_strategy='keystone', group='glance')
+        self.config(glance_api_insecure=False, group='glance')
+        self.config(glance_cafile='/path/to/certfile', group='glance')
+        wrapped_func = base_image_service.check_image_service(func)
+
+        self.assertEqual((endpoint, (), params),
+                         wrapped_func(self.service, **params))
+        mock_gclient.assert_called_once_with(
+            1, endpoint,
+            **{'cacert': CONF.glance.glance_cafile,
+               'insecure': CONF.glance.glance_api_insecure,
                'token': self.context.auth_token})
 
 

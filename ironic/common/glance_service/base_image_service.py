@@ -80,6 +80,9 @@ def check_image_service(func):
             scheme = 'http'
         params = {}
         params['insecure'] = CONF.glance.glance_api_insecure
+        if (not params['insecure'] and CONF.glance.glance_cafile
+                and use_ssl):
+            params['cacert'] = CONF.glance.glance_cafile
         if CONF.glance.auth_strategy == 'keystone':
             params['token'] = self.context.auth_token
         endpoint = '%s://%s:%s' % (scheme, self.glance_host, self.glance_port)
