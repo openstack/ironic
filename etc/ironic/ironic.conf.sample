@@ -1035,7 +1035,7 @@
 #
 
 # Priority for reset_ilo clean step. (integer value)
-#clean_priority_reset_ilo=1
+#clean_priority_reset_ilo=0
 
 # Priority for reset_bios_to_default clean step. (integer
 # value)
