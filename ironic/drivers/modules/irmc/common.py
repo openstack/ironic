@@ -124,37 +124,45 @@ def parse_driver_info(node):
     error_msgs = []
     if (d_info['irmc_auth_method'].lower() not in ('basic', 'digest')):
         error_msgs.append(
-            _("'irmc_auth_method' has unsupported value."))
+            _("Value '%s' is not supported for 'irmc_auth_method'.") %
+            d_info['irmc_auth_method'])
     if d_info['irmc_port'] not in (80, 443):
         error_msgs.append(
-            _("'irmc_port' has unsupported value."))
+            _("Value '%s' is not supported for 'irmc_port'.") %
+            d_info['irmc_port'])
     if not isinstance(d_info['irmc_client_timeout'], int):
         error_msgs.append(
-            _("'irmc_client_timeout' is not integer type."))
+            _("Value '%s' is not an integer for 'irmc_client_timeout'") %
+            d_info['irmc_client_timeout'])
     if d_info['irmc_sensor_method'].lower() not in ('ipmitool', 'scci'):
         error_msgs.append(
-            _("'irmc_sensor_method' has unsupported value."))
+            _("Value '%s' is not supported for 'irmc_sensor_method'.") %
+            d_info['irmc_sensor_method'])
     if d_info['irmc_snmp_version'].lower() not in ('v1', 'v2c', 'v3'):
         error_msgs.append(
-            _("'irmc_snmp_version' has unsupported value."))
+            _("Value '%s' is not supported for 'irmc_snmp_version'.") %
+            d_info['irmc_snmp_version'])
     if not isinstance(d_info['irmc_snmp_port'], int):
         error_msgs.append(
-            _("'irmc_snmp_port' is not integer type."))
+            _("Value '%s' is not an integer for 'irmc_snmp_port'") %
+            d_info['irmc_snmp_port'])
     if (d_info['irmc_snmp_version'].lower() in ('v1', 'v2c') and
         d_info['irmc_snmp_community'] and
         not isinstance(d_info['irmc_snmp_community'], six.string_types)):
         error_msgs.append(
-            _("'irmc_snmp_community' is not string type."))
+            _("Value '%s' is not a string for 'irmc_snmp_community'") %
+            d_info['irmc_snmp_community'])
     if d_info['irmc_snmp_version'].lower() == 'v3':
         if d_info['irmc_snmp_security']:
             if not isinstance(d_info['irmc_snmp_security'], six.string_types):
                 error_msgs.append(
-                    _("'irmc_snmp_security' is not string type."))
+                    _("Value '%s' is not a string for "
+                      "'irmc_snmp_security'") % d_info['irmc_snmp_security'])
         else:
             error_msgs.append(
                 _("'irmc_snmp_security' has to be set for SNMP version 3."))
     if error_msgs:
-        msg = (_("The following type errors were encountered while parsing "
+        msg = (_("The following errors were encountered while parsing "
                  "driver_info:\n%s") % "\n".join(error_msgs))
         raise exception.InvalidParameterValue(msg)
 
