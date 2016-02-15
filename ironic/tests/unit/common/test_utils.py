@@ -261,12 +261,68 @@ class GenericUtilsTestCase(base.TestCase):
                                                                       mock.ANY)
                 fake_context_manager.__enter__.assert_called_once_with()
 
-    def test_hash_file(self):
+    @mock.patch.object(utils, 'hashlib', autospec=True)
+    def test__get_hash_object(self, hashlib_mock):
+        algorithms_available = ('md5', 'sha1', 'sha224',
+                                'sha256', 'sha384', 'sha512')
+        hashlib_mock.algorithms_guaranteed = algorithms_available
+        hashlib_mock.algorithms = algorithms_available
+        # | WHEN |
+        utils._get_hash_object('md5')
+        utils._get_hash_object('sha1')
+        utils._get_hash_object('sha224')
+        utils._get_hash_object('sha256')
+        utils._get_hash_object('sha384')
+        utils._get_hash_object('sha512')
+        # | THEN |
+        calls = [mock.call.md5(), mock.call.sha1(), mock.call.sha224(),
+                 mock.call.sha256(), mock.call.sha384(), mock.call.sha512()]
+        hashlib_mock.assert_has_calls(calls)
+
+    def test__get_hash_object_throws_for_invalid_or_unsupported_hash_name(
+            self):
+        # | WHEN | & | THEN |
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils._get_hash_object,
+                          'hickory-dickory-dock')
+
+    def test_hash_file_for_md5(self):
+        # | GIVEN |
         data = b'Mary had a little lamb, its fleece as white as snow'
-        flo = six.BytesIO(data)
-        h1 = utils.hash_file(flo)
-        h2 = hashlib.sha1(data).hexdigest()
-        self.assertEqual(h1, h2)
+        file_like_object = six.BytesIO(data)
+        expected = hashlib.md5(data).hexdigest()
+        # | WHEN |
+        actual = utils.hash_file(file_like_object)  # using default, 'md5'
+        # | THEN |
+        self.assertEqual(expected, actual)
+
+    def test_hash_file_for_sha1(self):
+        # | GIVEN |
+        data = b'Mary had a little lamb, its fleece as white as snow'
+        file_like_object = six.BytesIO(data)
+        expected = hashlib.sha1(data).hexdigest()
+        # | WHEN |
+        actual = utils.hash_file(file_like_object, 'sha1')
+        # | THEN |
+        self.assertEqual(expected, actual)
+
+    def test_hash_file_for_sha512(self):
+        # | GIVEN |
+        data = b'Mary had a little lamb, its fleece as white as snow'
+        file_like_object = six.BytesIO(data)
+        expected = hashlib.sha512(data).hexdigest()
+        # | WHEN |
+        actual = utils.hash_file(file_like_object, 'sha512')
+        # | THEN |
+        self.assertEqual(expected, actual)
+
+    def test_hash_file_throws_for_invalid_or_unsupported_hash(self):
+        # | GIVEN |
+        data = b'Mary had a little lamb, its fleece as white as snow'
+        file_like_object = six.BytesIO(data)
+        # | WHEN | & | THEN |
+        self.assertRaises(exception.InvalidParameterValue, utils.hash_file,
+                          file_like_object, 'hickory-dickory-dock')
 
     def test_is_valid_boolstr(self):
         self.assertTrue(utils.is_valid_boolstr('true'))
