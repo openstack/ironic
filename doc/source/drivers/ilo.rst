@@ -206,12 +206,12 @@ Target Users
   security enhanced PXE-less deployment mechanism.
 
   The PXE driver passes management information in clear-text to the
-  bare metal node.  However, if swift proxy server has an HTTPS
-  endpoint (See :ref:`EnableHTTPSinSwift` for more information), the
-  ``iscsi_ilo`` driver provides enhanced security by passing
-  management information to and from swift endpoint over HTTPS.  The
-  management information, deploy ramdisk and boot images for the instance will
-  be retrieved over encrypted management network via iLO virtual media.
+  bare metal node.  However, if swift proxy server and glance have HTTPS
+  endpoints (See :ref:`EnableHTTPSinSwift`, :ref:`EnableHTTPSinGlance` for more
+  information), the ``iscsi_ilo`` driver provides enhanced security by
+  exchanging management information with swift and glance endpoints over HTTPS.
+  The management information, deploy ramdisk and boot images for the instance
+  will be retrieved over encrypted management network via iLO virtual media.
 
 Tested Platforms
 ~~~~~~~~~~~~~~~~
@@ -239,11 +239,11 @@ Features
 * UEFI Boot Support
 * UEFI Secure Boot Support
 * Passing management information via secure, encrypted management network
-  (virtual media) if swift proxy server has an HTTPS endpoint. See
-  :ref:`EnableHTTPSinSwift` for more info.  User image provisioning is done
-  using iSCSI over data network, so this driver has the benefit
-  of security enhancement with the same performance. It segregates management
-  info from data channel.
+  (virtual media) if swift proxy server and glance have HTTPS endpoints. See
+  :ref:`EnableHTTPSinSwift`, :ref:`EnableHTTPSinGlance` for more info.  User
+  image provisioning is done using iSCSI over data network, so this driver has
+  the benefit of security enhancement with the same performance. It segregates
+  management info from data channel.
 * Support for out-of-band cleaning operations.
 * Remote Console
 * HW Sensors
@@ -350,12 +350,12 @@ Target Users
   want to have a security enhanced PXE-less deployment mechanism.
 
   The PXE based agent drivers pass management information in clear-text to
-  the bare metal node.  However, if swift proxy server has an HTTPS
-  endpoint (See :ref:`EnableHTTPSinSwift` for more information),
-  the ``agent_ilo`` driver provides enhanced security by passing authtoken
-  and management information to and from swift endpoint over HTTPS.  The
-  management information and deploy ramdisk will be retrieved over encrypted
-  management network via iLO.
+  the bare metal node.  However, if swift proxy server and glance have HTTPS
+  endpoints (See :ref:`EnableHTTPSinSwift`, :ref:`EnableHTTPSinGlance` for more
+  information), the ``agent_ilo`` driver provides enhanced security by
+  exchanging authtoken and management information with swift and glance
+  endpoints over HTTPS.  The management information and deploy ramdisk will be
+  retrieved over encrypted management network via iLO.
 
 Tested Platforms
 ~~~~~~~~~~~~~~~~
