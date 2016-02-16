@@ -661,6 +661,12 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                 self.context, node.uuid)
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.InstanceDeployFailure, exc.exc_info[0])
+        # Check the message of InstanceDeployFailure. In a
+        # messaging.rpc.ExpectedException sys.exc_info() is stored in exc_info
+        # in the exception object. So InstanceDeployFailure will be in
+        # exc_info[1]
+        self.assertIn(r'node 1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                      str(exc.exc_info[1]))
         # This is a sync operation last_error should be None.
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
