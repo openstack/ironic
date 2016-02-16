@@ -619,6 +619,15 @@ function wait_for_nova_resources {
     die $LINENO "Timed out waiting for Nova hypervisor-stats $resource >= $expected_count"
 }
 
+function _clean_ncpu_failure {
+    SCREEN_NAME=${SCREEN_NAME:-stack}
+    SERVICE_DIR=${SERVICE_DIR:-${DEST}/status}
+    n_cpu_failure="$SERVICE_DIR/$SCREEN_NAME/n-cpu.failure"
+    if [ -f ${n_cpu_failure} ]; then
+        mv ${n_cpu_failure} "${n_cpu_failure}.before-restart-by-ironic"
+    fi
+}
+
 function enroll_nodes {
     local chassis_id
     chassis_id=$(ironic chassis-create -d "ironic test chassis" | grep " uuid " | get_field 2)
@@ -707,7 +716,10 @@ function enroll_nodes {
         # NOTE(dtantsur): sometimes nova compute fails to start with ironic due
         # to keystone restarting and not being able to authenticate us.
         # Restart it just to be sure (and avoid gate problems like bug 1537076)
-        stop_nova_compute
+        stop_nova_compute || /bin/true
+        # NOTE(pas-ha) if nova compute failed before restart, .failure file
+        # that was created will fail the service_check in the end of the deployment
+        _clean_ncpu_failure
         start_nova_compute
         wait_for_nova_resources "count" $total_nodes
         wait_for_nova_resources "vcpus" $total_cpus
