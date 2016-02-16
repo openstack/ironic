@@ -15,7 +15,6 @@
 Vendor Interface for iLO drivers and its supporting methods.
 """
 
-from oslo_config import cfg
 from oslo_log import log as logging
 
 from ironic.common import exception
@@ -30,8 +29,6 @@ from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules import iscsi_deploy
 
 LOG = logging.getLogger(__name__)
-
-CONF = cfg.CONF
 
 
 class IloVirtualMediaAgentVendorInterface(agent.AgentVendorInterface):

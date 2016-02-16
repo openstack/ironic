@@ -15,7 +15,6 @@
 """Test class for Management Interface used by iLO modules."""
 
 import mock
-from oslo_config import cfg
 from oslo_utils import importutils
 
 from ironic.common import boot_devices
@@ -32,7 +31,6 @@ from ironic.tests.unit.objects import utils as obj_utils
 ilo_error = importutils.try_import('proliantutils.exception')
 
 INFO_DICT = db_utils.get_test_ilo_info()
-CONF = cfg.CONF
 
 
 class IloManagementTestCase(db_base.DbTestCase):

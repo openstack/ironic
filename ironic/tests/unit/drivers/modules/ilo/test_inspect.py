@@ -16,7 +16,6 @@
 """Test class for Management Interface used by iLO modules."""
 
 import mock
-from oslo_config import cfg
 import six
 
 from ironic.common import exception
@@ -35,7 +34,6 @@ from ironic.tests.unit.objects import utils as obj_utils
 
 
 INFO_DICT = db_utils.get_test_ilo_info()
-CONF = cfg.CONF
 
 
 class IloInspectTestCase(db_base.DbTestCase):

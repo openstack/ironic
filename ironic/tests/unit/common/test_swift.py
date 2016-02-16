@@ -13,7 +13,6 @@
 # under the License.
 
 import mock
-from oslo_config import cfg
 import six
 from six.moves import builtins as __builtin__
 from six.moves import http_client
@@ -25,7 +24,6 @@ from ironic.common import exception
 from ironic.common import swift
 from ironic.tests import base
 
-CONF = cfg.CONF
 
 if six.PY3:
     import io

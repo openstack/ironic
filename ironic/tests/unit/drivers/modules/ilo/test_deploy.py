@@ -16,7 +16,6 @@
 """Test class for deploy methods used by iLO modules."""
 
 import mock
-from oslo_config import cfg
 import six
 
 from ironic.common import boot_devices
@@ -41,7 +40,6 @@ if six.PY3:
     file = io.BytesIO
 
 INFO_DICT = db_utils.get_test_ilo_info()
-CONF = cfg.CONF
 
 
 class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):

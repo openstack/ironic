@@ -17,7 +17,7 @@ Test class for iRMC Power Driver
 """
 
 import mock
-from oslo_config import cfg
+
 from oslo_utils import uuidutils
 
 from ironic.common import exception
@@ -32,7 +32,6 @@ from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 INFO_DICT = db_utils.get_test_irmc_info()
-CONF = cfg.CONF
 
 
 @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,

@@ -15,7 +15,6 @@
 """
 iRMC Power Driver using the Base Server Profile
 """
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 
@@ -31,8 +30,6 @@ from ironic.drivers.modules.irmc import common as irmc_common
 
 
 scci = importutils.try_import('scciclient.irmc.scci')
-
-CONF = cfg.CONF
 
 LOG = logging.getLogger(__name__)
 

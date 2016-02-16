@@ -16,7 +16,6 @@
 """Test class for vendor methods used by iLO modules."""
 
 import mock
-from oslo_config import cfg
 
 from ironic.common import exception
 from ironic.common import states
@@ -34,7 +33,6 @@ from ironic.tests.unit.objects import utils as obj_utils
 
 
 INFO_DICT = db_utils.get_test_ilo_info()
-CONF = cfg.CONF
 
 
 class VendorPassthruTestCase(db_base.DbTestCase):

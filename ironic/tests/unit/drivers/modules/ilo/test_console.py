@@ -16,7 +16,6 @@
 """Test class for common methods used by iLO modules."""
 
 import mock
-from oslo_config import cfg
 import six
 
 from ironic.common import exception
@@ -34,7 +33,6 @@ if six.PY3:
     file = io.BytesIO
 
 INFO_DICT = db_utils.get_test_ilo_info()
-CONF = cfg.CONF
 
 
 class IloConsoleInterfaceTestCase(db_base.DbTestCase):

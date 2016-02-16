@@ -16,7 +16,6 @@ Test class for AMT ManagementInterface
 """
 
 import mock
-from oslo_config import cfg
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -33,7 +32,6 @@ from ironic.tests.unit.drivers import third_party_driver_mock_specs \
 from ironic.tests.unit.objects import utils as obj_utils
 
 INFO_DICT = db_utils.get_test_amt_info()
-CONF = cfg.CONF
 
 
 @mock.patch.object(amt_common, 'pywsman', spec_set=mock_specs.PYWSMAN_SPEC)

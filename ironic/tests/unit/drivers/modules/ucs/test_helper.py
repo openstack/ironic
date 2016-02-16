@@ -15,7 +15,6 @@
 """Test class for common methods used by UCS modules."""
 
 import mock
-from oslo_config import cfg
 from oslo_utils import importutils
 
 from ironic.common import exception
@@ -30,7 +29,6 @@ from ironic.tests.unit.objects import utils as obj_utils
 ucs_error = importutils.try_import('UcsSdk.utils.exception')
 
 INFO_DICT = db_utils.get_test_ucs_info()
-CONF = cfg.CONF
 
 
 class UcsValidateParametersTestCase(db_base.DbTestCase):

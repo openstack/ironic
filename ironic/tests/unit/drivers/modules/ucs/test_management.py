@@ -17,7 +17,6 @@ Test class for UCS ManagementInterface
 """
 
 import mock
-from oslo_config import cfg
 from oslo_utils import importutils
 
 from ironic.common import boot_devices
@@ -33,7 +32,6 @@ from ironic.tests.unit.objects import utils as obj_utils
 ucs_error = importutils.try_import('UcsSdk.utils.exception')
 
 INFO_DICT = db_utils.get_test_ucs_info()
-CONF = cfg.CONF
 
 
 class UcsManagementTestCase(db_base.DbTestCase):
