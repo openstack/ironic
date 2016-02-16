@@ -683,11 +683,12 @@
 # unlimited. (integer value)
 #inspect_timeout=1800
 
-# Cleaning is a configurable set of steps, such as erasing
-# disk drives, that are performed on the node to ensure it is
-# in a baseline state and ready to be deployed to. This is
-# done after instance deletion, and during the transition from
-# a "managed" to "available" state. When enabled, the
+# Enables or disables automated cleaning. Automated cleaning
+# is a configurable set of steps, such as erasing disk drives,
+# that are performed on the node to ensure it is in a baseline
+# state and ready to be deployed to. This is done after
+# instance deletion as well as during the transition from a
+# "manageable" to "available" state. When enabled, the
 # particular steps performed to clean a node depend on which
 # driver that node is managed by; see the individual driver's
 # documentation for details. NOTE: The introduction of the
@@ -695,7 +696,8 @@
 # significantly longer. In an environment where all tenants
 # are trusted (eg, because there is only one tenant), this
 # option could be safely disabled. (boolean value)
-#clean_nodes=true
+# Deprecated group/name - [conductor]/clean_nodes
+#automated_clean=true
 
 # Timeout (seconds) to wait for a callback from the ramdisk
 # doing the cleaning. If the timeout is reached the node will

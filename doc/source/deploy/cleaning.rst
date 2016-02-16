@@ -28,7 +28,7 @@ Enabling cleaning
 To enable cleaning, ensure your ironic.conf is set as follows: ::
 
   [conductor]
-  clean_nodes=true
+  automated_clean=true
 
 This will enable the default set of steps, based on your hardware and ironic
 drivers. If you're using an agent_* driver, this includes, by default, erasing

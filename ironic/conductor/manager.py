@@ -151,14 +151,18 @@ conductor_opts = [
                default=1800,
                help=_('Timeout (seconds) for waiting for node inspection. '
                       '0 - unlimited.')),
-    cfg.BoolOpt('clean_nodes',
+    # TODO(rloo): Remove support for deprecated name 'clean_nodes' in Newton
+    #             cycle.
+    cfg.BoolOpt('automated_clean',
                 default=True,
-                help=_('Cleaning is a configurable set of steps, such as '
-                       'erasing disk drives, that are performed on the node '
-                       'to ensure it is in a baseline state and ready to be '
-                       'deployed to. '
-                       'This is done after instance deletion, and during '
-                       'the transition from a "managed" to "available" '
+                deprecated_name='clean_nodes',
+                help=_('Enables or disables automated cleaning. Automated '
+                       'cleaning is a configurable set of steps, '
+                       'such as erasing disk drives, that are performed on '
+                       'the node to ensure it is in a baseline state and '
+                       'ready to be deployed to. This is '
+                       'done after instance deletion as well as during '
+                       'the transition from a "manageable" to "available" '
                        'state. When enabled, the particular steps '
                        'performed to clean a node depend on which driver '
                        'that node is managed by; see the individual '
@@ -859,7 +863,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         LOG.debug('Starting %(type)s cleaning for node %(node)s',
                   {'type': clean_type, 'node': node.uuid})
 
-        if not manual_clean and not CONF.conductor.clean_nodes:
+        if not manual_clean and not CONF.conductor.automated_clean:
             # Skip cleaning, move to AVAILABLE.
             node.clean_step = None
             node.save()
