@@ -131,3 +131,35 @@ Object Versions
    signatures of remotable methods, which helps developers to check if the change of
    objects need a version bump. The object fingerprint should only be updated with a
    version bump.
+
+Driver Internal Info
+====================
+The ``driver_internal_info`` node field was introduced in the Kilo release. It allows
+driver developers to store internal information that can not be modified by end users.
+Here is the list of existing common and agent driver attributes:
+
+Common attributes:
+  * ``is_whole_disk_image``: A Boolean value to indicate whether the user image contains ramdisk/kernel.
+  * ``clean_steps``: An ordered list of clean steps that will be performed on the node.
+  * ``instance``: A list of dictionaries containing the disk layout values.
+  * ``root_uuid_or_disk_id``: A String value of the bare metal node's root partition uuid or disk id.
+  * ``persistent_boot_device``: A String value of device from ``ironic.common.boot_devices``.
+  * ``is_next_boot_persistent``: A Boolean value to indicate whether the next boot device is
+    ``persistent_boot_device``.
+
+Agent driver attributes:
+  * ``agent_url``: A String value of IPA API URL so that Ironic can talk to IPA ramdisk.
+  * ``agent_last_heartbeat``: An Integer value of the last agent heartbeat time.
+  * ``hardware_manager_version``: A String value of the version of the hardware manager in IPA ramdisk.
+  * ``target_raid_config``: A Dictionary containing the target RAID configuration. This is a copy of
+    the same name attribute in Node object. But this one is never actually saved into DB and is only
+    read by IPA ramdisk.
+
+.. note::
+
+    These are only some fields in use. Other vendor drivers might expose more ``driver_internal_info``
+    properties, please check their development documentation and/or module docstring for details.
+    It is important for developers to make sure these properties follow the precedent of prefixing their
+    variable names with a specific interface name(e.g., iboot_bar, amt_xyz), so as to minimize or avoid
+    any conflicts between interfaces.
+
