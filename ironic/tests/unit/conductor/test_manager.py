@@ -2886,6 +2886,92 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin,
         portgroup.refresh()
         self.assertEqual(old_extra, portgroup.extra)
 
+    def test_update_portgroup_to_node_in_deleting_state(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=node.id,
+                                                    extra={'foo': 'bar'})
+        update_node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.DELETING,
+            uuid=uuidutils.generate_uuid())
+
+        old_node_id = portgroup.node_id
+        portgroup.node_id = update_node.id
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_portgroup,
+                                self.context, portgroup)
+        self.assertEqual(exception.InvalidState, exc.exc_info[0])
+        portgroup.refresh()
+        self.assertEqual(old_node_id, portgroup.node_id)
+
+    @mock.patch.object(dbapi.IMPL, 'get_ports_by_portgroup_id')
+    def test_update_portgroup_to_node_in_manageable_state(self,
+                                                          mock_get_ports):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=node.id,
+                                                    extra={'foo': 'bar'})
+        update_node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.MANAGEABLE,
+            uuid=uuidutils.generate_uuid())
+        mock_get_ports.return_value = []
+
+        self._start_service()
+
+        portgroup.node_id = update_node.id
+        self.service.update_portgroup(self.context, portgroup)
+        portgroup.refresh()
+        self.assertEqual(update_node.id, portgroup.node_id)
+        mock_get_ports.assert_called_once_with(portgroup.uuid)
+
+    @mock.patch.object(dbapi.IMPL, 'get_ports_by_portgroup_id')
+    def test_update_portgroup_to_node_in_active_state_and_maintenance(
+            self, mock_get_ports):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=node.id,
+                                                    extra={'foo': 'bar'})
+        update_node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.ACTIVE,
+            maintenance=True,
+            uuid=uuidutils.generate_uuid())
+        mock_get_ports.return_value = []
+
+        self._start_service()
+
+        portgroup.node_id = update_node.id
+        self.service.update_portgroup(self.context, portgroup)
+        portgroup.refresh()
+        self.assertEqual(update_node.id, portgroup.node_id)
+        mock_get_ports.assert_called_once_with(portgroup.uuid)
+
+    @mock.patch.object(dbapi.IMPL, 'get_ports_by_portgroup_id')
+    def test_update_portgroup_association_with_ports(self, mock_get_ports):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=node.id,
+                                                    extra={'foo': 'bar'})
+        update_node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            maintenance=True,
+            uuid=uuidutils.generate_uuid())
+        mock_get_ports.return_value = ['test_port']
+
+        self._start_service()
+
+        old_node_id = portgroup.node_id
+        portgroup.node_id = update_node.id
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_portgroup,
+                                self.context, portgroup)
+        self.assertEqual(exception.PortgroupNotEmpty, exc.exc_info[0])
+        portgroup.refresh()
+        self.assertEqual(old_node_id, portgroup.node_id)
+        mock_get_ports.assert_called_once_with(portgroup.uuid)
+
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
     def test_update_portgroup_address(self, mac_update_mock):
         node = obj_utils.create_test_node(self.context, driver='fake')
