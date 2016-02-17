@@ -16,12 +16,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
+import collections
 import time
 
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import excutils
+from oslo_utils import timeutils
 import retrying
 
 from ironic.common import boot_devices
@@ -215,6 +216,62 @@ class BaseAgentVendor(base.VendorInterface):
         task.release_resources()
         rpc.continue_node_clean(task.context, uuid, topic=topic)
 
+    def _refresh_clean_steps(self, task):
+        """Refresh the node's cached clean steps from the booted agent.
+
+        Gets the node's clean steps from the booted agent and caches them.
+        The steps are cached to make get_clean_steps() calls synchronous, and
+        should be refreshed as soon as the agent boots to start cleaning or
+        if cleaning is restarted because of a cleaning version mismatch.
+
+        :param task: a TaskManager instance
+        :raises: NodeCleaningFailure if the agent returns invalid results
+        """
+        node = task.node
+        previous_steps = node.driver_internal_info.get(
+            'agent_cached_clean_steps')
+        LOG.debug('Refreshing agent clean step cache for node %(node)s. '
+                  'Previously cached steps: %(steps)s',
+                  {'node': node.uuid, 'steps': previous_steps})
+
+        agent_result = self._client.get_clean_steps(node, task.ports).get(
+            'command_result', {})
+        missing = set(['clean_steps', 'hardware_manager_version']).difference(
+            agent_result)
+        if missing:
+            raise exception.NodeCleaningFailure(_(
+                'agent get_clean_steps for node %(node)s returned an invalid '
+                'result. Keys: %(keys)s are missing from result: %(result)s.')
+                % ({'node': node.uuid, 'keys': missing,
+                    'result': agent_result}))
+
+        # agent_result['clean_steps'] looks like
+        # {'HardwareManager': [{step1},{steps2}...], ...}
+        steps = collections.defaultdict(list)
+        for step_list in agent_result['clean_steps'].values():
+            for step in step_list:
+                missing = set(['interface', 'step', 'priority']).difference(
+                    step)
+                if missing:
+                    raise exception.NodeCleaningFailure(_(
+                        'agent get_clean_steps for node %(node)s returned an '
+                        'invalid clean step. Keys: %(keys)s are missing from '
+                        'step: %(step)s.') % ({'node': node.uuid,
+                                               'keys': missing, 'step': step}))
+
+                steps[step['interface']].append(step)
+
+        # Save hardware manager version, steps, and date
+        info = node.driver_internal_info
+        info['hardware_manager_version'] = agent_result[
+            'hardware_manager_version']
+        info['agent_cached_clean_steps'] = dict(steps)
+        info['agent_cached_clean_steps_refreshed'] = str(timeutils.utcnow())
+        node.driver_internal_info = info
+        node.save()
+        LOG.debug('Refreshed agent clean step cache for node %(node)s: '
+                  '%(steps)s', {'node': node.uuid, 'steps': steps})
+
     def continue_cleaning(self, task, **kwargs):
         """Start the next cleaning step if the previous one is complete.
 
@@ -249,6 +306,16 @@ class BaseAgentVendor(base.VendorInterface):
             LOG.error(msg)
             return manager_utils.cleaning_error_handler(task, msg)
         elif command.get('command_status') == 'CLEAN_VERSION_MISMATCH':
+            # Cache the new clean steps (and 'hardware_manager_version')
+            try:
+                self._refresh_clean_steps(task)
+            except exception.NodeCleaningFailure as e:
+                msg = (_('Could not continue cleaning on node '
+                         '%(node)s: %(err)s.') %
+                       {'node': node.uuid, 'err': e})
+                LOG.exception(msg)
+                return manager_utils.cleaning_error_handler(task, msg)
+
             if manual_clean:
                 # Don't restart manual cleaning if agent reboots to a new
                 # version. Both are operator actions, unlike automated
@@ -259,27 +326,7 @@ class BaseAgentVendor(base.VendorInterface):
                              'continuing from current step %(step)s.'),
                          {'node': node.uuid, 'step': node.clean_step})
 
-                result = self._client.get_clean_steps(
-                    task.node, task.ports).get('command_result')
-
-                required_keys = ('clean_steps', 'hardware_manager_version')
-                missing_keys = [key for key in required_keys
-                                if key not in result]
-                if missing_keys:
-                    msg = (_('Could not continue manual cleaning from step '
-                             '%(step)s on node %(node)s. get_clean_steps '
-                             'returned invalid result. The keys %(keys)s are '
-                             'missing from result %(result)s.') %
-                           {'node': node.uuid,
-                            'step': node.clean_step,
-                            'keys': missing_keys,
-                            'result': result})
-                    LOG.error(msg)
-                    return manager_utils.cleaning_error_handler(task, msg)
-
                 driver_internal_info = node.driver_internal_info
-                driver_internal_info['hardware_manager_version'] = result[
-                    'hardware_manager_version']
                 driver_internal_info['skip_current_clean_step'] = False
                 node.driver_internal_info = driver_internal_info
                 node.save()
@@ -397,6 +444,9 @@ class BaseAgentVendor(base.VendorInterface):
                                   node.uuid)
                         msg = _('Node failed to start the first cleaning '
                                 'step.')
+                        # First, cache the clean steps
+                        self._refresh_clean_steps(task)
+                        # Then set/verify node clean steps and start cleaning
                         manager_utils.set_node_cleaning_steps(task)
                         self.notify_conductor_resume_clean(task)
                     else:
