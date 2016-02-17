@@ -434,7 +434,7 @@ class NodeCleaningStepsTestCase(base.DbTestCase):
             conductor_utils.set_node_cleaning_steps(task)
             node.refresh()
             self.assertEqual(self.clean_steps,
-                             task.node.driver_internal_info['clean_steps'])
+                             node.driver_internal_info['clean_steps'])
             self.assertEqual({}, node.clean_step)
             mock_steps.assert_called_once_with(task, enabled=True)
             self.assertFalse(mock_validate_user_steps.called)
@@ -459,7 +459,7 @@ class NodeCleaningStepsTestCase(base.DbTestCase):
             conductor_utils.set_node_cleaning_steps(task)
             node.refresh()
             self.assertEqual(clean_steps,
-                             task.node.driver_internal_info['clean_steps'])
+                             node.driver_internal_info['clean_steps'])
             self.assertEqual({}, node.clean_step)
             self.assertFalse(mock_steps.called)
             mock_validate_user_steps.assert_called_once_with(task, clean_steps)
@@ -571,10 +571,12 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.node.provision_state = states.CLEANING
         target = 'baz'
         self.node.target_provision_state = target
+        self.node.driver_internal_info = {}
         msg = 'error bar'
         conductor_utils.cleaning_error_handler(self.task, msg)
         self.node.save.assert_called_once_with()
         self.assertEqual({}, self.node.clean_step)
+        self.assertFalse('clean_step_index' in self.node.driver_internal_info)
         self.assertEqual(msg, self.node.last_error)
         self.assertTrue(self.node.maintenance)
         self.assertEqual(msg, self.node.maintenance_reason)

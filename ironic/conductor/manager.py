@@ -654,43 +654,67 @@ class ConductorManager(base_manager.BaseConductorManager):
     def _get_node_next_clean_steps(self, task, skip_current_step=True):
         """Get the task's node's next clean steps.
 
-        This returns the list of remaining (ordered) clean steps to be done
-        on the node. If no clean steps have been started yet, all the clean
-        steps are returned. Otherwise, the clean steps after the current
-        clean step are returned. The current clean step is also returned if
-        'skip_current_step' is False.
+        This determines what the next (remaining) clean steps are, and
+        returns the index into the clean steps list that corresponds to the
+        next clean step. The remaining clean steps are determined as follows:
+
+        * If no clean steps have been started yet, all the clean steps
+          must be executed
+        * If skip_current_step is False, the remaining clean steps start
+          with the current clean step. Otherwise, the remaining clean steps
+          start with the clean step after the current one.
+
+        All the clean steps for an automated or manual cleaning are in
+        node.driver_internal_info['clean_steps']. node.clean_step is the
+        current clean step that was just executed (or None, {} if no steps
+        have been executed yet). node.driver_internal_info['clean_step_index']
+        is the index into the clean steps list (or None, doesn't exist if no
+        steps have been executed yet) and corresponds to node.clean_step.
 
         :param task: A TaskManager object
         :param skip_current_step: True to skip the current clean step; False to
                                   include it.
         :raises: NodeCleaningFailure if an internal error occurred when
                  getting the next clean steps
-        :returns: ordered list of clean step dictionaries
+        :returns: index of the next clean step; None if there are no clean
+                  steps to execute.
 
         """
         node = task.node
-        next_steps = node.driver_internal_info.get('clean_steps', [])
         if not node.clean_step:
-            # first time through, return all steps
-            return next_steps
+            # first time through, all steps need to be done. Return the
+            # index of the first step in the list.
+            return 0
 
-        try:
-            # Trim off all previous steps up to (and maybe including) the
-            # current clean step.
-            ind = next_steps.index(node.clean_step)
-            if skip_current_step:
-                ind += 1
-            next_steps = next_steps[ind:]
-        except ValueError:
-            msg = (_('Node %(node)s got an invalid last step for '
-                     '%(state)s: %(step)s.') %
-                   {'node': node.uuid, 'step': node.clean_step,
-                    'state': node.provision_state})
-            LOG.exception(msg)
-            utils.cleaning_error_handler(task, msg)
-            raise exception.NodeCleaningFailure(node=node.uuid,
-                                                reason=msg)
-        return next_steps
+        ind = None
+        if 'clean_step_index' in node.driver_internal_info:
+            ind = node.driver_internal_info['clean_step_index']
+        else:
+            # TODO(rloo). driver_internal_info['clean_step_index'] was
+            # added in Mitaka. We need to maintain backwards compatibility
+            # so this uses the original code to get the index of the current
+            # step. This will be deleted in the Newton cycle.
+            try:
+                next_steps = node.driver_internal_info['clean_steps']
+                ind = next_steps.index(node.clean_step)
+            except (KeyError, ValueError):
+                msg = (_('Node %(node)s got an invalid last step for '
+                         '%(state)s: %(step)s.') %
+                       {'node': node.uuid, 'step': node.clean_step,
+                        'state': node.provision_state})
+                LOG.exception(msg)
+                utils.cleaning_error_handler(task, msg)
+                raise exception.NodeCleaningFailure(node=node.uuid,
+                                                    reason=msg)
+        if ind is None:
+            return None
+
+        if skip_current_step:
+            ind += 1
+        if ind >= len(node.driver_internal_info['clean_steps']):
+            # no steps left to do
+            ind = None
+        return ind
 
     @messaging.expected_exceptions(exception.InvalidParameterValue,
                                    exception.InvalidStateRequested,
@@ -778,7 +802,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         LOG.debug("RPC continue_node_clean called for node %s.", node_id)
 
         with task_manager.acquire(context, node_id, shared=False,
-                                  purpose='node cleaning') as task:
+                                  purpose='continue node cleaning') as task:
             node = task.node
             if node.target_provision_state == states.MANAGEABLE:
                 target_state = states.MANAGEABLE
@@ -807,7 +831,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 node.driver_internal_info = info
                 node.save()
 
-            next_steps = self._get_node_next_clean_steps(
+            next_step_index = self._get_node_next_clean_steps(
                 task, skip_current_step=skip_current_step)
 
             # If this isn't the final clean step in the cleaning operation
@@ -815,7 +839,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             # finished, we abort the cleaning operation.
             if node.clean_step.get('abort_after'):
                 step_name = node.clean_step['step']
-                if next_steps:
+                if next_step_index is not None:
                     LOG.debug('The cleaning operation for node %(node)s was '
                               'marked to be aborted after step "%(step)s '
                               'completed. Aborting now that it has completed.',
@@ -847,7 +871,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             task.spawn_after(
                 self._spawn_worker,
                 self._do_next_clean_step,
-                task, next_steps)
+                task, next_step_index)
 
     def _do_node_clean(self, task, clean_steps=None):
         """Internal RPC method to perform cleaning of a node.
@@ -886,7 +910,6 @@ class ConductorManager(base_manager.BaseConductorManager):
             return utils.cleaning_error_handler(task, msg)
 
         if manual_clean:
-            node.clean_step = {}
             info = node.driver_internal_info
             info['clean_steps'] = clean_steps
             node.driver_internal_info = info
@@ -929,32 +952,41 @@ class ConductorManager(base_manager.BaseConductorManager):
                    % {'node': node.uuid, 'msg': e})
             return utils.cleaning_error_handler(task, msg)
 
-        self._do_next_clean_step(
-            task,
-            node.driver_internal_info.get('clean_steps', []))
+        steps = node.driver_internal_info.get('clean_steps', [])
+        step_index = 0 if steps else None
+        self._do_next_clean_step(task, step_index)
 
-    def _do_next_clean_step(self, task, steps):
-        """Start executing cleaning steps.
+    def _do_next_clean_step(self, task, step_index):
+        """Do cleaning, starting from the specified clean step.
 
         :param task: a TaskManager instance with an exclusive lock
-        :param steps: The ordered list of remaining steps that need to be
-                      executed on the node. A step is a dictionary with
-                      required keys 'interface' and 'step'. 'args' is an
-                      optional key.
+        :param step_index: The first clean step in the list to execute. This
+            is the index (from 0) into the list of clean steps in the node's
+            driver_internal_info['clean_steps']. Is None if there are no steps
+            to execute.
         """
         node = task.node
         # For manual cleaning, the target provision state is MANAGEABLE,
         # whereas for automated cleaning, it is AVAILABLE.
         manual_clean = node.target_provision_state == states.MANAGEABLE
 
+        driver_internal_info = node.driver_internal_info
+        if step_index is None:
+            steps = []
+        else:
+            steps = driver_internal_info['clean_steps'][step_index:]
+
         LOG.info(_LI('Executing %(state)s on node %(node)s, remaining steps: '
                      '%(steps)s'), {'node': node.uuid, 'steps': steps,
                                     'state': node.provision_state})
+
         # Execute each step until we hit an async step or run out of steps
-        for step in steps:
+        for ind, step in enumerate(steps):
             # Save which step we're about to start so we can restart
             # if necessary
             node.clean_step = step
+            driver_internal_info['clean_step_index'] = step_index + ind
+            node.driver_internal_info = driver_internal_info
             node.save()
             interface = getattr(task.driver, step.get('interface'))
             LOG.info(_LI('Executing %(step)s on node %(node)s'),
@@ -1001,8 +1033,8 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         # Clear clean_step
         node.clean_step = None
-        driver_internal_info = node.driver_internal_info
         driver_internal_info['clean_steps'] = None
+        driver_internal_info.pop('clean_step_index', None)
         node.driver_internal_info = driver_internal_info
         node.save()
         try:

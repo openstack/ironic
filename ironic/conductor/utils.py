@@ -204,22 +204,26 @@ def provisioning_error_handler(e, node, provision_state,
 def cleaning_error_handler(task, msg, tear_down_cleaning=True,
                            set_fail_state=True):
     """Put a failed node in CLEANFAIL and maintenance."""
-    # Reset clean step, msg should include current step
-    if task.node.provision_state in (states.CLEANING, states.CLEANWAIT):
-        task.node.clean_step = {}
+    node = task.node
+    if node.provision_state in (states.CLEANING, states.CLEANWAIT):
+        # Clear clean step, msg should already include current step
+        node.clean_step = {}
+        info = node.driver_internal_info
+        info.pop('clean_step_index', None)
+        node.driver_internal_info = info
     # For manual cleaning, the target provision state is MANAGEABLE, whereas
     # for automated cleaning, it is AVAILABLE.
-    manual_clean = task.node.target_provision_state == states.MANAGEABLE
-    task.node.last_error = msg
-    task.node.maintenance = True
-    task.node.maintenance_reason = msg
-    task.node.save()
+    manual_clean = node.target_provision_state == states.MANAGEABLE
+    node.last_error = msg
+    node.maintenance = True
+    node.maintenance_reason = msg
+    node.save()
     if tear_down_cleaning:
         try:
             task.driver.deploy.tear_down_cleaning(task)
         except Exception as e:
             msg = (_LE('Failed to tear down cleaning on node %(uuid)s, '
-                       'reason: %(err)s'), {'err': e, 'uuid': task.node.uuid})
+                       'reason: %(err)s'), {'err': e, 'uuid': node.uuid})
             LOG.exception(msg)
 
     if set_fail_state:
@@ -307,16 +311,16 @@ def set_node_cleaning_steps(task):
              clean steps.
     """
     node = task.node
+    driver_internal_info = node.driver_internal_info
+
     # For manual cleaning, the target provision state is MANAGEABLE, whereas
     # for automated cleaning, it is AVAILABLE.
     manual_clean = node.target_provision_state == states.MANAGEABLE
 
     if not manual_clean:
         # Get the prioritized steps for automated cleaning
-        driver_internal_info = node.driver_internal_info
         driver_internal_info['clean_steps'] = _get_cleaning_steps(task,
                                                                   enabled=True)
-        node.driver_internal_info = driver_internal_info
     else:
         # For manual cleaning, the list of cleaning steps was specified by the
         # user and already saved in node.driver_internal_info['clean_steps'].
@@ -326,6 +330,8 @@ def set_node_cleaning_steps(task):
         _validate_user_clean_steps(task, steps)
 
     node.clean_step = {}
+    driver_internal_info['clean_step_index'] = None
+    node.driver_internal_info = driver_internal_info
     node.save()
 
 
