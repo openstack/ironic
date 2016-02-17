@@ -406,8 +406,8 @@ function configure_ironic_conductor {
         iniset $IRONIC_CONF_FILE pxe ipxe_enabled True
         iniset $IRONIC_CONF_FILE pxe pxe_config_template '\$pybasedir/drivers/modules/ipxe_config.template'
         iniset $IRONIC_CONF_FILE pxe pxe_bootfile_name $pxebin
-        iniset $IRONIC_CONF_FILE pxe http_root $IRONIC_HTTP_DIR
-        iniset $IRONIC_CONF_FILE pxe http_url "http://$IRONIC_HTTP_SERVER:$IRONIC_HTTP_PORT"
+        iniset $IRONIC_CONF_FILE deploy http_root $IRONIC_HTTP_DIR
+        iniset $IRONIC_CONF_FILE deploy http_url "http://$IRONIC_HTTP_SERVER:$IRONIC_HTTP_PORT"
     fi
 }
 
