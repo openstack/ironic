@@ -1733,8 +1733,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                      states.INSPECTING,
                                      states.MANAGEABLE]
             if (set(port_obj.obj_what_changed()) & connectivity_attr
-                    and not (task.node.provision_state in allowed_update_states
-                             or task.node.maintenance)):
+                    and not (node.provision_state in allowed_update_states
+                             or node.maintenance)):
                 action = _("Port %(port)s can not have any connectivity "
                            "attributes (%(connect)s) updated unless "
                            "node %(node)s is in a %(allowed)s state "
@@ -1742,7 +1742,7 @@ class ConductorManager(base_manager.BaseConductorManager):
 
                 raise exception.InvalidState(
                     action % {'port': port_uuid,
-                              'node': task.node.uuid,
+                              'node': node.uuid,
                               'connect': ', '.join(connectivity_attr),
                               'allowed': ', '.join(allowed_update_states)})
 
