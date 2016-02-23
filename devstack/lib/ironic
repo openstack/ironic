@@ -322,7 +322,7 @@ function configure_ironic_api {
     iniset $IRONIC_CONF_FILE keystone_authtoken auth_uri $KEYSTONE_SERVICE_URI/v2.0
     iniset $IRONIC_CONF_FILE keystone_authtoken admin_user ironic
     iniset $IRONIC_CONF_FILE keystone_authtoken admin_password $SERVICE_PASSWORD
-    iniset $IRONIC_CONF_FILE keystone_authtoken admin_tenant_name $SERVICE_TENANT_NAME
+    iniset $IRONIC_CONF_FILE keystone_authtoken admin_tenant_name $SERVICE_PROJECT_NAME
     iniset $IRONIC_CONF_FILE keystone_authtoken cafile $SSL_BUNDLE_FILE
     iniset $IRONIC_CONF_FILE keystone_authtoken signing_dir $IRONIC_AUTH_CACHE_DIR/api
 
@@ -388,7 +388,7 @@ function configure_ironic_conductor {
         iniset $IRONIC_CONF_FILE glance swift_endpoint_url http://${HOST_IP}:${SWIFT_DEFAULT_BIND_PORT:-8080}
         iniset $IRONIC_CONF_FILE glance swift_api_version v1
         local tenant_id
-        tenant_id=$(get_or_create_project $SERVICE_TENANT_NAME default)
+        tenant_id=$(get_or_create_project $SERVICE_PROJECT_NAME default)
         iniset $IRONIC_CONF_FILE glance swift_account AUTH_${tenant_id}
         iniset $IRONIC_CONF_FILE glance swift_container glance
         iniset $IRONIC_CONF_FILE glance swift_temp_url_duration 3600
