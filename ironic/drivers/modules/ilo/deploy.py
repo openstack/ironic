@@ -690,6 +690,11 @@ class IloVirtualMediaAgentDeploy(base.DeployInterface):
 
     def prepare_cleaning(self, task):
         """Boot into the agent to prepare for cleaning."""
+
+        # Powering off the Node before initiating boot for node cleaning.
+        # If node is in system POST, setting boot device fails.
+        manager_utils.node_power_action(task, states.POWER_OFF)
+
         # Create cleaning ports if necessary
         provider = dhcp_factory.DHCPFactory().provider
 

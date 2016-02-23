@@ -1089,11 +1089,14 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
                 spec_set=True, autospec=True)
     @mock.patch.object(ilo_deploy, '_prepare_agent_vmedia_boot', spec_set=True,
                        autospec=True)
-    def test_prepare_cleaning(self, vmedia_boot_mock, create_port_mock,
-                              delete_mock):
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
+    def test_prepare_cleaning(self, power_mock, vmedia_boot_mock,
+                              create_port_mock, delete_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             returned_state = task.driver.deploy.prepare_cleaning(task)
+            power_mock.assert_called_once_with(task, states.POWER_OFF)
             vmedia_boot_mock.assert_called_once_with(task)
             self.assertEqual(states.CLEANWAIT, returned_state)
             create_port_mock.assert_called_once_with(mock.ANY, task)
