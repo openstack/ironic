@@ -24,7 +24,8 @@ esac
 
 BRIDGE=$6
 EMULATOR=$7
-LOGDIR=$8
+VBMC_PORT=$8
+LOGDIR=$9
 
 LIBVIRT_NIC_DRIVER=${LIBVIRT_NIC_DRIVER:-"virtio"}
 LIBVIRT_STORAGE_POOL=${LIBVIRT_STORAGE_POOL:-"default"}
@@ -72,7 +73,14 @@ if ! virsh list --all | grep -q $NAME; then
         --bootdev network --name $NAME --image "$volume_path" \
         --arch $ARCH --cpus $CPU --memory $MEM --libvirt-nic-driver $LIBVIRT_NIC_DRIVER \
         --emulator $EMULATOR --network $BRIDGE $VM_LOGGING >&2
+
+    # Createa Virtual BMC for the node if IPMI is used
+    if [[ $(type -P vbmc) != "" ]]; then
+        vbmc add $NAME --port $VBMC_PORT
+        vbmc start $NAME
+    fi
 fi
 
 # echo mac
-virsh dumpxml $NAME | grep "mac address" | head -1 | cut -d\' -f2
+VM_MAC=$(virsh dumpxml $NAME | grep "mac address" | head -1 | cut -d\' -f2)
+echo $VM_MAC $VBMC_PORT
