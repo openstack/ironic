@@ -42,6 +42,7 @@ from ironic.tests.unit import policy_fixture
 
 
 CONF = cfg.CONF
+CONF.import_opt('host', 'ironic.common.service')
 logging.register_options(CONF)
 logging.setup(CONF, 'ironic')
 
