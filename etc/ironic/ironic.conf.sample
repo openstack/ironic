@@ -1943,6 +1943,10 @@
 # file. (string value)
 #ipxe_boot_script=$pybasedir/drivers/modules/boot.ipxe
 
+# Timeout value (in seconds) for downloading an image via
+# iPXE. Defaults to 0 (no timeout) (integer value)
+#ipxe_timeout=0
+
 # The IP version that will be used for PXE booting. Can be
 # either 4 or 6. Defaults to 4. EXPERIMENTAL (string value)
 #ip_version=4

@@ -81,6 +81,10 @@ pxe_opts = [
                    'drivers/modules/boot.ipxe'),
                help=_('On ironic-conductor node, the path to the main iPXE '
                       'script file.')),
+    cfg.IntOpt('ipxe_timeout',
+               default=0,
+               help=_('Timeout value (in seconds) for downloading an image '
+                      'via iPXE. Defaults to 0 (no timeout)')),
     cfg.StrOpt('ip_version',
                default='4',
                choices=['4', '6'],
@@ -274,7 +278,8 @@ def _build_pxe_config_options(task, pxe_info):
         'pxe_append_params': _get_pxe_conf_option(task, 'pxe_append_params'),
         'tftp_server': CONF.pxe.tftp_server,
         'aki_path': kernel,
-        'ari_path': ramdisk
+        'ari_path': ramdisk,
+        'ipxe_timeout': CONF.pxe.ipxe_timeout * 1000
     }
 
     return pxe_options

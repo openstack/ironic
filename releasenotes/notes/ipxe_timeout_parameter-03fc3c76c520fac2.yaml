@@ -1,0 +1,4 @@
+---
+features:
+  - Add the ability to adjust ipxe timeout during image downloading, default is
+    still unlimited (0).

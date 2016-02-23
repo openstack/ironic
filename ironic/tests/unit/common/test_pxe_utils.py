@@ -45,6 +45,7 @@ class TestPXEUtils(db_base.DbTestCase):
                                    u'f33c123/deploy_ramdisk',
             'root_device': 'vendor=fake,size=123',
             'ipa-api-url': 'http://192.168.122.184:6385',
+            'ipxe_timeout': 0,
         }
 
         self.pxe_options = {
@@ -88,6 +89,11 @@ class TestPXEUtils(db_base.DbTestCase):
             'boot_mode': 'bios',
         }
         self.ipxe_options_bios.update(self.ipxe_options)
+
+        self.ipxe_options_timeout = self.ipxe_options_bios.copy()
+        self.ipxe_options_timeout.update({
+            'ipxe_timeout': 120
+        })
 
         self.ipxe_options_uefi = {
             'boot_mode': 'uefi',
@@ -134,6 +140,25 @@ class TestPXEUtils(db_base.DbTestCase):
 
         expected_template = open(
             'ironic/tests/unit/drivers/ipxe_config.template').read().rstrip()
+
+        self.assertEqual(six.text_type(expected_template), rendered_template)
+
+    def test__build_ipxe_timeout_config(self):
+        # NOTE(lucasagomes): iPXE is just an extension of the PXE driver,
+        # it doesn't have it's own configuration option for template.
+        # More info:
+        # http://docs.openstack.org/developer/ironic/deploy/install-guide.html
+        self.config(
+            pxe_config_template='ironic/drivers/modules/ipxe_config.template',
+            group='pxe'
+        )
+        self.config(http_url='http://1.2.3.4:1234', group='deploy')
+        rendered_template = pxe_utils._build_pxe_config(
+            self.ipxe_options_timeout, CONF.pxe.pxe_config_template,
+            '{{ ROOT }}', '{{ DISK_IDENTIFIER }}')
+
+        tpl_file = 'ironic/tests/unit/drivers/ipxe_config_timeout.template'
+        expected_template = open(tpl_file).read().rstrip()
 
         self.assertEqual(six.text_type(expected_template), rendered_template)
 
