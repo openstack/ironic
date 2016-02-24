@@ -547,6 +547,43 @@ class MigrationCheckersMixin(object):
             self.assertIsInstance(getattr(nodes.c, name).type,
                                   sqlalchemy.types.String)
 
+    def _check_daa1ba02d98(self, engine, data):
+        connectors = db_utils.get_table(engine, 'volume_connectors')
+        col_names = [column.name for column in connectors.c]
+        expected_names = ['created_at', 'updated_at', 'id', 'uuid', 'node_id',
+                          'type', 'connector_id', 'extra']
+        self.assertEqual(sorted(expected_names), sorted(col_names))
+
+        self.assertIsInstance(connectors.c.created_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(connectors.c.updated_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(connectors.c.id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(connectors.c.uuid.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(connectors.c.node_id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(connectors.c.type.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(connectors.c.connector_id.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(connectors.c.extra.type,
+                              sqlalchemy.types.TEXT)
+
+        typestring = 'a' * 32
+        connector_idstring = 'a' * 255
+        uuid = uuidutils.generate_uuid()
+        data = {'uuid': uuid, 'node_id': 1, 'type': typestring,
+                'connector_id': connector_idstring, 'extra': '{}'}
+        connectors.insert().execute(data)
+        connector = connectors.select(
+            connectors.c.uuid == uuid).execute().first()
+        self.assertEqual(typestring, connector['type'])
+        self.assertEqual(connector_idstring, connector['connector_id'])
+        self.assertEqual(1, connector['node_id'])
+        self.assertEqual('{}', connector['extra'])
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

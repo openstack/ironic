@@ -210,3 +210,22 @@ class NodeTag(Base):
         primaryjoin='and_(NodeTag.node_id == Node.id)',
         foreign_keys=node_id
     )
+
+
+class VolumeConnector(Base):
+    """Represents a volume connector of a bare metal node."""
+
+    __tablename__ = 'volume_connectors'
+    __table_args__ = (
+        schema.UniqueConstraint('uuid', name='uniq_volumeconnectors0uuid'),
+        schema.UniqueConstraint(
+            'type',
+            'connector_id',
+            name='uniq_volumeconnectors0type0connector_id'),
+        table_args())
+    id = Column(Integer, primary_key=True)
+    uuid = Column(String(36))
+    node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
+    type = Column(String(32))
+    connector_id = Column(String(255))
+    extra = Column(db_types.JsonEncodedDict)

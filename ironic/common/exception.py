@@ -157,6 +157,15 @@ class DuplicateName(Conflict):
     _msg_fmt = _("A node with name %(name)s already exists.")
 
 
+class VolumeConnectorAlreadyExists(Conflict):
+    _msg_fmt = _("A volume connector with UUID %(uuid)s already exists.")
+
+
+class VolumeConnectorTypeAndIdAlreadyExists(Conflict):
+    _msg_fmt = _("A volume connector with type %(type)s and connector ID "
+                 "%(connector_id)s already exists.")
+
+
 class InvalidUUID(Invalid):
     _msg_fmt = _("Expected a UUID but received %(uuid)s.")
 
@@ -300,6 +309,10 @@ class FailedToUpdateMacOnPort(IronicException):
 
 class ChassisNotFound(NotFound):
     _msg_fmt = _("Chassis %(chassis)s could not be found.")
+
+
+class VolumeConnectorNotFound(NotFound):
+    _msg_fmt = _("Volume connector %(connector)s could not be found.")
 
 
 class NoDriversLoaded(IronicException):

@@ -315,6 +315,37 @@ def create_test_port(**kw):
     return dbapi.create_port(port)
 
 
+def get_test_volume_connector(**kw):
+    return {
+        'id': kw.get('id', 789),
+        'uuid': kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c781'),
+        'node_id': kw.get('node_id', 123),
+        'type': kw.get('type', 'iqn'),
+        'connector_id': kw.get('connector_id',
+                               'iqn.2012-06.com.example:initiator'),
+        'extra': kw.get('extra', {}),
+        'created_at': kw.get('created_at'),
+        'updated_at': kw.get('updated_at'),
+    }
+
+
+def create_test_volume_connector(**kw):
+    """Create test connector entry in DB and return VolumeConnector DB object.
+
+    Function to be used to create test VolumeConnector objects in the database.
+
+    :param kw: kwargs with overriding values for connector's attributes.
+    :returns: Test VolumeConnector DB object.
+
+    """
+    connector = get_test_volume_connector(**kw)
+    # Let DB generate ID if it isn't specified explicitly
+    if 'id' not in kw:
+        del connector['id']
+    dbapi = db_api.get_instance()
+    return dbapi.create_volume_connector(connector)
+
+
 def get_test_chassis(**kw):
     return {
         'id': kw.get('id', 42),
