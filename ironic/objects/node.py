@@ -103,14 +103,6 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         'extra': object_fields.FlexibleDictField(nullable=True),
     }
 
-    @staticmethod
-    def _from_db_object(node, db_node):
-        """Converts a database entity to a formal object."""
-        for field in node.fields:
-            node[field] = db_node[field]
-        node.obj_reset_changes()
-        return node
-
     def _validate_property_values(self, properties):
         """Check if the input of local_gb, cpus and memory_mb are valid.
 

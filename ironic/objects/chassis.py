@@ -41,20 +41,6 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
         'description': object_fields.StringField(nullable=True),
     }
 
-    @staticmethod
-    def _from_db_object(chassis, db_chassis):
-        """Converts a database entity to a formal :class:`Chassis` object.
-
-        :param chassis: An object of :class:`Chassis`.
-        :param db_chassis: A DB model of a chassis.
-        :return: a :class:`Chassis` object.
-        """
-        for field in chassis.fields:
-            chassis[field] = db_chassis[field]
-
-        chassis.obj_reset_changes()
-        return chassis
-
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
     # Implications of calling new remote procedures should be thought through.

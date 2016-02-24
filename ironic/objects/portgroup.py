@@ -41,15 +41,6 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     }
 
     @staticmethod
-    def _from_db_object(portgroup, db_portgroup):
-        """Converts a database entity to a formal object."""
-        for field in portgroup.fields:
-            portgroup[field] = db_portgroup[field]
-
-        portgroup.obj_reset_changes()
-        return portgroup
-
-    @staticmethod
     def _from_db_object_list(db_objects, cls, context):
         """Converts a list of database entities to a list of formal objects."""
         return [Portgroup._from_db_object(cls(context), obj) for obj in
