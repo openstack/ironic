@@ -174,8 +174,10 @@ class Connection(object):
     def get_node_by_instance(self, instance):
         """Return a node.
 
-        :param instance: The instance name or uuid to search for.
+        :param instance: The instance uuid to search for.
         :returns: A node.
+        :raises: InstanceNotFound if the instance is not found.
+        :raises: InvalidUUID if the instance uuid is invalid.
         """
 
     @abc.abstractmethod
