@@ -285,6 +285,9 @@ def _print_opt(opt, group):
             print('# Deprecated group/name - [%s]/%s' %
                   (deprecated_group,
                    deprecated_name))
+    if opt.deprecated_for_removal:
+        print('# This option is deprecated and planned for removal in a '
+              'future release.')
     try:
         if opt_default is None:
             print('#%s=<None>' % opt_name)

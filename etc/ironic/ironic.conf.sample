@@ -119,6 +119,7 @@
 
 # Default interval for running driver periodic tasks. (integer
 # value)
+# This option is deprecated and planned for removal in a future release.
 #periodic_interval=60
 
 # Name of this node. This can be an opaque identifier. It is
@@ -171,6 +172,7 @@
 
 # If set to false, the logging level will be set to WARNING
 # instead of the default INFO level. (boolean value)
+# This option is deprecated and planned for removal in a future release.
 #verbose=true
 
 # The name of a logging configuration file. This file is
