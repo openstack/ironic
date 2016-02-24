@@ -33,18 +33,20 @@ class RequestContext(context.RequestContext):
                               before sending back to API call.
 
         """
-        self.is_public_api = is_public_api
-        self.domain_id = domain_id
-        self.domain_name = domain_name
-        self.roles = roles or []
-        self.show_password = show_password
-
         super(RequestContext, self).__init__(auth_token=auth_token,
                                              user=user, tenant=tenant,
                                              is_admin=is_admin,
                                              read_only=read_only,
                                              show_deleted=show_deleted,
                                              request_id=request_id)
+        self.is_public_api = is_public_api
+        self.domain_id = domain_id
+        self.domain_name = domain_name
+        self.show_password = show_password
+        # NOTE(dims): roles was added in context.RequestContext recently.
+        # we should pass roles in __init__ above instead of setting the
+        # value here once the minimum version of oslo.context is updated.
+        self.roles = roles or []
 
     def to_dict(self):
         return {'auth_token': self.auth_token,
