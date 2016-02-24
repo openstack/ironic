@@ -17,8 +17,6 @@
 
 """Tests for :class:`ironic.conductor.task_manager`."""
 
-import eventlet
-from eventlet import greenpool
 import mock
 from oslo_utils import uuidutils
 
@@ -47,6 +45,7 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
         self.config(node_locked_retry_attempts=1, group='conductor')
         self.config(node_locked_retry_interval=0, group='conductor')
         self.node = obj_utils.create_test_node(self.context)
+        self.future_mock = mock.Mock(spec=['cancel', 'add_done_callback'])
 
     def test_excl_lock(self, get_portgroups_mock, get_ports_mock,
                        get_driver_mock, reserve_mock, release_mock,
@@ -389,8 +388,7 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
     def test_spawn_after(
             self, get_portgroups_mock, get_ports_mock, get_driver_mock,
             reserve_mock, release_mock, node_get_mock):
-        thread_mock = mock.Mock(spec_set=['link', 'cancel'])
-        spawn_mock = mock.Mock(return_value=thread_mock)
+        spawn_mock = mock.Mock(return_value=self.future_mock)
         task_release_mock = mock.Mock()
         reserve_mock.return_value = self.node
 
@@ -399,9 +397,9 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
             task.release_resources = task_release_mock
 
         spawn_mock.assert_called_once_with(1, 2, foo='bar', cat='meow')
-        thread_mock.link.assert_called_once_with(
+        self.future_mock.add_done_callback.assert_called_once_with(
             task._thread_release_resources)
-        self.assertFalse(thread_mock.cancel.called)
+        self.assertFalse(self.future_mock.cancel.called)
         # Since we mocked link(), we're testing that __exit__ didn't
         # release resources pending the finishing of the background
         # thread
@@ -444,9 +442,9 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
     def test_spawn_after_link_fails(
             self, get_portgroups_mock, get_ports_mock, get_driver_mock,
             reserve_mock, release_mock, node_get_mock):
-        thread_mock = mock.Mock(spec_set=['link', 'cancel'])
-        thread_mock.link.side_effect = exception.IronicException('foo')
-        spawn_mock = mock.Mock(return_value=thread_mock)
+        self.future_mock.add_done_callback.side_effect = (
+            exception.IronicException('foo'))
+        spawn_mock = mock.Mock(return_value=self.future_mock)
         task_release_mock = mock.Mock()
         thr_release_mock = mock.Mock(spec_set=[])
         reserve_mock.return_value = self.node
@@ -459,8 +457,9 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
         self.assertRaises(exception.IronicException, _test_it)
 
         spawn_mock.assert_called_once_with(1, 2, foo='bar', cat='meow')
-        thread_mock.link.assert_called_once_with(thr_release_mock)
-        thread_mock.cancel.assert_called_once_with()
+        self.future_mock.add_done_callback.assert_called_once_with(
+            thr_release_mock)
+        self.future_mock.cancel.assert_called_once_with()
         task_release_mock.assert_called_once_with()
 
     def test_spawn_after_on_error_hook(
@@ -659,75 +658,3 @@ class ExclusiveLockDecoratorTestCase(tests_base.TestCase):
                           _req_excl_lock_method,
                           *self.args_task_second,
                           **self.kwargs)
-
-
-class TaskManagerGreenThreadTestCase(tests_base.TestCase):
-    """Class to assert our assumptions about greenthread behavior."""
-    def test_gt_link_callback_added_during_execution(self):
-        pool = greenpool.GreenPool()
-        q1 = eventlet.Queue()
-        q2 = eventlet.Queue()
-
-        def func():
-            q1.put(None)
-            q2.get()
-
-        link_callback = mock.Mock()
-
-        thread = pool.spawn(func)
-        q1.get()
-        thread.link(link_callback)
-        q2.put(None)
-        pool.waitall()
-        link_callback.assert_called_once_with(thread)
-
-    def test_gt_link_callback_added_after_execution(self):
-        pool = greenpool.GreenPool()
-        link_callback = mock.Mock()
-
-        thread = pool.spawn(lambda: None)
-        pool.waitall()
-        thread.link(link_callback)
-        link_callback.assert_called_once_with(thread)
-
-    def test_gt_link_callback_exception_inside_thread(self):
-        pool = greenpool.GreenPool()
-        q1 = eventlet.Queue()
-        q2 = eventlet.Queue()
-
-        def func():
-            q1.put(None)
-            q2.get()
-            raise Exception()
-
-        link_callback = mock.Mock()
-
-        thread = pool.spawn(func)
-        q1.get()
-        thread.link(link_callback)
-        q2.put(None)
-        pool.waitall()
-        link_callback.assert_called_once_with(thread)
-
-    def test_gt_link_callback_added_after_exception_inside_thread(self):
-        pool = greenpool.GreenPool()
-
-        def func():
-            raise Exception()
-
-        link_callback = mock.Mock()
-
-        thread = pool.spawn(func)
-        pool.waitall()
-        thread.link(link_callback)
-
-        link_callback.assert_called_once_with(thread)
-
-    def test_gt_cancel_doesnt_run_thread(self):
-        pool = greenpool.GreenPool()
-        func = mock.Mock()
-        thread = pool.spawn(func)
-        thread.link(lambda t: None)
-        thread.cancel()
-        pool.waitall()
-        self.assertFalse(func.called)

@@ -17,6 +17,7 @@
 
 """Test utils for Ironic Managers."""
 
+from futurist import periodics
 import mock
 from oslo_utils import strutils
 from oslo_utils import uuidutils
@@ -175,8 +176,12 @@ class ServiceSetUpMixin(object):
             return
         self.service.del_host()
 
-    def _start_service(self):
-        self.service.init_host()
+    def _start_service(self, start_periodic_tasks=False):
+        if start_periodic_tasks:
+            self.service.init_host()
+        else:
+            with mock.patch.object(periodics, 'PeriodicWorker', autospec=True):
+                self.service.init_host()
         self.addCleanup(self._stop_service)
 
 

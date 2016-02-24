@@ -117,7 +117,8 @@
 # Options defined in ironic.common.service
 #
 
-# Seconds between running periodic tasks. (integer value)
+# Default interval for running driver periodic tasks. (integer
+# value)
 #periodic_interval=60
 
 # Name of this node. This can be an opaque identifier. It is
@@ -596,7 +597,9 @@
 # Options defined in ironic.conductor.base_manager
 #
 
-# The size of the workers greenthread pool. (integer value)
+# The size of the workers greenthread pool. Note that 2
+# threads will be reserved by the conductor itself for
+# handling heart beats and periodic tasks. (integer value)
 #workers_pool_size=100
 
 # Seconds between conductor heart beats. (integer value)
