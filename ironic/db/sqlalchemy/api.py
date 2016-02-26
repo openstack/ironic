@@ -386,6 +386,10 @@ class Connection(api.Connection):
                 models.VolumeConnector).filter_by(node_id=node_id)
             volume_connector_query.delete()
 
+            volume_target_query = model_query(
+                models.VolumeTarget).filter_by(node_id=node_id)
+            volume_target_query.delete()
+
             query.delete()
 
     def update_node(self, node_id, values):
@@ -952,3 +956,74 @@ class Connection(api.Connection):
             count = query.delete()
             if count == 0:
                 raise exception.VolumeConnectorNotFound(connector=ident)
+
+    def get_volume_target_list(self, limit=None, marker=None,
+                               sort_key=None, sort_dir=None):
+        return _paginate_query(models.VolumeTarget, limit, marker,
+                               sort_key, sort_dir)
+
+    def get_volume_target_by_id(self, db_id):
+        query = model_query(models.VolumeTarget).filter_by(id=db_id)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.VolumeTargetNotFound(target=db_id)
+
+    def get_volume_target_by_uuid(self, uuid):
+        query = model_query(models.VolumeTarget).filter_by(uuid=uuid)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.VolumeTargetNotFound(target=uuid)
+
+    def get_volume_targets_by_node_id(self, node_id, limit=None, marker=None,
+                                      sort_key=None, sort_dir=None):
+        query = model_query(models.VolumeTarget).filter_by(node_id=node_id)
+        return _paginate_query(models.VolumeTarget, limit, marker, sort_key,
+                               sort_dir, query)
+
+    def create_volume_target(self, target_info):
+        if 'uuid' not in target_info:
+            target_info['uuid'] = uuidutils.generate_uuid()
+
+        target = models.VolumeTarget()
+        target.update(target_info)
+        with _session_for_write() as session:
+            try:
+                session.add(target)
+                session.flush()
+            except db_exc.DBDuplicateEntry as exc:
+                if 'boot_index' in exc.columns:
+                    raise exception.VolumeTargetBootIndexAlreadyExists(
+                        boot_index=target_info['boot_index'])
+                raise exception.VolumeTargetAlreadyExists(
+                    uuid=target_info['uuid'])
+            return target
+
+    def update_volume_target(self, ident, target_info):
+        if 'uuid' in target_info:
+            msg = _("Cannot overwrite UUID for an existing Volume Target.")
+            raise exception.InvalidParameterValue(err=msg)
+
+        try:
+            with _session_for_write() as session:
+                query = model_query(models.VolumeTarget)
+                query = add_identity_filter(query, ident)
+                ref = query.one()
+                orig_boot_index = ref['boot_index']
+                ref.update(target_info)
+                session.flush()
+        except db_exc.DBDuplicateEntry:
+            raise exception.VolumeTargetBootIndexAlreadyExists(
+                boot_index=target_info.get('boot_index', orig_boot_index))
+        except NoResultFound:
+            raise exception.VolumeTargetNotFound(target=ident)
+        return ref
+
+    def destroy_volume_target(self, ident):
+        with _session_for_write():
+            query = model_query(models.VolumeTarget)
+            query = add_identity_filter(query, ident)
+            count = query.delete()
+            if count == 0:
+                raise exception.VolumeTargetNotFound(target=ident)

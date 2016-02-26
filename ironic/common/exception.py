@@ -217,6 +217,15 @@ class VolumeConnectorTypeAndIdAlreadyExists(Conflict):
                  "%(connector_id)s already exists.")
 
 
+class VolumeTargetAlreadyExists(Conflict):
+    _msg_fmt = _("A volume target with UUID %(uuid)s already exists.")
+
+
+class VolumeTargetBootIndexAlreadyExists(Conflict):
+    _msg_fmt = _("A volume target with boot index '%(boot_index)s' "
+                 "for the same node already exists.")
+
+
 class InvalidUUID(Invalid):
     _msg_fmt = _("Expected a UUID but received %(uuid)s.")
 
@@ -370,6 +379,10 @@ class ChassisNotFound(NotFound):
 
 class VolumeConnectorNotFound(NotFound):
     _msg_fmt = _("Volume connector %(connector)s could not be found.")
+
+
+class VolumeTargetNotFound(NotFound):
+    _msg_fmt = _("Volume target %(target)s could not be found.")
 
 
 class NoDriversLoaded(IronicException):

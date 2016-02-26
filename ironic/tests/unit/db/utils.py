@@ -346,6 +346,39 @@ def create_test_volume_connector(**kw):
     return dbapi.create_volume_connector(connector)
 
 
+def get_test_volume_target(**kw):
+    fake_properties = {"target_iqn": "iqn.foo"}
+    return {
+        'id': kw.get('id', 789),
+        'uuid': kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c781'),
+        'node_id': kw.get('node_id', 123),
+        'volume_type': kw.get('volume_type', 'iscsi'),
+        'properties': kw.get('properties', fake_properties),
+        'boot_index': kw.get('boot_index', 0),
+        'volume_id': kw.get('volume_id', '12345678'),
+        'extra': kw.get('extra', {}),
+        'created_at': kw.get('created_at'),
+        'updated_at': kw.get('updated_at'),
+    }
+
+
+def create_test_volume_target(**kw):
+    """Create test target entry in DB and return VolumeTarget DB object.
+
+    Function to be used to create test VolumeTarget objects in the database.
+
+    :param kw: kwargs with overriding values for target's attributes.
+    :returns: Test VolumeTarget DB object.
+
+    """
+    target = get_test_volume_target(**kw)
+    # Let DB generate ID if it isn't specified explicitly
+    if 'id' not in kw:
+        del target['id']
+    dbapi = db_api.get_instance()
+    return dbapi.create_volume_target(target)
+
+
 def get_test_chassis(**kw):
     return {
         'id': kw.get('id', 42),

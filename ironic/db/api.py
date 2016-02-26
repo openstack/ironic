@@ -183,9 +183,12 @@ class Connection(object):
 
     @abc.abstractmethod
     def destroy_node(self, node_id):
-        """Destroy a node and all associated interfaces.
+        """Destroy a node and its associated resources.
 
-        :param node_id: The id or uuid of a node.
+        Destroy a node, including any associated ports, port groups,
+        tags, volume connectors, and volume targets.
+
+        :param node_id: The ID or UUID of a node.
         """
 
     @abc.abstractmethod
@@ -687,6 +690,7 @@ class Connection(object):
         :raises: VolumeConnectorAlreadyExists If a volume connector with
                  the same UUID already exists.
         """
+
     @abc.abstractmethod
     def update_volume_connector(self, ident, connector_info):
         """Update properties of a volume connector.
@@ -711,4 +715,101 @@ class Connection(object):
         :param ident: The UUID or integer ID of a volume connector.
         :raises: VolumeConnectorNotFound If a volume connector
                  with the specified ident does not exist.
+        """
+
+    @abc.abstractmethod
+    def get_volume_target_list(self, limit=None, marker=None,
+                               sort_key=None, sort_dir=None):
+        """Return a list of volume targets.
+
+        :param limit: Maximum number of volume targets to return.
+        :param marker: the last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted.
+        :param sort_dir: direction in which results should be sorted.
+                         (asc, desc)
+        :returns: A list of volume targets.
+        :raises: InvalidParameterValue if sort_key does not exist.
+        """
+
+    @abc.abstractmethod
+    def get_volume_target_by_id(self, db_id):
+        """Return a volume target representation.
+
+        :param db_id: The database primary key (integer) ID of a volume target.
+        :returns: A volume target.
+        :raises: VolumeTargetNotFound if no volume target with this ID
+                 exists.
+        """
+
+    @abc.abstractmethod
+    def get_volume_target_by_uuid(self, uuid):
+        """Return a volume target representation.
+
+        :param uuid: The UUID of a volume target.
+        :returns: A volume target.
+        :raises: VolumeTargetNotFound if no volume target with this UUID
+                 exists.
+        """
+
+    @abc.abstractmethod
+    def get_volume_targets_by_node_id(self, node_id, limit=None,
+                                      marker=None, sort_key=None,
+                                      sort_dir=None):
+        """List all the volume targets for a given node.
+
+        :param node_id: The integer node ID.
+        :param limit: Maximum number of volume targets to return.
+        :param marker: the last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted
+        :param sort_dir: direction in which results should be sorted
+                         (asc, desc)
+        :returns: A list of volume targets.
+        :raises: InvalidParameterValue if sort_key does not exist.
+        """
+
+    @abc.abstractmethod
+    def create_volume_target(self, target_info):
+        """Create a new volume target.
+
+        :param target_info: Dictionary containing the information about the
+                            volume target. Example::
+
+                                   {
+                                       'uuid': '000000-..',
+                                       'node_id': 2,
+                                       'boot_index': 0,
+                                       'volume_id': '12345678-...'
+                                       'volume_type': 'some type',
+                                   }
+        :returns: A volume target.
+        :raises: VolumeTargetBootIndexAlreadyExists if a volume target already
+                 exists with the same boot index and node ID.
+        :raises: VolumeTargetAlreadyExists if a volume target with the same
+                 UUID exists.
+        """
+
+    @abc.abstractmethod
+    def update_volume_target(self, ident, target_info):
+        """Update information for a volume target.
+
+        :param ident: The UUID or integer ID of a volume target.
+        :param target_info: Dictionary containing the information about
+                            volume target to update.
+        :returns: A volume target.
+        :raises: InvalidParameterValue if a UUID is included in target_info.
+        :raises: VolumeTargetBootIndexAlreadyExists if a volume target already
+                 exists with the same boot index and node ID.
+        :raises: VolumeTargetNotFound if no volume target with this ident
+                 exists.
+        """
+
+    @abc.abstractmethod
+    def destroy_volume_target(self, ident):
+        """Destroy a volume target.
+
+        :param ident: The UUID or integer ID of a volume target.
+        :raises: VolumeTargetNotFound if a volume target with the specified
+                 ident does not exist.
         """

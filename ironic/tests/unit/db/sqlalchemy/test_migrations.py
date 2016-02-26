@@ -585,6 +585,35 @@ class MigrationCheckersMixin(object):
         self.assertEqual(1, connector['node_id'])
         self.assertEqual('{}', connector['extra'])
 
+    def _check_1a59178ebdf6(self, engine, data):
+        targets = db_utils.get_table(engine, 'volume_targets')
+        col_names = [column.name for column in targets.c]
+        expected_names = ['created_at', 'updated_at', 'id', 'uuid', 'node_id',
+                          'boot_index', 'extra', 'properties', 'volume_type',
+                          'volume_id']
+        self.assertEqual(sorted(expected_names), sorted(col_names))
+
+        self.assertIsInstance(targets.c.created_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(targets.c.updated_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(targets.c.id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(targets.c.uuid.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(targets.c.node_id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(targets.c.boot_index.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(targets.c.extra.type,
+                              sqlalchemy.types.TEXT)
+        self.assertIsInstance(targets.c.properties.type,
+                              sqlalchemy.types.TEXT)
+        self.assertIsInstance(targets.c.volume_type.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(targets.c.volume_id.type,
+                              sqlalchemy.types.String)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

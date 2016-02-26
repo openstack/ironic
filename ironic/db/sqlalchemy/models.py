@@ -229,3 +229,23 @@ class VolumeConnector(Base):
     type = Column(String(32))
     connector_id = Column(String(255))
     extra = Column(db_types.JsonEncodedDict)
+
+
+class VolumeTarget(Base):
+    """Represents a volume target of a bare metal node."""
+
+    __tablename__ = 'volume_targets'
+    __table_args__ = (
+        schema.UniqueConstraint('uuid', name='uniq_volumetargets0uuid'),
+        schema.UniqueConstraint('node_id',
+                                'boot_index',
+                                name='uniq_volumetargets0node_id0boot_index'),
+        table_args())
+    id = Column(Integer, primary_key=True)
+    uuid = Column(String(36))
+    node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
+    volume_type = Column(String(64))
+    properties = Column(db_types.JsonEncodedDict)
+    boot_index = Column(Integer)
+    volume_id = Column(String(36))
+    extra = Column(db_types.JsonEncodedDict)
