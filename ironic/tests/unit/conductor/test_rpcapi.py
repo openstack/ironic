@@ -414,3 +414,17 @@ class RPCAPITestCase(base.DbTestCase):
                           'call',
                           version='1.35',
                           connector=fake_volume_connector)
+
+    def test_destroy_volume_target(self):
+        fake_volume_target = dbutils.get_test_volume_target()
+        self._test_rpcapi('destroy_volume_target',
+                          'call',
+                          version='1.37',
+                          target=fake_volume_target)
+
+    def test_update_volume_target(self):
+        fake_volume_target = dbutils.get_test_volume_target()
+        self._test_rpcapi('update_volume_target',
+                          'call',
+                          version='1.37',
+                          target=fake_volume_target)

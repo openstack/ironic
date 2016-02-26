@@ -83,11 +83,12 @@ class ConductorAPI(object):
     |    1.34 - Added heartbeat
     |    1.35 - Added destroy_volume_connector and update_volume_connector
     |    1.36 - Added create_node
+    |    1.37 - Added destroy_volume_target and update_volume_target
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.36'
+    RPC_API_VERSION = '1.37'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -798,3 +799,43 @@ class ConductorAPI(object):
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.35')
         return cctxt.call(context, 'update_volume_connector',
                           connector=connector)
+
+    def destroy_volume_target(self, context, target, topic=None):
+        """Delete a volume target.
+
+        :param context: request context
+        :param target: volume target object
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: NodeLocked if node is locked by another conductor
+        :raises: NodeNotFound if the node associated with the target does
+                 not exist
+        :raises: VolumeTargetNotFound if the volume target cannot be found
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.37')
+        return cctxt.call(context, 'destroy_volume_target',
+                          target=target)
+
+    def update_volume_target(self, context, target, topic=None):
+        """Update the volume target's information.
+
+        Update the volume target's information in the database and return a
+        volume target object. The conductor will lock the related node during
+        this operation.
+
+        :param context: request context
+        :param target: a changed (but not saved) volume target object
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: InvalidParameterValue if the volume target's UUID is being
+                 changed
+        :raises: NodeLocked if the node is already locked
+        :raises: NodeNotFound if the node associated with the volume target
+                 does not exist
+        :raises: VolumeTargetNotFound if the volume target cannot be found
+        :raises: VolumeTargetBootIndexAlreadyExists if a volume target already
+                 exists with the same node ID and boot index values
+        :returns: updated volume target object, including all fields
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.37')
+        return cctxt.call(context, 'update_volume_target',
+                          target=target)

@@ -5811,3 +5811,137 @@ class UpdateVolumeConnectorTestCase(mgr_utils.ServiceSetUpMixin,
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.VolumeConnectorTypeAndIdAlreadyExists,
                          exc.exc_info[0])
+
+
+@mgr_utils.mock_record_keepalive
+class DestroyVolumeTargetTestCase(mgr_utils.ServiceSetUpMixin,
+                                  tests_db_base.DbTestCase):
+    def test_destroy_volume_target(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+
+        volume_target = obj_utils.create_test_volume_target(self.context,
+                                                            node_id=node.id)
+        self.service.destroy_volume_target(self.context, volume_target)
+        self.assertRaises(exception.VolumeTargetNotFound,
+                          volume_target.refresh)
+        self.assertRaises(exception.VolumeTargetNotFound,
+                          self.dbapi.get_volume_target_by_uuid,
+                          volume_target.uuid)
+
+    def test_destroy_volume_target_node_locked(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          reservation='fake-reserv')
+
+        volume_target = obj_utils.create_test_volume_target(self.context,
+                                                            node_id=node.id)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.destroy_volume_target,
+                                self.context, volume_target)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+
+    def test_destroy_volume_target_node_gone(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        volume_target = obj_utils.create_test_volume_target(self.context,
+                                                            node_id=node.id)
+        self.service.destroy_node(self.context, node.id)
+
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.destroy_volume_target,
+                                self.context, volume_target)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeNotFound, exc.exc_info[0])
+
+    def test_destroy_volume_target_already_destroyed(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        volume_target = obj_utils.create_test_volume_target(self.context,
+                                                            node_id=node.id)
+        self.service.destroy_volume_target(self.context, volume_target)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.destroy_volume_target,
+                                self.context, volume_target)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.VolumeTargetNotFound, exc.exc_info[0])
+
+
+@mgr_utils.mock_record_keepalive
+class UpdateVolumeTargetTestCase(mgr_utils.ServiceSetUpMixin,
+                                 tests_db_base.DbTestCase):
+    def test_update_volume_target(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+
+        volume_target = obj_utils.create_test_volume_target(
+            self.context, node_id=node.id, extra={'foo': 'bar'})
+        new_extra = {'foo': 'baz'}
+        volume_target.extra = new_extra
+        res = self.service.update_volume_target(self.context, volume_target)
+        self.assertEqual(new_extra, res.extra)
+
+    def test_update_volume_target_node_locked(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          reservation='fake-reserv')
+        volume_target = obj_utils.create_test_volume_target(self.context,
+                                                            node_id=node.id)
+        volume_target.extra = {'foo': 'baz'}
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_volume_target,
+                                self.context, volume_target)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+
+    def test_update_volume_target_volume_type(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        volume_target = obj_utils.create_test_volume_target(
+            self.context, node_id=node.id, extra={'vol_id': 'fake-id'})
+        new_volume_type = 'fibre_channel'
+        volume_target.volume_type = new_volume_type
+        res = self.service.update_volume_target(self.context,
+                                                volume_target)
+        self.assertEqual(new_volume_type, res.volume_type)
+
+    def test_update_volume_target_uuid(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        volume_target = obj_utils.create_test_volume_target(
+            self.context, node_id=node.id)
+        volume_target.uuid = uuidutils.generate_uuid()
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_volume_target,
+                                self.context, volume_target)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+
+    def test_update_volume_target_duplicate(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        volume_target1 = obj_utils.create_test_volume_target(
+            self.context, node_id=node.id)
+        volume_target2 = obj_utils.create_test_volume_target(
+            self.context, node_id=node.id, uuid=uuidutils.generate_uuid(),
+            boot_index=volume_target1.boot_index + 1)
+        volume_target2.boot_index = volume_target1.boot_index
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_volume_target,
+                                self.context, volume_target2)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.VolumeTargetBootIndexAlreadyExists,
+                         exc.exc_info[0])
+
+    def _test_update_volume_target_exception(self, expected_exc):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        volume_target = obj_utils.create_test_volume_target(
+            self.context, node_id=node.id, extra={'vol_id': 'fake-id'})
+        new_volume_type = 'fibre_channel'
+        volume_target.volume_type = new_volume_type
+        with mock.patch.object(objects.VolumeTarget, 'save') as mock_save:
+            mock_save.side_effect = expected_exc('Boo')
+            exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                    self.service.update_volume_target,
+                                    self.context, volume_target)
+            # Compare true exception hidden by @messaging.expected_exceptions
+            self.assertEqual(expected_exc, exc.exc_info[0])
+
+    def test_update_volume_target_node_not_found(self):
+            self._test_update_volume_target_exception(exception.NodeNotFound)
+
+    def test_update_volume_target_not_found(self):
+            self._test_update_volume_target_exception(
+                exception.VolumeTargetNotFound)

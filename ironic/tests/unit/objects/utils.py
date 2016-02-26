@@ -188,3 +188,30 @@ def create_test_volume_connector(ctxt, **kw):
     volume_connector = get_test_volume_connector(ctxt, **kw)
     volume_connector.create()
     return volume_connector
+
+
+def get_test_volume_target(ctxt, **kw):
+    """Return a VolumeTarget object with appropriate attributes.
+
+    NOTE: The object leaves the attributes marked as changed, such
+    that a create() could be used to commit it to the DB.
+    """
+    db_volume_target = db_utils.get_test_volume_target(**kw)
+    # Let DB generate ID if it isn't specified explicitly
+    if 'id' not in kw:
+        del db_volume_target['id']
+    volume_target = objects.VolumeTarget(ctxt)
+    for key in db_volume_target:
+        setattr(volume_target, key, db_volume_target[key])
+    return volume_target
+
+
+def create_test_volume_target(ctxt, **kw):
+    """Create and return a test volume target object.
+
+    Create a volume target in the DB and return a VolumeTarget object with
+    appropriate attributes.
+    """
+    volume_target = get_test_volume_target(ctxt, **kw)
+    volume_target.create()
+    return volume_target
