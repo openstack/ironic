@@ -287,13 +287,13 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             'agent_url': 'http://127.0.0.1:9999/bar'
         }
         with task_manager.acquire(
-                self.context, self.node['uuid'], shared=True) as task:
+                self.context, self.node['uuid'], shared=False) as task:
             self.passthru.heartbeat(task, **kwargs)
 
     def test_heartbeat_bad(self):
         kwargs = {}
         with task_manager.acquire(
-                self.context, self.node['uuid'], shared=True) as task:
+                self.context, self.node['uuid'], shared=False) as task:
             self.assertRaises(exception.MissingParameterValue,
                               self.passthru.heartbeat, task, **kwargs)
 
@@ -311,7 +311,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         }
         done_mock.side_effect = iter([Exception('LlamaException')])
         with task_manager.acquire(
-                self.context, self.node['uuid'], shared=True) as task:
+                self.context, self.node['uuid'], shared=False) as task:
             task.node.provision_state = states.DEPLOYWAIT
             task.node.target_provision_state = states.ACTIVE
             self.passthru.heartbeat(task, **kwargs)
@@ -335,7 +335,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             'agent_url': 'http://127.0.0.1:9999/bar'
         }
         with task_manager.acquire(
-                self.context, self.node['uuid'], shared=True) as task:
+                self.context, self.node['uuid'], shared=False) as task:
 
             def driver_failure(*args, **kwargs):
                 # simulate driver failure that both advances the FSM
@@ -372,7 +372,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.node.provision_state = state
             self.node.save()
             with task_manager.acquire(
-                    self.context, self.node.uuid, shared=True) as task:
+                    self.context, self.node.uuid, shared=False) as task:
                 self.passthru.heartbeat(task, **kwargs)
 
             mock_touch.assert_called_once_with(mock.ANY)
@@ -410,7 +410,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                 after_failed_mocks = mocks[i + 1:]
                 failed_mock.side_effect = Exception()
                 with task_manager.acquire(
-                        self.context, self.node.uuid, shared=True) as task:
+                        self.context, self.node.uuid, shared=False) as task:
                     self.passthru.heartbeat(task, **kwargs)
 
                 mock_touch.assert_called_once_with(mock.ANY)
@@ -442,7 +442,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.node.provision_state = state
             self.node.save()
             with task_manager.acquire(
-                    self.context, self.node.uuid, shared=True) as task:
+                    self.context, self.node.uuid, shared=False) as task:
                 self.passthru.heartbeat(task, **kwargs)
 
             mock_touch.assert_called_once_with(mock.ANY)
@@ -472,7 +472,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.node.provision_state = state
             self.node.save()
             with task_manager.acquire(
-                    self.context, self.node.uuid, shared=True) as task:
+                    self.context, self.node.uuid, shared=False) as task:
                 self.passthru.heartbeat(task, **kwargs)
 
             mock_continue.assert_called_once_with(mock.ANY, task, **kwargs)
@@ -501,7 +501,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.node.provision_state = state
             self.node.save()
             with task_manager.acquire(
-                    self.context, self.node.uuid, shared=True) as task:
+                    self.context, self.node.uuid, shared=False) as task:
                 self.passthru.heartbeat(task, **kwargs)
 
             mock_continue.assert_called_once_with(mock.ANY, task, **kwargs)
@@ -527,7 +527,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.node.provision_state = state
             self.node.save()
             with task_manager.acquire(
-                    self.context, self.node['uuid'], shared=True) as task:
+                    self.context, self.node['uuid'], shared=False) as task:
                 self.passthru.heartbeat(task, **kwargs)
 
         self.assertEqual(0, ncrc_mock.call_count)
@@ -547,7 +547,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         self.node.provision_state = states.DEPLOYWAIT
         self.node.save()
         with task_manager.acquire(
-                self.context, self.node.uuid, shared=True) as task:
+                self.context, self.node.uuid, shared=False) as task:
             self.passthru.heartbeat(task, **kwargs)
 
         mock_touch.assert_called_once_with(mock.ANY)

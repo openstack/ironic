@@ -34,6 +34,7 @@ from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import rpcapi
+from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import agent_client
@@ -383,6 +384,7 @@ class BaseAgentVendor(base.VendorInterface):
             return manager_utils.cleaning_error_handler(task, msg)
 
     @base.passthru(['POST'])
+    @task_manager.require_exclusive_lock
     def heartbeat(self, task, **kwargs):
         """Method for agent to periodically check in.
 
