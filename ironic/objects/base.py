@@ -89,6 +89,20 @@ class IronicObject(object_base.VersionedObject):
         obj.obj_reset_changes()
         return obj
 
+    @classmethod
+    def _from_db_object_list(cls, context, db_objects):
+        """Returns objects corresponding to database entities.
+
+        Returns a list of formal objects of this class that correspond to
+        the list of database entities.
+
+        :param context: security context
+        :param db_objects: A  list of DB models of the object
+        :returns: A list of objects corresponding to the database entities
+        """
+        return [cls._from_db_object(cls(context), db_obj)
+                for db_obj in db_objects]
+
 
 class IronicObjectSerializer(object_base.VersionedObjectSerializer):
     # Base class to use for object hydration
