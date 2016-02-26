@@ -51,6 +51,8 @@ class PXEDracDriver(base.BaseDriver):
                         'commit_bios_config': self.drac_vendor,
                         'abandon_bios_config': self.drac_vendor,
                         }
-        self.vendor = utils.MixinVendorInterface(self.mapping)
+        self.driver_passthru_mapping = {'lookup': self.iscsi_vendor}
+        self.vendor = utils.MixinVendorInterface(self.mapping,
+                                                 self.driver_passthru_mapping)
         self.inspect = inspector.Inspector.create_if_enabled(
             'PXEDracDriver')
