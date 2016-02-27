@@ -54,6 +54,7 @@ from oslo_utils import excutils
 from oslo_utils import uuidutils
 
 from ironic.common import dhcp_factory
+from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common.i18n import _
@@ -394,7 +395,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         # Any locking in a top-level vendor action will need to be done by the
         # implementation, as there is little we could reasonably lock on here.
         LOG.debug("RPC driver_vendor_passthru for driver %s." % driver_name)
-        driver = self._get_driver(driver_name)
+        driver = driver_factory.get_driver(driver_name)
         if not getattr(driver, 'vendor', None):
             raise exception.UnsupportedDriverExtension(
                 driver=driver_name,
@@ -466,7 +467,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         # implementation, as there is little we could reasonably lock on here.
         LOG.debug("RPC get_driver_vendor_passthru_methods for driver %s"
                   % driver_name)
-        driver = self._get_driver(driver_name)
+        driver = driver_factory.get_driver(driver_name)
         if not getattr(driver, 'vendor', None):
             raise exception.UnsupportedDriverExtension(
                 driver=driver_name,
@@ -1818,7 +1819,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         """
         LOG.debug("RPC get_driver_properties called for driver %s.",
                   driver_name)
-        driver = self._get_driver(driver_name)
+        driver = driver_factory.get_driver(driver_name)
         return driver.get_properties()
 
     @periodics.periodic(spacing=CONF.conductor.send_sensor_data_interval)
@@ -2130,7 +2131,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         LOG.debug("RPC get_raid_logical_disk_properties "
                   "called for driver %s" % driver_name)
 
-        driver = self._get_driver(driver_name)
+        driver = driver_factory.get_driver(driver_name)
         if not getattr(driver, 'raid', None):
             raise exception.UnsupportedDriverExtension(
                 driver=driver_name, extension='raid')

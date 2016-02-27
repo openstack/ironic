@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
+
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log
@@ -69,7 +71,12 @@ def get_driver(driver_name):
 def drivers():
     """Get all drivers as a dict name -> driver object."""
     factory = DriverFactory()
-    return {name: factory[name].obj for name in factory.names}
+    # NOTE(jroll) I don't think this needs to be ordered, but
+    # ConductorManager.init_host seems to depend on this behavior (or at
+    # least the unit tests for it do), and it can't hurt much to keep it
+    # that way.
+    return collections.OrderedDict((name, factory[name].obj)
+                                   for name in factory.names)
 
 
 class DriverFactory(object):
