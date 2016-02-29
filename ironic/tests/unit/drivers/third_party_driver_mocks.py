@@ -126,8 +126,10 @@ if not oneview_client:
         ONEVIEW_ERROR='error')
     sys.modules['oneview_client.states'] = states
     sys.modules['oneview_client.exceptions'] = oneview_client.exceptions
+    sys.modules['oneview_client.utils'] = oneview_client.utils
     oneview_client.exceptions.OneViewException = type('OneViewException',
                                                       (Exception,), {})
+    sys.modules['oneview_client.models'] = oneview_client.models
     if 'ironic.drivers.oneview' in sys.modules:
         six.moves.reload_module(sys.modules['ironic.drivers.modules.oneview'])
 

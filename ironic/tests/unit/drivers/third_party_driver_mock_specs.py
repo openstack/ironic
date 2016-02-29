@@ -126,6 +126,8 @@ ONEVIEWCLIENT_SPEC = (
     'client',
     'states',
     'exceptions',
+    'models',
+    'utils',
 )
 
 ONEVIEWCLIENT_CLIENT_CLS_SPEC = (

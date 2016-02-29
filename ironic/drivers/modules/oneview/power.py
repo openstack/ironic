@@ -69,8 +69,8 @@ class OneViewPower(base.PowerInterface):
         :raises: OneViewError if fails to retrieve power state of OneView
                  resource
         """
-
         oneview_info = common.get_oneview_info(task.node)
+
         oneview_client = common.get_oneview_client()
         try:
             power_state = oneview_client.get_node_power_state(oneview_info)
@@ -95,8 +95,8 @@ class OneViewPower(base.PowerInterface):
         :raises: PowerStateFailure if the power couldn't be set to power_state.
         :raises: OneViewError if OneView fails setting the power state.
         """
-
         oneview_info = common.get_oneview_info(task.node)
+
         oneview_client = common.get_oneview_client()
 
         LOG.debug('Setting power state of node %(node_uuid)s to '

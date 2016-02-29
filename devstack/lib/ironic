@@ -83,7 +83,7 @@ IRONIC_HW_ARCH=${IRONIC_HW_ARCH:-x86_64}
 #   <BMC address> <MAC address> <BMC username> <BMC password> <UCS service profile>
 #
 # *_oneview:
-#   <Server Hardware URI> <Server Hardware Type URI> <Enclosure Group URI> <Server Profile Template URI> <MAC of primary connection>
+#   <Server Hardware URI> <Server Hardware Type URI> <Enclosure Group URI> <Server Profile Template URI> <MAC of primary connection> <Applied Server Profile URI>
 #
 # IRONIC_IPMIINFO_FILE is deprecated, please use IRONIC_HWINFO_FILE. IRONIC_IPMIINFO_FILE will be removed in Ocata.
 IRONIC_IPMIINFO_FILE=${IRONIC_IPMIINFO_FILE:-""}
@@ -1053,8 +1053,11 @@ function enroll_nodes {
                 local server_profile_template_uri
                 server_profile_template_uri=$(echo $hardware_info |awk '{print $4}')
                 mac_address=$(echo $hardware_info |awk '{print $5}')
+                local applied_server_profile_uri
+                applied_server_profile_uri=$(echo $hardware_info |awk '{print $6}')
 
                 node_options+=" -i server_hardware_uri=$server_hardware_uri"
+                node_options+=" -i applied_server_profile_uri=$applied_server_profile_uri"
                 node_options+=" -p capabilities="
                 node_options+="server_hardware_type_uri:$server_hardware_type_uri,"
                 node_options+="enclosure_group_uri:$enclosure_group_uri,"

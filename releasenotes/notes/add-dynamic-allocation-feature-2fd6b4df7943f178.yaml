@@ -1,0 +1,5 @@
+---
+features:
+  - Add Dynamic Allocation feature for the OneView drivers.
+deprecations:
+  - Deprecates pre-allocation feature for the OneView drivers.
