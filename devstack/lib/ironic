@@ -374,7 +374,7 @@ function configure_ironic_conductor {
 
     local pxe_params="nofb nomodeset vga=normal console=ttyS0"
     if is_deployed_with_ipa_ramdisk; then
-        pxe_params+=" systemd.journald.forward_to_console=yes"
+        pxe_params+=" systemd.journald.forward_to_console=yes ipa-debug=1"
     fi
 
     # When booting with less than 1GB, we need to switch from default tmpfs
