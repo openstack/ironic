@@ -68,7 +68,7 @@ def apply_jsonpatch(doc, patch):
 
 def get_patch_value(patch, path):
     for p in patch:
-        if p['path'] == path:
+        if p['path'] == path and p['op'] != 'remove':
             return p['value']
 
 
