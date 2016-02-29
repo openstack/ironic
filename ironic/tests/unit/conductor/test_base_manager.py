@@ -112,6 +112,7 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
         class Driver(object):
             core_interfaces = []
             standard_interfaces = ['iface']
+            all_interfaces = core_interfaces + standard_interfaces
 
             iface = TestInterface()
 

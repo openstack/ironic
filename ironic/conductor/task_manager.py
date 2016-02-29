@@ -208,8 +208,8 @@ class TaskManager(object):
             self.ports = objects.Port.list_by_node_id(context, self.node.id)
             self.portgroups = objects.Portgroup.list_by_node_id(context,
                                                                 self.node.id)
-            self.driver = driver_factory.get_driver(driver_name or
-                                                    self.node.driver)
+            self.driver = driver_factory.build_driver_for_task(
+                self, driver_name=driver_name)
 
             # NOTE(deva): this handles the Juno-era NOSTATE state
             #             and should be deleted after Kilo is released
