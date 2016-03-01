@@ -41,6 +41,16 @@ CONSOLE_LOG = """
 """
 
 
+CONSOLE_PTY = """
+    <serial type='pty'>
+      <target port='0'/>
+    </serial>
+    <console type='pty'>
+      <target type='serial' port='0'/>
+    </console>
+"""
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Configure a kvm virtual machine for the seed image.")
@@ -91,11 +101,9 @@ def main():
             params['emulator'] = "/usr/bin/qemu-kvm"
 
     if args.console_log:
-        params['bios_serial'] = "<bios useserial='yes'/>"
-        params['console_log'] = CONSOLE_LOG % {'console_log': args.console_log}
+        params['console'] = CONSOLE_LOG % {'console_log': args.console_log}
     else:
-        params['bios_serial'] = ''
-        params['console_log'] = ''
+        params['console'] = CONSOLE_PTY
     libvirt_template = source_template % params
     conn = libvirt.open("qemu:///system")
 
