@@ -167,7 +167,7 @@ class HashRingTestCase(base.TestCase):
             nodes, conductors, hash_ring.HashRing(conductors),
             new_conductors, hash_ring.HashRing(new_conductors))
 
-        self.assertTrue(len(delta) < num_nodes * redistribution_factor)
+        self.assertLess(len(delta), num_nodes * redistribution_factor)
 
     def test_rebalance_stability_leave(self):
         num_conductors = 10
@@ -185,7 +185,7 @@ class HashRingTestCase(base.TestCase):
             nodes, conductors, hash_ring.HashRing(conductors),
             new_conductors, hash_ring.HashRing(new_conductors))
 
-        self.assertTrue(len(delta) < num_nodes * redistribution_factor)
+        self.assertLess(len(delta), num_nodes * redistribution_factor)
 
     def test_more_replicas_than_hosts(self):
         hosts = ['foo', 'bar']

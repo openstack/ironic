@@ -1912,7 +1912,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertEqual({}, node.clean_step)
         self.assertFalse('clean_step_index' in node.driver_internal_info)
-        self.assertEqual(None, node.driver_internal_info['clean_steps'])
+        self.assertIsNone(node.driver_internal_info['clean_steps'])
         self.assertFalse(mock_execute.called)
 
     def test__do_next_clean_step_automated_last_step_noop(self):
@@ -1952,7 +1952,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertEqual({}, node.clean_step)
         self.assertFalse('clean_step_index' in node.driver_internal_info)
-        self.assertEqual(None, node.driver_internal_info['clean_steps'])
+        self.assertIsNone(node.driver_internal_info['clean_steps'])
         mock_power_execute.assert_called_once_with(mock.ANY,
                                                    self.clean_steps[1])
         mock_deploy_execute.assert_has_calls = [
