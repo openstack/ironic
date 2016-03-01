@@ -2,12 +2,18 @@
 # The following commands should be used in filters for disk manipulation.
 # This file should be owned by (and only-writeable by) the root user.
 
+# NOTE: this file is a copy of ironic-lib.filters from the ironic-lib
+# repository that should ultimately be remove. At this point, we still
+# need it to avoid gate breakage and preserve compatibily with existing
+# installation.
+
 [Filters]
 # ironic_lib/disk_utils.py
 blkid: CommandFilter, blkid, root
 blockdev: CommandFilter, blockdev, root
 hexdump: CommandFilter, hexdump, root
 qemu-img: CommandFilter, qemu-img, root
+wipefs: CommandFilter, wipefs, root
 
 # ironic_lib/utils.py
 mkswap: CommandFilter, mkswap, root
