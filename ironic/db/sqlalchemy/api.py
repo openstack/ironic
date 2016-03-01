@@ -289,6 +289,14 @@ class Connection(api.Connection):
         if 'provision_state' not in values:
             values['provision_state'] = states.ENROLL
 
+        # TODO(zhenguo): Support creating node with tags
+        if 'tags' in values:
+            LOG.warning(
+                _LW('Ignore the specified tags %(tags)s when creating node: '
+                    '%(node)s.'), {'tags': values['tags'],
+                                   'node': values['uuid']})
+            del values['tags']
+
         node = models.Node()
         node.update(values)
         with _session_for_write() as session:
@@ -363,6 +371,10 @@ class Connection(api.Connection):
             portgroup_query = add_portgroup_filter_by_node(portgroup_query,
                                                            node_id)
             portgroup_query.delete()
+
+            # Delete all tags attached to the node
+            tag_query = model_query(models.NodeTag).filter_by(node_id=node_id)
+            tag_query.delete()
 
             query.delete()
 
@@ -763,3 +775,59 @@ class Connection(api.Connection):
             count = query.update({'provision_updated_at': timeutils.utcnow()})
             if count == 0:
                 raise exception.NodeNotFound(node_id)
+
+    def _check_node_exists(self, node_id):
+        if not model_query(models.Node).filter_by(id=node_id).scalar():
+            raise exception.NodeNotFound(node=node_id)
+
+    def set_node_tags(self, node_id, tags):
+        # remove duplicate tags
+        tags = set(tags)
+        with _session_for_write() as session:
+            self.unset_node_tags(node_id)
+            node_tags = []
+            for tag in tags:
+                node_tag = models.NodeTag(tag=tag, node_id=node_id)
+                session.add(node_tag)
+                node_tags.append(node_tag)
+
+        return node_tags
+
+    def unset_node_tags(self, node_id):
+        self._check_node_exists(node_id)
+        with _session_for_write():
+            model_query(models.NodeTag).filter_by(node_id=node_id).delete()
+
+    def get_node_tags_by_node_id(self, node_id):
+        self._check_node_exists(node_id)
+        result = (model_query(models.NodeTag)
+                  .filter_by(node_id=node_id)
+                  .all())
+        return result
+
+    def add_node_tag(self, node_id, tag):
+        node_tag = models.NodeTag(tag=tag, node_id=node_id)
+
+        self._check_node_exists(node_id)
+        try:
+            with _session_for_write() as session:
+                session.add(node_tag)
+                session.flush()
+        except db_exc.DBDuplicateEntry:
+            # NOTE(zhenguo): ignore tags duplicates
+            pass
+
+        return node_tag
+
+    def delete_node_tag(self, node_id, tag):
+        self._check_node_exists(node_id)
+        with _session_for_write():
+            result = model_query(models.NodeTag).filter_by(
+                node_id=node_id, tag=tag).delete()
+
+            if not result:
+                raise exception.NodeTagNotFound(node_id=node_id, tag=tag)
+
+    def node_tag_exists(self, node_id, tag):
+        q = model_query(models.NodeTag).filter_by(node_id=node_id, tag=tag)
+        return model_query(q.exists()).scalar()

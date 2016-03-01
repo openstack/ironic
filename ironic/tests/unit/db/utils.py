@@ -224,6 +224,7 @@ def get_test_node(**kw):
         'inspection_started_at': kw.get('inspection_started_at'),
         'raid_config': kw.get('raid_config'),
         'target_raid_config': kw.get('target_raid_config'),
+        'tags': kw.get('tags', []),
     }
 
 
@@ -380,3 +381,26 @@ def create_test_portgroup(**kw):
         del portgroup['id']
     dbapi = db_api.get_instance()
     return dbapi.create_portgroup(portgroup)
+
+
+def get_test_node_tag(**kw):
+    return {
+        "tag": kw.get("tag", "tag1"),
+        "node_id": kw.get("node_id", "123"),
+        'created_at': kw.get('created_at'),
+        'updated_at': kw.get('updated_at'),
+    }
+
+
+def create_test_node_tag(**kw):
+    """Create test node tag entry in DB and return NodeTag DB object.
+
+    Function to be used to create test NodeTag objects in the database.
+
+    :param kw: kwargs with overriding values for tag's attributes.
+    :returns: Test NodeTag DB object.
+
+    """
+    tag = get_test_node_tag(**kw)
+    dbapi = db_api.get_instance()
+    return dbapi.add_node_tag(tag['node_id'], tag['tag'])

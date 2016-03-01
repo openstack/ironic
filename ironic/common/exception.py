@@ -601,3 +601,7 @@ class CIMCException(IronicException):
 
 class OneViewError(IronicException):
     _msg_fmt = _("OneView exception occurred. Error: %(error)s")
+
+
+class NodeTagNotFound(IronicException):
+    _msg_fmt = _("Node %(node_id)s doesn't have a tag '%(tag)s'")
