@@ -2299,23 +2299,12 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin,
 @mgr_utils.mock_record_keepalive
 class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
                    tests_db_base.DbTestCase):
-    def test_get_driver_known(self):
-        self._start_service()
-        driver = self.service._get_driver('fake')
-        self.assertIsInstance(driver, drivers_base.BaseDriver)
-
-    def test_get_driver_unknown(self):
-        self._start_service()
-        self.assertRaises(exception.DriverNotFound,
-                          self.service._get_driver, 'unknown_driver')
-
     def test__mapped_to_this_conductor(self):
         self._start_service()
         n = utils.get_test_node()
         self.assertTrue(self.service._mapped_to_this_conductor(n['uuid'],
                                                                'fake'))
         self.assertFalse(self.service._mapped_to_this_conductor(n['uuid'],
-
                                                                 'otherdriver'))
 
     @mock.patch.object(images, 'is_whole_disk_image')

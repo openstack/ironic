@@ -17,6 +17,7 @@ from stevedore import dispatch
 
 from ironic.common import driver_factory
 from ironic.common import exception
+from ironic.drivers import base as drivers_base
 from ironic.tests import base
 
 
@@ -62,3 +63,18 @@ class DriverLoadTestCase(base.TestCase):
                                '__init__', self._fake_init_driver_err):
             driver_factory.DriverFactory._init_extension_manager()
             self.assertEqual(2, mock_em.call_count)
+
+
+class GetDriverTestCase(base.TestCase):
+    def setUp(self):
+        super(GetDriverTestCase, self).setUp()
+        driver_factory.DriverFactory._extension_manager = None
+        self.config(enabled_drivers=['fake'])
+
+    def test_get_driver_known(self):
+        driver = driver_factory.get_driver('fake')
+        self.assertIsInstance(driver, drivers_base.BaseDriver)
+
+    def test_get_driver_unknown(self):
+        self.assertRaises(exception.DriverNotFound,
+                          driver_factory.get_driver, 'unknown_driver')

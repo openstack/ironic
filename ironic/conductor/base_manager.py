@@ -66,26 +66,14 @@ class BaseConductorManager(object):
         self.notifier = rpc.get_notifier()
         self._started = False
 
-    def _get_driver(self, driver_name):
-        """Get the driver.
-
-        :param driver_name: name of the driver.
-        :returns: the driver; an instance of a class which implements
-                  :class:`ironic.drivers.base.BaseDriver`.
-        :raises: DriverNotFound if the driver is not loaded.
-
-        """
-        try:
-            return self._driver_factory[driver_name].obj
-        except KeyError:
-            raise exception.DriverNotFound(driver_name=driver_name)
-
     def init_host(self, admin_context=None):
         """Initialize the conductor host.
 
         :param admin_context: the admin context to pass to periodic tasks.
-        :raises: RuntimeError when conductor is already running
-        :raises: NoDriversLoaded when no drivers are enabled on the conductor
+        :raises: RuntimeError when conductor is already running.
+        :raises: NoDriversLoaded when no drivers are enabled on the conductor.
+        :raises: DriverNotFound if a driver is enabled that does not exist.
+        :raises: DriverLoadError if an enabled driver cannot be loaded.
         """
         if self._started:
             raise RuntimeError(_('Attempt to start an already running '
@@ -107,20 +95,18 @@ class BaseConductorManager(object):
         self.ring_manager = hash.HashRingManager()
         """Consistent hash ring which maps drivers to conductors."""
 
-        # NOTE(deva): instantiating DriverFactory may raise DriverLoadError
-        #             or DriverNotFound
-        self._driver_factory = driver_factory.DriverFactory()
-        """Driver factory loads all enabled drivers."""
-
-        self.drivers = self._driver_factory.names
-        """List of driver names which this conductor supports."""
-
-        if not self.drivers:
+        # NOTE(deva): this call may raise DriverLoadError or DriverNotFound
+        drivers = driver_factory.drivers()
+        if not drivers:
             msg = _LE("Conductor %s cannot be started because no drivers "
                       "were loaded.  This could be because no drivers were "
                       "specified in 'enabled_drivers' config option.")
             LOG.error(msg, self.host)
             raise exception.NoDriversLoaded(conductor=self.host)
+
+        # NOTE(jroll) this is passed to the dbapi, which requires a list, not
+        # a generator (which keys() returns in py3)
+        driver_names = list(drivers)
 
         # Collect driver-specific periodic tasks.
         # Conductor periodic tasks accept context argument, driver periodic
@@ -131,7 +117,7 @@ class BaseConductorManager(object):
         self._periodic_task_callables = []
         periodic_task_classes = set()
         self._collect_periodic_tasks(self, (admin_context,))
-        for driver_obj in driver_factory.drivers().values():
+        for driver_obj in drivers.values():
             self._collect_periodic_tasks(driver_obj, (self, admin_context))
             for iface_name in (driver_obj.core_interfaces +
                                driver_obj.standard_interfaces +
@@ -158,7 +144,7 @@ class BaseConductorManager(object):
         try:
             # Register this conductor with the cluster
             cdr = self.dbapi.register_conductor({'hostname': self.host,
-                                                 'drivers': self.drivers})
+                                                 'drivers': driver_names})
         except exception.ConductorAlreadyRegistered:
             # This conductor was already registered and did not shut down
             # properly, so log a warning and update the record.
@@ -167,7 +153,7 @@ class BaseConductorManager(object):
                     "was previously registered. Updating registration"),
                 {'hostname': self.host})
             cdr = self.dbapi.register_conductor({'hostname': self.host,
-                                                 'drivers': self.drivers},
+                                                 'drivers': driver_names},
                                                 update_existing=True)
         self.conductor = cdr
 
