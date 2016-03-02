@@ -1,0 +1,5 @@
+---
+fixes:
+  - Fixed performance issue for 'ironic.nova.compute.ClusteredComputeManager'
+    when during Nova instance termination resources were updated for all
+    Nova hypervisors.
