@@ -45,6 +45,7 @@ BASE_VERSION = 1
 #        1. '/v1/nodes/<uuid>/states'
 #        2. '/v1/drivers/<driver-name>/properties'
 # v1.15: Add ability to do manual cleaning of nodes
+# v1.16: Add ability to filter nodes by driver.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -62,11 +63,12 @@ MINOR_12_RAID_CONFIG = 12
 MINOR_13_ABORT_VERB = 13
 MINOR_14_LINKS_NODESTATES_DRIVERPROPERTIES = 14
 MINOR_15_MANUAL_CLEAN = 15
+MINOR_16_DRIVER_FILTER = 16
 
 # When adding another version, update MINOR_MAX_VERSION and also update
 # doc/source/webapi/v1.rst with a detailed explanation of what the version has
 # changed.
-MINOR_MAX_VERSION = MINOR_15_MANUAL_CLEAN
+MINOR_MAX_VERSION = MINOR_16_DRIVER_FILTER
 
 # String representations of the minor and maximum versions
 MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)
