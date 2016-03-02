@@ -117,8 +117,8 @@
 # Options defined in ironic.common.service
 #
 
-# Default interval for running driver periodic tasks. (integer
-# value)
+# Default interval (in seconds) for running driver periodic
+# tasks. (integer value)
 # This option is deprecated and planned for removal in a future release.
 #periodic_interval=60
 
@@ -1790,9 +1790,14 @@
 # Deprecated group/name - [DEFAULT]/rabbit_max_retries
 #rabbit_max_retries=0
 
-# Use HA queues in RabbitMQ (x-ha-policy: all). If you change
-# this option, you must wipe the RabbitMQ database. (boolean
-# value)
+# Try to use HA queues in RabbitMQ (x-ha-policy: all). If you
+# change this option, you must wipe the RabbitMQ database. In
+# RabbitMQ 3.0, queue mirroring is no longer controlled by the
+# x-ha-policy argument when declaring a queue. If you just
+# want to make sure that all queues (except  those with auto-
+# generated names) are mirrored across all nodes, run:
+# "rabbitmqctl set_policy HA '^(?!amq\.).*' '{"ha-mode":
+# "all"}' " (boolean value)
 # Deprecated group/name - [DEFAULT]/rabbit_ha_queues
 #rabbit_ha_queues=false
 
@@ -1819,6 +1824,112 @@
 # (boolean value)
 # Deprecated group/name - [DEFAULT]/fake_rabbit
 #fake_rabbit=false
+
+# Maximum number of channels to allow (integer value)
+#channel_max=<None>
+
+# The maximum byte size for an AMQP frame (integer value)
+#frame_max=<None>
+
+# How often to send heartbeats for consumer's connections
+# (integer value)
+#heartbeat_interval=1
+
+# Enable SSL (boolean value)
+#ssl=<None>
+
+# Arguments passed to ssl.wrap_socket (dict value)
+#ssl_options=<None>
+
+# Set socket timeout in seconds for connection's socket
+# (floating point value)
+#socket_timeout=0.25
+
+# Set TCP_USER_TIMEOUT in seconds for connection's socket
+# (floating point value)
+#tcp_user_timeout=0.25
+
+# Set delay for reconnection to some host which has connection
+# error (floating point value)
+#host_connection_reconnect_delay=0.25
+
+# Maximum number of connections to keep queued. (integer
+# value)
+#pool_max_size=10
+
+# Maximum number of connections to create above
+# `pool_max_size`. (integer value)
+#pool_max_overflow=0
+
+# Default number of seconds to wait for a connections to
+# available (integer value)
+#pool_timeout=30
+
+# Lifetime of a connection (since creation) in seconds or None
+# for no recycling. Expired connections are closed on acquire.
+# (integer value)
+#pool_recycle=600
+
+# Threshold at which inactive (since release) connections are
+# considered stale in seconds or None for no staleness. Stale
+# connections are closed on acquire. (integer value)
+#pool_stale=60
+
+# Persist notification messages. (boolean value)
+#notification_persistence=false
+
+# Exchange name for for sending notifications (string value)
+#default_notification_exchange=${control_exchange}_notification
+
+# Max number of not acknowledged message which RabbitMQ can
+# send to notification listener. (integer value)
+#notification_listener_prefetch_count=100
+
+# Reconnecting retry count in case of connectivity problem
+# during sending notification, -1 means infinite retry.
+# (integer value)
+#default_notification_retry_attempts=-1
+
+# Reconnecting retry delay in case of connectivity problem
+# during sending notification message (floating point value)
+#notification_retry_delay=0.25
+
+# Time to live for rpc queues without consumers in seconds.
+# (integer value)
+#rpc_queue_expiration=60
+
+# Exchange name for sending RPC messages (string value)
+#default_rpc_exchange=${control_exchange}_rpc
+
+# Exchange name for receiving RPC replies (string value)
+#rpc_reply_exchange=${control_exchange}_rpc_reply
+
+# Max number of not acknowledged message which RabbitMQ can
+# send to rpc listener. (integer value)
+#rpc_listener_prefetch_count=100
+
+# Max number of not acknowledged message which RabbitMQ can
+# send to rpc reply listener. (integer value)
+#rpc_reply_listener_prefetch_count=100
+
+# Reconnecting retry count in case of connectivity problem
+# during sending reply. -1 means infinite retry during
+# rpc_timeout (integer value)
+#rpc_reply_retry_attempts=-1
+
+# Reconnecting retry delay in case of connectivity problem
+# during sending reply. (floating point value)
+#rpc_reply_retry_delay=0.25
+
+# Reconnecting retry count in case of connectivity problem
+# during sending RPC message, -1 means infinite retry. If
+# actual retry attempts in not 0 the rpc request could be
+# processed more then one time (integer value)
+#default_rpc_retry_attempts=-1
+
+# Reconnecting retry delay in case of connectivity problem
+# during sending RPC message (floating point value)
+#rpc_retry_delay=0.25
 
 
 [oslo_policy]
