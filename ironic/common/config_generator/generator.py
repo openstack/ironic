@@ -233,6 +233,14 @@ def print_group_opts(group, opts_by_module):
         print('')
 
 
+def _get_choice_text(choice):
+    if choice is None:
+        return '<None>'
+    elif choice == '':
+        return "''"
+    return six.text_type(choice)
+
+
 def _get_my_ip():
     try:
         csock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -276,6 +284,28 @@ def _print_opt(opt, group):
     opt_help = u'%s (%s)' % (opt_help,
                              OPT_TYPES[opt_type])
     print('#', "\n# ".join(textwrap.wrap(opt_help, WORDWRAP_WIDTH)))
+
+    min_value = getattr(opt.type, 'min', None)
+    max_value = getattr(opt.type, 'max', None)
+    choices = getattr(opt.type, 'choices', None)
+
+    # NOTE(lintan): choices are mutually exclusive with 'min/max',
+    # see oslo.config for more details.
+    if min_value is not None and max_value is not None:
+        print('# Possible values: %(min_value)d-%(max_value)d' %
+              {'min_value': min_value, 'max_value': max_value})
+    elif min_value is not None:
+        print('# Minimum value: %d' % min_value)
+    elif max_value is not None:
+        print('# Maximum value: %d' % max_value)
+    elif choices is not None:
+        if choices == []:
+            print('# No possible values.')
+        else:
+            choices_text = ', '.join([_get_choice_text(choice)
+                                     for choice in choices])
+            print('# Possible values: %s' % choices_text)
+
     if opt.deprecated_opts:
         for deprecated_opt in opt.deprecated_opts:
             deprecated_name = (deprecated_opt.name if

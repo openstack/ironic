@@ -8,6 +8,7 @@
 # "keystone" or "noauth". "noauth" should not be used in a
 # production environment because all authentication will be
 # disabled. (string value)
+# Possible values: noauth, keystone
 #auth_strategy=keystone
 
 # Return server tracebacks in the API response for any error
@@ -322,9 +323,11 @@
 #use_pub_sub=true
 
 # Minimal port number for random ports range. (port value)
+# Possible values: 0-65535
 #rpc_zmq_min_port=49152
 
 # Maximal port number for random ports range. (integer value)
+# Possible values: 1-65536
 #rpc_zmq_max_port=65536
 
 # Number of retries to find free port number before fail with
@@ -467,6 +470,7 @@
 
 # Protocol used for AMT endpoint, support http/https (string
 # value)
+# Possible values: http, https
 #protocol=http
 
 # Time interval (in seconds) for successive awake call to AMT
@@ -475,6 +479,7 @@
 # of inactivity by default. IdleTimeout=0 means AMT will not
 # go to sleep at all. Setting awake_interval=0 will disable
 # awake call. (integer value)
+# Minimum value: 0
 #awake_interval=60
 
 
@@ -501,6 +506,7 @@
 #host_ip=0.0.0.0
 
 # The TCP port on which ironic-api listens. (port value)
+# Possible values: 0-65535
 #port=6385
 
 # The maximum number of items returned in a single response
@@ -569,6 +575,7 @@
 # The size of the workers greenthread pool. Note that 2
 # threads will be reserved by the conductor itself for
 # handling heart beats and periodic tasks. (integer value)
+# Minimum value: 3
 #workers_pool_size=100
 
 # Seconds between conductor heart beats. (integer value)
@@ -1004,6 +1011,7 @@
 # download starts. swift_temp_url_duration value must be
 # greater than or equal to this option's value. Defaults to 0.
 # (integer value)
+# Minimum value: 0
 #swift_temp_url_expected_download_start_delay=0
 
 # The "endpoint" (scheme, hostname, optional port) for the
@@ -1051,6 +1059,7 @@
 # Type of endpoint to use for temporary URLs. If the Glance
 # backend is Swift, use "swift"; if it is CEPH with RADOS
 # gateway, use "radosgw". (string value)
+# Possible values: swift, radosgw
 #temp_url_endpoint_type=swift
 
 
@@ -1062,10 +1071,12 @@
 #glance_host=$my_ip
 
 # Default glance port. (port value)
+# Possible values: 0-65535
 #glance_port=9292
 
 # Default protocol to use when connecting to glance. Set to
 # https for SSL. (string value)
+# Possible values: http, https
 #glance_protocol=http
 
 # A list of the glance api servers available to ironic. Prefix
@@ -1084,6 +1095,7 @@
 # Authentication strategy to use when connecting to glance.
 # Only "keystone" and "noauth" are currently supported by
 # ironic. (string value)
+# Possible values: keystone, noauth
 #auth_strategy=keystone
 
 
@@ -1102,6 +1114,7 @@
 
 # Time (in seconds) to sleep between when rebooting (powering
 # off and on again). (integer value)
+# Minimum value: 0
 #reboot_delay=5
 
 
@@ -1115,6 +1128,7 @@
 #client_timeout=60
 
 # Port to be used for iLO operations (port value)
+# Possible values: 0-65535
 #client_port=443
 
 # The Swift iLO container to store data. (string value)
@@ -1242,6 +1256,7 @@
 
 # Share type of virtual media, either "NFS" or "CIFS" (string
 # value)
+# Possible values: CIFS, NFS
 #remote_image_share_type=CIFS
 
 # share name of remote_image_server (string value)
@@ -1263,10 +1278,12 @@
 
 # Port to be used for iRMC operations, either 80 or 443 (port
 # value)
+# Possible values: 443, 80
 #port=443
 
 # Authentication method to be used for iRMC operations, either
 # "basic" or "digest" (string value)
+# Possible values: basic, digest
 #auth_method=basic
 
 # Timeout (in seconds) for iRMC operations (integer value)
@@ -1274,13 +1291,16 @@
 
 # Sensor data retrieval method, either "ipmitool" or "scci"
 # (string value)
+# Possible values: ipmitool, scci
 #sensor_method=ipmitool
 
 # SNMP protocol version, either "v1", "v2c" or "v3" (string
 # value)
+# Possible values: v1, v2c, v3
 #snmp_version=v2c
 
 # SNMP port (port value)
+# Possible values: 0-65535
 #snmp_port=161
 
 # SNMP community. Required for versions "v1" and "v2c" (string
@@ -1391,6 +1411,7 @@
 # token data is encrypted and authenticated in the cache. If
 # the value is not one of these options or empty, auth_token
 # will raise an exception on initialization. (string value)
+# Possible values: None, MAC, ENCRYPT
 #memcache_security_strategy=None
 
 # (Optional, mandatory if memcache_security_strategy is
@@ -1477,6 +1498,7 @@
 #host=127.0.0.1
 
 # Use this port to connect to redis host. (port value)
+# Possible values: 0-65535
 #port=6379
 
 # Password for Redis server (optional). (string value)
@@ -1523,6 +1545,7 @@
 # neutron in noauth mode (related to but not affected by this
 # setting) is insecure and should only be used for testing.
 # (string value)
+# Possible values: keystone, noauth
 #auth_strategy=keystone
 
 # UUID of the network to create Neutron ports on, when booting
@@ -1736,6 +1759,7 @@
 # one we are currently connected to becomes unavailable. Takes
 # effect only if more than one RabbitMQ node is provided in
 # config. (string value)
+# Possible values: round-robin, shuffle
 #kombu_failover_strategy=round-robin
 
 # The RabbitMQ broker address where a single node is used.
@@ -1745,6 +1769,7 @@
 
 # The RabbitMQ broker port where a single node is used. (port
 # value)
+# Possible values: 0-65535
 # Deprecated group/name - [DEFAULT]/rabbit_port
 #rabbit_port=5672
 
@@ -1805,6 +1830,7 @@
 # TTL (x-expires). Queues which are unused for the duration of
 # the TTL are automatically deleted. The parameter affects
 # only reply and fanout queues. (integer value)
+# Minimum value: 1
 #rabbit_transient_queues_ttl=600
 
 # Specifies the number of messages to prefetch. Setting to
@@ -2033,6 +2059,7 @@
 
 # The IP version that will be used for PXE booting. Can be
 # either 4 or 6. Defaults to 4. EXPERIMENTAL (string value)
+# Possible values: 4, 6
 #ip_version=4
 
 
@@ -2062,6 +2089,7 @@
 
 # Time (in seconds) to sleep between when rebooting (powering
 # off and on again) (integer value)
+# Minimum value: 0
 #reboot_delay=0
 
 
@@ -2134,6 +2162,7 @@
 
 # Port on which VirtualBox web service is listening. (port
 # value)
+# Possible values: 0-65535
 #port=18083
 
 
