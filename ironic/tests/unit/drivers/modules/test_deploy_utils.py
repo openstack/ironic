@@ -375,7 +375,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         make_partitions_expected_args = [dev, root_mb, swap_mb, ephemeral_mb,
                                          configdrive_mb, node_uuid]
-        make_partitions_expected_kwargs = {'commit': True}
+        make_partitions_expected_kwargs = {'commit': True, 'disk_label': None}
         deploy_kwargs = {}
 
         if boot_option:
@@ -536,7 +536,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                                          node_uuid,
                                          commit=True,
                                          boot_option="local",
-                                         boot_mode="uefi"),
+                                         boot_mode="uefi",
+                                         disk_label=None),
                                      mock.call.is_block_device(root_part),
                                      mock.call.is_block_device(swap_part),
                                      mock.call.is_block_device(
@@ -614,7 +615,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                                          node_uuid,
                                          commit=True,
                                          boot_option="netboot",
-                                         boot_mode="bios"),
+                                         boot_mode="bios",
+                                         disk_label=None),
                                      mock.call.is_block_device(root_part),
                                      mock.call.populate_image(
                                          image_path, root_part),
@@ -685,7 +687,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                                          node_uuid,
                                          commit=True,
                                          boot_option="netboot",
-                                         boot_mode="bios"),
+                                         boot_mode="bios",
+                                         disk_label=None),
                                      mock.call.is_block_device(root_part),
                                      mock.call.is_block_device(swap_part),
                                      mock.call.is_block_device(ephemeral_part),
@@ -764,7 +767,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                                          node_uuid,
                                          commit=False,
                                          boot_option="netboot",
-                                         boot_mode="bios"),
+                                         boot_mode="bios",
+                                         disk_label=None),
                                      mock.call.is_block_device(root_part),
                                      mock.call.is_block_device(swap_part),
                                      mock.call.is_block_device(ephemeral_part),
@@ -843,7 +847,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                                          node_uuid,
                                          commit=True,
                                          boot_option="netboot",
-                                         boot_mode="bios"),
+                                         boot_mode="bios",
+                                         disk_label=None),
                                      mock.call.is_block_device(root_part),
                                      mock.call.is_block_device(
                                          configdrive_part),
