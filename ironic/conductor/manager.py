@@ -1468,8 +1468,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             iwdi = images.is_whole_disk_image(context,
                                               task.node.instance_info)
             task.node.driver_internal_info['is_whole_disk_image'] = iwdi
-            for iface_name in (task.driver.core_interfaces +
-                               task.driver.standard_interfaces):
+            for iface_name in task.driver.non_vendor_interfaces:
                 iface = getattr(task.driver, iface_name, None)
                 result = reason = None
                 if iface:

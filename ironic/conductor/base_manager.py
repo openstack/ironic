@@ -119,9 +119,7 @@ class BaseConductorManager(object):
         self._collect_periodic_tasks(self, (admin_context,))
         for driver_obj in drivers.values():
             self._collect_periodic_tasks(driver_obj, (self, admin_context))
-            for iface_name in (driver_obj.core_interfaces +
-                               driver_obj.standard_interfaces +
-                               ['vendor']):
+            for iface_name in driver_obj.all_interfaces:
                 iface = getattr(driver_obj, iface_name, None)
                 if iface and iface.__class__ not in periodic_task_classes:
                     self._collect_periodic_tasks(iface, (self, admin_context))

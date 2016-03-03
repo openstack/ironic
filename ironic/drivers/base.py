@@ -41,7 +41,6 @@ RAID_CONFIG_SCHEMA = os.path.join(os.path.dirname(__file__),
 
 
 CONF = cfg.CONF
-CONF.import_opt('periodic_interval', 'ironic.common.service')
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -132,6 +131,14 @@ class BaseDriver(object):
     def __init__(self):
         pass
 
+    @property
+    def all_interfaces(self):
+        return self.core_interfaces + self.standard_interfaces + ['vendor']
+
+    @property
+    def non_vendor_interfaces(self):
+        return self.core_interfaces + self.standard_interfaces
+
     def get_properties(self):
         """Get the properties of the driver.
 
@@ -139,13 +146,21 @@ class BaseDriver(object):
         """
 
         properties = {}
-        for iface_name in (self.core_interfaces +
-                           self.standard_interfaces +
-                           ['vendor']):
+        for iface_name in self.all_interfaces:
             iface = getattr(self, iface_name, None)
             if iface:
                 properties.update(iface.get_properties())
         return properties
+
+
+class BareDriver(BaseDriver):
+    """A bare driver object which will have interfaces attached later.
+
+    Any composable interfaces should be added as class attributes of this
+    class, as well as appended to core_interfaces or standard_interfaces here.
+    """
+    def __init__(self):
+        pass
 
 
 class BaseInterface(object):
@@ -1145,6 +1160,11 @@ def driver_periodic_task(**kwargs):
             new_kwargs[arg] = kwargs.pop(arg)
         except KeyError:
             pass
+
+    # NOTE(jroll) this is here to avoid a circular import when a module
+    # imports ironic.common.service. Normally I would balk at this, but this
+    # option is deprecared for removal and this code only runs at startup.
+    CONF.import_opt('periodic_interval', 'ironic.common.service')
     new_kwargs.setdefault('spacing', CONF.periodic_interval)
 
     if kwargs:
