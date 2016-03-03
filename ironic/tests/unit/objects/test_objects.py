@@ -409,7 +409,7 @@ expected_object_fingerprints = {
     'Chassis': '1.3-d656e039fd8ae9f34efc232ab3980905',
     'Port': '1.5-a224755c3da5bc5cf1a14a11c0d00f3f',
     'Portgroup': '1.0-1ac4db8fa31edd9e1637248ada4c25a1',
-    'Conductor': '1.0-5091f249719d4a465062a1b3dc7f860d'
+    'Conductor': '1.1-5091f249719d4a465062a1b3dc7f860d'
 }
 
 

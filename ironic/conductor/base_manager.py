@@ -36,6 +36,7 @@ from ironic.common import rpc
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.db import api as dbapi
+from ironic import objects
 
 
 conductor_opts = [
@@ -141,8 +142,8 @@ class BaseConductorManager(object):
         self.dbapi.clear_node_reservations_for_conductor(self.host)
         try:
             # Register this conductor with the cluster
-            cdr = self.dbapi.register_conductor({'hostname': self.host,
-                                                 'drivers': driver_names})
+            self.conductor = objects.Conductor.register(
+                admin_context, self.host, driver_names)
         except exception.ConductorAlreadyRegistered:
             # This conductor was already registered and did not shut down
             # properly, so log a warning and update the record.
@@ -150,10 +151,8 @@ class BaseConductorManager(object):
                 _LW("A conductor with hostname %(hostname)s "
                     "was previously registered. Updating registration"),
                 {'hostname': self.host})
-            cdr = self.dbapi.register_conductor({'hostname': self.host,
-                                                 'drivers': driver_names},
-                                                update_existing=True)
-        self.conductor = cdr
+            self.conductor = objects.Conductor.register(
+                admin_context, self.host, driver_names, update_existing=True)
 
         # Start periodic tasks
         self._periodic_tasks_worker = self._executor.submit(
@@ -201,7 +200,7 @@ class BaseConductorManager(object):
                 # Inform the cluster that this conductor is shutting down.
                 # Note that rebalancing will not occur immediately, but when
                 # the periodic sync takes place.
-                self.dbapi.unregister_conductor(self.host)
+                self.conductor.unregister()
                 LOG.info(_LI('Successfully stopped conductor with hostname '
                              '%(hostname)s.'),
                          {'hostname': self.host})
@@ -283,7 +282,7 @@ class BaseConductorManager(object):
     def _conductor_service_record_keepalive(self):
         while not self._keepalive_evt.is_set():
             try:
-                self.dbapi.touch_conductor(self.host)
+                self.conductor.touch()
             except db_exception.DBConnectionError:
                 LOG.warning(_LW('Conductor could not connect to database '
                                 'while heartbeating.'))
