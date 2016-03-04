@@ -1,0 +1,6 @@
+---
+prelude: >
+    This release adds support for manual cleaning and
+    RAID configuration. Operators may now manually
+    run clean steps, including setting up RAID on a
+    node, while a node is in the manageable state.
