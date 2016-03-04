@@ -296,3 +296,30 @@ class IloManagementTestCase(db_base.DbTestCase):
             task.driver.management.clear_secure_boot_keys(task)
             clean_step_mock.assert_called_once_with(task.node,
                                                     'clear_secure_boot_keys')
+
+    @mock.patch.object(ilo_management, '_execute_ilo_clean_step',
+                       spec_set=True, autospec=True)
+    def test_activate_license(self, clean_step_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            activate_license_args = {
+                'ilo_license_key': 'XXXXX-YYYYY-ZZZZZ-XYZZZ-XXYYZ'}
+            task.driver.management.activate_license(task,
+                                                    **activate_license_args)
+            clean_step_mock.assert_called_once_with(
+                task.node, 'activate_license', 'XXXXX-YYYYY-ZZZZZ-XYZZZ-XXYYZ')
+
+    @mock.patch.object(ilo_management, 'LOG', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_management, '_execute_ilo_clean_step',
+                       spec_set=True, autospec=True)
+    def test_activate_license_no_or_invalid_format_license_key(
+            self, clean_step_mock, log_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            for license_key_value in (None, [], {}):
+                activate_license_args = {'ilo_license_key': license_key_value}
+                self.assertRaises(exception.InvalidParameterValue,
+                                  task.driver.management.activate_license,
+                                  task,
+                                  **activate_license_args)
+                self.assertFalse(clean_step_mock.called)

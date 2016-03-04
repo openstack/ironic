@@ -18,12 +18,11 @@ iLO Management Interface
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
+import six
 
 from ironic.common import boot_devices
 from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.common.i18n import _LI
-from ironic.common.i18n import _LW
+from ironic.common.i18n import _, _LI, _LW
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.ilo import common as ilo_common
@@ -301,3 +300,36 @@ class IloManagement(base.ManagementInterface):
         :raises: NodeCleaningFailure, on failure to execute step.
         """
         return _execute_ilo_clean_step(task.node, 'clear_secure_boot_keys')
+
+    @base.clean_step(priority=0, abortable=False, argsinfo={
+        'ilo_license_key': {
+            'description': (
+                'The HPE iLO Advanced license key to activate enterprise '
+                'features.'
+            ),
+            'required': True
+        }
+    })
+    def activate_license(self, task, **kwargs):
+        """Activates iLO Advanced license.
+
+        :param task: a TaskManager object.
+        :raises: InvalidParameterValue, if any of the arguments are invalid.
+        :raises: NodeCleaningFailure, on failure to execute clean step.
+        """
+        ilo_license_key = kwargs.get('ilo_license_key')
+        node = task.node
+
+        if not isinstance(ilo_license_key, six.string_types):
+            msg = (_("Value of 'ilo_license_key' must be a string instead of "
+                     "'%(value)s'. Step 'activate_license' is not executed "
+                     "for %(node)s.")
+                   % {'value': ilo_license_key, 'node': node.uuid})
+            LOG.error(msg)
+            raise exception.InvalidParameterValue(msg)
+
+        LOG.debug("Activating iLO license for node %(node)s ...",
+                  {'node': node.uuid})
+        _execute_ilo_clean_step(node, 'activate_license', ilo_license_key)
+        LOG.info(_LI("iLO license activated for node %(node)s."),
+                 {'node': node.uuid})

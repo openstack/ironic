@@ -71,6 +71,9 @@ cleaning steps.
 
 See `How do I change the priority of a cleaning step?`_ for more information.
 
+
+.. _manual_cleaning:
+
 Manual cleaning
 ===============
 
