@@ -307,6 +307,7 @@ class AgentDeploy(base.DeployInterface):
         manager_utils.node_power_action(task, states.POWER_OFF)
         return states.DELETED
 
+    @task_manager.require_exclusive_lock
     def prepare(self, task):
         """Prepare the deployment environment for this node.
 
@@ -323,6 +324,7 @@ class AgentDeploy(base.DeployInterface):
                 deploy_opts = deploy_utils.build_agent_options(node)
                 task.driver.boot.prepare_ramdisk(task, deploy_opts)
 
+    @task_manager.require_exclusive_lock
     def clean_up(self, task):
         """Clean up the deployment environment for this node.
 
