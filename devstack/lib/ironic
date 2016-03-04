@@ -660,21 +660,21 @@ function enroll_nodes {
 
         if is_deployed_by_ipmitool; then
             local node_options="\
-                -i deploy_kernel=$IRONIC_DEPLOY_KERNEL_ID \
-                -i deploy_ramdisk=$IRONIC_DEPLOY_RAMDISK_ID \
                 -i ipmi_address=127.0.0.1 \
                 -i ipmi_username=admin \
                 -i ipmi_password=password"
         else
             local node_options="\
-                -i deploy_kernel=$IRONIC_DEPLOY_KERNEL_ID \
-                -i deploy_ramdisk=$IRONIC_DEPLOY_RAMDISK_ID \
                 -i ssh_virt_type=$IRONIC_SSH_VIRT_TYPE \
                 -i ssh_address=$IRONIC_VM_SSH_ADDRESS \
                 -i ssh_port=$IRONIC_VM_SSH_PORT \
                 -i ssh_username=$IRONIC_SSH_USERNAME \
                 -i ssh_key_filename=$IRONIC_KEY_FILE"
         fi
+        node_options="\
+            $node_options \
+            -i deploy_kernel=$IRONIC_DEPLOY_KERNEL_ID \
+            -i deploy_ramdisk=$IRONIC_DEPLOY_RAMDISK_ID"
 
     else
         local ironic_node_cpu=$IRONIC_HW_NODE_CPU
