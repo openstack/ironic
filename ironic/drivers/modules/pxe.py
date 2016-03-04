@@ -89,7 +89,7 @@ pxe_opts = [
                default='4',
                choices=['4', '6'],
                help=_('The IP version that will be used for PXE booting. '
-                      'Can be either 4 or 6. Defaults to 4. EXPERIMENTAL')),
+                      'Defaults to 4. EXPERIMENTAL')),
 ]
 
 LOG = logging.getLogger(__name__)
