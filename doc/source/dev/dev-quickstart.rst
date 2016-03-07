@@ -408,6 +408,7 @@ and uses the ``pxe_ssh`` driver by default::
     IRONIC_VM_COUNT=3
     IRONIC_VM_SSH_PORT=22
     IRONIC_BAREMETAL_BASIC_OPS=True
+    DEFAULT_INSTANCE_TYPE=baremetal
     IRONIC_DEPLOY_DRIVER_ISCSI_WITH_IPA=True
 
     # Enable Ironic drivers.
