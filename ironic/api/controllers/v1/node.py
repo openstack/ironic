@@ -60,18 +60,6 @@ _VENDOR_METHODS = {}
 _DEFAULT_RETURN_FIELDS = ('instance_uuid', 'maintenance', 'power_state',
                           'provision_state', 'uuid', 'name')
 
-# Minimum API version to use for certain verbs
-MIN_VERB_VERSIONS = {
-    # v1.4 added the MANAGEABLE state and two verbs to move nodes into
-    # and out of that state. Reject requests to do this in older versions
-    ir_states.VERBS['manage']: versions.MINOR_4_MANAGEABLE_STATE,
-    ir_states.VERBS['provide']: versions.MINOR_4_MANAGEABLE_STATE,
-
-    ir_states.VERBS['inspect']: versions.MINOR_6_INSPECT_STATE,
-    ir_states.VERBS['abort']: versions.MINOR_13_ABORT_VERB,
-    ir_states.VERBS['clean']: versions.MINOR_15_MANUAL_CLEAN,
-}
-
 # States where calling do_provisioning_action makes sense
 PROVISION_ACTION_STATES = (ir_states.VERBS['manage'],
                            ir_states.VERBS['provide'],
@@ -104,12 +92,6 @@ def assert_juno_provision_state_name(obj):
     if (pecan.request.version.minor < versions.MINOR_2_AVAILABLE_STATE and
             obj.provision_state == ir_states.AVAILABLE):
         obj.provision_state = ir_states.NOSTATE
-
-
-def check_allow_management_verbs(verb):
-    min_version = MIN_VERB_VERSIONS.get(verb)
-    if min_version is not None and pecan.request.version.minor < min_version:
-        raise exception.NotAcceptable()
 
 
 class BootDeviceController(rest.RestController):
@@ -450,7 +432,7 @@ class NodeStatesController(rest.RestController):
         :raises: NotAcceptable (HTTP 406) if the API version specified does
                  not allow the requested state transition.
         """
-        check_allow_management_verbs(target)
+        api_utils.check_allow_management_verbs(target)
         rpc_node = api_utils.get_rpc_node(node_ident)
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
 

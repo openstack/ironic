@@ -38,6 +38,19 @@ JSONPATCH_EXCEPTIONS = (jsonpatch.JsonPatchException,
                         KeyError)
 
 
+# Minimum API version to use for certain verbs
+MIN_VERB_VERSIONS = {
+    # v1.4 added the MANAGEABLE state and two verbs to move nodes into
+    # and out of that state. Reject requests to do this in older versions
+    states.VERBS['manage']: versions.MINOR_4_MANAGEABLE_STATE,
+    states.VERBS['provide']: versions.MINOR_4_MANAGEABLE_STATE,
+
+    states.VERBS['inspect']: versions.MINOR_6_INSPECT_STATE,
+    states.VERBS['abort']: versions.MINOR_13_ABORT_VERB,
+    states.VERBS['clean']: versions.MINOR_15_MANUAL_CLEAN,
+}
+
+
 def validate_limit(limit):
     if limit is None:
         return CONF.api.max_limit
@@ -196,6 +209,12 @@ def check_allow_specify_fields(fields):
     """
     if (fields is not None and pecan.request.version.minor <
             versions.MINOR_8_FETCHING_SUBSET_OF_FIELDS):
+        raise exception.NotAcceptable()
+
+
+def check_allow_management_verbs(verb):
+    min_version = MIN_VERB_VERSIONS.get(verb)
+    if min_version is not None and pecan.request.version.minor < min_version:
         raise exception.NotAcceptable()
 
 
