@@ -67,6 +67,16 @@ Node configuration
   - ``sensor_method``: Sensor data retrieval method; either
     ``ipmitool`` or ``scci``. The default value is ``ipmitool``. Optional.
 
+ * The following options are only required for inspection:
+
+  - ``snmp_version``: SNMP protocol version; either ``v1``, ``v2c`` or
+    ``v3``. The default value is ``v2c``. Optional.
+  - ``snmp_port``: SNMP port. The default value is ``161``. Optional.
+  - ``snmp_community``: SNMP community required for versions ``v1``
+    and ``v2c``. The default value is ``public``. Optional.
+  - ``snmp_security``: SNMP security name required for version ``v3``.
+    Optional.
+
 * Each node can be further configured by setting the following ironic
   node object’s properties which override the parameter values in
   ``[irmc]`` section of ``/etc/ironic/ironic.conf``:
@@ -75,6 +85,10 @@ Node configuration
   - ``driver_info/irmc_auth_method`` property overrides ``auth_method``.
   - ``driver_info/irmc_client_timeout`` property overrides ``client_timeout``.
   - ``driver_info/irmc_sensor_method`` property overrides ``sensor_method``.
+  - ``driver_info/irmc_snmp_version`` property overrides ``snmp_version``.
+  - ``driver_info/irmc_snmp_port`` property overrides ``snmp_port``.
+  - ``driver_info/irmc_snmp_community`` property overrides ``snmp_community``.
+  - ``driver_info/irmc_snmp_security`` property overrides ``snmp_security``.
 
 
 iscsi_irmc driver
@@ -135,6 +149,16 @@ Node configuration
   - ``remote_image_user_password``: Password of ``remote_image_user_name``.
   - ``remote_image_user_domain``: Domain name of ``remote_image_user_name``.
 
+ * The following options are only required for inspection:
+
+  - ``snmp_version``: SNMP protocol version; either ``v1``, ``v2c`` or
+    ``v3``. The default value is ``v2c``. Optional.
+  - ``snmp_port``: SNMP port. The default value is ``161``. Optional.
+  - ``snmp_community``: SNMP community required for versions ``v1``
+    and ``v2c``. The default value is ``public``. Optional.
+  - ``snmp_security``: SNMP security name required for version ``v3``.
+    Optional.
+
 * Each node can be further configured by setting the following ironic
   node object’s properties which override the parameter values in
   ``[irmc]`` section of ``/etc/ironic/ironic.conf``:
@@ -143,6 +167,10 @@ Node configuration
   - ``driver_info/irmc_auth_method`` property overrides ``auth_method``.
   - ``driver_info/irmc_client_timeout`` property overrides ``client_timeout``.
   - ``driver_info/irmc_sensor_method`` property overrides ``sensor_method``.
+  - ``driver_info/irmc_snmp_version`` property overrides ``snmp_version``.
+  - ``driver_info/irmc_snmp_port`` property overrides ``snmp_port``.
+  - ``driver_info/irmc_snmp_community`` property overrides ``snmp_community``.
+  - ``driver_info/irmc_snmp_security`` property overrides ``snmp_security``.
 
 
 agent_irmc driver
@@ -200,6 +228,16 @@ Node configuration
   - ``remote_image_user_password``: Password of ``remote_image_user_name``.
   - ``remote_image_user_domain``: Domain name of ``remote_image_user_name``.
 
+ * The following options are only required for inspection:
+
+  - ``snmp_version``: SNMP protocol version; either ``v1``, ``v2c`` or
+    ``v3``. The default value is ``v2c``. Optional.
+  - ``snmp_port``: SNMP port. The default value is ``161``. Optional.
+  - ``snmp_community``: SNMP community required for versions ``v1``
+    and ``v2c``. The default value is ``public``. Optional.
+  - ``snmp_security``: SNMP security name required for version ``v3``.
+    Optional.
+
 * Each node can be further configured by setting the following ironic
   node object’s properties which override the parameter values in
   ``[irmc]`` section of ``/etc/ironic/ironic.conf``:
@@ -208,6 +246,10 @@ Node configuration
   - ``driver_info/irmc_auth_method`` property overrides ``auth_method``.
   - ``driver_info/irmc_client_timeout`` property overrides ``client_timeout``.
   - ``driver_info/irmc_sensor_method`` property overrides ``sensor_method``.
+  - ``driver_info/irmc_snmp_version`` property overrides ``snmp_version``.
+  - ``driver_info/irmc_snmp_port`` property overrides ``snmp_port``.
+  - ``driver_info/irmc_snmp_community`` property overrides ``snmp_community``.
+  - ``driver_info/irmc_snmp_security`` property overrides ``snmp_security``.
 
 
 Supported platforms
