@@ -137,6 +137,8 @@ IRONIC_IS_HARDWARE=$(trueorfalse False IRONIC_IS_HARDWARE)
 # $IRONIC_VM_COUNT=3 the ports 6230, 6231 and 6232 will be used for the
 # Virtual BMCs, one for each VM.
 IRONIC_VBMC_PORT_RANGE_START=${IRONIC_VBMC_PORT_RANGE_START:-6230}
+IRONIC_VBMC_CONFIG_FILE=${IRONIC_VBMC_CONFIG_FILE:-$HOME/.vbmc/virtualbmc.conf}
+IRONIC_VBMC_LOGFILE=${IRONIC_VBMC_LOGFILE:-$IRONIC_VM_LOG_DIR/virtualbmc.log}
 
 # NOTE(lucasagomes): This flag is used to differentiate the nodes that
 # uses IPA as their deploy ramdisk from nodes that uses the agent_* drivers
@@ -223,6 +225,13 @@ function install_ironic {
 
     if is_deployed_by_ipmitool && [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
         pip_install "virtualbmc"
+
+        if [[ ! -d $(dirname $IRONIC_VBMC_CONFIG_FILE) ]]; then
+            mkdir -p $(dirname $IRONIC_VBMC_CONFIG_FILE)
+        fi
+
+        iniset $IRONIC_VBMC_CONFIG_FILE log debug True
+        iniset $IRONIC_VBMC_CONFIG_FILE log logfile $IRONIC_VBMC_LOGFILE
     fi
 }
 
