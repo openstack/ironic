@@ -651,9 +651,10 @@ def send_raw(task, raw_bytes):
 
     :param task: a TaskManager instance.
     :param raw_bytes: a string of raw bytes to send, e.g. '0x00 0x01'
+    :returns: a tuple with stdout and stderr.
     :raises: IPMIFailure on an error from ipmitool.
     :raises: MissingParameterValue if a required parameter is missing.
-    :raises:  InvalidParameterValue when an invalid value is specified.
+    :raises: InvalidParameterValue when an invalid value is specified.
 
     """
     node_uuid = task.node.uuid
@@ -672,6 +673,8 @@ def send_raw(task, raw_bytes):
                       'with error: %(error)s.'),
                       {'node_id': node_uuid, 'error': e})
         raise exception.IPMIFailure(cmd=cmd)
+
+    return out, err
 
 
 def dump_sdr(task, file_path):

@@ -2107,3 +2107,13 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.IPMIFailure, ipmi.dump_sdr, task,
                               'foo_file')
         mock_exec.assert_called_once_with(self.info, 'sdr dump foo_file')
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_send_raw_bytes_returns(self, mock_exec):
+        fake_ret = ('foo', 'bar')
+        mock_exec.return_value = fake_ret
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            ret = ipmi.send_raw(task, 'fake raw')
+
+        self.assertEqual(fake_ret, ret)
