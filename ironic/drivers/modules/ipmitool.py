@@ -674,6 +674,34 @@ def send_raw(task, raw_bytes):
         raise exception.IPMIFailure(cmd=cmd)
 
 
+def dump_sdr(task, file_path):
+    """Dump SDR data to a file.
+
+    :param task: a TaskManager instance.
+    :param file_path: the path to SDR dump file.
+    :raises: IPMIFailure on an error from ipmitool.
+    :raises: MissingParameterValue if a required parameter is missing.
+    :raises: InvalidParameterValue when an invalid value is specified.
+
+    """
+    node_uuid = task.node.uuid
+    LOG.debug('Dump SDR data for node %(node)s to file %(name)s',
+              {'name': file_path, 'node': node_uuid})
+    driver_info = _parse_driver_info(task.node)
+    cmd = 'sdr dump %s' % file_path
+
+    try:
+        out, err = _exec_ipmitool(driver_info, cmd)
+        LOG.debug('dump SDR returned stdout: %(stdout)s, stderr:'
+                  ' %(stderr)s', {'stdout': out, 'stderr': err})
+    except (exception.PasswordFileFailedToCreate,
+            processutils.ProcessExecutionError) as e:
+        LOG.exception(_LE('IPMI "sdr dump" failed for node %(node_id)s '
+                      'with error: %(error)s.'),
+                      {'node_id': node_uuid, 'error': e})
+        raise exception.IPMIFailure(cmd=cmd)
+
+
 def _check_temp_dir():
     """Check for Valid temp directory."""
     global TMP_DIR_CHECKED
