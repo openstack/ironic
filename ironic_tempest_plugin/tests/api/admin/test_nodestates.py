@@ -13,8 +13,8 @@
 #    under the License.
 
 from oslo_utils import timeutils
+from tempest.lib import exceptions
 from tempest import test
-from tempest_lib import exceptions
 
 from ironic_tempest_plugin.tests.api.admin import base
 

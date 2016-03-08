@@ -15,8 +15,8 @@
 
 import time
 
-from tempest_lib.common.utils import misc as misc_utils
-from tempest_lib import exceptions as lib_exc
+from tempest.lib.common.utils import misc as misc_utils
+from tempest.lib import exceptions as lib_exc
 
 
 def wait_for_bm_node_status(client, node_id, attr, status):
