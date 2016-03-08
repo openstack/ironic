@@ -170,7 +170,7 @@ higher.
 An example of doing this with a JSON string::
 
     ironic --ironic-api-version 1.15 node-set-provision-state \
-    clean --clean-steps '{"clean_steps": [...]}'
+    clean --clean-steps '[...]'
 
 Or with a file::
 
