@@ -832,6 +832,8 @@ function build_ipa_coreos_ramdisk {
     echo "Building ironic-python-agent deploy ramdisk"
     local kernel_path=$1
     local ramdisk_path=$2
+    # on fedora services do not start by default
+    restart_service docker
     git_clone $IRONIC_PYTHON_AGENT_REPO $IRONIC_PYTHON_AGENT_DIR $IRONIC_PYTHON_AGENT_BRANCH
     cd $IRONIC_PYTHON_AGENT_DIR
     imagebuild/coreos/build_coreos_image.sh
