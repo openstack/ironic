@@ -16,9 +16,9 @@
 
 from tempest.common import waiters
 from tempest import config
+from tempest.lib import exceptions as lib_exc
 from tempest.scenario import manager  # noqa
 import tempest.test
-from tempest_lib import exceptions as lib_exc
 
 from ironic_tempest_plugin import clients
 

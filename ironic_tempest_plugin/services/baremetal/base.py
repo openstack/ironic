@@ -15,7 +15,7 @@ import functools
 from oslo_serialization import jsonutils as json
 import six
 from six.moves.urllib import parse as urllib
-from tempest_lib.common import rest_client
+from tempest.lib.common import rest_client
 
 
 def handle_errors(f):
