@@ -13,6 +13,14 @@ nodes, and runs processes inside of a ramdisk.
 
 For more information on this, see :ref:`IPA`.
 
+IPMITool
+--------
+
+.. toctree::
+  :maxdepth: 1
+
+  ../drivers/ipmitool
+
 DRAC
 ----
 
