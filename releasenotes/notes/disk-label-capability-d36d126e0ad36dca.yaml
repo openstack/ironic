@@ -1,0 +1,5 @@
+---
+features:
+  - Add support for a new capability called 'disk_label' to allow
+    operators to choose the disk label that will be used when Ironic is
+    partitioning the disk.

@@ -337,7 +337,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         return parent_mock
 
     def _test_deploy_partition_image(self, boot_option=None,
-                                     boot_mode=None):
+                                     boot_mode=None, disk_label=None):
         """Check loosely all functions are called with right args."""
         address = '127.0.0.1'
         port = 3306
@@ -375,7 +375,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         make_partitions_expected_args = [dev, root_mb, swap_mb, ephemeral_mb,
                                          configdrive_mb, node_uuid]
-        make_partitions_expected_kwargs = {'commit': True, 'disk_label': None}
+        make_partitions_expected_kwargs = {'commit': True,
+                                           'disk_label': disk_label}
         deploy_kwargs = {}
 
         if boot_option:
@@ -389,6 +390,9 @@ class PhysicalWorkTestCase(tests_base.TestCase):
             deploy_kwargs['boot_mode'] = boot_mode
         else:
             make_partitions_expected_kwargs['boot_mode'] = 'bios'
+
+        if disk_label:
+            deploy_kwargs['disk_label'] = disk_label
 
         # If no boot_option, then it should default to netboot.
         utils_calls_expected = [mock.call.get_dev(address, port, iqn, lun),
@@ -446,6 +450,9 @@ class PhysicalWorkTestCase(tests_base.TestCase):
     def test_deploy_partition_image_netboot_uefi(self):
         self._test_deploy_partition_image(boot_option="netboot",
                                           boot_mode="uefi")
+
+    def test_deploy_partition_image_disk_label(self):
+        self._test_deploy_partition_image(disk_label='gpt')
 
     @mock.patch.object(disk_utils, 'get_image_mb', return_value=129,
                        autospec=True)
@@ -1039,7 +1046,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                                          node_uuid, configdrive=None,
                                          preserve_ephemeral=False,
                                          boot_option="netboot",
-                                         boot_mode="bios")]
+                                         boot_mode="bios",
+                                         disk_label=None)]
 
         self.assertRaises(TestException, utils.deploy_partition_image,
                           address, port, iqn, lun, image_path,
@@ -1460,6 +1468,12 @@ class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
                          utils.SUPPORTED_CAPABILITIES['secure_boot'])
         self.assertEqual(('true', 'false'),
                          utils.SUPPORTED_CAPABILITIES['trusted_boot'])
+
+    def test_get_disk_label(self):
+        inst_info = {'capabilities': {'disk_label': 'gpt', 'foo': 'bar'}}
+        self.node.instance_info = inst_info
+        result = utils.get_disk_label(self.node)
+        self.assertEqual('gpt', result)
 
 
 class TrySetBootDeviceTestCase(db_base.DbTestCase):

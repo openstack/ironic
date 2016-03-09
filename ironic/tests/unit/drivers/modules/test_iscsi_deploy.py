@@ -700,37 +700,42 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             mock_image_cache.return_value.clean_up.assert_called_once_with()
             self.assertEqual(uuid_dict_returned, retval)
 
-    def test_get_deploy_info_boot_option_default(self):
+    def _test_get_deploy_info(self, extra_instance_info=None):
+        if extra_instance_info is None:
+            extra_instance_info = {}
+
         instance_info = self.node.instance_info
         instance_info['deploy_key'] = 'key'
+        instance_info.update(extra_instance_info)
         self.node.instance_info = instance_info
         kwargs = {'address': '1.1.1.1', 'iqn': 'target-iqn', 'key': 'key'}
         ret_val = iscsi_deploy.get_deploy_info(self.node, **kwargs)
         self.assertEqual('1.1.1.1', ret_val['address'])
         self.assertEqual('target-iqn', ret_val['iqn'])
+        return ret_val
+
+    def test_get_deploy_info_boot_option_default(self):
+        ret_val = self._test_get_deploy_info()
         self.assertEqual('netboot', ret_val['boot_option'])
 
     def test_get_deploy_info_netboot_specified(self):
-        instance_info = self.node.instance_info
-        instance_info['deploy_key'] = 'key'
-        instance_info['capabilities'] = {'boot_option': 'netboot'}
-        self.node.instance_info = instance_info
-        kwargs = {'address': '1.1.1.1', 'iqn': 'target-iqn', 'key': 'key'}
-        ret_val = iscsi_deploy.get_deploy_info(self.node, **kwargs)
-        self.assertEqual('1.1.1.1', ret_val['address'])
-        self.assertEqual('target-iqn', ret_val['iqn'])
+        capabilities = {'capabilities': {'boot_option': 'netboot'}}
+        ret_val = self._test_get_deploy_info(extra_instance_info=capabilities)
         self.assertEqual('netboot', ret_val['boot_option'])
 
     def test_get_deploy_info_localboot(self):
-        instance_info = self.node.instance_info
-        instance_info['deploy_key'] = 'key'
-        instance_info['capabilities'] = {'boot_option': 'local'}
-        self.node.instance_info = instance_info
-        kwargs = {'address': '1.1.1.1', 'iqn': 'target-iqn', 'key': 'key'}
-        ret_val = iscsi_deploy.get_deploy_info(self.node, **kwargs)
-        self.assertEqual('1.1.1.1', ret_val['address'])
-        self.assertEqual('target-iqn', ret_val['iqn'])
+        capabilities = {'capabilities': {'boot_option': 'local'}}
+        ret_val = self._test_get_deploy_info(extra_instance_info=capabilities)
         self.assertEqual('local', ret_val['boot_option'])
+
+    def test_get_deploy_info_disk_label(self):
+        capabilities = {'capabilities': {'disk_label': 'msdos'}}
+        ret_val = self._test_get_deploy_info(extra_instance_info=capabilities)
+        self.assertEqual('msdos', ret_val['disk_label'])
+
+    def test_get_deploy_info_not_specified(self):
+        ret_val = self._test_get_deploy_info()
+        self.assertNotIn('disk_label', ret_val)
 
     @mock.patch.object(iscsi_deploy, 'continue_deploy', autospec=True)
     @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options',

@@ -319,6 +319,11 @@ def get_deploy_info(node, **kwargs):
                        'boot_option': deploy_utils.get_boot_option(node),
                        'boot_mode': _get_boot_mode(node)})
 
+        # Append disk label if specified
+        disk_label = deploy_utils.get_disk_label(node)
+        if disk_label is not None:
+            params['disk_label'] = disk_label
+
     missing = [key for key in params if params[key] is None]
     if missing:
         raise exception.MissingParameterValue(

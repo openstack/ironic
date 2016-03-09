@@ -93,6 +93,7 @@ SUPPORTED_CAPABILITIES = {
     'boot_mode': ('bios', 'uefi'),
     'secure_boot': ('true', 'false'),
     'trusted_boot': ('true', 'false'),
+    'disk_label': ('msdos', 'gpt'),
 }
 
 
@@ -303,7 +304,7 @@ def deploy_partition_image(
         address, port, iqn, lun, image_path,
         root_mb, swap_mb, ephemeral_mb, ephemeral_format, node_uuid,
         preserve_ephemeral=False, configdrive=None,
-        boot_option="netboot", boot_mode="bios"):
+        boot_option="netboot", boot_mode="bios", disk_label=None):
     """All-in-one function to deploy a partition image to a node.
 
     :param address: The iSCSI IP address.
@@ -325,6 +326,9 @@ def deploy_partition_image(
                         or configdrive HTTP URL.
     :param boot_option: Can be "local" or "netboot". "netboot" by default.
     :param boot_mode: Can be "bios" or "uefi". "bios" by default.
+    :param disk_label: The disk label to be used when creating the
+        partition table. Valid values are: "msdos", "gpt" or None; If None
+        Ironic will figure it out according to the boot_mode parameter.
     :raises: InstanceDeployFailure if image virtual size is bigger than root
         partition size.
     :returns: a dictionary containing the following keys:
@@ -346,7 +350,7 @@ def deploy_partition_image(
             dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format, image_path,
             node_uuid, preserve_ephemeral=preserve_ephemeral,
             configdrive=configdrive, boot_option=boot_option,
-            boot_mode=boot_mode)
+            boot_mode=boot_mode, disk_label=disk_label)
 
     return uuid_dict_returned
 
@@ -740,6 +744,18 @@ def is_trusted_boot_requested(node):
     trusted_boot = capabilities.get('trusted_boot', 'false').lower()
 
     return trusted_boot == 'true'
+
+
+def get_disk_label(node):
+    """Return the disk label requested for deploy, if any.
+
+    :param node: a single Node.
+    :raises: InvalidParameterValue if the capabilities string is not a
+             dictionary or is malformed.
+    :returns: the disk label or None if no disk label was specified.
+    """
+    capabilities = parse_instance_info_capabilities(node)
+    return capabilities.get('disk_label')
 
 
 def get_boot_mode_for_deploy(node):
