@@ -275,7 +275,7 @@ What cleaning step is running?
 ------------------------------
 To check what cleaning step the node is performing or attempted to perform and
 failed, either query the node endpoint for the node or run ``ironic node-show
-$node_ident`` and look in the `internal_driver_info` field. The `clean_steps`
+$node_ident`` and look in the `driver_internal_info` field. The `clean_steps`
 field will contain a list of all remaining steps with their priorities, and the
 first one listed is the step currently in progress or that the node failed
 before going into ``clean failed`` state.
