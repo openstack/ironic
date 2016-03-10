@@ -707,7 +707,7 @@ them to the Image service:
            disk-image-create ubuntu baremetal dhcp-all-interfaces grub2 -o my-image
 
        Whole disk images:
-           disk-image-create ubuntu vm dhcp-all-interfaces grub2 -o my-image
+           disk-image-create ubuntu vm dhcp-all-interfaces -o my-image
 
      The partition image command creates *my-image.qcow2*, *my-image.vmlinuz* and
      *my-image.initrd* files. The *grub2* element in the partition image creation
