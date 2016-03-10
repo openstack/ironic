@@ -137,10 +137,10 @@ def copy_image_to_web_server(source_file_path, destination):
 
 
 def remove_image_from_web_server(object_name):
-    """Removes the given image from the configured http web server.
+    """Removes the given image from the configured web server.
 
-    This method removes the given image from the http_root location. It deletes
-    the image if it exists in web server.
+    This method removes the given image from the http_root location,
+    if the image exists.
 
     :param object_name: The name of the image file which needs to be removed
                         from the web server root.
@@ -362,7 +362,7 @@ def _prepare_floppy_image(task, params):
     :raises: ImageUploadFailed, if copying the source file to the
              web server fails.
     :raises: SwiftOperationError, if any operation with Swift fails.
-    :returns: the http image URL or the Swift temp url for the floppy image.
+    :returns: the HTTP image URL or the Swift temp url for the floppy image.
     """
     with tempfile.NamedTemporaryFile(
             dir=CONF.tempdir) as vfat_image_tmpfile_obj:

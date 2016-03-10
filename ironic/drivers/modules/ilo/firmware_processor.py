@@ -1,4 +1,4 @@
-# Copyright 2016 Hewlett Packard Enterprise Development Company, L.P.
+# Copyright 2016 Hewlett Packard Enterprise Development Company LP
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -64,14 +64,15 @@ def verify_firmware_update_args(func):
         firmware_images = kwargs.get('firmware_images')
 
         if firmware_update_mode != 'ilo':
-            msg = (_("Invalid firmware update mode: %(mode)s. "
-                     "'ilo' is the only supported firmware update mode.")
-                   % {'mode': firmware_update_mode})
+            msg = (_("Invalid firmware update mode '%(mode)s' provided for "
+                     "node: %(node)s. 'ilo' is the only supported firmware "
+                     "update mode.")
+                   % {'mode': firmware_update_mode, 'node': task.node.uuid})
             LOG.error(msg)
             raise exception.InvalidParameterValue(msg)
 
         if not firmware_images:
-            msg = _("Firmware images cannot be an empty list or None. ")
+            msg = _("Firmware images cannot be an empty list or None.")
             LOG.error(msg)
             raise exception.InvalidParameterValue(msg)
 
@@ -310,12 +311,13 @@ def _extract_fw_from_file(node, target_file):
                                                   fw_image_filename)
     if to_upload:
         is_different_file = True
-        LOG.debug("For firmware update, hosting firmware file: %s ... ",
-                  fw_image_location)
-        # fw_image_filename = os.path.basename(fw_image_location)
         try:
             if CONF.ilo.use_web_server_for_images:
                 # upload firmware image file to conductor webserver
+                LOG.debug("For firmware update on node %(node)s, hosting "
+                          "firmware file %(firmware_image)s on web server ...",
+                          {'firmware_image': fw_image_location,
+                           'node': node.uuid})
                 fw_image_uploaded_url = ilo_common.copy_image_to_web_server(
                     fw_image_location, fw_image_filename)
 
@@ -324,6 +326,10 @@ def _extract_fw_from_file(node, target_file):
                     _remove_webserver_based_me, fw_image_location_obj)
             else:
                 # upload firmware image file to swift
+                LOG.debug("For firmware update on node %(node)s, hosting "
+                          "firmware file %(firmware_image)s on swift ...",
+                          {'firmware_image': fw_image_location,
+                           'node': node.uuid})
                 fw_image_uploaded_url = ilo_common.copy_image_to_swift(
                     fw_image_location, fw_image_filename)
 
@@ -339,10 +345,10 @@ def _extract_fw_from_file(node, target_file):
                 # takes care of handling the deletion of the file.
                 ilo_common.remove_single_or_list_of_files(fw_image_location)
 
-        LOG.debug("For firmware update, hosting firmware file: "
-                  "%(fw_image_location)s ... done. Hosted firmware file: "
-                  "%(fw_image_uploaded_url)s",
-                  {'fw_image_location': fw_image_location,
+        LOG.debug("For firmware update on node %(node)s, hosting firmware "
+                  "file: %(fw_image_location)s ... done. Hosted firmware "
+                  "file: %(fw_image_uploaded_url)s",
+                  {'fw_image_location': fw_image_location, 'node': node.uuid,
                    'fw_image_uploaded_url': fw_image_uploaded_url})
     else:
         fw_image_location_obj.remove = types.MethodType(
