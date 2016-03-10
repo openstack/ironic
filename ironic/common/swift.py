@@ -50,6 +50,8 @@ CONF.import_opt('insecure', 'keystonemiddleware.auth_token',
                 group='keystone_authtoken')
 CONF.import_opt('cafile', 'keystonemiddleware.auth_token',
                 group='keystone_authtoken')
+CONF.import_opt('region_name', 'keystonemiddleware.auth_token',
+                group='keystone_authtoken')
 
 
 class SwiftAPI(object):
@@ -60,7 +62,8 @@ class SwiftAPI(object):
                  tenant_name=None,
                  key=None,
                  auth_url=None,
-                 auth_version=None):
+                 auth_version=None,
+                 region_name=None):
         """Constructor for creating a SwiftAPI object.
 
         :param user: the name of the user for Swift account
@@ -68,6 +71,7 @@ class SwiftAPI(object):
         :param key: the 'password' or key to authenticate with
         :param auth_url: the url for authentication
         :param auth_version: the version of api to use for authentication
+        :param region_name: the region used for getting endpoints of swift
         """
         user = user or CONF.keystone_authtoken.admin_user
         tenant_name = tenant_name or CONF.keystone_authtoken.admin_tenant_name
@@ -83,6 +87,9 @@ class SwiftAPI(object):
                   'key': key,
                   'authurl': auth_url,
                   'auth_version': auth_version}
+        region_name = region_name or CONF.keystone_authtoken.region_name
+        if region_name:
+            params['os_options'] = {'region_name': region_name}
 
         self.connection = swift_client.Connection(**params)
 

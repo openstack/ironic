@@ -1,0 +1,5 @@
+---
+fixes:
+  - Fixes a bug where the keystone_authtoken/region_name wasn't passed
+    to Swift when instantiating its client, in a multi-region environment
+    this is needed so the client can choose the correct swift endpoint.
