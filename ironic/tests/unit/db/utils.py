@@ -40,12 +40,12 @@ def get_test_ipmi_bridging_parameters():
     }
 
 
-def get_test_ssh_info(auth_type='password'):
+def get_test_ssh_info(auth_type='password', virt_type='virsh'):
     result = {
         "ssh_address": "1.2.3.4",
         "ssh_username": "admin",
         "ssh_port": 22,
-        "ssh_virt_type": "vbox",
+        "ssh_virt_type": virt_type,
     }
     if 'password' == auth_type:
         result['ssh_password'] = 'fake'
