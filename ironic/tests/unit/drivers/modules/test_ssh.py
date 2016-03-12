@@ -318,6 +318,9 @@ class SSHPrivateMethodsTestCase(db_base.DbTestCase):
 
         pstate = ssh._get_power_status(self.sshclient, info)
         self.assertEqual(states.POWER_OFF, pstate)
+        ssh_cmd = "%s %s" % (info['cmd_set']['base_cmd'],
+                             info['cmd_set']['list_running'])
+        exec_ssh_mock.assert_called_once_with(self.sshclient, ssh_cmd)
 
     @mock.patch.object(processutils, 'ssh_execute', autospec=True)
     def test__get_hosts_name_for_node_match(self, exec_ssh_mock):
@@ -1099,6 +1102,8 @@ class SSHDriverTestCase(db_base.DbTestCase):
     def test_console_validate_not_virsh(self):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=True) as task:
+            task.node.driver_info = db_utils.get_test_ssh_info(
+                virt_type='vbox')
             self.assertRaisesRegex(exception.InvalidParameterValue,
                                    'not supported for non-virsh types',
                                    task.driver.console.validate, task)

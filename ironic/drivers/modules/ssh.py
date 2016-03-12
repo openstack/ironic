@@ -196,10 +196,8 @@ def _get_command_sets(virt_type):
             'start_cmd': 'start {_NodeName_}',
             'stop_cmd': 'destroy {_NodeName_}',
             'reboot_cmd': 'reset {_NodeName_}',
-            'list_all': "list --all | tail -n +2 | awk -F\" \" '{print $2}'",
-            'list_running': (
-                "list --all|grep running | "
-                "awk -v qc='\"' -F\" \" '{print qc$2qc}'"),
+            'list_all': 'list --all --name',
+            'list_running': 'list --name',
             'get_node_macs': (
                 "dumpxml {_NodeName_} | "
                 "awk -F \"'\" '/mac address/{print $2}'| tr -d ':'"),
