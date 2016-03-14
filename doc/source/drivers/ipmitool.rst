@@ -155,8 +155,7 @@ the following option needs to be set to the node's ``driver_info`` field:
 The ``ironic node-update`` command can be used to set the desired
 protocol version::
 
-    ironic node-update add <UUID or name>
-    driver_info/ipmit_protocol_version=<version>
+    ironic node-update add <UUID or name> driver_info/ipmi_protocol_version=<version>
 
 .. warning::
    The version *1.5* of the IPMI protocol does not support encryption. So
