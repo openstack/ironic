@@ -1,0 +1,9 @@
+---
+features:
+  - Adds support to pass a optional CA certificate using [glance]glance_cafile
+    configuration option to validate the SSL certificate served by glance for
+    secured https communication between Glance and Ironic.
+upgrade:
+  - Adds a [glance]glance_cafile configuration option to pass a optional
+    certificate for secured https communication. It is used  when
+    [glance]glance_api_insecure configuration option is set to False.
