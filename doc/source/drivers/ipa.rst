@@ -104,3 +104,23 @@ Steps to enable proxies
    ``image_no_proxy`` to driver_info properties in each node that will use the
    proxy. Please refer to ``ironic driver-properties`` output of the
    ``agent_*`` driver you're using for descriptions of these properties.
+
+Advanced configuration
+======================
+
+Out-of-band Vs. in-band power off on deploy
+-------------------------------------------
+
+After deploying an image onto the node's hard disk Ironic will reboot
+the machine into the new image. By default this power action happens
+``in-band``, meaning that the ironic-conductor will instruct the IPA
+ramdisk to power itself off.
+
+Some hardware may have a problem with the default approach and
+would require Ironic to talk directly to the management controller
+to switch the power off and on again. In order to tell Ironic to do
+that you have to update the node's ``driver_info`` field and set the
+``deploy_forces_oob_reboot`` parameter with the value of **True**. For
+example, the below command sets this configuration in a specific node::
+
+  ironic node-update <UUID or name> add driver_info/deploy_forces_oob_reboot=True

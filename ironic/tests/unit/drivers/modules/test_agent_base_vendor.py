@@ -684,6 +684,60 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
 
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'sync',
+                       spec=types.FunctionType)
+    def test_reboot_and_finish_deploy_power_action_oob_power_off(
+            self, sync_mock, node_power_action_mock):
+        # Enable force power off
+        driver_info = self.node.driver_info
+        driver_info['deploy_forces_oob_reboot'] = True
+        self.node.driver_info = driver_info
+
+        self.node.provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.passthru.reboot_and_finish_deploy(task)
+
+            sync_mock.assert_called_once_with(task.node)
+            node_power_action_mock.assert_called_once_with(
+                task, states.REBOOT)
+            self.assertEqual(states.ACTIVE, task.node.provision_state)
+            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+
+    @mock.patch.object(agent_base_vendor.LOG, 'warning', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'sync',
+                       spec=types.FunctionType)
+    def test_reboot_and_finish_deploy_power_action_oob_power_off_failed(
+            self, sync_mock, node_power_action_mock, log_mock):
+        # Enable force power off
+        driver_info = self.node.driver_info
+        driver_info['deploy_forces_oob_reboot'] = True
+        self.node.driver_info = driver_info
+
+        self.node.provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            sync_mock.return_value = {'faultstring': 'Unknown command: blah'}
+            self.passthru.reboot_and_finish_deploy(task)
+
+            sync_mock.assert_called_once_with(task.node)
+            node_power_action_mock.assert_called_once_with(
+                task, states.REBOOT)
+            self.assertEqual(states.ACTIVE, task.node.provision_state)
+            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            log_error = ('The version of the IPA ramdisk used in the '
+                         'deployment do not support the command "sync"')
+            log_mock.assert_called_once_with(
+                'Failed to flush the file system prior to hard rebooting the '
+                'node %(node)s. Error: %(error)s',
+                {'node': task.node.uuid, 'error': log_error})
+
     @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
                        autospec=True)
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
@@ -1276,3 +1330,7 @@ class TestRefreshCleanSteps(TestBaseAgentVendor):
                                    task)
             client_mock.assert_called_once_with(mock.ANY, task.node,
                                                 task.ports)
+
+    def test_get_properties(self):
+        expected = agent_base_vendor.VENDOR_PROPERTIES
+        self.assertEqual(expected, self.passthru.get_properties())

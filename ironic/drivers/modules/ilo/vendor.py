@@ -57,9 +57,6 @@ class IloVirtualMediaAgentVendorInterface(agent.AgentVendorInterface):
 class VendorPassthru(iscsi_deploy.VendorPassthru):
     """Vendor-specific interfaces for iLO deploy drivers."""
 
-    def get_properties(self):
-        return {}
-
     def validate(self, task, method, **kwargs):
         """Validate vendor-specific actions.
 

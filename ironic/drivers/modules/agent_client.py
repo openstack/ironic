@@ -174,3 +174,10 @@ class AgentClient(object):
         return self._command(node=node,
                              method='standby.power_off',
                              params={})
+
+    def sync(self, node):
+        """Flush file system buffers forcing changed blocks to disk."""
+        return self._command(node=node,
+                             method='standby.sync',
+                             params={},
+                             wait=True)

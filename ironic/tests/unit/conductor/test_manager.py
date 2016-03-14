@@ -3803,7 +3803,8 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
         self._check_driver_properties("fake_ssh", expected)
 
     def test_driver_properties_fake_pxe(self):
-        expected = ['deploy_kernel', 'deploy_ramdisk']
+        expected = ['deploy_kernel', 'deploy_ramdisk',
+                    'deploy_forces_oob_reboot']
         self._check_driver_properties("fake_pxe", expected)
 
     def test_driver_properties_fake_seamicro(self):
@@ -3824,34 +3825,37 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
                     'ipmi_transit_address', 'ipmi_target_channel',
                     'ipmi_target_address', 'ipmi_local_address',
                     'deploy_kernel', 'deploy_ramdisk', 'ipmi_protocol_version',
-                    'ipmi_force_boot_device'
-                    ]
+                    'ipmi_force_boot_device', 'deploy_forces_oob_reboot']
         self._check_driver_properties("pxe_ipmitool", expected)
 
     def test_driver_properties_pxe_ipminative(self):
         expected = ['ipmi_address', 'ipmi_password', 'ipmi_username',
                     'deploy_kernel', 'deploy_ramdisk',
-                    'ipmi_terminal_port', 'ipmi_force_boot_device']
+                    'ipmi_terminal_port', 'ipmi_force_boot_device',
+                    'deploy_forces_oob_reboot']
         self._check_driver_properties("pxe_ipminative", expected)
 
     def test_driver_properties_pxe_ssh(self):
         expected = ['deploy_kernel', 'deploy_ramdisk',
                     'ssh_address', 'ssh_username', 'ssh_virt_type',
                     'ssh_key_contents', 'ssh_key_filename',
-                    'ssh_password', 'ssh_port', 'ssh_terminal_port']
+                    'ssh_password', 'ssh_port', 'ssh_terminal_port',
+                    'deploy_forces_oob_reboot']
         self._check_driver_properties("pxe_ssh", expected)
 
     def test_driver_properties_pxe_seamicro(self):
         expected = ['deploy_kernel', 'deploy_ramdisk',
                     'seamicro_api_endpoint', 'seamicro_password',
                     'seamicro_server_id', 'seamicro_username',
-                    'seamicro_api_version', 'seamicro_terminal_port']
+                    'seamicro_api_version', 'seamicro_terminal_port',
+                    'deploy_forces_oob_reboot']
         self._check_driver_properties("pxe_seamicro", expected)
 
     def test_driver_properties_pxe_snmp(self):
         expected = ['deploy_kernel', 'deploy_ramdisk',
                     'snmp_driver', 'snmp_address', 'snmp_port', 'snmp_version',
-                    'snmp_community', 'snmp_security', 'snmp_outlet']
+                    'snmp_community', 'snmp_security', 'snmp_outlet',
+                    'deploy_forces_oob_reboot']
         self._check_driver_properties("pxe_snmp", expected)
 
     def test_driver_properties_fake_ilo(self):
@@ -3862,13 +3866,15 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
     def test_driver_properties_ilo_iscsi(self):
         expected = ['ilo_address', 'ilo_username', 'ilo_password',
                     'client_port', 'client_timeout', 'ilo_deploy_iso',
-                    'console_port', 'ilo_change_password']
+                    'console_port', 'ilo_change_password',
+                    'deploy_forces_oob_reboot']
         self._check_driver_properties("iscsi_ilo", expected)
 
     def test_driver_properties_agent_ilo(self):
         expected = ['ilo_address', 'ilo_username', 'ilo_password',
                     'client_port', 'client_timeout', 'ilo_deploy_iso',
-                    'console_port', 'ilo_change_password']
+                    'console_port', 'ilo_change_password',
+                    'deploy_forces_oob_reboot']
         self._check_driver_properties("agent_ilo", expected)
 
     def test_driver_properties_fail(self):
