@@ -212,7 +212,7 @@ class TestAgentClient(base.TestCase):
                                        ports)
         self.client._command.assert_called_once_with(
             node=self.node, method='clean.execute_clean_step',
-            params=expected_params, wait=False)
+            params=expected_params)
 
     def test_power_off(self):
         self.client._command = mock.MagicMock(spec_set=[])
