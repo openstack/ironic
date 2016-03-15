@@ -26,6 +26,9 @@ if is_service_enabled ir-api ir-cond; then
         echo_summary "Starting Ironic"
         start_ironic
         prepare_baremetal_basic_ops
+        if is_service_enabled tempest; then
+            ironic_configure_tempest
+        fi
     fi
 
     if [[ "$1" == "unstack" ]]; then
