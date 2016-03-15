@@ -325,6 +325,10 @@ iLO drivers with standalone ironic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Refer to `Support for iLO drivers with Standalone Ironic`_ for more information.
 
+RAID Configuration
+~~~~~~~~~~~~~~~~~~
+Refer to `RAID Support`_ for more information.
+
 agent_ilo driver
 ^^^^^^^^^^^^^^^^
 
@@ -453,6 +457,10 @@ iLO drivers with standalone ironic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Refer to `Support for iLO drivers with Standalone Ironic`_ for more information.
 
+RAID Configuration
+~~~~~~~~~~~~~~~~~~
+Refer to `RAID Support`_ for more information.
+
 pxe_ilo driver
 ^^^^^^^^^^^^^^
 
@@ -562,6 +570,10 @@ Refer to `HTTP(S) Based Deploy Support`_ for more information.
 iLO drivers with standalone ironic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Refer to `Support for iLO drivers with Standalone Ironic`_ for more information.
+
+RAID Configuration
+~~~~~~~~~~~~~~~~~~
+Refer to `RAID Support`_ for more information.
 
 Functionalities across drivers
 ==============================
@@ -1270,3 +1282,19 @@ The different attributes of ``activate_license`` clean step are as follows:
    "``step``", "Name of clean step, here ``activate_license``"
    "``args``", "Keyword-argument entry (<name>: <value>) being passed to clean step"
    "``args.ilo_license_key``", "The HPE iLO Advanced license key to activate enterprise features. This is mandatory."
+
+RAID Support
+^^^^^^^^^^^^
+
+The inband RAID functionality is now supported by iLO drivers.
+See :ref:`raid` for more information.
+
+.. _DIB_raid_support:
+
+DIB support for Proliant Hardware Manager
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To create an agent ramdisk with ``Proliant Hardware Manager``,
+use the ``proliant-tools`` element in DIB::
+
+  disk-image-create -o proliant-agent-ramdisk ironic-agent fedora proliant-tools

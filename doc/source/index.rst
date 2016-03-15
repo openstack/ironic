@@ -38,6 +38,7 @@ Administrator's Guide
   drivers/ipa
   deploy/drivers
   deploy/cleaning
+  deploy/raid
   deploy/troubleshooting
   Release Notes <http://docs.openstack.org/releasenotes/ironic/>
 
