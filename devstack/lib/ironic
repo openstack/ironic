@@ -69,6 +69,7 @@ IRONIC_BAREMETAL_BASIC_OPS=$(trueorfalse False IRONIC_BAREMETAL_BASIC_OPS)
 IRONIC_ENABLED_DRIVERS=${IRONIC_ENABLED_DRIVERS:-fake,pxe_ssh,pxe_ipmitool}
 IRONIC_SSH_USERNAME=${IRONIC_SSH_USERNAME:-`whoami`}
 IRONIC_SSH_TIMEOUT=${IRONIC_SSH_TIMEOUT:-15}
+IRONIC_SSH_ATTEMPTS=${IRONIC_SSH_ATTEMPTS:-5}
 IRONIC_SSH_KEY_DIR=${IRONIC_SSH_KEY_DIR:-$IRONIC_DATA_DIR/ssh_keys}
 IRONIC_SSH_KEY_FILENAME=${IRONIC_SSH_KEY_FILENAME:-ironic_key}
 IRONIC_KEY_FILE=${IRONIC_KEY_FILE:-$IRONIC_SSH_KEY_DIR/$IRONIC_SSH_KEY_FILENAME}
@@ -835,15 +836,26 @@ function ironic_ssh_check {
     local floating_ip=$2
     local port=$3
     local default_instance_user=$4
-    local active_timeout=$5
-    if ! timeout $active_timeout sh -c "while ! ssh -p $port -o StrictHostKeyChecking=no -i $key_file ${default_instance_user}@$floating_ip echo success; do sleep 1; done"; then
+    local attempt=$5
+    local status=false
+    local ssh_options="-o BatchMode=yes -o ConnectTimeout=$IRONIC_SSH_TIMEOUT -o StrictHostKeyChecking=no"
+    while [[ $attempt -gt 0 ]]; do
+        ssh -p $port $ssh_options -i $key_file ${default_instance_user}@$floating_ip exit
+        if [[ "$?" == "0" ]]; then
+            status=true
+            break
+        fi
+        attempt=$((attempt - 1))
+        echo "SSH connection failed. $attempt attempts left."
+    done
+    if ! $status; then
         die $LINENO "server didn't become ssh-able!"
     fi
 }
 
 function configure_ironic_auxiliary {
     configure_ironic_ssh_keypair
-    ironic_ssh_check $IRONIC_KEY_FILE $IRONIC_VM_SSH_ADDRESS $IRONIC_VM_SSH_PORT $IRONIC_SSH_USERNAME $IRONIC_SSH_TIMEOUT
+    ironic_ssh_check $IRONIC_KEY_FILE $IRONIC_VM_SSH_ADDRESS $IRONIC_VM_SSH_PORT $IRONIC_SSH_USERNAME $IRONIC_SSH_ATTEMPTS
 }
 
 function build_ipa_coreos_ramdisk {
