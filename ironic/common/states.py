@@ -176,6 +176,9 @@ UPDATE_ALLOWED_STATES = (DEPLOYFAIL, INSPECTING, INSPECTFAIL, CLEANFAIL, ERROR,
 DELETE_ALLOWED_STATES = (AVAILABLE, NOSTATE, MANAGEABLE, ENROLL)
 """States in which node deletion is allowed."""
 
+STABLE_STATES = (ENROLL, MANAGEABLE, AVAILABLE, ACTIVE, ERROR)
+"""States that will not transition unless receiving a request."""
+
 
 ##############
 # Power states
@@ -212,11 +215,8 @@ watchers['on_enter'] = on_enter
 machine = fsm.FSM()
 
 # Add stable states
-machine.add_state(ENROLL, stable=True, **watchers)
-machine.add_state(MANAGEABLE, stable=True, **watchers)
-machine.add_state(AVAILABLE, stable=True, **watchers)
-machine.add_state(ACTIVE, stable=True, **watchers)
-machine.add_state(ERROR, stable=True, **watchers)
+for state in STABLE_STATES:
+    machine.add_state(state, stable=True, **watchers)
 
 # Add verifying state
 machine.add_state(VERIFYING, target=MANAGEABLE, **watchers)

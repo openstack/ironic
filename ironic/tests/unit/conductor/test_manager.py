@@ -1120,7 +1120,7 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
                           self.service._do_node_tear_down, task)
         node.refresh()
         self.assertEqual(states.ERROR, node.provision_state)
-        self.assertEqual(states.AVAILABLE, node.target_provision_state)
+        self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
         # Assert instance_info was erased
         self.assertEqual({}, node.instance_info)

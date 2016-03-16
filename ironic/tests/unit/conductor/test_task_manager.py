@@ -625,6 +625,28 @@ class TaskManagerStateModelTestCases(tests_base.TestCase):
         self.assertNotEqual(target_provision_state,
                             self.node.target_provision_state)
 
+    def test_process_event_callback_stable_state(self):
+        callback = mock.Mock()
+        for state in states.STABLE_STATES:
+            self.node.provision_state = state
+            self.node.target_provision_state = 'target'
+            self.task.process_event = task_manager.TaskManager.process_event
+            self.task.process_event(self.task, 'fake', callback=callback)
+            # assert the target state is set when callback is passed
+            self.assertNotEqual(states.NOSTATE,
+                                self.task.node.target_provision_state)
+
+    def test_process_event_no_callback_stable_state(self):
+        for state in states.STABLE_STATES:
+            self.node.provision_state = state
+            self.node.target_provision_state = 'target'
+            self.task.process_event = task_manager.TaskManager.process_event
+            self.task.process_event(self.task, 'fake')
+            # assert the target state was cleared when moving to a
+            # stable state
+            self.assertEqual(states.NOSTATE,
+                             self.task.node.target_provision_state)
+
 
 @task_manager.require_exclusive_lock
 def _req_excl_lock_method(*args, **kwargs):
