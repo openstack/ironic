@@ -153,6 +153,10 @@ IRONIC_DEPLOY_DRIVER_ISCSI_WITH_IPA=$(trueorfalse False IRONIC_DEPLOY_DRIVER_ISC
 # The path to the libvirt hooks directory, used if IRONIC_VM_LOG_ROTATE is True
 IRONIC_LIBVIRT_HOOKS_PATH=${IRONIC_LIBVIRT_HOOKS_PATH:-/etc/libvirt/hooks/}
 
+# The authentication strategy used by ironic-api. Valid values are:
+# keystone and noauth.
+IRONIC_AUTH_STRATEGY=${IRONIC_AUTH_STRATEGY:-keystone}
+
 # get_pxe_boot_file() - Get the PXE/iPXE boot file path
 function get_pxe_boot_file {
     local relpath=syslinux/pxelinux.0
@@ -334,7 +338,7 @@ function configure_ironic {
 # configure_ironic_api() - Is used by configure_ironic(). Performs
 # API specific configuration.
 function configure_ironic_api {
-    iniset $IRONIC_CONF_FILE DEFAULT auth_strategy keystone
+    iniset $IRONIC_CONF_FILE DEFAULT auth_strategy $IRONIC_AUTH_STRATEGY
     iniset $IRONIC_CONF_FILE oslo_policy policy_file $IRONIC_POLICY_JSON
 
     # TODO(Yuki Nishiwaki): This is a temporary work-around until Ironic is fixed(bug#1422632).
