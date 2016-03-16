@@ -22,6 +22,7 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
+from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
@@ -76,7 +77,6 @@ COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 
 
 def _strip_virtualbox_from_param_name(param_name):
-
     if param_name.startswith('virtualbox_'):
         return param_name[11:]
     else:
@@ -181,7 +181,6 @@ def _run_virtualbox_method(node, ironic_method, vm_object_method,
 
 
 class VirtualBoxPower(base.PowerInterface):
-
     def get_properties(self):
         return COMMON_PROPERTIES
 
@@ -195,6 +194,18 @@ class VirtualBoxPower(base.PowerInterface):
             value(s) in the node's driver_info.
         """
         _parse_driver_info(task.node)
+
+    def _apply_boot_device(self, task):
+        """Get the target boot device and apply on the baremetal machine .
+
+        :param task: a TaskManager instance.
+        """
+        driver_internal_info = task.node.driver_internal_info
+        device = driver_internal_info.pop('vbox_target_boot_device', None)
+        if device is not None:
+            task.driver.management.set_boot_device(task, device)
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
 
     def get_power_state(self, task):
         """Gets the current power state.
@@ -233,9 +244,15 @@ class VirtualBoxPower(base.PowerInterface):
         :raises: VirtualBoxOperationFailed, if error encountered from
             VirtualBox operation.
         """
+
+        # We set boot device before power on to avoid the case that user
+        # shuts down the machine without calling power off method here. For
+        # instance, soft power off the machine from OS.
         if target_state == states.POWER_OFF:
             _run_virtualbox_method(task.node, 'set_power_state', 'stop')
+            self._apply_boot_device(task)
         elif target_state == states.POWER_ON:
+            self._apply_boot_device(task)
             _run_virtualbox_method(task.node, 'set_power_state', 'start')
         elif target_state == states.REBOOT:
             self.reboot(task)
@@ -257,11 +274,11 @@ class VirtualBoxPower(base.PowerInterface):
             VirtualBox operation.
         """
         _run_virtualbox_method(task.node, 'reboot', 'stop')
+        self._apply_boot_device(task)
         _run_virtualbox_method(task.node, 'reboot', 'start')
 
 
 class VirtualBoxManagement(base.ManagementInterface):
-
     def get_properties(self):
         return COMMON_PROPERTIES
 
@@ -288,6 +305,18 @@ class VirtualBoxManagement(base.ManagementInterface):
         """
         return list(IRONIC_TO_VIRTUALBOX_DEVICE_MAPPING.keys())
 
+    def _get_boot_device_from_hardware(self, task):
+        boot_dev = _run_virtualbox_method(task.node,
+                                          'get_boot_device', 'get_boot_device')
+        ironic_boot_dev = VIRTUALBOX_TO_IRONIC_DEVICE_MAPPING.get(boot_dev)
+        persistent = True
+        if not ironic_boot_dev:
+            persistent = None
+            msg = _LW("VirtualBox returned unknown boot "
+                      "device '%(device)s' for node %(node)s")
+            LOG.warning(msg, {'device': boot_dev, 'node': task.node.uuid})
+        return (ironic_boot_dev, persistent)
+
     def get_boot_device(self, task):
         """Get the current boot device for a node.
 
@@ -302,17 +331,23 @@ class VirtualBoxManagement(base.ManagementInterface):
         :raises: VirtualBoxOperationFailed, if error encountered from
             VirtualBox operation.
         """
-        boot_dev = _run_virtualbox_method(task.node, 'get_boot_device',
-                                          'get_boot_device')
-        persistent = True
-        ironic_boot_dev = VIRTUALBOX_TO_IRONIC_DEVICE_MAPPING.get(boot_dev,
-                                                                  None)
-        if not ironic_boot_dev:
-            persistent = None
-            msg = _LE("VirtualBox returned unknown boot device '%(device)s' "
-                      "for node %(node)s")
-            LOG.error(msg, {'device': boot_dev, 'node': task.node.uuid})
-
+        if task.driver.power.get_power_state(task) == states.POWER_OFF:
+            ironic_boot_dev, persistent = \
+                self._get_boot_device_from_hardware(task)
+        else:
+            ironic_boot_dev = task.node. \
+                driver_internal_info.get('vbox_target_boot_device')
+            if ironic_boot_dev is not None:
+                msg = _LW("As ironic node %(node)s is"
+                          " powered on, we will set to boot"
+                          " from %(device)s before next boot.")
+                LOG.warning(msg, {'node': task.node.uuid,
+                                  'device': ironic_boot_dev})
+                persistent = True
+            else:
+                # Maybe the vbox_target_boot_device is cleaned
+                ironic_boot_dev, persistent = \
+                    self._get_boot_device_from_hardware(task)
         return {'boot_device': ironic_boot_dev, 'persistent': persistent}
 
     @task_manager.require_exclusive_lock
@@ -337,22 +372,24 @@ class VirtualBoxManagement(base.ManagementInterface):
             raise exception.InvalidParameterValue(
                 _("Invalid boot device %s specified.") % device)
 
-        try:
+        if task.driver.power.get_power_state(task) == states.POWER_OFF:
+
             _run_virtualbox_method(task.node, 'set_boot_device',
                                    'set_boot_device', boot_dev)
-        except virtualbox_exc.VmInWrongPowerState as exc:
-            # NOTE(rameshg87): We cannot change the boot device when the vm
-            # is powered on. This is a VirtualBox limitation. We just log
-            # the error silently and return because throwing error will cause
-            # deploys to fail (pxe and agent deploy mechanisms change the boot
-            # device after completing the deployment, when node is powered on).
-            # Since this is driver that is meant only for developers, this
-            # should be okay. Developers will need to set the boot device
-            # manually after powering off the vm when deployment is complete.
-            # This will be documented.
-            LOG.error(_LE("'set_boot_device' failed for node %(node_id)s "
-                          "with error: %(error)s"),
-                      {'node_id': task.node.uuid, 'error': exc})
+        else:
+            LOG.warning(_LW('Node %(node_uuid)s: As VirtualBox do not support '
+                            'setting boot device when VM is powered on, we '
+                            'will set booting from %(device)s when reboot '
+                            'next time.'),
+                        {'node_uuid': task.node.uuid, 'device': device})
+            # We should store target boot device in case the
+            # end user shutoff the baremetal machine from NOVA API.
+            boot_device_now = self.get_boot_device(task)['boot_device']
+            if device != boot_device_now:
+                driver_internal_info = task.node.driver_internal_info
+                driver_internal_info['vbox_target_boot_device'] = device
+                task.node.driver_internal_info = driver_internal_info
+                task.node.save()
 
     def get_sensors_data(self, task):
         """Get sensors data.
