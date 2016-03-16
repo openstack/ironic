@@ -1559,6 +1559,11 @@
 # value)
 #url_timeout = 30
 
+# Delay value to wait for Neutron agents to setup sufficient
+# DHCP configuration for port. (integer value)
+# Minimum value: 0
+#port_setup_delay = 0
+
 # Client retries in the case of a failed request. (integer
 # value)
 #retries = 3

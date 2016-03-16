@@ -1,0 +1,7 @@
+---
+other:
+  - Add Neutron ``port_setup_delay`` configuration
+    option. This delay allows Ironic to wait for
+    Neutron port operations until we have a
+    mechanism for synchronizing events with Neutron.
+    Set to 0 by default.

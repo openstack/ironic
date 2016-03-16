@@ -506,6 +506,10 @@ function configure_ironic_conductor {
         iniset $IRONIC_CONF_FILE deploy http_root $IRONIC_HTTP_DIR
         iniset $IRONIC_CONF_FILE deploy http_url "http://$IRONIC_HTTP_SERVER:$IRONIC_HTTP_PORT"
     fi
+
+    if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
+        iniset $IRONIC_CONF_FILE neutron port_setup_delay 15
+    fi
 }
 
 # create_ironic_cache_dir() - Part of the init_ironic() process
