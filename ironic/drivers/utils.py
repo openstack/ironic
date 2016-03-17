@@ -242,3 +242,12 @@ def capabilities_to_dict(capabilities):
             )
 
     return capabilities_dict
+
+
+def normalize_mac(mac):
+    """Remove '-' and ':' characters and lowercase the MAC string.
+
+    :param mac: MAC address to normalize.
+    :return: Normalized MAC address string.
+    """
+    return mac.replace('-', '').replace(':', '').lower()
