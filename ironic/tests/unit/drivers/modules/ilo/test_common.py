@@ -787,6 +787,47 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         swift_obj_mock.delete_object.assert_called_once_with(
             container, object_name)
 
+    @mock.patch.object(ilo_common, 'LOG')
+    @mock.patch.object(swift, 'SwiftAPI', spec_set=True, autospec=True)
+    def test_remove_image_from_swift_suppresses_notfound_exc(
+            self, swift_api_mock, LOG_mock):
+        # | GIVEN |
+        self.config(swift_ilo_container='ilo_container', group='ilo')
+        container = CONF.ilo.swift_ilo_container
+
+        swift_obj_mock = swift_api_mock.return_value
+        object_name = 'object_name'
+        raised_exc = exception.SwiftObjectNotFoundError(
+            operation='delete_object', object=object_name, container=container)
+        swift_obj_mock.delete_object.side_effect = raised_exc
+        # | WHEN |
+        ilo_common.remove_image_from_swift(object_name)
+        # | THEN |
+        LOG_mock.warning.assert_called_once_with(
+            mock.ANY, {'associated_with_msg': "", 'err': raised_exc})
+
+    @mock.patch.object(ilo_common, 'LOG')
+    @mock.patch.object(swift, 'SwiftAPI', spec_set=True, autospec=True)
+    def test_remove_image_from_swift_suppresses_operror_exc(
+            self, swift_api_mock, LOG_mock):
+        # | GIVEN |
+        self.config(swift_ilo_container='ilo_container', group='ilo')
+        container = CONF.ilo.swift_ilo_container
+
+        swift_obj_mock = swift_api_mock.return_value
+        object_name = 'object_name'
+        raised_exc = exception.SwiftOperationError(operation='delete_object',
+                                                   error='failed')
+        swift_obj_mock.delete_object.side_effect = raised_exc
+        # | WHEN |
+        ilo_common.remove_image_from_swift(object_name, 'alice_in_wonderland')
+        # | THEN |
+        LOG_mock.exception.assert_called_once_with(
+            mock.ANY, {'object_name': object_name, 'container': container,
+                       'associated_with_msg': ("associated with "
+                                               "alice_in_wonderland"),
+                       'err': raised_exc})
+
     @mock.patch.object(ironic_utils, 'unlink_without_raise', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_common, '_get_floppy_image_name', spec_set=True,
@@ -846,7 +887,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ironic_utils, 'unlink_without_raise', spec_set=True,
                        autospec=True)
-    def test_remove_single_or_list_of_files(self, unlink_mock):
+    def test_remove_single_or_list_of_files_with_file_list(self, unlink_mock):
         # | GIVEN |
         file_list = ['/any_path1/any_file1',
                      '/any_path2/any_file2',
@@ -858,6 +899,16 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
                  mock.call('/any_path2/any_file2'),
                  mock.call('/any_path3/any_file3')]
         unlink_mock.assert_has_calls(calls)
+
+    @mock.patch.object(ironic_utils, 'unlink_without_raise', spec_set=True,
+                       autospec=True)
+    def test_remove_single_or_list_of_files_with_file_str(self, unlink_mock):
+        # | GIVEN |
+        file_path = '/any_path1/any_file'
+        # | WHEN |
+        ilo_common.remove_single_or_list_of_files(file_path)
+        # | THEN |
+        unlink_mock.assert_called_once_with('/any_path1/any_file')
 
     @mock.patch.object(__builtin__, 'open', autospec=True)
     def test_verify_image_checksum(self, open_mock):

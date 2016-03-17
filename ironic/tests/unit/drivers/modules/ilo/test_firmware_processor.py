@@ -1,4 +1,4 @@
-# Copyright 2016 Hewlett Packard Enterprise Development Company, L.P.
+# Copyright 2016 Hewlett Packard Enterprise Development Company LP
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -51,11 +51,13 @@ class FirmwareProcessorTestCase(base.TestCase):
         update_firmware_mock.__name__ = 'update_firmware_mock'
         wrapped_func = (ilo_fw_processor.
                         verify_firmware_update_args(update_firmware_mock))
+        node_fake = mock.MagicMock(uuid='fake_node_uuid')
+        task_fake = mock.MagicMock(node=node_fake)
         # | WHEN & THEN |
         self.assertRaises(exception.InvalidParameterValue,
                           wrapped_func,
                           mock.ANY,
-                          mock.ANY,
+                          task_fake,
                           **firmware_update_args)
 
     def test_verify_firmware_update_args_throws_for_no_firmware_url(self):
@@ -76,7 +78,7 @@ class FirmwareProcessorTestCase(base.TestCase):
     def test_get_and_validate_firmware_image_info(self):
         # | GIVEN |
         firmware_image_info = {
-            'url': 'any_valid_url',
+            'url': self.any_url,
             'checksum': 'b64c8f7799cfbb553d384d34dc43fafe336cc889',
             'component': 'BIOS'
         }
@@ -85,7 +87,7 @@ class FirmwareProcessorTestCase(base.TestCase):
             ilo_fw_processor.get_and_validate_firmware_image_info(
                 firmware_image_info))
         # | THEN |
-        self.assertEqual('any_valid_url', url)
+        self.assertEqual(self.any_url, url)
         self.assertEqual('b64c8f7799cfbb553d384d34dc43fafe336cc889', checksum)
         self.assertEqual('bios', component)
 
@@ -93,12 +95,12 @@ class FirmwareProcessorTestCase(base.TestCase):
             self):
         # | GIVEN |
         invalid_firmware_image_info = {
-            'url': 'any_valid_url',
+            'url': self.any_url,
             'component': 'bios'
         }
         # | WHEN | & | THEN |
-        self.assertRaises(
-            exception.MissingParameterValue,
+        self.assertRaisesRegexp(
+            exception.MissingParameterValue, 'checksum',
             ilo_fw_processor.get_and_validate_firmware_image_info,
             invalid_firmware_image_info)
 
@@ -106,13 +108,13 @@ class FirmwareProcessorTestCase(base.TestCase):
             self):
         # | GIVEN |
         invalid_firmware_image_info = {
-            'url': 'any_valid_url',
+            'url': self.any_url,
             'checksum': 'valid_checksum',
             'component': ''
         }
         # | WHEN | & | THEN |
-        self.assertRaises(
-            exception.MissingParameterValue,
+        self.assertRaisesRegexp(
+            exception.MissingParameterValue, 'component',
             ilo_fw_processor.get_and_validate_firmware_image_info,
             invalid_firmware_image_info)
 
@@ -120,7 +122,7 @@ class FirmwareProcessorTestCase(base.TestCase):
             self):
         # | GIVEN |
         invalid_firmware_image_info = {
-            'url': 'any_valid_url',
+            'url': self.any_url,
             'checksum': 'valid_checksum',
             'component': 'INVALID'
         }
@@ -277,6 +279,8 @@ class FirmwareProcessorTestCase(base.TestCase):
                           fw_processor.process_fw_on,
                           node_mock,
                           checksum_fake)
+        shutil_mock.rmtree.assert_called_once_with(
+            tempfile_mock.mkdtemp(), ignore_errors=True)
 
     @mock.patch.object(ilo_fw_processor, 'tempfile', autospec=True)
     @mock.patch.object(ilo_fw_processor, 'os', autospec=True)
@@ -310,6 +314,8 @@ class FirmwareProcessorTestCase(base.TestCase):
                          actual_return_location.fw_image_location)
         self.assertEqual(expected_return_location.fw_image_filename,
                          actual_return_location.fw_image_filename)
+        shutil_mock.rmtree.assert_called_once_with(
+            tempfile_mock.mkdtemp(), ignore_errors=True)
 
     @mock.patch.object(__builtin__, 'open', autospec=True)
     @mock.patch.object(
@@ -384,19 +390,24 @@ class FirmwareProcessorTestCase(base.TestCase):
         any_target_file = 'any_target_file'
         self.fw_processor_fake.parsed_url = urlparse.urlparse(
             any_swift_based_firmware_file)
+        urlparse_mock.reset_mock()
         # | WHEN |
         ilo_fw_processor._download_swift_based_fw_to(self.fw_processor_fake,
                                                      any_target_file)
         # | THEN |
         _download_http_based_fw_to_mock.assert_called_once_with(
             self.fw_processor_fake, any_target_file)
+        urlparse_mock.assert_called_once_with(
+            swift_mock.SwiftAPI().get_temp_url.return_value)
+        self.assertEqual(
+            urlparse_mock.return_value, self.fw_processor_fake.parsed_url)
 
     @mock.patch.object(ilo_fw_processor, 'ilo_common', autospec=True)
     @mock.patch.object(ilo_fw_processor, 'proliantutils_utils', autospec=True)
     def test__extract_fw_from_file_calls_process_firmware_image(
             self, utils_mock, ilo_common_mock):
         # | GIVEN |
-        node_mock = mock.ANY
+        node_mock = mock.MagicMock(uuid='fake_node_uuid')
         any_target_file = 'any_target_file'
         ilo_object_mock = ilo_common_mock.get_ilo_object.return_value
         utils_mock.process_firmware_image.return_value = ('some_location',
@@ -412,7 +423,7 @@ class FirmwareProcessorTestCase(base.TestCase):
     def test__extract_fw_from_file_doesnt_upload_firmware(
             self, utils_mock, ilo_common_mock):
         # | GIVEN |
-        node_mock = mock.ANY
+        node_mock = mock.MagicMock(uuid='fake_node_uuid')
         any_target_file = 'any_target_file'
         utils_mock.process_firmware_image.return_value = (
             'some_location/some_fw_file', False, True)
@@ -428,7 +439,7 @@ class FirmwareProcessorTestCase(base.TestCase):
     def test__extract_fw_from_file_sets_loc_obj_remove_to_file_if_no_upload(
             self, _remove_mock, utils_mock, ilo_common_mock):
         # | GIVEN |
-        node_mock = mock.ANY
+        node_mock = mock.MagicMock(uuid='fake_node_uuid')
         any_target_file = 'any_target_file'
         utils_mock.process_firmware_image.return_value = (
             'some_location/some_fw_file', False, True)
@@ -444,7 +455,7 @@ class FirmwareProcessorTestCase(base.TestCase):
     def test__extract_fw_from_file_uploads_firmware_to_webserver(
             self, utils_mock, ilo_common_mock):
         # | GIVEN |
-        node_mock = mock.ANY
+        node_mock = mock.MagicMock(uuid='fake_node_uuid')
         any_target_file = 'any_target_file'
         utils_mock.process_firmware_image.return_value = (
             'some_location/some_fw_file', True, True)
@@ -462,7 +473,7 @@ class FirmwareProcessorTestCase(base.TestCase):
     def test__extract_fw_from_file_sets_loc_obj_remove_to_webserver(
             self, _remove_mock, utils_mock, ilo_common_mock):
         # | GIVEN |
-        node_mock = mock.ANY
+        node_mock = mock.MagicMock(uuid='fake_node_uuid')
         any_target_file = 'any_target_file'
         utils_mock.process_firmware_image.return_value = (
             'some_location/some_fw_file', True, True)
@@ -479,7 +490,7 @@ class FirmwareProcessorTestCase(base.TestCase):
     def test__extract_fw_from_file_uploads_firmware_to_swift(
             self, utils_mock, ilo_common_mock):
         # | GIVEN |
-        node_mock = mock.ANY
+        node_mock = mock.MagicMock(uuid='fake_node_uuid')
         any_target_file = 'any_target_file'
         utils_mock.process_firmware_image.return_value = (
             'some_location/some_fw_file', True, True)
@@ -497,7 +508,7 @@ class FirmwareProcessorTestCase(base.TestCase):
     def test__extract_fw_from_file_sets_loc_obj_remove_to_swift(
             self, _remove_mock, utils_mock, ilo_common_mock):
         # | GIVEN |
-        node_mock = mock.ANY
+        node_mock = mock.MagicMock(uuid='fake_node_uuid')
         any_target_file = 'any_target_file'
         utils_mock.process_firmware_image.return_value = (
             'some_location/some_fw_file', True, True)

@@ -339,23 +339,25 @@ class IloManagement(base.ManagementInterface):
     @base.clean_step(priority=0, abortable=False, argsinfo={
         'firmware_update_mode': {
             'description': (
-                'This argument indicates the mode (or mechanism) of '
-                'Out-of-Band (OOB) firmware update procedure. '
-                'Currently, the only supported value is `ilo`.'
+                "This argument indicates the mode (or mechanism) of firmware "
+                "update procedure. Supported value is 'ilo'."
             ),
             'required': True
         },
         'firmware_images': {
             'description': (
-                'This argument represents the ordered list of dictionaries of '
-                'firmware image url, its checksum (md5) and component type. '
-                'The firmware images will be applied (in the order given) '
-                'one by one on the baremetal server. The different types of '
-                'firmware url schemes supported are: '
-                '`file`, `http`, `https` & `swift`. '
-                'And the different firmware components that can be updated '
-                'are: '
-                '`ilo`, `cpld`, `power_pic`, `bios` & `chassis`.'
+                "This argument represents the ordered list of JSON "
+                "dictionaries of firmware images. Each firmware image "
+                "dictionary consists of three mandatory fields, namely 'url', "
+                "'checksum' and 'component'. These fields represent firmware "
+                "image location URL, md5 checksum of image file and firmware "
+                "component type respectively. The supported firmware URL "
+                "schemes are 'file', 'http', 'https' and 'swift'. The "
+                "supported values for firmware component are 'ilo', 'cpld', "
+                "'power_pic', 'bios' and 'chassis'. The firmware images will "
+                "be applied (in the order given) one by one on the baremetal "
+                "server. For more information, see "
+                "http://docs.openstack.org/developer/ironic/drivers/ilo.html#initiating-firmware-update-as-manual-clean-step"  # noqa
             ),
             'required': True
         }
@@ -424,11 +426,11 @@ class IloManagement(base.ManagementInterface):
         except exception.NodeCleaningFailure:
             with excutils.save_and_reraise_exception():
                 LOG.error(_LE("Firmware update for %(firmware_file)s on "
-                              "node: %(node)s ... failed"),
+                              "node: %(node)s failed."),
                           {'firmware_file': fw_location, 'node': node.uuid})
         finally:
             for fw_loc_obj_n_comp_tup in fw_location_objs_n_components:
                 fw_loc_obj_n_comp_tup[0].remove()
 
-        LOG.info(_LI("All Firmware operations completed successfully for "
-                     "node: %s."), node.uuid)
+        LOG.info(_LI("All Firmware update operations completed successfully "
+                     "for node: %s."), node.uuid)
