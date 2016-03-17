@@ -669,6 +669,7 @@ function _clean_ncpu_failure {
 function enroll_nodes {
     local chassis_id
     chassis_id=$(ironic chassis-create -d "ironic test chassis" | grep " uuid " | get_field 2)
+    die_if_not_set $LINENO chassis_id "Failed to create chassis"
 
     if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
         local ironic_node_cpu=$IRONIC_VM_SPECS_CPU
