@@ -67,9 +67,15 @@ class AgentClient(object):
         }
         LOG.debug('Executing agent command %(method)s for node %(node)s',
                   {'node': node.uuid, 'method': method})
-        response = self.session.post(url,
-                                     params=request_params,
-                                     data=body)
+
+        try:
+            response = self.session.post(url, params=request_params, data=body)
+        except requests.RequestException as e:
+            msg = (_('Error invoking agent command %(method)s for node '
+                     '%(node)s. Error: %(error)s') %
+                   {'method': method, 'node': node.uuid, 'error': e})
+            LOG.error(msg)
+            raise exception.IronicException(msg)
 
         # TODO(russellhaering): real error handling
         try:
