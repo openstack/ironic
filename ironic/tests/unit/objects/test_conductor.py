@@ -85,3 +85,34 @@ class TestConductorObject(base.DbTestCase):
                 c.updated_at)
             self.assertEqual(expected, mock_get_cdr.call_args_list)
             self.assertEqual(self.context, c._context)
+
+    def _test_register(self, update_existing=False):
+        host = self.fake_conductor['hostname']
+        drivers = self.fake_conductor['drivers']
+        with mock.patch.object(self.dbapi, 'register_conductor',
+                               autospec=True) as mock_register_cdr:
+            mock_register_cdr.return_value = self.fake_conductor
+            c = objects.Conductor.register(self.context, host, drivers,
+                                           update_existing=update_existing)
+
+            self.assertIsInstance(c, objects.Conductor)
+            mock_register_cdr.assert_called_once_with(
+                {'drivers': drivers, 'hostname': host},
+                update_existing=update_existing)
+
+    def test_register(self):
+        self._test_register()
+
+    def test_register_update_existing_true(self):
+        self._test_register(update_existing=True)
+
+    def test_unregister(self):
+        host = self.fake_conductor['hostname']
+        with mock.patch.object(self.dbapi, 'get_conductor',
+                               autospec=True) as mock_get_cdr:
+            with mock.patch.object(self.dbapi, 'unregister_conductor',
+                                   autospec=True) as mock_unregister_cdr:
+                mock_get_cdr.return_value = self.fake_conductor
+                c = objects.Conductor.get_by_hostname(self.context, host)
+                c.unregister()
+                mock_unregister_cdr.assert_called_once_with(host)
