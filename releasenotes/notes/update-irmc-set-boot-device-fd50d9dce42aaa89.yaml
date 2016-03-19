@@ -1,0 +1,5 @@
+---
+fixes:
+  - This forces iRMC vmedia boot from remotely connected (redirected)
+    CD/DVD instead of default CD/DVD. See
+    https://bugs.launchpad.net/ironic/+bug/1561852 for details.
