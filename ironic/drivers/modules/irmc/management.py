@@ -35,7 +35,12 @@ LOG = logging.getLogger(__name__)
 # Set/Get System Boot Options Command, IPMI spec v2.0.
 _BOOTPARAM5_DATA2 = {boot_devices.PXE: '0x04',
                      boot_devices.DISK: '0x08',
-                     boot_devices.CDROM: '0x14',
+                     # note (naohirot)
+                     # boot_devices.CDROM is tentatively set to '0x20' rather
+                     # than '0x14' as a work-around to force iRMC vmedia boot.
+                     #   0x14 = Force boot from default CD/DVD
+                     #   0x20 = Force boot from remotely connected CD/DVD
+                     boot_devices.CDROM: '0x20',
                      boot_devices.BIOS: '0x18',
                      boot_devices.SAFE: '0x0c',
                      }
@@ -141,33 +146,37 @@ class IRMCManagement(ipmitool.IPMIManagement):
         :raises: IPMIFailure on an error from ipmitool.
 
         """
-        if driver_utils.get_node_capability(task.node, 'boot_mode') == 'uefi':
-            if device not in self.get_supported_boot_devices(task):
-                raise exception.InvalidParameterValue(_(
-                    "Invalid boot device %s specified.") % device)
-            timeout_disable = "0x00 0x08 0x03 0x08"
-            ipmitool.send_raw(task, timeout_disable)
+        if device not in self.get_supported_boot_devices(task):
+            raise exception.InvalidParameterValue(_(
+                "Invalid boot device %s specified.") % device)
 
-            # note(naohirot): As of ipmitool version 1.8.13,
-            # in case of chassis command, the efiboot option doesn't
-            # get set with persistent at the same time.
-            # $ ipmitool chassis bootdev pxe options=efiboot,persistent
-            # In case of raw command, however, both can be set at the
-            # same time.
-            # $ ipmitool raw 0x00 0x08 0x05 0xe0 0x04 0x00 0x00 0x00
-            #                           data1^^  ^^data2
-            # ipmi cmd '0x08' : Set System Boot Options
-            # data1    '0xe0' : persistent and uefi
-            # data1    '0xa0' : next boot only and uefi
-            #
-            data1 = '0xe0' if persistent else '0xa0'
-            bootparam5 = '0x00 0x08 0x05 %s %s 0x00 0x00 0x00'
-            cmd08 = bootparam5 % (data1, _BOOTPARAM5_DATA2[device])
-            ipmitool.send_raw(task, cmd08)
+        uefi_mode = (
+            driver_utils.get_node_capability(task.node, 'boot_mode') == 'uefi')
 
+        # disable 60 secs timer
+        timeout_disable = "0x00 0x08 0x03 0x08"
+        ipmitool.send_raw(task, timeout_disable)
+
+        # note(naohirot):
+        # Set System Boot Options : ipmi cmd '0x08', bootparam '0x05'
+        #
+        # $ ipmitool raw 0x00 0x08 0x05 data1 data2 0x00 0x00 0x00
+        #
+        # data1 : '0xe0' persistent + uefi
+        #         '0xc0' persistent + bios
+        #         '0xa0' next only  + uefi
+        #         '0x80' next only  + bios
+        # data2 : boot device defined in the dict _BOOTPARAM5_DATA2
+
+        bootparam5 = '0x00 0x08 0x05 %s %s 0x00 0x00 0x00'
+        if persistent:
+            data1 = '0xe0' if uefi_mode else '0xc0'
         else:
-            super(IRMCManagement, self).set_boot_device(
-                task, device, persistent)
+            data1 = '0xa0' if uefi_mode else '0x80'
+        data2 = _BOOTPARAM5_DATA2[device]
+
+        cmd8 = bootparam5 % (data1, data2)
+        ipmitool.send_raw(task, cmd8)
 
     def get_sensors_data(self, task):
         """Get sensors data method.
