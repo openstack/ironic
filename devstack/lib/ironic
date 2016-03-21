@@ -830,7 +830,13 @@ function configure_ironic_ssh_keypair {
         fi
         echo -e 'n\n' | ssh-keygen -q -t rsa -P '' -f $IRONIC_KEY_FILE
     fi
-    cat $IRONIC_KEY_FILE.pub | tee -a $IRONIC_AUTHORIZED_KEYS_FILE
+    if [[ ! -f $IRONIC_AUTHORIZED_KEYS_FILE ]]; then
+        cat $IRONIC_KEY_FILE.pub | tee -a $IRONIC_AUTHORIZED_KEYS_FILE
+    else
+        local key
+        key=$(cat $IRONIC_KEY_FILE.pub)
+        grep -q "$key" $IRONIC_AUTHORIZED_KEYS_FILE || (cat $IRONIC_KEY_FILE.pub | tee -a $IRONIC_AUTHORIZED_KEYS_FILE)
+    fi
 }
 
 function ironic_ssh_check {
