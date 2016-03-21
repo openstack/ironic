@@ -20,66 +20,33 @@ from ironic.tests import base as tests_base
 class RequestContextTestCase(tests_base.TestCase):
     def setUp(self):
         super(RequestContextTestCase, self).setUp()
-
-    @mock.patch.object(oslo_context.RequestContext, "__init__")
-    def test_create_context(self, context_mock):
-        test_context = context.RequestContext()
-        context_mock.assert_called_once_with(
-            auth_token=None, user=None, tenant=None, is_admin=False,
-            read_only=False, show_deleted=False, request_id=None,
-            overwrite=True)
-        self.assertFalse(test_context.is_public_api)
-        self.assertIsNone(test_context.domain_id)
-        self.assertIsNone(test_context.domain_name)
-        self.assertEqual([], test_context.roles)
-
-    def test_from_dict(self):
-        dict = {
-            "user": "user1",
-            "tenant": "tenant1",
-            "is_public_api": True,
-            "domain_id": "domain_id1",
-            "domain_name": "domain_name1",
-            "roles": None
-        }
-        ctx = context.RequestContext.from_dict(dict)
-        self.assertIsNone(ctx.user)
-        self.assertIsNone(ctx.tenant)
-        self.assertTrue(ctx.is_public_api)
-        self.assertEqual("domain_id1", ctx.domain_id)
-        self.assertEqual("domain_name1", ctx.domain_name)
-        self.assertEqual([], ctx.roles)
-
-    def test_to_dict(self):
-        values = {
+        self.context_dict = {
             'auth_token': 'auth_token1',
             "user": "user1",
             "tenant": "tenant1",
+            "project_name": "somename",
             'is_admin': True,
             'read_only': True,
             'show_deleted': True,
             'request_id': 'id1',
             "is_public_api": True,
-            "domain_id": "domain_id1",
-            "domain_name": "domain_name1",
+            "domain": "domain_id2",
+            "user_domain": "domain_id3",
+            "user_domain_name": "TreeDomain",
+            "project_domain": "domain_id4",
             "roles": None,
             "overwrite": True
         }
-        ctx = context.RequestContext(**values)
-        ctx_dict = ctx.to_dict()
-        self.assertIn('auth_token', ctx_dict)
-        self.assertIn('user', ctx_dict)
-        self.assertIn('tenant', ctx_dict)
-        self.assertIn('is_admin', ctx_dict)
-        self.assertIn('read_only', ctx_dict)
-        self.assertIn('show_deleted', ctx_dict)
-        self.assertIn('request_id', ctx_dict)
-        self.assertIn('domain_id', ctx_dict)
-        self.assertIn('roles', ctx_dict)
-        self.assertIn('domain_name', ctx_dict)
-        self.assertIn('is_public_api', ctx_dict)
-        self.assertNotIn('overwrite', ctx_dict)
 
+    @mock.patch.object(oslo_context.RequestContext, "__init__")
+    def test_create_context(self, context_mock):
+        test_context = context.RequestContext()
+        context_mock.assert_called_once_with()
+        self.assertFalse(test_context.is_public_api)
+
+    def test_to_dict(self):
+        ctx = context.RequestContext(**self.context_dict)
+        ctx_dict = ctx.to_dict()
         self.assertEqual('auth_token1', ctx_dict['auth_token'])
         self.assertEqual('user1', ctx_dict['user'])
         self.assertEqual('tenant1', ctx_dict['tenant'])
@@ -88,8 +55,33 @@ class RequestContextTestCase(tests_base.TestCase):
         self.assertTrue(ctx_dict['show_deleted'])
         self.assertEqual('id1', ctx_dict['request_id'])
         self.assertTrue(ctx_dict['is_public_api'])
-        self.assertEqual('domain_id1', ctx_dict['domain_id'])
-        self.assertEqual('domain_name1', ctx_dict['domain_name'])
+        self.assertEqual('domain_id3', ctx_dict['domain_id'])
+        self.assertEqual('TreeDomain', ctx_dict['domain_name'])
+        self.assertEqual([], ctx_dict['roles'])
+        self.assertNotIn('overwrite', ctx_dict)
+
+    def test_from_dict(self):
+        test_context = context.RequestContext.from_dict(
+            {'project_name': 'demo', 'is_public_api': True,
+             'domain_id': 'meow'})
+        self.assertEqual('demo', test_context.project_name)
+        self.assertEqual('meow', test_context.user_domain)
+        self.assertTrue(test_context.is_public_api)
+
+    def test_to_policy_values(self):
+        ctx = context.RequestContext(**self.context_dict)
+        ctx_dict = ctx.to_policy_values()
+        self.assertEqual('user1', ctx_dict['user'])
+        self.assertEqual('user1', ctx_dict['user_id'])
+        self.assertEqual('tenant1', ctx_dict['tenant'])
+        self.assertEqual('tenant1', ctx_dict['project_id'])
+        self.assertEqual('somename', ctx_dict['project_name'])
+        self.assertTrue(ctx_dict['is_public_api'])
+        self.assertTrue(ctx_dict['is_admin_project'])
+        self.assertEqual('domain_id3', ctx_dict['domain_id'])
+        self.assertEqual('TreeDomain', ctx_dict['domain_name'])
+        self.assertEqual('domain_id3', ctx_dict['user_domain_id'])
+        self.assertEqual('domain_id4', ctx_dict['project_domain_id'])
         self.assertEqual([], ctx_dict['roles'])
 
     def test_get_admin_context(self):

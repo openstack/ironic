@@ -179,11 +179,7 @@ class TestRequestContextSerializer(base.TestCase):
         self.assertEqual(self.context.to_dict(), serialize_values)
 
     def test_deserialize_context(self):
-        self.context.user = 'fake-user'
-        self.context.tenant = 'fake-tenant'
         serialize_values = self.context.to_dict()
         new_context = self.serializer.deserialize_context(serialize_values)
-        # Ironic RequestContext from_dict will pop 'user' and 'tenant' and
-        # initialize to None.
-        self.assertIsNone(new_context.user)
-        self.assertIsNone(new_context.tenant)
+        self.assertEqual(serialize_values, new_context.to_dict())
+        self.assertIsInstance(new_context, ironic_context.RequestContext)
