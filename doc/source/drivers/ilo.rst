@@ -733,19 +733,19 @@ Supported **Automated** Cleaning Operations
 
 * The automated cleaning operations supported are:
 
-  -``reset_bios_to_default``:
+  ``reset_bios_to_default``:
     Resets system ROM settings to default. By default, enabled with priority
     10. This clean step is supported only on Gen9 and above servers.
-  -``reset_secure_boot_keys_to_default``:
+  ``reset_secure_boot_keys_to_default``:
     Resets secure boot keys to manufacturer's defaults. This step is supported
     only on Gen9 and above servers. By default, enabled with priority 20 .
-  -``reset_ilo_credential``:
+  ``reset_ilo_credential``:
     Resets the iLO password, if ``ilo_change_password`` is specified as part of
     node's driver_info. By default, enabled with priority 30.
-  -``clear_secure_boot_keys``:
+  ``clear_secure_boot_keys``:
     Clears all secure boot keys. This step is supported only on Gen9 and above
     servers. By default, this step is disabled.
-  -``reset_ilo``:
+  ``reset_ilo``:
     Resets the iLO. By default, this step is disabled.
 
 * For in-band cleaning operations supported by ``agent_ilo`` driver, see
@@ -776,9 +776,9 @@ Supported **Manual** Cleaning Operations
 
 * The manual cleaning operations supported are:
 
-  -``activate_license``:
+  ``activate_license``:
     Activates the iLO Advanced license. This is an out-of-band manual cleaning
-    step associated with ``management`` interface. See
+    step associated with the ``management`` interface. See
     `Activating iLO Advanced license as manual clean step`_ for user guidance
     on usage. Please note that this operation cannot be performed using virtual
     media based drivers like ``iscsi_ilo`` and ``agent_ilo`` as they need this
@@ -789,6 +789,27 @@ Supported **Manual** Cleaning Operations
     delivered with a flexible-quantity kit or after completing an Activation
     Key Agreement (AKA), then these drivers can still be used for executing
     this cleaning step.
+  ``update_firmware``:
+    Updates the firmware of the devices. Also an out-of-band step associated
+    with the ``management`` interface. See
+    `Initiating firmware update as manual clean step`_ for user guidance on
+    usage. The supported devices for firmware update are: ``ilo``, ``cpld``,
+    ``power_pic``, ``bios`` and ``chassis``. Refer to below table for their
+    commonly used descriptions.
+
+    .. csv-table::
+       :header: "Device", "Description"
+       :widths: 30, 80
+
+       "``ilo``", "BMC for HPE ProLiant servers"
+       "``cpld``", "System programmable logic device"
+       "``power_pic``", "Power management controller"
+       "``bios``", "HPE ProLiant System ROM"
+       "``chassis``", "System chassis device"
+
+    Some devices firmware cannot be updated via this method, such as: storage
+    controllers, host bus adapters, disk drive firmware, network interfaces
+    and OA.
 
 * iLO with firmware version 1.5 is minimally required to support all the
   operations.
@@ -1261,8 +1282,8 @@ step. Any manual cleaning step can only be initiated when a node is in the
 put in the ``manageable`` state again. User can follow steps from
 :ref:`manual_cleaning` to initiate manual cleaning operation on a node.
 
-An example of a manual clean step to activate license as the only clean step
-could be::
+An example of a manual clean step with ``activate_license`` as the only clean
+step could be::
 
     'clean_steps': [{
         'interface': 'management',
@@ -1281,7 +1302,109 @@ The different attributes of ``activate_license`` clean step are as follows:
    "``interface``", "Interface of clean step, here ``management``"
    "``step``", "Name of clean step, here ``activate_license``"
    "``args``", "Keyword-argument entry (<name>: <value>) being passed to clean step"
-   "``args.ilo_license_key``", "The HPE iLO Advanced license key to activate enterprise features. This is mandatory."
+   "``args.ilo_license_key``", "iLO Advanced license key to activate enterprise features. This is mandatory."
+
+Initiating firmware update as manual clean step
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+iLO drivers can invoke secure firmware update as a manual cleaning step. Any
+manual cleaning step can only be initiated when a node is in the ``manageable``
+state. Once the manual cleaning is finished, the node will be put in the
+``manageable`` state again. A user can follow steps from :ref:`manual_cleaning`
+to initiate manual cleaning operation on a node.
+
+An example of a manual clean step with ``update_firmware`` as the only clean
+step could be::
+
+    'clean_steps': [{
+        'interface': 'management',
+        'step': 'update_firmware',
+        'args': {
+            'firmware_update_mode': 'ilo',
+            'firmware_images':[
+                {
+                    'url': 'file:///firmware_images/ilo/1.5/CP024444.scexe',
+                    'checksum': 'a94e683ea16d9ae44768f0a65942234d',
+                    'component': 'ilo'
+                },
+                {
+                    'url': 'swift://firmware_container/cpld2.3.rpm',
+                    'checksum': '<md5-checksum-of-this-file>',
+                    'component': 'cpld'
+                },
+                {
+                    'url': 'http://my_address:port/firmwares/bios_vLatest.scexe',
+                    'checksum': '<md5-checksum-of-this-file>',
+                    'component': 'bios'
+                },
+                {
+                    'url': 'https://my_secure_address_url/firmwares/chassis_vLatest.scexe',
+                    'checksum': '<md5-checksum-of-this-file>',
+                    'component': 'chassis'
+                },
+                {
+                    'url': 'file:///home/ubuntu/firmware_images/power_pic/pmc_v3.0.bin',
+                    'checksum': '<md5-checksum-of-this-file>',
+                    'component': 'power_pic'
+                }
+            ]
+        }
+    }]
+
+The different attributes of ``update_firmware`` clean step are as follows:
+
+  .. csv-table::
+   :header: "Attribute", "Description"
+   :widths: 30, 120
+
+   "``interface``", "Interface of clean step, here ``management``"
+   "``step``", "Name of clean step, here ``update_firmware``"
+   "``args``", "Keyword-argument entry (<name>: <value>) being passed to clean step"
+   "``args.firmware_update_mode``", "Mode (or mechanism) of out-of-band firmware update. Supported value is ``ilo``. This is mandatory."
+   "``args.firmware_images``", "Ordered list of dictionaries of images to be flashed. This is mandatory."
+
+Each firmware image block is represented by a dictionary (JSON), in the form::
+
+    {
+      'url': '<url of firmware image file>',
+      'checksum': '<md5 checksum of firmware image file to verify the image>',
+      'component': '<device on which firmware image will be flashed>'
+    }
+
+All the fields in the firmware image block are mandatory.
+
+* The different types of firmware url schemes supported are:
+  ``file``, ``http``, ``https`` and ``swift``.
+
+.. note::
+   This feature assumes that while using ``file`` url scheme the file path is
+   on the conductor controlling the node.
+
+* Different firmware components that can be updated are:
+  ``ilo``, ``cpld``, ``power_pic``, ``bios`` and ``chassis``.
+* The firmware images will be updated in the order given by the operator. If
+  there is any error during processing of any of the given firmware images
+  provided in the list, none of the firmware updates will occur. The processing
+  error could happen during image download, image checksum verification or
+  image extraction. The logic is to process each of the firmware files and
+  update them on the devices only if all the files are processed successfully.
+  If, during the update (uploading and flashing) process, an update fails, then
+  the remaining updates, if any, in the list will be aborted. But it is
+  recommended to triage and fix the failure and re-attempt the manual clean
+  step ``update_firmware`` for the aborted ``firmware_images``.
+
+  The devices for which the firmwares have been updated successfully would
+  start functioning using their newly updated firmware.
+* As a troubleshooting guidance on the complete process, check Ironic conductor
+  logs carefully to see if there are any firmware processing or update related
+  errors which may help in root causing or gain an understanding of where
+  things were left off or where things failed. You can then fix or work around
+  and then try again. A common cause of update failure is HPE Secure Digital
+  Signature check failure for the firmware image file.
+* To compute ``md5`` checksum for your image file, you can use the following
+  command::
+
+    $ md5sum image.rpm
+    66cdb090c80b71daa21a67f06ecd3f33  image.rpm
 
 RAID Support
 ^^^^^^^^^^^^
