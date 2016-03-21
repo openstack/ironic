@@ -382,7 +382,14 @@ class TaskManager(object):
                                       self.node.target_provision_state)
 
         self.node.provision_state = self.fsm.current_state
-        self.node.target_provision_state = self.fsm.target_state
+
+        # NOTE(lucasagomes): If there's no extra processing
+        # (callback) and we've moved to a stable state, make sure the
+        # target_provision_state is cleared
+        if not callback and self.fsm.is_stable(self.node.provision_state):
+            self.node.target_provision_state = states.NOSTATE
+        else:
+            self.node.target_provision_state = self.fsm.target_state
 
         # set up the async worker
         if callback:
