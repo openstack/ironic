@@ -61,7 +61,7 @@ clean_step_opts = [
                default=0,
                help=_('Priority for clear_secure_boot_keys clean step. This '
                       'step is not enabled by default. It can be enabled to '
-                      'to clear all secure boot keys enrolled with iLO.')),
+                      'clear all secure boot keys enrolled with iLO.')),
     cfg.IntOpt('clean_priority_reset_ilo_credential',
                default=30,
                help=_('Priority for reset_ilo_credential clean step. This '

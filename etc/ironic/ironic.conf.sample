@@ -1177,7 +1177,7 @@
 #clean_priority_reset_secure_boot_keys_to_default=20
 
 # Priority for clear_secure_boot_keys clean step. This step is
-# not enabled by default. It can be enabled to to clear all
+# not enabled by default. It can be enabled to clear all
 # secure boot keys enrolled with iLO. (integer value)
 #clean_priority_clear_secure_boot_keys=0
 
@@ -1829,7 +1829,7 @@
 # the TTL are automatically deleted. The parameter affects
 # only reply and fanout queues. (integer value)
 # Minimum value: 1
-#rabbit_transient_queues_ttl=600
+#rabbit_transient_queues_ttl=1800
 
 # Specifies the number of messages to prefetch. Setting to
 # zero allows unlimited messages. (integer value)
