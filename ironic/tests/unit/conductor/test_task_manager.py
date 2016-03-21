@@ -19,8 +19,10 @@
 
 import futurist
 import mock
+from oslo_context import context as oslo_context
 from oslo_utils import uuidutils
 
+from ironic.common import context
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import fsm
@@ -657,6 +659,7 @@ class ExclusiveLockDecoratorTestCase(tests_base.TestCase):
     def setUp(self):
         super(ExclusiveLockDecoratorTestCase, self).setUp()
         self.task = mock.Mock(spec=task_manager.TaskManager)
+        self.task.context = self.context
         self.args_task_first = (self.task, 1, 2)
         self.args_task_second = (1, self.task, 2)
         self.kwargs = dict(cat='meow', dog='wuff')
@@ -736,3 +739,20 @@ class ThreadExceptionTestCase(tests_base.TestCase):
         self.future_mock.exception.assert_called_once_with()
         self.assertIsNone(self.node.last_error)
         self.assertTrue(log_mock.called)
+
+
+@mock.patch.object(oslo_context, 'get_current')
+class TaskManagerContextTestCase(tests_base.TestCase):
+    def setUp(self):
+        super(TaskManagerContextTestCase, self).setUp()
+        self.context = mock.Mock(spec=context.RequestContext)
+
+    def test_thread_without_context(self, context_get_mock):
+        context_get_mock.return_value = False
+        task_manager.ensure_thread_contain_context(self.context)
+        self.assertTrue(self.context.update_store.called)
+
+    def test_thread_with_context(self, context_get_mock):
+        context_get_mock.return_value = True
+        task_manager.ensure_thread_contain_context(self.context)
+        self.assertFalse(self.context.update_store.called)
