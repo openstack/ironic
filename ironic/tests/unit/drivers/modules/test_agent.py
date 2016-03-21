@@ -55,6 +55,9 @@ class TestAgentMethods(db_base.DbTestCase):
     def test_build_instance_info_for_deploy_glance_image(self, glance_mock):
         i_info = self.node.instance_info
         i_info['image_source'] = '733d1c44-a2ea-414b-aca7-69decf20d810'
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['is_whole_disk_image'] = True
+        self.node.driver_internal_info = driver_internal_info
         self.node.instance_info = i_info
         self.node.save()
 
@@ -76,14 +79,82 @@ class TestAgentMethods(db_base.DbTestCase):
             glance_mock.return_value.swift_temp_url.assert_called_once_with(
                 image_info)
 
+    @mock.patch.object(deploy_utils, 'parse_instance_info', autospec=True)
+    @mock.patch.object(image_service, 'GlanceImageService', autospec=True)
+    def test_build_instance_info_for_deploy_glance_partition_image(
+            self, glance_mock, parse_instance_info_mock):
+        i_info = self.node.instance_info
+        i_info['image_source'] = '733d1c44-a2ea-414b-aca7-69decf20d810'
+        i_info['kernel'] = '13ce5a56-1de3-4916-b8b2-be778645d003'
+        i_info['ramdisk'] = 'a5a370a8-1b39-433f-be63-2c7d708e4b4e'
+        i_info['root_gb'] = 5
+        i_info['swap_mb'] = 4
+        i_info['ephemeral_gb'] = 0
+        i_info['ephemeral_format'] = None
+        i_info['configdrive'] = 'configdrive'
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['is_whole_disk_image'] = False
+        self.node.driver_internal_info = driver_internal_info
+        self.node.instance_info = i_info
+        self.node.save()
+
+        image_info = {'checksum': 'aa', 'disk_format': 'qcow2',
+                      'container_format': 'bare',
+                      'properties': {'kernel_id': 'kernel',
+                                     'ramdisk_id': 'ramdisk'}}
+        glance_mock.return_value.show = mock.MagicMock(spec_set=[],
+                                                       return_value=image_info)
+        glance_obj_mock = glance_mock.return_value
+        glance_obj_mock.swift_temp_url.return_value = 'temp-url'
+        parse_instance_info_mock.return_value = {'swap_mb': 4}
+        image_source = '733d1c44-a2ea-414b-aca7-69decf20d810'
+        expected_i_info = {'root_gb': 5,
+                           'swap_mb': 4,
+                           'ephemeral_gb': 0,
+                           'ephemeral_format': None,
+                           'configdrive': 'configdrive',
+                           'image_source': image_source,
+                           'image_url': 'temp-url',
+                           'kernel': 'kernel',
+                           'ramdisk': 'ramdisk',
+                           'image_type': 'partition',
+                           'image_checksum': 'aa',
+                           'fake_password': 'fakepass',
+                           'image_container_format': 'bare',
+                           'image_disk_format': 'qcow2',
+                           'foo': 'bar'}
+        mgr_utils.mock_the_extension_manager(driver='fake_agent')
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+
+            info = agent.build_instance_info_for_deploy(task)
+
+            glance_mock.assert_called_once_with(version=2,
+                                                context=task.context)
+            glance_mock.return_value.show.assert_called_once_with(
+                self.node.instance_info['image_source'])
+            glance_mock.return_value.swift_temp_url.assert_called_once_with(
+                image_info)
+            image_type = task.node.instance_info.get('image_type')
+            self.assertEqual('partition', image_type)
+            self.assertEqual('kernel', info.get('kernel'))
+            self.assertEqual('ramdisk', info.get('ramdisk'))
+            self.assertEqual(expected_i_info, info)
+            parse_instance_info_mock.assert_called_once_with(task.node)
+
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
                        autospec=True)
     def test_build_instance_info_for_deploy_nonglance_image(
             self, validate_href_mock):
         i_info = self.node.instance_info
+        driver_internal_info = self.node.driver_internal_info
         i_info['image_source'] = 'http://image-ref'
         i_info['image_checksum'] = 'aa'
+        i_info['root_gb'] = 10
+        i_info['image_checksum'] = 'aa'
+        driver_internal_info['is_whole_disk_image'] = True
         self.node.instance_info = i_info
+        self.node.driver_internal_info = driver_internal_info
         self.node.save()
 
         mgr_utils.mock_the_extension_manager(driver='fake_agent')
@@ -96,6 +167,51 @@ class TestAgentMethods(db_base.DbTestCase):
                              info['image_url'])
             validate_href_mock.assert_called_once_with(
                 mock.ANY, 'http://image-ref')
+
+    @mock.patch.object(deploy_utils, 'parse_instance_info', autospec=True)
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
+    def test_build_instance_info_for_deploy_nonglance_partition_image(
+            self, validate_href_mock, parse_instance_info_mock):
+        i_info = self.node.instance_info
+        driver_internal_info = self.node.driver_internal_info
+        i_info['image_source'] = 'http://image-ref'
+        i_info['kernel'] = 'http://kernel-ref'
+        i_info['ramdisk'] = 'http://ramdisk-ref'
+        i_info['image_checksum'] = 'aa'
+        i_info['root_gb'] = 10
+        driver_internal_info['is_whole_disk_image'] = False
+        self.node.instance_info = i_info
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        mgr_utils.mock_the_extension_manager(driver='fake_agent')
+        validate_href_mock.side_effect = ['http://image-ref',
+                                          'http://kernel-ref',
+                                          'http://ramdisk-ref']
+        parse_instance_info_mock.return_value = {'swap_mb': 5}
+        expected_i_info = {'image_source': 'http://image-ref',
+                           'image_url': 'http://image-ref',
+                           'image_type': 'partition',
+                           'kernel': 'http://kernel-ref',
+                           'ramdisk': 'http://ramdisk-ref',
+                           'image_checksum': 'aa',
+                           'root_gb': 10,
+                           'swap_mb': 5,
+                           'fake_password': 'fakepass',
+                           'foo': 'bar'}
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+
+            info = agent.build_instance_info_for_deploy(task)
+
+            self.assertEqual(self.node.instance_info['image_source'],
+                             info['image_url'])
+            validate_href_mock.assert_called_once_with(
+                mock.ANY, 'http://image-ref')
+            self.assertEqual('partition', info.get('image_type'))
+            self.assertEqual(expected_i_info, info)
+            parse_instance_info_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
                        autospec=True)
@@ -286,19 +402,6 @@ class TestAgentDeploy(db_base.DbTestCase):
                               self.driver.validate, task)
             pxe_boot_validate_mock.assert_called_once_with(
                 task.driver.boot, task)
-
-    @mock.patch.object(images, 'image_show', autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
-    def test_validate_agent_fail_partition_image(
-            self, pxe_boot_validate_mock, show_mock):
-        with task_manager.acquire(
-                self.context, self.node['uuid'], shared=False) as task:
-            task.node.driver_internal_info['is_whole_disk_image'] = False
-            self.assertRaises(exception.InvalidParameterValue,
-                              self.driver.validate, task)
-            pxe_boot_validate_mock.assert_called_once_with(
-                task.driver.boot, task)
-            show_mock.assert_called_once_with(self.context, 'fake-image')
 
     @mock.patch.object(images, 'image_show', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
@@ -572,20 +675,80 @@ class TestAgentVendor(db_base.DbTestCase):
             }
         )
 
+    def test_continue_deploy_partition_image(self):
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        i_info = self.node.instance_info
+        i_info['kernel'] = 'kernel'
+        i_info['ramdisk'] = 'ramdisk'
+        i_info['root_gb'] = 10
+        i_info['swap_mb'] = 10
+        i_info['ephemeral_mb'] = 0
+        i_info['ephemeral_format'] = 'abc'
+        i_info['configdrive'] = 'configdrive'
+        i_info['preserve_ephemeral'] = False
+        i_info['image_type'] = 'partition'
+        i_info['root_mb'] = 10240
+        i_info['deploy_boot_mode'] = 'bios'
+        i_info['capabilities'] = '{"boot_option": "local"}'
+        self.node.instance_info = i_info
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['is_whole_disk_image'] = False
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        test_temp_url = 'http://image'
+        expected_image_info = {
+            'urls': [test_temp_url],
+            'id': 'fake-image',
+            'checksum': 'checksum',
+            'disk_format': 'qcow2',
+            'container_format': 'bare',
+            'stream_raw_images': True,
+            'kernel': 'kernel',
+            'ramdisk': 'ramdisk',
+            'root_gb': 10,
+            'swap_mb': 10,
+            'ephemeral_mb': 0,
+            'ephemeral_format': 'abc',
+            'configdrive': 'configdrive',
+            'preserve_ephemeral': False,
+            'image_type': 'partition',
+            'root_mb': 10240,
+            'boot_option': 'local',
+            'deploy_boot_mode': 'bios'
+        }
+
+        client_mock = mock.MagicMock(spec_set=['prepare_image'])
+        self.passthru._client = client_mock
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.passthru.continue_deploy(task)
+
+            client_mock.prepare_image.assert_called_with(task.node,
+                                                         expected_image_info)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
+            self.assertEqual(states.ACTIVE,
+                             task.node.target_provision_state)
+
+    @mock.patch.object(agent.AgentVendorInterface, '_get_uuid_from_result',
+                       autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state',
                        spec=types.FunctionType)
     @mock.patch.object(agent_client.AgentClient, 'power_off',
                        spec=types.FunctionType)
-    @mock.patch('ironic.conductor.utils.node_set_boot_device', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance',
+                       autospec=True)
     @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
                 '.check_deploy_success', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     def test_reboot_to_instance(self, clean_pxe_mock, check_deploy_mock,
-                                bootdev_mock, power_off_mock,
-                                get_power_state_mock, node_power_action_mock):
+                                prepare_mock, power_off_mock,
+                                get_power_state_mock, node_power_action_mock,
+                                uuid_mock):
         check_deploy_mock.return_value = None
-
+        uuid_mock.return_value = 'root_uuid'
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
@@ -598,30 +761,83 @@ class TestAgentVendor(db_base.DbTestCase):
 
             clean_pxe_mock.assert_called_once_with(task.driver.boot, task)
             check_deploy_mock.assert_called_once_with(mock.ANY, task.node)
-            bootdev_mock.assert_called_once_with(task, 'disk', persistent=True)
             power_off_mock.assert_called_once_with(task.node)
             get_power_state_mock.assert_called_once_with(task)
             node_power_action_mock.assert_called_once_with(
                 task, states.REBOOT)
+            self.assertFalse(prepare_mock.called)
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            driver_int_info = task.node.driver_internal_info
+            self.assertIsNone(driver_int_info.get('root_uuid_or_disk_id'))
+            self.assertFalse(uuid_mock.called)
 
+    @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy', autospec=True)
+    @mock.patch.object(agent.AgentVendorInterface, '_get_uuid_from_result',
+                       autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state',
                        spec=types.FunctionType)
     @mock.patch.object(agent_client.AgentClient, 'power_off',
                        spec=types.FunctionType)
-    @mock.patch('ironic.conductor.utils.node_set_boot_device', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance',
+                       autospec=True)
+    @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
+                '.check_deploy_success', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
+    def test_reboot_to_instance_partition_image(self, clean_pxe_mock,
+                                                check_deploy_mock,
+                                                prepare_mock, power_off_mock,
+                                                get_power_state_mock,
+                                                node_power_action_mock,
+                                                uuid_mock, boot_mode_mock):
+        check_deploy_mock.return_value = None
+        uuid_mock.return_value = 'root_uuid'
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        boot_mode_mock.return_value = 'bios'
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            get_power_state_mock.return_value = states.POWER_OFF
+            task.node.driver_internal_info['is_whole_disk_image'] = False
+
+            self.passthru.reboot_to_instance(task)
+
+            self.assertFalse(clean_pxe_mock.called)
+            check_deploy_mock.assert_called_once_with(mock.ANY, task.node)
+            power_off_mock.assert_called_once_with(task.node)
+            get_power_state_mock.assert_called_once_with(task)
+            node_power_action_mock.assert_called_once_with(
+                task, states.REBOOT)
+            prepare_mock.assert_called_once_with(task.driver.boot, task)
+            self.assertEqual(states.ACTIVE, task.node.provision_state)
+            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            driver_int_info = task.node.driver_internal_info
+            self.assertEqual(driver_int_info.get('root_uuid_or_disk_id'),
+                             'root_uuid')
+            uuid_mock.assert_called_once_with(self.passthru, task, 'root_uuid')
+            boot_mode_mock.assert_called_once_with(task.node)
+
+    @mock.patch.object(agent.AgentVendorInterface, '_get_uuid_from_result',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state',
+                       spec=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'power_off',
+                       spec=types.FunctionType)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance',
+                       autospec=True)
     @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
                 '.check_deploy_success', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     def test_reboot_to_instance_boot_none(self, clean_pxe_mock,
                                           check_deploy_mock,
-                                          bootdev_mock, power_off_mock,
+                                          prepare_mock, power_off_mock,
                                           get_power_state_mock,
-                                          node_power_action_mock):
+                                          node_power_action_mock,
+                                          uuid_mock):
         check_deploy_mock.return_value = None
-
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
@@ -634,8 +850,96 @@ class TestAgentVendor(db_base.DbTestCase):
             self.passthru.reboot_to_instance(task)
 
             self.assertFalse(clean_pxe_mock.called)
+            self.assertFalse(prepare_mock.called)
+            power_off_mock.assert_called_once_with(task.node)
             check_deploy_mock.assert_called_once_with(mock.ANY, task.node)
-            bootdev_mock.assert_called_once_with(task, 'disk', persistent=True)
+            driver_int_info = task.node.driver_internal_info
+            self.assertIsNone(driver_int_info.get('root_uuid_or_disk_id'))
+
+            get_power_state_mock.assert_called_once_with(task)
+            node_power_action_mock.assert_called_once_with(
+                task, states.REBOOT)
+            self.assertEqual(states.ACTIVE, task.node.provision_state)
+            self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            self.assertFalse(uuid_mock.called)
+
+    @mock.patch.object(agent.AgentVendorInterface, '_get_uuid_from_result',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state',
+                       spec=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'power_off',
+                       spec=types.FunctionType)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance',
+                       autospec=True)
+    @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
+                '.check_deploy_success', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
+    def test_reboot_to_instance_boot_error(self, clean_pxe_mock,
+                                           check_deploy_mock,
+                                           prepare_mock, power_off_mock,
+                                           get_power_state_mock,
+                                           node_power_action_mock,
+                                           uuid_mock):
+        check_deploy_mock.return_value = "Error"
+        uuid_mock.return_value = None
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            get_power_state_mock.return_value = states.POWER_OFF
+            task.node.driver_internal_info['is_whole_disk_image'] = True
+            task.driver.boot = None
+            self.passthru.reboot_to_instance(task)
+
+            self.assertFalse(clean_pxe_mock.called)
+            self.assertFalse(prepare_mock.called)
+            self.assertFalse(power_off_mock.called)
+            check_deploy_mock.assert_called_once_with(mock.ANY, task.node)
+            self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'configure_local_boot', autospec=True)
+    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
+    @mock.patch.object(agent.AgentVendorInterface, '_get_uuid_from_result',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state',
+                       spec=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'power_off',
+                       spec=types.FunctionType)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance',
+                       autospec=True)
+    @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
+                '.check_deploy_success', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
+    def test_reboot_to_instance_localboot(self, clean_pxe_mock,
+                                          check_deploy_mock,
+                                          prepare_mock, power_off_mock,
+                                          get_power_state_mock,
+                                          node_power_action_mock,
+                                          uuid_mock,
+                                          bootdev_mock,
+                                          configure_mock):
+        check_deploy_mock.return_value = None
+        uuid_mock.side_effect = ['root_uuid', 'efi_uuid']
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            get_power_state_mock.return_value = states.POWER_OFF
+            task.node.driver_internal_info['is_whole_disk_image'] = False
+            boot_option = {'capabilities': '{"boot_option": "local"}'}
+            task.node.instance_info = boot_option
+            self.passthru.reboot_to_instance(task)
+
+            self.assertFalse(clean_pxe_mock.called)
+            check_deploy_mock.assert_called_once_with(mock.ANY, task.node)
+            self.assertFalse(bootdev_mock.called)
             power_off_mock.assert_called_once_with(task.node)
             get_power_state_mock.assert_called_once_with(task)
             node_power_action_mock.assert_called_once_with(

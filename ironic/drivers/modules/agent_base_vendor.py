@@ -710,6 +710,30 @@ class BaseAgentVendor(base.VendorInterface):
         task.process_event('done')
         LOG.info(_LI('Deployment to node %s done'), task.node.uuid)
 
+    def prepare_instance_to_boot(self, task, root_uuid, efi_sys_uuid):
+        """Prepares instance to boot.
+
+        :param task: a TaskManager object containing the node
+        :param root_uuid: the UUID for root partition
+        :param efi_sys_uuid: the UUID for the efi partition
+        :raises: InvalidState if fails to prepare instance
+        """
+
+        node = task.node
+        if deploy_utils.get_boot_option(node) == "local":
+            # Install the boot loader
+            self.configure_local_boot(
+                task, root_uuid=root_uuid,
+                efi_system_part_uuid=efi_sys_uuid)
+        try:
+            task.driver.boot.prepare_instance(task)
+        except Exception as e:
+            LOG.error(_LE('Deploy failed for instance %(instance)s. '
+                          'Error: %(error)s'),
+                      {'instance': node.instance_uuid, 'error': e})
+            msg = _('Failed to continue agent deployment.')
+            self._log_and_raise_deployment_error(task, msg)
+
     def configure_local_boot(self, task, root_uuid=None,
                              efi_system_part_uuid=None):
         """Helper method to configure local boot on the node.

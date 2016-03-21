@@ -61,7 +61,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             instance_info=INST_INFO_DICT,
             driver_internal_info=DRV_INTERNAL_INFO_DICT
         )
-        info = iscsi_deploy.parse_instance_info(node)
+        info = deploy_utils.parse_instance_info(node)
         self.assertIsNotNone(info.get('image_source'))
         self.assertIsNotNone(info.get('root_gb'))
         self.assertEqual(0, info.get('ephemeral_gb'))
@@ -76,7 +76,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
         self.assertRaises(exception.MissingParameterValue,
-                          iscsi_deploy.parse_instance_info,
+                          deploy_utils.parse_instance_info,
                           node)
 
     def test_parse_instance_info_missing_root_gb(self):
@@ -89,7 +89,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
         self.assertRaises(exception.MissingParameterValue,
-                          iscsi_deploy.parse_instance_info,
+                          deploy_utils.parse_instance_info,
                           node)
 
     def test_parse_instance_info_invalid_root_gb(self):
@@ -100,7 +100,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
         self.assertRaises(exception.InvalidParameterValue,
-                          iscsi_deploy.parse_instance_info,
+                          deploy_utils.parse_instance_info,
                           node)
 
     def test_parse_instance_info_valid_ephemeral_gb(self):
@@ -113,9 +113,21 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             self.context, instance_info=info,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
-        data = iscsi_deploy.parse_instance_info(node)
+        data = deploy_utils.parse_instance_info(node)
         self.assertEqual(ephemeral_gb, data.get('ephemeral_gb'))
         self.assertEqual(ephemeral_fmt, data.get('ephemeral_format'))
+
+    def test_parse_instance_info_unicode_swap_mb(self):
+        swap_mb = u'10'
+        swap_mb_int = 10
+        info = dict(INST_INFO_DICT)
+        info['swap_mb'] = swap_mb
+        node = obj_utils.create_test_node(
+            self.context, instance_info=info,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT,
+        )
+        data = deploy_utils.parse_instance_info(node)
+        self.assertEqual(swap_mb_int, data.get('swap_mb'))
 
     def test_parse_instance_info_invalid_ephemeral_gb(self):
         info = dict(INST_INFO_DICT)
@@ -127,7 +139,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
         self.assertRaises(exception.InvalidParameterValue,
-                          iscsi_deploy.parse_instance_info,
+                          deploy_utils.parse_instance_info,
                           node)
 
     def test_parse_instance_info_valid_ephemeral_missing_format(self):
@@ -141,7 +153,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             self.context, instance_info=info,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
-        instance_info = iscsi_deploy.parse_instance_info(node)
+        instance_info = deploy_utils.parse_instance_info(node)
         self.assertEqual(ephemeral_fmt, instance_info['ephemeral_format'])
 
     def test_parse_instance_info_valid_preserve_ephemeral_true(self):
@@ -155,7 +167,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
                 instance_info=info,
                 driver_internal_info=DRV_INTERNAL_INFO_DICT,
             )
-            data = iscsi_deploy.parse_instance_info(node)
+            data = deploy_utils.parse_instance_info(node)
             self.assertTrue(data.get('preserve_ephemeral'))
 
     def test_parse_instance_info_valid_preserve_ephemeral_false(self):
@@ -168,7 +180,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
                 instance_info=info,
                 driver_internal_info=DRV_INTERNAL_INFO_DICT,
             )
-            data = iscsi_deploy.parse_instance_info(node)
+            data = deploy_utils.parse_instance_info(node)
             self.assertFalse(data.get('preserve_ephemeral'))
 
     def test_parse_instance_info_invalid_preserve_ephemeral(self):
@@ -179,7 +191,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
         self.assertRaises(exception.InvalidParameterValue,
-                          iscsi_deploy.parse_instance_info,
+                          deploy_utils.parse_instance_info,
                           node)
 
     def test_parse_instance_info_invalid_ephemeral_disk(self):
@@ -197,7 +209,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             driver_internal_info=drv_internal_dict,
         )
         self.assertRaises(exception.InvalidParameterValue,
-                          iscsi_deploy.parse_instance_info,
+                          deploy_utils.parse_instance_info,
                           node)
 
     def test__check_disk_layout_unchanged_fails(self):
@@ -215,7 +227,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             driver_internal_info=drv_internal_dict,
         )
         self.assertRaises(exception.InvalidParameterValue,
-                          iscsi_deploy._check_disk_layout_unchanged,
+                          deploy_utils._check_disk_layout_unchanged,
                           node, info)
 
     def test__check_disk_layout_unchanged(self):
@@ -232,7 +244,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             self.context, instance_info=info,
             driver_internal_info=drv_internal_dict,
         )
-        self.assertIsNone(iscsi_deploy._check_disk_layout_unchanged(node,
+        self.assertIsNone(deploy_utils._check_disk_layout_unchanged(node,
                                                                     info))
 
     def test__save_disk_layout(self):
@@ -259,7 +271,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             self.context, instance_info=info,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
-        instance_info = iscsi_deploy.parse_instance_info(node)
+        instance_info = deploy_utils.parse_instance_info(node)
         self.assertEqual('http://1.2.3.4/cd', instance_info['configdrive'])
 
     def test_parse_instance_info_nonglance_image(self):
@@ -271,7 +283,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             self.context, instance_info=info,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
-        iscsi_deploy.parse_instance_info(node)
+        deploy_utils.parse_instance_info(node)
 
     def test_parse_instance_info_nonglance_image_no_kernel(self):
         info = INST_INFO_DICT.copy()
@@ -282,7 +294,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
         self.assertRaises(exception.MissingParameterValue,
-                          iscsi_deploy.parse_instance_info, node)
+                          deploy_utils.parse_instance_info, node)
 
     def test_parse_instance_info_whole_disk_image(self):
         driver_internal_info = dict(DRV_INTERNAL_INFO_DICT)
@@ -291,7 +303,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
             self.context, instance_info=INST_INFO_DICT,
             driver_internal_info=driver_internal_info,
         )
-        instance_info = iscsi_deploy.parse_instance_info(node)
+        instance_info = deploy_utils.parse_instance_info(node)
         self.assertIsNotNone(instance_info.get('image_source'))
         self.assertIsNotNone(instance_info.get('root_gb'))
         self.assertEqual(0, instance_info.get('swap_mb'))
@@ -303,7 +315,7 @@ class IscsiDeployValidateParametersTestCase(db_base.DbTestCase):
         del info['root_gb']
         node = obj_utils.create_test_node(self.context, instance_info=info)
         self.assertRaises(exception.InvalidParameterValue,
-                          iscsi_deploy.parse_instance_info, node)
+                          deploy_utils.parse_instance_info, node)
 
 
 class IscsiDeployPrivateMethodsTestCase(db_base.DbTestCase):

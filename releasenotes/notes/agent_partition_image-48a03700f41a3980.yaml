@@ -1,0 +1,4 @@
+---
+features:
+  - Adds support for partition images for agent
+    based drivers.
