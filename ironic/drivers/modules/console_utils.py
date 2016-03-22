@@ -28,7 +28,6 @@ import time
 
 from ironic_lib import utils as ironic_utils
 from oslo_concurrency import processutils
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import netutils
@@ -37,31 +36,8 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LW
 from ironic.common import utils
+from ironic.conf import CONF
 
-
-opts = [
-    cfg.StrOpt('terminal',
-               default='shellinaboxd',
-               help=_('Path to serial console terminal program')),
-    cfg.StrOpt('terminal_cert_dir',
-               help=_('Directory containing the terminal SSL cert(PEM) for '
-                      'serial console access')),
-    cfg.StrOpt('terminal_pid_dir',
-               help=_('Directory for holding terminal pid files. '
-                      'If not specified, the temporary directory '
-                      'will be used.')),
-    cfg.IntOpt('subprocess_checking_interval',
-               default=1,
-               help=_('Time interval (in seconds) for checking the status of '
-                      'console subprocess.')),
-    cfg.IntOpt('subprocess_timeout',
-               default=10,
-               help=_('Time (in seconds) to wait for the console subprocess '
-                      'to start.')),
-]
-
-CONF = cfg.CONF
-CONF.register_opts(opts, group='console')
 
 LOG = logging.getLogger(__name__)
 
