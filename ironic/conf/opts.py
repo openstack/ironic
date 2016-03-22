@@ -35,7 +35,6 @@ import ironic.drivers.modules.agent_base_vendor
 import ironic.drivers.modules.agent_client
 import ironic.drivers.modules.amt.common
 import ironic.drivers.modules.amt.power
-import ironic.drivers.modules.cimc.power
 import ironic.drivers.modules.deploy_utils
 import ironic.drivers.modules.iboot
 import ironic.drivers.modules.ilo.common
@@ -80,7 +79,7 @@ _opts = [
         ironic.drivers.modules.amt.common.opts,
         ironic.drivers.modules.amt.power.opts)),
     ('api', ironic.api.API_SERVICE_OPTS),
-    ('cimc', ironic.drivers.modules.cimc.power.opts),
+    ('cimc', ironic.conf.cimc.opts),
     ('cisco_ucs', ironic.drivers.modules.ucs.power.opts),
     ('conductor', itertools.chain(
         ironic.conductor.base_manager.conductor_opts,
