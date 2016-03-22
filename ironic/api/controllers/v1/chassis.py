@@ -143,6 +143,9 @@ class ChassisCollection(collection.Collection):
 
     @classmethod
     def sample(cls):
+        # FIXME(jroll) hack for docs build, bug #1560508
+        if not hasattr(objects, 'Chassis'):
+            objects.register_all()
         sample = cls()
         sample.chassis = [Chassis.sample(expand=False)]
         return sample
