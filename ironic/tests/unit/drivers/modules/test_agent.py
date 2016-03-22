@@ -690,7 +690,8 @@ class TestAgentVendor(db_base.DbTestCase):
         i_info['image_type'] = 'partition'
         i_info['root_mb'] = 10240
         i_info['deploy_boot_mode'] = 'bios'
-        i_info['capabilities'] = '{"boot_option": "local"}'
+        i_info['capabilities'] = {"boot_option": "local",
+                                  "disk_label": "msdos"}
         self.node.instance_info = i_info
         driver_internal_info = self.node.driver_internal_info
         driver_internal_info['is_whole_disk_image'] = False
@@ -700,6 +701,7 @@ class TestAgentVendor(db_base.DbTestCase):
         expected_image_info = {
             'urls': [test_temp_url],
             'id': 'fake-image',
+            'node_uuid': self.node.uuid,
             'checksum': 'checksum',
             'disk_format': 'qcow2',
             'container_format': 'bare',
@@ -715,7 +717,8 @@ class TestAgentVendor(db_base.DbTestCase):
             'image_type': 'partition',
             'root_mb': 10240,
             'boot_option': 'local',
-            'deploy_boot_mode': 'bios'
+            'deploy_boot_mode': 'bios',
+            'disk_label': 'msdos'
         }
 
         client_mock = mock.MagicMock(spec_set=['prepare_image'])
