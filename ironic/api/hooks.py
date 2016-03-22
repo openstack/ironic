@@ -89,6 +89,15 @@ class ContextHook(hooks.PecanHook):
             show_password=show_password,
             **creds)
 
+    def after(self, state):
+        if state.request.context == {}:
+            # An incorrect url path will not create RequestContext
+            return
+        # NOTE(lintan): RequestContext will generate a request_id if no one
+        # passing outside, so it always contain a request_id.
+        request_id = state.request.context.request_id
+        state.response.headers['Openstack-Request-Id'] = request_id
+
 
 class RPCHook(hooks.PecanHook):
     """Attach the rpcapi object to the request so controllers can get to it."""
