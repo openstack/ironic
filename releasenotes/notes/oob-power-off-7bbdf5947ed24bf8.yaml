@@ -1,0 +1,7 @@
+---
+fixes:
+  - Fixes a problem where some hardware/firmware (specially faulty ones)
+    won't come back online after an in-band ACPI soft power off by adding
+    a new driver property called "deploy_forces_oob_reboot" that can be set
+    to the nodes being deployed by the IPA ramdisk. If the value of this
+    property is True, Ironic will power cycle the node via out-of-band.

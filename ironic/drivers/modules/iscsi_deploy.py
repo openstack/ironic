@@ -701,9 +701,6 @@ class ISCSIDeploy(base.DeployInterface):
 class VendorPassthru(agent_base_vendor.BaseAgentVendor):
     """Interface to mix IPMI and PXE vendor-specific interfaces."""
 
-    def get_properties(self):
-        return {}
-
     def validate(self, task, method, **kwargs):
         """Validates the inputs for a vendor passthru.
 

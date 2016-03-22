@@ -236,3 +236,9 @@ class TestAgentClient(base.TestCase):
         self.client.power_off(self.node)
         self.client._command.assert_called_once_with(
             node=self.node, method='standby.power_off', params={})
+
+    def test_sync(self):
+        self.client._command = mock.MagicMock(spec_set=[])
+        self.client.sync(self.node)
+        self.client._command.assert_called_once_with(
+            node=self.node, method='standby.sync', params={}, wait=True)
