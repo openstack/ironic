@@ -486,6 +486,10 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
             else:
                 image_info['deploy_boot_mode'] = 'bios'
             image_info['boot_option'] = boot_option
+            disk_label = deploy_utils.get_disk_label(node)
+            if disk_label is not None:
+                image_info['disk_label'] = disk_label
+            image_info['node_uuid'] = node.uuid
 
         # Tell the client to download and write the image with the given args
         self._client.prepare_image(node, image_info)
