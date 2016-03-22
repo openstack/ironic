@@ -21,12 +21,12 @@ from glanceclient import client as glance_client
 from glanceclient import exc as glance_exc
 import mock
 from oslo_config import cfg
-from oslo_context import context
 from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
 from six.moves.urllib import parse as urlparse
 import testtools
 
+from ironic.common import context
 from ironic.common import exception
 from ironic.common.glance_service import base_image_service
 from ironic.common.glance_service import service_utils
