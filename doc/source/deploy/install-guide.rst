@@ -1386,11 +1386,6 @@ bare metal node to be deployed with when Ironic is responsible for
 partitioning the disk; therefore choosing the disk label does not apply
 when the image being deployed is a ``whole disk image``.
 
-.. note::
-   At present the agent_* drivers do not support deploying partition
-   images, therefore forcing the disk label for those drivers is not
-   possible.
-
 There are some edge cases where someone may want to choose a specific
 disk label for the images being deployed, including but not limited to:
 

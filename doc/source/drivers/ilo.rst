@@ -28,7 +28,8 @@ it from data channel which is used for deployment.
 ``iscsi_ilo`` and ``agent_ilo`` drivers use deployment ramdisk
 built from ``diskimage-builder``. The ``iscsi_ilo`` driver deploys from
 ironic conductor and supports both net-boot and local-boot of instance.
-``agent_ilo`` deploys from bare metal node and always does local-boot.
+``agent_ilo`` deploys from bare metal node and supports both net-boot
+and local-boot of instance.
 
 ``pxe_ilo`` driver uses PXE/iSCSI for deployment (just like normal PXE driver)
 and deploys from ironic conductor. Additionally it supports automatic setting of
@@ -378,7 +379,9 @@ Features
 * Remote Console
 * HW Sensors
 * IPA runs on the bare metal node and pulls the image directly from swift.
-* IPA deployed instances always boots from local disk.
+* Supports booting the instance from virtual media (netboot) as well as booting
+  locally from disk. By default, the instance will always boot from virtual
+  media for partition images.
 * Segregates management info from data channel.
 * UEFI Boot Support
 * UEFI Secure Boot Support
@@ -948,11 +951,10 @@ intermediate images on conductor as described in
 
 Deploy Process
 ~~~~~~~~~~~~~~
-``iscsi_ilo`` supports both netboot and localboot, while ``agent_ilo`` supports
-only localboot. Refer to `Netboot in standalone ironic`_ and
-`Localboot in standalone ironic`_ for details of deploy process
-for netboot and localboot respectively. For ``pxe_ilo``, the deploy process
-is same as native ``pxe_ipmitool`` driver.
+``iscsi_ilo`` and ``agent_ilo`` supports both netboot and localboot. Refer
+to `Netboot in standalone ironic`_ and `Localboot in standalone ironic`_
+for details of deploy process for netboot and localboot respectively.
+For ``pxe_ilo``, the deploy process is same as native ``pxe_ipmitool`` driver.
 
 Deploy Process
 ==============
