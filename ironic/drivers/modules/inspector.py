@@ -40,6 +40,15 @@ client = importutils.try_import('ironic_inspector_client')
 
 INSPECTOR_API_VERSION = (1, 0)
 
+_INSPECTOR_SESSION = None
+
+
+def _get_inspector_session():
+    global _INSPECTOR_SESSION
+    if not _INSPECTOR_SESSION:
+        _INSPECTOR_SESSION = keystone.get_session('inspector')
+    return _INSPECTOR_SESSION
+
 
 class Inspector(base.InspectInterface):
     """In-band inspection via ironic-inspector project."""
@@ -165,7 +174,8 @@ def _check_status(task):
 
     # NOTE(dtantsur): periodic tasks do not have proper tokens in context
     if CONF.auth_strategy == 'keystone':
-        task.context.auth_token = keystone.get_admin_auth_token()
+        session = _get_inspector_session()
+        task.context.auth_token = keystone.get_admin_auth_token(session)
 
     try:
         status = _call_inspector(client.get_status, node.uuid, task.context)

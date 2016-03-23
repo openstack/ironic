@@ -12,174 +12,138 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from keystoneclient import exceptions as ksexception
+from keystoneauth1 import exceptions as ksexception
+from keystoneauth1 import loading as kaloading
 import mock
+from oslo_config import cfg
+from oslo_config import fixture
 
 from ironic.common import exception
 from ironic.common import keystone
+from ironic.conf import auth as ironic_auth
 from ironic.tests import base
-
-
-class FakeCatalog(object):
-    def url_for(self, **kwargs):
-        return 'fake-url'
-
-
-class FakeAccessInfo(object):
-    def will_expire_soon(self):
-        pass
-
-
-class FakeClient(object):
-    def __init__(self, **kwargs):
-        self.service_catalog = FakeCatalog()
-        self.auth_ref = FakeAccessInfo()
-
-    def has_service_catalog(self):
-        return True
 
 
 class KeystoneTestCase(base.TestCase):
 
     def setUp(self):
         super(KeystoneTestCase, self).setUp()
-        self.config(group='keystone_authtoken',
-                    auth_uri='http://127.0.0.1:9898/',
-                    admin_user='fake', admin_password='fake',
-                    admin_tenant_name='fake')
-        self.config(group='keystone', region_name='fake')
-        keystone._KS_CLIENT = None
+        self.config(region_name='fake_region',
+                    group='keystone')
+        self.test_group = 'test_group'
+        self.cfg_fixture.conf.register_group(cfg.OptGroup(self.test_group))
+        ironic_auth.register_auth_opts(self.cfg_fixture.conf, self.test_group)
+        self.config(auth_type='password',
+                    group=self.test_group)
+        # NOTE(pas-ha) this is due to auth_plugin options
+        # being dynamically registered on first load,
+        # but we need to set the config before
+        plugin = kaloading.get_plugin_loader('password')
+        opts = kaloading.get_auth_plugin_conf_options(plugin)
+        self.cfg_fixture.register_opts(opts, group=self.test_group)
+        self.config(auth_url='http://127.0.0.1:9898',
+                    username='fake_user',
+                    password='fake_pass',
+                    project_name='fake_tenant',
+                    group=self.test_group)
 
-    def test_failure_authorization(self):
-        self.assertRaises(exception.KeystoneFailure, keystone.get_service_url)
+    def _set_config(self):
+        self.cfg_fixture = self.useFixture(fixture.Config())
+        self.addCleanup(cfg.CONF.reset)
 
-    @mock.patch.object(FakeCatalog, 'url_for', autospec=True)
-    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
-    def test_get_url(self, mock_ks, mock_uf):
+    def test_get_url(self):
         fake_url = 'http://127.0.0.1:6385'
-        mock_uf.return_value = fake_url
-        mock_ks.return_value = FakeClient()
-        res = keystone.get_service_url()
+        mock_sess = mock.Mock()
+        mock_sess.get_endpoint.return_value = fake_url
+        res = keystone.get_service_url(mock_sess)
         self.assertEqual(fake_url, res)
 
-    @mock.patch.object(FakeCatalog, 'url_for', autospec=True)
-    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
-    def test_url_not_found(self, mock_ks, mock_uf):
-        mock_uf.side_effect = ksexception.EndpointNotFound
-        mock_ks.return_value = FakeClient()
-        self.assertRaises(exception.CatalogNotFound, keystone.get_service_url)
+    def test_get_url_failure(self):
+        exc_map = (
+            (ksexception.Unauthorized, exception.KeystoneUnauthorized),
+            (ksexception.EndpointNotFound, exception.CatalogNotFound),
+            (ksexception.EmptyCatalog, exception.CatalogNotFound),
+            (ksexception.Unauthorized, exception.KeystoneUnauthorized),
+        )
+        for kexc, irexc in exc_map:
+            mock_sess = mock.Mock()
+            mock_sess.get_endpoint.side_effect = kexc
+            self.assertRaises(irexc, keystone.get_service_url, mock_sess)
 
-    @mock.patch.object(FakeClient, 'has_service_catalog', autospec=True)
-    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
-    def test_no_catalog(self, mock_ks, mock_hsc):
-        mock_hsc.return_value = False
-        mock_ks.return_value = FakeClient()
-        self.assertRaises(exception.KeystoneFailure, keystone.get_service_url)
+    def test_get_admin_auth_token(self):
+        mock_sess = mock.Mock()
+        mock_sess.get_token.return_value = 'fake_token'
+        self.assertEqual('fake_token',
+                         keystone.get_admin_auth_token(mock_sess))
 
-    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
-    def test_unauthorized(self, mock_ks):
-        mock_ks.side_effect = ksexception.Unauthorized
+    def test_get_admin_auth_token_failure(self):
+        mock_sess = mock.Mock()
+        mock_sess.get_token.side_effect = ksexception.Unauthorized
         self.assertRaises(exception.KeystoneUnauthorized,
-                          keystone.get_service_url)
+                          keystone.get_admin_auth_token, mock_sess)
 
-    def test_get_service_url_fail_missing_auth_uri(self):
-        self.config(group='keystone_authtoken', auth_uri=None)
-        self.assertRaises(exception.KeystoneFailure,
-                          keystone.get_service_url)
+    @mock.patch.object(ironic_auth, 'load_auth')
+    def test_get_session(self, auth_get_mock):
+        auth_mock = mock.Mock()
+        auth_get_mock.return_value = auth_mock
+        session = keystone.get_session(self.test_group)
+        self.assertEqual(auth_mock, session.auth)
 
-    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
-    def test_get_service_url_versionless_v2(self, mock_ks):
-        mock_ks.return_value = FakeClient()
-        self.config(group='keystone_authtoken', auth_uri='http://127.0.0.1')
-        expected_url = 'http://127.0.0.1/v2.0'
-        keystone.get_service_url()
-        mock_ks.assert_called_once_with(username='fake', password='fake',
-                                        tenant_name='fake',
-                                        region_name='fake',
-                                        auth_url=expected_url)
+    @mock.patch.object(keystone, '_get_legacy_auth', return_value=None)
+    @mock.patch.object(ironic_auth, 'load_auth', return_value=None)
+    def test_get_session_fail(self, auth_get_mock, legacy_get_mock):
+        self.assertRaisesRegexp(
+            exception.KeystoneFailure,
+            "Failed to load auth from either",
+            keystone.get_session, self.test_group)
 
-    @mock.patch('keystoneclient.v3.client.Client', autospec=True)
-    def test_get_service_url_versionless_v3(self, mock_ks):
-        mock_ks.return_value = FakeClient()
-        self.config(group='keystone_authtoken', auth_version='v3.0',
-                    auth_uri='http://127.0.0.1')
-        expected_url = 'http://127.0.0.1/v3'
-        keystone.get_service_url()
-        mock_ks.assert_called_once_with(username='fake', password='fake',
-                                        tenant_name='fake',
-                                        region_name='fake',
-                                        auth_url=expected_url)
+    @mock.patch('keystoneauth1.loading.load_auth_from_conf_options')
+    @mock.patch('ironic.common.keystone._get_legacy_auth')
+    def test_get_session_failed_new_auth(self, legacy_get_mock, load_mock):
+        legacy_mock = mock.Mock()
+        legacy_get_mock.return_value = legacy_mock
+        load_mock.side_effect = [None, ksexception.MissingRequiredOptions]
+        self.assertEqual(legacy_mock,
+                         keystone.get_session(self.test_group).auth)
 
-    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
-    def test_get_service_url_version_override(self, mock_ks):
-        mock_ks.return_value = FakeClient()
-        self.config(group='keystone_authtoken',
-                    auth_uri='http://127.0.0.1/v2.0/')
-        expected_url = 'http://127.0.0.1/v2.0'
-        keystone.get_service_url()
-        mock_ks.assert_called_once_with(username='fake', password='fake',
-                                        tenant_name='fake',
-                                        region_name='fake',
-                                        auth_url=expected_url)
 
-    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
-    def test_get_admin_auth_token(self, mock_ks):
-        fake_client = FakeClient()
-        fake_client.auth_token = '123456'
-        mock_ks.return_value = fake_client
-        self.assertEqual('123456', keystone.get_admin_auth_token())
+@mock.patch('keystoneauth1.loading._plugins.identity.generic.Password.'
+            'load_from_options')
+class KeystoneLegacyTestCase(base.TestCase):
+    def setUp(self):
+        super(KeystoneLegacyTestCase, self).setUp()
+        self.test_group = 'test_group'
+        self.cfg_fixture.conf.register_group(cfg.OptGroup(self.test_group))
+        self.config(group=ironic_auth.LEGACY_SECTION,
+                    auth_uri='http://127.0.0.1:9898',
+                    admin_user='fake_user',
+                    admin_password='fake_pass',
+                    admin_tenant_name='fake_tenant')
+        ironic_auth.register_auth_opts(self.cfg_fixture.conf, self.test_group)
+        self.config(group=self.test_group,
+                    auth_type=None)
+        self.expected = dict(
+            auth_url='http://127.0.0.1:9898',
+            username='fake_user',
+            password='fake_pass',
+            tenant_name='fake_tenant')
 
-    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
-    def test_get_region_name_v2(self, mock_ks):
-        mock_ks.return_value = FakeClient()
-        self.config(group='keystone', region_name='fake_region')
-        expected_url = 'http://127.0.0.1:9898/v2.0'
-        expected_region = 'fake_region'
-        keystone.get_service_url()
-        mock_ks.assert_called_once_with(username='fake', password='fake',
-                                        tenant_name='fake',
-                                        region_name=expected_region,
-                                        auth_url=expected_url)
+    def _set_config(self):
+        self.cfg_fixture = self.useFixture(fixture.Config())
+        self.addCleanup(cfg.CONF.reset)
 
-    @mock.patch('keystoneclient.v3.client.Client', autospec=True)
-    def test_get_region_name_v3(self, mock_ks):
-        mock_ks.return_value = FakeClient()
-        self.config(group='keystone', region_name='fake_region')
-        self.config(group='keystone_authtoken', auth_version='v3.0')
-        expected_url = 'http://127.0.0.1:9898/v3'
-        expected_region = 'fake_region'
-        keystone.get_service_url()
-        mock_ks.assert_called_once_with(username='fake', password='fake',
-                                        tenant_name='fake',
-                                        region_name=expected_region,
-                                        auth_url=expected_url)
+    @mock.patch.object(ironic_auth, 'load_auth', return_value=None)
+    def test_legacy_loading_v2(self, load_auth_mock, load_mock):
+        keystone.get_session(self.test_group)
+        load_mock.assert_called_once_with(**self.expected)
 
-    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
-    def test_cache_client_init(self, mock_ks):
-        fake_client = FakeClient()
-        mock_ks.return_value = fake_client
-        self.assertEqual(fake_client, keystone._get_ksclient())
-        self.assertEqual(fake_client, keystone._KS_CLIENT)
-        self.assertEqual(1, mock_ks.call_count)
-
-    @mock.patch.object(FakeAccessInfo, 'will_expire_soon', autospec=True)
-    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
-    def test_cache_client_cached(self, mock_ks, mock_expire):
-        mock_expire.return_value = False
-        fake_client = FakeClient()
-        keystone._KS_CLIENT = fake_client
-        self.assertEqual(fake_client, keystone._get_ksclient())
-        self.assertEqual(fake_client, keystone._KS_CLIENT)
-        self.assertFalse(mock_ks.called)
-
-    @mock.patch.object(FakeAccessInfo, 'will_expire_soon', autospec=True)
-    @mock.patch('keystoneclient.v2_0.client.Client', autospec=True)
-    def test_cache_client_expired(self, mock_ks, mock_expire):
-        mock_expire.return_value = True
-        fake_client = FakeClient()
-        keystone._KS_CLIENT = fake_client
-        new_client = FakeClient()
-        mock_ks.return_value = new_client
-        self.assertEqual(new_client, keystone._get_ksclient())
-        self.assertEqual(new_client, keystone._KS_CLIENT)
-        self.assertEqual(1, mock_ks.call_count)
+    @mock.patch.object(ironic_auth, 'load_auth', return_value=None)
+    def test_legacy_loading_v3(self, load_auth_mock, load_mock):
+        self.config(
+            auth_version='v3.0',
+            group=ironic_auth.LEGACY_SECTION)
+        self.expected.update(dict(
+            project_domain_id='default',
+            user_domain_id='default'))
+        keystone.get_session(self.test_group)
+        load_mock.assert_called_once_with(**self.expected)

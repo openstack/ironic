@@ -19,86 +19,80 @@ from oslo_utils import uuidutils
 from ironic.common import exception
 from ironic.common import neutron
 from ironic.conductor import task_manager
+# from ironic.conf import auth as ironic_auth
 from ironic.tests import base
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as object_utils
 
 
+@mock.patch.object(neutron, '_get_neutron_session')
+@mock.patch.object(client.Client, "__init__")
 class TestNeutronClient(base.TestCase):
 
     def setUp(self):
         super(TestNeutronClient, self).setUp()
-        self.config(url='test-url',
-                    url_timeout=30,
+        self.config(url_timeout=30,
                     retries=2,
                     group='neutron')
-        self.config(insecure=False,
-                    certfile='test-file',
-                    admin_user='test-admin-user',
+        self.config(admin_user='test-admin-user',
                     admin_tenant_name='test-admin-tenant',
                     admin_password='test-admin-password',
                     auth_uri='test-auth-uri',
                     group='keystone_authtoken')
+        # TODO(pas-ha) register session options to test legacy path
+        self.config(insecure=False,
+                    cafile='test-file',
+                    group='neutron')
 
-    @mock.patch.object(client.Client, "__init__")
-    def test_get_neutron_client_with_token(self, mock_client_init):
+    def test_get_neutron_client_with_token(self, mock_client_init,
+                                           mock_session):
         token = 'test-token-123'
+        sess = mock.Mock()
+        sess.get_endpoint.return_value = 'fake-url'
+        mock_session.return_value = sess
         expected = {'timeout': 30,
                     'retries': 2,
                     'insecure': False,
                     'ca_cert': 'test-file',
                     'token': token,
-                    'endpoint_url': 'test-url',
-                    'username': 'test-admin-user',
-                    'tenant_name': 'test-admin-tenant',
-                    'password': 'test-admin-password',
-                    'auth_url': 'test-auth-uri'}
+                    'endpoint_url': 'fake-url'}
 
         mock_client_init.return_value = None
         neutron.get_client(token=token)
         mock_client_init.assert_called_once_with(**expected)
 
-    @mock.patch.object(client.Client, "__init__")
-    def test_get_neutron_client_without_token(self, mock_client_init):
-        expected = {'timeout': 30,
-                    'retries': 2,
-                    'insecure': False,
-                    'ca_cert': 'test-file',
-                    'token': None,
-                    'endpoint_url': 'test-url',
-                    'username': 'test-admin-user',
-                    'tenant_name': 'test-admin-tenant',
-                    'password': 'test-admin-password',
-                    'auth_url': 'test-auth-uri'}
-
+    def test_get_neutron_client_without_token(self, mock_client_init,
+                                              mock_session):
+        self.config(url='test-url',
+                    group='neutron')
+        sess = mock.Mock()
+        mock_session.return_value = sess
+        expected = {'retries': 2,
+                    'endpoint_override': 'test-url',
+                    'session': sess}
         mock_client_init.return_value = None
         neutron.get_client(token=None)
         mock_client_init.assert_called_once_with(**expected)
 
-    @mock.patch.object(client.Client, "__init__")
-    def test_get_neutron_client_with_region(self, mock_client_init):
-        expected = {'timeout': 30,
-                    'retries': 2,
-                    'insecure': False,
-                    'ca_cert': 'test-file',
-                    'token': None,
-                    'endpoint_url': 'test-url',
-                    'username': 'test-admin-user',
-                    'tenant_name': 'test-admin-tenant',
-                    'password': 'test-admin-password',
-                    'auth_url': 'test-auth-uri',
-                    'region_name': 'test-region'}
-
-        self.config(region_name='test-region',
+    def test_get_neutron_client_with_region(self, mock_client_init,
+                                            mock_session):
+        self.config(region_name='fake_region',
                     group='keystone')
+        sess = mock.Mock()
+        mock_session.return_value = sess
+        expected = {'retries': 2,
+                    'region_name': 'fake_region',
+                    'session': sess}
+
         mock_client_init.return_value = None
         neutron.get_client(token=None)
         mock_client_init.assert_called_once_with(**expected)
 
-    @mock.patch.object(client.Client, "__init__")
-    def test_get_neutron_client_noauth(self, mock_client_init):
-        self.config(auth_strategy='noauth', group='neutron')
+    def test_get_neutron_client_noauth(self, mock_client_init, mock_session):
+        self.config(auth_strategy='noauth',
+                    url='test-url',
+                    group='neutron')
         expected = {'ca_cert': 'test-file',
                     'insecure': False,
                     'endpoint_url': 'test-url',
@@ -110,7 +104,7 @@ class TestNeutronClient(base.TestCase):
         neutron.get_client(token=None)
         mock_client_init.assert_called_once_with(**expected)
 
-    def test_out_range_auth_strategy(self):
+    def test_out_range_auth_strategy(self, mock_client_init, mock_session):
         self.assertRaises(ValueError, cfg.CONF.set_override,
                           'auth_strategy', 'fake', 'neutron',
                           enforce_type=True)
@@ -133,9 +127,13 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         self.neutron_port = {'id': '132f871f-eaec-4fed-9475-0d54465e0f00',
                              'mac_address': '52:54:00:cf:2d:32'}
         self.network_uuid = uuidutils.generate_uuid()
+        self.client_mock = mock.Mock()
+        patcher = mock.patch('ironic.common.neutron.get_client',
+                             return_value=self.client_mock)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
-    @mock.patch.object(client.Client, 'create_port')
-    def test_add_ports_to_vlan_network(self, create_mock):
+    def test_add_ports_to_vlan_network(self):
         # Ports will be created only if pxe_enabled is True
         object_utils.create_test_port(
             self.context, node_id=self.node.id,
@@ -159,15 +157,16 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             }
         }
         # Ensure we can create ports
-        create_mock.return_value = {'port': self.neutron_port}
+        self.client_mock.create_port.return_value = {
+            'port': self.neutron_port}
         expected = {port.uuid: self.neutron_port['id']}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             ports = neutron.add_ports_to_network(task, self.network_uuid)
             self.assertEqual(expected, ports)
-            create_mock.assert_called_once_with(expected_body)
+            self.client_mock.create_port.assert_called_once_with(
+                expected_body)
 
-    @mock.patch.object(client.Client, 'create_port')
-    def test_add_ports_to_flat_network(self, create_mock):
+    def test_add_ports_to_flat_network(self):
         port = self.ports[0]
         expected_body = {
             'port': {
@@ -183,16 +182,17 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             }
         }
         # Ensure we can create ports
-        create_mock.return_value = {'port': self.neutron_port}
+        self.client_mock.create_port.return_value = {
+            'port': self.neutron_port}
         expected = {port.uuid: self.neutron_port['id']}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             ports = neutron.add_ports_to_network(task, self.network_uuid,
                                                  is_flat=True)
             self.assertEqual(expected, ports)
-            create_mock.assert_called_once_with(expected_body)
+            self.client_mock.create_port.assert_called_once_with(
+                expected_body)
 
-    @mock.patch.object(client.Client, 'create_port')
-    def test_add_ports_to_flat_network_no_neutron_port_id(self, create_mock):
+    def test_add_ports_to_flat_network_no_neutron_port_id(self):
         port = self.ports[0]
         expected_body = {
             'port': {
@@ -208,15 +208,16 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             }
         }
         del self.neutron_port['id']
-        create_mock.return_value = {'port': self.neutron_port}
+        self.client_mock.create_port.return_value = {
+            'port': self.neutron_port}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.NetworkError,
                               neutron.add_ports_to_network,
                               task, self.network_uuid, is_flat=True)
-            create_mock.assert_called_once_with(expected_body)
+            self.client_mock.create_port.assert_called_once_with(
+                expected_body)
 
-    @mock.patch.object(client.Client, 'create_port')
-    def test_add_ports_to_vlan_network_instance_uuid(self, create_mock):
+    def test_add_ports_to_vlan_network_instance_uuid(self):
         self.node.instance_uuid = uuidutils.generate_uuid()
         self.node.save()
         port = self.ports[0]
@@ -235,18 +236,18 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             }
         }
         # Ensure we can create ports
-        create_mock.return_value = {'port': self.neutron_port}
+        self.client_mock.create_port.return_value = {'port': self.neutron_port}
         expected = {port.uuid: self.neutron_port['id']}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             ports = neutron.add_ports_to_network(task, self.network_uuid)
             self.assertEqual(expected, ports)
-            create_mock.assert_called_once_with(expected_body)
+            self.client_mock.create_port.assert_called_once_with(expected_body)
 
     @mock.patch.object(neutron, 'rollback_ports')
-    @mock.patch.object(client.Client, 'create_port')
-    def test_add_network_fail(self, create_mock, rollback_mock):
+    def test_add_network_fail(self, rollback_mock):
         # Check that if creating a port fails, the ports are cleaned up
-        create_mock.side_effect = neutron_client_exc.ConnectionFailed
+        self.client_mock.create_port.side_effect = \
+            neutron_client_exc.ConnectionFailed
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaisesRegex(
@@ -255,9 +256,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             rollback_mock.assert_called_once_with(task, self.network_uuid)
 
     @mock.patch.object(neutron, 'rollback_ports')
-    @mock.patch.object(client.Client, 'create_port', return_value={})
-    def test_add_network_fail_create_any_port_empty(self, create_mock,
-                                                    rollback_mock):
+    def test_add_network_fail_create_any_port_empty(self, rollback_mock):
+        self.client_mock.create_port.return_value = {}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaisesRegex(
                 exception.NetworkError, 'any PXE enabled port',
@@ -266,16 +266,16 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
 
     @mock.patch.object(neutron, 'LOG')
     @mock.patch.object(neutron, 'rollback_ports')
-    @mock.patch.object(client.Client, 'create_port')
-    def test_add_network_fail_create_some_ports_empty(self, create_mock,
-                                                      rollback_mock, log_mock):
+    def test_add_network_fail_create_some_ports_empty(self, rollback_mock,
+                                                      log_mock):
         port2 = object_utils.create_test_port(
             self.context, node_id=self.node.id,
             uuid=uuidutils.generate_uuid(),
             address='52:54:55:cf:2d:32',
             extra={'vif_port_id': uuidutils.generate_uuid()}
         )
-        create_mock.side_effect = [{'port': self.neutron_port}, {}]
+        self.client_mock.create_port.side_effect = [
+            {'port': self.neutron_port}, {}]
         with task_manager.acquire(self.context, self.node.uuid) as task:
             neutron.add_ports_to_network(task, self.network_uuid)
             self.assertIn(str(port2.uuid),
@@ -309,35 +309,39 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                  'mac_address': [self.ports[0].address]}
             )
 
-    @mock.patch.object(client.Client, 'delete_port')
-    @mock.patch.object(client.Client, 'list_ports')
-    def test_remove_neutron_ports(self, list_mock, delete_mock):
+    def test_remove_neutron_ports(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            list_mock.return_value = {'ports': [self.neutron_port]}
+            self.client_mock.list_ports.return_value = {
+                'ports': [self.neutron_port]}
             neutron.remove_neutron_ports(task, {'param': 'value'})
-        list_mock.assert_called_once_with(**{'param': 'value'})
-        delete_mock.assert_called_once_with(self.neutron_port['id'])
+        self.client_mock.list_ports.assert_called_once_with(
+            **{'param': 'value'})
+        self.client_mock.delete_port.assert_called_once_with(
+            self.neutron_port['id'])
 
-    @mock.patch.object(client.Client, 'list_ports')
-    def test_remove_neutron_ports_list_fail(self, list_mock):
+    def test_remove_neutron_ports_list_fail(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            list_mock.side_effect = neutron_client_exc.ConnectionFailed
+            self.client_mock.list_ports.side_effect = \
+                neutron_client_exc.ConnectionFailed
             self.assertRaisesRegex(
                 exception.NetworkError, 'Could not get given network VIF',
                 neutron.remove_neutron_ports, task, {'param': 'value'})
-        list_mock.assert_called_once_with(**{'param': 'value'})
+        self.client_mock.list_ports.assert_called_once_with(
+            **{'param': 'value'})
 
-    @mock.patch.object(client.Client, 'delete_port')
-    @mock.patch.object(client.Client, 'list_ports')
-    def test_remove_neutron_ports_delete_fail(self, list_mock, delete_mock):
+    def test_remove_neutron_ports_delete_fail(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            delete_mock.side_effect = neutron_client_exc.ConnectionFailed
-            list_mock.return_value = {'ports': [self.neutron_port]}
+            self.client_mock.delete_port.side_effect = \
+                neutron_client_exc.ConnectionFailed
+            self.client_mock.list_ports.return_value = {
+                'ports': [self.neutron_port]}
             self.assertRaisesRegex(
                 exception.NetworkError, 'Could not remove VIF',
                 neutron.remove_neutron_ports, task, {'param': 'value'})
-        list_mock.assert_called_once_with(**{'param': 'value'})
-        delete_mock.assert_called_once_with(self.neutron_port['id'])
+        self.client_mock.list_ports.assert_called_once_with(
+            **{'param': 'value'})
+        self.client_mock.delete_port.assert_called_once_with(
+            self.neutron_port['id'])
 
     def test_get_node_portmap(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:

@@ -17,11 +17,15 @@
 from oslo_config import cfg
 
 from ironic.common.i18n import _
+from ironic.conf import auth
 
 opts = [
     cfg.StrOpt('url',
-               default='http://$my_ip:9696',
-               help=_('URL for connecting to neutron.')),
+               help=_("URL for connecting to neutron. "
+                      "Default value translates to 'http://$my_ip:9696' "
+                      "when auth_strategy is 'noauth', "
+                      "and to discovery from Keystone catalog "
+                      "when auth_strategy is 'keystone'.")),
     cfg.IntOpt('url_timeout',
                default=30,
                help=_('Timeout value for connecting to neutron in seconds.')),
@@ -55,3 +59,8 @@ opts = [
 
 def register_opts(conf):
     conf.register_opts(opts, group='neutron')
+    auth.register_auth_opts(conf, 'neutron')
+
+
+def list_opts():
+    return auth.add_auth_opts(opts)

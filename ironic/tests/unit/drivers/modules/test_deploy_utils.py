@@ -31,7 +31,6 @@ from ironic.common import boot_devices
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common import image_service
-from ironic.common import keystone
 from ironic.common import states
 from ironic.common import utils as common_utils
 from ironic.conductor import task_manager
@@ -1381,6 +1380,42 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         utils.warn_about_unsafe_shred_parameters()
         self.assertTrue(log_mock.warning.called)
 
+    @mock.patch.object(utils, '_get_ironic_session')
+    @mock.patch('ironic.common.keystone.get_service_url')
+    def test_get_ironic_api_url_from_config(self, mock_get_url, mock_ks):
+        mock_sess = mock.Mock()
+        mock_ks.return_value = mock_sess
+        fake_api_url = 'http://foo/'
+        mock_get_url.side_effect = exception.KeystoneFailure
+        self.config(api_url=fake_api_url, group='conductor')
+        url = utils.get_ironic_api_url()
+        # also checking for stripped trailing slash
+        self.assertEqual(fake_api_url[:-1], url)
+        self.assertFalse(mock_get_url.called)
+
+    @mock.patch.object(utils, '_get_ironic_session')
+    @mock.patch('ironic.common.keystone.get_service_url')
+    def test_get_ironic_api_url_from_keystone(self, mock_get_url, mock_ks):
+        mock_sess = mock.Mock()
+        mock_ks.return_value = mock_sess
+        fake_api_url = 'http://foo/'
+        mock_get_url.return_value = fake_api_url
+        self.config(api_url=None, group='conductor')
+        url = utils.get_ironic_api_url()
+        # also checking for stripped trailing slash
+        self.assertEqual(fake_api_url[:-1], url)
+        mock_get_url.assert_called_with(mock_sess)
+
+    @mock.patch.object(utils, '_get_ironic_session')
+    @mock.patch('ironic.common.keystone.get_service_url')
+    def test_get_ironic_api_url_fail(self, mock_get_url, mock_ks):
+        mock_sess = mock.Mock()
+        mock_ks.return_value = mock_sess
+        mock_get_url.side_effect = exception.KeystoneFailure()
+        self.config(api_url=None, group='conductor')
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.get_ironic_api_url)
+
 
 class VirtualMediaDeployUtilsTestCase(db_base.DbTestCase):
 
@@ -1923,11 +1958,12 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         self.assertEqual('fake_agent', options['ipa-driver-name'])
         self.assertEqual(0, options['coreos.configdrive'])
 
-    @mock.patch.object(keystone, 'get_service_url', autospec=True)
-    def test_build_agent_options_keystone(self, get_url_mock):
-
+    @mock.patch.object(utils, '_get_ironic_session')
+    def test_build_agent_options_keystone(self, session_mock):
         self.config(api_url=None, group='conductor')
-        get_url_mock.return_value = 'api-url'
+        sess = mock.Mock()
+        sess.get_endpoint.return_value = 'api-url'
+        session_mock.return_value = sess
         options = utils.build_agent_options(self.node)
         self.assertEqual('api-url', options['ipa-api-url'])
         self.assertEqual('fake_agent', options['ipa-driver-name'])

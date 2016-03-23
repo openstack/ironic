@@ -15,6 +15,7 @@
 from oslo_config import cfg
 
 from ironic.common.i18n import _
+from ironic.conf import auth
 
 opts = [
     cfg.BoolOpt('enabled', default=False,
@@ -31,3 +32,8 @@ opts = [
 
 def register_opts(conf):
     conf.register_opts(opts, group='inspector')
+    auth.register_auth_opts(conf, 'inspector')
+
+
+def list_opts():
+    return auth.add_auth_opts(opts)

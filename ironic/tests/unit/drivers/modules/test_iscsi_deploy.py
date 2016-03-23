@@ -27,7 +27,6 @@ from oslo_utils import fileutils
 from ironic.common import dhcp_factory
 from ironic.common import driver_factory
 from ironic.common import exception
-from ironic.common import keystone
 from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.common import utils
@@ -446,38 +445,22 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, self.node.target_provision_state)
             self.assertIsNotNone(self.node.last_error)
 
-    @mock.patch.object(keystone, 'get_service_url', autospec=True)
-    def test_validate_good_api_url_from_config_file(self, mock_ks):
-        # not present in the keystone catalog
-        mock_ks.side_effect = exception.KeystoneFailure
-        self.config(group='conductor', api_url='http://foo')
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_ironic_api_url')
+    def test_validate_good_api_url(self, mock_get_url):
+        mock_get_url.return_value = 'http://127.0.0.1:1234'
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             iscsi_deploy.validate(task)
-            self.assertFalse(mock_ks.called)
+        mock_get_url.assert_called_once_with()
 
-    @mock.patch.object(keystone, 'get_service_url', autospec=True)
-    def test_validate_good_api_url_from_keystone(self, mock_ks):
-        # present in the keystone catalog
-        mock_ks.return_value = 'http://127.0.0.1:1234'
-        # not present in the config file
-        self.config(group='conductor', api_url=None)
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            iscsi_deploy.validate(task)
-            mock_ks.assert_called_once_with()
-
-    @mock.patch.object(keystone, 'get_service_url', autospec=True)
-    def test_validate_fail_no_api_url(self, mock_ks):
-        # not present in the keystone catalog
-        mock_ks.side_effect = exception.KeystoneFailure
-        # not present in the config file
-        self.config(group='conductor', api_url=None)
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_ironic_api_url')
+    def test_validate_fail_no_api_url(self, mock_get_url):
+        mock_get_url.side_effect = exception.InvalidParameterValue('Ham!')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               iscsi_deploy.validate, task)
-            mock_ks.assert_called_once_with()
+        mock_get_url.assert_called_once_with()
 
     def test_validate_invalid_root_device_hints(self):
         with task_manager.acquire(self.context, self.node.uuid,

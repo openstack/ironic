@@ -35,9 +35,14 @@ from ironic.conf import CONF
 
 IMAGE_CHUNK_SIZE = 1024 * 1024  # 1mb
 
-# TODO(rama_y): This import should be removed,
-# once https://review.openstack.org/#/c/309070 is merged.
-CONF.import_opt('my_ip', 'ironic.netconf')
+_GLANCE_SESSION = None
+
+
+def _get_glance_session():
+    global _GLANCE_SESSION
+    if not _GLANCE_SESSION:
+        _GLANCE_SESSION = keystone.get_session('glance')
+    return _GLANCE_SESSION
 
 
 def import_versioned_module(version, submodule=None):
@@ -52,7 +57,8 @@ def GlanceImageService(client=None, version=1, context=None):
     service_class = getattr(module, 'GlanceImageService')
     if (context is not None and CONF.glance.auth_strategy == 'keystone'
         and not context.auth_token):
-        context.auth_token = keystone.get_admin_auth_token()
+            session = _get_glance_session()
+            context.auth_token = keystone.get_admin_auth_token(session)
     return service_class(client, version, context)
 
 

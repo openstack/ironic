@@ -25,7 +25,6 @@ from six.moves.urllib import parse
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common import keystone
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
@@ -388,16 +387,8 @@ def validate(task):
              catalog.
     :raises: MissingParameterValue if no ports are enrolled for the given node.
     """
-    try:
-        # TODO(lucasagomes): Validate the format of the URL
-        CONF.conductor.api_url or keystone.get_service_url()
-    except (exception.KeystoneFailure,
-            exception.CatalogNotFound,
-            exception.KeystoneUnauthorized) as e:
-        raise exception.InvalidParameterValue(_(
-            "Couldn't get the URL of the Ironic API service from the "
-            "configuration file or keystone catalog. Keystone error: %s") % e)
-
+    # TODO(lucasagomes): Validate the format of the URL
+    deploy_utils.get_ironic_api_url()
     # Validate the root device hints
     deploy_utils.parse_root_device_hints(task.node)
     deploy_utils.parse_instance_info(task.node)

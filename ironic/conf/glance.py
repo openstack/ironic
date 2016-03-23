@@ -18,6 +18,7 @@
 from oslo_config import cfg
 
 from ironic.common.i18n import _
+from ironic.conf import auth
 
 opts = [
     cfg.ListOpt('allowed_direct_url_schemes',
@@ -145,3 +146,8 @@ opts = [
 
 def register_opts(conf):
     conf.register_opts(opts, group='glance')
+    auth.register_auth_opts(conf, 'glance')
+
+
+def list_opts():
+    return auth.add_auth_opts(opts)

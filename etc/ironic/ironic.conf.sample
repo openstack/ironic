@@ -977,9 +977,141 @@
 # value)
 #allowed_direct_url_schemes =
 
-# The secret token given to Swift to allow temporary URL
-# downloads. Required for temporary URLs. (string value)
-#swift_temp_url_key = <None>
+# Authentication URL (string value)
+#auth_url = <None>
+
+# Authentication strategy to use when connecting to glance.
+# (string value)
+# Allowed values: keystone, noauth
+#auth_strategy = keystone
+
+# Authentication type to load (string value)
+# Deprecated group/name - [glance]/auth_plugin
+#auth_type = <None>
+
+# PEM encoded Certificate Authority to use when verifying
+# HTTPs connections. (string value)
+#cafile = <None>
+
+# PEM encoded client certificate cert file (string value)
+#certfile = <None>
+
+# Optional domain ID to use with v3 and v2 parameters. It will
+# be used for both the user and project domain in v3 and
+# ignored in v2 authentication. (string value)
+#default_domain_id = <None>
+
+# Optional domain name to use with v3 API and v2 parameters.
+# It will be used for both the user and project domain in v3
+# and ignored in v2 authentication. (string value)
+#default_domain_name = <None>
+
+# Domain ID to scope to (string value)
+#domain_id = <None>
+
+# Domain name to scope to (string value)
+#domain_name = <None>
+
+# Allow to perform insecure SSL (https) requests to glance.
+# (boolean value)
+#glance_api_insecure = false
+
+# A list of the glance api servers available to ironic. Prefix
+# with https:// for SSL-based glance API servers. Format is
+# [hostname|IP]:port. (list value)
+#glance_api_servers = <None>
+
+# Optional path to a CA certificate bundle to be used to
+# validate the SSL certificate served by glance. It is used
+# when glance_api_insecure is set to False. (string value)
+#glance_cafile = <None>
+
+# Default glance hostname or IP address. (string value)
+#glance_host = $my_ip
+
+# Number of retries when downloading an image from glance.
+# (integer value)
+#glance_num_retries = 0
+
+# Default glance port. (port value)
+# Minimum value: 0
+# Maximum value: 65535
+#glance_port = 9292
+
+# Default protocol to use when connecting to glance. Set to
+# https for SSL. (string value)
+# Allowed values: http, https
+#glance_protocol = http
+
+# Verify HTTPS connections. (boolean value)
+#insecure = false
+
+# PEM encoded client certificate key file (string value)
+#keyfile = <None>
+
+# User's password (string value)
+#password = <None>
+
+# Domain ID containing project (string value)
+#project_domain_id = <None>
+
+# Domain name containing project (string value)
+#project_domain_name = <None>
+
+# Project ID to scope to (string value)
+# Deprecated group/name - [glance]/tenant-id
+#project_id = <None>
+
+# Project name to scope to (string value)
+# Deprecated group/name - [glance]/tenant-name
+#project_name = <None>
+
+# The account that Glance uses to communicate with Swift. The
+# format is "AUTH_uuid". "uuid" is the UUID for the account
+# configured in the glance-api.conf. Required for temporary
+# URLs when Glance backend is Swift. For example:
+# "AUTH_a422b2-91f3-2f46-74b7-d7c9e8958f5d30". Swift temporary
+# URL format:
+# "endpoint_url/api_version/[account/]container/object_id"
+# (string value)
+#swift_account = <None>
+
+# The Swift API version to create a temporary URL for.
+# Defaults to "v1". Swift temporary URL format:
+# "endpoint_url/api_version/[account/]container/object_id"
+# (string value)
+#swift_api_version = v1
+
+# The Swift container Glance is configured to store its images
+# in. Defaults to "glance", which is the default in glance-
+# api.conf. Swift temporary URL format:
+# "endpoint_url/api_version/[account/]container/object_id"
+# (string value)
+#swift_container = glance
+
+# The "endpoint" (scheme, hostname, optional port) for the
+# Swift URL of the form
+# "endpoint_url/api_version/[account/]container/object_id". Do
+# not include trailing "/". For example, use
+# "https://swift.example.com". If using RADOS Gateway,
+# endpoint may also contain /swift path; if it does not, it
+# will be appended. Required for temporary URLs. (string
+# value)
+#swift_endpoint_url = <None>
+
+# This should match a config by the same name in the Glance
+# configuration file. When set to 0, a single-tenant store
+# will only use one container to store all images. When set to
+# an integer value between 1 and 32, a single-tenant store
+# will use multiple containers to store images, and this value
+# will determine how many containers are created. (integer
+# value)
+#swift_store_multiple_containers_seed = 0
+
+# Whether to cache generated Swift temporary URLs. Setting it
+# to true is only useful when an image caching proxy is used.
+# Defaults to False. (boolean value)
+#swift_temp_url_cache_enabled = false
 
 # The length of time in seconds that the temporary URL will be
 # valid for. Defaults to 20 minutes. If some deploys get a 401
@@ -988,11 +1120,6 @@
 # than or equal to the value for
 # swift_temp_url_expected_download_start_delay (integer value)
 #swift_temp_url_duration = 1200
-
-# Whether to cache generated Swift temporary URLs. Setting it
-# to true is only useful when an image caching proxy is used.
-# Defaults to False. (boolean value)
-#swift_temp_url_cache_enabled = false
 
 # This is the delay (in seconds) from the time of the deploy
 # request (when the Swift temporary URL is generated) to when
@@ -1007,47 +1134,9 @@
 # Minimum value: 0
 #swift_temp_url_expected_download_start_delay = 0
 
-# The "endpoint" (scheme, hostname, optional port) for the
-# Swift URL of the form
-# "endpoint_url/api_version/[account/]container/object_id". Do
-# not include trailing "/". For example, use
-# "https://swift.example.com". If using RADOS Gateway,
-# endpoint may also contain /swift path; if it does not, it
-# will be appended. Required for temporary URLs. (string
-# value)
-#swift_endpoint_url = <None>
-
-# The Swift API version to create a temporary URL for.
-# Defaults to "v1". Swift temporary URL format:
-# "endpoint_url/api_version/[account/]container/object_id"
-# (string value)
-#swift_api_version = v1
-
-# The account that Glance uses to communicate with Swift. The
-# format is "AUTH_uuid". "uuid" is the UUID for the account
-# configured in the glance-api.conf. Required for temporary
-# URLs when Glance backend is Swift. For example:
-# "AUTH_a422b2-91f3-2f46-74b7-d7c9e8958f5d30". Swift temporary
-# URL format:
-# "endpoint_url/api_version/[account/]container/object_id"
-# (string value)
-#swift_account = <None>
-
-# The Swift container Glance is configured to store its images
-# in. Defaults to "glance", which is the default in glance-
-# api.conf. Swift temporary URL format:
-# "endpoint_url/api_version/[account/]container/object_id"
-# (string value)
-#swift_container = glance
-
-# This should match a config by the same name in the Glance
-# configuration file. When set to 0, a single-tenant store
-# will only use one container to store all images. When set to
-# an integer value between 1 and 32, a single-tenant store
-# will use multiple containers to store images, and this value
-# will determine how many containers are created. (integer
-# value)
-#swift_store_multiple_containers_seed = 0
+# The secret token given to Swift to allow temporary URL
+# downloads. Required for temporary URLs. (string value)
+#swift_temp_url_key = <None>
 
 # Type of endpoint to use for temporary URLs. If the Glance
 # backend is Swift, use "swift"; if it is CEPH with RADOS
@@ -1055,41 +1144,30 @@
 # Allowed values: swift, radosgw
 #temp_url_endpoint_type = swift
 
-# Default glance hostname or IP address. (string value)
-#glance_host = $my_ip
+# Tenant ID (string value)
+#tenant_id = <None>
 
-# Default glance port. (port value)
-# Minimum value: 0
-# Maximum value: 65535
-#glance_port = 9292
+# Tenant Name (string value)
+#tenant_name = <None>
 
-# Default protocol to use when connecting to glance. Set to
-# https for SSL. (string value)
-# Allowed values: http, https
-#glance_protocol = http
+# Timeout value for http requests (integer value)
+#timeout = <None>
 
-# A list of the glance api servers available to ironic. Prefix
-# with https:// for SSL-based glance API servers. Format is
-# [hostname|IP]:port. (list value)
-#glance_api_servers = <None>
+# Trust ID (string value)
+#trust_id = <None>
 
-# Allow to perform insecure SSL (https) requests to glance.
-# (boolean value)
-#glance_api_insecure = false
+# User's domain id (string value)
+#user_domain_id = <None>
 
-# Number of retries when downloading an image from glance.
-# (integer value)
-#glance_num_retries = 0
+# User's domain name (string value)
+#user_domain_name = <None>
 
-# Authentication strategy to use when connecting to glance.
-# (string value)
-# Allowed values: keystone, noauth
-#auth_strategy = keystone
+# User id (string value)
+#user_id = <None>
 
-# Optional path to a CA certificate bundle to be used to
-# validate the SSL certificate served by glance. It is used
-# when glance_api_insecure is set to False. (string value)
-#glance_cafile = <None>
+# Username (string value)
+# Deprecated group/name - [glance]/user-name
+#username = <None>
 
 
 [iboot]
@@ -1189,9 +1267,62 @@
 # From ironic
 #
 
+# Authentication URL (string value)
+#auth_url = <None>
+
+# Authentication type to load (string value)
+# Deprecated group/name - [inspector]/auth_plugin
+#auth_type = <None>
+
+# PEM encoded Certificate Authority to use when verifying
+# HTTPs connections. (string value)
+#cafile = <None>
+
+# PEM encoded client certificate cert file (string value)
+#certfile = <None>
+
+# Optional domain ID to use with v3 and v2 parameters. It will
+# be used for both the user and project domain in v3 and
+# ignored in v2 authentication. (string value)
+#default_domain_id = <None>
+
+# Optional domain name to use with v3 API and v2 parameters.
+# It will be used for both the user and project domain in v3
+# and ignored in v2 authentication. (string value)
+#default_domain_name = <None>
+
+# Domain ID to scope to (string value)
+#domain_id = <None>
+
+# Domain name to scope to (string value)
+#domain_name = <None>
+
 # whether to enable inspection using ironic-inspector (boolean
 # value)
 #enabled = false
+
+# Verify HTTPS connections. (boolean value)
+#insecure = false
+
+# PEM encoded client certificate key file (string value)
+#keyfile = <None>
+
+# User's password (string value)
+#password = <None>
+
+# Domain ID containing project (string value)
+#project_domain_id = <None>
+
+# Domain name containing project (string value)
+#project_domain_name = <None>
+
+# Project ID to scope to (string value)
+# Deprecated group/name - [inspector]/tenant-id
+#project_id = <None>
+
+# Project name to scope to (string value)
+# Deprecated group/name - [inspector]/tenant-name
+#project_name = <None>
 
 # ironic-inspector HTTP endpoint. If this is not set, the
 # ironic-inspector client default (http://127.0.0.1:5050) will
@@ -1201,6 +1332,31 @@
 # period (in seconds) to check status of nodes on inspection
 # (integer value)
 #status_check_period = 60
+
+# Tenant ID (string value)
+#tenant_id = <None>
+
+# Tenant Name (string value)
+#tenant_name = <None>
+
+# Timeout value for http requests (integer value)
+#timeout = <None>
+
+# Trust ID (string value)
+#trust_id = <None>
+
+# User's domain id (string value)
+#user_domain_id = <None>
+
+# User's domain name (string value)
+#user_domain_name = <None>
+
+# User id (string value)
+#user_id = <None>
+
+# Username (string value)
+# Deprecated group/name - [inspector]/user-name
+#username = <None>
 
 
 [ipmi]
@@ -1631,21 +1787,8 @@
 # From ironic
 #
 
-# URL for connecting to neutron. (string value)
-#url = http://$my_ip:9696
-
-# Timeout value for connecting to neutron in seconds. (integer
-# value)
-#url_timeout = 30
-
-# Delay value to wait for Neutron agents to setup sufficient
-# DHCP configuration for port. (integer value)
-# Minimum value: 0
-#port_setup_delay = 0
-
-# Client retries in the case of a failed request. (integer
-# value)
-#retries = 3
+# Authentication URL (string value)
+#auth_url = <None>
 
 # Authentication strategy to use when connecting to neutron.
 # Running neutron in noauth mode (related to but not affected
@@ -1654,16 +1797,110 @@
 # Allowed values: keystone, noauth
 #auth_strategy = keystone
 
+# Authentication type to load (string value)
+# Deprecated group/name - [neutron]/auth_plugin
+#auth_type = <None>
+
+# PEM encoded Certificate Authority to use when verifying
+# HTTPs connections. (string value)
+#cafile = <None>
+
+# PEM encoded client certificate cert file (string value)
+#certfile = <None>
+
 # Neutron network UUID for the ramdisk to be booted into for
 # cleaning nodes. Required for "neutron" network interface. It
 # is also required if cleaning nodes when using "flat" network
 # interface or "neutron" DHCP provider. (string value)
 #cleaning_network_uuid = <None>
 
+# Optional domain ID to use with v3 and v2 parameters. It will
+# be used for both the user and project domain in v3 and
+# ignored in v2 authentication. (string value)
+#default_domain_id = <None>
+
+# Optional domain name to use with v3 API and v2 parameters.
+# It will be used for both the user and project domain in v3
+# and ignored in v2 authentication. (string value)
+#default_domain_name = <None>
+
+# Domain ID to scope to (string value)
+#domain_id = <None>
+
+# Domain name to scope to (string value)
+#domain_name = <None>
+
+# Verify HTTPS connections. (boolean value)
+#insecure = false
+
+# PEM encoded client certificate key file (string value)
+#keyfile = <None>
+
+# User's password (string value)
+#password = <None>
+
+# Delay value to wait for Neutron agents to setup sufficient
+# DHCP configuration for port. (integer value)
+# Minimum value: 0
+#port_setup_delay = 0
+
+# Domain ID containing project (string value)
+#project_domain_id = <None>
+
+# Domain name containing project (string value)
+#project_domain_name = <None>
+
+# Project ID to scope to (string value)
+# Deprecated group/name - [neutron]/tenant-id
+#project_id = <None>
+
+# Project name to scope to (string value)
+# Deprecated group/name - [neutron]/tenant-name
+#project_name = <None>
+
 # Neutron network UUID for the ramdisk to be booted into for
 # provisioning nodes. Required for "neutron" network
 # interface. (string value)
 #provisioning_network_uuid = <None>
+
+# Client retries in the case of a failed request. (integer
+# value)
+#retries = 3
+
+# Tenant ID (string value)
+#tenant_id = <None>
+
+# Tenant Name (string value)
+#tenant_name = <None>
+
+# Timeout value for http requests (integer value)
+#timeout = <None>
+
+# Trust ID (string value)
+#trust_id = <None>
+
+# URL for connecting to neutron. Default value translates to
+# 'http://$my_ip:9696' when auth_strategy is 'noauth', and to
+# discovery from Keystone catalog when auth_strategy is
+# 'keystone'. (string value)
+#url = <None>
+
+# Timeout value for connecting to neutron in seconds. (integer
+# value)
+#url_timeout = 30
+
+# User's domain id (string value)
+#user_domain_id = <None>
+
+# User's domain name (string value)
+#user_domain_name = <None>
+
+# User id (string value)
+#user_id = <None>
+
+# Username (string value)
+# Deprecated group/name - [neutron]/user-name
+#username = <None>
 
 
 [oneview]
@@ -2213,6 +2450,91 @@
 #action_timeout = 10
 
 
+[service_catalog]
+
+#
+# From ironic
+#
+
+# Authentication URL (string value)
+#auth_url = <None>
+
+# Authentication type to load (string value)
+# Deprecated group/name - [service_catalog]/auth_plugin
+#auth_type = <None>
+
+# PEM encoded Certificate Authority to use when verifying
+# HTTPs connections. (string value)
+#cafile = <None>
+
+# PEM encoded client certificate cert file (string value)
+#certfile = <None>
+
+# Optional domain ID to use with v3 and v2 parameters. It will
+# be used for both the user and project domain in v3 and
+# ignored in v2 authentication. (string value)
+#default_domain_id = <None>
+
+# Optional domain name to use with v3 API and v2 parameters.
+# It will be used for both the user and project domain in v3
+# and ignored in v2 authentication. (string value)
+#default_domain_name = <None>
+
+# Domain ID to scope to (string value)
+#domain_id = <None>
+
+# Domain name to scope to (string value)
+#domain_name = <None>
+
+# Verify HTTPS connections. (boolean value)
+#insecure = false
+
+# PEM encoded client certificate key file (string value)
+#keyfile = <None>
+
+# User's password (string value)
+#password = <None>
+
+# Domain ID containing project (string value)
+#project_domain_id = <None>
+
+# Domain name containing project (string value)
+#project_domain_name = <None>
+
+# Project ID to scope to (string value)
+# Deprecated group/name - [service_catalog]/tenant-id
+#project_id = <None>
+
+# Project name to scope to (string value)
+# Deprecated group/name - [service_catalog]/tenant-name
+#project_name = <None>
+
+# Tenant ID (string value)
+#tenant_id = <None>
+
+# Tenant Name (string value)
+#tenant_name = <None>
+
+# Timeout value for http requests (integer value)
+#timeout = <None>
+
+# Trust ID (string value)
+#trust_id = <None>
+
+# User's domain id (string value)
+#user_domain_id = <None>
+
+# User's domain name (string value)
+#user_domain_name = <None>
+
+# User id (string value)
+#user_id = <None>
+
+# Username (string value)
+# Deprecated group/name - [service_catalog]/user-name
+#username = <None>
+
+
 [snmp]
 
 #
@@ -2285,9 +2607,87 @@
 # From ironic
 #
 
+# Authentication URL (string value)
+#auth_url = <None>
+
+# Authentication type to load (string value)
+# Deprecated group/name - [swift]/auth_plugin
+#auth_type = <None>
+
+# PEM encoded Certificate Authority to use when verifying
+# HTTPs connections. (string value)
+#cafile = <None>
+
+# PEM encoded client certificate cert file (string value)
+#certfile = <None>
+
+# Optional domain ID to use with v3 and v2 parameters. It will
+# be used for both the user and project domain in v3 and
+# ignored in v2 authentication. (string value)
+#default_domain_id = <None>
+
+# Optional domain name to use with v3 API and v2 parameters.
+# It will be used for both the user and project domain in v3
+# and ignored in v2 authentication. (string value)
+#default_domain_name = <None>
+
+# Domain ID to scope to (string value)
+#domain_id = <None>
+
+# Domain name to scope to (string value)
+#domain_name = <None>
+
+# Verify HTTPS connections. (boolean value)
+#insecure = false
+
+# PEM encoded client certificate key file (string value)
+#keyfile = <None>
+
+# User's password (string value)
+#password = <None>
+
+# Domain ID containing project (string value)
+#project_domain_id = <None>
+
+# Domain name containing project (string value)
+#project_domain_name = <None>
+
+# Project ID to scope to (string value)
+# Deprecated group/name - [swift]/tenant-id
+#project_id = <None>
+
+# Project name to scope to (string value)
+# Deprecated group/name - [swift]/tenant-name
+#project_name = <None>
+
 # Maximum number of times to retry a Swift request, before
 # failing. (integer value)
 #swift_max_retries = 2
+
+# Tenant ID (string value)
+#tenant_id = <None>
+
+# Tenant Name (string value)
+#tenant_name = <None>
+
+# Timeout value for http requests (integer value)
+#timeout = <None>
+
+# Trust ID (string value)
+#trust_id = <None>
+
+# User's domain id (string value)
+#user_domain_id = <None>
+
+# User's domain name (string value)
+#user_domain_name = <None>
+
+# User id (string value)
+#user_id = <None>
+
+# Username (string value)
+# Deprecated group/name - [swift]/user-name
+#username = <None>
 
 
 [virtualbox]
