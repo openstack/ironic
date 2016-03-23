@@ -779,8 +779,8 @@ node(s) where ``ironic-conductor`` is running.
     Fedora 22 or higher:
          sudo dnf install tftp-server syslinux-tftpboot
 
-#. Using xinetd to setup tftp server and serve ``/tftpboot``. Editing or create
-   ``/etc/xinetd.d/tftp`` as below::
+#. Using xinetd to provide a tftp server setup to serve ``/tftpboot``.
+   Create or edit ``/etc/xinetd.d/tftp`` as below::
 
     service tftp
     {
