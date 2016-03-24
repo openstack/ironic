@@ -845,19 +845,16 @@ function configure_ironic_ssh_keypair {
         mkdir -p $HOME/.ssh
         chmod 700 $HOME/.ssh
     fi
-    if [[ ! -e $IRONIC_KEY_FILE ]]; then
+    # recreate ssh if any part is missing
+    if [[ ! -e $IRONIC_KEY_FILE ]] || [[ ! -e $IRONIC_KEY_FILE.pub ]]; then
         if [[ ! -d $(dirname $IRONIC_KEY_FILE) ]]; then
             mkdir -p $(dirname $IRONIC_KEY_FILE)
         fi
         echo -e 'n\n' | ssh-keygen -q -t rsa -P '' -f $IRONIC_KEY_FILE
     fi
-    if [[ ! -f $IRONIC_AUTHORIZED_KEYS_FILE ]]; then
-        cat $IRONIC_KEY_FILE.pub | tee -a $IRONIC_AUTHORIZED_KEYS_FILE
-    else
-        local key
-        key=$(cat $IRONIC_KEY_FILE.pub)
-        grep -q "$key" $IRONIC_AUTHORIZED_KEYS_FILE || (cat $IRONIC_KEY_FILE.pub | tee -a $IRONIC_AUTHORIZED_KEYS_FILE)
-    fi
+    cat $IRONIC_KEY_FILE.pub | tee -a $IRONIC_AUTHORIZED_KEYS_FILE
+    # remove duplicate keys.
+    sort -u -o $IRONIC_AUTHORIZED_KEYS_FILE $IRONIC_AUTHORIZED_KEYS_FILE
 }
 
 function ironic_ssh_check {
