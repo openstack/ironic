@@ -5,8 +5,9 @@
 .. toctree::
    :maxdepth: 1
 
-   Current (4.3.0 - unreleased) <current-series>
-   Mitaka (4.3.0 - unreleased) <mitaka>
+   Current (unreleased) <current-series>
+   Newton (unreleased) <newton>
+   Mitaka (4.3.0 - 5.1.x) <mitaka>
    Liberty (4.0.0 - 4.2.x) <liberty>
    Kilo (2015.1) <https://wiki.openstack.org/wiki/Ironic/ReleaseNotes/Kilo>
    Juno (2014.2) <https://wiki.openstack.org/wiki/Ironic/ReleaseNotes/Juno>
