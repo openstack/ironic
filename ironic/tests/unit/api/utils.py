@@ -93,8 +93,6 @@ def node_post_data(**kw):
     # These values are not part of the API object
     node.pop('conductor_affinity')
     node.pop('chassis_id')
-    node.pop('target_raid_config')
-    node.pop('raid_config')
     node.pop('tags')
     internal = node_controller.NodePatchType.internal_attrs()
     return remove_internal(node, internal)
