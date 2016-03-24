@@ -64,6 +64,14 @@ class DriverLoadTestCase(base.TestCase):
             driver_factory.DriverFactory._init_extension_manager()
             self.assertEqual(2, mock_em.call_count)
 
+    @mock.patch.object(driver_factory.LOG, 'warning', autospec=True)
+    def test_driver_duplicated_entry(self, mock_log):
+        self.config(enabled_drivers=['fake', 'fake'])
+        driver_factory.DriverFactory._init_extension_manager()
+        self.assertEqual(
+            ['fake'], driver_factory.DriverFactory._extension_manager.names())
+        self.assertTrue(mock_log.called)
+
 
 class GetDriverTestCase(base.TestCase):
     def setUp(self):
