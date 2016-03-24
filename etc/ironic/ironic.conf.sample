@@ -919,6 +919,10 @@
 # Deprecated group/name - [agent]/agent_erase_devices_iterations
 #erase_devices_iterations=1
 
+# Whether to power off a node after deploy failure. Defaults
+# to True. (boolean value)
+#power_off_after_deploy_failure=true
+
 
 [dhcp]
 

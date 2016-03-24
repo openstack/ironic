@@ -1252,7 +1252,7 @@ class OtherFunctionTestCase(db_base.DbTestCase):
                        autospec=True)
     def _test_set_failed_state(self, mock_event, mock_power, mock_log,
                                event_value=None, power_value=None,
-                               log_calls=None):
+                               log_calls=None, poweroff=True):
         err_msg = 'some failure'
         mock_event.side_effect = event_value
         mock_power.side_effect = power_value
@@ -1260,9 +1260,12 @@ class OtherFunctionTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             utils.set_failed_state(task, err_msg)
             mock_event.assert_called_once_with(task, 'fail')
-            mock_power.assert_called_once_with(task, states.POWER_OFF)
+            if poweroff:
+                mock_power.assert_called_once_with(task, states.POWER_OFF)
+            else:
+                self.assertFalse(mock_power.called)
             self.assertEqual(err_msg, task.node.last_error)
-            if log_calls:
+            if (log_calls and poweroff):
                 mock_log.exception.assert_has_calls(log_calls)
             else:
                 self.assertFalse(mock_log.called)
@@ -1282,6 +1285,23 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         self._test_set_failed_state(event_value=iter([exc_state] * len(calls)),
                                     power_value=iter([exc_param] * len(calls)),
                                     log_calls=calls)
+
+    def test_set_failed_state_no_poweroff(self):
+        cfg.CONF.deploy.power_off_after_deploy_failure = False
+        exc_state = exception.InvalidState('invalid state')
+        exc_param = exception.InvalidParameterValue('invalid parameter')
+        mock_call = mock.call(mock.ANY)
+        self._test_set_failed_state(poweroff=False)
+        calls = [mock_call]
+        self._test_set_failed_state(event_value=iter([exc_state] * len(calls)),
+                                    log_calls=calls, poweroff=False)
+        calls = [mock_call]
+        self._test_set_failed_state(power_value=iter([exc_param] * len(calls)),
+                                    log_calls=calls, poweroff=False)
+        calls = [mock_call, mock_call]
+        self._test_set_failed_state(event_value=iter([exc_state] * len(calls)),
+                                    power_value=iter([exc_param] * len(calls)),
+                                    log_calls=calls, poweroff=False)
 
     def test_get_boot_option(self):
         self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}

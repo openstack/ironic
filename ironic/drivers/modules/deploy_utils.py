@@ -71,6 +71,10 @@ deploy_opts = [
                deprecated_group='agent',
                default=1,
                help=_('Number of iterations to be run for erasing devices.')),
+    cfg.BoolOpt('power_off_after_deploy_failure',
+                default=True,
+                help=_('Whether to power off a node after deploy failure. '
+                       'Defaults to True.')),
 ]
 CONF = cfg.CONF
 CONF.register_opts(deploy_opts, group='deploy')
@@ -492,15 +496,15 @@ def set_failed_state(task, msg):
                 % {'node': node.uuid, 'state': node.provision_state})
         LOG.exception(msg2)
 
-    try:
-        manager_utils.node_power_action(task, states.POWER_OFF)
-    except Exception:
-        msg2 = (_LE('Node %s failed to power off while handling deploy '
-                    'failure. This may be a serious condition. Node '
-                    'should be removed from Ironic or put in maintenance '
-                    'mode until the problem is resolved.') % node.uuid)
-        LOG.exception(msg2)
-
+    if CONF.deploy.power_off_after_deploy_failure:
+        try:
+            manager_utils.node_power_action(task, states.POWER_OFF)
+        except Exception:
+            msg2 = (_LE('Node %s failed to power off while handling deploy '
+                        'failure. This may be a serious condition. Node '
+                        'should be removed from Ironic or put in maintenance '
+                        'mode until the problem is resolved.') % node.uuid)
+            LOG.exception(msg2)
     # NOTE(deva): node_power_action() erases node.last_error
     #             so we need to set it here.
     node.last_error = msg
