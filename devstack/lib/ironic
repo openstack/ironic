@@ -990,8 +990,10 @@ function cleanup_baremetal_basic_ops {
 
     local vm_name
     for vm_name in $(_ironic_bm_vm_names); do
-        sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/cleanup-node.sh $vm_name $IRONIC_VM_NETWORK_BRIDGE"
+        sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/cleanup-node.sh $vm_name"
     done
+
+    sudo ovs-vsctl --if-exists del-br $IRONIC_VM_NETWORK_BRIDGE
 
     sudo rm -rf /etc/xinetd.d/tftp /etc/init/tftpd-hpa.override
     restart_service xinetd
