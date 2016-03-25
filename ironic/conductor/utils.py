@@ -80,9 +80,9 @@ def node_power_action(task, new_state):
             curr_state = task.driver.power.get_power_state(task)
         except Exception as e:
             with excutils.save_and_reraise_exception():
-                node['last_error'] = _(
+                node['last_error'] = _("Node %(node)s "                #change 1
                     "Failed to change power state to '%(target)s'. "
-                    "Error: %(error)s") % {'target': new_state, 'error': e}
+                    "Error: %(error)s") % {'node':task.node.uuid, 'target': new_state, 'error': e}
                 node['target_power_state'] = states.NOSTATE
                 node.save()
 
@@ -127,9 +127,9 @@ def node_power_action(task, new_state):
             task.driver.power.reboot(task)
     except Exception as e:
         with excutils.save_and_reraise_exception():
-            node['last_error'] = _(
+            node['last_error'] = _("Node %(node)s "     #change 2
                 "Failed to change power state to '%(target)s'. "
-                "Error: %(error)s") % {'target': target_state, 'error': e}
+                "Error: %(error)s") % {'node':node.uuid'target': target_state, 'error': e}
     else:
         # success!
         node['power_state'] = target_state
