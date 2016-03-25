@@ -18,6 +18,7 @@ Test class for iRMC Power Driver
 
 import mock
 from oslo_config import cfg
+from oslo_utils import uuidutils
 
 from ironic.common import exception
 from ironic.common import states
@@ -45,7 +46,7 @@ class IRMCPowerInternalMethodsTestCase(db_base.DbTestCase):
         self.node = db_utils.create_test_node(
             driver='fake_irmc',
             driver_info=driver_info,
-            instance_uuid='instance_uuid_123')
+            instance_uuid=uuidutils.generate_uuid())
 
     @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed')
     def test__set_power_state_power_on_ok(

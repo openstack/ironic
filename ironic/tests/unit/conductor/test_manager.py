@@ -249,13 +249,15 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin,
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           instance_uuid=None,
                                           power_state=states.NOSTATE)
-        node.instance_uuid = 'fake-uuid'
+        uuid1 = uuidutils.generate_uuid()
+        uuid2 = uuidutils.generate_uuid()
+        node.instance_uuid = uuid1
         self.service.update_node(self.context, node)
 
         # Check if the change was applied
-        node.instance_uuid = 'meow'
+        node.instance_uuid = uuid2
         node.refresh()
-        self.assertEqual('fake-uuid', node.instance_uuid)
+        self.assertEqual(uuid1, node.instance_uuid)
 
     def test_associate_node_powered_off(self):
         self._test_associate_node(states.POWER_OFF)
@@ -2548,8 +2550,8 @@ class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin,
 
     def test_destroy_node_associated(self):
         self._start_service()
-        node = obj_utils.create_test_node(self.context,
-                                          instance_uuid='fake-uuid')
+        node = obj_utils.create_test_node(
+            self.context, instance_uuid=uuidutils.generate_uuid())
 
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.destroy_node,
@@ -2577,10 +2579,9 @@ class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin,
 
     def test_destroy_node_allowed_in_maintenance(self):
         self._start_service()
-        node = obj_utils.create_test_node(self.context,
-                                          instance_uuid='fake-uuid',
-                                          provision_state=states.ACTIVE,
-                                          maintenance=True)
+        node = obj_utils.create_test_node(
+            self.context, instance_uuid=uuidutils.generate_uuid(),
+            provision_state=states.ACTIVE, maintenance=True)
         self.service.destroy_node(self.context, node.uuid)
         self.assertRaises(exception.NodeNotFound,
                           self.dbapi.get_node_by_uuid,
