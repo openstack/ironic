@@ -42,6 +42,7 @@ class SwiftTestCase(base.TestCase):
         self.config(auth_version='2', group='keystone_authtoken')
         self.config(swift_max_retries=2, group='swift')
         self.config(insecure=0, group='keystone_authtoken')
+        self.config(cafile='/path/to/ca/file', group='keystone_authtoken')
 
         # The constructor of SwiftAPI accepts arguments whose
         # default values are values of some config options above. So reload
@@ -56,6 +57,7 @@ class SwiftTestCase(base.TestCase):
                   'tenant_name': 'tenant',
                   'key': 'password',
                   'authurl': 'http://authurl/v2.0',
+                  'cacert': '/path/to/ca/file',
                   'auth_version': '2'}
         connection_mock.assert_called_once_with(**params)
 

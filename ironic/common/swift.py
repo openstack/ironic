@@ -48,6 +48,8 @@ CONF.import_opt('auth_version', 'keystonemiddleware.auth_token',
                 group='keystone_authtoken')
 CONF.import_opt('insecure', 'keystonemiddleware.auth_token',
                 group='keystone_authtoken')
+CONF.import_opt('cafile', 'keystonemiddleware.auth_token',
+                group='keystone_authtoken')
 
 LOG = logging.getLogger(__name__)
 
@@ -72,6 +74,7 @@ class SwiftAPI(object):
         auth_url = keystone.get_keystone_url(auth_url, auth_version)
         params = {'retries': CONF.swift.swift_max_retries,
                   'insecure': CONF.keystone_authtoken.insecure,
+                  'cacert': CONF.keystone_authtoken.cafile,
                   'user': user,
                   'tenant_name': tenant_name,
                   'key': key,
