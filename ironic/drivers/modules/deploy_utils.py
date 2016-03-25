@@ -627,7 +627,7 @@ def agent_execute_clean_step(task, step):
 
 
 def agent_add_clean_params(task):
-    """Add required config parameters to node's driver_interal_info.
+    """Add required config parameters to node's driver_internal_info.
 
     Adds the required conf options to node's driver_internal_info.
     It is Required to pass the information to IPA.

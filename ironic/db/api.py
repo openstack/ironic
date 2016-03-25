@@ -369,7 +369,7 @@ class Connection(object):
     def create_portgroup(self, values):
         """Create a new portgroup.
 
-        :param values: Dict of values with the the following keys:
+        :param values: Dict of values with the following keys:
                        'id'
                        'uuid'
                        'name'

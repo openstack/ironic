@@ -1051,7 +1051,7 @@ class NodesController(rest.RestController):
         If it does, is necessary to prevent updating it because the new driver
         will not be able to stop a console started by the previous one.
 
-        :param rpc_node: RPC Node object to be veryfied.
+        :param rpc_node: RPC Node object to be verified.
         :param node_ident: the UUID or logical name of a node.
         :raises: wsme.exc.ClientSideError
         """
