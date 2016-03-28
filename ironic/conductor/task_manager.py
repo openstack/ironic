@@ -449,7 +449,7 @@ class TaskManager(object):
                 # also makes it easier to test.
                 fut.add_done_callback(self._thread_release_resources)
                 # Don't unlock! The unlock will occur when the
-                # thread finshes.
+                # thread finishes.
                 return
             except Exception as e:
                 with excutils.save_and_reraise_exception():
