@@ -16,6 +16,7 @@ import mock
 
 from oslo_config import cfg
 from oslo_utils import importutils
+from oslo_utils import uuidutils
 
 from ironic.common import exception
 from ironic.conductor import task_manager
@@ -39,7 +40,7 @@ class CIMCBaseTestCase(db_base.DbTestCase):
             self.context,
             driver='fake_cimc',
             driver_info=db_utils.get_test_cimc_info(),
-            instance_uuid="fake_uuid")
+            instance_uuid=uuidutils.generate_uuid())
         CONF.set_override('max_retry', 2, 'cimc')
         CONF.set_override('action_interval', 0, 'cimc')
 

@@ -18,6 +18,7 @@
 import mock
 from oslo_config import cfg
 from oslo_utils import importutils
+from oslo_utils import uuidutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -47,7 +48,7 @@ class IloPowerInternalMethodsTestCase(db_base.DbTestCase):
         self.node = db_utils.create_test_node(
             driver='fake_ilo',
             driver_info=driver_info,
-            instance_uuid='instance_uuid_123')
+            instance_uuid=uuidutils.generate_uuid())
         CONF.set_override('power_retry', 2, 'ilo')
         CONF.set_override('power_wait', 0, 'ilo')
 
