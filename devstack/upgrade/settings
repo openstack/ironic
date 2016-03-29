@@ -1,5 +1,17 @@
-# eventually this will be handled by this being in the ironic tree
-if is_service_enabled ir-api; then
-   register_project_for_upgrade ironic
-   register_db_to_save ironic
-fi
+# Grenade needs to know that Ironic has a Grenade plugin. This is done in the
+# gate by setting GRENADE_PLUGINRC when using openstack-infra/devstack-gate.
+# That means that in the project openstack-infra/project-config we will need to
+# update the Ironic grenade job(s) in jenkins/jobs/devstack-gate.yaml with
+# this:
+#     export GRENADE_PLUGINRC="enable_grenade_plugin ironic https://git.openstack.org/openstack/ironic"
+# If openstack-infra/project-config is not updated then the Grenade tests will
+# never get run for Ironic
+
+register_project_for_upgrade ironic
+register_db_to_save ironic
+
+devstack_localrc base enable_plugin ironic https://git.openstack.org/openstack/ironic
+devstack_localrc base enable_service ir-api ir-cond
+
+devstack_localrc target enable_plugin ironic https://git.openstack.org/openstack/ironic
+devstack_localrc target enable_service ir-api ir-cond
