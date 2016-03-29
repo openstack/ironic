@@ -159,7 +159,7 @@ IRONIC_LIBVIRT_HOOKS_PATH=${IRONIC_LIBVIRT_HOOKS_PATH:-/etc/libvirt/hooks/}
 IRONIC_AUTH_STRATEGY=${IRONIC_AUTH_STRATEGY:-keystone}
 
 # By default, terminal SSL certificate is disabled.
-IRONIC_TERMINAL_SSL=${IRONIC_TERMINAL_SSL:-False}
+IRONIC_TERMINAL_SSL=$(trueorfalse False IRONIC_TERMINAL_SSL)
 IRONIC_TERMINAL_CERT_DIR=${IRONIC_TERMINAL_CERT_DIR:-$IRONIC_DATA_DIR/terminal_cert/}
 
 # get_pxe_boot_file() - Get the PXE/iPXE boot file path
@@ -397,7 +397,7 @@ function configure_ironic_conductor {
         # Generate the SSL certificate
         openssl req \
             -x509 \
-            -days 3650 \
+            -days 365 \
             -newkey rsa:1024 \
             -nodes \
             -keyout $IRONIC_TERMINAL_CERT_DIR/certificate.pem.key \
