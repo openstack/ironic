@@ -1041,6 +1041,14 @@ function cleanup_baremetal_basic_ops {
     sudo rmmod nf_nat_tftp || true
 }
 
+function ironic_configure_tempest {
+    local bm_flavor_id
+    bm_flavor_id=$(openstack flavor show baremetal -f value -c id)
+    die_if_not_set $LINENO bm_flavor_id "Failed to get id of baremetal flavor"
+    iniset $TEMPEST_CONFIG compute flavor_ref $bm_flavor_id
+    iniset $TEMPEST_CONFIG compute flavor_ref_alt $bm_flavor_id
+}
+
 # Restore xtrace + pipefail
 $_XTRACE_IRONIC
 $_PIPEFAIL_IRONIC
