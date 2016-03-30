@@ -300,19 +300,18 @@ class BaseAgentVendor(base.VendorInterface):
         manual_clean = node.target_provision_state == states.MANAGEABLE
         agent_commands = self._client.get_commands_status(task.node)
 
-        if (not agent_commands and
-                task.node.driver_internal_info.get('cleaning_reboot')):
-            # Node finished a cleaning step that requested a reboot, and
-            # this is the first heartbeat after booting. Continue cleaning.
-            info = task.node.driver_internal_info
-            info.pop('cleaning_reboot', None)
-            task.node.driver_internal_info = info
-            self.notify_conductor_resume_clean(task)
-            return
-
         if not agent_commands:
-            # Agent has no commands whatsoever
-            return
+            if task.node.driver_internal_info.get('cleaning_reboot'):
+                # Node finished a cleaning step that requested a reboot, and
+                # this is the first heartbeat after booting. Continue cleaning.
+                info = task.node.driver_internal_info
+                info.pop('cleaning_reboot', None)
+                task.node.driver_internal_info = info
+                self.notify_conductor_resume_clean(task)
+                return
+            else:
+                # Agent has no commands whatsoever
+                return
 
         command = self._get_completed_cleaning_command(task, agent_commands)
         LOG.debug('Cleaning command status for node %(node)s on step %(step)s:'
