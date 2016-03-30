@@ -49,9 +49,9 @@ class IRMCInspectInternalMethodsTestCase(db_base.DbTestCase):
     def test__get_mac_addresses(self, snmpclient_mock):
         snmpclient_mock.return_value = mock.Mock(
             **{'get_next.side_effect': [[2, 2, 7],
-                                        ['aa:aa:aa:aa:aa:aa',
-                                         'bb:bb:bb:bb:bb:bb',
-                                         'cc:cc:cc:cc:cc:cc']]})
+                                        ['\xaa\xaa\xaa\xaa\xaa\xaa',
+                                         '\xbb\xbb\xbb\xbb\xbb\xbb',
+                                         '\xcc\xcc\xcc\xcc\xcc\xcc']]})
         inspected_macs = ['aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb']
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
