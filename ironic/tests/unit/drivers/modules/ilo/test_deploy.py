@@ -263,6 +263,8 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                        autospec=True)
     def test_prepare(self, func_prepare_node_for_deploy,
                      iscsi_deploy_prepare_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.prepare(task)
@@ -275,13 +277,22 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                        autospec=True)
     def test_prepare_active_node(self, func_prepare_node_for_deploy,
                                  iscsi_deploy_prepare_mock):
-        self.node.provision_state = states.ACTIVE
-        self.node.save()
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.deploy.prepare(task)
-            self.assertFalse(func_prepare_node_for_deploy.called)
-            iscsi_deploy_prepare_mock.assert_called_once_with(mock.ANY, task)
+        """Ensure nodes in running states are not inadvertently changed"""
+        test_states = list(states.STABLE_STATES)
+        test_states.extend([states.CLEANING,
+                           states.CLEANWAIT,
+                           states.INSPECTING])
+        for state in test_states:
+            self.node.provision_state = state
+            self.node.save()
+            func_prepare_node_for_deploy.reset_mock()
+            iscsi_deploy_prepare_mock.reset_mock()
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=False) as task:
+                task.driver.deploy.prepare(task)
+                self.assertFalse(func_prepare_node_for_deploy.called)
+                iscsi_deploy_prepare_mock.assert_called_once_with(
+                    mock.ANY, task)
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare_cleaning',
                        spec_set=True, autospec=True)
@@ -360,6 +371,8 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
     def test_prepare(self,
                      agent_prepare_mock,
                      func_prepare_node_for_deploy):
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.prepare(task)
@@ -373,12 +386,21 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
     def test_prepare_active_node(self,
                                  func_prepare_node_for_deploy,
                                  agent_prepare_mock):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.node.provision_state = states.ACTIVE
-            task.driver.deploy.prepare(task)
-            self.assertFalse(func_prepare_node_for_deploy.called)
-            agent_prepare_mock.assert_called_once_with(mock.ANY, task)
+        """Ensure nodes in running states are not inadvertently changed"""
+        test_states = list(states.STABLE_STATES)
+        test_states.extend([states.CLEANING,
+                           states.CLEANWAIT,
+                           states.INSPECTING])
+        for state in test_states:
+            self.node.provision_state = state
+            self.node.save()
+            func_prepare_node_for_deploy.reset_mock()
+            agent_prepare_mock.reset_mock()
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=False) as task:
+                task.driver.deploy.prepare(task)
+                self.assertFalse(func_prepare_node_for_deploy.called)
+                agent_prepare_mock.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(deploy_utils, 'agent_get_clean_steps', spec_set=True,
                        autospec=True)
@@ -467,13 +489,15 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_deploy, '_prepare_node_for_deploy', spec_set=True,
                        autospec=True)
     def test_prepare(self,
-                     prepare_node_mock,
+                     prepare_node_for_deploy_mock,
                      pxe_prepare_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.properties['capabilities'] = 'boot_mode:uefi'
             task.driver.deploy.prepare(task)
-            prepare_node_mock.assert_called_once_with(task)
+            prepare_node_for_deploy_mock.assert_called_once_with(task)
             pxe_prepare_mock.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare', spec_set=True,
@@ -481,15 +505,24 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_deploy, '_prepare_node_for_deploy', spec_set=True,
                        autospec=True)
     def test_prepare_active_node(self,
-                                 prepare_node_mock,
+                                 prepare_node_for_deploy_mock,
                                  pxe_prepare_mock):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.node.provision_state = states.ACTIVE
-            task.node.properties['capabilities'] = 'boot_mode:uefi'
-            task.driver.deploy.prepare(task)
-            self.assertFalse(prepare_node_mock.called)
-            pxe_prepare_mock.assert_called_once_with(mock.ANY, task)
+        """Ensure nodes in running states are not inadvertently changed"""
+        test_states = list(states.STABLE_STATES)
+        test_states.extend([states.CLEANING,
+                           states.CLEANWAIT,
+                           states.INSPECTING])
+        for state in test_states:
+            self.node.provision_state = state
+            self.node.save()
+            prepare_node_for_deploy_mock.reset_mock()
+            pxe_prepare_mock.reset_mock()
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=False) as task:
+                task.node.properties['capabilities'] = 'boot_mode:uefi'
+                task.driver.deploy.prepare(task)
+                self.assertFalse(prepare_node_for_deploy_mock.called)
+                pxe_prepare_mock.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare', spec_set=True,
                        autospec=True)
@@ -498,6 +531,8 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
     def test_prepare_uefi_whole_disk_image_fail(self,
                                                 prepare_node_for_deploy_mock,
                                                 pxe_prepare_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.properties['capabilities'] = 'boot_mode:uefi'
