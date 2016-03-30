@@ -210,6 +210,8 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
         node.clean_step = {}
         info = node.driver_internal_info
         info.pop('clean_step_index', None)
+        # Clear any leftover metadata about cleaning reboots
+        info.pop('cleaning_reboot', None)
         node.driver_internal_info = info
     # For manual cleaning, the target provision state is MANAGEABLE, whereas
     # for automated cleaning, it is AVAILABLE.

@@ -958,6 +958,77 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.passthru.continue_cleaning(task)
             notify_mock.assert_called_once_with(mock.ANY, task)
 
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test__cleaning_reboot(self, mock_reboot):
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.passthru._cleaning_reboot(task)
+            mock_reboot.assert_called_once_with(task, states.REBOOT)
+            self.assertTrue(task.node.driver_internal_info.get(
+                            'cleaning_reboot'))
+
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test__cleaning_reboot_fail(self, mock_reboot, mock_handler):
+        mock_reboot.side_effect = iter([RuntimeError("broken")])
+
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.passthru._cleaning_reboot(task)
+            mock_reboot.assert_called_once_with(task, states.REBOOT)
+            mock_handler.assert_called_once_with(task, mock.ANY)
+            self.assertNotIn('cleaning_reboot',
+                             task.node.driver_internal_info)
+
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_continue_cleaning_reboot(self, status_mock, reboot_mock):
+        # Test a successful execute clean step on the agent, with reboot
+        self.node.clean_step = {
+            'priority': 42,
+            'interface': 'deploy',
+            'step': 'reboot_me_afterwards',
+            'reboot_requested': True
+        }
+        self.node.save()
+        status_mock.return_value = [{
+            'command_status': 'SUCCEEDED',
+            'command_name': 'execute_clean_step',
+            'command_result': {
+                'clean_step': self.node.clean_step
+            }
+        }]
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.passthru.continue_cleaning(task)
+            reboot_mock.assert_called_once_with(task, states.REBOOT)
+
+    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+                       'notify_conductor_resume_clean', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_continue_cleaning_after_reboot(self, status_mock, notify_mock):
+        # Test a successful execute clean step on the agent, with reboot
+        self.node.clean_step = {
+            'priority': 42,
+            'interface': 'deploy',
+            'step': 'reboot_me_afterwards',
+            'reboot_requested': True
+        }
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['cleaning_reboot'] = True
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        # Represents a freshly booted agent with no commands
+        status_mock.return_value = []
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.passthru.continue_cleaning(task)
+            notify_mock.assert_called_once_with(mock.ANY, task)
+            self.assertNotIn('cleaning_reboot',
+                             task.node.driver_internal_info)
+
     @mock.patch.object(agent_base_vendor,
                        '_get_post_clean_step_hook', autospec=True)
     @mock.patch.object(agent_base_vendor.BaseAgentVendor,

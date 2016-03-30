@@ -1,0 +1,8 @@
+---
+features:
+    - This adds the reboot_requested option for in-band
+      cleaning. If set to true, Ironic will reboot the node
+      after that step has completed and before continuing
+      with the next step. This option is useful for when
+      some action, such as a BIOS upgrade or setting change,
+      requires a reboot to take effect.
