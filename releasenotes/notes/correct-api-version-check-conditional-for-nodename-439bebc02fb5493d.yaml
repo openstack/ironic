@@ -1,0 +1,5 @@
+---
+fixes:
+  - Correct api version check conditional for node.name to address
+    an issue that we could set node name to '' using API version lower than
+    1.5, where node names were introduced.

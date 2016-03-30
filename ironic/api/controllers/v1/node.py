@@ -1208,7 +1208,7 @@ class NodesController(rest.RestController):
             e.code = http_client.BAD_REQUEST
             raise e
 
-        if node.name:
+        if (node.name != wtypes.Unset and node.name is not None):
             error_msg = _("Cannot create node with invalid name "
                           "%(name)s") % {'name': node.name}
             self._check_name_acceptable(node.name, error_msg)
@@ -1259,7 +1259,7 @@ class NodesController(rest.RestController):
                 msg % node_ident, status_code=http_client.CONFLICT)
 
         name = api_utils.get_patch_value(patch, '/name')
-        if name:
+        if name is not None:
             error_msg = _("Node %(node)s: Cannot change name to invalid "
                           "name '%(name)s'") % {'node': node_ident,
                                                 'name': name}
