@@ -817,7 +817,7 @@ Supported **Manual** Cleaning Operations
 
     Some devices firmware cannot be updated via this method, such as: storage
     controllers, host bus adapters, disk drive firmware, network interfaces
-    and OA.
+    and Onboard Administrator (OA).
 
 * iLO with firmware version 1.5 is minimally required to support all the
   operations.
@@ -1428,7 +1428,15 @@ All the fields in the firmware image block are mandatory.
    This feature assumes that while using ``file`` url scheme the file path is
    on the conductor controlling the node.
 
-* Different firmware components that can be updated are:
+.. note::
+   The ``swift`` url scheme assumes the swift account of the ``service``
+   project. The ``service`` project (tenant) is a special project created in
+   the Keystone system designed for the use of the core OpenStack services.
+   When Ironic makes use of Swift for storage purpose, the account is generally
+   ``service`` and the container is generally ``ironic`` and ``ilo`` drivers
+   use a container named ``ironic_ilo_container`` for their own purpose.
+
+* The firmware components that can be updated are:
   ``ilo``, ``cpld``, ``power_pic``, ``bios`` and ``chassis``.
 * The firmware images will be updated in the order given by the operator. If
   there is any error during processing of any of the given firmware images
