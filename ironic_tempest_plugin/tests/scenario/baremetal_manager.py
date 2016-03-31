@@ -88,10 +88,10 @@ class BaremetalScenarioTest(manager.ScenarioTest):
                    (node_id, state_attr, target_states))
             raise lib_exc.TimeoutException(msg)
 
-    def wait_provisioning_state(self, node_id, state, timeout):
+    def wait_provisioning_state(self, node_id, state, timeout, interval=1):
         self._node_state_timeout(
             node_id=node_id, state_attr='provision_state',
-            target_states=state, timeout=timeout)
+            target_states=state, timeout=timeout, interval=interval)
 
     def wait_power_state(self, node_id, state):
         self._node_state_timeout(
@@ -160,7 +160,8 @@ class BaremetalScenarioTest(manager.ScenarioTest):
 
         self.wait_provisioning_state(self.node['uuid'],
                                      BaremetalProvisionStates.ACTIVE,
-                                     timeout=CONF.baremetal.active_timeout)
+                                     timeout=CONF.baremetal.active_timeout,
+                                     interval=30)
 
         waiters.wait_for_server_status(self.servers_client,
                                        self.instance['id'], 'ACTIVE')
@@ -175,4 +176,5 @@ class BaremetalScenarioTest(manager.ScenarioTest):
         self.wait_provisioning_state(
             self.node['uuid'],
             BaremetalProvisionStates.NOSTATE,
-            timeout=CONF.baremetal.unprovision_timeout)
+            timeout=CONF.baremetal.unprovision_timeout,
+            interval=30)
