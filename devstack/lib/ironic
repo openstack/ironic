@@ -960,7 +960,7 @@ function upload_baremetal_ironic_deploy {
                         -o $TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER
                 fi
             else
-                die $LINENO "Deploy kernel+ramdisk files don't exist and cannot be build in OFFLINE mode"
+                die $LINENO "Deploy kernel+ramdisk files don't exist and cannot be built in OFFLINE mode"
             fi
         else
             if is_deployed_with_ipa_ramdisk; then
