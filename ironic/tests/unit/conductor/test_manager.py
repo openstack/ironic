@@ -910,10 +910,11 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
 @mgr_utils.mock_record_keepalive
 class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
                                    tests_db_base.DbTestCase):
+    @mock.patch.object(manager, 'LOG')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
     def test__do_node_deploy_driver_raises_prepare_error(self, mock_prepare,
-                                                         mock_deploy):
+                                                         mock_deploy,log_mock):
         self._start_service()
         # test when driver.deploy.prepare raises an exception
         mock_prepare.side_effect = exception.InstanceDeployFailure('test')
@@ -934,6 +935,8 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertIsNotNone(node.last_error)
         self.assertTrue(mock_prepare.called)
         self.assertFalse(mock_deploy.called)
+        # self.assertTrue(log_mock.error.assert_called_with(node.uuid))
+        self.assertTrue(log_mock.error.call_args) # this should be assertFalse to make it fail
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     def test__do_node_deploy_driver_raises_error(self, mock_deploy):
@@ -2009,11 +2012,11 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
     def test__do_next_clean_step_manual_execute_fail(self):
         self._do_next_clean_step_execute_fail(manual=True)
 
+    @mock.patch.object(manager, 'LOG')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step')
     @mock.patch.object(fake.FakeDeploy, 'tear_down_cleaning', autospec=True)
-    def _do_next_clean_step_fail_in_tear_down_cleaning(self, tear_mock,
-                                                       mock_execute,
-                                                       manual=True):
+    def _do_next_clean_step_fail_in_tear_down_cleaning(
+                self, tear_mock, mock_execute, log_mock, manual=True):
         tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
         node = obj_utils.create_test_node(
             self.context, driver='fake',
@@ -2045,6 +2048,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(1, tear_mock.call_count)
         self.assertTrue(node.maintenance)
         mock_execute.assert_called_once_with(mock.ANY, self.clean_steps[0])
+        # log_mock.exception.assert_called_with('Anup!')
 
     def test__do_next_clean_step_automated_fail_in_tear_down_cleaning(self):
         self._do_next_clean_step_fail_in_tear_down_cleaning()
@@ -2084,6 +2088,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
             self.assertFalse('clean_step_index' in node.driver_internal_info)
             self.assertFalse(mock_execute.called)
             mock_execute.reset_mock()
+            # log_mock.exception.assert_called_with('Anup!')
 
     def test__do_next_clean_step_automated_no_steps(self):
         self._do_next_clean_step_no_steps()
@@ -4137,6 +4142,7 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(states.INSPECTFAIL, node.provision_state)
         self.assertEqual(states.MANAGEABLE, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
+        # self.assertIsNone(node.last_error) this will make the test fail for change 3
         mock_inspect.assert_called_once_with(mock.ANY)
         self.assertTrue(log_mock.error.called)
 
