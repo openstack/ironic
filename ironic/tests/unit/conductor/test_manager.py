@@ -908,10 +908,11 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
 @mgr_utils.mock_record_keepalive
 class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
                                    tests_db_base.DbTestCase):
+    @mock.patch.object(manager, 'LOG')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
     def test__do_node_deploy_driver_raises_prepare_error(self, mock_prepare,
-                                                         mock_deploy):
+                                                         mock_deploy,log_mock):
         self._start_service()
         # test when driver.deploy.prepare raises an exception
         mock_prepare.side_effect = exception.InstanceDeployFailure('test')
@@ -932,6 +933,7 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertIsNotNone(node.last_error)
         self.assertTrue(mock_prepare.called)
         self.assertFalse(mock_deploy.called)
+        self.assertTrue(log_mock.error.called)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     def test__do_node_deploy_driver_raises_error(self, mock_deploy):
