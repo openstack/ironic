@@ -2009,11 +2009,15 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
     def test__do_next_clean_step_manual_execute_fail(self):
         self._do_next_clean_step_execute_fail(manual=True)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step')
+    @mock.patch.object(manager, 'LOG', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.execute_clean_step',
+                autospec=True)
     @mock.patch.object(fake.FakeDeploy, 'tear_down_cleaning', autospec=True)
-    def _do_next_clean_step_fail_in_tear_down_cleaning(self, tear_mock,
-                                                       mock_execute,
-                                                       manual=True):
+    def _do_next_clean_step_fail_in_tear_down_cleaning(
+            self, tear_mock, power_exec_mock, deploy_exec_mock, log_mock,
+            manual=True):
         tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
         node = obj_utils.create_test_node(
             self.context, driver='fake',
@@ -2024,7 +2028,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
                                   'clean_step_index': None},
             clean_step={})
 
-        mock_execute.return_value = None
+        deploy_exec_mock.return_value = None
+        power_exec_mock.return_value = None
         tear_mock.side_effect = Exception()
 
         self._start_service()
@@ -2044,7 +2049,18 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertIsNotNone(node.last_error)
         self.assertEqual(1, tear_mock.call_count)
         self.assertTrue(node.maintenance)
-        mock_execute.assert_called_once_with(mock.ANY, self.clean_steps[0])
+        deploy_exec_calls = [
+            mock.call(mock.ANY, mock.ANY, self.clean_steps[0]),
+            mock.call(mock.ANY, mock.ANY, self.clean_steps[2]),
+        ]
+        self.assertEqual(deploy_exec_calls, deploy_exec_mock.call_args_list)
+
+        power_exec_calls = [
+            mock.call(mock.ANY, mock.ANY, self.clean_steps[1]),
+        ]
+        self.assertEqual(power_exec_calls, power_exec_mock.call_args_list)
+        log_mock.exception.assert_called_once_with(
+            'Failed to tear down from cleaning for node {}'.format(node.uuid))
 
     def test__do_next_clean_step_automated_fail_in_tear_down_cleaning(self):
         self._do_next_clean_step_fail_in_tear_down_cleaning()
