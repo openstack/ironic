@@ -1041,8 +1041,9 @@ class ConductorManager(base_manager.BaseConductorManager):
         try:
             task.driver.deploy.tear_down_cleaning(task)
         except Exception as e:
-            msg = (_('Node %s Failed to tear down from cleaning for node')   #change 1
-                   % node.uuid)
+	    #raise ValueError("Exception called")
+            msg = (_('Node %s Failed to tear down from cleaning for node')
+                   % node.uuid)  # change1
             LOG.exception(msg)
             return utils.cleaning_error_handler(task, msg,
                                                 tear_down_cleaning=False)
@@ -2299,7 +2300,7 @@ def do_node_deploy(task, conductor_id, configdrive=None):
         task.process_event('fail')
         args = {'node': task.node.uuid, 'err': e}
         LOG.error(logmsg, args)
-        node.last_error = errmsg % e
+        node.last_error = logmsg + errmsg % e
 
     try:
         try:
@@ -2317,11 +2318,13 @@ def do_node_deploy(task, conductor_id, configdrive=None):
         try:
             task.driver.deploy.prepare(task)
         except Exception as e:
+	# change 2 here
+            # raise ValueError("Anup!!")
             with excutils.save_and_reraise_exception():
                 handle_failure(
                     e, task,
                     _LE('Error while preparing to deploy to node %(node)s: '
-                        '%(err)s') % {'node':node.uuid,'err':str(e)}    #change 2 but not sure as e is being passed to handle_failure which already have args
+                        '%(err)s') % {'node': node.uuid, 'err': str(e)},  
                     _("Failed to prepare to deploy. Error: %s"))
 
         try:
@@ -2530,7 +2533,9 @@ def _do_inspect_hardware(task):
         LOG.info(_LI('Successfully inspected node %(node)s')
                  % {'node': node.uuid})
     elif new_state != states.INSPECTING:
+	# change 3 here
+        # raise ValueError("Anup!!!")
         error = (_("During inspection, driver returned unexpected "
-                   "state %(state)s to node %(node)s" ) % {'state': new_state,'node':node.uuid})   #change 3
+			"state %(state)s to node %(node)s") % {'state': new_state, 'node': node.uuid})
         handle_failure(error)
         raise exception.HardwareInspectionFailure(error=error)

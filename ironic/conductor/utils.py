@@ -74,15 +74,19 @@ def node_power_action(task, new_state):
     """
     node = task.node
     target_state = states.POWER_ON if new_state == states.REBOOT else new_state
-
+    print("target_state at this time", target_state)
+    print("new_state at this time",new_state)
     if new_state != states.REBOOT:
         try:
+	    print("Here in try block",task)
             curr_state = task.driver.power.get_power_state(task)
         except Exception as e:
             with excutils.save_and_reraise_exception():
-                node['last_error'] = _("Node %(node)s "                #change 1
-                    "Failed to change power state to '%(target)s'. "
-                    "Error: %(error)s") % {'node':task.node.uuid, 'target': new_state, 'error': e}
+		# print("Exception has been called::")
+                node['last_error'] = _("Node %(node)s "
+                "Failed to change power state to '%(target)s'. "
+                "Error: %(error)s") % {'node': task.node.uuid, 
+		'target': new_state, 'error': e}
                 node['target_power_state'] = states.NOSTATE
                 node.save()
 
@@ -127,9 +131,10 @@ def node_power_action(task, new_state):
             task.driver.power.reboot(task)
     except Exception as e:
         with excutils.save_and_reraise_exception():
-            node['last_error'] = _("Node %(node)s "     #change 2
-                "Failed to change power state to '%(target)s'. "
-                "Error: %(error)s") % {'node':node.uuid'target': target_state, 'error': e}
+	    # raise ValueError("Coming here")
+            node['last_error'] = _("Node %(node)s "     # change 2
+            "Failed to change power state to '%(target)s'."
+            "Error: %(error)s") % {'node': node.uuid, 'target': target_state, 'error': e}
     else:
         # success!
         node['power_state'] = target_state

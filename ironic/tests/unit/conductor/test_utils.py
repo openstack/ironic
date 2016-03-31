@@ -147,6 +147,7 @@ class NodePowerActionTestCase(base.DbTestCase):
             self.assertEqual(states.POWER_ON, node['power_state'])
             self.assertIsNone(node['target_power_state'])
             self.assertIsNotNone(node['last_error'])
+            self.assertIn(node.uuid,node['last_error'])
 
             # last_error is cleared when a new transaction happens
             conductor_utils.node_power_action(task, states.POWER_OFF)
@@ -258,7 +259,12 @@ class NodePowerActionTestCase(base.DbTestCase):
             get_power_state_mock.assert_called_once_with(mock.ANY)
             self.assertEqual(states.POWER_ON, node['power_state'])
             self.assertIsNone(node['target_power_state'])
-            self.assertIsNotNone(node['last_error'])
+            # self.assertIsNotNone(node['last_error'])
+            # self.assertEqual(
+            #     u"Node {} Failed to change power state to 'power on'. Error: failed getting power state".format(node.uuid),
+            #     node['last_error'])
+            # Show that the node.uuid is now part of the error message
+            self.assertIn(node.uuid, node['last_error'])
 
     def test_node_power_action_set_power_failure(self):
         """Test if an exception is thrown when the set_power call fails."""
@@ -288,7 +294,7 @@ class NodePowerActionTestCase(base.DbTestCase):
                 self.assertEqual(states.POWER_OFF, node['power_state'])
                 self.assertIsNone(node['target_power_state'])
                 self.assertIsNotNone(node['last_error'])
-
+                self.assertIn(node.uuid, node['last_error'])
 
 class CleanupAfterTimeoutTestCase(tests_base.TestCase):
     def setUp(self):
