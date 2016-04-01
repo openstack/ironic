@@ -907,6 +907,7 @@ class IRMCVirtualMediaBootTestCase(db_base.DbTestCase):
         instance_info['irmc_boot_iso'] = 'glance://abcdef'
         instance_info['image_source'] = '6b2f0c0c-79e8-4db6-842e-43c9764204af'
         self.node.instance_info = instance_info
+        self.node.provision_state = states.DEPLOYING
         self.node.save()
 
         ramdisk_params = {'a': 'b'}
@@ -922,6 +923,21 @@ class IRMCVirtualMediaBootTestCase(db_base.DbTestCase):
                 task, expected_ramdisk_opts)
             self.assertEqual('glance://abcdef',
                              self.node.instance_info['irmc_boot_iso'])
+
+    @mock.patch.object(irmc_boot, '_setup_deploy_iso', spec_set=True,
+                       autospec=True)
+    def test_prepare_ramdisk_not_deploying(self, mock_is_image):
+        """Ensure ramdisk build operations are blocked when not deploying"""
+
+        for state in states.STABLE_STATES:
+            mock_is_image.reset_mock()
+            self.node.provision_state = state
+            self.node.save()
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=False) as task:
+                self.assertIsNone(
+                    task.driver.boot.prepare_ramdisk(task, None))
+                self.assertFalse(mock_is_image.called)
 
     @mock.patch.object(irmc_boot, '_cleanup_vmedia_boot', spec_set=True,
                        autospec=True)

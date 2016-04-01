@@ -603,6 +603,13 @@ class IRMCVirtualMediaBoot(base.BootInterface):
         :raises: IRMCOperationError, if some operation on iRMC fails.
         """
 
+        # NOTE(TheJulia): If this method is being called by something
+        # aside from a deployment, such as conductor takeover, we should
+        # treat this as a no-op and move on otherwise we would modify
+        # the state of the node due to virtual media operations.
+        if task.node.provision_state != states.DEPLOYING:
+            return
+
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
         ramdisk_params['BOOTIF'] = deploy_nic_mac
 
