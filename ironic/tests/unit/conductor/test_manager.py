@@ -2009,9 +2009,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step')
     @mock.patch.object(fake.FakeDeploy, 'tear_down_cleaning', autospec=True)
-    def _do_next_clean_step_fail_in_tear_down_cleaning(self, tear_mock,
-                                                       mock_execute,
-                                                       manual=True):
+    def _do_next_clean_step_fail_in_tear_down_cleaning(
+            self, tear_mock, mock_execute, manual=True):
         tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
         node = obj_utils.create_test_node(
             self.context, driver='fake',
@@ -4136,6 +4135,7 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(states.INSPECTFAIL, node.provision_state)
         self.assertEqual(states.MANAGEABLE, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
+        self.assertIn(node.uuid, node['last_error'])
         mock_inspect.assert_called_once_with(mock.ANY)
         self.assertTrue(log_mock.error.called)
 

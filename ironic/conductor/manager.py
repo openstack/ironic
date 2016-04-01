@@ -2530,7 +2530,8 @@ def _do_inspect_hardware(task):
         LOG.info(_LI('Successfully inspected node %(node)s')
                  % {'node': node.uuid})
     elif new_state != states.INSPECTING:
-        error = (_("During inspection, driver returned unexpected "
-                   "state %(state)s") % {'state': new_state})
+        error = (_("During inspection, driver returned unexpected state "
+                   "%(state)s for node %(node)s") % {'state': new_state,
+                                                     'node': node.uuid})
         handle_failure(error)
         raise exception.HardwareInspectionFailure(error=error)
