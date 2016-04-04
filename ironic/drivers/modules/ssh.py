@@ -143,7 +143,7 @@ def _get_command_sets(virt_type):
         One name per line, can be quoted.
     start_cmd / stop_cmd: Starts or stops the identified VM
     get_node_macs: Retrieves all MACs for an identified VM.
-        One MAC per line, any standard format (see _normalize_mac)
+        One MAC per line, any standard format (see driver_utils.normalize_mac)
     get_boot_device / set_boot_device: Gets or sets the primary boot device
     """
     if virt_type == 'vbox':
@@ -268,10 +268,6 @@ def _get_command_sets(virt_type):
         raise exception.InvalidParameterValue(_(
             "SSHPowerDriver '%(virt_type)s' is not a valid virt_type, ") %
             {'virt_type': virt_type})
-
-
-def _normalize_mac(mac):
-    return mac.replace('-', '').replace(':', '').lower()
 
 
 def _get_boot_device(ssh_obj, driver_info):
@@ -493,7 +489,8 @@ def _get_hosts_name_for_node(ssh_obj, driver_info):
                 if not host_mac:
                     continue
                 for node_mac in driver_info['macs']:
-                    if _normalize_mac(host_mac) in _normalize_mac(node_mac):
+                    if (driver_utils.normalize_mac(host_mac)
+                            in driver_utils.normalize_mac(node_mac)):
                         LOG.debug("Found Mac address: %s" % node_mac)
                         matched_name = node
                         break

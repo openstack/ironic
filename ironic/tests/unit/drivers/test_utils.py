@@ -228,3 +228,13 @@ class UtilsTestCase(db_base.DbTestCase):
         )
         self.assertEqual("Value of 'capabilities' must be string. Got " +
                          str(int), str(exc))
+
+    def test_normalize_mac_string(self):
+        mac_raw = "0A:1B-2C-3D:4F"
+        mac_clean = driver_utils.normalize_mac(mac_raw)
+        self.assertEqual("0a1b2c3d4f", mac_clean)
+
+    def test_normalize_mac_unicode(self):
+        mac_raw = u"0A:1B-2C-3D:4F"
+        mac_clean = driver_utils.normalize_mac(mac_raw)
+        self.assertEqual("0a1b2c3d4f", mac_clean)

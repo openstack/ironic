@@ -156,16 +156,6 @@ class SSHValidateParametersTestCase(db_base.DbTestCase):
                           ssh._parse_driver_info,
                           node)
 
-    def test__normalize_mac_string(self):
-        mac_raw = "0A:1B-2C-3D:4F"
-        mac_clean = ssh._normalize_mac(mac_raw)
-        self.assertEqual("0a1b2c3d4f", mac_clean)
-
-    def test__normalize_mac_unicode(self):
-        mac_raw = u"0A:1B-2C-3D:4F"
-        mac_clean = ssh._normalize_mac(mac_raw)
-        self.assertEqual("0a1b2c3d4f", mac_clean)
-
     def test__parse_driver_info_with_custom_libvirt_uri(self):
         CONF.set_override('libvirt_uri', 'qemu:///foo', 'ssh')
         expected_base_cmd = "LC_ALL=C /usr/bin/virsh --connect qemu:///foo"
