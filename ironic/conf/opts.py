@@ -52,7 +52,6 @@ import ironic.drivers.modules.pxe
 import ironic.drivers.modules.seamicro
 import ironic.drivers.modules.snmp
 import ironic.drivers.modules.ssh
-import ironic.drivers.modules.ucs.power
 import ironic.drivers.modules.virtualbox
 import ironic.netconf
 
@@ -80,7 +79,7 @@ _opts = [
         ironic.drivers.modules.amt.power.opts)),
     ('api', ironic.api.API_SERVICE_OPTS),
     ('cimc', ironic.conf.cimc.opts),
-    ('cisco_ucs', ironic.drivers.modules.ucs.power.opts),
+    ('cisco_ucs', ironic.conf.cisco_ucs.opts),
     ('conductor', itertools.chain(
         ironic.conductor.base_manager.conductor_opts,
         ironic.conductor.manager.conductor_opts)),
