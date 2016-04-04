@@ -1,0 +1,6 @@
+---
+fixes:
+  - Remove the possibility to set incorrect node name by specifying multiple
+    add/replace operations in patch request. Since this version, all the values
+    specified in the patch for name are checked, in order to conform to
+    JSON PATCH RFC https://tools.ietf.org/html/rfc6902.
