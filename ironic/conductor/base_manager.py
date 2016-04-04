@@ -19,7 +19,6 @@ import eventlet
 import futurist
 from futurist import periodics
 from futurist import rejection
-from oslo_config import cfg
 from oslo_db import exception as db_exception
 from oslo_log import log
 from oslo_utils import excutils
@@ -36,24 +35,11 @@ from ironic.common.i18n import _LW
 from ironic.common import rpc
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conf import CONF
 from ironic.db import api as dbapi
 from ironic import objects
 
 
-conductor_opts = [
-    cfg.IntOpt('workers_pool_size',
-               default=100, min=3,
-               help=_('The size of the workers greenthread pool. '
-                      'Note that 2 threads will be reserved by the conductor '
-                      'itself for handling heart beats and periodic tasks.')),
-    cfg.IntOpt('heartbeat_interval',
-               default=10,
-               help=_('Seconds between conductor heart beats.')),
-]
-
-
-CONF = cfg.CONF
-CONF.register_opts(conductor_opts, 'conductor')
 LOG = log.getLogger(__name__)
 
 

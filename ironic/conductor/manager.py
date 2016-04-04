@@ -47,7 +47,6 @@ import tempfile
 
 import eventlet
 from futurist import periodics
-from oslo_config import cfg
 from oslo_log import log
 import oslo_messaging as messaging
 from oslo_utils import excutils
@@ -67,6 +66,7 @@ from ironic.common import swift
 from ironic.conductor import base_manager
 from ironic.conductor import task_manager
 from ironic.conductor import utils
+from ironic.conf import CONF
 from ironic import objects
 from ironic.objects import base as objects_base
 
@@ -74,111 +74,6 @@ MANAGER_TOPIC = 'ironic.conductor_manager'
 
 LOG = log.getLogger(__name__)
 
-conductor_opts = [
-    cfg.StrOpt('api_url',
-               help=_('URL of Ironic API service. If not set ironic can '
-                      'get the current value from the keystone service '
-                      'catalog.')),
-    cfg.IntOpt('heartbeat_timeout',
-               default=60,
-               help=_('Maximum time (in seconds) since the last check-in '
-                      'of a conductor. A conductor is considered inactive '
-                      'when this time has been exceeded.')),
-    cfg.IntOpt('sync_power_state_interval',
-               default=60,
-               help=_('Interval between syncing the node power state to the '
-                      'database, in seconds.')),
-    cfg.IntOpt('check_provision_state_interval',
-               default=60,
-               help=_('Interval between checks of provision timeouts, '
-                      'in seconds.')),
-    cfg.IntOpt('deploy_callback_timeout',
-               default=1800,
-               help=_('Timeout (seconds) to wait for a callback from '
-                      'a deploy ramdisk. Set to 0 to disable timeout.')),
-    cfg.BoolOpt('force_power_state_during_sync',
-                default=True,
-                help=_('During sync_power_state, should the hardware power '
-                       'state be set to the state recorded in the database '
-                       '(True) or should the database be updated based on '
-                       'the hardware state (False).')),
-    cfg.IntOpt('power_state_sync_max_retries',
-               default=3,
-               help=_('During sync_power_state failures, limit the '
-                      'number of times Ironic should try syncing the '
-                      'hardware node power state with the node power state '
-                      'in DB')),
-    cfg.IntOpt('periodic_max_workers',
-               default=8,
-               help=_('Maximum number of worker threads that can be started '
-                      'simultaneously by a periodic task. Should be less '
-                      'than RPC thread pool size.')),
-    cfg.IntOpt('node_locked_retry_attempts',
-               default=3,
-               help=_('Number of attempts to grab a node lock.')),
-    cfg.IntOpt('node_locked_retry_interval',
-               default=1,
-               help=_('Seconds to sleep between node lock attempts.')),
-    cfg.BoolOpt('send_sensor_data',
-                default=False,
-                help=_('Enable sending sensor data message via the '
-                       'notification bus')),
-    cfg.IntOpt('send_sensor_data_interval',
-               default=600,
-               help=_('Seconds between conductor sending sensor data message'
-                      ' to ceilometer via the notification bus.')),
-    cfg.ListOpt('send_sensor_data_types',
-                default=['ALL'],
-                help=_('List of comma separated meter types which need to be'
-                       ' sent to Ceilometer. The default value, "ALL", is a '
-                       'special value meaning send all the sensor data.')),
-    cfg.IntOpt('sync_local_state_interval',
-               default=180,
-               help=_('When conductors join or leave the cluster, existing '
-                      'conductors may need to update any persistent '
-                      'local state as nodes are moved around the cluster. '
-                      'This option controls how often, in seconds, each '
-                      'conductor will check for nodes that it should '
-                      '"take over". Set it to a negative value to disable '
-                      'the check entirely.')),
-    cfg.BoolOpt('configdrive_use_swift',
-                default=False,
-                help=_('Whether to upload the config drive to Swift.')),
-    cfg.StrOpt('configdrive_swift_container',
-               default='ironic_configdrive_container',
-               help=_('Name of the Swift container to store config drive '
-                      'data. Used when configdrive_use_swift is True.')),
-    cfg.IntOpt('inspect_timeout',
-               default=1800,
-               help=_('Timeout (seconds) for waiting for node inspection. '
-                      '0 - unlimited.')),
-    cfg.BoolOpt('automated_clean',
-                default=True,
-                help=_('Enables or disables automated cleaning. Automated '
-                       'cleaning is a configurable set of steps, '
-                       'such as erasing disk drives, that are performed on '
-                       'the node to ensure it is in a baseline state and '
-                       'ready to be deployed to. This is '
-                       'done after instance deletion as well as during '
-                       'the transition from a "manageable" to "available" '
-                       'state. When enabled, the particular steps '
-                       'performed to clean a node depend on which driver '
-                       'that node is managed by; see the individual '
-                       'driver\'s documentation for details. '
-                       'NOTE: The introduction of the cleaning operation '
-                       'causes instance deletion to take significantly '
-                       'longer. In an environment where all tenants are '
-                       'trusted (eg, because there is only one tenant), '
-                       'this option could be safely disabled.')),
-    cfg.IntOpt('clean_callback_timeout',
-               default=1800,
-               help=_('Timeout (seconds) to wait for a callback from the '
-                      'ramdisk doing the cleaning. If the timeout is reached '
-                      'the node will be put in the "clean failed" provision '
-                      'state. Set to 0 to disable timeout.')),
-]
-CONF = cfg.CONF
-CONF.register_opts(conductor_opts, 'conductor')
 SYNC_EXCLUDED_STATES = (states.DEPLOYWAIT, states.CLEANWAIT, states.ENROLL)
 
 
