@@ -54,6 +54,8 @@ _opts = [
     ('iscsi', ironic.drivers.modules.iscsi_deploy.iscsi_opts),
     ('keystone', ironic.conf.keystone.opts),
     ('neutron', ironic.conf.neutron.opts),
+    ('metrics', ironic.conf.metrics.opts),
+    ('metrics_statsd', ironic.conf.metrics_statsd.opts),
     ('oneview', ironic.conf.oneview.opts),
     ('pxe', itertools.chain(
         ironic.drivers.modules.iscsi_deploy.pxe_opts,
