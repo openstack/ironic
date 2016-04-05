@@ -1,5 +1,5 @@
-# Copyright 2016 OpenStack Foundation
-# All Rights Reserved.
+# Copyright 2016 Intel Corporation
+# Copyright 2014 Rackspace, Inc.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -15,18 +15,15 @@
 
 from oslo_config import cfg
 
-from ironic.conf import cimc
-from ironic.conf import cisco_ucs
-from ironic.conf import conductor
-from ironic.conf import console
-from ironic.conf import database
-from ironic.conf import dhcp
+from ironic.common.i18n import _
 
-CONF = cfg.CONF
+opts = [
+    cfg.StrOpt('dhcp_provider',
+               default='neutron',
+               help=_('DHCP provider to use. "neutron" uses Neutron, and '
+                      '"none" uses a no-op provider.')),
+]
 
-cimc.register_opts(CONF)
-cisco_ucs.register_opts(CONF)
-conductor.register_opts(CONF)
-console.register_opts(CONF)
-database.register_opts(CONF)
-dhcp.register_opts(CONF)
+
+def register_opts(conf):
+    conf.register_opts(opts, group='dhcp')
