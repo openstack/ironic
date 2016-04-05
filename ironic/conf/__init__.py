@@ -21,6 +21,7 @@ from ironic.conf import conductor
 from ironic.conf import console
 from ironic.conf import database
 from ironic.conf import dhcp
+from ironic.conf import iboot
 
 CONF = cfg.CONF
 
@@ -30,3 +31,4 @@ conductor.register_opts(CONF)
 console.register_opts(CONF)
 database.register_opts(CONF)
 dhcp.register_opts(CONF)
+iboot.register_opts(CONF)
