@@ -22,7 +22,6 @@ Ironic Native IPMI power manager.
 import os
 
 from ironic_lib import utils as ironic_utils
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import importutils
@@ -36,6 +35,7 @@ from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
+from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import console_utils
 from ironic.drivers import utils as driver_utils
@@ -44,26 +44,6 @@ pyghmi = importutils.try_import('pyghmi')
 if pyghmi:
     from pyghmi import exceptions as pyghmi_exception
     from pyghmi.ipmi import command as ipmi_command
-
-opts = [
-    cfg.IntOpt('retry_timeout',
-               default=60,
-               help=_('Maximum time in seconds to retry IPMI operations. '
-                      'There is a tradeoff when setting this value. Setting '
-                      'this too low may cause older BMCs to crash and require '
-                      'a hard reset. However, setting too high can cause the '
-                      'sync power state periodic task to hang when there are '
-                      'slow or unresponsive BMCs.')),
-    cfg.IntOpt('min_command_interval',
-               default=5,
-               help=_('Minimum time, in seconds, between IPMI operations '
-                      'sent to a server. There is a risk with some hardware '
-                      'that setting this too low may cause the BMC to crash. '
-                      'Recommended setting is 5 seconds.')),
-]
-
-CONF = cfg.CONF
-CONF.register_opts(opts, group='ipmi')
 
 LOG = logging.getLogger(__name__)
 
