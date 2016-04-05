@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from ironic_lib import metrics_utils
 import pecan
 from pecan import rest
 from six.moves import http_client
@@ -26,6 +27,8 @@ from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
 from ironic.common import exception
 
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 # Property information for drivers:
 #   key = driver name;
@@ -139,6 +142,7 @@ class DriverPassthruController(rest.RestController):
         'methods': ['GET']
     }
 
+    @METRICS.timer('DriverPassthruController.methods')
     @expose.expose(wtypes.text, wtypes.text)
     def methods(self, driver_name):
         """Retrieve information about vendor methods of the given driver.
@@ -157,6 +161,7 @@ class DriverPassthruController(rest.RestController):
 
         return _VENDOR_METHODS[driver_name]
 
+    @METRICS.timer('DriverPassthruController._default')
     @expose.expose(wtypes.text, wtypes.text, wtypes.text,
                    body=wtypes.text)
     def _default(self, driver_name, method, data=None):
@@ -178,6 +183,7 @@ class DriverRaidController(rest.RestController):
         'logical_disk_properties': ['GET']
     }
 
+    @METRICS.timer('DriverRaidController.logical_disk_properties')
     @expose.expose(types.jsontype, wtypes.text)
     def logical_disk_properties(self, driver_name):
         """Returns the logical disk properties for the driver.
@@ -222,6 +228,7 @@ class DriversController(rest.RestController):
         'properties': ['GET'],
     }
 
+    @METRICS.timer('DriversController.get_all')
     @expose.expose(DriverList)
     def get_all(self):
         """Retrieve a list of drivers."""
@@ -232,6 +239,7 @@ class DriversController(rest.RestController):
         driver_list = pecan.request.dbapi.get_active_driver_dict()
         return DriverList.convert_with_links(driver_list)
 
+    @METRICS.timer('DriversController.get_one')
     @expose.expose(Driver, wtypes.text)
     def get_one(self, driver_name):
         """Retrieve a single driver."""
@@ -247,6 +255,7 @@ class DriversController(rest.RestController):
 
         raise exception.DriverNotFound(driver_name=driver_name)
 
+    @METRICS.timer('DriversController.properties')
     @expose.expose(wtypes.text, wtypes.text)
     def properties(self, driver_name):
         """Retrieve property information of the given driver.

@@ -135,6 +135,7 @@
 # is set in the configuration file and other logging
 # configuration options are ignored (for example,
 # logging_context_format_string). (string value)
+# Note: This option can be changed without restarting.
 # Deprecated group/name - [DEFAULT]/log_config
 #log_config_append = <None>
 
@@ -713,8 +714,12 @@
 # From oslo.db
 #
 
-# The file name to use with SQLite. (string value)
+# DEPRECATED: The file name to use with SQLite. (string value)
 # Deprecated group/name - [DEFAULT]/sqlite_db
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Should use config option connection or
+# slave_connection to connect the database.
 #sqlite_db = oslo.sqlite
 
 # If True, SQLite uses synchronous mode. (boolean value)
@@ -902,17 +907,18 @@
 
 # Size of EFI system partition in MiB when configuring UEFI
 # systems for local boot. (integer value)
-# Deprecated group/name - [deploy]/efi_system_partition_size
 #efi_system_partition_size = 200
+
+# Size of BIOS Boot partition in MiB when configuring GPT
+# partitioned systems for local boot in BIOS. (integer value)
+#bios_boot_partition_size = 1
 
 # Block size to use when writing to the nodes disk. (string
 # value)
-# Deprecated group/name - [deploy]/dd_block_size
 #dd_block_size = 1M
 
 # Maximum attempts to verify an iSCSI connection is active,
 # sleeping 1 second between attempts. (integer value)
-# Deprecated group/name - [deploy]/iscsi_verify_attempts
 #iscsi_verify_attempts = 3
 
 
@@ -1271,7 +1277,16 @@
 # From keystonemiddleware.auth_token
 #
 
-# Complete public Identity API endpoint. (string value)
+# Complete "public" Identity API endpoint. This endpoint
+# should not be an "admin" endpoint, as it should be
+# accessible by all end users. Unauthenticated clients are
+# redirected to this endpoint to authenticate. Although this
+# endpoint should  ideally be unversioned, client support in
+# the wild varies.  If you're using a versioned v2 endpoint
+# here, then this  should *not* be the same endpoint the
+# service user utilizes  for validating tokens, because normal
+# end users may not be  able to reach that endpoint. (string
+# value)
 #auth_uri = <None>
 
 # API version of the admin Identity API endpoint. (string
@@ -1468,6 +1483,49 @@
 
 # Timeout in ms on blocking socket operations (integer value)
 #socket_timeout = 10000
+
+
+[metrics]
+
+#
+# From ironic_lib.metrics
+#
+
+# Backend to use for the metrics system. (string value)
+# Allowed values: noop, statsd
+#backend = noop
+
+# Prepend the hostname to all metric names. The format of
+# metric names is
+# [global_prefix.][host_name.]prefix.metric_name. (boolean
+# value)
+#prepend_host = false
+
+# Split the prepended host value by "." and reverse it (to
+# better match the reverse hierarchical form of domain names).
+# (boolean value)
+#prepend_host_reverse = true
+
+# Prefix all metric names with this value. By default, there
+# is no global prefix. The format of metric names is
+# [global_prefix.][host_name.]prefix.metric_name. (string
+# value)
+#global_prefix = <None>
+
+
+[metrics_statsd]
+
+#
+# From ironic_lib.metrics_statsd
+#
+
+# Host for use with the statsd backend. (string value)
+#statsd_host = localhost
+
+# Port to use with the statsd backend. (port value)
+# Minimum value: 0
+# Maximum value: 65535
+#statsd_port = 8125
 
 
 [neutron]
