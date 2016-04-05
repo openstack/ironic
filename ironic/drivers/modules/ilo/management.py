@@ -15,7 +15,6 @@
 iLO Management Interface
 """
 
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import importutils
@@ -25,6 +24,7 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _, _LE, _LI, _LW
 from ironic.conductor import task_manager
+from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import firmware_processor
@@ -44,34 +44,6 @@ BOOT_DEVICE_ILO_TO_GENERIC = {
 
 MANAGEMENT_PROPERTIES = ilo_common.REQUIRED_PROPERTIES.copy()
 MANAGEMENT_PROPERTIES.update(ilo_common.CLEAN_PROPERTIES)
-
-clean_step_opts = [
-    cfg.IntOpt('clean_priority_reset_ilo',
-               default=0,
-               help=_('Priority for reset_ilo clean step.')),
-    cfg.IntOpt('clean_priority_reset_bios_to_default',
-               default=10,
-               help=_('Priority for reset_bios_to_default clean step.')),
-    cfg.IntOpt('clean_priority_reset_secure_boot_keys_to_default',
-               default=20,
-               help=_('Priority for reset_secure_boot_keys clean step. This '
-                      'step will reset the secure boot keys to manufacturing '
-                      'defaults.')),
-    cfg.IntOpt('clean_priority_clear_secure_boot_keys',
-               default=0,
-               help=_('Priority for clear_secure_boot_keys clean step. This '
-                      'step is not enabled by default. It can be enabled to '
-                      'clear all secure boot keys enrolled with iLO.')),
-    cfg.IntOpt('clean_priority_reset_ilo_credential',
-               default=30,
-               help=_('Priority for reset_ilo_credential clean step. This '
-                      'step requires "ilo_change_password" parameter to be '
-                      'updated in nodes\'s driver_info with the new '
-                      'password.')),
-]
-
-CONF = cfg.CONF
-CONF.register_opts(clean_step_opts, group='ilo')
 
 
 def _execute_ilo_clean_step(node, step, *args, **kwargs):

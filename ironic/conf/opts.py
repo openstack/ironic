@@ -32,10 +32,6 @@ import ironic.drivers.modules.agent_client
 import ironic.drivers.modules.amt.common
 import ironic.drivers.modules.amt.power
 import ironic.drivers.modules.deploy_utils
-import ironic.drivers.modules.ilo.common
-import ironic.drivers.modules.ilo.deploy
-import ironic.drivers.modules.ilo.management
-import ironic.drivers.modules.ilo.power
 import ironic.drivers.modules.image_cache
 import ironic.drivers.modules.inspector
 import ironic.drivers.modules.ipminative
@@ -84,11 +80,7 @@ _opts = [
         ironic.common.glance_service.v2.image_service.glance_opts,
         ironic.common.image_service.glance_opts)),
     ('iboot', ironic.conf.iboot.opts),
-    ('ilo', itertools.chain(
-        ironic.drivers.modules.ilo.common.opts,
-        ironic.drivers.modules.ilo.deploy.clean_opts,
-        ironic.drivers.modules.ilo.management.clean_step_opts,
-        ironic.drivers.modules.ilo.power.opts)),
+    ('ilo', ironic.conf.ilo.opts),
     ('inspector', ironic.drivers.modules.inspector.inspector_opts),
     ('ipmi', ironic.drivers.modules.ipminative.opts),
     ('irmc', itertools.chain(

@@ -21,7 +21,6 @@ import shutil
 import tempfile
 
 from ironic_lib import utils as ironic_utils
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 import six
@@ -39,6 +38,7 @@ from ironic.common import images
 from ironic.common import swift
 from ironic.common import utils
 from ironic.conductor import utils as manager_utils
+from ironic.conf import CONF
 from ironic.drivers.modules import deploy_utils
 
 ilo_client = importutils.try_import('proliantutils.ilo.client')
@@ -47,34 +47,6 @@ ilo_error = importutils.try_import('proliantutils.exception')
 STANDARD_LICENSE = 1
 ESSENTIALS_LICENSE = 2
 ADVANCED_LICENSE = 3
-
-opts = [
-    cfg.IntOpt('client_timeout',
-               default=60,
-               help=_('Timeout (in seconds) for iLO operations')),
-    cfg.PortOpt('client_port',
-                default=443,
-                help=_('Port to be used for iLO operations')),
-    cfg.StrOpt('swift_ilo_container',
-               default='ironic_ilo_container',
-               help=_('The Swift iLO container to store data.')),
-    cfg.IntOpt('swift_object_expiry_timeout',
-               default=900,
-               help=_('Amount of time in seconds for Swift objects to '
-                      'auto-expire.')),
-    cfg.BoolOpt('use_web_server_for_images',
-                default=False,
-                help=_('Set this to True to use http web server to host '
-                       'floppy images and generated boot ISO. This '
-                       'requires http_root and http_url to be configured '
-                       'in the [deploy] section of the config file. If this '
-                       'is set to False, then Ironic will use Swift '
-                       'to host the floppy images and generated '
-                       'boot_iso.')),
-]
-
-CONF = cfg.CONF
-CONF.register_opts(opts, group='ilo')
 
 LOG = logging.getLogger(__name__)
 

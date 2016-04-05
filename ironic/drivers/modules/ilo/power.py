@@ -16,7 +16,6 @@
 iLO Power Driver
 """
 
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import importutils
@@ -28,25 +27,11 @@ from ironic.common.i18n import _LE
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules.ilo import common as ilo_common
 
 ilo_error = importutils.try_import('proliantutils.exception')
-
-
-opts = [
-    cfg.IntOpt('power_retry',
-               default=6,
-               help=_('Number of times a power operation needs to be '
-                      'retried')),
-    cfg.IntOpt('power_wait',
-               default=2,
-               help=_('Amount of time in seconds to wait in between power '
-                      'operations')),
-]
-
-CONF = cfg.CONF
-CONF.register_opts(opts, group='ilo')
 
 LOG = logging.getLogger(__name__)
 

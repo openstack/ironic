@@ -22,6 +22,7 @@ from ironic.conf import console
 from ironic.conf import database
 from ironic.conf import dhcp
 from ironic.conf import iboot
+from ironic.conf import ilo
 
 CONF = cfg.CONF
 
@@ -32,3 +33,4 @@ console.register_opts(CONF)
 database.register_opts(CONF)
 dhcp.register_opts(CONF)
 iboot.register_opts(CONF)
+ilo.register_opts(CONF)

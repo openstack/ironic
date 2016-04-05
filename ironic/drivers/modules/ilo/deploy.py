@@ -15,7 +15,6 @@
 iLO Deploy Driver(s) and supporting methods.
 """
 
-from oslo_config import cfg
 from oslo_log import log as logging
 
 from ironic.common import boot_devices
@@ -27,6 +26,7 @@ from ironic.common import image_service
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.conf import CONF
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import boot as ilo_boot
@@ -36,20 +36,8 @@ from ironic.drivers.modules import pxe
 
 LOG = logging.getLogger(__name__)
 
-CONF = cfg.CONF
-
-clean_opts = [
-    cfg.IntOpt('clean_priority_erase_devices',
-               help=_('Priority for erase devices clean step. If unset, '
-                      'it defaults to 10. If set to 0, the step will be '
-                      'disabled and will not run during cleaning.'))
-]
-
 CONF.import_opt('pxe_append_params', 'ironic.drivers.modules.iscsi_deploy',
                 group='pxe')
-CONF.import_opt('swift_ilo_container', 'ironic.drivers.modules.ilo.common',
-                group='ilo')
-CONF.register_opts(clean_opts, group='ilo')
 
 
 def _prepare_agent_vmedia_boot(task):
