@@ -17,7 +17,6 @@ Modules required to work with ironic_inspector:
 
 import eventlet
 from futurist import periodics
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 
@@ -28,26 +27,12 @@ from ironic.common.i18n import _LI
 from ironic.common import keystone
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conf import CONF
 from ironic.drivers import base
 
 
 LOG = logging.getLogger(__name__)
 
-
-inspector_opts = [
-    cfg.BoolOpt('enabled', default=False,
-                help=_('whether to enable inspection using ironic-inspector')),
-    cfg.StrOpt('service_url',
-               help=_('ironic-inspector HTTP endpoint. If this is not set, '
-                      'the ironic-inspector client default '
-                      '(http://127.0.0.1:5050) will be used.')),
-    cfg.IntOpt('status_check_period', default=60,
-               help=_('period (in seconds) to check status of nodes '
-                      'on inspection')),
-]
-
-CONF = cfg.CONF
-CONF.register_opts(inspector_opts, group='inspector')
 CONF.import_opt('auth_strategy', 'ironic.api.app')
 
 client = importutils.try_import('ironic_inspector_client')

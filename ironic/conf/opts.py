@@ -33,7 +33,6 @@ import ironic.drivers.modules.amt.common
 import ironic.drivers.modules.amt.power
 import ironic.drivers.modules.deploy_utils
 import ironic.drivers.modules.image_cache
-import ironic.drivers.modules.inspector
 import ironic.drivers.modules.ipminative
 import ironic.drivers.modules.irmc.boot
 import ironic.drivers.modules.irmc.common
@@ -81,7 +80,7 @@ _opts = [
         ironic.common.image_service.glance_opts)),
     ('iboot', ironic.conf.iboot.opts),
     ('ilo', ironic.conf.ilo.opts),
-    ('inspector', ironic.drivers.modules.inspector.inspector_opts),
+    ('inspector', ironic.conf.inspector.opts),
     ('ipmi', ironic.drivers.modules.ipminative.opts),
     ('irmc', itertools.chain(
         ironic.drivers.modules.irmc.boot.opts,
