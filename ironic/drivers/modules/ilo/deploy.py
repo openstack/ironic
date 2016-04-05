@@ -170,7 +170,7 @@ class IloVirtualMediaIscsiDeploy(iscsi_deploy.ISCSIDeploy):
         :param task: a TaskManager instance containing the node to act on.
         :raises: IloOperationError, if some operation on iLO failed.
         """
-        if task.node.provision_state != states.ACTIVE:
+        if task.node.provision_state == states.DEPLOYING:
             _prepare_node_for_deploy(task)
 
         super(IloVirtualMediaIscsiDeploy, self).prepare(task)
@@ -218,7 +218,7 @@ class IloVirtualMediaAgentDeploy(agent.AgentDeploy):
         :param task: a TaskManager instance.
         :raises: IloOperationError, if some operation on iLO failed.
         """
-        if task.node.provision_state != states.ACTIVE:
+        if task.node.provision_state == states.DEPLOYING:
             _prepare_node_for_deploy(task)
 
         super(IloVirtualMediaAgentDeploy, self).prepare(task)
@@ -275,7 +275,7 @@ class IloPXEDeploy(iscsi_deploy.ISCSIDeploy):
         :raises: IloOperationError, if some operation on iLO failed.
         :raises: InvalidParameterValue, if some information is invalid.
         """
-        if task.node.provision_state != states.ACTIVE:
+        if task.node.provision_state == states.DEPLOYING:
             _prepare_node_for_deploy(task)
 
             # Check if 'boot_option' is compatible with 'boot_mode' and image.
