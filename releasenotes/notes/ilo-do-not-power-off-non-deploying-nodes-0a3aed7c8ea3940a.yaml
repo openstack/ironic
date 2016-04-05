@@ -1,10 +1,10 @@
 ---
 fixes:
-  - A bug was identified in the behavior of the ilo driver
+  - A bug was identified in the behavior of the iLO drivers
     where nodes that are not active but taking part of a
     conductor takeover could be powered off.
     In preparation for new features and functionality,
     that risk encountering this bug, we are limiting the
     deployment preparation steps to the ``deploying``
-    state to prevent nodes from being erroniuosly
+    state to prevent nodes from being erroneously
     powered off.
