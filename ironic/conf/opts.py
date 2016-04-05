@@ -26,7 +26,6 @@ import ironic.common.paths
 import ironic.common.service
 import ironic.common.swift
 import ironic.common.utils
-import ironic.db.sqlalchemy.models
 import ironic.dhcp.neutron
 import ironic.drivers.modules.agent
 import ironic.drivers.modules.agent_base_vendor
@@ -80,7 +79,7 @@ _opts = [
     ('cisco_ucs', ironic.conf.cisco_ucs.opts),
     ('conductor', ironic.conf.conductor.opts),
     ('console', ironic.conf.console.opts),
-    ('database', ironic.db.sqlalchemy.models.sql_opts),
+    ('database', ironic.conf.database.opts),
     ('deploy', ironic.drivers.modules.deploy_utils.deploy_opts),
     ('dhcp', ironic.common.dhcp_factory.dhcp_provider_opts),
     ('glance', itertools.chain(

@@ -18,7 +18,6 @@
 SQLAlchemy models for baremetal data.
 """
 
-from oslo_config import cfg
 from oslo_db import options as db_options
 from oslo_db.sqlalchemy import models
 from oslo_db.sqlalchemy import types as db_types
@@ -29,27 +28,19 @@ from sqlalchemy import schema, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import orm
 
-from ironic.common.i18n import _
 from ironic.common import paths
-
-
-sql_opts = [
-    cfg.StrOpt('mysql_engine',
-               default='InnoDB',
-               help=_('MySQL engine to use.'))
-]
+from ironic.conf import CONF
 
 _DEFAULT_SQL_CONNECTION = 'sqlite:///' + paths.state_path_def('ironic.sqlite')
 
 
-cfg.CONF.register_opts(sql_opts, 'database')
-db_options.set_defaults(cfg.CONF, _DEFAULT_SQL_CONNECTION, 'ironic.sqlite')
+db_options.set_defaults(CONF, _DEFAULT_SQL_CONNECTION, 'ironic.sqlite')
 
 
 def table_args():
-    engine_name = urlparse.urlparse(cfg.CONF.database.connection).scheme
+    engine_name = urlparse.urlparse(CONF.database.connection).scheme
     if engine_name == 'mysql':
-        return {'mysql_engine': cfg.CONF.database.mysql_engine,
+        return {'mysql_engine': CONF.database.mysql_engine,
                 'mysql_charset': "utf8"}
     return None
 
