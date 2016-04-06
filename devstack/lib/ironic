@@ -146,8 +146,11 @@ case $IRONIC_RAMDISK_TYPE in
         IRONIC_AGENT_KERNEL_URL=${IRONIC_AGENT_KERNEL_URL:-http://tarballs.openstack.org/ironic-python-agent/tinyipa/files/tinyipa-${IPA_DOWNLOAD_BRANCH}.vmlinuz}
         IRONIC_AGENT_RAMDISK_URL=${IRONIC_AGENT_RAMDISK_URL:-http://tarballs.openstack.org/ironic-python-agent/tinyipa/files/tinyipa-${IPA_DOWNLOAD_BRANCH}.gz}
     ;;
+    dib)
+        echo "IRONIC_RAMDISK_TYPE setting 'dib' has no pre-built images"
+    ;;
     *)
-        die $LINENO "Unrecognised IRONIC_RAMDISK_TYPE: $IRONIC_RAMDISK_TYPE. Expected 'coreos' or 'tinyipa'"
+        die $LINENO "Unrecognised IRONIC_RAMDISK_TYPE: $IRONIC_RAMDISK_TYPE. Expected 'coreos', 'tinyipa' or 'dib'"
     ;;
 esac
 
