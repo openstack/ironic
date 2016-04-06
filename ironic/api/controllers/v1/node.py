@@ -118,7 +118,12 @@ def hide_fields_in_newer_versions(obj):
         obj.target_raid_config = wsme.Unset
 
 
-def assert_juno_provision_state_name(obj):
+def update_state_in_older_versions(obj):
+    """Change provision state names for API backwards compatability.
+
+    :param obj: The object being returned to the API client that is
+                to be updated by this method.
+    """
     # if requested version is < 1.2, convert AVAILABLE to the old NOSTATE
     if (pecan.request.version.minor < versions.MINOR_2_AVAILABLE_STATE and
             obj.provision_state == ir_states.AVAILABLE):
@@ -306,7 +311,7 @@ class NodeStates(base.APIBase):
         states = NodeStates()
         for attr in attr_list:
             setattr(states, attr, getattr(rpc_node, attr))
-        assert_juno_provision_state_name(states)
+        update_state_in_older_versions(states)
         return states
 
     @classmethod
@@ -748,7 +753,7 @@ class Node(base.APIBase):
         if fields is not None:
             api_utils.check_for_invalid_fields(fields, node.as_dict())
 
-        assert_juno_provision_state_name(node)
+        update_state_in_older_versions(node)
         hide_fields_in_newer_versions(node)
         show_password = pecan.request.context.show_password
         show_states_links = (
