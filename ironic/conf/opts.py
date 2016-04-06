@@ -33,8 +33,6 @@ import ironic.drivers.modules.amt.common
 import ironic.drivers.modules.amt.power
 import ironic.drivers.modules.deploy_utils
 import ironic.drivers.modules.image_cache
-import ironic.drivers.modules.irmc.boot
-import ironic.drivers.modules.irmc.common
 import ironic.drivers.modules.iscsi_deploy
 import ironic.drivers.modules.oneview.common
 import ironic.drivers.modules.pxe
@@ -81,9 +79,7 @@ _opts = [
     ('ilo', ironic.conf.ilo.opts),
     ('inspector', ironic.conf.inspector.opts),
     ('ipmi', ironic.conf.ipmi.opts),
-    ('irmc', itertools.chain(
-        ironic.drivers.modules.irmc.boot.opts,
-        ironic.drivers.modules.irmc.common.opts)),
+    ('irmc', ironic.conf.irmc.opts),
     ('iscsi', ironic.drivers.modules.iscsi_deploy.iscsi_opts),
     ('keystone', ironic.common.keystone.keystone_opts),
     ('neutron', ironic.common.neutron.neutron_opts),
