@@ -1,0 +1,6 @@
+---
+other:
+  - Do not show DEBUG logging from keystoneauth and keystonemiddleware
+    by default.
+  - Log eventlet.wsgi.server events with a proper logger name and ignore DEBUG
+    logging by default.

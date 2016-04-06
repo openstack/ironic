@@ -129,13 +129,15 @@ def prepare_service(argv=[]):
                                          'sqlalchemy=WARNING',
                                          'keystoneclient=INFO',
                                          'stevedore=INFO',
-                                         'eventlet.wsgi.server=WARNING',
+                                         'eventlet.wsgi.server=INFO',
                                          'iso8601=WARNING',
                                          'paramiko=WARNING',
                                          'requests=WARNING',
                                          'neutronclient=WARNING',
                                          'glanceclient=WARNING',
                                          'urllib3.connectionpool=WARNING',
+                                         'keystonemiddleware.auth_token=INFO',
+                                         'keystoneauth.session=INFO',
                                          ])
     config.parse_args(argv)
     log.setup(CONF, 'ironic')
@@ -168,8 +170,7 @@ class WSGIService(service.ServiceBase):
         self.server = wsgi.Server(CONF, name, self.app,
                                   host=CONF.api.host_ip,
                                   port=CONF.api.port,
-                                  use_ssl=use_ssl,
-                                  logger_name=name)
+                                  use_ssl=use_ssl)
 
     def start(self):
         """Start serving this service using loaded configuration.
