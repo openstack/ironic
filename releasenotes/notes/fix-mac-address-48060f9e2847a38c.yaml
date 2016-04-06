@@ -1,0 +1,3 @@
+---
+fixes:
+  - This fixes InvalidMAC exception of iRMC out-of-band inspection.
