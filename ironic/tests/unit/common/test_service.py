@@ -32,8 +32,7 @@ class TestWSGIService(base.TestCase):
                                             test_service.app,
                                             host='0.0.0.0',
                                             port=6385,
-                                            use_ssl=False,
-                                            logger_name=service_name)
+                                            use_ssl=False)
 
     @mock.patch.object(service.wsgi, 'Server')
     def test_workers_set_correct_setting(self, wsgi_server):
@@ -64,5 +63,4 @@ class TestWSGIService(base.TestCase):
                                             srv.app,
                                             host='0.0.0.0',
                                             port=6385,
-                                            use_ssl=True,
-                                            logger_name=service_name)
+                                            use_ssl=True)
