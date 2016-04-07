@@ -14,21 +14,12 @@
 
 from keystoneclient import exceptions as ksexception
 from oslo_concurrency import lockutils
-from oslo_config import cfg
 from six.moves.urllib import parse
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.conf import CONF
 
-CONF = cfg.CONF
-
-keystone_opts = [
-    cfg.StrOpt('region_name',
-               help=_('The region used for getting endpoints of OpenStack'
-                      ' services.')),
-]
-
-CONF.register_opts(keystone_opts, group='keystone')
 CONF.import_group('keystone_authtoken', 'keystonemiddleware.auth_token')
 
 _KS_CLIENT = None

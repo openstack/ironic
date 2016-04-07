@@ -20,7 +20,6 @@ import ironic.common.glance_service.v2.image_service
 import ironic.common.hash_ring
 import ironic.common.image_service
 import ironic.common.images
-import ironic.common.keystone
 import ironic.common.neutron
 import ironic.common.paths
 import ironic.common.service
@@ -81,7 +80,7 @@ _opts = [
     ('ipmi', ironic.conf.ipmi.opts),
     ('irmc', ironic.conf.irmc.opts),
     ('iscsi', ironic.drivers.modules.iscsi_deploy.iscsi_opts),
-    ('keystone', ironic.common.keystone.keystone_opts),
+    ('keystone', ironic.conf.keystone.opts),
     ('neutron', ironic.common.neutron.neutron_opts),
     ('oneview', ironic.drivers.modules.oneview.common.opts),
     ('pxe', itertools.chain(
