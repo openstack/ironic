@@ -1,0 +1,16 @@
+---
+features:
+  - A new configuration option
+    ``[deploy]continue_if_disk_secure_erase_fails``, which
+    has a default value of False, has been added. If set to
+    True, the Ironic Python Agent will revert to a disk shred
+    operation if an ATA secure erase operation fails. Under
+    normal circumstances, the failure of an ATA secure erase
+    operation results in the node being put in ``clean failed``
+    state.
+upgrades:
+  - A new configuration option
+    ``[deploy]continue_if_disk_secure_erase_fails``, which
+    has a default value of False, has been added. The default
+    setting represents the standard behavior of the Ironic
+    Python Agent during a cleaning failure.

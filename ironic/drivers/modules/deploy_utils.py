@@ -77,6 +77,14 @@ deploy_opts = [
                        "deploy.shred_random_overwrite_interations is 0. This "
                        "option is only used if a device could not be ATA "
                        "Secure Erased. Defaults to True.")),
+    cfg.BoolOpt('continue_if_disk_secure_erase_fails',
+                default=False,
+                help=_('Defines what to do if an ATA secure erase operation '
+                       'fails during cleaning in the Ironic Python Agent. '
+                       'If False, the cleaning operation will fail and the '
+                       'node will be put in ``clean failed`` state. '
+                       'If True, shred will be invoked and cleaning will '
+                       'continue.')),
     cfg.BoolOpt('power_off_after_deploy_failure',
                 default=True,
                 help=_('Whether to power off a node after deploy failure. '
@@ -659,6 +667,8 @@ def agent_add_clean_params(task):
     info['agent_erase_devices_iterations'] = random_iterations
     zeroize = CONF.deploy.shred_final_overwrite_with_zeros
     info['agent_erase_devices_zeroize'] = zeroize
+    erase_fallback = CONF.deploy.continue_if_disk_secure_erase_fails
+    info['agent_continue_if_ata_erase_failed'] = erase_fallback
 
     task.node.driver_internal_info = info
     task.node.save()

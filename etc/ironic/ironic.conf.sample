@@ -850,6 +850,13 @@
 # Erased. Defaults to True. (boolean value)
 #shred_final_overwrite_with_zeros = true
 
+# Defines what to do if an ATA secure erase operation fails
+# during cleaning in the Ironic Python Agent. If False, the
+# cleaning operation will fail and the node will be put in
+# ``clean failed`` state. If True, shred will be invoked and
+# cleaning will continue. (boolean value)
+#continue_if_disk_secure_erase_fails = false
+
 # Whether to power off a node after deploy failure. Defaults
 # to True. (boolean value)
 #power_off_after_deploy_failure = true
