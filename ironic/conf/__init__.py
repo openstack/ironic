@@ -27,6 +27,7 @@ from ironic.conf import inspector
 from ironic.conf import ipmi
 from ironic.conf import irmc
 from ironic.conf import keystone
+from ironic.conf import oneview
 
 CONF = cfg.CONF
 
@@ -42,3 +43,4 @@ inspector.register_opts(CONF)
 ipmi.register_opts(CONF)
 irmc.register_opts(CONF)
 keystone.register_opts(CONF)
+oneview.register_opts(CONF)

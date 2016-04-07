@@ -33,7 +33,6 @@ import ironic.drivers.modules.amt.power
 import ironic.drivers.modules.deploy_utils
 import ironic.drivers.modules.image_cache
 import ironic.drivers.modules.iscsi_deploy
-import ironic.drivers.modules.oneview.common
 import ironic.drivers.modules.pxe
 import ironic.drivers.modules.seamicro
 import ironic.drivers.modules.snmp
@@ -82,7 +81,7 @@ _opts = [
     ('iscsi', ironic.drivers.modules.iscsi_deploy.iscsi_opts),
     ('keystone', ironic.conf.keystone.opts),
     ('neutron', ironic.common.neutron.neutron_opts),
-    ('oneview', ironic.drivers.modules.oneview.common.opts),
+    ('oneview', ironic.conf.oneview.opts),
     ('pxe', itertools.chain(
         ironic.drivers.modules.iscsi_deploy.pxe_opts,
         ironic.drivers.modules.pxe.pxe_opts)),
