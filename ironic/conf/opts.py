@@ -34,7 +34,6 @@ import ironic.drivers.modules.deploy_utils
 import ironic.drivers.modules.image_cache
 import ironic.drivers.modules.iscsi_deploy
 import ironic.drivers.modules.pxe
-import ironic.drivers.modules.snmp
 import ironic.drivers.modules.ssh
 import ironic.drivers.modules.virtualbox
 import ironic.netconf
@@ -85,7 +84,7 @@ _opts = [
         ironic.drivers.modules.iscsi_deploy.pxe_opts,
         ironic.drivers.modules.pxe.pxe_opts)),
     ('seamicro', ironic.conf.seamicro.opts),
-    ('snmp', ironic.drivers.modules.snmp.opts),
+    ('snmp', ironic.conf.snmp.opts),
     ('ssh', ironic.drivers.modules.ssh.libvirt_opts),
     ('swift', ironic.common.swift.swift_opts),
     ('virtualbox', ironic.drivers.modules.virtualbox.opts),

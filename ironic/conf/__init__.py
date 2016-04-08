@@ -29,6 +29,7 @@ from ironic.conf import irmc
 from ironic.conf import keystone
 from ironic.conf import oneview
 from ironic.conf import seamicro
+from ironic.conf import snmp
 
 CONF = cfg.CONF
 
@@ -46,3 +47,4 @@ irmc.register_opts(CONF)
 keystone.register_opts(CONF)
 oneview.register_opts(CONF)
 seamicro.register_opts(CONF)
+snmp.register_opts(CONF)
