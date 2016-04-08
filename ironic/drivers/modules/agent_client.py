@@ -130,9 +130,20 @@ class AgentClient(object):
                              params=params,
                              wait=wait)
 
-    def start_iscsi_target(self, node, iqn, portal_port=3260):
-        """Expose the node's disk as an ISCSI target."""
-        params = {'iqn': iqn, 'portal_port': portal_port}
+    def start_iscsi_target(self, node, iqn,
+                           portal_port=3260, wipe_disk_metadata=False):
+        """Expose the node's disk as an ISCSI target.
+
+        :param node: an Ironic node object
+        :param iqn: iSCSI target IQN
+        :param portal_port: iSCSI portal port
+        :param wipe_disk_metadata: True if the agent should wipe first the
+        disk magic strings like the partition table, RAID or filesystem
+        signature.
+        """
+        params = {'iqn': iqn,
+                  'portal_port': portal_port,
+                  'wipe_disk_metadata': wipe_disk_metadata}
         return self._command(node=node,
                              method='iscsi.start_iscsi_target',
                              params=params,

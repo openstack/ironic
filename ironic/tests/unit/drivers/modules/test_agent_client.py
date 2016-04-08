@@ -179,7 +179,7 @@ class TestAgentClient(base.TestCase):
         self.client._command = mock.MagicMock(spec_set=[])
         iqn = 'fake-iqn'
         port = 3260
-        params = {'iqn': iqn, 'portal_port': port}
+        params = {'iqn': iqn, 'portal_port': port, 'wipe_disk_metadata': False}
 
         self.client.start_iscsi_target(self.node, iqn, port)
         self.client._command.assert_called_once_with(
