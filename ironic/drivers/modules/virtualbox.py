@@ -14,7 +14,6 @@
 VirtualBox Driver Modules
 """
 
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 
@@ -26,6 +25,7 @@ from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
+from ironic.conf import CONF
 from ironic.drivers import base
 
 pyremotevbox = importutils.try_import('pyremotevbox')
@@ -46,14 +46,6 @@ VIRTUALBOX_TO_IRONIC_POWER_MAPPING = {
     'Running': states.POWER_ON,
     'Error': states.ERROR
 }
-
-opts = [
-    cfg.PortOpt('port',
-                default=18083,
-                help=_('Port on which VirtualBox web service is listening.')),
-]
-CONF = cfg.CONF
-CONF.register_opts(opts, group='virtualbox')
 
 LOG = logging.getLogger(__name__)
 

@@ -33,7 +33,6 @@ import ironic.drivers.modules.deploy_utils
 import ironic.drivers.modules.image_cache
 import ironic.drivers.modules.iscsi_deploy
 import ironic.drivers.modules.pxe
-import ironic.drivers.modules.virtualbox
 import ironic.netconf
 
 _default_opt_lists = [
@@ -85,7 +84,7 @@ _opts = [
     ('snmp', ironic.conf.snmp.opts),
     ('ssh', ironic.conf.ssh.opts),
     ('swift', ironic.conf.swift.opts),
-    ('virtualbox', ironic.drivers.modules.virtualbox.opts),
+    ('virtualbox', ironic.conf.virtualbox.opts),
 ]
 
 
