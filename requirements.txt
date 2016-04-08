@@ -10,7 +10,7 @@ WebOb>=1.2.3 # MIT
 greenlet>=0.3.2 # MIT
 netaddr!=0.7.16,>=0.7.12 # BSD
 paramiko>=1.16.0 # LGPL
-python-neutronclient!=4.1.0,>=2.6.0 # Apache-2.0
+python-neutronclient>=4.1.1 # Apache-2.0
 python-glanceclient>=2.0.0 # Apache-2.0
 python-keystoneclient!=1.8.0,!=2.1.0,>=1.6.0 # Apache-2.0
 ironic-lib>=1.1.0 # Apache-2.0
@@ -20,7 +20,7 @@ stevedore>=1.5.0 # Apache-2.0
 pysendfile>=2.0.0 # MIT
 websockify>=0.6.1 # LGPLv3
 oslo.concurrency>=3.5.0 # Apache-2.0
-oslo.config>=3.7.0 # Apache-2.0
+oslo.config>=3.9.0 # Apache-2.0
 oslo.context>=2.2.0 # Apache-2.0
 oslo.db>=4.1.0 # Apache-2.0
 oslo.rootwrap>=2.0.0 # Apache-2.0
