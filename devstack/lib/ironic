@@ -88,6 +88,7 @@ IRONIC_VM_NETWORK_BRIDGE=${IRONIC_VM_NETWORK_BRIDGE:-brbm}
 IRONIC_VM_NETWORK_RANGE=${IRONIC_VM_NETWORK_RANGE:-192.0.2.0/24}
 IRONIC_VM_MACS_CSV_FILE=${IRONIC_VM_MACS_CSV_FILE:-$IRONIC_DATA_DIR/ironic_macs.csv}
 IRONIC_AUTHORIZED_KEYS_FILE=${IRONIC_AUTHORIZED_KEYS_FILE:-$HOME/.ssh/authorized_keys}
+IRONIC_CLEAN_NET_NAME=${IRONIC_CLEAN_NET_NAME:-private}
 
 # By default, baremetal VMs will console output to file.
 IRONIC_VM_LOG_CONSOLE=$(trueorfalse True IRONIC_VM_LOG_CONSOLE)
@@ -514,7 +515,7 @@ function init_ironic {
     if is_service_enabled neutron; then
         # Save private network as cleaning network
         local cleaning_network_uuid
-        cleaning_network_uuid=$(neutron net-list | grep private | get_field 1)
+        cleaning_network_uuid=$(neutron net-show "$IRONIC_CLEAN_NET_NAME" |  grep ' id ' | get_field 2)
         die_if_not_set $LINENO cleaning_network_uuid "Failed to get ironic cleaning network id"
         iniset $IRONIC_CONF_FILE neutron cleaning_network_uuid ${cleaning_network_uuid}
     fi
