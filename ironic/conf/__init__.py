@@ -31,6 +31,7 @@ from ironic.conf import oneview
 from ironic.conf import seamicro
 from ironic.conf import snmp
 from ironic.conf import ssh
+from ironic.conf import swift
 
 CONF = cfg.CONF
 
@@ -50,3 +51,4 @@ oneview.register_opts(CONF)
 seamicro.register_opts(CONF)
 snmp.register_opts(CONF)
 ssh.register_opts(CONF)
+swift.register_opts(CONF)

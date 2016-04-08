@@ -14,7 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo_config import cfg
 from six.moves import http_client
 from six.moves.urllib import parse
 from swiftclient import client as swift_client
@@ -24,17 +23,7 @@ from swiftclient import utils as swift_utils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import keystone
-
-swift_opts = [
-    cfg.IntOpt('swift_max_retries',
-               default=2,
-               help=_('Maximum number of times to retry a Swift request, '
-                      'before failing.'))
-]
-
-
-CONF = cfg.CONF
-CONF.register_opts(swift_opts, group='swift')
+from ironic.conf import CONF
 
 CONF.import_opt('admin_user', 'keystonemiddleware.auth_token',
                 group='keystone_authtoken')
