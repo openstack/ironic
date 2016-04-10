@@ -10,7 +10,3 @@ Upgrade can be performed by:
 $ ironic-dbsync - for backward compatibility
 $ ironic-dbsync upgrade
 # ironic-dbsync upgrade --revision head
-
-Downgrading db:
-$ ironic-dbsync downgrade
-$ ironic-dbsync downgrade --revision base

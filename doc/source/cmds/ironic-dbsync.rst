@@ -4,7 +4,7 @@ ironic-dbsync
 
 The :command:`ironic-dbsync` utility is used to create the database schema
 tables that the ironic services will use for storage. It can also be used to
-upgrade (or downgrade) existing database tables when migrating between
+upgrade existing database tables when migrating between
 different versions of ironic.
 
 The `Alembic library <http://alembic.readthedocs.org>`_ is used to perform
@@ -44,7 +44,7 @@ run the following::
 
   Show the program's version number and exit.
 
-.. option:: upgrade, downgrade, stamp, revision, version, create_schema
+.. option:: upgrade, stamp, revision, version, create_schema
 
   The :ref:`command <dbsync_cmds>` to run.
 
@@ -99,26 +99,6 @@ It assumes that there are no existing tables.
 An example of creating database tables with the most recent version::
 
   ironic-dbsync --config-file=/etc/ironic/ironic.conf create_schema
-
-downgrade
----------
-
-.. program:: downgrade
-
-.. option:: -h, --help
-
-  Show help for downgrade and exit.
-
-.. option:: --revision <REVISION>
-
-  The revision number you want to downgrade to.
-
-This command will revert existing database tables to a previous version.
-The version can be specified with the :option:`--revision` option.
-
-An example of downgrading to table versions at revision 2581ebaf0cb2::
-
-  ironic-dbsync --config-file=/etc/ironic/ironic.conf downgrade --revision 2581ebaf0cb2
 
 revision
 --------
