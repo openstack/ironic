@@ -130,9 +130,9 @@ class AgentClient(object):
                              params=params,
                              wait=wait)
 
-    def start_iscsi_target(self, node, iqn):
+    def start_iscsi_target(self, node, iqn, portal_port=3260):
         """Expose the node's disk as an ISCSI target."""
-        params = {'iqn': iqn}
+        params = {'iqn': iqn, 'portal_port': portal_port}
         return self._command(node=node,
                              method='iscsi.start_iscsi_target',
                              params=params,

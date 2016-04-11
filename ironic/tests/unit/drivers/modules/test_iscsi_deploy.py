@@ -174,6 +174,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         expected_iqn = 'iqn.2008-10.org.openstack:%s' % self.node.uuid
         expected_opts = {
             'iscsi_target_iqn': expected_iqn,
+            'iscsi_portal_port': 3260,
             'deployment_id': self.node.uuid,
             'deployment_key': fake_key,
             'disk': fake_disk,
@@ -504,7 +505,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
     def test_do_agent_iscsi_deploy_okay(self, build_options_mock,
                                         continue_deploy_mock):
         build_options_mock.return_value = {'deployment_key': 'abcdef',
-                                           'iscsi_target_iqn': 'iqn-qweqwe'}
+                                           'iscsi_target_iqn': 'iqn-qweqwe',
+                                           'iscsi_portal_port': 3260}
         agent_client_mock = mock.MagicMock(spec_set=agent_client.AgentClient)
         agent_client_mock.start_iscsi_target.return_value = {
             'command_status': 'SUCCESS', 'command_error': None}
@@ -520,7 +522,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                 task, agent_client_mock)
             build_options_mock.assert_called_once_with(task.node)
             agent_client_mock.start_iscsi_target.assert_called_once_with(
-                task.node, 'iqn-qweqwe')
+                task.node, 'iqn-qweqwe', 3260)
             continue_deploy_mock.assert_called_once_with(
                 task, error=None, iqn='iqn-qweqwe', key='abcdef',
                 address='1.2.3.4')
@@ -534,7 +536,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
     def test_do_agent_iscsi_deploy_start_iscsi_failure(self,
                                                        build_options_mock):
         build_options_mock.return_value = {'deployment_key': 'abcdef',
-                                           'iscsi_target_iqn': 'iqn-qweqwe'}
+                                           'iscsi_target_iqn': 'iqn-qweqwe',
+                                           'iscsi_portal_port': 3260}
         agent_client_mock = mock.MagicMock(spec_set=agent_client.AgentClient)
         agent_client_mock.start_iscsi_target.return_value = {
             'command_status': 'FAILED', 'command_error': 'booom'}
@@ -549,7 +552,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                               task, agent_client_mock)
             build_options_mock.assert_called_once_with(task.node)
             agent_client_mock.start_iscsi_target.assert_called_once_with(
-                task.node, 'iqn-qweqwe')
+                task.node, 'iqn-qweqwe', 3260)
             self.node.refresh()
             self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
             self.assertEqual(states.ACTIVE, self.node.target_provision_state)
