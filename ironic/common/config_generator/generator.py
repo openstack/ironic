@@ -52,7 +52,7 @@ MULTISTROPT = "MultiStrOpt"
 PORTOPT = "PortOpt"
 
 OPT_TYPES = {
-    OPT: 'type of value is unknown',
+    OPT: 'unknown value',
     STROPT: 'string value',
     BOOLOPT: 'boolean value',
     INTOPT: 'integer value',
@@ -291,20 +291,17 @@ def _print_opt(opt, group):
 
     # NOTE(lintan): choices are mutually exclusive with 'min/max',
     # see oslo.config for more details.
-    if min_value is not None and max_value is not None:
-        print('# Possible values: %(min_value)d-%(max_value)d' %
-              {'min_value': min_value, 'max_value': max_value})
-    elif min_value is not None:
+    if min_value is not None:
         print('# Minimum value: %d' % min_value)
-    elif max_value is not None:
+    if max_value is not None:
         print('# Maximum value: %d' % max_value)
-    elif choices is not None:
+    if choices is not None:
         if choices == []:
             print('# No possible values.')
         else:
             choices_text = ', '.join([_get_choice_text(choice)
                                      for choice in choices])
-            print('# Possible values: %s' % choices_text)
+            print('# Allowed values: %s' % choices_text)
 
     if opt.deprecated_opts:
         for deprecated_opt in opt.deprecated_opts:
@@ -316,11 +313,11 @@ def _print_opt(opt, group):
                   (deprecated_group,
                    deprecated_name))
     if opt.deprecated_for_removal:
-        print('# This option is deprecated and planned for removal in a '
-              'future release.')
+        print('# This option is deprecated for removal.')
+        print('# Its value may be silently ignored in the future.')
     try:
         if opt_default is None:
-            print('#%s=<None>' % opt_name)
+            print('#%s = <None>' % opt_name)
         else:
             _print_type(opt_type, opt_name, opt_default)
         print('')
@@ -331,39 +328,42 @@ def _print_opt(opt, group):
 
 def _print_type(opt_type, opt_name, opt_default):
     if opt_type == OPT:
-        print('#%s=%s' % (opt_name, opt_default))
+        print('#%s = %s' % (opt_name, opt_default))
     elif opt_type == STROPT:
         assert(isinstance(opt_default, six.string_types))
-        print('#%s=%s' % (opt_name, _sanitize_default(opt_name,
-                                                      opt_default)))
+        value = _sanitize_default(opt_name, opt_default)
+        if value:
+            print('#%s = %s' % (opt_name, value))
+        else:
+            print('#%s =' % (opt_name))
     elif opt_type == BOOLOPT:
         assert(isinstance(opt_default, bool))
-        print('#%s=%s' % (opt_name, str(opt_default).lower()))
+        print('#%s = %s' % (opt_name, str(opt_default).lower()))
     elif opt_type == INTOPT:
         assert(isinstance(opt_default, int) and
                not isinstance(opt_default, bool))
-        print('#%s=%s' % (opt_name, opt_default))
+        print('#%s = %s' % (opt_name, opt_default))
     elif opt_type == PORTOPT:
         assert(isinstance(opt_default, int) and
                not isinstance(opt_default, bool))
-        print('#%s=%s' % (opt_name, opt_default))
+        print('#%s = %s' % (opt_name, opt_default))
     elif opt_type == FLOATOPT:
         assert(isinstance(opt_default, float))
-        print('#%s=%s' % (opt_name, opt_default))
+        print('#%s = %s' % (opt_name, opt_default))
     elif opt_type == LISTOPT:
         assert(isinstance(opt_default, list))
-        print('#%s=%s' % (opt_name, ','.join(opt_default)))
+        print('#%s = %s' % (opt_name, ','.join(opt_default)))
     elif opt_type == DICTOPT:
         assert(isinstance(opt_default, dict))
         opt_default_strlist = [str(key) + ':' + str(value)
                                for (key, value) in opt_default.items()]
-        print('#%s=%s' % (opt_name, ','.join(opt_default_strlist)))
+        print('#%s = %s' % (opt_name, ','.join(opt_default_strlist)))
     elif opt_type == MULTISTROPT:
         assert(isinstance(opt_default, list))
         if not opt_default:
             opt_default = ['']
         for default in opt_default:
-            print('#%s=%s' % (opt_name, default))
+            print('#%s = %s' % (opt_name, default))
     else:
         raise ValueError("unknown oslo_config type %s" % opt_type)
 

@@ -7,18 +7,18 @@
 # Authentication strategy used by ironic-api. "noauth" should
 # not be used in a production environment because all
 # authentication will be disabled. (string value)
-# Possible values: noauth, keystone
-#auth_strategy=keystone
+# Allowed values: noauth, keystone
+#auth_strategy = keystone
 
 # Return server tracebacks in the API response for any error
 # responses. WARNING: this is insecure and should not be used
 # in a production environment. (boolean value)
-#debug_tracebacks_in_api=false
+#debug_tracebacks_in_api = false
 
 # Enable pecan debug mode. WARNING: this is insecure and
 # should not be used in a production environment. (boolean
 # value)
-#pecan_debug=false
+#pecan_debug = false
 
 
 #
@@ -33,7 +33,7 @@
 # present on your system may be found by enumerating the
 # "ironic.drivers" entrypoint. An example may be found in the
 # developer documentation online. (list value)
-#enabled_drivers=pxe_ipmitool
+#enabled_drivers = pxe_ipmitool
 
 
 #
@@ -44,7 +44,7 @@
 # exception message (a programming error). If True, raise an
 # exception; if False, use the unformatted message. (boolean
 # value)
-#fatal_exception_format_errors=false
+#fatal_exception_format_errors = false
 
 
 #
@@ -62,7 +62,7 @@
 # smooth in most cases. The default is suitable for up to a
 # few hundred conductors. Too many partitions has a CPU
 # impact. (integer value)
-#hash_partition_exponent=5
+#hash_partition_exponent = 5
 
 # [Experimental Feature] Number of hosts to map onto each hash
 # partition. Setting this to more than one will cause
@@ -70,11 +70,11 @@
 # environments and potentially allow the Ironic cluster to
 # recover more quickly if a conductor instance is terminated.
 # (integer value)
-#hash_distribution_replicas=1
+#hash_distribution_replicas = 1
 
 # Interval (in seconds) between hash ring resets. (integer
 # value)
-#hash_ring_reset_interval=180
+#hash_ring_reset_interval = 180
 
 
 #
@@ -83,17 +83,17 @@
 
 # If True, convert backing images to "raw" disk image format.
 # (boolean value)
-#force_raw_images=true
+#force_raw_images = true
 
 # Path to isolinux binary file. (string value)
-#isolinux_bin=/usr/lib/syslinux/isolinux.bin
+#isolinux_bin = /usr/lib/syslinux/isolinux.bin
 
 # Template file for isolinux configuration file. (string
 # value)
-#isolinux_config_template=$pybasedir/common/isolinux_config.template
+#isolinux_config_template = $pybasedir/common/isolinux_config.template
 
 # Template file for grub configuration file. (string value)
-#grub_config_template=$pybasedir/common/grub_conf.template
+#grub_config_template = $pybasedir/common/grub_conf.template
 
 
 #
@@ -102,15 +102,15 @@
 
 # Directory where the ironic python module is installed.
 # (string value)
-#pybasedir=/usr/lib/python/site-packages/ironic/ironic
+#pybasedir = /usr/lib/python/site-packages/ironic/ironic
 
 # Directory where ironic binaries are installed. (string
 # value)
-#bindir=$pybasedir/bin
+#bindir = $pybasedir/bin
 
 # Top-level directory for maintaining ironic's state. (string
 # value)
-#state_path=$pybasedir
+#state_path = $pybasedir
 
 
 #
@@ -119,15 +119,16 @@
 
 # Default interval (in seconds) for running driver periodic
 # tasks. (integer value)
-# This option is deprecated and planned for removal in a future release.
-#periodic_interval=60
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+#periodic_interval = 60
 
 # Name of this node. This can be an opaque identifier. It is
 # not necessarily a hostname, FQDN, or IP address. However,
 # the node name must be valid within an AMQP key, and if using
 # ZeroMQ, a valid hostname, FQDN, or IP address. (string
 # value)
-#host=localhost
+#host = localhost
 
 
 #
@@ -136,11 +137,11 @@
 
 # Path to the rootwrap configuration file to use for running
 # commands as root. (string value)
-#rootwrap_config=/etc/ironic/rootwrap.conf
+#rootwrap_config = /etc/ironic/rootwrap.conf
 
 # Temporary working directory, default is Python temp dir.
 # (string value)
-#tempdir=/tmp
+#tempdir = /tmp
 
 
 #
@@ -149,7 +150,7 @@
 
 # Run image downloads and raw format conversions in parallel.
 # (boolean value)
-#parallel_image_downloads=false
+#parallel_image_downloads = false
 
 
 #
@@ -159,7 +160,7 @@
 # IP address of this host. If unset, will determine the IP
 # programmatically. If unable to do so, will use "127.0.0.1".
 # (string value)
-#my_ip=10.0.0.1
+#my_ip = 10.0.0.1
 
 
 #
@@ -168,12 +169,13 @@
 
 # If set to true, the logging level will be set to DEBUG
 # instead of the default INFO level. (boolean value)
-#debug=false
+#debug = false
 
 # If set to false, the logging level will be set to WARNING
 # instead of the default INFO level. (boolean value)
-# This option is deprecated and planned for removal in a future release.
-#verbose=true
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+#verbose = true
 
 # The name of a logging configuration file. This file is
 # appended to any existing logging configuration files. For
@@ -184,25 +186,25 @@
 # configuration options are ignored (for example,
 # logging_context_format_string). (string value)
 # Deprecated group/name - [DEFAULT]/log_config
-#log_config_append=<None>
+#log_config_append = <None>
 
 # Defines the format string for %%(asctime)s in log records.
 # Default: %(default)s . This option is ignored if
 # log_config_append is set. (string value)
-#log_date_format=%Y-%m-%d %H:%M:%S
+#log_date_format = %Y-%m-%d %H:%M:%S
 
 # (Optional) Name of log file to send logging output to. If no
 # default is set, logging will go to stderr as defined by
 # use_stderr. This option is ignored if log_config_append is
 # set. (string value)
 # Deprecated group/name - [DEFAULT]/logfile
-#log_file=<None>
+#log_file = <None>
 
 # (Optional) The base directory used for relative log_file
 # paths. This option is ignored if log_config_append is set.
 # (string value)
 # Deprecated group/name - [DEFAULT]/logdir
-#log_dir=<None>
+#log_dir = <None>
 
 # Uses logging handler designed to watch file system. When log
 # file is moved or removed this handler will open a new log
@@ -210,60 +212,60 @@
 # only if log_file option is specified and Linux platform is
 # used. This option is ignored if log_config_append is set.
 # (boolean value)
-#watch_log_file=false
+#watch_log_file = false
 
 # Use syslog for logging. Existing syslog format is DEPRECATED
 # and will be changed later to honor RFC5424. This option is
 # ignored if log_config_append is set. (boolean value)
-#use_syslog=false
+#use_syslog = false
 
 # Syslog facility to receive log lines. This option is ignored
 # if log_config_append is set. (string value)
-#syslog_log_facility=LOG_USER
+#syslog_log_facility = LOG_USER
 
 # Log output to standard error. This option is ignored if
 # log_config_append is set. (boolean value)
-#use_stderr=true
+#use_stderr = true
 
 # Format string to use for log messages with context. (string
 # value)
-#logging_context_format_string=%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [%(request_id)s %(user_identity)s] %(instance)s%(message)s
+#logging_context_format_string = %(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [%(request_id)s %(user_identity)s] %(instance)s%(message)s
 
 # Format string to use for log messages when context is
 # undefined. (string value)
-#logging_default_format_string=%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] %(instance)s%(message)s
+#logging_default_format_string = %(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [-] %(instance)s%(message)s
 
 # Additional data to append to log message when logging level
 # for the message is DEBUG. (string value)
-#logging_debug_format_suffix=%(funcName)s %(pathname)s:%(lineno)d
+#logging_debug_format_suffix = %(funcName)s %(pathname)s:%(lineno)d
 
 # Prefix each line of exception output with this format.
 # (string value)
-#logging_exception_prefix=%(asctime)s.%(msecs)03d %(process)d ERROR %(name)s %(instance)s
+#logging_exception_prefix = %(asctime)s.%(msecs)03d %(process)d ERROR %(name)s %(instance)s
 
 # Defines the format string for %(user_identity)s that is used
 # in logging_context_format_string. (string value)
-#logging_user_identity_format=%(user)s %(tenant)s %(domain)s %(user_domain)s %(project_domain)s
+#logging_user_identity_format = %(user)s %(tenant)s %(domain)s %(user_domain)s %(project_domain)s
 
 # List of package logging levels in logger=LEVEL pairs. This
 # option is ignored if log_config_append is set. (list value)
-#default_log_levels=amqp=WARN,amqplib=WARN,boto=WARN,qpid=WARN,sqlalchemy=WARN,suds=INFO,oslo.messaging=INFO,iso8601=WARN,requests.packages.urllib3.connectionpool=WARN,urllib3.connectionpool=WARN,websocket=WARN,requests.packages.urllib3.util.retry=WARN,urllib3.util.retry=WARN,keystonemiddleware=WARN,routes.middleware=WARN,stevedore=WARN,taskflow=WARN,keystoneauth=WARN,oslo.cache=INFO,dogpile.core.dogpile=INFO
+#default_log_levels = amqp=WARN,amqplib=WARN,boto=WARN,qpid=WARN,sqlalchemy=WARN,suds=INFO,oslo.messaging=INFO,iso8601=WARN,requests.packages.urllib3.connectionpool=WARN,urllib3.connectionpool=WARN,websocket=WARN,requests.packages.urllib3.util.retry=WARN,urllib3.util.retry=WARN,keystonemiddleware=WARN,routes.middleware=WARN,stevedore=WARN,taskflow=WARN,keystoneauth=WARN,oslo.cache=INFO,dogpile.core.dogpile=INFO
 
 # Enables or disables publication of error events. (boolean
 # value)
-#publish_errors=false
+#publish_errors = false
 
 # The format for an instance that is passed with the log
 # message. (string value)
-#instance_format="[instance: %(uuid)s] "
+#instance_format = "[instance: %(uuid)s] "
 
 # The format for an instance UUID that is passed with the log
 # message. (string value)
-#instance_uuid_format="[instance: %(uuid)s] "
+#instance_uuid_format = "[instance: %(uuid)s] "
 
 # Enables or disables fatal status of deprecations. (boolean
 # value)
-#fatal_deprecations=false
+#fatal_deprecations = false
 
 
 #
@@ -272,88 +274,90 @@
 
 # Size of RPC connection pool. (integer value)
 # Deprecated group/name - [DEFAULT]/rpc_conn_pool_size
-#rpc_conn_pool_size=30
+#rpc_conn_pool_size = 30
 
 # ZeroMQ bind address. Should be a wildcard (*), an ethernet
 # interface, or IP. The "host" option should point or resolve
 # to this address. (string value)
-#rpc_zmq_bind_address=*
+#rpc_zmq_bind_address = *
 
 # MatchMaker driver. (string value)
-# Possible values: redis, dummy
-#rpc_zmq_matchmaker=redis
+# Allowed values: redis, dummy
+#rpc_zmq_matchmaker = redis
 
 # Type of concurrency used. Either "native" or "eventlet"
 # (string value)
-#rpc_zmq_concurrency=eventlet
+#rpc_zmq_concurrency = eventlet
 
 # Number of ZeroMQ contexts, defaults to 1. (integer value)
-#rpc_zmq_contexts=1
+#rpc_zmq_contexts = 1
 
 # Maximum number of ingress messages to locally buffer per
 # topic. Default is unlimited. (integer value)
-#rpc_zmq_topic_backlog=<None>
+#rpc_zmq_topic_backlog = <None>
 
 # Directory for holding IPC sockets. (string value)
-#rpc_zmq_ipc_dir=/var/run/openstack
+#rpc_zmq_ipc_dir = /var/run/openstack
 
 # Name of this node. Must be a valid hostname, FQDN, or IP
 # address. Must match "host" option, if running Nova. (string
 # value)
-#rpc_zmq_host=localhost
+#rpc_zmq_host = localhost
 
 # Seconds to wait before a cast expires (TTL). The default
 # value of -1 specifies an infinite linger period. The value
 # of 0 specifies no linger period. Pending messages shall be
 # discarded immediately when the socket is closed. Only
 # supported by impl_zmq. (integer value)
-#rpc_cast_timeout=-1
+#rpc_cast_timeout = -1
 
 # The default number of seconds that poll should wait. Poll
 # raises timeout exception when timeout expired. (integer
 # value)
-#rpc_poll_timeout=1
+#rpc_poll_timeout = 1
 
 # Expiration timeout in seconds of a name service record about
 # existing target ( < 0 means no timeout). (integer value)
-#zmq_target_expire=120
+#zmq_target_expire = 120
 
 # Use PUB/SUB pattern for fanout methods. PUB/SUB always uses
 # proxy. (boolean value)
-#use_pub_sub=true
+#use_pub_sub = true
 
 # Minimal port number for random ports range. (port value)
-# Possible values: 0-65535
-#rpc_zmq_min_port=49152
+# Minimum value: 0
+# Maximum value: 65535
+#rpc_zmq_min_port = 49152
 
 # Maximal port number for random ports range. (integer value)
-# Possible values: 1-65536
-#rpc_zmq_max_port=65536
+# Minimum value: 1
+# Maximum value: 65536
+#rpc_zmq_max_port = 65536
 
 # Number of retries to find free port number before fail with
 # ZMQBindError. (integer value)
-#rpc_zmq_bind_port_retries=100
+#rpc_zmq_bind_port_retries = 100
 
 # Size of executor thread pool. (integer value)
 # Deprecated group/name - [DEFAULT]/rpc_thread_pool_size
-#executor_thread_pool_size=64
+#executor_thread_pool_size = 64
 
 # Seconds to wait for a response from a call. (integer value)
-#rpc_response_timeout=60
+#rpc_response_timeout = 60
 
 # A URL representing the messaging driver to use and its full
 # configuration. If not set, we fall back to the rpc_backend
 # option and driver specific configuration. (string value)
-#transport_url=<None>
+#transport_url = <None>
 
 # The messaging driver to use, defaults to rabbit. Other
 # drivers include amqp and zmq. (string value)
-#rpc_backend=rabbit
+#rpc_backend = rabbit
 
 # The default exchange under which topics are scoped. May be
 # overridden by an exchange name specified in the
 # transport_url option. (string value)
-#control_exchange=openstack
+#control_exchange = openstack
 
 
 #
@@ -362,7 +366,7 @@
 
 # Some periodic tasks can be run in a separate process. Should
 # we run them here? (boolean value)
-#run_external_periodic_tasks=true
+#run_external_periodic_tasks = true
 
 
 #
@@ -377,22 +381,22 @@
 # the smallest unused port number within the specified range
 # of port numbers.  The chosen port is displayed in the
 # service's log file. (string value)
-#backdoor_port=<None>
+#backdoor_port = <None>
 
 # Enable eventlet backdoor, using the provided path as a unix
 # socket that can receive connections. This option is mutually
 # exclusive with 'backdoor_port' in that only one should be
 # provided. If both are provided then the existence of this
 # option overrides the usage of that option. (string value)
-#backdoor_socket=<None>
+#backdoor_socket = <None>
 
 # Enables or disables logging values of all registered options
 # when starting a service (at DEBUG level). (boolean value)
-#log_options=true
+#log_options = true
 
 # Specify a timeout after which a gracefully shutdown server
 # will exit. Zero value means endless wait. (integer value)
-#graceful_shutdown_timeout=60
+#graceful_shutdown_timeout = 60
 
 
 [agent]
@@ -405,25 +409,25 @@
 # boot. This option is deprecated and will be removed in
 # Mitaka release. Please use [pxe]pxe_append_params instead.
 # (string value)
-#agent_pxe_append_params=nofb nomodeset vga=normal
+#agent_pxe_append_params = nofb nomodeset vga=normal
 
 # DEPRECATED. Template file for PXE configuration. This option
 # is deprecated and will be removed in Mitaka release. Please
 # use [pxe]pxe_config_template instead. (string value)
-#agent_pxe_config_template=$pybasedir/drivers/modules/agent_config.template
+#agent_pxe_config_template = $pybasedir/drivers/modules/agent_config.template
 
 # Whether Ironic will manage booting of the agent ramdisk. If
 # set to False, you will need to configure your mechanism to
 # allow booting the agent ramdisk. (boolean value)
 # Deprecated group/name - [agent]/manage_tftp
-#manage_agent_boot=true
+#manage_agent_boot = true
 
 # The memory size in MiB consumed by agent when it is booted
 # on a bare metal node. This is used for checking if the image
 # can be downloaded and deployed on the bare metal node after
 # booting agent ramdisk. This may be set according to the
 # memory consumed by the agent ramdisk image. (integer value)
-#memory_consumed_by_agent=0
+#memory_consumed_by_agent = 0
 
 # Whether the agent ramdisk should stream raw images directly
 # onto the disk or not. By streaming raw images directly onto
@@ -432,7 +436,7 @@
 # prior to writing it to the disk. Unless the disk where the
 # image will be copied to is really slow, this option should
 # be set to True. Defaults to True. (boolean value)
-#stream_raw_images=true
+#stream_raw_images = true
 
 
 #
@@ -441,16 +445,16 @@
 
 # Maximum interval (in seconds) for agent heartbeats. (integer
 # value)
-#heartbeat_timeout=300
+#heartbeat_timeout = 300
 
 # Number of times to retry getting power state to check if
 # bare metal node has been powered off after a soft power off.
 # (integer value)
-#post_deploy_get_power_state_retries=6
+#post_deploy_get_power_state_retries = 6
 
 # Amount of time (in seconds) to wait between polling power
 # state after trigger soft poweroff. (integer value)
-#post_deploy_get_power_state_retry_interval=5
+#post_deploy_get_power_state_retry_interval = 5
 
 
 #
@@ -459,7 +463,7 @@
 
 # API version to use for communicating with the ramdisk agent.
 # (string value)
-#agent_api_version=v1
+#agent_api_version = v1
 
 
 [amt]
@@ -469,8 +473,8 @@
 #
 
 # Protocol used for AMT endpoint (string value)
-# Possible values: http, https
-#protocol=http
+# Allowed values: http, https
+#protocol = http
 
 # Time interval (in seconds) for successive awake call to AMT
 # interface, this depends on the IdleTimeout setting on AMT
@@ -479,7 +483,7 @@
 # go to sleep at all. Setting awake_interval=0 will disable
 # awake call. (integer value)
 # Minimum value: 0
-#awake_interval=60
+#awake_interval = 60
 
 
 #
@@ -488,11 +492,11 @@
 
 # Maximum number of times to attempt an AMT operation, before
 # failing (integer value)
-#max_attempts=3
+#max_attempts = 3
 
 # Amount of time (in seconds) to wait, before retrying an AMT
 # operation (integer value)
-#action_wait=10
+#action_wait = 10
 
 
 [api]
@@ -502,15 +506,16 @@
 #
 
 # The IP address on which ironic-api listens. (string value)
-#host_ip=0.0.0.0
+#host_ip = 0.0.0.0
 
 # The TCP port on which ironic-api listens. (port value)
-# Possible values: 0-65535
-#port=6385
+# Minimum value: 0
+# Maximum value: 65535
+#port = 6385
 
 # The maximum number of items returned in a single response
 # from a collection resource. (integer value)
-#max_limit=1000
+#max_limit = 1000
 
 # Public URL to use when building the links to the API
 # resources (for example, "https://ironic.rocks:6384"). If
@@ -518,13 +523,13 @@
 # If the API is operating behind a proxy, you will want to
 # change this to represent the proxy's URL. Defaults to None.
 # (string value)
-#public_endpoint=<None>
+#public_endpoint = <None>
 
 # Number of workers for OpenStack Ironic API service. The
 # default is equal to the number of CPUs available if that can
 # be determined, else a default worker count of 1 is returned.
 # (integer value)
-#api_workers=<None>
+#api_workers = <None>
 
 # Enable the integrated stand-alone API to service requests
 # via HTTPS instead of HTTP. If there is a front-end service
@@ -532,7 +537,7 @@
 # should be False; note, you will want to change public API
 # endpoint to represent SSL termination URL with
 # 'public_endpoint' option. (boolean value)
-#enable_ssl_api=false
+#enable_ssl_api = false
 
 
 [cimc]
@@ -543,11 +548,11 @@
 
 # Number of times a power operation needs to be retried
 # (integer value)
-#max_retry=6
+#max_retry = 6
 
 # Amount of time in seconds to wait in between power
 # operations (integer value)
-#action_interval=10
+#action_interval = 10
 
 
 [cisco_ucs]
@@ -558,11 +563,11 @@
 
 # Number of times a power operation needs to be retried
 # (integer value)
-#max_retry=6
+#max_retry = 6
 
 # Amount of time in seconds to wait in between power
 # operations (integer value)
-#action_interval=5
+#action_interval = 5
 
 
 [conductor]
@@ -575,10 +580,10 @@
 # threads will be reserved by the conductor itself for
 # handling heart beats and periodic tasks. (integer value)
 # Minimum value: 3
-#workers_pool_size=100
+#workers_pool_size = 100
 
 # Seconds between conductor heart beats. (integer value)
-#heartbeat_interval=10
+#heartbeat_interval = 10
 
 
 #
@@ -588,59 +593,59 @@
 # URL of Ironic API service. If not set ironic can get the
 # current value from the keystone service catalog. (string
 # value)
-#api_url=<None>
+#api_url = <None>
 
 # Maximum time (in seconds) since the last check-in of a
 # conductor. A conductor is considered inactive when this time
 # has been exceeded. (integer value)
-#heartbeat_timeout=60
+#heartbeat_timeout = 60
 
 # Interval between syncing the node power state to the
 # database, in seconds. (integer value)
-#sync_power_state_interval=60
+#sync_power_state_interval = 60
 
 # Interval between checks of provision timeouts, in seconds.
 # (integer value)
-#check_provision_state_interval=60
+#check_provision_state_interval = 60
 
 # Timeout (seconds) to wait for a callback from a deploy
 # ramdisk. Set to 0 to disable timeout. (integer value)
-#deploy_callback_timeout=1800
+#deploy_callback_timeout = 1800
 
 # During sync_power_state, should the hardware power state be
 # set to the state recorded in the database (True) or should
 # the database be updated based on the hardware state (False).
 # (boolean value)
-#force_power_state_during_sync=true
+#force_power_state_during_sync = true
 
 # During sync_power_state failures, limit the number of times
 # Ironic should try syncing the hardware node power state with
 # the node power state in DB (integer value)
-#power_state_sync_max_retries=3
+#power_state_sync_max_retries = 3
 
 # Maximum number of worker threads that can be started
 # simultaneously by a periodic task. Should be less than RPC
 # thread pool size. (integer value)
-#periodic_max_workers=8
+#periodic_max_workers = 8
 
 # Number of attempts to grab a node lock. (integer value)
-#node_locked_retry_attempts=3
+#node_locked_retry_attempts = 3
 
 # Seconds to sleep between node lock attempts. (integer value)
-#node_locked_retry_interval=1
+#node_locked_retry_interval = 1
 
 # Enable sending sensor data message via the notification bus
 # (boolean value)
-#send_sensor_data=false
+#send_sensor_data = false
 
 # Seconds between conductor sending sensor data message to
 # ceilometer via the notification bus. (integer value)
-#send_sensor_data_interval=600
+#send_sensor_data_interval = 600
 
 # List of comma separated meter types which need to be sent to
 # Ceilometer. The default value, "ALL", is a special value
 # meaning send all the sensor data. (list value)
-#send_sensor_data_types=ALL
+#send_sensor_data_types = ALL
 
 # When conductors join or leave the cluster, existing
 # conductors may need to update any persistent local state as
@@ -648,18 +653,18 @@
 # often, in seconds, each conductor will check for nodes that
 # it should "take over". Set it to a negative value to disable
 # the check entirely. (integer value)
-#sync_local_state_interval=180
+#sync_local_state_interval = 180
 
 # Whether to upload the config drive to Swift. (boolean value)
-#configdrive_use_swift=false
+#configdrive_use_swift = false
 
 # Name of the Swift container to store config drive data. Used
 # when configdrive_use_swift is True. (string value)
-#configdrive_swift_container=ironic_configdrive_container
+#configdrive_swift_container = ironic_configdrive_container
 
 # Timeout (seconds) for waiting for node inspection. 0 -
 # unlimited. (integer value)
-#inspect_timeout=1800
+#inspect_timeout = 1800
 
 # Enables or disables automated cleaning. Automated cleaning
 # is a configurable set of steps, such as erasing disk drives,
@@ -675,13 +680,13 @@
 # are trusted (eg, because there is only one tenant), this
 # option could be safely disabled. (boolean value)
 # Deprecated group/name - [conductor]/clean_nodes
-#automated_clean=true
+#automated_clean = true
 
 # Timeout (seconds) to wait for a callback from the ramdisk
 # doing the cleaning. If the timeout is reached the node will
 # be put in the "clean failed" provision state. Set to 0 to
 # disable timeout. (integer value)
-#clean_callback_timeout=1800
+#clean_callback_timeout = 1800
 
 
 [console]
@@ -691,23 +696,23 @@
 #
 
 # Path to serial console terminal program (string value)
-#terminal=shellinaboxd
+#terminal = shellinaboxd
 
 # Directory containing the terminal SSL cert(PEM) for serial
 # console access (string value)
-#terminal_cert_dir=<None>
+#terminal_cert_dir = <None>
 
 # Directory for holding terminal pid files. If not specified,
 # the temporary directory will be used. (string value)
-#terminal_pid_dir=<None>
+#terminal_pid_dir = <None>
 
 # Time interval (in seconds) for checking the status of
 # console subprocess. (integer value)
-#subprocess_checking_interval=1
+#subprocess_checking_interval = 1
 
 # Time (in seconds) to wait for the console subprocess to
 # start. (integer value)
-#subprocess_timeout=10
+#subprocess_timeout = 10
 
 
 [cors]
@@ -718,27 +723,27 @@
 
 # Indicate whether this resource may be shared with the domain
 # received in the requests "origin" header. (list value)
-#allowed_origin=<None>
+#allowed_origin = <None>
 
 # Indicate that the actual request can include user
 # credentials (boolean value)
-#allow_credentials=true
+#allow_credentials = true
 
 # Indicate which headers are safe to expose to the API.
 # Defaults to HTTP Simple Headers. (list value)
-#expose_headers=Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma
+#expose_headers = Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma
 
 # Maximum cache age of CORS preflight requests. (integer
 # value)
-#max_age=3600
+#max_age = 3600
 
 # Indicate which methods can be used during the actual
 # request. (list value)
-#allow_methods=GET,POST,PUT,DELETE,OPTIONS
+#allow_methods = GET,POST,PUT,DELETE,OPTIONS
 
 # Indicate which header field names may be used during the
 # actual request. (list value)
-#allow_headers=Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma
+#allow_headers = Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma
 
 
 [cors.subdomain]
@@ -749,27 +754,27 @@
 
 # Indicate whether this resource may be shared with the domain
 # received in the requests "origin" header. (list value)
-#allowed_origin=<None>
+#allowed_origin = <None>
 
 # Indicate that the actual request can include user
 # credentials (boolean value)
-#allow_credentials=true
+#allow_credentials = true
 
 # Indicate which headers are safe to expose to the API.
 # Defaults to HTTP Simple Headers. (list value)
-#expose_headers=Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma
+#expose_headers = Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma
 
 # Maximum cache age of CORS preflight requests. (integer
 # value)
-#max_age=3600
+#max_age = 3600
 
 # Indicate which methods can be used during the actual
 # request. (list value)
-#allow_methods=GET,POST,PUT,DELETE,OPTIONS
+#allow_methods = GET,POST,PUT,DELETE,OPTIONS
 
 # Indicate which header field names may be used during the
 # actual request. (list value)
-#allow_headers=Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma
+#allow_headers = Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma
 
 
 [database]
@@ -779,7 +784,7 @@
 #
 
 # MySQL engine to use. (string value)
-#mysql_engine=InnoDB
+#mysql_engine = InnoDB
 
 
 #
@@ -788,108 +793,108 @@
 
 # The file name to use with SQLite. (string value)
 # Deprecated group/name - [DEFAULT]/sqlite_db
-#sqlite_db=oslo.sqlite
+#sqlite_db = oslo.sqlite
 
 # If True, SQLite uses synchronous mode. (boolean value)
 # Deprecated group/name - [DEFAULT]/sqlite_synchronous
-#sqlite_synchronous=true
+#sqlite_synchronous = true
 
 # The back end to use for the database. (string value)
 # Deprecated group/name - [DEFAULT]/db_backend
-#backend=sqlalchemy
+#backend = sqlalchemy
 
 # The SQLAlchemy connection string to use to connect to the
 # database. (string value)
 # Deprecated group/name - [DEFAULT]/sql_connection
 # Deprecated group/name - [DATABASE]/sql_connection
 # Deprecated group/name - [sql]/connection
-#connection=<None>
+#connection = <None>
 
 # The SQLAlchemy connection string to use to connect to the
 # slave database. (string value)
-#slave_connection=<None>
+#slave_connection = <None>
 
 # The SQL mode to be used for MySQL sessions. This option,
 # including the default, overrides any server-set SQL mode. To
 # use whatever SQL mode is set by the server configuration,
 # set this to no value. Example: mysql_sql_mode= (string
 # value)
-#mysql_sql_mode=TRADITIONAL
+#mysql_sql_mode = TRADITIONAL
 
 # Timeout before idle SQL connections are reaped. (integer
 # value)
 # Deprecated group/name - [DEFAULT]/sql_idle_timeout
 # Deprecated group/name - [DATABASE]/sql_idle_timeout
 # Deprecated group/name - [sql]/idle_timeout
-#idle_timeout=3600
+#idle_timeout = 3600
 
 # Minimum number of SQL connections to keep open in a pool.
 # (integer value)
 # Deprecated group/name - [DEFAULT]/sql_min_pool_size
 # Deprecated group/name - [DATABASE]/sql_min_pool_size
-#min_pool_size=1
+#min_pool_size = 1
 
 # Maximum number of SQL connections to keep open in a pool.
 # (integer value)
 # Deprecated group/name - [DEFAULT]/sql_max_pool_size
 # Deprecated group/name - [DATABASE]/sql_max_pool_size
-#max_pool_size=<None>
+#max_pool_size = <None>
 
 # Maximum number of database connection retries during
 # startup. Set to -1 to specify an infinite retry count.
 # (integer value)
 # Deprecated group/name - [DEFAULT]/sql_max_retries
 # Deprecated group/name - [DATABASE]/sql_max_retries
-#max_retries=10
+#max_retries = 10
 
 # Interval between retries of opening a SQL connection.
 # (integer value)
 # Deprecated group/name - [DEFAULT]/sql_retry_interval
 # Deprecated group/name - [DATABASE]/reconnect_interval
-#retry_interval=10
+#retry_interval = 10
 
 # If set, use this value for max_overflow with SQLAlchemy.
 # (integer value)
 # Deprecated group/name - [DEFAULT]/sql_max_overflow
 # Deprecated group/name - [DATABASE]/sqlalchemy_max_overflow
-#max_overflow=50
+#max_overflow = 50
 
 # Verbosity of SQL debugging information: 0=None,
 # 100=Everything. (integer value)
 # Deprecated group/name - [DEFAULT]/sql_connection_debug
-#connection_debug=0
+#connection_debug = 0
 
 # Add Python stack traces to SQL as comment strings. (boolean
 # value)
 # Deprecated group/name - [DEFAULT]/sql_connection_trace
-#connection_trace=false
+#connection_trace = false
 
 # If set, use this value for pool_timeout with SQLAlchemy.
 # (integer value)
 # Deprecated group/name - [DATABASE]/sqlalchemy_pool_timeout
-#pool_timeout=<None>
+#pool_timeout = <None>
 
 # Enable the experimental use of database reconnect on
 # connection lost. (boolean value)
-#use_db_reconnect=false
+#use_db_reconnect = false
 
 # Seconds between retries of a database transaction. (integer
 # value)
-#db_retry_interval=1
+#db_retry_interval = 1
 
 # If True, increases the interval between retries of a
 # database operation up to db_max_retry_interval. (boolean
 # value)
-#db_inc_retry_interval=true
+#db_inc_retry_interval = true
 
 # If db_inc_retry_interval is set, the maximum seconds between
 # retries of a database operation. (integer value)
-#db_max_retry_interval=10
+#db_max_retry_interval = 10
 
 # Maximum retries in case of connection error or deadlock
 # error before error is raised. Set to -1 to specify an
 # infinite retry count. (integer value)
-#db_max_retries=20
+#db_max_retries = 20
 
 
 [deploy]
@@ -901,27 +906,27 @@
 # ironic-conductor node's HTTP server URL. Example:
 # http://192.1.2.3:8080 (string value)
 # Deprecated group/name - [pxe]/http_url
-#http_url=<None>
+#http_url = <None>
 
 # ironic-conductor node's HTTP root path. (string value)
 # Deprecated group/name - [pxe]/http_root
-#http_root=/httpboot
+#http_root = /httpboot
 
 # Priority to run in-band erase devices via the Ironic Python
 # Agent ramdisk. If unset, will use the priority set in the
 # ramdisk (defaults to 10 for the GenericHardwareManager). If
 # set to 0, will not run during cleaning. (integer value)
 # Deprecated group/name - [agent]/agent_erase_devices_priority
-#erase_devices_priority=<None>
+#erase_devices_priority = <None>
 
 # Number of iterations to be run for erasing devices. (integer
 # value)
 # Deprecated group/name - [agent]/agent_erase_devices_iterations
-#erase_devices_iterations=1
+#erase_devices_iterations = 1
 
 # Whether to power off a node after deploy failure. Defaults
 # to True. (boolean value)
-#power_off_after_deploy_failure=true
+#power_off_after_deploy_failure = true
 
 
 [dhcp]
@@ -932,7 +937,7 @@
 
 # DHCP provider to use. "neutron" uses Neutron, and "none"
 # uses a no-op provider. (string value)
-#dhcp_provider=neutron
+#dhcp_provider = neutron
 
 
 [disk_partitioner]
@@ -945,13 +950,13 @@
 # continues to check for activity on the attached iSCSI device
 # status at this interval prior to copying the image to the
 # node, in seconds (integer value)
-#check_device_interval=1
+#check_device_interval = 1
 
 # The maximum number of times to check that the device is not
 # accessed by another process. If the device is still busy
 # after that, the disk partitioning will be treated as having
 # failed. (integer value)
-#check_device_max_retries=20
+#check_device_max_retries = 20
 
 
 [disk_utils]
@@ -963,17 +968,17 @@
 # Size of EFI system partition in MiB when configuring UEFI
 # systems for local boot. (integer value)
 # Deprecated group/name - [deploy]/efi_system_partition_size
-#efi_system_partition_size=200
+#efi_system_partition_size = 200
 
 # Block size to use when writing to the nodes disk. (string
 # value)
 # Deprecated group/name - [deploy]/dd_block_size
-#dd_block_size=1M
+#dd_block_size = 1M
 
 # Maximum attempts to verify an iSCSI connection is active,
 # sleeping 1 second between attempts. (integer value)
 # Deprecated group/name - [deploy]/iscsi_verify_attempts
-#iscsi_verify_attempts=3
+#iscsi_verify_attempts = 3
 
 
 [glance]
@@ -985,11 +990,11 @@
 # A list of URL schemes that can be downloaded directly via
 # the direct_url.  Currently supported schemes: [file]. (list
 # value)
-#allowed_direct_url_schemes=
+#allowed_direct_url_schemes = 
 
 # The secret token given to Swift to allow temporary URL
 # downloads. Required for temporary URLs. (string value)
-#swift_temp_url_key=<None>
+#swift_temp_url_key = <None>
 
 # The length of time in seconds that the temporary URL will be
 # valid for. Defaults to 20 minutes. If some deploys get a 401
@@ -997,12 +1002,12 @@
 # URL, try raising this duration. This value must be greater
 # than or equal to the value for
 # swift_temp_url_expected_download_start_delay (integer value)
-#swift_temp_url_duration=1200
+#swift_temp_url_duration = 1200
 
 # Whether to cache generated Swift temporary URLs. Setting it
 # to true is only useful when an image caching proxy is used.
 # Defaults to False. (boolean value)
-#swift_temp_url_cache_enabled=false
+#swift_temp_url_cache_enabled = false
 
 # This is the delay (in seconds) from the time of the deploy
 # request (when the Swift temporary URL is generated) to when
@@ -1015,7 +1020,7 @@
 # greater than or equal to this option's value. Defaults to 0.
 # (integer value)
 # Minimum value: 0
-#swift_temp_url_expected_download_start_delay=0
+#swift_temp_url_expected_download_start_delay = 0
 
 # The "endpoint" (scheme, hostname, optional port) for the
 # Swift URL of the form
@@ -1025,13 +1030,13 @@
 # endpoint may also contain /swift path; if it does not, it
 # will be appended. Required for temporary URLs. (string
 # value)
-#swift_endpoint_url=<None>
+#swift_endpoint_url = <None>
 
 # The Swift API version to create a temporary URL for.
 # Defaults to "v1". Swift temporary URL format:
 # "endpoint_url/api_version/[account/]container/object_id"
 # (string value)
-#swift_api_version=v1
+#swift_api_version = v1
 
 # The account that Glance uses to communicate with Swift. The
 # format is "AUTH_uuid". "uuid" is the UUID for the account
@@ -1041,14 +1046,14 @@
 # URL format:
 # "endpoint_url/api_version/[account/]container/object_id"
 # (string value)
-#swift_account=<None>
+#swift_account = <None>
 
 # The Swift container Glance is configured to store its images
 # in. Defaults to "glance", which is the default in glance-
 # api.conf. Swift temporary URL format:
 # "endpoint_url/api_version/[account/]container/object_id"
 # (string value)
-#swift_container=glance
+#swift_container = glance
 
 # This should match a config by the same name in the Glance
 # configuration file. When set to 0, a single-tenant store
@@ -1057,13 +1062,13 @@
 # will use multiple containers to store images, and this value
 # will determine how many containers are created. (integer
 # value)
-#swift_store_multiple_containers_seed=0
+#swift_store_multiple_containers_seed = 0
 
 # Type of endpoint to use for temporary URLs. If the Glance
 # backend is Swift, use "swift"; if it is CEPH with RADOS
 # gateway, use "radosgw". (string value)
-# Possible values: swift, radosgw
-#temp_url_endpoint_type=swift
+# Allowed values: swift, radosgw
+#temp_url_endpoint_type = swift
 
 
 #
@@ -1071,39 +1076,40 @@
 #
 
 # Default glance hostname or IP address. (string value)
-#glance_host=$my_ip
+#glance_host = $my_ip
 
 # Default glance port. (port value)
-# Possible values: 0-65535
-#glance_port=9292
+# Minimum value: 0
+# Maximum value: 65535
+#glance_port = 9292
 
 # Default protocol to use when connecting to glance. Set to
 # https for SSL. (string value)
-# Possible values: http, https
-#glance_protocol=http
+# Allowed values: http, https
+#glance_protocol = http
 
 # A list of the glance api servers available to ironic. Prefix
 # with https:// for SSL-based glance API servers. Format is
 # [hostname|IP]:port. (list value)
-#glance_api_servers=<None>
+#glance_api_servers = <None>
 
 # Allow to perform insecure SSL (https) requests to glance.
 # (boolean value)
-#glance_api_insecure=false
+#glance_api_insecure = false
 
 # Number of retries when downloading an image from glance.
 # (integer value)
-#glance_num_retries=0
+#glance_num_retries = 0
 
 # Authentication strategy to use when connecting to glance.
 # (string value)
-# Possible values: keystone, noauth
-#auth_strategy=keystone
+# Allowed values: keystone, noauth
+#auth_strategy = keystone
 
 # Optional path to a CA certificate bundle to be used to
 # validate the SSL certificate served by glance. It is used
 # when glance_api_insecure is set to False. (string value)
-#glance_cafile=<None>
+#glance_cafile = <None>
 
 
 [iboot]
@@ -1113,16 +1119,16 @@
 #
 
 # Maximum retries for iBoot operations (integer value)
-#max_retry=3
+#max_retry = 3
 
 # Time (in seconds) between retry attempts for iBoot
 # operations (integer value)
-#retry_interval=1
+#retry_interval = 1
 
 # Time (in seconds) to sleep between when rebooting (powering
 # off and on again). (integer value)
 # Minimum value: 0
-#reboot_delay=5
+#reboot_delay = 5
 
 
 [ilo]
@@ -1132,18 +1138,19 @@
 #
 
 # Timeout (in seconds) for iLO operations (integer value)
-#client_timeout=60
+#client_timeout = 60
 
 # Port to be used for iLO operations (port value)
-# Possible values: 0-65535
-#client_port=443
+# Minimum value: 0
+# Maximum value: 65535
+#client_port = 443
 
 # The Swift iLO container to store data. (string value)
-#swift_ilo_container=ironic_ilo_container
+#swift_ilo_container = ironic_ilo_container
 
 # Amount of time in seconds for Swift objects to auto-expire.
 # (integer value)
-#swift_object_expiry_timeout=900
+#swift_object_expiry_timeout = 900
 
 # Set this to True to use http web server to host floppy
 # images and generated boot ISO. This requires http_root and
@@ -1151,7 +1158,7 @@
 # config file. If this is set to False, then Ironic will use
 # Swift to host the floppy images and generated boot_iso.
 # (boolean value)
-#use_web_server_for_images=false
+#use_web_server_for_images = false
 
 
 #
@@ -1161,7 +1168,7 @@
 # Priority for erase devices clean step. If unset, it defaults
 # to 10. If set to 0, the step will be disabled and will not
 # run during cleaning. (integer value)
-#clean_priority_erase_devices=<None>
+#clean_priority_erase_devices = <None>
 
 
 #
@@ -1169,26 +1176,26 @@
 #
 
 # Priority for reset_ilo clean step. (integer value)
-#clean_priority_reset_ilo=0
+#clean_priority_reset_ilo = 0
 
 # Priority for reset_bios_to_default clean step. (integer
 # value)
-#clean_priority_reset_bios_to_default=10
+#clean_priority_reset_bios_to_default = 10
 
 # Priority for reset_secure_boot_keys clean step. This step
 # will reset the secure boot keys to manufacturing defaults.
 # (integer value)
-#clean_priority_reset_secure_boot_keys_to_default=20
+#clean_priority_reset_secure_boot_keys_to_default = 20
 
 # Priority for clear_secure_boot_keys clean step. This step is
 # not enabled by default. It can be enabled to clear all
 # secure boot keys enrolled with iLO. (integer value)
-#clean_priority_clear_secure_boot_keys=0
+#clean_priority_clear_secure_boot_keys = 0
 
 # Priority for reset_ilo_credential clean step. This step
 # requires "ilo_change_password" parameter to be updated in
 # nodes's driver_info with the new password. (integer value)
-#clean_priority_reset_ilo_credential=30
+#clean_priority_reset_ilo_credential = 30
 
 
 #
@@ -1197,11 +1204,11 @@
 
 # Number of times a power operation needs to be retried
 # (integer value)
-#power_retry=6
+#power_retry = 6
 
 # Amount of time in seconds to wait in between power
 # operations (integer value)
-#power_wait=2
+#power_wait = 2
 
 
 [inspector]
@@ -1213,18 +1220,18 @@
 # whether to enable inspection using ironic-inspector (boolean
 # value)
 # Deprecated group/name - [discoverd]/enabled
-#enabled=false
+#enabled = false
 
 # ironic-inspector HTTP endpoint. If this is not set, the
 # ironic-inspector client default (http://127.0.0.1:5050) will
 # be used. (string value)
 # Deprecated group/name - [discoverd]/service_url
-#service_url=<None>
+#service_url = <None>
 
 # period (in seconds) to check status of nodes on inspection
 # (integer value)
 # Deprecated group/name - [discoverd]/status_check_period
-#status_check_period=60
+#status_check_period = 60
 
 
 [ipmi]
@@ -1239,13 +1246,13 @@
 # setting too high can cause the sync power state periodic
 # task to hang when there are slow or unresponsive BMCs.
 # (integer value)
-#retry_timeout=60
+#retry_timeout = 60
 
 # Minimum time, in seconds, between IPMI operations sent to a
 # server. There is a risk with some hardware that setting this
 # too low may cause the BMC to crash. Recommended setting is 5
 # seconds. (integer value)
-#min_command_interval=5
+#min_command_interval = 5
 
 
 [irmc]
@@ -1256,26 +1263,26 @@
 
 # Ironic conductor node's "NFS" or "CIFS" root path (string
 # value)
-#remote_image_share_root=/remote_image_share_root
+#remote_image_share_root = /remote_image_share_root
 
 # IP of remote image server (string value)
-#remote_image_server=<None>
+#remote_image_server = <None>
 
 # Share type of virtual media (string value)
-# Possible values: CIFS, NFS
-#remote_image_share_type=CIFS
+# Allowed values: CIFS, NFS
+#remote_image_share_type = CIFS
 
 # share name of remote_image_server (string value)
-#remote_image_share_name=share
+#remote_image_share_name = share
 
 # User name of remote_image_server (string value)
-#remote_image_user_name=<None>
+#remote_image_user_name = <None>
 
 # Password of remote_image_user_name (string value)
-#remote_image_user_password=<None>
+#remote_image_user_password = <None>
 
 # Domain name of remote_image_user_name (string value)
-#remote_image_user_domain=
+#remote_image_user_domain =
 
 
 #
@@ -1283,35 +1290,36 @@
 #
 
 # Port to be used for iRMC operations (port value)
-# Possible values: 443, 80
-#port=443
+# Allowed values: 443, 80
+#port = 443
 
 # Authentication method to be used for iRMC operations (string
 # value)
-# Possible values: basic, digest
-#auth_method=basic
+# Allowed values: basic, digest
+#auth_method = basic
 
 # Timeout (in seconds) for iRMC operations (integer value)
-#client_timeout=60
+#client_timeout = 60
 
 # Sensor data retrieval method. (string value)
-# Possible values: ipmitool, scci
-#sensor_method=ipmitool
+# Allowed values: ipmitool, scci
+#sensor_method = ipmitool
 
 # SNMP protocol version (string value)
-# Possible values: v1, v2c, v3
-#snmp_version=v2c
+# Allowed values: v1, v2c, v3
+#snmp_version = v2c
 
 # SNMP port (port value)
-# Possible values: 0-65535
-#snmp_port=161
+# Minimum value: 0
+# Maximum value: 65535
+#snmp_port = 161
 
 # SNMP community. Required for versions "v1" and "v2c" (string
 # value)
-#snmp_community=public
+#snmp_community = public
 
 # SNMP security name. Required for version "v3" (string value)
-#snmp_security=<None>
+#snmp_security = <None>
 
 
 [ironic_lib]
@@ -1323,7 +1331,7 @@
 # Command that is prefixed to commands that are run as root.
 # If not specified, no commands are run as root. (string
 # value)
-#root_helper=sudo ironic-rootwrap /etc/ironic/rootwrap.conf
+#root_helper = sudo ironic-rootwrap /etc/ironic/rootwrap.conf
 
 
 [keystone]
@@ -1334,7 +1342,7 @@
 
 # The region used for getting endpoints of OpenStack services.
 # (string value)
-#region_name=<None>
+#region_name = <None>
 
 
 [keystone_authtoken]
@@ -1344,69 +1352,69 @@
 #
 
 # Complete public Identity API endpoint. (string value)
-#auth_uri=<None>
+#auth_uri = <None>
 
 # API version of the admin Identity API endpoint. (string
 # value)
-#auth_version=<None>
+#auth_version = <None>
 
 # Do not handle authorization requests within the middleware,
 # but delegate the authorization decision to downstream WSGI
 # components. (boolean value)
-#delay_auth_decision=false
+#delay_auth_decision = false
 
 # Request timeout value for communicating with Identity API
 # server. (integer value)
-#http_connect_timeout=<None>
+#http_connect_timeout = <None>
 
 # How many times are we trying to reconnect when communicating
 # with Identity API Server. (integer value)
-#http_request_max_retries=3
+#http_request_max_retries = 3
 
 # Env key for the swift cache. (string value)
-#cache=<None>
+#cache = <None>
 
 # Required if identity server requires client certificate
 # (string value)
-#certfile=<None>
+#certfile = <None>
 
 # Required if identity server requires client certificate
 # (string value)
-#keyfile=<None>
+#keyfile = <None>
 
 # A PEM encoded Certificate Authority to use when verifying
 # HTTPs connections. Defaults to system CAs. (string value)
-#cafile=<None>
+#cafile = <None>
 
 # Verify HTTPS connections. (boolean value)
-#insecure=false
+#insecure = false
 
 # The region in which the identity server can be found.
 # (string value)
-#region_name=<None>
+#region_name = <None>
 
 # Directory used to cache files related to PKI tokens. (string
 # value)
-#signing_dir=<None>
+#signing_dir = <None>
 
 # Optionally specify a list of memcached server(s) to use for
 # caching. If left undefined, tokens will instead be cached
 # in-process. (list value)
 # Deprecated group/name - [keystone_authtoken]/memcache_servers
-#memcached_servers=<None>
+#memcached_servers = <None>
 
 # In order to prevent excessive effort spent validating
 # tokens, the middleware caches previously-seen tokens for a
 # configurable duration (in seconds). Set to -1 to disable
 # caching completely. (integer value)
-#token_cache_time=300
+#token_cache_time = 300
 
 # Determines the frequency at which the list of revoked tokens
 # is retrieved from the Identity service (in seconds). A high
 # number of revocation events combined with a low cache
 # duration may significantly reduce performance. (integer
 # value)
-#revocation_cache_time=10
+#revocation_cache_time = 10
 
 # (Optional) If defined, indicate whether token data should be
 # authenticated or authenticated and encrypted. If MAC, token
@@ -1414,45 +1422,45 @@
 # token data is encrypted and authenticated in the cache. If
 # the value is not one of these options or empty, auth_token
 # will raise an exception on initialization. (string value)
-# Possible values: None, MAC, ENCRYPT
-#memcache_security_strategy=None
+# Allowed values: None, MAC, ENCRYPT
+#memcache_security_strategy = None
 
 # (Optional, mandatory if memcache_security_strategy is
 # defined) This string is used for key derivation. (string
 # value)
-#memcache_secret_key=<None>
+#memcache_secret_key = <None>
 
 # (Optional) Number of seconds memcached server is considered
 # dead before it is tried again. (integer value)
-#memcache_pool_dead_retry=300
+#memcache_pool_dead_retry = 300
 
 # (Optional) Maximum total number of open connections to every
 # memcached server. (integer value)
-#memcache_pool_maxsize=10
+#memcache_pool_maxsize = 10
 
 # (Optional) Socket timeout in seconds for communicating with
 # a memcached server. (integer value)
-#memcache_pool_socket_timeout=3
+#memcache_pool_socket_timeout = 3
 
 # (Optional) Number of seconds a connection to memcached is
 # held unused in the pool before it is closed. (integer value)
-#memcache_pool_unused_timeout=60
+#memcache_pool_unused_timeout = 60
 
 # (Optional) Number of seconds that an operation will wait to
 # get a memcached client connection from the pool. (integer
 # value)
-#memcache_pool_conn_get_timeout=10
+#memcache_pool_conn_get_timeout = 10
 
 # (Optional) Use the advanced (eventlet safe) memcached client
 # pool. The advanced pool will only work under python 2.x.
 # (boolean value)
-#memcache_use_advanced_pool=false
+#memcache_use_advanced_pool = false
 
 # (Optional) Indicate whether to set the X-Service-Catalog
 # header. If False, middleware will not ask for service
 # catalog on token validation and will not set the X-Service-
 # Catalog header. (boolean value)
-#include_service_catalog=true
+#include_service_catalog = true
 
 # Used to control the use and type of token binding. Can be
 # set to: "disabled" to not check token binding. "permissive"
@@ -1463,12 +1471,12 @@
 # binding is needed to be allowed. Finally the name of a
 # binding method that must be present in tokens. (string
 # value)
-#enforce_token_bind=permissive
+#enforce_token_bind = permissive
 
 # If true, the revocation list will be checked for cached
 # tokens. This requires that PKI tokens are configured on the
 # identity server. (boolean value)
-#check_revocations_for_cached=false
+#check_revocations_for_cached = false
 
 # Hash algorithms to use for hashing PKI tokens. This may be a
 # single algorithm or multiple. The algorithms are those
@@ -1480,15 +1488,15 @@
 # secure one. Once all the old tokens are expired this option
 # should be set to a single value for better performance.
 # (list value)
-#hash_algorithms=md5
+#hash_algorithms = md5
 
-# Authentication type to load (type of value is unknown)
+# Authentication type to load (unknown value)
 # Deprecated group/name - [keystone_authtoken]/auth_plugin
-#auth_type=<None>
+#auth_type = <None>
 
 # Config Section from which to load plugin specific options
-# (type of value is unknown)
-#auth_section=<None>
+# (unknown value)
+#auth_section = <None>
 
 
 [matchmaker_redis]
@@ -1498,32 +1506,33 @@
 #
 
 # Host to locate redis. (string value)
-#host=127.0.0.1
+#host = 127.0.0.1
 
 # Use this port to connect to redis host. (port value)
-# Possible values: 0-65535
-#port=6379
+# Minimum value: 0
+# Maximum value: 65535
+#port = 6379
 
 # Password for Redis server (optional). (string value)
-#password=
+#password =
 
 # List of Redis Sentinel hosts (fault tolerance mode) e.g.
 # [host:port, host1:port ... ] (list value)
-#sentinel_hosts=
+#sentinel_hosts = 
 
 # Redis replica set name. (string value)
-#sentinel_group_name=oslo-messaging-zeromq
+#sentinel_group_name = oslo-messaging-zeromq
 
 # Time in ms to wait between connection attempts. (integer
 # value)
-#wait_timeout=500
+#wait_timeout = 500
 
 # Time in ms to wait before the transaction is killed.
 # (integer value)
-#check_timeout=20000
+#check_timeout = 20000
 
 # Timeout in ms on blocking socket operations (integer value)
-#socket_timeout=1000
+#socket_timeout = 1000
 
 
 [neutron]
@@ -1533,26 +1542,26 @@
 #
 
 # URL for connecting to neutron. (string value)
-#url=http://$my_ip:9696
+#url = http://$my_ip:9696
 
 # Timeout value for connecting to neutron in seconds. (integer
 # value)
-#url_timeout=30
+#url_timeout = 30
 
 # Client retries in the case of a failed request. (integer
 # value)
-#retries=3
+#retries = 3
 
 # Default authentication strategy to use when connecting to
 # neutron. Running neutron in noauth mode (related to but not
 # affected by this setting) is insecure and should only be
 # used for testing. (string value)
-# Possible values: keystone, noauth
-#auth_strategy=keystone
+# Allowed values: keystone, noauth
+#auth_strategy = keystone
 
 # UUID of the network to create Neutron ports on, when booting
 # to a ramdisk for cleaning using Neutron DHCP. (string value)
-#cleaning_network_uuid=<None>
+#cleaning_network_uuid = <None>
 
 
 [oneview]
@@ -1562,24 +1571,24 @@
 #
 
 # URL where OneView is available (string value)
-#manager_url=<None>
+#manager_url = <None>
 
 # OneView username to be used (string value)
-#username=<None>
+#username = <None>
 
 # OneView password to be used (string value)
-#password=<None>
+#password = <None>
 
 # Option to allow insecure connection with OneView (boolean
 # value)
-#allow_insecure_connections=false
+#allow_insecure_connections = false
 
 # Path to CA certificate (string value)
-#tls_cacert_file=<None>
+#tls_cacert_file = <None>
 
 # Max connection retries to check changes on OneView (integer
 # value)
-#max_polling_attempts=12
+#max_polling_attempts = 12
 
 
 [oslo_concurrency]
@@ -1590,7 +1599,7 @@
 
 # Enables or disables inter-process locks. (boolean value)
 # Deprecated group/name - [DEFAULT]/disable_process_locking
-#disable_process_locking=false
+#disable_process_locking = false
 
 # Directory to use for lock files.  For security, the
 # specified directory should only be writable by the user
@@ -1598,7 +1607,7 @@
 # environment variable OSLO_LOCK_PATH. If external locks are
 # used, a lock path must be set. (string value)
 # Deprecated group/name - [DEFAULT]/lock_path
-#lock_path=<None>
+#lock_path = <None>
 
 
 [oslo_messaging_amqp]
@@ -1610,77 +1619,77 @@
 # address prefix used when sending to a specific server
 # (string value)
 # Deprecated group/name - [amqp1]/server_request_prefix
-#server_request_prefix=exclusive
+#server_request_prefix = exclusive
 
 # address prefix used when broadcasting to all servers (string
 # value)
 # Deprecated group/name - [amqp1]/broadcast_prefix
-#broadcast_prefix=broadcast
+#broadcast_prefix = broadcast
 
 # address prefix when sending to any server in group (string
 # value)
 # Deprecated group/name - [amqp1]/group_request_prefix
-#group_request_prefix=unicast
+#group_request_prefix = unicast
 
 # Name for the AMQP container (string value)
 # Deprecated group/name - [amqp1]/container_name
-#container_name=<None>
+#container_name = <None>
 
 # Timeout for inactive connections (in seconds) (integer
 # value)
 # Deprecated group/name - [amqp1]/idle_timeout
-#idle_timeout=0
+#idle_timeout = 0
 
 # Debug: dump AMQP frames to stdout (boolean value)
 # Deprecated group/name - [amqp1]/trace
-#trace=false
+#trace = false
 
 # CA certificate PEM file to verify server certificate (string
 # value)
 # Deprecated group/name - [amqp1]/ssl_ca_file
-#ssl_ca_file=
+#ssl_ca_file =
 
 # Identifying certificate PEM file to present to clients
 # (string value)
 # Deprecated group/name - [amqp1]/ssl_cert_file
-#ssl_cert_file=
+#ssl_cert_file =
 
 # Private key PEM file used to sign cert_file certificate
 # (string value)
 # Deprecated group/name - [amqp1]/ssl_key_file
-#ssl_key_file=
+#ssl_key_file =
 
 # Password for decrypting ssl_key_file (if encrypted) (string
 # value)
 # Deprecated group/name - [amqp1]/ssl_key_password
-#ssl_key_password=<None>
+#ssl_key_password = <None>
 
 # Accept clients using either SSL or plain TCP (boolean value)
 # Deprecated group/name - [amqp1]/allow_insecure_clients
-#allow_insecure_clients=false
+#allow_insecure_clients = false
 
 # Space separated list of acceptable SASL mechanisms (string
 # value)
 # Deprecated group/name - [amqp1]/sasl_mechanisms
-#sasl_mechanisms=
+#sasl_mechanisms =
 
 # Path to directory that contains the SASL configuration
 # (string value)
 # Deprecated group/name - [amqp1]/sasl_config_dir
-#sasl_config_dir=
+#sasl_config_dir =
 
 # Name of configuration file (without .conf suffix) (string
 # value)
 # Deprecated group/name - [amqp1]/sasl_config_name
-#sasl_config_name=
+#sasl_config_name =
 
 # User name for message broker authentication (string value)
 # Deprecated group/name - [amqp1]/username
-#username=
+#username =
 
 # Password for message broker authentication (string value)
 # Deprecated group/name - [amqp1]/password
-#password=
+#password =
 
 
 [oslo_messaging_notifications]
@@ -1693,18 +1702,18 @@
 # values are messaging, messagingv2, routing, log, test, noop
 # (multi valued)
 # Deprecated group/name - [DEFAULT]/notification_driver
-#driver=
+#driver = 
 
 # A URL representing the messaging driver to use for
 # notifications. If not set, we fall back to the same
 # configuration used for RPC. (string value)
 # Deprecated group/name - [DEFAULT]/notification_transport_url
-#transport_url=<None>
+#transport_url = <None>
 
 # AMQP topic used for OpenStack notifications. (list value)
 # Deprecated group/name - [rpc_notifier2]/topics
 # Deprecated group/name - [DEFAULT]/notification_topics
-#topics=notifications
+#topics = notifications
 
 
 [oslo_messaging_rabbit]
@@ -1716,106 +1725,107 @@
 # Use durable queues in AMQP. (boolean value)
 # Deprecated group/name - [DEFAULT]/amqp_durable_queues
 # Deprecated group/name - [DEFAULT]/rabbit_durable_queues
-#amqp_durable_queues=false
+#amqp_durable_queues = false
 
 # Auto-delete queues in AMQP. (boolean value)
 # Deprecated group/name - [DEFAULT]/amqp_auto_delete
-#amqp_auto_delete=false
+#amqp_auto_delete = false
 
 # SSL version to use (valid only if SSL enabled). Valid values
 # are TLSv1 and SSLv23. SSLv2, SSLv3, TLSv1_1, and TLSv1_2 may
 # be available on some distributions. (string value)
 # Deprecated group/name - [DEFAULT]/kombu_ssl_version
-#kombu_ssl_version=
+#kombu_ssl_version =
 
 # SSL key file (valid only if SSL enabled). (string value)
 # Deprecated group/name - [DEFAULT]/kombu_ssl_keyfile
-#kombu_ssl_keyfile=
+#kombu_ssl_keyfile =
 
 # SSL cert file (valid only if SSL enabled). (string value)
 # Deprecated group/name - [DEFAULT]/kombu_ssl_certfile
-#kombu_ssl_certfile=
+#kombu_ssl_certfile =
 
 # SSL certification authority file (valid only if SSL
 # enabled). (string value)
 # Deprecated group/name - [DEFAULT]/kombu_ssl_ca_certs
-#kombu_ssl_ca_certs=
+#kombu_ssl_ca_certs =
 
 # How long to wait before reconnecting in response to an AMQP
 # consumer cancel notification. (floating point value)
 # Deprecated group/name - [DEFAULT]/kombu_reconnect_delay
-#kombu_reconnect_delay=1.0
+#kombu_reconnect_delay = 1.0
 
 # EXPERIMENTAL: Possible values are: gzip, bz2. If not set
 # compression will not be used. This option may notbe
 # available in future versions. (string value)
-#kombu_compression=<None>
+#kombu_compression = <None>
 
 # How long to wait a missing client beforce abandoning to send
 # it its replies. This value should not be longer than
 # rpc_response_timeout. (integer value)
 # Deprecated group/name - [oslo_messaging_rabbit]/kombu_reconnect_timeout
-#kombu_missing_consumer_retry_timeout=60
+#kombu_missing_consumer_retry_timeout = 60
 
 # Determines how the next RabbitMQ node is chosen in case the
 # one we are currently connected to becomes unavailable. Takes
 # effect only if more than one RabbitMQ node is provided in
 # config. (string value)
-# Possible values: round-robin, shuffle
-#kombu_failover_strategy=round-robin
+# Allowed values: round-robin, shuffle
+#kombu_failover_strategy = round-robin
 
 # The RabbitMQ broker address where a single node is used.
 # (string value)
 # Deprecated group/name - [DEFAULT]/rabbit_host
-#rabbit_host=localhost
+#rabbit_host = localhost
 
 # The RabbitMQ broker port where a single node is used. (port
 # value)
-# Possible values: 0-65535
+# Minimum value: 0
+# Maximum value: 65535
 # Deprecated group/name - [DEFAULT]/rabbit_port
-#rabbit_port=5672
+#rabbit_port = 5672
 
 # RabbitMQ HA cluster host:port pairs. (list value)
 # Deprecated group/name - [DEFAULT]/rabbit_hosts
-#rabbit_hosts=$rabbit_host:$rabbit_port
+#rabbit_hosts = $rabbit_host:$rabbit_port
 
 # Connect over SSL for RabbitMQ. (boolean value)
 # Deprecated group/name - [DEFAULT]/rabbit_use_ssl
-#rabbit_use_ssl=false
+#rabbit_use_ssl = false
 
 # The RabbitMQ userid. (string value)
 # Deprecated group/name - [DEFAULT]/rabbit_userid
-#rabbit_userid=guest
+#rabbit_userid = guest
 
 # The RabbitMQ password. (string value)
 # Deprecated group/name - [DEFAULT]/rabbit_password
-#rabbit_password=guest
+#rabbit_password = guest
 
 # The RabbitMQ login method. (string value)
 # Deprecated group/name - [DEFAULT]/rabbit_login_method
-#rabbit_login_method=AMQPLAIN
+#rabbit_login_method = AMQPLAIN
 
 # The RabbitMQ virtual host. (string value)
 # Deprecated group/name - [DEFAULT]/rabbit_virtual_host
-#rabbit_virtual_host=/
+#rabbit_virtual_host = /
 
 # How frequently to retry connecting with RabbitMQ. (integer
 # value)
-#rabbit_retry_interval=1
+#rabbit_retry_interval = 1
 
 # How long to backoff for between retries when connecting to
 # RabbitMQ. (integer value)
 # Deprecated group/name - [DEFAULT]/rabbit_retry_backoff
-#rabbit_retry_backoff=2
+#rabbit_retry_backoff = 2
 
 # Maximum interval of RabbitMQ connection retries. Default is
 # 30 seconds. (integer value)
-#rabbit_interval_max=30
+#rabbit_interval_max = 30
 
 # Maximum number of RabbitMQ connection retries. Default is 0
 # (infinite retry count). (integer value)
 # Deprecated group/name - [DEFAULT]/rabbit_max_retries
-#rabbit_max_retries=0
+#rabbit_max_retries = 0
 
 # Try to use HA queues in RabbitMQ (x-ha-policy: all). If you
 # change this option, you must wipe the RabbitMQ database. In
@@ -1826,138 +1836,138 @@
 # "rabbitmqctl set_policy HA '^(?!amq\.).*' '{"ha-mode":
 # "all"}' " (boolean value)
 # Deprecated group/name - [DEFAULT]/rabbit_ha_queues
-#rabbit_ha_queues=false
+#rabbit_ha_queues = false
 
 # Positive integer representing duration in seconds for queue
 # TTL (x-expires). Queues which are unused for the duration of
 # the TTL are automatically deleted. The parameter affects
 # only reply and fanout queues. (integer value)
 # Minimum value: 1
-#rabbit_transient_queues_ttl=1800
+#rabbit_transient_queues_ttl = 1800
 
 # Specifies the number of messages to prefetch. Setting to
 # zero allows unlimited messages. (integer value)
-#rabbit_qos_prefetch_count=0
+#rabbit_qos_prefetch_count = 0
 
 # Number of seconds after which the Rabbit broker is
 # considered down if heartbeat's keep-alive fails (0 disable
 # the heartbeat). EXPERIMENTAL (integer value)
-#heartbeat_timeout_threshold=60
+#heartbeat_timeout_threshold = 60
 
 # How often times during the heartbeat_timeout_threshold we
 # check the heartbeat. (integer value)
-#heartbeat_rate=2
+#heartbeat_rate = 2
 
 # Deprecated, use rpc_backend=kombu+memory or rpc_backend=fake
 # (boolean value)
 # Deprecated group/name - [DEFAULT]/fake_rabbit
-#fake_rabbit=false
+#fake_rabbit = false
 
 # Maximum number of channels to allow (integer value)
-#channel_max=<None>
+#channel_max = <None>
 
 # The maximum byte size for an AMQP frame (integer value)
-#frame_max=<None>
+#frame_max = <None>
 
 # How often to send heartbeats for consumer's connections
 # (integer value)
-#heartbeat_interval=1
+#heartbeat_interval = 1
 
 # Enable SSL (boolean value)
-#ssl=<None>
+#ssl = <None>
 
 # Arguments passed to ssl.wrap_socket (dict value)
-#ssl_options=<None>
+#ssl_options = <None>
 
 # Set socket timeout in seconds for connection's socket
 # (floating point value)
-#socket_timeout=0.25
+#socket_timeout = 0.25
 
 # Set TCP_USER_TIMEOUT in seconds for connection's socket
 # (floating point value)
-#tcp_user_timeout=0.25
+#tcp_user_timeout = 0.25
 
 # Set delay for reconnection to some host which has connection
 # error (floating point value)
-#host_connection_reconnect_delay=0.25
+#host_connection_reconnect_delay = 0.25
 
 # Maximum number of connections to keep queued. (integer
 # value)
-#pool_max_size=10
+#pool_max_size = 10
 
 # Maximum number of connections to create above
 # `pool_max_size`. (integer value)
-#pool_max_overflow=0
+#pool_max_overflow = 0
 
 # Default number of seconds to wait for a connections to
 # available (integer value)
-#pool_timeout=30
+#pool_timeout = 30
 
 # Lifetime of a connection (since creation) in seconds or None
 # for no recycling. Expired connections are closed on acquire.
 # (integer value)
-#pool_recycle=600
+#pool_recycle = 600
 
 # Threshold at which inactive (since release) connections are
 # considered stale in seconds or None for no staleness. Stale
 # connections are closed on acquire. (integer value)
-#pool_stale=60
+#pool_stale = 60
 
 # Persist notification messages. (boolean value)
-#notification_persistence=false
+#notification_persistence = false
 
 # Exchange name for for sending notifications (string value)
-#default_notification_exchange=${control_exchange}_notification
+#default_notification_exchange = ${control_exchange}_notification
 
 # Max number of not acknowledged message which RabbitMQ can
 # send to notification listener. (integer value)
-#notification_listener_prefetch_count=100
+#notification_listener_prefetch_count = 100
 
 # Reconnecting retry count in case of connectivity problem
 # during sending notification, -1 means infinite retry.
 # (integer value)
-#default_notification_retry_attempts=-1
+#default_notification_retry_attempts = -1
 
 # Reconnecting retry delay in case of connectivity problem
 # during sending notification message (floating point value)
-#notification_retry_delay=0.25
+#notification_retry_delay = 0.25
 
 # Time to live for rpc queues without consumers in seconds.
 # (integer value)
-#rpc_queue_expiration=60
+#rpc_queue_expiration = 60
 
 # Exchange name for sending RPC messages (string value)
-#default_rpc_exchange=${control_exchange}_rpc
+#default_rpc_exchange = ${control_exchange}_rpc
 
 # Exchange name for receiving RPC replies (string value)
-#rpc_reply_exchange=${control_exchange}_rpc_reply
+#rpc_reply_exchange = ${control_exchange}_rpc_reply
 
 # Max number of not acknowledged message which RabbitMQ can
 # send to rpc listener. (integer value)
-#rpc_listener_prefetch_count=100
+#rpc_listener_prefetch_count = 100
 
 # Max number of not acknowledged message which RabbitMQ can
 # send to rpc reply listener. (integer value)
-#rpc_reply_listener_prefetch_count=100
+#rpc_reply_listener_prefetch_count = 100
 
 # Reconnecting retry count in case of connectivity problem
 # during sending reply. -1 means infinite retry during
 # rpc_timeout (integer value)
-#rpc_reply_retry_attempts=-1
+#rpc_reply_retry_attempts = -1
 
 # Reconnecting retry delay in case of connectivity problem
 # during sending reply. (floating point value)
-#rpc_reply_retry_delay=0.25
+#rpc_reply_retry_delay = 0.25
 
 # Reconnecting retry count in case of connectivity problem
 # during sending RPC message, -1 means infinite retry. If
 # actual retry attempts in not 0 the rpc request could be
 # processed more then one time (integer value)
-#default_rpc_retry_attempts=-1
+#default_rpc_retry_attempts = -1
 
 # Reconnecting retry delay in case of connectivity problem
 # during sending RPC message (floating point value)
-#rpc_retry_delay=0.25
+#rpc_retry_delay = 0.25
 
 
 [oslo_policy]
@@ -1968,12 +1978,12 @@
 
 # The JSON file that defines policies. (string value)
 # Deprecated group/name - [DEFAULT]/policy_file
-#policy_file=policy.json
+#policy_file = policy.json
 
 # Default rule. Enforced when a requested rule is not found.
 # (string value)
 # Deprecated group/name - [DEFAULT]/policy_default_rule
-#policy_default_rule=default
+#policy_default_rule = default
 
 # Directories where policy configuration files are stored.
 # They can be relative to any directory in the search path
@@ -1982,7 +1992,7 @@
 # to be searched.  Missing or empty directories are ignored.
 # (multi valued)
 # Deprecated group/name - [DEFAULT]/policy_dirs
-#policy_dirs=policy.d
+#policy_dirs = policy.d
 
 
 [pxe]
@@ -1993,32 +2003,32 @@
 
 # Additional append parameters for baremetal PXE boot. (string
 # value)
-#pxe_append_params=nofb nomodeset vga=normal
+#pxe_append_params = nofb nomodeset vga=normal
 
 # Default file system format for ephemeral partition, if one
 # is created. (string value)
-#default_ephemeral_format=ext4
+#default_ephemeral_format = ext4
 
 # On the ironic-conductor node, directory where images are
 # stored on disk. (string value)
-#images_path=/var/lib/ironic/images/
+#images_path = /var/lib/ironic/images/
 
 # On the ironic-conductor node, directory where master
 # instance images are stored on disk. Setting to <None>
 # disables image caching. (string value)
-#instance_master_path=/var/lib/ironic/master_images
+#instance_master_path = /var/lib/ironic/master_images
 
 # Maximum size (in MiB) of cache for master images, including
 # those in use. (integer value)
-#image_cache_size=20480
+#image_cache_size = 20480
 
 # Maximum TTL (in minutes) for old master images in cache.
 # (integer value)
-#image_cache_ttl=10080
+#image_cache_ttl = 10080
 
 # The disk devices to scan while doing the deploy. (string
 # value)
-#disk_devices=cciss/c0d0,sda,hda,vda
+#disk_devices = cciss/c0d0,sda,hda,vda
 
 
 #
@@ -2027,46 +2037,46 @@
 
 # On ironic-conductor node, template file for PXE
 # configuration. (string value)
-#pxe_config_template=$pybasedir/drivers/modules/pxe_config.template
+#pxe_config_template = $pybasedir/drivers/modules/pxe_config.template
 
 # On ironic-conductor node, template file for PXE
 # configuration for UEFI boot loader. (string value)
-#uefi_pxe_config_template=$pybasedir/drivers/modules/elilo_efi_pxe_config.template
+#uefi_pxe_config_template = $pybasedir/drivers/modules/elilo_efi_pxe_config.template
 
 # IP address of ironic-conductor node's TFTP server. (string
 # value)
-#tftp_server=$my_ip
+#tftp_server = $my_ip
 
 # ironic-conductor node's TFTP root path. The ironic-conductor
 # must have read/write access to this path. (string value)
-#tftp_root=/tftpboot
+#tftp_root = /tftpboot
 
 # On ironic-conductor node, directory where master TFTP images
 # are stored on disk. Setting to <None> disables image
 # caching. (string value)
-#tftp_master_path=/tftpboot/master_images
+#tftp_master_path = /tftpboot/master_images
 
 # Bootfile DHCP parameter. (string value)
-#pxe_bootfile_name=pxelinux.0
+#pxe_bootfile_name = pxelinux.0
 
 # Bootfile DHCP parameter for UEFI boot mode. (string value)
-#uefi_pxe_bootfile_name=elilo.efi
+#uefi_pxe_bootfile_name = elilo.efi
 
 # Enable iPXE boot. (boolean value)
-#ipxe_enabled=false
+#ipxe_enabled = false
 
 # On ironic-conductor node, the path to the main iPXE script
 # file. (string value)
-#ipxe_boot_script=$pybasedir/drivers/modules/boot.ipxe
+#ipxe_boot_script = $pybasedir/drivers/modules/boot.ipxe
 
 # Timeout value (in seconds) for downloading an image via
 # iPXE. Defaults to 0 (no timeout) (integer value)
-#ipxe_timeout=0
+#ipxe_timeout = 0
 
 # The IP version that will be used for PXE booting. Defaults
 # to 4. EXPERIMENTAL (string value)
-# Possible values: 4, 6
-#ip_version=4
+# Allowed values: 4, 6
+#ip_version = 4
 
 
 [seamicro]
@@ -2076,11 +2086,11 @@
 #
 
 # Maximum retries for SeaMicro operations (integer value)
-#max_retry=3
+#max_retry = 3
 
 # Seconds to wait for power action to be completed (integer
 # value)
-#action_timeout=10
+#action_timeout = 10
 
 
 [snmp]
@@ -2091,12 +2101,12 @@
 
 # Seconds to wait for power action to be completed (integer
 # value)
-#power_timeout=10
+#power_timeout = 10
 
 # Time (in seconds) to sleep between when rebooting (powering
 # off and on again) (integer value)
 # Minimum value: 0
-#reboot_delay=0
+#reboot_delay = 0
 
 
 [ssh]
@@ -2106,16 +2116,16 @@
 #
 
 # libvirt URI. (string value)
-#libvirt_uri=qemu:///system
+#libvirt_uri = qemu:///system
 
 # Number of attempts to try to get VM name used by the host
 # that corresponds to a node's MAC address. (integer value)
-#get_vm_name_attempts=3
+#get_vm_name_attempts = 3
 
 # Number of seconds to wait between attempts to get VM name
 # used by the host that corresponds to a node's MAC address.
 # (integer value)
-#get_vm_name_retry_interval=3
+#get_vm_name_retry_interval = 3
 
 
 [ssl]
@@ -2127,26 +2137,26 @@
 # CA certificate file to use to verify connecting clients.
 # (string value)
 # Deprecated group/name - [DEFAULT]/ssl_ca_file
-#ca_file=<None>
+#ca_file = <None>
 
 # Certificate file to use when starting the server securely.
 # (string value)
 # Deprecated group/name - [DEFAULT]/ssl_cert_file
-#cert_file=<None>
+#cert_file = <None>
 
 # Private key file to use when starting the server securely.
 # (string value)
 # Deprecated group/name - [DEFAULT]/ssl_key_file
-#key_file=<None>
+#key_file = <None>
 
 # SSL version to use (valid only if SSL enabled). Valid values
 # are TLSv1 and SSLv23. SSLv2, SSLv3, TLSv1_1, and TLSv1_2 may
 # be available on some distributions. (string value)
-#version=<None>
+#version = <None>
 
 # Sets the list of available ciphers. value should be a string
 # in the OpenSSL cipher list format. (string value)
-#ciphers=<None>
+#ciphers = <None>
 
 
 [swift]
@@ -2157,7 +2167,7 @@
 
 # Maximum number of times to retry a Swift request, before
 # failing. (integer value)
-#swift_max_retries=2
+#swift_max_retries = 2
 
 
 [virtualbox]
@@ -2168,7 +2178,8 @@
 
 # Port on which VirtualBox web service is listening. (port
 # value)
-# Possible values: 0-65535
-#port=18083
+# Minimum value: 0
+# Maximum value: 65535
+#port = 18083
 
 
