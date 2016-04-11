@@ -916,12 +916,10 @@
 # Agent ramdisk. If unset, will use the priority set in the
 # ramdisk (defaults to 10 for the GenericHardwareManager). If
 # set to 0, will not run during cleaning. (integer value)
-# Deprecated group/name - [agent]/agent_erase_devices_priority
 #erase_devices_priority = <None>
 
 # Number of iterations to be run for erasing devices. (integer
 # value)
-# Deprecated group/name - [agent]/agent_erase_devices_iterations
 #erase_devices_iterations = 1
 
 # Whether to power off a node after deploy failure. Defaults

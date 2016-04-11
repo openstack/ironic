@@ -56,19 +56,13 @@ deploy_opts = [
                default='/httpboot',
                help='ironic-conductor node\'s HTTP root path.',
                deprecated_group='pxe'),
-    # TODO(rameshg87): Remove the deprecated names for the below two options in
-    # Mitaka release.
     cfg.IntOpt('erase_devices_priority',
-               deprecated_name='agent_erase_devices_priority',
-               deprecated_group='agent',
                help=_('Priority to run in-band erase devices via the Ironic '
                       'Python Agent ramdisk. If unset, will use the priority '
                       'set in the ramdisk (defaults to 10 for the '
                       'GenericHardwareManager). If set to 0, will not run '
                       'during cleaning.')),
     cfg.IntOpt('erase_devices_iterations',
-               deprecated_name='agent_erase_devices_iterations',
-               deprecated_group='agent',
                default=1,
                help=_('Number of iterations to be run for erasing devices.')),
     cfg.BoolOpt('power_off_after_deploy_failure',
