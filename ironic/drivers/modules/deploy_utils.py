@@ -49,12 +49,12 @@ from ironic import objects
 
 deploy_opts = [
     cfg.StrOpt('http_url',
-               help='ironic-conductor node\'s HTTP server URL. '
-                    'Example: http://192.1.2.3:8080',
+               help=_("ironic-conductor node's HTTP server URL. "
+                      "Example: http://192.1.2.3:8080"),
                deprecated_group='pxe'),
     cfg.StrOpt('http_root',
                default='/httpboot',
-               help='ironic-conductor node\'s HTTP root path.',
+               help=_("ironic-conductor node's HTTP root path."),
                deprecated_group='pxe'),
     cfg.IntOpt('erase_devices_priority',
                help=_('Priority to run in-band erase devices via the Ironic '
@@ -62,9 +62,23 @@ deploy_opts = [
                       'set in the ramdisk (defaults to 10 for the '
                       'GenericHardwareManager). If set to 0, will not run '
                       'during cleaning.')),
-    cfg.IntOpt('erase_devices_iterations',
+    # TODO(mmitchell): Remove the deprecated name/group during Ocata cycle.
+    cfg.IntOpt('shred_random_overwrite_iterations',
+               deprecated_name='erase_devices_iterations',
+               deprecated_group='deploy',
                default=1,
-               help=_('Number of iterations to be run for erasing devices.')),
+               min=0,
+               help=_('During shred, overwrite all block devices N times with '
+                      'random data. This is only used if a device could not '
+                      'be ATA Secure Erased. Defaults to 1.')),
+    cfg.BoolOpt('shred_final_overwrite_with_zeros',
+                default=True,
+                help=_("Whether to write zeros to a node's block devices "
+                       "after writing random data. This will write zeros to "
+                       "the device even when "
+                       "deploy.shred_random_overwrite_interations is 0. This "
+                       "option is only used if a device could not be ATA "
+                       "Secure Erased. Defaults to True.")),
     cfg.BoolOpt('power_off_after_deploy_failure',
                 default=True,
                 help=_('Whether to power off a node after deploy failure. '
@@ -96,6 +110,19 @@ SUPPORTED_CAPABILITIES = {
 }
 
 DISK_LAYOUT_PARAMS = ('root_gb', 'swap_mb', 'ephemeral_gb')
+
+
+def warn_about_unsafe_shred_parameters():
+    iterations = CONF.deploy.shred_random_overwrite_iterations
+    overwrite_with_zeros = CONF.deploy.shred_final_overwrite_with_zeros
+    if iterations == 0 and overwrite_with_zeros is False:
+        LOG.warning(_LW('With shred_random_overwrite_iterations set to 0 and '
+                        'shred_final_overwrite_with_zeros set to False, disks '
+                        'may NOT be shredded at all, unless they support ATA '
+                        'Secure Erase. This is a possible SECURITY ISSUE!'))
+
+
+warn_about_unsafe_shred_parameters()
 
 # All functions are called from deploy() directly or indirectly.
 # They are split for stub-out.
@@ -629,8 +656,12 @@ def agent_add_clean_params(task):
     :param task: a TaskManager instance.
     """
     info = task.node.driver_internal_info
-    passes = CONF.deploy.erase_devices_iterations
-    info['agent_erase_devices_iterations'] = passes
+
+    random_iterations = CONF.deploy.shred_random_overwrite_iterations
+    info['agent_erase_devices_iterations'] = random_iterations
+    zeroize = CONF.deploy.shred_final_overwrite_with_zeros
+    info['agent_erase_devices_zeroize'] = zeroize
+
     task.node.driver_internal_info = info
     task.node.save()
 

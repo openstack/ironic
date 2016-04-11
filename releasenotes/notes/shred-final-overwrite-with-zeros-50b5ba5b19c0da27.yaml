@@ -1,0 +1,14 @@
+---
+features:
+  - A new configuration option, `shred_final_overwrite_with_zeros` is now
+    available. This option controls the final overwrite with zeros done on
+    all block devices for a node under cleaning. This feature was previously
+    always enabled and not configurable. This option is only used when a
+    block device could not be ATA Secure Erased.
+deprecations:
+  - The [deploy]/erase_devices_iterations config is deprecated and will
+    be removed in the Ocata cycle. It has been replaced by the
+    [deploy]/shred_random_overwrite_iterations config. This configuration
+    option controls the number of times block devices are overwritten with
+    random data. This option is only used when a block device could not be
+    ATA Secure Erased.
