@@ -12,7 +12,6 @@
 
 from neutronclient.common import exceptions as neutron_exceptions
 from neutronclient.v2_0 import client as clientv20
-from oslo_config import cfg
 from oslo_log import log
 
 from ironic.common import exception
@@ -21,47 +20,9 @@ from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
 from ironic.common import keystone
+from ironic.conf import CONF
 
 LOG = log.getLogger(__name__)
-
-CONF = cfg.CONF
-CONF.import_opt('my_ip', 'ironic.netconf')
-
-neutron_opts = [
-    cfg.StrOpt('url',
-               default='http://$my_ip:9696',
-               help=_('URL for connecting to neutron.')),
-    cfg.IntOpt('url_timeout',
-               default=30,
-               help=_('Timeout value for connecting to neutron in seconds.')),
-    cfg.IntOpt('port_setup_delay',
-               default=0,
-               min=0,
-               help=_('Delay value to wait for Neutron agents to setup '
-                      'sufficient DHCP configuration for port.')),
-    cfg.IntOpt('retries',
-               default=3,
-               help=_('Client retries in the case of a failed request.')),
-    cfg.StrOpt('auth_strategy',
-               default='keystone',
-               choices=['keystone', 'noauth'],
-               help=_('Authentication strategy to use when connecting to '
-                      'neutron. Running neutron in noauth mode (related to '
-                      'but not affected by this setting) is insecure and '
-                      'should only be used for testing.')),
-    cfg.StrOpt('cleaning_network_uuid',
-               help=_('Neutron network UUID for the ramdisk to be booted '
-                      'into for cleaning nodes. Required for "neutron" '
-                      'network interface. It is also required if cleaning '
-                      'nodes when using "flat" network interface or "neutron" '
-                      'DHCP provider.')),
-    cfg.StrOpt('provisioning_network_uuid',
-               help=_('Neutron network UUID for the ramdisk to be booted '
-                      'into for provisioning nodes. Required for "neutron" '
-                      'network interface.')),
-]
-
-CONF.register_opts(neutron_opts, group='neutron')
 
 
 def get_client(token=None):
