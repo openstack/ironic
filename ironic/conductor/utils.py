@@ -101,9 +101,10 @@ def node_power_action(task, new_state):
             node['power_state'] = new_state
             node['target_power_state'] = states.NOSTATE
             node.save()
-            LOG.warning(_LW("Not going to change node power state because "
-                            "current state = requested state = '%(state)s'."),
-                        {'state': curr_state})
+            LOG.warning(_LW("Not going to change node %(node)s power "
+                            "state because current state = requested state "
+                            "= '%(state)s'."),
+                        {'node': node.uuid, 'state': curr_state})
             return
 
         if curr_state == states.ERROR:
