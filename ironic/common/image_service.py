@@ -20,7 +20,6 @@ import datetime
 import os
 import shutil
 
-from oslo_config import cfg
 from oslo_utils import importutils
 import requests
 import sendfile
@@ -32,52 +31,13 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import keystone
 from ironic.common import utils
-
+from ironic.conf import CONF
 
 IMAGE_CHUNK_SIZE = 1024 * 1024  # 1mb
 
-
-CONF = cfg.CONF
-# Import this opt early so that it is available when registering
-# glance_opts below.
+# TODO(rama_y): This import should be removed,
+# once https://review.openstack.org/#/c/309070 is merged.
 CONF.import_opt('my_ip', 'ironic.netconf')
-
-glance_opts = [
-    cfg.StrOpt('glance_host',
-               default='$my_ip',
-               help=_('Default glance hostname or IP address.')),
-    cfg.PortOpt('glance_port',
-                default=9292,
-                help=_('Default glance port.')),
-    cfg.StrOpt('glance_protocol',
-               default='http',
-               choices=['http', 'https'],
-               help=_('Default protocol to use when connecting to glance. '
-                      'Set to https for SSL.')),
-    cfg.ListOpt('glance_api_servers',
-                help=_('A list of the glance api servers available to ironic. '
-                       'Prefix with https:// for SSL-based glance API '
-                       'servers. Format is [hostname|IP]:port.')),
-    cfg.BoolOpt('glance_api_insecure',
-                default=False,
-                help=_('Allow to perform insecure SSL (https) requests to '
-                       'glance.')),
-    cfg.IntOpt('glance_num_retries',
-               default=0,
-               help=_('Number of retries when downloading an image from '
-                      'glance.')),
-    cfg.StrOpt('auth_strategy',
-               default='keystone',
-               choices=['keystone', 'noauth'],
-               help=_('Authentication strategy to use when connecting to '
-                      'glance.')),
-    cfg.StrOpt('glance_cafile',
-               help=_('Optional path to a CA certificate bundle to be used to '
-                      'validate the SSL certificate served by glance. It is '
-                      'used when glance_api_insecure is set to False.')),
-]
-
-CONF.register_opts(glance_opts, group='glance')
 
 
 def import_versioned_module(version, submodule=None):
