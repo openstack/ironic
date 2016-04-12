@@ -118,7 +118,7 @@ case $IRONIC_RAMDISK_TYPE in
     ;;
     tinyipa)
         IRONIC_AGENT_KERNEL_URL=${IRONIC_AGENT_KERNEL_URL:-http://tarballs.openstack.org/ironic-python-agent/tinyipa/files/tinyipa-${IPA_DOWNLOAD_BRANCH}.vmlinuz}
-        IRONIC_AGENT_RAMDISK_URL=${IRONIC_AGENT_RAMDISK_URL:-http://tarballs.openstack.org/ironic-python-agent/tinyipa/files/tinyipa-${IPA_DOWNLOAD_BRANCH}.cpio.gz}
+        IRONIC_AGENT_RAMDISK_URL=${IRONIC_AGENT_RAMDISK_URL:-http://tarballs.openstack.org/ironic-python-agent/tinyipa/files/tinyipa-${IPA_DOWNLOAD_BRANCH}.gz}
     ;;
     *)
         die $LINENO "Unrecognised IRONIC_RAMDISK_TYPE: $IRONIC_RAMDISK_TYPE. Expected 'coreos' or 'tinyipa'"
