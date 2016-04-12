@@ -32,6 +32,7 @@ from ironic.common.i18n import _LE
 from ironic.common.i18n import _LW
 from ironic.common import image_service
 from ironic.common import images
+from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
@@ -293,6 +294,12 @@ class IloVirtualMediaBoot(base.BootInterface):
         """
 
         node = task.node
+        # NOTE(TheJulia): If this method is being called by something
+        # aside from a deployment, such as conductor takeover, we should
+        # treat this as a no-op and move on otherwise we would modify
+        # the state of the node due to virtual media operations.
+        if node.provision_state != states.DEPLOYING:
+            return
 
         # Clear ilo_boot_iso if it's a glance image to force recreate
         # another one again (or use existing one in glance).
