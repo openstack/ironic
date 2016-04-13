@@ -15,11 +15,7 @@
 """
 Version 1 of the Ironic API
 
-NOTE: IN PROGRESS AND NOT FULLY IMPLEMENTED.
-
-Should maintain feature parity with Nova Baremetal Extension.
-
-Specification can be found at ironic/doc/api/v1.rst
+Specification can be found at doc/source/webapi/v1.rst
 """
 
 import pecan
