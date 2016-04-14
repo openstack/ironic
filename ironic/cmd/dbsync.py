@@ -95,7 +95,7 @@ def main():
     # this is hack to work with previous usage of ironic-dbsync
     # pls change it to ironic-dbsync upgrade
     valid_commands = set([
-        'upgrade', 'downgrade', 'revision',
+        'upgrade', 'revision',
         'version', 'stamp', 'create_schema',
     ])
     if not set(sys.argv) & valid_commands:
