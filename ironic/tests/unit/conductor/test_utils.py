@@ -299,7 +299,7 @@ class CleanupAfterTimeoutTestCase(tests_base.TestCase):
     def setUp(self):
         super(CleanupAfterTimeoutTestCase, self).setUp()
         self.task = mock.Mock(spec=task_manager.TaskManager)
-        self.task.context = mock.sentinel.context
+        self.task.context = self.context
         self.task.driver = mock.Mock(spec_set=['deploy'])
         self.task.shared = False
         self.task.node = mock.Mock(spec_set=objects.Node)

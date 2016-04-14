@@ -151,6 +151,7 @@ def _call_inspector(func, uuid, context):
 
 def _start_inspection(node_uuid, context):
     """Call to inspector to start inspection."""
+    context.ensure_thread_contain_context()
     try:
         _call_inspector(client.introspect, node_uuid, context)
     except Exception as exc:

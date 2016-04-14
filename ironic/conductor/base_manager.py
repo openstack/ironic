@@ -19,11 +19,11 @@ import futurist
 from futurist import periodics
 from futurist import rejection
 from oslo_config import cfg
-from oslo_context import context as ironic_context
 from oslo_db import exception as db_exception
 from oslo_log import log
 from oslo_utils import excutils
 
+from ironic.common import context as ironic_context
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import hash_ring as hash

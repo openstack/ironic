@@ -19,7 +19,6 @@ import socket
 
 from oslo_concurrency import processutils
 from oslo_config import cfg
-from oslo_context import context
 from oslo_log import log
 import oslo_messaging as messaging
 from oslo_service import service
@@ -28,6 +27,7 @@ from oslo_utils import importutils
 
 from ironic.api import app
 from ironic.common import config
+from ironic.common import context
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE

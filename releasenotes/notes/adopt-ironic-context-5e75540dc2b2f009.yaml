@@ -1,0 +1,4 @@
+---
+fixes:
+  - Fixes a bug where Ironic won't log the request-id during
+    hardware inspecting.

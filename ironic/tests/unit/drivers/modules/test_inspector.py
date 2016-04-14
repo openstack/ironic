@@ -67,7 +67,7 @@ class BaseTestCase(db_base.DbTestCase):
         self.driver = driver_factory.get_driver("fake_inspector")
         self.node = obj_utils.get_test_node(self.context)
         self.task = mock.MagicMock(spec=task_manager.TaskManager)
-        self.task.context = mock.MagicMock(spec_set=['auth_token'])
+        self.task.context = self.context
         self.task.shared = False
         self.task.node = self.node
         self.task.driver = self.driver

@@ -21,24 +21,33 @@ class RequestContext(context.RequestContext):
     def __init__(self, auth_token=None, domain_id=None, domain_name=None,
                  user=None, tenant=None, is_admin=False, is_public_api=False,
                  read_only=False, show_deleted=False, request_id=None,
-                 roles=None, show_password=True):
-        """Stores several additional request parameters:
+                 roles=None, show_password=True, overwrite=True):
+        """Initialize the RequestContext
 
+        :param auth_token: The authentication token of the current request.
         :param domain_id: The ID of the domain.
         :param domain_name: The name of the domain.
+        :param user: The name of the user.
+        :param tenant: The name of the tenant.
+        :param is_admin: Indicates if the request context is an administrator.
         :param is_public_api: Specifies whether the request should be processed
                               without authentication.
+        :param read_only: unused flag for Ironic.
+        :param show_deleted: unused flag for Ironic.
+        :param request_id: The UUID of the request.
         :param roles: List of user's roles if any.
         :param show_password: Specifies whether passwords should be masked
                               before sending back to API call.
-
+        :param overwrite: Set to False to ensure that the greenthread local
+                             copy of the index is not overwritten.
         """
         super(RequestContext, self).__init__(auth_token=auth_token,
                                              user=user, tenant=tenant,
                                              is_admin=is_admin,
                                              read_only=read_only,
                                              show_deleted=show_deleted,
-                                             request_id=request_id)
+                                             request_id=request_id,
+                                             overwrite=overwrite)
         self.is_public_api = is_public_api
         self.domain_id = domain_id
         self.domain_name = domain_name
@@ -67,3 +76,26 @@ class RequestContext(context.RequestContext):
         values.pop('user', None)
         values.pop('tenant', None)
         return cls(**values)
+
+    def ensure_thread_contain_context(self):
+        """Ensure threading contains context
+
+        For async/periodic tasks, the context of local thread is missing.
+        Set it with request context and this is useful to log the request_id
+        in log messages.
+
+        """
+        if context.get_current():
+            return
+        self.update_store()
+
+
+def get_admin_context():
+    """Create an administrator context.
+
+    """
+    context = RequestContext(None,
+                             tenant=None,
+                             is_admin=True,
+                             overwrite=False)
+    return context
