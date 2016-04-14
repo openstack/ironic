@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    In the config section ``[agent]`` two config options were deprecated in the
+    Liberty cycle and they have been removed. The options were named:
+
+    * ``[agent]/agent_erase_devices_priority``
+    * ``[agent]/agent_erase_devices_iterations``
+
