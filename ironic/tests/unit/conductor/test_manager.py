@@ -1545,9 +1545,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
     def test_continue_node_clean_manual(self):
         self._continue_node_clean(states.CLEANWAIT, manual=True)
 
-    def test_continue_node_clean_backward_compat(self):
-        self._continue_node_clean(states.CLEANING)
-
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
     def _continue_node_clean_skip_step(self, mock_spawn, skip=True):
         # test that skipping current step mechanism works
@@ -1838,9 +1835,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
     def test_do_next_clean_step_automated_first_step_async(self):
         self._do_next_clean_step_first_step_async(states.CLEANWAIT)
 
-    def test_do_next_clean_step_first_step_async_backward_compat(self):
-        self._do_next_clean_step_first_step_async(states.CLEANING)
-
     def test_do_next_clean_step_manual_first_step_async(self):
         self._do_next_clean_step_first_step_async(
             states.CLEANWAIT, clean_steps=[self.deploy_raid])
@@ -1878,9 +1872,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
 
     def test_do_next_clean_step_continue_from_last_cleaning(self):
         self._do_next_clean_step_continue_from_last_cleaning(states.CLEANWAIT)
-
-    def test_do_next_clean_step_continue_from_last_cleaning_backward_com(self):
-        self._do_next_clean_step_continue_from_last_cleaning(states.CLEANING)
 
     def test_do_next_clean_step_manual_continue_from_last_cleaning(self):
         self._do_next_clean_step_continue_from_last_cleaning(states.CLEANWAIT,
