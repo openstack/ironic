@@ -147,6 +147,9 @@ esac
 
 # Which deploy driver to use - valid choices right now
 # are ``pxe_ssh``, ``pxe_ipmitool``, ``agent_ssh`` and ``agent_ipmitool``.
+#
+# Additional valid choices if IRONIC_IS_HARDWARE == true are:
+# ``pxe_iscsi_cimc``, ``pxe_agent_cimc``, ``pxe_ucs`` and ``pxe_cimc``.
 IRONIC_DEPLOY_DRIVER=${IRONIC_DEPLOY_DRIVER:-pxe_ssh}
 
 # TODO(agordeev): replace 'ubuntu' with host distro name getting
