@@ -72,7 +72,7 @@ class RPCService(service.Service):
 
     def start(self):
         super(RPCService, self).start()
-        admin_context = context.RequestContext('admin', 'admin', is_admin=True)
+        admin_context = context.get_admin_context()
 
         target = messaging.Target(topic=self.topic, server=self.host)
         endpoints = [self.manager]
