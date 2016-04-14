@@ -1,0 +1,8 @@
+---
+features:
+  - IPA supported iSCSI portal port customization already.
+    With this patch, we added new portal_port argument into
+    agent_client.start_iscsi_target() method to pass iSCSI portal
+    port to IPA side. And add new configuration into iscsi module as
+    CONF.iscsi.portal_port
+

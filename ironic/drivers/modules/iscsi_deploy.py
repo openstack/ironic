@@ -77,8 +77,16 @@ pxe_opts = [
                help=_('The disk devices to scan while doing the deploy.')),
 ]
 
+iscsi_opts = [
+    cfg.PortOpt('portal_port',
+                default=3260,
+                help=_('The port number on which the iSCSI portal listens '
+                       'for incoming connections.')),
+]
+
 CONF = cfg.CONF
 CONF.register_opts(pxe_opts, group='pxe')
+CONF.register_opts(iscsi_opts, group='iscsi')
 
 DISK_LAYOUT_PARAMS = ('root_gb', 'swap_mb', 'ephemeral_gb')
 
@@ -333,7 +341,11 @@ def do_agent_iscsi_deploy(task, agent_client):
     iscsi_options = build_deploy_ramdisk_options(node)
 
     iqn = iscsi_options['iscsi_target_iqn']
-    result = agent_client.start_iscsi_target(node, iqn)
+    portal_port = iscsi_options['iscsi_portal_port']
+
+    result = agent_client.start_iscsi_target(node, iqn,
+                                             portal_port)
+
     if result['command_status'] == 'FAILED':
         msg = (_("Failed to start the iSCSI target to deploy the "
                  "node %(node)s. Error: %(error)s") %
@@ -412,6 +424,7 @@ def build_deploy_ramdisk_options(node):
         'deployment_id': node['uuid'],
         'deployment_key': deploy_key,
         'iscsi_target_iqn': 'iqn.2008-10.org.openstack:%s' % node.uuid,
+        'iscsi_portal_port': CONF.iscsi.portal_port,
         'ironic_api_url': ironic_api,
         'disk': CONF.pxe.disk_devices,
         'boot_option': boot_option,

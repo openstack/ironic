@@ -1334,6 +1334,18 @@
 #root_helper = sudo ironic-rootwrap /etc/ironic/rootwrap.conf
 
 
+[iscsi]
+
+#
+# Options defined in ironic.drivers.modules.iscsi_deploy
+#
+
+# The port number on which the iSCSI portal listens for
+# incoming connections. (port value)
+# Possible values: 0-65535
+#portal_port=3260
+
+
 [keystone]
 
 #
