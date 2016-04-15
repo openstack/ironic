@@ -29,7 +29,8 @@ class RequestContext(context.RequestContext):
         :param domain_name: The name of the domain.
         :param user: The name of the user.
         :param tenant: The name of the tenant.
-        :param is_admin: Indicates if the request context is an administrator.
+        :param is_admin: Indicates if the request context is an administrator
+                         context.
         :param is_public_api: Specifies whether the request should be processed
                               without authentication.
         :param read_only: unused flag for Ironic.
