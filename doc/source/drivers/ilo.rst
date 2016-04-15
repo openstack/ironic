@@ -1436,6 +1436,11 @@ All the fields in the firmware image block are mandatory.
    ``service`` and the container is generally ``ironic`` and ``ilo`` drivers
    use a container named ``ironic_ilo_container`` for their own purpose.
 
+.. note::
+   While using firmware files with a ``.rpm`` extension, make sure the commands
+   ``rpm2cpio`` and ``cpio`` are present on the conductor, as they are utilized
+   to extract the firmware image from the package.
+
 * The firmware components that can be updated are:
   ``ilo``, ``cpld``, ``power_pic``, ``bios`` and ``chassis``.
 * The firmware images will be updated in the order given by the operator. If
