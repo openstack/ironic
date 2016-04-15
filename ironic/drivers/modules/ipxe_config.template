@@ -5,14 +5,16 @@ dhcp
 goto deploy
 
 :deploy
-kernel {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.deployment_aki_path }} selinux=0 disk={{ pxe_options.disk }} iscsi_target_iqn={{ pxe_options.iscsi_target_iqn }} deployment_id={{ pxe_options.deployment_id }} deployment_key={{ pxe_options.deployment_key }} ironic_api_url={{ pxe_options.ironic_api_url }} troubleshoot=0 text {{ pxe_options.pxe_append_params|default("", true) }} boot_option={{ pxe_options.boot_option }} ip=${ip}:${next-server}:${gateway}:${netmask} BOOTIF=${mac} {% if pxe_options.root_device %}root_device={{ pxe_options.root_device }}{% endif %} ipa-api-url={{ pxe_options['ipa-api-url'] }} ipa-driver-name={{ pxe_options['ipa-driver-name'] }} boot_mode={{ pxe_options['boot_mode'] }} initrd=deploy_ramdisk coreos.configdrive=0
+imgfree
+kernel {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.deployment_aki_path }} selinux=0 disk={{ pxe_options.disk }} iscsi_target_iqn={{ pxe_options.iscsi_target_iqn }} deployment_id={{ pxe_options.deployment_id }} deployment_key={{ pxe_options.deployment_key }} ironic_api_url={{ pxe_options.ironic_api_url }} troubleshoot=0 text {{ pxe_options.pxe_append_params|default("", true) }} boot_option={{ pxe_options.boot_option }} ip=${ip}:${next-server}:${gateway}:${netmask} BOOTIF=${mac} {% if pxe_options.root_device %}root_device={{ pxe_options.root_device }}{% endif %} ipa-api-url={{ pxe_options['ipa-api-url'] }} ipa-driver-name={{ pxe_options['ipa-driver-name'] }} boot_mode={{ pxe_options['boot_mode'] }} initrd=deploy_ramdisk coreos.configdrive=0 || goto deploy
 
-initrd {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.deployment_ari_path }}
+initrd {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.deployment_ari_path }} || goto deploy
 boot
 
 :boot_partition
-kernel {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.aki_path }} root={{ ROOT }} ro text {{ pxe_options.pxe_append_params|default("", true) }} initrd=ramdisk
-initrd {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.ari_path }}
+imgfree
+kernel {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.aki_path }} root={{ ROOT }} ro text {{ pxe_options.pxe_append_params|default("", true) }} initrd=ramdisk || goto boot_partition
+initrd {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.ari_path }} || goto boot_partition
 boot
 
 :boot_whole_disk

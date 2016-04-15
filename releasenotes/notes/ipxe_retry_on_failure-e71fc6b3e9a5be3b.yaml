@@ -1,0 +1,6 @@
+---
+features:
+  - ipxe will now retry to download the kernel or the initrd in case
+    of failure. The previous behavior was to give up and continue the
+    boot on the next boot device.
+    See https://bugs.launchpad.net/ironic/+bug/1326656
