@@ -13,37 +13,26 @@
 import itertools
 
 import ironic.api
-import ironic.api.app
-import ironic.common.driver_factory
-import ironic.common.exception
-import ironic.common.hash_ring
-import ironic.common.images
-import ironic.common.neutron
-import ironic.common.paths
-import ironic.common.service
-import ironic.common.utils
 import ironic.drivers.modules.agent
 import ironic.drivers.modules.agent_base_vendor
 import ironic.drivers.modules.agent_client
 import ironic.drivers.modules.amt.common
 import ironic.drivers.modules.amt.power
 import ironic.drivers.modules.deploy_utils
-import ironic.drivers.modules.image_cache
 import ironic.drivers.modules.iscsi_deploy
 import ironic.drivers.modules.pxe
-import ironic.netconf
 
 _default_opt_lists = [
-    ironic.api.app.api_opts,
-    ironic.common.driver_factory.driver_opts,
-    ironic.common.exception.exc_log_opts,
-    ironic.common.hash_ring.hash_opts,
-    ironic.common.images.image_opts,
-    ironic.common.paths.path_opts,
-    ironic.common.service.service_opts,
-    ironic.common.utils.utils_opts,
-    ironic.drivers.modules.image_cache.img_cache_opts,
-    ironic.netconf.netconf_opts,
+    ironic.conf.default.api_opts,
+    ironic.conf.default.driver_opts,
+    ironic.conf.default.exc_log_opts,
+    ironic.conf.default.hash_opts,
+    ironic.conf.default.image_opts,
+    ironic.conf.default.img_cache_opts,
+    ironic.conf.default.netconf_opts,
+    ironic.conf.default.path_opts,
+    ironic.conf.default.service_opts,
+    ironic.conf.default.utils_opts,
 ]
 
 _opts = [

@@ -25,10 +25,8 @@ from oslo_config import cfg
 
 from ironic.common.i18n import _
 from ironic.common import service
+from ironic.conf import CONF
 from ironic.db import migration
-
-
-CONF = cfg.CONF
 
 
 class DBCommand(object):

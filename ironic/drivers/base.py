@@ -24,7 +24,6 @@ import inspect
 import json
 import os
 
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 import six
@@ -37,9 +36,6 @@ LOG = logging.getLogger(__name__)
 
 RAID_CONFIG_SCHEMA = os.path.join(os.path.dirname(__file__),
                                   'raid_config_schema.json')
-
-
-CONF = cfg.CONF
 
 
 @six.add_metaclass(abc.ABCMeta)

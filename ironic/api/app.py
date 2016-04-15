@@ -24,29 +24,7 @@ from ironic.api import config
 from ironic.api.controllers.base import Version
 from ironic.api import hooks
 from ironic.api import middleware
-from ironic.common.i18n import _
-
-api_opts = [
-    cfg.StrOpt(
-        'auth_strategy',
-        default='keystone',
-        choices=['noauth', 'keystone'],
-        help=_('Authentication strategy used by ironic-api. "noauth" should '
-               'not be used in a production environment because all '
-               'authentication will be disabled.')),
-    cfg.BoolOpt('debug_tracebacks_in_api',
-                default=False,
-                help=_('Return server tracebacks in the API response for any '
-                       'error responses. WARNING: this is insecure '
-                       'and should not be used in a production environment.')),
-    cfg.BoolOpt('pecan_debug',
-                default=False,
-                help=_('Enable pecan debug mode. WARNING: this is insecure '
-                       'and should not be used in a production environment.')),
-]
-
-CONF = cfg.CONF
-CONF.register_opts(api_opts)
+from ironic.conf import CONF
 
 
 def get_pecan_config():

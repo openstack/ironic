@@ -26,7 +26,6 @@ from ironic_lib import disk_utils
 from ironic_lib import utils as ironic_utils
 import jinja2
 from oslo_concurrency import processutils
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import fileutils
 
@@ -35,30 +34,10 @@ from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common import image_service as service
-from ironic.common import paths
 from ironic.common import utils
+from ironic.conf import CONF
 
 LOG = logging.getLogger(__name__)
-
-image_opts = [
-    cfg.BoolOpt('force_raw_images',
-                default=True,
-                help=_('If True, convert backing images to "raw" disk image '
-                       'format.')),
-    cfg.StrOpt('isolinux_bin',
-               default='/usr/lib/syslinux/isolinux.bin',
-               help=_('Path to isolinux binary file.')),
-    cfg.StrOpt('isolinux_config_template',
-               default=paths.basedir_def('common/isolinux_config.template'),
-               help=_('Template file for isolinux configuration file.')),
-    cfg.StrOpt('grub_config_template',
-               default=paths.basedir_def('common/grub_conf.template'),
-               help=_('Template file for grub configuration file.')),
-]
-
-
-CONF = cfg.CONF
-CONF.register_opts(image_opts)
 
 
 def _create_root_fs(root_directory, files_info):

@@ -15,10 +15,8 @@
 # under the License.
 
 import signal
-import socket
 
 from oslo_concurrency import processutils
-from oslo_config import cfg
 from oslo_log import log
 import oslo_messaging as messaging
 from oslo_service import service
@@ -33,25 +31,11 @@ from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LI
 from ironic.common import rpc
+from ironic.conf import CONF
 from ironic import objects
 from ironic.objects import base as objects_base
 
-
-service_opts = [
-    cfg.StrOpt('host',
-               default=socket.getfqdn(),
-               sample_default='localhost',
-               help=_('Name of this node. This can be an opaque identifier. '
-                      'It is not necessarily a hostname, FQDN, or IP address. '
-                      'However, the node name must be valid within '
-                      'an AMQP key, and if using ZeroMQ, a valid '
-                      'hostname, FQDN, or IP address.')),
-]
-
-CONF = cfg.CONF
 LOG = log.getLogger(__name__)
-
-CONF.register_opts(service_opts)
 
 
 class RPCService(service.Service):
