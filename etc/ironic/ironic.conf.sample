@@ -405,17 +405,6 @@
 # Options defined in ironic.drivers.modules.agent
 #
 
-# DEPRECATED. Additional append parameters for baremetal PXE
-# boot. This option is deprecated and will be removed in
-# Mitaka release. Please use [pxe]pxe_append_params instead.
-# (string value)
-#agent_pxe_append_params = nofb nomodeset vga=normal
-
-# DEPRECATED. Template file for PXE configuration. This option
-# is deprecated and will be removed in Mitaka release. Please
-# use [pxe]pxe_config_template instead. (string value)
-#agent_pxe_config_template = $pybasedir/drivers/modules/agent_config.template
-
 # Whether Ironic will manage booting of the agent ramdisk. If
 # set to False, you will need to configure your mechanism to
 # allow booting the agent ramdisk. (boolean value)
@@ -1340,8 +1329,9 @@
 
 # The port number on which the iSCSI portal listens for
 # incoming connections. (port value)
-# Possible values: 0-65535
-#portal_port=3260
+# Minimum value: 0
+# Maximum value: 65535
+#portal_port = 3260
 
 
 [keystone]

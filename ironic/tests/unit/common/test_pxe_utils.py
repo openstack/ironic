@@ -113,17 +113,6 @@ class TestPXEUtils(db_base.DbTestCase):
 
         self.assertEqual(six.text_type(expected_template), rendered_template)
 
-    def test__build_pxe_config_with_agent(self):
-
-        rendered_template = pxe_utils._build_pxe_config(
-            self.agent_pxe_options, CONF.agent.agent_pxe_config_template,
-            '{{ ROOT }}', '{{ DISK_IDENTIFIER }}')
-
-        template_file = 'ironic/tests/unit/drivers/agent_pxe_config.template'
-        expected_template = open(template_file).read().rstrip()
-
-        self.assertEqual(six.text_type(expected_template), rendered_template)
-
     def test__build_ipxe_bios_config(self):
         # NOTE(lucasagomes): iPXE is just an extension of the PXE driver,
         # it doesn't have it's own configuration option for template.
