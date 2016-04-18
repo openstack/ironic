@@ -295,10 +295,11 @@ class IloVirtualMediaBoot(base.BootInterface):
 
         node = task.node
         # NOTE(TheJulia): If this method is being called by something
-        # aside from a deployment, such as conductor takeover, we should
-        # treat this as a no-op and move on otherwise we would modify
+        # aside from deployment and clean, such as conductor takeover, we
+        # should treat this as a no-op and move on otherwise we would modify
         # the state of the node due to virtual media operations.
-        if node.provision_state != states.DEPLOYING:
+        if (node.provision_state != states.DEPLOYING and
+                node.provision_state != states.CLEANING):
             return
 
         # Clear ilo_boot_iso if it's a glance image to force recreate

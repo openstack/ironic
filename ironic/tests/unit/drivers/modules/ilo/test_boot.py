@@ -502,8 +502,8 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
                        autospec=True)
-    def test_prepare_ramdisk_not_deploying(self, mock_is_image):
-        """Ensure ramdisk build operations are blocked when not deploying"""
+    def test_prepare_ramdisk_not_deploying_not_cleaning(self, mock_is_image):
+        """Ensure deploy ops are blocked when not deploying and not cleaning"""
 
         for state in states.STABLE_STATES:
             mock_is_image.reset_mock()
@@ -526,6 +526,25 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
 
     def test_prepare_ramdisk_not_a_glance_image(self):
         self.node.provision_state = states.DEPLOYING
+        self.node.save()
+        self._test_prepare_ramdisk(
+            ilo_boot_iso='http://mybootiso',
+            image_source='http://myimage')
+        self.node.refresh()
+        self.assertEqual('http://mybootiso',
+                         self.node.instance_info['ilo_boot_iso'])
+
+    def test_prepare_ramdisk_glance_image_cleaning(self):
+        self.node.provision_state = states.CLEANING
+        self.node.save()
+        self._test_prepare_ramdisk(
+            ilo_boot_iso='swift:abcdef',
+            image_source='6b2f0c0c-79e8-4db6-842e-43c9764204af')
+        self.node.refresh()
+        self.assertNotIn('ilo_boot_iso', self.node.instance_info)
+
+    def test_prepare_ramdisk_not_a_glance_image_cleaning(self):
+        self.node.provision_state = states.CLEANING
         self.node.save()
         self._test_prepare_ramdisk(
             ilo_boot_iso='http://mybootiso',
