@@ -259,9 +259,13 @@ def _download_swift_based_fw_to(self, target_file):
     :raises: SwiftOperationError, on failure to download from swift.
     :raises: ImageDownloadFailed, on failure to download the original file.
     """
-    # Extract container name and object name
+    # Extract container name
     container = self.parsed_url.netloc
-    objectname = os.path.basename(self.parsed_url.path)
+    # Extract the object name from the path of the form:
+    #    ``/objectname`` OR
+    #    ``/pseudo-folder/objectname``
+    # stripping the leading '/' character.
+    objectname = self.parsed_url.path.lstrip('/')
     timeout = CONF.ilo.swift_object_expiry_timeout
     # Generate temp url using swift API
     tempurl = swift.SwiftAPI().get_temp_url(container, objectname, timeout)

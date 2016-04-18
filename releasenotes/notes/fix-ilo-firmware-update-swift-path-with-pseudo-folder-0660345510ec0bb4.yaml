@@ -1,0 +1,5 @@
+---
+fixes:
+  - Fixes an issue where iLO drivers fail to download the
+    firmware file from swift when the swift file path
+    includes swift pseudo folder.

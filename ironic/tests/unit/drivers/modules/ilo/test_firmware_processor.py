@@ -363,16 +363,25 @@ class FirmwareProcessorTestCase(base.TestCase):
     def test__download_swift_based_fw_to_creates_temp_url(
             self, swift_mock, _download_http_based_fw_to_mock, urlparse_mock):
         # | GIVEN |
-        any_swift_based_firmware_file = 'swift://containername/objectname'
-        any_target_file = 'any_target_file'
-        self.fw_processor_fake.parsed_url = urlparse.urlparse(
-            any_swift_based_firmware_file)
-        # | WHEN |
-        ilo_fw_processor._download_swift_based_fw_to(self.fw_processor_fake,
-                                                     any_target_file)
+        swift_based_firmware_files = [
+            'swift://containername/objectname',
+            'swift://containername/pseudo-folder/objectname'
+        ]
+        for swift_firmware_file in swift_based_firmware_files:
+            # | WHEN |
+            self.fw_processor_fake.parsed_url = (urlparse.
+                                                 urlparse(swift_firmware_file))
+            ilo_fw_processor._download_swift_based_fw_to(
+                self.fw_processor_fake, 'any_target_file')
         # | THEN |
-        swift_mock.SwiftAPI().get_temp_url.assert_called_once_with(
-            'containername', 'objectname', mock.ANY)
+        expected_temp_url_call_args_list = [
+            mock.call('containername', 'objectname', mock.ANY),
+            mock.call('containername', 'pseudo-folder/objectname', mock.ANY)
+        ]
+        actual_temp_url_call_args_list = (
+            swift_mock.SwiftAPI().get_temp_url.call_args_list)
+        self.assertEqual(expected_temp_url_call_args_list,
+                         actual_temp_url_call_args_list)
 
     @mock.patch.object(urlparse, 'urlparse', autospec=True)
     @mock.patch.object(
