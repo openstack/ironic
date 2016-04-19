@@ -637,7 +637,7 @@ function create_ovs_taps {
     tapdev=$(sudo ip netns exec qdhcp-${ironic_net_id} ip link list | grep " tap" | cut -d':' -f2 | cut -d'@' -f1 | cut -b2-)
     die_if_not_set $LINENO tapdev "Failed to get tap device id"
     local tag_id
-    tag_id=$(sudo ovs-vsctl show |grep ${tapdev} -A1 -m1 | grep tag | cut -d':' -f2 | cut -b2-)
+    tag_id=$(sudo ovs-vsctl get port ${tapdev} tag)
     die_if_not_set $LINENO tag_id "Failed to get tag id"
 
     # make sure veth pair is not existing, otherwise delete its links
