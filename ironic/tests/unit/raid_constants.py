@@ -196,6 +196,17 @@ RAID_CONFIG_ADDITIONAL_PROP = '''
 }
 '''
 
+RAID_CONFIG_JBOD_VOLUME = '''
+{
+  "logical_disks": [
+      {
+       "raid_level": "JBOD",
+       "size_gb": 100
+      }
+  ]
+}
+'''
+
 CUSTOM_SCHEMA_RAID_CONFIG = '''
 {
   "logical_disks": [

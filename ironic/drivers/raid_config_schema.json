@@ -9,8 +9,8 @@
                 "properties": {
                     "raid_level": {
                         "type": "string",
-                        "enum": [ "0", "1", "2", "5", "6", "1+0", "5+0", "6+0" ],
-                        "description": "RAID level for the logical disk. Valid values are '0', '1', '2', '5', '6', '1+0', '5+0' and '6+0'. Required."
+                        "enum": [ "JBOD", "0", "1", "2", "5", "6", "1+0", "5+0", "6+0" ],
+                        "description": "RAID level for the logical disk. Valid values are 'JBOD', 0', '1', '2', '5', '6', '1+0', '5+0' and '6+0'. Required."
                     },
                     "size_gb": {
                         "anyOf": [{
