@@ -39,6 +39,7 @@ Administrator's Guide
   deploy/drivers
   deploy/cleaning
   deploy/raid
+  deploy/inspection
   deploy/troubleshooting
   Release Notes <http://docs.openstack.org/releasenotes/ironic/>
 

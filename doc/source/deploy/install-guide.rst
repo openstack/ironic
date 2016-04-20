@@ -1895,76 +1895,11 @@ UUID interchangeably.
 .. _wiki_hostname: http://en.wikipedia.org/wiki/Hostname
 
 
-.. _inspection:
-
 Hardware Inspection
 -------------------
 
 Starting with the Kilo release, Bare Metal service supports hardware inspection
-that simplifies enrolling nodes.
-Inspection allows Bare Metal service to discover required node properties
-once required ``driver_info`` fields (for example, IPMI credentials) are set
-by an operator. Inspection will also create the Bare Metal service ports for the
-discovered ethernet MACs. Operators will have to manually delete the Bare Metal
-service ports for which physical media is not connected. This is required due
-to the `bug 1405131 <https://bugs.launchpad.net/ironic/+bug/1405131>`_.
-
-There are two kinds of inspection supported by Bare Metal service:
-
-#. Out-of-band inspection is currently implemented by iLO drivers, listed at
-   :ref:`ilo`.
-
-#. In-band inspection is performed by utilizing the ironic-inspector_ project.
-   This is supported by the following drivers::
-
-    pxe_drac
-    pxe_ipmitool
-    pxe_ipminative
-    pxe_ssh
-
-  This feature needs to be explicitly enabled in the configuration
-  by setting ``enabled = True`` in ``[inspector]`` section.
-  You must additionally install python-ironic-inspector-client_ to use
-  this functionality.
-  You must set ``service_url`` if the ironic-inspector service is
-  being run on a separate host from the ironic-conductor service, or is using
-  non-standard port.
-
-  In order to ensure that ports in Bare Metal service are synchronized with
-  NIC ports on the node, the following settings in the ironic-inspector
-  configuration file must be set::
-
-    [processing]
-    add_ports = all
-    keep_ports = present
-
-  .. note::
-    During Kilo cycle we used on older verions of Inspector called
-    ironic-discoverd_. Inspector is expected to be a mostly drop-in
-    replacement, and the same client library should be used to connect to both.
-
-    For Kilo, install ironic-discoverd_ of version 1.1.0 or higher
-    instead of python-ironic-inspector-client and use ``[discoverd]`` option
-    group in both Bare Metal service and ironic-discoverd configuration
-    files instead of ones provided above.
-
-Inspection can be initiated using node-set-provision-state.
-The node should be in MANAGEABLE state before inspection is initiated.
-
-* Move node to manageable state::
-
-    ironic node-set-provision-state <node_UUID> manage
-
-* Initiate inspection::
-
-    ironic node-set-provision-state <node_UUID> inspect
-
-.. note::
-    The above commands require the python-ironicclient_ to be version 0.5.0 or greater.
-
-.. _ironic-discoverd: https://pypi.python.org/pypi/ironic-discoverd
-.. _python-ironic-inspector-client: https://pypi.python.org/pypi/python-ironic-inspector-client
-.. _python-ironicclient: https://pypi.python.org/pypi/python-ironicclient
+that simplifies enrolling nodes - please see :ref:`inspection` for details.
 
 Specifying the disk for deployment
 ==================================

@@ -878,13 +878,11 @@ for scheduling::
 
   nova flavor-key my-baremetal-flavor set capabilities:server_model="<in> Gen8"
 
-  nova flavor-key my-baremetal-flavor set capabilities:pci_gpu_devices="> 0"
-
   nova flavor-key my-baremetal-flavor set capabilities:nic_capacity="10Gb"
 
   nova flavor-key my-baremetal-flavor set capabilities:ilo_firmware_version="<in> 2.10"
 
-  nova flavor-key my-baremetal-flavor set capabilities:secure_boot="true"
+See :ref:`capabilities-discovery` for more details and examples.
 
 Swiftless deploy for intermediate images
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
