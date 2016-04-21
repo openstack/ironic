@@ -42,25 +42,25 @@ Capabilities discovery
 
 This is an incomplete list of capabilities we want to discover during
 inspection. The exact support is driver-specific though, the most complete
-list is provided by :ref:`ilo`.
+list is provided by the iLO :ref:`ilo-inspection`.
 
 ``secure_boot`` (``true`` or ``false``)
-    whether secure boot is supported for the node;
+    whether secure boot is supported for the node
 
 ``boot_mode`` (``bios`` or ``uefi``)
-    the boot mode the node is using;
+    the boot mode the node is using
 
 ``cpu_vt`` (``true`` or ``false``)
-    whether the CPU virtualization is enabled;
+    whether the CPU virtualization is enabled
 
 ``cpu_aes`` (``true`` or ``false``)
-    whether the AES CPU extensions are enabled;
+    whether the AES CPU extensions are enabled
 
 ``max_raid_level`` (integer, 0-10)
-    maximum RAID level supported by the node;
+    maximum RAID level supported by the node
 
 ``pci_gpu_devices`` (non-negative integer)
-    number of GPU devices on the node.
+    number of GPU devices on the node
 
 The operator can specify these capabilities in nova flavor for node to be selected
 for scheduling::
@@ -75,14 +75,31 @@ driver can discover.
 In-band inspection
 ------------------
 
-This is supported by the following drivers::
+In-band inspection involves booting a ramdisk on the target node and fetching
+information directly from it. This process is more fragile and time-consuming
+than the out-of-band inspection, but it is not vendor-specific and works
+across a wide range of hardware. In-band inspection is using the
+ironic-inspector_ project.
 
-    pxe_drac
+Currently it is supported by the following generic drivers::
+
     pxe_ipmitool
     pxe_ipminative
     pxe_ssh
+    agent_ipmitool
+    agent_ipminative
+    agent_ssh
+    fake_inspector
 
-This feature needs to be explicitly enabled in the configuration
+It is also the default inspection approach for the following vendor drivers::
+
+    pxe_drac
+    pxe_ucs
+    pxe_cimc
+    agent_ucs
+    agent_cimc
+
+This feature needs to be explicitly enabled in the ironic configuration file
 by setting ``enabled = True`` in ``[inspector]`` section.
 You must additionally install python-ironic-inspector-client_ to use
 this functionality.
