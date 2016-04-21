@@ -21,7 +21,6 @@ import time
 
 from ironic_lib import disk_utils
 from oslo_concurrency import processutils
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_utils import excutils
@@ -40,57 +39,12 @@ from ironic.common import keystone
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import utils as manager_utils
+from ironic.conf import CONF
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import image_cache
 from ironic.drivers import utils as driver_utils
 from ironic import objects
 
-
-deploy_opts = [
-    cfg.StrOpt('http_url',
-               help=_("ironic-conductor node's HTTP server URL. "
-                      "Example: http://192.1.2.3:8080")),
-    cfg.StrOpt('http_root',
-               default='/httpboot',
-               help=_("ironic-conductor node's HTTP root path.")),
-    cfg.IntOpt('erase_devices_priority',
-               help=_('Priority to run in-band erase devices via the Ironic '
-                      'Python Agent ramdisk. If unset, will use the priority '
-                      'set in the ramdisk (defaults to 10 for the '
-                      'GenericHardwareManager). If set to 0, will not run '
-                      'during cleaning.')),
-    # TODO(mmitchell): Remove the deprecated name/group during Ocata cycle.
-    cfg.IntOpt('shred_random_overwrite_iterations',
-               deprecated_name='erase_devices_iterations',
-               deprecated_group='deploy',
-               default=1,
-               min=0,
-               help=_('During shred, overwrite all block devices N times with '
-                      'random data. This is only used if a device could not '
-                      'be ATA Secure Erased. Defaults to 1.')),
-    cfg.BoolOpt('shred_final_overwrite_with_zeros',
-                default=True,
-                help=_("Whether to write zeros to a node's block devices "
-                       "after writing random data. This will write zeros to "
-                       "the device even when "
-                       "deploy.shred_random_overwrite_interations is 0. This "
-                       "option is only used if a device could not be ATA "
-                       "Secure Erased. Defaults to True.")),
-    cfg.BoolOpt('continue_if_disk_secure_erase_fails',
-                default=False,
-                help=_('Defines what to do if an ATA secure erase operation '
-                       'fails during cleaning in the Ironic Python Agent. '
-                       'If False, the cleaning operation will fail and the '
-                       'node will be put in ``clean failed`` state. '
-                       'If True, shred will be invoked and cleaning will '
-                       'continue.')),
-    cfg.BoolOpt('power_off_after_deploy_failure',
-                default=True,
-                help=_('Whether to power off a node after deploy failure. '
-                       'Defaults to True.')),
-]
-CONF = cfg.CONF
-CONF.register_opts(deploy_opts, group='deploy')
 
 # TODO(Faizan): Move this logic to common/utils.py and deprecate
 # rootwrap_config.
