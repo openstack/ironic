@@ -40,6 +40,7 @@ Administrator's Guide
   deploy/cleaning
   deploy/raid
   deploy/inspection
+  deploy/security
   deploy/troubleshooting
   Release Notes <http://docs.openstack.org/releasenotes/ironic/>
 
