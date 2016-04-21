@@ -1340,8 +1340,9 @@
 
 # The port number on which the iSCSI portal listens for
 # incoming connections. (port value)
-# Possible values: 0-65535
-#portal_port=3260
+# Minimum value: 0
+# Maximum value: 65535
+#portal_port = 3260
 
 
 [keystone]
