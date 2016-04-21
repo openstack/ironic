@@ -547,6 +547,61 @@ The server should now be accessible via SSH::
     ssh cirros@10.1.0.4
     $
 
+
+=====================
+Running Tempest tests
+=====================
+
+After `Deploying Ironic with DevStack`_ one might want to run integration
+tests against the running cloud. The Tempest project is the project that
+offers an integration test suite for OpenStack.
+
+First, navigate to Tempest directory::
+
+  cd /opt/stack/tempest
+
+To run all tests from the `Ironic plugin
+<https://github.com/openstack/ironic/tree/master/ironic_tempest_plugin>`_,
+execute the following command::
+
+  tox -e all-plugin -- ironic
+
+To limit the amount of tests that you would like to run, you can use
+a regex. For instance, to limit the run to a single test file, the
+following command can be used::
+
+  tox -e all-plugin -- ironic_tempest_plugin.tests.scenario.test_baremetal_basic_ops
+
+
+Debugging Tempest tests
+-----------------------
+
+It is sometimes useful to step through the test code, line by line,
+especially when the error output is vague. This can be done by
+running the tests in debug mode and using a debugger such as `pdb
+<https://docs.python.org/2/library/pdb.html>`_.
+
+For example, after editing the *test_baremetal_basic_ops* file and
+setting up the pdb traces you can invoke the ``run_tempest.sh`` script
+in the Tempest directory with the following parameters::
+
+  ./run_tempest.sh -N -d ironic_tempest_plugin.tests.scenario.test_baremetal_basic_ops
+
+* The *-N* parameter tells the script to run the tests in the local
+  environment (without a virtualenv) so it can find the Ironic tempest
+  plugin.
+
+* The *-d* parameter enables the debug mode, allowing it to be used
+  with pdb.
+
+For more information about the supported parameters see::
+
+  ./run_tempest.sh --help
+
+.. note::
+   Always be careful when running debuggers in time sensitive code,
+   they may cause timeout errors that weren't there before.
+
 ================================
 Building developer documentation
 ================================
