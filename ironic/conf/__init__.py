@@ -15,6 +15,7 @@
 
 from oslo_config import cfg
 
+from ironic.conf import api
 from ironic.conf import cimc
 from ironic.conf import cisco_ucs
 from ironic.conf import conductor
@@ -39,6 +40,7 @@ from ironic.conf import virtualbox
 
 CONF = cfg.CONF
 
+api.register_opts(CONF)
 cimc.register_opts(CONF)
 cisco_ucs.register_opts(CONF)
 conductor.register_opts(CONF)
