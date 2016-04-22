@@ -20,7 +20,6 @@ import ast
 import collections
 import time
 
-from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import excutils
 from oslo_utils import strutils
@@ -38,28 +37,11 @@ from ironic.common import utils
 from ironic.conductor import rpcapi
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
 from ironic import objects
-
-agent_opts = [
-    cfg.IntOpt('heartbeat_timeout',
-               default=300,
-               help=_('Maximum interval (in seconds) for agent heartbeats.')),
-    cfg.IntOpt('post_deploy_get_power_state_retries',
-               default=6,
-               help=_('Number of times to retry getting power state to check '
-                      'if bare metal node has been powered off after a soft '
-                      'power off.')),
-    cfg.IntOpt('post_deploy_get_power_state_retry_interval',
-               default=5,
-               help=_('Amount of time (in seconds) to wait between polling '
-                      'power state after trigger soft poweroff.')),
-]
-
-CONF = cfg.CONF
-CONF.register_opts(agent_opts, group='agent')
 
 LOG = log.getLogger(__name__)
 

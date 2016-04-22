@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import excutils
 from oslo_utils import units
@@ -32,42 +31,11 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
 
-
-agent_opts = [
-    cfg.BoolOpt('manage_agent_boot',
-                default=True,
-                help=_('Whether Ironic will manage booting of the agent '
-                       'ramdisk. If set to False, you will need to configure '
-                       'your mechanism to allow booting the agent '
-                       'ramdisk.')),
-    cfg.IntOpt('memory_consumed_by_agent',
-               default=0,
-               help=_('The memory size in MiB consumed by agent when it is '
-                      'booted on a bare metal node. This is used for '
-                      'checking if the image can be downloaded and deployed '
-                      'on the bare metal node after booting agent ramdisk. '
-                      'This may be set according to the memory consumed by '
-                      'the agent ramdisk image.')),
-    cfg.BoolOpt('stream_raw_images',
-                default=True,
-                help=_('Whether the agent ramdisk should stream raw images '
-                       'directly onto the disk or not. By streaming raw '
-                       'images directly onto the disk the agent ramdisk will '
-                       'not spend time copying the image to a tmpfs partition '
-                       '(therefore consuming less memory) prior to writing it '
-                       'to the disk. Unless the disk where the image will be '
-                       'copied to is really slow, this option should be set '
-                       'to True. Defaults to True.')),
-]
-
-CONF = cfg.CONF
-CONF.import_opt('erase_devices_priority',
-                'ironic.drivers.modules.deploy_utils', group='deploy')
-CONF.register_opts(agent_opts, group='agent')
 
 LOG = log.getLogger(__name__)
 

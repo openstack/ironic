@@ -12,9 +12,6 @@
 
 import itertools
 
-import ironic.drivers.modules.agent
-import ironic.drivers.modules.agent_base_vendor
-import ironic.drivers.modules.agent_client
 import ironic.drivers.modules.amt.common
 import ironic.drivers.modules.amt.power
 import ironic.drivers.modules.iscsi_deploy
@@ -35,10 +32,7 @@ _default_opt_lists = [
 
 _opts = [
     ('DEFAULT', itertools.chain(*_default_opt_lists)),
-    ('agent', itertools.chain(
-        ironic.drivers.modules.agent.agent_opts,
-        ironic.drivers.modules.agent_base_vendor.agent_opts,
-        ironic.drivers.modules.agent_client.agent_opts)),
+    ('agent', ironic.conf.agent.opts),
     ('amt', itertools.chain(
         ironic.drivers.modules.amt.common.opts,
         ironic.drivers.modules.amt.power.opts)),
