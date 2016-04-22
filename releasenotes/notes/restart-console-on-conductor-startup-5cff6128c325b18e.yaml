@@ -1,0 +1,5 @@
+---
+fixes:
+  - Some nodes' console may be enabled but the corresponding console
+    services stopped while starting conductors, this tries to start
+    consoles on conductor startup to make the status consistent.
