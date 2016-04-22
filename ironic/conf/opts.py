@@ -15,7 +15,6 @@ import itertools
 import ironic.drivers.modules.amt.common
 import ironic.drivers.modules.amt.power
 import ironic.drivers.modules.iscsi_deploy
-import ironic.drivers.modules.pxe
 
 _default_opt_lists = [
     ironic.conf.default.api_opts,
@@ -57,9 +56,7 @@ _opts = [
     ('metrics_statsd', ironic.conf.metrics_statsd.opts),
     ('neutron', ironic.conf.neutron.list_opts()),
     ('oneview', ironic.conf.oneview.opts),
-    ('pxe', itertools.chain(
-        ironic.drivers.modules.iscsi_deploy.pxe_opts,
-        ironic.drivers.modules.pxe.pxe_opts)),
+    ('pxe', ironic.conf.pxe.opts),
     ('seamicro', ironic.conf.seamicro.opts),
     ('service_catalog', ironic.conf.service_catalog.list_opts()),
     ('snmp', ironic.conf.snmp.opts),

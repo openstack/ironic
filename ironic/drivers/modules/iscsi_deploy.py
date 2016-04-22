@@ -30,6 +30,7 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
@@ -39,40 +40,6 @@ LOG = logging.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
-# NOTE(rameshg87): This file now registers some of opts in pxe group.
-# This is acceptable for now as a future refactoring into
-# separate boot and deploy interfaces is planned, and moving config
-# options twice is not recommended.  Hence we would move the parameters
-# to the appropriate place in the final refactoring.
-pxe_opts = [
-    cfg.StrOpt('pxe_append_params',
-               default='nofb nomodeset vga=normal',
-               help=_('Additional append parameters for baremetal PXE boot.')),
-    cfg.StrOpt('default_ephemeral_format',
-               default='ext4',
-               help=_('Default file system format for ephemeral partition, '
-                      'if one is created.')),
-    cfg.StrOpt('images_path',
-               default='/var/lib/ironic/images/',
-               help=_('On the ironic-conductor node, directory where images '
-                      'are stored on disk.')),
-    cfg.StrOpt('instance_master_path',
-               default='/var/lib/ironic/master_images',
-               help=_('On the ironic-conductor node, directory where master '
-                      'instance images are stored on disk. '
-                      'Setting to <None> disables image caching.')),
-    cfg.IntOpt('image_cache_size',
-               default=20480,
-               help=_('Maximum size (in MiB) of cache for master images, '
-                      'including those in use.')),
-    # 10080 here is 1 week - 60*24*7. It is entirely arbitrary in the absence
-    # of a facility to disable the ttl entirely.
-    cfg.IntOpt('image_cache_ttl',
-               default=10080,
-               help=_('Maximum TTL (in minutes) for old master images in '
-                      'cache.')),
-]
-
 iscsi_opts = [
     cfg.PortOpt('portal_port',
                 default=3260,
@@ -80,8 +47,6 @@ iscsi_opts = [
                        'for incoming connections.')),
 ]
 
-CONF = cfg.CONF
-CONF.register_opts(pxe_opts, group='pxe')
 CONF.register_opts(iscsi_opts, group='iscsi')
 
 DISK_LAYOUT_PARAMS = ('root_gb', 'swap_mb', 'ephemeral_gb')
