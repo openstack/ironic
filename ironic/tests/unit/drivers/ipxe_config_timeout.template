@@ -5,14 +5,16 @@ dhcp
 goto deploy
 
 :deploy
-kernel --timeout 120 http://1.2.3.4:1234/deploy_kernel selinux=0 disk=cciss/c0d0,sda,hda,vda iscsi_target_iqn=iqn-1be26c0b-03f2-4d2e-ae87-c02d7f33c123 deployment_id=1be26c0b-03f2-4d2e-ae87-c02d7f33c123 deployment_key=0123456789ABCDEFGHIJKLMNOPQRSTUV ironic_api_url=http://192.168.122.184:6385 troubleshoot=0 text test_param boot_option=netboot ip=${ip}:${next-server}:${gateway}:${netmask} BOOTIF=${mac} root_device=vendor=fake,size=123 ipa-api-url=http://192.168.122.184:6385 ipa-driver-name=pxe_ssh boot_mode=bios initrd=deploy_ramdisk coreos.configdrive=0
+imgfree
+kernel --timeout 120 http://1.2.3.4:1234/deploy_kernel selinux=0 disk=cciss/c0d0,sda,hda,vda iscsi_target_iqn=iqn-1be26c0b-03f2-4d2e-ae87-c02d7f33c123 deployment_id=1be26c0b-03f2-4d2e-ae87-c02d7f33c123 deployment_key=0123456789ABCDEFGHIJKLMNOPQRSTUV ironic_api_url=http://192.168.122.184:6385 troubleshoot=0 text test_param boot_option=netboot ip=${ip}:${next-server}:${gateway}:${netmask} BOOTIF=${mac} root_device=vendor=fake,size=123 ipa-api-url=http://192.168.122.184:6385 ipa-driver-name=pxe_ssh boot_mode=bios initrd=deploy_ramdisk coreos.configdrive=0 || goto deploy
 
-initrd --timeout 120 http://1.2.3.4:1234/deploy_ramdisk
+initrd --timeout 120 http://1.2.3.4:1234/deploy_ramdisk || goto deploy
 boot
 
 :boot_partition
-kernel --timeout 120 http://1.2.3.4:1234/kernel root={{ ROOT }} ro text test_param initrd=ramdisk
-initrd --timeout 120 http://1.2.3.4:1234/ramdisk
+imgfree
+kernel --timeout 120 http://1.2.3.4:1234/kernel root={{ ROOT }} ro text test_param initrd=ramdisk || goto boot_partition
+initrd --timeout 120 http://1.2.3.4:1234/ramdisk || goto boot_partition
 boot
 
 :boot_whole_disk
