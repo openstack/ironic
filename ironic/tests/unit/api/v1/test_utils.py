@@ -22,6 +22,7 @@ from six.moves import http_client
 from webob.static import FileIter
 import wsme
 
+from ironic.api.controllers.v1 import node as api_node
 from ironic.api.controllers.v1 import utils
 from ironic.common import exception
 from ironic import objects
@@ -356,3 +357,10 @@ class TestVendorPassthru(base.TestCase):
 
     def test_vendor_passthru_attach_byte_to_byte(self):
         self._test_vendor_passthru_attach(b'\x00\x01', b'\x00\x01')
+
+    def test_get_controller_reserved_names(self):
+        expected = ['maintenance', 'management', 'ports', 'states',
+                    'vendor_passthru', 'validate', 'detail']
+        self.assertEqual(sorted(expected),
+                         sorted(utils.get_controller_reserved_names(
+                                api_node.NodesController)))

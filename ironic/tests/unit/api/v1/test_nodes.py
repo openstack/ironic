@@ -1256,18 +1256,26 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
 
-    def test_patch_add_name_invalid(self):
+    def _patch_add_name_invalid_or_reserved(self, name):
         self.mock_update_node.return_value = self.node_no_name
-        test_name = 'i am invalid'
         response = self.patch_json('/nodes/%s' % self.node_no_name.uuid,
                                    [{'path': '/name',
                                      'op': 'add',
-                                     'value': test_name}],
+                                     'value': name}],
                                    headers={api_base.Version.string: "1.10"},
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
+
+    def test_patch_add_name_invalid(self):
+        self._patch_add_name_invalid_or_reserved('i am invalid')
+
+    def test_patch_add_name_reserved(self):
+        reserved_names = api_utils.get_controller_reserved_names(
+            api_node.NodesController)
+        for name in reserved_names:
+            self._patch_add_name_invalid_or_reserved(name)
 
     def test_patch_add_name_empty_invalid(self):
         test_name = ''
@@ -1449,6 +1457,18 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
+
+    def test_create_node_reserved_name(self):
+        reserved_names = api_utils.get_controller_reserved_names(
+            api_node.NodesController)
+        for name in reserved_names:
+            ndict = test_api_utils.post_get_test_node(name=name)
+            response = self.post_json(
+                '/nodes', ndict, headers={api_base.Version.string: "1.10"},
+                expect_errors=True)
+            self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+            self.assertEqual('application/json', response.content_type)
+            self.assertTrue(response.json['error_message'])
 
     def test_create_node_default_state_none(self):
         ndict = test_api_utils.post_get_test_node()
