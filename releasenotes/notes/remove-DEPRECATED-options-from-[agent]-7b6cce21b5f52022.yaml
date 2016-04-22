@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    In the configuration group ``[agent]``, the following options were
+    deprecated in the Liberty cycle and they have been removed:
+
+    * ``[agent]/agent_pxe_append_params``
+    * ``[agent]/agent_pxe_config_template``
+
