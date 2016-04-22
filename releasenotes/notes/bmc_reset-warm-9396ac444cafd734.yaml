@@ -1,0 +1,4 @@
+---
+fixes:
+  - Fix a problem that caused the bmc_reset() vendor passthru method
+    from the IPMI drivers to be always executed as "warm".

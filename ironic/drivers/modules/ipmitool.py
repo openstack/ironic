@@ -42,6 +42,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import excutils
+from oslo_utils import strutils
 import six
 
 from ironic.common import boot_devices
@@ -1038,6 +1039,7 @@ class VendorPassthru(base.VendorInterface):
         """
         node_uuid = task.node.uuid
 
+        warm = strutils.bool_from_string(warm)
         if warm:
             warm_param = 'warm'
         else:

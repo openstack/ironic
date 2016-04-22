@@ -26,6 +26,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import importutils
+from oslo_utils import strutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -689,6 +690,7 @@ class VendorPassthru(base.VendorInterface):
 
         """
         driver_info = _parse_driver_info(task.node)
+        warm = strutils.bool_from_string(warm)
         # NOTE(yuriyz): pyghmi 0.8.0 does not have a method for BMC reset
         command = '0x03' if warm else '0x02'
         raw_command = '0x06 ' + command
