@@ -491,11 +491,7 @@ class BaseAgentVendor(base.VendorInterface):
             elif (node.provision_state == states.DEPLOYWAIT and
                   self.deploy_has_started(task)):
                 node.touch_provisioning()
-            # TODO(lucasagomes): CLEANING here for backwards compat
-            # with previous code, otherwise nodes in CLEANING when this
-            # is deployed would fail. Should be removed once the Mitaka
-            # release starts.
-            elif node.provision_state in (states.CLEANWAIT, states.CLEANING):
+            elif node.provision_state == states.CLEANWAIT:
                 node.touch_provisioning()
                 try:
                     if not node.clean_step:

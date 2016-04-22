@@ -810,12 +810,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             else:
                 target_state = None
 
-            # TODO(lucasagomes): CLEANING here for backwards compat
-            # with previous code, otherwise nodes in CLEANING when this
-            # is deployed would fail. Should be removed once the Mitaka
-            # release starts.
-            if node.provision_state not in (states.CLEANWAIT,
-                                            states.CLEANING):
+            if node.provision_state != states.CLEANWAIT:
                 raise exception.InvalidStateRequested(_(
                     'Cannot continue cleaning on %(node)s, node is in '
                     '%(state)s state, should be %(clean_state)s') %
@@ -861,11 +856,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                           'to be done.', {'node': node.uuid,
                                           'step': step_name})
 
-            # TODO(lucasagomes): This conditional is here for backwards
-            # compat with previous code. Should be removed once the Mitaka
-            # release starts.
-            if node.provision_state == states.CLEANWAIT:
-                task.process_event('resume', target_state=target_state)
+            task.process_event('resume', target_state=target_state)
 
             task.set_spawn_error_hook(utils.spawn_cleaning_error_handler,
                                       task.node)
@@ -925,13 +916,6 @@ class ConductorManager(base_manager.BaseConductorManager):
                    % {'node': node.uuid, 'e': e})
             LOG.exception(msg)
             return utils.cleaning_error_handler(task, msg)
-
-        # TODO(lucasagomes): Should be removed once the Mitaka release starts
-        if prepare_result == states.CLEANING:
-            LOG.warning(_LW('Returning CLEANING for asynchronous prepare '
-                            'cleaning has been deprecated. Please use '
-                            'CLEANWAIT instead.'))
-            prepare_result = states.CLEANWAIT
 
         if prepare_result == states.CLEANWAIT:
             # Prepare is asynchronous, the deploy driver will need to
@@ -1002,14 +986,6 @@ class ConductorManager(base_manager.BaseConductorManager):
                 LOG.exception(msg)
                 utils.cleaning_error_handler(task, msg)
                 return
-
-            # TODO(lucasagomes): Should be removed once the Mitaka
-            # release starts
-            if result == states.CLEANING:
-                LOG.warning(_LW('Returning CLEANING for asynchronous clean '
-                                'steps has been deprecated. Please use '
-                                'CLEANWAIT instead.'))
-                result = states.CLEANWAIT
 
             # Check if the step is done or not. The step should return
             # states.CLEANWAIT if the step is still being executed, or
