@@ -40,6 +40,11 @@ neutron_opts = [
     cfg.IntOpt('url_timeout',
                default=30,
                help=_('Timeout value for connecting to neutron in seconds.')),
+    cfg.IntOpt('port_setup_delay',
+               default=0,
+               min=0,
+               help=_('Delay value to wait for Neutron agents to setup '
+                      'sufficient DHCP configuration for port.')),
     cfg.IntOpt('retries',
                default=3,
                help=_('Client retries in the case of a failed request.')),
@@ -193,13 +198,22 @@ class NeutronDHCPApi(base.BaseDHCP):
                             {'node': task.node.uuid, 'ports': failures})
 
         # TODO(adam_g): Hack to workaround bug 1334447 until we have a
-        # mechanism for synchronizing events with Neutron.  We need to sleep
-        # only if we are booting VMs, which is implied by SSHPower, to ensure
-        # they do not boot before Neutron agents have setup sufficient DHCP
-        # config for netboot.
-        if isinstance(task.driver.power, ssh.SSHPower):
-            LOG.debug("Waiting 15 seconds for Neutron.")
-            time.sleep(15)
+        # mechanism for synchronizing events with Neutron. We need to sleep
+        # only if server gets to PXE faster than Neutron agents have setup
+        # sufficient DHCP config for netboot. It may occur when we are using
+        # VMs or hardware server with fast boot enabled.
+        port_delay = CONF.neutron.port_setup_delay
+        # TODO(vsaienko) remove hardcoded value for SSHPower driver
+        # after Newton release.
+        if isinstance(task.driver.power, ssh.SSHPower) and port_delay == 0:
+            LOG.warning(_LW("Setting the port delay to 15 for SSH power "
+                            "driver by default, this will be removed in "
+                            "Ocata release. Please set configuration "
+                            "parameter port_setup_delay to 15."))
+            port_delay = 15
+        if port_delay != 0:
+            LOG.debug("Waiting %d seconds for Neutron.", port_delay)
+            time.sleep(port_delay)
 
     def _get_fixed_ip_address(self, port_uuid, client):
         """Get a Neutron port's fixed ip address.

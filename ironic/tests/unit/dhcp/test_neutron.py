@@ -26,6 +26,7 @@ from ironic.common import exception
 from ironic.common import pxe_utils
 from ironic.conductor import task_manager
 from ironic.dhcp import neutron
+from ironic.drivers.modules import ssh
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as object_utils
@@ -249,6 +250,87 @@ class TestNeutron(db_base.DbTestCase):
                               task, self.node)
             mock_gnvi.assert_called_once_with(task)
         self.assertEqual(2, mock_updo.call_count)
+
+    @mock.patch('time.sleep', autospec=True)
+    @mock.patch.object(neutron.NeutronDHCPApi, 'update_port_dhcp_opts',
+                       autospec=True)
+    @mock.patch('ironic.common.network.get_node_vif_ids', autospec=True)
+    def test_update_dhcp_set_sleep_and_ssh(self, mock_gnvi, mock_updo,
+                                           mock_ts):
+        mock_gnvi.return_value = {'ports': {'port-uuid': 'vif-uuid'},
+                                  'portgroups': {}}
+        self.config(port_setup_delay=30, group='neutron')
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            task.driver.power = ssh.SSHPower()
+            opts = pxe_utils.dhcp_options_for_instance(task)
+            api = dhcp_factory.DHCPFactory()
+            api.update_dhcp(task, opts)
+            mock_ts.assert_called_with(30)
+        mock_updo.assert_called_once_with(mock.ANY, 'vif-uuid', opts,
+                                          token=self.context.auth_token)
+
+    @mock.patch.object(neutron, 'LOG', autospec=True)
+    @mock.patch('time.sleep', autospec=True)
+    @mock.patch.object(neutron.NeutronDHCPApi, 'update_port_dhcp_opts',
+                       autospec=True)
+    @mock.patch('ironic.common.network.get_node_vif_ids', autospec=True)
+    def test_update_dhcp_unset_sleep_and_ssh(self, mock_gnvi, mock_updo,
+                                             mock_ts, mock_log):
+        mock_gnvi.return_value = {'ports': {'port-uuid': 'vif-uuid'},
+                                  'portgroups': {}}
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            opts = pxe_utils.dhcp_options_for_instance(task)
+            task.driver.power = ssh.SSHPower()
+            api = dhcp_factory.DHCPFactory()
+            api.update_dhcp(task, opts)
+            self.assertTrue(mock_log.warning.called)
+            self.assertIn('Setting the port delay to 15 for SSH',
+                          mock_log.warning.call_args[0][0])
+            mock_ts.assert_called_with(15)
+        mock_updo.assert_called_once_with(mock.ANY, 'vif-uuid', opts,
+                                          token=self.context.auth_token)
+
+    @mock.patch.object(neutron, 'LOG', autospec=True)
+    @mock.patch('time.sleep', autospec=True)
+    @mock.patch.object(neutron.NeutronDHCPApi, 'update_port_dhcp_opts',
+                       autospec=True)
+    @mock.patch('ironic.common.network.get_node_vif_ids', autospec=True)
+    def test_update_dhcp_set_sleep_and_fake(self, mock_gnvi, mock_updo,
+                                            mock_ts, mock_log):
+        mock_gnvi.return_value = {'ports': {'port-uuid': 'vif-uuid'},
+                                  'portgroups': {}}
+        self.config(port_setup_delay=30, group='neutron')
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            opts = pxe_utils.dhcp_options_for_instance(task)
+            api = dhcp_factory.DHCPFactory()
+            api.update_dhcp(task, opts)
+            mock_log.debug.assert_called_once_with(
+                "Waiting %d seconds for Neutron.", 30)
+            mock_log.warning.assert_not_called()
+            mock_ts.assert_called_with(30)
+        mock_updo.assert_called_once_with(mock.ANY, 'vif-uuid', opts,
+                                          token=self.context.auth_token)
+
+    @mock.patch.object(neutron, 'LOG', autospec=True)
+    @mock.patch.object(neutron.NeutronDHCPApi, 'update_port_dhcp_opts',
+                       autospec=True)
+    @mock.patch('ironic.common.network.get_node_vif_ids', autospec=True)
+    def test_update_dhcp_unset_sleep_and_fake(self, mock_gnvi, mock_updo,
+                                              mock_log):
+        mock_gnvi.return_value = {'ports': {'port-uuid': 'vif-uuid'},
+                                  'portgroups': {}}
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            opts = pxe_utils.dhcp_options_for_instance(task)
+            api = dhcp_factory.DHCPFactory()
+            api.update_dhcp(task, opts)
+            mock_log.debug.assert_not_called()
+            mock_log.warning.assert_not_called()
+        mock_updo.assert_called_once_with(mock.ANY, 'vif-uuid', opts,
+                                          token=self.context.auth_token)
 
     def test__get_fixed_ip_address(self):
         port_id = 'fake-port-id'
