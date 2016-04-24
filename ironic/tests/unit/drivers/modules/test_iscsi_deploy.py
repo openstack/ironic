@@ -522,7 +522,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                 task, agent_client_mock)
             build_options_mock.assert_called_once_with(task.node)
             agent_client_mock.start_iscsi_target.assert_called_once_with(
-                task.node, 'iqn-qweqwe', 3260)
+                task.node, 'iqn-qweqwe', 3260, wipe_disk_metadata=True)
             continue_deploy_mock.assert_called_once_with(
                 task, error=None, iqn='iqn-qweqwe', key='abcdef',
                 address='1.2.3.4')
@@ -530,6 +530,34 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                 'some-root-uuid',
                 task.node.driver_internal_info['root_uuid_or_disk_id'])
             self.assertEqual(ret_val, uuid_dict_returned)
+
+    @mock.patch.object(iscsi_deploy, 'continue_deploy', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options',
+                       autospec=True)
+    def test_do_agent_iscsi_deploy_preserve_ephemeral(self, build_options_mock,
+                                                      continue_deploy_mock):
+        """Ensure the disk is not wiped if preserve_ephemeral is True."""
+        build_options_mock.return_value = {'deployment_key': 'abcdef',
+                                           'iscsi_target_iqn': 'iqn-qweqwe',
+                                           'iscsi_portal_port': 3260}
+        agent_client_mock = mock.MagicMock(spec_set=agent_client.AgentClient)
+        agent_client_mock.start_iscsi_target.return_value = {
+            'command_status': 'SUCCESS', 'command_error': None}
+        driver_internal_info = {
+            'agent_url': 'http://1.2.3.4:1234'}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        uuid_dict_returned = {'root uuid': 'some-root-uuid'}
+        continue_deploy_mock.return_value = uuid_dict_returned
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.instance_info['preserve_ephemeral'] = True
+            iscsi_deploy.do_agent_iscsi_deploy(
+                task, agent_client_mock)
+            build_options_mock.assert_called_once_with(task.node)
+            agent_client_mock.start_iscsi_target.assert_called_once_with(
+                task.node, 'iqn-qweqwe', 3260, wipe_disk_metadata=False)
 
     @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options',
                        autospec=True)
@@ -552,7 +580,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                               task, agent_client_mock)
             build_options_mock.assert_called_once_with(task.node)
             agent_client_mock.start_iscsi_target.assert_called_once_with(
-                task.node, 'iqn-qweqwe', 3260)
+                task.node, 'iqn-qweqwe', 3260, wipe_disk_metadata=True)
             self.node.refresh()
             self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
             self.assertEqual(states.ACTIVE, self.node.target_provision_state)

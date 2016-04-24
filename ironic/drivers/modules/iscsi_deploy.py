@@ -339,13 +339,15 @@ def do_agent_iscsi_deploy(task, agent_client):
     """
     node = task.node
     iscsi_options = build_deploy_ramdisk_options(node)
+    i_info = deploy_utils.parse_instance_info(node)
+    wipe_disk_metadata = not i_info['preserve_ephemeral']
 
     iqn = iscsi_options['iscsi_target_iqn']
     portal_port = iscsi_options['iscsi_portal_port']
-
-    result = agent_client.start_iscsi_target(node, iqn,
-                                             portal_port)
-
+    result = agent_client.start_iscsi_target(
+        node, iqn,
+        portal_port,
+        wipe_disk_metadata=wipe_disk_metadata)
     if result['command_status'] == 'FAILED':
         msg = (_("Failed to start the iSCSI target to deploy the "
                  "node %(node)s. Error: %(error)s") %
