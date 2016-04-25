@@ -1499,21 +1499,23 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                         method='bmc_reset',
                                         warm=False)
 
-    @mock.patch.object(ipmi.VendorPassthru, 'bmc_reset', autospec=True)
-    def test_vendor_passthru_call_bmc_reset_warm(self, bmc_mock):
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def _vendor_passthru_call_bmc_reset(self, warm, expected,
+                                        mock_exec):
+        mock_exec.return_value = [None, None]
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
-            self.driver.vendor.bmc_reset(task, 'POST', warm=True)
-            bmc_mock.assert_called_once_with(
-                self.driver.vendor, task, 'POST', warm=True)
+            self.driver.vendor.bmc_reset(task, 'POST', warm=warm)
+            mock_exec.assert_called_once_with(
+                mock.ANY, 'bmc reset %s' % expected)
 
-    @mock.patch.object(ipmi.VendorPassthru, 'bmc_reset', autospec=True)
-    def test_vendor_passthru_call_bmc_reset_cold(self, bmc_mock):
-        with task_manager.acquire(self.context, self.node['uuid'],
-                                  shared=False) as task:
-            self.driver.vendor.bmc_reset(task, 'POST', warm=False)
-            bmc_mock.assert_called_once_with(
-                self.driver.vendor, task, 'POST', warm=False)
+    def test_vendor_passthru_call_bmc_reset_warm(self):
+        for param in (True, 'true', 'on', 'y', 'yes'):
+            self._vendor_passthru_call_bmc_reset(param, 'warm')
+
+    def test_vendor_passthru_call_bmc_reset_cold(self):
+        for param in (False, 'false', 'off', 'n', 'no'):
+            self._vendor_passthru_call_bmc_reset(param, 'cold')
 
     def test_vendor_passthru_vendor_routes(self):
         expected = ['send_raw', 'bmc_reset']
