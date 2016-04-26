@@ -458,7 +458,7 @@ Compute service's controller nodes and compute nodes.*
     # vmwareapi.VMwareESXDriver, vmwareapi.VMwareVCDriver (string
     # value)
     #compute_driver=<None>
-    compute_driver=nova.virt.ironic.IronicDriver
+    compute_driver=ironic.IronicDriver
 
     # Firewall driver (defaults to hypervisor specific iptables
     # driver) (string value)
