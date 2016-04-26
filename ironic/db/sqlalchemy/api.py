@@ -755,6 +755,24 @@ class Connection(api.Connection):
                 _LW('Cleared reservations held by %(hostname)s: '
                     '%(nodes)s'), {'hostname': hostname, 'nodes': nodes})
 
+    def clear_node_target_power_state(self, hostname):
+        nodes = []
+        with _session_for_write():
+            query = (model_query(models.Node)
+                     .filter_by(reservation=hostname))
+            query = query.filter(models.Node.target_power_state != sql.null())
+            nodes = [node['uuid'] for node in query]
+            query.update({'target_power_state': None,
+                          'last_error': "Pending power operation was aborted "
+                          "due to conductor restart"})
+
+        if nodes:
+            nodes = ', '.join(nodes)
+            LOG.warning(
+                _LW('Cleared target_power_state of the locked nodes in '
+                    'powering process, their power state can be incorrect: '
+                    '%(nodes)s'), {'nodes': nodes})
+
     def get_active_driver_dict(self, interval=None):
         if interval is None:
             interval = CONF.conductor.heartbeat_timeout

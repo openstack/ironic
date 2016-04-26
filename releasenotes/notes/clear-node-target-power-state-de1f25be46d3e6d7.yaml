@@ -1,0 +1,4 @@
+---
+fixes:
+  - Clear target_power_state of the nodes locked by the conductor on its
+    startup.

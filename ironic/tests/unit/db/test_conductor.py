@@ -110,6 +110,24 @@ class DbConductorTestCase(base.DbTestCase):
         self.assertEqual('hostname2', node2.reservation)
         self.assertIsNone(node3.reservation)
 
+    def test_clear_node_target_power_state(self):
+        node1 = self.dbapi.create_node({'reservation': 'hostname1',
+                                        'target_power_state': 'power on'})
+        node2 = self.dbapi.create_node({'reservation': 'hostname2',
+                                        'target_power_state': 'power on'})
+        node3 = self.dbapi.create_node({'reservation': None,
+                                        'target_power_state': 'power on'})
+        self.dbapi.clear_node_target_power_state('hostname1')
+        node1 = self.dbapi.get_node_by_id(node1.id)
+        node2 = self.dbapi.get_node_by_id(node2.id)
+        node3 = self.dbapi.get_node_by_id(node3.id)
+        self.assertIsNone(node1.target_power_state)
+        self.assertIn('power operation was aborted', node1.last_error)
+        self.assertEqual('power on', node2.target_power_state)
+        self.assertIsNone(node2.last_error)
+        self.assertEqual('power on', node3.target_power_state)
+        self.assertIsNone(node3.last_error)
+
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_get_active_driver_dict_one_host_no_driver(self, mock_utcnow):
         h = 'fake-host'
