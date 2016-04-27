@@ -26,6 +26,7 @@ BRIDGE=$6
 EMULATOR=$7
 VBMC_PORT=$8
 LOGDIR=$9
+DISK_FORMAT=${10}
 
 LIBVIRT_NIC_DRIVER=${LIBVIRT_NIC_DRIVER:-"virtio"}
 LIBVIRT_STORAGE_POOL=${LIBVIRT_STORAGE_POOL:-"default"}
@@ -50,7 +51,7 @@ if [ -n "$LOGDIR" ] ; then
 fi
 
 PREALLOC=
-if [ -f /etc/debian_version ]; then
+if [ -f /etc/debian_version && "$DISK_FORMAT" == "qcow2" ]; then
     PREALLOC="--prealloc-metadata"
 fi
 
@@ -59,12 +60,12 @@ if [ -n "$LOGDIR" ] ; then
 else
     VM_LOGGING=""
 fi
-VOL_NAME="${NAME}.qcow2"
+VOL_NAME="${NAME}.${DISK_FORMAT}"
 
 if ! virsh list --all | grep -q $NAME; then
     virsh vol-list --pool $LIBVIRT_STORAGE_POOL | grep -q $VOL_NAME &&
         virsh vol-delete $VOL_NAME --pool $LIBVIRT_STORAGE_POOL >&2
-    virsh vol-create-as $LIBVIRT_STORAGE_POOL ${VOL_NAME} ${DISK}G --format qcow2 $PREALLOC >&2
+    virsh vol-create-as $LIBVIRT_STORAGE_POOL ${VOL_NAME} ${DISK}G --format $DISK_FORMAT $PREALLOC >&2
     volume_path=$(virsh vol-path --pool $LIBVIRT_STORAGE_POOL $VOL_NAME)
     # Pre-touch the VM to set +C, as it can only be set on empty files.
     sudo touch "$volume_path"
@@ -72,7 +73,7 @@ if ! virsh list --all | grep -q $NAME; then
     $TOP_DIR/scripts/configure-vm.py \
         --bootdev network --name $NAME --image "$volume_path" \
         --arch $ARCH --cpus $CPU --memory $MEM --libvirt-nic-driver $LIBVIRT_NIC_DRIVER \
-        --emulator $EMULATOR --network $BRIDGE $VM_LOGGING >&2
+        --emulator $EMULATOR --network $BRIDGE --disk-format $DISK_FORMAT $VM_LOGGING >&2
 
     # Createa Virtual BMC for the node if IPMI is used
     if [[ $(type -P vbmc) != "" ]]; then
