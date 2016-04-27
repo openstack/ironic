@@ -577,7 +577,7 @@ function _ironic_bm_vm_names {
     local num_vms
     num_vms=$(($IRONIC_VM_COUNT - 1))
     for idx in $(seq 0 $num_vms); do
-        echo "baremetal${IRONIC_VM_NETWORK_BRIDGE}_${idx}"
+        echo "node-${idx}"
     done
 }
 
