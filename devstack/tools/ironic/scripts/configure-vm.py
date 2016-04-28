@@ -76,6 +76,8 @@ def main():
                         help='File to log console')
     parser.add_argument('--emulator', default=None,
                         help='Path to emulator bin for vm template')
+    parser.add_argument('--disk-format', default='qcow2',
+                        help='Disk format to use.')
     args = parser.parse_args()
     with file(templatedir + '/vm.xml', 'rb') as f:
         source_template = f.read()
@@ -90,6 +92,7 @@ def main():
         'network': args.network,
         'nicdriver': args.libvirt_nic_driver,
         'emulator': args.emulator,
+        'disk_format': args.disk_format
     }
 
     if args.emulator:
