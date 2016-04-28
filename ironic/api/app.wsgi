@@ -16,7 +16,6 @@
 Use this file for deploying the API service under Apache2 mod_wsgi.
 """
 
-import logging
 import sys
 
 from oslo_config import cfg
@@ -35,6 +34,6 @@ service.prepare_service(sys.argv)
 
 LOG = log.getLogger(__name__)
 LOG.debug("Configuration:")
-CONF.log_opt_values(LOG, logging.DEBUG)
+CONF.log_opt_values(LOG, log.DEBUG)
 
 application = app.VersionSelectorApplication()
