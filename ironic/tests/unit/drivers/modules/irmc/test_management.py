@@ -86,108 +86,169 @@ class IRMCManagementTestCase(db_base.DbTestCase):
             self.assertEqual(sorted(expected), sorted(task.driver.management.
                              get_supported_boot_devices(task)))
 
-    @mock.patch.object(ipmitool.IPMIManagement, 'set_boot_device',
-                       spec_set=True, autospec=True)
-    def test_management_interface_set_boot_device_no_mode_ok(
-            self,
-            set_boot_device_mock):
-        """no boot mode specified."""
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.management.set_boot_device(task, boot_devices.PXE)
-            set_boot_device_mock.assert_called_once_with(
-                task.driver.management, task,
-                boot_devices.PXE,
-                False)
-
-    @mock.patch.object(ipmitool.IPMIManagement, 'set_boot_device',
-                       spec_set=True, autospec=True)
-    def test_management_interface_set_boot_device_bios_ok(
-            self,
-            set_boot_device_mock):
-        """bios mode specified."""
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            driver_utils.add_node_capability(task, 'boot_mode', 'bios')
-            task.driver.management.set_boot_device(task, boot_devices.PXE)
-            set_boot_device_mock.assert_called_once_with(
-                task.driver.management, task,
-                boot_devices.PXE,
-                False)
-
     @mock.patch.object(irmc_management.ipmitool, "send_raw", spec_set=True,
                        autospec=True)
-    def _test_management_interface_set_boot_device_uefi_ok(self, params,
-                                                           expected_raw_code,
-                                                           send_raw_mock):
+    def _test_management_interface_set_boot_device_ok(
+            self, boot_mode, params, expected_raw_code, send_raw_mock):
         send_raw_mock.return_value = [None, None]
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.properties['capabilities'] = ''
-            driver_utils.add_node_capability(task, 'boot_mode', 'uefi')
+            if boot_mode:
+                driver_utils.add_node_capability(task, 'boot_mode', boot_mode)
             self.driver.management.set_boot_device(task, **params)
             send_raw_mock.assert_has_calls([
                 mock.call(task, "0x00 0x08 0x03 0x08"),
                 mock.call(task, expected_raw_code)])
 
-    def test_management_interface_set_boot_device_uefi_ok_pxe(self):
+    def test_management_interface_set_boot_device_ok_pxe(self):
         params = {'device': boot_devices.PXE, 'persistent': False}
-        self._test_management_interface_set_boot_device_uefi_ok(
+        self._test_management_interface_set_boot_device_ok(
+            None,
+            params,
+            "0x00 0x08 0x05 0x80 0x04 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'bios',
+            params,
+            "0x00 0x08 0x05 0x80 0x04 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'uefi',
             params,
             "0x00 0x08 0x05 0xa0 0x04 0x00 0x00 0x00")
 
         params['persistent'] = True
-        self._test_management_interface_set_boot_device_uefi_ok(
+        self._test_management_interface_set_boot_device_ok(
+            None,
+            params,
+            "0x00 0x08 0x05 0xc0 0x04 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'bios',
+            params,
+            "0x00 0x08 0x05 0xc0 0x04 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'uefi',
             params,
             "0x00 0x08 0x05 0xe0 0x04 0x00 0x00 0x00")
 
-    def test_management_interface_set_boot_device_uefi_ok_disk(self):
+    def test_management_interface_set_boot_device_ok_disk(self):
         params = {'device': boot_devices.DISK, 'persistent': False}
-        self._test_management_interface_set_boot_device_uefi_ok(
+        self._test_management_interface_set_boot_device_ok(
+            None,
+            params,
+            "0x00 0x08 0x05 0x80 0x08 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'bios',
+            params,
+            "0x00 0x08 0x05 0x80 0x08 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'uefi',
             params,
             "0x00 0x08 0x05 0xa0 0x08 0x00 0x00 0x00")
 
         params['persistent'] = True
-        self._test_management_interface_set_boot_device_uefi_ok(
+        self._test_management_interface_set_boot_device_ok(
+            None,
+            params,
+            "0x00 0x08 0x05 0xc0 0x08 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'bios',
+            params,
+            "0x00 0x08 0x05 0xc0 0x08 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'uefi',
             params,
             "0x00 0x08 0x05 0xe0 0x08 0x00 0x00 0x00")
 
-    def test_management_interface_set_boot_device_uefi_ok_cdrom(self):
+    def test_management_interface_set_boot_device_ok_cdrom(self):
         params = {'device': boot_devices.CDROM, 'persistent': False}
-        self._test_management_interface_set_boot_device_uefi_ok(
+        self._test_management_interface_set_boot_device_ok(
+            None,
             params,
-            "0x00 0x08 0x05 0xa0 0x14 0x00 0x00 0x00")
+            "0x00 0x08 0x05 0x80 0x20 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'bios',
+            params,
+            "0x00 0x08 0x05 0x80 0x20 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'uefi',
+            params,
+            "0x00 0x08 0x05 0xa0 0x20 0x00 0x00 0x00")
 
         params['persistent'] = True
-        self._test_management_interface_set_boot_device_uefi_ok(
+        self._test_management_interface_set_boot_device_ok(
+            None,
             params,
-            "0x00 0x08 0x05 0xe0 0x14 0x00 0x00 0x00")
+            "0x00 0x08 0x05 0xc0 0x20 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'bios',
+            params,
+            "0x00 0x08 0x05 0xc0 0x20 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'uefi',
+            params,
+            "0x00 0x08 0x05 0xe0 0x20 0x00 0x00 0x00")
 
-    def test_management_interface_set_boot_device_uefi_ok_bios(self):
+    def test_management_interface_set_boot_device_ok_bios(self):
         params = {'device': boot_devices.BIOS, 'persistent': False}
-        self._test_management_interface_set_boot_device_uefi_ok(
+        self._test_management_interface_set_boot_device_ok(
+            None,
+            params,
+            "0x00 0x08 0x05 0x80 0x18 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'bios',
+            params,
+            "0x00 0x08 0x05 0x80 0x18 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'uefi',
             params,
             "0x00 0x08 0x05 0xa0 0x18 0x00 0x00 0x00")
 
         params['persistent'] = True
-        self._test_management_interface_set_boot_device_uefi_ok(
+        self._test_management_interface_set_boot_device_ok(
+            None,
+            params,
+            "0x00 0x08 0x05 0xc0 0x18 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'bios',
+            params,
+            "0x00 0x08 0x05 0xc0 0x18 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'uefi',
             params,
             "0x00 0x08 0x05 0xe0 0x18 0x00 0x00 0x00")
 
-    def test_management_interface_set_boot_device_uefi_ok_safe(self):
+    def test_management_interface_set_boot_device_ok_safe(self):
         params = {'device': boot_devices.SAFE, 'persistent': False}
-        self._test_management_interface_set_boot_device_uefi_ok(
+        self._test_management_interface_set_boot_device_ok(
+            None,
+            params,
+            "0x00 0x08 0x05 0x80 0x0c 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'bios',
+            params,
+            "0x00 0x08 0x05 0x80 0x0c 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'uefi',
             params,
             "0x00 0x08 0x05 0xa0 0x0c 0x00 0x00 0x00")
 
         params['persistent'] = True
-        self._test_management_interface_set_boot_device_uefi_ok(
+        self._test_management_interface_set_boot_device_ok(
+            None,
+            params,
+            "0x00 0x08 0x05 0xc0 0x0c 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'bios',
+            params,
+            "0x00 0x08 0x05 0xc0 0x0c 0x00 0x00 0x00")
+        self._test_management_interface_set_boot_device_ok(
+            'uefi',
             params,
             "0x00 0x08 0x05 0xe0 0x0c 0x00 0x00 0x00")
 
     @mock.patch.object(irmc_management.ipmitool, "send_raw", spec_set=True,
                        autospec=True)
-    def test_management_interface_set_boot_device_uefi_ng(self,
-                                                          send_raw_mock):
+    def test_management_interface_set_boot_device_ng(self, send_raw_mock):
         """uefi mode, next boot only, unknown device."""
         send_raw_mock.return_value = [None, None]
 
