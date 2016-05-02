@@ -110,6 +110,7 @@ IRONIC_VM_NETWORK_RANGE=${IRONIC_VM_NETWORK_RANGE:-192.0.2.0/24}
 IRONIC_VM_MACS_CSV_FILE=${IRONIC_VM_MACS_CSV_FILE:-$IRONIC_DATA_DIR/ironic_macs.csv}
 IRONIC_AUTHORIZED_KEYS_FILE=${IRONIC_AUTHORIZED_KEYS_FILE:-$HOME/.ssh/authorized_keys}
 IRONIC_CLEAN_NET_NAME=${IRONIC_CLEAN_NET_NAME:-private}
+IRONIC_EXTRA_PXE_PARAMS=${IRONIC_EXTRA_PXE_PARAMS:-}
 
 # By default, baremetal VMs will console output to file.
 IRONIC_VM_LOG_CONSOLE=$(trueorfalse True IRONIC_VM_LOG_CONSOLE)
@@ -463,6 +464,8 @@ function configure_ironic_conductor {
     if is_deployed_with_ipa_ramdisk; then
         pxe_params+=" systemd.journald.forward_to_console=yes ipa-debug=1"
     fi
+
+    pxe_params+=" $IRONIC_EXTRA_PXE_PARAMS"
 
     # When booting with less than 1GB, we need to switch from default tmpfs
     # to ramfs for ramdisks to decompress successfully.
