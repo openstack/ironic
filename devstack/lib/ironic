@@ -848,6 +848,13 @@ function enroll_nodes {
             $node_options \
             | grep " uuid " | get_field 2)
 
+        # NOTE(vsaienko) IPA didn't automatically recognize root devices less than 4Gb.
+        # Setting root hint allows to install OS on such devices.
+        # 0x1af4 is VirtIO vendor device ID.
+        if [[ "$ironic_node_disk" -lt "4" && is_deployed_by_agent ]]; then
+            ironic node-update $node_id add properties/root_device='{"vendor": "0x1af4"}'
+        fi
+
         ironic port-create --address $mac_address --node $node_id
 
         total_nodes=$((total_nodes+1))
