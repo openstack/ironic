@@ -824,6 +824,8 @@ Supported **Manual** Cleaning Operations
 
 For more information on node manual cleaning, see :ref:`manual_cleaning`
 
+.. _ilo-inspection:
+
 Hardware Inspection Support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
