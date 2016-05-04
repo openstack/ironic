@@ -79,10 +79,20 @@ def apply_jsonpatch(doc, patch):
     return jsonpatch.apply_patch(doc, jsonpatch.JsonPatch(patch))
 
 
-def get_patch_value(patch, path):
-    for p in patch:
-        if p['path'] == path and p['op'] != 'remove':
-            return p['value']
+def get_patch_values(patch, path):
+    """Get the patch values corresponding to the specified path.
+
+    If there are multiple values specified for the same path
+    (for example the patch is [{'op': 'add', 'path': '/name', 'value': 'abc'},
+                               {'op': 'add', 'path': '/name', 'value': 'bca'}])
+    return all of them in a list (preserving order).
+
+    :param patch: HTTP PATCH request body.
+    :param path: the path to get the patch values for.
+    :returns: list of values for the specified path in the patch.
+    """
+    return [p['value'] for p in patch
+            if p['path'] == path and p['op'] != 'remove']
 
 
 def allow_node_logical_names():

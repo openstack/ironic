@@ -1316,6 +1316,37 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
+    def test_patch_update_name_twice_both_invalid(self):
+        test_name_1 = 'Windows ME'
+        test_name_2 = 'Guido Van Error'
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
+                                   [{'path': '/name',
+                                     'op': 'add',
+                                     'value': test_name_1},
+                                    {'path': '/name',
+                                     'op': 'replace',
+                                     'value': test_name_2}],
+                                   headers={api_base.Version.string: "1.5"},
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+        self.assertIn(test_name_1, response.json['error_message'])
+
+    def test_patch_update_name_twice_second_invalid(self):
+        test_name = 'Guido Van Error'
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
+                                   [{'path': '/name',
+                                     'op': 'add',
+                                     'value': 'node-0'},
+                                    {'path': '/name',
+                                     'op': 'replace',
+                                     'value': test_name}],
+                                   headers={api_base.Version.string: "1.5"},
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+        self.assertIn(test_name, response.json['error_message'])
+
     def test_patch_duplicate_name(self):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
@@ -1331,7 +1362,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.CONFLICT, response.status_code)
         self.assertTrue(response.json['error_message'])
 
-    @mock.patch.object(api_node.NodesController, '_check_name_acceptable')
+    @mock.patch.object(api_node.NodesController, '_check_names_acceptable')
     def test_patch_name_remove_ok(self, cna_mock):
         self.mock_update_node.return_value = self.node
         response = self.patch_json('/nodes/%s' % self.node.uuid,
