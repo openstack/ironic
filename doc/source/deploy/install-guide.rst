@@ -481,10 +481,6 @@ Compute service's controller nodes and compute nodes.*
     #reserved_host_disk_mb=0
     reserved_host_memory_mb=0
 
-    # Full class name for the Manager for compute (string value)
-    #compute_manager=nova.compute.manager.ComputeManager
-    compute_manager=ironic.nova.compute.manager.ClusteredComputeManager
-
     # Flag to decide whether to use baremetal_scheduler_default_filters or not.
     # (boolean value)
     #scheduler_use_baremetal_filters=False
