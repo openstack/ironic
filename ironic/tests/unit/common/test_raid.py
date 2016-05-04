@@ -141,6 +141,11 @@ class ValidateRaidConfigurationTestCase(base.TestCase):
                           raid_config,
                           raid_config_schema=self.schema)
 
+    def test_validate_configuration_with_jbod_volume(self):
+        raid_config = json.loads(raid_constants.RAID_CONFIG_JBOD_VOLUME)
+        raid.validate_configuration(raid_config,
+                                    raid_config_schema=self.schema)
+
     def test_validate_configuration_custom_schema(self):
         raid_config = json.loads(raid_constants.CUSTOM_SCHEMA_RAID_CONFIG)
         schema = json.loads(raid_constants.CUSTOM_RAID_SCHEMA)
