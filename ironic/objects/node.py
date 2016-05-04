@@ -23,6 +23,7 @@ from ironic.conf import CONF
 from ironic.db import api as db_api
 from ironic.objects import base
 from ironic.objects import fields as object_fields
+from ironic.objects import notification
 
 REQUIRED_INT_PROPERTIES = ['local_gb', 'cpus', 'memory_mb']
 
@@ -395,3 +396,137 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_node = cls.dbapi.get_node_by_port_addresses(addresses)
         node = Node._from_db_object(cls(context), db_node)
         return node
+
+
+@base.IronicObjectRegistry.register
+class NodePayload(notification.NotificationPayloadBase):
+    """Base class used for all notification payloads about a Node object."""
+    # NOTE: This payload does not include the Node fields "chassis_id",
+    # "driver_info", "driver_internal_info", "instance_info", "raid_config",
+    # "reservation", or "target_raid_config". These were excluded for reasons
+    # including:
+    # - increased complexity needed for creating the payload
+    # - sensitive information in the fields that shouldn't be exposed to
+    #   external services
+    # - being internal-only or hardware-related fields
+    SCHEMA = {
+        'clean_step': ('node', 'clean_step'),
+        'console_enabled': ('node', 'console_enabled'),
+        'created_at': ('node', 'created_at'),
+        'driver': ('node', 'driver'),
+        'extra': ('node', 'extra'),
+        'inspection_finished_at': ('node', 'inspection_finished_at'),
+        'inspection_started_at': ('node', 'inspection_started_at'),
+        'instance_uuid': ('node', 'instance_uuid'),
+        'last_error': ('node', 'last_error'),
+        'maintenance': ('node', 'maintenance'),
+        'maintenance_reason': ('node', 'maintenance_reason'),
+        'name': ('node', 'name'),
+        'network_interface': ('node', 'network_interface'),
+        'power_state': ('node', 'power_state'),
+        'properties': ('node', 'properties'),
+        'provision_state': ('node', 'provision_state'),
+        'provision_updated_at': ('node', 'provision_updated_at'),
+        'resource_class': ('node', 'resource_class'),
+        'target_power_state': ('node', 'target_power_state'),
+        'target_provision_state': ('node', 'target_provision_state'),
+        'updated_at': ('node', 'updated_at'),
+        'uuid': ('node', 'uuid')
+    }
+    # Version 1.0: Initial version, based off of Node version 1.18.
+    VERSION = '1.0'
+    fields = {
+        'clean_step': object_fields.FlexibleDictField(nullable=True),
+        'console_enabled': object_fields.BooleanField(),
+        'created_at': object_fields.DateTimeField(nullable=True),
+        'driver': object_fields.StringField(nullable=True),
+        'extra': object_fields.FlexibleDictField(nullable=True),
+        'inspection_finished_at': object_fields.DateTimeField(nullable=True),
+        'inspection_started_at': object_fields.DateTimeField(nullable=True),
+        'instance_uuid': object_fields.UUIDField(nullable=True),
+        'last_error': object_fields.StringField(nullable=True),
+        'maintenance': object_fields.BooleanField(),
+        'maintenance_reason': object_fields.StringField(nullable=True),
+        'network_interface': object_fields.StringFieldThatAcceptsCallable(),
+        'name': object_fields.StringField(nullable=True),
+        'power_state': object_fields.StringField(nullable=True),
+        'properties': object_fields.FlexibleDictField(nullable=True),
+        'provision_state': object_fields.StringField(nullable=True),
+        'provision_updated_at': object_fields.DateTimeField(nullable=True),
+        'resource_class': object_fields.StringField(nullable=True),
+        'target_power_state': object_fields.StringField(nullable=True),
+        'target_provision_state': object_fields.StringField(nullable=True),
+        'updated_at': object_fields.DateTimeField(nullable=True),
+        'uuid': object_fields.UUIDField()
+    }
+
+    def __init__(self, node, **kwargs):
+        super(NodePayload, self).__init__(**kwargs)
+        self.populate_schema(node=node)
+
+
+@base.IronicObjectRegistry.register
+class NodeSetPowerStateNotification(notification.NotificationBase):
+    """Notification emitted when ironic changes a node's power state."""
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'payload': object_fields.ObjectField('NodeSetPowerStatePayload')
+    }
+
+
+@base.IronicObjectRegistry.register
+class NodeSetPowerStatePayload(NodePayload):
+    """Payload schema for when ironic changes a node's power state."""
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        # "to_power" indicates the future target_power_state of the node. A
+        # separate field from target_power_state is used so that the
+        # baremetal.node.power_set.start notification, which is sent before
+        # target_power_state is set on the node, has information about what
+        # state the conductor will attempt to set on the node.
+        'to_power': object_fields.StringField(nullable=True)
+    }
+
+    def __init__(self, node, to_power):
+        super(NodeSetPowerStatePayload, self).__init__(
+            node, to_power=to_power)
+
+
+@base.IronicObjectRegistry.register
+class NodeCorrectedPowerStateNotification(notification.NotificationBase):
+    """Notification for when a node's power state is corrected in the database.
+
+       This notification is emitted when ironic detects that the actual power
+       state on a bare metal hardware is different from the power state on an
+       ironic node (DB). This notification is emitted after the database is
+       updated to reflect this correction.
+    """
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'payload': object_fields.ObjectField('NodeCorrectedPowerStatePayload')
+    }
+
+
+@base.IronicObjectRegistry.register
+class NodeCorrectedPowerStatePayload(NodePayload):
+    """Notification payload schema for when a node's power state is corrected.
+
+       "from_power" indicates the previous power state on the ironic node
+       before the node was updated.
+    """
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'from_power': object_fields.StringField(nullable=True)
+    }
+
+    def __init__(self, node, from_power):
+        super(NodeCorrectedPowerStatePayload, self).__init__(
+            node, from_power=from_power)

@@ -42,6 +42,7 @@ from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import fake
 from ironic import objects
 from ironic.objects import base as obj_base
+from ironic.objects import fields as obj_fields
 from ironic.tests import base as tests_base
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as tests_db_base
@@ -200,6 +201,182 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
             self.assertEqual(states.POWER_ON, node.power_state)
             self.assertIsNone(node.target_power_state)
             self.assertIsNone(node.last_error)
+
+    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
+    def test_node_set_power_state_notif_success(self, mock_notif):
+        # Test that successfully changing a node's power state sends the
+        # correct .start and .end notifications
+        self.config(notification_level='info')
+        self.config(host='my-host')
+        # Required for exception handling
+        mock_notif.__name__ = 'NodeSetPowerStateNotification'
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake',
+                                          power_state=states.POWER_OFF)
+
+        self._start_service()
+        self.service.change_node_power_state(self.context,
+                                             node.uuid,
+                                             states.POWER_ON)
+        # Give async worker a chance to finish
+        self._stop_service()
+
+        # 2 notifications should be sent: 1 .start and 1 .end
+        self.assertEqual(2, mock_notif.call_count)
+        self.assertEqual(2, mock_notif.return_value.emit.call_count)
+
+        first_notif_args = mock_notif.call_args_list[0][1]
+        second_notif_args = mock_notif.call_args_list[1][1]
+
+        self.assertNotificationEqual(first_notif_args,
+                                     'ironic-conductor', CONF.host,
+                                     'baremetal.node.power_set.start',
+                                     obj_fields.NotificationLevel.INFO)
+        self.assertNotificationEqual(second_notif_args,
+                                     'ironic-conductor', CONF.host,
+                                     'baremetal.node.power_set.end',
+                                     obj_fields.NotificationLevel.INFO)
+
+    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
+    def test_node_set_power_state_notif_get_power_fail(self, mock_notif):
+        # Test that correct notifications are sent when changing node power
+        # state and retrieving the node's current power state fails
+        self.config(notification_level='info')
+        self.config(host='my-host')
+        # Required for exception handling
+        mock_notif.__name__ = 'NodeSetPowerStateNotification'
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake',
+                                          power_state=states.POWER_OFF)
+        self._start_service()
+
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            get_power_mock.side_effect = Exception('I have failed')
+            self.service.change_node_power_state(self.context,
+                                                 node.uuid,
+                                                 states.POWER_ON)
+            # Give async worker a chance to finish
+            self._stop_service()
+
+            get_power_mock.assert_called_once_with(mock.ANY)
+
+            # 2 notifications should be sent: 1 .start and 1 .error
+            self.assertEqual(2, mock_notif.call_count)
+            self.assertEqual(2, mock_notif.return_value.emit.call_count)
+
+            first_notif_args = mock_notif.call_args_list[0][1]
+            second_notif_args = mock_notif.call_args_list[1][1]
+
+            self.assertNotificationEqual(first_notif_args,
+                                         'ironic-conductor', CONF.host,
+                                         'baremetal.node.power_set.start',
+                                         obj_fields.NotificationLevel.INFO)
+            self.assertNotificationEqual(second_notif_args,
+                                         'ironic-conductor', CONF.host,
+                                         'baremetal.node.power_set.error',
+                                         obj_fields.NotificationLevel.ERROR)
+
+    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
+    def test_node_set_power_state_notif_set_power_fail(self, mock_notif):
+        # Test that correct notifications are sent when changing node power
+        # state and setting the node's power state fails
+        self.config(notification_level='info')
+        self.config(host='my-host')
+        # Required for exception handling
+        mock_notif.__name__ = 'NodeSetPowerStateNotification'
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake',
+                                          power_state=states.POWER_OFF)
+        self._start_service()
+
+        with mock.patch.object(self.driver.power,
+                               'set_power_state') as set_power_mock:
+            set_power_mock.side_effect = Exception('I have failed')
+            self.service.change_node_power_state(self.context,
+                                                 node.uuid,
+                                                 states.POWER_ON)
+            # Give async worker a chance to finish
+            self._stop_service()
+
+            set_power_mock.assert_called_once_with(mock.ANY, states.POWER_ON)
+
+            # 2 notifications should be sent: 1 .start and 1 .error
+            self.assertEqual(2, mock_notif.call_count)
+            self.assertEqual(2, mock_notif.return_value.emit.call_count)
+
+            first_notif_args = mock_notif.call_args_list[0][1]
+            second_notif_args = mock_notif.call_args_list[1][1]
+
+            self.assertNotificationEqual(first_notif_args,
+                                         'ironic-conductor', CONF.host,
+                                         'baremetal.node.power_set.start',
+                                         obj_fields.NotificationLevel.INFO)
+            self.assertNotificationEqual(second_notif_args,
+                                         'ironic-conductor', CONF.host,
+                                         'baremetal.node.power_set.error',
+                                         obj_fields.NotificationLevel.ERROR)
+
+    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
+    def test_node_set_power_state_notif_spawn_fail(self, mock_notif):
+        # Test that failure notification is not sent when spawning the
+        # background conductor worker fails
+        self.config(notification_level='info')
+        self.config(host='my-host')
+        # Required for exception handling
+        mock_notif.__name__ = 'NodeSetPowerStateNotification'
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake',
+                                          power_state=states.POWER_OFF)
+
+        self._start_service()
+        with mock.patch.object(self.service,
+                               '_spawn_worker') as spawn_mock:
+            spawn_mock.side_effect = exception.NoFreeConductorWorker()
+            self.assertRaises(messaging.rpc.ExpectedException,
+                              self.service.change_node_power_state,
+                              self.context,
+                              node.uuid,
+                              states.POWER_ON)
+
+            spawn_mock.assert_called_once_with(
+                conductor_utils.node_power_action, mock.ANY, states.POWER_ON)
+            self.assertFalse(mock_notif.called)
+
+    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
+    def test_node_set_power_state_notif_no_state_change(self, mock_notif):
+        # Test that correct notifications are sent when changing node power
+        # state and no state change is necessary
+        self.config(notification_level='info')
+        self.config(host='my-host')
+        # Required for exception handling
+        mock_notif.__name__ = 'NodeSetPowerStateNotification'
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake',
+                                          power_state=states.POWER_OFF)
+
+        self._start_service()
+        self.service.change_node_power_state(self.context,
+                                             node.uuid,
+                                             states.POWER_OFF)
+        # Give async worker a chance to finish
+        self._stop_service()
+
+        # 2 notifications should be sent: 1 .start and 1 .end
+        self.assertEqual(2, mock_notif.call_count)
+        self.assertEqual(2, mock_notif.return_value.emit.call_count)
+
+        first_notif_args = mock_notif.call_args_list[0][1]
+        second_notif_args = mock_notif.call_args_list[1][1]
+
+        self.assertNotificationEqual(first_notif_args,
+                                     'ironic-conductor', CONF.host,
+                                     'baremetal.node.power_set.start',
+                                     obj_fields.NotificationLevel.INFO)
+        self.assertNotificationEqual(second_notif_args,
+                                     'ironic-conductor', CONF.host,
+                                     'baremetal.node.power_set.end',
+                                     obj_fields.NotificationLevel.INFO)
 
 
 @mgr_utils.mock_record_keepalive
@@ -2255,10 +2432,14 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
 @mgr_utils.mock_record_keepalive
 class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin,
                            tests_db_base.DbTestCase):
+    @mock.patch('ironic.objects.node.NodeCorrectedPowerStateNotification')
     @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state')
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
-    def test__do_node_verify(self, mock_validate, mock_get_power_state):
+    def test__do_node_verify(self, mock_validate, mock_get_power_state,
+                             mock_notif):
         mock_get_power_state.return_value = states.POWER_OFF
+        # Required for exception handling
+        mock_notif.__name__ = 'NodeCorrectedPowerStateNotification'
         node = obj_utils.create_test_node(
             self.context, driver='fake',
             provision_state=states.VERIFYING,
@@ -2272,6 +2453,15 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin,
             self.service._do_node_verify(task)
 
         self._stop_service()
+
+        # 1 notification should be sent -
+        # baremetal.node.power_state_corrected.success
+        mock_notif.assert_called_once_with(publisher=mock.ANY,
+                                           event_type=mock.ANY,
+                                           level=mock.ANY,
+                                           payload=mock.ANY)
+        mock_notif.return_value.emit.assert_called_once_with(mock.ANY)
+
         node.refresh()
 
         mock_validate.assert_called_once_with(task)
@@ -3438,6 +3628,34 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         self.assertEqual(states.POWER_OFF, self.node.power_state)
         self.task.upgrade_lock.assert_called_once_with()
 
+    @mock.patch('ironic.objects.node.NodeCorrectedPowerStateNotification')
+    def test_state_changed_no_sync_notify(self, mock_notif, node_power_action):
+        # Required for exception handling
+        mock_notif.__name__ = 'NodeCorrectedPowerStateNotification'
+
+        self._do_sync_power_state(states.POWER_ON, states.POWER_OFF)
+
+        self.assertFalse(self.power.validate.called)
+        self.power.get_power_state.assert_called_once_with(self.task)
+        self.assertFalse(node_power_action.called)
+        self.assertEqual(states.POWER_OFF, self.node.power_state)
+        self.task.upgrade_lock.assert_called_once_with()
+
+        # 1 notification should be sent:
+        # baremetal.node.power_state_updated.success, indicating the DB was
+        # updated to reflect the actual node power state
+        mock_notif.assert_called_once_with(publisher=mock.ANY,
+                                           event_type=mock.ANY,
+                                           level=mock.ANY,
+                                           payload=mock.ANY)
+        mock_notif.return_value.emit.assert_called_once_with(mock.ANY)
+
+        notif_args = mock_notif.call_args[1]
+        self.assertNotificationEqual(
+            notif_args, 'ironic-conductor', CONF.host,
+            'baremetal.node.power_state_corrected.success',
+            obj_fields.NotificationLevel.INFO)
+
     def test_state_changed_sync(self, node_power_action):
         self.config(force_power_state_during_sync=True, group='conductor')
         self.config(power_state_sync_max_retries=1, group='conductor')
@@ -3500,6 +3718,30 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
         self.assertEqual(3,
                          self.service.power_state_sync_count[self.node.uuid])
         self.assertTrue(self.node.maintenance)
+
+    @mock.patch('ironic.objects.node.NodeCorrectedPowerStateNotification')
+    def test_max_retries_exceeded_notify(self, mock_notif, node_power_action):
+        self.config(force_power_state_during_sync=True, group='conductor')
+        self.config(power_state_sync_max_retries=1, group='conductor')
+        # Required for exception handling
+        mock_notif.__name__ = 'NodeCorrectedPowerStateNotification'
+
+        self._do_sync_power_state(states.POWER_ON, [states.POWER_OFF,
+                                                    states.POWER_OFF])
+        # 1 notification should be sent:
+        # baremetal.node.power_state_corrected.success, indicating
+        # the DB was updated to reflect the actual node power state
+        mock_notif.assert_called_once_with(publisher=mock.ANY,
+                                           event_type=mock.ANY,
+                                           level=mock.ANY,
+                                           payload=mock.ANY)
+        mock_notif.return_value.emit.assert_called_once_with(mock.ANY)
+
+        notif_args = mock_notif.call_args[1]
+        self.assertNotificationEqual(
+            notif_args, 'ironic-conductor', CONF.host,
+            'baremetal.node.power_state_corrected.success',
+            obj_fields.NotificationLevel.INFO)
 
     def test_retry_then_success(self, node_power_action):
         self.config(force_power_state_during_sync=True, group='conductor')

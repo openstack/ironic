@@ -95,7 +95,8 @@ class TestNotificationBase(test_base.TestCase):
         payload.populate_schema(test_obj=self.fake_obj)
         notif = self.TestNotification(
             event_type=notification.EventType(
-                object='test_object', action='test', status='start'),
+                object='test_object', action='test',
+                status=fields.NotificationStatus.START),
             level=fields.NotificationLevel.DEBUG,
             publisher=notification.NotificationPublisher(
                 service='ironic-conductor',
@@ -132,7 +133,8 @@ class TestNotificationBase(test_base.TestCase):
         payload.populate_schema(test_obj=self.fake_obj)
         notif = self.TestNotification(
             event_type=notification.EventType(
-                object='test_object', action='test', status='start'),
+                object='test_object', action='test',
+                status=fields.NotificationStatus.START),
             level=fields.NotificationLevel.DEBUG,
             publisher=notification.NotificationPublisher(
                 service='ironic-conductor',
@@ -153,7 +155,8 @@ class TestNotificationBase(test_base.TestCase):
         payload.populate_schema(test_obj=self.fake_obj)
         notif = self.TestNotification(
             event_type=notification.EventType(
-                object='test_object', action='test', status='start'),
+                object='test_object', action='test',
+                status=fields.NotificationStatus.START),
             level=fields.NotificationLevel.DEBUG,
             publisher=notification.NotificationPublisher(
                 service='ironic-conductor',
@@ -172,7 +175,8 @@ class TestNotificationBase(test_base.TestCase):
                                                an_optional_field=1)
         notif = self.TestNotification(
             event_type=notification.EventType(
-                object='test_object', action='test', status='start'),
+                object='test_object', action='test',
+                status=fields.NotificationStatus.START),
             level=fields.NotificationLevel.DEBUG,
             publisher=notification.NotificationPublisher(
                 service='ironic-conductor',
@@ -190,7 +194,8 @@ class TestNotificationBase(test_base.TestCase):
         payload = self.TestNotificationPayloadEmptySchema(fake_field='123')
         notif = self.TestNotificationEmptySchema(
             event_type=notification.EventType(
-                object='test_object', action='test', status='error'),
+                object='test_object', action='test',
+                status=fields.NotificationStatus.ERROR),
             level=fields.NotificationLevel.ERROR,
             publisher=notification.NotificationPublisher(
                 service='ironic-conductor',

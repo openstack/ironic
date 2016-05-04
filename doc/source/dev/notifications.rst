@@ -20,7 +20,7 @@ JSON object structured in the following way as defined by oslo.messaging::
     }
 
 Versioned notifications in ironic
----------------------------------
+=================================
 To make it easier for consumers of ironic's notifications to use predictably,
 ironic defines each notification and its payload as oslo versioned objects
 [2]_.
@@ -52,8 +52,8 @@ oslo (level, event_type and publisher_id). Below describes how to use these
 base classes to add a new notification to ironic.
 
 Adding a new notification to ironic
------------------------------------
-To add a new notification to ironic, new versioned notification classes should
+===================================
+To add a new notification to ironic, a new versioned notification class should
 be created by subclassing the NotificationBase class to define the notification
 itself and the NotificationPayloadBase class to define which fields the new
 notification will contain inside its payload. You may also define a schema to
@@ -147,9 +147,10 @@ in the ironic notification base classes) and emit it::
 
     notify = ExampleNotification(
         event_type=notification.EventType(object='example_obj',
-            action='do_something', status='start'),
-        publisher=notification.NotificationPublisher(service='conductor',
-                                                     host='cond-hostname01'),
+            action='do_something', status=fields.NotificationStatus.START),
+        publisher=notification.NotificationPublisher(
+            service='ironic-conductor',
+            host='hostname01'),
         level=fields.NotificationLevel.DEBUG,
         payload=my_notify_payload)
     notify.emit(context)
@@ -178,14 +179,137 @@ This example will send the following notification over the message bus::
            }
        },
        "event_type":"baremetal.example_obj.do_something.start",
-       "publisher_id":"conductor.cond-hostname01"
+       "publisher_id":"ironic-conductor.hostname01"
     }
 
-Existing notifications
-----------------------
 
-Descriptions of notifications emitted by ironic will be documented here when
-they are added.
+Available notifications
+=======================
+.. TODO(mariojv) Move the below to deployer documentation.
+.. TODO(mariojv) Match Nova's tabular formatting below.
+
+
+The notifications that ironic emits are described here. They are listed
+(alphabetically) by service first, then by event_type.
+
+------------------------------
+ironic-conductor notifications
+------------------------------
+
+
+baremetal.node.power_set
+------------------------
+
+* ``baremetal.node.power_set.start`` is emitted by the ironic-conductor service
+  when it begins a power state change. It has notification level INFO.
+
+* ``baremetal.node.power_set.end`` is emitted when ironic-conductor
+  successfully completes a power state change task. It has notification level
+  INFO.
+
+* ``baremetal.node.power_set.error`` is emitted by ironic-conductor when it
+  fails to set a node's power state. It has notification level ERROR. This can
+  occur when ironic fails to retrieve the old power state prior to setting the
+  new one on the node, or when it fails to set the power state if a change is
+  requested.
+
+Here is an example payload for a notification with this event type. The
+"to_power" payload field indicates the power state to which the
+ironic-conductor is attempting to change the node::
+
+   {
+    "priority": "info",
+    "payload":{
+        "ironic_object.namespace":"ironic",
+        "ironic_object.name":"NodeSetPowerStatePayload",
+        "ironic_object.version":"1.0",
+        "ironic_object.data":{
+            "clean_step": None,
+            "console_enabled": False,
+            "created_at": "2016-01-26T20:41:03+00:00",
+            "driver": "fake",
+            "extra": {},
+            "inspection_finished_at": None,
+            "inspection_started_at": None,
+            "instance_uuid": "d6ea00c1-1f94-4e95-90b3-3462d7031678",
+            "last_error": None,
+            "maintenance": False,
+            "maintenance_reason": None,
+            "network_interface": "flat",
+            "name": None,
+            "power_state": "power off",
+            "properties": {
+                "memory_mb":  "4096",
+                "cpu_arch":  "x86_64',
+                "local_gb":  "10",
+                "cpus":  "8"},
+            "provision_state": "available",
+            "provision_updated_at": "2016-01-27T20:41:03+00:00",
+            "resource_class": None,
+            "target_power_state": None,
+            "target_provision_state": None,
+            "updated_at": "2016-01-27T20:41:03+00:00",
+            "uuid": "1be26c0b-03f2-4d2e-ae87-c02d7f33c123",
+            "to_power": "power on"
+        }
+    },
+    "event_type":"baremetal.node.power_set.start",
+    "publisher_id":"ironic-conductor.hostname01"
+   }
+
+
+
+baremetal.node.power_state_corrected
+------------------------------------
+
+* ``baremetal.node.power_state_corrected.success`` is emitted by
+  ironic-conductor when the power state on the baremetal hardware is different
+  from the previous known power state of the node and the database is corrected
+  to reflect this new power state. It has notification level INFO.
+
+Here is an example payload for a notification with this event_type. The
+"from_power" payload field indicates the previous power state on the node,
+prior to the correction::
+
+   {
+    "priority": "info",
+    "payload":{
+        "ironic_object.namespace":"ironic",
+        "ironic_object.name":"NodeCorrectedPowerStatePayload",
+        "ironic_object.version":"1.0",
+        "ironic_object.data":{
+            "clean_step": None,
+            "console_enabled": False,
+            "created_at": "2016-01-26T20:41:03+00:00",
+            "driver": "fake",
+            "extra": {},
+            "inspection_finished_at": None,
+            "inspection_started_at": None,
+            "instance_uuid": "d6ea00c1-1f94-4e95-90b3-3462d7031678",
+            "last_error": None,
+            "maintenance": False,
+            "maintenance_reason": None,
+            "network_interface": "flat",
+            "name": None,
+            "power_state": "power off",
+            "properties": {
+                "memory_mb":  "4096",
+                "cpu_arch":  "x86_64',
+                "local_gb":  "10",
+                "cpus":  "8"},
+            "provision_state": "available",
+            "provision_updated_at": "2016-01-27T20:41:03+00:00",
+            "resource_class": None,
+            "target_power_state": None,
+            "target_provision_state": None,
+            "updated_at": "2016-01-27T20:41:03+00:00",
+            "uuid": "1be26c0b-03f2-4d2e-ae87-c02d7f33c123",
+            "from_power": "power on"
+        }
+    },
+    "event_type":"baremetal.node.power_state_corrected.success",
+    "publisher_id":"ironic-conductor.cond-hostname02"
+   }
 
 .. [1] http://docs.openstack.org/developer/oslo.messaging/notifier.html
 .. [2] http://docs.openstack.org/developer/oslo.versionedobjects

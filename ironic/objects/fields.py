@@ -124,6 +124,23 @@ class NotificationLevelField(object_fields.BaseEnumField):
     AUTO_TYPE = NotificationLevel()
 
 
+class NotificationStatus(object_fields.Enum):
+    START = 'start'
+    END = 'end'
+    ERROR = 'error'
+    SUCCESS = 'success'
+
+    ALL = (START, END, ERROR, SUCCESS)
+
+    def __init__(self):
+        super(NotificationStatus, self).__init__(
+            valid_values=NotificationStatus.ALL)
+
+
+class NotificationStatusField(object_fields.BaseEnumField):
+    AUTO_TYPE = NotificationStatus()
+
+
 class MACAddress(object_fields.FieldType):
     @staticmethod
     def coerce(obj, attr, value):
