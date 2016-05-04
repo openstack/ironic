@@ -1,0 +1,214 @@
+# variables in header
+x-openstack-request-id:
+  description: >
+    foo
+  in: header
+  required: false
+  type: string
+
+# variables in path
+driver_name:
+  description: |
+    The name of the driver.
+  in: path
+  required: false
+  type: string
+node_id:
+  description: |
+    The UUID of the node.
+  in: path
+  required: false
+  type: string
+port_id:
+  description: |
+    The UUID of the port.
+  in: path
+  required: false
+  type: string
+
+# variables in query
+fields:
+  description: |
+    One or more chassis fields to be returned in the response.
+
+    For example, the following request returns only the ``description``
+    field for each chassis:
+
+    ::
+
+       GET /v1/chassis?fields=description
+  in: query
+  required: false
+  type: array
+limit:
+  description: |
+    Requests a page size of items. Returns a number
+    of items up to a limit value. Use the ``limit`` parameter to make
+    an initial limited request and use the ID of the last-seen item
+    from the response as the ``marker`` parameter value in a
+    subsequent limited request.
+  in: query
+  required: false
+  type: integer
+marker:
+  description: |
+    The ID of the last-seen item. Use the ``limit``
+    parameter to make an initial limited request and use the ID of the
+    last-seen item from the response as the ``marker`` parameter value
+    in a subsequent limited request.
+  in: query
+  required: false
+  type: string
+sort_dir:
+  description: |
+    Sorts the response by the requested sort
+    direction. A valid value is ``asc`` (ascending) or ``desc``
+    (descending). Default is ``asc``. You can specify multiple pairs
+    of sort key and sort direction query parameters. If you omit the
+    sort direction in a pair, the API uses the natural sorting
+    direction of the server attribute that is provided as the
+    ``sort_key``.
+  in: query
+  required: false
+  type: string
+sort_key:
+  description: |
+    Sorts the response by the this attribute value.
+    Default is ``id``. You can specify multiple pairs of sort key and
+    sort direction query parameters. If you omit the sort direction in
+    a pair, the API uses the natural sorting direction of the server
+    attribute that is provided as the ``sort_key``.
+  in: query
+  required: false
+  type: string
+
+# variables in body
+chassis:
+  description: |
+    A ``chassis`` object.
+  in: body
+  required: true
+  type: array
+chassis_1:
+  description: |
+    A list of chassis objects.
+  in: body
+  required: true
+  type: array
+created_at:
+  description: |
+    The date and time when the resource was created.
+
+    The date and time stamp format is `ISO 8601
+    <https://en.wikipedia.org/wiki/ISO_8601>`_:
+
+    ::
+
+       CCYY-MM-DDThh:mm:ss±hh:mm
+
+    For example, ``2015-08-27T09:49:58-05:00``.
+
+    The ``±hh:mm`` value, if included, is the time zone as an offset
+    from UTC.
+  in: body
+  required: true
+  type: string
+description:
+  description: |
+    A description for the chassis.
+  in: body
+  required: false
+  type: string
+description_1:
+  description: |
+    A description for the chassis.
+  in: body
+  required: true
+  type: string
+drivers:
+  description: |
+    A list of ``drivers`` objects.
+  in: body
+  required: true
+  type: array
+extra:
+  description: |
+    A set of one or more arbitrary metadata key and
+    value pairs for the chassis.
+  in: body
+  required: false
+  type: object
+extra_1:
+  description: |
+    A set of zero or more arbitrary metadata key and
+    value pairs for the chassis.
+  in: body
+  required: true
+  type: object
+hosts:
+  description: |
+    A list of active hosts that support this driver.
+  in: body
+  required: true
+  type: array
+links:
+  description: |
+    A list that contains a self link and associated
+    chassis links.
+  in: body
+  required: true
+  type: array
+links_1:
+  description: |
+    A list of relative links. Includes the self and
+    bookmark links.
+  in: body
+  required: true
+  type: array
+name:
+  description: |
+    The name of the driver.
+  in: body
+  required: true
+  type: string
+nodes:
+  description: |
+    Links to the collection of nodes contained in
+    this chassis.
+  in: body
+  required: true
+  type: array
+properties:
+  description: |
+    A list of links to driver properties.
+  in: body
+  required: true
+  type: array
+updated_at:
+  description: |
+    The date and time when the resource was updated.
+
+    The date and time stamp format is `ISO 8601
+    <https://en.wikipedia.org/wiki/ISO_8601>`_:
+
+    ::
+
+       CCYY-MM-DDThh:mm:ss±hh:mm
+
+    For example, ``2015-08-27T09:49:58-05:00``.
+
+    The ``±hh:mm`` value, if included, is the time zone as an offset
+    from UTC. In the previous example, the offset value is ``-05:00``.
+
+    If the ``updated_at`` date and time stamp is not set, its value is
+    ``null``.
+  in: body
+  required: true
+  type: string
+uuid:
+  description: |
+    The UUID for the chassis.
+  in: body
+  required: true
+  type: string
+

@@ -1,0 +1,22 @@
+{
+    "nodes": [
+        {
+            "instance_uuid": "dcf1fbc5-93fc-4596-9395-b80572f6267b",
+            "links": [
+                {
+                    "href": "http://localhost:6385/v1/nodes/1be26c0b-03f2-4d2e-ae87-c02d7f33c123",
+                    "rel": "self"
+                },
+                {
+                    "href": "http://localhost:6385/nodes/1be26c0b-03f2-4d2e-ae87-c02d7f33c123",
+                    "rel": "bookmark"
+                }
+            ],
+            "maintenance": false,
+            "name": "database16-dc02",
+            "power_state": "power on",
+            "provision_state": "active",
+            "uuid": "1be26c0b-03f2-4d2e-ae87-c02d7f33c123"
+        }
+    ]
+}
