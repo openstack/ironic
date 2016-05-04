@@ -32,7 +32,7 @@ Install prerequisites (for python 2.7):
 
   If using RHEL and yum reports "No package python-pip available" and "No
   package git-review available", use the EPEL software repository.
-  Instructions can be found at `<http://fedoraproject.org/wiki/EPEL/FAQ#howtouse>`_.
+  Instructions can be found at `<https://fedoraproject.org/wiki/EPEL/FAQ#howtouse>`_.
 
 - Fedora 22 or higher::
 
@@ -47,7 +47,7 @@ Install prerequisites (for python 2.7):
 
   Graphviz is only needed for generating the state machine diagram. To install it
   on openSUSE or SLE 12, see
-  `<http://software.opensuse.org/download.html?project=graphics&package=graphviz-plugins>`_.
+  `<https://software.opensuse.org/download.html?project=graphics&package=graphviz-plugins>`_.
 
 
 To use Python 3.4, follow the instructions above to install prerequisites and
@@ -213,9 +213,9 @@ At this point, you can continue to Step 2.
 Option 2: Vagrant, VirtualBox, and Ansible
 ##########################################
 
-This option requires `virtualbox <https://www.virtualbox.org//>`_,
-`vagrant <http://www.vagrantup.com/downloads>`_, and
-`ansible <http://www.ansible.com/home>`_. You may install these using your
+This option requires `virtualbox <https://www.virtualbox.org>`_,
+`vagrant <https://www.vagrantup.com>`_, and
+`ansible <https://www.ansible.com>`_. You may install these using your
 favorite package manager, or by downloading from the provided links.
 
 Next, run vagrant::
@@ -546,7 +546,6 @@ The server should now be accessible via SSH::
 
     ssh cirros@10.1.0.4
     $
-
 
 =====================
 Running Tempest tests
