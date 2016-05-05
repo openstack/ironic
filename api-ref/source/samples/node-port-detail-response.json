@@ -1,0 +1,22 @@
+{
+   "ports" : [
+      {
+         "extra" : {},
+         "address" : "22:22:22:22:22:22",
+         "updated_at" : "2016-05-05T22:48:52+00:00",
+         "node_uuid" : "ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb",
+         "links" : [
+            {
+               "rel" : "self",
+               "href" : "http://127.0.0.1:6385/v1/ports/c933a251-486f-4c27-adb2-8b5f59bd9cd2"
+            },
+            {
+               "href" : "http://127.0.0.1:6385/ports/c933a251-486f-4c27-adb2-8b5f59bd9cd2",
+               "rel" : "bookmark"
+            }
+         ],
+         "created_at" : "2016-05-05T22:30:57+00:00",
+         "uuid" : "c933a251-486f-4c27-adb2-8b5f59bd9cd2"
+      }
+   ]
+}

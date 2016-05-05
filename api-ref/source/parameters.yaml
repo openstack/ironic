@@ -141,6 +141,28 @@ r_maintenance:
   in: query
   required: false
   type: boolean
+r_port_address:
+  description: |
+    Filter the list of returned Ports, and only return the ones with
+    specified physical hardware address, typically MAC, or an empty set if not
+    found.
+  in: query
+  required: false
+  type: string
+r_port_node_ident:
+  description: |
+    Filter the list of returned Ports, and only return the ones associated
+    with this specific node (name or UUID), or an empty set if not found.
+  in: query
+  required: false
+  type: string
+r_port_node_uuid:
+  description: |
+    Filter the list of returned Ports, and only return the ones associated
+    with this specific node UUID, or an empty set if not found.
+  in: query
+  required: false
+  type: string
 r_provision_state:
   description: |
     Filter the list of returned nodes, and only return those with the specified
@@ -222,19 +244,8 @@ console_enabled:
   type: boolean
 created_at:
   description: |
-    The date and time when the resource was created.
-
-    The date and time stamp format is `ISO 8601
-    <https://en.wikipedia.org/wiki/ISO_8601>`_:
-
-    ::
-
-       CCYY-MM-DDThh:mm:ss±hh:mm
-
-    For example, ``2015-08-27T09:49:58-05:00``.
-
-    The ``±hh:mm`` value, if included, is the time zone as an offset
-    from UTC.
+    The date and time when the resource was created,
+    `ISO 8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ format.
   in: body
   required: true
   type: string
@@ -274,7 +285,7 @@ extra:
     A set of one or more arbitrary metadata key and
     value pairs.
   in: body
-  required: false
+  required: true
   type: object
 hosts:
   description: |
@@ -290,15 +301,17 @@ id:
   type: string
 inspection_finished_at:
   description: |
-    The date and time when the inspection process started.
-    May be "null"
+    The date and time when the resource was created,
+    `ISO 8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ format.
+    May be "null".
   in: body
   required: true
   type: string
 inspection_started_at:
   description: |
-    The date and time when the inspection process started.
-    May be "null"
+    The date and time when the resource was created,
+    `ISO 8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ format.
+    May be "null".
   in: body
   required: true
   type: string
@@ -380,6 +393,12 @@ node_name:
   in: body
   required: false
   type: string
+node_uuid:
+  description: |
+    UUID of the Node this resource belongs to.
+  in: body
+  required: true
+  type: string
 nodes:
   description: |
     Links to the collection of nodes contained in
@@ -394,6 +413,18 @@ persistent:
   in: body
   required: true
   type: boolean
+port_address:
+  description: |
+    Physical hardware address of this network Port, typically the HW MAC address.
+  in: body
+  required: true
+  type: string
+ports:
+  description: |
+    A collection of Port resources.
+  in: body
+  required: true
+  type: array
 power_state:
   description: |
     The current power state of this Node. Usually, "power on" or "power off", but may be "None"
@@ -415,7 +446,8 @@ provision_state:
   type: string
 provision_updated_at:
   description: |
-    The date and time when the provision_state last changed.
+    The date and time when the resource was created,
+    `ISO 8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ format.
     ``null`` if the node is not being provisioned.
   in: body
   required: true
@@ -486,22 +518,9 @@ target_raid_config:
   type: JSON
 updated_at:
   description: |
-    The date and time when the resource was updated.
-
-    The date and time stamp format is `ISO 8601
-    <https://en.wikipedia.org/wiki/ISO_8601>`_:
-
-    ::
-
-       CCYY-MM-DDThh:mm:ss±hh:mm
-
-    For example, ``2015-08-27T09:49:58-05:00``.
-
-    The ``±hh:mm`` value, if included, is the time zone as an offset
-    from UTC. In the previous example, the offset value is ``-05:00``.
-
-    If the ``updated_at`` date and time stamp is not set, its value is
-    ``null``.
+    The date and time when the resource was updated,
+    `ISO 8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ format.
+    May be "null".
   in: body
   required: true
   type: string
