@@ -1,0 +1,11 @@
+---
+fixes:
+  - Fixed a VirtualBox issue that Ironic fails
+    to set VirtualBox VM's boot device
+    when it is powered on. This bug causes
+    two problems 1. VirtualBox cannot
+    deploy VMs in local boot mode. 2. Ironic
+    fails to set boot device when VirtualBox
+    VMs is powered on and also fails to get
+    the correct boot device from Ironic
+    API call when VMs is powered on.

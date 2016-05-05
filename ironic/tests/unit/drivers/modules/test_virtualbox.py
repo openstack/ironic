@@ -243,23 +243,30 @@ class VirtualBoxPowerTestCase(db_base.DbTestCase):
                                                     'set_power_state',
                                                     'stop')
 
+    @mock.patch.object(virtualbox.VirtualBoxManagement, 'set_boot_device')
     @mock.patch.object(virtualbox, '_run_virtualbox_method', autospec=True)
-    def test_set_power_state_on(self, run_method_mock):
+    def test_set_power_state_on(self, run_method_mock, set_boot_device_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            task.node.driver_internal_info['vbox_target_boot_device'] = 'pxe'
             task.driver.power.set_power_state(task, states.POWER_ON)
             run_method_mock.assert_called_once_with(task.node,
                                                     'set_power_state',
                                                     'start')
+            set_boot_device_mock.assert_called_once_with(task, 'pxe')
 
+    @mock.patch.object(virtualbox.VirtualBoxManagement, 'set_boot_device')
     @mock.patch.object(virtualbox, '_run_virtualbox_method', autospec=True)
-    def test_set_power_state_reboot(self, run_method_mock):
+    def test_set_power_state_reboot(self, run_method_mock,
+                                    mock_set_boot_device):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            task.node.driver_internal_info['vbox_target_boot_device'] = 'pxe'
             task.driver.power.set_power_state(task, states.REBOOT)
             run_method_mock.assert_any_call(task.node,
                                             'reboot',
                                             'stop')
+            mock_set_boot_device.assert_called_once_with(task, 'pxe')
             run_method_mock.assert_any_call(task.node,
                                             'reboot',
                                             'start')
@@ -317,11 +324,46 @@ class VirtualBoxManagementTestCase(db_base.DbTestCase):
             self.assertIn(boot_devices.DISK, devices)
             self.assertIn(boot_devices.CDROM, devices)
 
-    @mock.patch.object(virtualbox, '_run_virtualbox_method', autospec=True)
-    def test_get_boot_device_ok(self, run_method_mock):
+    @mock.patch.object(virtualbox.VirtualBoxPower,
+                       'get_power_state', autospec=True)
+    @mock.patch.object(virtualbox, '_run_virtualbox_method',
+                       autospec=True)
+    def test_get_boot_device_VM_Poweroff_ok(self, run_method_mock,
+                                            get_power_state_mock):
         run_method_mock.return_value = 'Network'
+        get_power_state_mock.return_value = states.POWER_OFF
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            ret_val = task.driver.management.get_boot_device(task)
+            run_method_mock.assert_called_once_with(task.node,
+                                                    'get_boot_device',
+                                                    'get_boot_device')
+            self.assertEqual(boot_devices.PXE, ret_val['boot_device'])
+            self.assertTrue(ret_val['persistent'])
+
+    @mock.patch.object(virtualbox.VirtualBoxPower,
+                       'get_power_state', autospec=True)
+    def test_get_boot_device_VM_Poweron_ok(self, get_power_state_mock):
+        get_power_state_mock.return_value = states.POWER_ON
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_internal_info['vbox_target_boot_device'] = 'pxe'
+            ret_val = task.driver.management.get_boot_device(task)
+            self.assertEqual(boot_devices.PXE, ret_val['boot_device'])
+            self.assertTrue(ret_val['persistent'])
+
+    @mock.patch.object(virtualbox.VirtualBoxPower,
+                       'get_power_state', autospec=True)
+    @mock.patch.object(virtualbox, '_run_virtualbox_method',
+                       autospec=True)
+    def test_get_boot_device_target_device_none_ok(self,
+                                                   run_method_mock,
+                                                   get_power_state_mock):
+        run_method_mock.return_value = 'Network'
+        get_power_state_mock.return_value = states.POWER_ON
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_internal_info['vbox_target_boot_device'] = None
             ret_val = task.driver.management.get_boot_device(task)
             run_method_mock.assert_called_once_with(task.node,
                                                     'get_boot_device',
@@ -338,25 +380,32 @@ class VirtualBoxManagementTestCase(db_base.DbTestCase):
             self.assertIsNone(ret_val['boot_device'])
             self.assertIsNone(ret_val['persistent'])
 
+    @mock.patch.object(virtualbox.VirtualBoxPower,
+                       'get_power_state', autospec=True)
     @mock.patch.object(virtualbox, '_run_virtualbox_method', autospec=True)
-    def test_set_boot_device_ok(self, run_method_mock):
+    def test_set_boot_device_VM_Poweroff_ok(self, run_method_mock,
+                                            get_power_state_mock):
+        get_power_state_mock.return_value = states.POWER_OFF
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.management.set_boot_device(task, boot_devices.PXE)
-            run_method_mock.assert_called_once_with(task.node,
-                                                    'set_boot_device',
-                                                    'set_boot_device',
-                                                    'Network')
+            run_method_mock.assert_called_with(task.node,
+                                               'set_boot_device',
+                                               'set_boot_device',
+                                               'Network')
 
-    @mock.patch.object(virtualbox, 'LOG', autospec=True)
+    @mock.patch.object(virtualbox.VirtualBoxPower,
+                       'get_power_state', autospec=True)
     @mock.patch.object(virtualbox, '_run_virtualbox_method', autospec=True)
-    def test_set_boot_device_wrong_power_state(self, run_method_mock,
-                                               log_mock):
-        run_method_mock.side_effect = pyremotevbox_exc.VmInWrongPowerState
+    def test_set_boot_device_VM_Poweron_ok(self, run_method_mock,
+                                           get_power_state_mock):
+        get_power_state_mock.return_value = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.management.set_boot_device(task, boot_devices.PXE)
-            log_mock.error.assert_called_once_with(mock.ANY, mock.ANY)
+            self.assertEqual('pxe',
+                             task.node.driver_internal_info
+                             ['vbox_target_boot_device'])
 
     @mock.patch.object(virtualbox, '_run_virtualbox_method', autospec=True)
     def test_set_boot_device_invalid(self, run_method_mock):
