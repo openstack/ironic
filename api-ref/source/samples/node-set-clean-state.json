@@ -1,0 +1,12 @@
+{
+    "target": "clean",
+    "clean_steps": [
+        {
+            'interface': 'deploy',
+            'step': 'upgrade_firmware',
+            'args': {
+                'force': True
+            }
+        }
+    ]
+}

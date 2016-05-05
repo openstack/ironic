@@ -1,0 +1,11 @@
+{
+   "last_error" : "",
+   "target_raid_config" : {},
+   "target_power_state" : null,
+   "console_enabled" : false,
+   "target_provision_state" : null,
+   "provision_updated_at" : null,
+   "power_state" : "power off",
+   "raid_config" : {},
+   "provision_state" : "available"
+}

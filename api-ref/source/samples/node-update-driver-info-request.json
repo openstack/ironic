@@ -1,0 +1,12 @@
+[
+   {
+      "op" : "replace",
+      "path" : "/driver_info/ipmi_username",
+      "value" : "OPERATOR"
+   },
+   {
+      "value" : "10.0.0.123",
+      "op" : "replace",
+      "path" : "/driver_info/ipmi_address"
+   }
+]

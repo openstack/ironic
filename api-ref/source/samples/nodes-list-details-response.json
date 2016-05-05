@@ -1,64 +1,75 @@
 {
-    "nodes": [
-        {
-            "chassis_uuid": "633f9f21-5bd5-4166-b811-1eb01490c4ab",
-            "clean_step": {},
-            "console_enabled": false,
-            "created_at": "2016-04-23T10:52:43+00:00",
-            "driver": "pxe_ssh",
-            "driver_info": {
-                "deploy_kernel": "aadebece-ce44-4cf6-a9e8-545f0e8ac9f3",
-                "deploy_ramdisk": "cfe6f9ce-b2e6-4a7a-9246-0cc7eeb89a71",
-                "ssh_address": "localhost",
-                "ssh_key_filename": "/opt/stack/data/ironic/ssh_keys/ironic_key",
-                "ssh_port": 22,
-                "ssh_username": "ubuntu",
-                "ssh_virt_type": "virsh"
+   "nodes" : [
+      {
+         "reservation" : null,
+         "driver" : "agent_ipmitool",
+         "uuid" : "ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb",
+         "extra" : {
+            "foo" : "bar"
+         },
+         "provision_updated_at" : null,
+         "provision_state" : "available",
+         "clean_step" : {},
+         "maintenance" : false,
+         "driver_internal_info" : {},
+         "console_enabled" : false,
+         "raid_config" : {},
+         "target_raid_config" : {},
+         "inspection_started_at" : null,
+         "instance_info" : {},
+         "states" : [
+            {
+               "rel" : "self",
+               "href" : "http://127.0.0.1:6385/v1/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb/states"
             },
-            "driver_internal_info": {},
-            "extra": {},
-            "inspection_finished_at": null,
-            "inspection_started_at": null,
-            "instance_info": {},
-            "instance_uuid": null,
-            "last_error": null,
-            "links": [
-                {
-                    "href": "http://localhost:6385/v1/nodes/277c9fe9-a385-4e45-9399-660f3287e48c",
-                    "rel": "self"
-                },
-                {
-                    "href": "http://localhost:6385/nodes/277c9fe9-a385-4e45-9399-660f3287e48c",
-                    "rel": "bookmark"
-                }
-            ],
-            "maintenance": false,
-            "maintenance_reason": null,
-            "name": "node-0",
-            "ports": [
-                {
-                    "href": "http://localhost:6385/v1/nodes/277c9fe9-a385-4e45-9399-660f3287e48c/ports",
-                    "rel": "self"
-                },
-                {
-                    "href": "http://localhost:6385/nodes/277c9fe9-a385-4e45-9399-660f3287e48c/ports",
-                    "rel": "bookmark"
-                }
-            ],
-            "power_state": "power off",
-            "properties": {
-                "cpu_arch": "x86_64",
-                "cpus": 1,
-                "local_gb": 10,
-                "memory_mb": 1024
+            {
+               "href" : "http://127.0.0.1:6385/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb/states",
+               "rel" : "bookmark"
+            }
+         ],
+         "last_error" : null,
+         "properties" : {
+            "cpus" : 1,
+            "memory_mb" : 1024,
+            "local_gb" : 10,
+            "cpu_arch" : "x86_64"
+         },
+         "links" : [
+            {
+               "rel" : "self",
+               "href" : "http://127.0.0.1:6385/v1/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb"
             },
-            "provision_state": "available",
-            "provision_updated_at": null,
-            "reservation": null,
-            "target_power_state": null,
-            "target_provision_state": null,
-            "updated_at": "2016-04-23T10:53:37+00:00",
-            "uuid": "277c9fe9-a385-4e45-9399-660f3287e48c"
-        }
-    ]
+            {
+               "rel" : "bookmark",
+               "href" : "http://127.0.0.1:6385/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb"
+            }
+         ],
+         "name" : "test_node",
+         "ports" : [
+            {
+               "rel" : "self",
+               "href" : "http://127.0.0.1:6385/v1/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb/ports"
+            },
+            {
+               "rel" : "bookmark",
+               "href" : "http://127.0.0.1:6385/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb/ports"
+            }
+         ],
+         "created_at" : "2016-04-20T16:51:03+00:00",
+         "updated_at" : "2016-05-04T23:24:20+00:00",
+         "maintenance_reason" : null,
+         "inspection_finished_at" : null,
+         "driver_info" : {
+            "deploy_kernel" : "http://127.0.0.1/images/kernel",
+            "ipmi_address" : "1.2.3.4",
+            "deploy_ramdisk" : "http://127.0.0.1/images/ramdisk",
+            "ipmi_password" : "******",
+            "ipmi_username" : "ADMIN",
+         },
+         "instance_uuid" : null,
+         "power_state" : "power off",
+         "target_power_state" : null,
+         "target_provision_state" : null
+      }
+   ]
 }

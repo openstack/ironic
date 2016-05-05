@@ -1,0 +1,9 @@
+{
+   "supported_boot_devices" : [
+      "pxe",
+      "disk",
+      "cdrom",
+      "bios",
+      "safe"
+   ]
+}

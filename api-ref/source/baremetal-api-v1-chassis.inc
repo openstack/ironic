@@ -4,7 +4,13 @@
 Chassis (chassis)
 =================
 
-Chassis operations.
+The Chassis resource type was originally conceived as a means to group Node
+resources. Support for this continues to exist in the REST API, however, it is
+very minimal. The Chassis object does not provide any functionality today
+aside from a means to list a group of Nodes.
+
+Use of this resource is discouraged, and may be deprecated and removed in a
+future release.
 
 
 List chassis with details
@@ -14,10 +20,8 @@ List chassis with details
 
 Lists all chassis with details.
 
-
 Normal response codes: 200
 Error response codes:413,405,404,403,401,400,503,
-
 
 Request
 -------
@@ -29,7 +33,6 @@ Request
    - sort_dir: sort_dir
    - sort_key: sort_key
 
-
 Response Parameters
 -------------------
 
@@ -40,22 +43,11 @@ Response Parameters
    - description: description
    - extra: extra
 
-
-
 Response Example
 ----------------
 
 .. literalinclude:: samples/chassis-list-details-response.json
    :language: javascript
-
-
-
-
-
-
-
-
-
 
 
 Show chassis details
@@ -65,10 +57,8 @@ Show chassis details
 
 Shows details for a chassis.
 
-
 Normal response codes: 200
 Error response codes:413,405,404,403,401,400,503,
-
 
 Request
 -------
@@ -76,7 +66,6 @@ Request
 .. rest_parameters:: parameters.yaml
 
    - fields: fields
-
 
 Response Parameters
 -------------------
@@ -88,23 +77,11 @@ Response Parameters
    - description: description
    - extra: extra
 
-
-
 Response Example
 ----------------
 
 .. literalinclude:: samples/chassis-show-response.json
    :language: javascript
-
-
-
-
-
-
-
-
-
-
 
 Update chassis
 ==============
@@ -113,10 +90,8 @@ Update chassis
 
 Updates a chassis.
 
-
 Normal response codes: 200
 Error response codes:413,415,405,404,403,401,400,503,409,
-
 
 Request
 -------
@@ -133,8 +108,6 @@ Request Example
 .. literalinclude:: samples/chassis-update-request.json
    :language: javascript
 
-
-
 Response Parameters
 -------------------
 
@@ -149,24 +122,11 @@ Response Parameters
    - nodes: nodes
    - uuid: uuid
 
-
-
 Response Example
 ----------------
 
 .. literalinclude:: samples/chassis-show-response.json
    :language: javascript
-
-
-
-
-
-
-
-
-
-
-
 
 
 Delete chassis
@@ -178,24 +138,8 @@ Deletes a chassis.
 
 Error response codes:204,413,415,405,404,403,401,400,503,409,
 
-
 Request
 -------
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 Create chassis
 ==============
@@ -205,7 +149,6 @@ Create chassis
 Creates a chassis.
 
 Error response codes:201,413,415,405,404,403,401,400,503,409,
-
 
 Request
 -------
@@ -222,8 +165,6 @@ Request Example
 .. literalinclude:: samples/chassis-create-request.json
    :language: javascript
 
-
-
 Response Parameters
 -------------------
 
@@ -237,19 +178,6 @@ Response Parameters
    - nodes: nodes
    - uuid: uuid
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 List chassis
 ============
 
@@ -257,10 +185,8 @@ List chassis
 
 Lists all chassis.
 
-
 Normal response codes: 200
 Error response codes:413,405,404,403,401,400,503,
-
 
 Request
 -------
@@ -273,7 +199,6 @@ Request
    - sort_key: sort_key
    - fields: fields
 
-
 Response Parameters
 -------------------
 
@@ -284,20 +209,8 @@ Response Parameters
    - description: description
    - extra: extra
 
-
-
 Response Example
 ----------------
 
 .. literalinclude:: samples/chassis-list-response.json
    :language: javascript
-
-
-
-
-
-
-
-
-
-
