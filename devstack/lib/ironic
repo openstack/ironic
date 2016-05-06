@@ -33,6 +33,10 @@ set +o pipefail
 GITDIR["python-ironicclient"]=$DEST/python-ironicclient
 GITDIR["ironic-lib"]=$DEST/ironic-lib
 
+GITREPO["pyghmi"]=${PYGHMI_REPO:-${GIT_BASE}/openstack/pyghmi.git}
+GITBRANCH["pyghmi"]=${PYGHMI_BRANCH:-master}
+GITDIR["pyghmi"]=$DEST/pyghmi
+
 IRONIC_DIR=$DEST/ironic
 IRONIC_DEVSTACK_DIR=$IRONIC_DIR/devstack
 IRONIC_DEVSTACK_FILES_DIR=$IRONIC_DEVSTACK_DIR/files
@@ -261,6 +265,26 @@ function is_deployed_with_ipa_ramdisk {
     return 1
 }
 
+function setup_virtualbmc {
+    # Install pyghmi from source, if requested, otherwise it will be
+    # downloaded as part of the virtualbmc installation
+    if use_library_from_git "pyghmi"; then
+        git_clone_by_name "pyghmi"
+        setup_dev_lib "pyghmi"
+    fi
+
+    # TODO(lucasagomes): Allow virtualbmc to be installed from source
+    # after the openstack/virtualbmc repository is setup correctly
+    pip_install "virtualbmc"
+
+    if [[ ! -d $(dirname $IRONIC_VBMC_CONFIG_FILE) ]]; then
+        mkdir -p $(dirname $IRONIC_VBMC_CONFIG_FILE)
+    fi
+
+    iniset $IRONIC_VBMC_CONFIG_FILE log debug True
+    iniset $IRONIC_VBMC_CONFIG_FILE log logfile $IRONIC_VBMC_LOGFILE
+}
+
 # install_ironic() - Install the things!
 function install_ironic {
     # make sure all needed service were enabled
@@ -286,14 +310,7 @@ function install_ironic {
     fi
 
     if is_deployed_by_ipmitool && [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
-        pip_install "virtualbmc"
-
-        if [[ ! -d $(dirname $IRONIC_VBMC_CONFIG_FILE) ]]; then
-            mkdir -p $(dirname $IRONIC_VBMC_CONFIG_FILE)
-        fi
-
-        iniset $IRONIC_VBMC_CONFIG_FILE log debug True
-        iniset $IRONIC_VBMC_CONFIG_FILE log logfile $IRONIC_VBMC_LOGFILE
+        setup_virtualbmc
     fi
 }
 
