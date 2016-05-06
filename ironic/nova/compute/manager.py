@@ -81,13 +81,15 @@ class ClusteredComputeManager(manager.ComputeManager):
             pass
 
     @lockutils.synchronized(CCM_SEMAPHORE, 'ironic-')
-    def _update_resources(self):
-        """Update our resources
+    def _update_resources(self, node_uuid):
+        """Update the specified node resource
 
-        Updates the resources while protecting against a race on
+        Updates the resources for instance while protecting against a race on
         self._resource_tracker_dict.
+        :param node_uuid: UUID of the Ironic node to update resources for.
         """
-        self.update_available_resource(nova.context.get_admin_context())
+        self.update_available_resource_for_node(
+            nova.context.get_admin_context(), node_uuid)
 
     def terminate_instance(self, context, instance, bdms, reservations):
         """Terminate an instance on a node.
@@ -100,4 +102,4 @@ class ClusteredComputeManager(manager.ComputeManager):
                                                                 instance,
                                                                 bdms,
                                                                 reservations)
-        self._update_resources()
+        self._update_resources(instance.node)
