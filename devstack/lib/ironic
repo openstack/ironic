@@ -712,7 +712,7 @@ function create_bridge_and_vms {
     local vbmc_port=$IRONIC_VBMC_PORT_RANGE_START
     local vm_name
     for vm_name in $(_ironic_bm_vm_names); do
-        sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/create-node.sh $vm_name \
+        sudo -E su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/create-node.sh $vm_name \
             $IRONIC_VM_SPECS_CPU $IRONIC_VM_SPECS_RAM $IRONIC_VM_SPECS_DISK \
             amd64 $IRONIC_VM_NETWORK_BRIDGE $IRONIC_VM_EMULATOR \
             $vbmc_port $log_arg $IRONIC_VM_SPECS_DISK_FORMAT" >> $IRONIC_VM_MACS_CSV_FILE
