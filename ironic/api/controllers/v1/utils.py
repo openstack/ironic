@@ -13,10 +13,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import inspect
+
 import jsonpatch
 from oslo_config import cfg
 from oslo_utils import uuidutils
 import pecan
+from pecan import rest
 import six
 from six.moves import http_client
 from webob.static import FileIter
@@ -284,3 +287,23 @@ def allow_links_node_states_and_driver_properties():
     """
     return (pecan.request.version.minor >=
             versions.MINOR_14_LINKS_NODESTATES_DRIVERPROPERTIES)
+
+
+def get_controller_reserved_names(cls):
+    """Get reserved names for a given controller.
+
+    Inspect the controller class and return the reserved names within
+    it. Reserved names are names that can not be used as an identifier
+    for a resource because the names are either being used as a custom
+    action or is the name of a nested controller inside the given class.
+
+    :param cls: The controller class to be inspected.
+    """
+    reserved_names = [
+        name for name, member in inspect.getmembers(cls)
+        if isinstance(member, rest.RestController)]
+
+    if hasattr(cls, '_custom_actions'):
+        reserved_names += cls._custom_actions.keys()
+
+    return reserved_names

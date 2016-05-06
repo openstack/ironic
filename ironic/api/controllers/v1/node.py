@@ -1032,10 +1032,20 @@ class NodesController(rest.RestController):
         """
         if not api_utils.allow_node_logical_names():
             raise exception.NotAcceptable()
+
+        reserved_names = api_utils.get_controller_reserved_names(
+            NodesController)
         for name in names:
             if not api_utils.is_valid_node_name(name):
                 raise wsme.exc.ClientSideError(
                     error_msg % {'name': name},
+                    status_code=http_client.BAD_REQUEST)
+            if name in reserved_names:
+                raise wsme.exc.ClientSideError(
+                    'The word "%(name)s" is reserved and can not be used as a '
+                    'node name. Other reserved words are: %(reserved)s' %
+                    {'name': name,
+                     'reserved': ', '.join(reserved_names)},
                     status_code=http_client.BAD_REQUEST)
 
     def _update_changed_fields(self, node, rpc_node):
