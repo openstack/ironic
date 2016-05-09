@@ -1,0 +1,4 @@
+---
+fixes:
+  -This fixes the issue of RAID interface not being supported
+   in iscsi_ilo driver.
