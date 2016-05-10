@@ -53,6 +53,7 @@ class IloVirtualMediaIscsiDriver(base.BaseDriver):
         self.management = management.IloManagement()
         self.vendor = vendor.VendorPassthru()
         self.inspect = inspect.IloInspect()
+        self.raid = agent.AgentRAID()
 
 
 class IloVirtualMediaAgentDriver(base.BaseDriver):
