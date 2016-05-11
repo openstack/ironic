@@ -1287,7 +1287,8 @@ class OtherFunctionTestCase(db_base.DbTestCase):
                                     log_calls=calls)
 
     def test_set_failed_state_no_poweroff(self):
-        cfg.CONF.deploy.power_off_after_deploy_failure = False
+        cfg.CONF.set_override('power_off_after_deploy_failure', False,
+                              'deploy')
         exc_state = exception.InvalidState('invalid state')
         exc_param = exception.InvalidParameterValue('invalid parameter')
         mock_call = mock.call(mock.ANY)
@@ -1342,6 +1343,37 @@ class OtherFunctionTestCase(db_base.DbTestCase):
                           [('uuid', 'path')])
         mock_clean_up_caches.assert_called_once_with(None, 'master_dir',
                                                      [('uuid', 'path')])
+
+    @mock.patch.object(utils, 'LOG', autospec=True)
+    def test_warn_about_unsafe_shred_parameters_defaults(self, log_mock):
+        utils.warn_about_unsafe_shred_parameters()
+        self.assertFalse(log_mock.warning.called)
+
+    @mock.patch.object(utils, 'LOG', autospec=True)
+    def test_warn_about_unsafe_shred_parameters_zeros(self, log_mock):
+        cfg.CONF.set_override('shred_random_overwrite_iterations', 0, 'deploy')
+        cfg.CONF.set_override('shred_final_overwrite_with_zeros', True,
+                              'deploy')
+        utils.warn_about_unsafe_shred_parameters()
+        self.assertFalse(log_mock.warning.called)
+
+    @mock.patch.object(utils, 'LOG', autospec=True)
+    def test_warn_about_unsafe_shred_parameters_random_no_zeros(self,
+                                                                log_mock):
+        cfg.CONF.set_override('shred_random_overwrite_iterations', 1, 'deploy')
+        cfg.CONF.set_override('shred_final_overwrite_with_zeros', False,
+                              'deploy')
+        utils.warn_about_unsafe_shred_parameters()
+        self.assertFalse(log_mock.warning.called)
+
+    @mock.patch.object(utils, 'LOG', autospec=True)
+    def test_warn_about_unsafe_shred_parameters_produces_a_warning(self,
+                                                                   log_mock):
+        cfg.CONF.set_override('shred_random_overwrite_iterations', 0, 'deploy')
+        cfg.CONF.set_override('shred_final_overwrite_with_zeros', False,
+                              'deploy')
+        utils.warn_about_unsafe_shred_parameters()
+        self.assertTrue(log_mock.warning.called)
 
 
 class VirtualMediaDeployUtilsTestCase(db_base.DbTestCase):
@@ -1680,12 +1712,16 @@ class AgentMethodsTestCase(db_base.DbTestCase):
             self.assertEqual(states.CLEANWAIT, response)
 
     def test_agent_add_clean_params(self):
-        cfg.CONF.deploy.erase_devices_iterations = 2
+        cfg.CONF.set_override('shred_random_overwrite_iterations', 2, 'deploy')
+        cfg.CONF.set_override('shred_final_overwrite_with_zeros', False,
+                              'deploy')
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             utils.agent_add_clean_params(task)
-            self.assertEqual(task.node.driver_internal_info.get(
-                'agent_erase_devices_iterations'), 2)
+            self.assertEqual(2, task.node.driver_internal_info.get(
+                'agent_erase_devices_iterations'))
+            self.assertEqual(False, task.node.driver_internal_info.get(
+                'agent_erase_devices_zeroize'))
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.delete_cleaning_ports',
                 autospec=True)
@@ -1749,8 +1785,10 @@ class AgentMethodsTestCase(db_base.DbTestCase):
                 utils.prepare_inband_cleaning(task, manage_boot=manage_boot))
             prepare_cleaning_ports_mock.assert_called_once_with(task)
             power_mock.assert_called_once_with(task, states.REBOOT)
-            self.assertEqual(task.node.driver_internal_info.get(
-                             'agent_erase_devices_iterations'), 1)
+            self.assertEqual(1, task.node.driver_internal_info.get(
+                             'agent_erase_devices_iterations'))
+            self.assertEqual(True, task.node.driver_internal_info.get(
+                             'agent_erase_devices_zeroize'))
             if manage_boot:
                 prepare_ramdisk_mock.assert_called_once_with(
                     mock.ANY, mock.ANY, {'a': 'b', 'c': 'd'})
