@@ -139,12 +139,12 @@ IPA_DOWNLOAD_BRANCH=$(echo $IPA_DOWNLOAD_BRANCH | tr / -)
 
 case $IRONIC_RAMDISK_TYPE in
     coreos)
-        IRONIC_AGENT_KERNEL_URL=${IRONIC_AGENT_KERNEL_URL:-http://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe-${IPA_DOWNLOAD_BRANCH}.vmlinuz}
-        IRONIC_AGENT_RAMDISK_URL=${IRONIC_AGENT_RAMDISK_URL:-http://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe_image-oem-${IPA_DOWNLOAD_BRANCH}.cpio.gz}
+        IRONIC_AGENT_KERNEL_URL=${IRONIC_AGENT_KERNEL_URL:-https://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe-${IPA_DOWNLOAD_BRANCH}.vmlinuz}
+        IRONIC_AGENT_RAMDISK_URL=${IRONIC_AGENT_RAMDISK_URL:-https://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe_image-oem-${IPA_DOWNLOAD_BRANCH}.cpio.gz}
     ;;
     tinyipa)
-        IRONIC_AGENT_KERNEL_URL=${IRONIC_AGENT_KERNEL_URL:-http://tarballs.openstack.org/ironic-python-agent/tinyipa/files/tinyipa-${IPA_DOWNLOAD_BRANCH}.vmlinuz}
-        IRONIC_AGENT_RAMDISK_URL=${IRONIC_AGENT_RAMDISK_URL:-http://tarballs.openstack.org/ironic-python-agent/tinyipa/files/tinyipa-${IPA_DOWNLOAD_BRANCH}.gz}
+        IRONIC_AGENT_KERNEL_URL=${IRONIC_AGENT_KERNEL_URL:-https://tarballs.openstack.org/ironic-python-agent/tinyipa/files/tinyipa-${IPA_DOWNLOAD_BRANCH}.vmlinuz}
+        IRONIC_AGENT_RAMDISK_URL=${IRONIC_AGENT_RAMDISK_URL:-https://tarballs.openstack.org/ironic-python-agent/tinyipa/files/tinyipa-${IPA_DOWNLOAD_BRANCH}.gz}
     ;;
     *)
         die $LINENO "Unrecognised IRONIC_RAMDISK_TYPE: $IRONIC_RAMDISK_TYPE. Expected 'coreos' or 'tinyipa'"
