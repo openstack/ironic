@@ -1,0 +1,10 @@
+---
+upgrade:
+  - The 'verbose' configuration option was removed,
+    consequently the "--verbose, -v" parameter from all
+    command lines was also removed. This affects the
+    ironic-api, ironic-conductor, ironic-dbsync, and
+    ironic-rootwrap commands. The verbose config/parameter
+    was originally a shortcut to set the log level to INFO, however
+    the log level has defaulted to INFO since this option was
+    deprecated, so this option was a noop.

@@ -116,7 +116,7 @@ class TestCase(testtools.TestCase):
                     fatal_exception_format_errors=True,
                     tempdir=tempfile.tempdir)
         self.set_defaults(host='fake-mini',
-                          verbose=True)
+                          debug=True)
         self.set_defaults(connection="sqlite://",
                           sqlite_synchronous=False,
                           group='database')
