@@ -270,17 +270,14 @@ Workflow
   clean steps as desired::
 
 
+    [{
+      "interface": "raid"
+      "step": "delete_configuration",
+    },
     {
-     "clean_steps": [
-       {
-        "interface": "raid"
-        "step": "delete_configuration",
-       },
-       {
-        "interface": "raid"
-        "step": "create_configuration",
-       }]
-    }
+      "interface": "raid"
+      "step": "create_configuration",
+    }]
 
   .. note::
     'create_configuration' doesn't remove existing disks.  It is recommended
