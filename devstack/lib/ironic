@@ -650,16 +650,19 @@ function stop_ironic {
     sudo rm -rf $IRONIC_LIBVIRT_HOOKS_PATH/qemu
 }
 
+# create_ovs_taps is also called by the devstack/upgrade/resources.sh script
+#
+# create_ovs_taps ironic_network_id
 function create_ovs_taps {
     local ironic_net_id
-    ironic_net_id=$(neutron net-list | grep private | get_field 1)
+    ironic_net_id=$1
     die_if_not_set $LINENO ironic_net_id "Failed to get ironic network id"
 
     # Work around: No netns exists on host until a Neutron port is created.  We
     # need to create one in Neutron to know what netns to tap into prior to the
     # first node booting.
     local port_id
-    port_id=$(neutron port-create private | grep " id " | get_field 2)
+    port_id=$(neutron port-create ${ironic_net_id} | grep " id " | get_field 2)
     die_if_not_set $LINENO port_id "Failed to create neutron port"
 
     # intentional sleep to make sure the tag has been set to port
@@ -735,7 +738,9 @@ function create_bridge_and_vms {
             $vbmc_port $log_arg $IRONIC_VM_SPECS_DISK_FORMAT" >> $IRONIC_VM_MACS_CSV_FILE
         vbmc_port=$((vbmc_port+1))
     done
-    create_ovs_taps
+    local ironic_net_id
+    ironic_net_id=$(neutron net-list | grep private | get_field 1)
+    create_ovs_taps $ironic_net_id
 }
 
 function wait_for_nova_resources {
