@@ -51,7 +51,7 @@ if [ -n "$LOGDIR" ] ; then
 fi
 
 PREALLOC=
-if [ -f /etc/debian_version && "$DISK_FORMAT" == "qcow2" ]; then
+if [ -f /etc/debian_version -a "$DISK_FORMAT" == "qcow2" ]; then
     PREALLOC="--prealloc-metadata"
 fi
 
