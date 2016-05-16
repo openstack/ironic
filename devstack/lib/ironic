@@ -1022,11 +1022,6 @@ function upload_baremetal_ironic_deploy {
     declare -g IRONIC_DEPLOY_KERNEL_ID IRONIC_DEPLOY_RAMDISK_ID
     echo_summary "Creating and uploading baremetal images for ironic"
 
-    # install diskimage-builder
-    if [[ $(type -P ramdisk-image-create) == "" ]]; then
-        install_diskimage_builder
-    fi
-
     if [ -z "$IRONIC_DEPLOY_KERNEL" -o -z "$IRONIC_DEPLOY_RAMDISK" ]; then
         local IRONIC_DEPLOY_KERNEL_PATH=$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.kernel
         local IRONIC_DEPLOY_RAMDISK_PATH=$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.initramfs
@@ -1049,6 +1044,10 @@ function upload_baremetal_ironic_deploy {
                         die $LINENO "Unrecognised IRONIC_RAMDISK_TYPE: $IRONIC_RAMDISK_TYPE. Expected 'coreos' or 'tinyipa'"
                     fi
                 else
+                    # install diskimage-builder
+                    if [[ $(type -P ramdisk-image-create) == "" ]]; then
+                        install_diskimage_builder
+                    fi
                     ramdisk-image-create $IRONIC_DEPLOY_FLAVOR \
                         -o $TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER
                 fi
