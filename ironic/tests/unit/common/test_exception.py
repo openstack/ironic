@@ -12,15 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
 import six
 
 from ironic.common import exception
 from ironic.tests import base
-
-
-class DeprecatedException(exception.IronicException):
-    message = 'Using message is deprecated %(foo)s'
 
 
 class TestIronicException(base.TestCase):
@@ -33,13 +28,3 @@ class TestIronicException(base.TestCase):
             message = unichr(233) + unichr(0x0bf2) + unichr(3972)
         exc = exception.IronicException(message)
         self.assertEqual(expected, exc.__str__())
-
-    @mock.patch.object(exception.LOG, 'warning', autospec=True)
-    def test_message_deprecated(self, mock_logw):
-        exc = DeprecatedException(foo='spam')
-        mock_logw.assert_called_once_with(
-            "Exception class: %s Using the 'message' "
-            "attribute in an exception has been deprecated. The exception "
-            "class should be modified to use the '_msg_fmt' attribute.",
-            'DeprecatedException')
-        self.assertEqual('Using message is deprecated spam', str(exc))

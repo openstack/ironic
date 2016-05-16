@@ -1,0 +1,6 @@
+---
+upgrade:
+  - Removes support for the "message" attribute from the
+    "IronicException" class. Subclasses of "IronicException"
+    should instead use the "_msg_fmt" attribute.
+    This change is only relevant to developers.

@@ -27,7 +27,6 @@ from six.moves import http_client
 
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
-from ironic.common.i18n import _LW
 
 
 LOG = logging.getLogger(__name__)
@@ -71,15 +70,6 @@ class IronicException(Exception):
                 pass
 
         if not message:
-            # Check if class is using deprecated 'message' attribute.
-            if (hasattr(self, 'message') and self.message):
-                LOG.warning(_LW("Exception class: %s Using the 'message' "
-                                "attribute in an exception has been "
-                                "deprecated. The exception class should be "
-                                "modified to use the '_msg_fmt' "
-                                "attribute."), self.__class__.__name__)
-                self._msg_fmt = self.message
-
             try:
                 message = self._msg_fmt % kwargs
 
