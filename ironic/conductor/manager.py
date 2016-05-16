@@ -152,11 +152,8 @@ conductor_opts = [
                default=1800,
                help=_('Timeout (seconds) for waiting for node inspection. '
                       '0 - unlimited.')),
-    # TODO(rloo): Remove support for deprecated name 'clean_nodes' in Newton
-    #             cycle.
     cfg.BoolOpt('automated_clean',
                 default=True,
-                deprecated_name='clean_nodes',
                 help=_('Enables or disables automated cleaning. Automated '
                        'cleaning is a configurable set of steps, '
                        'such as erasing disk drives, that are performed on '

@@ -671,7 +671,6 @@
 # significantly longer. In an environment where all tenants
 # are trusted (eg, because there is only one tenant), this
 # option could be safely disabled. (boolean value)
-# Deprecated group/name - [conductor]/clean_nodes
 #automated_clean = true
 
 # Timeout (seconds) to wait for a callback from the ramdisk
