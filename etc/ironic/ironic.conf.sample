@@ -326,7 +326,7 @@
 #use_pub_sub = true
 
 # Use ROUTER remote proxy for direct methods. (boolean value)
-#use_router_proxy = false
+#use_router_proxy = true
 
 # Minimal port number for random ports range. (port value)
 # Minimum value: 0
@@ -726,7 +726,7 @@
 
 # Indicate which headers are safe to expose to the API.
 # Defaults to HTTP Simple Headers. (list value)
-#expose_headers = Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma
+#expose_headers = 
 
 # Maximum cache age of CORS preflight requests. (integer
 # value)
@@ -734,11 +734,11 @@
 
 # Indicate which methods can be used during the actual
 # request. (list value)
-#allow_methods = GET,POST,PUT,DELETE,OPTIONS
+#allow_methods = OPTIONS,GET,HEAD,POST,PUT,DELETE,TRACE,PATCH
 
 # Indicate which header field names may be used during the
 # actual request. (list value)
-#allow_headers = Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma
+#allow_headers = 
 
 
 [cors.subdomain]
@@ -759,7 +759,7 @@
 
 # Indicate which headers are safe to expose to the API.
 # Defaults to HTTP Simple Headers. (list value)
-#expose_headers = Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma
+#expose_headers = 
 
 # Maximum cache age of CORS preflight requests. (integer
 # value)
@@ -767,11 +767,11 @@
 
 # Indicate which methods can be used during the actual
 # request. (list value)
-#allow_methods = GET,POST,PUT,DELETE,OPTIONS
+#allow_methods = OPTIONS,GET,HEAD,POST,PUT,DELETE,TRACE,PATCH
 
 # Indicate which header field names may be used during the
 # actual request. (list value)
-#allow_headers = Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma
+#allow_headers = 
 
 
 [database]
@@ -1543,14 +1543,14 @@
 
 # Time in ms to wait between connection attempts. (integer
 # value)
-#wait_timeout = 500
+#wait_timeout = 5000
 
 # Time in ms to wait before the transaction is killed.
 # (integer value)
-#check_timeout = 20000
+#check_timeout = 60000
 
 # Timeout in ms on blocking socket operations (integer value)
-#socket_timeout = 1000
+#socket_timeout = 10000
 
 
 [neutron]
