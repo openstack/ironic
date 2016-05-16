@@ -1557,7 +1557,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
         # test a node can continue cleaning via RPC
         prv_state = return_state
         tgt_prv_state = states.MANAGEABLE if manual else states.AVAILABLE
-        driver_info = {'clean_steps': self.clean_steps}
+        driver_info = {'clean_steps': self.clean_steps,
+                       'clean_step_index': 0}
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           provision_state=prv_state,
                                           target_provision_state=tgt_prv_state,
@@ -1582,7 +1583,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
     def _continue_node_clean_skip_step(self, mock_spawn, skip=True):
         # test that skipping current step mechanism works
-        driver_info = {'clean_steps': self.clean_steps}
+        driver_info = {'clean_steps': self.clean_steps,
+                       'clean_step_index': 0}
         if not skip:
             driver_info['skip_current_clean_step'] = skip
         node = obj_utils.create_test_node(
@@ -1612,7 +1614,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
         last_clean_step = self.clean_steps[0]
         last_clean_step['abortable'] = False
         last_clean_step['abort_after'] = True
-        driver_info = {'clean_steps': self.clean_steps}
+        driver_info = {'clean_steps': self.clean_steps,
+                       'clean_step_index': 0}
         tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
         node = obj_utils.create_test_node(
             self.context, driver='fake', provision_state=states.CLEANWAIT,
@@ -2212,45 +2215,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
         with task_manager.acquire(self.context, node.uuid) as task:
             step_index = self.service._get_node_next_clean_steps(task)
             self.assertEqual(0, step_index)
-
-    def __get_node_next_clean_steps_backwards_compat(self, skip=True):
-        driver_internal_info = {'clean_steps': self.clean_steps}
-        node = obj_utils.create_test_node(
-            self.context, driver='fake',
-            provision_state=states.CLEANWAIT,
-            target_provision_state=states.AVAILABLE,
-            driver_internal_info=driver_internal_info,
-            last_error=None,
-            clean_step=self.clean_steps[0])
-
-        with task_manager.acquire(self.context, node.uuid) as task:
-            step_index = self.service._get_node_next_clean_steps(
-                task, skip_current_step=skip)
-            expected_index = 1 if skip else 0
-            self.assertEqual(expected_index, step_index)
-
-    def test__get_node_next_clean_steps_backwards_compat(self):
-        self.__get_node_next_clean_steps_backwards_compat()
-
-    def test__get_node_next_clean_steps_no_skip_backwards_compat(self):
-        self.__get_node_next_clean_steps_backwards_compat(skip=False)
-
-    def test__get_node_next_clean_steps_bad_clean_step(self):
-        # NOTE(rloo) for backwards compatibility
-        driver_internal_info = {'clean_steps': self.clean_steps}
-        node = obj_utils.create_test_node(
-            self.context, driver='fake',
-            provision_state=states.CLEANWAIT,
-            target_provision_state=states.AVAILABLE,
-            driver_internal_info=driver_internal_info,
-            last_error=None,
-            clean_step={'interface': 'deploy',
-                        'step': 'not_a_clean_step',
-                        'priority': 100})
-
-        with task_manager.acquire(self.context, node.uuid) as task:
-            self.assertRaises(exception.NodeCleaningFailure,
-                              self.service._get_node_next_clean_steps, task)
 
 
 @mgr_utils.mock_record_keepalive
