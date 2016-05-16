@@ -25,12 +25,59 @@ source $TOP_DIR/openrc admin admin
 IRONIC_DEVSTACK_DIR=$(cd $(dirname "$0")/.. && pwd)
 source $IRONIC_DEVSTACK_DIR/lib/ironic
 
+RESOURCES_NETWORK_GATEWAY=${RESOURCES_NETWORK_GATEWAY:-10.2.0.1}
+RESOURCES_FIXED_RANGE=${RESOURCES_FIXED_RANGE:-10.2.0.0/20}
+NEUTRON_NET=ironic_grenade
+
 set -o xtrace
 
 
 function early_create {
+    # Ironic needs to have network access to the instance during deployment
+    # from the control plane (ironic-conductor). This 'early_create' function
+    # creates a new network with a unique CIDR, adds a route to this network
+    # from ironic-conductor and creates taps between br-int and brbm.
+    # ironic-conductor will be able to access the ironic nodes via this new
+    # network.
+    # NOTE (vsaienko) use OSC when Neutron commands are supported in the stable
+    # release.
     local net_id
-    net_id=$(resource_get network net_id)
+    net_id=$(openstack network create --share $NEUTRON_NET -f value -c id)
+    resource_save network net_id $net_id
+
+    local subnet_params=""
+    subnet_params+="--ip_version 4 "
+    subnet_params+="--gateway $RESOURCES_NETWORK_GATEWAY "
+    subnet_params+="--name $NEUTRON_NET "
+    subnet_params+="$net_id $RESOURCES_FIXED_RANGE"
+
+    local subnet_id
+    subnet_id=$(neutron subnet-create $subnet_params | grep ' id ' | get_field 2)
+    resource_save network subnet_id $subnet_id
+
+    local router_id
+    router_id=$(openstack router create $NEUTRON_NET -f value -c id)
+    resource_save network router_id $router_id
+
+    neutron router-interface-add $NEUTRON_NET $subnet_id
+    neutron router-gateway-set $NEUTRON_NET public
+
+    # NOTE(vsaeinko) sleep is needed in order to setup route
+    sleep 5
+
+    # Add a route to the baremetal network via the Neutron public router.
+    # ironic-conductor will be able to access the ironic nodes via this new
+    # route.
+    local r_net_gateway
+    # Determine the IP address of the interface (ip -4 route get 8.8.8.8) that
+    # will be used to access a public IP on the router we created ($router_id).
+    # In this case we use the Google DNS server at 8.8.8.8 as the public IP
+    # address.  This does not actually attempt to contact 8.8.8.8, it just
+    # determines the IP address of the interface that traffic to 8.8.8.8 would
+    # use. We use the IP address of this interface to setup the route.
+    r_net_gateway=$(sudo ip netns exec qrouter-$router_id ip -4 route get 8.8.8.8 |grep dev | awk '{print $7}')
+    sudo ip route replace $RESOURCES_FIXED_RANGE via $r_net_gateway
+
     create_ovs_taps $net_id
 }
 
