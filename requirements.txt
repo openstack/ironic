@@ -12,7 +12,7 @@ netaddr!=0.7.16,>=0.7.12 # BSD
 paramiko>=1.16.0 # LGPL
 python-neutronclient!=4.1.0,>=2.6.0 # Apache-2.0
 python-glanceclient>=2.0.0 # Apache-2.0
-python-keystoneclient!=1.8.0,!=2.1.0,>=1.6.0 # Apache-2.0
+python-keystoneclient!=1.8.0,!=2.1.0,<3.0.0,>=1.6.0 # Apache-2.0
 ironic-lib>=1.1.0 # Apache-2.0
 python-swiftclient>=2.2.0 # Apache-2.0
 pytz>=2013.6 # MIT
