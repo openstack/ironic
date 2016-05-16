@@ -37,6 +37,10 @@ GITREPO["pyghmi"]=${PYGHMI_REPO:-${GIT_BASE}/openstack/pyghmi.git}
 GITBRANCH["pyghmi"]=${PYGHMI_BRANCH:-master}
 GITDIR["pyghmi"]=$DEST/pyghmi
 
+GITREPO["virtualbmc"]=${VIRTUALBMC_REPO:-${GIT_BASE}/openstack/virtualbmc.git}
+GITBRANCH["virtualbmc"]=${VIRTUALBMC_BRANCH:-master}
+GITDIR["virtualbmc"]=$DEST/virtualbmc
+
 IRONIC_DIR=$DEST/ironic
 IRONIC_DEVSTACK_DIR=$IRONIC_DIR/devstack
 IRONIC_DEVSTACK_FILES_DIR=$IRONIC_DEVSTACK_DIR/files
@@ -273,9 +277,12 @@ function setup_virtualbmc {
         setup_dev_lib "pyghmi"
     fi
 
-    # TODO(lucasagomes): Allow virtualbmc to be installed from source
-    # after the openstack/virtualbmc repository is setup correctly
-    pip_install "virtualbmc"
+    if use_library_from_git "virtualbmc"; then
+        git_clone_by_name "virtualbmc"
+        setup_dev_lib "virtualbmc"
+    else
+        pip_install "virtualbmc"
+    fi
 
     if [[ ! -d $(dirname $IRONIC_VBMC_CONFIG_FILE) ]]; then
         mkdir -p $(dirname $IRONIC_VBMC_CONFIG_FILE)
