@@ -1,0 +1,5 @@
+---
+upgrade:
+  - Removes deprecated options "[pxe]/http_url" and "[pxe]/http_root".
+    Configuration files should instead use "[deploy]/http_url" and
+    "[deploy]/http_root".

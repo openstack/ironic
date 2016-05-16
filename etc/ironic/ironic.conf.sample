@@ -901,11 +901,9 @@
 
 # ironic-conductor node's HTTP server URL. Example:
 # http://192.1.2.3:8080 (string value)
-# Deprecated group/name - [pxe]/http_url
 #http_url = <None>
 
 # ironic-conductor node's HTTP root path. (string value)
-# Deprecated group/name - [pxe]/http_root
 #http_root = /httpboot
 
 # Priority to run in-band erase devices via the Ironic Python
