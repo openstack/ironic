@@ -50,12 +50,10 @@ from ironic import objects
 deploy_opts = [
     cfg.StrOpt('http_url',
                help=_("ironic-conductor node's HTTP server URL. "
-                      "Example: http://192.1.2.3:8080"),
-               deprecated_group='pxe'),
+                      "Example: http://192.1.2.3:8080")),
     cfg.StrOpt('http_root',
                default='/httpboot',
-               help=_("ironic-conductor node's HTTP root path."),
-               deprecated_group='pxe'),
+               help=_("ironic-conductor node's HTTP root path.")),
     cfg.IntOpt('erase_devices_priority',
                help=_('Priority to run in-band erase devices via the Ironic '
                       'Python Agent ramdisk. If unset, will use the priority '
