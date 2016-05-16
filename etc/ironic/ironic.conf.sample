@@ -117,12 +117,6 @@
 # Options defined in ironic.common.service
 #
 
-# Default interval (in seconds) for running driver periodic
-# tasks. (integer value)
-# This option is deprecated for removal.
-# Its value may be silently ignored in the future.
-#periodic_interval = 60
-
 # Name of this node. This can be an opaque identifier. It is
 # not necessarily a hostname, FQDN, or IP address. However,
 # the node name must be valid within an AMQP key, and if using
