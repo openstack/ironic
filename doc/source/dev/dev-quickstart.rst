@@ -464,7 +464,7 @@ Source credentials, create a key, and spawn an instance::
     source ~/devstack/openrc
 
     # query the image id of the default cirros image
-    image=$(nova image-list | egrep "$DEFAULT_IMAGE_NAME"'[^-]' | awk '{ print $2 }')
+    image=$(openstack image show $DEFAULT_IMAGE_NAME -f value -c id)
 
     # create keypair
     ssh-keygen
