@@ -24,14 +24,13 @@ import inspect
 import json
 import os
 
-from futurist import periodics
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 import six
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LW
+from ironic.common.i18n import _, _LE
 from ironic.common import raid
 
 LOG = logging.getLogger(__name__)
@@ -1142,43 +1141,3 @@ def clean_step(priority, abortable=False, argsinfo=None):
         func._clean_step_argsinfo = argsinfo
         return func
     return decorator
-
-
-def driver_periodic_task(**kwargs):
-    """Decorator for a driver-specific periodic task.
-
-    Deprecated, please use futurist directly.
-    Example::
-
-        from futurist import periodics
-
-        class MyDriver(base.BaseDriver):
-            @periodics.periodic(spacing=42)
-            def task(self, manager, context):
-                # do some job
-
-    :param kwargs: arguments to pass to @periodics.periodic
-    """
-    LOG.warning(_LW('driver_periodic_task decorator is deprecated, please '
-                    'use futurist.periodics.periodic directly'))
-    # Previously we accepted more arguments, make a backward compatibility
-    # layer for out-of-tree drivers.
-    new_kwargs = {}
-    for arg in ('spacing', 'enabled', 'run_immediately'):
-        try:
-            new_kwargs[arg] = kwargs.pop(arg)
-        except KeyError:
-            pass
-
-    # NOTE(jroll) this is here to avoid a circular import when a module
-    # imports ironic.common.service. Normally I would balk at this, but this
-    # option is deprecared for removal and this code only runs at startup.
-    CONF.import_opt('periodic_interval', 'ironic.common.service')
-    new_kwargs.setdefault('spacing', CONF.periodic_interval)
-
-    if kwargs:
-        LOG.warning(_LW('The following arguments are not supported by '
-                        'futurist.periodics.periodic and are ignored: %s'),
-                    ', '.join(kwargs))
-
-    return periodics.periodic(**new_kwargs)
