@@ -44,6 +44,10 @@ class FakeVendorInterface(driver_base.VendorInterface):
     def normalexception(self):
         raise Exception("Fake!")
 
+    @driver_base.passthru(['POST'], require_exclusive_lock=False)
+    def shared_task(self):
+        return "shared fake"
+
     def validate(self, task, **kwargs):
         pass
 
@@ -74,6 +78,18 @@ class PassthruDecoratorTestCase(base.TestCase):
                           self.fvi.normalexception, mock.ANY)
         mock_log.exception.assert_called_with(
             mock.ANY, 'normalexception')
+
+    def test_passthru_shared_task_metadata(self):
+        self.assertIn('require_exclusive_lock',
+                      self.fvi.shared_task._vendor_metadata[1])
+        self.assertFalse(
+            self.fvi.shared_task._vendor_metadata[1]['require_exclusive_lock'])
+
+    def test_passthru_exclusive_task_metadata(self):
+        self.assertIn('require_exclusive_lock',
+                      self.fvi.noexception._vendor_metadata[1])
+        self.assertTrue(
+            self.fvi.noexception._vendor_metadata[1]['require_exclusive_lock'])
 
     def test_passthru_check_func_references(self):
         inst1 = FakeVendorInterface()

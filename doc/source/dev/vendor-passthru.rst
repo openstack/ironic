@@ -95,7 +95,7 @@ parameter of the method (ignoring self). A method decorated with the
 a method decorated with the `@driver_passthru` decorator should expect
 a Context object as first parameter.
 
-Both decorators accepts the same parameters:
+Both decorators accept these parameters:
 
 * http_methods: A list of what the HTTP methods supported by that vendor
   function. To know what HTTP method that function was invoked with, a
@@ -119,6 +119,14 @@ Both decorators accepts the same parameters:
 
 * async: A boolean value to determine whether this method should run
   asynchronously or synchronously. Defaults to True (Asynchronously).
+
+The node vendor passthru decorator (`@passthru`) also accepts the following
+parameter:
+
+* require_exclusive_lock: A boolean value determining whether this method
+  should require an exclusive lock on a node between validate() and the
+  beginning of method execution. For synchronous methods, the lock on the node
+  would also be kept for the duration of method execution. Defaults to True.
 
 .. WARNING::
    Please avoid having a synchronous method for slow/long-running

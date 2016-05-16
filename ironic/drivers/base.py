@@ -611,7 +611,7 @@ VendorMetadata = collections.namedtuple('VendorMetadata', ['method',
 
 
 def _passthru(http_methods, method=None, async=True, driver_passthru=False,
-              description=None, attach=False):
+              description=None, attach=False, require_exclusive_lock=True):
     """A decorator for registering a function as a passthru function.
 
     Decorator ensures function is ready to catch any ironic exceptions
@@ -637,7 +637,12 @@ def _passthru(http_methods, method=None, async=True, driver_passthru=False,
                    value should be returned in the response body.
                    Defaults to False.
     :param description: a string shortly describing what the method does.
-
+    :param require_exclusive_lock: Boolean value. Only valid for node passthru
+                                   methods. If True, lock the node before
+                                   validate() and invoking the vendor method.
+                                   The node remains locked during execution
+                                   for a synchronous passthru method. If False,
+                                   don't lock the node. Defaults to True.
     """
     def handle_passthru(func):
         api_method = method
@@ -653,6 +658,7 @@ def _passthru(http_methods, method=None, async=True, driver_passthru=False,
         if driver_passthru:
             func._driver_metadata = metadata
         else:
+            metadata[1]['require_exclusive_lock'] = require_exclusive_lock
             func._vendor_metadata = metadata
 
         passthru_logmessage = _LE('vendor_passthru failed with method %s')
@@ -673,9 +679,10 @@ def _passthru(http_methods, method=None, async=True, driver_passthru=False,
 
 
 def passthru(http_methods, method=None, async=True, description=None,
-             attach=False):
+             attach=False, require_exclusive_lock=True):
     return _passthru(http_methods, method, async, driver_passthru=False,
-                     description=description, attach=attach)
+                     description=description, attach=attach,
+                     require_exclusive_lock=require_exclusive_lock)
 
 
 def driver_passthru(http_methods, method=None, async=True, description=None,

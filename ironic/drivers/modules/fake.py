@@ -133,7 +133,8 @@ class FakeVendorB(base.VendorInterface):
                 'B2': 'B2 description. Required.'}
 
     def validate(self, task, method, **kwargs):
-        if method in ('second_method', 'third_method_sync'):
+        if method in ('second_method', 'third_method_sync',
+                      'fourth_method_shared_lock'):
             bar = kwargs.get('bar')
             if not bar:
                 raise exception.MissingParameterValue(_(
@@ -148,6 +149,11 @@ class FakeVendorB(base.VendorInterface):
                    description=_("Test if the value of bar is meow"))
     def third_method_sync(self, task, http_method, bar):
         return True if bar == 'meow' else False
+
+    @base.passthru(['POST'], require_exclusive_lock=False,
+                   description=_("Test if the value of bar is woof"))
+    def fourth_method_shared_lock(self, task, http_method, bar):
+        return True if bar == 'woof' else False
 
 
 class FakeConsole(base.ConsoleInterface):

@@ -258,6 +258,9 @@ class TaskManager(object):
 
         Also reloads node object from the database.
         Does nothing if lock is already exclusive.
+
+        :raises: NodeLocked if an exclusive lock remains on the node after
+                            "node_locked_retry_attempts"
         """
         if self.shared:
             LOG.debug('Upgrading shared lock on node %(uuid)s for %(purpose)s '

@@ -70,7 +70,8 @@ class FakeDriver(base.BaseDriver):
         self.b = fake.FakeVendorB()
         self.mapping = {'first_method': self.a,
                         'second_method': self.b,
-                        'third_method_sync': self.b}
+                        'third_method_sync': self.b,
+                        'fourth_method_shared_lock': self.b}
         self.vendor = utils.MixinVendorInterface(self.mapping)
         self.console = fake.FakeConsole()
         self.management = fake.FakeManagement()
