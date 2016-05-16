@@ -40,7 +40,6 @@ from ironic.drivers.modules import deploy_utils
 agent_opts = [
     cfg.BoolOpt('manage_agent_boot',
                 default=True,
-                deprecated_name='manage_tftp',
                 help=_('Whether Ironic will manage booting of the agent '
                        'ramdisk. If set to False, you will need to configure '
                        'your mechanism to allow booting the agent '

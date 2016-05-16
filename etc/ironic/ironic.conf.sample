@@ -412,7 +412,6 @@
 # Whether Ironic will manage booting of the agent ramdisk. If
 # set to False, you will need to configure your mechanism to
 # allow booting the agent ramdisk. (boolean value)
-# Deprecated group/name - [agent]/manage_tftp
 #manage_agent_boot = true
 
 # The memory size in MiB consumed by agent when it is booted
