@@ -1224,18 +1224,15 @@
 
 # whether to enable inspection using ironic-inspector (boolean
 # value)
-# Deprecated group/name - [discoverd]/enabled
 #enabled = false
 
 # ironic-inspector HTTP endpoint. If this is not set, the
 # ironic-inspector client default (http://127.0.0.1:5050) will
 # be used. (string value)
-# Deprecated group/name - [discoverd]/service_url
 #service_url = <None>
 
 # period (in seconds) to check status of nodes on inspection
 # (integer value)
-# Deprecated group/name - [discoverd]/status_check_period
 #status_check_period = 60
 
 
