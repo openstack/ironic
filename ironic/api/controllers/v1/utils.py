@@ -240,6 +240,34 @@ def check_allow_specify_fields(fields):
         raise exception.NotAcceptable()
 
 
+def check_allow_specify_network_interface_in_fields(fields):
+    """Check if fetching a network_interface attribute is allowed.
+
+    Version 1.20 of the API allows to fetching a network_interface
+    attribute. This method check if the required version is being
+    requested.
+    """
+    if (fields is not None
+            and 'network_interface' in fields
+                and not allow_network_interface()):
+        raise exception.NotAcceptable()
+
+
+# NOTE(vsaienko) The validation is performed on API side, all conductors
+# and api should have the same list of enabled_network_interfaces.
+# TODO(vsaienko) remove it once driver-composition-reform is implemented.
+def is_valid_network_interface(network_interface):
+    """Determine if the provided network_interface is valid.
+
+    Check to see that the provided network_interface is in the enabled
+    network interfaces list.
+
+    :param: network_interface: the node network interface to check.
+    :returns: True if the network_interface is valid, False otherwise.
+    """
+    return network_interface in CONF.enabled_network_interfaces
+
+
 def check_allow_management_verbs(verb):
     min_version = MIN_VERB_VERSIONS.get(verb)
     if min_version is not None and pecan.request.version.minor < min_version:
@@ -320,6 +348,15 @@ def allow_port_advanced_net_fields():
     """
     return (pecan.request.version.minor >=
             versions.MINOR_19_PORT_ADVANCED_NET_FIELDS)
+
+
+def allow_network_interface():
+    """Check if we should support network_interface node field.
+
+    Version 1.20 of the API added support for network interfaces.
+    """
+    return (pecan.request.version.minor >=
+            versions.MINOR_20_NETWORK_INTERFACE)
 
 
 def get_controller_reserved_names(cls):

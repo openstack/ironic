@@ -285,6 +285,51 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin,
         node.refresh()
         self.assertEqual(existing_driver, node.driver)
 
+    def test_update_network_node_deleting_state(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.DELETING,
+                                          network_interface='flat')
+        old_iface = node.network_interface
+        node.network_interface = 'noop'
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_node,
+                                self.context, node)
+        self.assertEqual(exception.InvalidState, exc.exc_info[0])
+        node.refresh()
+        self.assertEqual(old_iface, node.network_interface)
+
+    def test_update_network_node_manageable_state(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.MANAGEABLE,
+                                          network_interface='flat')
+        node.network_interface = 'noop'
+        self.service.update_node(self.context, node)
+        node.refresh()
+        self.assertEqual('noop', node.network_interface)
+
+    def test_update_network_node_active_state_and_maintenance(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.ACTIVE,
+                                          network_interface='flat',
+                                          maintenance=True)
+        node.network_interface = 'noop'
+        self.service.update_node(self.context, node)
+        node.refresh()
+        self.assertEqual('noop', node.network_interface)
+
+    def test_update_node_invalid_network_interface(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.MANAGEABLE,
+                                          network_interface='flat')
+        old_iface = node.network_interface
+        node.network_interface = 'cosci'
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_node,
+                                self.context, node)
+        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+        node.refresh()
+        self.assertEqual(old_iface, node.network_interface)
+
 
 @mgr_utils.mock_record_keepalive
 class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin,
