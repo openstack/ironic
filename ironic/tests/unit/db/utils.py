@@ -226,6 +226,7 @@ def get_test_node(**kw):
         'raid_config': kw.get('raid_config'),
         'target_raid_config': kw.get('target_raid_config'),
         'tags': kw.get('tags', []),
+        'network_interface': kw.get('network_interface'),
     }
 
 
