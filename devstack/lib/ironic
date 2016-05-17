@@ -119,6 +119,7 @@ IRONIC_VM_MACS_CSV_FILE=${IRONIC_VM_MACS_CSV_FILE:-$IRONIC_DATA_DIR/ironic_macs.
 IRONIC_AUTHORIZED_KEYS_FILE=${IRONIC_AUTHORIZED_KEYS_FILE:-$HOME/.ssh/authorized_keys}
 IRONIC_CLEAN_NET_NAME=${IRONIC_CLEAN_NET_NAME:-private}
 IRONIC_EXTRA_PXE_PARAMS=${IRONIC_EXTRA_PXE_PARAMS:-}
+IRONIC_TTY_DEV=${IRONIC_TTY_DEV:-ttyS0}
 
 # By default, baremetal VMs will console output to file.
 IRONIC_VM_LOG_CONSOLE=$(trueorfalse True IRONIC_VM_LOG_CONSOLE)
@@ -487,7 +488,7 @@ function configure_ironic_conductor {
             -subj '/O=OpenStack/OU=DevStack Servers'
     fi
 
-    local pxe_params="nofb nomodeset vga=normal console=ttyS0"
+    local pxe_params="nofb nomodeset vga=normal console=${IRONIC_TTY_DEV}"
     if is_deployed_with_ipa_ramdisk; then
         pxe_params+=" systemd.journald.forward_to_console=yes ipa-debug=1"
     fi
