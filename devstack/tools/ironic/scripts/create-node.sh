@@ -15,13 +15,7 @@ MEM=$(( 1024 * $3 ))
 # Extra G to allow fuzz for partition table : flavor size and registered size
 # need to be different to actual size.
 DISK=$(( $4 + 1))
-
-case $5 in
-    i386) ARCH='i686' ;;
-    amd64) ARCH='x86_64' ;;
-    *) echo "Unsupported arch $4!" ; exit 1 ;;
-esac
-
+ARCH=$5
 BRIDGE=$6
 EMULATOR=$7
 VBMC_PORT=$8
