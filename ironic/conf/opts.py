@@ -21,11 +21,11 @@ import ironic.common.hash_ring
 import ironic.common.image_service
 import ironic.common.images
 import ironic.common.keystone
+import ironic.common.neutron
 import ironic.common.paths
 import ironic.common.service
 import ironic.common.swift
 import ironic.common.utils
-import ironic.dhcp.neutron
 import ironic.drivers.modules.agent
 import ironic.drivers.modules.agent_base_vendor
 import ironic.drivers.modules.agent_client
@@ -97,7 +97,7 @@ _opts = [
         ironic.drivers.modules.irmc.common.opts)),
     ('iscsi', ironic.drivers.modules.iscsi_deploy.iscsi_opts),
     ('keystone', ironic.common.keystone.keystone_opts),
-    ('neutron', ironic.dhcp.neutron.neutron_opts),
+    ('neutron', ironic.common.neutron.neutron_opts),
     ('oneview', ironic.drivers.modules.oneview.common.opts),
     ('pxe', itertools.chain(
         ironic.drivers.modules.iscsi_deploy.pxe_opts,

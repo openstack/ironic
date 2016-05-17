@@ -234,11 +234,6 @@
 # Allowed values: redis, dummy
 #rpc_zmq_matchmaker = redis
 
-# Type of concurrency used. Either "native" or "eventlet"
-# (string value)
-# Allowed values: eventlet, native
-#rpc_zmq_concurrency = eventlet
-
 # Number of ZeroMQ contexts, defaults to 1. (integer value)
 #rpc_zmq_contexts = 1
 
@@ -268,13 +263,17 @@
 
 # Expiration timeout in seconds of a name service record about
 # existing target ( < 0 means no timeout). (integer value)
-#zmq_target_expire = 120
+#zmq_target_expire = 300
+
+# Update period in seconds of a name service record about
+# existing target. (integer value)
+#zmq_target_update = 180
 
 # Use PUB/SUB pattern for fanout methods. PUB/SUB always uses
 # proxy. (boolean value)
 #use_pub_sub = true
 
-# Use ROUTER remote proxy for direct methods. (boolean value)
+# Use ROUTER remote proxy. (boolean value)
 #use_router_proxy = true
 
 # Minimal port number for random ports range. (port value)
@@ -299,12 +298,14 @@
 #rpc_response_timeout = 60
 
 # A URL representing the messaging driver to use and its full
-# configuration. If not set, we fall back to the rpc_backend
-# option and driver specific configuration. (string value)
+# configuration. (string value)
 #transport_url = <None>
 
-# The messaging driver to use, defaults to rabbit. Other
-# drivers include amqp and zmq. (string value)
+# DEPRECATED: The messaging driver to use, defaults to rabbit.
+# Other drivers include amqp and zmq. (string value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Replaced by [DEFAULT]/transport_url
 #rpc_backend = rabbit
 
 # The default exchange under which topics are scoped. May be
@@ -1319,7 +1320,7 @@
 # Optionally specify a list of memcached server(s) to use for
 # caching. If left undefined, tokens will instead be cached
 # in-process. (list value)
-# Deprecated group/name - [DEFAULT]/memcache_servers
+# Deprecated group/name - [keystone_authtoken]/memcache_servers
 #memcached_servers = <None>
 
 # In order to prevent excessive effort spent validating
@@ -1410,7 +1411,7 @@
 #hash_algorithms = md5
 
 # Authentication type to load (unknown value)
-# Deprecated group/name - [DEFAULT]/auth_plugin
+# Deprecated group/name - [keystone_authtoken]/auth_plugin
 #auth_type = <None>
 
 # Config Section from which to load plugin specific options
@@ -1424,19 +1425,34 @@
 # From oslo.messaging
 #
 
-# Host to locate redis. (string value)
+# DEPRECATED: Host to locate redis. (string value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Replaced by [DEFAULT]/transport_url
 #host = 127.0.0.1
 
-# Use this port to connect to redis host. (port value)
+# DEPRECATED: Use this port to connect to redis host. (port
+# value)
 # Minimum value: 0
 # Maximum value: 65535
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Replaced by [DEFAULT]/transport_url
 #port = 6379
 
-# Password for Redis server (optional). (string value)
+# DEPRECATED: Password for Redis server (optional). (string
+# value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Replaced by [DEFAULT]/transport_url
 #password =
 
-# List of Redis Sentinel hosts (fault tolerance mode) e.g.
-# [host:port, host1:port ... ] (list value)
+# DEPRECATED: List of Redis Sentinel hosts (fault tolerance
+# mode) e.g.                [host:port, host1:port ... ] (list
+# value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Replaced by [DEFAULT]/transport_url
 #sentinel_hosts =
 
 # Redis replica set name. (string value)
@@ -1476,10 +1492,10 @@
 # value)
 #retries = 3
 
-# Default authentication strategy to use when connecting to
-# neutron. Running neutron in noauth mode (related to but not
-# affected by this setting) is insecure and should only be
-# used for testing. (string value)
+# Authentication strategy to use when connecting to neutron.
+# Running neutron in noauth mode (related to but not affected
+# by this setting) is insecure and should only be used for
+# testing. (string value)
 # Allowed values: keystone, noauth
 #auth_strategy = keystone
 
@@ -1687,7 +1703,7 @@
 # How long to wait a missing client beforce abandoning to send
 # it its replies. This value should not be longer than
 # rpc_response_timeout. (integer value)
-# Deprecated group/name - [DEFAULT]/kombu_reconnect_timeout
+# Deprecated group/name - [oslo_messaging_rabbit]/kombu_reconnect_timeout
 #kombu_missing_consumer_retry_timeout = 60
 
 # Determines how the next RabbitMQ node is chosen in case the
@@ -1697,40 +1713,59 @@
 # Allowed values: round-robin, shuffle
 #kombu_failover_strategy = round-robin
 
-# The RabbitMQ broker address where a single node is used.
-# (string value)
+# DEPRECATED: The RabbitMQ broker address where a single node
+# is used. (string value)
 # Deprecated group/name - [DEFAULT]/rabbit_host
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Replaced by [DEFAULT]/transport_url
 #rabbit_host = localhost
 
-# The RabbitMQ broker port where a single node is used. (port
-# value)
+# DEPRECATED: The RabbitMQ broker port where a single node is
+# used. (port value)
 # Minimum value: 0
 # Maximum value: 65535
 # Deprecated group/name - [DEFAULT]/rabbit_port
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Replaced by [DEFAULT]/transport_url
 #rabbit_port = 5672
 
-# RabbitMQ HA cluster host:port pairs. (list value)
+# DEPRECATED: RabbitMQ HA cluster host:port pairs. (list
+# value)
 # Deprecated group/name - [DEFAULT]/rabbit_hosts
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Replaced by [DEFAULT]/transport_url
 #rabbit_hosts = $rabbit_host:$rabbit_port
 
 # Connect over SSL for RabbitMQ. (boolean value)
 # Deprecated group/name - [DEFAULT]/rabbit_use_ssl
 #rabbit_use_ssl = false
 
-# The RabbitMQ userid. (string value)
+# DEPRECATED: The RabbitMQ userid. (string value)
 # Deprecated group/name - [DEFAULT]/rabbit_userid
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Replaced by [DEFAULT]/transport_url
 #rabbit_userid = guest
 
-# The RabbitMQ password. (string value)
+# DEPRECATED: The RabbitMQ password. (string value)
 # Deprecated group/name - [DEFAULT]/rabbit_password
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Replaced by [DEFAULT]/transport_url
 #rabbit_password = guest
 
 # The RabbitMQ login method. (string value)
 # Deprecated group/name - [DEFAULT]/rabbit_login_method
 #rabbit_login_method = AMQPLAIN
 
-# The RabbitMQ virtual host. (string value)
+# DEPRECATED: The RabbitMQ virtual host. (string value)
 # Deprecated group/name - [DEFAULT]/rabbit_virtual_host
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Replaced by [DEFAULT]/transport_url
 #rabbit_virtual_host = /
 
 # How frequently to retry connecting with RabbitMQ. (integer
@@ -1815,6 +1850,10 @@
 # error (floating point value)
 #host_connection_reconnect_delay = 0.25
 
+# Connection factory implementation (string value)
+# Allowed values: new, single, read_write
+#connection_factory = single
+
 # Maximum number of connections to keep queued. (integer
 # value)
 #pool_max_size = 30
@@ -1840,7 +1879,7 @@
 # Persist notification messages. (boolean value)
 #notification_persistence = false
 
-# Exchange name for for sending notifications (string value)
+# Exchange name for sending notifications (string value)
 #default_notification_exchange = ${control_exchange}_notification
 
 # Max number of not acknowledged message which RabbitMQ can
