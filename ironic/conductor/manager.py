@@ -689,26 +689,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             # index of the first step in the list.
             return 0
 
-        ind = None
-        if 'clean_step_index' in node.driver_internal_info:
-            ind = node.driver_internal_info['clean_step_index']
-        else:
-            # TODO(rloo). driver_internal_info['clean_step_index'] was
-            # added in Mitaka. We need to maintain backwards compatibility
-            # so this uses the original code to get the index of the current
-            # step. This will be deleted in the Newton cycle.
-            try:
-                next_steps = node.driver_internal_info['clean_steps']
-                ind = next_steps.index(node.clean_step)
-            except (KeyError, ValueError):
-                msg = (_('Node %(node)s got an invalid last step for '
-                         '%(state)s: %(step)s.') %
-                       {'node': node.uuid, 'step': node.clean_step,
-                        'state': node.provision_state})
-                LOG.exception(msg)
-                utils.cleaning_error_handler(task, msg)
-                raise exception.NodeCleaningFailure(node=node.uuid,
-                                                    reason=msg)
+        ind = node.driver_internal_info.get('clean_step_index')
         if ind is None:
             return None
 
