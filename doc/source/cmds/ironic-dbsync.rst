@@ -36,10 +36,6 @@ run the following::
 
   Print debugging output.
 
-.. option:: -v, --verbose
-
-  Print more verbose output.
-
 .. option:: --version
 
   Show the program's version number and exit.
