@@ -208,9 +208,12 @@ class NeutronDHCPApi(base.BaseDHCP):
         :raises: InvalidIPv4Address
         """
 
-        # NOTE(vdrok): This works because cleaning_vif_port_id doesn't exist
-        # when we're in deployment/tenant network
+        # NOTE(vdrok): We are booting the node only in one network at a time,
+        # and presence of cleaning_vif_port_id means we're doing cleaning, of
+        # provisioning_vif_port_id - provisioning. Otherwise it's a tenant
+        # network
         vif = (p_obj.internal_info.get('cleaning_vif_port_id') or
+               p_obj.internal_info.get('provisioning_vif_port_id') or
                p_obj.extra.get('vif_port_id'))
         if not vif:
             obj_name = 'portgroup'
