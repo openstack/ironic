@@ -1,0 +1,5 @@
+---
+upgrade:
+  - Remove the deprecated "[conductor]/clean_nodes" option.
+    Configuration files should instead use the
+    "[conductor]/automated_clean" option.
