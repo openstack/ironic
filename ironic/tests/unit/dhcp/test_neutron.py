@@ -18,7 +18,6 @@ import mock
 
 from neutronclient.common import exceptions as neutron_client_exc
 from neutronclient.v2_0 import client
-from oslo_config import cfg
 from oslo_utils import uuidutils
 
 from ironic.common import dhcp_factory
@@ -474,127 +473,34 @@ class TestNeutron(db_base.DbTestCase):
                 [mock.call(task, task.ports[0], mock.ANY),
                  mock.call(task, task.portgroups[0], mock.ANY)])
 
-    @mock.patch.object(client.Client, 'create_port')
-    def test_create_cleaning_ports(self, create_mock):
-        # Ensure we can create cleaning ports for in band cleaning
-        create_mock.return_value = {'port': self.neutron_port}
-        expected = {self.ports[0].uuid: self.neutron_port['id']}
+    @mock.patch.object(neutron, 'create_cleaning_ports_deprecation', False)
+    @mock.patch.object(neutron, 'LOG', autospec=True)
+    def test_create_cleaning_ports(self, log_mock):
+        self.config(cleaning_network_uuid=uuidutils.generate_uuid(),
+                    group='neutron')
         api = dhcp_factory.DHCPFactory().provider
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            ports = api.create_cleaning_ports(task)
-            self.assertEqual(expected, ports)
-            create_mock.assert_called_once_with({'port': {
-                'network_id': '00000000-0000-0000-0000-000000000000',
-                'admin_state_up': True, 'mac_address': self.ports[0].address}})
+            with mock.patch.object(
+                    task.driver.network, 'add_cleaning_network',
+                    autospec=True) as add_net_mock:
+                api.create_cleaning_ports(task)
+                add_net_mock.assert_called_once_with(task)
 
-    @mock.patch.object(neutron.NeutronDHCPApi, '_rollback_cleaning_ports')
-    @mock.patch.object(client.Client, 'create_port')
-    def test_create_cleaning_ports_fail(self, create_mock, rollback_mock):
-        # Check that if creating a port fails, the ports are cleaned up
-        create_mock.side_effect = neutron_client_exc.ConnectionFailed
+                api.create_cleaning_ports(task)
+                self.assertEqual(1, log_mock.warning.call_count)
+
+    @mock.patch.object(neutron, 'delete_cleaning_ports_deprecation', False)
+    @mock.patch.object(neutron, 'LOG', autospec=True)
+    def test_delete_cleaning_ports(self, log_mock):
         api = dhcp_factory.DHCPFactory().provider
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaises(exception.NodeCleaningFailure,
-                              api.create_cleaning_ports,
-                              task)
-            create_mock.assert_called_once_with({'port': {
-                'network_id': '00000000-0000-0000-0000-000000000000',
-                'admin_state_up': True, 'mac_address': self.ports[0].address}})
-            rollback_mock.assert_called_once_with(task)
+            with mock.patch.object(
+                    task.driver.network, 'remove_cleaning_network',
+                    autospec=True) as rm_net_mock:
+                api.delete_cleaning_ports(task)
+                rm_net_mock.assert_called_once_with(task)
 
-    @mock.patch.object(neutron.NeutronDHCPApi, '_rollback_cleaning_ports')
-    @mock.patch.object(client.Client, 'create_port')
-    def test_create_cleaning_ports_fail_delayed(self, create_mock,
-                                                rollback_mock):
-        """Check ports are cleaned up on failure to create them
-
-        This test checks that the port clean-up occurs
-        when the port create call was successful,
-        but the port in fact was not created.
-
-        """
-        # NOTE(pas-ha) this is trying to emulate the complex port object
-        # with both methods and dictionary access with methods on elements
-        mockport = mock.MagicMock()
-        create_mock.return_value = mockport
-        # fail only on second 'or' branch to fool lazy eval
-        # and actually execute both expressions to assert on both mocks
-        mockport.get.return_value = True
-        mockitem = mock.Mock()
-        mockport.__getitem__.return_value = mockitem
-        mockitem.get.return_value = None
-        api = dhcp_factory.DHCPFactory().provider
-
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaises(exception.NodeCleaningFailure,
-                              api.create_cleaning_ports,
-                              task)
-            create_mock.assert_called_once_with({'port': {
-                'network_id': '00000000-0000-0000-0000-000000000000',
-                'admin_state_up': True, 'mac_address': self.ports[0].address}})
-            rollback_mock.assert_called_once_with(task)
-            mockport.get.assert_called_once_with('port')
-            mockitem.get.assert_called_once_with('id')
-            mockport.__getitem__.assert_called_once_with('port')
-
-    @mock.patch.object(client.Client, 'create_port')
-    def test_create_cleaning_ports_bad_config(self, create_mock):
-        # Check an error is raised if the cleaning network is not set
-        self.config(cleaning_network_uuid=None, group='neutron')
-        api = dhcp_factory.DHCPFactory().provider
-
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaises(exception.InvalidParameterValue,
-                              api.create_cleaning_ports, task)
-
-    @mock.patch.object(client.Client, 'delete_port')
-    @mock.patch.object(client.Client, 'list_ports')
-    def test_delete_cleaning_ports(self, list_mock, delete_mock):
-        # Ensure that we can delete cleaning ports, and that ports with
-        # different macs don't get deleted
-        other_port = {'id': '132f871f-eaec-4fed-9475-0d54465e0f01',
-                      'mac_address': 'aa:bb:cc:dd:ee:ff'}
-        list_mock.return_value = {'ports': [self.neutron_port, other_port]}
-        api = dhcp_factory.DHCPFactory().provider
-
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            api.delete_cleaning_ports(task)
-            list_mock.assert_called_once_with(
-                network_id='00000000-0000-0000-0000-000000000000')
-            delete_mock.assert_called_once_with(self.neutron_port['id'])
-
-    @mock.patch.object(client.Client, 'list_ports')
-    def test_delete_cleaning_ports_list_fail(self, list_mock):
-        # Check that if listing ports fails, the node goes to cleanfail
-        list_mock.side_effect = neutron_client_exc.ConnectionFailed
-        api = dhcp_factory.DHCPFactory().provider
-
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaises(exception.NodeCleaningFailure,
-                              api.delete_cleaning_ports,
-                              task)
-            list_mock.assert_called_once_with(
-                network_id='00000000-0000-0000-0000-000000000000')
-
-    @mock.patch.object(client.Client, 'delete_port')
-    @mock.patch.object(client.Client, 'list_ports')
-    def test_delete_cleaning_ports_delete_fail(self, list_mock, delete_mock):
-        # Check that if deleting ports fails, the node goes to cleanfail
-        list_mock.return_value = {'ports': [self.neutron_port]}
-        delete_mock.side_effect = neutron_client_exc.ConnectionFailed
-        api = dhcp_factory.DHCPFactory().provider
-
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaises(exception.NodeCleaningFailure,
-                              api.delete_cleaning_ports,
-                              task)
-            list_mock.assert_called_once_with(
-                network_id='00000000-0000-0000-0000-000000000000')
-            delete_mock.assert_called_once_with(self.neutron_port['id'])
-
-    def test_out_range_auth_strategy(self):
-        self.assertRaises(ValueError, cfg.CONF.set_override,
-                          'auth_strategy', 'fake', 'neutron',
-                          enforce_type=True)
+                api.delete_cleaning_ports(task)
+                self.assertEqual(1, log_mock.warning.call_count)

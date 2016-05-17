@@ -910,6 +910,8 @@ def get_boot_option(node):
     return capabilities.get('boot_option', 'netboot').lower()
 
 
+# TODO(vdrok): This method is left here for backwards compatibility with out of
+# tree DHCP providers implementing cleaning methods. Remove it in Ocata
 def prepare_cleaning_ports(task):
     """Prepare the Ironic ports of the node for cleaning.
 
@@ -919,17 +921,39 @@ def prepare_cleaning_ports(task):
     of each Ironic port, after creating the cleaning ports.
 
     :param task: a TaskManager object containing the node
-    :raises NodeCleaningFailure: if the previous cleaning ports cannot
-        be removed or if new cleaning ports cannot be created
+    :raises: NodeCleaningFailure, NetworkError if the previous cleaning ports
+        cannot be removed or if new cleaning ports cannot be created.
+    :raises: InvalidParameterValue if cleaning network UUID config option has
+        an invalid value.
     """
     provider = dhcp_factory.DHCPFactory()
+    provider_manages_delete_cleaning = hasattr(provider.provider,
+                                               'delete_cleaning_ports')
+    provider_manages_create_cleaning = hasattr(provider.provider,
+                                               'create_cleaning_ports')
+    # NOTE(vdrok): The neutron DHCP provider was changed to call network
+    # interface's add_cleaning_network anyway, so call it directly to avoid
+    # duplication of some actions
+    if (CONF.dhcp.dhcp_provider == 'neutron' or
+            (not provider_manages_delete_cleaning and
+             not provider_manages_create_cleaning)):
+        task.driver.network.add_cleaning_network(task)
+        return
+
+    LOG.warning(_LW("delete_cleaning_ports and create_cleaning_ports "
+                    "functions in DHCP providers are deprecated, please move "
+                    "this logic to the network interface's "
+                    "remove_cleaning_network or add_cleaning_network methods "
+                    "respectively and remove the old DHCP provider methods. "
+                    "Possibility to do the cleaning via DHCP providers will "
+                    "be removed in Ocata release."))
     # If we have left over ports from a previous cleaning, remove them
-    if getattr(provider.provider, 'delete_cleaning_ports', None):
+    if provider_manages_delete_cleaning:
         # Allow to raise if it fails, is caught and handled in conductor
         provider.provider.delete_cleaning_ports(task)
 
     # Create cleaning ports if necessary
-    if getattr(provider.provider, 'create_cleaning_ports', None):
+    if provider_manages_create_cleaning:
         # Allow to raise if it fails, is caught and handled in conductor
         ports = provider.provider.create_cleaning_ports(task)
 
@@ -953,6 +977,8 @@ def prepare_cleaning_ports(task):
                 port.save()
 
 
+# TODO(vdrok): This method is left here for backwards compatibility with out of
+# tree DHCP providers implementing cleaning methods. Remove it in Ocata
 def tear_down_cleaning_ports(task):
     """Deletes the cleaning ports created for each of the Ironic ports.
 
@@ -960,22 +986,36 @@ def tear_down_cleaning_ports(task):
     was started.
 
     :param task: a TaskManager object containing the node
-    :raises NodeCleaningFailure: if the cleaning ports cannot be
+    :raises: NodeCleaningFailure, NetworkError if the cleaning ports cannot be
         removed.
     """
     # If we created cleaning ports, delete them
     provider = dhcp_factory.DHCPFactory()
-    if getattr(provider.provider, 'delete_cleaning_ports', None):
+    provider_manages_delete_cleaning = hasattr(provider.provider,
+                                               'delete_cleaning_ports')
+    try:
+        # NOTE(vdrok): The neutron DHCP provider was changed to call network
+        # interface's remove_cleaning_network anyway, so call it directly to
+        # avoid duplication of some actions
+        if (CONF.dhcp.dhcp_provider == 'neutron' or
+                not provider_manages_delete_cleaning):
+            task.driver.network.remove_cleaning_network(task)
+            return
+
+        # NOTE(vdrok): No need for another deprecation warning here, if
+        # delete_cleaning_ports is in the DHCP provider the warning was
+        # printed in prepare_cleaning_ports
         # Allow to raise if it fails, is caught and handled in conductor
         provider.provider.delete_cleaning_ports(task)
-
         for port in task.ports:
             if 'cleaning_vif_port_id' in port.internal_info:
                 internal_info = port.internal_info
                 del internal_info['cleaning_vif_port_id']
                 port.internal_info = internal_info
                 port.save()
-            elif 'vif_port_id' in port.extra:
+    finally:
+        for port in task.ports:
+            if 'vif_port_id' in port.extra:
                 # TODO(vdrok): This piece is left for backwards compatibility,
                 # if ironic was upgraded during cleaning, vif_port_id
                 # containing cleaning neutron port UUID should be cleared,
@@ -1028,8 +1068,10 @@ def prepare_inband_cleaning(task, manage_boot=True):
         automatically boot agent ramdisk every time bare metal node is
         rebooted.
     :returns: states.CLEANWAIT to signify an asynchronous prepare.
-    :raises NodeCleaningFailure: if the previous cleaning ports cannot
-        be removed or if new cleaning ports cannot be created
+    :raises: NetworkError, NodeCleaningFailure if the previous cleaning ports
+        cannot be removed or if new cleaning ports cannot be created.
+    :raises: InvalidParameterValue if cleaning network UUID config option has
+        an invalid value.
     """
     prepare_cleaning_ports(task)
 
@@ -1062,7 +1104,7 @@ def tear_down_inband_cleaning(task, manage_boot=True):
     :param manage_boot: If this is set to True, this method calls the
         'clean_up_ramdisk' method of boot interface to boot the agent
         ramdisk. If False, it skips this step.
-    :raises NodeCleaningFailure: if the cleaning ports cannot be
+    :raises: NetworkError, NodeCleaningFailure if the cleaning ports cannot be
         removed.
     """
     manager_utils.node_power_action(task, states.POWER_OFF)

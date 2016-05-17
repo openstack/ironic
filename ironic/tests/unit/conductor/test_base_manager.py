@@ -77,7 +77,8 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
 
     @mock.patch.object(driver_factory.DriverFactory, '__getitem__',
                        lambda *args: mock.MagicMock())
-    def test_start_registers_driver_names(self):
+    @mock.patch.object(driver_factory, 'NetworkInterfaceFactory')
+    def test_start_registers_driver_names(self, net_factory):
         init_names = ['fake1', 'fake2']
         restart_names = ['fake3', 'fake4']
 
@@ -99,6 +100,7 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
             res = objects.Conductor.get_by_hostname(self.context,
                                                     self.hostname)
             self.assertEqual(restart_names, res['drivers'])
+        self.assertEqual(2, net_factory.call_count)
 
     @mock.patch.object(driver_factory.DriverFactory, '__getitem__')
     def test_start_registers_driver_specific_tasks(self, get_mock):

@@ -30,6 +30,24 @@
 # developer documentation online. (list value)
 #enabled_drivers = pxe_ipmitool
 
+# Specify the list of network interfaces to load during
+# service initialization. Missing network interfaces, or
+# network interfaces which fail to initialize, will prevent
+# the conductor service from starting. The option default is a
+# recommended set of production-oriented network interfaces. A
+# complete list of network interfaces present on your system
+# may be found by enumerating the
+# "ironic.hardware.interfaces.network" entrypoint. (list
+# value)
+#enabled_network_interfaces = flat,noop
+
+# Default network interface to be used for nodes that do not
+# have network_interface field set. A complete list of network
+# interfaces present on your system may be found by
+# enumerating the "ironic.hardware.interfaces.network"
+# entrypoint. (string value)
+#default_network_interface = <None>
+
 # Used if there is a formatting error when generating an
 # exception message (a programming error). If True, raise an
 # exception; if False, use the unformatted message. (boolean
@@ -1410,12 +1428,12 @@
 # (list value)
 #hash_algorithms = md5
 
-# Authentication type to load (string value)
+# Authentication type to load (unknown value)
 # Deprecated group/name - [keystone_authtoken]/auth_plugin
 #auth_type = <None>
 
 # Config Section from which to load plugin specific options
-# (string value)
+# (unknown value)
 #auth_section = <None>
 
 
@@ -1499,8 +1517,11 @@
 # Allowed values: keystone, noauth
 #auth_strategy = keystone
 
-# UUID of the network to create Neutron ports on, when booting
-# to a ramdisk for cleaning using Neutron DHCP. (string value)
+# Neutron network UUID for the ramdisk to be booted into for
+# cleaning nodes. Required if cleaning (either automatic or
+# manual) is run for flat network interface, and, if DHCP
+# providers are still being used, for neutron DHCP provider.
+# (string value)
 #cleaning_network_uuid = <None>
 
 

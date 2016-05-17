@@ -380,8 +380,10 @@ class AgentDeploy(base.DeployInterface):
         """Boot into the agent to prepare for cleaning.
 
         :param task: a TaskManager object containing the node
-        :raises NodeCleaningFailure: if the previous cleaning ports cannot
-            be removed or if new cleaning ports cannot be created
+        :raises: NodeCleaningFailure, NetworkError if the previous cleaning
+            ports cannot be removed or if new cleaning ports cannot be created.
+        :raises: InvalidParameterValue if cleaning network UUID config option
+            has an invalid value.
         :returns: states.CLEANWAIT to signify an asynchronous prepare
         """
         return deploy_utils.prepare_inband_cleaning(
@@ -391,8 +393,8 @@ class AgentDeploy(base.DeployInterface):
         """Clean up the PXE and DHCP files after cleaning.
 
         :param task: a TaskManager object containing the node
-        :raises NodeCleaningFailure: if the cleaning ports cannot be
-            removed
+        :raises: NodeCleaningFailure, NetworkError if the cleaning ports cannot
+            be removed
         """
         deploy_utils.tear_down_inband_cleaning(
             task, manage_boot=CONF.agent.manage_agent_boot)

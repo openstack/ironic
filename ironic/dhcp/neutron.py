@@ -34,6 +34,9 @@ from ironic import objects
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
+create_cleaning_ports_deprecation = False
+delete_cleaning_ports_deprecation = False
+
 
 class NeutronDHCPApi(base.BaseDHCP):
     """API for communicating to neutron 2.x API."""
@@ -271,95 +274,37 @@ class NeutronDHCPApi(base.BaseDHCP):
 
         return port_ip_addresses + portgroup_ip_addresses
 
+    # TODO(vsaienko) Remove this method when deprecation period is passed
+    # in Ocata.
     def create_cleaning_ports(self, task):
         """Create neutron ports for each port on task.node to boot the ramdisk.
 
         :param task: a TaskManager instance.
-        :raises: InvalidParameterValue if the cleaning network is None
+        :raises: NetworkError, InvalidParameterValue
         :returns: a dictionary in the form {port.uuid: neutron_port['id']}
         """
-        if not CONF.neutron.cleaning_network_uuid:
-            raise exception.InvalidParameterValue(_('Valid cleaning network '
-                                                    'UUID not provided'))
-        neutron_client = neutron.get_client(task.context.auth_token)
-        body = {
-            'port': {
-                'network_id': CONF.neutron.cleaning_network_uuid,
-                'admin_state_up': True,
-            }
-        }
-        ports = {}
-        for ironic_port in task.ports:
-            body['port']['mac_address'] = ironic_port.address
-            try:
-                port = neutron_client.create_port(body)
-            except neutron_client_exc.ConnectionFailed as e:
-                self._rollback_cleaning_ports(task)
-                msg = (_('Could not create cleaning port on network %(net)s '
-                         'from %(node)s. %(exc)s') %
-                       {'net': CONF.neutron.cleaning_network_uuid,
-                        'node': task.node.uuid,
-                        'exc': e})
-                LOG.exception(msg)
-                raise exception.NodeCleaningFailure(msg)
-            if not port.get('port') or not port['port'].get('id'):
-                self._rollback_cleaning_ports(task)
-                msg = (_('Failed to create cleaning ports for node '
-                         '%(node)s') % {'node': task.node.uuid})
-                LOG.error(msg)
-                raise exception.NodeCleaningFailure(msg)
-            # Match return value of get_node_vif_ids()
-            ports[ironic_port.uuid] = port['port']['id']
-        return ports
+        global create_cleaning_ports_deprecation
+        if not create_cleaning_ports_deprecation:
+            LOG.warning(_LW('create_cleaning_ports via dhcp provider is '
+                            'deprecated. The node.network_interface setting '
+                            'should be used instead.'))
+            create_cleaning_ports_deprecation = True
 
+        return task.driver.network.add_cleaning_network(task)
+
+    # TODO(vsaienko) Remove this method when deprecation period is passed
+    # in Ocata.
     def delete_cleaning_ports(self, task):
         """Deletes the neutron port created for booting the ramdisk.
 
         :param task: a TaskManager instance.
+        :raises: NetworkError, InvalidParameterValue
         """
-        neutron_client = neutron.get_client(task.context.auth_token)
-        macs = [p.address for p in task.ports]
-        params = {
-            'network_id': CONF.neutron.cleaning_network_uuid
-        }
-        try:
-            ports = neutron_client.list_ports(**params)
-        except neutron_client_exc.ConnectionFailed as e:
-            msg = (_('Could not get cleaning network vif for %(node)s '
-                     'from Neutron, possible network issue. %(exc)s') %
-                   {'node': task.node.uuid,
-                    'exc': e})
-            LOG.exception(msg)
-            raise exception.NodeCleaningFailure(msg)
+        global delete_cleaning_ports_deprecation
+        if not delete_cleaning_ports_deprecation:
+            LOG.warning(_LW('delete_cleaning_ports via dhcp provider is '
+                            'deprecated. The node.network_interface setting '
+                            'should be used instead.'))
+            delete_cleaning_ports_deprecation = True
 
-        # Iterate the list of Neutron port dicts, remove the ones we added
-        for neutron_port in ports.get('ports', []):
-            # Only delete ports using the node's mac addresses
-            if neutron_port.get('mac_address') in macs:
-                try:
-                    neutron_client.delete_port(neutron_port.get('id'))
-                except neutron_client_exc.ConnectionFailed as e:
-                    msg = (_('Could not remove cleaning ports on network '
-                             '%(net)s from %(node)s, possible network issue. '
-                             '%(exc)s') %
-                           {'net': CONF.neutron.cleaning_network_uuid,
-                            'node': task.node.uuid,
-                            'exc': e})
-                    LOG.exception(msg)
-                    raise exception.NodeCleaningFailure(msg)
-
-    def _rollback_cleaning_ports(self, task):
-        """Attempts to delete any ports created by cleaning
-
-        Purposefully will not raise any exceptions so error handling can
-        continue.
-
-        :param task: a TaskManager instance.
-        """
-        try:
-            self.delete_cleaning_ports(task)
-        except Exception:
-            # Log the error, but let the caller invoke the
-            # manager.cleaning_error_handler().
-            LOG.exception(_LE('Failed to rollback cleaning port '
-                              'changes for node %s') % task.node.uuid)
+        task.driver.network.remove_cleaning_network(task)
