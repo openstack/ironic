@@ -614,6 +614,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                     action='delete', node=task.node.uuid,
                     state=task.node.provision_state)
 
+    @task_manager.require_exclusive_lock
     def _do_node_tear_down(self, task):
         """Internal RPC method to tear down an existing node deployment."""
         node = task.node
@@ -848,6 +849,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 self._do_next_clean_step,
                 task, next_step_index)
 
+    @task_manager.require_exclusive_lock
     def _do_node_clean(self, task, clean_steps=None):
         """Internal RPC method to perform cleaning of a node.
 
@@ -924,6 +926,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         step_index = 0 if steps else None
         self._do_next_clean_step(task, step_index)
 
+    @task_manager.require_exclusive_lock
     def _do_next_clean_step(self, task, step_index):
         """Do cleaning, starting from the specified clean step.
 
@@ -1011,6 +1014,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         # NOTE(rloo): No need to specify target prov. state; we're done
         task.process_event(event)
 
+    @task_manager.require_exclusive_lock
     def _do_node_verify(self, task):
         """Internal method to perform power credentials verification."""
         node = task.node
@@ -1042,6 +1046,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             node.target_provision_state = None
             node.save()
 
+    @task_manager.require_exclusive_lock
     def _do_node_clean_abort(self, task, step_name=None):
         """Internal method to abort an ongoing operation.
 
@@ -1624,6 +1629,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 task.spawn_after(self._spawn_worker,
                                  self._set_console_mode, task, enabled)
 
+    @task_manager.require_exclusive_lock
     def _set_console_mode(self, task, enabled):
         """Internal method to set console mode on a node."""
         node = task.node
@@ -2248,6 +2254,7 @@ def _store_configdrive(node, configdrive):
     node.instance_info = i_info
 
 
+@task_manager.require_exclusive_lock
 def do_node_deploy(task, conductor_id, configdrive=None):
     """Prepare the environment and deploy a node."""
     node = task.node
@@ -2457,6 +2464,7 @@ def do_sync_power_state(task, count):
     return count
 
 
+@task_manager.require_exclusive_lock
 def _do_inspect_hardware(task):
     """Initiates inspection.
 
