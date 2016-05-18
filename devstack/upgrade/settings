@@ -11,7 +11,7 @@ register_project_for_upgrade ironic
 register_db_to_save ironic
 
 devstack_localrc base enable_plugin ironic https://git.openstack.org/openstack/ironic
-devstack_localrc base enable_service ir-api ir-cond
+devstack_localrc base enable_service ir-api ir-cond ironic
 
 devstack_localrc target enable_plugin ironic https://git.openstack.org/openstack/ironic
-devstack_localrc target enable_service ir-api ir-cond
+devstack_localrc target enable_service ir-api ir-cond ironic
