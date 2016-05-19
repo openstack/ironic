@@ -587,7 +587,7 @@ function init_ironic {
     if is_service_enabled neutron; then
         # Save private network as cleaning network
         local cleaning_network_uuid
-        cleaning_network_uuid=$(neutron net-show "$IRONIC_CLEAN_NET_NAME" |  grep ' id ' | get_field 2)
+        cleaning_network_uuid=$(openstack network show  "$IRONIC_CLEAN_NET_NAME" -c id -f value)
         die_if_not_set $LINENO cleaning_network_uuid "Failed to get ironic cleaning network id"
         iniset $IRONIC_CONF_FILE neutron cleaning_network_uuid ${cleaning_network_uuid}
     fi
@@ -672,7 +672,7 @@ function create_ovs_taps {
     # need to create one in Neutron to know what netns to tap into prior to the
     # first node booting.
     local port_id
-    port_id=$(neutron port-create ${ironic_net_id} | grep " id " | get_field 2)
+    port_id=$(openstack port create --network ${ironic_net_id} temp_port -c id -f value)
     die_if_not_set $LINENO port_id "Failed to create neutron port"
 
     # intentional sleep to make sure the tag has been set to port
@@ -697,11 +697,11 @@ function create_ovs_taps {
     sudo ovs-vsctl -- --if-exists del-port brbm-tap1 -- add-port $IRONIC_VM_NETWORK_BRIDGE brbm-tap1
 
     # Remove the port needed only for workaround.
-    neutron port-delete $port_id
+    openstack port delete $port_id
 
     # Finally, share the fixed tenant network across all tenants.  This allows the host
     # to serve TFTP to a single network namespace via the tap device created above.
-    neutron net-update $ironic_net_id --shared true
+    openstack network set $ironic_net_id --share
 }
 
 function setup_qemu_log_hook {
@@ -749,7 +749,7 @@ function create_bridge_and_vms {
         vbmc_port=$((vbmc_port+1))
     done
     local ironic_net_id
-    ironic_net_id=$(neutron net-list | grep private | get_field 1)
+    ironic_net_id=$(openstack network show "private" -c id -f value)
     create_ovs_taps $ironic_net_id
 }
 
@@ -763,7 +763,7 @@ function wait_for_nova_resources {
     local i
     echo_summary "Waiting 2 minutes for Nova resource tracker to pick up $resource >= $expected_count"
     for i in $(seq 1 120); do
-        if [ $(nova hypervisor-stats | grep " $resource " | get_field 2) -ge $expected_count ]; then
+        if [ $(openstack hypervisor stats show -f value -c $resource) -ge $expected_count ]; then
             return 0
         fi
         sleep 1
@@ -895,9 +895,8 @@ function enroll_nodes {
 
     local adjusted_disk
     adjusted_disk=$(($ironic_node_disk - $ironic_ephemeral_disk))
-    nova flavor-create --ephemeral $ironic_ephemeral_disk baremetal auto $ironic_node_ram $adjusted_disk $ironic_node_cpu
-
-    nova flavor-key baremetal set "cpu_arch"="$ironic_node_arch"
+    openstack flavor create --ephemeral $ironic_ephemeral_disk --ram $ironic_node_ram --disk $adjusted_disk --vcpus $ironic_node_cpu baremetal
+    openstack flavor set baremetal --property "cpu_arch"="$ironic_node_arch"
 
     if [ "$VIRT_DRIVER" == "ironic" ]; then
         # NOTE(dtantsur): sometimes nova compute fails to start with ironic due
