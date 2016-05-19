@@ -553,60 +553,6 @@ class SSHPrivateMethodsTestCase(db_base.DbTestCase):
         get_hosts_name_mock.assert_called_once_with(self.sshclient, info)
         exec_ssh_mock.assert_called_once_with(self.sshclient, cmd_to_exec)
 
-    def test_exec_ssh_command_good(self):
-        class Channel(object):
-            def recv_exit_status(self):
-                return 0
-
-        class Stream(object):
-            def __init__(self, buffer=''):
-                self.buffer = buffer
-                self.channel = Channel()
-
-            def read(self):
-                return self.buffer
-
-            def close(self):
-                pass
-
-        with mock.patch.object(self.sshclient, 'exec_command',
-                               autospec=True) as exec_command_mock:
-            exec_command_mock.return_value = (Stream(),
-                                              Stream('hello'),
-                                              Stream())
-            stdout, stderr = processutils.ssh_execute(self.sshclient,
-                                                      "command")
-
-            self.assertEqual('hello', stdout)
-            exec_command_mock.assert_called_once_with("command")
-
-    def test_exec_ssh_command_fail(self):
-        class Channel(object):
-            def recv_exit_status(self):
-                return 127
-
-        class Stream(object):
-            def __init__(self, buffer=''):
-                self.buffer = buffer
-                self.channel = Channel()
-
-            def read(self):
-                return self.buffer
-
-            def close(self):
-                pass
-
-        with mock.patch.object(self.sshclient, 'exec_command',
-                               autospec=True) as exec_command_mock:
-            exec_command_mock.return_value = (Stream(),
-                                              Stream('hello'),
-                                              Stream())
-            self.assertRaises(processutils.ProcessExecutionError,
-                              processutils.ssh_execute,
-                              self.sshclient,
-                              "command")
-            exec_command_mock.assert_called_once_with("command")
-
 
 class SSHDriverTestCase(db_base.DbTestCase):
 
