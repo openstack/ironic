@@ -101,10 +101,10 @@ fi
 
 $IRONIC_BIN_DIR/ironic-dbsync --config-file=$IRONIC_CONF_FILE
 
-start_ironic
-
 # calls upgrade-ironic for specific release
 upgrade_project ironic $RUN_DIR $BASE_DEVSTACK_BRANCH $TARGET_DEVSTACK_BRANCH
+
+start_ironic
 
 # Don't succeed unless the services come up
 ensure_services_started ironic-api ironic-conductor
