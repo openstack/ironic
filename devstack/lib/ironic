@@ -357,11 +357,24 @@ function _config_ironic_apache_wsgi {
     enable_apache_site ironic
 }
 
-# cleanup_ironic() - Remove residual data files, anything left over from previous
-# runs that would need to clean up.
-function cleanup_ironic {
+# cleanup_ironic_config_files() - Remove residual cache/config/log files,
+# left over from previous runs that would need to clean up.
+function cleanup_ironic_config_files {
     sudo rm -rf $IRONIC_AUTH_CACHE_DIR $IRONIC_CONF_DIR
     sudo rm -rf $IRONIC_VM_LOG_DIR/*
+}
+
+# cleanup_ironic() - Clean everything left from Ironic
+function cleanup_ironic {
+    cleanup_ironic_config_files
+
+    # Cleanup the WSGI files
+    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
+        _cleanup_ironic_apache_wsgi
+    fi
+
+    # Remove the hook to disable log rotate
+    sudo rm -rf $IRONIC_LIBVIRT_HOOKS_PATH/qemu
 }
 
 # configure_ironic_dirs() - Create all directories required by Ironic and
@@ -651,14 +664,6 @@ function start_ironic_conductor {
 function stop_ironic {
     stop_process ir-api
     stop_process ir-cond
-
-    # Cleanup the WSGI files
-    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
-        _cleanup_ironic_apache_wsgi
-    fi
-
-    # Remove the hook to disable log rotate
-    sudo rm -rf $IRONIC_LIBVIRT_HOOKS_PATH/qemu
 }
 
 # create_ovs_taps is also called by the devstack/upgrade/resources.sh script
