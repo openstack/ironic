@@ -42,6 +42,7 @@ source $TARGET_DEVSTACK_DIR/lib/tls
 source $TARGET_DEVSTACK_DIR/lib/nova
 source $TARGET_DEVSTACK_DIR/lib/neutron-legacy
 source $TARGET_DEVSTACK_DIR/lib/apache
+source $TARGET_DEVSTACK_DIR/lib/keystone
 
 # Keep track of the DevStack directory
 IRONIC_DEVSTACK_DIR=$(dirname "$0")/..
@@ -84,6 +85,11 @@ function init_ironic {
     start_nova_compute
 }
 
+function wait_for_keystone {
+    if ! wait_for_service $SERVICE_TIMEOUT ${KEYSTONE_AUTH_URI}/v2.0/; then
+        die $LINENO "keystone did not start"
+    fi
+}
 
 # Save current config files for posterity
 if  [[ -d $IRONIC_CONF_DIR ]] && [[ ! -d $SAVE_DIR/etc.ironic ]] ; then
@@ -105,6 +111,13 @@ $IRONIC_BIN_DIR/ironic-dbsync --config-file=$IRONIC_CONF_FILE
 upgrade_project ironic $RUN_DIR $BASE_DEVSTACK_BRANCH $TARGET_DEVSTACK_BRANCH
 
 start_ironic
+
+# NOTE(vsaienko) installing ironic service triggers apache restart, that
+# may cause nova-compute failure due to LP1537076
+stop_nova_compute || true
+wait_for_keystone
+start_nova_compute
+
 
 # Don't succeed unless the services come up
 ensure_services_started ironic-api ironic-conductor
