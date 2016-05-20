@@ -670,6 +670,9 @@ function stop_ironic {
 # create_ovs_taps is also called by the devstack/upgrade/resources.sh script
 #
 # create_ovs_taps ironic_network_id
+# NOTE(vsaienko) Ironic supports only Flat Neutron network.
+# create_ovs_taps are needed in order to provide connectivity from ironic-conductor
+# to VM. With Neutron Flat network it will be not needed.
 function create_ovs_taps {
     local ironic_net_id
     ironic_net_id=$1
@@ -696,16 +699,18 @@ function create_ovs_taps {
     tag_id=$(sudo ovs-vsctl get port ${tapdev} tag)
     die_if_not_set $LINENO tag_id "Failed to get tag id"
 
+    local ovs_tap=ovs-${tag_id}-tap1
+    local brbm_tap=brbm-${tag_id}-tap1
     # make sure veth pair is not existing, otherwise delete its links
-    sudo ip link show ovs-tap1 && sudo ip link delete ovs-tap1
-    sudo ip link show brbm-tap1 && sudo ip link delete brbm-tap1
+    sudo ip link show $ovs_tap && sudo ip link delete $ovs_tap
+    sudo ip link show $brbm_tap && sudo ip link delete $brbm_tap
     # create veth pair for future interconnection between br-int and brbm
-    sudo ip link add brbm-tap1 type veth peer name ovs-tap1
-    sudo ip link set dev brbm-tap1 up
-    sudo ip link set dev ovs-tap1 up
+    sudo ip link add $brbm_tap type veth peer name $ovs_tap
+    sudo ip link set dev $brbm_tap up
+    sudo ip link set dev $ovs_tap up
 
-    sudo ovs-vsctl -- --if-exists del-port ovs-tap1 -- add-port br-int ovs-tap1 tag=$tag_id
-    sudo ovs-vsctl -- --if-exists del-port brbm-tap1 -- add-port $IRONIC_VM_NETWORK_BRIDGE brbm-tap1
+    sudo ovs-vsctl -- --if-exists del-port $ovs_tap -- add-port br-int $ovs_tap tag=$tag_id
+    sudo ovs-vsctl -- --if-exists del-port $brbm_tap -- add-port $IRONIC_VM_NETWORK_BRIDGE $brbm_tap
 
     # Remove the port needed only for workaround.
     openstack port delete $port_id
