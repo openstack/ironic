@@ -24,7 +24,7 @@ Request
 
 .. rest_parameters:: parameters.yaml
 
-   - port_id: port_id
+   - port_id: uuid
    - fields: fields
 
 
@@ -61,7 +61,7 @@ Request
 
 .. rest_parameters:: parameters.yaml
 
-   - port_id: port_id
+   - port_id: uuid
 
 
 
@@ -97,7 +97,7 @@ Request
 
 .. rest_parameters:: parameters.yaml
 
-   - port_id: port_id
+   - port_id: uuid
 
 
 

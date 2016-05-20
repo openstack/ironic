@@ -1,0 +1,58 @@
+{
+   "last_error" : null,
+   "extra" : {},
+   "reservation" : null,
+   "driver" : "agent_ipmitool",
+   "instance_info" : {},
+   "created_at" : "2016-05-04T22:59:49.300836+00:00",
+   "raid_config" : {},
+   "uuid" : "14deb747-127c-4fe4-be9d-906c43006cd4",
+   "maintenance_reason" : null,
+   "target_provision_state" : null,
+   "ports" : [
+      {
+         "rel" : "self",
+         "href" : "http://127.0.0.1:6385/v1/nodes/14deb747-127c-4fe4-be9d-906c43006cd4/ports"
+      },
+      {
+         "rel" : "bookmark",
+         "href" : "http://127.0.0.1:6385/nodes/14deb747-127c-4fe4-be9d-906c43006cd4/ports"
+      }
+   ],
+   "power_state" : null,
+   "instance_uuid" : null,
+   "name" : "test_node_",
+   "properties" : {},
+   "clean_step" : {},
+   "console_enabled" : false,
+   "driver_internal_info" : {},
+   "target_power_state" : null,
+   "inspection_started_at" : null,
+   "provision_state" : "enroll",
+   "provision_updated_at" : null,
+   "driver_info" : {},
+   "inspection_finished_at" : null,
+   "updated_at" : null,
+   "links" : [
+      {
+         "rel" : "self",
+         "href" : "http://127.0.0.1:6385/v1/nodes/14deb747-127c-4fe4-be9d-906c43006cd4"
+      },
+      {
+         "href" : "http://127.0.0.1:6385/nodes/14deb747-127c-4fe4-be9d-906c43006cd4",
+         "rel" : "bookmark"
+      }
+   ],
+   "target_raid_config" : {},
+   "maintenance" : false,
+   "states" : [
+      {
+         "href" : "http://127.0.0.1:6385/v1/nodes/14deb747-127c-4fe4-be9d-906c43006cd4/states",
+         "rel" : "self"
+      },
+      {
+         "href" : "http://127.0.0.1:6385/nodes/14deb747-127c-4fe4-be9d-906c43006cd4/states",
+         "rel" : "bookmark"
+      }
+   ]
+}

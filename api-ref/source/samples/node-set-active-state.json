@@ -1,0 +1,4 @@
+{
+    "target": "active",
+    "configdrive": "http://127.0.0.1/images/test-node-config-drive.iso.gz"
+}

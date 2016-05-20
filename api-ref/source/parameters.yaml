@@ -1,17 +1,54 @@
 # variables in header
-x-openstack-request-id:
+header_version:
+  description: |
+    Specific API microversion used to generate this response.
+  in: header
+  required: true
+  type: string
+openstack-request-id:
   description: >
-    foo
+    A unique ID for tracking the request. The request ID associated with the request
+    appears in the log lines for that request. By default, the middleware configuration
+    ensures that the request ID appears in the log files.
   in: header
   required: false
   type: string
+x-openstack-ironic-api-max-version:
+  description: |
+    Maximum API microversion supported by this endpoint, eg. "1.16"
+  in: header
+  required: true
+  type: string
+x-openstack-ironic-api-min-version:
+  description: |
+    Minimum API microversion supported by this endpoint, eg. "1.1"
+  in: header
+  required: true
+  type: string
+x-openstack-ironic-api-version:
+  description: >
+    A request SHOULD include this header to indicate to the Ironic API service what
+    version the client supports. The server will transform the response object into
+    compliance with the requested version, if it is supported, or return a
+    406 Not Supported error.
+    If this header is not supplied, the server will default to ``min_version``
+    in all responses.
+  in: header
+  required: true
+  type: string
 
 # variables in path
-driver_name:
+chassis_ident:
+  description: |
+    The UUID of the chassis.
+  in: path
+  required: true
+  type: string
+driver_ident:
   description: |
     The name of the driver.
   in: path
-  required: false
+  required: true
   type: string
 node_id:
   description: |
@@ -19,24 +56,31 @@ node_id:
   in: path
   required: false
   type: string
-port_id:
+node_ident:
+  description: |
+    The UUID or Name of the node.
+  in: path
+  required: true
+  type: string
+port_ident:
   description: |
     The UUID of the port.
   in: path
-  required: false
+  required: true
   type: string
 
-# variables in query
+
+# variables common to all query strings
 fields:
   description: |
-    One or more chassis fields to be returned in the response.
+    One or more fields to be returned in the response.
 
-    For example, the following request returns only the ``description``
-    field for each chassis:
+    For example, the following request returns only the ``uuid``
+    and ``name`` fields for each node:
 
     ::
 
-       GET /v1/chassis?fields=description
+       GET /v1/nodes?fields=uuid,name
   in: query
   required: false
   type: array
@@ -56,6 +100,51 @@ marker:
     parameter to make an initial limited request and use the ID of the
     last-seen item from the response as the ``marker`` parameter value
     in a subsequent limited request.
+  in: query
+  required: false
+  type: string
+
+# variables in the vendor_passthru query string
+method_name:
+  description: |
+    Driver specific method name.
+  in: query
+  required: true
+  type: string
+
+# variables in the node query string
+r_associated:
+  description: |
+    Filter the list of returned nodes and only return which are, or are not,
+    associated with an ``instance_uuid``.
+  in: query
+  required: false
+  type: boolean
+r_driver:
+  description: |
+    Filter the list of returned nodes, and only return those with the specified
+    ``driver``.
+  in: query
+  required: false
+  type: string
+r_instance_uuid:
+  description: |
+    Filter the list of returned nodes, and only return the node with this
+    specific instance UUID, or an empty set if not found.
+  in: query
+  required: false
+  type: string
+r_maintenance:
+  description: |
+    Filter the list of returned nodes and only return those with
+    ``maintenance`` set to ``True`` or ``False``.
+  in: query
+  required: false
+  type: boolean
+r_provision_state:
+  description: |
+    Filter the list of returned nodes, and only return those with the specified
+    ``provision_state``.
   in: query
   required: false
   type: string
@@ -82,19 +171,55 @@ sort_key:
   required: false
   type: string
 
-# variables in body
+
+# variables in API response body
+boot_device:
+  description: |
+    The boot device for a Node, eg. "pxe" or "disk".
+  in: body
+  required: true
+  type: string
 chassis:
   description: |
     A ``chassis`` object.
   in: body
   required: true
   type: array
-chassis_1:
+chassis_uuid:
   description: |
-    A list of chassis objects.
+    UUID of the chassis associated with this Node. May be empty or None.
   in: body
   required: true
+  type: string
+clean_step:
+  description: |
+    The current clean step. Introduced with the cleaning feature.
+  in: body
+  required: false
+  type: string
+clean_steps:
+  description: |
+    An ordered list of cleaning steps that will be performed on the node. A
+    cleaning step is a dictionary with required keys ‘interface’ and ‘step’, and
+    optional key ‘args’. If specified, the value for ‘args’ is a keyword variable
+    argument dictionary that is passed to the cleaning step method.
+  in: body
+  required: false
   type: array
+configdrive:
+  description: |
+    A gzip'ed and base-64 encoded config drive, to be written to a partition
+    on the Node's boot disk. This parameter is only accepted when setting the
+    state to "active".
+  in: body
+  required: false
+  type: string or gzip+b64 blob
+console_enabled:
+  description: |
+    Indicates whether console access is enabled or disabled on this node.
+  in: body
+  required: true
+  type: boolean
 created_at:
   description: |
     The date and time when the resource was created.
@@ -115,13 +240,26 @@ created_at:
   type: string
 description:
   description: |
-    A description for the chassis.
+    Descriptive text about the Ironic service.
+  in: body
+  required: true
+  type: string
+driver_info:
+  description: |
+    All the metadata required by the driver to manage this Node. List of fields
+    varies between drivers, and can be retrieved from the ``/v1/drivers/<DRIVER_NAME>/properties`` resource.
+  in: body
+  required: true
+  type: JSON
+driver_internal_info:
+  description: |
+    Internal metadata set and stored by the Node's driver. This field is read-only.
   in: body
   required: false
-  type: string
-description_1:
+  type: JSON
+driver_name:
   description: |
-    A description for the chassis.
+    The name of the driver.
   in: body
   required: true
   type: string
@@ -134,16 +272,9 @@ drivers:
 extra:
   description: |
     A set of one or more arbitrary metadata key and
-    value pairs for the chassis.
+    value pairs.
   in: body
   required: false
-  type: object
-extra_1:
-  description: |
-    A set of zero or more arbitrary metadata key and
-    value pairs for the chassis.
-  in: body
-  required: true
   type: object
 hosts:
   description: |
@@ -151,23 +282,107 @@ hosts:
   in: body
   required: true
   type: array
-links:
+id:
   description: |
-    A list that contains a self link and associated
-    chassis links.
+    Major API version, eg, "v1"
   in: body
   required: true
-  type: array
-links_1:
+  type: string
+inspection_finished_at:
+  description: |
+    The date and time when the inspection process started.
+    May be "null"
+  in: body
+  required: true
+  type: string
+inspection_started_at:
+  description: |
+    The date and time when the inspection process started.
+    May be "null"
+  in: body
+  required: true
+  type: string
+instance_info:
+  description: |
+    Information used to customize the deployed image. May include root partition
+    size, a base 64 encoded config drive, and other metadata. Note that this field
+    is erased automatically when the instance is deleted (this is done by requesting
+    the Node provision state be changed to DELETED).
+  in: body
+  required: true
+  type: JSON
+instance_uuid:
+  description: |
+    UUID of the Nova instance associated with this Node.
+  in: body
+  required: true
+  type: string
+last_error:
+  description: |
+    Any error from the most recent (last) transaction that started but failed to finish.
+  in: body
+  required: true
+  type: string
+links:
   description: |
     A list of relative links. Includes the self and
     bookmark links.
   in: body
   required: true
   type: array
+maintenance:
+  description: |
+    Whether or not this Node is currently in "maintenance mode". Setting a Node
+    into maintenance mode removes it from the available resource pool and halts
+    some internal automation. This can happen manually (eg, via an API request)
+    or automatically when Ironic detects a hardware fault that prevents communication
+    with the machine.
+  in: body
+  required: true
+  type: boolean
+maintenance_reason:
+  description: |
+    User-settable description of the reason why this Node was placed into
+    maintenance mode
+  in: body
+  required: false
+  type: string
+n_ports:
+  description: |
+    Links to the collection of ports on this node
+  in: body
+  required: true
+  type: array
+n_properties:
+  description: |
+    Physical characteristics of this Node. Populated by ironic-inspector during
+    inspection. May be edited via the REST API at any time.
+  in: body
+  required: true
+  type: JSON
+n_states:
+  description: |
+    Links to the collection of states. Note that this resource is also used to
+    request state transitions.
+  in: body
+  required: true
+  type: array
 name:
   description: |
     The name of the driver.
+  in: body
+  required: true
+  type: string
+node_name:
+  description: |
+    Human-readable identifier for the Node resource. May be undefined. Certain
+    words are reserved. Added in API microversion 1.5
+  in: body
+  required: false
+  type: string
+node_uuid:
+  description: |
+    UUID of the Node resource.
   in: body
   required: true
   type: string
@@ -178,12 +393,103 @@ nodes:
   in: body
   required: true
   type: array
+persistent:
+  description: |
+    Whether the boot device should be set only for the next reboot, or
+    persistently.
+  in: body
+  required: true
+  type: boolean
+power_state:
+  description: |
+    The current power state of this Node. Usually, "power on" or "power off", but may be "None"
+    if Ironic is unable to determine the power state (eg, due to hardware failure).
+  in: body
+  required: true
+  type: string
 properties:
   description: |
     A list of links to driver properties.
   in: body
   required: true
   type: array
+provision_state:
+  description: |
+    The current provisioning state of this Node.
+  in: body
+  required: true
+  type: string
+provision_updated_at:
+  description: |
+    The date and time when the provision_state last changed.
+    ``null`` if the node is not being provisioned.
+  in: body
+  required: true
+  type: string
+r_driver_name:
+  description: |
+    The name of the driver used to manage this Node.
+  in: body
+  required: true
+  type: string
+raid_config:
+  description: |
+    Represents the current RAID configuration of the node. Introduced with
+    the cleaning feature.
+  in: body
+  required: false
+  type: JSON
+reason:
+  description: |
+    Specify the reason for setting the Node into maintenance mode.
+  in: body
+  required: false
+  type: string
+requested_provision_state:
+  description: |
+    One of the provisioning verbs: manage, provide, inspect, clean, active,
+    rebuild, delete (deleted), abort.
+  in: body
+  required: true
+  type: string
+reservation:
+  description: |
+    The ``name`` of an Ironic Conductor host which is holding a lock on this node,
+    if a lock is held. Usually "null", but this field can be useful for debugging.
+  in: body
+  required: true
+  type: string
+supported_boot_devices:
+  description: |
+    List of boot devices which this Node's driver supports.
+  in: body
+  required: true
+  type: array
+target_power_state:
+  description: |
+    If a power state transition has been requested, this field represents the
+    requested (ie, "target") state.
+  in: body
+  required: true
+  type: string
+target_provision_state:
+  description: |
+    If a provisioning action has been requested, this field represents the
+    requested (ie, "target") state. Note that a Node may go through several
+    states during its transition to this target state. For instance, when requesting
+    an instance be deployed to an AVAILABLE Node, the Node may go through the following
+    state change progression: AVAILABLE -> DEPLOYING -> DEPLOYWAIT -> DEPLOYING -> ACTIVE
+  in: body
+  required: true
+  type: string
+target_raid_config:
+  description: |
+    Represents the requested RAID configuration of the node, which will be
+    applied when the Node next transitions through the CLEANING state. Introduced
+    with the cleaning feature.
+  in: body
+  required: true
+  type: JSON
 updated_at:
   description: |
     The date and time when the resource was updated.
@@ -207,8 +513,64 @@ updated_at:
   type: string
 uuid:
   description: |
-    The UUID for the chassis.
+    The UUID for the resource.
   in: body
   required: true
   type: string
 
+# variables returned from node-validate
+v_boot:
+  description: |
+    Status of the "boot" interface
+  in: body
+  required: true
+  type: object
+v_console:
+  description: |
+    Status of the "console" interface
+  in: body
+  required: true
+  type: object
+v_deploy:
+  description: |
+    Status of the "deploy" interface
+  in: body
+  required: true
+  type: object
+v_inspect:
+  description: |
+    Status of the "inspect" interface
+  in: body
+  required: true
+  type: object
+v_management:
+  description: |
+    Status of the "management" interface
+  in: body
+  required: true
+  type: object
+v_power:
+  description: |
+    Status of the "power" interface
+  in: body
+  required: true
+  type: object
+v_raid:
+  description: |
+    Status of the "raid" interface
+  in: body
+  required: true
+  type: object
+
+version:
+  description: |
+    Versioning of this API response, eg. "1.16".
+  in: body
+  required: true
+  type: string
+versions:
+  description: |
+    Array of information about currently supported versions.
+  in: body
+  required: true
+  type: array

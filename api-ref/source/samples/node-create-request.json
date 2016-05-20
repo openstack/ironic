@@ -1,0 +1,4 @@
+{
+    "driver": "agent_ipmitool",
+    "name": "test_node"
+}

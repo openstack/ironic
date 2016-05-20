@@ -1,0 +1,9 @@
+{
+   "logical_disks" : [
+      {
+         "size_gb" : 100,
+         "is_root_volume" : true,
+         "raid_level" : "1"
+      }
+   ]
+}

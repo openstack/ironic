@@ -1,0 +1,26 @@
+{
+   "bmc_reset" : {
+      "async" : true,
+      "description" : "",
+      "http_methods" : [
+         "POST"
+      ],
+      "attach" : false
+   },
+   "send_raw" : {
+      "description" : "",
+      "attach" : false,
+      "http_methods" : [
+         "POST"
+      ],
+      "async" : true
+   },
+   "heartbeat" : {
+      "async" : true,
+      "attach" : false,
+      "http_methods" : [
+         "POST"
+      ],
+      "description" : ""
+   }
+}
