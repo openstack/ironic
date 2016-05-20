@@ -673,7 +673,11 @@ function create_ovs_taps {
     # need to create one in Neutron to know what netns to tap into prior to the
     # first node booting.
     local port_id
-    port_id=$(openstack port create --network ${ironic_net_id} temp_port -c id -f value)
+    port_id=$(neutron port-create ${ironic_net_id} | grep " id " | get_field 2)
+    # NOTE(vsaienko) openstack port create was introduced in Newton.
+    # Since the function is used during upgrade, it should be backward compatible with Mitaka.
+    # Switch to openstack port create in Ocata release.
+    #port_id=$(openstack port create --network ${ironic_net_id} temp_port -c id -f value)
     die_if_not_set $LINENO port_id "Failed to create neutron port"
 
     # intentional sleep to make sure the tag has been set to port
