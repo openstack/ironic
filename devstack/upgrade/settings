@@ -15,5 +15,3 @@ devstack_localrc base enable_service ir-api ir-cond ironic
 
 devstack_localrc target enable_plugin ironic https://git.openstack.org/openstack/ironic
 devstack_localrc target enable_service ir-api ir-cond ironic
-
-TARGET_RUN_SMOKE=True
