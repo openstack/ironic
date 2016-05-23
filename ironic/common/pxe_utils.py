@@ -206,13 +206,13 @@ def create_pxe_config(task, pxe_options, template=None):
     :param pxe_options: A dictionary with the PXE configuration
         parameters.
     :param template: The PXE configuration template. If no template is
-        given the CONF.pxe.pxe_config_template will be used.
+        given the node specific template will be used.
 
     """
     LOG.debug("Building PXE config for node %s", task.node.uuid)
 
     if template is None:
-        template = CONF.pxe.pxe_config_template
+        template = deploy_utils.get_pxe_config_template(task.node)
 
     _ensure_config_dirs_exist(task.node.uuid)
 
@@ -294,10 +294,7 @@ def dhcp_options_for_instance(task):
     """
     dhcp_opts = []
 
-    if deploy_utils.get_boot_mode_for_deploy(task.node) == 'uefi':
-        boot_file = CONF.pxe.uefi_pxe_bootfile_name
-    else:
-        boot_file = CONF.pxe.pxe_bootfile_name
+    boot_file = deploy_utils.get_pxe_boot_file(task.node)
 
     if CONF.pxe.ipxe_enabled:
         script_name = os.path.basename(CONF.pxe.ipxe_boot_script)

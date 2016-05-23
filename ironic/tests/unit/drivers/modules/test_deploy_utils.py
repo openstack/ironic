@@ -1247,6 +1247,95 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
         self.assertEqual(_IPXECONF_BOOT_WHOLE_DISK, pxeconf)
 
 
+class GetPxeBootConfigTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(GetPxeBootConfigTestCase, self).setUp()
+        self.node = obj_utils.get_test_node(self.context, driver='fake')
+        self.config(pxe_bootfile_name='bios-bootfile', group='pxe')
+        self.config(uefi_pxe_bootfile_name='uefi-bootfile', group='pxe')
+        self.config(pxe_config_template='bios-template', group='pxe')
+        self.config(uefi_pxe_config_template='uefi-template', group='pxe')
+        self.bootfile_by_arch = {'aarch64': 'aarch64-bootfile',
+                                 'ppc64': 'ppc64-bootfile'}
+        self.template_by_arch = {'aarch64': 'aarch64-template',
+                                 'ppc64': 'ppc64-template'}
+
+    def test_get_pxe_boot_file_bios_without_by_arch(self):
+        properties = {'cpu_arch': 'x86', 'capabilities': 'boot_mode:bios'}
+        self.node.properties = properties
+        self.config(pxe_bootfile_name_by_arch={}, group='pxe')
+        result = utils.get_pxe_boot_file(self.node)
+        self.assertEqual('bios-bootfile', result)
+
+    def test_get_pxe_config_template_bios_without_by_arch(self):
+        properties = {'cpu_arch': 'x86', 'capabilities': 'boot_mode:bios'}
+        self.node.properties = properties
+        self.config(pxe_config_template_by_arch={}, group='pxe')
+        result = utils.get_pxe_config_template(self.node)
+        self.assertEqual('bios-template', result)
+
+    def test_get_pxe_boot_file_uefi_without_by_arch(self):
+        properties = {'cpu_arch': 'x86_64', 'capabilities': 'boot_mode:uefi'}
+        self.node.properties = properties
+        self.config(pxe_bootfile_name_by_arch={}, group='pxe')
+        result = utils.get_pxe_boot_file(self.node)
+        self.assertEqual('uefi-bootfile', result)
+
+    def test_get_pxe_config_template_uefi_without_by_arch(self):
+        properties = {'cpu_arch': 'x86_64', 'capabilities': 'boot_mode:uefi'}
+        self.node.properties = properties
+        self.config(pxe_config_template_by_arch={}, group='pxe')
+        result = utils.get_pxe_config_template(self.node)
+        self.assertEqual('uefi-template', result)
+
+    def test_get_pxe_boot_file_cpu_not_in_by_arch(self):
+        properties = {'cpu_arch': 'x86', 'capabilities': 'boot_mode:bios'}
+        self.node.properties = properties
+        self.config(pxe_bootfile_name_by_arch=self.bootfile_by_arch,
+                    group='pxe')
+        result = utils.get_pxe_boot_file(self.node)
+        self.assertEqual('bios-bootfile', result)
+
+    def test_get_pxe_config_template_cpu_not_in_by_arch(self):
+        properties = {'cpu_arch': 'x86', 'capabilities': 'boot_mode:bios'}
+        self.node.properties = properties
+        self.config(pxe_config_template_by_arch=self.template_by_arch,
+                    group='pxe')
+        result = utils.get_pxe_config_template(self.node)
+        self.assertEqual('bios-template', result)
+
+    def test_get_pxe_boot_file_cpu_in_by_arch(self):
+        properties = {'cpu_arch': 'aarch64', 'capabilities': 'boot_mode:uefi'}
+        self.node.properties = properties
+        self.config(pxe_bootfile_name_by_arch=self.bootfile_by_arch,
+                    group='pxe')
+        result = utils.get_pxe_boot_file(self.node)
+        self.assertEqual('aarch64-bootfile', result)
+
+    def test_get_pxe_config_template_cpu_in_by_arch(self):
+        properties = {'cpu_arch': 'aarch64', 'capabilities': 'boot_mode:uefi'}
+        self.node.properties = properties
+        self.config(pxe_config_template_by_arch=self.template_by_arch,
+                    group='pxe')
+        result = utils.get_pxe_config_template(self.node)
+        self.assertEqual('aarch64-template', result)
+
+    def test_get_pxe_boot_file_emtpy_property(self):
+        self.node.properties = {}
+        self.config(pxe_bootfile_name_by_arch=self.bootfile_by_arch,
+                    group='pxe')
+        result = utils.get_pxe_boot_file(self.node)
+        self.assertEqual('bios-bootfile', result)
+
+    def test_get_pxe_config_template_emtpy_property(self):
+        self.node.properties = {}
+        self.config(pxe_config_template_by_arch=self.template_by_arch,
+                    group='pxe')
+        result = utils.get_pxe_config_template(self.node)
+        self.assertEqual('bios-template', result)
+
+
 @mock.patch('time.sleep', lambda sec: None)
 class OtherFunctionTestCase(db_base.DbTestCase):
 
