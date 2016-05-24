@@ -61,22 +61,28 @@ class DbNodeTestCase(base.DbTestCase):
 
     def test_get_node_by_id(self):
         node = utils.create_test_node()
+        self.dbapi.set_node_tags(node.id, ['tag1', 'tag2'])
         res = self.dbapi.get_node_by_id(node.id)
         self.assertEqual(node.id, res.id)
         self.assertEqual(node.uuid, res.uuid)
+        self.assertItemsEqual(['tag1', 'tag2'], [tag.tag for tag in res.tags])
 
     def test_get_node_by_uuid(self):
         node = utils.create_test_node()
+        self.dbapi.set_node_tags(node.id, ['tag1', 'tag2'])
         res = self.dbapi.get_node_by_uuid(node.uuid)
         self.assertEqual(node.id, res.id)
         self.assertEqual(node.uuid, res.uuid)
+        self.assertItemsEqual(['tag1', 'tag2'], [tag.tag for tag in res.tags])
 
     def test_get_node_by_name(self):
         node = utils.create_test_node()
+        self.dbapi.set_node_tags(node.id, ['tag1', 'tag2'])
         res = self.dbapi.get_node_by_name(node.name)
         self.assertEqual(node.id, res.id)
         self.assertEqual(node.uuid, res.uuid)
         self.assertEqual(node.name, res.name)
+        self.assertItemsEqual(['tag1', 'tag2'], [tag.tag for tag in res.tags])
 
     def test_get_node_that_does_not_exist(self):
         self.assertRaises(exception.NodeNotFound,
@@ -217,6 +223,8 @@ class DbNodeTestCase(base.DbTestCase):
         res = self.dbapi.get_node_list()
         res_uuids = [r.uuid for r in res]
         six.assertCountEqual(self, uuids, res_uuids)
+        for r in res:
+            self.assertEqual([], r.tags)
 
     def test_get_node_list_with_filters(self):
         ch1 = utils.create_test_chassis(uuid=uuidutils.generate_uuid())
@@ -272,9 +280,11 @@ class DbNodeTestCase(base.DbTestCase):
     def test_get_node_by_instance(self):
         node = utils.create_test_node(
             instance_uuid='12345678-9999-0000-aaaa-123456789012')
+        self.dbapi.set_node_tags(node.id, ['tag1', 'tag2'])
 
         res = self.dbapi.get_node_by_instance(node.instance_uuid)
         self.assertEqual(node.uuid, res.uuid)
+        self.assertItemsEqual(['tag1', 'tag2'], [tag.tag for tag in res.tags])
 
     def test_get_node_by_instance_wrong_uuid(self):
         utils.create_test_node(
@@ -446,12 +456,14 @@ class DbNodeTestCase(base.DbTestCase):
 
     def test_reserve_node(self):
         node = utils.create_test_node()
+        self.dbapi.set_node_tags(node.id, ['tag1', 'tag2'])
         uuid = node.uuid
 
         r1 = 'fake-reservation'
 
         # reserve the node
-        self.dbapi.reserve_node(r1, uuid)
+        res = self.dbapi.reserve_node(r1, uuid)
+        self.assertItemsEqual(['tag1', 'tag2'], [tag.tag for tag in res.tags])
 
         # check reservation
         res = self.dbapi.get_node_by_uuid(uuid)

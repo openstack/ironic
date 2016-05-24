@@ -29,6 +29,7 @@ from oslo_utils import strutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm import joinedload
 from sqlalchemy import sql
 
 from ironic.common import exception
@@ -61,6 +62,10 @@ def _session_for_read():
 
 def _session_for_write():
     return enginefacade.writer.using(_CONTEXT)
+
+
+def _get_node_query_with_tags():
+    return model_query(models.Node).options(joinedload('tags'))
 
 
 def model_query(model, *args, **kwargs):
@@ -241,14 +246,14 @@ class Connection(api.Connection):
 
     def get_node_list(self, filters=None, limit=None, marker=None,
                       sort_key=None, sort_dir=None):
-        query = model_query(models.Node)
+        query = _get_node_query_with_tags()
         query = self._add_nodes_filters(query, filters)
         return _paginate_query(models.Node, limit, marker,
                                sort_key, sort_dir, query)
 
     def reserve_node(self, tag, node_id):
         with _session_for_write():
-            query = model_query(models.Node)
+            query = _get_node_query_with_tags()
             query = add_identity_filter(query, node_id)
             # be optimistic and assume we usually create a reservation
             count = query.filter_by(reservation=None).update(
@@ -313,24 +318,29 @@ class Connection(api.Connection):
                         instance_uuid=values['instance_uuid'],
                         node=values['uuid'])
                 raise exception.NodeAlreadyExists(uuid=values['uuid'])
+            # Set tags to [] for new created node
+            node['tags'] = []
             return node
 
     def get_node_by_id(self, node_id):
-        query = model_query(models.Node).filter_by(id=node_id)
+        query = _get_node_query_with_tags()
+        query = query.filter_by(id=node_id)
         try:
             return query.one()
         except NoResultFound:
             raise exception.NodeNotFound(node=node_id)
 
     def get_node_by_uuid(self, node_uuid):
-        query = model_query(models.Node).filter_by(uuid=node_uuid)
+        query = _get_node_query_with_tags()
+        query = query.filter_by(uuid=node_uuid)
         try:
             return query.one()
         except NoResultFound:
             raise exception.NodeNotFound(node=node_uuid)
 
     def get_node_by_name(self, node_name):
-        query = model_query(models.Node).filter_by(name=node_name)
+        query = _get_node_query_with_tags()
+        query = query.filter_by(name=node_name)
         try:
             return query.one()
         except NoResultFound:
@@ -340,8 +350,8 @@ class Connection(api.Connection):
         if not uuidutils.is_uuid_like(instance):
             raise exception.InvalidUUID(uuid=instance)
 
-        query = (model_query(models.Node)
-                 .filter_by(instance_uuid=instance))
+        query = _get_node_query_with_tags()
+        query = query.filter_by(instance_uuid=instance)
 
         try:
             result = query.one()
