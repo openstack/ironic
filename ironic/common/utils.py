@@ -301,29 +301,6 @@ def get_shortened_ipv6_cidr(address):
     return str(net.cidr)
 
 
-def is_valid_cidr(address):
-    """Check if the provided ipv4 or ipv6 address is a valid CIDR address."""
-    try:
-        # Validate the correct CIDR Address
-        netaddr.IPNetwork(address)
-    except netaddr.core.AddrFormatError:
-        return False
-    except UnboundLocalError:
-        # NOTE(MotoKen): work around bug in netaddr 0.7.5 (see detail in
-        # https://github.com/drkjam/netaddr/issues/2)
-        return False
-
-    # Prior validation partially verify /xx part
-    # Verify it here
-    ip_segment = address.split('/')
-
-    if (len(ip_segment) <= 1 or
-        ip_segment[1] == ''):
-        return False
-
-    return True
-
-
 def get_ip_version(network):
     """Returns the IP version of a network (IPv4 or IPv6).
 
