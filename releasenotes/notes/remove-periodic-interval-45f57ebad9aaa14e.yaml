@@ -1,0 +1,3 @@
+---
+upgrade:
+  - Removes the deprecated config option "periodic_interval".

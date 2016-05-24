@@ -38,11 +38,6 @@ from ironic.objects import base as objects_base
 
 
 service_opts = [
-    cfg.IntOpt('periodic_interval',
-               default=60,
-               help=_('Default interval (in seconds) for running driver '
-                      'periodic tasks.'),
-               deprecated_for_removal=True),
     cfg.StrOpt('host',
                default=socket.getfqdn(),
                help=_('Name of this node. This can be an opaque identifier. '
