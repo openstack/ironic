@@ -25,7 +25,6 @@ from ironic.common import exception
 from ironic.conductor import base_manager
 from ironic.conductor import manager
 from ironic.conductor import task_manager
-from ironic.drivers import base as drivers_base
 from ironic import objects
 from ironic.tests import base as tests_base
 from ironic.tests.unit.conductor import mgr_utils
@@ -122,10 +121,6 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
             def task(self, context):
                 pass
 
-            @drivers_base.driver_periodic_task()
-            def deprecated_task(self, context):
-                pass
-
         obj = Driver()
         get_mock.return_value = mock.Mock(obj=obj)
 
@@ -136,7 +131,7 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
             self._start_service(start_periodic_tasks=True)
 
         tasks = {c[0] for c in self.service._periodic_task_callables}
-        for t in (obj.task, obj.iface.iface, obj.deprecated_task):
+        for t in (obj.task, obj.iface.iface):
             self.assertTrue(periodics.is_periodic(t))
             self.assertIn(t, tasks)
 

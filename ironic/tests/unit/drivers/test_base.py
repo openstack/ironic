@@ -15,7 +15,6 @@
 
 import json
 
-from futurist import periodics
 import mock
 
 from ironic.common import exception
@@ -99,23 +98,6 @@ class PassthruDecoratorTestCase(base.TestCase):
                             inst2.vendor_routes['noexception']['func'])
         self.assertNotEqual(inst1.driver_routes['driver_noexception']['func'],
                             inst2.driver_routes['driver_noexception']['func'])
-
-
-class DriverPeriodicTaskTestCase(base.TestCase):
-    def test(self):
-        method_mock = mock.MagicMock(spec_set=[])
-
-        class TestClass(object):
-            @driver_base.driver_periodic_task(spacing=42)
-            def method(self, foo, bar=None):
-                method_mock(foo, bar=bar)
-
-        obj = TestClass()
-        self.assertEqual(42, obj.method._periodic_spacing)
-        self.assertTrue(periodics.is_periodic(obj.method))
-
-        obj.method(1, bar=2)
-        method_mock.assert_called_once_with(1, bar=2)
 
 
 class CleanStepDecoratorTestCase(base.TestCase):
