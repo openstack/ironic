@@ -3803,7 +3803,8 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
         self._check_driver_properties("fake_ipminative", expected)
 
     def test_driver_properties_fake_ssh(self):
-        expected = ['ssh_address', 'ssh_username', 'ssh_virt_type',
+        expected = ['ssh_address', 'ssh_username',
+                    'vbox_use_headless', 'ssh_virt_type',
                     'ssh_key_contents', 'ssh_key_filename',
                     'ssh_password', 'ssh_port', 'ssh_terminal_port']
         self._check_driver_properties("fake_ssh", expected)
@@ -3843,7 +3844,8 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
 
     def test_driver_properties_pxe_ssh(self):
         expected = ['deploy_kernel', 'deploy_ramdisk',
-                    'ssh_address', 'ssh_username', 'ssh_virt_type',
+                    'ssh_address', 'ssh_username',
+                    'vbox_use_headless', 'ssh_virt_type',
                     'ssh_key_contents', 'ssh_key_filename',
                     'ssh_password', 'ssh_port', 'ssh_terminal_port',
                     'deploy_forces_oob_reboot']

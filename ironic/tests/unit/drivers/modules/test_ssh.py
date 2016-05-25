@@ -773,6 +773,34 @@ class SSHDriverTestCase(db_base.DbTestCase):
                         '--boot1 net') % fake_name
         mock_exc.assert_called_once_with(mock.ANY, expected_cmd)
 
+    @mock.patch.object(ssh, '_get_power_status', autospec=True)
+    @mock.patch.object(ssh, '_get_connection', autospec=True)
+    @mock.patch.object(ssh, '_get_hosts_name_for_node', autospec=True)
+    @mock.patch.object(ssh, '_ssh_execute', autospec=True)
+    def test_management_interface_set_boot_device_vbox_with_power_on(
+            self, mock_exc, mock_h, mock_get_conn, mock_get_power):
+        fake_name = 'fake-name'
+        mock_h.return_value = fake_name
+        mock_get_conn.return_value = self.sshclient
+        # NOTE(jroll) _power_off calls _get_power_state twice
+        mock_get_power.side_effect = [
+            states.POWER_ON, states.POWER_ON, states.POWER_OFF
+        ]
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node['driver_info']['ssh_virt_type'] = 'vbox'
+            task.node['driver_info']['vbox_use_headless'] = True
+            self.driver.management.set_boot_device(task, boot_devices.PXE)
+
+        expected_cmds = [
+            mock.call(mock.ANY,
+                      'LC_ALL=C /usr/bin/VBoxManage '
+                      'controlvm %s poweroff' % fake_name),
+            mock.call(mock.ANY,
+                      'LC_ALL=C /usr/bin/VBoxManage '
+                      'modifyvm %s --boot1 net' % fake_name)
+        ]
+        self.assertEqual(expected_cmds, mock_exc.call_args_list)
+
     @mock.patch.object(ssh, '_get_connection', autospec=True)
     @mock.patch.object(ssh, '_get_hosts_name_for_node', autospec=True)
     @mock.patch.object(ssh, '_ssh_execute', autospec=True)
@@ -1005,6 +1033,40 @@ class SSHDriverTestCase(db_base.DbTestCase):
             self.driver.power.set_power_state(task, states.POWER_OFF)
         expected_cmd = ("LC_ALL=C /opt/xensource/bin/xe "
                         "vm-shutdown uuid=fakevm force=true")
+        mock_exc.assert_called_once_with(mock.ANY, expected_cmd)
+
+    @mock.patch.object(ssh, '_get_connection', autospec=True)
+    @mock.patch.object(ssh, '_get_hosts_name_for_node', autospec=True)
+    @mock.patch.object(ssh, '_ssh_execute', autospec=True)
+    @mock.patch.object(ssh, '_get_power_status', autospec=True)
+    def test_start_command_vbox(self, mock_power, mock_exc, mock_h,
+                                mock_get_conn):
+        mock_power.side_effect = [states.POWER_OFF, states.POWER_ON]
+        nodename = 'fakevm'
+        mock_h.return_value = nodename
+        mock_get_conn.return_value = self.sshclient
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node['driver_info']['ssh_virt_type'] = 'vbox'
+            self.driver.power.set_power_state(task, states.POWER_ON)
+        expected_cmd = 'LC_ALL=C /usr/bin/VBoxManage startvm fakevm'
+        mock_exc.assert_called_once_with(mock.ANY, expected_cmd)
+
+    @mock.patch.object(ssh, '_get_connection', autospec=True)
+    @mock.patch.object(ssh, '_get_hosts_name_for_node', autospec=True)
+    @mock.patch.object(ssh, '_ssh_execute', autospec=True)
+    @mock.patch.object(ssh, '_get_power_status', autospec=True)
+    def test_start_command_vbox_headless(self, mock_power, mock_exc, mock_h,
+                                         mock_get_conn):
+        mock_power.side_effect = [states.POWER_OFF, states.POWER_ON]
+        nodename = 'fakevm'
+        mock_h.return_value = nodename
+        mock_get_conn.return_value = self.sshclient
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node['driver_info']['ssh_virt_type'] = 'vbox'
+            task.node['driver_info']['vbox_use_headless'] = True
+            self.driver.power.set_power_state(task, states.POWER_ON)
+        expected_cmd = ('LC_ALL=C /usr/bin/VBoxManage '
+                        'startvm fakevm --type headless')
         mock_exc.assert_called_once_with(mock.ANY, expected_cmd)
 
     def test_management_interface_validate_good(self):

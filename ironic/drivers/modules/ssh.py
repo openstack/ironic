@@ -34,6 +34,8 @@ from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
+from oslo_utils import strutils
+
 import retrying
 
 from ironic.common import boot_devices
@@ -84,7 +86,11 @@ OTHER_PROPERTIES = {
     'ssh_password': _("password to use for authentication or for unlocking a "
                       "private key. One of this, ssh_key_contents, or "
                       "ssh_key_filename must be specified."),
-    'ssh_port': _("port on the node to connect to; default is 22. Optional.")
+    'ssh_port': _("port on the node to connect to; default is 22. Optional."),
+    'vbox_use_headless': _("True or False (Default). Optional. "
+                           "In the case of VirtualBox 3.2 and above, allows "
+                           "the user to use a headless remote VirtualBox "
+                           "machine.")
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OTHER_PROPERTIES)
@@ -131,8 +137,21 @@ def _get_boot_device_map(virt_type):
             {'virt_type': virt_type})
 
 
-def _get_command_sets(virt_type):
+def _get_command_sets(virt_type, use_headless=False):
     """Retrieves the virt_type-specific commands to control power
+
+    :param virt_type: Hypervisor type (virsh, vmware, vbox, parallels,
+        xenserver)
+    :param use_headless: boolean value, defaults to False.
+        use_headless is used by some Hypervisors (only VBox v3.2 and above)
+        to determine if the hypervisor is being used on a headless box.
+        This is only relevant to Desktop Hypervisors that have different
+        CLI settings depending upon the availability of a graphical
+        environment working on the hypervisor itself. Again, only VBox
+        makes this distinction and allows "--type headless" to some of
+        its sub-commands. This is needed for support of tripleo with
+        VBox as the Hypervisor but some other Hypervisors could make
+        use of it in the future (Parallels, VMWare Workstation, etc...)
 
     Required commands are as follows:
 
@@ -147,9 +166,12 @@ def _get_command_sets(virt_type):
     get_boot_device / set_boot_device: Gets or sets the primary boot device
     """
     if virt_type == 'vbox':
+        vbox_headless_str = ''
+        if use_headless:
+            vbox_headless_str = ' --type headless'
         return {
             'base_cmd': 'LC_ALL=C /usr/bin/VBoxManage',
-            'start_cmd': 'startvm {_NodeName_}',
+            'start_cmd': 'startvm {_NodeName_}%s' % vbox_headless_str,
             'stop_cmd': 'controlvm {_NodeName_} poweroff',
             'reboot_cmd': 'controlvm {_NodeName_} reset',
             'list_all': "list vms|awk -F'\"' '{print $2}'",
@@ -367,6 +389,8 @@ def _parse_driver_info(node):
     port = utils.validate_network_port(port, 'ssh_port')
     key_contents = info.get('ssh_key_contents')
     key_filename = info.get('ssh_key_filename')
+    use_headless = strutils.bool_from_string(info.get('vbox_use_headless',
+                                                      False))
     virt_type = info.get('ssh_virt_type')
     terminal_port = info.get('ssh_terminal_port')
 
@@ -379,12 +403,13 @@ def _parse_driver_info(node):
         'host': address,
         'username': username,
         'port': port,
+        'use_headless': use_headless,
         'virt_type': virt_type,
         'uuid': node.uuid,
         'terminal_port': terminal_port
     }
 
-    cmd_set = _get_command_sets(virt_type)
+    cmd_set = _get_command_sets(virt_type, use_headless)
     res['cmd_set'] = cmd_set
 
     # Only one credential may be set (avoids complexity around having
@@ -737,6 +762,19 @@ class SSHManagement(base.ManagementInterface):
                 "Invalid boot device %s specified.") % device)
         driver_info['macs'] = driver_utils.get_node_mac_addresses(task)
         ssh_obj = _get_connection(node)
+
+        node_name = _get_hosts_name_for_node(ssh_obj, driver_info)
+        virt_type = driver_info['virt_type']
+        use_headless = driver_info['use_headless']
+
+        if virt_type == 'vbox':
+            if use_headless:
+                current_pstate = _get_power_status(ssh_obj, driver_info)
+                if current_pstate == states.POWER_ON:
+                    LOG.debug("Forcing VBox VM %s to power off "
+                              "in order to set the boot device.",
+                              node_name)
+                    _power_off(ssh_obj, driver_info)
 
         boot_device_map = _get_boot_device_map(driver_info['virt_type'])
         try:
