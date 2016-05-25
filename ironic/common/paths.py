@@ -25,6 +25,7 @@ path_opts = [
     cfg.StrOpt('pybasedir',
                default=os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                     '../')),
+               sample_default='/usr/lib/python/site-packages/ironic/ironic',
                help=_('Directory where the ironic python module is '
                       'installed.')),
     cfg.StrOpt('bindir',

@@ -40,6 +40,7 @@ from ironic.objects import base as objects_base
 service_opts = [
     cfg.StrOpt('host',
                default=socket.getfqdn(),
+               sample_default='localhost',
                help=_('Name of this node. This can be an opaque identifier. '
                       'It is not necessarily a hostname, FQDN, or IP address. '
                       'However, the node name must be valid within '

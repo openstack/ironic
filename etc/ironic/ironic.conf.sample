@@ -1,7 +1,7 @@
 [DEFAULT]
 
 #
-# Options defined in ironic.api.app
+# From ironic
 #
 
 # Authentication strategy used by ironic-api. "noauth" should
@@ -20,11 +20,6 @@
 # value)
 #pecan_debug = false
 
-
-#
-# Options defined in ironic.common.driver_factory
-#
-
 # Specify the list of drivers to load during service
 # initialization. Missing drivers, or drivers which fail to
 # initialize, will prevent the conductor service from
@@ -35,21 +30,11 @@
 # developer documentation online. (list value)
 #enabled_drivers = pxe_ipmitool
 
-
-#
-# Options defined in ironic.common.exception
-#
-
 # Used if there is a formatting error when generating an
 # exception message (a programming error). If True, raise an
 # exception; if False, use the unformatted message. (boolean
 # value)
 #fatal_exception_format_errors = false
-
-
-#
-# Options defined in ironic.common.hash_ring
-#
 
 # Exponent to determine number of hash partitions to use when
 # distributing load across conductors. Larger values will
@@ -76,11 +61,6 @@
 # value)
 #hash_ring_reset_interval = 180
 
-
-#
-# Options defined in ironic.common.images
-#
-
 # If True, convert backing images to "raw" disk image format.
 # (boolean value)
 #force_raw_images = true
@@ -95,11 +75,6 @@
 # Template file for grub configuration file. (string value)
 #grub_config_template = $pybasedir/common/grub_conf.template
 
-
-#
-# Options defined in ironic.common.paths
-#
-
 # Directory where the ironic python module is installed.
 # (string value)
 #pybasedir = /usr/lib/python/site-packages/ironic/ironic
@@ -112,22 +87,12 @@
 # value)
 #state_path = $pybasedir
 
-
-#
-# Options defined in ironic.common.service
-#
-
 # Name of this node. This can be an opaque identifier. It is
 # not necessarily a hostname, FQDN, or IP address. However,
 # the node name must be valid within an AMQP key, and if using
 # ZeroMQ, a valid hostname, FQDN, or IP address. (string
 # value)
 #host = localhost
-
-
-#
-# Options defined in ironic.common.utils
-#
 
 # Path to the rootwrap configuration file to use for running
 # commands as root. (string value)
@@ -137,32 +102,22 @@
 # (string value)
 #tempdir = /tmp
 
-
-#
-# Options defined in ironic.drivers.modules.image_cache
-#
-
 # Run image downloads and raw format conversions in parallel.
 # (boolean value)
 #parallel_image_downloads = false
 
-
-#
-# Options defined in ironic.netconf
-#
-
 # IP address of this host. If unset, will determine the IP
 # programmatically. If unable to do so, will use "127.0.0.1".
 # (string value)
-#my_ip = 10.0.0.1
-
+#my_ip = 127.0.0.1
 
 #
-# Options defined in oslo.log
+# From oslo.log
 #
 
 # If set to true, the logging level will be set to DEBUG
 # instead of the default INFO level. (boolean value)
+# Note: This option can be changed without restarting.
 #debug = false
 
 # If set to false, the logging level will be set to WARNING
@@ -261,9 +216,8 @@
 # value)
 #fatal_deprecations = false
 
-
 #
-# Options defined in oslo.messaging
+# From oslo.messaging
 #
 
 # Size of RPC connection pool. (integer value)
@@ -357,18 +311,16 @@
 # transport_url option. (string value)
 #control_exchange = openstack
 
-
 #
-# Options defined in oslo.service.periodic_task
+# From oslo.service.periodic_task
 #
 
 # Some periodic tasks can be run in a separate process. Should
 # we run them here? (boolean value)
 #run_external_periodic_tasks = true
 
-
 #
-# Options defined in oslo.service.service
+# From oslo.service.service
 #
 
 # Enable eventlet backdoor.  Acceptable values are 0, <port>,
@@ -400,7 +352,7 @@
 [agent]
 
 #
-# Options defined in ironic.drivers.modules.agent
+# From ironic
 #
 
 # Whether Ironic will manage booting of the agent ramdisk. If
@@ -424,11 +376,6 @@
 # be set to True. Defaults to True. (boolean value)
 #stream_raw_images = true
 
-
-#
-# Options defined in ironic.drivers.modules.agent_base_vendor
-#
-
 # Maximum interval (in seconds) for agent heartbeats. (integer
 # value)
 #heartbeat_timeout = 300
@@ -442,11 +389,6 @@
 # state after trigger soft poweroff. (integer value)
 #post_deploy_get_power_state_retry_interval = 5
 
-
-#
-# Options defined in ironic.drivers.modules.agent_client
-#
-
 # API version to use for communicating with the ramdisk agent.
 # (string value)
 #agent_api_version = v1
@@ -455,7 +397,7 @@
 [amt]
 
 #
-# Options defined in ironic.drivers.modules.amt.common
+# From ironic
 #
 
 # Protocol used for AMT endpoint (string value)
@@ -471,11 +413,6 @@
 # Minimum value: 0
 #awake_interval = 60
 
-
-#
-# Options defined in ironic.drivers.modules.amt.power
-#
-
 # Maximum number of times to attempt an AMT operation, before
 # failing (integer value)
 #max_attempts = 3
@@ -488,7 +425,7 @@
 [api]
 
 #
-# Options defined in ironic.api
+# From ironic
 #
 
 # The IP address on which ironic-api listens. (string value)
@@ -529,7 +466,7 @@
 [cimc]
 
 #
-# Options defined in ironic.drivers.modules.cimc.power
+# From ironic
 #
 
 # Number of times a power operation needs to be retried
@@ -544,7 +481,7 @@
 [cisco_ucs]
 
 #
-# Options defined in ironic.drivers.modules.ucs.power
+# From ironic
 #
 
 # Number of times a power operation needs to be retried
@@ -559,7 +496,7 @@
 [conductor]
 
 #
-# Options defined in ironic.conductor.base_manager
+# From ironic
 #
 
 # The size of the workers greenthread pool. Note that 2
@@ -570,11 +507,6 @@
 
 # Seconds between conductor heart beats. (integer value)
 #heartbeat_interval = 10
-
-
-#
-# Options defined in ironic.conductor.manager
-#
 
 # URL of Ironic API service. If not set ironic can get the
 # current value from the keystone service catalog. (string
@@ -677,7 +609,7 @@
 [console]
 
 #
-# Options defined in ironic.drivers.modules.console_utils
+# From ironic
 #
 
 # Path to serial console terminal program (string value)
@@ -703,7 +635,7 @@
 [cors]
 
 #
-# Options defined in oslo.middleware.cors
+# From oslo.middleware.cors
 #
 
 # Indicate whether this resource may be shared with the domain
@@ -718,7 +650,7 @@
 
 # Indicate which headers are safe to expose to the API.
 # Defaults to HTTP Simple Headers. (list value)
-#expose_headers = 
+#expose_headers =
 
 # Maximum cache age of CORS preflight requests. (integer
 # value)
@@ -730,13 +662,13 @@
 
 # Indicate which header field names may be used during the
 # actual request. (list value)
-#allow_headers = 
+#allow_headers =
 
 
 [cors.subdomain]
 
 #
-# Options defined in oslo.middleware.cors
+# From oslo.middleware.cors
 #
 
 # Indicate whether this resource may be shared with the domain
@@ -751,7 +683,7 @@
 
 # Indicate which headers are safe to expose to the API.
 # Defaults to HTTP Simple Headers. (list value)
-#expose_headers = 
+#expose_headers =
 
 # Maximum cache age of CORS preflight requests. (integer
 # value)
@@ -763,21 +695,20 @@
 
 # Indicate which header field names may be used during the
 # actual request. (list value)
-#allow_headers = 
+#allow_headers =
 
 
 [database]
 
 #
-# Options defined in ironic.db.sqlalchemy.models
+# From ironic
 #
 
 # MySQL engine to use. (string value)
 #mysql_engine = InnoDB
 
-
 #
-# Options defined in oslo.db
+# From oslo.db
 #
 
 # The file name to use with SQLite. (string value)
@@ -889,7 +820,7 @@
 [deploy]
 
 #
-# Options defined in ironic.drivers.modules.deploy_utils
+# From ironic
 #
 
 # ironic-conductor node's HTTP server URL. Example:
@@ -927,7 +858,7 @@
 [dhcp]
 
 #
-# Options defined in ironic.common.dhcp_factory
+# From ironic
 #
 
 # DHCP provider to use. "neutron" uses Neutron, and "none"
@@ -938,7 +869,7 @@
 [disk_partitioner]
 
 #
-# Options defined in ironic_lib.disk_partitioner
+# From ironic_lib.disk_partitioner
 #
 
 # After Ironic has completed creating the partition table, it
@@ -957,7 +888,7 @@
 [disk_utils]
 
 #
-# Options defined in ironic_lib.disk_utils
+# From ironic_lib.disk_utils
 #
 
 # Size of EFI system partition in MiB when configuring UEFI
@@ -979,13 +910,13 @@
 [glance]
 
 #
-# Options defined in ironic.common.glance_service.v2.image_service
+# From ironic
 #
 
 # A list of URL schemes that can be downloaded directly via
 # the direct_url.  Currently supported schemes: [file]. (list
 # value)
-#allowed_direct_url_schemes = 
+#allowed_direct_url_schemes =
 
 # The secret token given to Swift to allow temporary URL
 # downloads. Required for temporary URLs. (string value)
@@ -1065,11 +996,6 @@
 # Allowed values: swift, radosgw
 #temp_url_endpoint_type = swift
 
-
-#
-# Options defined in ironic.common.image_service
-#
-
 # Default glance hostname or IP address. (string value)
 #glance_host = $my_ip
 
@@ -1110,7 +1036,7 @@
 [iboot]
 
 #
-# Options defined in ironic.drivers.modules.iboot
+# From ironic
 #
 
 # Maximum retries for iBoot operations (integer value)
@@ -1129,7 +1055,7 @@
 [ilo]
 
 #
-# Options defined in ironic.drivers.modules.ilo.common
+# From ironic
 #
 
 # Timeout (in seconds) for iLO operations (integer value)
@@ -1155,20 +1081,10 @@
 # (boolean value)
 #use_web_server_for_images = false
 
-
-#
-# Options defined in ironic.drivers.modules.ilo.deploy
-#
-
 # Priority for erase devices clean step. If unset, it defaults
 # to 10. If set to 0, the step will be disabled and will not
 # run during cleaning. (integer value)
 #clean_priority_erase_devices = <None>
-
-
-#
-# Options defined in ironic.drivers.modules.ilo.management
-#
 
 # Priority for reset_ilo clean step. (integer value)
 #clean_priority_reset_ilo = 0
@@ -1192,11 +1108,6 @@
 # nodes's driver_info with the new password. (integer value)
 #clean_priority_reset_ilo_credential = 30
 
-
-#
-# Options defined in ironic.drivers.modules.ilo.power
-#
-
 # Number of times a power operation needs to be retried
 # (integer value)
 #power_retry = 6
@@ -1209,7 +1120,7 @@
 [inspector]
 
 #
-# Options defined in ironic.drivers.modules.inspector
+# From ironic
 #
 
 # whether to enable inspection using ironic-inspector (boolean
@@ -1229,7 +1140,7 @@
 [ipmi]
 
 #
-# Options defined in ironic.drivers.modules.ipminative
+# From ironic
 #
 
 # Maximum time in seconds to retry IPMI operations. There is a
@@ -1250,7 +1161,7 @@
 [irmc]
 
 #
-# Options defined in ironic.drivers.modules.irmc.boot
+# From ironic
 #
 
 # Ironic conductor node's "NFS" or "CIFS" root path (string
@@ -1275,11 +1186,6 @@
 
 # Domain name of remote_image_user_name (string value)
 #remote_image_user_domain =
-
-
-#
-# Options defined in ironic.drivers.modules.irmc.common
-#
 
 # Port to be used for iRMC operations (port value)
 # Allowed values: 443, 80
@@ -1317,7 +1223,7 @@
 [ironic_lib]
 
 #
-# Options defined in ironic_lib.utils
+# From ironic_lib.utils
 #
 
 # Command that is prefixed to commands that are run as root.
@@ -1329,7 +1235,7 @@
 [iscsi]
 
 #
-# Options defined in ironic.drivers.modules.iscsi_deploy
+# From ironic
 #
 
 # The port number on which the iSCSI portal listens for
@@ -1342,7 +1248,7 @@
 [keystone]
 
 #
-# Options defined in ironic.common.keystone
+# From ironic
 #
 
 # The region used for getting endpoints of OpenStack services.
@@ -1353,7 +1259,7 @@
 [keystone_authtoken]
 
 #
-# Options defined in keystonemiddleware.auth_token
+# From keystonemiddleware.auth_token
 #
 
 # Complete public Identity API endpoint. (string value)
@@ -1405,7 +1311,7 @@
 # Optionally specify a list of memcached server(s) to use for
 # caching. If left undefined, tokens will instead be cached
 # in-process. (list value)
-# Deprecated group/name - [keystone_authtoken]/memcache_servers
+# Deprecated group/name - [DEFAULT]/memcache_servers
 #memcached_servers = <None>
 
 # In order to prevent excessive effort spent validating
@@ -1496,7 +1402,7 @@
 #hash_algorithms = md5
 
 # Authentication type to load (unknown value)
-# Deprecated group/name - [keystone_authtoken]/auth_plugin
+# Deprecated group/name - [DEFAULT]/auth_plugin
 #auth_type = <None>
 
 # Config Section from which to load plugin specific options
@@ -1507,7 +1413,7 @@
 [matchmaker_redis]
 
 #
-# Options defined in oslo.messaging
+# From oslo.messaging
 #
 
 # Host to locate redis. (string value)
@@ -1523,7 +1429,7 @@
 
 # List of Redis Sentinel hosts (fault tolerance mode) e.g.
 # [host:port, host1:port ... ] (list value)
-#sentinel_hosts = 
+#sentinel_hosts =
 
 # Redis replica set name. (string value)
 #sentinel_group_name = oslo-messaging-zeromq
@@ -1543,7 +1449,7 @@
 [neutron]
 
 #
-# Options defined in ironic.dhcp.neutron
+# From ironic
 #
 
 # URL for connecting to neutron. (string value)
@@ -1577,7 +1483,7 @@
 [oneview]
 
 #
-# Options defined in ironic.drivers.modules.oneview.common
+# From ironic
 #
 
 # URL where OneView is available (string value)
@@ -1604,7 +1510,7 @@
 [oslo_concurrency]
 
 #
-# Options defined in oslo.concurrency
+# From oslo.concurrency
 #
 
 # Enables or disables inter-process locks. (boolean value)
@@ -1623,7 +1529,7 @@
 [oslo_messaging_amqp]
 
 #
-# Options defined in oslo.messaging
+# From oslo.messaging
 #
 
 # address prefix used when sending to a specific server
@@ -1705,14 +1611,14 @@
 [oslo_messaging_notifications]
 
 #
-# Options defined in oslo.messaging
+# From oslo.messaging
 #
 
 # The Drivers(s) to handle sending notifications. Possible
 # values are messaging, messagingv2, routing, log, test, noop
 # (multi valued)
 # Deprecated group/name - [DEFAULT]/notification_driver
-#driver = 
+#driver =
 
 # A URL representing the messaging driver to use for
 # notifications. If not set, we fall back to the same
@@ -1729,7 +1635,7 @@
 [oslo_messaging_rabbit]
 
 #
-# Options defined in oslo.messaging
+# From oslo.messaging
 #
 
 # Use durable queues in AMQP. (boolean value)
@@ -1773,7 +1679,7 @@
 # How long to wait a missing client beforce abandoning to send
 # it its replies. This value should not be longer than
 # rpc_response_timeout. (integer value)
-# Deprecated group/name - [oslo_messaging_rabbit]/kombu_reconnect_timeout
+# Deprecated group/name - [DEFAULT]/kombu_reconnect_timeout
 #kombu_missing_consumer_retry_timeout = 60
 
 # Determines how the next RabbitMQ node is chosen in case the
@@ -1983,7 +1889,7 @@
 [oslo_policy]
 
 #
-# Options defined in oslo.policy
+# From oslo.policy
 #
 
 # The JSON file that defines policies. (string value)
@@ -2008,7 +1914,7 @@
 [pxe]
 
 #
-# Options defined in ironic.drivers.modules.iscsi_deploy
+# From ironic
 #
 
 # Additional append parameters for baremetal PXE boot. (string
@@ -2039,11 +1945,6 @@
 # The disk devices to scan while doing the deploy. (string
 # value)
 #disk_devices = cciss/c0d0,sda,hda,vda
-
-
-#
-# Options defined in ironic.drivers.modules.pxe
-#
 
 # On ironic-conductor node, template file for PXE
 # configuration. (string value)
@@ -2092,7 +1993,7 @@
 [seamicro]
 
 #
-# Options defined in ironic.drivers.modules.seamicro
+# From ironic
 #
 
 # Maximum retries for SeaMicro operations (integer value)
@@ -2106,7 +2007,7 @@
 [snmp]
 
 #
-# Options defined in ironic.drivers.modules.snmp
+# From ironic
 #
 
 # Seconds to wait for power action to be completed (integer
@@ -2122,7 +2023,7 @@
 [ssh]
 
 #
-# Options defined in ironic.drivers.modules.ssh
+# From ironic
 #
 
 # libvirt URI. (string value)
@@ -2141,7 +2042,7 @@
 [ssl]
 
 #
-# Options defined in oslo.service.sslutils
+# From oslo.service.sslutils
 #
 
 # CA certificate file to use to verify connecting clients.
@@ -2172,7 +2073,7 @@
 [swift]
 
 #
-# Options defined in ironic.common.swift
+# From ironic
 #
 
 # Maximum number of times to retry a Swift request, before
@@ -2183,7 +2084,7 @@
 [virtualbox]
 
 #
-# Options defined in ironic.drivers.modules.virtualbox
+# From ironic
 #
 
 # Port on which VirtualBox web service is listening. (port
@@ -2191,5 +2092,3 @@
 # Minimum value: 0
 # Maximum value: 65535
 #port = 18083
-
-
