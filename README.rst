@@ -19,7 +19,8 @@ Project Resources
 * Bugs: http://bugs.launchpad.net/ironic
 * Wiki: https://wiki.openstack.org/wiki/Ironic
 
-Project status, bugs, and blueprints are tracked on Launchpad:
+Project status, bugs and RFEs (requests for feature enhancements)
+are tracked on Launchpad:
 
   http://launchpad.net/ironic
 
