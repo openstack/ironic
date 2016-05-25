@@ -13,11 +13,13 @@
 import functools
 
 from tempest import config
+from tempest.lib.common import api_version_utils
 from tempest.lib.common.utils import data_utils
 from tempest.lib import exceptions as lib_exc
 from tempest import test
 
 from ironic_tempest_plugin import clients
+from ironic_tempest_plugin.tests.api.admin import api_microversion_fixture
 
 CONF = config.CONF
 
@@ -50,7 +52,8 @@ def creates(resource):
     return decorator
 
 
-class BaseBaremetalTest(test.BaseTestCase):
+class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
+                        test.BaseTestCase):
     """Base class for Baremetal API tests."""
 
     credentials = ['admin']
@@ -64,6 +67,23 @@ class BaseBaremetalTest(test.BaseTestCase):
                         (cls.__name__, CONF.baremetal.driver))
             raise cls.skipException(skip_msg)
 
+        cfg_min_version = CONF.baremetal.min_microversion
+        cfg_max_version = CONF.baremetal.max_microversion
+        api_version_utils.check_skip_with_microversion(cls.min_microversion,
+                                                       cls.max_microversion,
+                                                       cfg_min_version,
+                                                       cfg_max_version)
+
+    @classmethod
+    def setup_credentials(cls):
+        cls.request_microversion = (
+            api_version_utils.select_request_microversion(
+                cls.min_microversion,
+                CONF.baremetal.min_microversion))
+        cls.services_microversion = {
+            CONF.baremetal.catalog_type: cls.request_microversion}
+        super(BaseBaremetalTest, cls).setup_credentials()
+
     @classmethod
     def setup_clients(cls):
         super(BaseBaremetalTest, cls).setup_clients()
@@ -72,9 +92,13 @@ class BaseBaremetalTest(test.BaseTestCase):
     @classmethod
     def resource_setup(cls):
         super(BaseBaremetalTest, cls).resource_setup()
-
+        cls.request_microversion = (
+            api_version_utils.select_request_microversion(
+                cls.min_microversion,
+                CONF.baremetal.min_microversion))
         cls.driver = CONF.baremetal.driver
         cls.power_timeout = CONF.baremetal.power_timeout
+        cls.unprovision_timeout = CONF.baremetal.unprovision_timeout
         cls.created_objects = {}
         for resource in RESOURCE_TYPES:
             cls.created_objects[resource] = set()
@@ -91,6 +115,11 @@ class BaseBaremetalTest(test.BaseTestCase):
                     delete_method(u, ignore_errors=lib_exc.NotFound)
         finally:
             super(BaseBaremetalTest, cls).resource_cleanup()
+
+    def setUp(self):
+        super(BaseBaremetalTest, self).setUp()
+        self.useFixture(api_microversion_fixture.APIMicroversionFixture(
+            self.request_microversion))
 
     @classmethod
     @creates('chassis')

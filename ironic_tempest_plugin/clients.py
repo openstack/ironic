@@ -28,8 +28,13 @@ ADMIN_CREDS = common_creds.get_configured_credentials('identity_admin')
 class Manager(clients.Manager):
     def __init__(self,
                  credentials=ADMIN_CREDS,
-                 service=None,
-                 api_microversions=None):
+                 service=None):
+        """Initialization of Manager class.
+
+        Setup service client and make it available for test cases.
+        :param credentials: type Credentials or TestResources
+        :param service: service name
+        """
         super(Manager, self).__init__(credentials, service)
         self.baremetal_client = BaremetalClient(
             self.auth_provider,
