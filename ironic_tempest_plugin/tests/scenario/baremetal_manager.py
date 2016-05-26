@@ -36,7 +36,9 @@ class BaremetalPowerStates(object):
 
 class BaremetalProvisionStates(object):
     """Possible provision states of an Ironic node."""
+    ENROLL = 'enroll'
     NOSTATE = None
+    AVAILABLE = 'available'
     INIT = 'initializing'
     ACTIVE = 'active'
     BUILDING = 'building'
@@ -175,6 +177,7 @@ class BaremetalScenarioTest(manager.ScenarioTest):
                               BaremetalPowerStates.POWER_OFF)
         self.wait_provisioning_state(
             self.node['uuid'],
-            BaremetalProvisionStates.NOSTATE,
+            [BaremetalProvisionStates.NOSTATE,
+             BaremetalProvisionStates.AVAILABLE],
             timeout=CONF.baremetal.unprovision_timeout,
             interval=30)
