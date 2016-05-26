@@ -2,4 +2,5 @@
 fixes:
   - Fixes a problem which allowed nodes to be named with some reserved
     words that are implicitly not allowed due the way the Ironic API
-    works.
+    works. The reserved words are "maintenance", "management", "ports",
+    "states", "vendor_passthru", "validate" and "detail".
