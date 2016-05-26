@@ -67,9 +67,9 @@ additional functionality:
 - bifrost_; a set of Ansible playbooks that automates the task of deploying a
   base image onto a set of known hardware using ironic.
 
-.. _ironic-inspector: https://github.com/openstack/ironic-inspector
-.. _diskimage-builder: https://github.com/openstack/diskimage-builder
-.. _bifrost: https://github.com/openstack/bifrost
+.. _ironic-inspector: http://docs.openstack.org/developer/ironic-inspector/
+.. _diskimage-builder: http://docs.openstack.org/developer/diskimage-builder/
+.. _bifrost: http://docs.openstack.org/developer/bifrost/
 
 
 .. todo: include coreos-image-builder reference here, once the split is done
@@ -682,14 +682,7 @@ them to the Image service:
 1. The `disk-image-builder`_ can be used to create images required for
    deployment and the actual OS which the user is going to run.
 
-.. _disk-image-builder: https://github.com/openstack/diskimage-builder
-
-   *Note:* `tripleo-incubator`_ provides a `script`_ to install all the
-   dependencies for the disk-image-builder.
-
-.. _tripleo-incubator: https://github.com/openstack/tripleo-incubator
-
-.. _script: https://github.com/openstack/tripleo-incubator/blob/master/scripts/install-dependencies
+.. _disk-image-builder: http://docs.openstack.org/developer/diskimage-builder/
 
    - Install diskimage-builder package (use virtualenv, if you don't
      want to install anything globally)::
@@ -2231,7 +2224,7 @@ and provide the file or HTTP URL to the Bare Metal service.
 For the format of the configuration drive, Bare Metal service expects a
 ``gzipped`` and ``base64`` encoded ISO 9660 [*]_ file with a ``config-2``
 label. The
-`ironic client <https://github.com/openstack/python-ironicclient>`_
+`ironic client <http://docs.openstack.org/developer/python-ironicclient/>`_
 can generate a configuration drive in the `expected format`_. Just pass a
 directory path containing the files that will be injected into it via the
 ``--config-drive`` parameter of the ``node-set-provision-state`` command,
@@ -2323,7 +2316,7 @@ CoreOS tools
 
 #. Clone the ironic-python-agent_ project::
 
-    git clone https://github.com/openstack/ironic-python-agent
+    git clone https://git.openstack.org/openstack/ironic-python-agent
 
 #. Install the requirements::
 
@@ -2586,5 +2579,5 @@ following command.
     $ ironic node-set-maintenance $NODE_UUID off
 
 
-.. _diskimage-builder: https://github.com/openstack/diskimage-builder
-.. _ironic-python-agent: https://github.com/openstack/ironic-python-agent
+.. _diskimage-builder: http://docs.openstack.org/developer/diskimage-builder/
+.. _ironic-python-agent: http://docs.openstack.org/developer/ironic-python-agent/

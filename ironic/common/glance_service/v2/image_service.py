@@ -301,9 +301,9 @@ class GlanceImageService(base_image_service.BaseImageService,
     def _get_swift_container(self, image_id):
         """Get the Swift container the image is stored in.
 
-        Code based on: https://github.com/openstack/glance_store/blob/3cd690b3
-        7dc9d935445aca0998e8aec34a3e3530/glance_store/
-        _drivers/swift/store.py#L725
+        Code based on: http://git.openstack.org/cgit/openstack/glance_store/
+        tree/glance_store/_drivers/swift/
+        store.py?id=3cd690b37dc9d935445aca0998e8aec34a3e3530#n725
 
         Returns appropriate container name depending upon value of
         ``swift_store_multiple_containers_seed``. In single-container mode,
