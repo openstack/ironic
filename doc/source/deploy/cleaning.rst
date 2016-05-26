@@ -112,9 +112,9 @@ is an ordered list of cleaning steps. A cleaning step is represented by a
 dictionary (JSON), in the form::
 
   {
-      'interface': <interface>,
-      'step': <name of cleaning step>,
-      'args': {<arg1>: <value1>, ..., <argn>: <valuen>}
+      "interface": "<interface>",
+      "step": "<name of cleaning step>",
+      "args": {"<arg1>": "<value1>", ..., "<argn>": <valuen>}
   }
 
 The 'interface' and 'step' keys are required for all steps. If a cleaning step
