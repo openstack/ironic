@@ -53,10 +53,8 @@ class BaremetalClient(rest_client.RestClient):
             headers[self.api_microversion_header_name] = BAREMETAL_MICROVERSION
         return headers
 
-    def request(self, method, url, extra_headers=False, headers=None,
-                body=None):
-        resp, resp_body = super(BaremetalClient, self).request(
-            method, url, extra_headers, headers, body)
+    def request(self, *args, **kwargs):
+        resp, resp_body = super(BaremetalClient, self).request(*args, **kwargs)
         if (BAREMETAL_MICROVERSION and
             BAREMETAL_MICROVERSION != api_version_utils.LATEST_MICROVERSION):
             api_version_utils.assert_version_header_matches_request(
