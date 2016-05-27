@@ -42,10 +42,6 @@ class AgentClient(object):
     def _get_command_url(self, node):
         agent_url = node.driver_internal_info.get('agent_url')
         if not agent_url:
-            # (lintan) Keep backwards compatible with booted nodes before this
-            # change. Remove this after Kilo.
-            agent_url = node.driver_info.get('agent_url')
-        if not agent_url:
             raise exception.IronicException(_('Agent driver requires '
                                               'agent_url in '
                                               'driver_internal_info'))

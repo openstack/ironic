@@ -38,7 +38,6 @@ class MockResponse(object):
 class MockNode(object):
     def __init__(self):
         self.uuid = 'uuid'
-        self.driver_info = {}
         self.driver_internal_info = {
             'agent_url': "http://127.0.0.1:9999",
             'clean_version': {'generic': '1'}
@@ -48,7 +47,6 @@ class MockNode(object):
     def as_dict(self):
         return {
             'uuid': self.uuid,
-            'driver_info': self.driver_info,
             'driver_internal_info': self.driver_internal_info,
             'instance_info': self.instance_info
         }
