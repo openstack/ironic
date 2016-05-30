@@ -1,0 +1,6 @@
+---
+upgrade:
+  - Removes support for "hexraw" type in the iPXE script
+    (boot.ipxe) since "hexraw" is not supported in older
+    versions of iPXE. "hexhyp" replaced "hexraw" and has
+    been used since kilo.
