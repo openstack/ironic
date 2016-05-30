@@ -317,7 +317,7 @@ class PortsController(rest.RestController):
         # NOTE(lucasagomes): /detail should only work against collections
         parent = pecan.request.path.split('/')[:-1][-1]
         if parent != "ports":
-            raise exception.HTTPNotFound
+            raise exception.HTTPNotFound()
 
         resource_url = '/'.join(['ports', 'detail'])
         return self._get_ports_collection(node_uuid or node, address, marker,
@@ -333,7 +333,7 @@ class PortsController(rest.RestController):
             of the resource to be returned.
         """
         if self.from_nodes:
-            raise exception.OperationNotPermitted
+            raise exception.OperationNotPermitted()
 
         api_utils.check_allow_specify_fields(fields)
 
@@ -347,7 +347,7 @@ class PortsController(rest.RestController):
         :param port: a port within the request body.
         """
         if self.from_nodes:
-            raise exception.OperationNotPermitted
+            raise exception.OperationNotPermitted()
 
         new_port = objects.Port(pecan.request.context,
                                 **port.as_dict())
@@ -365,7 +365,7 @@ class PortsController(rest.RestController):
         :param patch: a json PATCH document to apply to this port.
         """
         if self.from_nodes:
-            raise exception.OperationNotPermitted
+            raise exception.OperationNotPermitted()
 
         rpc_port = objects.Port.get_by_uuid(pecan.request.context, port_uuid)
         try:
@@ -407,7 +407,7 @@ class PortsController(rest.RestController):
         :param port_uuid: UUID of a port.
         """
         if self.from_nodes:
-            raise exception.OperationNotPermitted
+            raise exception.OperationNotPermitted()
         rpc_port = objects.Port.get_by_uuid(pecan.request.context,
                                             port_uuid)
         rpc_node = objects.Node.get_by_id(pecan.request.context,

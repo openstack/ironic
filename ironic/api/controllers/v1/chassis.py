@@ -222,7 +222,7 @@ class ChassisController(rest.RestController):
         # /detail should only work against collections
         parent = pecan.request.path.split('/')[:-1][-1]
         if parent != "chassis":
-            raise exception.HTTPNotFound
+            raise exception.HTTPNotFound()
 
         resource_url = '/'.join(['chassis', 'detail'])
         return self._get_chassis_collection(marker, limit, sort_key, sort_dir,

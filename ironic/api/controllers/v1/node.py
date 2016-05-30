@@ -1168,7 +1168,7 @@ class NodesController(rest.RestController):
         # /detail should only work against collections
         parent = pecan.request.path.split('/')[:-1][-1]
         if parent != "nodes":
-            raise exception.HTTPNotFound
+            raise exception.HTTPNotFound()
 
         resource_url = '/'.join(['nodes', 'detail'])
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
@@ -1209,7 +1209,7 @@ class NodesController(rest.RestController):
             of the resource to be returned.
         """
         if self.from_chassis:
-            raise exception.OperationNotPermitted
+            raise exception.OperationNotPermitted()
 
         api_utils.check_allow_specify_fields(fields)
 
@@ -1223,7 +1223,7 @@ class NodesController(rest.RestController):
         :param node: a node within the request body.
         """
         if self.from_chassis:
-            raise exception.OperationNotPermitted
+            raise exception.OperationNotPermitted()
 
         # NOTE(deva): get_topic_for checks if node.driver is in the hash ring
         #             and raises NoValidHost if it is not.
@@ -1262,7 +1262,7 @@ class NodesController(rest.RestController):
         :param patch: a json PATCH document to apply to this node.
         """
         if self.from_chassis:
-            raise exception.OperationNotPermitted
+            raise exception.OperationNotPermitted()
 
         rpc_node = api_utils.get_rpc_node(node_ident)
 
@@ -1333,7 +1333,7 @@ class NodesController(rest.RestController):
         :param node_ident: UUID or logical name of a node.
         """
         if self.from_chassis:
-            raise exception.OperationNotPermitted
+            raise exception.OperationNotPermitted()
 
         rpc_node = api_utils.get_rpc_node(node_ident)
 
