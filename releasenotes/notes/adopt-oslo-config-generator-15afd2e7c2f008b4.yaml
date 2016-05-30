@@ -1,6 +1,6 @@
 ---
 other:
-    Adopt oslo-config-generator to generate sample config files.
+  - Adopt oslo-config-generator to generate sample config files.
     New config options from Ironic code should register with
     ironic/conf/opts.py. New external libraries should register
     with tools/config/ironic-config-generator.conf.
