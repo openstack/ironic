@@ -86,7 +86,7 @@ function init_ironic {
 }
 
 function wait_for_keystone {
-    if ! wait_for_service $SERVICE_TIMEOUT ${KEYSTONE_AUTH_URI}/v2.0/; then
+    if ! wait_for_service $SERVICE_TIMEOUT ${KEYSTONE_AUTH_URI}/v$IDENTITY_API_VERSION/; then
         die $LINENO "keystone did not start"
     fi
 }
