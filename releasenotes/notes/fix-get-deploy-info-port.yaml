@@ -1,0 +1,4 @@
+---
+fixes:
+  - Fixed the default value of 'port' in iscsi_deploy.get_deploy_info to be set
+    to [iscsi]/portal_port option value, instead of hardcoding it to '3260'.

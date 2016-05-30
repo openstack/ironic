@@ -499,6 +499,11 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         ret_val = self._test_get_deploy_info()
         self.assertNotIn('disk_label', ret_val)
 
+    def test_get_deploy_info_portal_port(self):
+        self.config(portal_port=3266, group='iscsi')
+        ret_val = self._test_get_deploy_info()
+        self.assertEqual(3266, ret_val['port'])
+
     @mock.patch.object(iscsi_deploy, 'continue_deploy', autospec=True)
     @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options',
                        autospec=True)

@@ -202,7 +202,7 @@ def get_deploy_info(node, **kwargs):
 
     params = {
         'address': kwargs.get('address'),
-        'port': kwargs.get('port', '3260'),
+        'port': kwargs.get('port', CONF.iscsi.portal_port),
         'iqn': kwargs.get('iqn'),
         'lun': kwargs.get('lun', '1'),
         'image_path': _get_image_file_path(node.uuid),
