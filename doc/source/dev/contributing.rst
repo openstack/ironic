@@ -53,7 +53,7 @@ Wiki
     http://wiki.openstack.org/Ironic
 
 Code Hosting
-    https://github.com/openstack/ironic
+    https://git.openstack.org/cgit/openstack/ironic
 
 Code Review
     https://review.openstack.org/#/q/status:open+project:openstack/ironic,n,z

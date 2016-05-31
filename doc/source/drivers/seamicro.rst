@@ -112,4 +112,4 @@ boot an instance on it:
 References
 ==========
 .. [1] Python-seamicroclient - https://pypi.python.org/pypi/python-seamicroclient
-.. [2] DiskImage-Builder - https://github.com/openstack/diskimage-builder
+.. [2] DiskImage-Builder - http://docs.openstack.org/developer/diskimage-builder/

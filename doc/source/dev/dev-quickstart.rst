@@ -348,13 +348,13 @@ station.  Deploying Ironic with DevStack requires a machine running Ubuntu
 Devstack will no longer create the user 'stack' with the desired
 permissions, but does provide a script to perform the task::
 
-    git clone https://github.com/openstack-dev/devstack.git devstack
+    git clone https://git.openstack.org/openstack-dev/devstack.git devstack
     sudo ./devstack/tools/create-stack-user.sh
 
 Switch to the stack user and clone DevStack::
 
     sudo su - stack
-    git clone https://github.com/openstack-dev/devstack.git devstack
+    git clone https://git.openstack.org/openstack-dev/devstack.git devstack
 
 Create devstack/local.conf with minimal settings required to enable Ironic.
 You can use either of two drivers for deploy: pxe_* or agent_*, see :ref:`IPA`
@@ -560,7 +560,7 @@ First, navigate to Tempest directory::
   cd /opt/stack/tempest
 
 To run all tests from the `Ironic plugin
-<https://github.com/openstack/ironic/tree/master/ironic_tempest_plugin>`_,
+<https://git.openstack.org/cgit/openstack/ironic/tree/ironic_tempest_plugin?h=master>`_,
 execute the following command::
 
   tox -e all-plugin -- ironic
