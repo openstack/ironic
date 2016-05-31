@@ -93,11 +93,6 @@ def _link_mac_pxe_configs(task):
     pxe_config_file_path = get_pxe_config_file_path(task.node.uuid)
     for mac in driver_utils.get_node_mac_addresses(task):
         create_link(_get_pxe_mac_path(mac))
-        # TODO(lucasagomes): Backward compatibility with :hexraw,
-        # to be removed in Mitaka.
-        # see: https://bugs.launchpad.net/ironic/+bug/1441710
-        if CONF.pxe.ipxe_enabled:
-            create_link(_get_pxe_mac_path(mac, delimiter=''))
 
 
 def _link_ip_address_pxe_configs(task, hex_form):
@@ -128,7 +123,7 @@ def _link_ip_address_pxe_configs(task, hex_form):
                                         ip_address_path)
 
 
-def _get_pxe_mac_path(mac, delimiter=None):
+def _get_pxe_mac_path(mac, delimiter='-'):
     """Convert a MAC address into a PXE config file name.
 
     :param mac: A MAC address string in the format xx:xx:xx:xx:xx:xx.
@@ -136,9 +131,6 @@ def _get_pxe_mac_path(mac, delimiter=None):
     :returns: the path to the config file.
 
     """
-    if delimiter is None:
-        delimiter = '-'
-
     mac_file_name = mac.replace(':', delimiter).lower()
     if not CONF.pxe.ipxe_enabled:
         mac_file_name = '01-' + mac_file_name
@@ -283,12 +275,6 @@ def clean_up_pxe_config(task):
     else:
         for mac in driver_utils.get_node_mac_addresses(task):
             ironic_utils.unlink_without_raise(_get_pxe_mac_path(mac))
-            # TODO(lucasagomes): Backward compatibility with :hexraw,
-            # to be removed in Mitaka.
-            # see: https://bugs.launchpad.net/ironic/+bug/1441710
-            if CONF.pxe.ipxe_enabled:
-                ironic_utils.unlink_without_raise(_get_pxe_mac_path(mac,
-                                                  delimiter=''))
 
     utils.rmtree_without_raise(os.path.join(get_root_dir(),
                                             task.node.uuid))
