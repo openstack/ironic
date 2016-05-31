@@ -75,7 +75,7 @@ The list and example below are representative of the response as of API microver
 
 .. rest_parameters:: parameters.yaml
 
-    - uuid: node_uuid
+    - uuid: uuid
     - name: node_name
     - power_state: power_state
     - target_power_state: target_power_state
@@ -202,7 +202,7 @@ Response
 
 .. rest_parameters:: parameters.yaml
 
-    - uuid: node_uuid
+    - uuid: uuid
     - name: node_name
     - power_state: power_state
     - target_power_state: target_power_state
@@ -260,7 +260,7 @@ Response
 
 .. rest_parameters:: parameters.yaml
 
-    - uuid: node_uuid
+    - uuid: uuid
     - name: node_name
     - power_state: power_state
     - target_power_state: target_power_state
@@ -325,7 +325,7 @@ Response
 
 .. rest_parameters:: parameters.yaml
 
-    - uuid: node_uuid
+    - uuid: uuid
     - name: node_name
     - power_state: power_state
     - target_power_state: target_power_state

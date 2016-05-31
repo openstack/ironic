@@ -380,12 +380,6 @@ node_name:
   in: body
   required: false
   type: string
-node_uuid:
-  description: |
-    UUID of the Node resource.
-  in: body
-  required: true
-  type: string
 nodes:
   description: |
     Links to the collection of nodes contained in
