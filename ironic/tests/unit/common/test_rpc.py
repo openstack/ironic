@@ -11,10 +11,33 @@
 # under the License.
 
 import mock
+from oslo_config import cfg
+import oslo_messaging as messaging
 
 from ironic.common import context as ironic_context
 from ironic.common import rpc
 from ironic.tests import base
+
+CONF = cfg.CONF
+
+
+class TestUtils(base.TestCase):
+
+    @mock.patch.object(messaging, 'Notifier', autospec=True)
+    @mock.patch.object(messaging, 'JsonPayloadSerializer', autospec=True)
+    @mock.patch.object(messaging, 'get_notification_transport', autospec=True)
+    @mock.patch.object(messaging, 'get_transport', autospec=True)
+    def test_init_globals(self, mock_get_transport, mock_get_notification,
+                          mock_serializer, mock_notifier):
+        rpc.TRANSPORT = None
+        rpc.NOTIFICATION_TRANSPORT = None
+        rpc.NOTIFIER = None
+        rpc.init(CONF)
+        self.assertEqual(mock_get_transport.return_value, rpc.TRANSPORT)
+        self.assertEqual(mock_get_notification.return_value,
+                         rpc.NOTIFICATION_TRANSPORT)
+        self.assertTrue(mock_serializer.called)
+        self.assertEqual(mock_notifier.return_value, rpc.NOTIFIER)
 
 
 class TestRequestContextSerializer(base.TestCase):
