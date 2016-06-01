@@ -143,6 +143,7 @@ class Connection(object):
                          'properties': { ... },
                          'extra': { ... },
                         }
+        :raises: InvalidParameterValue if create a node with tags.
         :returns: A node.
         """
 

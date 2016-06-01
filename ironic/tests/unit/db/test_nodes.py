@@ -24,7 +24,6 @@ import six
 
 from ironic.common import exception
 from ironic.common import states
-from ironic.db.sqlalchemy import api
 from ironic.tests.unit.db import base
 from ironic.tests.unit.db import utils
 
@@ -34,10 +33,10 @@ class DbNodeTestCase(base.DbTestCase):
     def test_create_node(self):
         utils.create_test_node()
 
-    @mock.patch.object(api.LOG, 'warning', autospec=True)
-    def test_create_node_with_tags(self, mock_log):
-        utils.create_test_node(tags=['tag1', 'tag2'])
-        self.assertTrue(mock_log.called)
+    def test_create_node_with_tags(self):
+        self.assertRaises(exception.InvalidParameterValue,
+                          utils.create_test_node,
+                          tags=['tag1', 'tag2'])
 
     def test_create_node_already_exists(self):
         utils.create_test_node()
