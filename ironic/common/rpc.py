@@ -43,7 +43,7 @@ TRANSPORT_ALIASES = {
 
 
 def init(conf):
-    global TRANSPORT, NOTIFIER
+    global TRANSPORT, NOTIFICATION_TRANSPORT, NOTIFIER
     exmods = get_allowed_exmods()
     TRANSPORT = messaging.get_transport(conf,
                                         allowed_remote_exmods=exmods,
