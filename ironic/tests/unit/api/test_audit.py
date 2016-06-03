@@ -38,7 +38,7 @@ class TestAuditMiddleware(base.BaseApiTest):
     @mock.patch.object(audit, 'AuditMiddleware')
     def test_enable_audit_request(self, mock_audit):
         CONF.audit.enabled = True
-        self._make_app(enable_acl=True)
+        self._make_app()
         mock_audit.assert_called_once_with(
             mock.ANY,
             audit_map_file=CONF.audit.audit_map_file,
@@ -50,10 +50,10 @@ class TestAuditMiddleware(base.BaseApiTest):
         mock_audit.side_effect = IOError("file access error")
 
         self.assertRaises(exception.InputFileError,
-                          self._make_app, enable_acl=True)
+                          self._make_app)
 
     @mock.patch.object(audit, 'AuditMiddleware')
     def test_disable_audit_request(self, mock_audit):
         CONF.audit.enabled = False
-        self._make_app(enable_acl=True)
+        self._make_app()
         self.assertFalse(mock_audit.called)

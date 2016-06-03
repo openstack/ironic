@@ -26,6 +26,7 @@ from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
 from ironic.common import exception
+from ironic.common import policy
 
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
@@ -153,6 +154,9 @@ class DriverPassthruController(rest.RestController):
         :raises: DriverNotFound if the driver name is invalid or the
                  driver cannot be loaded.
         """
+        cdict = pecan.request.context.to_dict()
+        policy.authorize('baremetal:driver:vendor_passthru', cdict, cdict)
+
         if driver_name not in _VENDOR_METHODS:
             topic = pecan.request.rpcapi.get_topic_for_driver(driver_name)
             ret = pecan.request.rpcapi.get_driver_vendor_passthru_methods(
@@ -172,6 +176,12 @@ class DriverPassthruController(rest.RestController):
                        implementation.
         :param data: body of data to supply to the specified method.
         """
+        cdict = pecan.request.context.to_dict()
+        if method == "lookup":
+            policy.authorize('baremetal:driver:ipa_lookup', cdict, cdict)
+        else:
+            policy.authorize('baremetal:driver:vendor_passthru', cdict, cdict)
+
         topic = pecan.request.rpcapi.get_topic_for_driver(driver_name)
         return api_utils.vendor_passthru(driver_name, method, topic, data=data,
                                          driver_passthru=True)
@@ -198,6 +208,10 @@ class DriverRaidController(rest.RestController):
         :raises: DriverNotFound, if driver is not loaded on any of the
             conductors.
         """
+        cdict = pecan.request.context.to_dict()
+        policy.authorize('baremetal:driver:get_raid_logical_disk_properties',
+                         cdict, cdict)
+
         if not api_utils.allow_raid_config():
             raise exception.NotAcceptable()
 
@@ -236,6 +250,9 @@ class DriversController(rest.RestController):
         #              will break from a single-line doc string.
         #              This is a result of a bug in sphinxcontrib-pecanwsme
         # https://github.com/dreamhost/sphinxcontrib-pecanwsme/issues/8
+        cdict = pecan.request.context.to_dict()
+        policy.authorize('baremetal:driver:get', cdict, cdict)
+
         driver_list = pecan.request.dbapi.get_active_driver_dict()
         return DriverList.convert_with_links(driver_list)
 
@@ -247,6 +264,8 @@ class DriversController(rest.RestController):
         # retrieving a list of drivers using the current sqlalchemy schema, but
         # this path must be exposed for Pecan to route any paths we might
         # choose to expose below it.
+        cdict = pecan.request.context.to_dict()
+        policy.authorize('baremetal:driver:get', cdict, cdict)
 
         driver_dict = pecan.request.dbapi.get_active_driver_dict()
         for name, hosts in driver_dict.items():
@@ -266,6 +285,9 @@ class DriversController(rest.RestController):
         :raises: DriverNotFound (HTTP 404) if the driver name is invalid or
                  the driver cannot be loaded.
         """
+        cdict = pecan.request.context.to_dict()
+        policy.authorize('baremetal:driver:get_properties', cdict, cdict)
+
         if driver_name not in _DRIVER_PROPERTIES:
             topic = pecan.request.rpcapi.get_topic_for_driver(driver_name)
             properties = pecan.request.rpcapi.get_driver_properties(

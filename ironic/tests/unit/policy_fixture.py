@@ -19,22 +19,27 @@ from oslo_config import cfg
 from oslo_policy import opts as policy_opts
 
 from ironic.common import policy as ironic_policy
-from ironic.tests.unit import fake_policy
 
 CONF = cfg.CONF
 
+# NOTE(deva): We ship a default that always masks passwords, but for testing
+#             we need to override that default to ensure passwords can be
+#             made visible by operators that choose to do so.
+policy_data = """
+{
+    "show_password": "tenant:admin"
+}
+"""
+
 
 class PolicyFixture(fixtures.Fixture):
-    def __init__(self, compat=None):
-        self.compat = compat
-
     def setUp(self):
         super(PolicyFixture, self).setUp()
         self.policy_dir = self.useFixture(fixtures.TempDir())
         self.policy_file_name = os.path.join(self.policy_dir.path,
                                              'policy.json')
         with open(self.policy_file_name, 'w') as policy_file:
-            policy_file.write(fake_policy.get_policy_data(self.compat))
+            policy_file.write(policy_data)
         policy_opts.set_defaults(CONF)
         CONF.set_override('policy_file', self.policy_file_name, 'oslo_policy')
         ironic_policy._ENFORCER = None

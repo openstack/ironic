@@ -45,10 +45,11 @@ class BaseApiTest(base.DbTestCase):
 
     def setUp(self):
         super(BaseApiTest, self).setUp()
-        cfg.CONF.set_override("auth_version", "v2.0",
+        cfg.CONF.set_override("auth_version", "v3",
                               group='keystone_authtoken')
         cfg.CONF.set_override("admin_user", "admin",
                               group='keystone_authtoken')
+        cfg.CONF.set_override("auth_strategy", "noauth")
         self.app = self._make_app()
 
         def reset_pecan():
@@ -60,7 +61,7 @@ class BaseApiTest(base.DbTestCase):
         self._check_version = p.start()
         self.addCleanup(p.stop)
 
-    def _make_app(self, enable_acl=False):
+    def _make_app(self):
         # Determine where we are so we can set up paths in the config
         root_dir = self.path_get()
 
@@ -70,11 +71,9 @@ class BaseApiTest(base.DbTestCase):
                 'modules': ['ironic.api'],
                 'static_root': '%s/public' % root_dir,
                 'template_path': '%s/api/templates' % root_dir,
-                'enable_acl': enable_acl,
                 'acl_public_routes': ['/', '/v1'],
             },
         }
-
         return pecan.testing.load_test_app(self.config)
 
     def _request_json(self, path, params, expect_errors=False, headers=None,

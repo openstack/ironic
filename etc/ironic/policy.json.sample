@@ -1,0 +1,72 @@
+# Legacy rule for cloud admin access
+"admin_api": "role:admin or role:administrator"
+# Internal flag for public API routes
+"public_api": "is_public_api:True"
+# Show or mask passwords in API responses
+"show_password": "!"
+# May be used to restrict access to specific tenants
+"is_member": "tenant:demo or tenant:baremetal"
+# Read-only API access
+"is_observer": "rule:is_member and (role:observer or role:baremetal_observer)"
+# Full read/write API access
+"is_admin": "rule:admin_api or (rule:is_member and role:baremetal_admin)"
+# Retrieve Node records
+"baremetal:node:get": "rule:is_admin or rule:is_observer"
+# Retrieve Node boot device metadata
+"baremetal:node:get_boot_device": "rule:is_admin or rule:is_observer"
+# View Node power and provision state
+"baremetal:node:get_states": "rule:is_admin or rule:is_observer"
+# Create Node records
+"baremetal:node:create": "rule:is_admin"
+# Delete Node records
+"baremetal:node:delete": "rule:is_admin"
+# Update Node records
+"baremetal:node:update": "rule:is_admin"
+# Request active validation of Nodes
+"baremetal:node:validate": "rule:is_admin"
+# Set maintenance flag, taking a Node out of service
+"baremetal:node:set_maintenance": "rule:is_admin"
+# Clear maintenance flag, placing the Node into service again
+"baremetal:node:clear_maintenance": "role:is_admin"
+# Change Node boot device
+"baremetal:node:set_boot_device": "rule:is_admin"
+# Change Node power status
+"baremetal:node:set_power_state": "rule:is_admin"
+# Change Node provision status
+"baremetal:node:set_provision_state": "rule:is_admin"
+# Change Node RAID status
+"baremetal:node:set_raid_state": "rule:is_admin"
+# Get Node console connection information
+"baremetal:node:get_console": "rule:is_admin"
+# Change Node console status
+"baremetal:node:set_console_state": "rule:is_admin"
+# Retrieve Port records
+"baremetal:port:get": "rule:is_admin or rule:is_observer"
+# Create Port records
+"baremetal:port:create": "rule:is_admin"
+# Delete Port records
+"baremetal:port:delete": "rule:is_admin"
+# Update Port records
+"baremetal:port:update": "rule:is_admin"
+# Retrieve Chassis records
+"baremetal:chassis:get": "rule:is_admin or rule:is_observer"
+# Create Chassis records
+"baremetal:chassis:create": "rule:is_admin"
+# Delete Chassis records
+"baremetal:chassis:delete": "rule:is_admin"
+# Update Chassis records
+"baremetal:chassis:update": "rule:is_admin"
+# View list of available drivers
+"baremetal:driver:get": "rule:is_admin or rule:is_observer"
+# View driver-specific properties
+"baremetal:driver:get_properties": "rule:is_admin or rule:is_observer"
+# View driver-specific RAID metadata
+"baremetal:driver:get_raid_logical_disk_properties": "rule:is_admin or rule:is_observer"
+# Access vendor-specific Node functions
+"baremetal:node:vendor_passthru": "rule:is_admin"
+# Access vendor-specific Driver functions
+"baremetal:driver:vendor_passthru": "rule:is_admin"
+# Send heartbeats from IPA ramdisk
+"baremetal:node:ipa_heartbeat": "rule:public_api"
+# Access IPA ramdisk functions
+"baremetal:driver:ipa_lookup": "rule:public_api"

@@ -31,6 +31,7 @@ from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import policy
 from ironic import objects
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
@@ -207,6 +208,9 @@ class ChassisController(rest.RestController):
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
         """
+        cdict = pecan.request.context.to_dict()
+        policy.authorize('baremetal:chassis:get', cdict, cdict)
+
         api_utils.check_allow_specify_fields(fields)
         if fields is None:
             fields = _DEFAULT_RETURN_FIELDS
@@ -224,6 +228,9 @@ class ChassisController(rest.RestController):
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
+        cdict = pecan.request.context.to_dict()
+        policy.authorize('baremetal:chassis:get', cdict, cdict)
+
         # /detail should only work against collections
         parent = pecan.request.path.split('/')[:-1][-1]
         if parent != "chassis":
@@ -242,6 +249,9 @@ class ChassisController(rest.RestController):
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
         """
+        cdict = pecan.request.context.to_dict()
+        policy.authorize('baremetal:chassis:get', cdict, cdict)
+
         api_utils.check_allow_specify_fields(fields)
         rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context,
                                                   chassis_uuid)
@@ -254,6 +264,9 @@ class ChassisController(rest.RestController):
 
         :param chassis: a chassis within the request body.
         """
+        cdict = pecan.request.context.to_dict()
+        policy.authorize('baremetal:chassis:create', cdict, cdict)
+
         new_chassis = objects.Chassis(pecan.request.context,
                                       **chassis.as_dict())
         new_chassis.create()
@@ -270,6 +283,9 @@ class ChassisController(rest.RestController):
         :param chassis_uuid: UUID of a chassis.
         :param patch: a json PATCH document to apply to this chassis.
         """
+        cdict = pecan.request.context.to_dict()
+        policy.authorize('baremetal:chassis:update', cdict, cdict)
+
         rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context,
                                                   chassis_uuid)
         try:
@@ -301,6 +317,9 @@ class ChassisController(rest.RestController):
 
         :param chassis_uuid: UUID of a chassis.
         """
+        cdict = pecan.request.context.to_dict()
+        policy.authorize('baremetal:chassis:delete', cdict, cdict)
+
         rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context,
                                                   chassis_uuid)
         rpc_chassis.destroy()

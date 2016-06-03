@@ -31,6 +31,7 @@ from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import policy
 from ironic import objects
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
@@ -308,6 +309,9 @@ class PortsController(rest.RestController):
             of the resource to be returned.
         :raises: NotAcceptable
         """
+        cdict = pecan.request.context.to_dict()
+        policy.authorize('baremetal:port:get', cdict, cdict)
+
         api_utils.check_allow_specify_fields(fields)
         if (fields and not api_utils.allow_port_advanced_net_fields() and
                 set(fields).intersection(self.advanced_net_fields)):
@@ -351,6 +355,9 @@ class PortsController(rest.RestController):
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         :raises: NotAcceptable, HTTPNotFound
         """
+        cdict = pecan.request.context.to_dict()
+        policy.authorize('baremetal:port:get', cdict, cdict)
+
         if not node_uuid and node:
             # We're invoking this interface using positional notation, or
             # explicitly using 'node'.  Try and determine which one.
@@ -379,6 +386,9 @@ class PortsController(rest.RestController):
             of the resource to be returned.
         :raises: NotAcceptable
         """
+        cdict = pecan.request.context.to_dict()
+        policy.authorize('baremetal:port:get', cdict, cdict)
+
         if self.from_nodes:
             raise exception.OperationNotPermitted()
 
@@ -395,6 +405,9 @@ class PortsController(rest.RestController):
         :param port: a port within the request body.
         :raises: NotAcceptable
         """
+        cdict = pecan.request.context.to_dict()
+        policy.authorize('baremetal:port:create', cdict, cdict)
+
         if self.from_nodes:
             raise exception.OperationNotPermitted()
 
@@ -421,6 +434,9 @@ class PortsController(rest.RestController):
         :param patch: a json PATCH document to apply to this port.
         :raises: NotAcceptable
         """
+        cdict = pecan.request.context.to_dict()
+        policy.authorize('baremetal:port:update', cdict, cdict)
+
         if self.from_nodes:
             raise exception.OperationNotPermitted()
         if not api_utils.allow_port_advanced_net_fields():
@@ -470,6 +486,9 @@ class PortsController(rest.RestController):
 
         :param port_uuid: UUID of a port.
         """
+        cdict = pecan.request.context.to_dict()
+        policy.authorize('baremetal:port:delete', cdict, cdict)
+
         if self.from_nodes:
             raise exception.OperationNotPermitted()
         rpc_port = objects.Port.get_by_uuid(pecan.request.context,

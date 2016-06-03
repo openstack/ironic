@@ -21,13 +21,11 @@ from oslo_config import cfg
 import oslo_messaging as messaging
 import six
 from six.moves import http_client
-from webob import exc as webob_exc
 
 from ironic.api.controllers import root
 from ironic.api import hooks
 from ironic.common import context
 from ironic.tests.unit.api import base
-from ironic.tests.unit import policy_fixture
 
 
 class FakeRequest(object):
@@ -217,6 +215,7 @@ class TestNoExceptionTracebackHook(base.BaseApiTest):
 class TestContextHook(base.BaseApiTest):
     @mock.patch.object(context, 'RequestContext')
     def test_context_hook_not_admin(self, mock_ctx):
+        cfg.CONF.set_override('auth_strategy', 'keystone')
         headers = fake_headers(admin=False)
         reqstate = FakeRequestState(headers=headers)
         context_hook = hooks.ContextHook(None)
@@ -234,6 +233,7 @@ class TestContextHook(base.BaseApiTest):
 
     @mock.patch.object(context, 'RequestContext')
     def test_context_hook_admin(self, mock_ctx):
+        cfg.CONF.set_override('auth_strategy', 'keystone')
         headers = fake_headers(admin=True)
         reqstate = FakeRequestState(headers=headers)
         context_hook = hooks.ContextHook(None)
@@ -251,6 +251,7 @@ class TestContextHook(base.BaseApiTest):
 
     @mock.patch.object(context, 'RequestContext')
     def test_context_hook_public_api(self, mock_ctx):
+        cfg.CONF.set_override('auth_strategy', 'keystone')
         headers = fake_headers(admin=True)
         env = {'is_public_api': True}
         reqstate = FakeRequestState(headers=headers, environ=env)
@@ -304,41 +305,6 @@ class TestContextHook(base.BaseApiTest):
                                  expect_errors=True)
         self.assertNotIn('Openstack-Request-Id',
                          response.headers)
-
-
-class TestTrustedCallHook(base.BaseApiTest):
-    def test_trusted_call_hook_not_admin(self):
-        headers = fake_headers(admin=False)
-        reqstate = FakeRequestState(headers=headers)
-        reqstate.set_context()
-        trusted_call_hook = hooks.TrustedCallHook()
-        self.assertRaises(webob_exc.HTTPForbidden,
-                          trusted_call_hook.before, reqstate)
-
-    def test_trusted_call_hook_admin(self):
-        headers = fake_headers(admin=True)
-        reqstate = FakeRequestState(headers=headers)
-        reqstate.set_context()
-        trusted_call_hook = hooks.TrustedCallHook()
-        trusted_call_hook.before(reqstate)
-
-    def test_trusted_call_hook_public_api(self):
-        headers = fake_headers(admin=False)
-        env = {'is_public_api': True}
-        reqstate = FakeRequestState(headers=headers, environ=env)
-        reqstate.set_context()
-        trusted_call_hook = hooks.TrustedCallHook()
-        trusted_call_hook.before(reqstate)
-
-
-class TestTrustedCallHookCompatJuno(TestTrustedCallHook):
-    def setUp(self):
-        super(TestTrustedCallHookCompatJuno, self).setUp()
-        self.policy = self.useFixture(
-            policy_fixture.PolicyFixture(compat='juno'))
-
-    def test_trusted_call_hook_public_api(self):
-        self.skipTest('no public_api trusted call policy in juno')
 
 
 class TestPublicUrlHook(base.BaseApiTest):
