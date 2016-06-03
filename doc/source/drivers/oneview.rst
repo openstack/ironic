@@ -168,7 +168,7 @@ Here is an overview of the deploy process for this driver:
 12. Baremetal node is active and ready to be used.
 
 Registering a OneView node in Ironic
-=====================================
+====================================
 
 Nodes configured to use any of the OneView drivers should have the ``driver``
 property set to ``iscsi_pxe_oneview`` or ``agent_pxe_oneview``. Considering
