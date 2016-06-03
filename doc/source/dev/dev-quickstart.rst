@@ -116,6 +116,26 @@ To run only the pep8/flake8 syntax and style checks::
 
     tox -epep8
 
+Debugging unit tests
+--------------------
+
+In order to break into the debugger from a unit test we need to insert
+a breaking point to the code:
+
+.. code-block:: python
+
+  import pdb; pdb.set_trace()
+
+Then run ``tox`` with the debug environment as one of the following::
+
+  tox -e debug
+  tox -e debug test_file_name
+  tox -e debug test_file_name.TestClass
+  tox -e debug test_file_name.TestClass.test_name
+
+For more information see the `oslotest documentation
+<http://docs.openstack.org/developer/oslotest/features.html#debugging-with-oslo-debug-helper>`_.
+
 ===============================
 Exercising the Services Locally
 ===============================
