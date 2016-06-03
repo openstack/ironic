@@ -3049,7 +3049,7 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin,
         node = obj_utils.create_test_node(self.context, driver='fake')
         pg = obj_utils.create_test_portgroup(
             self.context, node_id=node.id,
-            extra={'vif_portgroup_id': 'fake-id'})
+            extra={'vif_port_id': 'fake-id'})
         new_address = '11:22:33:44:55:bb'
         pg.address = new_address
         self.service.update_portgroup(self.context, pg)
@@ -3063,7 +3063,7 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin,
         node = obj_utils.create_test_node(self.context, driver='fake')
         pg = obj_utils.create_test_portgroup(
             self.context, node_id=node.id,
-            extra={'vif_portgroup_id': 'fake-id'})
+            extra={'vif_port_id': 'fake-id'})
         old_address = pg.address
         pg.address = '11:22:33:44:55:bb'
         mac_update_mock.side_effect = (
