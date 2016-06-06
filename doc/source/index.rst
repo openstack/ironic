@@ -43,6 +43,7 @@ Administrator's Guide
   deploy/security
   deploy/troubleshooting
   Release Notes <http://docs.openstack.org/releasenotes/ironic/>
+  Dashboard (horizon) plugin <http://docs.openstack.org/developer/ironic-ui/>
 
 Commands and API References
 ===========================
