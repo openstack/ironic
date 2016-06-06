@@ -1,8 +1,8 @@
 .. _upgrade-guide:
 
-=====================================
+================================
 Bare Metal Service Upgrade Guide
-=====================================
+================================
 
 This document outlines various steps and notes for operators to consider when
 upgrading their Ironic-driven clouds from previous versions of OpenStack.

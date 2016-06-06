@@ -1,8 +1,8 @@
 .. _user-guide:
 
-=======================
+======================
 Introduction to Ironic
-=======================
+======================
 
 Ironic is an OpenStack project which provisions physical hardware as opposed to
 virtual machines.  Ironic provides several reference drivers which leverage
@@ -97,47 +97,44 @@ other resource needs to provision a bare metal instance.
 Key Technologies for Bare Metal Hosting
 =======================================
 
-PXE
------
-Preboot Execution Environment (PXE) is part of the Wired for Management (WfM)
-specification developed by Intel and Microsoft.  The PXE enables system's BIOS
-and network interface card (NIC) to bootstrap a computer from the network in
-place of a disk. Bootstrapping is the process by which a system loads the OS
-into local memory so that it can be executed by the processor.  This capability
-of allowing a system to boot over a network simplifies server deployment and
-server management for administrators.
+Preboot Execution Environment (PXE)
+-----------------------------------
+PXE is part of the Wired for Management (WfM) specification developed by Intel
+and Microsoft. The PXE enables system's BIOS and network interface card (NIC)
+to bootstrap a computer from the network in place of a disk. Bootstrapping is
+the process by which a system loads the OS into local memory so that it can be
+executed by the processor. This capability of allowing a system to boot over a
+network simplifies server deployment and server management for administrators.
 
-DHCP
-------
-Dynamic Host Configuration Protocol (DHCP) is a standardized networking
-protocol used on Internet Protocol (IP) networks for dynamically distributing
-network configuration parameters, such as IP addresses for interfaces and
-services. Using PXE, the BIOS uses DHCP to obtain an IP address for the
-network interface and to locate the server that stores the network bootstrap
-program (NBP).
+Dynamic Host Configuration Protocol (DHCP)
+------------------------------------------
+DHCP is a standardized networking protocol used on Internet Protocol (IP)
+networks for dynamically distributing network configuration parameters, such
+as IP addresses for interfaces and services. Using PXE, the BIOS uses DHCP to
+obtain an IP address for the network interface and to locate the server that
+stores the network bootstrap program (NBP).
 
-NBP
-------
-Network Bootstrap Program (NBP) is equivalent to GRUB (GRand Unified
-Bootloader) or LILO (LInux LOader) - loaders which are traditionally used in
-local booting. Like the boot program in a hard drive environment, the NBP is
-responsible for loading the OS kernel into memory so that the OS can be
-bootstrapped over a network.
+Network Bootstrap Program (NBP)
+-------------------------------
+NBP is equivalent to GRUB (GRand Unified Bootloader) or LILO (LInux LOader) -
+loaders which are traditionally used in local booting. Like the boot program
+in a hard drive environment, the NBP is responsible for loading the OS kernel
+into memory so that the OS can be bootstrapped over a network.
 
-TFTP
-------
-Trivial File Transfer Protocol (TFTP) is a simple file transfer protocol that
-is generally used for automated transfer of configuration or boot files between
-machines in a local environment.  In a PXE environment, TFTP is used to
-download NBP over the network using information from the DHCP server.
+Trivial File Transfer Protocol (TFTP)
+-------------------------------------
+TFTP is a simple file transfer protocol that is generally used for automated
+transfer of configuration or boot files between machines in a local
+environment.  In a PXE environment, TFTP is used to download NBP over the
+network using information from the DHCP server.
 
-IPMI
-------
-Intelligent Platform Management Interface (IPMI) is a standardized computer
-system interface used by system administrators for out-of-band management of
-computer systems and monitoring of their operation.  It is a method to manage
-systems that may be unresponsive or powered off by using only a network
-connection to the hardware rather than to an operating system.
+Intelligent Platform Management Interface (IPMI)
+------------------------------------------------
+IPMI is a standardized computer system interface used by system administrators
+for out-of-band management of computer systems and monitoring of their
+operation. It is a method to manage systems that may be unresponsive or powered
+off by using only a network connection to the hardware rather than to an
+operating system.
 
 
 Ironic Deployment Architecture
@@ -297,7 +294,7 @@ This process is used with pxe_* family of drivers.
 (From a `talk`_  and `slides`_)
 
 Example 2: PXE Boot and Direct Deploy Process
-----------------------------------------------
+---------------------------------------------
 
 This process is used with agent_* family of drivers.
 

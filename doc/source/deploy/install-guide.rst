@@ -2588,5 +2588,4 @@ following command.
     $ ironic node-set-maintenance $NODE_UUID off
 
 
-.. _diskimage-builder: http://docs.openstack.org/developer/diskimage-builder/
 .. _ironic-python-agent: http://docs.openstack.org/developer/ironic-python-agent/

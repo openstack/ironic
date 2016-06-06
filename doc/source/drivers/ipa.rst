@@ -124,3 +124,4 @@ that you have to update the node's ``driver_info`` field and set the
 example, the below command sets this configuration in a specific node::
 
   ironic node-update <UUID or name> add driver_info/deploy_forces_oob_reboot=True
+

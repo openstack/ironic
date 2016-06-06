@@ -1,8 +1,8 @@
 .. _drivers:
 
-=================
+================
 Enabling drivers
-=================
+================
 
 Ironic-Python-Agent (agent)
 ---------------------------
@@ -13,16 +13,16 @@ nodes, and runs processes inside of a ramdisk.
 
 For more information on this, see :ref:`IPA`.
 
-IPMITool
---------
+IPMITool driver
+---------------
 
 .. toctree::
   :maxdepth: 1
 
   ../drivers/ipmitool
 
-DRAC
-----
+DRAC driver
+-----------
 
 DRAC with PXE deploy
 ^^^^^^^^^^^^^^^^^^^^
@@ -31,16 +31,16 @@ DRAC with PXE deploy
   ``/etc/ironic/ironic.conf``
 - Install python-dracclient package
 
-AMT
-----
+AMT driver
+----------
 
 .. toctree::
   :maxdepth: 1
 
   ../drivers/amt
 
-SNMP
-----
+SNMP driver
+-----------
 
 .. toctree::
   :maxdepth: 1
@@ -63,16 +63,16 @@ SeaMicro driver
 
   ../drivers/seamicro
 
-iRMC
-----
+iRMC driver
+-----------
 
 .. toctree::
   :maxdepth: 1
 
   ../drivers/irmc
 
-VirtualBox drivers
-------------------
+VirtualBox driver
+-----------------
 
 .. toctree::
   :maxdepth: 1
@@ -108,7 +108,7 @@ iBoot driver
 
 
 CIMC driver
-------------
+-----------
 
 .. toctree::
   :maxdepth: 1

@@ -337,3 +337,4 @@ The hardware manager that supports RAID configuration should do the following:
                 {'step': 'delete_configuration',
                  'interface': 'raid',
                  'priority': 0}]
+

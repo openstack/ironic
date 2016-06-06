@@ -317,7 +317,7 @@ Hardware Inspection
 Refer to `Hardware Inspection Support`_ for more information.
 
 Swiftless deploy for intermediate deploy and boot images
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Refer to `Swiftless deploy for intermediate images`_ for more information.
 
 HTTP(S) Based Deploy
@@ -1483,3 +1483,4 @@ To create an agent ramdisk with ``Proliant Hardware Manager``,
 use the ``proliant-tools`` element in DIB::
 
   disk-image-create -o proliant-agent-ramdisk ironic-agent fedora proliant-tools
+
