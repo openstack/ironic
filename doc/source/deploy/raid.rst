@@ -205,7 +205,7 @@ HDD::
           "raid_level": "1+0",
           "controller": "RAID.Integrated.1-1",
           "volume_name": "root_volume",
-          "is_root_volume": "true",
+          "is_root_volume": true,
           "physical_disks": [
                              "Disk.Bay.0:Encl.Int.0-1:RAID.Integrated.1-1",
                              "Disk.Bay.1:Encl.Int.0-1:RAID.Integrated.1-1"
