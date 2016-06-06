@@ -1334,11 +1334,11 @@ put in the ``manageable`` state again. User can follow steps from
 An example of a manual clean step with ``activate_license`` as the only clean
 step could be::
 
-    'clean_steps': [{
-        'interface': 'management',
-        'step': 'activate_license',
-        'args': {
-            'ilo_license_key': 'ABC12-XXXXX-XXXXX-XXXXX-YZ345'
+    "clean_steps": [{
+        "interface": "management",
+        "step": "activate_license",
+        "args": {
+            "ilo_license_key": "ABC12-XXXXX-XXXXX-XXXXX-YZ345"
         }
     }]
 
@@ -1364,36 +1364,36 @@ to initiate manual cleaning operation on a node.
 An example of a manual clean step with ``update_firmware`` as the only clean
 step could be::
 
-    'clean_steps': [{
-        'interface': 'management',
-        'step': 'update_firmware',
-        'args': {
-            'firmware_update_mode': 'ilo',
-            'firmware_images':[
+    "clean_steps": [{
+        "interface": "management",
+        "step": "update_firmware",
+        "args": {
+            "firmware_update_mode": "ilo",
+            "firmware_images":[
                 {
-                    'url': 'file:///firmware_images/ilo/1.5/CP024444.scexe',
-                    'checksum': 'a94e683ea16d9ae44768f0a65942234d',
-                    'component': 'ilo'
+                    "url": "file:///firmware_images/ilo/1.5/CP024444.scexe",
+                    "checksum": "a94e683ea16d9ae44768f0a65942234d",
+                    "component": "ilo"
                 },
                 {
-                    'url': 'swift://firmware_container/cpld2.3.rpm',
-                    'checksum': '<md5-checksum-of-this-file>',
-                    'component': 'cpld'
+                    "url": "swift://firmware_container/cpld2.3.rpm",
+                    "checksum": "<md5-checksum-of-this-file>",
+                    "component": "cpld"
                 },
                 {
-                    'url': 'http://my_address:port/firmwares/bios_vLatest.scexe',
-                    'checksum': '<md5-checksum-of-this-file>',
-                    'component': 'bios'
+                    "url": "http://my_address:port/firmwares/bios_vLatest.scexe",
+                    "checksum": "<md5-checksum-of-this-file>",
+                    "component": "bios"
                 },
                 {
-                    'url': 'https://my_secure_address_url/firmwares/chassis_vLatest.scexe',
-                    'checksum': '<md5-checksum-of-this-file>',
-                    'component': 'chassis'
+                    "url": "https://my_secure_address_url/firmwares/chassis_vLatest.scexe",
+                    "checksum": "<md5-checksum-of-this-file>",
+                    "component": "chassis"
                 },
                 {
-                    'url': 'file:///home/ubuntu/firmware_images/power_pic/pmc_v3.0.bin',
-                    'checksum': '<md5-checksum-of-this-file>',
-                    'component': 'power_pic'
+                    "url": "file:///home/ubuntu/firmware_images/power_pic/pmc_v3.0.bin",
+                    "checksum": "<md5-checksum-of-this-file>",
+                    "component": "power_pic"
                 }
             ]
         }
@@ -1414,9 +1414,9 @@ The different attributes of ``update_firmware`` clean step are as follows:
 Each firmware image block is represented by a dictionary (JSON), in the form::
 
     {
-      'url': '<url of firmware image file>',
-      'checksum': '<md5 checksum of firmware image file to verify the image>',
-      'component': '<device on which firmware image will be flashed>'
+      "url": "<url of firmware image file>",
+      "checksum": "<md5 checksum of firmware image file to verify the image>",
+      "component": "<device on which firmware image will be flashed>"
     }
 
 All the fields in the firmware image block are mandatory.

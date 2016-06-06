@@ -49,7 +49,7 @@ as the key. The value for the ``logical_disks`` is a list of JSON
 dictionaries. It looks like::
 
   {
-   'logical_disks': [
+   "logical_disks": [
                      {<desired properties of logical disk 1>},
                      {<desired properties of logical disk 2>},
                      .
@@ -152,11 +152,11 @@ Examples for ``target_raid_config``
 available. Make this the root volume to which Ironic deploys the image::
 
   {
-   'logical_disks': [
+   "logical_disks": [
                      {
-                      'size_gb': 'MAX',
-                      'raid_level': '5',
-                      'is_root_volume': true
+                      "size_gb": "MAX",
+                      "raid_level": "5",
+                      "is_root_volume": true
                      }
                     ]
   }
@@ -166,17 +166,17 @@ root volume and use SSD.  Another with RAID level 1 of 500 GiB and use
 HDD::
 
   {
-   'logical_disks': [
+   "logical_disks": [
                      {
-                      'size_gb': 100,
-                      'raid_level': '5',
-                      'is_root_volume': true,
-                      'disk_type': 'ssd'
+                      "size_gb": 100,
+                      "raid_level": "5",
+                      "is_root_volume": true,
+                      "disk_type": "ssd"
                      },
                      {
-                      'size_gb': '500',
-                      'raid_level': '1',
-                      'disk_type': 'hdd'
+                      "size_gb": "500",
+                      "raid_level": "1",
+                      "disk_type": "hdd"
                      }
                     ]
   }
@@ -184,13 +184,13 @@ HDD::
 *Example 3*. Single RAID disk. I know which disks and controller to use::
 
   {
-   'logical_disks': [
+   "logical_disks": [
                      {
-                      'size_gb': 100,
-                      'raid_level': '5',
-                      'controller': 'Smart Array P822 in Slot 3',
-                      'physical_disks': ['6I:1:5', '6I:1:6', '6I:1:7'],
-                      'is_root_volume': true
+                      "size_gb": 100,
+                      "raid_level": "5",
+                      "controller": "Smart Array P822 in Slot 3",
+                      "physical_disks": ["6I:1:5", "6I:1:6", "6I:1:7"],
+                      "is_root_volume": true
                      }
                     ]
   }
@@ -198,28 +198,28 @@ HDD::
 *Example 4*. Using backing physical disks::
 
   {
-    'logical_disks':
+    "logical_disks":
       [
         {
-          'size_gb': 50,
-          'raid_level': '1+0',
-          'controller': 'RAID.Integrated.1-1',
-          'volume_name': 'root_volume',
-          'is_root_volume': 'true',
-          'physical_disks': [
-                             'Disk.Bay.0:Encl.Int.0-1:RAID.Integrated.1-1',
-                             'Disk.Bay.1:Encl.Int.0-1:RAID.Integrated.1-1'
+          "size_gb": 50,
+          "raid_level": "1+0",
+          "controller": "RAID.Integrated.1-1",
+          "volume_name": "root_volume",
+          "is_root_volume": "true",
+          "physical_disks": [
+                             "Disk.Bay.0:Encl.Int.0-1:RAID.Integrated.1-1",
+                             "Disk.Bay.1:Encl.Int.0-1:RAID.Integrated.1-1"
                             ]
         },
         {
-          'size_gb': 100,
-          'raid_level': '5',
-          'controller': 'RAID.Integrated.1-1',
-          'volume_name': 'data_volume',
-          'physical_disks': [
-                             'Disk.Bay.2:Encl.Int.0-1:RAID.Integrated.1-1',
-                             'Disk.Bay.3:Encl.Int.0-1:RAID.Integrated.1-1',
-                             'Disk.Bay.4:Encl.Int.0-1:RAID.Integrated.1-1'
+          "size_gb": 100,
+          "raid_level": "5",
+          "controller": "RAID.Integrated.1-1",
+          "volume_name": "data_volume",
+          "physical_disks": [
+                             "Disk.Bay.2:Encl.Int.0-1:RAID.Integrated.1-1",
+                             "Disk.Bay.3:Encl.Int.0-1:RAID.Integrated.1-1",
+                             "Disk.Bay.4:Encl.Int.0-1:RAID.Integrated.1-1"
                             ]
         }
       ]
