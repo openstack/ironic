@@ -2058,7 +2058,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
 
         deploy_exec_mock.return_value = None
         power_exec_mock.return_value = None
-        tear_mock.side_effect = Exception()
+        tear_mock.side_effect = Exception('boom')
 
         self._start_service()
 
@@ -2088,7 +2088,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
         ]
         self.assertEqual(power_exec_calls, power_exec_mock.call_args_list)
         log_mock.exception.assert_called_once_with(
-            'Failed to tear down from cleaning for node {}'.format(node.uuid))
+            'Failed to tear down from cleaning for node {}, reason: boom'
+            .format(node.uuid))
 
     def test__do_next_clean_step_automated_fail_in_tear_down_cleaning(self):
         self._do_next_clean_step_fail_in_tear_down_cleaning()

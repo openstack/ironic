@@ -1003,8 +1003,9 @@ class ConductorManager(base_manager.BaseConductorManager):
         try:
             task.driver.deploy.tear_down_cleaning(task)
         except Exception as e:
-            msg = (_('Failed to tear down from cleaning for node %s')
-                   % node.uuid)
+            msg = (_('Failed to tear down from cleaning for node %(node)s, '
+                     'reason: %(err)s')
+                   % {'node': node.uuid, 'err': e})
             LOG.exception(msg)
             return utils.cleaning_error_handler(task, msg,
                                                 tear_down_cleaning=False)
