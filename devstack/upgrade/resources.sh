@@ -39,7 +39,7 @@ function early_create {
     # from ironic-conductor and creates taps between br-int and brbm.
     # ironic-conductor will be able to access the ironic nodes via this new
     # network.
-    # NOTE (vsaienko) use OSC when Neutron commands are supported in the stable
+    # TODO(vsaienko) use OSC when Neutron commands are supported in the stable
     # release.
     local net_id
     net_id=$(openstack network create --share $NEUTRON_NET -f value -c id)
