@@ -44,9 +44,7 @@ class PXEDracDriver(base.BaseDriver):
         self.management = management.DracManagement()
         self.iscsi_vendor = iscsi_deploy.VendorPassthru()
         self.drac_vendor = vendor_passthru.DracVendorPassthru()
-        self.mapping = {'pass_deploy_info': self.iscsi_vendor,
-                        'heartbeat': self.iscsi_vendor,
-                        'pass_bootloader_install_info': self.iscsi_vendor,
+        self.mapping = {'heartbeat': self.iscsi_vendor,
                         'get_bios_config': self.drac_vendor,
                         'set_bios_config': self.drac_vendor,
                         'commit_bios_config': self.drac_vendor,

@@ -77,9 +77,7 @@ class PXEAndIPMIToolDriver(base.BaseDriver):
         self.ipmi_vendor = ipmitool.VendorPassthru()
         self.mapping = {'send_raw': self.ipmi_vendor,
                         'bmc_reset': self.ipmi_vendor,
-                        'heartbeat': self.iscsi_vendor,
-                        'pass_deploy_info': self.iscsi_vendor,
-                        'pass_bootloader_install_info': self.iscsi_vendor}
+                        'heartbeat': self.iscsi_vendor}
         self.driver_passthru_mapping = {'lookup': self.iscsi_vendor}
         self.vendor = utils.MixinVendorInterface(
             self.mapping,
@@ -137,8 +135,6 @@ class PXEAndIPMINativeDriver(base.BaseDriver):
             'send_raw': self.ipminative_vendor,
             'bmc_reset': self.ipminative_vendor,
             'heartbeat': self.iscsi_vendor,
-            'pass_bootloader_install_info': self.iscsi_vendor,
-            'pass_deploy_info': self.iscsi_vendor,
         }
         self.driver_passthru_mapping = {'lookup': self.iscsi_vendor}
         self.vendor = utils.MixinVendorInterface(self.mapping,
@@ -168,11 +164,13 @@ class PXEAndSeaMicroDriver(base.BaseDriver):
         self.deploy = iscsi_deploy.ISCSIDeploy()
         self.management = seamicro.Management()
         self.seamicro_vendor = seamicro.VendorPassthru()
-        self.pxe_vendor = iscsi_deploy.VendorPassthru()
-        self.mapping = {'pass_deploy_info': self.pxe_vendor,
+        self.iscsi_vendor = iscsi_deploy.VendorPassthru()
+        self.mapping = {'heartbeat': self.iscsi_vendor,
                         'attach_volume': self.seamicro_vendor,
                         'set_node_vlan_id': self.seamicro_vendor}
-        self.vendor = utils.MixinVendorInterface(self.mapping)
+        self.driver_passthru_mapping = {'lookup': self.iscsi_vendor}
+        self.vendor = utils.MixinVendorInterface(self.mapping,
+                                                 self.driver_passthru_mapping)
         self.console = seamicro.ShellinaboxConsole()
 
 

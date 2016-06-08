@@ -413,10 +413,8 @@ class BootInterface(object):
             Different implementations might want to boot the ramdisk in
             different ways by passing parameters to them.  For example,
 
-            - When DIB ramdisk is booted to deploy a node, it takes the
-              parameters iscsi_target_iqn, deployment_id, ironic_api_url, etc.
-            - When Agent ramdisk is booted to deploy a node, it takes the
-              parameters ipa-driver-name, ipa-api-url, root_device, etc.
+            When Agent ramdisk is booted to deploy a node, it takes the
+            parameters ipa-driver-name, ipa-api-url, root_device, etc.
 
             Other implementations can make use of ramdisk_params to pass such
             information.  Different implementations of boot interface will

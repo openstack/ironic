@@ -115,7 +115,7 @@ class PXEDriversTestCase(testtools.TestCase):
         self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
         self.assertIsInstance(driver.management, seamicro.Management)
         self.assertIsInstance(driver.seamicro_vendor, seamicro.VendorPassthru)
-        self.assertIsInstance(driver.pxe_vendor, iscsi_deploy.VendorPassthru)
+        self.assertIsInstance(driver.iscsi_vendor, iscsi_deploy.VendorPassthru)
         self.assertIsInstance(driver.vendor, utils.MixinVendorInterface)
         self.assertIsInstance(driver.console, seamicro.ShellinaboxConsole)
 

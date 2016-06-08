@@ -16,20 +16,11 @@ AMT Vendor Methods
 
 from ironic.common import boot_devices
 from ironic.conductor import task_manager
-from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import iscsi_deploy
 
 
 class AMTPXEVendorPassthru(iscsi_deploy.VendorPassthru):
-
-    @base.passthru(['POST'])
-    @task_manager.require_exclusive_lock
-    def pass_deploy_info(self, task, **kwargs):
-        if deploy_utils.get_boot_option(task.node) == "netboot":
-            task.driver.management.ensure_next_boot_device(task.node,
-                                                           boot_devices.PXE)
-        super(AMTPXEVendorPassthru, self).pass_deploy_info(task, **kwargs)
 
     @task_manager.require_exclusive_lock
     def continue_deploy(self, task, **kwargs):

@@ -25,9 +25,6 @@ from six.moves.urllib import parse
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common.i18n import _LE
-from ironic.common.i18n import _LI
-from ironic.common.i18n import _LW
 from ironic.common import keystone
 from ironic.common import states
 from ironic.common import utils
@@ -185,26 +182,26 @@ def destroy_images(node_uuid):
     InstanceImageCache().clean_up()
 
 
-def get_deploy_info(node, **kwargs):
+def get_deploy_info(node, address, iqn, port=None, lun='1'):
     """Returns the information required for doing iSCSI deploy in a dictionary.
 
     :param node: ironic node object
-    :param kwargs: the keyword args passed from the conductor node.
+    :param address: iSCSI address
+    :param iqn: iSCSI iqn for the target disk
+    :param port: iSCSI port, defaults to one specified in the configuration
+    :param lun: iSCSI lun, defaults to '1'
     :raises: MissingParameterValue, if some required parameters were not
         passed.
     :raises: InvalidParameterValue, if any of the parameters have invalid
         value.
     """
-    deploy_key = kwargs.get('key')
     i_info = deploy_utils.parse_instance_info(node)
-    if i_info['deploy_key'] != deploy_key:
-        raise exception.InvalidParameterValue(_("Deploy key does not match"))
 
     params = {
-        'address': kwargs.get('address'),
-        'port': kwargs.get('port', CONF.iscsi.portal_port),
-        'iqn': kwargs.get('iqn'),
-        'lun': kwargs.get('lun', '1'),
+        'address': address,
+        'port': port or CONF.iscsi.portal_port,
+        'iqn': iqn,
+        'lun': lun,
         'image_path': _get_image_file_path(node.uuid),
         'node_uuid': node.uuid}
 
@@ -261,7 +258,6 @@ def continue_deploy(task, **kwargs):
     node = task.node
 
     params = get_deploy_info(node, **kwargs)
-    ramdisk_error = kwargs.get('error')
 
     def _fail_deploy(task, msg):
         """Fail the deploy after logging and setting error states."""
@@ -269,10 +265,6 @@ def continue_deploy(task, **kwargs):
         deploy_utils.set_failed_state(task, msg)
         destroy_images(task.node.uuid)
         raise exception.InstanceDeployFailure(msg)
-
-    if ramdisk_error:
-        msg = _('Error returned from deploy ramdisk: %s') % ramdisk_error
-        _fail_deploy(task, msg)
 
     # NOTE(lucasagomes): Let's make sure we don't log the full content
     # of the config drive here because it can be up to 64MB in size,
@@ -338,12 +330,11 @@ def do_agent_iscsi_deploy(task, agent_client):
         during the deploy.
     """
     node = task.node
-    iscsi_options = build_deploy_ramdisk_options(node)
     i_info = deploy_utils.parse_instance_info(node)
     wipe_disk_metadata = not i_info['preserve_ephemeral']
 
-    iqn = iscsi_options['iscsi_target_iqn']
-    portal_port = iscsi_options['iscsi_portal_port']
+    iqn = 'iqn.2008-10.org.openstack:%s' % node.uuid
+    portal_port = CONF.iscsi.portal_port
     result = agent_client.start_iscsi_target(
         node, iqn,
         portal_port,
@@ -358,17 +349,7 @@ def do_agent_iscsi_deploy(task, agent_client):
     address = parse.urlparse(node.driver_internal_info['agent_url'])
     address = address.hostname
 
-    # TODO(lucasagomes): The 'error' and 'key' parameters in the
-    # dictionary below are just being passed because it's needed for
-    # the continue_deploy() method, we are fooling it
-    # for now. The agent driver doesn't use/need those. So we need to
-    # refactor this bits here later.
-    iscsi_params = {'error': result['command_error'],
-                    'iqn': iqn,
-                    'key': iscsi_options['deployment_key'],
-                    'address': address}
-
-    uuid_dict_returned = continue_deploy(task, **iscsi_params)
+    uuid_dict_returned = continue_deploy(task, iqn=iqn, address=address)
     root_uuid_or_disk_id = uuid_dict_returned.get(
         'root uuid', uuid_dict_returned.get('disk identifier'))
 
@@ -392,54 +373,6 @@ def _get_boot_mode(node):
     if boot_mode:
         return boot_mode
     return "bios"
-
-
-def build_deploy_ramdisk_options(node):
-    """Build the ramdisk config options for a node
-
-    This method builds the ramdisk options for a node,
-    given all the required parameters for doing iscsi deploy.
-
-    :param node: a single Node.
-    :returns: A dictionary of options to be passed to ramdisk for performing
-        the deploy.
-    """
-    # NOTE: we should strip '/' from the end because this is intended for
-    # hardcoded ramdisk script
-    ironic_api = (CONF.conductor.api_url or
-                  keystone.get_service_url()).rstrip('/')
-
-    deploy_key = utils.random_alnum(32)
-    i_info = node.instance_info
-    i_info['deploy_key'] = deploy_key
-    node.instance_info = i_info
-    node.save()
-
-    # XXX(jroll) DIB relies on boot_option=local to decide whether or not to
-    # lay down a bootloader. Hack this for now; fix it for real in Liberty.
-    # See also bug #1441556.
-    boot_option = deploy_utils.get_boot_option(node)
-    if node.driver_internal_info.get('is_whole_disk_image'):
-        boot_option = 'netboot'
-
-    deploy_options = {
-        'deployment_id': node['uuid'],
-        'deployment_key': deploy_key,
-        'iscsi_target_iqn': 'iqn.2008-10.org.openstack:%s' % node.uuid,
-        'iscsi_portal_port': CONF.iscsi.portal_port,
-        'ironic_api_url': ironic_api,
-        'disk': CONF.pxe.disk_devices,
-        'boot_option': boot_option,
-        'boot_mode': _get_boot_mode(node),
-        # NOTE: The below entry is a temporary workaround for bug/1433812
-        'coreos.configdrive': 0,
-    }
-
-    root_device = deploy_utils.parse_root_device_hints(node)
-    if root_device:
-        deploy_options['root_device'] = root_device
-
-    return deploy_options
 
 
 def validate(task):
@@ -470,93 +403,6 @@ def validate(task):
     deploy_utils.parse_instance_info(task.node)
 
 
-def validate_pass_bootloader_info_input(task, input_params):
-    """Validates the input sent with bootloader install info passthru.
-
-    This method validates the input sent with bootloader install info
-    passthru.
-
-    :param task: A TaskManager object.
-    :param input_params: A dictionary of params sent as input to passthru.
-    :raises: InvalidParameterValue, if deploy key passed doesn't match the
-        one stored in instance_info.
-    :raises: MissingParameterValue, if some input is missing.
-    """
-    params = {'address': input_params.get('address'),
-              'key': input_params.get('key'),
-              'status': input_params.get('status')}
-    msg = _("Some mandatory input missing in 'pass_bootloader_info' "
-            "vendor passthru from ramdisk.")
-    deploy_utils.check_for_missing_params(params, msg)
-
-    deploy_key = task.node.instance_info['deploy_key']
-    if deploy_key != input_params.get('key'):
-        raise exception.InvalidParameterValue(
-            _("Deploy key %(key_sent)s does not match "
-              "with %(expected_key)s") %
-            {'key_sent': input_params.get('key'), 'expected_key': deploy_key})
-
-
-def validate_bootloader_install_status(task, input_params):
-    """Validate if bootloader was installed.
-
-    This method first validates if deploy key sent in vendor passthru
-    was correct one, and then validates whether bootloader installation
-    was successful or not.
-
-    :param task: A TaskManager object.
-    :param input_params: A dictionary of params sent as input to passthru.
-    :raises: InstanceDeployFailure, if bootloader installation was
-        reported from ramdisk as failure.
-    """
-    node = task.node
-    if input_params['status'] != 'SUCCEEDED':
-        msg = (_('Failed to install bootloader on node %(node)s. '
-                 'Error: %(error)s.') %
-               {'node': node.uuid, 'error': input_params.get('error')})
-        LOG.error(msg)
-        deploy_utils.set_failed_state(task, msg)
-        raise exception.InstanceDeployFailure(msg)
-
-    LOG.info(_LI('Bootloader successfully installed on node %s'), node.uuid)
-
-
-def finish_deploy(task, address):
-    """Notifies the ramdisk to reboot the node and makes the instance active.
-
-    This method notifies the ramdisk to proceed to reboot and then
-    makes the instance active.
-
-    :param task: a TaskManager object.
-    :param address: The IP address of the bare metal node.
-    :raises: InstanceDeployFailure, if notifying ramdisk failed.
-    """
-    node = task.node
-    try:
-        deploy_utils.notify_ramdisk_to_proceed(address)
-    except Exception as e:
-        LOG.error(_LE('Deploy failed for instance %(instance)s. '
-                      'Error: %(error)s'),
-                  {'instance': node.instance_uuid, 'error': e})
-        msg = (_('Failed to notify ramdisk to reboot after bootloader '
-                 'installation. Error: %s') % e)
-        deploy_utils.set_failed_state(task, msg)
-        raise exception.InstanceDeployFailure(msg)
-
-    # TODO(lucasagomes): When deploying a node with the DIB ramdisk
-    # Ironic will not power control the node at the end of the deployment,
-    # it's the DIB ramdisk that reboots the node. But, for the SSH driver
-    # some changes like setting the boot device only gets applied when the
-    # machine is powered off and on again. So the code below is enforcing
-    # it. For Liberty we need to change the DIB ramdisk so that Ironic
-    # always controls the power state of the node for all drivers.
-    if deploy_utils.get_boot_option(node) == "local" and 'ssh' in node.driver:
-        manager_utils.node_power_action(task, states.REBOOT)
-
-    LOG.info(_LI('Deployment to node %s done'), node.uuid)
-    task.process_event('done')
-
-
 class ISCSIDeploy(base.DeployInterface):
     """PXE Deploy Interface for deploy-related actions."""
 
@@ -585,12 +431,10 @@ class ISCSIDeploy(base.DeployInterface):
     def deploy(self, task):
         """Start deployment of the task's node.
 
-        Fetches instance image, creates a temporary keystone token file,
-        updates the DHCP port options for next boot, and issues a reboot
-        request to the power driver.
+        Fetches instance image, updates the DHCP port options for next boot,
+        and issues a reboot request to the power driver.
         This causes the node to boot into the deployment ramdisk and triggers
-        the next phase of PXE-based deployment via
-        VendorPassthru.pass_deploy_info().
+        the next phase of PXE-based deployment via agent heartbeats.
 
         :param task: a TaskManager instance containing the node to act on.
         :returns: deploy state DEPLOYWAIT.
@@ -629,22 +473,14 @@ class ISCSIDeploy(base.DeployInterface):
         if node.provision_state == states.ACTIVE:
             task.driver.boot.prepare_instance(task)
         else:
-            deploy_opts = build_deploy_ramdisk_options(node)
-
-            # NOTE(lucasagomes): We are going to extend the normal PXE config
-            # to also contain the agent options so it could be used for
-            # both the DIB ramdisk and the IPA ramdisk
-            agent_opts = deploy_utils.build_agent_options(node)
-            deploy_opts.update(agent_opts)
-
+            deploy_opts = deploy_utils.build_agent_options(node)
             task.driver.boot.prepare_ramdisk(task, deploy_opts)
 
     def clean_up(self, task):
         """Clean up the deployment environment for the task's node.
 
         Unlinks TFTP and instance images and triggers image cache cleanup.
-        Removes the TFTP configuration files for this node. As a precaution,
-        this method also ensures the keystone auth token file was removed.
+        Removes the TFTP configuration files for this node.
 
         :param task: a TaskManager instance containing the node to act on.
         """
@@ -664,15 +500,8 @@ class ISCSIDeploy(base.DeployInterface):
         :raises NodeCleaningFailure: if the clean steps are not yet
             available (cached), for example, when a node has just been
             enrolled and has not been cleaned yet.
-        :returns: A list of clean step dictionaries. If bash ramdisk is
-            used for this node, it returns an empty list.
+        :returns: A list of clean step dictionaries.
         """
-        # TODO(rameshg87): Remove the below code once we stop supporting
-        # bash ramdisk in Ironic. No need to log warning because we have
-        # already logged it in pass_deploy_info.
-        if 'agent_url' not in task.node.driver_internal_info:
-            return []
-
         steps = deploy_utils.agent_get_clean_steps(
             task, interface='deploy',
             override_priorities={
@@ -716,148 +545,9 @@ class ISCSIDeploy(base.DeployInterface):
 class VendorPassthru(agent_base_vendor.BaseAgentVendor):
     """Interface to mix IPMI and PXE vendor-specific interfaces."""
 
-    def validate(self, task, method, **kwargs):
-        """Validates the inputs for a vendor passthru.
-
-        If invalid, raises an exception; otherwise returns None.
-
-        Valid methods:
-        * pass_deploy_info
-        * pass_bootloader_install_info
-
-        :param task: a TaskManager instance containing the node to act on.
-        :param method: method to be validated.
-        :param kwargs: kwargs containins the method's parameters.
-        :raises: InvalidParameterValue if any parameters is invalid.
-        """
-        if method == 'pass_deploy_info':
-            # TODO(rameshg87): Don't validate deploy info if bash ramdisk
-            # booted during cleaning. It will be handled in pass_deploy_info
-            # method. Remove the below code once we stop supporting bash
-            # ramdisk in Ironic.
-            if task.node.provision_state != states.CLEANWAIT:
-                deploy_utils.validate_capabilities(task.node)
-                get_deploy_info(task.node, **kwargs)
-        elif method == 'pass_bootloader_install_info':
-            validate_pass_bootloader_info_input(task, kwargs)
-
-    @base.passthru(['POST'])
-    @task_manager.require_exclusive_lock
-    def pass_bootloader_install_info(self, task, **kwargs):
-        """Accepts the results of bootloader installation.
-
-        This method acts as a vendor passthru and accepts the result of
-        the bootloader installation. If bootloader installation was
-        successful, then it notifies the bare metal to proceed to reboot
-        and makes the instance active. If the bootloader installation failed,
-        then it sets provisioning as failed and powers off the node.
-
-        :param task: A TaskManager object.
-        :param kwargs: The arguments sent with vendor passthru.  The expected
-            kwargs are::
-
-                'key': The deploy key for authorization
-                'status': 'SUCCEEDED' or 'FAILED'
-                'error': The error message if status == 'FAILED'
-                'address': The IP address of the ramdisk
-
-        """
-        LOG.warning(_LW("The node %s is using the bash deploy ramdisk for "
-                        "its deployment. This deploy ramdisk has been "
-                        "deprecated. Please use the ironic-python-agent "
-                        "(IPA) ramdisk instead."), task.node.uuid)
-        task.process_event('resume')
-        LOG.debug('Continuing the deployment on node %s', task.node.uuid)
-        validate_bootloader_install_status(task, kwargs)
-        finish_deploy(task, kwargs['address'])
-
-    def _initiate_cleaning(self, task):
-        """Initiates the steps required to start cleaning for the node.
-
-        This method polls each interface of the driver for getting the
-        clean steps and notifies Ironic conductor to resume cleaning.
-        On error, it sets the node to CLEANFAIL state and populates
-        node.last_error with the error message.
-
-        :param task: a TaskManager instance containing the node to act on.
-        """
-        LOG.warning(
-            _LW("Bash deploy ramdisk doesn't support in-band cleaning. "
-                "Please use the ironic-python-agent (IPA) ramdisk "
-                "instead for node %s. "), task.node.uuid)
-        try:
-            manager_utils.set_node_cleaning_steps(task)
-            self.notify_conductor_resume_clean(task)
-        except Exception as e:
-            last_error = (
-                _('Encountered exception for node %(node)s '
-                  'while initiating cleaning. Error:  %(error)s') %
-                {'node': task.node.uuid, 'error': e})
-            return manager_utils.cleaning_error_handler(task, last_error)
-
-    @base.passthru(['POST'])
-    @task_manager.require_exclusive_lock
-    def pass_deploy_info(self, task, **kwargs):
-        """Continues the deployment of baremetal node over iSCSI.
-
-        This method continues the deployment of the baremetal node over iSCSI
-        from where the deployment ramdisk has left off.
-
-        :param task: a TaskManager instance containing the node to act on.
-        :param kwargs: kwargs for performing iscsi deployment.
-        :raises: InvalidState
-        """
-        node = task.node
-        LOG.warning(_LW("The node %s is using the bash deploy ramdisk for "
-                        "its deployment. This deploy ramdisk has been "
-                        "deprecated. Please use the ironic-python-agent "
-                        "(IPA) ramdisk instead."), node.uuid)
-
-        # TODO(rameshg87): Remove the below code once we stop supporting
-        # bash ramdisk in Ironic.
-        if node.provision_state == states.CLEANWAIT:
-            return self._initiate_cleaning(task)
-
-        task.process_event('resume')
-        LOG.debug('Continuing the deployment on node %s', node.uuid)
-
-        is_whole_disk_image = node.driver_internal_info['is_whole_disk_image']
-        uuid_dict_returned = continue_deploy(task, **kwargs)
-        root_uuid_or_disk_id = uuid_dict_returned.get(
-            'root uuid', uuid_dict_returned.get('disk identifier'))
-
-        # save the node's root disk UUID so that another conductor could
-        # rebuild the PXE config file. Due to a shortcoming in Nova objects,
-        # we have to assign to node.driver_internal_info so the node knows it
-        # has changed.
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info['root_uuid_or_disk_id'] = root_uuid_or_disk_id
-        node.driver_internal_info = driver_internal_info
-        node.save()
-
-        try:
-            task.driver.boot.prepare_instance(task)
-
-            if deploy_utils.get_boot_option(node) == "local":
-                if not is_whole_disk_image:
-                    LOG.debug('Installing the bootloader on node %s',
-                              node.uuid)
-                    deploy_utils.notify_ramdisk_to_proceed(kwargs['address'])
-                    task.process_event('wait')
-                    return
-
-        except Exception as e:
-            LOG.error(_LE('Deploy failed for instance %(instance)s. '
-                          'Error: %(error)s'),
-                      {'instance': node.instance_uuid, 'error': e})
-            msg = _('Failed to continue iSCSI deployment.')
-            deploy_utils.set_failed_state(task, msg)
-        else:
-            finish_deploy(task, kwargs.get('address'))
-
     @task_manager.require_exclusive_lock
     def continue_deploy(self, task, **kwargs):
-        """Method invoked when deployed with the IPA ramdisk.
+        """Method invoked when deployed using iSCSI.
 
         This method is invoked during a heartbeat from an agent when
         the node is in wait-call-back state. This deploys the image on

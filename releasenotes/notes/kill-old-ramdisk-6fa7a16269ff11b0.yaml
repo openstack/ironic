@@ -1,0 +1,7 @@
+---
+prelude: >
+    Starting with this release IPA is the only deployment and inspection
+    ramdisk supported by Ironic.
+upgrade:
+  - Support for the old ramdisk ("deploy-ironic" diskimage-builder element)
+    was removed. Please switch to IPA before upgrading.

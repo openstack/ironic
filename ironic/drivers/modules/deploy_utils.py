@@ -17,7 +17,6 @@
 import contextlib
 import os
 import re
-import socket
 import time
 
 from ironic_lib import disk_utils
@@ -309,16 +308,6 @@ def switch_pxe_config(path, root_uuid_or_disk_id, boot_mode,
     _replace_boot_line(path, boot_mode, is_whole_disk_image, trusted_boot)
 
 
-def notify(address, port):
-    """Notify a node that it becomes ready to reboot."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        s.connect((address, port))
-        s.send('done')
-    finally:
-        s.close()
-
-
 def get_dev(address, port, iqn, lun):
     """Returns a device path for given parameters."""
     dev = ("/dev/disk/by-path/ip-%s:%s-iscsi-%s-lun-%s"
@@ -433,22 +422,6 @@ def _iscsi_setup_and_handle_errors(address, port, iqn, lun):
     finally:
         logout_iscsi(address, port, iqn)
         delete_iscsi(address, port, iqn)
-
-
-def notify_ramdisk_to_proceed(address):
-    """Notifies the ramdisk waiting for instructions from Ironic.
-
-    DIB ramdisk (from init script) makes vendor passhthrus and listens
-    on port 10000 for Ironic to notify back the completion of the task.
-    This method connects to port 10000 of the bare metal running the
-    ramdisk and then sends some data to notify the ramdisk to proceed
-    with it's next task.
-
-    :param address: The IP address of the node.
-    """
-    # Ensure the node started netcat on the port after POST the request.
-    time.sleep(3)
-    notify(address, 10000)
 
 
 def check_for_missing_params(info_dict, error_msg, param_prefix=''):
@@ -1008,6 +981,8 @@ def build_agent_options(node):
         # NOTE: The below entry is a temporary workaround for bug/1433812
         'coreos.configdrive': 0,
     }
+    # TODO(dtantsur): deprecate in favor of reading root hints directly from a
+    # node record.
     root_device = parse_root_device_hints(node)
     if root_device:
         agent_config_opts['root_device'] = root_device
@@ -1044,15 +1019,6 @@ def prepare_inband_cleaning(task, manage_boot=True):
 
     if manage_boot:
         ramdisk_opts = build_agent_options(task.node)
-
-        # TODO(rameshg87): Below code is to make sure that bash ramdisk
-        # invokes pass_deploy_info vendor passthru when it is booted
-        # for cleaning. Remove the below code once we stop supporting
-        # bash ramdisk in Ironic. Do a late import to avoid circular
-        # import.
-        from ironic.drivers.modules import iscsi_deploy
-        ramdisk_opts.update(
-            iscsi_deploy.build_deploy_ramdisk_options(task.node))
         task.driver.boot.prepare_ramdisk(task, ramdisk_opts)
 
     manager_utils.node_power_action(task, states.REBOOT)
@@ -1147,8 +1113,6 @@ def parse_instance_info(node):
                   " in node's instance_info")
     check_for_missing_params(i_info, error_msg)
 
-    # Internal use only
-    i_info['deploy_key'] = info.get('deploy_key')
     i_info['swap_mb'] = int(info.get('swap_mb', 0))
     i_info['ephemeral_gb'] = info.get('ephemeral_gb', 0)
     err_msg_invalid = _("Cannot validate parameter for driver deploy. "
