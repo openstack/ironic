@@ -1356,13 +1356,10 @@ class ConductorManager(base_manager.BaseConductorManager):
                    'provision_state': states.CLEANWAIT,
                    'maintenance': False,
                    'provisioned_before': callback_timeout}
-        last_error = _("Timeout reached while cleaning the node. Please "
-                       "check if the ramdisk responsible for the cleaning is "
-                       "running on the node.")
         self._fail_if_in_state(context, filters, states.CLEANWAIT,
                                'provision_updated_at',
-                               last_error=last_error,
-                               keep_target_state=True)
+                               keep_target_state=True,
+                               callback_method=utils.cleanup_cleanwait_timeout)
 
     @periodics.periodic(spacing=CONF.conductor.sync_local_state_interval)
     def _sync_local_state(self, context):

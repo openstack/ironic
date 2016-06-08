@@ -1,0 +1,7 @@
+---
+fixes:
+  - A bug has been corrected where a node's current clean_step
+    was not purged upon that node timing out from a CLEANWAIT state.
+    Previously, this bug would prevent a user from retrying cleaning
+    operations. For more information,
+    see https://bugs.launchpad.net/ironic/+bug/1590146.

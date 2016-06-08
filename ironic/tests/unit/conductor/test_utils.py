@@ -572,6 +572,37 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertFalse(self.node.save.called)
         self.assertFalse(log_mock.warning.called)
 
+    @mock.patch.object(conductor_utils, 'cleaning_error_handler')
+    def test_cleanup_cleanwait_timeout_handler_call(self, mock_error_handler):
+        self.node.clean_step = {}
+        conductor_utils.cleanup_cleanwait_timeout(self.task)
+
+        mock_error_handler.assert_called_once_with(
+            self.task,
+            msg="Timeout reached while cleaning the node. Please "
+                "check if the ramdisk responsible for the cleaning is "
+                "running on the node. Failed on step {}.",
+            set_fail_state=True)
+
+    def test_cleanup_cleanwait_timeout(self):
+        self.node.provision_state = states.CLEANFAIL
+        target = 'baz'
+        self.node.target_provision_state = target
+        self.node.driver_internal_info = {}
+        self.node.clean_step = {'key': 'val'}
+        clean_error = ("Timeout reached while cleaning the node. Please "
+                       "check if the ramdisk responsible for the cleaning is "
+                       "running on the node. Failed on step {'key': 'val'}.")
+        self.node.driver_internal_info = {
+            'cleaning_reboot': True,
+            'clean_step_index': 0}
+        conductor_utils.cleanup_cleanwait_timeout(self.task)
+        self.assertEqual({}, self.node.clean_step)
+        self.assertNotIn('clean_step_index', self.node.driver_internal_info)
+        self.task.process_event.assert_called_once()
+        self.assertTrue(self.node.maintenance)
+        self.assertEqual(clean_error, self.node.maintenance_reason)
+
     def test_cleaning_error_handler(self):
         self.node.provision_state = states.CLEANING
         target = 'baz'
