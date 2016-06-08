@@ -1,10 +1,30 @@
 {
-    "drivers": [
-        {
-            "hosts": [
-                "fake-host"
-            ],
-            "name": "sample-driver"
-        }
-    ]
+   "drivers" : [
+      {
+         "hosts" : [
+            "localhost"
+         ],
+         "links" : [
+            {
+               "href" : "http://127.0.0.1:6385/v1/drivers/agent_ipmitool",
+               "rel" : "self"
+            },
+            {
+               "href" : "http://127.0.0.1:6385/drivers/agent_ipmitool",
+               "rel" : "bookmark"
+            }
+         ],
+         "name" : "agent_ipmitool",
+         "properties" : [
+            {
+               "rel" : "self",
+               "href" : "http://127.0.0.1:6385/v1/drivers/agent_ipmitool/properties"
+            },
+            {
+               "href" : "http://127.0.0.1:6385/drivers/agent_ipmitool/properties",
+               "rel" : "bookmark"
+            }
+         ]
+      }
+   ]
 }

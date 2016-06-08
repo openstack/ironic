@@ -21,5 +21,6 @@ is presented in this document. Significant changes may be noted inline.
 .. include:: baremetal-api-v1-ports.inc
 .. include:: baremetal-api-v1-nodes-ports.inc
 .. include:: baremetal-api-v1-drivers.inc
+.. include:: baremetal-api-v1-driver-passthru.inc
 .. include:: baremetal-api-v1-chassis.inc
 

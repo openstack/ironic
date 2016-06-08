@@ -274,9 +274,15 @@ driver_name:
   in: body
   required: true
   type: string
+driver_property_links:
+  description: |
+    A list of links to driver properties. Added in API microversion 1.14.
+  in: body
+  required: true
+  type: array
 drivers:
   description: |
-    A list of ``drivers`` objects.
+    A list of driver objects.
   in: body
   required: true
   type: array
@@ -403,6 +409,32 @@ nodes:
   description: |
     Links to the collection of nodes contained in
     this chassis.
+  in: body
+  required: true
+  type: array
+passthru_async:
+  description: |
+    If True the passthru function is invoked asynchronously; if False,
+    synchronously.
+  in: body
+  required: true
+  type: boolean
+passthru_attach:
+  description: |
+    True if the return value will be attached to the response object, and False
+    if the return value will be returned in the response body.
+  in: body
+  required: true
+  type: boolean
+passthru_description:
+  description: |
+    A description of what the method does, including any method parameters.
+  in: body
+  required: true
+  type: string
+passthru_http_methods:
+  description: |
+    A list of HTTP methods supported by the vendor function.
   in: body
   required: true
   type: array
