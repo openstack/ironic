@@ -141,7 +141,6 @@ class TestAgentClient(base.TestCase):
             mock_get.return_value = res
             self.assertEqual([], self.client.get_commands_status(self.node))
 
-    @mock.patch('uuid.uuid4', mock.MagicMock(spec_set=[], return_value='uuid'))
     def test_prepare_image(self):
         self.client._command = mock.MagicMock(spec_set=[])
         image_info = {'image_id': 'image'}
@@ -154,7 +153,6 @@ class TestAgentClient(base.TestCase):
             node=self.node, method='standby.prepare_image',
             params=params, wait=False)
 
-    @mock.patch('uuid.uuid4', mock.MagicMock(spec_set=[], return_value='uuid'))
     def test_prepare_image_with_configdrive(self):
         self.client._command = mock.MagicMock(spec_set=[])
         configdrive_url = 'http://swift/configdrive'
@@ -172,19 +170,110 @@ class TestAgentClient(base.TestCase):
             node=self.node, method='standby.prepare_image',
             params=params, wait=False)
 
-    @mock.patch('uuid.uuid4', mock.MagicMock(spec_set=[], return_value='uuid'))
     def test_start_iscsi_target(self):
         self.client._command = mock.MagicMock(spec_set=[])
         iqn = 'fake-iqn'
         port = 3260
-        params = {'iqn': iqn, 'portal_port': port, 'wipe_disk_metadata': False}
+        wipe_disk_metadata = True
+        params = {'iqn': iqn, 'wipe_disk_metadata': True}
 
-        self.client.start_iscsi_target(self.node, iqn, port)
+        self.client.start_iscsi_target(self.node, iqn, portal_port=port,
+                                       wipe_disk_metadata=wipe_disk_metadata)
         self.client._command.assert_called_once_with(
             node=self.node, method='iscsi.start_iscsi_target',
             params=params, wait=True)
 
-    @mock.patch('uuid.uuid4', mock.MagicMock(spec_set=[], return_value='uuid'))
+    def test_start_iscsi_target_custom_port(self):
+        self.client._command = mock.MagicMock(spec_set=[])
+        iqn = 'fake-iqn'
+        port = 3261
+        wipe_disk_metadata = False
+        params = {'iqn': iqn, 'portal_port': port}
+
+        self.client.start_iscsi_target(self.node, iqn, portal_port=port,
+                                       wipe_disk_metadata=wipe_disk_metadata)
+        self.client._command.assert_called_once_with(
+            node=self.node, method='iscsi.start_iscsi_target',
+            params=params, wait=True)
+
+    @mock.patch.object(agent_client, 'LOG')
+    def test_start_iscsi_target_old_agent_only_wipe(self, log_mock):
+        self.client._command = mock.MagicMock(
+            spec_set=[],
+            side_effect=[
+                {
+                    'command_status': 'FAILED',
+                    'command_error': {
+                        'message': u"wipe_disk_metadata doesn't exist",
+                        'type': u'TypeError'
+                    }
+                },
+                {
+                    'command_status': 'SUCCESS',
+                }
+            ]
+        )
+        iqn = 'fake-iqn'
+        port = 3260
+        wipe_disk_metadata = True
+        params_first_try = {'iqn': iqn,
+                            'wipe_disk_metadata': wipe_disk_metadata}
+        params_second_try = {'iqn': iqn}
+
+        ret = self.client.start_iscsi_target(
+            self.node, iqn, portal_port=port,
+            wipe_disk_metadata=wipe_disk_metadata)
+        self.client._command.assert_has_calls([
+            mock.call(node=self.node, method='iscsi.start_iscsi_target',
+                      params=params_first_try, wait=True),
+            mock.call(node=self.node, method='iscsi.start_iscsi_target',
+                      params=params_second_try, wait=True)
+        ])
+        self.assertEqual('SUCCESS', ret['command_status'])
+        self.assertTrue(log_mock.warning.called)
+        self.assertFalse(log_mock.error.called)
+
+    @mock.patch.object(agent_client, 'LOG')
+    def test_start_iscsi_target_old_agent_custom_options(self, log_mock):
+        self.client._command = mock.MagicMock(
+            spec_set=[],
+            side_effect=[
+                {
+                    'command_status': 'FAILED',
+                    'command_error': {
+                        'message': u"wipe_disk_metadata doesn't exist",
+                        'type': u'TypeError'
+                    }
+                },
+                {
+                    'command_status': 'FAILED',
+                    'command_error': {
+                        'message': u"portal_port doesn't exist",
+                        'type': u'TypeError'
+                    }
+                }
+            ]
+        )
+        iqn = 'fake-iqn'
+        port = 3261
+        wipe_disk_metadata = True
+        params_first_try = {'iqn': iqn, 'portal_port': port,
+                            'wipe_disk_metadata': wipe_disk_metadata}
+        params_second_try = {'iqn': iqn, 'portal_port': port}
+
+        ret = self.client.start_iscsi_target(
+            self.node, iqn, portal_port=port,
+            wipe_disk_metadata=wipe_disk_metadata)
+        self.client._command.assert_has_calls([
+            mock.call(node=self.node, method='iscsi.start_iscsi_target',
+                      params=params_first_try, wait=True),
+            mock.call(node=self.node, method='iscsi.start_iscsi_target',
+                      params=params_second_try, wait=True)
+        ])
+        self.assertEqual('FAILED', ret['command_status'])
+        self.assertTrue(log_mock.warning.called)
+        self.assertTrue(log_mock.error.called)
+
     def test_install_bootloader(self):
         self.client._command = mock.MagicMock(spec_set=[])
         root_uuid = 'fake-root-uuid'

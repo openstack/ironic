@@ -1,0 +1,8 @@
+---
+upgrade:
+  - Fixed Mitaka ironic python agent ramdisk iSCSI deploy compatibility with
+    newer versions of ironic by logging the warning and retrying the deploy if
+    wiping root disk metadata before exposing it over iSCSI fails. If custom
+    iSCSI port is requested, an error clarifying the issue is logged and the
+    operator is requested either to use the default iSCSI portal port, or to
+    upgrade ironic python agent ramdisk to version >= 1.3 (Newton).
