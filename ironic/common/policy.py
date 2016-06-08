@@ -38,10 +38,19 @@ default_policies = [
     policy.RuleDefault('public_api',
                        'is_public_api:True',
                        description='Internal flag for public API routes'),
-    # Generic default to hide passwords
+    # Generic default to hide passwords in node driver_info
+    # NOTE(deva): the 'show_password' policy setting hides secrets in
+    #             driver_info. However, the name exists for legacy
+    #             purposes and can not be changed. Changing it will cause
+    #             upgrade problems for any operators who have customized
+    #             the value of this field
     policy.RuleDefault('show_password',
                        '!',
-                       description='Show or mask passwords in API responses'),
+                       description='Show or mask secrets within node driver information in API responses'),  # noqa
+    # Generic default to hide instance secrets
+    policy.RuleDefault('show_instance_secrets',
+                       '!',
+                       description='Show or mask secrets within instance information in API responses'),  # noqa
     # Roles likely to be overriden by operator
     policy.RuleDefault('is_member',
                        'tenant:demo or tenant:baremetal',

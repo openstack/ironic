@@ -84,7 +84,7 @@ class TestAgentMethods(db_base.DbTestCase):
     @mock.patch.object(image_service, 'GlanceImageService', autospec=True)
     def test_build_instance_info_for_deploy_glance_partition_image(
             self, glance_mock, parse_instance_info_mock):
-        i_info = self.node.instance_info
+        i_info = {}
         i_info['image_source'] = '733d1c44-a2ea-414b-aca7-69decf20d810'
         i_info['kernel'] = '13ce5a56-1de3-4916-b8b2-be778645d003'
         i_info['ramdisk'] = 'a5a370a8-1b39-433f-be63-2c7d708e4b4e'
@@ -120,10 +120,8 @@ class TestAgentMethods(db_base.DbTestCase):
                            'ramdisk': 'ramdisk',
                            'image_type': 'partition',
                            'image_checksum': 'aa',
-                           'fake_password': 'fakepass',
                            'image_container_format': 'bare',
-                           'image_disk_format': 'qcow2',
-                           'foo': 'bar'}
+                           'image_disk_format': 'qcow2'}
         mgr_utils.mock_the_extension_manager(driver='fake_agent')
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
@@ -174,13 +172,14 @@ class TestAgentMethods(db_base.DbTestCase):
                        autospec=True)
     def test_build_instance_info_for_deploy_nonglance_partition_image(
             self, validate_href_mock, parse_instance_info_mock):
-        i_info = self.node.instance_info
+        i_info = {}
         driver_internal_info = self.node.driver_internal_info
         i_info['image_source'] = 'http://image-ref'
         i_info['kernel'] = 'http://kernel-ref'
         i_info['ramdisk'] = 'http://ramdisk-ref'
         i_info['image_checksum'] = 'aa'
         i_info['root_gb'] = 10
+        i_info['configdrive'] = 'configdrive'
         driver_internal_info['is_whole_disk_image'] = False
         self.node.instance_info = i_info
         self.node.driver_internal_info = driver_internal_info
@@ -199,8 +198,7 @@ class TestAgentMethods(db_base.DbTestCase):
                            'image_checksum': 'aa',
                            'root_gb': 10,
                            'swap_mb': 5,
-                           'fake_password': 'fakepass',
-                           'foo': 'bar'}
+                           'configdrive': 'configdrive'}
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
 

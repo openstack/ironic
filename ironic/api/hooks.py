@@ -80,13 +80,9 @@ class ContextHook(hooks.PecanHook):
             'is_public_api': is_public_api,
         }
 
-        # TODO(deva): refactor this so enforce is called directly at relevant
-        #             places in code, not globally and for every request
-        show_password = policy.check('show_password', creds, creds)
         is_admin = policy.check('is_admin', creds, creds)
 
         state.request.context = context.RequestContext(
-            show_password=show_password,
             is_admin=is_admin,
             **creds)
 

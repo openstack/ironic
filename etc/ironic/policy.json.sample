@@ -2,8 +2,10 @@
 "admin_api": "role:admin or role:administrator"
 # Internal flag for public API routes
 "public_api": "is_public_api:True"
-# Show or mask passwords in API responses
+# Show or mask secrets within driver_info in API responses
 "show_password": "!"
+# Show or mask secrets within instance_info in API responses
+"show_instance_secrets": "!"
 # May be used to restrict access to specific tenants
 "is_member": "tenant:demo or tenant:baremetal"
 # Read-only API access
@@ -27,7 +29,7 @@
 # Set maintenance flag, taking a Node out of service
 "baremetal:node:set_maintenance": "rule:is_admin"
 # Clear maintenance flag, placing the Node into service again
-"baremetal:node:clear_maintenance": "role:is_admin"
+"baremetal:node:clear_maintenance": "rule:is_admin"
 # Change Node boot device
 "baremetal:node:set_boot_device": "rule:is_admin"
 # Change Node power status

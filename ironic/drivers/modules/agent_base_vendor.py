@@ -30,6 +30,7 @@ from ironic.api.controllers.v1 import ramdisk
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _, _LE, _LI, _LW
+from ironic.common import policy
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import rpcapi
@@ -801,7 +802,9 @@ class BaseAgentVendor(AgentDeployMixin, base.VendorInterface):
                      'and waiting for commands'), node.uuid)
 
         ndict = node.as_dict()
-        if not context.show_password:
+        cdict = context.to_dict()
+        show_driver_secrets = policy.check('show_password', cdict, cdict)
+        if not show_driver_secrets:
             ndict['driver_info'] = strutils.mask_dict_password(
                 ndict['driver_info'], "******")
 

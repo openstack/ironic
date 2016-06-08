@@ -94,10 +94,10 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                               task.context,
                               **kwargs)
 
+    @mock.patch('ironic.common.policy.check', autospec=True)
     @mock.patch('ironic.drivers.modules.agent_base_vendor.BaseAgentVendor'
                 '._find_node_by_macs', autospec=True)
-    def _test_lookup_v2(self, find_mock, show_password=True):
-        self.context.show_password = show_password
+    def _test_lookup_v2(self, find_mock, check_mock, show_password=True):
         kwargs = {
             'version': '2',
             'inventory': {
@@ -116,7 +116,10 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         }
         # NOTE(jroll) apparently as_dict() returns a dict full of references
         expected = copy.deepcopy(self.node.as_dict())
-        if not show_password:
+        if show_password:
+            check_mock.return_value = True
+        else:
+            check_mock.return_value = False
             expected['driver_info']['ipmi_password'] = '******'
 
         self.config(agent_backend='statsd', group='metrics')
@@ -171,8 +174,8 @@ class TestBaseAgentVendor(db_base.DbTestCase):
 
     @mock.patch.object(objects.Node, 'get_by_uuid')
     def test_lookup_v2_with_node_uuid(self, mock_get_node):
-        self.context.show_password = True
         expected = copy.deepcopy(self.node.as_dict())
+        expected['driver_info']['ipmi_password'] = '******'
         kwargs = {
             'version': '2',
             'node_uuid': 'fake-uuid',
