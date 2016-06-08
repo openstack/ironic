@@ -71,6 +71,36 @@ A few things should be checked in this case:
    So you can check the log carefully to fix or work around and then try
    again.
 
+Patching the Deploy Ramdisk
+===========================
+
+When debugging a problem with deployment and/or inspection you may want to
+quickly apply a change to the ramdisk to see if it helps. Of course you can
+inject your code and/or SSH keys during the ramdisk build (depends on how
+exactly you've built your ramdisk). But it's also possible to quickly modify
+an already built ramdisk.
+
+Create an empty directory and unpack the ramdisk content there::
+
+    mkdir unpack
+    cd unpack
+    gzip -dc /path/to/the/ramdisk | cpio -id
+
+The last command will result in the whole Linux file system tree unpacked in
+the current directory. Now you can modify any files you want. The actual
+location of the files will depend on the way you've built the ramdisk.
+
+After you've done the modifications, pack the whole content of the current
+directory back::
+
+    find . | cpio -H newc -o > /path/to/the/new/ramdisk
+
+.. note:: You don't need to modify the kernel (e.g.
+          ``tinyipa-master.vmlinuz``), only the ramdisk part.
+
+.. note:: For CoreOS-based ramdisk you also need to unpack and pack back the
+          squashfs archive inside the unpacked ramdisk.
+
 API Errors
 ==========
 
