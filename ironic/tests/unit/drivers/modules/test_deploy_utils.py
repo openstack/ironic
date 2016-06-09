@@ -1715,6 +1715,8 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         cfg.CONF.set_override('shred_random_overwrite_iterations', 2, 'deploy')
         cfg.CONF.set_override('shred_final_overwrite_with_zeros', False,
                               'deploy')
+        cfg.CONF.set_override('continue_if_disk_secure_erase_fails', True,
+                              'deploy')
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             utils.agent_add_clean_params(task)
@@ -1722,6 +1724,8 @@ class AgentMethodsTestCase(db_base.DbTestCase):
                 'agent_erase_devices_iterations'))
             self.assertEqual(False, task.node.driver_internal_info.get(
                 'agent_erase_devices_zeroize'))
+            self.assertEqual(True, task.node.driver_internal_info.get(
+                'agent_continue_if_ata_erase_failed'))
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.delete_cleaning_ports',
                 autospec=True)
