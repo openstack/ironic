@@ -108,8 +108,8 @@ Response
    :language: javascript
 
 
-List Port Detail
-=================
+List Detailed Ports
+===================
 
 .. rest_method:: GET /v1/ports/detail
 
@@ -195,7 +195,7 @@ Response
 
 
 Update a Port
-==============
+=============
 
 .. rest_method:: PATCH /v1/ports/{port_id}
 
