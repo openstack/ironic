@@ -207,16 +207,16 @@ Option 1: Manual Install
     cp etc/ironic/ironic.conf.sample etc/ironic/ironic.conf.local
 
     # disable auth since we are not running keystone here
-    sed -i "s/#auth_strategy=keystone/auth_strategy=noauth/" etc/ironic/ironic.conf.local
+    sed -i "s/#auth_strategy = keystone/auth_strategy = noauth/" etc/ironic/ironic.conf.local
 
     # Use the 'fake_ipmitool' test driver
-    sed -i "s/#enabled_drivers=pxe_ipmitool/enabled_drivers=fake_ipmitool/" etc/ironic/ironic.conf.local
+    sed -i "s/#enabled_drivers = pxe_ipmitool/enabled_drivers = fake_ipmitool/" etc/ironic/ironic.conf.local
 
     # set a fake host name [useful if you want to test multiple services on the same host]
-    sed -i "s/#host=.*/host=test-host/" etc/ironic/ironic.conf.local
+    sed -i "s/#host = .*/host = test-host/" etc/ironic/ironic.conf.local
 
     # turn off the periodic sync_power_state task, to avoid getting NodeLocked exceptions
-    sed -i "s/#sync_power_state_interval=60/sync_power_state_interval=-1/" etc/ironic/ironic.conf.local
+    sed -i "s/#sync_power_state_interval = 60/sync_power_state_interval = -1/" etc/ironic/ironic.conf.local
 
 #. Initialize the ironic database (optional)::
 
@@ -226,7 +226,7 @@ Option 1: Manual Install
     mysql -u root -pMYSQL_ROOT_PWD -e "create schema ironic"
 
     # and switch the DB connection from sqlite to something else, eg. mysql
-    sed -i "s/#connection=.*/connection=mysql\+pymysql:\/\/root:MYSQL_ROOT_PWD@localhost\/ironic/" etc/ironic/ironic.conf.local
+    sed -i "s/#connection = .*/connection = mysql\+pymysql:\/\/root:MYSQL_ROOT_PWD@localhost\/ironic/" etc/ironic/ironic.conf.local
 
 At this point, you can continue to Step 2.
 
