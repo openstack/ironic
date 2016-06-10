@@ -21,10 +21,12 @@ from ironic.common.i18n import _
 opts = [
     cfg.StrOpt('terminal',
                default='shellinaboxd',
-               help=_('Path to serial console terminal program')),
+               help=_('Path to serial console terminal program. Used only '
+                      'by Shell In A Box console.')),
     cfg.StrOpt('terminal_cert_dir',
-               help=_('Directory containing the terminal SSL cert(PEM) for '
-                      'serial console access')),
+               help=_('Directory containing the terminal SSL cert (PEM) for '
+                      'serial console access. Used only by Shell In A Box '
+                      'console.')),
     cfg.StrOpt('terminal_pid_dir',
                help=_('Directory for holding terminal pid files. '
                       'If not specified, the temporary directory '

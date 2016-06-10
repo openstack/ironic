@@ -21,3 +21,4 @@ tftpd-hpa
 xinetd
 squashfs-tools
 libvirt-dev
+socat
