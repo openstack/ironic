@@ -38,7 +38,6 @@ from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils as utils
 from ironic.drivers.modules import image_cache
-from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
 from ironic.tests import base as tests_base
 from ironic.tests.unit.conductor import mgr_utils
@@ -357,7 +356,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         root_uuid = '12345678-1234-1234-12345678-12345678abcdef'
 
         utils_name_list = ['get_dev', 'discovery', 'login_iscsi',
-                           'logout_iscsi', 'delete_iscsi', 'notify']
+                           'logout_iscsi', 'delete_iscsi']
 
         disk_utils_name_list = ['is_block_device', 'get_image_mb',
                                 'make_partitions', 'populate_image', 'mkfs',
@@ -501,7 +500,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         efi_system_part_uuid = '9036-482'
 
         utils_name_list = ['get_dev', 'discovery', 'login_iscsi',
-                           'logout_iscsi', 'delete_iscsi', 'notify']
+                           'logout_iscsi', 'delete_iscsi']
 
         disk_utils_name_list = ['get_image_mb', 'make_partitions',
                                 'is_block_device', 'populate_image', 'mkfs',
@@ -592,7 +591,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         root_uuid = '12345678-1234-1234-12345678-12345678abcdef'
 
         utils_name_list = ['get_dev', 'discovery', 'login_iscsi',
-                           'notify', 'logout_iscsi', 'delete_iscsi']
+                           'logout_iscsi', 'delete_iscsi']
 
         disk_utils_name_list = ['make_partitions', 'get_image_mb',
                                 'is_block_device', 'populate_image',
@@ -661,7 +660,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         root_uuid = '12345678-1234-1234-12345678-12345678abcdef'
 
         utils_name_list = ['get_dev', 'discovery', 'login_iscsi',
-                           'logout_iscsi', 'delete_iscsi', 'notify']
+                           'logout_iscsi', 'delete_iscsi']
 
         disk_utils_name_list = ['get_image_mb', 'make_partitions',
                                 'is_block_device', 'populate_image', 'mkfs',
@@ -742,7 +741,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         root_uuid = '12345678-1234-1234-12345678-12345678abcdef'
 
         utils_name_list = ['get_dev', 'discovery', 'login_iscsi',
-                           'delete_iscsi', 'logout_iscsi', 'notify']
+                           'delete_iscsi', 'logout_iscsi']
         disk_utils_name_list = ['make_partitions', 'get_image_mb',
                                 'is_block_device', 'populate_image', 'mkfs',
                                 'block_uuid', 'get_dev_block_size']
@@ -817,7 +816,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         root_uuid = '12345678-1234-1234-12345678-12345678abcdef'
 
         utils_name_list = ['get_dev', 'discovery', 'login_iscsi',
-                           'logout_iscsi', 'delete_iscsi', 'notify']
+                           'logout_iscsi', 'delete_iscsi']
         disk_utils_name_list = ['is_block_device', 'populate_image',
                                 'get_image_mb', 'destroy_disk_metadata', 'dd',
                                 'block_uuid', 'make_partitions',
@@ -886,7 +885,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         dev = '/dev/fake'
         utils_name_list = ['get_dev', 'discovery', 'login_iscsi',
-                           'logout_iscsi', 'delete_iscsi', 'notify']
+                           'logout_iscsi', 'delete_iscsi']
         disk_utils_name_list = ['is_block_device', 'populate_image']
 
         utils_mock = self._mock_calls(utils_name_list, utils)
@@ -1772,16 +1771,13 @@ class AgentMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
-    @mock.patch.object(iscsi_deploy, 'build_deploy_ramdisk_options',
-                       autospec=True)
     @mock.patch.object(utils, 'build_agent_options', autospec=True)
     @mock.patch.object(utils, 'prepare_cleaning_ports', autospec=True)
     def _test_prepare_inband_cleaning(
-            self, prepare_cleaning_ports_mock, iscsi_build_options_mock,
+            self, prepare_cleaning_ports_mock,
             build_options_mock, power_mock, prepare_ramdisk_mock,
             manage_boot=True):
         build_options_mock.return_value = {'a': 'b'}
-        iscsi_build_options_mock.return_value = {'c': 'd'}
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             self.assertEqual(
@@ -1795,7 +1791,7 @@ class AgentMethodsTestCase(db_base.DbTestCase):
                              'agent_erase_devices_zeroize'))
             if manage_boot:
                 prepare_ramdisk_mock.assert_called_once_with(
-                    mock.ANY, mock.ANY, {'a': 'b', 'c': 'd'})
+                    mock.ANY, mock.ANY, {'a': 'b'})
                 build_options_mock.assert_called_once_with(task.node)
             else:
                 self.assertFalse(prepare_ramdisk_mock.called)

@@ -74,23 +74,6 @@ class VendorPassthru(iscsi_deploy.VendorPassthru):
             return
         super(VendorPassthru, self).validate(task, method, **kwargs)
 
-    @base.passthru(['POST'])
-    @task_manager.require_exclusive_lock
-    def pass_deploy_info(self, task, **kwargs):
-        """Continues the deployment of baremetal node over iSCSI.
-
-        This method continues the deployment of the baremetal node over iSCSI
-        from where the deployment ramdisk has left off.
-        This updates boot mode and secure boot settings, if required.
-
-        :param task: a TaskManager instance containing the node to act on.
-        :param **kwargs: kwargs for performing iscsi deployment.
-        :raises: InvalidState
-        """
-        ilo_common.update_boot_mode(task)
-        ilo_common.update_secure_boot_mode(task, True)
-        super(VendorPassthru, self).pass_deploy_info(task, **kwargs)
-
     @task_manager.require_exclusive_lock
     def continue_deploy(self, task, **kwargs):
         """Method invoked when deployed with the IPA ramdisk.

@@ -33,11 +33,6 @@ app = {
         # IPA ramdisk methods
         '/v1/drivers/[a-z0-9_]*/vendor_passthru/lookup',
         '/v1/nodes/[a-z0-9\-]+/vendor_passthru/heartbeat',
-        # DIB ramdisk methods
-        # NOTE(yuriyz): support URL without 'v1' for backward compatibility
-        # with old DIB ramdisks.
-        '(?:/v1)?/nodes/[a-z0-9\-]+/vendor_passthru/pass_(?:deploy|'
-        'bootloader_install)_info',
     ],
 }
 

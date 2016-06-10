@@ -109,26 +109,6 @@ class VendorPassthruTestCase(db_base.DbTestCase):
             validate_image_prop_mock.assert_called_once_with(
                 task.context, {'image_source': 'foo'}, [])
 
-    @mock.patch.object(iscsi_deploy.VendorPassthru, 'pass_deploy_info',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
-                       autospec=True)
-    def test_pass_deploy_info(self, func_update_boot_mode,
-                              func_update_secure_boot_mode,
-                              vendorpassthru_mock):
-        kwargs = {'address': '123456'}
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.node.provision_state = states.DEPLOYWAIT
-            task.node.target_provision_state = states.ACTIVE
-            task.driver.vendor.pass_deploy_info(task, **kwargs)
-            func_update_boot_mode.assert_called_once_with(task)
-            func_update_secure_boot_mode.assert_called_once_with(task, True)
-            vendorpassthru_mock.assert_called_once_with(
-                mock.ANY, task, **kwargs)
-
     @mock.patch.object(iscsi_deploy.VendorPassthru, 'continue_deploy',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'update_secure_boot_mode', autospec=True)

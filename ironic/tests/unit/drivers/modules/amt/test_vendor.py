@@ -37,8 +37,7 @@ class AMTPXEVendorPassthruTestCase(db_base.DbTestCase):
             self.context, driver='pxe_amt', driver_info=INFO_DICT)
 
     def test_vendor_routes(self):
-        expected = ['heartbeat', 'pass_deploy_info',
-                    'pass_bootloader_install_info']
+        expected = ['heartbeat']
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             vendor_routes = task.driver.vendor.vendor_routes
@@ -52,45 +51,6 @@ class AMTPXEVendorPassthruTestCase(db_base.DbTestCase):
             driver_routes = task.driver.vendor.driver_routes
             self.assertIsInstance(driver_routes, dict)
             self.assertEqual(sorted(expected), sorted(list(driver_routes)))
-
-    @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(iscsi_deploy.VendorPassthru, 'pass_deploy_info',
-                       spec_set=True, autospec=True)
-    def test_vendorpassthru_pass_deploy_info_netboot(self,
-                                                     mock_pxe_vendorpassthru,
-                                                     mock_ensure):
-        kwargs = {'address': '123456'}
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.node.provision_state = states.DEPLOYWAIT
-            task.node.target_provision_state = states.ACTIVE
-            task.node.instance_info['capabilities'] = {
-                "boot_option": "netboot"
-            }
-            task.driver.vendor.pass_deploy_info(task, **kwargs)
-            mock_ensure.assert_called_with(
-                task.driver.management, task.node, boot_devices.PXE)
-            mock_pxe_vendorpassthru.assert_called_once_with(
-                task.driver.vendor, task, **kwargs)
-
-    @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(iscsi_deploy.VendorPassthru, 'pass_deploy_info',
-                       spec_set=True, autospec=True)
-    def test_vendorpassthru_pass_deploy_info_localboot(self,
-                                                       mock_pxe_vendorpassthru,
-                                                       mock_ensure):
-        kwargs = {'address': '123456'}
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.node.provision_state = states.DEPLOYWAIT
-            task.node.target_provision_state = states.ACTIVE
-            task.node.instance_info['capabilities'] = {"boot_option": "local"}
-            task.driver.vendor.pass_deploy_info(task, **kwargs)
-            self.assertFalse(mock_ensure.called)
-            mock_pxe_vendorpassthru.assert_called_once_with(
-                task.driver.vendor, task, **kwargs)
 
     @mock.patch.object(amt_mgmt.AMTManagement, 'ensure_next_boot_device',
                        spec_set=True, autospec=True)

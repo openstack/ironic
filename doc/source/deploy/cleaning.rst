@@ -207,8 +207,6 @@ ironic-python-agent ships with a minimal cleaning configuration, only erasing
 disks. However, with this ramdisk, you can add your own cleaning steps and/or
 override default cleaning steps with a custom Hardware Manager.
 
-In-band cleaning is not supported by the deprecated bash ramdisk.
-
 Out-of-band
 -----------
 Out-of-band are actions performed by your management controller, such as IPMI,

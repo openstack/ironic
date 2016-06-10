@@ -277,17 +277,21 @@ This process is used with pxe_* family of drivers.
       Node -> Neutron [label = "DHCP request"];
       Neutron -> Node [label = "next-server = Conductor"];
       Node -> Conductor [label = "Attempts to tftpboot from Conductor"];
-      "TFTP/HTTPd" -> Node [label = "Send deploy kernel, ramdisk\nand config"];
-      Node -> Node [label = "Runs deploy\nramdisk"];
+      "TFTP/HTTPd" -> Node [label = "Send deploy kernel, ramdisk and config"];
+      Node -> Node [label = "Runs agent\nramdisk"];
+      Node -> API [label = "lookup()"];
+      API -> Conductor [label = "..."];
+      Conductor -> Node [label = "Pass UUID"];
+      Node -> API [label = "Heartbeat (UUID)"];
+      API -> Conductor [label = "Heartbeat"];
+      Conductor -> Node [label = "Continue deploy: Pass image, disk info"];
       Node -> Node [label = "Exposes disks\nvia iSCSI"];
-      Node -> API [label = "POST /vendor_passthru?method=pass_deploy_info"];
-      API -> Conductor [label = "Continue deploy"];
       Conductor -> Node [label = "iSCSI attach"];
       Conductor -> Node [label = "Copies user image"];
       Conductor -> Node [label = "iSCSI detach"];
-      Conductor -> Node [label = "Sends 'DONE' message"];
       Conductor -> Conductor [label = "Mark node as\nACTIVE"];
-      Node -> Node [label = "Terminates iSCSI endpoint"];
+      Conductor -> Neutron [label = "Clear DHCPBOOT"];
+      Conductor -> Node [label = "Reboot"];
       Node -> Node [label = "Reboots into\nuser instance"];
    }
 
