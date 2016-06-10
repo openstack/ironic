@@ -28,6 +28,7 @@ APC              AP7900       Yes           apc_rackpdu
 APC              AP7901       Yes           apc_rackpdu
 APC              AP7902       Yes           apc_rackpdu
 APC              AP7911a      Yes           apc_rackpdu
+APC              AP7922       Yes           apc_rackpdu
 APC              AP7930       Yes           apc_rackpdu
 APC              AP7931       Yes           apc_rackpdu
 APC              AP7932       Yes           apc_rackpdu
