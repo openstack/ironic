@@ -130,8 +130,14 @@ IRONIC_VM_LOG_ROTATE=$(trueorfalse True IRONIC_VM_LOG_ROTATE)
 # Whether to build the ramdisk or download a prebuilt one.
 IRONIC_BUILD_DEPLOY_RAMDISK=$(trueorfalse True IRONIC_BUILD_DEPLOY_RAMDISK)
 
-# Ironic IPA ramdisk type, supported types are: coreos, tinyipa and dib.
+# Ironic IPA ramdisk type, supported types are:
+IRONIC_SUPPORTED_RAMDISK_TYPES_RE="^(coreos|tinyipa|dib)$"
 IRONIC_RAMDISK_TYPE=${IRONIC_RAMDISK_TYPE:-tinyipa}
+
+# Confirm we have a supported ramdisk type or fail early.
+if [[ ! "$IRONIC_RAMDISK_TYPE" =~ $IRONIC_SUPPORTED_RAMDISK_TYPES_RE ]]; then
+    die $LINENO "Unrecognized IRONIC_RAMDISK_TYPE: $IRONIC_RAMDISK_TYPE. Expected 'coreos', 'tinyipa' or 'dib'"
+fi
 
 # If present, these files are used as deploy ramdisk/kernel.
 # (The value must be an absolute path)
@@ -142,22 +148,30 @@ IRONIC_DEPLOY_KERNEL=${IRONIC_DEPLOY_KERNEL:-}
 IPA_DOWNLOAD_BRANCH=${IPA_DOWNLOAD_BRANCH:-master}
 IPA_DOWNLOAD_BRANCH=$(echo $IPA_DOWNLOAD_BRANCH | tr / -)
 
-case $IRONIC_RAMDISK_TYPE in
-    coreos)
-        IRONIC_AGENT_KERNEL_URL=${IRONIC_AGENT_KERNEL_URL:-https://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe-${IPA_DOWNLOAD_BRANCH}.vmlinuz}
-        IRONIC_AGENT_RAMDISK_URL=${IRONIC_AGENT_RAMDISK_URL:-https://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe_image-oem-${IPA_DOWNLOAD_BRANCH}.cpio.gz}
-    ;;
-    tinyipa)
-        IRONIC_AGENT_KERNEL_URL=${IRONIC_AGENT_KERNEL_URL:-https://tarballs.openstack.org/ironic-python-agent/tinyipa/files/tinyipa-${IPA_DOWNLOAD_BRANCH}.vmlinuz}
-        IRONIC_AGENT_RAMDISK_URL=${IRONIC_AGENT_RAMDISK_URL:-https://tarballs.openstack.org/ironic-python-agent/tinyipa/files/tinyipa-${IPA_DOWNLOAD_BRANCH}.gz}
-    ;;
-    dib)
-        echo "IRONIC_RAMDISK_TYPE setting 'dib' has no pre-built images"
-    ;;
-    *)
-        die $LINENO "Unrecognised IRONIC_RAMDISK_TYPE: $IRONIC_RAMDISK_TYPE. Expected 'coreos', 'tinyipa' or 'dib'"
-    ;;
-esac
+# Configure URLs required to download ramdisk if we're not building it, and
+# IRONIC_DEPLOY_RAMDISK/KERNEL or the RAMDISK/KERNEL_URLs have not been
+# preconfigured.
+if [[ "$IRONIC_BUILD_DEPLOY_RAMDISK" == "False" && \
+        ! (-e "$IRONIC_DEPLOY_RAMDISK" && -e "$IRONIC_DEPLOY_KERNEL") && \
+        (-z "$IRONIC_AGENT_KERNEL_URL" || -z "$IRONIC_AGENT_RAMDISK_URL") ]]; then
+    case $IRONIC_RAMDISK_TYPE in
+        coreos)
+            IRONIC_AGENT_KERNEL_URL=${IRONIC_AGENT_KERNEL_URL:-https://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe-${IPA_DOWNLOAD_BRANCH}.vmlinuz}
+            IRONIC_AGENT_RAMDISK_URL=${IRONIC_AGENT_RAMDISK_URL:-https://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe_image-oem-${IPA_DOWNLOAD_BRANCH}.cpio.gz}
+        ;;
+        tinyipa)
+            IRONIC_AGENT_KERNEL_URL=${IRONIC_AGENT_KERNEL_URL:-https://tarballs.openstack.org/ironic-python-agent/tinyipa/files/tinyipa-${IPA_DOWNLOAD_BRANCH}.vmlinuz}
+            IRONIC_AGENT_RAMDISK_URL=${IRONIC_AGENT_RAMDISK_URL:-https://tarballs.openstack.org/ironic-python-agent/tinyipa/files/tinyipa-${IPA_DOWNLOAD_BRANCH}.gz}
+        ;;
+        dib)
+            die "IRONIC_RAMDISK_TYPE 'dib' has no official pre-built "\
+                "images. To fix this select a different ramdisk type, set "\
+                "IRONIC_BUILD_DEPLOY_RAMDISK=True, or manually configure "\
+                "IRONIC_DEPLOY_RAMDISK(_URL) and IRONIC_DEPLOY_KERNEL(_URL) "\
+                "to use your own pre-built ramdisk."
+        ;;
+    esac
+fi
 
 # This refers the options for disk-image-create and the platform on which
 # to build the dib based ironic-python-agent ramdisk.
