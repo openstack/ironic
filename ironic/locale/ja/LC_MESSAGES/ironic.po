@@ -5,9 +5,9 @@
 # Yuta Hono <yuta.hono@ntt.com>, 2016. #zanata
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 5.1.1.dev325\n"
+"Project-Id-Version: ironic 5.1.1.dev356\n"
 "Report-Msgid-Bugs-To: https://bugs.launchpad.net/openstack-i18n/\n"
-"POT-Creation-Date: 2016-06-06 04:48+0000\n"
+"POT-Creation-Date: 2016-06-10 21:23+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -512,13 +512,6 @@ msgstr "インスタンス %(instance)s のデプロイに失敗しました。�
 msgid "Deploy iso didn't contain efiboot.img or grub.cfg"
 msgstr "デプロイ ISO に efiboot.img も grub.cfg も含まれていませんでした"
 
-#, python-format
-msgid "Deploy key %(key_sent)s does not match with %(expected_key)s"
-msgstr "デプロイキー %(key_sent)s が %(expected_key)s に一致しません"
-
-msgid "Deploy key does not match"
-msgstr "デプロイキーが一致しません"
-
 msgid ""
 "Deploy timed out, but an unhandled exception was encountered while aborting. "
 "More info may be found in the log file."
@@ -614,10 +607,6 @@ msgid "Error rebooting node %(node)s after deploy. Error: %(error)s"
 msgstr ""
 "ノード %(node)s のデプロイ後の再起動がエラーになりました。エラー: %(error)s"
 
-#, python-format
-msgid "Error returned from deploy ramdisk: %s"
-msgstr "デプロイ RAM ディスクからエラーが返されました: %s"
-
 msgid ""
 "Error validating iLO virtual media deploy. Some parameters were missing in "
 "node's driver_info"
@@ -698,9 +687,6 @@ msgstr ""
 msgid "Failed to continue agent deployment."
 msgstr "エージェントのデプロイの続行に失敗しました。"
 
-msgid "Failed to continue iSCSI deployment."
-msgstr "iSCSI デプロイメントを続行できませんでした。"
-
 #, python-format
 msgid "Failed to create a file system. File system %(fs)s is not supported."
 msgstr ""
@@ -756,22 +742,9 @@ msgstr ""
 "ラー: %(error)s"
 
 #, python-format
-msgid "Failed to install bootloader on node %(node)s. Error: %(error)s."
-msgstr ""
-"ノード %(node)s においてブートローダーのインストールに失敗しました。エラー: "
-"%(error)s。"
-
-#, python-format
 msgid "Failed to load DHCP provider %(dhcp_provider_name)s, reason: %(reason)s"
 msgstr ""
 "DHCP プロバイダー %(dhcp_provider_name)s をロードできませんでした: %(reason)s"
-
-#, python-format
-msgid ""
-"Failed to notify ramdisk to reboot after bootloader installation. Error: %s"
-msgstr ""
-"ブートローダーのインストール後に再起動するよう RAM ディスクに通知できませんで"
-"した。エラー: %s"
 
 #, python-format
 msgid "Failed to parse sensor data for node %(node)s. Error: %(error)s"
@@ -813,10 +786,6 @@ msgid ""
 msgstr ""
 "ノード %(node)s をデプロイする iSCSI ターゲットの開始に失敗しました。エラー: "
 "%(error)s"
-
-#, python-format
-msgid "Failed to tear down from cleaning for node %s"
-msgstr "ノード %s のクリーニングからの取り外しに失敗しました"
 
 #, python-format
 msgid "Failed to tear down. Error: %s"
@@ -1595,13 +1564,6 @@ msgstr "ブートモードを %s に設定中"
 #, python-format
 msgid "Setting secure boot to %(flag)s for node %(node)s."
 msgstr "ノード %(node)s のセキュアブートを %(flag)s に設定中。"
-
-msgid ""
-"Some mandatory input missing in 'pass_bootloader_info' vendor passthru from "
-"ramdisk."
-msgstr ""
-"一部の必須入力が RAM ディスクの pass_bootloader_info ベンダーパススルーにあり"
-"ません。"
 
 msgid "Specified image file not found."
 msgstr "指定されたイメージファイルが見つかりません。"
