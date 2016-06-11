@@ -16,6 +16,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import ast
 import collections
 import time
 
@@ -535,9 +536,14 @@ class BaseAgentVendor(base.VendorInterface):
         LOG.info(_LI('Initial lookup for node %s succeeded, agent is running '
                      'and waiting for commands'), node.uuid)
 
+        ndict = node.as_dict()
+        if not context.show_password:
+            ndict['driver_info'] = ast.literal_eval(
+                strutils.mask_password(ndict['driver_info'], "******"))
+
         return {
             'heartbeat_timeout': CONF.agent.heartbeat_timeout,
-            'node': node.as_dict()
+            'node': ndict,
         }
 
     def _get_completed_cleaning_command(self, task):

@@ -15,6 +15,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
 import time
 import types
 
@@ -91,7 +92,8 @@ class TestBaseAgentVendor(db_base.DbTestCase):
 
     @mock.patch('ironic.drivers.modules.agent_base_vendor.BaseAgentVendor'
                 '._find_node_by_macs', autospec=True)
-    def test_lookup_v2(self, find_mock):
+    def _test_lookup_v2(self, find_mock, show_password=True):
+        self.context.show_password = show_password
         kwargs = {
             'version': '2',
             'inventory': {
@@ -108,10 +110,20 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                 ]
             }
         }
+        # NOTE(jroll) apparently as_dict() returns a dict full of references
+        expected = copy.deepcopy(self.node.as_dict())
+        if not show_password:
+            expected['driver_info']['ipmi_password'] = '******'
         find_mock.return_value = self.node
         with task_manager.acquire(self.context, self.node.uuid) as task:
             node = self.passthru.lookup(task.context, **kwargs)
-        self.assertEqual(self.node.as_dict(), node['node'])
+        self.assertEqual(expected, node['node'])
+
+    def test_lookup_v2_show_password(self):
+        self._test_lookup_v2(show_password=True)
+
+    def test_lookup_v2_hide_password(self):
+        self._test_lookup_v2(show_password=False)
 
     def test_lookup_v2_missing_inventory(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -136,9 +148,11 @@ class TestBaseAgentVendor(db_base.DbTestCase):
 
     @mock.patch.object(objects.Node, 'get_by_uuid')
     def test_lookup_v2_with_node_uuid(self, mock_get_node):
+        self.context.show_password = True
+        expected = copy.deepcopy(self.node.as_dict())
         kwargs = {
             'version': '2',
-            'node_uuid': 'fake uuid',
+            'node_uuid': 'fake-uuid',
             'inventory': {
                 'interfaces': [
                     {
@@ -156,8 +170,8 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         mock_get_node.return_value = self.node
         with task_manager.acquire(self.context, self.node.uuid) as task:
             node = self.passthru.lookup(task.context, **kwargs)
-        self.assertEqual(self.node.as_dict(), node['node'])
-        mock_get_node.assert_called_once_with(mock.ANY, 'fake uuid')
+        self.assertEqual(expected, node['node'])
+        mock_get_node.assert_called_once_with(mock.ANY, 'fake-uuid')
 
     @mock.patch.object(objects.port.Port, 'get_by_address',
                        spec_set=types.FunctionType)
