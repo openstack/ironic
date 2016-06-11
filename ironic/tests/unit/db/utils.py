@@ -152,6 +152,7 @@ def get_test_agent_driver_info():
     return {
         'deploy_kernel': 'glance://deploy_kernel_uuid',
         'deploy_ramdisk': 'glance://deploy_ramdisk_uuid',
+        'ipmi_password': 'foo',
     }
 
 
