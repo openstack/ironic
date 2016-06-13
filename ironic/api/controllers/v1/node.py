@@ -1266,18 +1266,8 @@ class NodesController(rest.RestController):
 
         rpc_node = api_utils.get_rpc_node(node_ident)
 
-        # TODO(lucasagomes): This code is here for backward compatibility
-        # with old nova Ironic drivers that will attempt to remove the
-        # instance even if it's already deleted in Ironic. This conditional
-        # should be removed in the next cycle (Mitaka).
         remove_inst_uuid_patch = [{'op': 'remove', 'path': '/instance_uuid'}]
-        if (rpc_node.provision_state in (ir_states.CLEANING,
-                                         ir_states.CLEANWAIT)
-            and patch == remove_inst_uuid_patch):
-            # The instance_uuid is already removed as part of the node's
-            # tear down, skip this update.
-            return Node.convert_with_links(rpc_node)
-        elif rpc_node.maintenance and patch == remove_inst_uuid_patch:
+        if rpc_node.maintenance and patch == remove_inst_uuid_patch:
             LOG.debug('Removing instance uuid %(instance)s from node %(node)s',
                       {'instance': rpc_node.instance_uuid,
                        'node': rpc_node.uuid})

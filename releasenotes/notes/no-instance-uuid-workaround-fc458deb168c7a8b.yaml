@@ -1,0 +1,4 @@
+---
+upgrade:
+  - Removed the workaround in API allowing removing "instance_uuid" during
+    cleaning. It was only required for Nova during introduction of cleaning.

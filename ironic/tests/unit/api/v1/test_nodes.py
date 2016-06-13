@@ -1086,24 +1086,6 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
-    def test_remove_instance_uuid_clean_backward_compat(self):
-        for state in (states.CLEANING, states.CLEANWAIT):
-            node = obj_utils.create_test_node(
-                self.context,
-                uuid=uuidutils.generate_uuid(),
-                provision_state=state,
-                target_provision_state=states.AVAILABLE)
-            self.mock_update_node.return_value = node
-            response = self.patch_json('/nodes/%s' % node.uuid,
-                                       [{'op': 'remove',
-                                         'path': '/instance_uuid'}])
-            self.assertEqual('application/json', response.content_type)
-            self.assertEqual(http_client.OK, response.status_code)
-            # NOTE(lucasagomes): instance_uuid is already removed as part of
-            # node's tear down, assert update has not been called. This test
-            # should be removed in the next cycle (Mitaka).
-            self.assertFalse(self.mock_update_node.called)
-
     def test_add_state_in_cleaning(self):
         node = obj_utils.create_test_node(
             self.context,
