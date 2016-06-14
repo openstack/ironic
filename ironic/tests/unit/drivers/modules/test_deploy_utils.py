@@ -1719,12 +1719,12 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             utils.agent_add_clean_params(task)
-            self.assertEqual(2, task.node.driver_internal_info.get(
-                'agent_erase_devices_iterations'))
-            self.assertEqual(False, task.node.driver_internal_info.get(
-                'agent_erase_devices_zeroize'))
-            self.assertEqual(True, task.node.driver_internal_info.get(
-                'agent_continue_if_ata_erase_failed'))
+            self.assertEqual(2, task.node.driver_internal_info[
+                'agent_erase_devices_iterations'])
+            self.assertEqual(False, task.node.driver_internal_info[
+                'agent_erase_devices_zeroize'])
+            self.assertEqual(True, task.node.driver_internal_info[
+                'agent_continue_if_ata_erase_failed'])
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.delete_cleaning_ports',
                 autospec=True)
@@ -1785,10 +1785,10 @@ class AgentMethodsTestCase(db_base.DbTestCase):
                 utils.prepare_inband_cleaning(task, manage_boot=manage_boot))
             prepare_cleaning_ports_mock.assert_called_once_with(task)
             power_mock.assert_called_once_with(task, states.REBOOT)
-            self.assertEqual(1, task.node.driver_internal_info.get(
-                             'agent_erase_devices_iterations'))
-            self.assertEqual(True, task.node.driver_internal_info.get(
-                             'agent_erase_devices_zeroize'))
+            self.assertEqual(1, task.node.driver_internal_info[
+                             'agent_erase_devices_iterations'])
+            self.assertEqual(True, task.node.driver_internal_info[
+                             'agent_erase_devices_zeroize'])
             if manage_boot:
                 prepare_ramdisk_mock.assert_called_once_with(
                     mock.ANY, mock.ANY, {'a': 'b'})
@@ -2018,7 +2018,7 @@ class ValidateParametersTestCase(db_base.DbTestCase):
         )
 
         info = utils.get_image_instance_info(node)
-        self.assertIsNotNone(info.get('image_source'))
+        self.assertIsNotNone(info['image_source'])
         return info
 
     def test__get_img_instance_info_good(self):
@@ -2032,8 +2032,8 @@ class ValidateParametersTestCase(db_base.DbTestCase):
 
         info = self._test__get_img_instance_info(instance_info=instance_info)
 
-        self.assertIsNotNone(info.get('ramdisk'))
-        self.assertIsNotNone(info.get('kernel'))
+        self.assertIsNotNone(info['ramdisk'])
+        self.assertIsNotNone(info['kernel'])
 
     def test__get_img_instance_info_non_glance_image_missing_kernel(self):
         instance_info = INST_INFO_DICT.copy()
@@ -2082,10 +2082,10 @@ class InstanceInfoTestCase(db_base.DbTestCase):
             driver_internal_info=DRV_INTERNAL_INFO_DICT
         )
         info = utils.parse_instance_info(node)
-        self.assertIsNotNone(info.get('image_source'))
-        self.assertIsNotNone(info.get('root_gb'))
-        self.assertEqual(0, info.get('ephemeral_gb'))
-        self.assertIsNone(info.get('configdrive'))
+        self.assertIsNotNone(info['image_source'])
+        self.assertIsNotNone(info['root_gb'])
+        self.assertEqual(0, info['ephemeral_gb'])
+        self.assertIsNone(info['configdrive'])
 
     def test_parse_instance_info_missing_instance_source(self):
         # make sure error is raised when info is missing
@@ -2134,8 +2134,8 @@ class InstanceInfoTestCase(db_base.DbTestCase):
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
         data = utils.parse_instance_info(node)
-        self.assertEqual(ephemeral_gb, data.get('ephemeral_gb'))
-        self.assertEqual(ephemeral_fmt, data.get('ephemeral_format'))
+        self.assertEqual(ephemeral_gb, data['ephemeral_gb'])
+        self.assertEqual(ephemeral_fmt, data['ephemeral_format'])
 
     def test_parse_instance_info_unicode_swap_mb(self):
         swap_mb = u'10'
@@ -2147,7 +2147,7 @@ class InstanceInfoTestCase(db_base.DbTestCase):
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
         data = utils.parse_instance_info(node)
-        self.assertEqual(swap_mb_int, data.get('swap_mb'))
+        self.assertEqual(swap_mb_int, data['swap_mb'])
 
     def test_parse_instance_info_invalid_ephemeral_gb(self):
         info = dict(INST_INFO_DICT)
@@ -2188,7 +2188,7 @@ class InstanceInfoTestCase(db_base.DbTestCase):
                 driver_internal_info=DRV_INTERNAL_INFO_DICT,
             )
             data = utils.parse_instance_info(node)
-            self.assertTrue(data.get('preserve_ephemeral'))
+            self.assertTrue(data['preserve_ephemeral'])
 
     def test_parse_instance_info_valid_preserve_ephemeral_false(self):
         info = dict(INST_INFO_DICT)
@@ -2201,7 +2201,7 @@ class InstanceInfoTestCase(db_base.DbTestCase):
                 driver_internal_info=DRV_INTERNAL_INFO_DICT,
             )
             data = utils.parse_instance_info(node)
-            self.assertFalse(data.get('preserve_ephemeral'))
+            self.assertFalse(data['preserve_ephemeral'])
 
     def test_parse_instance_info_invalid_preserve_ephemeral(self):
         info = dict(INST_INFO_DICT)
@@ -2307,11 +2307,11 @@ class InstanceInfoTestCase(db_base.DbTestCase):
             driver_internal_info=driver_internal_info,
         )
         instance_info = utils.parse_instance_info(node)
-        self.assertIsNotNone(instance_info.get('image_source'))
-        self.assertIsNotNone(instance_info.get('root_gb'))
-        self.assertEqual(0, instance_info.get('swap_mb'))
-        self.assertEqual(0, instance_info.get('ephemeral_gb'))
-        self.assertIsNone(instance_info.get('configdrive'))
+        self.assertIsNotNone(instance_info['image_source'])
+        self.assertIsNotNone(instance_info['root_gb'])
+        self.assertEqual(0, instance_info['swap_mb'])
+        self.assertEqual(0, instance_info['ephemeral_gb'])
+        self.assertIsNone(instance_info['configdrive'])
 
     def test_parse_instance_info_whole_disk_image_missing_root(self):
         info = dict(INST_INFO_DICT)
