@@ -202,11 +202,27 @@ def provisioning_error_handler(e, node, provision_state,
                      'tgt_prov_state': target_provision_state})
 
 
+def cleanup_cleanwait_timeout(task):
+    """Cleanup a cleaning task after timeout.
+
+    :param task: a TaskManager instance.
+    """
+    last_error = (_("Timeout reached while cleaning the node. Please "
+                    "check if the ramdisk responsible for the cleaning is "
+                    "running on the node. Failed on step %(step)s.") %
+                  {'step': task.node.clean_step})
+    cleaning_error_handler(task, msg=last_error,
+                           set_fail_state=True)
+
+
 def cleaning_error_handler(task, msg, tear_down_cleaning=True,
                            set_fail_state=True):
     """Put a failed node in CLEANFAIL and maintenance."""
     node = task.node
-    if node.provision_state in (states.CLEANING, states.CLEANWAIT):
+    if node.provision_state in (
+            states.CLEANING,
+            states.CLEANWAIT,
+            states.CLEANFAIL):
         # Clear clean step, msg should already include current step
         node.clean_step = {}
         info = node.driver_internal_info

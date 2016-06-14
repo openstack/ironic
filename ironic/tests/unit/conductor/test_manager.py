@@ -1100,7 +1100,13 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
             self.context, driver='fake',
             provision_state=states.CLEANWAIT,
             target_provision_state=tgt_prov_state,
-            provision_updated_at=datetime.datetime(2000, 1, 1, 0, 0))
+            provision_updated_at=datetime.datetime(2000, 1, 1, 0, 0),
+            clean_step={
+                'interface': 'deploy',
+                'step': 'erase_devices'},
+            driver_internal_info={
+                'cleaning_reboot': manual,
+                'clean_step_index': 0})
 
         self.service._check_cleanwait_timeouts(self.context)
         self._stop_service()
@@ -1108,6 +1114,11 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(states.CLEANFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
+        # Test that cleaning parameters have been purged in order
+        # to prevent looping of the cleaning sequence
+        self.assertEqual({}, node.clean_step)
+        self.assertNotIn('clean_step_index', node.driver_internal_info)
+        self.assertNotIn('cleaning_reboot', node.driver_internal_info)
 
     def test__check_cleanwait_timeouts_automated_clean(self):
         self._check_cleanwait_timeouts()
