@@ -148,6 +148,18 @@ IRONIC_DEPLOY_RAMDISK=${IRONIC_DEPLOY_RAMDISK:-}
 IRONIC_DEPLOY_KERNEL=${IRONIC_DEPLOY_KERNEL:-}
 IRONIC_DEPLOY_ISO=${IRONIC_DEPLOY_ISO:-}
 
+# These parameters describe which image will be used to provision a node in
+# tempest tests
+if [[ -z "$IRONIC_TEMPEST_WHOLE_DISK_IMAGE" && "$IRONIC_VM_EPHEMERAL_DISK" == 0 ]]; then
+    IRONIC_TEMPEST_WHOLE_DISK_IMAGE=True
+fi
+IRONIC_TEMPEST_WHOLE_DISK_IMAGE=$(trueorfalse False IRONIC_TEMPEST_WHOLE_DISK_IMAGE)
+if [[ "$IRONIC_TEMPEST_WHOLE_DISK_IMAGE" == "True" ]]; then
+    IRONIC_IMAGE_NAME=${IRONIC_IMAGE_NAME:-cirros-${CIRROS_VERSION}-x86_64-disk}
+else
+    IRONIC_IMAGE_NAME=${IRONIC_IMAGE_NAME:-cirros-${CIRROS_VERSION}-x86_64-uec}
+fi
+
 # NOTE(jroll) this needs to be updated when stable branches are cut
 IPA_DOWNLOAD_BRANCH=${IPA_DOWNLOAD_BRANCH:-master}
 IPA_DOWNLOAD_BRANCH=$(echo $IPA_DOWNLOAD_BRANCH | tr / -)
@@ -1409,6 +1421,11 @@ function ironic_configure_tempest {
     if [[ -n "${IRONIC_PROVISION_NETWORK_NAME}" ]]; then
         iniset $TEMPEST_CONFIG baremetal use_provision_network True
     fi
+
+    local image_uuid
+    image_uuid=$(openstack image show $IRONIC_IMAGE_NAME -f value -c id)
+    iniset $TEMPEST_CONFIG compute image_ref $image_uuid
+    iniset $TEMPEST_CONFIG compute image_ref_alt $image_uuid
 }
 
 # Restore xtrace + pipefail
