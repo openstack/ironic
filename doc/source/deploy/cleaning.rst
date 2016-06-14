@@ -138,7 +138,7 @@ An example of the request body for this API::
     "clean_steps": [{
       "interface": "raid",
       "step": "create_configuration",
-      "args": {"create_nonroot_volumes": "False"}
+      "args": {"create_nonroot_volumes": false}
     },
     {
       "interface": "deploy",
