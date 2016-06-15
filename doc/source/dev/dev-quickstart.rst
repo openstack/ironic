@@ -475,6 +475,21 @@ and uses the ``pxe_ssh`` driver by default::
       # on Ubuntu
       sudo -u libvirt-qemu touch $HOME/ironic-bm-logs/test.log
 
+.. note::
+    To check out an in-progress patch for testing, you can add a Git ref to the ``enable_plugin`` line. For instance::
+
+      enable_plugin ironic git://git.openstack.org/openstack/ironic refs/changes/46/295946/15
+
+    For a patch in review, you can find the ref to use by clicking the
+    "Download" button in Gerrit. You can also specify a different git repo, or
+    a branch or tag::
+
+      enable_plugin ironic https://github.com/openstack/ironic stable/kilo
+
+    For more details, see the
+    `devstack plugin interface documentation
+    <http://docs.openstack.org/developer/devstack/plugins.html#plugin-interface>`_.
+
 Run stack.sh::
 
     ./stack.sh
