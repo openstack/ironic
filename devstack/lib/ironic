@@ -682,7 +682,7 @@ function configure_ironic_conductor {
     fi
 
     if is_deployed_by_agent; then
-        iniset $IRONIC_CONF_FILE agent heartbeat_timeout 30
+        iniset $IRONIC_CONF_FILE api ramdisk_heartbeat_timeout 30
     fi
 
     # FIXME: this really needs to be tested in the gate.  For now, any

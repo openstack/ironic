@@ -26,6 +26,7 @@ from oslo_utils import strutils
 from oslo_utils import timeutils
 import retrying
 
+from ironic.api.controllers.v1 import ramdisk
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -789,23 +790,9 @@ class BaseAgentVendor(AgentDeployMixin, base.VendorInterface):
             # config namespace. Instead of a separate deprecation,
             # this will die when the vendor_passthru version of
             # lookup goes away.
-            'heartbeat_timeout': CONF.agent.heartbeat_timeout,
+            'heartbeat_timeout': CONF.api.ramdisk_heartbeat_timeout,
             'node': ndict,
-            'config': {
-                'metrics': {
-                    'backend': CONF.metrics.agent_backend,
-                    'prepend_host': CONF.metrics.agent_prepend_host,
-                    'prepend_uuid': CONF.metrics.agent_prepend_uuid,
-                    'prepend_host_reverse':
-                        CONF.metrics.agent_prepend_host_reverse,
-                    'global_prefix': CONF.metrics.agent_global_prefix
-                },
-                'metrics_statsd': {
-                    'statsd_host': CONF.metrics_statsd.agent_statsd_host,
-                    'statsd_port': CONF.metrics_statsd.agent_statsd_port
-                },
-                'heartbeat_timeout': CONF.agent.heartbeat_timeout
-            }
+            'config': ramdisk.config(),
         }
 
     def _get_interfaces(self, inventory):

@@ -400,10 +400,6 @@
 # be set to True. Defaults to True. (boolean value)
 #stream_raw_images = true
 
-# Maximum interval (in seconds) for agent heartbeats. (integer
-# value)
-#heartbeat_timeout = 300
-
 # Number of times to retry getting power state to check if
 # bare metal node has been powered off after a soft power off.
 # (integer value)
@@ -485,6 +481,15 @@
 # endpoint to represent SSL termination URL with
 # 'public_endpoint' option. (boolean value)
 #enable_ssl_api = false
+
+# Whether to restrict the lookup API to only nodes in certain
+# states. (boolean value)
+#restrict_lookup = true
+
+# Maximum interval (in seconds) for agent heartbeats. (integer
+# value)
+# Deprecated group/name - [agent]/heartbeat_timeout
+#ramdisk_heartbeat_timeout = 300
 
 
 [audit]

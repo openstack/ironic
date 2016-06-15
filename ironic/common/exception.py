@@ -606,3 +606,8 @@ class NodeTagNotFound(IronicException):
 
 class NetworkError(IronicException):
     _msg_fmt = _("Network operation failure.")
+
+
+class IncompleteLookup(Invalid):
+    _msg_fmt = _("At least one of 'addresses' and 'node_uuid' parameters "
+                 "is required")

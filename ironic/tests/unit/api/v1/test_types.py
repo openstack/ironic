@@ -41,6 +41,27 @@ class TestMacAddressType(base.TestCase):
                           types.MacAddressType.validate, 'invalid-mac')
 
 
+class TestListOfMacAddressesType(base.TestCase):
+
+    def test_valid_mac_addr(self):
+        test_mac = 'aa:bb:cc:11:22:33'
+        self.assertEqual([test_mac],
+                         types.ListOfMacAddressesType.validate(test_mac))
+
+    def test_valid_list(self):
+        test_mac = 'aa:bb:cc:11:22:33,11:22:33:44:55:66'
+        self.assertEqual(
+            sorted(test_mac.split(',')),
+            sorted(types.ListOfMacAddressesType.validate(test_mac)))
+
+    def test_invalid_mac_addr(self):
+        self.assertRaises(exception.InvalidMAC,
+                          types.ListOfMacAddressesType.validate, 'invalid-mac')
+        self.assertRaises(exception.InvalidMAC,
+                          types.ListOfMacAddressesType.validate,
+                          'aa:bb:cc:11:22:33,invalid-mac')
+
+
 class TestUuidType(base.TestCase):
 
     def test_valid_uuid(self):

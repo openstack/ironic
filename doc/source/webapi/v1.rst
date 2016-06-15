@@ -32,6 +32,10 @@ always requests the newest supported API version.
 API Versions History
 --------------------
 
+**1.22**
+
+    Added endpoints for deployment ramdisks.
+
 **1.21**
 
     Add node ``resource_class`` field.
