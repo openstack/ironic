@@ -599,7 +599,8 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         conductor_utils.cleanup_cleanwait_timeout(self.task)
         self.assertEqual({}, self.node.clean_step)
         self.assertNotIn('clean_step_index', self.node.driver_internal_info)
-        self.task.process_event.assert_called_once()
+        self.task.process_event.assert_called_once_with('fail',
+                                                        target_state=None)
         self.assertTrue(self.node.maintenance)
         self.assertEqual(clean_error, self.node.maintenance_reason)
 
