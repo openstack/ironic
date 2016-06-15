@@ -1123,7 +1123,9 @@ def parse_instance_info(node):
                   " in node's instance_info")
     check_for_missing_params(i_info, error_msg)
 
-    i_info['swap_mb'] = int(info.get('swap_mb', 0))
+    # NOTE(vdrok): We're casting disk layout parameters to int only after
+    # ensuring that it is possible
+    i_info['swap_mb'] = info.get('swap_mb', 0)
     i_info['ephemeral_gb'] = info.get('ephemeral_gb', 0)
     err_msg_invalid = _("Cannot validate parameter for driver deploy. "
                         "Invalid parameter %(param)s. Reason: %(reason)s")
@@ -1136,10 +1138,12 @@ def parse_instance_info(node):
                                                   {'param': param,
                                                    'reason': reason})
 
-    i_info['root_mb'] = 1024 * int(info.get('root_gb'))
+    i_info['root_mb'] = 1024 * int(i_info['root_gb'])
+    i_info['swap_mb'] = int(i_info['swap_mb'])
+    i_info['ephemeral_mb'] = 1024 * int(i_info['ephemeral_gb'])
 
     if iwdi:
-        if int(i_info['swap_mb']) > 0 or int(i_info['ephemeral_gb']) > 0:
+        if i_info['swap_mb'] > 0 or i_info['ephemeral_mb'] > 0:
             err_msg_invalid = _("Cannot deploy whole disk image with "
                                 "swap or ephemeral size set")
             raise exception.InvalidParameterValue(err_msg_invalid)
