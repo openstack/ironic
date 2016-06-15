@@ -16,7 +16,6 @@ AMT Power Driver
 """
 import copy
 
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import excutils
@@ -29,25 +28,12 @@ from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules.amt import common as amt_common
 from ironic.drivers.modules.amt import resource_uris
 
 pywsman = importutils.try_import('pywsman')
-
-opts = [
-    cfg.IntOpt('max_attempts',
-               default=3,
-               help=_('Maximum number of times to attempt an AMT operation, '
-                      'before failing')),
-    cfg.IntOpt('action_wait',
-               default=10,
-               help=_('Amount of time (in seconds) to wait, before retrying '
-                      'an AMT operation'))
-]
-
-CONF = cfg.CONF
-CONF.register_opts(opts, group='amt')
 
 LOG = logging.getLogger(__name__)
 

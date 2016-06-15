@@ -33,8 +33,6 @@ from ironic.drivers import base
 
 LOG = logging.getLogger(__name__)
 
-CONF.import_opt('auth_strategy', 'ironic.api.app')
-
 client = importutils.try_import('ironic_inspector_client')
 
 
