@@ -404,7 +404,7 @@ def validate(task):
 
 
 class ISCSIDeploy(base.DeployInterface):
-    """PXE Deploy Interface for deploy-related actions."""
+    """iSCSI Deploy Interface for deploy-related actions."""
 
     def get_properties(self):
         return {}
@@ -419,7 +419,7 @@ class ISCSIDeploy(base.DeployInterface):
         task.driver.boot.validate(task)
         node = task.node
 
-        # Check the boot_mode and boot_option capabilities values.
+        # Check the boot_mode, boot_option and disk_label capabilities values.
         deploy_utils.validate_capabilities(node)
 
         # TODO(rameshg87): iscsi_ilo driver uses this method. Remove
