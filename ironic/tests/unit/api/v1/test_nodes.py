@@ -575,7 +575,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         data = self.get_json('/nodes?associated=False&limit=2')
 
         self.assertThat(data['nodes'], HasLength(2))
-        self.assertTrue(data['nodes'][0]['uuid'] in unassociated_nodes)
+        self.assertIn(data['nodes'][0]['uuid'], unassociated_nodes)
 
     def test_next_link_with_association(self):
         self._create_association_test_nodes()

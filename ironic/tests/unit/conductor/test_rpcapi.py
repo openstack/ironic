@@ -56,7 +56,7 @@ class RPCAPITestCase(base.DbTestCase):
         self.fake_portgroup = dbutils.get_test_portgroup()
 
     def test_serialized_instance_has_uuid(self):
-        self.assertTrue('uuid' in self.fake_node)
+        self.assertIn('uuid', self.fake_node)
 
     def test_get_topic_for_known_driver(self):
         CONF.set_override('host', 'fake-host')

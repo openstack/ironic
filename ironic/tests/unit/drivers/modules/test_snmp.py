@@ -57,7 +57,7 @@ class SNMPClientTestCase(base.TestCase):
         self.assertEqual(self.port, client.port)
         self.assertEqual(snmp.SNMP_V1, client.version)
         self.assertIsNone(client.community)
-        self.assertFalse('security' in client.__dict__)
+        self.assertNotIn('security', client.__dict__)
         self.assertEqual(mock_cmdgen.return_value, client.cmd_gen)
 
     @mock.patch.object(cmdgen, 'CommunityData', autospec=True)
