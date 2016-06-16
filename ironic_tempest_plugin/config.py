@@ -67,7 +67,6 @@ BaremetalGroup = [
     #                 "Takes longer since Kilo as Ironic performs an extra "
     #                 "step in Node cleaning.")
     cfg.StrOpt('min_microversion',
-               default=None,
                help="Lower version of the test target microversion range. "
                     "The format is 'X.Y', where 'X' and 'Y' are int values. "
                     "Tempest selects tests based on the range between "

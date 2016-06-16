@@ -29,7 +29,6 @@ API_SERVICE_OPTS = [
                help=_('The maximum number of items returned in a single '
                       'response from a collection resource.')),
     cfg.StrOpt('public_endpoint',
-               default=None,
                help=_("Public URL to use when building the links to the API "
                       "resources (for example, \"https://ironic.rocks:6384\")."
                       " If None the links will be built using the request's "

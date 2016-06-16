@@ -44,7 +44,6 @@ opts = [
                 default=False,
                 help=_('Option to allow insecure connection with OneView')),
     cfg.StrOpt('tls_cacert_file',
-               default=None,
                help=_('Path to CA certificate')),
     cfg.IntOpt('max_polling_attempts',
                default=12,
