@@ -86,7 +86,7 @@ POST_CLEAN_STEP_HOOKS = {}
 VENDOR_PROPERTIES = {
     'deploy_forces_oob_reboot': _(
         'Whether Ironic should force a reboot of the Node via the out-of-band '
-        'channel after deployment is complete. Provides compatiblity with '
+        'channel after deployment is complete. Provides compatibility with '
         'older deploy ramdisks. Defaults to False. Optional.')
 }
 
