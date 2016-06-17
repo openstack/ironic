@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from oslo_config import cfg
 from oslo_service import loopingcall
 from oslo_utils import importutils
 
@@ -20,24 +19,11 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules.cimc import common
 
 imcsdk = importutils.try_import('ImcSdk')
-
-opts = [
-    cfg.IntOpt('max_retry',
-               default=6,
-               help=_('Number of times a power operation needs to be '
-                      'retried')),
-    cfg.IntOpt('action_interval',
-               default=10,
-               help=_('Amount of time in seconds to wait in between power '
-                      'operations')),
-]
-
-CONF = cfg.CONF
-CONF.register_opts(opts, group='cimc')
 
 
 if imcsdk:
