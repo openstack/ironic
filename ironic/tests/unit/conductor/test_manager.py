@@ -1491,7 +1491,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
         # Node will be moved to CLEANING
         self.assertEqual(states.CLEANING, node.provision_state)
         self.assertEqual(states.MANAGEABLE, node.target_provision_state)
-        self.assertIsNone(node.driver_internal_info.get('clean_steps'))
+        self.assertNotIn('clean_steps', node.driver_internal_info)
         self.assertIsNone(node.last_error)
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
@@ -1719,8 +1719,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(states.AVAILABLE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertEqual({}, node.clean_step)
-        self.assertIsNone(node.driver_internal_info.get('clean_steps'))
-        self.assertIsNone(node.driver_internal_info.get('clean_step_index'))
+        self.assertNotIn('clean_steps', node.driver_internal_info)
+        self.assertNotIn('clean_step_index', node.driver_internal_info)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare_cleaning')
     def __do_node_clean_prepare_clean_fail(self, mock_prep, clean_steps=None):
