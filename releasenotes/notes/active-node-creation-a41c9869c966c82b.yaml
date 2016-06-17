@@ -10,5 +10,6 @@ other:
   - When a node is enrolled into ironic, upon transition to the
     ``manageable`` state, the current power state of the node is
     recorded.  Once the node is adopted and in an ``active`` state,
-    that recorded power state will be enfored by ironic unless an
-    operator changes the power state in ironic.
+    that recorded power state will be enforced by ironic unless an
+    operator changes the power state in ironic. This was the default
+    behavior of ironic prior to the adoption feature.

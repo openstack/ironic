@@ -4788,6 +4788,7 @@ class DoNodeAdoptionTestCase(
                                         mock_start_console,
                                         mock_boot_validate,
                                         mock_power_validate):
+        """Test a successful node adoption"""
         self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake',
@@ -4804,6 +4805,7 @@ class DoNodeAdoptionTestCase(
         mock_take_over.assert_called_once_with(mock.ANY)
         self.assertFalse(mock_start_console.called)
         self.assertTrue(mock_boot_validate.called)
+        self.assertIn('is_whole_disk_image', task.node.driver_internal_info)
 
     @mock.patch('ironic.drivers.modules.fake.FakeBoot.validate')
     @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console')
@@ -4814,6 +4816,7 @@ class DoNodeAdoptionTestCase(
                                             mock_take_over,
                                             mock_start_console,
                                             mock_boot_validate):
+        """Test that adoption failed if an exception is raised"""
         # Note(TheJulia): Use of an actual possible exception that
         # can be raised due to a misconfiguration.
         mock_take_over.side_effect = exception.IPMIFailure(
@@ -4835,6 +4838,7 @@ class DoNodeAdoptionTestCase(
         mock_take_over.assert_called_once_with(mock.ANY)
         self.assertFalse(mock_start_console.called)
         self.assertTrue(mock_boot_validate.called)
+        self.assertIn('is_whole_disk_image', task.node.driver_internal_info)
 
     @mock.patch('ironic.drivers.modules.fake.FakeBoot.validate')
     @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console')
@@ -4845,6 +4849,7 @@ class DoNodeAdoptionTestCase(
                                                 mock_take_over,
                                                 mock_start_console,
                                                 mock_boot_validate):
+        """Test that adoption fails if the boot validation fails"""
         # Note(TheJulia): Use of an actual possible exception that
         # can be raised due to a misconfiguration.
         mock_boot_validate.side_effect = exception.MissingParameterValue(
@@ -4869,6 +4874,7 @@ class DoNodeAdoptionTestCase(
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
     def test_do_provisioning_action_adopt_node(self, mock_spawn):
+        """Test an adoption request results in the node in ADOPTING"""
         node = obj_utils.create_test_node(
             self.context, driver='fake',
             provision_state=states.MANAGEABLE,
@@ -4884,6 +4890,7 @@ class DoNodeAdoptionTestCase(
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
     def test_do_provisioning_action_adopt_node_retry(self, mock_spawn):
+        """Test a retried adoption from ADOPTFAIL results in ADOPTING state"""
         node = obj_utils.create_test_node(
             self.context, driver='fake',
             provision_state=states.ADOPTFAIL,
@@ -4898,6 +4905,7 @@ class DoNodeAdoptionTestCase(
         mock_spawn.assert_called_with(self.service._do_adoption, mock.ANY)
 
     def test_do_provisioning_action_manage_of_failed_adoption(self):
+        """Test a node in ADOPTFAIL can be taken to MANAGEABLE"""
         node = obj_utils.create_test_node(
             self.context, driver='fake',
             provision_state=states.ADOPTFAIL,

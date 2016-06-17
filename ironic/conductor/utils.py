@@ -59,10 +59,6 @@ def node_set_boot_device(task, device, persistent=False):
     """
     if getattr(task.driver, 'management', None):
         task.driver.management.validate(task)
-        # NOTE(TheJulia): When a node is in the ADOPTING state, we must
-        # not attempt to change the default boot device as a side effect
-        # of a driver's node takeover process as it is modifying
-        # a working machine.
         if task.node.provision_state != states.ADOPTING:
             task.driver.management.set_boot_device(task,
                                                    device=device,
