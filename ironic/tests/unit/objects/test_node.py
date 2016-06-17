@@ -54,6 +54,17 @@ class TestNodeObject(base.DbTestCase):
         self.assertRaises(exception.InvalidIdentity,
                           objects.Node.get, self.context, 'not-a-uuid')
 
+    def test_get_by_port_addresses(self):
+        with mock.patch.object(self.dbapi, 'get_node_by_port_addresses',
+                               autospec=True) as mock_get_node:
+            mock_get_node.return_value = self.fake_node
+
+            node = objects.Node.get_by_port_addresses(self.context,
+                                                      ['aa:bb:cc:dd:ee:ff'])
+
+            mock_get_node.assert_called_once_with(['aa:bb:cc:dd:ee:ff'])
+            self.assertEqual(self.context, node._context)
+
     def test_save(self):
         uuid = self.fake_node['uuid']
         with mock.patch.object(self.dbapi, 'get_node_by_uuid',

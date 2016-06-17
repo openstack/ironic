@@ -28,7 +28,7 @@ from oslo_log import log
 from oslo_utils import strutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.orm import joinedload
 from sqlalchemy import sql
 
@@ -843,3 +843,18 @@ class Connection(api.Connection):
     def node_tag_exists(self, node_id, tag):
         q = model_query(models.NodeTag).filter_by(node_id=node_id, tag=tag)
         return model_query(q.exists()).scalar()
+
+    def get_node_by_port_addresses(self, addresses):
+        q = model_query(models.Node).distinct().join(models.Port)
+        q = q.filter(models.Port.address.in_(addresses))
+
+        try:
+            return q.one()
+        except NoResultFound:
+            raise exception.NodeNotFound(
+                _('Node with port addresses %s was not found')
+                % addresses)
+        except MultipleResultsFound:
+            raise exception.NodeNotFound(
+                _('Multiple nodes with port addresses %s were found')
+                % addresses)

@@ -45,7 +45,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.13: Add touch_provisioning()
     # Version 1.14: Add _validate_property_values() and make create()
     #               and save() validate the input of property values.
-    VERSION = '1.14'
+    # Version 1.15: Add get_by_port_addresses
+    VERSION = '1.15'
 
     dbapi = db_api.get_instance()
 
@@ -364,3 +365,16 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     def touch_provisioning(self, context=None):
         """Touch the database record to mark the provisioning as alive."""
         self.dbapi.touch_node_provisioning(self.id)
+
+    @classmethod
+    def get_by_port_addresses(cls, context, addresses):
+        """Get a node by associated port addresses.
+
+        :param context: Security context.
+        :param addresses: A list of port addresses.
+        :raises: NodeNotFound if the node is not found.
+        :returns: a :class:`Node` object.
+        """
+        db_node = cls.dbapi.get_node_by_port_addresses(addresses)
+        node = Node._from_db_object(cls(context), db_node)
+        return node
