@@ -47,6 +47,7 @@ VERBS = {
     'inspect': 'inspect',
     'abort': 'abort',
     'clean': 'clean',
+    'adopt': 'adopt',
 }
 """ Mapping of state-changing events that are PUT to the REST API
 
@@ -161,19 +162,35 @@ INSPECTING = 'inspecting'
 """ Node is under inspection.
 
 This is the provision state used when inspection is started. A successfully
-inspected node shall transition to MANAGEABLE status.
+inspected node shall transition to MANAGEABLE state.
 """
 
 
 INSPECTFAIL = 'inspect failed'
 """ Node inspection failed. """
 
+ADOPTING = 'adopting'
+""" Node is being adopted.
+
+This provision state is intended for use to move a node from MANAGEABLE to
+ACTIVE state to permit designation of nodes as being "managed" by Ironic,
+however "deployed" previously by external means.
+"""
+
+ADOPTFAIL = 'adopt failed'
+""" Node failed to complete the adoption process.
+
+This state is the resulting state of a node that failed to complete adoption,
+potentially due to invalid or incompatible information being defined for the
+node.
+"""
 
 UPDATE_ALLOWED_STATES = (DEPLOYFAIL, INSPECTING, INSPECTFAIL, CLEANFAIL, ERROR,
-                         VERIFYING)
+                         VERIFYING, ADOPTFAIL)
 """Transitional states in which we allow updating a node."""
 
-DELETE_ALLOWED_STATES = (AVAILABLE, NOSTATE, MANAGEABLE, ENROLL)
+DELETE_ALLOWED_STATES = (AVAILABLE, NOSTATE, MANAGEABLE, ENROLL,
+                         ADOPTFAIL)
 """States in which node deletion is allowed."""
 
 STABLE_STATES = (ENROLL, MANAGEABLE, AVAILABLE, ACTIVE, ERROR)
@@ -242,6 +259,10 @@ machine.add_transition(AVAILABLE, DEPLOYING, 'deploy')
 # Add inspect* states.
 machine.add_state(INSPECTING, target=MANAGEABLE, **watchers)
 machine.add_state(INSPECTFAIL, target=MANAGEABLE, **watchers)
+
+# Add adopt* states
+machine.add_state(ADOPTING, target=ACTIVE, **watchers)
+machine.add_state(ADOPTFAIL, target=ACTIVE, **watchers)
 
 # A deployment may fail
 machine.add_transition(DEPLOYING, DEPLOYFAIL, 'fail')
@@ -346,3 +367,19 @@ machine.add_transition(VERIFYING, MANAGEABLE, 'done')
 
 # Verification can fail with setting last_error and rolling back to ENROLL
 machine.add_transition(VERIFYING, ENROLL, 'fail')
+
+# Node Adoption is being attempted
+machine.add_transition(MANAGEABLE, ADOPTING, 'adopt')
+
+# Adoption can succeed and the node should be set to ACTIVE
+machine.add_transition(ADOPTING, ACTIVE, 'done')
+
+# Node adoptions can fail and as such nodes shall be set
+# into a dedicated state to hold the nodes.
+machine.add_transition(ADOPTING, ADOPTFAIL, 'fail')
+
+# Node adoption can be retried when it previously failed.
+machine.add_transition(ADOPTFAIL, ADOPTING, 'adopt')
+
+# A node that failed adoption can be moved back to manageable
+machine.add_transition(ADOPTFAIL, MANAGEABLE, 'manage')

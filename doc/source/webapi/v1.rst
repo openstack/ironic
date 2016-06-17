@@ -32,7 +32,15 @@ always requests the newest supported API version.
 API Versions History
 --------------------
 
+**1.17**
+
+    Addition of provision_state verb ``adopt`` which allows an operator
+    to move a node from ``manageable`` state to ``active`` state without
+    performing a deployment operation on the node. This is intended for
+    nodes that have already been deployed by external means.
+
 **1.16**
+
     Add ability to filter nodes by driver.
 
 **1.15**

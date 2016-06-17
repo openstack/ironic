@@ -60,6 +60,23 @@ class NodeSetBootDeviceTestCase(base.DbTestCase):
                                              device='pxe',
                                              persistent=False)
 
+    def test_node_set_boot_device_adopting(self):
+        mgr_utils.mock_the_extension_manager(driver="fake_ipmitool")
+        self.driver = driver_factory.get_driver("fake_ipmitool")
+        ipmi_info = utils.get_test_ipmi_info()
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='fake_ipmitool',
+                                          driver_info=ipmi_info,
+                                          provision_state=states.ADOPTING)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        with mock.patch.object(self.driver.management,
+                               'set_boot_device') as mock_sbd:
+            conductor_utils.node_set_boot_device(task,
+                                                 device='pxe')
+            self.assertFalse(mock_sbd.called)
+
 
 class NodePowerActionTestCase(base.DbTestCase):
 

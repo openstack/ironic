@@ -51,6 +51,7 @@ MIN_VERB_VERSIONS = {
     states.VERBS['inspect']: versions.MINOR_6_INSPECT_STATE,
     states.VERBS['abort']: versions.MINOR_13_ABORT_VERB,
     states.VERBS['clean']: versions.MINOR_15_MANUAL_CLEAN,
+    states.VERBS['adopt']: versions.MINOR_17_ADOPT_VERB,
 }
 
 

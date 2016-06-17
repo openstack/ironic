@@ -2622,6 +2622,16 @@ class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin,
                               self.dbapi.get_node_by_uuid,
                               node.uuid)
 
+    def test_destroy_node_adopt_failed_no_power_change(self):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake',
+                                          provision_state=states.ADOPTFAIL)
+        with mock.patch.object(self.driver.power,
+                               'set_power_state') as mock_power:
+            self.service.destroy_node(self.context, node.uuid)
+            self.assertFalse(mock_power.called)
+
 
 @mgr_utils.mock_record_keepalive
 class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
@@ -4858,3 +4868,143 @@ class DoNodeTakeOverTestCase(mgr_utils.ServiceSetUpMixin,
         mock_prepare.assert_called_once_with(mock.ANY)
         mock_take_over.assert_called_once_with(mock.ANY)
         mock_start_console.assert_called_once_with(mock.ANY)
+
+
+@mgr_utils.mock_record_keepalive
+class DoNodeAdoptionTestCase(
+        mgr_utils.ServiceSetUpMixin,
+        tests_db_base.DbTestCase):
+
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
+    @mock.patch('ironic.drivers.modules.fake.FakeBoot.validate')
+    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    def test__do_adoption_with_takeover(self,
+                                        mock_prepare,
+                                        mock_take_over,
+                                        mock_start_console,
+                                        mock_boot_validate,
+                                        mock_power_validate):
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.ADOPTING)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        self.service._do_adoption(task)
+        node.refresh()
+
+        self.assertEqual(states.ACTIVE, node.provision_state)
+        self.assertIsNone(node.last_error)
+        self.assertFalse(node.console_enabled)
+        mock_prepare.assert_called_once_with(mock.ANY)
+        mock_take_over.assert_called_once_with(mock.ANY)
+        self.assertFalse(mock_start_console.called)
+        self.assertTrue(mock_boot_validate.called)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeBoot.validate')
+    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    def test__do_adoption_take_over_failure(self,
+                                            mock_prepare,
+                                            mock_take_over,
+                                            mock_start_console,
+                                            mock_boot_validate):
+        # Note(TheJulia): Use of an actual possible exception that
+        # can be raised due to a misconfiguration.
+        mock_take_over.side_effect = exception.IPMIFailure(
+            "something went wrong")
+
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.ADOPTING)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        self.service._do_adoption(task)
+        node.refresh()
+
+        self.assertEqual(states.ADOPTFAIL, node.provision_state)
+        self.assertIsNotNone(node.last_error)
+        self.assertFalse(node.console_enabled)
+        mock_prepare.assert_called_once_with(mock.ANY)
+        mock_take_over.assert_called_once_with(mock.ANY)
+        self.assertFalse(mock_start_console.called)
+        self.assertTrue(mock_boot_validate.called)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeBoot.validate')
+    @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over')
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
+    def test__do_adoption_boot_validate_failure(self,
+                                                mock_prepare,
+                                                mock_take_over,
+                                                mock_start_console,
+                                                mock_boot_validate):
+        # Note(TheJulia): Use of an actual possible exception that
+        # can be raised due to a misconfiguration.
+        mock_boot_validate.side_effect = exception.MissingParameterValue(
+            "something is missing")
+
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.ADOPTING)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        self.service._do_adoption(task)
+        node.refresh()
+
+        self.assertEqual(states.ADOPTFAIL, node.provision_state)
+        self.assertIsNotNone(node.last_error)
+        self.assertFalse(node.console_enabled)
+        self.assertFalse(mock_prepare.called)
+        self.assertFalse(mock_take_over.called)
+        self.assertFalse(mock_start_console.called)
+        self.assertTrue(mock_boot_validate.called)
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
+    def test_do_provisioning_action_adopt_node(self, mock_spawn):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.MANAGEABLE,
+            target_provision_state=states.NOSTATE)
+
+        self._start_service()
+        self.service.do_provisioning_action(self.context, node.uuid, 'adopt')
+        node.refresh()
+        self.assertEqual(states.ADOPTING, node.provision_state)
+        self.assertEqual(states.ACTIVE, node.target_provision_state)
+        self.assertIsNone(node.last_error)
+        mock_spawn.assert_called_with(self.service._do_adoption, mock.ANY)
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
+    def test_do_provisioning_action_adopt_node_retry(self, mock_spawn):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.ADOPTFAIL,
+            target_provision_state=states.ACTIVE)
+
+        self._start_service()
+        self.service.do_provisioning_action(self.context, node.uuid, 'adopt')
+        node.refresh()
+        self.assertEqual(states.ADOPTING, node.provision_state)
+        self.assertEqual(states.ACTIVE, node.target_provision_state)
+        self.assertIsNone(node.last_error)
+        mock_spawn.assert_called_with(self.service._do_adoption, mock.ANY)
+
+    def test_do_provisioning_action_manage_of_failed_adoption(self):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.ADOPTFAIL,
+            target_provision_state=states.ACTIVE)
+
+        self._start_service()
+        self.service.do_provisioning_action(self.context, node.uuid, 'manage')
+        node.refresh()
+
+        self.assertEqual(states.MANAGEABLE, node.provision_state)
+        self.assertEqual(states.NOSTATE, node.target_provision_state)
+        self.assertIsNone(node.last_error)

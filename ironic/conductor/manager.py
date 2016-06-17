@@ -1121,6 +1121,16 @@ class ConductorManager(base_manager.BaseConductorManager):
                     err_handler=utils.provisioning_error_handler)
                 return
 
+            if (action == states.VERBS['adopt'] and
+                    node.provision_state in (states.MANAGEABLE,
+                states.ADOPTFAIL)):
+                task.process_event(
+                    'adopt',
+                    callback=self._spawn_worker,
+                    call_args=(self._do_adoption, task),
+                    err_handler=utils.provisioning_error_handler)
+                return
+
             if (action == states.VERBS['abort'] and
                     node.provision_state == states.CLEANWAIT):
 
@@ -1306,6 +1316,54 @@ class ConductorManager(base_manager.BaseConductorManager):
                 'provision_updated_at',
                 callback_method=utils.cleanup_after_timeout,
                 err_handler=utils.provisioning_error_handler)
+
+    @task_manager.require_exclusive_lock
+    def _do_adoption(self, task):
+        """Adopt the node.
+
+        Similar to node takeover, adoption performs a driver boot
+        validation and then triggers node takeover in order to make the
+        conductor responsible for the node. Upon completion of takeover,
+        the node is moved to ACTIVE state.
+
+        The goal of this method is to set the conditions for the node to
+        be managed by Ironic as an ACTIVE node without having performed
+        a deployment operation.
+
+        :param task: a TaskManager instance
+        """
+
+        node = task.node
+        LOG.debug('Conductor %(cdr)s attempting to adopt node %(node)s',
+                  {'cdr': self.host, 'node': node.uuid})
+
+        try:
+            # NOTE(TheJulia): A number of drivers expect to know if a
+            # whole disk image was used prior to their takeover logic
+            # being triggered, as such we need to populate the
+            # internal info based on the configuration the user has
+            # supplied.
+            iwdi = images.is_whole_disk_image(task.context,
+                                              task.node.instance_info)
+            node.driver_internal_info['is_whole_disk_image'] = iwdi
+            # Calling boot validate to ensure that sufficient information
+            # is supplied to allow the node to be able to boot if takeover
+            # writes items such as kernel/ramdisk data to disk.
+            task.driver.boot.validate(task)
+            # NOTE(TheJulia): While task.driver.boot.validate() is called
+            # above, and task.driver.power.validate() could be called, it
+            # is called as part of the transition from ENROLL to MANAGEABLE
+            # states. As such it is redundant to call here.
+            self._do_takeover(task)
+            LOG.info(_LI("Successfully adopted node %(node)s"),
+                     {'node': node.uuid})
+            task.process_event('done')
+        except Exception as err:
+            msg = (_('Error while attempting to adopt node %(node)s: '
+                     '%(err)s.') % {'node': node.uuid, 'err': err})
+            LOG.error(msg)
+            node.last_error = msg
+            task.process_event('fail')
 
     def _do_takeover(self, task):
         """Take over this node.
