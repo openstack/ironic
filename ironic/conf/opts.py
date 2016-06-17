@@ -36,7 +36,6 @@ import ironic.drivers.modules.agent_client
 import ironic.drivers.modules.amt.common
 import ironic.drivers.modules.amt.power
 import ironic.drivers.modules.cimc.power
-import ironic.drivers.modules.console_utils
 import ironic.drivers.modules.deploy_utils
 import ironic.drivers.modules.iboot
 import ironic.drivers.modules.ilo.common
@@ -86,7 +85,7 @@ _opts = [
     ('conductor', itertools.chain(
         ironic.conductor.base_manager.conductor_opts,
         ironic.conductor.manager.conductor_opts)),
-    ('console', ironic.drivers.modules.console_utils.opts),
+    ('console', ironic.conf.console.opts),
     ('database', ironic.db.sqlalchemy.models.sql_opts),
     ('deploy', ironic.drivers.modules.deploy_utils.deploy_opts),
     ('dhcp', ironic.common.dhcp_factory.dhcp_provider_opts),

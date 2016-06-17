@@ -120,8 +120,9 @@
 # Note: This option can be changed without restarting.
 #debug = false
 
-# If set to false, the logging level will be set to WARNING
-# instead of the default INFO level. (boolean value)
+# DEPRECATED: If set to false, the logging level will be set
+# to WARNING instead of the default INFO level. (boolean
+# value)
 # This option is deprecated for removal.
 # Its value may be silently ignored in the future.
 #verbose = true
@@ -1330,8 +1331,8 @@
 # Determines the frequency at which the list of revoked tokens
 # is retrieved from the Identity service (in seconds). A high
 # number of revocation events combined with a low cache
-# duration may significantly reduce performance. (integer
-# value)
+# duration may significantly reduce performance. Only valid
+# for PKI tokens. (integer value)
 #revocation_cache_time = 10
 
 # (Optional) If defined, indicate whether token data should be
