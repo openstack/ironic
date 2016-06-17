@@ -101,7 +101,7 @@ Requirements for use are essentially the same as to deploy a node:
 * Sufficient driver information to allow for a successful
   power management validation.
 
-* Sufficient instance_info to pass deploy driver validation.
+* Sufficient instance_info to pass deploy driver preparation.
 
 Each driver may have additional requirements dependent upon the
 configuration that is supplied. An example of this would be defining
@@ -143,9 +143,11 @@ from the ``manageable`` state to ``active`` state.::
    image or file, however that image or file can ultimately be empty.
 
 .. NOTE::
-   The above example will naturally fail as a fake image is
-   defined, and no instance_info/image_checksum is defined so
-   any actual attempt to write the image out will fail.
+   The above example will fail a re-deployment as a fake image is
+   defined and no instance_info/image_checksum value is defined.
+   As such any actual attempt to write the image out will fail as the
+   image_checksum value is only validated at time of an actual
+   deployment operation.
 
 .. NOTE::
    A user may wish to assign an instance_uuid to a node, which could be
@@ -176,7 +178,7 @@ the node back to ``manageable`` from ``adopt failed`` state by issuing the
 
 If all else fails the hardware node can be removed from the Bare Metal
 service.  The ``node-delete`` command, which is **not** the same as setting
-the provision state to ``delete``, can be used while the node is in
+the provision state to ``deleted``, can be used while the node is in
 ``adopt failed`` state. This will delete the node without cleaning
 occurring to preserve the node's current state. Example::
 

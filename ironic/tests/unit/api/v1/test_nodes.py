@@ -2190,7 +2190,8 @@ class TestPut(test_api_base.BaseApiTest):
                                          'test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
-    def test_adopt_from_adoption_failed(self, mock_dpa):
+    def test_adopt_from_adoptfail(self, mock_dpa):
+        """Test that a node in ADOPTFAIL can be adopted"""
         self.node.provision_state = states.ADOPTFAIL
         self.node.save()
 
@@ -2205,6 +2206,7 @@ class TestPut(test_api_base.BaseApiTest):
 
     @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
     def test_adopt_from_active_fails(self, mock_dpa):
+        """Test that an ACTIVE node cannot be adopted"""
         self.node.provision_state = states.ACTIVE
         self.node.save()
 
@@ -2216,7 +2218,8 @@ class TestPut(test_api_base.BaseApiTest):
         self.assertEqual(0, mock_dpa.call_count)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
-    def test_manage_from_adoption_failed(self, mock_dpa):
+    def test_manage_from_adoptfail(self, mock_dpa):
+        """Test that a node can be sent to MANAGEABLE from ADOPTFAIL"""
         self.node.provision_state = states.ADOPTFAIL
         self.node.save()
 
@@ -2231,6 +2234,12 @@ class TestPut(test_api_base.BaseApiTest):
 
     @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
     def test_bad_requests_in_adopting_state(self, mock_dpa):
+        """Test that a node in ADOPTING fails with invalid requests
+
+        Verify that an API request fails if the ACTIVE, REBUILD, or DELETED
+        state is requested by an API client when the node is in ADOPTING
+        state.
+        """
         self.node.provision_state = states.ADOPTING
         self.node.save()
 
@@ -2243,6 +2252,12 @@ class TestPut(test_api_base.BaseApiTest):
 
     @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
     def test_bad_requests_in_adoption_failed_state(self, mock_dpa):
+        """Test that a node in ADOPTFAIL fails with invalid requests
+
+        Verify that an API request fails if the ACTIVE, REBUILD, or DELETED
+        state is requested by an API client when the node is in ADOPTFAIL
+        state.
+        """
         self.node.provision_state = states.ADOPTFAIL
         self.node.save()
 
