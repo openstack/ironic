@@ -47,11 +47,11 @@ class AMTCommonMethodsTestCase(db_base.DbTestCase):
     def test_parse_driver_info(self):
         info = amt_common.parse_driver_info(self.node)
 
-        self.assertIsNotNone(info.get('address'))
-        self.assertIsNotNone(info.get('username'))
-        self.assertIsNotNone(info.get('password'))
-        self.assertIsNotNone(info.get('protocol'))
-        self.assertIsNotNone(info.get('uuid'))
+        self.assertIsNotNone(info['address'])
+        self.assertIsNotNone(info['username'])
+        self.assertIsNotNone(info['password'])
+        self.assertIsNotNone(info['protocol'])
+        self.assertIsNotNone(info['uuid'])
 
     def test_parse_driver_info_missing_address(self):
         del self.node.driver_info['amt_address']
@@ -73,7 +73,7 @@ class AMTCommonMethodsTestCase(db_base.DbTestCase):
     def test_parse_driver_info_missing_protocol(self):
         del self.node.driver_info['amt_protocol']
         info = amt_common.parse_driver_info(self.node)
-        self.assertEqual('http', info.get('protocol'))
+        self.assertEqual('http', info['protocol'])
 
     def test_parse_driver_info_wrong_protocol(self):
         self.node.driver_info['amt_protocol'] = 'fake-protocol'

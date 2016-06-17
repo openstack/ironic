@@ -35,12 +35,12 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
                                           driver_info=INFO_DICT)
         info = drac_common.parse_driver_info(node)
 
-        self.assertIsNotNone(info.get('drac_host'))
-        self.assertIsNotNone(info.get('drac_port'))
-        self.assertIsNotNone(info.get('drac_path'))
-        self.assertIsNotNone(info.get('drac_protocol'))
-        self.assertIsNotNone(info.get('drac_username'))
-        self.assertIsNotNone(info.get('drac_password'))
+        self.assertIsNotNone(info['drac_host'])
+        self.assertIsNotNone(info['drac_port'])
+        self.assertIsNotNone(info['drac_path'])
+        self.assertIsNotNone(info['drac_protocol'])
+        self.assertIsNotNone(info['drac_username'])
+        self.assertIsNotNone(info['drac_password'])
 
     def test_parse_driver_info_missing_host(self):
         node = obj_utils.create_test_node(self.context,
@@ -57,7 +57,7 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
         del node.driver_info['drac_port']
 
         info = drac_common.parse_driver_info(node)
-        self.assertEqual(443, info.get('drac_port'))
+        self.assertEqual(443, info['drac_port'])
 
     def test_parse_driver_info_invalid_port(self):
         node = obj_utils.create_test_node(self.context,
@@ -74,7 +74,7 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
         del node.driver_info['drac_path']
 
         info = drac_common.parse_driver_info(node)
-        self.assertEqual('/wsman', info.get('drac_path'))
+        self.assertEqual('/wsman', info['drac_path'])
 
     def test_parse_driver_info_missing_protocol(self):
         node = obj_utils.create_test_node(self.context,
@@ -83,7 +83,7 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
         del node.driver_info['drac_protocol']
 
         info = drac_common.parse_driver_info(node)
-        self.assertEqual('https', info.get('drac_protocol'))
+        self.assertEqual('https', info['drac_protocol'])
 
     def test_parse_driver_info_invalid_protocol(self):
         node = obj_utils.create_test_node(self.context,

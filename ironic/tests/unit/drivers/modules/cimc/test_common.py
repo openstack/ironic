@@ -50,9 +50,9 @@ class ParseDriverInfoTestCase(CIMCBaseTestCase):
     def test_parse_driver_info(self):
         info = cimc_common.parse_driver_info(self.node)
 
-        self.assertIsNotNone(info.get('cimc_address'))
-        self.assertIsNotNone(info.get('cimc_username'))
-        self.assertIsNotNone(info.get('cimc_password'))
+        self.assertIsNotNone(info['cimc_address'])
+        self.assertIsNotNone(info['cimc_username'])
+        self.assertIsNotNone(info['cimc_password'])
 
     def test_parse_driver_info_missing_address(self):
         del self.node.driver_info['cimc_address']
@@ -110,9 +110,9 @@ class CIMCHandleTestCase(CIMCBaseTestCase):
     @mock.patch.object(cimc_common, 'handle_login', autospec=True)
     def test_cimc_handle(self, mock_login, mock_handle):
         mo_hand = mock.MagicMock()
-        mo_hand.username = self.node.driver_info.get('cimc_username')
-        mo_hand.password = self.node.driver_info.get('cimc_password')
-        mo_hand.name = self.node.driver_info.get('cimc_address')
+        mo_hand.username = self.node.driver_info['cimc_username']
+        mo_hand.password = self.node.driver_info['cimc_password']
+        mo_hand.name = self.node.driver_info['cimc_address']
         mock_handle.return_value = mo_hand
         info = cimc_common.parse_driver_info(self.node)
 
