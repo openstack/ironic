@@ -129,9 +129,9 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         self.assertEqual(expected_info, image_info)
         self.assertFalse(show_mock.called)
         self.assertEqual('instance_kernel_uuid',
-                         self.node.instance_info.get('kernel'))
+                         self.node.instance_info['kernel'])
         self.assertEqual('instance_ramdisk_uuid',
-                         self.node.instance_info.get('ramdisk'))
+                         self.node.instance_info['ramdisk'])
 
     def test__get_instance_image_info(self):
         # Tests when 'is_whole_disk_image' exists in driver_internal_info

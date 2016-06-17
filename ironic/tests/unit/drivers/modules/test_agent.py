@@ -135,10 +135,10 @@ class TestAgentMethods(db_base.DbTestCase):
                 self.node.instance_info['image_source'])
             glance_mock.return_value.swift_temp_url.assert_called_once_with(
                 image_info)
-            image_type = task.node.instance_info.get('image_type')
+            image_type = task.node.instance_info['image_type']
             self.assertEqual('partition', image_type)
-            self.assertEqual('kernel', info.get('kernel'))
-            self.assertEqual('ramdisk', info.get('ramdisk'))
+            self.assertEqual('kernel', info['kernel'])
+            self.assertEqual('ramdisk', info['ramdisk'])
             self.assertEqual(expected_i_info, info)
             parse_instance_info_mock.assert_called_once_with(task.node)
 
@@ -209,7 +209,7 @@ class TestAgentMethods(db_base.DbTestCase):
                              info['image_url'])
             validate_href_mock.assert_called_once_with(
                 mock.ANY, 'http://image-ref')
-            self.assertEqual('partition', info.get('image_type'))
+            self.assertEqual('partition', info['image_type'])
             self.assertEqual(expected_i_info, info)
             parse_instance_info_mock.assert_called_once_with(task.node)
 
@@ -771,8 +771,8 @@ class TestAgentVendor(db_base.DbTestCase):
             self.assertFalse(prepare_mock.called)
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
-            driver_int_info = task.node.driver_internal_info
-            self.assertIsNone(driver_int_info.get('root_uuid_or_disk_id'))
+            self.assertNotIn('root_uuid_or_disk_id',
+                             task.node.driver_internal_info)
             self.assertFalse(uuid_mock.called)
 
     @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy', autospec=True)
@@ -817,8 +817,8 @@ class TestAgentVendor(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
             driver_int_info = task.node.driver_internal_info
-            self.assertEqual(driver_int_info.get('root_uuid_or_disk_id'),
-                             'root_uuid')
+            self.assertEqual('root_uuid',
+                             driver_int_info['root_uuid_or_disk_id']),
             uuid_mock.assert_called_once_with(self.passthru, task, 'root_uuid')
             boot_mode_mock.assert_called_once_with(task.node)
 
@@ -856,8 +856,8 @@ class TestAgentVendor(db_base.DbTestCase):
             self.assertFalse(prepare_mock.called)
             power_off_mock.assert_called_once_with(task.node)
             check_deploy_mock.assert_called_once_with(mock.ANY, task.node)
-            driver_int_info = task.node.driver_internal_info
-            self.assertIsNone(driver_int_info.get('root_uuid_or_disk_id'))
+            self.assertNotIn('root_uuid_or_disk_id',
+                             task.node.driver_internal_info)
 
             get_power_state_mock.assert_called_once_with(task)
             node_power_action_mock.assert_called_once_with(

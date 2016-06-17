@@ -212,71 +212,69 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
         # Make sure we get back the expected things.
         node = self._get_test_node(INFO_DICT)
         info = snmp._parse_driver_info(node)
-        self.assertEqual(INFO_DICT['snmp_driver'], info.get('driver'))
-        self.assertEqual(INFO_DICT['snmp_address'], info.get('address'))
-        self.assertEqual(INFO_DICT['snmp_port'], str(info.get('port')))
-        self.assertEqual(INFO_DICT['snmp_outlet'], info.get('outlet'))
-        self.assertEqual(INFO_DICT['snmp_version'], info.get('version'))
-        self.assertEqual(INFO_DICT.get('snmp_community'),
-                         info.get('community'))
-        self.assertEqual(INFO_DICT.get('snmp_security'),
-                         info.get('security'))
+        self.assertEqual(INFO_DICT['snmp_driver'], info['driver'])
+        self.assertEqual(INFO_DICT['snmp_address'], info['address'])
+        self.assertEqual(INFO_DICT['snmp_port'], str(info['port']))
+        self.assertEqual(INFO_DICT['snmp_outlet'], info['outlet'])
+        self.assertEqual(INFO_DICT['snmp_version'], info['version'])
+        self.assertEqual(INFO_DICT['snmp_community'], info['community'])
+        self.assertNotIn('security', info)
 
     def test__parse_driver_info_apc(self):
         # Make sure the APC driver type is parsed.
         info = db_utils.get_test_snmp_info(snmp_driver='apc')
         node = self._get_test_node(info)
         info = snmp._parse_driver_info(node)
-        self.assertEqual('apc', info.get('driver'))
+        self.assertEqual('apc', info['driver'])
 
     def test__parse_driver_info_apc_masterswitch(self):
         # Make sure the APC driver type is parsed.
         info = db_utils.get_test_snmp_info(snmp_driver='apc_masterswitch')
         node = self._get_test_node(info)
         info = snmp._parse_driver_info(node)
-        self.assertEqual('apc_masterswitch', info.get('driver'))
+        self.assertEqual('apc_masterswitch', info['driver'])
 
     def test__parse_driver_info_apc_masterswitchplus(self):
         # Make sure the APC driver type is parsed.
         info = db_utils.get_test_snmp_info(snmp_driver='apc_masterswitchplus')
         node = self._get_test_node(info)
         info = snmp._parse_driver_info(node)
-        self.assertEqual('apc_masterswitchplus', info.get('driver'))
+        self.assertEqual('apc_masterswitchplus', info['driver'])
 
     def test__parse_driver_info_apc_rackpdu(self):
         # Make sure the APC driver type is parsed.
         info = db_utils.get_test_snmp_info(snmp_driver='apc_rackpdu')
         node = self._get_test_node(info)
         info = snmp._parse_driver_info(node)
-        self.assertEqual('apc_rackpdu', info.get('driver'))
+        self.assertEqual('apc_rackpdu', info['driver'])
 
     def test__parse_driver_info_aten(self):
         # Make sure the Aten driver type is parsed.
         info = db_utils.get_test_snmp_info(snmp_driver='aten')
         node = self._get_test_node(info)
         info = snmp._parse_driver_info(node)
-        self.assertEqual('aten', info.get('driver'))
+        self.assertEqual('aten', info['driver'])
 
     def test__parse_driver_info_cyberpower(self):
         # Make sure the CyberPower driver type is parsed.
         info = db_utils.get_test_snmp_info(snmp_driver='cyberpower')
         node = self._get_test_node(info)
         info = snmp._parse_driver_info(node)
-        self.assertEqual('cyberpower', info.get('driver'))
+        self.assertEqual('cyberpower', info['driver'])
 
     def test__parse_driver_info_eatonpower(self):
         # Make sure the Eaton Power driver type is parsed.
         info = db_utils.get_test_snmp_info(snmp_driver='eatonpower')
         node = self._get_test_node(info)
         info = snmp._parse_driver_info(node)
-        self.assertEqual('eatonpower', info.get('driver'))
+        self.assertEqual('eatonpower', info['driver'])
 
     def test__parse_driver_info_teltronix(self):
         # Make sure the Teltronix driver type is parsed.
         info = db_utils.get_test_snmp_info(snmp_driver='teltronix')
         node = self._get_test_node(info)
         info = snmp._parse_driver_info(node)
-        self.assertEqual('teltronix', info.get('driver'))
+        self.assertEqual('teltronix', info['driver'])
 
     def test__parse_driver_info_snmp_v1(self):
         # Make sure SNMPv1 is parsed with a community string.
@@ -284,8 +282,8 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
                                            snmp_community='public')
         node = self._get_test_node(info)
         info = snmp._parse_driver_info(node)
-        self.assertEqual('1', info.get('version'))
-        self.assertEqual('public', info.get('community'))
+        self.assertEqual('1', info['version'])
+        self.assertEqual('public', info['community'])
 
     def test__parse_driver_info_snmp_v2c(self):
         # Make sure SNMPv2c is parsed with a community string.
@@ -293,8 +291,8 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
                                            snmp_community='private')
         node = self._get_test_node(info)
         info = snmp._parse_driver_info(node)
-        self.assertEqual('2c', info.get('version'))
-        self.assertEqual('private', info.get('community'))
+        self.assertEqual('2c', info['version'])
+        self.assertEqual('private', info['community'])
 
     def test__parse_driver_info_snmp_v3(self):
         # Make sure SNMPv3 is parsed with a security string.
@@ -302,8 +300,8 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
                                            snmp_security='pass')
         node = self._get_test_node(info)
         info = snmp._parse_driver_info(node)
-        self.assertEqual('3', info.get('version'))
-        self.assertEqual('pass', info.get('security'))
+        self.assertEqual('3', info['version'])
+        self.assertEqual('pass', info['security'])
 
     def test__parse_driver_info_snmp_port_default(self):
         # Make sure default SNMP UDP port numbers are correct
@@ -311,14 +309,14 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
         del info['snmp_port']
         node = self._get_test_node(info)
         info = snmp._parse_driver_info(node)
-        self.assertEqual(161, info.get('port'))
+        self.assertEqual(161, info['port'])
 
     def test__parse_driver_info_snmp_port(self):
         # Make sure non-default SNMP UDP port numbers can be configured
         info = db_utils.get_test_snmp_info(snmp_port='10161')
         node = self._get_test_node(info)
         info = snmp._parse_driver_info(node)
-        self.assertEqual(10161, info.get('port'))
+        self.assertEqual(10161, info['port'])
 
     def test__parse_driver_info_missing_driver(self):
         # Make sure exception is raised when the driver type is missing.
@@ -361,8 +359,8 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
         del info['snmp_version']
         node = self._get_test_node(info)
         info = snmp._parse_driver_info(node)
-        self.assertEqual('1', info.get('version'))
-        self.assertEqual(INFO_DICT['snmp_community'], info.get('community'))
+        self.assertEqual('1', info['version'])
+        self.assertEqual(INFO_DICT['snmp_community'], info['community'])
 
     def test__parse_driver_info_invalid_version(self):
         # Make sure exception is raised when version is invalid.

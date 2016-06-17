@@ -48,11 +48,11 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
             driver='fake_iboot',
             driver_info=INFO_DICT)
         info = iboot._parse_driver_info(node)
-        self.assertIsNotNone(info.get('address'))
-        self.assertIsNotNone(info.get('username'))
-        self.assertIsNotNone(info.get('password'))
-        self.assertIsNotNone(info.get('port'))
-        self.assertIsNotNone(info.get('relay_id'))
+        self.assertIsNotNone(info['address'])
+        self.assertIsNotNone(info['username'])
+        self.assertIsNotNone(info['password'])
+        self.assertIsNotNone(info['port'])
+        self.assertIsNotNone(info['relay_id'])
 
     def test__parse_driver_info_good_with_explicit_port(self):
         info = dict(INFO_DICT)
@@ -62,7 +62,7 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
             driver='fake_iboot',
             driver_info=info)
         info = iboot._parse_driver_info(node)
-        self.assertEqual(1234, info.get('port'))
+        self.assertEqual(1234, info['port'])
 
     def test__parse_driver_info_good_with_explicit_relay_id(self):
         info = dict(INFO_DICT)
@@ -72,7 +72,7 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
             driver='fake_iboot',
             driver_info=info)
         info = iboot._parse_driver_info(node)
-        self.assertEqual(2, info.get('relay_id'))
+        self.assertEqual(2, info['relay_id'])
 
     def test__parse_driver_info_missing_address(self):
         info = dict(INFO_DICT)

@@ -946,8 +946,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                                   shared=False) as task:
             self.passthru._cleaning_reboot(task)
             mock_reboot.assert_called_once_with(task, states.REBOOT)
-            self.assertTrue(task.node.driver_internal_info.get(
-                            'cleaning_reboot'))
+            self.assertTrue(task.node.driver_internal_info['cleaning_reboot'])
 
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
