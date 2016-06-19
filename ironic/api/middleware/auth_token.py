@@ -31,7 +31,8 @@ class AuthTokenMiddleware(auth_token.AuthProtocol):
     for public routes in the API.
 
     """
-    def __init__(self, app, conf, public_api_routes=[]):
+    def __init__(self, app, conf, public_api_routes=None):
+        api_routes = [] if public_api_routes is None else public_api_routes
         self._ironic_app = app
         # TODO(mrda): Remove .xml and ensure that doesn't result in a
         # 401 Authentication Required instead of 404 Not Found
@@ -39,7 +40,7 @@ class AuthTokenMiddleware(auth_token.AuthProtocol):
 
         try:
             self.public_api_routes = [re.compile(route_pattern_tpl % route_tpl)
-                                      for route_tpl in public_api_routes]
+                                      for route_tpl in api_routes]
         except re.error as e:
             msg = _('Cannot compile public API routes: %s') % e
 

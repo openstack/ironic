@@ -37,7 +37,9 @@ class TestACL(base.BaseApiTest):
         self.fake_db_node = db_utils.get_test_node(chassis_id=None)
         self.node_path = '/nodes/%s' % self.fake_db_node['uuid']
 
-    def get_json(self, path, expect_errors=False, headers=None, q=[], **param):
+    def get_json(self, path, expect_errors=False, headers=None, q=None,
+                 **param):
+        q = [] if q is None else q
         return super(TestACL, self).get_json(path,
                                              expect_errors=expect_errors,
                                              headers=headers,
