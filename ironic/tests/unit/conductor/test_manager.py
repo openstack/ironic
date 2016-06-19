@@ -1473,7 +1473,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(exception.InvalidStateRequested, exc.exc_info[0])
         mock_validate.assert_called_once_with(mock.ANY)
         node.refresh()
-        self.assertFalse('clean_steps' in node.driver_internal_info)
+        self.assertNotIn('clean_steps', node.driver_internal_info)
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
@@ -1609,8 +1609,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
         if skip:
             expected_step_index = 1
         else:
-            self.assertFalse(
-                'skip_current_clean_step' in node.driver_internal_info)
+            self.assertNotIn(
+                'skip_current_clean_step', node.driver_internal_info)
             expected_step_index = 0
         mock_spawn.assert_called_with(self.service._do_next_clean_step,
                                       mock.ANY, expected_step_index)
@@ -1952,7 +1952,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(tgt_prov_state, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertEqual({}, node.clean_step)
-        self.assertFalse('clean_step_index' in node.driver_internal_info)
+        self.assertNotIn('clean_step_index', node.driver_internal_info)
         self.assertIsNone(node.driver_internal_info['clean_steps'])
         self.assertFalse(mock_execute.called)
 
@@ -1992,7 +1992,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(tgt_prov_state, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertEqual({}, node.clean_step)
-        self.assertFalse('clean_step_index' in node.driver_internal_info)
+        self.assertNotIn('clean_step_index', node.driver_internal_info)
         self.assertIsNone(node.driver_internal_info['clean_steps'])
         mock_power_execute.assert_called_once_with(mock.ANY,
                                                    self.clean_steps[1])
@@ -2037,7 +2037,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(states.CLEANFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
         self.assertEqual({}, node.clean_step)
-        self.assertFalse('clean_step_index' in node.driver_internal_info)
+        self.assertNotIn('clean_step_index', node.driver_internal_info)
         self.assertIsNotNone(node.last_error)
         self.assertTrue(node.maintenance)
         mock_execute.assert_called_once_with(mock.ANY, self.clean_steps[0])
@@ -2084,7 +2084,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(states.CLEANFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
         self.assertEqual({}, node.clean_step)
-        self.assertFalse('clean_step_index' in node.driver_internal_info)
+        self.assertNotIn('clean_step_index', node.driver_internal_info)
         self.assertIsNotNone(node.last_error)
         self.assertEqual(1, tear_mock.call_count)
         self.assertTrue(node.maintenance)
@@ -2137,7 +2137,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
             self.assertEqual(tgt_prov_state, node.provision_state)
             self.assertEqual(states.NOSTATE, node.target_provision_state)
             self.assertEqual({}, node.clean_step)
-            self.assertFalse('clean_step_index' in node.driver_internal_info)
+            self.assertNotIn('clean_step_index', node.driver_internal_info)
             self.assertFalse(mock_execute.called)
             mock_execute.reset_mock()
 
@@ -2176,7 +2176,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(states.CLEANFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
         self.assertEqual({}, node.clean_step)
-        self.assertFalse('clean_step_index' in node.driver_internal_info)
+        self.assertNotIn('clean_step_index', node.driver_internal_info)
         self.assertIsNotNone(node.last_error)
         self.assertTrue(node.maintenance)
         deploy_exec_mock.assert_called_once_with(mock.ANY,

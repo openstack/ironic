@@ -1162,7 +1162,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                 self.assertFalse(steps_mock.called)
             else:
                 steps_mock.assert_called_once_with(task)
-                self.assertFalse('skip_current_clean_step' in
+                self.assertNotIn('skip_current_clean_step',
                                  task.node.driver_internal_info)
 
     def test_continue_cleaning_automated_clean_version_mismatch(self):
@@ -1338,8 +1338,8 @@ class TestRefreshCleanSteps(TestBaseAgentVendor):
                                                 task.ports)
             self.assertEqual('1', task.node.driver_internal_info[
                 'hardware_manager_version'])
-            self.assertTrue('agent_cached_clean_steps_refreshed' in
-                            task.node.driver_internal_info)
+            self.assertIn('agent_cached_clean_steps_refreshed',
+                          task.node.driver_internal_info)
             steps = task.node.driver_internal_info['agent_cached_clean_steps']
             # Since steps are returned in dicts, they have non-deterministic
             # ordering

@@ -630,7 +630,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         conductor_utils.cleaning_error_handler(self.task, msg)
         self.node.save.assert_called_once_with()
         self.assertEqual({}, self.node.clean_step)
-        self.assertFalse('clean_step_index' in self.node.driver_internal_info)
+        self.assertNotIn('clean_step_index', self.node.driver_internal_info)
         self.assertEqual(msg, self.node.last_error)
         self.assertTrue(self.node.maintenance)
         self.assertEqual(msg, self.node.maintenance_reason)
