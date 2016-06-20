@@ -91,7 +91,7 @@ the preferred process is:
 #. after some period of time has elapsed (and depending on the
    thread activity), someone should propose a solution via gerrit.
    (E.g. the person that started the thread if no one else steps up.)
-   The proposal should be made in the the git repository that is associated
+   The proposal should be made in the git repository that is associated
    with the issue. (For instance, this decision process was proposed as a
    documentation patch to the ironic repository.)
 #. In the email thread, don't forget to provide a link to the proposed patch!
