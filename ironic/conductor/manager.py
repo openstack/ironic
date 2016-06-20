@@ -1844,14 +1844,14 @@ class ConductorManager(base_manager.BaseConductorManager):
                                   'node': node.uuid})
 
             if 'address' in portgroup_obj.obj_what_changed():
-                vif = portgroup_obj.extra.get('vif_portgroup_id')
+                vif = portgroup_obj.extra.get('vif_port_id')
                 if vif:
                     api = dhcp_factory.DHCPFactory()
                     api.provider.update_port_address(
                         vif,
                         portgroup_obj.address,
                         token=context.auth_token)
-                # Log warning if there is no vif_portgroup_id and an instance
+                # Log warning if there is no vif_port_id and an instance
                 # is associated with the node.
                 elif node.instance_uuid:
                     LOG.warning(_LW(
