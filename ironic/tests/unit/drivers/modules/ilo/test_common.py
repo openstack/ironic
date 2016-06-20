@@ -62,11 +62,11 @@ class IloValidateParametersTestCase(db_base.DbTestCase):
     def test_parse_driver_info(self):
         info = ilo_common.parse_driver_info(self.node)
 
-        self.assertIsNotNone(info.get('ilo_address'))
-        self.assertIsNotNone(info.get('ilo_username'))
-        self.assertIsNotNone(info.get('ilo_password'))
-        self.assertIsNotNone(info.get('client_timeout'))
-        self.assertIsNotNone(info.get('client_port'))
+        self.assertIsNotNone(info['ilo_address'])
+        self.assertIsNotNone(info['ilo_username'])
+        self.assertIsNotNone(info['ilo_password'])
+        self.assertIsNotNone(info['client_timeout'])
+        self.assertIsNotNone(info['client_port'])
 
     def test_parse_driver_info_missing_address(self):
         del self.node.driver_info['ilo_address']

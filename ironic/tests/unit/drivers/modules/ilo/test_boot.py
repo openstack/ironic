@@ -600,11 +600,9 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
             cleanup_iso_mock.assert_called_once_with(task.node)
             cleanup_vmedia_mock.assert_called_once_with(task)
             driver_internal_info = task.node.driver_internal_info
-            boot_iso_created = driver_internal_info.get(
-                'boot_iso_created_in_web_server')
-            root_uuid = driver_internal_info.get('root_uuid_or_disk_id')
-            self.assertIsNone(boot_iso_created)
-            self.assertIsNone(root_uuid)
+            self.assertNotIn('boot_iso_created_in_web_server',
+                             driver_internal_info)
+            self.assertNotIn('root_uuid_or_disk_id', driver_internal_info)
 
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
                        autospec=True)

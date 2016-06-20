@@ -43,17 +43,17 @@ class IRMCValidateParametersTestCase(db_base.DbTestCase):
     def test_parse_driver_info(self):
         info = irmc_common.parse_driver_info(self.node)
 
-        self.assertIsNotNone(info.get('irmc_address'))
-        self.assertIsNotNone(info.get('irmc_username'))
-        self.assertIsNotNone(info.get('irmc_password'))
-        self.assertIsNotNone(info.get('irmc_client_timeout'))
-        self.assertIsNotNone(info.get('irmc_port'))
-        self.assertIsNotNone(info.get('irmc_auth_method'))
-        self.assertIsNotNone(info.get('irmc_sensor_method'))
-        self.assertIsNotNone(info.get('irmc_snmp_version'))
-        self.assertIsNotNone(info.get('irmc_snmp_port'))
-        self.assertIsNotNone(info.get('irmc_snmp_community'))
-        self.assertFalse(info.get('irmc_snmp_security'))
+        self.assertIsNotNone(info['irmc_address'])
+        self.assertIsNotNone(info['irmc_username'])
+        self.assertIsNotNone(info['irmc_password'])
+        self.assertIsNotNone(info['irmc_client_timeout'])
+        self.assertIsNotNone(info['irmc_port'])
+        self.assertIsNotNone(info['irmc_auth_method'])
+        self.assertIsNotNone(info['irmc_sensor_method'])
+        self.assertIsNotNone(info['irmc_snmp_version'])
+        self.assertIsNotNone(info['irmc_snmp_port'])
+        self.assertIsNotNone(info['irmc_snmp_community'])
+        self.assertFalse(info['irmc_snmp_security'])
 
     def test_parse_driver_option_default(self):
         self.node.driver_info = {
@@ -63,10 +63,10 @@ class IRMCValidateParametersTestCase(db_base.DbTestCase):
         }
         info = irmc_common.parse_driver_info(self.node)
 
-        self.assertEqual('basic', info.get('irmc_auth_method'))
-        self.assertEqual(443, info.get('irmc_port'))
-        self.assertEqual(60, info.get('irmc_client_timeout'))
-        self.assertEqual('ipmitool', info.get('irmc_sensor_method'))
+        self.assertEqual('basic', info['irmc_auth_method'])
+        self.assertEqual(443, info['irmc_port'])
+        self.assertEqual(60, info['irmc_client_timeout'])
+        self.assertEqual('ipmitool', info['irmc_sensor_method'])
 
     def test_parse_driver_info_missing_address(self):
         del self.node.driver_info['irmc_address']

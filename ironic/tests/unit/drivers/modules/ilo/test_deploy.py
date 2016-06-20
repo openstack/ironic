@@ -163,8 +163,7 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             func_update_boot_mode.assert_called_once_with(task)
             bootmode = driver_utils.get_node_capability(task.node, "boot_mode")
             self.assertIsNone(bootmode)
-            deploy_boot_mode = task.node.instance_info.get('deploy_boot_mode')
-            self.assertIsNone(deploy_boot_mode)
+            self.assertNotIn('deploy_boot_mode', task.node.instance_info)
 
     @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
                        autospec=True)
@@ -187,8 +186,7 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             self.assertFalse(func_update_boot_mode.called)
             bootmode = driver_utils.get_node_capability(task.node, "boot_mode")
             self.assertIsNone(bootmode)
-            deploy_boot_mode = task.node.instance_info.get('deploy_boot_mode')
-            self.assertIsNone(deploy_boot_mode)
+            self.assertNotIn('deploy_boot_mode', task.node.instance_info)
 
 
 class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
