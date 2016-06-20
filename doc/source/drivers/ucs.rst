@@ -26,7 +26,7 @@ Prerequisites
 =============
 
 * ``UcsSdk`` is a python package version of XML API sdk available to
-  to manage Cisco UCS Managed B/C-series servers.
+  manage Cisco UCS Managed B/C-series servers.
 
   Install ``UcsSdk`` [1]_ module on the Ironic conductor node.
   Required version is 0.8.2.2::

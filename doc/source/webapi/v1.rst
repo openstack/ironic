@@ -110,7 +110,7 @@ API Versions History
 
     Add ``manageable`` state and ``manage`` transition, which can be used to
     move a node to ``manageable`` state from ``available``.
-    The node cannot be deployed in ``managable`` state.
+    The node cannot be deployed in ``manageable`` state.
     This change is mostly a preparation for future inspection work
     and introduction of ``enroll`` provision state.
 
