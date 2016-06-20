@@ -116,7 +116,8 @@ class RPCService(service.Service):
         signal.signal(signal.SIGUSR1, self._handle_signal)
 
 
-def prepare_service(argv=[]):
+def prepare_service(argv=None):
+    argv = [] if argv is None else argv
     log.register_options(CONF)
     log.set_defaults(default_log_levels=['amqp=WARNING',
                                          'amqplib=WARNING',
