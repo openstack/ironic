@@ -40,7 +40,7 @@ class MockNode(object):
         self.uuid = 'uuid'
         self.driver_internal_info = {
             'agent_url': "http://127.0.0.1:9999",
-            'clean_version': {'generic': '1'}
+            'hardware_manager_version': {'generic': '1'}
         }
         self.instance_info = {}
 
@@ -309,7 +309,8 @@ class TestAgentClient(base.TestCase):
             'step': step,
             'node': self.node.as_dict(),
             'ports': [],
-            'clean_version': None
+            'clean_version':
+                self.node.driver_internal_info['hardware_manager_version']
         }
         self.client.execute_clean_step(step,
                                        self.node,
