@@ -99,7 +99,7 @@ class FirmwareProcessorTestCase(base.TestCase):
             'component': 'bios'
         }
         # | WHEN | & | THEN |
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             exception.MissingParameterValue, 'checksum',
             ilo_fw_processor.get_and_validate_firmware_image_info,
             invalid_firmware_image_info)
@@ -113,7 +113,7 @@ class FirmwareProcessorTestCase(base.TestCase):
             'component': ''
         }
         # | WHEN | & | THEN |
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             exception.MissingParameterValue, 'component',
             ilo_fw_processor.get_and_validate_firmware_image_info,
             invalid_firmware_image_info)

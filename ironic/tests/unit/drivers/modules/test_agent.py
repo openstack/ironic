@@ -425,9 +425,9 @@ class TestAgentDeploy(db_base.DbTestCase):
                 'image_https_proxy': 'git://spam.ni',
                 'image_http_proxy': 'http://spam.ni',
                 'image_no_proxy': '1' * 500})
-            self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                    'image_https_proxy.*image_no_proxy',
-                                    task.driver.deploy.validate, task)
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   'image_https_proxy.*image_no_proxy',
+                                   task.driver.deploy.validate, task)
             pxe_boot_validate_mock.assert_called_once_with(
                 task.driver.boot, task)
             show_mock.assert_called_once_with(self.context, 'fake-image')

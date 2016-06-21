@@ -2518,59 +2518,59 @@ class TestPut(test_api_base.BaseApiTest):
 class TestCheckCleanSteps(base.TestCase):
     def test__check_clean_steps_not_list(self):
         clean_steps = {"step": "upgrade_firmware", "interface": "deploy"}
-        self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                "not of type 'array'",
-                                api_node._check_clean_steps, clean_steps)
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               "not of type 'array'",
+                               api_node._check_clean_steps, clean_steps)
 
     def test__check_clean_steps_step_not_dict(self):
         clean_steps = ['clean step']
-        self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                "not of type 'object'",
-                                api_node._check_clean_steps, clean_steps)
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               "not of type 'object'",
+                               api_node._check_clean_steps, clean_steps)
 
     def test__check_clean_steps_step_key_invalid(self):
         clean_steps = [{"step": "upgrade_firmware", "interface": "deploy",
                         "unknown": "upgrade_firmware"}]
-        self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                'unexpected',
-                                api_node._check_clean_steps, clean_steps)
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'unexpected',
+                               api_node._check_clean_steps, clean_steps)
 
     def test__check_clean_steps_step_missing_interface(self):
         clean_steps = [{"step": "upgrade_firmware"}]
-        self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                'interface',
-                                api_node._check_clean_steps, clean_steps)
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'interface',
+                               api_node._check_clean_steps, clean_steps)
 
     def test__check_clean_steps_step_missing_step_key(self):
         clean_steps = [{"interface": "deploy"}]
-        self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                'step',
-                                api_node._check_clean_steps, clean_steps)
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'step',
+                               api_node._check_clean_steps, clean_steps)
 
     def test__check_clean_steps_step_missing_step_value(self):
         clean_steps = [{"step": None, "interface": "deploy"}]
-        self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                "not of type 'string'",
-                                api_node._check_clean_steps, clean_steps)
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               "not of type 'string'",
+                               api_node._check_clean_steps, clean_steps)
 
     def test__check_clean_steps_step_min_length_step_value(self):
         clean_steps = [{"step": "", "interface": "deploy"}]
-        self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                'is too short',
-                                api_node._check_clean_steps, clean_steps)
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'is too short',
+                               api_node._check_clean_steps, clean_steps)
 
     def test__check_clean_steps_step_interface_value_invalid(self):
         clean_steps = [{"step": "upgrade_firmware", "interface": "not"}]
-        self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                'is not one of',
-                                api_node._check_clean_steps, clean_steps)
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'is not one of',
+                               api_node._check_clean_steps, clean_steps)
 
     def test__check_clean_steps_step_args_value_invalid(self):
         clean_steps = [{"step": "upgrade_firmware", "interface": "deploy",
                         "args": "invalid args"}]
-        self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                'args',
-                                api_node._check_clean_steps, clean_steps)
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'args',
+                               api_node._check_clean_steps, clean_steps)
 
     def test__check_clean_steps_valid(self):
         clean_steps = [{"step": "upgrade_firmware", "interface": "deploy"}]

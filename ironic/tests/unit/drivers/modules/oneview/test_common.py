@@ -56,15 +56,15 @@ class OneViewCommonTestCase(db_base.DbTestCase):
             "capabilities": ("enclosure_group_uri:fake_eg_uri,"
                              "server_profile_template_uri:fake_spt_uri")
         }
-        with self.assertRaisesRegexp(exception.MissingParameterValue,
-                                     "server_hardware_type_uri"):
+        with self.assertRaisesRegex(exception.MissingParameterValue,
+                                    "server_hardware_type_uri"):
             common.verify_node_info(self.node)
 
     def test_verify_node_info_missing_node_driver_info(self):
         self.node.driver_info = {}
 
-        with self.assertRaisesRegexp(exception.MissingParameterValue,
-                                     "server_hardware_uri"):
+        with self.assertRaisesRegex(exception.MissingParameterValue,
+                                    "server_hardware_uri"):
             common.verify_node_info(self.node)
 
     def test_verify_node_info_missing_spt(self):
@@ -73,8 +73,8 @@ class OneViewCommonTestCase(db_base.DbTestCase):
                                       "enclosure_group_uri:fake_eg_uri")
 
         self.node.properties = properties
-        with self.assertRaisesRegexp(exception.MissingParameterValue,
-                                     "server_profile_template_uri"):
+        with self.assertRaisesRegex(exception.MissingParameterValue,
+                                    "server_profile_template_uri"):
             common.verify_node_info(self.node)
 
     def test_verify_node_info_missing_sh(self):
@@ -90,8 +90,8 @@ class OneViewCommonTestCase(db_base.DbTestCase):
 
         self.node.properties = properties
         self.node.driver_info = driver_info
-        with self.assertRaisesRegexp(exception.MissingParameterValue,
-                                     "server_hardware_uri"):
+        with self.assertRaisesRegex(exception.MissingParameterValue,
+                                    "server_hardware_uri"):
             common.verify_node_info(self.node)
 
     def test_verify_node_info_missing_sht(self):
@@ -104,8 +104,8 @@ class OneViewCommonTestCase(db_base.DbTestCase):
 
         self.node.properties = properties
         self.node.driver_info = driver_info
-        with self.assertRaisesRegexp(exception.MissingParameterValue,
-                                     "server_hardware_type_uri"):
+        with self.assertRaisesRegex(exception.MissingParameterValue,
+                                    "server_hardware_type_uri"):
             common.verify_node_info(self.node)
 
     def test_get_oneview_info(self):
@@ -255,8 +255,8 @@ class OneViewCommonTestCase(db_base.DbTestCase):
         )
 
     def test__verify_node_info_missing_values_empty_string(self):
-        with self.assertRaisesRegexp(exception.MissingParameterValue,
-                                     "'properties:a', 'properties:b'"):
+        with self.assertRaisesRegex(exception.MissingParameterValue,
+                                    "'properties:a', 'properties:b'"):
             common._verify_node_info("properties",
                                      {"a": '', "b": None, "c": "something"},
                                      ["a", "b", "c"])

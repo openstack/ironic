@@ -155,8 +155,8 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
 
     def test_prevent_double_start(self):
         self._start_service()
-        self.assertRaisesRegexp(RuntimeError, 'already running',
-                                self.service.init_host)
+        self.assertRaisesRegex(RuntimeError, 'already running',
+                               self.service.init_host)
 
     @mock.patch.object(base_manager, 'LOG')
     def test_warning_on_low_workers_pool(self, log_mock):

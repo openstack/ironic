@@ -176,7 +176,7 @@ class _TestObject(object):
             fields = {'foobar': fields.IntegerField()}
         obj = Foo(self.context)
 
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             NotImplementedError, "Cannot load 'foobar' in the base class",
             getattr, obj, 'foobar')
 

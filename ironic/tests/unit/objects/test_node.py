@@ -163,8 +163,8 @@ class TestNodeObject(base.DbTestCase):
             node = objects.Node.get(self.context, uuid)
             node.properties = {"local_gb": "5G", "memory_mb": "5",
                                'cpus': '-1', 'cpu_arch': 'x86_64'}
-            self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                    ".*local_gb=5G, cpus=-1$", node.save)
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   ".*local_gb=5G, cpus=-1$", node.save)
             mock_get_node.assert_called_once_with(uuid)
 
     def test__validate_property_values_success(self):

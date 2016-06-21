@@ -526,10 +526,10 @@ class NodeCleaningStepsTestCase(base.DbTestCase):
                       {'step': 'bad_step', 'interface': 'deploy'}]
 
         with task_manager.acquire(self.context, node.uuid) as task:
-            self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                    "does not support.*bad_step",
-                                    conductor_utils._validate_user_clean_steps,
-                                    task, user_steps)
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   "does not support.*bad_step",
+                                   conductor_utils._validate_user_clean_steps,
+                                   task, user_steps)
             mock_steps.assert_called_once_with(task, enabled=False, sort=False)
 
     @mock.patch.object(conductor_utils, '_get_cleaning_steps')
@@ -541,10 +541,10 @@ class NodeCleaningStepsTestCase(base.DbTestCase):
                       {'step': 'erase_disks', 'interface': 'deploy'}]
 
         with task_manager.acquire(self.context, node.uuid) as task:
-            self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                    "update_firmware.*invalid.*arg1",
-                                    conductor_utils._validate_user_clean_steps,
-                                    task, user_steps)
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   "update_firmware.*invalid.*arg1",
+                                   conductor_utils._validate_user_clean_steps,
+                                   task, user_steps)
             mock_steps.assert_called_once_with(task, enabled=False, sort=False)
 
     @mock.patch.object(conductor_utils, '_get_cleaning_steps')
@@ -555,10 +555,10 @@ class NodeCleaningStepsTestCase(base.DbTestCase):
                       {'step': 'build_raid', 'interface': 'deploy'}]
 
         with task_manager.acquire(self.context, node.uuid) as task:
-            self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                    "build_raid.*missing.*arg1",
-                                    conductor_utils._validate_user_clean_steps,
-                                    task, user_steps)
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   "build_raid.*missing.*arg1",
+                                   conductor_utils._validate_user_clean_steps,
+                                   task, user_steps)
             mock_steps.assert_called_once_with(task, enabled=False, sort=False)
 
 

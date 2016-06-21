@@ -125,47 +125,47 @@ class CleanStepDecoratorTestCase(base.TestCase):
                                         'arg2': {'description': 'desc2'}})
 
     def test__validate_argsinfo_not_dict(self):
-        self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                'argsinfo.+dictionary',
-                                driver_base._validate_argsinfo, 'not-a-dict')
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'argsinfo.+dictionary',
+                               driver_base._validate_argsinfo, 'not-a-dict')
 
     def test__validate_argsinfo_arg_not_dict(self):
-        self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                'Argument.+dictionary',
-                                driver_base._validate_argsinfo,
-                                {'arg1': 'not-a-dict'})
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'Argument.+dictionary',
+                               driver_base._validate_argsinfo,
+                               {'arg1': 'not-a-dict'})
 
     def test__validate_argsinfo_arg_empty_dict(self):
-        self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                'description',
-                                driver_base._validate_argsinfo,
-                                {'arg1': {}})
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'description',
+                               driver_base._validate_argsinfo,
+                               {'arg1': {}})
 
     def test__validate_argsinfo_arg_missing_description(self):
-        self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                'description',
-                                driver_base._validate_argsinfo,
-                                {'arg1': {'required': True}})
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'description',
+                               driver_base._validate_argsinfo,
+                               {'arg1': {'required': True}})
 
     def test__validate_argsinfo_arg_description_invalid(self):
-        self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                'string',
-                                driver_base._validate_argsinfo,
-                                {'arg1': {'description': True}})
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'string',
+                               driver_base._validate_argsinfo,
+                               {'arg1': {'description': True}})
 
     def test__validate_argsinfo_arg_required_invalid(self):
-        self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                'Boolean',
-                                driver_base._validate_argsinfo,
-                                {'arg1': {'description': 'desc1',
-                                          'required': 'maybe'}})
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'Boolean',
+                               driver_base._validate_argsinfo,
+                               {'arg1': {'description': 'desc1',
+                                         'required': 'maybe'}})
 
     def test__validate_argsinfo_arg_unknown_key(self):
-        self.assertRaisesRegexp(exception.InvalidParameterValue,
-                                'invalid',
-                                driver_base._validate_argsinfo,
-                                {'arg1': {'description': 'desc1',
-                                          'unknown': 'bad'}})
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'invalid',
+                               driver_base._validate_argsinfo,
+                               {'arg1': {'description': 'desc1',
+                                         'unknown': 'bad'}})
 
     def test_clean_step_priority_only(self):
         d = driver_base.clean_step(priority=10)
@@ -188,8 +188,8 @@ class CleanStepDecoratorTestCase(base.TestCase):
 
     def test_clean_step_bad_priority(self):
         d = driver_base.clean_step(priority='hi')
-        self.assertRaisesRegexp(exception.InvalidParameterValue, 'priority',
-                                d, self.method)
+        self.assertRaisesRegex(exception.InvalidParameterValue, 'priority',
+                               d, self.method)
         self.assertTrue(self.method._is_clean_step)
         self.assertFalse(hasattr(self.method, '_clean_step_priority'))
         self.assertFalse(hasattr(self.method, '_clean_step_abortable'))
@@ -197,8 +197,8 @@ class CleanStepDecoratorTestCase(base.TestCase):
 
     def test_clean_step_bad_abortable(self):
         d = driver_base.clean_step(priority=0, abortable='blue')
-        self.assertRaisesRegexp(exception.InvalidParameterValue, 'abortable',
-                                d, self.method)
+        self.assertRaisesRegex(exception.InvalidParameterValue, 'abortable',
+                               d, self.method)
         self.assertTrue(self.method._is_clean_step)
         self.assertEqual(0, self.method._clean_step_priority)
         self.assertFalse(hasattr(self.method, '_clean_step_abortable'))

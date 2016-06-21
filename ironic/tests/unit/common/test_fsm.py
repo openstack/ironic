@@ -51,12 +51,12 @@ class FSMTest(base.TestCase):
         self.fsm._validate_target_state('working')
 
         # target doesn't exist
-        self.assertRaisesRegexp(excp.InvalidState, "does not exist",
-                                self.fsm._validate_target_state, 'new state')
+        self.assertRaisesRegex(excp.InvalidState, "does not exist",
+                               self.fsm._validate_target_state, 'new state')
 
         # target isn't a stable state
-        self.assertRaisesRegexp(excp.InvalidState, "stable",
-                                self.fsm._validate_target_state, 'daydream')
+        self.assertRaisesRegex(excp.InvalidState, "stable",
+                               self.fsm._validate_target_state, 'daydream')
 
     def test_initialize(self):
         # no start state

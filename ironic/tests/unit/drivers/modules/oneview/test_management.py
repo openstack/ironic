@@ -120,7 +120,7 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
                 'A Server Profile is not associated with node %s.'
                 % self.node.uuid
             )
-            self.assertRaisesRegexp(
+            self.assertRaisesRegex(
                 exception.OperationNotPermitted,
                 expected_msg,
                 self.driver.management.set_boot_device,
