@@ -161,8 +161,7 @@ class UtilsTestCase(db_base.DbTestCase):
             task.node.refresh()
             self.assertEqual(
                 False,
-                task.node.driver_internal_info.get('is_next_boot_persistent')
-            )
+                task.node.driver_internal_info['is_next_boot_persistent'])
 
     def test_capabilities_to_dict(self):
         capabilities_more_than_one_item = 'a:b,c:d'

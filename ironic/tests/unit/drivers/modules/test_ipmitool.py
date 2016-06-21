@@ -348,7 +348,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
                 self.assertFalse(os.path.isfile(pw_file))
 
     def test__make_password_file_str_password(self, mock_sleep):
-        self._test__make_password_file(mock_sleep, self.info.get('password'))
+        self._test__make_password_file(mock_sleep, self.info['password'])
 
     def test__make_password_file_with_numeric_password(self, mock_sleep):
         self._test__make_password_file(mock_sleep, 12345)
@@ -395,7 +395,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         # make sure we get back the expected things
         _OPTIONS = ['address', 'username', 'password', 'uuid']
         for option in _OPTIONS:
-            self.assertIsNotNone(self.info.get(option))
+            self.assertIsNotNone(self.info[option])
 
         info = dict(INFO_DICT)
 

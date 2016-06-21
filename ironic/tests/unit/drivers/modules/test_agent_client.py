@@ -309,8 +309,7 @@ class TestAgentClient(base.TestCase):
             'step': step,
             'node': self.node.as_dict(),
             'ports': [],
-            'clean_version': self.node.driver_internal_info.get(
-                'hardware_manager_version')
+            'clean_version': None
         }
         self.client.execute_clean_step(step,
                                        self.node,

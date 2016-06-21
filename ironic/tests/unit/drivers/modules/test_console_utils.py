@@ -97,7 +97,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         mock_dir.return_value = tempfile.gettempdir()
         expected_path = '%(tempdir)s/%(uuid)s.pid' % {
             'tempdir': mock_dir.return_value,
-            'uuid': self.info.get('uuid')}
+            'uuid': self.info['uuid']}
         path = console_utils._get_console_pid_file(self.info['uuid'])
         self.assertEqual(expected_path, path)
         mock_dir.assert_called_once_with()

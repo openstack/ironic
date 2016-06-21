@@ -51,11 +51,11 @@ class IPMINativePrivateMethodTestCase(db_base.DbTestCase):
 
     def test__parse_driver_info(self):
         # make sure we get back the expected things
-        self.assertIsNotNone(self.info.get('address'))
-        self.assertIsNotNone(self.info.get('username'))
-        self.assertIsNotNone(self.info.get('password'))
-        self.assertIsNotNone(self.info.get('uuid'))
-        self.assertIsNotNone(self.info.get('force_boot_device'))
+        self.assertIsNotNone(self.info['address'])
+        self.assertIsNotNone(self.info['username'])
+        self.assertIsNotNone(self.info['password'])
+        self.assertIsNotNone(self.info['uuid'])
+        self.assertIsNotNone(self.info['force_boot_device'])
 
         # make sure error is raised when info, eg. username, is missing
         info = dict(INFO_DICT)

@@ -87,11 +87,11 @@ class SeaMicroValidateParametersTestCase(db_base.DbTestCase):
             driver='fake_seamicro',
             driver_info=INFO_DICT)
         info = seamicro._parse_driver_info(node)
-        self.assertIsNotNone(info.get('api_endpoint'))
-        self.assertIsNotNone(info.get('username'))
-        self.assertIsNotNone(info.get('password'))
-        self.assertIsNotNone(info.get('server_id'))
-        self.assertIsNotNone(info.get('uuid'))
+        self.assertIsNotNone(info['api_endpoint'])
+        self.assertIsNotNone(info['username'])
+        self.assertIsNotNone(info['password'])
+        self.assertIsNotNone(info['server_id'])
+        self.assertIsNotNone(info['uuid'])
 
     def test__parse_driver_info_missing_api_endpoint(self):
         # make sure error is raised when info is missing
