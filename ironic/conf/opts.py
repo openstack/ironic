@@ -26,8 +26,6 @@ import ironic.common.paths
 import ironic.common.service
 import ironic.common.swift
 import ironic.common.utils
-import ironic.conductor.base_manager
-import ironic.conductor.manager
 import ironic.db.sqlalchemy.models
 import ironic.dhcp.neutron
 import ironic.drivers.modules.agent
@@ -80,9 +78,7 @@ _opts = [
     ('api', ironic.api.API_SERVICE_OPTS),
     ('cimc', ironic.conf.cimc.opts),
     ('cisco_ucs', ironic.conf.cisco_ucs.opts),
-    ('conductor', itertools.chain(
-        ironic.conductor.base_manager.conductor_opts,
-        ironic.conductor.manager.conductor_opts)),
+    ('conductor', ironic.conf.conductor.opts),
     ('console', ironic.conf.console.opts),
     ('database', ironic.db.sqlalchemy.models.sql_opts),
     ('deploy', ironic.drivers.modules.deploy_utils.deploy_opts),
