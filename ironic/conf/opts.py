@@ -14,7 +14,6 @@ import itertools
 
 import ironic.api
 import ironic.api.app
-import ironic.common.dhcp_factory
 import ironic.common.driver_factory
 import ironic.common.exception
 import ironic.common.glance_service.v2.image_service
@@ -81,7 +80,7 @@ _opts = [
     ('console', ironic.conf.console.opts),
     ('database', ironic.conf.database.opts),
     ('deploy', ironic.drivers.modules.deploy_utils.deploy_opts),
-    ('dhcp', ironic.common.dhcp_factory.dhcp_provider_opts),
+    ('dhcp', ironic.conf.dhcp.opts),
     ('glance', itertools.chain(
         ironic.common.glance_service.v2.image_service.glance_opts,
         ironic.common.image_service.glance_opts)),

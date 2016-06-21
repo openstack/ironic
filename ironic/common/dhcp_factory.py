@@ -13,21 +13,10 @@
 #    under the License.
 
 from oslo_concurrency import lockutils
-from oslo_config import cfg
 import stevedore
 
 from ironic.common import exception
-from ironic.common.i18n import _
-
-dhcp_provider_opts = [
-    cfg.StrOpt('dhcp_provider',
-               default='neutron',
-               help=_('DHCP provider to use. "neutron" uses Neutron, and '
-                      '"none" uses a no-op provider.')),
-]
-
-CONF = cfg.CONF
-CONF.register_opts(dhcp_provider_opts, group='dhcp')
+from ironic.conf import CONF
 
 _dhcp_provider = None
 
