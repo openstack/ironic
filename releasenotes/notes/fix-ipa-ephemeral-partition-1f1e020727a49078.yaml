@@ -1,0 +1,5 @@
+---
+fixes:
+  - Fixed a bug where the ironic python agent ramdisk was not creating an
+    ephemeral partition because the ephemeral partition size was not being
+    passed correctly to the agent.

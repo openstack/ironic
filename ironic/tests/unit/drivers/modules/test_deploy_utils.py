@@ -2125,6 +2125,7 @@ class InstanceInfoTestCase(db_base.DbTestCase):
 
     def test_parse_instance_info_valid_ephemeral_gb(self):
         ephemeral_gb = 10
+        ephemeral_mb = 1024 * ephemeral_gb
         ephemeral_fmt = 'test-fmt'
         info = dict(INST_INFO_DICT)
         info['ephemeral_gb'] = ephemeral_gb
@@ -2134,7 +2135,7 @@ class InstanceInfoTestCase(db_base.DbTestCase):
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
         data = utils.parse_instance_info(node)
-        self.assertEqual(ephemeral_gb, data['ephemeral_gb'])
+        self.assertEqual(ephemeral_mb, data['ephemeral_mb'])
         self.assertEqual(ephemeral_fmt, data['ephemeral_format'])
 
     def test_parse_instance_info_unicode_swap_mb(self):
@@ -2308,9 +2309,9 @@ class InstanceInfoTestCase(db_base.DbTestCase):
         )
         instance_info = utils.parse_instance_info(node)
         self.assertIsNotNone(instance_info['image_source'])
-        self.assertIsNotNone(instance_info['root_gb'])
+        self.assertIsNotNone(instance_info['root_mb'])
         self.assertEqual(0, instance_info['swap_mb'])
-        self.assertEqual(0, instance_info['ephemeral_gb'])
+        self.assertEqual(0, instance_info['ephemeral_mb'])
         self.assertIsNone(instance_info['configdrive'])
 
     def test_parse_instance_info_whole_disk_image_missing_root(self):

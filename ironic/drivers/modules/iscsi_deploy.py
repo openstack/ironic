@@ -207,9 +207,9 @@ def get_deploy_info(node, address, iqn, port=None, lun='1'):
 
     is_whole_disk_image = node.driver_internal_info['is_whole_disk_image']
     if not is_whole_disk_image:
-        params.update({'root_mb': 1024 * int(i_info['root_gb']),
-                       'swap_mb': int(i_info['swap_mb']),
-                       'ephemeral_mb': 1024 * int(i_info['ephemeral_gb']),
+        params.update({'root_mb': i_info['root_mb'],
+                       'swap_mb': i_info['swap_mb'],
+                       'ephemeral_mb': i_info['ephemeral_mb'],
                        'preserve_ephemeral': i_info['preserve_ephemeral'],
                        'boot_option': deploy_utils.get_boot_option(node),
                        'boot_mode': _get_boot_mode(node)})
