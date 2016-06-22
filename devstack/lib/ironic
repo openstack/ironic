@@ -118,7 +118,7 @@ IRONIC_VM_NETWORK_BRIDGE=${IRONIC_VM_NETWORK_BRIDGE:-brbm}
 IRONIC_VM_NETWORK_RANGE=${IRONIC_VM_NETWORK_RANGE:-192.0.2.0/24}
 IRONIC_VM_MACS_CSV_FILE=${IRONIC_VM_MACS_CSV_FILE:-$IRONIC_DATA_DIR/ironic_macs.csv}
 IRONIC_AUTHORIZED_KEYS_FILE=${IRONIC_AUTHORIZED_KEYS_FILE:-$HOME/.ssh/authorized_keys}
-IRONIC_CLEAN_NET_NAME=${IRONIC_CLEAN_NET_NAME:-private}
+IRONIC_CLEAN_NET_NAME=${IRONIC_CLEAN_NET_NAME:-$PRIVATE_NETWORK_NAME}
 IRONIC_EXTRA_PXE_PARAMS=${IRONIC_EXTRA_PXE_PARAMS:-}
 IRONIC_TTY_DEV=${IRONIC_TTY_DEV:-ttyS0}
 
@@ -749,7 +749,7 @@ function create_bridge_and_vms {
         vbmc_port=$((vbmc_port+1))
     done
     local ironic_net_id
-    ironic_net_id=$(openstack network show "private" -c id -f value)
+    ironic_net_id=$(openstack network show "$PRIVATE_NETWORK_NAME" -c id -f value)
     create_ovs_taps $ironic_net_id
 }
 
