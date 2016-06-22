@@ -20,6 +20,7 @@ import mock
 from ironic.common import exception
 from ironic.common import raid
 from ironic.drivers import base as driver_base
+from ironic.drivers.modules import fake
 from ironic.tests import base
 
 
@@ -389,3 +390,14 @@ class RAIDInterfaceTestCase(base.TestCase):
         raid_interface = MyRAIDInterface()
         raid_interface.get_logical_disk_properties()
         get_properties_mock.assert_called_once_with(raid_schema)
+
+
+class TestDeployInterface(base.TestCase):
+    @mock.patch.object(driver_base.LOG, 'warning', autospec=True)
+    def test_warning_on_heartbeat(self, mock_log):
+        # NOTE(dtantsur): FakeDeploy does not override heartbeat
+        deploy = fake.FakeDeploy()
+        deploy.heartbeat(mock.Mock(node=mock.Mock(uuid='uuid',
+                                                  driver='driver')),
+                         'url')
+        self.assertTrue(mock_log.called)

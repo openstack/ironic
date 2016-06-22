@@ -30,7 +30,7 @@ from oslo_utils import excutils
 import six
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE
+from ironic.common.i18n import _, _LE, _LW
 from ironic.common import raid
 
 LOG = logging.getLogger(__name__)
@@ -374,6 +374,17 @@ class DeployInterface(BaseInterface):
         :param task: a TaskManager instance containing the node to act on.
         """
         pass
+
+    def heartbeat(self, task, callback_url):
+        """Record a heartbeat for the node.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :param callback_url: a URL to use to call to the ramdisk.
+        :return: None
+        """
+        LOG.warning(_LW('Got heartbeat message from node %(node)s, but '
+                        'the driver %(driver)s does not support heartbeating'),
+                    {'node': task.node.uuid, 'driver': task.node.driver})
 
 
 @six.add_metaclass(abc.ABCMeta)

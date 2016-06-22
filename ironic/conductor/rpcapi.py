@@ -80,11 +80,12 @@ class ConductorAPI(object):
     |           object_backport_versions
     |    1.32 - Add do_node_clean
     |    1.33 - Added update and destroy portgroup.
+    |    1.34 - Added heartbeat
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.33'
+    RPC_API_VERSION = '1.34'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -645,6 +646,18 @@ class ConductorAPI(object):
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.32')
         return cctxt.call(context, 'do_node_clean',
                           node_id=node_id, clean_steps=clean_steps)
+
+    def heartbeat(self, context, node_id, callback_url, topic=None):
+        """Process a node heartbeat.
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param callback_url: URL to reach back to the ramdisk.
+        :param topic: RPC topic. Defaults to self.topic.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.34')
+        return cctxt.call(context, 'heartbeat', node_id=node_id,
+                          callback_url=callback_url)
 
     def object_class_action_versions(self, context, objname, objmethod,
                                      object_versions, args, kwargs):
