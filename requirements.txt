@@ -9,7 +9,7 @@ eventlet!=0.18.3,>=0.18.2 # MIT
 WebOb>=1.2.3 # MIT
 greenlet>=0.3.2 # MIT
 netaddr!=0.7.16,>=0.7.12 # BSD
-paramiko>=2.0 # LGPL
+paramiko>=2.0 # LGPLv2.1+
 python-neutronclient>=4.2.0 # Apache-2.0
 python-glanceclient>=2.0.0 # Apache-2.0
 python-keystoneclient!=1.8.0,!=2.1.0,>=1.7.0 # Apache-2.0
