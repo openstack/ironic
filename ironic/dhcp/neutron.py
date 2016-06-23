@@ -17,7 +17,6 @@
 import time
 
 from neutronclient.common import exceptions as neutron_client_exc
-from neutronclient.v2_0 import client as clientv20
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import netutils
@@ -26,72 +25,14 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LW
-from ironic.common import keystone
 from ironic.common import network
+from ironic.common import neutron
 from ironic.dhcp import base
 from ironic.drivers.modules import ssh
-from ironic.objects.port import Port
-
-
-neutron_opts = [
-    cfg.StrOpt('url',
-               default='http://$my_ip:9696',
-               help=_('URL for connecting to neutron.')),
-    cfg.IntOpt('url_timeout',
-               default=30,
-               help=_('Timeout value for connecting to neutron in seconds.')),
-    cfg.IntOpt('port_setup_delay',
-               default=0,
-               min=0,
-               help=_('Delay value to wait for Neutron agents to setup '
-                      'sufficient DHCP configuration for port.')),
-    cfg.IntOpt('retries',
-               default=3,
-               help=_('Client retries in the case of a failed request.')),
-    cfg.StrOpt('auth_strategy',
-               default='keystone',
-               choices=['keystone', 'noauth'],
-               help=_('Default authentication strategy to use when connecting '
-                      'to neutron. '
-                      'Running neutron in noauth mode (related to but not '
-                      'affected by this setting) is insecure and should only '
-                      'be used for testing.')),
-    cfg.StrOpt('cleaning_network_uuid',
-               help=_('UUID of the network to create Neutron ports on, when '
-                      'booting to a ramdisk for cleaning using Neutron DHCP.'))
-]
+from ironic import objects
 
 CONF = cfg.CONF
-CONF.import_opt('my_ip', 'ironic.netconf')
-CONF.register_opts(neutron_opts, group='neutron')
 LOG = logging.getLogger(__name__)
-
-
-def _build_client(token=None):
-    """Utility function to create Neutron client."""
-    params = {
-        'timeout': CONF.neutron.url_timeout,
-        'retries': CONF.neutron.retries,
-        'insecure': CONF.keystone_authtoken.insecure,
-        'ca_cert': CONF.keystone_authtoken.certfile,
-    }
-
-    if CONF.neutron.auth_strategy == 'noauth':
-        params['endpoint_url'] = CONF.neutron.url
-        params['auth_strategy'] = 'noauth'
-    else:
-        params['endpoint_url'] = (
-            CONF.neutron.url or
-            keystone.get_service_url(service_type='network'))
-        params['username'] = CONF.keystone_authtoken.admin_user
-        params['tenant_name'] = CONF.keystone_authtoken.admin_tenant_name
-        params['password'] = CONF.keystone_authtoken.admin_password
-        params['auth_url'] = (CONF.keystone_authtoken.auth_uri or '')
-        if CONF.keystone.region_name:
-            params['region_name'] = CONF.keystone.region_name
-        params['token'] = token
-
-    return clientv20.Client(**params)
 
 
 class NeutronDHCPApi(base.BaseDHCP):
@@ -122,7 +63,7 @@ class NeutronDHCPApi(base.BaseDHCP):
         """
         port_req_body = {'port': {'extra_dhcp_opts': dhcp_options}}
         try:
-            _build_client(token).update_port(port_id, port_req_body)
+            neutron.get_client(token).update_port(port_id, port_req_body)
         except neutron_client_exc.NeutronClientException:
             LOG.exception(_LE("Failed to update Neutron port %s."), port_id)
             raise exception.FailedToUpdateDHCPOptOnPort(port_id=port_id)
@@ -137,7 +78,7 @@ class NeutronDHCPApi(base.BaseDHCP):
         """
         port_req_body = {'port': {'mac_address': address}}
         try:
-            _build_client(token).update_port(port_id, port_req_body)
+            neutron.get_client(token).update_port(port_id, port_req_body)
         except neutron_client_exc.NeutronClientException:
             LOG.exception(_LE("Failed to update MAC address on Neutron "
                               "port %s."), port_id)
@@ -267,7 +208,7 @@ class NeutronDHCPApi(base.BaseDHCP):
         vif = p_obj.extra.get('vif_port_id')
         if not vif:
             obj_name = 'portgroup'
-            if isinstance(p_obj, Port):
+            if isinstance(p_obj, objects.Port):
                 obj_name = 'port'
             LOG.warning(_LW("No VIFs found for node %(node)s when attempting "
                             "to get IP address for %(obj_name)s: %(obj_id)."),
@@ -300,7 +241,7 @@ class NeutronDHCPApi(base.BaseDHCP):
 
         if failures:
             obj_name = 'portgroups'
-            if isinstance(pobj_list[0], Port):
+            if isinstance(pobj_list[0], objects.Port):
                 obj_name = 'ports'
 
             LOG.warning(_LW(
@@ -319,7 +260,7 @@ class NeutronDHCPApi(base.BaseDHCP):
         :returns: List of IP addresses associated with
                   task's ports/portgroups.
         """
-        client = _build_client(task.context.auth_token)
+        client = neutron.get_client(task.context.auth_token)
 
         port_ip_addresses = self._get_ip_addresses(task, task.ports, client)
         portgroup_ip_addresses = self._get_ip_addresses(
@@ -337,7 +278,7 @@ class NeutronDHCPApi(base.BaseDHCP):
         if not CONF.neutron.cleaning_network_uuid:
             raise exception.InvalidParameterValue(_('Valid cleaning network '
                                                     'UUID not provided'))
-        neutron_client = _build_client(task.context.auth_token)
+        neutron_client = neutron.get_client(task.context.auth_token)
         body = {
             'port': {
                 'network_id': CONF.neutron.cleaning_network_uuid,
@@ -373,7 +314,7 @@ class NeutronDHCPApi(base.BaseDHCP):
 
         :param task: a TaskManager instance.
         """
-        neutron_client = _build_client(task.context.auth_token)
+        neutron_client = neutron.get_client(task.context.auth_token)
         macs = [p.address for p in task.ports]
         params = {
             'network_id': CONF.neutron.cleaning_network_uuid
