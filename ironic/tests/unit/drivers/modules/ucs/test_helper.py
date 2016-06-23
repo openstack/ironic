@@ -46,10 +46,11 @@ class UcsValidateParametersTestCase(db_base.DbTestCase):
     def test_parse_driver_info(self):
         info = ucs_helper.parse_driver_info(self.node)
 
-        self.assertIsNotNone(info['ucs_address'])
-        self.assertIsNotNone(info['ucs_username'])
-        self.assertIsNotNone(info['ucs_password'])
-        self.assertIsNotNone(info['ucs_service_profile'])
+        self.assertEqual(INFO_DICT['ucs_address'], info['ucs_address'])
+        self.assertEqual(INFO_DICT['ucs_username'], info['ucs_username'])
+        self.assertEqual(INFO_DICT['ucs_password'], info['ucs_password'])
+        self.assertEqual(INFO_DICT['ucs_service_profile'],
+                         info['ucs_service_profile'])
 
     def test_parse_driver_info_missing_address(self):
 

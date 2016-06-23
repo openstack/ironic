@@ -47,11 +47,12 @@ class AMTCommonMethodsTestCase(db_base.DbTestCase):
     def test_parse_driver_info(self):
         info = amt_common.parse_driver_info(self.node)
 
-        self.assertIsNotNone(info['address'])
-        self.assertIsNotNone(info['username'])
-        self.assertIsNotNone(info['password'])
-        self.assertIsNotNone(info['protocol'])
-        self.assertIsNotNone(info['uuid'])
+        self.assertEqual(b'1.2.3.4', info['address'])
+        self.assertEqual(b'admin', info['username'])
+        self.assertEqual(b'fake', info['password'])
+        self.assertEqual(INFO_DICT['amt_protocol'], info['protocol'])
+        self.assertEqual('1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                         info['uuid'])
 
     def test_parse_driver_info_missing_address(self):
         del self.node.driver_info['amt_address']

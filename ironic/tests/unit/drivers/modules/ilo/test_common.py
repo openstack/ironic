@@ -40,6 +40,8 @@ from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
+INFO_DICT = db_utils.get_test_ilo_info()
+
 ilo_client = importutils.try_import('proliantutils.ilo.client')
 ilo_error = importutils.try_import('proliantutils.exception')
 
@@ -57,16 +59,16 @@ class IloValidateParametersTestCase(db_base.DbTestCase):
         super(IloValidateParametersTestCase, self).setUp()
         self.node = obj_utils.create_test_node(
             self.context, driver='fake_ilo',
-            driver_info=db_utils.get_test_ilo_info())
+            driver_info=INFO_DICT)
 
     def test_parse_driver_info(self):
         info = ilo_common.parse_driver_info(self.node)
 
-        self.assertIsNotNone(info['ilo_address'])
-        self.assertIsNotNone(info['ilo_username'])
-        self.assertIsNotNone(info['ilo_password'])
-        self.assertIsNotNone(info['client_timeout'])
-        self.assertIsNotNone(info['client_port'])
+        self.assertEqual(INFO_DICT['ilo_address'], info['ilo_address'])
+        self.assertEqual(INFO_DICT['ilo_username'], info['ilo_username'])
+        self.assertEqual(INFO_DICT['ilo_password'], info['ilo_password'])
+        self.assertEqual(60, info['client_timeout'])
+        self.assertEqual(443, info['client_port'])
 
     def test_parse_driver_info_missing_address(self):
         del self.node.driver_info['ilo_address']

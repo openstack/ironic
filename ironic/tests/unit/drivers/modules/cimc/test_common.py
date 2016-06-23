@@ -26,6 +26,8 @@ from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
+INFO_DICT = db_utils.get_test_cimc_info()
+
 imcsdk = importutils.try_import('ImcSdk')
 
 CONF = cfg.CONF
@@ -39,7 +41,7 @@ class CIMCBaseTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(
             self.context,
             driver='fake_cimc',
-            driver_info=db_utils.get_test_cimc_info(),
+            driver_info=INFO_DICT,
             instance_uuid=uuidutils.generate_uuid())
         CONF.set_override('max_retry', 2, 'cimc')
         CONF.set_override('action_interval', 0, 'cimc')
@@ -50,9 +52,9 @@ class ParseDriverInfoTestCase(CIMCBaseTestCase):
     def test_parse_driver_info(self):
         info = cimc_common.parse_driver_info(self.node)
 
-        self.assertIsNotNone(info['cimc_address'])
-        self.assertIsNotNone(info['cimc_username'])
-        self.assertIsNotNone(info['cimc_password'])
+        self.assertEqual(INFO_DICT['cimc_address'], info['cimc_address'])
+        self.assertEqual(INFO_DICT['cimc_username'], info['cimc_username'])
+        self.assertEqual(INFO_DICT['cimc_password'], info['cimc_password'])
 
     def test_parse_driver_info_missing_address(self):
         del self.node.driver_info['cimc_address']

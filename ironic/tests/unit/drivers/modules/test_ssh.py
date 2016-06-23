@@ -50,13 +50,14 @@ class SSHValidateParametersTestCase(db_base.DbTestCase):
             driver='fake_ssh',
             driver_info=db_utils.get_test_ssh_info('password'))
         info = ssh._parse_driver_info(node)
-        self.assertIsNotNone(info['host'])
-        self.assertIsNotNone(info['username'])
-        self.assertIsNotNone(info['password'])
-        self.assertIsNotNone(info['port'])
-        self.assertIsNotNone(info['virt_type'])
+        self.assertEqual('1.2.3.4', info['host'])
+        self.assertEqual('admin', info['username'])
+        self.assertEqual('fake', info['password'])
+        self.assertEqual(22, info['port'])
+        self.assertEqual('virsh', info['virt_type'])
         self.assertIsNotNone(info['cmd_set'])
-        self.assertIsNotNone(info['uuid'])
+        self.assertEqual('1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                         info['uuid'])
 
     def test__parse_driver_info_good_key(self):
         # make sure we get back the expected things
@@ -65,13 +66,14 @@ class SSHValidateParametersTestCase(db_base.DbTestCase):
             driver='fake_ssh',
             driver_info=db_utils.get_test_ssh_info('key'))
         info = ssh._parse_driver_info(node)
-        self.assertIsNotNone(info['host'])
-        self.assertIsNotNone(info['username'])
-        self.assertIsNotNone(info['key_contents'])
-        self.assertIsNotNone(info['port'])
-        self.assertIsNotNone(info['virt_type'])
+        self.assertEqual('1.2.3.4', info['host'])
+        self.assertEqual('admin', info['username'])
+        self.assertEqual('--BEGIN PRIVATE ...blah', info['key_contents'])
+        self.assertEqual(22, info['port'])
+        self.assertEqual('virsh', info['virt_type'])
         self.assertIsNotNone(info['cmd_set'])
-        self.assertIsNotNone(info['uuid'])
+        self.assertEqual('1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                         info['uuid'])
 
     def test__parse_driver_info_good_file(self):
         # make sure we get back the expected things
@@ -85,13 +87,14 @@ class SSHValidateParametersTestCase(db_base.DbTestCase):
             driver='fake_ssh',
             driver_info=d_info)
         info = ssh._parse_driver_info(node)
-        self.assertIsNotNone(info['host'])
-        self.assertIsNotNone(info['username'])
-        self.assertIsNotNone(info['key_filename'])
-        self.assertIsNotNone(info['port'])
-        self.assertIsNotNone(info['virt_type'])
+        self.assertEqual('1.2.3.4', info['host'])
+        self.assertEqual('admin', info['username'])
+        self.assertEqual(key_path, info['key_filename'])
+        self.assertEqual(22, info['port'])
+        self.assertEqual('virsh', info['virt_type'])
         self.assertIsNotNone(info['cmd_set'])
-        self.assertIsNotNone(info['uuid'])
+        self.assertEqual('1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                         info['uuid'])
 
     def test__parse_driver_info_bad_file(self):
         # A filename that doesn't exist errors.
