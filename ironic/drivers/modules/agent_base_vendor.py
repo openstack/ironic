@@ -142,87 +142,125 @@ def _get_post_clean_step_hook(node):
         pass
 
 
-class BaseAgentVendor(base.VendorInterface):
+def _cleaning_reboot(task):
+    """Reboots a node out of band after a clean step that requires it.
+
+    If an agent clean step has 'reboot_requested': True, reboots the
+    node when the step is completed. Will put the node in CLEANFAIL
+    if the node cannot be rebooted.
+
+    :param task: a TaskManager instance
+    """
+    try:
+        manager_utils.node_power_action(task, states.REBOOT)
+    except Exception as e:
+        msg = (_('Reboot requested by clean step %(step)s failed for '
+                 'node %(node)s: %(err)s') %
+               {'step': task.node.clean_step,
+                'node': task.node.uuid,
+                'err': e})
+        LOG.error(msg)
+        # do not set cleaning_reboot if we didn't reboot
+        manager_utils.cleaning_error_handler(task, msg)
+        return
+
+    # Signify that we've rebooted
+    driver_internal_info = task.node.driver_internal_info
+    driver_internal_info['cleaning_reboot'] = True
+    task.node.driver_internal_info = driver_internal_info
+    task.node.save()
+
+
+def _notify_conductor_resume_clean(task):
+    LOG.debug('Sending RPC to conductor to resume cleaning for node %s',
+              task.node.uuid)
+    uuid = task.node.uuid
+    rpc = rpcapi.ConductorAPI()
+    topic = rpc.get_topic_for(task.node)
+    # Need to release the lock to let the conductor take it
+    task.release_resources()
+    rpc.continue_node_clean(task.context, uuid, topic=topic)
+
+
+def _get_completed_cleaning_command(task, commands):
+    """Returns None or a completed cleaning command from the agent.
+
+    :param task: a TaskManager instance to act on.
+    :param commands: a set of command results from the agent, typically
+                     fetched with agent_client.get_commands_status().
+    """
+    if not commands:
+        return
+
+    last_command = commands[-1]
+
+    if last_command['command_name'] != 'execute_clean_step':
+        # catches race condition where execute_clean_step is still
+        # processing so the command hasn't started yet
+        LOG.debug('Expected agent last command to be "execute_clean_step" '
+                  'for node %(node)s, instead got "%(command)s". Waiting '
+                  'for next heartbeat.',
+                  {'node': task.node.uuid,
+                   'command': last_command['command_name']})
+        return
+
+    last_result = last_command.get('command_result') or {}
+    last_step = last_result.get('clean_step')
+    if last_command['command_status'] == 'RUNNING':
+        LOG.debug('Clean step still running for node %(node)s: %(step)s',
+                  {'step': last_step, 'node': task.node.uuid})
+        return
+    elif (last_command['command_status'] == 'SUCCEEDED' and
+          last_step != task.node.clean_step):
+        # A previous clean_step was running, the new command has not yet
+        # started.
+        LOG.debug('Clean step not yet started for node %(node)s: %(step)s',
+                  {'step': last_step, 'node': task.node.uuid})
+        return
+    else:
+        return last_command
+
+
+def log_and_raise_deployment_error(task, msg):
+    """Helper method to log the error and raise exception."""
+    LOG.error(msg)
+    deploy_utils.set_failed_state(task, msg)
+    raise exception.InstanceDeployFailure(msg)
+
+
+class AgentDeployMixin(object):
+    """Mixin with deploy methods."""
 
     def __init__(self):
-        self.supported_payload_versions = ['2']
         self._client = _get_client()
 
-    def continue_deploy(self, task, **kwargs):
+    def continue_deploy(self, task):
         """Continues the deployment of baremetal node.
 
         This method continues the deployment of the baremetal node after
         the ramdisk have been booted.
 
         :param task: a TaskManager instance
-
         """
-        pass
 
     def deploy_has_started(self, task):
         """Check if the deployment has started already.
 
         :returns: True if the deploy has started, False otherwise.
         """
-        pass
 
     def deploy_is_done(self, task):
         """Check if the deployment is already completed.
 
         :returns: True if the deployment is completed. False otherwise
-
         """
-        pass
 
-    def reboot_to_instance(self, task, **kwargs):
+    def reboot_to_instance(self, task):
         """Method invoked after the deployment is completed.
 
         :param task: a TaskManager instance
 
         """
-        pass
-
-    def get_properties(self):
-        """Return the properties of the interface.
-
-        :returns: dictionary of <property name>:<property description> entries.
-        """
-        return VENDOR_PROPERTIES
-
-    def validate(self, task, method, **kwargs):
-        """Validate the driver-specific Node deployment info.
-
-        No validation necessary.
-
-        :param task: a TaskManager instance
-        :param method: method to be validated
-        """
-        pass
-
-    def driver_validate(self, method, **kwargs):
-        """Validate the driver deployment info.
-
-        :param method: method to be validated.
-        """
-        version = kwargs.get('version')
-
-        if not version:
-            raise exception.MissingParameterValue(_('Missing parameter '
-                                                    'version'))
-        if version not in self.supported_payload_versions:
-            raise exception.InvalidParameterValue(_('Unknown lookup '
-                                                    'payload version: %s')
-                                                  % version)
-
-    def notify_conductor_resume_clean(self, task):
-        LOG.debug('Sending RPC to conductor to resume cleaning for node %s',
-                  task.node.uuid)
-        uuid = task.node.uuid
-        rpc = rpcapi.ConductorAPI()
-        topic = rpc.get_topic_for(task.node)
-        # Need to release the lock to let the conductor take it
-        task.release_resources()
-        rpc.continue_node_clean(task.context, uuid, topic=topic)
 
     def _refresh_clean_steps(self, task):
         """Refresh the node's cached clean steps from the booted agent.
@@ -308,13 +346,13 @@ class BaseAgentVendor(base.VendorInterface):
                 info = task.node.driver_internal_info
                 info.pop('cleaning_reboot', None)
                 task.node.driver_internal_info = info
-                self.notify_conductor_resume_clean(task)
+                _notify_conductor_resume_clean(task)
                 return
             else:
                 # Agent has no commands whatsoever
                 return
 
-        command = self._get_completed_cleaning_command(task, agent_commands)
+        command = _get_completed_cleaning_command(task, agent_commands)
         LOG.debug('Cleaning command status for node %(node)s on step %(step)s:'
                   ' %(command)s', {'node': node.uuid,
                                    'step': node.clean_step,
@@ -374,7 +412,7 @@ class BaseAgentVendor(base.VendorInterface):
                     LOG.exception(msg)
                     return manager_utils.cleaning_error_handler(task, msg)
 
-            self.notify_conductor_resume_clean(task)
+            _notify_conductor_resume_clean(task)
 
         elif command.get('command_status') == 'SUCCEEDED':
             clean_step_hook = _get_post_clean_step_hook(node)
@@ -398,12 +436,12 @@ class BaseAgentVendor(base.VendorInterface):
                     return manager_utils.cleaning_error_handler(task, msg)
 
             if task.node.clean_step.get('reboot_requested'):
-                self._cleaning_reboot(task)
+                _cleaning_reboot(task)
                 return
 
             LOG.info(_LI('Agent on node %s returned cleaning command success, '
                          'moving to next clean step'), node.uuid)
-            self.notify_conductor_resume_clean(task)
+            _notify_conductor_resume_clean(task)
         else:
             msg = (_('Agent returned unknown status for clean step %(step)s '
                      'on node %(node)s : %(err)s.') %
@@ -413,48 +451,16 @@ class BaseAgentVendor(base.VendorInterface):
             LOG.error(msg)
             return manager_utils.cleaning_error_handler(task, msg)
 
-    def _cleaning_reboot(self, task):
-        """Reboots a node out of band after a clean step that requires it.
+    def heartbeat(self, task, callback_url):
+        """Process a heartbeat.
 
-        If an agent clean step has 'reboot_requested': True, reboots the
-        node when the step is completed. Will put the node in CLEANFAIL
-        if the node cannot be rebooted.
-
-        :param task: a TaskManager instance
+        :param task: task to work with.
+        :param callback_url: agent HTTP API URL.
         """
-        try:
-            manager_utils.node_power_action(task, states.REBOOT)
-        except Exception as e:
-            msg = (_('Reboot requested by clean step %(step)s failed for '
-                     'node %(node)s: %(err)s') %
-                   {'step': task.node.clean_step,
-                    'node': task.node.uuid,
-                    'err': e})
-            LOG.error(msg)
-            # do not set cleaning_reboot if we didn't reboot
-            manager_utils.cleaning_error_handler(task, msg)
-            return
+        # TODO(dtantsur): upgrade lock only if we actually take action other
+        # than updating the last timestamp.
+        task.upgrade_lock()
 
-        # Signify that we've rebooted
-        driver_internal_info = task.node.driver_internal_info
-        driver_internal_info['cleaning_reboot'] = True
-        task.node.driver_internal_info = driver_internal_info
-        task.node.save()
-
-    @base.passthru(['POST'])
-    @task_manager.require_exclusive_lock
-    def heartbeat(self, task, **kwargs):
-        """Method for agent to periodically check in.
-
-        The agent should be sending its agent_url (so Ironic can talk back)
-        as a kwarg. kwargs should have the following format::
-
-         {
-             'agent_url': 'http://AGENT_HOST:AGENT_PORT'
-         }
-
-        AGENT_PORT defaults to 9999.
-        """
         node = task.node
         driver_internal_info = node.driver_internal_info
         LOG.debug(
@@ -463,7 +469,7 @@ class BaseAgentVendor(base.VendorInterface):
              'heartbeat': driver_internal_info.get('agent_last_heartbeat')})
         driver_internal_info['agent_last_heartbeat'] = int(time.time())
         try:
-            driver_internal_info['agent_url'] = kwargs['agent_url']
+            driver_internal_info['agent_url'] = callback_url
         except KeyError:
             raise exception.MissingParameterValue(_('For heartbeat operation, '
                                                     '"agent_url" must be '
@@ -484,11 +490,11 @@ class BaseAgentVendor(base.VendorInterface):
             elif (node.provision_state == states.DEPLOYWAIT and
                   not self.deploy_has_started(task)):
                 msg = _('Node failed to get image for deploy.')
-                self.continue_deploy(task, **kwargs)
+                self.continue_deploy(task)
             elif (node.provision_state == states.DEPLOYWAIT and
                   self.deploy_is_done(task)):
                 msg = _('Node failed to move to active state.')
-                self.reboot_to_instance(task, **kwargs)
+                self.reboot_to_instance(task)
             elif (node.provision_state == states.DEPLOYWAIT and
                   self.deploy_has_started(task)):
                 node.touch_provisioning()
@@ -504,10 +510,10 @@ class BaseAgentVendor(base.VendorInterface):
                         self._refresh_clean_steps(task)
                         # Then set/verify node clean steps and start cleaning
                         manager_utils.set_node_cleaning_steps(task)
-                        self.notify_conductor_resume_clean(task)
+                        _notify_conductor_resume_clean(task)
                     else:
                         msg = _('Node failed to check cleaning progress.')
-                        self.continue_cleaning(task, **kwargs)
+                        self.continue_cleaning(task)
                 except exception.NoFreeConductorWorker:
                     # waiting for the next heartbeat, node.last_error and
                     # logging message is filled already via conductor's hook
@@ -522,6 +528,210 @@ class BaseAgentVendor(base.VendorInterface):
                 manager_utils.cleaning_error_handler(task, last_error)
             elif node.provision_state in (states.DEPLOYING, states.DEPLOYWAIT):
                 deploy_utils.set_failed_state(task, last_error)
+
+    def reboot_and_finish_deploy(self, task):
+        """Helper method to trigger reboot on the node and finish deploy.
+
+        This method initiates a reboot on the node. On success, it
+        marks the deploy as complete. On failure, it logs the error
+        and marks deploy as failure.
+
+        :param task: a TaskManager object containing the node
+        :raises: InstanceDeployFailure, if node reboot failed.
+        """
+        wait = CONF.agent.post_deploy_get_power_state_retry_interval * 1000
+        attempts = CONF.agent.post_deploy_get_power_state_retries + 1
+
+        @retrying.retry(
+            stop_max_attempt_number=attempts,
+            retry_on_result=lambda state: state != states.POWER_OFF,
+            wait_fixed=wait
+        )
+        def _wait_until_powered_off(task):
+            return task.driver.power.get_power_state(task)
+
+        node = task.node
+        # Whether ironic should power off the node via out-of-band or
+        # in-band methods
+        oob_power_off = strutils.bool_from_string(
+            node.driver_info.get('deploy_forces_oob_reboot', False))
+
+        try:
+            if not oob_power_off:
+                try:
+                    self._client.power_off(node)
+                    _wait_until_powered_off(task)
+                except Exception as e:
+                    LOG.warning(
+                        _LW('Failed to soft power off node %(node_uuid)s '
+                            'in at least %(timeout)d seconds. '
+                            'Error: %(error)s'),
+                        {'node_uuid': node.uuid,
+                         'timeout': (wait * (attempts - 1)) / 1000,
+                         'error': e})
+                    manager_utils.node_power_action(task, states.POWER_OFF)
+            else:
+                # Flush the file system prior to hard rebooting the node
+                result = self._client.sync(node)
+                error = result.get('faultstring')
+                if error:
+                    if 'Unknown command' in error:
+                        error = _('The version of the IPA ramdisk used in '
+                                  'the deployment do not support the '
+                                  'command "sync"')
+                    LOG.warning(_LW(
+                        'Failed to flush the file system prior to hard '
+                        'rebooting the node %(node)s. Error: %(error)s'),
+                        {'node': node.uuid, 'error': error})
+
+                manager_utils.node_power_action(task, states.POWER_OFF)
+
+            task.driver.network.remove_provisioning_network(task)
+            task.driver.network.configure_tenant_networks(task)
+
+            manager_utils.node_power_action(task, states.POWER_ON)
+        except Exception as e:
+            msg = (_('Error rebooting node %(node)s after deploy. '
+                     'Error: %(error)s') %
+                   {'node': node.uuid, 'error': e})
+            log_and_raise_deployment_error(task, msg)
+
+        task.process_event('done')
+        LOG.info(_LI('Deployment to node %s done'), task.node.uuid)
+
+    def prepare_instance_to_boot(self, task, root_uuid, efi_sys_uuid):
+        """Prepares instance to boot.
+
+        :param task: a TaskManager object containing the node
+        :param root_uuid: the UUID for root partition
+        :param efi_sys_uuid: the UUID for the efi partition
+        :raises: InvalidState if fails to prepare instance
+        """
+
+        node = task.node
+        if deploy_utils.get_boot_option(node) == "local":
+            # Install the boot loader
+            self.configure_local_boot(
+                task, root_uuid=root_uuid,
+                efi_system_part_uuid=efi_sys_uuid)
+        try:
+            task.driver.boot.prepare_instance(task)
+        except Exception as e:
+            LOG.error(_LE('Deploy failed for instance %(instance)s. '
+                          'Error: %(error)s'),
+                      {'instance': node.instance_uuid, 'error': e})
+            msg = _('Failed to continue agent deployment.')
+            log_and_raise_deployment_error(task, msg)
+
+    def configure_local_boot(self, task, root_uuid=None,
+                             efi_system_part_uuid=None):
+        """Helper method to configure local boot on the node.
+
+        This method triggers bootloader installation on the node.
+        On successful installation of bootloader, this method sets the
+        node to boot from disk.
+
+        :param task: a TaskManager object containing the node
+        :param root_uuid: The UUID of the root partition. This is used
+            for identifying the partition which contains the image deployed
+            or None in case of whole disk images which we expect to already
+            have a bootloader installed.
+        :param efi_system_part_uuid: The UUID of the efi system partition.
+            This is used only in uefi boot mode.
+        :raises: InstanceDeployFailure if bootloader installation failed or
+            on encountering error while setting the boot device on the node.
+        """
+        node = task.node
+        LOG.debug('Configuring local boot for node %s', node.uuid)
+        if not node.driver_internal_info.get(
+                'is_whole_disk_image') and root_uuid:
+            LOG.debug('Installing the bootloader for node %(node)s on '
+                      'partition %(part)s, EFI system partition %(efi)s',
+                      {'node': node.uuid, 'part': root_uuid,
+                       'efi': efi_system_part_uuid})
+            result = self._client.install_bootloader(
+                node, root_uuid=root_uuid,
+                efi_system_part_uuid=efi_system_part_uuid)
+            if result['command_status'] == 'FAILED':
+                msg = (_("Failed to install a bootloader when "
+                         "deploying node %(node)s. Error: %(error)s") %
+                       {'node': node.uuid,
+                        'error': result['command_error']})
+                log_and_raise_deployment_error(task, msg)
+
+        try:
+            deploy_utils.try_set_boot_device(task, boot_devices.DISK)
+        except Exception as e:
+            msg = (_("Failed to change the boot device to %(boot_dev)s "
+                     "when deploying node %(node)s. Error: %(error)s") %
+                   {'boot_dev': boot_devices.DISK, 'node': node.uuid,
+                    'error': e})
+            log_and_raise_deployment_error(task, msg)
+
+        LOG.info(_LI('Local boot successfully configured for node %s'),
+                 node.uuid)
+
+
+class BaseAgentVendor(AgentDeployMixin, base.VendorInterface):
+
+    def __init__(self):
+        self.supported_payload_versions = ['2']
+        super(BaseAgentVendor, self).__init__()
+
+    def get_properties(self):
+        """Return the properties of the interface.
+
+        :returns: dictionary of <property name>:<property description> entries.
+        """
+        return VENDOR_PROPERTIES
+
+    def validate(self, task, method, **kwargs):
+        """Validate the driver-specific Node deployment info.
+
+        No validation necessary.
+
+        :param task: a TaskManager instance
+        :param method: method to be validated
+        """
+        pass
+
+    def driver_validate(self, method, **kwargs):
+        """Validate the driver deployment info.
+
+        :param method: method to be validated.
+        """
+        version = kwargs.get('version')
+
+        if not version:
+            raise exception.MissingParameterValue(_('Missing parameter '
+                                                    'version'))
+        if version not in self.supported_payload_versions:
+            raise exception.InvalidParameterValue(_('Unknown lookup '
+                                                    'payload version: %s')
+                                                  % version)
+
+    @base.passthru(['POST'])
+    @task_manager.require_exclusive_lock
+    def heartbeat(self, task, **kwargs):
+        """Method for agent to periodically check in.
+
+        The agent should be sending its agent_url (so Ironic can talk back)
+        as a kwarg. kwargs should have the following format::
+
+         {
+             'agent_url': 'http://AGENT_HOST:AGENT_PORT'
+         }
+
+        AGENT_PORT defaults to 9999.
+        """
+        try:
+            callback_url = kwargs['agent_url']
+        except KeyError:
+            raise exception.MissingParameterValue(_('For heartbeat operation, '
+                                                    '"agent_url" must be '
+                                                    'specified.'))
+
+        super(BaseAgentVendor, self).heartbeat(task, callback_url)
 
     @base.driver_passthru(['POST'], async=False)
     def lookup(self, context, **kwargs):
@@ -592,43 +802,6 @@ class BaseAgentVendor(base.VendorInterface):
             'heartbeat_timeout': CONF.agent.heartbeat_timeout,
             'node': ndict,
         }
-
-    def _get_completed_cleaning_command(self, task, commands):
-        """Returns None or a completed cleaning command from the agent.
-
-        :param commands: a set of command results from the agent, typically
-                         fetched with agent_client.get_commands_status()
-        """
-        if not commands:
-            return
-
-        last_command = commands[-1]
-
-        if last_command['command_name'] != 'execute_clean_step':
-            # catches race condition where execute_clean_step is still
-            # processing so the command hasn't started yet
-            LOG.debug('Expected agent last command to be "execute_clean_step" '
-                      'for node %(node)s, instead got "%(command)s". Waiting '
-                      'for next heartbeat.',
-                      {'node': task.node.uuid,
-                       'command': last_command['command_name']})
-            return
-
-        last_result = last_command.get('command_result') or {}
-        last_step = last_result.get('clean_step')
-        if last_command['command_status'] == 'RUNNING':
-            LOG.debug('Clean step still running for node %(node)s: %(step)s',
-                      {'step': last_step, 'node': task.node.uuid})
-            return
-        elif (last_command['command_status'] == 'SUCCEEDED' and
-              last_step != task.node.clean_step):
-            # A previous clean_step was running, the new command has not yet
-            # started.
-            LOG.debug('Clean step not yet started for node %(node)s: %(step)s',
-                      {'step': last_step, 'node': task.node.uuid})
-            return
-        else:
-            return last_command
 
     def _get_interfaces(self, inventory):
         interfaces = []
@@ -721,150 +894,3 @@ class BaseAgentVendor(base.VendorInterface):
 
         # Only have one node_id left, return it.
         return node_ids.pop()
-
-    def _log_and_raise_deployment_error(self, task, msg):
-        """Helper method to log the error and raise exception."""
-        LOG.error(msg)
-        deploy_utils.set_failed_state(task, msg)
-        raise exception.InstanceDeployFailure(msg)
-
-    def reboot_and_finish_deploy(self, task):
-        """Helper method to trigger reboot on the node and finish deploy.
-
-        This method initiates a reboot on the node. On success, it
-        marks the deploy as complete. On failure, it logs the error
-        and marks deploy as failure.
-
-        :param task: a TaskManager object containing the node
-        :raises: InstanceDeployFailure, if node reboot failed.
-        """
-        wait = CONF.agent.post_deploy_get_power_state_retry_interval * 1000
-        attempts = CONF.agent.post_deploy_get_power_state_retries + 1
-
-        @retrying.retry(
-            stop_max_attempt_number=attempts,
-            retry_on_result=lambda state: state != states.POWER_OFF,
-            wait_fixed=wait
-        )
-        def _wait_until_powered_off(task):
-            return task.driver.power.get_power_state(task)
-
-        node = task.node
-        # Whether ironic should power off the node via out-of-band or
-        # in-band methods
-        oob_power_off = strutils.bool_from_string(
-            node.driver_info.get('deploy_forces_oob_reboot', False))
-
-        try:
-            if not oob_power_off:
-                try:
-                    self._client.power_off(node)
-                    _wait_until_powered_off(task)
-                except Exception as e:
-                    LOG.warning(
-                        _LW('Failed to soft power off node %(node_uuid)s '
-                            'in at least %(timeout)d seconds. '
-                            'Error: %(error)s'),
-                        {'node_uuid': node.uuid,
-                         'timeout': (wait * (attempts - 1)) / 1000,
-                         'error': e})
-                    manager_utils.node_power_action(task, states.POWER_OFF)
-            else:
-                # Flush the file system prior to hard rebooting the node
-                result = self._client.sync(node)
-                error = result.get('faultstring')
-                if error:
-                    if 'Unknown command' in error:
-                        error = _('The version of the IPA ramdisk used in '
-                                  'the deployment do not support the '
-                                  'command "sync"')
-                    LOG.warning(_LW(
-                        'Failed to flush the file system prior to hard '
-                        'rebooting the node %(node)s. Error: %(error)s'),
-                        {'node': node.uuid, 'error': error})
-                manager_utils.node_power_action(task, states.POWER_OFF)
-
-            task.driver.network.remove_provisioning_network(task)
-            task.driver.network.configure_tenant_networks(task)
-
-            manager_utils.node_power_action(task, states.POWER_ON)
-        except Exception as e:
-            msg = (_('Error rebooting node %(node)s after deploy. '
-                     'Error: %(error)s') %
-                   {'node': node.uuid, 'error': e})
-            self._log_and_raise_deployment_error(task, msg)
-
-        task.process_event('done')
-        LOG.info(_LI('Deployment to node %s done'), task.node.uuid)
-
-    def prepare_instance_to_boot(self, task, root_uuid, efi_sys_uuid):
-        """Prepares instance to boot.
-
-        :param task: a TaskManager object containing the node
-        :param root_uuid: the UUID for root partition
-        :param efi_sys_uuid: the UUID for the efi partition
-        :raises: InvalidState if fails to prepare instance
-        """
-
-        node = task.node
-        if deploy_utils.get_boot_option(node) == "local":
-            # Install the boot loader
-            self.configure_local_boot(
-                task, root_uuid=root_uuid,
-                efi_system_part_uuid=efi_sys_uuid)
-        try:
-            task.driver.boot.prepare_instance(task)
-        except Exception as e:
-            LOG.error(_LE('Deploy failed for instance %(instance)s. '
-                          'Error: %(error)s'),
-                      {'instance': node.instance_uuid, 'error': e})
-            msg = _('Failed to continue agent deployment.')
-            self._log_and_raise_deployment_error(task, msg)
-
-    def configure_local_boot(self, task, root_uuid=None,
-                             efi_system_part_uuid=None):
-        """Helper method to configure local boot on the node.
-
-        This method triggers bootloader installation on the node.
-        On successful installation of bootloader, this method sets the
-        node to boot from disk.
-
-        :param task: a TaskManager object containing the node
-        :param root_uuid: The UUID of the root partition. This is used
-            for identifying the partition which contains the image deployed
-            or None in case of whole disk images which we expect to already
-            have a bootloader installed.
-        :param efi_system_part_uuid: The UUID of the efi system partition.
-            This is used only in uefi boot mode.
-        :raises: InstanceDeployFailure if bootloader installation failed or
-            on encountering error while setting the boot device on the node.
-        """
-        node = task.node
-        LOG.debug('Configuring local boot for node %s', node.uuid)
-        if not node.driver_internal_info.get(
-                'is_whole_disk_image') and root_uuid:
-            LOG.debug('Installing the bootloader for node %(node)s on '
-                      'partition %(part)s, EFI system partition %(efi)s',
-                      {'node': node.uuid, 'part': root_uuid,
-                       'efi': efi_system_part_uuid})
-            result = self._client.install_bootloader(
-                node, root_uuid=root_uuid,
-                efi_system_part_uuid=efi_system_part_uuid)
-            if result['command_status'] == 'FAILED':
-                msg = (_("Failed to install a bootloader when "
-                         "deploying node %(node)s. Error: %(error)s") %
-                       {'node': node.uuid,
-                        'error': result['command_error']})
-                self._log_and_raise_deployment_error(task, msg)
-
-        try:
-            deploy_utils.try_set_boot_device(task, boot_devices.DISK)
-        except Exception as e:
-            msg = (_("Failed to change the boot device to %(boot_dev)s "
-                     "when deploying node %(node)s. Error: %(error)s") %
-                   {'boot_dev': boot_devices.DISK, 'node': node.uuid,
-                    'error': e})
-            self._log_and_raise_deployment_error(task, msg)
-
-        LOG.info(_LI('Local boot successfully configured for node %s'),
-                 node.uuid)

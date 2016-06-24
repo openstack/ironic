@@ -403,7 +403,34 @@ def validate(task):
     deploy_utils.parse_instance_info(task.node)
 
 
-class ISCSIDeploy(base.DeployInterface):
+class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
+
+    @task_manager.require_exclusive_lock
+    def continue_deploy(self, task):
+        """Method invoked when deployed using iSCSI.
+
+        This method is invoked during a heartbeat from an agent when
+        the node is in wait-call-back state. This deploys the image on
+        the node and then configures the node to boot according to the
+        desired boot option (netboot or localboot).
+
+        :param task: a TaskManager object containing the node.
+        :param kwargs: the kwargs passed from the heartbeat method.
+        :raises: InstanceDeployFailure, if it encounters some error during
+            the deploy.
+        """
+        task.process_event('resume')
+        node = task.node
+        LOG.debug('Continuing the deployment on node %s', node.uuid)
+
+        uuid_dict_returned = do_agent_iscsi_deploy(task, self._client)
+        root_uuid = uuid_dict_returned.get('root uuid')
+        efi_sys_uuid = uuid_dict_returned.get('efi system partition uuid')
+        self.prepare_instance_to_boot(task, root_uuid, efi_sys_uuid)
+        self.reboot_and_finish_deploy(task)
+
+
+class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
     """iSCSI Deploy Interface for deploy-related actions."""
 
     def get_properties(self):
@@ -562,29 +589,5 @@ class ISCSIDeploy(base.DeployInterface):
             task, manage_boot=True)
 
 
-class VendorPassthru(agent_base_vendor.BaseAgentVendor):
+class VendorPassthru(AgentDeployMixin, agent_base_vendor.BaseAgentVendor):
     """Interface to mix IPMI and PXE vendor-specific interfaces."""
-
-    @task_manager.require_exclusive_lock
-    def continue_deploy(self, task, **kwargs):
-        """Method invoked when deployed using iSCSI.
-
-        This method is invoked during a heartbeat from an agent when
-        the node is in wait-call-back state. This deploys the image on
-        the node and then configures the node to boot according to the
-        desired boot option (netboot or localboot).
-
-        :param task: a TaskManager object containing the node.
-        :param kwargs: the kwargs passed from the heartbeat method.
-        :raises: InstanceDeployFailure, if it encounters some error during
-            the deploy.
-        """
-        task.process_event('resume')
-        node = task.node
-        LOG.debug('Continuing the deployment on node %s', node.uuid)
-
-        uuid_dict_returned = do_agent_iscsi_deploy(task, self._client)
-        root_uuid = uuid_dict_returned.get('root uuid')
-        efi_sys_uuid = uuid_dict_returned.get('efi system partition uuid')
-        self.prepare_instance_to_boot(task, root_uuid, efi_sys_uuid)
-        self.reboot_and_finish_deploy(task)

@@ -117,16 +117,15 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                              func_update_boot_mode,
                              func_update_secure_boot_mode,
                              pxe_vendorpassthru_mock):
-        kwargs = {'address': '123456'}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.provision_state = states.DEPLOYWAIT
             task.node.target_provision_state = states.ACTIVE
-            task.driver.vendor.continue_deploy(task, **kwargs)
+            task.driver.vendor.continue_deploy(task)
             func_update_boot_mode.assert_called_once_with(task)
             func_update_secure_boot_mode.assert_called_once_with(task, True)
             pxe_vendorpassthru_mock.assert_called_once_with(
-                mock.ANY, task, **kwargs)
+                mock.ANY, task)
 
 
 class IloVirtualMediaAgentVendorInterfaceTestCase(db_base.DbTestCase):
@@ -149,17 +148,16 @@ class IloVirtualMediaAgentVendorInterfaceTestCase(db_base.DbTestCase):
                                 func_update_boot_mode,
                                 check_deploy_success_mock,
                                 agent_reboot_to_instance_mock):
-        kwargs = {'address': '123456'}
         check_deploy_success_mock.return_value = None
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.vendor.reboot_to_instance(task, **kwargs)
+            task.driver.vendor.reboot_to_instance(task)
             check_deploy_success_mock.assert_called_once_with(
                 mock.ANY, task.node)
             func_update_boot_mode.assert_called_once_with(task)
             func_update_secure_boot_mode.assert_called_once_with(task, True)
             agent_reboot_to_instance_mock.assert_called_once_with(
-                mock.ANY, task, **kwargs)
+                mock.ANY, task)
 
     @mock.patch.object(agent.AgentVendorInterface, 'reboot_to_instance',
                        spec_set=True, autospec=True)
@@ -173,14 +171,13 @@ class IloVirtualMediaAgentVendorInterfaceTestCase(db_base.DbTestCase):
                                             func_update_boot_mode,
                                             check_deploy_success_mock,
                                             agent_reboot_to_instance_mock):
-        kwargs = {'address': '123456'}
         check_deploy_success_mock.return_value = "Error"
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.vendor.reboot_to_instance(task, **kwargs)
+            task.driver.vendor.reboot_to_instance(task)
             check_deploy_success_mock.assert_called_once_with(
                 mock.ANY, task.node)
             self.assertFalse(func_update_boot_mode.called)
             self.assertFalse(func_update_secure_boot_mode.called)
             agent_reboot_to_instance_mock.assert_called_once_with(
-                mock.ANY, task, **kwargs)
+                mock.ANY, task)

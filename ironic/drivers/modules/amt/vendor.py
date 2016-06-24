@@ -23,8 +23,8 @@ from ironic.drivers.modules import iscsi_deploy
 class AMTPXEVendorPassthru(iscsi_deploy.VendorPassthru):
 
     @task_manager.require_exclusive_lock
-    def continue_deploy(self, task, **kwargs):
+    def continue_deploy(self, task):
         if deploy_utils.get_boot_option(task.node) == "netboot":
             task.driver.management.ensure_next_boot_device(task.node,
                                                            boot_devices.PXE)
-        super(AMTPXEVendorPassthru, self).continue_deploy(task, **kwargs)
+        super(AMTPXEVendorPassthru, self).continue_deploy(task)

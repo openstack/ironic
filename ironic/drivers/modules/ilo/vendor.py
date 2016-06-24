@@ -34,7 +34,7 @@ LOG = logging.getLogger(__name__)
 class IloVirtualMediaAgentVendorInterface(agent.AgentVendorInterface):
     """Interface for vendor passthru related actions."""
 
-    def reboot_to_instance(self, task, **kwargs):
+    def reboot_to_instance(self, task):
         node = task.node
         LOG.debug('Preparing to reboot to instance for node %s',
                   node.uuid)
@@ -48,7 +48,7 @@ class IloVirtualMediaAgentVendorInterface(agent.AgentVendorInterface):
             ilo_common.update_secure_boot_mode(task, True)
 
         super(IloVirtualMediaAgentVendorInterface,
-              self).reboot_to_instance(task, **kwargs)
+              self).reboot_to_instance(task)
 
 
 class VendorPassthru(iscsi_deploy.VendorPassthru):
