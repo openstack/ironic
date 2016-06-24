@@ -1076,6 +1076,12 @@ function build_ipa_dib_ramdisk {
     local ramdisk_path=$2
     local tempdir
     tempdir=$(mktemp -d --tmpdir=${DEST})
+
+    # install diskimage-builder if not present
+    if ! $(type -P disk-image-create > /dev/null); then
+        install_diskimage_builder
+    fi
+
     echo "Building IPA ramdisk with DIB options: $IRONIC_DIB_RAMDISK_OPTIONS"
     disk-image-create "$IRONIC_DIB_RAMDISK_OPTIONS" \
                     -o  "$tempdir/ironic-agent" \
