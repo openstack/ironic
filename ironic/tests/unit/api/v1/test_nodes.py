@@ -536,8 +536,7 @@ class TestListNodes(test_api_base.BaseApiTest):
 
     def test_associated_nodes_insensitive(self):
         associated_nodes = (self
-                            ._create_association_test_nodes()
-                            .get('associated'))
+                            ._create_association_test_nodes()['associated'])
 
         data = self.get_json('/nodes?associated=true')
         data1 = self.get_json('/nodes?associated=True')
@@ -555,9 +554,8 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertTrue(response.json['error_message'])
 
     def test_unassociated_nodes_insensitive(self):
-        unassociated_nodes = (self
-                              ._create_association_test_nodes()
-                              .get('unassociated'))
+        unassociated_nodes = (
+            self._create_association_test_nodes()['unassociated'])
 
         data = self.get_json('/nodes?associated=false')
         data1 = self.get_json('/nodes?associated=FALSE')
@@ -568,9 +566,8 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertEqual(sorted(unassociated_nodes), sorted(uuids))
 
     def test_unassociated_nodes_with_limit(self):
-        unassociated_nodes = (self
-                              ._create_association_test_nodes()
-                              .get('unassociated'))
+        unassociated_nodes = (
+            self._create_association_test_nodes()['unassociated'])
 
         data = self.get_json('/nodes?associated=False&limit=2')
 
@@ -585,8 +582,7 @@ class TestListNodes(test_api_base.BaseApiTest):
 
     def test_detail_with_association_filter(self):
         associated_nodes = (self
-                            ._create_association_test_nodes()
-                            .get('associated'))
+                            ._create_association_test_nodes()['associated'])
         data = self.get_json('/nodes/detail?associated=true')
         self.assertIn('driver', data['nodes'][0])
         self.assertEqual(len(associated_nodes), len(data['nodes']))
