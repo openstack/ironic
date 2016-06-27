@@ -112,7 +112,7 @@ class AMTCommonMethodsTestCase(db_base.DbTestCase):
 class AMTCommonClientTestCase(base.TestCase):
     def setUp(self):
         super(AMTCommonClientTestCase, self).setUp()
-        self.info = {key[4:]: INFO_DICT[key] for key in INFO_DICT.keys()}
+        self.info = {key[4:]: INFO_DICT[key] for key in INFO_DICT}
 
     def test_wsman_get(self, mock_client_pywsman):
         namespace = resource_uris.CIM_AssociatedPowerManagementService

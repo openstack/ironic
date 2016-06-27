@@ -137,7 +137,7 @@ class TestListChassis(test_api_base.BaseApiTest):
         uuid = uuidutils.generate_uuid()
         obj_utils.create_test_chassis(self.context, uuid=uuid)
         data = self.get_json('/chassis/%s' % uuid)
-        self.assertIn('links', data.keys())
+        self.assertIn('links', data)
         self.assertEqual(2, len(data['links']))
         self.assertIn(uuid, data['links'][0]['href'])
         for l in data['links']:
@@ -201,7 +201,7 @@ class TestListChassis(test_api_base.BaseApiTest):
     def test_nodes_subresource_link(self):
         chassis = obj_utils.create_test_chassis(self.context)
         data = self.get_json('/chassis/%s' % chassis.uuid)
-        self.assertIn('nodes', data.keys())
+        self.assertIn('nodes', data)
 
     def test_nodes_subresource(self):
         chassis = obj_utils.create_test_chassis(self.context)
@@ -213,12 +213,12 @@ class TestListChassis(test_api_base.BaseApiTest):
 
         data = self.get_json('/chassis/%s/nodes' % chassis.uuid)
         self.assertEqual(2, len(data['nodes']))
-        self.assertNotIn('next', data.keys())
+        self.assertNotIn('next', data)
 
         # Test collection pagination
         data = self.get_json('/chassis/%s/nodes?limit=1' % chassis.uuid)
         self.assertEqual(1, len(data['nodes']))
-        self.assertIn('next', data.keys())
+        self.assertIn('next', data)
 
     def test_nodes_subresource_no_uuid(self):
         response = self.get_json('/chassis/nodes', expect_errors=True)
