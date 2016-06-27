@@ -125,6 +125,8 @@ class BaseConductorManager(object):
             self._periodic_task_callables,
             executor_factory=periodics.ExistingExecutor(self._executor))
 
+        # clear all target_power_state with locks by this conductor
+        self.dbapi.clear_node_target_power_state(self.host)
         # clear all locks held by this conductor before registering
         self.dbapi.clear_node_reservations_for_conductor(self.host)
         try:
