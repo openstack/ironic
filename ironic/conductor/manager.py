@@ -446,8 +446,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             except (exception.InvalidParameterValue,
                     exception.MissingParameterValue) as e:
                 raise exception.InstanceDeployFailure(
-                    _("RPC do_node_deploy failed to validate deploy or "
-                      "power info for node %(node_uuid)s. Error: %(msg)s") %
+                    _("Failed to validate deploy or power info for node "
+                      "%(node_uuid)s. Error: %(msg)s") %
                     {'node_uuid': node.uuid, 'msg': e})
 
             LOG.debug("do_node_deploy Calling event: %(event)s for node: "
@@ -644,8 +644,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             try:
                 task.driver.power.validate(task)
             except exception.InvalidParameterValue as e:
-                msg = (_('RPC do_node_clean failed to validate power info.'
-                         ' Cannot clean node %(node)s. Error: %(msg)s') %
+                msg = (_('Failed to validate power info. '
+                         'Cannot clean node %(node)s. Error: %(msg)s') %
                        {'node': node.uuid, 'msg': e})
                 raise exception.InvalidParameterValue(msg)
 
@@ -1994,8 +1994,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                 task.driver.inspect.validate(task)
             except (exception.InvalidParameterValue,
                     exception.MissingParameterValue) as e:
-                error = (_("RPC inspect_hardware failed to validate "
-                           "inspection or power info. Error: %(msg)s")
+                error = (_("Failed to validate inspection or power info. "
+                           "Error: %(msg)s")
                          % {'msg': e})
                 raise exception.HardwareInspectionFailure(error=error)
 
