@@ -20,6 +20,8 @@ import six
 
 from ironic.common import boot_devices
 from ironic.common import exception
+from ironic.common.glance_service import service_utils
+from ironic.common import image_service
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
@@ -188,6 +190,72 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
             self.assertIsNone(bootmode)
             self.assertNotIn('deploy_boot_mode', task.node.instance_info)
 
+    @mock.patch.object(ilo_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
+    def test__validate_MissingParam(self, mock_parse_driver_info):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaisesRegex(exception.MissingParameterValue,
+                                   "Missing 'ilo_deploy_iso'",
+                                   ilo_deploy._validate, task)
+            mock_parse_driver_info.assert_called_once_with(task.node)
+
+    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
+    def test__validate_valid_uuid(self, mock_parse_driver_info,
+                                  mock_is_glance_image):
+        mock_is_glance_image.return_value = True
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            deploy_iso = '8a81759a-f29b-454b-8ab3-161c6ca1882c'
+            task.node.driver_info['ilo_deploy_iso'] = deploy_iso
+            ilo_deploy._validate(task)
+            mock_parse_driver_info.assert_called_once_with(task.node)
+            mock_is_glance_image.assert_called_once_with(deploy_iso)
+
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
+    def test__validate_InvalidParam(self, mock_parse_driver_info,
+                                    mock_is_glance_image,
+                                    mock_validate_href):
+        deploy_iso = 'http://abc.org/image/qcow2'
+        mock_validate_href.side_effect = iter(
+            [exception.ImageRefValidationFailed(
+                image_href='http://abc.org/image/qcow2', reason='fail')])
+        mock_is_glance_image.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info['ilo_deploy_iso'] = deploy_iso
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   "Virtual media deploy accepts",
+                                   ilo_deploy._validate, task)
+            mock_parse_driver_info.assert_called_once_with(task.node)
+            mock_validate_href.assert_called_once_with(mock.ANY, deploy_iso)
+
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
+    def test__validate_valid_url(self, mock_parse_driver_info,
+                                 mock_is_glance_image,
+                                 mock_validate_href):
+        deploy_iso = 'http://abc.org/image/deploy.iso'
+        mock_is_glance_image.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info['ilo_deploy_iso'] = deploy_iso
+            ilo_deploy._validate(task)
+            mock_parse_driver_info.assert_called_once_with(task.node)
+            mock_validate_href.assert_called_once_with(mock.ANY, deploy_iso)
+
 
 class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
 
@@ -196,6 +264,19 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager(driver="iscsi_ilo")
         self.node = obj_utils.create_test_node(
             self.context, driver='iscsi_ilo', driver_info=INFO_DICT)
+
+    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'validate', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_validate', spec_set=True,
+                       autospec=True)
+    def test_validate(self,
+                      mock_validate,
+                      iscsi_validate):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.deploy.validate(task)
+            mock_validate.assert_called_once_with(task)
+            iscsi_validate.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
                        autospec=True)
@@ -313,6 +394,19 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager(driver="agent_ilo")
         self.node = obj_utils.create_test_node(
             self.context, driver='agent_ilo', driver_info=INFO_DICT)
+
+    @mock.patch.object(agent.AgentDeploy, 'validate', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_deploy, '_validate', spec_set=True,
+                       autospec=True)
+    def test_validate(self,
+                      mock_validate,
+                      agent_validate):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.deploy.validate(task)
+            mock_validate.assert_called_once_with(task)
+            agent_validate.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(agent.AgentDeploy, 'tear_down', spec_set=True,
                        autospec=True)

@@ -20,8 +20,10 @@ from oslo_log import log as logging
 
 from ironic.common import boot_devices
 from ironic.common import exception
+from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common.i18n import _LW
+from ironic.common import image_service
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
@@ -143,10 +145,52 @@ def _disable_secure_boot_if_supported(task):
                     task.node.uuid)
 
 
+def _validate(task):
+    """Validate the prerequisites for virtual media based deploy.
+
+    This method validates whether the 'driver_info' property of the
+    supplied node contains the required information for this driver.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :raises: InvalidParameterValue if any parameters are incorrect
+    :raises: MissingParameterValue if some mandatory information
+        is missing on the node
+    """
+    node = task.node
+    ilo_common.parse_driver_info(node)
+    if 'ilo_deploy_iso' not in node.driver_info:
+        raise exception.MissingParameterValue(_(
+            "Missing 'ilo_deploy_iso' parameter in node's 'driver_info'."))
+    deploy_iso = node.driver_info['ilo_deploy_iso']
+    if not service_utils.is_glance_image(deploy_iso):
+        try:
+            image_service.HttpImageService().validate_href(deploy_iso)
+        except exception.ImageRefValidationFailed:
+            raise exception.InvalidParameterValue(_(
+                "Virtual media deploy accepts only Glance images or "
+                "HTTP(S) as driver_info['ilo_deploy_iso']. Either '%s' "
+                "is not a glance UUID or not a valid HTTP(S) URL or "
+                "the given URL is not reachable.") % deploy_iso)
+
+
 class IloVirtualMediaIscsiDeploy(iscsi_deploy.ISCSIDeploy):
 
     def get_properties(self):
         return {}
+
+    def validate(self, task):
+        """Validate the prerequisites for virtual media based deploy.
+
+        This method validates whether the 'driver_info' property of the
+        supplied node contains the required information for this driver.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :raises: InvalidParameterValue if any parameters are incorrect
+        :raises: MissingParameterValue if some mandatory information
+            is missing on the node
+        """
+        _validate(task)
+        super(IloVirtualMediaIscsiDeploy, self).validate(task)
 
     @task_manager.require_exclusive_lock
     def tear_down(self, task):
@@ -199,6 +243,20 @@ class IloVirtualMediaAgentDeploy(agent.AgentDeploy):
         :returns: dictionary of <property name>:<property description> entries.
         """
         return ilo_boot.COMMON_PROPERTIES
+
+    def validate(self, task):
+        """Validate the prerequisites for virtual media based deploy.
+
+        This method validates whether the 'driver_info' property of the
+        supplied node contains the required information for this driver.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :raises: InvalidParameterValue if any parameters are incorrect
+        :raises: MissingParameterValue if some mandatory information
+            is missing on the node
+        """
+        _validate(task)
+        super(IloVirtualMediaAgentDeploy, self).validate(task)
 
     @task_manager.require_exclusive_lock
     def tear_down(self, task):
