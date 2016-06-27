@@ -570,3 +570,57 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertRaises(
             exception.NodeNotFound,
             self.dbapi.touch_node_provisioning, uuidutils.generate_uuid())
+
+    def test_get_node_by_port_addresses(self):
+        wrong_node = utils.create_test_node(
+            driver='driver-one',
+            uuid=uuidutils.generate_uuid())
+        node = utils.create_test_node(
+            driver='driver-two',
+            uuid=uuidutils.generate_uuid())
+        addresses = []
+        for i in (1, 2, 3):
+            address = '52:54:00:cf:2d:4%s' % i
+            utils.create_test_port(uuid=uuidutils.generate_uuid(),
+                                   node_id=node.id, address=address)
+            if i > 1:
+                addresses.append(address)
+        utils.create_test_port(uuid=uuidutils.generate_uuid(),
+                               node_id=wrong_node.id,
+                               address='aa:bb:cc:dd:ee:ff')
+
+        res = self.dbapi.get_node_by_port_addresses(addresses)
+        self.assertEqual(node.uuid, res.uuid)
+
+    def test_get_node_by_port_addresses_not_found(self):
+        node = utils.create_test_node(
+            driver='driver',
+            uuid=uuidutils.generate_uuid())
+        utils.create_test_port(uuid=uuidutils.generate_uuid(),
+                               node_id=node.id,
+                               address='aa:bb:cc:dd:ee:ff')
+
+        self.assertRaisesRegexp(exception.NodeNotFound,
+                                'was not found',
+                                self.dbapi.get_node_by_port_addresses,
+                                ['11:22:33:44:55:66'])
+
+    def test_get_node_by_port_addresses_multiple_found(self):
+        node1 = utils.create_test_node(
+            driver='driver',
+            uuid=uuidutils.generate_uuid())
+        node2 = utils.create_test_node(
+            driver='driver',
+            uuid=uuidutils.generate_uuid())
+        addresses = ['52:54:00:cf:2d:4%s' % i for i in (1, 2)]
+        utils.create_test_port(uuid=uuidutils.generate_uuid(),
+                               node_id=node1.id,
+                               address=addresses[0])
+        utils.create_test_port(uuid=uuidutils.generate_uuid(),
+                               node_id=node2.id,
+                               address=addresses[1])
+
+        self.assertRaisesRegexp(exception.NodeNotFound,
+                                'Multiple nodes',
+                                self.dbapi.get_node_by_port_addresses,
+                                addresses)

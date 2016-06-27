@@ -604,3 +604,12 @@ class Connection(object):
         :param tag: A tag string.
         :returns: True if the tag exists otherwise False.
         """
+
+    @abc.abstractmethod
+    def get_node_by_port_addresses(self, addresses):
+        """Find a node by any matching port address.
+
+        :param addresses: list of port addresses (e.g. MACs).
+        :returns: Node object.
+        :raises: NodeNotFound if none or several nodes are found.
+        """
