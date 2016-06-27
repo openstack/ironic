@@ -1,4 +1,4 @@
 ---
 fixes:
-  -Fixes the issue of not attaching virtual media during cleaning operation
-   for vmedia based drivers.
+  - Fixes the issue of not attaching virtual media during cleaning operation
+    for vmedia based drivers.
