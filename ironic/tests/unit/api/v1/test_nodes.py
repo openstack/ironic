@@ -336,7 +336,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         uuid = uuidutils.generate_uuid()
         obj_utils.create_test_node(self.context, uuid=uuid)
         data = self.get_json('/nodes/%s' % uuid)
-        self.assertIn('links', data.keys())
+        self.assertIn('links', data)
         self.assertEqual(2, len(data['links']))
         self.assertIn(uuid, data['links'][0]['href'])
         for l in data['links']:
@@ -406,7 +406,7 @@ class TestListNodes(test_api_base.BaseApiTest):
     def test_ports_subresource_link(self):
         node = obj_utils.create_test_node(self.context)
         data = self.get_json('/nodes/%s' % node.uuid)
-        self.assertIn('ports', data.keys())
+        self.assertIn('ports', data)
 
     def test_ports_subresource(self):
         node = obj_utils.create_test_node(self.context)
@@ -418,12 +418,12 @@ class TestListNodes(test_api_base.BaseApiTest):
 
         data = self.get_json('/nodes/%s/ports' % node.uuid)
         self.assertEqual(2, len(data['ports']))
-        self.assertNotIn('next', data.keys())
+        self.assertNotIn('next', data)
 
         # Test collection pagination
         data = self.get_json('/nodes/%s/ports?limit=1' % node.uuid)
         self.assertEqual(1, len(data['ports']))
-        self.assertIn('next', data.keys())
+        self.assertIn('next', data)
 
     def test_ports_subresource_noid(self):
         node = obj_utils.create_test_node(self.context)

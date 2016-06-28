@@ -272,7 +272,7 @@ def continue_deploy(task, **kwargs):
     if LOG.isEnabledFor(logging.logging.DEBUG):
         log_params = {
             k: params[k] if k != 'configdrive' else '***'
-            for k in params.keys()
+            for k in params
         }
         LOG.debug('Continuing deployment for node %(node)s, params %(params)s',
                   {'node': node.uuid, 'params': log_params})

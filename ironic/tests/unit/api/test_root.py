@@ -41,7 +41,7 @@ class TestV1Root(base.BaseApiTest):
         data = self.get_json('/')
         self.assertEqual('v1', data['id'])
         # Check fields are not empty
-        for f in data.keys():
+        for f in data:
             self.assertNotIn(f, ['', []])
         # Check if all known resources are present and there are no extra ones.
         not_resources = ('id', 'links', 'media_types')
