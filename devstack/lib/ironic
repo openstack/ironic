@@ -735,7 +735,7 @@ function create_bridge_and_vms {
     # Call libvirt setup scripts in a new shell to ensure any new group membership
     sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/setup-network.sh"
     if [[ "$IRONIC_VM_LOG_CONSOLE" == "True" ]] ; then
-        local log_arg="$IRONIC_VM_LOG_DIR"
+        local log_arg="-l $IRONIC_VM_LOG_DIR"
 
         if [[ "$IRONIC_VM_LOG_ROTATE" == "True" ]] ; then
             setup_qemu_log_hook
@@ -747,10 +747,10 @@ function create_bridge_and_vms {
     local vbmc_port=$IRONIC_VBMC_PORT_RANGE_START
     local vm_name
     for vm_name in $(_ironic_bm_vm_names); do
-        sudo -E su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/create-node.sh $vm_name \
-            $IRONIC_VM_SPECS_CPU $IRONIC_VM_SPECS_RAM $IRONIC_VM_SPECS_DISK \
-            $IRONIC_VM_SPECS_CPU_ARCH $IRONIC_VM_NETWORK_BRIDGE $IRONIC_VM_EMULATOR \
-            $vbmc_port $log_arg $IRONIC_VM_SPECS_DISK_FORMAT" >> $IRONIC_VM_MACS_CSV_FILE
+        sudo -E su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/create-node.sh -n $vm_name \
+            -c $IRONIC_VM_SPECS_CPU -m $IRONIC_VM_SPECS_RAM -d $IRONIC_VM_SPECS_DISK \
+            -a $IRONIC_VM_SPECS_CPU_ARCH -b $IRONIC_VM_NETWORK_BRIDGE -e $IRONIC_VM_EMULATOR \
+            -p $vbmc_port -f $IRONIC_VM_SPECS_DISK_FORMAT $log_arg" >> $IRONIC_VM_MACS_CSV_FILE
         vbmc_port=$((vbmc_port+1))
     done
     local ironic_net_id

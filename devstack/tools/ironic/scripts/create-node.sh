@@ -9,18 +9,24 @@ set -ex
 # Keep track of the DevStack directory
 TOP_DIR=$(cd $(dirname "$0")/.. && pwd)
 
-NAME=$1
-CPU=$2
-MEM=$(( 1024 * $3 ))
-# Extra G to allow fuzz for partition table : flavor size and registered size
-# need to be different to actual size.
-DISK=$(( $4 + 1))
-ARCH=$5
-BRIDGE=$6
-EMULATOR=$7
-VBMC_PORT=$8
-LOGDIR=$9
-DISK_FORMAT=${10}
+while getopts "n:c:m:d:a:b:e:p:v:f:l:" arg; do
+    case $arg in
+        n) NAME=$OPTARG;;
+        c) CPU=$OPTARG;;
+        m) MEM=$(( 1024 * OPTARG ));;
+        # Extra G to allow fuzz for partition table : flavor size and registered
+        # size need to be different to actual size.
+        d) DISK=$(( OPTARG + 1 ));;
+        a) ARCH=$OPTARG;;
+        b) BRIDGE=$OPTARG;;
+        e) EMULATOR=$OPTARG;;
+        p) VBMC_PORT=$OPTARG;;
+        f) DISK_FORMAT=$OPTARG;;
+        l) LOGDIR=$OPTARG;;
+    esac
+done
+
+shift $(( $OPTIND - 1 ))
 
 LIBVIRT_NIC_DRIVER=${LIBVIRT_NIC_DRIVER:-"virtio"}
 LIBVIRT_STORAGE_POOL=${LIBVIRT_STORAGE_POOL:-"default"}
