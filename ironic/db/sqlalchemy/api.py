@@ -763,8 +763,9 @@ class Connection(api.Connection):
             query = query.filter(models.Node.target_power_state != sql.null())
             nodes = [node['uuid'] for node in query]
             query.update({'target_power_state': None,
-                          'last_error': "Pending power operation was aborted "
-                          "due to conductor restart"})
+                          'last_error': _("Pending power operation was "
+                                          "aborted due to conductor "
+                                          "restart")})
 
         if nodes:
             nodes = ', '.join(nodes)
