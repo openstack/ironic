@@ -116,7 +116,7 @@ configuration file must be set::
     keep_ports = present
 
 .. note::
-    During Kilo cycle we used on older verions of Inspector called
+    During Kilo cycle we used an older version of Inspector called
     ironic-discoverd_. Inspector is expected to be a mostly drop-in
     replacement, and the same client library should be used to connect to both.
 
