@@ -24,6 +24,7 @@ from ironic.conf import dhcp
 from ironic.conf import iboot
 from ironic.conf import ilo
 from ironic.conf import inspector
+from ironic.conf import ipmi
 
 CONF = cfg.CONF
 
@@ -36,3 +37,4 @@ dhcp.register_opts(CONF)
 iboot.register_opts(CONF)
 ilo.register_opts(CONF)
 inspector.register_opts(CONF)
+ipmi.register_opts(CONF)
