@@ -17,48 +17,13 @@ Common functionalities shared between different iRMC modules.
 """
 import six
 
-from oslo_config import cfg
 from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.conf import CONF
 
 scci = importutils.try_import('scciclient.irmc.scci')
-
-opts = [
-    cfg.PortOpt('port',
-                default=443,
-                choices=[443, 80],
-                help=_('Port to be used for iRMC operations')),
-    cfg.StrOpt('auth_method',
-               default='basic',
-               choices=['basic', 'digest'],
-               help=_('Authentication method to be used for iRMC '
-                      'operations')),
-    cfg.IntOpt('client_timeout',
-               default=60,
-               help=_('Timeout (in seconds) for iRMC operations')),
-    cfg.StrOpt('sensor_method',
-               default='ipmitool',
-               choices=['ipmitool', 'scci'],
-               help=_('Sensor data retrieval method.')),
-    cfg.StrOpt('snmp_version',
-               default='v2c',
-               choices=['v1', 'v2c', 'v3'],
-               help=_('SNMP protocol version')),
-    cfg.PortOpt('snmp_port',
-                default=161,
-                help=_('SNMP port')),
-    cfg.StrOpt('snmp_community',
-               default='public',
-               help=_('SNMP community. Required for versions "v1" and "v2c"')),
-    cfg.StrOpt('snmp_security',
-               help=_('SNMP security name. Required for version "v3"')),
-]
-
-CONF = cfg.CONF
-CONF.register_opts(opts, group='irmc')
-
 
 REQUIRED_PROPERTIES = {
     'irmc_address': _("IP address or hostname of the iRMC. Required."),

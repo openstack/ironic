@@ -25,6 +25,7 @@ from ironic.conf import iboot
 from ironic.conf import ilo
 from ironic.conf import inspector
 from ironic.conf import ipmi
+from ironic.conf import irmc
 
 CONF = cfg.CONF
 
@@ -38,3 +39,4 @@ iboot.register_opts(CONF)
 ilo.register_opts(CONF)
 inspector.register_opts(CONF)
 ipmi.register_opts(CONF)
+irmc.register_opts(CONF)
