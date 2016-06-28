@@ -78,6 +78,10 @@ class ListOfStringsField(object_fields.ListOfStringsField):
     pass
 
 
+class ObjectField(object_fields.ObjectField):
+    pass
+
+
 class FlexibleDict(object_fields.FieldType):
     @staticmethod
     def coerce(obj, attr, value):
@@ -96,6 +100,24 @@ class FlexibleDictField(object_fields.AutoTypedField):
         if self.nullable:
             return {}
         super(FlexibleDictField, self)._null(obj, attr)
+
+
+class NotificationLevel(object_fields.Enum):
+    DEBUG = 'debug'
+    INFO = 'info'
+    WARNING = 'warning'
+    ERROR = 'error'
+    CRITICAL = 'critical'
+
+    ALL = (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+
+    def __init__(self):
+        super(NotificationLevel, self).__init__(
+            valid_values=NotificationLevel.ALL)
+
+
+class NotificationLevelField(object_fields.BaseEnumField):
+    AUTO_TYPE = NotificationLevel()
 
 
 class MACAddress(object_fields.FieldType):

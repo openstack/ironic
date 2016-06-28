@@ -31,6 +31,7 @@ eventlet.monkey_patch(os=False)
 import fixtures
 from oslo_config import fixture as config_fixture
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
 import testtools
 
@@ -162,3 +163,8 @@ class TestCase(testtools.TestCase):
             return os.path.join(root, project_file)
         else:
             return root
+
+    def assertJsonEqual(self, expected, observed):
+        """Asserts that 2 complex data structures are json equivalent."""
+        self.assertEqual(jsonutils.dumps(expected, sort_keys=True),
+                         jsonutils.dumps(observed, sort_keys=True))
