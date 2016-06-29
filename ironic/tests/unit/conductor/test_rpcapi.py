@@ -393,3 +393,10 @@ class RPCAPITestCase(base.DbTestCase):
                           'call',
                           version='1.33',
                           portgroup=self.fake_portgroup)
+
+    def test_heartbeat(self):
+        self._test_rpcapi('heartbeat',
+                          'call',
+                          node_id='fake-node',
+                          callback_url='http://ramdisk.url:port',
+                          version='1.34')

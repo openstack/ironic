@@ -5016,3 +5016,16 @@ class DoNodeAdoptionTestCase(
         self.assertEqual(states.MANAGEABLE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNone(node.last_error)
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
+    def test_heartbeat(self, mock_spawn):
+        """Test heartbeating."""
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.DEPLOYING,
+            target_provision_state=states.ACTIVE)
+
+        self._start_service()
+        self.service.heartbeat(self.context, node.uuid, 'http://callback')
+        mock_spawn.assert_called_with(self.driver.deploy.heartbeat,
+                                      mock.ANY, 'http://callback')

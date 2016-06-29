@@ -81,7 +81,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.33'
+    RPC_API_VERSION = '1.34'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -2092,6 +2092,25 @@ class ConductorManager(base_manager.BaseConductorManager):
                 driver=driver_name, extension='raid')
 
         return driver.raid.get_logical_disk_properties()
+
+    @messaging.expected_exceptions(exception.NoFreeConductorWorker)
+    def heartbeat(self, context, node_id, callback_url):
+        """Process a heartbeat from the ramdisk.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param callback_url: URL to reach back to the ramdisk.
+        :raises: NoFreeConductorWorker if there are no conductors to process
+            this heartbeat request.
+        """
+        LOG.debug('RPC heartbeat called for node %s', node_id)
+
+        # NOTE(dtantsur): we acquire a shared lock to begin with, drivers are
+        # free to promote it to an exclusive one.
+        with task_manager.acquire(context, node_id, shared=True,
+                                  purpose='heartbeat') as task:
+            task.spawn_after(self._spawn_worker, task.driver.deploy.heartbeat,
+                             task, callback_url)
 
     def _object_dispatch(self, target, method, context, args, kwargs):
         """Dispatch a call to an object method.
