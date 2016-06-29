@@ -26,6 +26,7 @@ from ironic.conf import ilo
 from ironic.conf import inspector
 from ironic.conf import ipmi
 from ironic.conf import irmc
+from ironic.conf import keystone
 
 CONF = cfg.CONF
 
@@ -40,3 +41,4 @@ ilo.register_opts(CONF)
 inspector.register_opts(CONF)
 ipmi.register_opts(CONF)
 irmc.register_opts(CONF)
+keystone.register_opts(CONF)
