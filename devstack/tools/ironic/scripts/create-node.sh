@@ -9,7 +9,7 @@ set -ex
 # Keep track of the DevStack directory
 TOP_DIR=$(cd $(dirname "$0")/.. && pwd)
 
-while getopts "n:c:m:d:a:b:e:p:v:f:l:" arg; do
+while getopts "n:c:m:d:a:b:e:p:f:l:" arg; do
     case $arg in
         n) NAME=$OPTARG;;
         c) CPU=$OPTARG;;
