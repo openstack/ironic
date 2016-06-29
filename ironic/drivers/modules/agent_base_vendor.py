@@ -41,6 +41,7 @@ from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers import utils as driver_utils
 from ironic import objects
 
 LOG = log.getLogger(__name__)
@@ -533,6 +534,10 @@ class AgentDeployMixin(object):
             return task.driver.power.get_power_state(task)
 
         node = task.node
+
+        if CONF.agent.deploy_logs_collect == 'always':
+            driver_utils.collect_ramdisk_logs(node)
+
         # Whether ironic should power off the node via out-of-band or
         # in-band methods
         oob_power_off = strutils.bool_from_string(

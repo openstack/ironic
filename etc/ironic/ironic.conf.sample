@@ -417,6 +417,33 @@
 # (string value)
 #agent_api_version = v1
 
+# Whether Ironic should collect the deployment logs on
+# deployment failure (on_failure), always or never. (string
+# value)
+# Allowed values: always, on_failure, never
+#deploy_logs_collect = on_failure
+
+# The name of the storage backend where the logs will be
+# stored. (string value)
+# Allowed values: local, swift
+#deploy_logs_storage_backend = local
+
+# The path to the directory where the logs should be stored,
+# used when the deploy_logs_storage_backend is configured to
+# "local". (string value)
+#deploy_logs_local_path = /var/log/ironic/deploy
+
+# The name of the Swift container to store the logs, used when
+# the deploy_logs_storage_backend is configured to "swift".
+# (string value)
+#deploy_logs_swift_container = ironic_deploy_logs_container
+
+# Number of days before a log object is marked as expired in
+# Swift. If None, the logs will be kept forever or until
+# manually deleted. Used when the deploy_logs_storage_backend
+# is configured to "swift". (integer value)
+#deploy_logs_swift_days_to_expire = 30
+
 
 [amt]
 
@@ -1929,16 +1956,16 @@
 # value)
 #max_polling_attempts = 12
 
-# Period (in seconds) for periodic tasks to be executed.
-# (integer value)
-#periodic_check_interval = 300
-
 # Whether to enable the periodic tasks for OneView driver be
 # aware when OneView hardware resources are taken and released
 # by Ironic or OneView users and proactively manage nodes in
 # clean fail state according to Dynamic Allocation model of
 # hardware resources allocation in OneView. (boolean value)
 #enable_periodic_tasks = true
+
+# Period (in seconds) for periodic tasks to be executed when
+# enable_periodic_tasks=True. (integer value)
+#periodic_check_interval = 300
 
 
 [oslo_concurrency]

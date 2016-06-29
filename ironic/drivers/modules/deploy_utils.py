@@ -474,6 +474,10 @@ def set_failed_state(task, msg):
     :param msg: the message to set in last_error of the node.
     """
     node = task.node
+
+    if CONF.agent.deploy_logs_collect in ('on_failure', 'always'):
+        driver_utils.collect_ramdisk_logs(node)
+
     try:
         task.process_event('fail')
     except exception.InvalidState:

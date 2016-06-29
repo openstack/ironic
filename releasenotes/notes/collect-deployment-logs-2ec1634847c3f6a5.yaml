@@ -1,0 +1,12 @@
+---
+features:
+  - Adds support for collecting deployment logs from the IPA
+    ramdisk. Five new configuration options were added, [agent]/group
+    deploy_logs_collect, [agent]deploy_logs_storage_backend,
+    [agent]/deploy_logs_local_path, [agent]/deploy_logs_swift_container and
+    [agent]/deploy_logs_swift_days_to_expire.
+upgrades:
+  - Collecting logs on deploy failure is enabled by default and the logs
+    will be saved to the local disk. Operators upgrading may want to disable
+    this feature, enable some form of rotation for the logs or change the
+    configuration to store the logs in Swift to avoid disk space problems.

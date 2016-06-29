@@ -39,6 +39,7 @@ from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils as utils
 from ironic.drivers.modules import image_cache
 from ironic.drivers.modules import pxe
+from ironic.drivers import utils as driver_utils
 from ironic.tests import base as tests_base
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
@@ -1275,7 +1276,8 @@ class OtherFunctionTestCase(db_base.DbTestCase):
             else:
                 self.assertFalse(mock_log.called)
 
-    def test_set_failed_state(self):
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
+    def test_set_failed_state(self, mock_collect):
         exc_state = exception.InvalidState('invalid state')
         exc_param = exception.InvalidParameterValue('invalid parameter')
         mock_call = mock.call(mock.ANY)
@@ -1290,8 +1292,10 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         self._test_set_failed_state(event_value=iter([exc_state] * len(calls)),
                                     power_value=iter([exc_param] * len(calls)),
                                     log_calls=calls)
+        self.assertEqual(4, mock_collect.call_count)
 
-    def test_set_failed_state_no_poweroff(self):
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
+    def test_set_failed_state_no_poweroff(self, mock_collect):
         cfg.CONF.set_override('power_off_after_deploy_failure', False,
                               'deploy')
         exc_state = exception.InvalidState('invalid state')
@@ -1308,6 +1312,21 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         self._test_set_failed_state(event_value=iter([exc_state] * len(calls)),
                                     power_value=iter([exc_param] * len(calls)),
                                     log_calls=calls, poweroff=False)
+        self.assertEqual(4, mock_collect.call_count)
+
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
+    def test_set_failed_state_collect_deploy_logs(self, mock_collect):
+        for opt in ('always', 'on_failure'):
+            cfg.CONF.set_override('deploy_logs_collect', opt, 'agent')
+            self._test_set_failed_state()
+            mock_collect.assert_called_once_with(mock.ANY)
+            mock_collect.reset_mock()
+
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
+    def test_set_failed_state_collect_deploy_logs_never(self, mock_collect):
+        cfg.CONF.set_override('deploy_logs_collect', 'never', 'agent')
+        self._test_set_failed_state()
+        self.assertFalse(mock_collect.called)
 
     def test_get_boot_option(self):
         self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}

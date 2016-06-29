@@ -37,6 +37,7 @@ from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
+from ironic.drivers import utils as driver_utils
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -157,12 +158,14 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         mock_unlink.assert_called_once_with('/path/uuid/disk')
         mock_rmtree.assert_called_once_with('/path/uuid')
 
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
-    def test_continue_deploy_fail(self, deploy_mock, power_mock,
-                                  mock_image_cache, mock_disk_layout):
+    def test_continue_deploy_fail(
+            self, deploy_mock, power_mock, mock_image_cache, mock_disk_layout,
+            mock_collect_logs):
         kwargs = {'address': '123456', 'iqn': 'aaa-bbb'}
         deploy_mock.side_effect = exception.InstanceDeployFailure(
             "test deploy error")
@@ -184,13 +187,16 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             mock_image_cache.assert_called_once_with()
             mock_image_cache.return_value.clean_up.assert_called_once_with()
             self.assertFalse(mock_disk_layout.called)
+            mock_collect_logs.assert_called_once_with(task.node)
 
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
     def test_continue_deploy_fail_no_root_uuid_or_disk_id(
-            self, deploy_mock, power_mock, mock_image_cache, mock_disk_layout):
+            self, deploy_mock, power_mock, mock_image_cache, mock_disk_layout,
+            mock_collect_logs):
         kwargs = {'address': '123456', 'iqn': 'aaa-bbb'}
         deploy_mock.return_value = {}
         self.node.provision_state = states.DEPLOYWAIT
@@ -211,13 +217,16 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             mock_image_cache.assert_called_once_with()
             mock_image_cache.return_value.clean_up.assert_called_once_with()
             self.assertFalse(mock_disk_layout.called)
+            mock_collect_logs.assert_called_once_with(task.node)
 
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
     @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
     def test_continue_deploy_fail_empty_root_uuid(
-            self, deploy_mock, power_mock, mock_image_cache, mock_disk_layout):
+            self, deploy_mock, power_mock, mock_image_cache,
+            mock_disk_layout, mock_collect_logs):
         kwargs = {'address': '123456', 'iqn': 'aaa-bbb'}
         deploy_mock.return_value = {'root uuid': ''}
         self.node.provision_state = states.DEPLOYWAIT
@@ -238,6 +247,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             mock_image_cache.assert_called_once_with()
             mock_image_cache.return_value.clean_up.assert_called_once_with()
             self.assertFalse(mock_disk_layout.called)
+            mock_collect_logs.assert_called_once_with(task.node)
 
     @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
     @mock.patch.object(iscsi_deploy, 'LOG', autospec=True)
@@ -424,7 +434,9 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             agent_client_mock.start_iscsi_target.assert_called_once_with(
                 task.node, expected_iqn, 3260, wipe_disk_metadata=False)
 
-    def test_do_agent_iscsi_deploy_start_iscsi_failure(self):
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
+    def test_do_agent_iscsi_deploy_start_iscsi_failure(
+            self, mock_collect_logs):
         agent_client_mock = mock.MagicMock(spec_set=agent_client.AgentClient)
         agent_client_mock.start_iscsi_target.return_value = {
             'command_status': 'FAILED', 'command_error': 'booom'}
@@ -444,6 +456,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             self.assertEqual(states.DEPLOYFAIL, self.node.provision_state)
             self.assertEqual(states.ACTIVE, self.node.target_provision_state)
             self.assertIsNotNone(self.node.last_error)
+            mock_collect_logs.assert_called_once_with(task.node)
 
     @mock.patch('ironic.drivers.modules.deploy_utils.get_ironic_api_url')
     def test_validate_good_api_url(self, mock_get_url):

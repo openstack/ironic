@@ -59,7 +59,34 @@ opts = [
     cfg.StrOpt('agent_api_version',
                default='v1',
                help=_('API version to use for communicating with the ramdisk '
-                      'agent.'))
+                      'agent.')),
+    cfg.StrOpt('deploy_logs_collect',
+               choices=['always', 'on_failure', 'never'],
+               default='on_failure',
+               help=_('Whether Ironic should collect the deployment logs on '
+                      'deployment failure (on_failure), always or never.')),
+    cfg.StrOpt('deploy_logs_storage_backend',
+               choices=['local', 'swift'],
+               default='local',
+               help=_('The name of the storage backend where the logs '
+                      'will be stored.')),
+    cfg.StrOpt('deploy_logs_local_path',
+               default='/var/log/ironic/deploy',
+               help=_('The path to the directory where the logs should be '
+                      'stored, used when the deploy_logs_storage_backend '
+                      'is configured to "local".')),
+    cfg.StrOpt('deploy_logs_swift_container',
+               default='ironic_deploy_logs_container',
+               help=_('The name of the Swift container to store the logs, '
+                      'used when the deploy_logs_storage_backend is '
+                      'configured to "swift".')),
+    cfg.IntOpt('deploy_logs_swift_days_to_expire',
+               default=30,
+               help=_('Number of days before a log object is marked as '
+                      'expired in Swift. If None, the logs will be kept '
+                      'forever or until manually deleted. Used when the '
+                      'deploy_logs_storage_backend is configured to '
+                      '"swift".')),
 ]
 
 

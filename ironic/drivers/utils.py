@@ -12,17 +12,28 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import base64
+import os
+import tempfile
+
+from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_utils import timeutils
 import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common.i18n import _LE
 from ironic.common.i18n import _LW
+from ironic.common import swift
 from ironic.conductor import utils
 from ironic.drivers import base
+from ironic.drivers.modules import agent_client
 
 
 LOG = logging.getLogger(__name__)
+
+CONF = cfg.CONF
 
 
 class MixinVendorInterface(base.VendorInterface):
@@ -251,3 +262,101 @@ def normalize_mac(mac):
     :return: Normalized MAC address string.
     """
     return mac.replace('-', '').replace(':', '').lower()
+
+
+def get_ramdisk_logs_file_name(node):
+    """Construct the log file name.
+
+    :param node: A node object.
+    :returns: The log file name.
+    """
+    timestamp = timeutils.utcnow().strftime('%Y-%m-%d-%H:%M:%S')
+    file_name_fields = [node.uuid]
+    if node.instance_uuid:
+        file_name_fields.append(node.instance_uuid)
+
+    file_name_fields.append(timestamp)
+    return '_'.join(file_name_fields) + '.tar.gz'
+
+
+def store_ramdisk_logs(node, logs):
+    """Store the ramdisk logs.
+
+    This method stores the ramdisk logs according to the configured
+    storage backend.
+
+    :param node: A node object.
+    :param logs: A gzipped and base64 encoded string containing the
+                 logs archive.
+    :raises: OSError if the directory to save the logs cannot be created.
+    :raises: IOError when the logs can't be saved to the local file system.
+    :raises: SwiftOperationError, if any operation with Swift fails.
+
+    """
+    logs_file_name = get_ramdisk_logs_file_name(node)
+    data = base64.b64decode(logs)
+
+    if CONF.agent.deploy_logs_storage_backend == 'local':
+        if not os.path.exists(CONF.agent.deploy_logs_local_path):
+            os.makedirs(CONF.agent.deploy_logs_local_path)
+
+        log_path = os.path.join(CONF.agent.deploy_logs_local_path,
+                                logs_file_name)
+        with open(log_path, 'wb') as f:
+            f.write(data)
+
+    elif CONF.agent.deploy_logs_storage_backend == 'swift':
+        with tempfile.NamedTemporaryFile(dir=CONF.tempdir) as f:
+            f.write(data)
+            f.flush()
+
+            # convert days to seconds
+            timeout = CONF.agent.deploy_logs_swift_days_to_expire * 86400
+            object_headers = {'X-Delete-After': timeout}
+            swift_api = swift.SwiftAPI()
+            swift_api.create_object(
+                CONF.agent.deploy_logs_swift_container, logs_file_name,
+                f.name, object_headers=object_headers)
+
+
+def collect_ramdisk_logs(node):
+    """Collect and store the system logs from the IPA ramdisk.
+
+    Collect and store the system logs from the IPA ramdisk. This method
+    makes a call to the IPA ramdisk to collect the logs and store it
+    according to the configured storage backend.
+
+    :param node: A node object.
+
+    """
+    client = agent_client.AgentClient()
+    try:
+        result = client.collect_system_logs(node)
+    except exception.IronicException as e:
+        LOG.error(_LE('Failed to invoke collect_system_logs agent command '
+                      'for node %(node)s. Error: %(error)s'),
+                  {'node': node.uuid, 'error': e})
+        return
+
+    error = result.get('faultstring')
+    if error is not None:
+        LOG.error(_LE('Failed to collect logs from the node %(node)s '
+                      'deployment. Error: %(error)s'),
+                  {'node': node.uuid, 'error': error})
+        return
+
+    try:
+        store_ramdisk_logs(node, result['command_result']['system_logs'])
+    except exception.SwiftOperationError as e:
+        LOG.error(_LE('Failed to store the logs from the node %(node)s '
+                      'deployment in Swift. Error: %(error)s'),
+                  {'node': node.uuid, 'error': e})
+    except EnvironmentError as e:
+        LOG.exception(_LE('Failed to store the logs from the node %(node)s '
+                          'deployment due a file-system related error. '
+                          'Error: %(error)s'),
+                      {'node': node.uuid, 'error': e})
+    except Exception as e:
+        LOG.exception(_LE('Unknown error when storing logs from the node '
+                          '%(node)s deployment. Error: %(error)s'),
+                      {'node': node.uuid, 'error': e})
