@@ -48,11 +48,11 @@ class IBootPrivateMethodTestCase(db_base.DbTestCase):
             driver='fake_iboot',
             driver_info=INFO_DICT)
         info = iboot._parse_driver_info(node)
-        self.assertIsNotNone(info['address'])
-        self.assertIsNotNone(info['username'])
-        self.assertIsNotNone(info['password'])
-        self.assertIsNotNone(info['port'])
-        self.assertIsNotNone(info['relay_id'])
+        self.assertEqual(INFO_DICT['iboot_address'], info['address'])
+        self.assertEqual(INFO_DICT['iboot_username'], info['username'])
+        self.assertEqual(INFO_DICT['iboot_password'], info['password'])
+        self.assertEqual(9100, info['port'])
+        self.assertEqual(1, info['relay_id'])
 
     def test__parse_driver_info_good_with_explicit_port(self):
         info = dict(INFO_DICT)

@@ -34,13 +34,12 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
                                           driver='fake_drac',
                                           driver_info=INFO_DICT)
         info = drac_common.parse_driver_info(node)
-
-        self.assertIsNotNone(info['drac_host'])
-        self.assertIsNotNone(info['drac_port'])
-        self.assertIsNotNone(info['drac_path'])
-        self.assertIsNotNone(info['drac_protocol'])
-        self.assertIsNotNone(info['drac_username'])
-        self.assertIsNotNone(info['drac_password'])
+        self.assertEqual(INFO_DICT['drac_host'], info['drac_host'])
+        self.assertEqual(INFO_DICT['drac_port'], info['drac_port'])
+        self.assertEqual(INFO_DICT['drac_path'], info['drac_path'])
+        self.assertEqual(INFO_DICT['drac_protocol'], info['drac_protocol'])
+        self.assertEqual(INFO_DICT['drac_username'], info['drac_username'])
+        self.assertEqual(INFO_DICT['drac_password'], info['drac_password'])
 
     def test_parse_driver_info_missing_host(self):
         node = obj_utils.create_test_node(self.context,
