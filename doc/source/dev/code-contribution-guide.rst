@@ -8,7 +8,7 @@ This document provides some necessary points for developers to consider when
 writing and reviewing Ironic code. The checklist will help developers get
 things right.
 
-Adding new features
+Adding New Features
 ===================
 
 Starting with the Mitaka development cycle, Ironic tracks new features using
@@ -49,9 +49,7 @@ Ironic:
 #. The ironic-drivers team will evaluate the RFE and may advise the submitter
    to file a spec in ironic-specs to elaborate on the feature request, in case
    the RFE requires extra scrutiny, more design discussion, etc. For the spec
-   submission process, please see the
-   `specs process <https://wiki.openstack.org/wiki/Ironic/Specs_Process>`_
-   wiki page.
+   submission process, please see the `Ironic Specs Process`_.
 
 #. If a spec is not required, once the discussion has happened and there is
    positive consensus among the ironic-drivers team on the RFE, the RFE is
@@ -162,4 +160,52 @@ Agent driver attributes:
     It is important for developers to make sure these properties follow the precedent of prefixing their
     variable names with a specific interface name(e.g., iboot_bar, amt_xyz), so as to minimize or avoid
     any conflicts between interfaces.
+
+
+Ironic Specs Process
+====================
+
+Specifications must follow the template which can be found at
+`specs/template.rst <http://git.openstack.org/cgit/openstack/ironic-specs/tree/
+specs/template.rst>`_, which is quite self-documenting. Specifications are
+proposed by adding them to the `specs/approved` directory, adding a soft link
+to it from the `specs/not-implemented` directory, and posting it for
+review to Gerrit. For more information, please see the `README <http://git.
+openstack.org/cgit/openstack/ironic-specs/tree/README.rst>`_.
+
+The same `Gerrit process
+<http://docs.openstack.org/infra/manual/developers.html>`_ as with source code,
+using the repository `ironic-specs <http://git.openstack.org/cgit/openstack/
+ironic-specs/>`_, is used to add new specifications.
+
+All approved specifications are available at:
+http://specs.openstack.org/openstack/ironic-specs. If a specification has
+been approved but not completed within one or more releases since the
+approval, it may be re-reviewed to make sure it still makes sense as written.
+
+Ironic specifications are part of the `RFE (Requests for Feature Enhancements)
+process <#adding-new-features>`_.
+You are welcome to submit patches associated with an RFE, but they will have
+a -2 ("do not merge") until the specification has been approved. This is to
+ensure that the patches don't get accidentally merged beforehand. You will
+still be able to get reviewer feedback and push new patch sets, even with a -2.
+The `list of core reviewers <https://review.openstack.org/#/admin/groups/352,
+members>`_ for the specifications is small but mighty. (This is not
+necessarily the same list of core reviewers for code patches.)
+
+Changes to existing specs
+-------------------------
+
+For approved but not-completed specs:
+ - cosmetic cleanup, fixing errors, and changing the definition of a feature
+   can be done to the spec.
+
+For approved and completed specs:
+ - changing a previously approved and completed spec should only be done
+   for cosmetic cleanup or fixing errors.
+ - changing the definition of the feature should be done in a new spec.
+
+
+Please see the `Ironic specs process wiki page <https://wiki.openstack.org/
+wiki/Ironic/Specs_Process>`_ for further reference.
 
