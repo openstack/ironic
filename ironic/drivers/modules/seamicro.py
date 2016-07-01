@@ -21,7 +21,6 @@ Provides vendor passthru methods for SeaMicro specific functionality.
 import os
 import re
 
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import importutils
@@ -36,6 +35,7 @@ from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
+from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import console_utils
 
@@ -43,21 +43,6 @@ seamicroclient = importutils.try_import('seamicroclient')
 if seamicroclient:
     from seamicroclient import client as seamicro_client
     from seamicroclient import exceptions as seamicro_client_exception
-
-opts = [
-    cfg.IntOpt('max_retry',
-               default=3,
-               help=_('Maximum retries for SeaMicro operations')),
-    cfg.IntOpt('action_timeout',
-               default=10,
-               help=_('Seconds to wait for power action to be completed'))
-]
-
-CONF = cfg.CONF
-opt_group = cfg.OptGroup(name='seamicro',
-                         title='Options for the seamicro power driver')
-CONF.register_group(opt_group)
-CONF.register_opts(opts, opt_group)
 
 LOG = logging.getLogger(__name__)
 
