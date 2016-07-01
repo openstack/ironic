@@ -298,11 +298,8 @@ class Connection(api.Connection):
 
         # TODO(zhenguo): Support creating node with tags
         if 'tags' in values:
-            LOG.warning(
-                _LW('Ignore the specified tags %(tags)s when creating node: '
-                    '%(node)s.'), {'tags': values['tags'],
-                                   'node': values['uuid']})
-            del values['tags']
+            msg = _("Cannot create node with tags.")
+            raise exception.InvalidParameterValue(err=msg)
 
         node = models.Node()
         node.update(values)

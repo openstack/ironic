@@ -242,6 +242,10 @@ def create_test_node(**kw):
     # Let DB generate ID if it isn't specified explicitly
     if 'id' not in kw:
         del node['id']
+    # Create node with tags will raise an exception. If tags are not
+    # specified explicitly just delete it.
+    if 'tags' not in kw:
+        del node['tags']
     dbapi = db_api.get_instance()
     return dbapi.create_node(node)
 
