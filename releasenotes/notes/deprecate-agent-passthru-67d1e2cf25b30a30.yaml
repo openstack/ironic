@@ -1,0 +1,6 @@
+---
+deprecations:
+  - Agent vendor passthru is deprecated and will be removed in Ocata release.
+    Operators should update their IPA image to the Newton version to use
+    the new replacement API. Driver developers should stop using the agent
+    vendor passthru.

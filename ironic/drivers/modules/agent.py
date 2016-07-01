@@ -565,6 +565,9 @@ class AgentVendorInterface(agent_base_vendor.BaseAgentVendor,
     """Implementation of agent vendor interface.
 
     Contains old lookup and heartbeat endpoints currently pending deprecation.
+
+    WARNING: This class is deprecated and will be removed in the Ocata release.
+    Drivers should stop relying on it.
     """
 
 

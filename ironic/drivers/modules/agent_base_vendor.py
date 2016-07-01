@@ -655,6 +655,8 @@ class AgentDeployMixin(object):
                  node.uuid)
 
 
+# TODO(dtantsur): deprecate and remove it as soon as we stop using it ourselves
+# in the Ocata release.
 class BaseAgentVendor(AgentDeployMixin, base.VendorInterface):
 
     def __init__(self):
@@ -766,6 +768,10 @@ class BaseAgentVendor(AgentDeployMixin, base.VendorInterface):
         :raises: NotFound if no matching node is found.
         :raises: InvalidParameterValue with unknown payload version
         """
+        LOG.warning(
+            _LW('Agent lookup vendor passthru is deprecated and will be '
+                'removed in the Ocata release; please update your '
+                'ironic-python-agent image to the Newton version'))
         LOG.debug('Agent lookup using data %s', kwargs)
         uuid = kwargs.get('node_uuid')
         if uuid:
