@@ -414,6 +414,13 @@ class MigrationCheckersMixin(object):
             if _was_inserted(row['uuid']):
                 self.assertTrue(row['pxe_enabled'])
 
+    def _check_e294876e8028(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+        self.assertIn('network_interface', col_names)
+        self.assertIsInstance(nodes.c.network_interface.type,
+                              sqlalchemy.types.String)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

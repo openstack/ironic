@@ -143,6 +143,8 @@ class Node(Base):
     inspection_started_at = Column(DateTime, nullable=True)
     extra = Column(db_types.JsonEncodedDict)
 
+    network_interface = Column(String(255), nullable=True)
+
 
 class Port(Base):
     """Represents a network port of a bare metal node."""
