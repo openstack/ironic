@@ -485,10 +485,10 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin,
         # check that it fails because driver not found
         node.driver = wrong_driver
         node.driver_info = {}
-        self.assertRaises(exception.DriverNotFound,
-                          self.service.update_node,
-                          self.context,
-                          node)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_node,
+                                self.context, node)
+        self.assertEqual(exception.DriverNotFound, exc.exc_info[0])
 
         # verify change did not happen
         node.refresh()

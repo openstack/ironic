@@ -30,18 +30,152 @@
 # developer documentation online. (list value)
 #enabled_drivers = pxe_ipmitool
 
+# WARNING: This configuration option is part of the incomplete
+# driver composition work, changing it's setting has no
+# effect. Specify the list of hardware types to load during
+# service initialization. Missing hardware types, or hardware
+# types which fail to initialize, will prevent the conductor
+# service from starting. No hardware types are enabled by
+# default now, but in the future this option will default to a
+# recommended set of production-oriented hardware types. A
+# complete list of hardware types present on your system may
+# be found by enumerating the "ironic.hardware.types"
+# entrypoint. (list value)
+#enabled_hardware_types =
+
+# WARNING: This configuration option is part of the incomplete
+# driver composition work, changing it's setting has no
+# effect. Specify the list of boot interfaces to load during
+# service initialization. Missing boot interfaces, or boot
+# interfaces which fail to initialize, will prevent the
+# ironic-conductor service from starting. The default value is
+# a recommended set of production-oriented boot interfaces. A
+# complete list of boot interfaces present on your system may
+# be found by enumerating the
+# "ironic.hardware.interfaces.boot" entrypoint. When setting
+# this value, please make sure that every enabled hardware
+# type will have the same set of enabled boot interfaces on
+# every ironic-conductor service. (list value)
+#enabled_boot_interfaces =
+
+# WARNING: This configuration option is part of the incomplete
+# driver composition work, changing it's setting has no
+# effect. Default boot interface to be used for nodes that do
+# not have boot_interface field set. A complete list of boot
+# interfaces present on your system may be found by
+# enumerating the "ironic.hardware.interfaces.boot"
+# entrypoint. (string value)
+#default_boot_interface = <None>
+
+# WARNING: This configuration option is part of the incomplete
+# driver composition work, changing it's setting has no
+# effect. Specify the list of console interfaces to load
+# during service initialization. Missing console interfaces,
+# or console interfaces which fail to initialize, will prevent
+# the ironic-conductor service from starting. The default
+# value is a recommended set of production-oriented console
+# interfaces. A complete list of console interfaces present on
+# your system may be found by enumerating the
+# "ironic.hardware.interfaces.console" entrypoint. When
+# setting this value, please make sure that every enabled
+# hardware type will have the same set of enabled console
+# interfaces on every ironic-conductor service. (list value)
+#enabled_console_interfaces = no-console
+
+# WARNING: This configuration option is part of the incomplete
+# driver composition work, changing it's setting has no
+# effect. Default console interface to be used for nodes that
+# do not have console_interface field set. A complete list of
+# console interfaces present on your system may be found by
+# enumerating the "ironic.hardware.interfaces.console"
+# entrypoint. (string value)
+#default_console_interface = <None>
+
+# WARNING: This configuration option is part of the incomplete
+# driver composition work, changing it's setting has no
+# effect. Specify the list of deploy interfaces to load during
+# service initialization. Missing deploy interfaces, or deploy
+# interfaces which fail to initialize, will prevent the
+# ironic-conductor service from starting. The default value is
+# a recommended set of production-oriented deploy interfaces.
+# A complete list of deploy interfaces present on your system
+# may be found by enumerating the
+# "ironic.hardware.interfaces.deploy" entrypoint. When setting
+# this value, please make sure that every enabled hardware
+# type will have the same set of enabled deploy interfaces on
+# every ironic-conductor service. (list value)
+#enabled_deploy_interfaces =
+
+# WARNING: This configuration option is part of the incomplete
+# driver composition work, changing it's setting has no
+# effect. Default deploy interface to be used for nodes that
+# do not have deploy_interface field set. A complete list of
+# deploy interfaces present on your system may be found by
+# enumerating the "ironic.hardware.interfaces.deploy"
+# entrypoint. (string value)
+#default_deploy_interface = <None>
+
+# WARNING: This configuration option is part of the incomplete
+# driver composition work, changing it's setting has no
+# effect. Specify the list of inspect interfaces to load
+# during service initialization. Missing inspect interfaces,
+# or inspect interfaces which fail to initialize, will prevent
+# the ironic-conductor service from starting. The default
+# value is a recommended set of production-oriented inspect
+# interfaces. A complete list of inspect interfaces present on
+# your system may be found by enumerating the
+# "ironic.hardware.interfaces.inspect" entrypoint. When
+# setting this value, please make sure that every enabled
+# hardware type will have the same set of enabled inspect
+# interfaces on every ironic-conductor service. (list value)
+#enabled_inspect_interfaces = no-inspect
+
+# WARNING: This configuration option is part of the incomplete
+# driver composition work, changing it's setting has no
+# effect. Default inspect interface to be used for nodes that
+# do not have inspect_interface field set. A complete list of
+# inspect interfaces present on your system may be found by
+# enumerating the "ironic.hardware.interfaces.inspect"
+# entrypoint. (string value)
+#default_inspect_interface = <None>
+
+# WARNING: This configuration option is part of the incomplete
+# driver composition work, changing it's setting has no
+# effect. Specify the list of management interfaces to load
+# during service initialization. Missing management
+# interfaces, or management interfaces which fail to
+# initialize, will prevent the ironic-conductor service from
+# starting. The default value is a recommended set of
+# production-oriented management interfaces. A complete list
+# of management interfaces present on your system may be found
+# by enumerating the "ironic.hardware.interfaces.management"
+# entrypoint. When setting this value, please make sure that
+# every enabled hardware type will have the same set of
+# enabled management interfaces on every ironic-conductor
+# service. (list value)
+#enabled_management_interfaces =
+
+# WARNING: This configuration option is part of the incomplete
+# driver composition work, changing it's setting has no
+# effect. Default management interface to be used for nodes
+# that do not have management_interface field set. A complete
+# list of management interfaces present on your system may be
+# found by enumerating the
+# "ironic.hardware.interfaces.management" entrypoint. (string
+# value)
+#default_management_interface = <None>
+
 # Specify the list of network interfaces to load during
 # service initialization. Missing network interfaces, or
 # network interfaces which fail to initialize, will prevent
-# the conductor service from starting. The option default is a
-# recommended set of production-oriented network interfaces. A
-# complete list of network interfaces present on your system
-# may be found by enumerating the
-# "ironic.hardware.interfaces.network" entrypoint. This value
-# must be the same on all ironic-conductor and ironic-api
-# services, because it is used by ironic-api service to
-# validate a new or updated node's network_interface value.
-# (list value)
+# the ironic-conductor service from starting. The default
+# value is a recommended set of production-oriented network
+# interfaces. A complete list of network interfaces present on
+# your system may be found by enumerating the
+# "ironic.hardware.interfaces.network" entrypoint. When
+# setting this value, please make sure that every enabled
+# hardware type will have the same set of enabled network
+# interfaces on every ironic-conductor service. (list value)
 #enabled_network_interfaces = flat,noop
 
 # Default network interface to be used for nodes that do not
@@ -50,6 +184,78 @@
 # enumerating the "ironic.hardware.interfaces.network"
 # entrypoint. (string value)
 #default_network_interface = <None>
+
+# WARNING: This configuration option is part of the incomplete
+# driver composition work, changing it's setting has no
+# effect. Specify the list of power interfaces to load during
+# service initialization. Missing power interfaces, or power
+# interfaces which fail to initialize, will prevent the
+# ironic-conductor service from starting. The default value is
+# a recommended set of production-oriented power interfaces. A
+# complete list of power interfaces present on your system may
+# be found by enumerating the
+# "ironic.hardware.interfaces.power" entrypoint. When setting
+# this value, please make sure that every enabled hardware
+# type will have the same set of enabled power interfaces on
+# every ironic-conductor service. (list value)
+#enabled_power_interfaces =
+
+# WARNING: This configuration option is part of the incomplete
+# driver composition work, changing it's setting has no
+# effect. Default power interface to be used for nodes that do
+# not have power_interface field set. A complete list of power
+# interfaces present on your system may be found by
+# enumerating the "ironic.hardware.interfaces.power"
+# entrypoint. (string value)
+#default_power_interface = <None>
+
+# WARNING: This configuration option is part of the incomplete
+# driver composition work, changing it's setting has no
+# effect. Specify the list of raid interfaces to load during
+# service initialization. Missing raid interfaces, or raid
+# interfaces which fail to initialize, will prevent the
+# ironic-conductor service from starting. The default value is
+# a recommended set of production-oriented raid interfaces. A
+# complete list of raid interfaces present on your system may
+# be found by enumerating the
+# "ironic.hardware.interfaces.raid" entrypoint. When setting
+# this value, please make sure that every enabled hardware
+# type will have the same set of enabled raid interfaces on
+# every ironic-conductor service. (list value)
+#enabled_raid_interfaces = no-raid
+
+# WARNING: This configuration option is part of the incomplete
+# driver composition work, changing it's setting has no
+# effect. Default raid interface to be used for nodes that do
+# not have raid_interface field set. A complete list of raid
+# interfaces present on your system may be found by
+# enumerating the "ironic.hardware.interfaces.raid"
+# entrypoint. (string value)
+#default_raid_interface = <None>
+
+# WARNING: This configuration option is part of the incomplete
+# driver composition work, changing it's setting has no
+# effect. Specify the list of vendor interfaces to load during
+# service initialization. Missing vendor interfaces, or vendor
+# interfaces which fail to initialize, will prevent the
+# ironic-conductor service from starting. The default value is
+# a recommended set of production-oriented vendor interfaces.
+# A complete list of vendor interfaces present on your system
+# may be found by enumerating the
+# "ironic.hardware.interfaces.vendor" entrypoint. When setting
+# this value, please make sure that every enabled hardware
+# type will have the same set of enabled vendor interfaces on
+# every ironic-conductor service. (list value)
+#enabled_vendor_interfaces = no-vendor
+
+# WARNING: This configuration option is part of the incomplete
+# driver composition work, changing it's setting has no
+# effect. Default vendor interface to be used for nodes that
+# do not have vendor_interface field set. A complete list of
+# vendor interfaces present on your system may be found by
+# enumerating the "ironic.hardware.interfaces.vendor"
+# entrypoint. (string value)
+#default_vendor_interface = <None>
 
 # Used if there is a formatting error when generating an
 # exception message (a programming error). If True, raise an

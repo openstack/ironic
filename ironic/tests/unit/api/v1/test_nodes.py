@@ -1732,6 +1732,7 @@ class TestPost(test_api_base.BaseApiTest):
 
     def setUp(self):
         super(TestPost, self).setUp()
+        self.config(enabled_drivers=['fake'])
         self.chassis = obj_utils.create_test_chassis(self.context)
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()

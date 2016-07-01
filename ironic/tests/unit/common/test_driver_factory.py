@@ -19,6 +19,10 @@ from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers import base as drivers_base
+from ironic.drivers import fake_hardware
+from ironic.drivers import hardware_type
+from ironic.drivers.modules import fake
+from ironic.drivers.modules import noop
 from ironic.tests import base
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
@@ -135,9 +139,10 @@ class NetworkInterfaceFactoryTestCase(db_base.DbTestCase):
                          factory._entrypoint_name)
         self.assertEqual(['flat', 'neutron', 'noop'],
                          sorted(factory._enabled_driver_list))
-        # NOTE(jroll) 4 checks, one for the driver we're building and
-        # one for each of the 3 network interfaces
-        self.assertEqual(4, mock_warn.call_count)
+        # NOTE(jroll) 5 checks, one for the driver we're building and
+        # one for each of the 3 network interfaces, the last - for the fake
+        # hardware type.
+        self.assertEqual(5, mock_warn.call_count)
 
     def test_build_driver_for_task_default_is_none(self):
         # flat, neutron, and noop network interfaces are enabled in base test
@@ -232,3 +237,164 @@ class CheckAndUpdateNodeInterfacesTestCase(db_base.DbTestCase):
         self.assertRaises(exception.InterfaceNotFoundInEntrypoint,
                           driver_factory.check_and_update_node_interfaces,
                           node)
+
+
+class TestFakeHardware(hardware_type.AbstractHardwareType):
+    @property
+    def supported_boot_interfaces(self):
+        """List of supported boot interfaces."""
+        return [fake.FakeBoot]
+
+    @property
+    def supported_console_interfaces(self):
+        """List of supported console interfaces."""
+        return [fake.FakeConsole]
+
+    @property
+    def supported_deploy_interfaces(self):
+        """List of supported deploy interfaces."""
+        return [fake.FakeDeploy]
+
+    @property
+    def supported_inspect_interfaces(self):
+        """List of supported inspect interfaces."""
+        return [fake.FakeInspect]
+
+    @property
+    def supported_management_interfaces(self):
+        """List of supported management interfaces."""
+        return [fake.FakeManagement]
+
+    @property
+    def supported_power_interfaces(self):
+        """List of supported power interfaces."""
+        return [fake.FakePower]
+
+    @property
+    def supported_raid_interfaces(self):
+        """List of supported raid interfaces."""
+        return [fake.FakeRAID]
+
+    @property
+    def supported_vendor_interfaces(self):
+        """List of supported rescue interfaces."""
+        return [fake.FakeVendorB, fake.FakeVendorA]
+
+
+OPTIONAL_INTERFACES = set(drivers_base.BareDriver().standard_interfaces) - {
+    'management', 'boot'}
+
+
+class HardwareTypeLoadTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(HardwareTypeLoadTestCase, self).setUp()
+        self.config(dhcp_provider=None, group='dhcp')
+        self.ifaces = {}
+        self.node_kwargs = {}
+        for iface in drivers_base.ALL_INTERFACES:
+            if iface == 'network':
+                self.ifaces[iface] = 'noop'
+                enabled = ['noop']
+            else:
+                self.ifaces[iface] = 'fake'
+                enabled = ['fake']
+                if iface in OPTIONAL_INTERFACES:
+                    enabled.append('no-%s' % iface)
+
+            self.config(**{'enabled_%s_interfaces' % iface: enabled})
+            self.node_kwargs['%s_interface' % iface] = self.ifaces[iface]
+
+    def test_get_hardware_type_existing(self):
+        hw_type = driver_factory.get_hardware_type('fake-hardware')
+        self.assertIsInstance(hw_type, fake_hardware.FakeHardware)
+
+    def test_get_hardware_type_missing(self):
+        self.assertRaises(exception.DriverNotFound,
+                          # "fake" is a classic driver
+                          driver_factory.get_hardware_type, 'fake')
+
+    def test_get_driver_or_hardware_type(self):
+        hw_type = driver_factory.get_driver_or_hardware_type('fake-hardware')
+        self.assertIsInstance(hw_type, fake_hardware.FakeHardware)
+        driver = driver_factory.get_driver_or_hardware_type('fake')
+        self.assertNotIsInstance(driver, fake_hardware.FakeHardware)
+
+    def test_get_driver_or_hardware_type_missing(self):
+        self.assertRaises(exception.DriverNotFound,
+                          driver_factory.get_driver_or_hardware_type,
+                          'banana')
+
+    def test_build_driver_for_task(self):
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          **self.node_kwargs)
+        with task_manager.acquire(self.context, node.id) as task:
+            for iface in drivers_base.ALL_INTERFACES:
+                impl = getattr(task.driver, iface)
+                self.assertIsNotNone(impl)
+
+    def test_build_driver_for_task_incorrect(self):
+        self.node_kwargs['power_interface'] = 'foobar'
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          **self.node_kwargs)
+        self.assertRaises(exception.InterfaceNotFoundInEntrypoint,
+                          task_manager.acquire, self.context, node.id)
+
+    def test_build_driver_for_task_fake(self):
+        # Checks that fake driver is compatible with any interfaces, even those
+        # which are not declared in supported_<INTERFACE>_interfaces result.
+        self.node_kwargs['raid_interface'] = 'no-raid'
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          **self.node_kwargs)
+        with task_manager.acquire(self.context, node.id) as task:
+            for iface in drivers_base.ALL_INTERFACES:
+                impl = getattr(task.driver, iface)
+                self.assertIsNotNone(impl)
+            self.assertIsInstance(task.driver.raid, noop.NoRAID)
+
+    @mock.patch.object(driver_factory, 'get_hardware_type', autospec=True,
+                       return_value=TestFakeHardware())
+    def test_build_driver_for_task_not_fake(self, mock_get_hw_type):
+        # Checks that other hardware types do check compatibility.
+        self.node_kwargs['raid_interface'] = 'no-raid'
+        node = obj_utils.create_test_node(self.context, driver='fake-2',
+                                          **self.node_kwargs)
+        self.assertRaises(exception.IncompatibleInterface,
+                          task_manager.acquire, self.context, node.id)
+        mock_get_hw_type.assert_called_once_with('fake-2')
+
+    def test_build_driver_for_task_no_defaults(self):
+        self.config(dhcp_provider=None, group='dhcp')
+        for iface in drivers_base.ALL_INTERFACES:
+            if iface != 'network':
+                self.config(**{'enabled_%s_interfaces' % iface: []})
+                self.config(**{'default_%s_interface' % iface: None})
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
+        self.assertRaises(exception.NoValidDefaultForInterface,
+                          task_manager.acquire, self.context, node.id)
+
+    def test_build_driver_for_task_calculated_defaults(self):
+        self.config(dhcp_provider=None, group='dhcp')
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
+        with task_manager.acquire(self.context, node.id) as task:
+            for iface in drivers_base.ALL_INTERFACES:
+                impl = getattr(task.driver, iface)
+                self.assertIsNotNone(impl)
+
+    def test_build_driver_for_task_configured_defaults(self):
+        for iface in drivers_base.ALL_INTERFACES:
+            self.config(**{'default_%s_interface' % iface: self.ifaces[iface]})
+
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
+        with task_manager.acquire(self.context, node.id) as task:
+            for iface in drivers_base.ALL_INTERFACES:
+                impl = getattr(task.driver, iface)
+                self.assertIsNotNone(impl)
+                self.assertEqual(self.ifaces[iface],
+                                 getattr(task.node, '%s_interface' % iface))
+
+    def test_build_driver_for_task_bad_default(self):
+        self.config(default_power_interface='foobar')
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
+        self.assertRaises(exception.InterfaceNotFoundInEntrypoint,
+                          task_manager.acquire, self.context, node.id)

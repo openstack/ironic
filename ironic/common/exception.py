@@ -301,19 +301,35 @@ class DHCPLoadError(IronicException):
                  "reason: %(reason)s")
 
 
+# TODO(dtantsur): word "driver" is overused in class names here, and generally
+# means stevedore driver, not ironic driver. Rename them in the future.
+
+
 class DriverNotFound(NotFound):
-    _msg_fmt = _("Could not find the following driver(s): %(driver_name)s.")
+    _msg_fmt = _("Could not find the following driver(s) or hardware type(s): "
+                 "%(driver_name)s.")
 
 
 class DriverNotFoundInEntrypoint(DriverNotFound):
-    _msg_fmt = _("Could not find the following driver(s) in the "
-                 "'%(entrypoint)s' entrypoint: %(driver_name)s.")
+    _msg_fmt = _("Could not find the following items in the "
+                 "'%(entrypoint)s' entrypoint: %(names)s.")
 
 
 class InterfaceNotFoundInEntrypoint(InvalidParameterValue):
     _msg_fmt = _("Could not find the following interface in the "
                  "'%(entrypoint)s' entrypoint: %(iface)s. Valid interfaces "
                  "are %(valid)s.")
+
+
+class IncompatibleInterface(InvalidParameterValue):
+    _msg_fmt = _("%(interface_type)s interface implementation "
+                 "'%(interface_impl)s' is not supported by hardware type "
+                 "%(hardware_type)s.")
+
+
+class NoValidDefaultForInterface(InvalidParameterValue):
+    _msg_fmt = _("No default value found for %(interface_type)s interface "
+                 "for node %(node)s with driver or hardware type %(driver)s.")
 
 
 class ImageNotFound(NotFound):
@@ -551,7 +567,8 @@ class ConfigInvalid(IronicException):
 
 
 class DriverLoadError(IronicException):
-    _msg_fmt = _("Driver %(driver)s could not be loaded. Reason: %(reason)s.")
+    _msg_fmt = _("Driver, hardware type or interface %(driver)s could not be "
+                 "loaded. Reason: %(reason)s.")
 
 
 class ConsoleError(IronicException):

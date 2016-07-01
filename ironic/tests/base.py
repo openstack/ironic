@@ -40,6 +40,7 @@ from ironic.common import context as ironic_context
 from ironic.common import driver_factory
 from ironic.common import hash_ring
 from ironic.conf import CONF
+from ironic.drivers import base as drivers_base
 from ironic.objects import base as objects_base
 from ironic.tests.unit import policy_fixture
 
@@ -112,7 +113,9 @@ class TestCase(testtools.TestCase):
         self.policy = self.useFixture(policy_fixture.PolicyFixture())
 
         driver_factory.DriverFactory._extension_manager = None
-        driver_factory.NetworkInterfaceFactory._extension_manager = None
+        driver_factory.HardwareTypesFactory._extension_manager = None
+        for factory in driver_factory._INTERFACE_LOADERS.values():
+            factory._extension_manager = None
 
     def _set_config(self):
         self.cfg_fixture = self.useFixture(config_fixture.Config(CONF))
@@ -124,8 +127,10 @@ class TestCase(testtools.TestCase):
         self.config(provisioning_network=uuidutils.generate_uuid(),
                     group='neutron')
         self.config(enabled_drivers=['fake'])
-        self.config(enabled_network_interfaces=['flat', 'noop', 'neutron'],
-                    default_network_interface=None)
+        self.config(enabled_hardware_types=['fake-hardware'])
+        self.config(enabled_network_interfaces=['flat', 'noop', 'neutron'])
+        for iface in drivers_base.ALL_INTERFACES:
+            self.config(**{'default_%s_interface' % iface: None})
         self.set_defaults(host='fake-mini',
                           debug=True)
         self.set_defaults(connection="sqlite://",
