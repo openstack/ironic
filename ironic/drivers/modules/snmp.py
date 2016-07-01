@@ -30,7 +30,6 @@ models.
 import abc
 import time
 
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import importutils
@@ -42,6 +41,7 @@ from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
+from ironic.conf import CONF
 from ironic.drivers import base
 
 pysnmp = importutils.try_import('pysnmp')
@@ -54,23 +54,7 @@ else:
     snmp_error = None
     rfc1902 = None
 
-opts = [
-    cfg.IntOpt('power_timeout',
-               default=10,
-               help=_('Seconds to wait for power action to be completed')),
-    # NOTE(yuriyz): some of SNMP-enabled hardware have own options for pause
-    # between off and on. This option guarantees minimal value.
-    cfg.IntOpt('reboot_delay',
-               default=0,
-               min=0,
-               help=_('Time (in seconds) to sleep between when rebooting '
-                      '(powering off and on again)'))
-]
-
 LOG = logging.getLogger(__name__)
-
-CONF = cfg.CONF
-CONF.register_opts(opts, group='snmp')
 
 
 SNMP_V1 = '1'
