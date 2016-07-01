@@ -14,7 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 
@@ -23,6 +22,7 @@ from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LW
 from ironic.common import states
+from ironic.conf import CONF
 from ironic.drivers import utils
 
 
@@ -31,27 +31,6 @@ LOG = logging.getLogger(__name__)
 client = importutils.try_import('oneview_client.client')
 oneview_states = importutils.try_import('oneview_client.states')
 oneview_exceptions = importutils.try_import('oneview_client.exceptions')
-
-opts = [
-    cfg.StrOpt('manager_url',
-               help=_('URL where OneView is available')),
-    cfg.StrOpt('username',
-               help=_('OneView username to be used')),
-    cfg.StrOpt('password',
-               secret=True,
-               help=_('OneView password to be used')),
-    cfg.BoolOpt('allow_insecure_connections',
-                default=False,
-                help=_('Option to allow insecure connection with OneView')),
-    cfg.StrOpt('tls_cacert_file',
-               help=_('Path to CA certificate')),
-    cfg.IntOpt('max_polling_attempts',
-               default=12,
-               help=_('Max connection retries to check changes on OneView')),
-]
-
-CONF = cfg.CONF
-CONF.register_opts(opts, group='oneview')
 
 REQUIRED_ON_DRIVER_INFO = {
     'server_hardware_uri': _("Server Hardware URI. Required in driver_info."),
