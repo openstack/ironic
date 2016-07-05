@@ -31,7 +31,6 @@ Currently supported environments are:
 import os
 
 from oslo_concurrency import processutils
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import strutils
@@ -46,27 +45,10 @@ from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
+from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import console_utils
 from ironic.drivers import utils as driver_utils
-
-libvirt_opts = [
-    cfg.StrOpt('libvirt_uri',
-               default='qemu:///system',
-               help=_('libvirt URI.')),
-    cfg.IntOpt('get_vm_name_attempts',
-               default=3,
-               help=_("Number of attempts to try to get VM name used by the "
-                      "host that corresponds to a node's MAC address.")),
-    cfg.IntOpt('get_vm_name_retry_interval',
-               default=3,
-               help=_("Number of seconds to wait between attempts to get "
-                      "VM name used by the host that corresponds to a "
-                      "node's MAC address.")),
-]
-
-CONF = cfg.CONF
-CONF.register_opts(libvirt_opts, group='ssh')
 
 LOG = logging.getLogger(__name__)
 

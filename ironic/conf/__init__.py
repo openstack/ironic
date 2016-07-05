@@ -30,6 +30,7 @@ from ironic.conf import keystone
 from ironic.conf import oneview
 from ironic.conf import seamicro
 from ironic.conf import snmp
+from ironic.conf import ssh
 
 CONF = cfg.CONF
 
@@ -48,3 +49,4 @@ keystone.register_opts(CONF)
 oneview.register_opts(CONF)
 seamicro.register_opts(CONF)
 snmp.register_opts(CONF)
+ssh.register_opts(CONF)
