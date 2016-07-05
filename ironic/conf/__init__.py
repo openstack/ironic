@@ -32,6 +32,7 @@ from ironic.conf import seamicro
 from ironic.conf import snmp
 from ironic.conf import ssh
 from ironic.conf import swift
+from ironic.conf import virtualbox
 
 CONF = cfg.CONF
 
@@ -52,3 +53,4 @@ seamicro.register_opts(CONF)
 snmp.register_opts(CONF)
 ssh.register_opts(CONF)
 swift.register_opts(CONF)
+virtualbox.register_opts(CONF)
