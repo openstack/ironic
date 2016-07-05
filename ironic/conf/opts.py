@@ -23,7 +23,6 @@ import ironic.common.images
 import ironic.common.neutron
 import ironic.common.paths
 import ironic.common.service
-import ironic.common.swift
 import ironic.common.utils
 import ironic.drivers.modules.agent
 import ironic.drivers.modules.agent_base_vendor
@@ -85,7 +84,7 @@ _opts = [
     ('seamicro', ironic.conf.seamicro.opts),
     ('snmp', ironic.conf.snmp.opts),
     ('ssh', ironic.conf.ssh.opts),
-    ('swift', ironic.common.swift.swift_opts),
+    ('swift', ironic.conf.swift.opts),
     ('virtualbox', ironic.drivers.modules.virtualbox.opts),
 ]
 
