@@ -429,7 +429,6 @@ and uses the ``pxe_ssh`` driver by default::
     IRONIC_VM_SSH_PORT=22
     IRONIC_BAREMETAL_BASIC_OPS=True
     DEFAULT_INSTANCE_TYPE=baremetal
-    IRONIC_DEPLOY_DRIVER_ISCSI_WITH_IPA=True
 
     # Enable Ironic drivers.
     IRONIC_ENABLED_DRIVERS=fake,agent_ssh,agent_ipmitool,pxe_ssh,pxe_ipmitool
