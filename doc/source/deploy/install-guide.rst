@@ -2191,10 +2191,11 @@ Enabling the configuration drive (configdrive)
 Starting with the Kilo release, the Bare Metal service supports exposing
 a configuration drive image to the instances.
 
-Configuration drive can store metadata and attaches to the instance when it
-boots. One use case for using the configuration drive is to expose a
-networking configuration when you do not use DHCP to assign IP addresses to
-instances.
+The configuration drive is used to store instance-specific metadata and is present to
+the instance as a disk partition labeled ``config-2``. The configuration drive has
+a maximum size of 64MB. One use case for using the configuration drive is to
+expose a networking configuration when you do not use DHCP to assign IP
+addresses to instances.
 
 The configuration drive is usually used in conjunction with the Compute
 service, but the Bare Metal service also offers a standalone way of using it.
@@ -2204,14 +2205,10 @@ The following sections will describe both methods.
 When used with Compute service
 ------------------------------
 
-To enable the configuration drive and passes user customized script when deploying an
-instance, pass ``--config-drive true`` parameter and ``--user-data`` to the
-``nova boot`` command, for example::
+To enable the configuration drive for a specific request, pass
+``--config-drive true`` parameter to the ``nova boot`` command, for example::
 
-    nova boot --config-drive true --flavor baremetal --image test-image --user-data ./my-script instance-1
-
-Then ``my-script`` is accessible from the configuration drive and could be
-performed automatically by cloud-init if it is integrated with the instance image.
+    nova boot --config-drive true --flavor baremetal --image test-image instance-1
 
 It's also possible to enable the configuration drive automatically on
 all instances by configuring the ``OpenStack Compute service`` to always
@@ -2222,6 +2219,10 @@ create a configuration drive by setting the following option in the
     ...
 
     force_config_drive=True
+
+In some cases, you may wish to pass a user customized script when deploying an instance.
+To do this, pass ``--user-data /path/to/file`` to the ``nova boot`` command.
+More information can be found at `Provide user data to instances <http://docs.openstack.org/user-guide/cli_provide_user_data_to_instances.html>`_
 
 
 When used standalone
