@@ -290,6 +290,15 @@ def allow_links_node_states_and_driver_properties():
             versions.MINOR_14_LINKS_NODESTATES_DRIVERPROPERTIES)
 
 
+def allow_port_internal_info():
+    """Check if accessing internal_info is allowed for the port.
+
+    Version 1.18 of the API exposes internal_info readonly field for the port.
+    """
+    return (pecan.request.version.minor >=
+            versions.MINOR_18_PORT_INTERNAL_INFO)
+
+
 def get_controller_reserved_names(cls):
     """Get reserved names for a given controller.
 

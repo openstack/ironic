@@ -32,12 +32,16 @@ def get_node_vif_ids(task):
     portgroup_vifs = {}
     port_vifs = {}
     for portgroup in task.portgroups:
-        vif = portgroup.extra.get('vif_port_id')
+        # NOTE(vdrok): This works because cleaning_vif_port_id doesn't exist
+        # when we're in deployment/tenant network
+        vif = (portgroup.internal_info.get('cleaning_vif_port_id') or
+               portgroup.extra.get('vif_port_id'))
         if vif:
             portgroup_vifs[portgroup.uuid] = vif
     vifs['portgroups'] = portgroup_vifs
     for port in task.ports:
-        vif = port.extra.get('vif_port_id')
+        vif = (port.internal_info.get('cleaning_vif_port_id') or
+               port.extra.get('vif_port_id'))
         if vif:
             port_vifs[port.uuid] = vif
     vifs['ports'] = port_vifs

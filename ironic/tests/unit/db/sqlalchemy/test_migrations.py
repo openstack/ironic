@@ -421,6 +421,18 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(nodes.c.network_interface.type,
                               sqlalchemy.types.String)
 
+    def _check_10b163d4481e(self, engine, data):
+        ports = db_utils.get_table(engine, 'ports')
+        portgroups = db_utils.get_table(engine, 'portgroups')
+        port_col_names = [column.name for column in ports.c]
+        portgroup_col_names = [column.name for column in portgroups.c]
+        self.assertIn('internal_info', port_col_names)
+        self.assertIn('internal_info', portgroup_col_names)
+        self.assertIsInstance(ports.c.internal_info.type,
+                              sqlalchemy.types.TEXT)
+        self.assertIsInstance(portgroups.c.internal_info.type,
+                              sqlalchemy.types.TEXT)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

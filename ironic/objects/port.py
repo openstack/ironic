@@ -34,7 +34,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.4: Add list_by_node_id()
     # Version 1.5: Add list_by_portgroup_id() and new fields
     #              local_link_connection, portgroup_id and pxe_enabled
-    VERSION = '1.5'
+    # Version 1.6: Add internal_info field
+    VERSION = '1.6'
 
     dbapi = dbapi.get_instance()
 
@@ -47,7 +48,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         'local_link_connection': object_fields.FlexibleDictField(
             nullable=True),
         'portgroup_id': object_fields.IntegerField(nullable=True),
-        'pxe_enabled': object_fields.BooleanField()
+        'pxe_enabled': object_fields.BooleanField(),
+        'internal_info': object_fields.FlexibleDictField(nullable=True),
     }
 
     @staticmethod
