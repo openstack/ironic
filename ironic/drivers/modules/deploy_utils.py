@@ -104,7 +104,7 @@ LOG = logging.getLogger(__name__)
 
 VALID_ROOT_DEVICE_HINTS = set(('size', 'model', 'wwn', 'serial', 'vendor',
                                'wwn_with_extension', 'wwn_vendor_extension',
-                               'name'))
+                               'name', 'rotational'))
 
 SUPPORTED_CAPABILITIES = {
     'boot_option': ('local', 'netboot'),
@@ -709,6 +709,13 @@ def parse_root_device_hints(node):
         except ValueError:
             raise exception.InvalidParameterValue(
                 _('Root device hint "size" is not an integer value.'))
+
+    if 'rotational' in root_device:
+        try:
+            strutils.bool_from_string(root_device['rotational'], strict=True)
+        except ValueError:
+            raise exception.InvalidParameterValue(
+                _('Root device hint "rotational" is not a boolean value.'))
 
     hints = []
     for key, value in sorted(root_device.items()):

@@ -1905,6 +1905,9 @@ deployment. The list of support hints is:
 * wwn (STRING): unique storage identifier
 * wwn_with_extension (STRING): unique storage identifier with the vendor extension appended
 * wwn_vendor_extension (STRING): unique vendor storage identifier
+* rotational (BOOLEAN): whether it's a rotational device or not. This
+  hint makes it easier to distinguish HDDs (rotational) and SSDs (not
+  rotational) when choosing which disk Ironic should deploy the image onto.
 * name (STRING): the device name, e.g /dev/md0
 
 
