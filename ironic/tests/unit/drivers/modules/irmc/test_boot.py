@@ -448,7 +448,7 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
         mock_image_file_obj = mock.MagicMock()
         mock_image_file_obj.name = 'image-tmp-file'
         mock_image_file_handle.__enter__.return_value = mock_image_file_obj
-        tempfile_mock.side_effect = iter([mock_image_file_handle])
+        tempfile_mock.side_effect = [mock_image_file_handle]
 
         deploy_args = {'arg1': 'val1', 'arg2': 'val2'}
         CONF.irmc.remote_image_share_name = '/remote_image_share_root'
@@ -476,11 +476,11 @@ class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
         mock_image_file_obj = mock.MagicMock()
         mock_image_file_obj.name = 'image-tmp-file'
         mock_image_file_handle.__enter__.return_value = mock_image_file_obj
-        tempfile_mock.side_effect = iter([mock_image_file_handle])
+        tempfile_mock.side_effect = [mock_image_file_handle]
 
         deploy_args = {'arg1': 'val1', 'arg2': 'val2'}
         CONF.irmc.remote_image_share_name = '/remote_image_share_root'
-        copyfile_mock.side_effect = iter([IOError("fake error")])
+        copyfile_mock.side_effect = IOError("fake error")
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:

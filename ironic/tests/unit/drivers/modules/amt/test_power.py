@@ -128,7 +128,7 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
                                                      mock_ps, mock_enbd):
         target_state = states.POWER_ON
         boot_device = boot_devices.PXE
-        mock_ps.side_effect = iter([states.POWER_OFF, states.POWER_ON])
+        mock_ps.side_effect = [states.POWER_OFF, states.POWER_ON]
         mock_enbd.return_value = None
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -147,7 +147,7 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
     def test__set_and_wait_power_on_without_boot_device(self, mock_sps,
                                                         mock_ps):
         target_state = states.POWER_ON
-        mock_ps.side_effect = iter([states.POWER_OFF, states.POWER_ON])
+        mock_ps.side_effect = [states.POWER_OFF, states.POWER_ON]
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertEqual(states.POWER_ON,
@@ -157,7 +157,7 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
 
         boot_device = boot_devices.DISK
         self.node.driver_internal_info['amt_boot_device'] = boot_device
-        mock_ps.side_effect = iter([states.POWER_OFF, states.POWER_ON])
+        mock_ps.side_effect = [states.POWER_OFF, states.POWER_ON]
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertEqual(states.POWER_ON,
@@ -179,8 +179,8 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
     def test__set_and_wait_exceed_iterations(self, mock_sps,
                                              mock_ps):
         target_state = states.POWER_ON
-        mock_ps.side_effect = iter([states.POWER_OFF, states.POWER_OFF,
-                                    states.POWER_OFF])
+        mock_ps.side_effect = [states.POWER_OFF, states.POWER_OFF,
+                               states.POWER_OFF]
         mock_sps.return_value = exception.AMTFailure('x')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -194,7 +194,7 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
                        autospec=True)
     def test__set_and_wait_already_target_state(self, mock_ps):
         target_state = states.POWER_ON
-        mock_ps.side_effect = iter([states.POWER_ON])
+        mock_ps.side_effect = [states.POWER_ON]
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertEqual(states.POWER_ON,
@@ -207,7 +207,7 @@ class AMTPowerInteralMethodsTestCase(db_base.DbTestCase):
                        autospec=True)
     def test__set_and_wait_power_off(self, mock_sps, mock_ps):
         target_state = states.POWER_OFF
-        mock_ps.side_effect = iter([states.POWER_ON, states.POWER_OFF])
+        mock_ps.side_effect = [states.POWER_ON, states.POWER_OFF]
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertEqual(states.POWER_OFF,
@@ -245,8 +245,7 @@ class AMTPowerTestCase(db_base.DbTestCase):
     def test_validate_fail(self, mock_drvinfo):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            mock_drvinfo.side_effect = iter(
-                [exception.InvalidParameterValue('x')])
+            mock_drvinfo.side_effect = exception.InvalidParameterValue('x')
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.power.validate,
                               task)
@@ -277,7 +276,7 @@ class AMTPowerTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             pstate = states.POWER_ON
-            mock_saw.side_effect = iter([exception.PowerStateFailure('x')])
+            mock_saw.side_effect = exception.PowerStateFailure('x')
             self.assertRaises(exception.PowerStateFailure,
                               task.driver.power.set_power_state,
                               task, pstate)

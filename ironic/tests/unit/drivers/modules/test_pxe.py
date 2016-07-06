@@ -626,7 +626,7 @@ class PXEBootTestCase(db_base.DbTestCase):
     @mock.patch.object(base_image_service.BaseImageService, '_show',
                        autospec=True)
     def test_validate_fail_glance_image_doesnt_exists(self, mock_glance):
-        mock_glance.side_effect = iter([exception.ImageNotFound('not found')])
+        mock_glance.side_effect = exception.ImageNotFound('not found')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
@@ -638,7 +638,7 @@ class PXEBootTestCase(db_base.DbTestCase):
         exceptions = (exception.GlanceConnectionFailed('connection fail'),
                       exception.ImageNotAuthorized('not authorized'),
                       exception.Invalid('invalid'))
-        mock_glance.side_effect = iter(exceptions)
+        mock_glance.side_effect = exceptions
         for exc in exceptions:
             with task_manager.acquire(self.context, self.node.uuid,
                                       shared=True) as task:

@@ -59,8 +59,7 @@ class MSFTOCSManagementTestCase(db_base.DbTestCase):
     def test_validate_fail(self, mock_drvinfo):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            mock_drvinfo.side_effect = iter(
-                [exception.InvalidParameterValue('x')])
+            mock_drvinfo.side_effect = exception.InvalidParameterValue('x')
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.power.validate,
                               task)

@@ -63,7 +63,7 @@ class HttpImageServiceTestCase(base.TestCase):
 
     @mock.patch.object(requests, 'head', autospec=True)
     def test_validate_href_error(self, head_mock):
-        head_mock.side_effect = iter([requests.ConnectionError()])
+        head_mock.side_effect = requests.ConnectionError()
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.validate_href, self.href)
         head_mock.assert_called_once_with(self.href)
@@ -116,7 +116,7 @@ class HttpImageServiceTestCase(base.TestCase):
 
     @mock.patch.object(requests, 'get', autospec=True)
     def test_download_fail_connerror(self, req_get_mock):
-        req_get_mock.side_effect = iter([requests.ConnectionError()])
+        req_get_mock.side_effect = requests.ConnectionError()
         file_mock = mock.Mock(spec=file)
         self.assertRaises(exception.ImageDownloadFailed,
                           self.service.download, self.href, file_mock)

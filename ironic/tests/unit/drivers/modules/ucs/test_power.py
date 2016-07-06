@@ -65,7 +65,7 @@ class UcsPowerTestCase(db_base.DbTestCase):
     @mock.patch.object(ucs_helper, 'parse_driver_info',
                        spec_set=True, autospec=True)
     def test_validate_fail(self, mock_parse_driver_info):
-        side_effect = iter([exception.InvalidParameterValue('Invalid Input')])
+        side_effect = exception.InvalidParameterValue('Invalid Input')
         mock_parse_driver_info.side_effect = side_effect
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:

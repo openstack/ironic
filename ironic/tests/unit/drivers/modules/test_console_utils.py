@@ -156,8 +156,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(console_utils, '_get_console_pid', autospec=True)
     def test__stop_console_nopid(self, mock_pid, mock_kill, mock_unlink):
         pid_file = console_utils._get_console_pid_file(self.info['uuid'])
-        mock_pid.side_effect = iter(
-            [exception.NoConsolePid(pid_path="/tmp/blah")])
+        mock_pid.side_effect = exception.NoConsolePid(pid_path="/tmp/blah")
 
         self.assertRaises(exception.NoConsolePid,
                           console_utils._stop_console,
@@ -291,7 +290,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
                                              mock_pid,
                                              mock_popen):
         # no existing PID file before starting
-        mock_stop.side_effect = iter([exception.NoConsolePid('/tmp/blah')])
+        mock_stop.side_effect = exception.NoConsolePid('/tmp/blah')
         mock_popen.return_value.poll.return_value = 0
         mock_pid.return_value = 12345
         mock_pid_exists.return_value = True
@@ -381,8 +380,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     def test_start_shellinabox_console_fail_nopiddir(self, mock_stop,
                                                      mock_dir_exists,
                                                      mock_popen):
-        mock_dir_exists.side_effect = iter(
-            [exception.ConsoleError(message='fail')])
+        mock_dir_exists.side_effect = exception.ConsoleError(message='fail')
         mock_popen.return_value.poll.return_value = 0
 
         self.assertRaises(exception.ConsoleError,
@@ -404,7 +402,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(console_utils, '_stop_console', autospec=True)
     def test_stop_shellinabox_console_fail_nopid(self, mock_stop):
-        mock_stop.side_effect = iter([exception.NoConsolePid('/tmp/blah')])
+        mock_stop.side_effect = exception.NoConsolePid('/tmp/blah')
 
         console_utils.stop_shellinabox_console(self.info['uuid'])
 

@@ -78,8 +78,7 @@ class IPMIToolCheckInitTestCase(base.TestCase):
     def test_power_init_calls_raises_1(self, mock_check_dir, mock_support):
         mock_support.return_value = True
         ipmi.TMP_DIR_CHECKED = None
-        mock_check_dir.side_effect = iter(
-            [exception.PathNotFound(dir="foo_dir")])
+        mock_check_dir.side_effect = exception.PathNotFound(dir="foo_dir")
         self.assertRaises(exception.PathNotFound, ipmi.IPMIPower)
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
@@ -87,8 +86,8 @@ class IPMIToolCheckInitTestCase(base.TestCase):
     def test_power_init_calls_raises_2(self, mock_check_dir, mock_support):
         mock_support.return_value = True
         ipmi.TMP_DIR_CHECKED = None
-        mock_check_dir.side_effect = iter(
-            [exception.DirectoryNotWritable(dir="foo_dir")])
+        mock_check_dir.side_effect = exception.DirectoryNotWritable(
+            dir="foo_dir")
         self.assertRaises(exception.DirectoryNotWritable, ipmi.IPMIPower)
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
@@ -96,8 +95,8 @@ class IPMIToolCheckInitTestCase(base.TestCase):
     def test_power_init_calls_raises_3(self, mock_check_dir, mock_support):
         mock_support.return_value = True
         ipmi.TMP_DIR_CHECKED = None
-        mock_check_dir.side_effect = iter([exception.InsufficientDiskSpace(
-            path="foo_dir", required=1, actual=0)])
+        mock_check_dir.side_effect = exception.InsufficientDiskSpace(
+            path="foo_dir", required=1, actual=0)
         self.assertRaises(exception.InsufficientDiskSpace, ipmi.IPMIPower)
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
@@ -189,8 +188,7 @@ class IPMIToolCheckOptionSupportedTestCase(base.TestCase):
         self.assertEqual(expected, mock_support.call_args_list)
 
     def test_check_timing_fail(self, mock_chkcall, mock_support):
-        mock_chkcall.side_effect = iter(
-            [subprocess.CalledProcessError(1, 'ipmitool')])
+        mock_chkcall.side_effect = subprocess.CalledProcessError(1, 'ipmitool')
         mock_support.return_value = None
         expected = [mock.call('timing'),
                     mock.call('timing', False)]
@@ -200,7 +198,7 @@ class IPMIToolCheckOptionSupportedTestCase(base.TestCase):
         self.assertEqual(expected, mock_support.call_args_list)
 
     def test_check_timing_no_ipmitool(self, mock_chkcall, mock_support):
-        mock_chkcall.side_effect = iter([OSError()])
+        mock_chkcall.side_effect = OSError()
         mock_support.return_value = None
         expected = [mock.call('timing')]
 
@@ -219,8 +217,7 @@ class IPMIToolCheckOptionSupportedTestCase(base.TestCase):
         self.assertEqual(expected, mock_support.call_args_list)
 
     def test_check_single_bridge_fail(self, mock_chkcall, mock_support):
-        mock_chkcall.side_effect = iter(
-            [subprocess.CalledProcessError(1, 'ipmitool')])
+        mock_chkcall.side_effect = subprocess.CalledProcessError(1, 'ipmitool')
         mock_support.return_value = None
         expected = [mock.call('single_bridge'),
                     mock.call('single_bridge', False)]
@@ -231,7 +228,7 @@ class IPMIToolCheckOptionSupportedTestCase(base.TestCase):
 
     def test_check_single_bridge_no_ipmitool(self, mock_chkcall,
                                              mock_support):
-        mock_chkcall.side_effect = iter([OSError()])
+        mock_chkcall.side_effect = OSError()
         mock_support.return_value = None
         expected = [mock.call('single_bridge')]
 
@@ -251,8 +248,7 @@ class IPMIToolCheckOptionSupportedTestCase(base.TestCase):
         self.assertEqual(expected, mock_support.call_args_list)
 
     def test_check_dual_bridge_fail(self, mock_chkcall, mock_support):
-        mock_chkcall.side_effect = iter(
-            [subprocess.CalledProcessError(1, 'ipmitool')])
+        mock_chkcall.side_effect = subprocess.CalledProcessError(1, 'ipmitool')
         mock_support.return_value = None
         expected = [mock.call('dual_bridge'),
                     mock.call('dual_bridge', False)]
@@ -262,7 +258,7 @@ class IPMIToolCheckOptionSupportedTestCase(base.TestCase):
         self.assertEqual(expected, mock_support.call_args_list)
 
     def test_check_dual_bridge_no_ipmitool(self, mock_chkcall, mock_support):
-        mock_chkcall.side_effect = iter([OSError()])
+        mock_chkcall.side_effect = OSError()
         mock_support.return_value = None
         expected = [mock.call('dual_bridge')]
 
@@ -286,8 +282,8 @@ class IPMIToolCheckOptionSupportedTestCase(base.TestCase):
 
     def test_check_all_options_fail(self, mock_chkcall, mock_support):
         options = ['timing', 'single_bridge', 'dual_bridge']
-        mock_chkcall.side_effect = iter(
-            [subprocess.CalledProcessError(1, 'ipmitool')] * len(options))
+        mock_chkcall.side_effect = [subprocess.CalledProcessError(
+            1, 'ipmitool')] * len(options)
         mock_support.return_value = None
         expected = [
             mock.call('timing'), mock.call('timing', False),
@@ -301,7 +297,7 @@ class IPMIToolCheckOptionSupportedTestCase(base.TestCase):
         self.assertEqual(expected, mock_support.call_args_list)
 
     def test_check_all_options_no_ipmitool(self, mock_chkcall, mock_support):
-        mock_chkcall.side_effect = iter([OSError()])
+        mock_chkcall.side_effect = OSError()
         mock_support.return_value = None
         # exception is raised once ipmitool was not found for an command
         expected = [mock.call('timing')]
@@ -705,7 +701,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         expected = [mock.call('timing'),
                     mock.call('timing')]
         mock_support.return_value = False
-        mock_exec.side_effect = iter([(None, None), (None, None)])
+        mock_exec.side_effect = [(None, None), (None, None)]
 
         ipmi._exec_ipmitool(self.info, 'A B C')
         mock_exec.assert_called_with(*args[0])
@@ -742,7 +738,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         expected = [mock.call('timing'),
                     mock.call('timing')]
         mock_support.return_value = False
-        mock_exec.side_effect = iter([(None, None), (None, None)])
+        mock_exec.side_effect = [(None, None), (None, None)]
 
         ipmi._exec_ipmitool(self.info, 'A B C')
         mock_exec.assert_called_with(*args[0])
@@ -781,7 +777,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         expected = [mock.call('timing'),
                     mock.call('timing')]
         mock_support.return_value = False
-        mock_exec.side_effect = iter([(None, None), (None, None)])
+        mock_exec.side_effect = [(None, None), (None, None)]
 
         ipmi._exec_ipmitool(self.info, 'A B C')
         mock_exec.assert_called_with(*args[0])
@@ -1045,12 +1041,12 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
         ipmi.LAST_CMD_TIME = {}
         mock_support.return_value = False
-        mock_exec.side_effect = iter([
+        mock_exec.side_effect = [
             processutils.ProcessExecutionError(
                 stderr="insufficient resources for session"
             ),
             (None, None)
-        ])
+        ]
 
         # Directly set the configuration values such that
         # the logic will cause _exec_ipmitool to retry twice.
@@ -1070,9 +1066,9 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         ipmi.LAST_CMD_TIME = {}
         mock_support.return_value = False
 
-        mock_exec.side_effect = iter([processutils.ProcessExecutionError(
+        mock_exec.side_effect = [processutils.ProcessExecutionError(
             stderr="insufficient resources for session"
-        )])
+        )]
 
         # Directly set the configuration values such that
         # the logic will cause _exec_ipmitool to timeout.
@@ -1096,14 +1092,14 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         # Return a retryable error, then an error that cannot
         # be retried thus resulting in a single retry
         # attempt by _exec_ipmitool.
-        mock_exec.side_effect = iter([
+        mock_exec.side_effect = [
             processutils.ProcessExecutionError(
                 stderr="insufficient resources for session"
             ),
             processutils.ProcessExecutionError(
                 stderr="Unknown"
             ),
-        ])
+        ]
 
         # Directly set the configuration values such that
         # the logic will cause _exec_ipmitool to retry up
@@ -1196,8 +1192,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test__power_status_exception(self, mock_exec, mock_sleep):
-        mock_exec.side_effect = iter(
-            [processutils.ProcessExecutionError("error")])
+        mock_exec.side_effect = processutils.ProcessExecutionError("error")
         self.assertRaises(exception.IPMIFailure,
                           ipmi._power_status,
                           self.info)
@@ -1281,8 +1276,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test_get_power_state_exception(self, mock_exec):
-        mock_exec.side_effect = iter(
-            [processutils.ProcessExecutionError("error")])
+        mock_exec.side_effect = processutils.ProcessExecutionError("error")
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.IPMIFailure,
                               self.driver.power.get_power_state,
@@ -1371,8 +1365,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test_send_raw_bytes_fail(self, mock_exec):
-        mock_exec.side_effect = iter(
-            [exception.PasswordFileFailedToCreate('error')])
+        mock_exec.side_effect = exception.PasswordFileFailedToCreate('error')
 
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
@@ -1404,7 +1397,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test__bmc_reset_fail(self, mock_exec):
-        mock_exec.side_effect = iter([processutils.ProcessExecutionError()])
+        mock_exec.side_effect = processutils.ProcessExecutionError()
 
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
@@ -1452,7 +1445,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_parse_driver_info', autospec=True)
     def test_vendor_passthru_validate__parse_driver_info_fail(self, info_mock):
-        info_mock.side_effect = iter([exception.InvalidParameterValue("bad")])
+        info_mock.side_effect = exception.InvalidParameterValue("bad")
         with task_manager.acquire(self.context, self.node['uuid']) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               self.driver.vendor.validate,
@@ -1577,8 +1570,8 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(console_utils, 'start_shellinabox_console',
                        autospec=True)
     def test_start_console_fail(self, mock_exec):
-        mock_exec.side_effect = iter(
-            [exception.ConsoleSubprocessFailed(error='error')])
+        mock_exec.side_effect = exception.ConsoleSubprocessFailed(
+            error='error')
 
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
@@ -1589,7 +1582,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(console_utils, 'start_shellinabox_console',
                        autospec=True)
     def test_start_console_fail_nodir(self, mock_exec):
-        mock_exec.side_effect = iter([exception.ConsoleError()])
+        mock_exec.side_effect = exception.ConsoleError()
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
@@ -1632,7 +1625,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(console_utils, 'stop_shellinabox_console',
                        autospec=True)
     def test_stop_console_fail(self, mock_stop):
-        mock_stop.side_effect = iter([exception.ConsoleError()])
+        mock_stop.side_effect = exception.ConsoleError()
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
@@ -1712,7 +1705,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test_management_interface_set_boot_device_exec_failed(self, mock_exec):
-        mock_exec.side_effect = iter([processutils.ProcessExecutionError()])
+        mock_exec.side_effect = processutils.ProcessExecutionError()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.IPMIFailure,
                               self.driver.management.set_boot_device,
@@ -1725,7 +1718,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         class FakeException(Exception):
             pass
 
-        mock_exec.side_effect = iter([FakeException('boom')])
+        mock_exec.side_effect = FakeException('boom')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(FakeException,
                               self.driver.management.set_boot_device,
@@ -1778,8 +1771,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test_management_interface_get_boot_device_fail(self, mock_exec):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            mock_exec.side_effect = iter(
-                [processutils.ProcessExecutionError()])
+            mock_exec.side_effect = processutils.ProcessExecutionError()
             self.assertRaises(exception.IPMIFailure,
                               task.driver.management.get_boot_device, task)
             mock_exec.assert_called_with(mock.ANY, "chassis bootparam get 5")

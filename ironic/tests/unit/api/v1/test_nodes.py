@@ -1981,8 +1981,7 @@ class TestPut(test_api_base.BaseApiTest):
         node.target_provision_state = states.NOSTATE
         node.reservation = 'fake-host'
         node.save()
-        self.mock_dnd.side_effect = iter([exception.NodeLocked(node='',
-                                                               host='')])
+        self.mock_dnd.side_effect = exception.NodeLocked(node='', host='')
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.ACTIVE},
                             expect_errors=True)
@@ -2378,9 +2377,9 @@ class TestPut(test_api_base.BaseApiTest):
                        autospec=True)
     def test_put_raid_iface_not_supported(self, set_raid_config_mock):
         raid_config = {'logical_disks': [{'size_gb': 100, 'raid_level': 1}]}
-        set_raid_config_mock.side_effect = iter([
+        set_raid_config_mock.side_effect = (
             exception.UnsupportedDriverExtension(extension='raid',
-                                                 driver='fake')])
+                                                 driver='fake'))
         ret = self.put_json(
             '/nodes/%s/states/raid' % self.node.uuid, raid_config,
             headers={api_base.Version.string: "1.12"},
@@ -2394,8 +2393,8 @@ class TestPut(test_api_base.BaseApiTest):
                        autospec=True)
     def test_put_raid_invalid_parameter_value(self, set_raid_config_mock):
         raid_config = {'logical_disks': [{'size_gb': 100, 'raid_level': 1}]}
-        set_raid_config_mock.side_effect = iter([
-            exception.InvalidParameterValue('foo')])
+        set_raid_config_mock.side_effect = exception.InvalidParameterValue(
+            'foo')
         ret = self.put_json(
             '/nodes/%s/states/raid' % self.node.uuid, raid_config,
             headers={api_base.Version.string: "1.12"},

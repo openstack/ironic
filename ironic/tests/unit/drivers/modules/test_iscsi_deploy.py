@@ -165,8 +165,8 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
     def test_continue_deploy_fail(self, deploy_mock, power_mock,
                                   mock_image_cache, mock_disk_layout):
         kwargs = {'address': '123456', 'iqn': 'aaa-bbb'}
-        deploy_mock.side_effect = iter([
-            exception.InstanceDeployFailure("test deploy error")])
+        deploy_mock.side_effect = exception.InstanceDeployFailure(
+            "test deploy error")
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
