@@ -37,7 +37,7 @@
 # recommended set of production-oriented network interfaces. A
 # complete list of network interfaces present on your system
 # may be found by enumerating the
-# "ironic.hardware.interfaces.network" entrypoint.This value
+# "ironic.hardware.interfaces.network" entrypoint. This value
 # must be the same on all ironic-conductor and ironic-api
 # services, because it is used by ironic-api service to
 # validate a new or updated node's network_interface value.
@@ -156,6 +156,7 @@
 # is set in the configuration file and other logging
 # configuration options are ignored (for example,
 # logging_context_format_string). (string value)
+# Note: This option can be changed without restarting.
 # Deprecated group/name - [DEFAULT]/log_config
 #log_config_append = <None>
 
@@ -635,13 +636,13 @@
 # From ironic
 #
 
-# Path to serial console terminal program. Used only by
-# Shell In A Box console. (string value)
+# Path to serial console terminal program. Used only by Shell
+# In A Box console. (string value)
 #terminal = shellinaboxd
 
-# Directory containing the terminal SSL cert(PEM) for serial
-# console access. Used only by Shell In A Box console.
-# (string value)
+# Directory containing the terminal SSL cert (PEM) for serial
+# console access. Used only by Shell In A Box console. (string
+# value)
 #terminal_cert_dir = <None>
 
 # Directory for holding terminal pid files. If not specified,
@@ -736,8 +737,12 @@
 # From oslo.db
 #
 
-# The file name to use with SQLite. (string value)
+# DEPRECATED: The file name to use with SQLite. (string value)
 # Deprecated group/name - [DEFAULT]/sqlite_db
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Should use config option connection or
+# slave_connection to connect the database.
 #sqlite_db = oslo.sqlite
 
 # If True, SQLite uses synchronous mode. (boolean value)
@@ -1152,6 +1157,9 @@
 # Amount of time in seconds to wait in between power
 # operations (integer value)
 #power_wait = 2
+
+# CA certificate file to validate iLO. (string value)
+#ca_file = <None>
 
 
 [inspector]

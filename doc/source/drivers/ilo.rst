@@ -288,6 +288,7 @@ Nodes configured for iLO driver should have the ``driver`` property set to
 - ``ilo_username``: Username for the iLO with administrator privileges.
 - ``ilo_password``: Password for the above iLO user.
 - ``ilo_deploy_iso``: The glance UUID of the deploy ramdisk ISO image.
+- ``ilo_ca_file``: (optional) CA certificate file to validate iLO.
 - ``client_port``: (optional) Port to be used for iLO operations if you are
   using a custom port on the iLO.  Default port used is 443.
 - ``client_timeout``: (optional) Timeout for iLO operations. Default timeout
@@ -425,6 +426,7 @@ Nodes configured for iLO driver should have the ``driver`` property set to
 - ``ilo_username``: Username for the iLO with administrator privileges.
 - ``ilo_password``: Password for the above iLO user.
 - ``ilo_deploy_iso``: The glance UUID of the deploy ramdisk ISO image.
+- ``ilo_ca_file``: (optional) CA certificate file to validate iLO.
 - ``client_port``: (optional) Port to be used for iLO operations if you are
   using a custom port on the iLO.  Default port used is 443.
 - ``client_timeout``: (optional) Timeout for iLO operations. Default timeout
@@ -543,6 +545,7 @@ Nodes configured for iLO driver should have the ``driver`` property set to
 - ``ilo_password``: Password for the above iLO user.
 - ``deploy_kernel``: The glance UUID of the deployment kernel.
 - ``deploy_ramdisk``: The glance UUID of the deployment ramdisk.
+- ``ilo_ca_file``: (optional) CA certificate file to validate iLO.
 - ``client_port``: (optional) Port to be used for iLO operations if you are
   using a custom port on the iLO. Default port used is 443.
 - ``client_timeout``: (optional) Timeout for iLO operations. Default timeout

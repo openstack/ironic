@@ -59,6 +59,7 @@ REQUIRED_PROPERTIES = {
 OPTIONAL_PROPERTIES = {
     'client_port': _("port to be used for iLO operations. Optional."),
     'client_timeout': _("timeout (in seconds) for iLO operations. Optional."),
+    'ca_file': _("CA certificate file to validate iLO. optional"),
 }
 CONSOLE_PROPERTIES = {
     'console_port': _("node's UDP port to connect to. Only required for "
@@ -211,6 +212,12 @@ def parse_driver_info(node):
         value = info.get(param, CONF.ilo.get(param))
         if param == "client_port":
             d_info[param] = utils.validate_network_port(value, param)
+        elif param == "ca_file":
+            if value and not os.path.isfile(value):
+                raise exception.InvalidParameterValue(_(
+                    '%(param)s "%(value)s" is not found.') %
+                    {'param': param, 'value': value})
+            d_info[param] = value
         else:
             try:
                 d_info[param] = int(value)
@@ -250,7 +257,8 @@ def get_ilo_object(node):
                                       driver_info['ilo_username'],
                                       driver_info['ilo_password'],
                                       driver_info['client_timeout'],
-                                      driver_info['client_port'])
+                                      driver_info['client_port'],
+                                      cacert=driver_info.get('ca_file'))
     return ilo_object
 
 
