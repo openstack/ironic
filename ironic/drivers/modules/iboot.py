@@ -205,7 +205,6 @@ class IBootPower(base.PowerInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         :returns: one of ironic.common.states POWER_OFF, POWER_ON or ERROR.
-        :raises: IBootOperationError on an error from iBoot.
         :raises: InvalidParameterValue if iboot parameters are invalid.
         :raises: MissingParameterValue if required iboot parameters are
             missing.
@@ -221,7 +220,6 @@ class IBootPower(base.PowerInterface):
         :param task: a TaskManager instance containing the node to act on.
         :param pstate: The desired power state, one of ironic.common.states
             POWER_ON, POWER_OFF.
-        :raises: IBootOperationError on an error from iBoot.
         :raises: InvalidParameterValue if iboot parameters are invalid or if
             an invalid power state was specified.
         :raises: MissingParameterValue if required iboot parameters are
@@ -246,7 +244,6 @@ class IBootPower(base.PowerInterface):
         """Cycles the power to the task's node.
 
         :param task: a TaskManager instance containing the node to act on.
-        :raises: IBootOperationError on an error from iBoot.
         :raises: InvalidParameterValue if iboot parameters are invalid.
         :raises: MissingParameterValue if required iboot parameters are
             missing.
