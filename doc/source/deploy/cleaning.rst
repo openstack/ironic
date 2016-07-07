@@ -201,8 +201,8 @@ out-of-band. Ironic supports using both methods to clean a node.
 In-band
 -------
 In-band steps are performed by ironic making API calls to a ramdisk running
-on the node using a Deploy driver. Currently, only the ironic-python-agent
-ramdisk used with an agent_* driver supports in-band cleaning. By default,
+on the node using a Deploy driver. Currently, all the drivers using
+ironic-python-agent ramdisk support in-band cleaning. By default,
 ironic-python-agent ships with a minimal cleaning configuration, only erasing
 disks. However, with this ramdisk, you can add your own cleaning steps and/or
 override default cleaning steps with a custom Hardware Manager.

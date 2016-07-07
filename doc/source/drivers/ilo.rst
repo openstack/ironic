@@ -245,7 +245,8 @@ Features
   image provisioning is done using iSCSI over data network, so this driver has
   the benefit of security enhancement with the same performance. It segregates
   management info from data channel.
-* Support for out-of-band cleaning operations.
+* Supports both out-of-band and in-band cleaning operations. For more details,
+  see :ref:`InbandvsOutOfBandCleaning`.
 * Remote Console
 * HW Sensors
 * Works well for machines with resource constraints (lesser amount of memory).
@@ -503,7 +504,8 @@ Features
 * Automatic detection of current boot mode.
 * Automatic setting of the required boot mode, if UEFI boot mode is requested
   by the nova flavor's extra spec.
-* Support for out-of-band cleaning operations.
+* Supports both out-of-band and in-band cleaning operations. For more details,
+  see :ref:`InbandvsOutOfBandCleaning`.
 * Support for out-of-band hardware inspection.
 * Supports UEFI Boot mode
 * Supports UEFI Secure Boot
