@@ -92,7 +92,7 @@ class MSFTOCSClientApiTestCase(base.TestCase):
     @mock.patch.object(requests, 'get', autospec=True)
     def test__exec_cmd_http_get_fail(self, mock_get):
         fake_rel_url = 'fake_rel_url'
-        mock_get.side_effect = iter([requests_exceptions.ConnectionError('x')])
+        mock_get.side_effect = requests_exceptions.ConnectionError('x')
 
         self.assertRaises(exception.MSFTOCSClientApiException,
                           self._client._exec_cmd,

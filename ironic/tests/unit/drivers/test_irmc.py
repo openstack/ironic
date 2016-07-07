@@ -61,8 +61,8 @@ class IRMCVirtualMediaIscsiTestCase(testtools.TestCase):
     @mock.patch.object(irmc.boot.IRMCVirtualMediaBoot, '__init__',
                        spec_set=True, autospec=True)
     def test___init___share_fs_not_mounted_exception(self, __init___mock):
-        __init___mock.side_effect = iter(
-            [exception.IRMCSharedFileSystemNotMounted(share='/share')])
+        __init___mock.side_effect = exception.IRMCSharedFileSystemNotMounted(
+            share='/share')
 
         self.assertRaises(exception.IRMCSharedFileSystemNotMounted,
                           irmc.IRMCVirtualMediaIscsiDriver)
@@ -104,8 +104,8 @@ class IRMCVirtualMediaAgentTestCase(testtools.TestCase):
     @mock.patch.object(irmc.boot.IRMCVirtualMediaBoot, '__init__',
                        spec_set=True, autospec=True)
     def test___init___share_fs_not_mounted_exception(self, __init___mock):
-        __init___mock.side_effect = iter([
-            exception.IRMCSharedFileSystemNotMounted(share='/share')])
+        __init___mock.side_effect = exception.IRMCSharedFileSystemNotMounted(
+            share='/share')
 
         self.assertRaises(exception.IRMCSharedFileSystemNotMounted,
                           irmc.IRMCVirtualMediaAgentDriver)

@@ -229,8 +229,8 @@ class PeriodicTaskTestCase(BaseTestCase):
 
     def test_node_locked(self, mock_check, mock_acquire):
         iter_nodes_ret = [('1', 'd1'), ('2', 'd2')]
-        mock_acquire.side_effect = iter([exception.NodeLocked("boom")] *
-                                        len(iter_nodes_ret))
+        mock_acquire.side_effect = ([exception.NodeLocked("boom")] *
+                                    len(iter_nodes_ret))
         mgr = mock.MagicMock(spec=['iter_nodes'])
         mgr.iter_nodes.return_value = iter_nodes_ret
         inspector.Inspector()._periodic_check_result(

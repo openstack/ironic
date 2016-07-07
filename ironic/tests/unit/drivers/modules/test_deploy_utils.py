@@ -1334,7 +1334,7 @@ class OtherFunctionTestCase(db_base.DbTestCase):
 
         mock_cache = mock.MagicMock(
             spec_set=['master_dir'], master_dir='master_dir')
-        mock_clean_up_caches.side_effect = iter([exc])
+        mock_clean_up_caches.side_effect = [exc]
         self.assertRaises(exception.InstanceDeployFailure,
                           utils.fetch_images,
                           None,
@@ -1549,8 +1549,7 @@ class TrySetBootDeviceTestCase(db_base.DbTestCase):
             self, node_set_boot_device_mock, log_mock):
         self.node.properties = {'capabilities': 'boot_mode:uefi'}
         self.node.save()
-        node_set_boot_device_mock.side_effect = iter(
-            [exception.IPMIFailure(cmd='a')])
+        node_set_boot_device_mock.side_effect = exception.IPMIFailure(cmd='a')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             utils.try_set_boot_device(task, boot_devices.DISK,
@@ -1562,8 +1561,7 @@ class TrySetBootDeviceTestCase(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     def test_try_set_boot_device_ipmifailure_bios(
             self, node_set_boot_device_mock):
-        node_set_boot_device_mock.side_effect = iter(
-            [exception.IPMIFailure(cmd='a')])
+        node_set_boot_device_mock.side_effect = exception.IPMIFailure(cmd='a')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             self.assertRaises(exception.IPMIFailure,
@@ -1576,7 +1574,7 @@ class TrySetBootDeviceTestCase(db_base.DbTestCase):
     def test_try_set_boot_device_some_other_exception(
             self, node_set_boot_device_mock):
         exc = exception.IloOperationError(operation="qwe", error="error")
-        node_set_boot_device_mock.side_effect = iter([exc])
+        node_set_boot_device_mock.side_effect = exc
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             self.assertRaises(exception.IloOperationError,
@@ -1987,9 +1985,8 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
             'ramdisk': 'file://initrd',
             'root_gb': 100,
         }
-        img_service_show_mock.side_effect = iter(
-            [exception.ImageRefValidationFailed(
-                image_href='http://ubuntu', reason='HTTPError')])
+        img_service_show_mock.side_effect = exception.ImageRefValidationFailed(
+            image_href='http://ubuntu', reason='HTTPError')
         node = obj_utils.create_test_node(
             self.context, driver='fake_pxe',
             instance_info=instance_info,

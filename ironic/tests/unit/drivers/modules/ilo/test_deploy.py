@@ -225,9 +225,8 @@ class IloDeployPrivateMethodsTestCase(db_base.DbTestCase):
                                     mock_is_glance_image,
                                     mock_validate_href):
         deploy_iso = 'http://abc.org/image/qcow2'
-        mock_validate_href.side_effect = iter(
-            [exception.ImageRefValidationFailed(
-                image_href='http://abc.org/image/qcow2', reason='fail')])
+        mock_validate_href.side_effect = exception.ImageRefValidationFailed(
+            image_href='http://abc.org/image/qcow2', reason='fail')
         mock_is_glance_image.return_value = False
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:

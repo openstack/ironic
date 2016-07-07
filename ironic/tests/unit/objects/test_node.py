@@ -127,8 +127,7 @@ class TestNodeObject(base.DbTestCase):
         with mock.patch.object(self.dbapi, 'reserve_node',
                                autospec=True) as mock_reserve:
             node_id = 'non-existent'
-            mock_reserve.side_effect = iter(
-                [exception.NodeNotFound(node=node_id)])
+            mock_reserve.side_effect = exception.NodeNotFound(node=node_id)
             self.assertRaises(exception.NodeNotFound,
                               objects.Node.reserve, self.context, 'fake-tag',
                               node_id)
@@ -145,8 +144,7 @@ class TestNodeObject(base.DbTestCase):
         with mock.patch.object(self.dbapi, 'release_node',
                                autospec=True) as mock_release:
             node_id = 'non-existent'
-            mock_release.side_effect = iter(
-                [exception.NodeNotFound(node=node_id)])
+            mock_release.side_effect = exception.NodeNotFound(node=node_id)
             self.assertRaises(exception.NodeNotFound,
                               objects.Node.release, self.context,
                               'fake-tag', node_id)

@@ -2270,7 +2270,7 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin,
             last_error=None,
             power_state=states.NOSTATE)
 
-        mock_validate.side_effect = iter([RuntimeError("boom")])
+        mock_validate.side_effect = RuntimeError("boom")
 
         self._start_service()
         with task_manager.acquire(
@@ -2298,7 +2298,7 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin,
             last_error=None,
             power_state=states.NOSTATE)
 
-        mock_get_power_state.side_effect = iter([RuntimeError("boom")])
+        mock_get_power_state.side_effect = RuntimeError("boom")
 
         self._start_service()
         with task_manager.acquire(
@@ -4676,8 +4676,8 @@ class ManagerCheckDeployingStatusTestCase(mgr_utils.ServiceSetUpMixin,
             reservation='fake-conductor')
 
         mock_mapped.return_value = True
-        mock_release.side_effect = iter([exception.NodeNotFound('not found'),
-                                         exception.NodeLocked('locked')])
+        mock_release.side_effect = [exception.NodeNotFound('not found'),
+                                    exception.NodeLocked('locked')]
         self.service._check_deploying_status(self.context)
 
         self.node.refresh()
@@ -4693,8 +4693,7 @@ class ManagerCheckDeployingStatusTestCase(mgr_utils.ServiceSetUpMixin,
             self, mock_release, mock_off_cond, mock_mapped, mock_fail_if):
         mock_off_cond.return_value = ['fake-conductor']
         mock_mapped.return_value = True
-        mock_release.side_effect = iter([
-            exception.NodeNotLocked('not locked')])
+        mock_release.side_effect = exception.NodeNotLocked('not locked')
         self.service._check_deploying_status(self.context)
 
         self.node.refresh()

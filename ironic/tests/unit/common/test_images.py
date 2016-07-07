@@ -269,8 +269,8 @@ class FsImageTestCase(base.TestCase):
             'a3': 'sub_dir/b3'}
 
         path_exists_mock.side_effect = path_exists_mock_func
-        dirname_mock.side_effect = iter(
-            ['root_dir', 'root_dir', 'root_dir/sub_dir', 'root_dir/sub_dir'])
+        dirname_mock.side_effect = ['root_dir', 'root_dir', 'root_dir/sub_dir',
+                                    'root_dir/sub_dir']
         images._create_root_fs('root_dir', files_info)
         cp_mock.assert_any_call('a1', 'root_dir/b1')
         cp_mock.assert_any_call('a2', 'root_dir/b2')
@@ -425,8 +425,8 @@ class FsImageTestCase(base.TestCase):
                                   ('/tmpdir1/isolinux', [],
                                    ['efiboot.img', 'isolinux.bin',
                                     'isolinux.cfg'])]
-        relpath_mock.side_effect = iter(
-            ['EFI/ubuntu/grub.cfg', 'isolinux/efiboot.img'])
+        relpath_mock.side_effect = ['EFI/ubuntu/grub.cfg',
+                                    'isolinux/efiboot.img']
 
         images._mount_deploy_iso('path/to/deployiso', 'tmpdir1')
         mount_mock.assert_called_once_with('path/to/deployiso',
@@ -443,7 +443,7 @@ class FsImageTestCase(base.TestCase):
         walk_mock.return_value = [('/tmpdir1/EFI/ubuntu', [], ['grub.cfg']),
                                   ('/tmpdir1/isolinux', [],
                                    ['isolinux.bin', 'isolinux.cfg'])]
-        relpath_mock.side_effect = iter(['EFI/ubuntu/grub.cfg'])
+        relpath_mock.side_effect = 'EFI/ubuntu/grub.cfg'
 
         self.assertRaises(exception.ImageCreationFailed,
                           images._mount_deploy_iso,
@@ -464,7 +464,7 @@ class FsImageTestCase(base.TestCase):
                                   ('/tmpdir1/isolinux', '',
                                    ['efiboot.img', 'isolinux.bin',
                                     'isolinux.cfg'])]
-        relpath_mock.side_effect = iter(['isolinux/efiboot.img'])
+        relpath_mock.side_effect = 'isolinux/efiboot.img'
 
         self.assertRaises(exception.ImageCreationFailed,
                           images._mount_deploy_iso,
@@ -503,7 +503,7 @@ class FsImageTestCase(base.TestCase):
         cfg_file = 'tmpdir/isolinux/isolinux.cfg'
         grubcfg = "grubcfg"
         grub_file = 'tmpdir/relpath/to/grub.cfg'
-        gen_cfg_mock.side_effect = iter([cfg, grubcfg])
+        gen_cfg_mock.side_effect = cfg, grubcfg
 
         params = ['a=b', 'c']
         isolinux_options = {'kernel': '/vmlinuz',
@@ -520,8 +520,7 @@ class FsImageTestCase(base.TestCase):
         mock_file_handle.__enter__.return_value = 'tmpdir'
         mock_file_handle1 = mock.MagicMock(spec=file)
         mock_file_handle1.__enter__.return_value = 'mountdir'
-        tempdir_mock.side_effect = iter(
-            [mock_file_handle, mock_file_handle1])
+        tempdir_mock.side_effect = mock_file_handle, mock_file_handle1
         mount_mock.return_value = (uefi_path_info,
                                    e_img_rel_path, grub_rel_path)
 
@@ -603,8 +602,7 @@ class FsImageTestCase(base.TestCase):
         mock_file_handle.__enter__.return_value = 'tmpdir'
         mock_file_handle1 = mock.MagicMock(spec=file)
         mock_file_handle1.__enter__.return_value = 'mountdir'
-        tempdir_mock.side_effect = iter(
-            [mock_file_handle, mock_file_handle1])
+        tempdir_mock.side_effect = mock_file_handle, mock_file_handle1
         create_root_fs_mock.side_effect = IOError
 
         self.assertRaises(exception.ImageCreationFailed,
@@ -648,8 +646,7 @@ class FsImageTestCase(base.TestCase):
         mock_file_handle.__enter__.return_value = 'tmpdir'
         mock_file_handle1 = mock.MagicMock(spec=file)
         mock_file_handle1.__enter__.return_value = 'mountdir'
-        tempdir_mock.side_effect = iter(
-            [mock_file_handle, mock_file_handle1])
+        tempdir_mock.side_effect = mock_file_handle, mock_file_handle1
         mount_mock.return_value = ({'a': 'a'}, 'b', 'c')
         utils_mock.side_effect = processutils.ProcessExecutionError
 

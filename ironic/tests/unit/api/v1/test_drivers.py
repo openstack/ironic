@@ -259,9 +259,8 @@ class TestListDrivers(base.BaseApiTest):
             self, disk_prop_mock):
         driver._RAID_PROPERTIES = {}
         self.register_fake_conductors()
-        disk_prop_mock.side_effect = iter(
-            [exception.UnsupportedDriverExtension(
-                extension='raid', driver='fake')])
+        disk_prop_mock.side_effect = exception.UnsupportedDriverExtension(
+            extension='raid', driver='fake')
         path = '/drivers/%s/raid/logical_disk_properties' % self.d1
         ret = self.get_json(path,
                             headers={api_base.Version.string: "1.12"},

@@ -132,7 +132,7 @@ class IRMCPowerTestCase(db_base.DbTestCase):
     @mock.patch.object(irmc_common, 'parse_driver_info', spec_set=True,
                        autospec=True)
     def test_validate_fail(self, mock_drvinfo):
-        side_effect = iter([exception.InvalidParameterValue("Invalid Input")])
+        side_effect = exception.InvalidParameterValue("Invalid Input")
         mock_drvinfo.side_effect = side_effect
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
