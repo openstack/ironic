@@ -12,13 +12,9 @@
 
 from neutronclient.v2_0 import client as clientv20
 from oslo_config import cfg
-from oslo_log import log
 
 from ironic.common.i18n import _
 from ironic.common import keystone
-
-
-LOG = log.getLogger(__name__)
 
 CONF = cfg.CONF
 CONF.import_opt('my_ip', 'ironic.netconf')
