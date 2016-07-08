@@ -70,7 +70,7 @@ class Port(base.APIBase):
                 # Change error code because 404 (NotFound) is inappropriate
                 # response for a POST request to create a Port
                 e.code = http_client.BAD_REQUEST  # BadRequest
-                raise e
+                raise
         elif value == wtypes.Unset:
             self._node_uuid = wtypes.Unset
 
