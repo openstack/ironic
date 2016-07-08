@@ -1,0 +1,6 @@
+---
+features:
+  - A new dictionary field ``internal_info`` is added to the port API object.
+    It is readonly from the API side, and can contain any internal information
+    ironic needs to store for the port. ``cleaning_vif_port_id`` is being
+    stored inside this dictionary.

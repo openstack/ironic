@@ -193,6 +193,13 @@ class TestApiUtils(base.TestCase):
         mock_request.version.minor = 17
         utils.check_allow_management_verbs('adopt')
 
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_allow_port_internal_info(self, mock_request):
+        mock_request.version.minor = 18
+        self.assertTrue(utils.allow_port_internal_info())
+        mock_request.version.minor = 17
+        self.assertFalse(utils.allow_port_internal_info())
+
 
 class TestNodeIdent(base.TestCase):
 

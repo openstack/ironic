@@ -95,6 +95,18 @@ class TestListPorts(test_api_base.BaseApiTest):
         # We always append "links"
         self.assertItemsEqual(['address', 'extra', 'links'], data)
 
+    def test_hide_fields_in_newer_versions_internal_info(self):
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          internal_info={"foo": "bar"})
+        data = self.get_json(
+            '/ports/%s' % port.uuid,
+            headers={api_base.Version.string: str(api_v1.MIN_VER)})
+        self.assertNotIn('internal_info', data)
+
+        data = self.get_json('/ports/%s' % port.uuid,
+                             headers={api_base.Version.string: "1.18"})
+        self.assertEqual({"foo": "bar"}, data['internal_info'])
+
     def test_get_collection_custom_fields(self):
         fields = 'uuid,extra'
         for i in range(3):
@@ -133,10 +145,14 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
     def test_detail(self):
-        port = obj_utils.create_test_port(self.context, node_id=self.node.id)
-        data = self.get_json('/ports/detail')
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,)
+        data = self.get_json(
+            '/ports/detail',
+            headers={api_base.Version.string: str(api_v1.MAX_VER)}
+        )
         self.assertEqual(port.uuid, data['ports'][0]["uuid"])
         self.assertIn('extra', data['ports'][0])
+        self.assertIn('internal_info', data['ports'][0])
         self.assertIn('node_uuid', data['ports'][0])
         # never expose the node_id
         self.assertNotIn('node_id', data['ports'][0])
@@ -261,10 +277,12 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertEqual(sorted(ports), uuids)
 
     def test_sort_key_invalid(self):
-        invalid_keys_list = ['foo', 'extra']
+        invalid_keys_list = ['foo', 'extra', 'internal_info']
         for invalid_key in invalid_keys_list:
-            response = self.get_json('/ports?sort_key=%s' % invalid_key,
-                                     expect_errors=True)
+            response = self.get_json(
+                '/ports?sort_key=%s' % invalid_key, expect_errors=True,
+                headers={api_base.Version.string: str(api_v1.MAX_VER)}
+            )
             self.assertEqual(http_client.BAD_REQUEST, response.status_int)
             self.assertEqual('application/json', response.content_type)
             self.assertIn(invalid_key, response.json['error_message'])
@@ -770,6 +788,14 @@ class TestPost(test_api_base.BaseApiTest):
         error_msg = response.json['error_message']
         self.assertTrue(error_msg)
         self.assertIn(address, error_msg.upper())
+
+    def test_create_port_with_internal_field(self):
+        pdict = post_get_test_port()
+        pdict['internal_info'] = {'a': 'b'}
+        response = self.post_json('/ports', pdict, expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertTrue(response.json['error_message'])
 
 
 @mock.patch.object(rpcapi.ConductorAPI, 'destroy_port')

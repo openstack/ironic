@@ -27,7 +27,8 @@ from ironic.objects import fields as object_fields
 @base.IronicObjectRegistry.register
 class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Add internal_info field
+    VERSION = '1.1'
 
     dbapi = dbapi.get_instance()
 
@@ -38,6 +39,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         'node_id': object_fields.IntegerField(nullable=True),
         'address': object_fields.MACAddressField(nullable=True),
         'extra': object_fields.FlexibleDictField(nullable=True),
+        'internal_info': object_fields.FlexibleDictField(nullable=True),
     }
 
     @staticmethod

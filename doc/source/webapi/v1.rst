@@ -32,6 +32,11 @@ always requests the newest supported API version.
 API Versions History
 --------------------
 
+**1.18**
+
+    Add ``internal_info`` readonly field to the port object, that will be used
+    by ironic to store internal port-related information.
+
 **1.17**
 
     Addition of provision_state verb ``adopt`` which allows an operator

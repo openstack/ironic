@@ -36,6 +36,12 @@ from ironic import objects
 _DEFAULT_RETURN_FIELDS = ('uuid', 'address')
 
 
+def hide_fields_in_newer_versions(obj):
+    # if requested version is < 1.18, hide internal_info field
+    if not api_utils.allow_port_internal_info():
+        obj.internal_info = wsme.Unset
+
+
 class Port(base.APIBase):
     """API representation of a port.
 
@@ -76,6 +82,9 @@ class Port(base.APIBase):
 
     extra = {wtypes.text: types.jsontype}
     """This port's meta data"""
+
+    internal_info = wsme.wsattr({wtypes.text: types.jsontype}, readonly=True)
+    """This port's internal information maintained by ironic"""
 
     node_uuid = wsme.wsproperty(types.uuid, _get_node_uuid, _set_node_uuid,
                                 mandatory=True)
@@ -130,6 +139,8 @@ class Port(base.APIBase):
         if fields is not None:
             api_utils.check_for_invalid_fields(fields, port.as_dict())
 
+        hide_fields_in_newer_versions(port)
+
         return cls._convert_with_links(port, pecan.request.public_url,
                                        fields=fields)
 
@@ -138,6 +149,7 @@ class Port(base.APIBase):
         sample = cls(uuid='27e3153e-d5bf-4b7e-b517-fb518e17f34c',
                      address='fe:54:00:77:07:d9',
                      extra={'foo': 'bar'},
+                     internal_info={},
                      created_at=datetime.datetime.utcnow(),
                      updated_at=datetime.datetime.utcnow())
         # NOTE(lucasagomes): node_uuid getter() method look at the
@@ -150,6 +162,11 @@ class Port(base.APIBase):
 
 class PortPatchType(types.JsonPatchType):
     _api_base = Port
+
+    @staticmethod
+    def internal_attrs():
+        defaults = types.JsonPatchType.internal_attrs()
+        return defaults + ['/internal_info']
 
 
 class PortCollection(collection.Collection):
@@ -187,7 +204,7 @@ class PortsController(rest.RestController):
         'detail': ['GET'],
     }
 
-    invalid_sort_key_list = ['extra']
+    invalid_sort_key_list = ['extra', 'internal_info']
 
     def _get_ports_collection(self, node_ident, address, marker, limit,
                               sort_key, sort_dir, resource_url=None,

@@ -1394,6 +1394,17 @@ class VirtualMediaDeployUtilsTestCase(db_base.DbTestCase):
             address = utils.get_single_nic_with_vif_port_id(task)
             self.assertEqual('aa:bb:cc:dd:ee:ff', address)
 
+    def test_get_single_nic_with_cleaning_vif_port_id(self):
+        obj_utils.create_test_port(
+            self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
+            uuid=uuidutils.generate_uuid(),
+            internal_info={'cleaning_vif_port_id': 'test-vif-A'},
+            driver='iscsi_ilo')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            address = utils.get_single_nic_with_vif_port_id(task)
+            self.assertEqual('aa:bb:cc:dd:ee:ff', address)
+
 
 class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
 
@@ -1741,7 +1752,8 @@ class AgentMethodsTestCase(db_base.DbTestCase):
             delete_mock.assert_called_once_with(mock.ANY, task)
 
         self.ports[0].refresh()
-        self.assertEqual('vif-port-id', self.ports[0].extra['vif_port_id'])
+        self.assertEqual('vif-port-id',
+                         self.ports[0].internal_info['cleaning_vif_port_id'])
 
     def test_prepare_inband_cleaning_ports(self):
         self._test_prepare_inband_cleaning_ports()
@@ -1755,9 +1767,9 @@ class AgentMethodsTestCase(db_base.DbTestCase):
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.delete_cleaning_ports',
                 autospec=True)
     def test_tear_down_inband_cleaning_ports(self, neutron_mock):
-        extra_dict = self.ports[0].extra
-        extra_dict['vif_port_id'] = 'vif-port-id'
-        self.ports[0].extra = extra_dict
+        internal_info = self.ports[0].internal_info
+        internal_info['cleaning_vif_port_id'] = 'vif-port-id-1'
+        self.ports[0].internal_info = internal_info
         self.ports[0].save()
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
@@ -1765,6 +1777,7 @@ class AgentMethodsTestCase(db_base.DbTestCase):
             neutron_mock.assert_called_once_with(mock.ANY, task)
 
         self.ports[0].refresh()
+        self.assertNotIn('cleaning_vif_port_id', self.ports[0].internal_info)
         self.assertNotIn('vif_port_id', self.ports[0].extra)
 
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)

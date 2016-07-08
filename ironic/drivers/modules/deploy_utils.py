@@ -519,7 +519,8 @@ def get_single_nic_with_vif_port_id(task):
               None if it cannot find any port with vif id.
     """
     for port in task.ports:
-        if port.extra.get('vif_port_id'):
+        if (port.internal_info.get('cleaning_vif_port_id') or
+                port.extra.get('vif_port_id')):
             return port.address
 
 
@@ -914,7 +915,7 @@ def prepare_cleaning_ports(task):
 
     This method deletes the cleaning ports currently existing
     for all the ports of the node and then creates a new one
-    for each one of them.  It also adds 'vif_port_id' to port.extra
+    for each one of them. It also adds 'cleaning_vif_port_id' to internal_info
     of each Ironic port, after creating the cleaning ports.
 
     :param task: a TaskManager object containing the node
@@ -932,12 +933,12 @@ def prepare_cleaning_ports(task):
         # Allow to raise if it fails, is caught and handled in conductor
         ports = provider.provider.create_cleaning_ports(task)
 
-        # Add vif_port_id for each of the ports because some boot
+        # Add cleaning_vif_port_id for each of the ports because some boot
         # interfaces expects these to prepare for booting ramdisk.
         for port in task.ports:
-            extra_dict = port.extra
+            internal_info = port.internal_info
             try:
-                extra_dict['vif_port_id'] = ports[port.uuid]
+                internal_info['cleaning_vif_port_id'] = ports[port.uuid]
             except KeyError:
                 # This is an internal error in Ironic.  All DHCP providers
                 # implementing create_cleaning_ports are supposed to
@@ -948,7 +949,7 @@ def prepare_cleaning_ports(task):
                 raise exception.NodeCleaningFailure(
                     node=task.node.uuid, reason=error)
             else:
-                port.extra = extra_dict
+                port.internal_info = internal_info
                 port.save()
 
 
@@ -969,9 +970,18 @@ def tear_down_cleaning_ports(task):
         provider.provider.delete_cleaning_ports(task)
 
         for port in task.ports:
-            if 'vif_port_id' in port.extra:
+            if 'cleaning_vif_port_id' in port.internal_info:
+                internal_info = port.internal_info
+                del internal_info['cleaning_vif_port_id']
+                port.internal_info = internal_info
+                port.save()
+            elif 'vif_port_id' in port.extra:
+                # TODO(vdrok): This piece is left for backwards compatibility,
+                # if ironic was upgraded during cleaning, vif_port_id
+                # containing cleaning neutron port UUID should be cleared,
+                # remove in Ocata
                 extra_dict = port.extra
-                extra_dict.pop('vif_port_id', None)
+                del extra_dict['vif_port_id']
                 port.extra = extra_dict
                 port.save()
 
