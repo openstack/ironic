@@ -111,7 +111,7 @@ def main():
     conn = libvirt.open("qemu:///system")
 
     a = conn.defineXML(libvirt_template)
-    print ("Created machine %s with UUID %s" % (args.name, a.UUIDString()))
+    print("Created machine %s with UUID %s" % (args.name, a.UUIDString()))
 
 if __name__ == '__main__':
     main()
