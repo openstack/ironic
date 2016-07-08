@@ -388,7 +388,7 @@ class NodeStatesController(rest.RestController):
             # Change error code as 404 seems appropriate because RAID is a
             # standard interface and all drivers might not have it.
             e.code = http_client.NOT_FOUND
-            raise e
+            raise
 
     @expose.expose(None, types.uuid_or_name, wtypes.text,
                    status_code=http_client.ACCEPTED)
@@ -599,7 +599,7 @@ class Node(base.APIBase):
                 # Change error code because 404 (NotFound) is inappropriate
                 # response for a POST request to create a Port
                 e.code = http_client.BAD_REQUEST
-                raise e
+                raise
         elif value == wtypes.Unset:
             self._chassis_uuid = wtypes.Unset
 
@@ -907,7 +907,7 @@ class NodeMaintenanceController(rest.RestController):
             topic = pecan.request.rpcapi.get_topic_for(rpc_node)
         except exception.NoValidHost as e:
             e.code = http_client.BAD_REQUEST
-            raise e
+            raise
         pecan.request.rpcapi.update_node(pecan.request.context,
                                          rpc_node, topic=topic)
 
@@ -1240,7 +1240,7 @@ class NodesController(rest.RestController):
             #             list of available drivers and shouldn't request
             #             one that doesn't exist.
             e.code = http_client.BAD_REQUEST
-            raise e
+            raise
 
         if node.name != wtypes.Unset and node.name is not None:
             error_msg = _("Cannot create node with invalid name '%(name)s'")
@@ -1309,7 +1309,7 @@ class NodesController(rest.RestController):
             #             list of available drivers and shouldn't request
             #             one that doesn't exist.
             e.code = http_client.BAD_REQUEST
-            raise e
+            raise
         self._check_driver_changed_and_console_enabled(rpc_node, node_ident)
         new_node = pecan.request.rpcapi.update_node(
             pecan.request.context, rpc_node, topic)
@@ -1332,7 +1332,7 @@ class NodesController(rest.RestController):
             topic = pecan.request.rpcapi.get_topic_for(rpc_node)
         except exception.NoValidHost as e:
             e.code = http_client.BAD_REQUEST
-            raise e
+            raise
 
         pecan.request.rpcapi.destroy_node(pecan.request.context,
                                           rpc_node.uuid, topic)

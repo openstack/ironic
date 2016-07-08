@@ -405,7 +405,7 @@ class Connection(api.Connection):
                     instance_uuid=values['instance_uuid'],
                     node=node_id)
             else:
-                raise e
+                raise
 
     def _do_update_node(self, node_id, values):
         with _session_for_write():
@@ -600,7 +600,7 @@ class Connection(api.Connection):
                     raise exception.PortgroupMACAlreadyExists(
                         mac=values['address'])
                 else:
-                    raise exc
+                    raise
             return ref
 
     def destroy_portgroup(self, portgroup_id):
