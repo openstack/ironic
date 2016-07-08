@@ -82,6 +82,9 @@ IRONIC_HW_ARCH=${IRONIC_HW_ARCH:-x86_64}
 # *_ucs:
 #   <BMC address> <MAC address> <BMC username> <BMC password> <UCS service profile>
 #
+# *_oneview:
+#   <Server Hardware URI> <Server Hardware Type URI> <Enclosure Group URI> <Server Profile Template URI> <MAC of primary connection>
+#
 # IRONIC_IPMIINFO_FILE is deprecated, please use IRONIC_HWINFO_FILE. IRONIC_IPMIINFO_FILE will be removed in Ocata.
 IRONIC_IPMIINFO_FILE=${IRONIC_IPMIINFO_FILE:-""}
 if [ ! -z "$IRONIC_IPMIINFO_FILE" ]; then
@@ -182,7 +185,7 @@ IRONIC_DIB_RAMDISK_OPTIONS=${IRONIC_DIB_RAMDISK_OPTIONS:-'ubuntu'}
 # are ``pxe_ssh``, ``pxe_ipmitool``, ``agent_ssh`` and ``agent_ipmitool``.
 #
 # Additional valid choices if IRONIC_IS_HARDWARE == true are:
-# ``pxe_iscsi_cimc``, ``pxe_agent_cimc``, ``pxe_ucs`` and ``pxe_cimc``.
+# ``pxe_iscsi_cimc``, ``pxe_agent_cimc``, ``pxe_ucs``, ``pxe_cimc`` and ``*_pxe_oneview``
 IRONIC_DEPLOY_DRIVER=${IRONIC_DEPLOY_DRIVER:-pxe_ssh}
 
 # Support entry points installation of console scripts
@@ -276,6 +279,11 @@ function is_deployed_by_cimc {
 
 function is_deployed_by_ucs {
     [[ -z "${IRONIC_DEPLOY_DRIVER##*_ucs}" ]] && return 0
+    return 1
+}
+
+function is_deployed_by_oneview {
+    [[ -z "${IRONIC_DEPLOY_DRIVER##*_oneview}" ]] && return 0
     return 1
 }
 
@@ -892,6 +900,22 @@ function enroll_nodes {
                 ucs_service_profile=$(echo $hardware_info |awk '{print $5}')
                 node_options+=" -i ucs_address=$bmc_address -i ucs_password=$bmc_passwd\
                     -i ucs_username=$bmc_username -i ucs_service_profile=$ucs_service_profile"
+            elif is_deployed_by_oneview; then
+                local server_hardware_uri
+                server_hardware_uri=$(echo $hardware_info |awk  '{print $1}')
+                local server_hardware_type_uri
+                server_hardware_type_uri=$(echo $hardware_info |awk '{print $2}')
+                local enclosure_group_uri
+                enclosure_group_uri=$(echo $hardware_info |awk '{print $3}')
+                local server_profile_template_uri
+                server_profile_template_uri=$(echo $hardware_info |awk '{print $4}')
+                mac_address=$(echo $hardware_info |awk '{print $5}')
+
+                node_options+=" -i server_hardware_uri=$server_hardware_uri"
+                node_options+=" -p capabilities="
+                node_options+="server_hardware_type_uri:$server_hardware_type_uri,"
+                node_options+="enclosure_group_uri:$enclosure_group_uri,"
+                node_options+="server_profile_template_uri:$server_profile_template_uri"
             fi
         fi
 
