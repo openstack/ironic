@@ -156,11 +156,11 @@ class DracManagement(base.ManagementInterface):
         :param task: a TaskManager instance containing the node to act on.
         :raises: DracOperationError on an error from python-dracclient.
         :returns: a dictionary containing:
+
             :boot_device: the boot device, one of
                 :mod:`ironic.common.boot_devices` or None if it is unknown.
-            :persistent: whether the boot device will persist to all
-                future boots or not, None if it is unknown.
-
+            :persistent: whether the boot device will persist to all future
+                boots or not, None if it is unknown.
         """
         node = task.node
 
@@ -214,6 +214,5 @@ class DracManagement(base.ManagementInterface):
         :raises: FailedToParseSensorData when parsing sensor data fails.
         :returns: returns a consistent format dict of sensor data grouped by
                   sensor type, which can be processed by Ceilometer.
-
         """
         raise NotImplementedError()

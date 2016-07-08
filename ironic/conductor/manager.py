@@ -2146,7 +2146,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         :param args: The positional arguments to the action method
         :param kwargs: The keyword arguments to the action method
         :returns: The result of the action method, which may (or may not)
-        be an instance of the implementing VersionedObject class.
+                  be an instance of the implementing VersionedObject class.
         """
         objclass = objects_base.IronicObject.obj_class_from_name(
             objname, object_versions[objname])

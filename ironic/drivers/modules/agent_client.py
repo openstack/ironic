@@ -139,8 +139,8 @@ class AgentClient(object):
         :param iqn: iSCSI target IQN
         :param portal_port: iSCSI portal port
         :param wipe_disk_metadata: True if the agent should wipe first the
-        disk magic strings like the partition table, RAID or filesystem
-        signature.
+                                   disk magic strings like the partition
+                                   table, RAID or filesystem signature.
         """
         params = {'iqn': iqn}
         # This is to workaround passing default values to an old ramdisk
