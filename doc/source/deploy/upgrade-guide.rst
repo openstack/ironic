@@ -19,18 +19,19 @@ In-band Inspection
 
 If you used in-band inspection with **ironic-discoverd**, you have to install
 **python-ironic-inspector-client** during the upgrade. This package contains a
-client module for in-band inspection service, which was previously part of
-**ironic-discoverd** package. Ironic Liberty supports **ironic-discoverd**
-service, but does not support its in-tree client module. Please refer to
+client module for the in-band inspection service, which was previously part of
+the **ironic-discoverd** package. Ironic Liberty supports the
+**ironic-discoverd** service, but does not support its in-tree client module.
+Please refer to
 `ironic-inspector version support matrix
 <http://docs.openstack.org/developer/ironic-inspector/install.html#version-support-matrix>`_
-for details on which Ironic version can work with which
-**ironic-inspector**/**ironic-discoverd** version.
+for details on which Ironic versions can work with which
+**ironic-inspector**/**ironic-discoverd** versions.
 
 It's also highly recommended that you switch to using **ironic-inspector**,
 which is a newer (and compatible on API level) version of the same service.
 
-The discoverd to inspector upgrade procedure:
+The discoverd to inspector upgrade procedure is as follows:
 
 #. Install **ironic-inspector** on the machine where you have
    **ironic-discoverd** (usually the same as conductor).
@@ -40,13 +41,13 @@ The discoverd to inspector upgrade procedure:
    `example.conf
    <https://git.openstack.org/cgit/openstack/ironic-inspector/tree/example.conf>`_.
 
-   The file name is provided on command line when starting
+   The file name is provided on the command line when starting
    **ironic-discoverd**, and the previously recommended default was
    ``/etc/ironic-discoverd/discoverd.conf``. In this case, for the sake of
    consistency it's recommended you move the configuration file to
    ``/etc/ironic-inspector/inspector.conf``.
 
-#. Shutdown **ironic-discoverd**, start **ironic-inspector**.
+#. Shutdown **ironic-discoverd**, and start **ironic-inspector**.
 
 #. During upgrade of each conductor instance:
 
@@ -78,8 +79,8 @@ your Nova and Ironic services are as follows:
   nova-compute if necessary.
 
 Note that during the period between Nova's upgrade and Ironic's upgrades,
-instances can still be provisioned to nodes, however, any attempt by users
-to specify a config drive for an instance will cause error until Ironic's
+instances can still be provisioned to nodes. However, any attempt by users to
+specify a config drive for an instance will cause an error until Ironic's
 upgrade has completed.
 
 Cleaning
