@@ -126,7 +126,8 @@ class OneViewManagement(base.ManagementInterface):
         try:
             device_to_oneview = BOOT_DEVICE_MAPPING_TO_OV.get(device)
             self.oneview_client.set_boot_device(oneview_info,
-                                                device_to_oneview)
+                                                device_to_oneview,
+                                                onetime=not persistent)
         except oneview_exceptions.OneViewException as oneview_exc:
             msg = (_(
                 "Error setting boot device on OneView. Error: %s")

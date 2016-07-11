@@ -134,7 +134,21 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
             self.driver.management.set_boot_device(task, boot_devices.PXE)
         oneview_client.set_boot_device.assert_called_once_with(
             self.info,
-            management.BOOT_DEVICE_MAPPING_TO_OV[boot_devices.PXE]
+            management.BOOT_DEVICE_MAPPING_TO_OV[boot_devices.PXE],
+            onetime=True
+        )
+
+    def test_set_boot_device_persistent(self, mock_get_ov_client):
+        oneview_client = mock_get_ov_client()
+        self.driver.management.oneview_client = oneview_client
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.driver.management.set_boot_device(task, boot_devices.PXE,
+                                                   persistent=True)
+        oneview_client.set_boot_device.assert_called_once_with(
+            self.info,
+            management.BOOT_DEVICE_MAPPING_TO_OV[boot_devices.PXE],
+            onetime=False
         )
 
     def test_set_boot_device_invalid_device(self, mock_get_ov_client):
