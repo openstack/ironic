@@ -4630,10 +4630,6 @@ class ManagerCheckDeployingStatusTestCase(mgr_utils.ServiceSetUpMixin,
             driver='fake', provision_state=states.AVAILABLE,
             target_provision_state=states.NOSTATE)
 
-        self.expected_filter = {
-            'provision_state': 'deploying', 'reserved': False,
-            'maintenance': False}
-
     def test__check_deploying_status(self, mock_off_cond, mock_mapped,
                                      mock_fail_if):
         mock_off_cond.return_value = ['fake-conductor']
