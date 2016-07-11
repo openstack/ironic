@@ -483,10 +483,6 @@ class PasswordFileFailedToCreate(IronicException):
     _msg_fmt = _("Failed to create the password file. %(error)s")
 
 
-class IBootOperationError(IronicException):
-    pass
-
-
 class IloOperationError(IronicException):
     _msg_fmt = _("%(operation)s failed, error: %(error)s")
 
