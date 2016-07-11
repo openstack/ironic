@@ -1410,12 +1410,12 @@
 # (list value)
 #hash_algorithms = md5
 
-# Authentication type to load (unknown value)
+# Authentication type to load (string value)
 # Deprecated group/name - [keystone_authtoken]/auth_plugin
 #auth_type = <None>
 
 # Config Section from which to load plugin specific options
-# (unknown value)
+# (string value)
 #auth_section = <None>
 
 
