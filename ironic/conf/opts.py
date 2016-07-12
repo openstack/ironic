@@ -16,9 +16,7 @@ import ironic.api
 import ironic.api.app
 import ironic.common.driver_factory
 import ironic.common.exception
-import ironic.common.glance_service.v2.image_service
 import ironic.common.hash_ring
-import ironic.common.image_service
 import ironic.common.images
 import ironic.common.neutron
 import ironic.common.paths
@@ -65,9 +63,7 @@ _opts = [
     ('database', ironic.conf.database.opts),
     ('deploy', ironic.drivers.modules.deploy_utils.deploy_opts),
     ('dhcp', ironic.conf.dhcp.opts),
-    ('glance', itertools.chain(
-        ironic.common.glance_service.v2.image_service.glance_opts,
-        ironic.common.image_service.glance_opts)),
+    ('glance', ironic.conf.glance.opts),
     ('iboot', ironic.conf.iboot.opts),
     ('ilo', ironic.conf.ilo.opts),
     ('inspector', ironic.conf.inspector.opts),
