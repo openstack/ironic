@@ -223,6 +223,11 @@ IRONIC_VBMC_PORT_RANGE_START=${IRONIC_VBMC_PORT_RANGE_START:-6230}
 IRONIC_VBMC_CONFIG_FILE=${IRONIC_VBMC_CONFIG_FILE:-$HOME/.vbmc/virtualbmc.conf}
 IRONIC_VBMC_LOGFILE=${IRONIC_VBMC_LOGFILE:-$IRONIC_VM_LOG_DIR/virtualbmc.log}
 
+# To explicitly enable configuration of Glance with Swift
+# (which is required by some vendor drivers), set this
+# variable to true.
+IRONIC_CONFIGURE_GLANCE_WITH_SWIFT=$(trueorfalse False IRONIC_CONFIGURE_GLANCE_WITH_SWIFT)
+
 # The path to the libvirt hooks directory, used if IRONIC_VM_LOG_ROTATE is True
 IRONIC_LIBVIRT_HOOKS_PATH=${IRONIC_LIBVIRT_HOOKS_PATH:-/etc/libvirt/hooks/}
 
@@ -304,6 +309,11 @@ function is_deployed_by_oneview {
 
 function is_deployed_by_ilo {
     [[ -z "${IRONIC_DEPLOY_DRIVER##*_ilo}" ]] && return 0
+    return 1
+}
+
+function is_glance_configuration_required {
+    is_deployed_by_agent || [[ "$IRONIC_CONFIGURE_GLANCE_WITH_SWIFT" == "True" ]] && return 0
     return 1
 }
 
@@ -562,11 +572,15 @@ function configure_ironic_conductor {
     # Set these options for scenarios in which the agent fetches the image
     # directly from glance, and don't set them where the image is pushed
     # over iSCSI.
-    if is_deployed_by_agent; then
+    if is_glance_configuration_required; then
         if [[ "$SWIFT_ENABLE_TEMPURLS" == "True" ]] ; then
             iniset $IRONIC_CONF_FILE glance swift_temp_url_key $SWIFT_TEMPURL_KEY
         else
-            die $LINENO "SWIFT_ENABLE_TEMPURLS must be True to use agent_* driver in Ironic."
+            die $LINENO "SWIFT_ENABLE_TEMPURLS must be True. This is " \
+                        "required either because IRONIC_DEPLOY_DRIVER was " \
+                        "set to some agent_* driver OR configuration of " \
+                        "Glance with Swift was explicitly requested with " \
+                        "IRONIC_CONFIGURE_GLANCE_WITH_SWIFT=True"
         fi
         iniset $IRONIC_CONF_FILE glance swift_endpoint_url http://${HOST_IP}:${SWIFT_DEFAULT_BIND_PORT:-8080}
         iniset $IRONIC_CONF_FILE glance swift_api_version v1
@@ -575,6 +589,9 @@ function configure_ironic_conductor {
         iniset $IRONIC_CONF_FILE glance swift_account AUTH_${tenant_id}
         iniset $IRONIC_CONF_FILE glance swift_container glance
         iniset $IRONIC_CONF_FILE glance swift_temp_url_duration 3600
+    fi
+
+    if is_deployed_by_agent; then
         iniset $IRONIC_CONF_FILE agent heartbeat_timeout 30
     fi
 
