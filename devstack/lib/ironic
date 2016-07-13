@@ -229,6 +229,12 @@ IRONIC_TERMINAL_CERT_DIR=${IRONIC_TERMINAL_CERT_DIR:-$IRONIC_DATA_DIR/terminal_c
 # IRONIC_{VM,HW}_NODES_FILE
 IRONIC_USE_LINK_LOCAL=$(trueorfalse False IRONIC_USE_LINK_LOCAL)
 
+# This flag is used to specify enabled network drivers
+IRONIC_ENABLED_NETWORK_INTERFACES=${IRONIC_ENABLED_NETWORK_INTERFACES:-}
+
+# This is the network interface to use for a node
+IRONIC_NETWORK_INTERFACE=${IRONIC_NETWORK_INTERFACE:-}
+
 # get_pxe_boot_file() - Get the PXE/iPXE boot file path
 function get_pxe_boot_file {
     local relpath=syslinux/pxelinux.0
@@ -570,6 +576,10 @@ function configure_ironic_conductor {
 
     if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
         iniset $IRONIC_CONF_FILE neutron port_setup_delay 15
+    fi
+
+    if [[ -n "$IRONIC_ENABLED_NETWORK_INTERFACES" ]]; then
+        iniset $IRONIC_CONF_FILE DEFAULT enabled_network_interfaces $IRONIC_ENABLED_NETWORK_INTERFACES
     fi
 }
 
@@ -948,6 +958,17 @@ function enroll_nodes {
         # In case we using portgroups, we should API version that support them.
         # Othervise API will return 406 ERROR
         ironic $ironic_api_version port-create --address $mac_address --node $node_id $llc_opts
+
+        # NOTE(vsaienko) use node-update instead of specifying network_interface
+        # during node creation. If node is added with latest version of API it
+        # will NOT go to available state automatically.
+        if [[ -n "${IRONIC_NETWORK_INTERFACE}" ]]; then
+            local n_id
+            ironic node-set-maintenance $node_id true
+            n_id=$(ironic $ironic_api_version node-update $node_id add network_interface=$IRONIC_NETWORK_INTERFACE)
+            die_if_not_set $LINENO n_id "Failed to update network interface for node"
+            ironic node-set-maintenance $node_id false
+        fi
 
         total_nodes=$((total_nodes+1))
         total_cpus=$((total_cpus+$ironic_node_cpu))
