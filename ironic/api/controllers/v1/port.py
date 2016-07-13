@@ -40,6 +40,11 @@ def hide_fields_in_newer_versions(obj):
     # if requested version is < 1.18, hide internal_info field
     if not api_utils.allow_port_internal_info():
         obj.internal_info = wsme.Unset
+    # if requested version is < 1.19, hide local_link_connection and
+    # pxe_enabled fields
+    if not api_utils.allow_port_advanced_net_fields():
+        obj.pxe_enabled = wsme.Unset
+        obj.local_link_connection = wsme.Unset
 
 
 class Port(base.APIBase):
@@ -89,6 +94,12 @@ class Port(base.APIBase):
     node_uuid = wsme.wsproperty(types.uuid, _get_node_uuid, _set_node_uuid,
                                 mandatory=True)
     """The UUID of the node this port belongs to"""
+
+    pxe_enabled = types.boolean
+    """Indicates whether pxe is enabled or disabled on the node."""
+
+    local_link_connection = types.locallinkconnectiontype
+    """The port binding profile for each port"""
 
     links = wsme.wsattr([link.Link], readonly=True)
     """A list containing a self link and associated port links"""
@@ -151,7 +162,11 @@ class Port(base.APIBase):
                      extra={'foo': 'bar'},
                      internal_info={},
                      created_at=datetime.datetime.utcnow(),
-                     updated_at=datetime.datetime.utcnow())
+                     updated_at=datetime.datetime.utcnow(),
+                     pxe_enabled=True,
+                     local_link_connection={
+                         'switch_info': 'host', 'port_id': 'Gig0/1',
+                         'switch_id': 'aa:bb:cc:dd:ee:ff'})
         # NOTE(lucasagomes): node_uuid getter() method look at the
         # _node_uuid variable
         sample._node_uuid = '7ae81bb3-dec3-4289-8d6c-da80bd8001ae'
@@ -204,7 +219,9 @@ class PortsController(rest.RestController):
         'detail': ['GET'],
     }
 
-    invalid_sort_key_list = ['extra', 'internal_info']
+    invalid_sort_key_list = ['extra', 'internal_info', 'local_link_connection']
+
+    advanced_net_fields = ['pxe_enabled', 'local_link_connection']
 
     def _get_ports_collection(self, node_ident, address, marker, limit,
                               sort_key, sort_dir, resource_url=None,
@@ -285,8 +302,13 @@ class PortsController(rest.RestController):
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
+        :raises: NotAcceptable
         """
         api_utils.check_allow_specify_fields(fields)
+        if (fields and not api_utils.allow_port_advanced_net_fields() and
+                set(fields).intersection(self.advanced_net_fields)):
+            raise exception.NotAcceptable()
+
         if fields is None:
             fields = _DEFAULT_RETURN_FIELDS
 
@@ -322,6 +344,7 @@ class PortsController(rest.RestController):
         :param limit: maximum number of resources to return in a single result.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
+        :raises: NotAcceptable, HTTPNotFound
         """
         if not node_uuid and node:
             # We're invoking this interface using positional notation, or
@@ -348,6 +371,7 @@ class PortsController(rest.RestController):
         :param port_uuid: UUID of a port.
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
+        :raises: NotAcceptable
         """
         if self.from_nodes:
             raise exception.OperationNotPermitted()
@@ -362,12 +386,19 @@ class PortsController(rest.RestController):
         """Create a new port.
 
         :param port: a port within the request body.
+        :raises: NotAcceptable
         """
         if self.from_nodes:
             raise exception.OperationNotPermitted()
 
+        pdict = port.as_dict()
+        if not api_utils.allow_port_advanced_net_fields():
+            if set(pdict).intersection(self.advanced_net_fields):
+                raise exception.NotAcceptable()
+
         new_port = objects.Port(pecan.request.context,
-                                **port.as_dict())
+                                **pdict)
+
         new_port.create()
         # Set the HTTP Location Header
         pecan.response.location = link.build_url('ports', new_port.uuid)
@@ -380,9 +411,16 @@ class PortsController(rest.RestController):
 
         :param port_uuid: UUID of a port.
         :param patch: a json PATCH document to apply to this port.
+        :raises: NotAcceptable
         """
         if self.from_nodes:
             raise exception.OperationNotPermitted()
+        if not api_utils.allow_port_advanced_net_fields():
+            for field in self.advanced_net_fields:
+                field_path = '/%s' % field
+                if (api_utils.get_patch_values(patch, field_path) or
+                        api_utils.is_path_removed(patch, field_path)):
+                    raise exception.NotAcceptable()
 
         rpc_port = objects.Port.get_by_uuid(pecan.request.context, port_uuid)
         try:

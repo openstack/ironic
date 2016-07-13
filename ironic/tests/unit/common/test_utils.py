@@ -385,6 +385,14 @@ class GenericUtilsTestCase(base.TestCase):
         self.assertFalse(utils.is_valid_mac("AA BB CC DD EE FF"))
         self.assertFalse(utils.is_valid_mac("AA-BB-CC-DD-EE-FF"))
 
+    def test_is_valid_datapath_id(self):
+        self.assertTrue(utils.is_valid_datapath_id("525400cf2d319fdf"))
+        self.assertTrue(utils.is_valid_datapath_id("525400CF2D319FDF"))
+        self.assertFalse(utils.is_valid_datapath_id("52"))
+        self.assertFalse(utils.is_valid_datapath_id("52:54:00:cf:2d:31"))
+        self.assertFalse(utils.is_valid_datapath_id("notadatapathid00"))
+        self.assertFalse(utils.is_valid_datapath_id("5525400CF2D319FDF"))
+
     def test_is_hostname_safe(self):
         self.assertTrue(utils.is_hostname_safe('spam'))
         self.assertFalse(utils.is_hostname_safe('spAm'))
@@ -455,6 +463,15 @@ class GenericUtilsTestCase(base.TestCase):
             m_mock.return_value = True
             self.assertEqual(mac.lower(),
                              utils.validate_and_normalize_mac(mac))
+
+    def test_validate_and_normalize_datapath_id(self):
+        datapath_id = 'AA:BB:CC:DD:EE:FF'
+        with mock.patch.object(utils, 'is_valid_datapath_id',
+                               autospec=True) as m_mock:
+            m_mock.return_value = True
+            self.assertEqual(datapath_id.lower(),
+                             utils.validate_and_normalize_datapath_id(
+                                 datapath_id))
 
     def test_validate_and_normalize_mac_invalid_format(self):
         with mock.patch.object(utils, 'is_valid_mac', autospec=True) as m_mock:

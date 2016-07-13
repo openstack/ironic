@@ -99,6 +99,20 @@ def get_patch_values(patch, path):
             if p['path'] == path and p['op'] != 'remove']
 
 
+def is_path_removed(patch, path):
+    """Returns whether the patch includes removal of the path (or subpath of).
+
+    :param patch: HTTP PATCH request body.
+    :param path: the path to check.
+    :returns: True if path or subpath being removed, False otherwise.
+    """
+    path = path.rstrip('/')
+    for p in patch:
+        if ((p['path'] == path or p['path'].startswith(path + '/')) and
+                p['op'] == 'remove'):
+            return True
+
+
 def allow_node_logical_names():
     # v1.5 added logical name aliases
     return pecan.request.version.minor >= versions.MINOR_5_NODE_NAME
@@ -297,6 +311,15 @@ def allow_port_internal_info():
     """
     return (pecan.request.version.minor >=
             versions.MINOR_18_PORT_INTERNAL_INFO)
+
+
+def allow_port_advanced_net_fields():
+    """Check if we should return local_link_connection and pxe_enabled fields.
+
+    Version 1.19 of the API added support for these new fields in port object.
+    """
+    return (pecan.request.version.minor >=
+            versions.MINOR_19_PORT_ADVANCED_NET_FIELDS)
 
 
 def get_controller_reserved_names(cls):

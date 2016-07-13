@@ -82,6 +82,31 @@ class TestApiUtils(base.TestCase):
         values = utils.get_patch_values(patch, path)
         self.assertEqual(['node-x', 'node-y'], values)
 
+    def test_is_path_removed_success(self):
+        patch = [{'path': '/name', 'op': 'remove'}]
+        path = '/name'
+        value = utils.is_path_removed(patch, path)
+        self.assertTrue(value)
+
+    def test_is_path_removed_subpath_success(self):
+        patch = [{'path': '/local_link_connection/switch_id', 'op': 'remove'}]
+        path = '/local_link_connection'
+        value = utils.is_path_removed(patch, path)
+        self.assertTrue(value)
+
+    def test_is_path_removed_similar_subpath(self):
+        patch = [{'path': '/local_link_connection_info/switch_id',
+                  'op': 'remove'}]
+        path = '/local_link_connection'
+        value = utils.is_path_removed(patch, path)
+        self.assertFalse(value)
+
+    def test_is_path_removed_replace(self):
+        patch = [{'path': '/name', 'op': 'replace', 'value': 'node-x'}]
+        path = '/name'
+        value = utils.is_path_removed(patch, path)
+        self.assertFalse(value)
+
     def test_check_for_invalid_fields(self):
         requested = ['field_1', 'field_3']
         supported = ['field_1', 'field_2', 'field_3']
@@ -199,6 +224,13 @@ class TestApiUtils(base.TestCase):
         self.assertTrue(utils.allow_port_internal_info())
         mock_request.version.minor = 17
         self.assertFalse(utils.allow_port_internal_info())
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_allow_multitenancy_fields(self, mock_request):
+        mock_request.version.minor = 19
+        self.assertTrue(utils.allow_port_advanced_net_fields())
+        mock_request.version.minor = 18
+        self.assertFalse(utils.allow_port_advanced_net_fields())
 
 
 class TestNodeIdent(base.TestCase):

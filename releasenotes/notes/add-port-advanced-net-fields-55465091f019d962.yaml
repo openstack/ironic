@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    API version is bumped to 1.19, ``local_link_connection`` and
+    ``pxe_enabled`` fields were added to a Port:
+
+    * ``pxe_enabled`` indicates whether PXE is enabled for the port.
+    * ``local_link_connection`` contains the port binding profile.
