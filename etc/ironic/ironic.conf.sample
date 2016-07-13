@@ -1518,11 +1518,15 @@
 #auth_strategy = keystone
 
 # Neutron network UUID for the ramdisk to be booted into for
-# cleaning nodes. Required if cleaning (either automatic or
-# manual) is run for flat network interface, and, if DHCP
-# providers are still being used, for neutron DHCP provider.
-# (string value)
+# cleaning nodes. Required for "neutron" network interface. It
+# is also required if cleaning nodes when using "flat" network
+# interface or "neutron" DHCP provider. (string value)
 #cleaning_network_uuid = <None>
+
+# Neutron network UUID for the ramdisk to be booted into for
+# provisioning nodes. Required for "neutron" network
+# interface. (string value)
+#provisioning_network_uuid = <None>
 
 
 [oneview]

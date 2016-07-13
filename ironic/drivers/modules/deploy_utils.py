@@ -518,8 +518,12 @@ def get_single_nic_with_vif_port_id(task):
     :returns: MAC address of the port connected to deployment network.
               None if it cannot find any port with vif id.
     """
+    # NOTE(vdrok): We are booting the node only in one network at a time,
+    # and presence of cleaning_vif_port_id means we're doing cleaning, of
+    # provisioning_vif_port_id - provisioning. Otherwise it's a tenant network
     for port in task.ports:
         if (port.internal_info.get('cleaning_vif_port_id') or
+                port.internal_info.get('provisioning_vif_port_id') or
                 port.extra.get('vif_port_id')):
             return port.address
 

@@ -95,15 +95,21 @@ class TestNetwork(db_base.DbTestCase):
             result = network.get_node_vif_ids(task)
         self.assertEqual(expected, result)
 
-    def test_get_node_vif_ids_during_cleaning(self):
+    def _test_get_node_vif_ids_multitenancy(self, int_info_key):
         port = db_utils.create_test_port(
             node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
-            internal_info={'cleaning_vif_port_id': 'test-vif-A'})
+            internal_info={int_info_key: 'test-vif-A'})
         portgroup = db_utils.create_test_portgroup(
             node_id=self.node.id, address='dd:ee:ff:aa:bb:cc',
-            internal_info={'cleaning_vif_port_id': 'test-vif-B'})
-        expected = {'portgroups': {portgroup.uuid: 'test-vif-B'},
-                    'ports': {port.uuid: 'test-vif-A'}}
+            internal_info={int_info_key: 'test-vif-B'})
+        expected = {'ports': {port.uuid: 'test-vif-A'},
+                    'portgroups': {portgroup.uuid: 'test-vif-B'}}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             result = network.get_node_vif_ids(task)
         self.assertEqual(expected, result)
+
+    def test_get_node_vif_ids_during_cleaning(self):
+        self._test_get_node_vif_ids_multitenancy('cleaning_vif_port_id')
+
+    def test_get_node_vif_ids_during_provisioning(self):
+        self._test_get_node_vif_ids_multitenancy('provisioning_vif_port_id')

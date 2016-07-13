@@ -322,31 +322,21 @@ class TestNeutron(db_base.DbTestCase):
         fake_client.show_port.assert_called_once_with(port_id)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_fixed_ip_address')
-    def test__get_port_ip_address(self, mock_gfia):
+    def _test__get_port_ip_address(self, mock_gfia, network):
         expected = "192.168.1.3"
-        port = object_utils.create_test_port(self.context,
-                                             node_id=self.node.id,
-                                             address='aa:bb:cc:dd:ee:ff',
-                                             uuid=uuidutils.generate_uuid(),
-                                             extra={'vif_port_id':
-                                                    'test-vif-A'},
-                                             driver='fake')
-        mock_gfia.return_value = expected
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            api = dhcp_factory.DHCPFactory().provider
-            result = api._get_port_ip_address(task, port,
-                                              mock.sentinel.client)
-        self.assertEqual(expected, result)
-        mock_gfia.assert_called_once_with('test-vif-A', mock.sentinel.client)
-
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_fixed_ip_address')
-    def test__get_port_ip_address_cleaning(self, mock_gfia):
-        expected = "192.168.1.3"
+        fake_vif = 'test-vif-%s' % network
         port = object_utils.create_test_port(
             self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
             uuid=uuidutils.generate_uuid(),
-            internal_info={'cleaning_vif_port_id': 'test-vif-A'})
+            extra={'vif_port_id': fake_vif} if network == 'tenant' else {},
+            internal_info={
+                'cleaning_vif_port_id': (fake_vif if network == 'cleaning'
+                                         else None),
+                'provisioning_vif_port_id': (fake_vif
+                                             if network == 'provisioning'
+                                             else None),
+            }
+        )
         mock_gfia.return_value = expected
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
@@ -354,7 +344,16 @@ class TestNeutron(db_base.DbTestCase):
             result = api._get_port_ip_address(task, port,
                                               mock.sentinel.client)
         self.assertEqual(expected, result)
-        mock_gfia.assert_called_once_with('test-vif-A', mock.sentinel.client)
+        mock_gfia.assert_called_once_with(fake_vif, mock.sentinel.client)
+
+    def test__get_port_ip_address_tenant(self):
+        self._test__get_port_ip_address(network='tenant')
+
+    def test__get_port_ip_address_cleaning(self):
+        self._test__get_port_ip_address(network='cleaning')
+
+    def test__get_port_ip_address_provisioning(self):
+        self._test__get_port_ip_address(network='provisioning')
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_fixed_ip_address')
     def test__get_port_ip_address_for_portgroup(self, mock_gfia):

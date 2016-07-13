@@ -119,7 +119,9 @@ class TestCase(testtools.TestCase):
                     tempdir=tempfile.tempdir)
         self.config(cleaning_network_uuid=uuidutils.generate_uuid(),
                     group='neutron')
-        self.config(enabled_network_interfaces=['flat', 'noop'])
+        self.config(provisioning_network_uuid=uuidutils.generate_uuid(),
+                    group='neutron')
+        self.config(enabled_network_interfaces=['flat', 'noop', 'neutron'])
         self.set_defaults(host='fake-mini',
                           debug=True)
         self.set_defaults(connection="sqlite://",

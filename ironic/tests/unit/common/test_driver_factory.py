@@ -110,7 +110,7 @@ class NetworkInterfaceFactoryTestCase(db_base.DbTestCase):
             self.assertEqual(extension_mgr['flat'].obj, task.driver.network)
         self.assertEqual('ironic.hardware.interfaces.network',
                          factory._entrypoint_name)
-        self.assertEqual(['flat', 'noop'],
+        self.assertEqual(['flat', 'neutron', 'noop'],
                          sorted(factory._enabled_driver_list))
 
     def test_build_driver_for_task_default_is_none(self):

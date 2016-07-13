@@ -51,10 +51,14 @@ neutron_opts = [
                       'should only be used for testing.')),
     cfg.StrOpt('cleaning_network_uuid',
                help=_('Neutron network UUID for the ramdisk to be booted '
-                      'into for cleaning nodes. Required if cleaning (either '
-                      'automatic or manual) is run for flat network interface,'
-                      ' and, if DHCP providers are still being used, for '
-                      'neutron DHCP provider.'))
+                      'into for cleaning nodes. Required for "neutron" '
+                      'network interface. It is also required if cleaning '
+                      'nodes when using "flat" network interface or "neutron" '
+                      'DHCP provider.')),
+    cfg.StrOpt('provisioning_network_uuid',
+               help=_('Neutron network UUID for the ramdisk to be booted '
+                      'into for provisioning nodes. Required for "neutron" '
+                      'network interface.')),
 ]
 
 CONF.register_opts(neutron_opts, group='neutron')
