@@ -768,6 +768,7 @@ class BaseAgentVendor(base.VendorInterface):
                         {'node_uuid': node.uuid,
                          'timeout': (wait * (attempts - 1)) / 1000,
                          'error': e})
+                    manager_utils.node_power_action(task, states.POWER_OFF)
             else:
                 # Flush the file system prior to hard rebooting the node
                 result = self._client.sync(node)
@@ -781,8 +782,12 @@ class BaseAgentVendor(base.VendorInterface):
                         'Failed to flush the file system prior to hard '
                         'rebooting the node %(node)s. Error: %(error)s'),
                         {'node': node.uuid, 'error': error})
+                manager_utils.node_power_action(task, states.POWER_OFF)
 
-            manager_utils.node_power_action(task, states.REBOOT)
+            task.driver.network.remove_provisioning_network(task)
+            task.driver.network.configure_tenant_networks(task)
+
+            manager_utils.node_power_action(task, states.POWER_ON)
         except Exception as e:
             msg = (_('Error rebooting node %(node)s after deploy. '
                      'Error: %(error)s') %
