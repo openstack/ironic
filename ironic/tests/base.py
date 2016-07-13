@@ -32,6 +32,7 @@ import fixtures
 from oslo_config import cfg
 from oslo_config import fixture as config_fixture
 from oslo_log import log as logging
+from oslo_utils import uuidutils
 import testtools
 
 from ironic.common import config as ironic_config
@@ -43,6 +44,7 @@ from ironic.tests.unit import policy_fixture
 
 CONF = cfg.CONF
 CONF.import_opt('host', 'ironic.common.service')
+CONF.import_opt('cleaning_network_uuid', 'ironic.common.neutron', 'neutron')
 logging.register_options(CONF)
 logging.setup(CONF, 'ironic')
 
@@ -115,6 +117,9 @@ class TestCase(testtools.TestCase):
         self.config(use_stderr=False,
                     fatal_exception_format_errors=True,
                     tempdir=tempfile.tempdir)
+        self.config(cleaning_network_uuid=uuidutils.generate_uuid(),
+                    group='neutron')
+        self.config(enabled_network_interfaces=['flat', 'noop'])
         self.set_defaults(host='fake-mini',
                           debug=True)
         self.set_defaults(connection="sqlite://",

@@ -274,8 +274,8 @@ class IloVirtualMediaAgentDeploy(agent.AgentDeploy):
 
         :param task: a TaskManager object containing the node
         :returns: states.CLEANWAIT to signify an asynchronous prepare.
-        :raises NodeCleaningFailure: if the previous cleaning ports cannot
-            be removed or if new cleaning ports cannot be created
+        :raises: NodeCleaningFailure, NetworkError if the previous cleaning
+            ports cannot be removed or if new cleaning ports cannot be created
         :raises: IloOperationError, if some operation on iLO failed.
         """
         # Powering off the Node before initiating boot for node cleaning.

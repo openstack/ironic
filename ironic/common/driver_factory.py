@@ -41,6 +41,23 @@ driver_opts = [
                        'be found by enumerating the "ironic.drivers" '
                        'entrypoint. An example may be found in the '
                        'developer documentation online.')),
+    cfg.ListOpt('enabled_network_interfaces',
+                default=['flat', 'noop'],
+                help=_('Specify the list of network interfaces to load during '
+                       'service initialization. Missing network interfaces, '
+                       'or network interfaces which fail to initialize, will '
+                       'prevent the conductor service from starting. The '
+                       'option default is a recommended set of '
+                       'production-oriented network interfaces. A complete '
+                       'list of network interfaces present on your system may '
+                       'be found by enumerating the '
+                       '"ironic.hardware.interfaces.network" entrypoint.')),
+    cfg.StrOpt('default_network_interface',
+               help=_('Default network interface to be used for nodes that '
+                      'do not have network_interface field set. A complete '
+                      'list of network interfaces present on your system may '
+                      'be found by enumerating the '
+                      '"ironic.hardware.interfaces.network" entrypoint.'))
 ]
 
 CONF = cfg.CONF
@@ -76,6 +93,20 @@ def _attach_interfaces_to_driver(driver, node, driver_name=None):
         impl = getattr(driver_singleton, iface, None)
         setattr(driver, iface, impl)
 
+    network_iface = node.network_interface
+    if network_iface is None:
+        network_iface = (CONF.default_network_interface or
+                         ('flat' if CONF.dhcp.dhcp_provider == 'neutron'
+                          else 'noop'))
+    network_factory = NetworkInterfaceFactory()
+    try:
+        net_driver = network_factory.get_driver(network_iface)
+    except KeyError:
+        raise exception.DriverNotFoundInEntrypoint(
+            driver_name=network_iface,
+            entrypoint=network_factory._entrypoint_name)
+    driver.network = net_driver
+
 
 def get_driver(driver_name):
     """Simple method to get a ref to an instance of a driver.
@@ -93,7 +124,7 @@ def get_driver(driver_name):
 
     try:
         factory = DriverFactory()
-        return factory[driver_name].obj
+        return factory.get_driver(driver_name)
     except KeyError:
         raise exception.DriverNotFound(driver_name=driver_name)
 
@@ -109,8 +140,11 @@ def drivers():
                                    for name in factory.names)
 
 
-class DriverFactory(object):
-    """Discover, load and manage the drivers available."""
+class BaseDriverFactory(object):
+    """Discover, load and manage the drivers available.
+
+    This is subclassed to load both main drivers and extra interfaces.
+    """
 
     # NOTE(deva): loading the _extension_manager as a class member will break
     #             stevedore when it loads a driver, because the driver will
@@ -119,12 +153,24 @@ class DriverFactory(object):
     #             once, the first time DriverFactory.__init__ is called.
     _extension_manager = None
 
+    # Entrypoint name containing the list of all available drivers/interfaces
+    _entrypoint_name = None
+    # Name of the [DEFAULT] section config option containing a list of enabled
+    # drivers/interfaces
+    _enabled_driver_list_config_option = ''
+    # This field will contain the list of the enabled drivers/interfaces names
+    # without duplicates
+    _enabled_driver_list = None
+
     def __init__(self):
-        if not DriverFactory._extension_manager:
-            DriverFactory._init_extension_manager()
+        if not self.__class__._extension_manager:
+            self.__class__._init_extension_manager()
 
     def __getitem__(self, name):
         return self._extension_manager[name]
+
+    def get_driver(self, name):
+        return self[name].obj
 
     # NOTE(deva): Use lockutils to avoid a potential race in eventlet
     #             that might try to create two driver factories.
@@ -136,18 +182,23 @@ class DriverFactory(object):
         #             creation of multiple NameDispatchExtensionManagers.
         if cls._extension_manager:
             return
+        enabled_drivers = getattr(CONF, cls._enabled_driver_list_config_option,
+                                  [])
 
         # Check for duplicated driver entries and warn the operator
         # about them
-        counter = collections.Counter(CONF.enabled_drivers).items()
-        duplicated_drivers = list(dup for (dup, i) in counter if i > 1)
+        counter = collections.Counter(enabled_drivers).items()
+        duplicated_drivers = []
+        cls._enabled_driver_list = []
+        for item, cnt in counter:
+            if cnt > 1:
+                duplicated_drivers.append(item)
+            cls._enabled_driver_list.append(item)
         if duplicated_drivers:
             LOG.warning(_LW('The driver(s) "%s" is/are duplicated in the '
                             'list of enabled_drivers. Please check your '
                             'configuration file.'),
                         ', '.join(duplicated_drivers))
-
-        enabled_drivers = set(CONF.enabled_drivers)
 
         # NOTE(deva): Drivers raise "DriverLoadError" if they are unable to be
         #             loaded, eg. due to missing external dependencies.
@@ -160,30 +211,31 @@ class DriverFactory(object):
         def _catch_driver_not_found(mgr, ep, exc):
             # NOTE(deva): stevedore loads plugins *before* evaluating
             #             _check_func, so we need to check here, too.
-            if ep.name in enabled_drivers:
+            if ep.name in cls._enabled_driver_list:
                 if not isinstance(exc, exception.DriverLoadError):
                     raise exception.DriverLoadError(driver=ep.name, reason=exc)
                 raise exc
 
         def _check_func(ext):
-            return ext.name in enabled_drivers
+            return ext.name in cls._enabled_driver_list
 
         cls._extension_manager = (
             dispatch.NameDispatchExtensionManager(
-                'ironic.drivers',
+                cls._entrypoint_name,
                 _check_func,
                 invoke_on_load=True,
                 on_load_failure_callback=_catch_driver_not_found))
 
         # NOTE(deva): if we were unable to load any configured driver, perhaps
         #             because it is not present on the system, raise an error.
-        if (sorted(enabled_drivers) !=
+        if (sorted(cls._enabled_driver_list) !=
                 sorted(cls._extension_manager.names())):
             found = cls._extension_manager.names()
-            names = [n for n in enabled_drivers if n not in found]
+            names = [n for n in cls._enabled_driver_list if n not in found]
             # just in case more than one could not be found ...
             names = ', '.join(names)
-            raise exception.DriverNotFound(driver_name=names)
+            raise exception.DriverNotFoundInEntrypoint(
+                driver_name=names, entrypoint=cls._entrypoint_name)
 
         LOG.info(_LI("Loaded the following drivers: %s"),
                  cls._extension_manager.names())
@@ -192,3 +244,13 @@ class DriverFactory(object):
     def names(self):
         """The list of driver names available."""
         return self._extension_manager.names()
+
+
+class DriverFactory(BaseDriverFactory):
+    _entrypoint_name = 'ironic.drivers'
+    _enabled_driver_list_config_option = 'enabled_drivers'
+
+
+class NetworkInterfaceFactory(BaseDriverFactory):
+    _entrypoint_name = 'ironic.hardware.interfaces.network'
+    _enabled_driver_list_config_option = 'enabled_network_interfaces'

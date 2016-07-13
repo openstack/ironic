@@ -158,8 +158,14 @@ class BareDriver(BaseDriver):
     Any composable interfaces should be added as class attributes of this
     class, as well as appended to core_interfaces or standard_interfaces here.
     """
+
     def __init__(self):
-        pass
+        self.network = None
+        """`Core` attribute for network connectivity.
+
+        A reference to an instance of :class:NetworkInterface.
+        """
+        self.core_interfaces.append('network')
 
 
 class BaseInterface(object):
@@ -1018,6 +1024,74 @@ class RAIDInterface(BaseInterface):
             logical disks and a textual description for them.
         """
         return raid.get_logical_disk_properties(self.raid_schema)
+
+
+@six.add_metaclass(abc.ABCMeta)
+class NetworkInterface(object):
+    """Base class for network interfaces."""
+
+    def get_properties(self):
+        """Return the properties of the interface.
+
+        :returns: dictionary of <property name>:<property description> entries.
+        """
+        return {}
+
+    def validate(self, task):
+        """Validates the network interface.
+
+        :param task: a TaskManager instance.
+        :raises: InvalidParameterValue, if the network interface configuration
+            is invalid.
+        :raises: MissingParameterValue, if some parameters are missing.
+        """
+
+    @abc.abstractmethod
+    def add_provisioning_network(self, task):
+        """Add the provisioning network to a node.
+
+        :param task: A TaskManager instance.
+        :raises: NetworkError
+        """
+
+    @abc.abstractmethod
+    def remove_provisioning_network(self, task):
+        """Remove the provisioning network from a node.
+
+        :param task: A TaskManager instance.
+        """
+
+    @abc.abstractmethod
+    def configure_tenant_networks(self, task):
+        """Configure tenant networks for a node.
+
+        :param task: A TaskManager instance.
+        :raises: NetworkError
+        """
+
+    @abc.abstractmethod
+    def unconfigure_tenant_networks(self, task):
+        """Unconfigure tenant networks for a node.
+
+        :param task: A TaskManager instance.
+        """
+
+    @abc.abstractmethod
+    def add_cleaning_network(self, task):
+        """Add the cleaning network to a node.
+
+        :param task: A TaskManager instance.
+        :returns: a dictionary in the form {port.uuid: neutron_port['id']}
+        :raises: NetworkError
+        """
+
+    @abc.abstractmethod
+    def remove_cleaning_network(self, task):
+        """Remove the cleaning network from a node.
+
+        :param task: A TaskManager instance.
+        :raises: NetworkError
+        """
 
 
 def _validate_argsinfo(argsinfo):

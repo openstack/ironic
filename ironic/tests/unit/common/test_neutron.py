@@ -11,11 +11,18 @@
 #    under the License.
 
 import mock
+from neutronclient.common import exceptions as neutron_client_exc
 from neutronclient.v2_0 import client
 from oslo_config import cfg
+from oslo_utils import uuidutils
 
+from ironic.common import exception
 from ironic.common import neutron
+from ironic.conductor import task_manager
 from ironic.tests import base
+from ironic.tests.unit.conductor import mgr_utils
+from ironic.tests.unit.db import base as db_base
+from ironic.tests.unit.objects import utils as object_utils
 
 
 class TestNeutronClient(base.TestCase):
@@ -107,3 +114,249 @@ class TestNeutronClient(base.TestCase):
         self.assertRaises(ValueError, cfg.CONF.set_override,
                           'auth_strategy', 'fake', 'neutron',
                           enforce_type=True)
+
+
+class TestNeutronNetworkActions(db_base.DbTestCase):
+
+    def setUp(self):
+        super(TestNeutronNetworkActions, self).setUp()
+        mgr_utils.mock_the_extension_manager(driver='fake')
+        self.config(enabled_drivers=['fake'])
+        self.node = object_utils.create_test_node(self.context)
+        self.ports = [object_utils.create_test_port(
+            self.context, node_id=self.node.id,
+            uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c782',
+            address='52:54:00:cf:2d:32',
+            extra={'vif_port_id': uuidutils.generate_uuid()}
+        )]
+        # Very simple neutron port representation
+        self.neutron_port = {'id': '132f871f-eaec-4fed-9475-0d54465e0f00',
+                             'mac_address': '52:54:00:cf:2d:32'}
+        self.network_uuid = uuidutils.generate_uuid()
+
+    @mock.patch.object(client.Client, 'create_port')
+    def test_add_ports_to_vlan_network(self, create_mock):
+        # Ports will be created only if pxe_enabled is True
+        object_utils.create_test_port(
+            self.context, node_id=self.node.id,
+            uuid=uuidutils.generate_uuid(),
+            address='52:54:00:cf:2d:22',
+            pxe_enabled=False
+        )
+        port = self.ports[0]
+        expected_body = {
+            'port': {
+                'network_id': self.network_uuid,
+                'admin_state_up': True,
+                'binding:vnic_type': 'baremetal',
+                'device_owner': 'baremetal:none',
+                'binding:host_id': self.node.uuid,
+                'device_id': self.node.uuid,
+                'mac_address': port.address,
+                'binding:profile': {
+                    'local_link_information': [port.local_link_connection]
+                }
+            }
+        }
+        # Ensure we can create ports
+        create_mock.return_value = {'port': self.neutron_port}
+        expected = {port.uuid: self.neutron_port['id']}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            ports = neutron.add_ports_to_network(task, self.network_uuid)
+            self.assertEqual(expected, ports)
+            create_mock.assert_called_once_with(expected_body)
+
+    @mock.patch.object(client.Client, 'create_port')
+    def test_add_ports_to_flat_network(self, create_mock):
+        port = self.ports[0]
+        expected_body = {
+            'port': {
+                'network_id': self.network_uuid,
+                'admin_state_up': True,
+                'binding:vnic_type': 'baremetal',
+                'device_owner': 'baremetal:none',
+                'device_id': self.node.uuid,
+                'mac_address': port.address,
+                'binding:profile': {
+                    'local_link_information': [port.local_link_connection]
+                }
+            }
+        }
+        # Ensure we can create ports
+        create_mock.return_value = {'port': self.neutron_port}
+        expected = {port.uuid: self.neutron_port['id']}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            ports = neutron.add_ports_to_network(task, self.network_uuid,
+                                                 is_flat=True)
+            self.assertEqual(expected, ports)
+            create_mock.assert_called_once_with(expected_body)
+
+    @mock.patch.object(client.Client, 'create_port')
+    def test_add_ports_to_flat_network_no_neutron_port_id(self, create_mock):
+        port = self.ports[0]
+        expected_body = {
+            'port': {
+                'network_id': self.network_uuid,
+                'admin_state_up': True,
+                'binding:vnic_type': 'baremetal',
+                'device_owner': 'baremetal:none',
+                'device_id': self.node.uuid,
+                'mac_address': port.address,
+                'binding:profile': {
+                    'local_link_information': [port.local_link_connection]
+                }
+            }
+        }
+        del self.neutron_port['id']
+        create_mock.return_value = {'port': self.neutron_port}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.NetworkError,
+                              neutron.add_ports_to_network,
+                              task, self.network_uuid, is_flat=True)
+            create_mock.assert_called_once_with(expected_body)
+
+    @mock.patch.object(client.Client, 'create_port')
+    def test_add_ports_to_vlan_network_instance_uuid(self, create_mock):
+        self.node.instance_uuid = uuidutils.generate_uuid()
+        self.node.save()
+        port = self.ports[0]
+        expected_body = {
+            'port': {
+                'network_id': self.network_uuid,
+                'admin_state_up': True,
+                'binding:vnic_type': 'baremetal',
+                'device_owner': 'baremetal:none',
+                'binding:host_id': self.node.uuid,
+                'device_id': self.node.instance_uuid,
+                'mac_address': port.address,
+                'binding:profile': {
+                    'local_link_information': [port.local_link_connection]
+                }
+            }
+        }
+        # Ensure we can create ports
+        create_mock.return_value = {'port': self.neutron_port}
+        expected = {port.uuid: self.neutron_port['id']}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            ports = neutron.add_ports_to_network(task, self.network_uuid)
+            self.assertEqual(expected, ports)
+            create_mock.assert_called_once_with(expected_body)
+
+    @mock.patch.object(neutron, 'rollback_ports')
+    @mock.patch.object(client.Client, 'create_port')
+    def test_add_network_fail(self, create_mock, rollback_mock):
+        # Check that if creating a port fails, the ports are cleaned up
+        create_mock.side_effect = neutron_client_exc.ConnectionFailed
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaisesRegex(
+                exception.NetworkError, 'Could not create neutron port',
+                neutron.add_ports_to_network, task, self.network_uuid)
+            rollback_mock.assert_called_once_with(task, self.network_uuid)
+
+    @mock.patch.object(neutron, 'rollback_ports')
+    @mock.patch.object(client.Client, 'create_port', return_value={})
+    def test_add_network_fail_create_any_port_empty(self, create_mock,
+                                                    rollback_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaisesRegex(
+                exception.NetworkError, 'any PXE enabled port',
+                neutron.add_ports_to_network, task, self.network_uuid)
+            self.assertFalse(rollback_mock.called)
+
+    @mock.patch.object(neutron, 'LOG')
+    @mock.patch.object(neutron, 'rollback_ports')
+    @mock.patch.object(client.Client, 'create_port')
+    def test_add_network_fail_create_some_ports_empty(self, create_mock,
+                                                      rollback_mock, log_mock):
+        port2 = object_utils.create_test_port(
+            self.context, node_id=self.node.id,
+            uuid=uuidutils.generate_uuid(),
+            address='52:54:55:cf:2d:32',
+            extra={'vif_port_id': uuidutils.generate_uuid()}
+        )
+        create_mock.side_effect = [{'port': self.neutron_port}, {}]
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            neutron.add_ports_to_network(task, self.network_uuid)
+            self.assertIn(str(port2.uuid),
+                          # Call #0, argument #1
+                          log_mock.warning.call_args[0][1]['ports'])
+            self.assertFalse(rollback_mock.called)
+
+    @mock.patch.object(neutron, 'remove_neutron_ports')
+    def test_remove_ports_from_network(self, remove_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            neutron.remove_ports_from_network(task, self.network_uuid)
+            remove_mock.assert_called_once_with(
+                task,
+                {'network_id': self.network_uuid,
+                 'mac_address': [self.ports[0].address]}
+            )
+
+    @mock.patch.object(neutron, 'remove_neutron_ports')
+    def test_remove_ports_from_network_not_all_pxe_enabled(self, remove_mock):
+        object_utils.create_test_port(
+            self.context, node_id=self.node.id,
+            uuid=uuidutils.generate_uuid(),
+            address='52:54:55:cf:2d:32',
+            pxe_enabled=False
+        )
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            neutron.remove_ports_from_network(task, self.network_uuid)
+            remove_mock.assert_called_once_with(
+                task,
+                {'network_id': self.network_uuid,
+                 'mac_address': [self.ports[0].address]}
+            )
+
+    @mock.patch.object(client.Client, 'delete_port')
+    @mock.patch.object(client.Client, 'list_ports')
+    def test_remove_neutron_ports(self, list_mock, delete_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            list_mock.return_value = {'ports': [self.neutron_port]}
+            neutron.remove_neutron_ports(task, {'param': 'value'})
+        list_mock.assert_called_once_with(**{'param': 'value'})
+        delete_mock.assert_called_once_with(self.neutron_port['id'])
+
+    @mock.patch.object(client.Client, 'list_ports')
+    def test_remove_neutron_ports_list_fail(self, list_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            list_mock.side_effect = neutron_client_exc.ConnectionFailed
+            self.assertRaisesRegex(
+                exception.NetworkError, 'Could not get given network VIF',
+                neutron.remove_neutron_ports, task, {'param': 'value'})
+        list_mock.assert_called_once_with(**{'param': 'value'})
+
+    @mock.patch.object(client.Client, 'delete_port')
+    @mock.patch.object(client.Client, 'list_ports')
+    def test_remove_neutron_ports_delete_fail(self, list_mock, delete_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            delete_mock.side_effect = neutron_client_exc.ConnectionFailed
+            list_mock.return_value = {'ports': [self.neutron_port]}
+            self.assertRaisesRegex(
+                exception.NetworkError, 'Could not remove VIF',
+                neutron.remove_neutron_ports, task, {'param': 'value'})
+        list_mock.assert_called_once_with(**{'param': 'value'})
+        delete_mock.assert_called_once_with(self.neutron_port['id'])
+
+    def test_get_node_portmap(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            portmap = neutron.get_node_portmap(task)
+            self.assertEqual(
+                {self.ports[0].uuid: self.ports[0].local_link_connection},
+                portmap
+            )
+
+    @mock.patch.object(neutron, 'remove_ports_from_network')
+    def test_rollback_ports(self, remove_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            neutron.rollback_ports(task, self.network_uuid)
+            remove_mock.assert_called_once_with(task, self.network_uuid)
+
+    @mock.patch.object(neutron, 'LOG')
+    @mock.patch.object(neutron, 'remove_ports_from_network')
+    def test_rollback_ports_exception(self, remove_mock, log_mock):
+        remove_mock.side_effect = exception.NetworkError('boom')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            neutron.rollback_ports(task, self.network_uuid)
+            self.assertTrue(log_mock.exception.called)

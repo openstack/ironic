@@ -83,8 +83,12 @@ class BaseConductorManager(object):
         self.ring_manager = hash.HashRingManager()
         """Consistent hash ring which maps drivers to conductors."""
 
-        # NOTE(deva): this call may raise DriverLoadError or DriverNotFound
+        # NOTE(deva): these calls may raise DriverLoadError or DriverNotFound
+        # NOTE(vdrok): instantiate network interface factory on startup so that
+        # all the network interfaces are loaded at the very beginning, and
+        # failures prevent the conductor from starting.
         drivers = driver_factory.drivers()
+        driver_factory.NetworkInterfaceFactory()
         if not drivers:
             msg = _LE("Conductor %s cannot be started because no drivers "
                       "were loaded.  This could be because no drivers were "

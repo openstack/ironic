@@ -241,6 +241,11 @@ class DriverNotFound(NotFound):
     _msg_fmt = _("Could not find the following driver(s): %(driver_name)s.")
 
 
+class DriverNotFoundInEntrypoint(DriverNotFound):
+    _msg_fmt = _("Could not find the following driver(s) in the "
+                 "'%(entrypoint)s' entrypoint: %(driver_name)s.")
+
+
 class ImageNotFound(NotFound):
     _msg_fmt = _("Image %(image_id)s could not be found.")
 
@@ -591,3 +596,7 @@ class OneViewError(IronicException):
 
 class NodeTagNotFound(IronicException):
     _msg_fmt = _("Node %(node_id)s doesn't have a tag '%(tag)s'")
+
+
+class NetworkError(IronicException):
+    _msg_fmt = _("Network operation failure.")
