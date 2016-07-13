@@ -377,9 +377,9 @@ Switch to the stack user and clone DevStack::
     git clone https://git.openstack.org/openstack-dev/devstack.git devstack
 
 Create devstack/local.conf with minimal settings required to enable Ironic.
-You can use either of two drivers for deploy: pxe_* or agent_*, see :ref:`IPA`
+You can use either of two drivers for deploy: agent\_\* or pxe\_\*, see :ref:`IPA`
 for explanation. An example local.conf that enables both types of drivers
-and uses the ``pxe_ssh`` driver by default::
+and uses the ``agent_ipmitool`` driver by default::
 
     cd devstack
     cat >local.conf <<END
@@ -435,7 +435,7 @@ and uses the ``pxe_ssh`` driver by default::
 
     # Change this to alter the default driver for nodes created by devstack.
     # This driver should be in the enabled list above.
-    IRONIC_DEPLOY_DRIVER=pxe_ssh
+    IRONIC_DEPLOY_DRIVER=agent_ipmitool
 
     # The parameters below represent the minimum possible values to create
     # functional nodes.
@@ -463,6 +463,13 @@ and uses the ``pxe_ssh`` driver by default::
     IRONIC_VM_LOG_DIR=$HOME/ironic-bm-logs
 
     END
+
+.. note::
+    The agent_ssh and pxe_ssh drivers are being deprecated in favor of the
+    more production-like agent_ipmitool and pxe_ipmitool drivers. When a
+    \*_ipmitool driver is set and IRONIC_IS_HARDWARE variable is false devstack
+    will automatically set up `VirtualBMC <https://github.com/openstack/virtualbmc>`_
+    to control the power state of the virtual baremetal nodes.
 
 .. note::
     When running QEMU as non-root user (e.g. ``qemu`` on Fedora or ``libvirt-qemu`` on Ubuntu),
