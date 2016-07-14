@@ -632,11 +632,13 @@
 # From ironic
 #
 
-# Path to serial console terminal program (string value)
+# Path to serial console terminal program. Used only by
+# Shell In A Box console. (string value)
 #terminal = shellinaboxd
 
 # Directory containing the terminal SSL cert(PEM) for serial
-# console access (string value)
+# console access. Used only by Shell In A Box console.
+# (string value)
 #terminal_cert_dir = <None>
 
 # Directory for holding terminal pid files. If not specified,

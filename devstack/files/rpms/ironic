@@ -16,3 +16,4 @@ tftp-server
 xinetd
 squashfs-tools
 libvirt-devel
+socat
