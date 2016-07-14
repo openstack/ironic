@@ -158,7 +158,7 @@ Agent driver attributes:
     These are only some fields in use. Other vendor drivers might expose more ``driver_internal_info``
     properties, please check their development documentation and/or module docstring for details.
     It is important for developers to make sure these properties follow the precedent of prefixing their
-    variable names with a specific interface name(e.g., iboot_bar, amt_xyz), so as to minimize or avoid
+    variable names with a specific interface name (e.g., iboot_bar, amt_xyz), so as to minimize or avoid
     any conflicts between interfaces.
 
 
