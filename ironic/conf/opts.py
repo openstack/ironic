@@ -71,7 +71,7 @@ _opts = [
     ('irmc', ironic.conf.irmc.opts),
     ('iscsi', ironic.drivers.modules.iscsi_deploy.iscsi_opts),
     ('keystone', ironic.conf.keystone.opts),
-    ('neutron', ironic.common.neutron.neutron_opts),
+    ('neutron', ironic.conf.neutron.opts),
     ('oneview', ironic.conf.oneview.opts),
     ('pxe', itertools.chain(
         ironic.drivers.modules.iscsi_deploy.pxe_opts,

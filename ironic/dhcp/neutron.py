@@ -17,7 +17,6 @@
 import time
 
 from neutronclient.common import exceptions as neutron_client_exc
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import netutils
 
@@ -27,11 +26,11 @@ from ironic.common.i18n import _LE
 from ironic.common.i18n import _LW
 from ironic.common import network
 from ironic.common import neutron
+from ironic.conf import CONF
 from ironic.dhcp import base
 from ironic.drivers.modules import ssh
 from ironic import objects
 
-CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 create_cleaning_ports_deprecation = False

@@ -28,6 +28,7 @@ from ironic.conf import inspector
 from ironic.conf import ipmi
 from ironic.conf import irmc
 from ironic.conf import keystone
+from ironic.conf import neutron
 from ironic.conf import oneview
 from ironic.conf import seamicro
 from ironic.conf import snmp
@@ -50,6 +51,7 @@ inspector.register_opts(CONF)
 ipmi.register_opts(CONF)
 irmc.register_opts(CONF)
 keystone.register_opts(CONF)
+neutron.register_opts(CONF)
 oneview.register_opts(CONF)
 seamicro.register_opts(CONF)
 snmp.register_opts(CONF)
