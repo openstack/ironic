@@ -28,9 +28,8 @@
     <controller type='ide' index='0'>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x1'/>
     </controller>
-    <interface type='network'>
-      <source network='%(network)s'/>
-      <virtualport type='openvswitch'/>
+    <interface type='bridge'>
+      <source bridge='%(bridge)s'/>
       <model type='%(nicdriver)s'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x04' function='0x0'/>
     </interface>
