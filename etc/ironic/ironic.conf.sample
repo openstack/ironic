@@ -920,17 +920,18 @@
 
 # Size of EFI system partition in MiB when configuring UEFI
 # systems for local boot. (integer value)
-# Deprecated group/name - [deploy]/efi_system_partition_size
 #efi_system_partition_size = 200
+
+# Size of BIOS Boot partition in MiB when configuring GPT
+# partitioned systems for local boot in BIOS. (integer value)
+#bios_boot_partition_size = 1
 
 # Block size to use when writing to the nodes disk. (string
 # value)
-# Deprecated group/name - [deploy]/dd_block_size
 #dd_block_size = 1M
 
 # Maximum attempts to verify an iSCSI connection is active,
 # sleeping 1 second between attempts. (integer value)
-# Deprecated group/name - [deploy]/iscsi_verify_attempts
 #iscsi_verify_attempts = 3
 
 
@@ -1108,9 +1109,13 @@
 # (boolean value)
 #use_web_server_for_images = false
 
-# Priority for erase devices clean step. If unset, it defaults
-# to 10. If set to 0, the step will be disabled and will not
-# run during cleaning. (integer value)
+# DEPRECATED: Priority for erase devices clean step. If unset,
+# it defaults to 10. If set to 0, the step will be disabled
+# and will not run during cleaning. (integer value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: This configuration option is duplicated by [deploy]
+# erase_devices_priority, please use that instead.
 #clean_priority_erase_devices = <None>
 
 # Priority for reset_ilo clean step. (integer value)
@@ -1289,7 +1294,16 @@
 # From keystonemiddleware.auth_token
 #
 
-# Complete public Identity API endpoint. (string value)
+# Complete "public" Identity API endpoint. This endpoint
+# should not be an "admin" endpoint, as it should be
+# accessible by all end users. Unauthenticated clients are
+# redirected to this endpoint to authenticate. Although this
+# endpoint should  ideally be unversioned, client support in
+# the wild varies.  If you're using a versioned v2 endpoint
+# here, then this  should *not* be the same endpoint the
+# service user utilizes  for validating tokens, because normal
+# end users may not be  able to reach that endpoint. (string
+# value)
 #auth_uri = <None>
 
 # API version of the admin Identity API endpoint. (string
@@ -1428,12 +1442,12 @@
 # (list value)
 #hash_algorithms = md5
 
-# Authentication type to load (unknown value)
+# Authentication type to load (string value)
 # Deprecated group/name - [keystone_authtoken]/auth_plugin
 #auth_type = <None>
 
 # Config Section from which to load plugin specific options
-# (unknown value)
+# (string value)
 #auth_section = <None>
 
 
