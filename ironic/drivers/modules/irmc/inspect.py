@@ -38,27 +38,28 @@ SC2.mib: sc2UnitNodeClass returns NIC type.
 sc2UnitNodeClass OBJECT-TYPE
  SYNTAX       INTEGER
  {
-   unknown(1),
-   primary(2),
-   secondary(3),
-   management-blade(4),
-   secondary-remote(5),
-   secondary-remote-backup(6),
-   baseboard-controller(7)
+ unknown(1),
+ primary(2),
+ secondary(3),
+ management-blade(4),
+ secondary-remote(5),
+ secondary-remote-backup(6),
+ baseboard-controller(7)
  }
  ACCESS       read-only
  STATUS       mandatory
  DESCRIPTION  "Management node class:
-   primary:                 local operating system interface
-   secondary:               local management controller LAN interface
-   management-blade:        management blade interface (in a blade server
-                            chassis)
-   secondary-remote:        remote management controller (in an RSB
-                            concentrator environment)
-   secondary-remote-backup: backup remote management controller
-   baseboard-controller:    local baseboard management controller (BMC)"
+ primary:                 local operating system interface
+ secondary:               local management controller LAN interface
+ management-blade:        management blade interface (in a blade server
+ chassis)
+ secondary-remote:        remote management controller (in an RSB
+ concentrator environment)
+ secondary-remote-backup: backup remote management controller
+ baseboard-controller:    local baseboard management controller (BMC)"
  ::= { sc2ManagementNodes 8 }
 """
+
 NODE_CLASS_OID_VALUE = {
     'unknown': 1,
     'primary': 2,
@@ -81,6 +82,7 @@ sc2UnitNodeMacAddress OBJECT-TYPE
  DESCRIPTION  "Management node hardware (MAC) address"
  ::= { sc2ManagementNodes 9 }
 """
+
 MAC_ADDRESS_OID = '1.3.6.1.4.1.231.2.10.2.2.10.3.1.1.9.1'
 
 
@@ -111,10 +113,10 @@ def _inspect_hardware(node):
 
     :param node: node object.
     :raises: HardwareInspectionFailure, if unable to get essential
-       hardware properties.
+             hardware properties.
     :returns: a pair of dictionary and list, the dictionary contains
-       keys as in IRMCInspect.ESSENTIAL_PROPERTIES and its inspected
-       values, the list contains mac addresses.
+              keys as in IRMCInspect.ESSENTIAL_PROPERTIES and its inspected
+              values, the list contains mac addresses.
     """
     try:
         report = irmc_common.get_irmc_report(node)

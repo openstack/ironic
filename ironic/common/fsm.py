@@ -70,7 +70,7 @@ class FSM(machines.FiniteMachine):
 
         :param state: the state of interest
         :raises: InvalidState if the state is invalid
-        :returns True if it is a stable state; False otherwise
+        :returns: True if it is a stable state; False otherwise
         """
         try:
             return self._states[state]['stable']

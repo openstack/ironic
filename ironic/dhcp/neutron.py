@@ -92,25 +92,26 @@ class NeutronDHCPApi(base.BaseDHCP):
         :param task: A TaskManager instance.
         :param options: this will be a list of dicts, e.g.
 
-                          ::
+                        ::
 
-                           [{'opt_name': 'bootfile-name',
-                             'opt_value': 'pxelinux.0'},
-                            {'opt_name': 'server-ip-address',
-                             'opt_value': '123.123.123.456'},
-                            {'opt_name': 'tftp-server',
-                             'opt_value': '123.123.123.123'}]
+                         [{'opt_name': 'bootfile-name',
+                           'opt_value': 'pxelinux.0'},
+                          {'opt_name': 'server-ip-address',
+                           'opt_value': '123.123.123.456'},
+                          {'opt_name': 'tftp-server',
+                           'opt_value': '123.123.123.123'}]
         :param vifs: a dict of Neutron port/portgroup dicts
-            to update DHCP options on. The port/portgroup dict key
-            should be Ironic port UUIDs, and the values should be
-            Neutron port UUIDs, e.g.
+                     to update DHCP options on. The port/portgroup dict
+                     key should be Ironic port UUIDs, and the values
+                     should be Neutron port UUIDs, e.g.
 
-            ::
+                     ::
 
-            {'ports': {'port.uuid': vif.id},
-             'portgroups': {'portgroup.uuid': vif.id}}
-            If the value is None, will get the list of ports/portgroups
-            from the Ironic port/portgroup objects.
+                      {'ports': {'port.uuid': vif.id},
+                       'portgroups': {'portgroup.uuid': vif.id}}
+                      If the value is None, will get the list of
+                      ports/portgroups from the Ironic port/portgroup
+                      objects.
         """
         if vifs is None:
             vifs = network.get_node_vif_ids(task)
@@ -202,7 +203,7 @@ class NeutronDHCPApi(base.BaseDHCP):
         :param p_obj: Ironic port or portgroup object.
         :param client: Neutron client instance.
         :returns: List of Neutron vif ip address associated with
-            Node's port/portgroup.
+                  Node's port/portgroup.
         :raises: FailedToGetIPAddressOnPort
         :raises: InvalidIPv4Address
         """
