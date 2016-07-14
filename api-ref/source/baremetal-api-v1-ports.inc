@@ -32,6 +32,11 @@ API microversion 1.8 added the ``fields`` Request parameter. When specified,
 this causes the content of the Response to include only the specified fields,
 rather than the default set.
 
+API microversion 1.19 added the ``pxe_enabled`` and ``local_link_connection``
+fields.
+
+.. TODO: add pxe_enabled and local_link_connection to all sample files
+
 Normal response code: 200
 
 Request

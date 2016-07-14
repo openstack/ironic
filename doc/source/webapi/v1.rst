@@ -34,8 +34,7 @@ API Versions History
 
 **1.19**
 
-    This API version adds the multitenancy-related ``local_link_connection``
-    and ``pxe_enabled`` fields to a port.
+    Add ``local_link_connection`` and ``pxe_enabled`` fields to the port object.
 
 **1.18**
 

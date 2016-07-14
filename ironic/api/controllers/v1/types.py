@@ -309,14 +309,15 @@ class LocalLinkConnectionType(wtypes.UserType):
 
         # Check switch_id is either a valid mac address or
         # OpenFlow datapath_id and normalize it.
-        if utils.is_valid_mac(value['switch_id']):
+        try:
             value['switch_id'] = utils.validate_and_normalize_mac(
                 value['switch_id'])
-        elif utils.is_valid_datapath_id(value['switch_id']):
-            value['switch_id'] = utils.validate_and_normalize_datapath_id(
-                value['switch_id'])
-        else:
-            raise exception.InvalidSwitchID(switch_id=value['switch_id'])
+        except exception.InvalidMAC:
+            try:
+                value['switch_id'] = utils.validate_and_normalize_datapath_id(
+                    value['switch_id'])
+            except exception.InvalidDatapathID:
+                raise exception.InvalidSwitchID(switch_id=value['switch_id'])
 
         return value
 

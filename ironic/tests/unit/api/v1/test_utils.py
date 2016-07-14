@@ -226,7 +226,7 @@ class TestApiUtils(base.TestCase):
         self.assertFalse(utils.allow_port_internal_info())
 
     @mock.patch.object(pecan, 'request', spec_set=['version'])
-    def test_allow_multitenancy_fields(self, mock_request):
+    def test_allow_port_advanced_net_fields(self, mock_request):
         mock_request.version.minor = 19
         self.assertTrue(utils.allow_port_advanced_net_fields())
         mock_request.version.minor = 18

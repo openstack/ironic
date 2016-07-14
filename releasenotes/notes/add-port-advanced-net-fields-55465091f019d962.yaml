@@ -1,8 +1,10 @@
 ---
 features:
   - |
-    API version is bumped to 1.19, ``local_link_connection`` and
-    ``pxe_enabled`` fields were added to a Port:
+    Exposes the ``local_link_connection`` and ``pxe_enabled`` properties of the
+    Port resource to the REST API, raising the API maximum version to 1.19.
 
-    * ``pxe_enabled`` indicates whether PXE is enabled for the port.
-    * ``local_link_connection`` contains the port binding profile.
+    * The ``pxe_enabled`` field indicates whether this Port should be used when
+      PXE booting this Node.
+    * The ``local_link_connection`` field may be used to supply the port
+      binding profile.

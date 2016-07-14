@@ -308,12 +308,12 @@ def validate_and_normalize_datapath_id(datapath_id):
 
     :param datapath_id: OpenFlow datapath_id to be validated and normalized.
     :returns: Normalized and validated OpenFlow datapath_id.
-    :raises: InvalidDatapathId If an OpenFlow datapath_id is not valid.
+    :raises: InvalidDatapathID If an OpenFlow datapath_id is not valid.
 
     """
 
     if not is_valid_datapath_id(datapath_id):
-        raise exception.InvalidDatapathId(datapath_id=datapath_id)
+        raise exception.InvalidDatapathID(datapath_id=datapath_id)
     return datapath_id.lower()
 
 

@@ -329,7 +329,7 @@ class TestLocalLinkConnectionType(base.TestCase):
         self.assertRaisesRegex(exception.Invalid, 'Missing mandatory',
                                v.validate, value)
 
-    def test_local_link_connection_type_withou_optional_key(self):
+    def test_local_link_connection_type_without_optional_key(self):
         v = types.locallinkconnectiontype
         value = {'switch_id': '0a:1b:2c:3d:4e:5f',
                  'port_id': 'value2'}

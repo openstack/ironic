@@ -99,7 +99,7 @@ class Port(base.APIBase):
     """Indicates whether pxe is enabled or disabled on the node."""
 
     local_link_connection = types.locallinkconnectiontype
-    """The port binding profile for each port"""
+    """The port binding profile for the port"""
 
     links = wsme.wsattr([link.Link], readonly=True)
     """A list containing a self link and associated port links"""

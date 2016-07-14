@@ -197,7 +197,7 @@ class InvalidSwitchID(Invalid):
                  "received %(switch_id)s.")
 
 
-class InvalidDatapathId(Invalid):
+class InvalidDatapathID(Invalid):
     _msg_fmt = _("Expected an OpenFlow datapath ID but received "
                  "%(datapath_id)s.")
 

@@ -64,7 +64,6 @@ class TestListPorts(test_api_base.BaseApiTest):
     def setUp(self):
         super(TestListPorts, self).setUp()
         self.node = obj_utils.create_test_node(self.context)
-        self.headers = {api_base.Version.string: str(api_v1.MAX_VER)}
 
     def test_empty(self):
         data = self.get_json('/ports')
@@ -281,7 +280,8 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertEqual(sorted(ports), uuids)
 
     def test_sort_key_invalid(self):
-        invalid_keys_list = ['foo', 'extra', 'internal_info']
+        invalid_keys_list = ['foo', 'extra', 'internal_info',
+                             'local_link_connection']
         for invalid_key in invalid_keys_list:
             response = self.get_json(
                 '/ports?sort_key=%s' % invalid_key, expect_errors=True,
@@ -377,8 +377,6 @@ class TestPatch(test_api_base.BaseApiTest):
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
-        self.headers = {api_base.Version.string: str(
-                        versions.MAX_VERSION_STRING)}
 
     def test_update_byid(self, mock_upd):
         extra = {'foo': 'bar'}
@@ -471,7 +469,7 @@ class TestPatch(test_api_base.BaseApiTest):
                                      '/local_link_connection/switch_id',
                                      'value': switch_id,
                                      'op': 'replace'}],
-                                   headers=self.headers)
+                                   headers={api_base.Version.string: '1.19'})
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(switch_id,
@@ -713,7 +711,7 @@ class TestPatch(test_api_base.BaseApiTest):
                                    [{'path': '/pxe_enabled',
                                      'value': pxe_enabled,
                                      'op': 'replace'}],
-                                   headers=self.headers)
+                                   headers={api_base.Version.string: '1.19'})
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(pxe_enabled, response.json['pxe_enabled'])
 
@@ -936,8 +934,7 @@ class TestPost(test_api_base.BaseApiTest):
 
     def test_create_port_with_pxe_enabled_old_api_version(self):
         headers = {api_base.Version.string: '1.14'}
-        pdict = post_get_test_port(
-            pxe_enabled=False)
+        pdict = post_get_test_port(pxe_enabled=False)
         del pdict['local_link_connection']
         response = self.post_json('/ports', pdict, headers=headers,
                                   expect_errors=True)
