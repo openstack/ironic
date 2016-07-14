@@ -355,11 +355,12 @@ def _parse_driver_info(node):
     }
 
 
-def _exec_ipmitool(driver_info, command):
+def _exec_ipmitool(driver_info, command, check_exit_code=None):
     """Execute the ipmitool command.
 
     :param driver_info: the ipmitool parameters for accessing a node.
     :param command: the ipmitool command to be executed.
+    :param check_exit_code: Single bool, int, or list of allowed exit codes.
     :returns: (stdout, stderr) from executing the command.
     :raises: PasswordFileFailedToCreate from creating or writing to the
              temporary file.
@@ -414,6 +415,9 @@ def _exec_ipmitool(driver_info, command):
         # Resetting the list that will be utilized so the password arguments
         # from any previous execution are preserved.
         cmd_args = args[:]
+        extra_args = {}
+        if check_exit_code is not None:
+            extra_args['check_exit_code'] = check_exit_code
         # 'ipmitool' command will prompt password if there is no '-f'
         # option, we set it to '\0' to write a password file to support
         # empty password
@@ -422,7 +426,7 @@ def _exec_ipmitool(driver_info, command):
             cmd_args.append(pw_file)
             cmd_args.extend(command.split(" "))
             try:
-                out, err = utils.execute(*cmd_args)
+                out, err = utils.execute(*cmd_args, **extra_args)
                 return out, err
             except processutils.ProcessExecutionError as e:
                 with excutils.save_and_reraise_exception() as ctxt:
@@ -1090,8 +1094,8 @@ class VendorPassthru(base.VendorInterface):
         _parse_driver_info(task.node)
 
 
-class IPMIShellinaboxConsole(base.ConsoleInterface):
-    """A ConsoleInterface that uses ipmitool and shellinabox."""
+class IPMIConsole(base.ConsoleInterface):
+    """A base ConsoleInterface that uses ipmitool."""
 
     def __init__(self):
         try:
@@ -1128,10 +1132,11 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
                 "Check the 'ipmi_protocol_version' parameter in "
                 "node's driver_info"))
 
-    def start_console(self, task):
+    def _start_console(self, driver_info, start_method):
         """Start a remote console for the node.
 
         :param task: a task from TaskManager
+        :param start_method: console_utils method to start console
         :raises: InvalidParameterValue if required ipmi parameters are missing
         :raises: PasswordFileFailedToCreate if unable to create a file
                  containing the password
@@ -1139,8 +1144,6 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
                  created
         :raises: ConsoleSubprocessFailed when invoking the subprocess failed
         """
-        driver_info = _parse_driver_info(task.node)
-
         path = _console_pwfile_path(driver_info['uuid'])
         pw_file = console_utils.make_persistent_password_file(
             path, driver_info['password'] or '\0')
@@ -1162,12 +1165,29 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
             ipmi_cmd += " -v"
         ipmi_cmd += " sol activate"
         try:
-            console_utils.start_shellinabox_console(driver_info['uuid'],
-                                                    driver_info['port'],
-                                                    ipmi_cmd)
+            start_method(driver_info['uuid'], driver_info['port'], ipmi_cmd)
         except (exception.ConsoleError, exception.ConsoleSubprocessFailed):
             with excutils.save_and_reraise_exception():
                 ironic_utils.unlink_without_raise(path)
+
+
+class IPMIShellinaboxConsole(IPMIConsole):
+    """A ConsoleInterface that uses ipmitool and shellinabox."""
+
+    def start_console(self, task):
+        """Start a remote console for the node.
+
+        :param task: a task from TaskManager
+        :raises: InvalidParameterValue if required ipmi parameters are missing
+        :raises: PasswordFileFailedToCreate if unable to create a file
+                 containing the password
+        :raises: ConsoleError if the directory for the PID file cannot be
+                 created
+        :raises: ConsoleSubprocessFailed when invoking the subprocess failed
+        """
+        driver_info = _parse_driver_info(task.node)
+        self._start_console(driver_info,
+                            console_utils.start_shellinabox_console)
 
     def stop_console(self, task):
         """Stop the remote console session for the node.
@@ -1186,3 +1206,55 @@ class IPMIShellinaboxConsole(base.ConsoleInterface):
         driver_info = _parse_driver_info(task.node)
         url = console_utils.get_shellinabox_console_url(driver_info['port'])
         return {'type': 'shellinabox', 'url': url}
+
+
+class IPMISocatConsole(IPMIConsole):
+    """A ConsoleInterface that uses ipmitool and socat."""
+
+    def start_console(self, task):
+        """Start a remote console for the node.
+
+        :param task: a task from TaskManager
+        :raises: InvalidParameterValue if required ipmi parameters are missing
+        :raises: PasswordFileFailedToCreate if unable to create a file
+                 containing the password
+        :raises: ConsoleError if the directory for the PID file cannot be
+                 created
+        :raises: ConsoleSubprocessFailed when invoking the subprocess failed
+        """
+        driver_info = _parse_driver_info(task.node)
+        try:
+            self._exec_stop_console(driver_info)
+        except OSError:
+            # We need to drop any existing sol sessions with sol deactivate.
+            # OSError is raised when sol session is deactive, so we can
+            # ignore it.
+            pass
+        self._start_console(driver_info, console_utils.start_socat_console)
+
+    def stop_console(self, task):
+        """Stop the remote console session for the node.
+
+        :param task: a task from TaskManager
+        :raises: ConsoleError if unable to stop the console
+        """
+        driver_info = _parse_driver_info(task.node)
+        try:
+            console_utils.stop_socat_console(task.node.uuid)
+        finally:
+            ironic_utils.unlink_without_raise(
+                _console_pwfile_path(task.node.uuid))
+        self._exec_stop_console(driver_info)
+
+    def _exec_stop_console(self, driver_info):
+        cmd = "sol deactivate"
+        _exec_ipmitool(driver_info, cmd, check_exit_code=[0, 1])
+
+    def get_console(self, task):
+        """Get the type and connection information about the console.
+
+        :param task: a task from TaskManager
+        """
+        driver_info = _parse_driver_info(task.node)
+        url = console_utils.get_socat_console_url(driver_info['port'])
+        return {'type': 'socat', 'url': url}

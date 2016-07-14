@@ -65,6 +65,19 @@ class PXEDriversTestCase(testtools.TestCase):
         self.assertIsInstance(driver.vendor, utils.MixinVendorInterface)
         self.assertIsInstance(driver.raid, agent.AgentRAID)
 
+    def test_pxe_ipmitool_socat_driver(self):
+        driver = pxe.PXEAndIPMIToolAndSocatDriver()
+
+        self.assertIsInstance(driver.power, ipmitool.IPMIPower)
+        self.assertIsInstance(driver.console, ipmitool.IPMISocatConsole)
+        self.assertIsInstance(driver.boot, pxe_module.PXEBoot)
+        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
+        self.assertIsInstance(driver.management, ipmitool.IPMIManagement)
+        self.assertIsNone(driver.inspect)
+        # TODO(rameshg87): Need better way of asserting the routes.
+        self.assertIsInstance(driver.vendor, utils.MixinVendorInterface)
+        self.assertIsInstance(driver.raid, agent.AgentRAID)
+
     def test_pxe_ssh_driver(self):
         driver = pxe.PXEAndSSHDriver()
 

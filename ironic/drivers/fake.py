@@ -90,6 +90,17 @@ class FakeIPMIToolDriver(base.BaseDriver):
         self.management = ipmitool.IPMIManagement()
 
 
+class FakeIPMIToolSocatDriver(base.BaseDriver):
+    """Example implementation of a Driver."""
+
+    def __init__(self):
+        self.power = ipmitool.IPMIPower()
+        self.console = ipmitool.IPMISocatConsole()
+        self.deploy = fake.FakeDeploy()
+        self.vendor = ipmitool.VendorPassthru()
+        self.management = ipmitool.IPMIManagement()
+
+
 class FakePXEDriver(base.BaseDriver):
     """Example implementation of a Driver."""
 

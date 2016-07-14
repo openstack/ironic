@@ -25,8 +25,45 @@ from ironic.drivers.modules import agent as agent_module
 from ironic.drivers.modules.amt import management as amt_management
 from ironic.drivers.modules.amt import power as amt_power
 from ironic.drivers.modules import iboot
+from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import wol
+from ironic.drivers import utils
+from ironic.tests import base
+
+
+class AgentAndIPMIToolDriverTestCase(base.TestCase):
+
+    def test___init__(self):
+        driver = agent.AgentAndIPMIToolDriver()
+
+        self.assertIsInstance(driver.power, ipmitool.IPMIPower)
+        self.assertIsInstance(driver.console, ipmitool.IPMIShellinaboxConsole)
+        self.assertIsInstance(driver.boot, pxe.PXEBoot)
+        self.assertIsInstance(driver.deploy, agent_module.AgentDeploy)
+        self.assertIsInstance(driver.management, ipmitool.IPMIManagement)
+        self.assertIsInstance(driver.agent_vendor,
+                              agent_module.AgentVendorInterface)
+        self.assertIsInstance(driver.ipmi_vendor, ipmitool.VendorPassthru)
+        self.assertIsInstance(driver.vendor, utils.MixinVendorInterface)
+        self.assertIsInstance(driver.raid, agent_module.AgentRAID)
+
+
+class AgentAndIPMIToolAndSocatDriverTestCase(base.TestCase):
+
+    def test___init__(self):
+        driver = agent.AgentAndIPMIToolAndSocatDriver()
+
+        self.assertIsInstance(driver.power, ipmitool.IPMIPower)
+        self.assertIsInstance(driver.console, ipmitool.IPMISocatConsole)
+        self.assertIsInstance(driver.boot, pxe.PXEBoot)
+        self.assertIsInstance(driver.deploy, agent_module.AgentDeploy)
+        self.assertIsInstance(driver.management, ipmitool.IPMIManagement)
+        self.assertIsInstance(driver.agent_vendor,
+                              agent_module.AgentVendorInterface)
+        self.assertIsInstance(driver.ipmi_vendor, ipmitool.VendorPassthru)
+        self.assertIsInstance(driver.vendor, utils.MixinVendorInterface)
+        self.assertIsInstance(driver.raid, agent_module.AgentRAID)
 
 
 class AgentAndAMTDriverTestCase(testtools.TestCase):

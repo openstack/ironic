@@ -66,6 +66,25 @@ class AgentAndIPMIToolDriver(base.BaseDriver):
             'AgentAndIPMIToolDriver')
 
 
+class AgentAndIPMIToolAndSocatDriver(AgentAndIPMIToolDriver):
+    """Agent + IPMITool + socat driver.
+
+    This driver implements the `core` functionality, combining
+    :class:`ironic.drivers.modules.ipmitool.IPMIPower` (for power on/off and
+    reboot) with :class:`ironic.drivers.modules.agent.AgentDeploy` (for
+    image deployment) and with
+    :class:`ironic.drivers.modules.ipmitool.IPMISocatConsole`.
+    This driver uses the socat console interface instead of the shellinabox
+    one.
+    Implementations are in those respective classes; this class is merely the
+    glue between them.
+    """
+
+    def __init__(self):
+        AgentAndIPMIToolDriver.__init__(self)
+        self.console = ipmitool.IPMISocatConsole()
+
+
 class AgentAndIPMINativeDriver(base.BaseDriver):
     """Agent + IPMINative driver.
 
