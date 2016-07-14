@@ -293,12 +293,12 @@ class IloVirtualMediaAgentDeploy(agent.AgentDeploy):
         :returns: A list of clean step dictionaries
         """
 
-        # TODO(stendulker): All drivers use CONF.deploy.erase_devices_priority
-        # agent_ilo driver should also use the same. Defect has been filed for
-        # the same.
-        # https://bugs.launchpad.net/ironic/+bug/1515871
+        priority = CONF.ilo.clean_priority_erase_devices
+        if priority is None:
+            priority = CONF.deploy.erase_devices_priority
+
         new_priorities = {
-            'erase_devices': CONF.ilo.clean_priority_erase_devices,
+            'erase_devices': priority,
         }
         return deploy_utils.agent_get_clean_steps(
             task, interface='deploy',
