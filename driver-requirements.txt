@@ -12,7 +12,7 @@ python-oneviewclient<3.0.0,>=2.0.2
 python-scciclient>=0.3.0
 python-seamicroclient>=0.4.0
 UcsSdk==0.8.2.2
-python-dracclient>=0.0.5
+python-dracclient>=0.1.0
 
 # The amt driver imports a python module called "pywsman", but this does not
 # exist on pypi.

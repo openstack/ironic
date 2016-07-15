@@ -20,4 +20,4 @@ def dict_to_namedtuple(name='GenericNamedTuple', values=None):
     if values is None:
         values = {}
 
-    return collections.namedtuple(name, values.keys())(**values)
+    return collections.namedtuple(name, list(values))(**values)
