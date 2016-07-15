@@ -51,7 +51,11 @@ driver_opts = [
                        'production-oriented network interfaces. A complete '
                        'list of network interfaces present on your system may '
                        'be found by enumerating the '
-                       '"ironic.hardware.interfaces.network" entrypoint.')),
+                       '"ironic.hardware.interfaces.network" entrypoint.'
+                       'This value must be the same on all ironic-conductor '
+                       'and ironic-api services, because it is used by '
+                       'ironic-api service to validate a new or updated '
+                       'node\'s network_interface value.')),
     cfg.StrOpt('default_network_interface',
                help=_('Default network interface to be used for nodes that '
                       'do not have network_interface field set. A complete '

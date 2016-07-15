@@ -131,6 +131,22 @@ class TestApiUtils(base.TestCase):
                           utils.check_allow_specify_fields, ['foo'])
 
     @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allow_specify_network_interface(self, mock_request):
+        mock_request.version.minor = 20
+        self.assertIsNone(
+            utils.check_allow_specify_network_interface_in_fields(
+                ['network_interface']))
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allow_specify_network_interface_in_fields_fail(
+            self, mock_request):
+        mock_request.version.minor = 19
+        self.assertRaises(
+            exception.NotAcceptable,
+            utils.check_allow_specify_network_interface_in_fields,
+            ['network_interface'])
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_specify_driver(self, mock_request):
         mock_request.version.minor = 16
         self.assertIsNone(utils.check_allow_specify_driver(['fake']))
@@ -231,6 +247,13 @@ class TestApiUtils(base.TestCase):
         self.assertTrue(utils.allow_port_advanced_net_fields())
         mock_request.version.minor = 18
         self.assertFalse(utils.allow_port_advanced_net_fields())
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_allow_network_interface(self, mock_request):
+        mock_request.version.minor = 20
+        self.assertTrue(utils.allow_network_interface())
+        mock_request.version.minor = 19
+        self.assertFalse(utils.allow_network_interface())
 
 
 class TestNodeIdent(base.TestCase):

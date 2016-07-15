@@ -1,0 +1,7 @@
+---
+features:
+  - Bumped API version to 1.20. It adds API methods to work with
+    ``network_interface`` node object field, that specifies the network
+    interface to use for that node. Its value must be identical and
+    present in the ``[DEFAULT]enabled_network_interfaces`` list option
+    on conductor and api nodes.

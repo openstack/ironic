@@ -45,6 +45,7 @@ from ironic import objects
 CONF = cfg.CONF
 CONF.import_opt('heartbeat_timeout', 'ironic.conductor.manager',
                 group='conductor')
+CONF.import_opt('enabled_network_interfaces', 'ironic.common.driver_factory')
 
 LOG = log.getLogger(__name__)
 _CLEAN_STEPS_SCHEMA = {
@@ -109,7 +110,12 @@ def get_nodes_controller_reserved_names():
 
 
 def hide_fields_in_newer_versions(obj):
-    # if requested version is < 1.3, hide driver_internal_info
+    """This method hides fields that were added in newer API versions.
+
+    Certain node fields were introduced at certain API versions.
+    These fields are only made available when the request's API version
+    matches or exceeds the versions when these fields were introduced.
+    """
     if pecan.request.version.minor < versions.MINOR_3_DRIVER_INTERNAL_INFO:
         obj.driver_internal_info = wsme.Unset
 
@@ -127,6 +133,9 @@ def hide_fields_in_newer_versions(obj):
     if pecan.request.version.minor < versions.MINOR_12_RAID_CONFIG:
         obj.raid_config = wsme.Unset
         obj.target_raid_config = wsme.Unset
+
+    if pecan.request.version.minor < versions.MINOR_20_NETWORK_INTERFACE:
+        obj.network_interface = wsme.Unset
 
 
 def update_state_in_older_versions(obj):
@@ -696,6 +705,9 @@ class Node(base.APIBase):
     states = wsme.wsattr([link.Link], readonly=True)
     """Links to endpoint for retrieving and setting node states"""
 
+    network_interface = wsme.wsattr(wtypes.text)
+    """The network interface to be used for this node"""
+
     # NOTE(deva): "conductor_affinity" shouldn't be presented on the
     #             API because it's an internal value. Don't add it here.
 
@@ -794,7 +806,8 @@ class Node(base.APIBase):
                      maintenance=False, maintenance_reason=None,
                      inspection_finished_at=None, inspection_started_at=time,
                      console_enabled=False, clean_step={},
-                     raid_config=None, target_raid_config=None)
+                     raid_config=None, target_raid_config=None,
+                     network_interface='flat')
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
@@ -1129,6 +1142,7 @@ class NodesController(rest.RestController):
         api_utils.check_allow_specify_fields(fields)
         api_utils.check_for_invalid_state_and_allow_filter(provision_state)
         api_utils.check_allow_specify_driver(driver)
+        api_utils.check_allow_specify_network_interface_in_fields(fields)
         if fields is None:
             fields = _DEFAULT_RETURN_FIELDS
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
@@ -1213,6 +1227,7 @@ class NodesController(rest.RestController):
             raise exception.OperationNotPermitted()
 
         api_utils.check_allow_specify_fields(fields)
+        api_utils.check_allow_specify_network_interface_in_fields(fields)
 
         rpc_node = api_utils.get_rpc_node(node_ident)
         return Node.convert_with_links(rpc_node, fields=fields)
@@ -1225,6 +1240,26 @@ class NodesController(rest.RestController):
         """
         if self.from_chassis:
             raise exception.OperationNotPermitted()
+
+        n_interface = node.network_interface
+        if (not api_utils.allow_network_interface() and
+                n_interface is not wtypes.Unset):
+            raise exception.NotAcceptable()
+
+        # NOTE(vsaienko) The validation is performed on API side,
+        # all conductors and api should have the same list of
+        # enabled_network_interfaces.
+        # TODO(vsaienko) remove it once driver-composition-reform
+        # is implemented.
+        if (n_interface is not wtypes.Unset and
+            not api_utils.is_valid_network_interface(n_interface)):
+            error_msg = _("Cannot create node with the invalid network "
+                          "interface '%(n_interface)s'. Enabled network "
+                          "interfaces are: %(enabled_int)s")
+            raise wsme.exc.ClientSideError(
+                error_msg % {'n_interface': n_interface,
+                             'enabled_int': CONF.enabled_network_interfaces},
+                status_code=http_client.BAD_REQUEST)
 
         # NOTE(deva): get_topic_for checks if node.driver is in the hash ring
         #             and raises NoValidHost if it is not.
@@ -1264,6 +1299,21 @@ class NodesController(rest.RestController):
         """
         if self.from_chassis:
             raise exception.OperationNotPermitted()
+
+        n_interfaces = api_utils.get_patch_values(patch, '/network_interface')
+        if n_interfaces and not api_utils.allow_network_interface():
+            raise exception.NotAcceptable()
+
+        for n_interface in n_interfaces:
+            if (n_interface is not None and
+                not api_utils.is_valid_network_interface(n_interface)):
+                error_msg = _("Node %(node)s: Cannot change "
+                              "network_interface to invalid value: "
+                              "%(n_interface)s")
+                raise wsme.exc.ClientSideError(
+                    error_msg % {'node': node_ident,
+                                 'n_interface': n_interface},
+                    status_code=http_client.BAD_REQUEST)
 
         rpc_node = api_utils.get_rpc_node(node_ident)
 

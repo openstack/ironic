@@ -110,6 +110,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn('clean_step', data['nodes'][0])
         self.assertNotIn('raid_config', data['nodes'][0])
         self.assertNotIn('target_raid_config', data['nodes'][0])
+        self.assertNotIn('network_interface', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -135,6 +136,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('inspection_started_at', data)
         self.assertIn('clean_step', data)
         self.assertIn('states', data)
+        self.assertIn('network_interface', data)
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data)
 
@@ -206,6 +208,25 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertItemsEqual(['driver_info', 'links'], data)
         self.assertEqual('******', data['driver_info']['fake_password'])
 
+    def test_get_network_interface_fields_invalid_api_version(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        fields = 'network_interface'
+        response = self.get_json(
+            '/nodes/%s?fields=%s' % (node.uuid, fields),
+            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+    def test_get_network_interface_fields(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        fields = 'network_interface'
+        response = self.get_json(
+            '/nodes/%s?fields=%s' % (node.uuid, fields),
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        self.assertIn('network_interface', response)
+
     def test_detail(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
@@ -229,6 +250,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('inspection_started_at', data['nodes'][0])
         self.assertIn('raid_config', data['nodes'][0])
         self.assertIn('target_raid_config', data['nodes'][0])
+        self.assertIn('network_interface', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -302,6 +324,17 @@ class TestListNodes(test_api_base.BaseApiTest):
         data = self.get_json('/nodes/%s' % node.uuid,
                              headers={api_base.Version.string: "1.7"})
         self.assertEqual({"foo": "bar"}, data['clean_step'])
+
+    def test_hide_fields_in_newer_versions_network_interface(self):
+        node = obj_utils.create_test_node(self.context,
+                                          network_interface='flat')
+        data = self.get_json(
+            '/nodes/detail', headers={api_base.Version.string: '1.19'})
+        self.assertNotIn('network_interface', data['nodes'][0])
+        new_data = self.get_json(
+            '/nodes/detail', headers={api_base.Version.string: '1.20'})
+        self.assertEqual(node.network_interface,
+                         new_data['nodes'][0]["network_interface"])
 
     def test_many(self):
         nodes = []
@@ -1390,6 +1423,35 @@ class TestPatch(test_api_base.BaseApiTest):
             self.assertEqual('application/json', response.content_type)
             self.assertEqual(http_client.OK, response.status_code)
 
+    def test_update_network_interface(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        network_interface = 'flat'
+        headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/network_interface',
+                                     'value': network_interface,
+                                     'op': 'add'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_update_network_interface_old_api(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        network_interface = 'flat'
+        headers = {api_base.Version.string: '1.15'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/network_interface',
+                                     'value': network_interface,
+                                     'op': 'add'}],
+                                   headers=headers,
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+
 
 class TestPost(test_api_base.BaseApiTest):
 
@@ -1702,6 +1764,34 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(return_value, data)
         # Assert RPC method wasn't called this time
         self.assertFalse(get_methods_mock.called)
+
+    def test_create_node_network_interface(self):
+        ndict = test_api_utils.post_get_test_node(
+            network_interface='flat')
+        response = self.post_json('/nodes', ndict,
+                                  headers={api_base.Version.string:
+                                           str(api_v1.MAX_VER)})
+        self.assertEqual(http_client.CREATED, response.status_int)
+        result = self.get_json('/nodes/%s' % ndict['uuid'],
+                               headers={api_base.Version.string:
+                                        str(api_v1.MAX_VER)})
+        self.assertEqual('flat', result['network_interface'])
+
+    def test_create_node_network_interface_old_api_version(self):
+        ndict = test_api_utils.post_get_test_node(
+            network_interface='flat')
+        response = self.post_json('/nodes', ndict, expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+    def test_create_node_invalid_network_interface(self):
+        ndict = test_api_utils.post_get_test_node(
+            network_interface='foo')
+        response = self.post_json('/nodes', ndict, expect_errors=True,
+                                  headers={api_base.Version.string:
+                                           str(api_v1.MAX_VER)})
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
 
 class TestDelete(test_api_base.BaseApiTest):

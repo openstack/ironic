@@ -37,8 +37,11 @@
 # recommended set of production-oriented network interfaces. A
 # complete list of network interfaces present on your system
 # may be found by enumerating the
-# "ironic.hardware.interfaces.network" entrypoint. (list
-# value)
+# "ironic.hardware.interfaces.network" entrypoint.This value
+# must be the same on all ironic-conductor and ironic-api
+# services, because it is used by ironic-api service to
+# validate a new or updated node's network_interface value.
+# (list value)
 #enabled_network_interfaces = flat,noop
 
 # Default network interface to be used for nodes that do not
