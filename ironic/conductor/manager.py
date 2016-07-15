@@ -164,8 +164,8 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         """
         LOG.debug("RPC change_node_power_state called for node %(node)s. "
-                  "The desired new state is %(state)s."
-                  % {'node': node_id, 'state': new_state})
+                  "The desired new state is %(state)s.",
+                  {'node': node_id, 'state': new_state})
 
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='changing node power state') as task:
@@ -1580,8 +1580,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                  async task
         """
         LOG.debug('RPC set_console_mode called for node %(node)s with '
-                  'enabled %(enabled)s' % {'node': node_id,
-                                           'enabled': enabled})
+                  'enabled %(enabled)s', {'node': node_id, 'enabled': enabled})
 
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='setting console mode') as task:
@@ -2526,8 +2525,8 @@ def _do_inspect_hardware(task):
 
     if new_state == states.MANAGEABLE:
         task.process_event('done')
-        LOG.info(_LI('Successfully inspected node %(node)s')
-                 % {'node': node.uuid})
+        LOG.info(_LI('Successfully inspected node %(node)s'),
+                 {'node': node.uuid})
     elif new_state != states.INSPECTING:
         error = (_("During inspection, driver returned unexpected "
                    "state %(state)s") % {'state': new_state})

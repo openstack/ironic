@@ -708,7 +708,7 @@ def verify_image_checksum(image_location, expected_checksum):
         LOG.error(_LE("Error opening file: %(file)s"),
                   {'file': image_location})
         raise exception.ImageRefValidationFailed(image_href=image_location,
-                                                 reason=six.text_type(e))
+                                                 reason=e)
 
     if actual_checksum != expected_checksum:
         msg = (_('Error verifying image checksum. Image %(image)s failed to '
