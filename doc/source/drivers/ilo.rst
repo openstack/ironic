@@ -775,7 +775,6 @@ Supported **Automated** Cleaning Operations
   - clean_priority_reset_secure_boot_keys_to_default=20
   - clean_priority_clear_secure_boot_keys=0
   - clean_priority_reset_ilo_credential=30
-  - clean_priority_erase_devices=10
 
 For more information on node automated cleaning, see :ref:`automated_cleaning`
 
