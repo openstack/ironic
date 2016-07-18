@@ -1409,6 +1409,9 @@ function ironic_configure_tempest {
     iniset $TEMPEST_CONFIG compute flavor_ref $bm_flavor_id
     iniset $TEMPEST_CONFIG compute flavor_ref_alt $bm_flavor_id
     iniset $TEMPEST_CONFIG compute-feature-enabled disk_config False
+    if [[ -n "${IRONIC_PROVISION_NETWORK_NAME}" ]]; then
+        iniset $TEMPEST_CONFIG baremetal use_provision_network True
+    fi
 }
 
 # Restore xtrace + pipefail

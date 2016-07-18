@@ -81,4 +81,7 @@ BaremetalGroup = [
                     "min_microversion and max_microversion. "
                     "If both values are None, Tempest avoids tests which "
                     "require a microversion."),
+    cfg.BoolOpt('use_provision_network',
+                default=False,
+                help="Whether the Ironic/Neutron tenant isolation is enabled")
 ]
