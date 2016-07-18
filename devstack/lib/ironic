@@ -483,24 +483,24 @@ function configure_ironic_provision_network {
     die_if_not_set $LINENO IRONIC_PROVISION_SUBNET_GATEWAY "You must specify the IRONIC_PROVISION_SUBNET_GATEWAY"
 
     local net_id
-    net_id=$(neutron net-create --provider:network_type $IRONIC_PROVISION_PROVIDER_NETWORK_TYPE \
-        --provider:physical_network "$PHYSICAL_NETWORK" \
-        ${IRONIC_PROVISION_SEGMENTATION_ID:+--provider:segmentation_id $IRONIC_PROVISION_SEGMENTATION_ID} \
-        ${IRONIC_PROVISION_NETWORK_NAME} | grep ' id ' | get_field 2)
+    net_id=$(openstack network create --provider-network-type $IRONIC_PROVISION_PROVIDER_NETWORK_TYPE \
+        --provider-physical-network "$PHYSICAL_NETWORK" \
+        ${IRONIC_PROVISION_SEGMENTATION_ID:+--provider-segment $IRONIC_PROVISION_SEGMENTATION_ID} \
+        ${IRONIC_PROVISION_NETWORK_NAME} -f value -c id)
 
     die_if_not_set $LINENO net_id "Failure creating net_id for $IRONIC_PROVISION_NETWORK_NAME"
     local subnet_id
-    subnet_id="$(neutron subnet-create --ip_version 4 \
+    subnet_id="$(openstack subnet create --ip-version 4 \
         ${IRONIC_PROVISION_ALLOCATION_POOL:+--allocation-pool $IRONIC_PROVISION_ALLOCATION_POOL} \
-        --name $IRONIC_PROVISION_PROVIDER_SUBNET_NAME \
-        --gateway $IRONIC_PROVISION_SUBNET_GATEWAY $net_id \
-        $IRONIC_PROVISION_SUBNET_PREFIX | grep ' id ' | get_field 2)"
+        $IRONIC_PROVISION_PROVIDER_SUBNET_NAME \
+        --gateway $IRONIC_PROVISION_SUBNET_GATEWAY --network $net_id \
+        --subnet-range $IRONIC_PROVISION_SUBNET_PREFIX -f value -c id)"
 
     die_if_not_set $LINENO subnet_id "Failure creating SUBNET_ID for $IRONIC_PROVISION_NETWORK_NAME"
 
     iniset $IRONIC_CONF_FILE neutron provisioning_network_uuid $net_id
 
-    IRONIC_PROVISION_SEGMENTATION_ID=${IRONIC_PROVISION_SEGMENTATION_ID:-`neutron net-show ${net_id} | grep -w 'provider:segmentation_id'| get_field 2`}
+    IRONIC_PROVISION_SEGMENTATION_ID=${IRONIC_PROVISION_SEGMENTATION_ID:-`openstack network show ${net_id} -f value -c provider:segmentation_id`}
     provision_net_prefix=${IRONIC_PROVISION_SUBNET_PREFIX##*/}
 
     # Set provision network GW on physical interface
@@ -517,9 +517,6 @@ function configure_ironic_provision_network {
 }
 
 function cleanup_ironic_provision_network {
-    if [[ -z "${IRONIC_PROVISION_NETWORK_NAME}" ]]; then
-        return 0
-    fi
     # Cleanup OVS_PHYSICAL_BRIDGE subinterfaces
     local bridge_subint
     bridge_subint=$(cat /proc/net/dev | sed -n "s/^\(${OVS_PHYSICAL_BRIDGE}\.[0-9]*\).*/\1/p")
