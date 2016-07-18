@@ -15,6 +15,7 @@
 
 import datetime
 
+from ironic_lib import metrics_utils
 import pecan
 from pecan import rest
 from six.moves import http_client
@@ -31,6 +32,8 @@ from ironic.api import expose
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic import objects
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 
 _DEFAULT_RETURN_FIELDS = ('uuid', 'description')
@@ -190,6 +193,7 @@ class ChassisController(rest.RestController):
                                                     sort_key=sort_key,
                                                     sort_dir=sort_dir)
 
+    @METRICS.timer('ChassisController.get_all')
     @expose.expose(ChassisCollection, types.uuid, int,
                    wtypes.text, wtypes.text, types.listtype)
     def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc',
@@ -209,6 +213,7 @@ class ChassisController(rest.RestController):
         return self._get_chassis_collection(marker, limit, sort_key, sort_dir,
                                             fields=fields)
 
+    @METRICS.timer('ChassisController.detail')
     @expose.expose(ChassisCollection, types.uuid, int,
                    wtypes.text, wtypes.text)
     def detail(self, marker=None, limit=None, sort_key='id', sort_dir='asc'):
@@ -228,6 +233,7 @@ class ChassisController(rest.RestController):
         return self._get_chassis_collection(marker, limit, sort_key, sort_dir,
                                             resource_url)
 
+    @METRICS.timer('ChassisController.get_one')
     @expose.expose(Chassis, types.uuid, types.listtype)
     def get_one(self, chassis_uuid, fields=None):
         """Retrieve information about the given chassis.
@@ -241,6 +247,7 @@ class ChassisController(rest.RestController):
                                                   chassis_uuid)
         return Chassis.convert_with_links(rpc_chassis, fields=fields)
 
+    @METRICS.timer('ChassisController.post')
     @expose.expose(Chassis, body=Chassis, status_code=http_client.CREATED)
     def post(self, chassis):
         """Create a new chassis.
@@ -254,6 +261,7 @@ class ChassisController(rest.RestController):
         pecan.response.location = link.build_url('chassis', new_chassis.uuid)
         return Chassis.convert_with_links(new_chassis)
 
+    @METRICS.timer('ChassisController.patch')
     @wsme.validate(types.uuid, [ChassisPatchType])
     @expose.expose(Chassis, types.uuid, body=[ChassisPatchType])
     def patch(self, chassis_uuid, patch):
@@ -286,6 +294,7 @@ class ChassisController(rest.RestController):
         rpc_chassis.save()
         return Chassis.convert_with_links(rpc_chassis)
 
+    @METRICS.timer('ChassisController.delete')
     @expose.expose(None, types.uuid, status_code=http_client.NO_CONTENT)
     def delete(self, chassis_uuid):
         """Delete a chassis.

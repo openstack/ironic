@@ -16,6 +16,7 @@
 import ast
 import datetime
 
+from ironic_lib import metrics_utils
 import jsonschema
 from oslo_config import cfg
 from oslo_log import log
@@ -78,6 +79,8 @@ _CLEAN_STEPS_SCHEMA = {
         "additionalProperties": False
     }
 }
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 # Vendor information for node's driver:
 #   key = driver name;
@@ -176,6 +179,7 @@ class BootDeviceController(rest.RestController):
             return pecan.request.rpcapi.get_boot_device(pecan.request.context,
                                                         rpc_node.uuid, topic)
 
+    @METRICS.timer('BootDeviceController.put')
     @expose.expose(None, types.uuid_or_name, wtypes.text, types.boolean,
                    status_code=http_client.NO_CONTENT)
     def put(self, node_ident, boot_device, persistent=False):
@@ -199,6 +203,7 @@ class BootDeviceController(rest.RestController):
                                              persistent=persistent,
                                              topic=topic)
 
+    @METRICS.timer('BootDeviceController.get')
     @expose.expose(wtypes.text, types.uuid_or_name)
     def get(self, node_ident):
         """Get the current boot device for a node.
@@ -214,6 +219,7 @@ class BootDeviceController(rest.RestController):
         """
         return self._get_boot_device(node_ident)
 
+    @METRICS.timer('BootDeviceController.supported')
     @expose.expose(wtypes.text, types.uuid_or_name)
     def supported(self, node_ident):
         """Get a list of the supported boot devices.
@@ -251,6 +257,7 @@ class ConsoleInfo(base.APIBase):
 
 class NodeConsoleController(rest.RestController):
 
+    @METRICS.timer('NodeConsoleController.get')
     @expose.expose(ConsoleInfo, types.uuid_or_name)
     def get(self, node_ident):
         """Get connection information about the console.
@@ -269,6 +276,7 @@ class NodeConsoleController(rest.RestController):
 
         return ConsoleInfo(console_enabled=console_state, console_info=console)
 
+    @METRICS.timer('NodeConsoleController.put')
     @expose.expose(None, types.uuid_or_name, types.boolean,
                    status_code=http_client.ACCEPTED)
     def put(self, node_ident, enabled):
@@ -359,6 +367,7 @@ class NodeStatesController(rest.RestController):
     console = NodeConsoleController()
     """Expose console as a sub-element of states"""
 
+    @METRICS.timer('NodeStatesController.get')
     @expose.expose(NodeStates, types.uuid_or_name)
     def get(self, node_ident):
         """List the states of the node.
@@ -371,6 +380,7 @@ class NodeStatesController(rest.RestController):
         rpc_node = api_utils.get_rpc_node(node_ident)
         return NodeStates.convert(rpc_node)
 
+    @METRICS.timer('NodeStatesController.raid')
     @expose.expose(None, types.uuid_or_name, body=types.jsontype)
     def raid(self, node_ident, target_raid_config):
         """Set the target raid config of the node.
@@ -399,6 +409,7 @@ class NodeStatesController(rest.RestController):
             e.code = http_client.NOT_FOUND
             raise
 
+    @METRICS.timer('NodeStatesController.power')
     @expose.expose(None, types.uuid_or_name, wtypes.text,
                    status_code=http_client.ACCEPTED)
     def power(self, node_ident, target):
@@ -438,6 +449,7 @@ class NodeStatesController(rest.RestController):
         url_args = '/'.join([node_ident, 'states'])
         pecan.response.location = link.build_url('nodes', url_args)
 
+    @METRICS.timer('NodeStatesController.provision')
     @expose.expose(None, types.uuid_or_name, wtypes.text,
                    wtypes.text, types.jsontype,
                    status_code=http_client.ACCEPTED)
@@ -873,6 +885,7 @@ class NodeVendorPassthruController(rest.RestController):
         'methods': ['GET']
     }
 
+    @METRICS.timer('NodeVendorPassthruController.methods')
     @expose.expose(wtypes.text, types.uuid_or_name)
     def methods(self, node_ident):
         """Retrieve information about vendor methods of the given node.
@@ -893,6 +906,7 @@ class NodeVendorPassthruController(rest.RestController):
 
         return _VENDOR_METHODS[rpc_node.driver]
 
+    @METRICS.timer('NodeVendorPassthruController._default')
     @expose.expose(wtypes.text, types.uuid_or_name, wtypes.text,
                    body=wtypes.text)
     def _default(self, node_ident, method, data=None):
@@ -924,6 +938,7 @@ class NodeMaintenanceController(rest.RestController):
         pecan.request.rpcapi.update_node(pecan.request.context,
                                          rpc_node, topic=topic)
 
+    @METRICS.timer('NodeMaintenanceController.put')
     @expose.expose(None, types.uuid_or_name, wtypes.text,
                    status_code=http_client.ACCEPTED)
     def put(self, node_ident, reason=None):
@@ -935,6 +950,7 @@ class NodeMaintenanceController(rest.RestController):
         """
         self._set_maintenance(node_ident, True, reason=reason)
 
+    @METRICS.timer('NodeMaintenanceController.delete')
     @expose.expose(None, types.uuid_or_name, status_code=http_client.ACCEPTED)
     def delete(self, node_ident):
         """Remove the node from maintenance mode.
@@ -1109,6 +1125,7 @@ class NodesController(rest.RestController):
                   "enabled. Please stop the console first.") % node_ident,
                 status_code=http_client.CONFLICT)
 
+    @METRICS.timer('NodesController.get_all')
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
                    types.boolean, wtypes.text, types.uuid, int, wtypes.text,
                    wtypes.text, wtypes.text, types.listtype)
@@ -1151,6 +1168,7 @@ class NodesController(rest.RestController):
                                           limit, sort_key, sort_dir,
                                           driver, fields=fields)
 
+    @METRICS.timer('NodesController.detail')
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
                    types.boolean, wtypes.text, types.uuid, int, wtypes.text,
                    wtypes.text, wtypes.text)
@@ -1192,6 +1210,7 @@ class NodesController(rest.RestController):
                                           limit, sort_key, sort_dir,
                                           driver, resource_url)
 
+    @METRICS.timer('NodesController.validate')
     @expose.expose(wtypes.text, types.uuid_or_name, types.uuid)
     def validate(self, node=None, node_uuid=None):
         """Validate the driver interfaces, using the node's UUID or name.
@@ -1215,6 +1234,7 @@ class NodesController(rest.RestController):
         return pecan.request.rpcapi.validate_driver_interfaces(
             pecan.request.context, rpc_node.uuid, topic)
 
+    @METRICS.timer('NodesController.get_one')
     @expose.expose(Node, types.uuid_or_name, types.listtype)
     def get_one(self, node_ident, fields=None):
         """Retrieve information about the given node.
@@ -1232,6 +1252,7 @@ class NodesController(rest.RestController):
         rpc_node = api_utils.get_rpc_node(node_ident)
         return Node.convert_with_links(rpc_node, fields=fields)
 
+    @METRICS.timer('NodesController.post')
     @expose.expose(Node, body=Node, status_code=http_client.CREATED)
     def post(self, node):
         """Create a new node.
@@ -1289,6 +1310,7 @@ class NodesController(rest.RestController):
         pecan.response.location = link.build_url('nodes', new_node.uuid)
         return Node.convert_with_links(new_node)
 
+    @METRICS.timer('NodesController.patch')
     @wsme.validate(types.uuid, [NodePatchType])
     @expose.expose(Node, types.uuid_or_name, body=[NodePatchType])
     def patch(self, node_ident, patch):
@@ -1366,6 +1388,7 @@ class NodesController(rest.RestController):
 
         return Node.convert_with_links(new_node)
 
+    @METRICS.timer('NodesController.delete')
     @expose.expose(None, types.uuid_or_name,
                    status_code=http_client.NO_CONTENT)
     def delete(self, node_ident):

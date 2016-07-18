@@ -156,6 +156,7 @@
 # is set in the configuration file and other logging
 # configuration options are ignored (for example,
 # logging_context_format_string). (string value)
+# Note: This option can be changed without restarting.
 # Deprecated group/name - [DEFAULT]/log_config
 #log_config_append = <None>
 
@@ -736,8 +737,12 @@
 # From oslo.db
 #
 
-# The file name to use with SQLite. (string value)
+# DEPRECATED: The file name to use with SQLite. (string value)
 # Deprecated group/name - [DEFAULT]/sqlite_db
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Should use config option connection or
+# slave_connection to connect the database.
 #sqlite_db = oslo.sqlite
 
 # If True, SQLite uses synchronous mode. (boolean value)
@@ -1505,6 +1510,49 @@
 
 # Timeout in ms on blocking socket operations (integer value)
 #socket_timeout = 10000
+
+
+[metrics]
+
+#
+# From ironic_lib.metrics
+#
+
+# Backend to use for the metrics system. (string value)
+# Allowed values: noop, statsd
+#backend = noop
+
+# Prepend the hostname to all metric names. The format of
+# metric names is
+# [global_prefix.][host_name.]prefix.metric_name. (boolean
+# value)
+#prepend_host = false
+
+# Split the prepended host value by "." and reverse it (to
+# better match the reverse hierarchical form of domain names).
+# (boolean value)
+#prepend_host_reverse = true
+
+# Prefix all metric names with this value. By default, there
+# is no global prefix. The format of metric names is
+# [global_prefix.][host_name.]prefix.metric_name. (string
+# value)
+#global_prefix = <None>
+
+
+[metrics_statsd]
+
+#
+# From ironic_lib.metrics_statsd
+#
+
+# Host for use with the statsd backend. (string value)
+#statsd_host = localhost
+
+# Port to use with the statsd backend. (port value)
+# Minimum value: 0
+# Maximum value: 65535
+#statsd_port = 8125
 
 
 [neutron]

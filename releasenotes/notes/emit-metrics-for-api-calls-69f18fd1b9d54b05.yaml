@@ -1,0 +1,5 @@
+---
+features:
+  - With this change, ironic now emits timing metrics
+    for all API methods to statsd, if enabled by config
+    in the [metrics] and [metrics_statsd] sections.
