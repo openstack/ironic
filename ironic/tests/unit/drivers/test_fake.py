@@ -43,9 +43,9 @@ class FakeDriverTestCase(db_base.DbTestCase):
         self.task.driver = self.driver
 
     def test_driver_interfaces(self):
-        # fake driver implements only 5 out of 6 interfaces
         self.assertIsInstance(self.driver.power, driver_base.PowerInterface)
         self.assertIsInstance(self.driver.deploy, driver_base.DeployInterface)
+        self.assertIsInstance(self.driver.boot, driver_base.BootInterface)
         self.assertIsInstance(self.driver.vendor, driver_base.VendorInterface)
         self.assertIsInstance(self.driver.console,
                               driver_base.ConsoleInterface)
@@ -77,6 +77,14 @@ class FakeDriverTestCase(db_base.DbTestCase):
 
         self.driver.deploy.clean_up(None)
         self.driver.deploy.tear_down(None)
+
+    def test_boot_interface(self):
+        self.assertEqual({}, self.driver.boot.get_properties())
+        self.driver.boot.validate(self.task)
+        self.driver.boot.prepare_ramdisk(self.task, {})
+        self.driver.boot.clean_up_ramdisk(self.task)
+        self.driver.boot.prepare_instance(self.task)
+        self.driver.boot.clean_up_instance(self.task)
 
     def test_console_interface(self):
         self.assertEqual({}, self.driver.console.get_properties())
