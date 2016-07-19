@@ -24,7 +24,6 @@ import re
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import importutils
-import six
 from six.moves.urllib import parse as urlparse
 
 from ironic.common import boot_devices
@@ -564,7 +563,7 @@ class Management(base.ManagementInterface):
             LOG.error(_LE("Seamicro set boot device failed for node "
                           "%(node)s with the following error: %(error)s"),
                       {'node': task.node.uuid, 'error': ex})
-            raise exception.IronicException(message=six.text_type(ex))
+            raise exception.IronicException(ex)
 
     def get_boot_device(self, task):
         """Get the current boot device for the task's node.
