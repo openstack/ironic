@@ -1,0 +1,12 @@
+---
+features:
+  - Adds a new ``[deploy]/erase_devices_metadata_priority`` configuration
+    option to allow operators to configure the priority (or disable) of the
+    "erase_devices_metadata" cleaning step.
+upgrade:
+  - The new "erase_devices_metadata" cleaning step is enabled by
+    default (if available) in the ironic-python-agent project (priority
+    99). Wiping the devices metadata is usually very fast and shouldn't
+    add much time (if any) to the overall cleaning process. Operators
+    wanting to disable this cleaning step can do it by setting the
+    ``[deploy]/erase_devices_metadata_priority`` configuration option to 0.
