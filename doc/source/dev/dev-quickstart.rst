@@ -24,7 +24,7 @@ Install prerequisites (for python 2.7):
 
 - Ubuntu/Debian::
 
-    sudo apt-get install python-dev libssl-dev python-pip libmysqlclient-dev libxml2-dev libxslt-dev libpq-dev git git-review libffi-dev gettext ipmitool psmisc graphviz libjpeg-dev
+    sudo apt-get install build-essential python-dev libssl-dev python-pip libmysqlclient-dev libxml2-dev libxslt-dev libpq-dev git git-review libffi-dev gettext ipmitool psmisc graphviz libjpeg-dev
 
 - Fedora 21/RHEL7/CentOS7::
 
