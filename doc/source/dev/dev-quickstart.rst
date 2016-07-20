@@ -465,6 +465,17 @@ and uses the ``agent_ipmitool`` driver by default::
     END
 
 .. note::
+    Git protocol requires access to port 9418, which is not a standard port that
+    corporate firewalls always allow. If you are behind a firewall or on a proxy that
+    blocks Git protocol, modify the ``enable_plugin`` line to use ``https://`` instead
+    of ``git://`` and add ``GIT_BASE=https://git.openstack.org`` to the credentials::
+
+      GIT_BASE=https://git.openstack.org
+
+      # Enable Ironic plugin
+      enable_plugin ironic https://git.openstack.org/openstack/ironic
+
+.. note::
     The agent_ssh and pxe_ssh drivers are being deprecated in favor of the
     more production-like agent_ipmitool and pxe_ipmitool drivers. When a
     \*_ipmitool driver is set and IRONIC_IS_HARDWARE variable is false devstack
