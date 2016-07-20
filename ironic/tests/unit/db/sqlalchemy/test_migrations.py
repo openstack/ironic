@@ -261,6 +261,33 @@ class MigrationCheckersMixin(object):
         self.assertRaises(db_exc.DBDuplicateEntry,
                           nodes.insert().execute, data)
 
+    def _check_487deb87cc9d(self, engine, data):
+        conductors = db_utils.get_table(engine, 'conductors')
+        column_names = [column.name for column in conductors.c]
+
+        self.assertIn('online', column_names)
+        self.assertIsInstance(conductors.c.online.type,
+                              (sqlalchemy.types.Boolean,
+                               sqlalchemy.types.Integer))
+        nodes = db_utils.get_table(engine, 'nodes')
+        column_names = [column.name for column in nodes.c]
+        self.assertIn('conductor_affinity', column_names)
+        self.assertIsInstance(nodes.c.conductor_affinity.type,
+                              sqlalchemy.types.Integer)
+
+        data_conductor = {'hostname': 'test_host'}
+        conductors.insert().execute(data_conductor)
+        conductor = conductors.select(
+            conductors.c.hostname ==
+            data_conductor['hostname']).execute().first()
+
+        data_node = {'uuid': uuidutils.generate_uuid(),
+                     'conductor_affinity': conductor['id']}
+        nodes.insert().execute(data_node)
+        node = nodes.select(
+            nodes.c.uuid == data_node['uuid']).execute().first()
+        self.assertEqual(conductor['id'], node['conductor_affinity'])
+
     def _check_242cc6a923b3(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')
         col_names = [column.name for column in nodes.c]
@@ -306,6 +333,31 @@ class MigrationCheckersMixin(object):
         self.assertIn('driver_internal_info', col_names)
         self.assertIsInstance(nodes.c.driver_internal_info.type,
                               sqlalchemy.types.TEXT)
+
+    def _check_3ae36a5f5131(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        column_names = [column.name for column in nodes.c]
+        self.assertIn('name', column_names)
+        self.assertIsInstance(nodes.c.name.type,
+                              sqlalchemy.types.String)
+        data = {'driver': 'fake',
+                'uuid': uuidutils.generate_uuid(),
+                'name': 'node'
+                }
+        nodes.insert().values(data).execute()
+        data['uuid'] = uuidutils.generate_uuid()
+        self.assertRaises(db_exc.DBDuplicateEntry,
+                          nodes.insert().execute, data)
+
+    def _check_1e1d5ace7dc6(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        column_names = [column.name for column in nodes.c]
+        self.assertIn('inspection_started_at', column_names)
+        self.assertIn('inspection_finished_at', column_names)
+        self.assertIsInstance(nodes.c.inspection_started_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(nodes.c.inspection_finished_at.type,
+                              sqlalchemy.types.DateTime)
 
     def _check_4f399b21ae71(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')
