@@ -94,11 +94,15 @@ def node_post_data(**kw):
     node.pop('conductor_affinity')
     node.pop('chassis_id')
     node.pop('tags')
-    # NOTE(vdrok): network_interface was introduced in API version 1.20, return
-    # it only if it was explicitly requested, so that tests using older API
-    # versions don't fail
+
+    # NOTE(jroll): pop out fields that were introduced in later API versions,
+    # unless explicitly requested. Otherwise, these will cause tests using
+    # older API versions to fail.
     if 'network_interface' not in kw:
         node.pop('network_interface')
+    if 'resource_class' not in kw:
+        node.pop('resource_class')
+
     internal = node_controller.NodePatchType.internal_attrs()
     return remove_internal(node, internal)
 

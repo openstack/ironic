@@ -214,6 +214,8 @@ class Connection(api.Connection):
             query = query.filter_by(maintenance=filters['maintenance'])
         if 'driver' in filters:
             query = query.filter_by(driver=filters['driver'])
+        if 'resource_class' in filters:
+            query = query.filter_by(resource_class=filters['resource_class'])
         if 'provision_state' in filters:
             query = query.filter_by(provision_state=filters['provision_state'])
         if 'provisioned_before' in filters:

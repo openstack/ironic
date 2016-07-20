@@ -240,16 +240,17 @@ def check_allow_specify_fields(fields):
         raise exception.NotAcceptable()
 
 
-def check_allow_specify_network_interface_in_fields(fields):
-    """Check if fetching a network_interface attribute is allowed.
+def check_allowed_fields(fields):
+    """Check if fetching a particular field is allowed.
 
-    Version 1.20 of the API allows to fetching a network_interface
-    attribute. This method check if the required version is being
-    requested.
+    This method checks if the required version is being requested for fields
+    that are only allowed to be fetched in a particular API version.
     """
-    if (fields is not None
-            and 'network_interface' in fields
-                and not allow_network_interface()):
+    if fields is None:
+        return
+    if 'network_interface' in fields and not allow_network_interface():
+        raise exception.NotAcceptable()
+    if 'resource_class' in fields and not allow_resource_class():
         raise exception.NotAcceptable()
 
 
@@ -301,6 +302,20 @@ def check_allow_specify_driver(driver):
             "should be %(base)s.%(opr)s") %
             {'base': versions.BASE_VERSION,
              'opr': versions.MINOR_16_DRIVER_FILTER})
+
+
+def check_allow_specify_resource_class(resource_class):
+    """Check if filtering nodes by resource_class is allowed.
+
+    Version 1.21 of the API allows filtering nodes by resource_class.
+    """
+    if (resource_class is not None and pecan.request.version.minor <
+            versions.MINOR_21_RESOURCE_CLASS):
+        raise exception.NotAcceptable(_(
+            "Request not acceptable. The minimal required API version "
+            "should be %(base)s.%(opr)s") %
+            {'base': versions.BASE_VERSION,
+             'opr': versions.MINOR_21_RESOURCE_CLASS})
 
 
 def initial_node_provision_state():
@@ -357,6 +372,15 @@ def allow_network_interface():
     """
     return (pecan.request.version.minor >=
             versions.MINOR_20_NETWORK_INTERFACE)
+
+
+def allow_resource_class():
+    """Check if we should support resource_class node field.
+
+    Version 1.21 of the API added support for resource_class.
+    """
+    return (pecan.request.version.minor >=
+            versions.MINOR_21_RESOURCE_CLASS)
 
 
 def get_controller_reserved_names(cls):

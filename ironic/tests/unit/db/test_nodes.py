@@ -123,7 +123,8 @@ class DbNodeTestCase(base.DbTestCase):
         node2 = utils.create_test_node(
             driver='driver-two',
             uuid=uuidutils.generate_uuid(),
-            maintenance=True)
+            maintenance=True,
+            resource_class='foo')
         node3 = utils.create_test_node(
             driver='driver-one',
             uuid=uuidutils.generate_uuid(),
@@ -156,6 +157,9 @@ class DbNodeTestCase(base.DbTestCase):
         res = self.dbapi.get_node_list(filters={'maintenance': False})
         self.assertEqual(sorted([node1.id, node3.id]),
                          sorted([r.id for r in res]))
+
+        res = self.dbapi.get_node_list(filters={'resource_class': 'foo'})
+        self.assertEqual([node2.id], [r.id for r in res])
 
         res = self.dbapi.get_node_list(
             filters={'reserved_by_any_of': ['fake-host',

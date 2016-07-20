@@ -32,6 +32,10 @@ always requests the newest supported API version.
 API Versions History
 --------------------
 
+**1.21**
+
+    Add node ``resource_class`` field.
+
 **1.20**
 
     Add node ``network_interface`` field.
