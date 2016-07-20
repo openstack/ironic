@@ -515,6 +515,25 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertFalse(pxe_prepare_ramdisk_mock.called)
             self.assertFalse(add_provisioning_net_mock.called)
 
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
+                'add_provisioning_network', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
+    @mock.patch.object(deploy_utils, 'build_agent_options')
+    @mock.patch.object(agent, 'build_instance_info_for_deploy')
+    def test_prepare_adopting(
+            self, build_instance_info_mock, build_options_mock,
+            pxe_prepare_ramdisk_mock, add_provisioning_net_mock):
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            task.node.provision_state = states.ADOPTING
+
+            self.driver.prepare(task)
+
+            self.assertFalse(build_instance_info_mock.called)
+            self.assertFalse(build_options_mock.called)
+            self.assertFalse(pxe_prepare_ramdisk_mock.called)
+            self.assertFalse(add_provisioning_net_mock.called)
+
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory._set_dhcp_provider')
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory.clean_dhcp')
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk')

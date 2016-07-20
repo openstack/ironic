@@ -484,7 +484,7 @@ class ISCSIDeploy(base.DeployInterface):
         :raises: any boot interface's prepare_ramdisk exceptions.
         """
         node = task.node
-        if node.provision_state == states.ACTIVE:
+        if node.provision_state in [states.ACTIVE, states.ADOPTING]:
             task.driver.boot.prepare_instance(task)
         else:
             if node.provision_state == states.DEPLOYING:

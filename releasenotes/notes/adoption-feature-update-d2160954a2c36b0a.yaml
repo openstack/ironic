@@ -1,0 +1,11 @@
+---
+fixes:
+  - Adoption feature logic was updated to prevent ramdisk
+    creation and default to instance creation where appropriate
+    based on the driver.
+  - Adoption documentation has been updated to note that the
+    boot_option should likely be defined for nodes by a user
+    leveraging the feature.
+  - Adoption documentation has been updated to note that a user
+    may wish to utilize the ``noop`` network interface that
+    arrived with API version 1.20.

@@ -132,7 +132,8 @@ from the ``manageable`` state to ``active`` state.::
     ironic port-create --node <node_uuid> -a <node_mac_address>
 
     ironic node-update testnode add \
-        instance_info/image_source="http://localhost:8080/blankimage"
+        instance_info/image_source="http://localhost:8080/blankimage" \
+        instance_info/capabilities="{\"boot_option\": \"local\"}"
 
     ironic node-set-provision-state testnode manage
 
@@ -141,6 +142,11 @@ from the ``manageable`` state to ``active`` state.::
 .. NOTE::
    In the above example, the image_source setting must reference a valid
    image or file, however that image or file can ultimately be empty.
+
+.. NOTE::
+   The above example utilizes a capability that defines the boot operation
+   to be local. It is recommended to define the node as such unless network
+   booting is desired.
 
 .. NOTE::
    The above example will fail a re-deployment as a fake image is
@@ -155,6 +161,12 @@ from the ``manageable`` state to ``active`` state.::
    required for the proper operation of the Bare Metal service.
 
      ironic node-update <node name or uuid> add instance_uuid=<uuid>
+
+.. NOTE::
+   In Newton, coupled with API version 1.20, the concept of a
+   network_interface was introduced. A user of this feature may wish to
+   add new nodes with a network_interface of ``noop`` and then change
+   the interface at a later point and time.
 
 Troubleshooting
 ===============

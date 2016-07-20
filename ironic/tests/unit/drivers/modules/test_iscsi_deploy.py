@@ -541,6 +541,20 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                 task.driver.boot, task)
             self.assertEqual(0, add_provisioning_net_mock.call_count)
 
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
+                'add_provisioning_network', spec_set=True, autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
+    def test_prepare_node_adopting(self, prepare_instance_mock,
+                                   add_provisioning_net_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.provision_state = states.ADOPTING
+
+            task.driver.deploy.prepare(task)
+
+            prepare_instance_mock.assert_called_once_with(
+                task.driver.boot, task)
+            self.assertEqual(0, add_provisioning_net_mock.call_count)
+
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
