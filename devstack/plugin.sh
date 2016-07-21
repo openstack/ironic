@@ -37,7 +37,7 @@ if is_service_enabled ir-api ir-cond; then
             # Initialize ironic
             init_ironic
 
-            if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
+            if [[ "$IRONIC_BAREMETAL_BASIC_OPS" == "True" && "$IRONIC_IS_HARDWARE" == "False" ]]; then
                 echo_summary "Creating bridge and VMs"
                 create_bridge_and_vms
             fi
