@@ -26,13 +26,14 @@ includes:
 - the OpenStack Image service (glance) from which to retrieve images and image meta-data
 - the OpenStack Networking service (neutron) for DHCP and network configuration
 - the OpenStack Compute service (nova) works with the Bare Metal service and acts as
-  a user-facing API for instance management, while the Bare Metal service provides
-  the admin/operator API for hardware management.
-  The OpenStack Compute service also provides scheduling facilities (matching
-  flavors <-> images <-> hardware), tenant quotas, IP assignment, and other
-  services which the Bare Metal service does not, in and of itself, provide.
+  a user-facing API for instance management, while the Bare Metal service
+  provides the admin/operator API for hardware management.  The OpenStack
+  Compute service also provides scheduling facilities (matching flavors <->
+  images <-> hardware), tenant quotas, IP assignment, and other services which
+  the Bare Metal service does not, in and of itself, provide.
 
-- the OpenStack Block Storage (cinder) provides volumes, but this aspect is not yet available.
+- the OpenStack Block Storage (cinder) provides volumes, but this aspect is not
+  yet available.
 
 The Bare Metal service includes the following components:
 
@@ -96,33 +97,77 @@ Configure the Identity service for the Bare Metal service
    Use the ``service`` tenant and give the user the ``admin`` role::
 
     openstack user create --password IRONIC_PASSWORD \
-    --email ironic@example.com ironic
+      --email ironic@example.com ironic
     openstack role add --project service --user ironic admin
 
 #. You must register the Bare Metal service with the Identity service so that
    other OpenStack services can locate it. To register the service::
 
     openstack service create --name ironic --description \
-    "Ironic baremetal provisioning service" baremetal
+      "Ironic baremetal provisioning service" baremetal
 
 #. Use the ``id`` property that is returned from the Identity service when
    registering the service (above), to create the endpoint,
    and replace IRONIC_NODE with your Bare Metal service's API node::
 
     openstack endpoint create --region RegionOne \
-    baremetal admin http://IRONIC_NODE:6385
+      baremetal admin http://IRONIC_NODE:6385
     openstack endpoint create --region RegionOne \
-    baremetal public http://IRONIC_NODE:6385
+      baremetal public http://IRONIC_NODE:6385
     openstack endpoint create --region RegionOne \
-    baremetal internal http://IRONIC_NODE:6385
+      baremetal internal http://IRONIC_NODE:6385
 
    If only keystone v2 API is available, use this command instead::
 
     openstack endpoint create --region RegionOne \
-    --publicurl http://IRONIC_NODE:6385 \
-    --internalurl http://IRONIC_NODE:6385 \
-    --adminurl http://IRONIC_NODE:6385 \
-    baremetal
+      --publicurl http://IRONIC_NODE:6385 \
+      --internalurl http://IRONIC_NODE:6385 \
+      --adminurl http://IRONIC_NODE:6385 \
+      baremetal
+
+#. You may delegate limited privileges related to the Bare Metal service
+   to your Users by creating Roles with the OpenStack Identity service.  By
+   default, the Bare Metal service expects the "baremetal_admin" and
+   "baremetal_observer" Roles to exist, in addition to the default "admin"
+   Role. There is no negative consequence if you choose not to create these
+   Roles. They can be created with the following commands::
+
+    openstack role create baremetal_admin
+    openstack role create baremetal_observer
+
+   If you choose to customize the names of Roles used with the Bare Metal
+   service, do so by changing the "is_member", "is_observer", and "is_admin"
+   policy settings in ``/etc/ironic/policy.json``.
+
+   More complete documentation on managing Users and Roles within your
+   OpenStack deployment are outside the scope of this document, but may be
+   found here_.
+
+#. You can further restrict access to the Bare Metal service by creating a
+   separate "baremetal" Project, so that Bare Metal resources (Nodes, Ports,
+   etc) are only accessible to members of this Project::
+
+    openstack project create baremetal
+
+   At this point, you may grant read-only access to the Bare Metal service API
+   without granting any other access by issuing the following commands::
+
+    openstack user create \
+      --domain default --project-domain default --project baremetal \
+      --password PASSWORD USERNAME
+    openstack role add \
+      --user-domain default --project-domain default --project baremetal\
+      --user USERNAME baremetal_observer
+
+#. Further documentation is available elsewhere for the ``openstack``
+   `command-line client`_ and the Identity_ service. A policy.json.sample_
+   file, which enumerates the service's default policies, is provided for
+   your convenience with the Bare Metal Service.
+
+.. _Identity: http://docs.openstack.org/admin-guide/identity-management.html
+.. _`command-line client`: http://docs.openstack.org/admin-guide/cli-manage-projects-users-and-roles.html
+.. _here: http://docs.openstack.org/admin-guide/identity-concepts.html#user-management
+.. _policy.json.sample: https://github.com/openstack/ironic/blob/master/etc/ironic/policy.json.sample
 
 
 Set up the database for Bare Metal
@@ -138,9 +183,9 @@ MySQL database that is used by other OpenStack services.
     # mysql -u root -p
     mysql> CREATE DATABASE ironic CHARACTER SET utf8;
     mysql> GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'localhost' \
-    IDENTIFIED BY 'IRONIC_DBPASSWORD';
+           IDENTIFIED BY 'IRONIC_DBPASSWORD';
     mysql> GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'%' \
-    IDENTIFIED BY 'IRONIC_DBPASSWORD';
+           IDENTIFIED BY 'IRONIC_DBPASSWORD';
 
 Install the Bare Metal service
 ------------------------------
@@ -152,13 +197,13 @@ Install the Bare Metal service
 
     Fedora 21/RHEL7/CentOS7:
         sudo yum install openstack-ironic-api openstack-ironic-conductor \
-        python-ironicclient
+                         python-ironicclient
         sudo systemctl enable openstack-ironic-api openstack-ironic-conductor
         sudo systemctl start openstack-ironic-api openstack-ironic-conductor
 
     Fedora 22 or higher:
         sudo dnf install openstack-ironic-api openstack-ironic-conductor \
-        python-ironicclient
+                         python-ironicclient
         sudo systemctl enable openstack-ironic-api openstack-ironic-conductor
         sudo systemctl start openstack-ironic-api openstack-ironic-conductor
 
@@ -227,17 +272,18 @@ Configuring ironic-api service
     # "keystone" or "noauth". "noauth" should not be used in a
     # production environment because all authentication will be
     # disabled. (string value)
-    #auth_strategy=keystone
+    auth_strategy=keystone
 
     [keystone_authtoken]
     ...
-    # Complete public Identity API endpoint (string value)
-    auth_uri=http://IDENTITY_IP:5000/
+    # Authentication type to load (string value)
+    auth_type = v3password
 
-    # Complete admin Identity API endpoint. This should specify
-    # the unversioned root endpoint e.g. https://localhost:35357/
-    # (string value)
-    identity_uri=http://IDENTITY_IP:35357/
+    # Complete public Identity API endpoint (string value)
+    auth_uri=http://PUBLIC_IDENTITY_IP:5000/v3/
+
+    # Complete admin Identity API endpoint. (string value)
+    auth_url=http://PRIVATE_IDENTITY_IP:35357/v3/
 
     # Service username. (string value)
     admin_user=ironic
