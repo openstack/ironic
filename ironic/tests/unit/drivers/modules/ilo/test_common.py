@@ -373,9 +373,22 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             ilo_common.update_boot_mode(task)
             set_boot_mode_mock.assert_called_once_with(task.node, 'bios')
 
+    @mock.patch.object(ilo_common, 'set_boot_mode', spec_set=True,
+                       autospec=True)
+    def test_update_boot_mode_use_def_boot_mode(self,
+                                                set_boot_mode_mock):
+        self.config(default_boot_mode='bios', group='ilo')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_common.update_boot_mode(task)
+            set_boot_mode_mock.assert_called_once_with(task.node, 'bios')
+            self.assertEqual('bios',
+                             task.node.instance_info['deploy_boot_mode'])
+
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
     def test_update_boot_mode(self, get_ilo_object_mock):
+        self.config(default_boot_mode="auto", group='ilo')
         ilo_mock_obj = get_ilo_object_mock.return_value
         ilo_mock_obj.get_pending_boot_mode.return_value = 'LEGACY'
 

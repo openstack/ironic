@@ -626,6 +626,11 @@ mode (Legacy BIOS or UEFI).
 
 * When boot mode capability is not configured:
 
+  - If config variable ``default_boot_mode`` in ``[ilo]`` section of
+    ironic configuration file is set to either 'bios' or 'uefi', then iLO
+    drivers use that boot mode for provisioning the baremetal ProLiant
+    servers.
+
   - If the pending boot mode is set on the node then iLO drivers use that boot
     mode for provisioning the baremetal ProLiant servers.
 
