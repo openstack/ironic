@@ -92,9 +92,8 @@ class RequestContext(context.RequestContext):
 
 
 def get_admin_context():
-    """Create an administrator context.
+    """Create an administrator context."""
 
-    """
     context = RequestContext(None,
                              tenant=None,
                              is_admin=True,
