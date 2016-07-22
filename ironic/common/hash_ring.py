@@ -18,43 +18,12 @@ import hashlib
 import threading
 import time
 
-from oslo_config import cfg
 import six
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.conf import CONF
 from ironic.db import api as dbapi
-
-hash_opts = [
-    cfg.IntOpt('hash_partition_exponent',
-               default=5,
-               help=_('Exponent to determine number of hash partitions to use '
-                      'when distributing load across conductors. Larger '
-                      'values will result in more even distribution of load '
-                      'and less load when rebalancing the ring, but more '
-                      'memory usage. Number of partitions per conductor is '
-                      '(2^hash_partition_exponent). This determines the '
-                      'granularity of rebalancing: given 10 hosts, and an '
-                      'exponent of the 2, there are 40 partitions in the ring.'
-                      'A few thousand partitions should make rebalancing '
-                      'smooth in most cases. The default is suitable for up '
-                      'to a few hundred conductors. Too many partitions has a '
-                      'CPU impact.')),
-    cfg.IntOpt('hash_distribution_replicas',
-               default=1,
-               help=_('[Experimental Feature] '
-                      'Number of hosts to map onto each hash partition. '
-                      'Setting this to more than one will cause additional '
-                      'conductor services to prepare deployment environments '
-                      'and potentially allow the Ironic cluster to recover '
-                      'more quickly if a conductor instance is terminated.')),
-    cfg.IntOpt('hash_ring_reset_interval',
-               default=180,
-               help=_('Interval (in seconds) between hash ring resets.')),
-]
-
-CONF = cfg.CONF
-CONF.register_opts(hash_opts)
 
 
 class HashRing(object):

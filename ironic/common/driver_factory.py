@@ -16,56 +16,17 @@
 import collections
 
 from oslo_concurrency import lockutils
-from oslo_config import cfg
 from oslo_log import log
 from stevedore import dispatch
 
 from ironic.common import exception
-from ironic.common.i18n import _
 from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
+from ironic.conf import CONF
 from ironic.drivers import base as driver_base
 
 
 LOG = log.getLogger(__name__)
-
-driver_opts = [
-    cfg.ListOpt('enabled_drivers',
-                default=['pxe_ipmitool'],
-                help=_('Specify the list of drivers to load during service '
-                       'initialization. Missing drivers, or drivers which '
-                       'fail to initialize, will prevent the conductor '
-                       'service from starting. The option default is a '
-                       'recommended set of production-oriented drivers. A '
-                       'complete list of drivers present on your system may '
-                       'be found by enumerating the "ironic.drivers" '
-                       'entrypoint. An example may be found in the '
-                       'developer documentation online.')),
-    cfg.ListOpt('enabled_network_interfaces',
-                default=['flat', 'noop'],
-                help=_('Specify the list of network interfaces to load during '
-                       'service initialization. Missing network interfaces, '
-                       'or network interfaces which fail to initialize, will '
-                       'prevent the conductor service from starting. The '
-                       'option default is a recommended set of '
-                       'production-oriented network interfaces. A complete '
-                       'list of network interfaces present on your system may '
-                       'be found by enumerating the '
-                       '"ironic.hardware.interfaces.network" entrypoint. '
-                       'This value must be the same on all ironic-conductor '
-                       'and ironic-api services, because it is used by '
-                       'ironic-api service to validate a new or updated '
-                       'node\'s network_interface value.')),
-    cfg.StrOpt('default_network_interface',
-               help=_('Default network interface to be used for nodes that '
-                      'do not have network_interface field set. A complete '
-                      'list of network interfaces present on your system may '
-                      'be found by enumerating the '
-                      '"ironic.hardware.interfaces.network" entrypoint.'))
-]
-
-CONF = cfg.CONF
-CONF.register_opts(driver_opts)
 
 EM_SEMAPHORE = 'extension_manager'
 

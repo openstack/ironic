@@ -65,7 +65,6 @@ agent_opts = [
 ]
 
 CONF = cfg.CONF
-CONF.import_opt('my_ip', 'ironic.netconf')
 CONF.import_opt('erase_devices_priority',
                 'ironic.drivers.modules.deploy_utils', group='deploy')
 CONF.register_opts(agent_opts, group='agent')

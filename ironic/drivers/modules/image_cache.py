@@ -24,32 +24,21 @@ import time
 import uuid
 
 from oslo_concurrency import lockutils
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import fileutils
 import six
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
-from ironic.common.i18n import _
 from ironic.common.i18n import _LI
 from ironic.common.i18n import _LW
 from ironic.common import image_service
 from ironic.common import images
 from ironic.common import utils
+from ironic.conf import CONF
 
 
 LOG = logging.getLogger(__name__)
-
-img_cache_opts = [
-    cfg.BoolOpt('parallel_image_downloads',
-                default=False,
-                help=_('Run image downloads and raw format conversions in '
-                       'parallel.')),
-]
-
-CONF = cfg.CONF
-CONF.register_opts(img_cache_opts)
 
 # This would contain a sorted list of instances of ImageCache to be
 # considered for cleanup. This list will be kept sorted in non-increasing

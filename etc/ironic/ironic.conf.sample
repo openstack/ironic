@@ -37,7 +37,7 @@
 # recommended set of production-oriented network interfaces. A
 # complete list of network interfaces present on your system
 # may be found by enumerating the
-# "ironic.hardware.interfaces.network" entrypoint.This value
+# "ironic.hardware.interfaces.network" entrypoint. This value
 # must be the same on all ironic-conductor and ironic-api
 # services, because it is used by ironic-api service to
 # validate a new or updated node's network_interface value.
@@ -96,6 +96,15 @@
 # Template file for grub configuration file. (string value)
 #grub_config_template = $pybasedir/common/grub_conf.template
 
+# Run image downloads and raw format conversions in parallel.
+# (boolean value)
+#parallel_image_downloads = false
+
+# IP address of this host. If unset, will determine the IP
+# programmatically. If unable to do so, will use "127.0.0.1".
+# (string value)
+#my_ip = 127.0.0.1
+
 # Directory where the ironic python module is installed.
 # (string value)
 #pybasedir = /usr/lib/python/site-packages/ironic/ironic
@@ -122,15 +131,6 @@
 # Temporary working directory, default is Python temp dir.
 # (string value)
 #tempdir = /tmp
-
-# Run image downloads and raw format conversions in parallel.
-# (boolean value)
-#parallel_image_downloads = false
-
-# IP address of this host. If unset, will determine the IP
-# programmatically. If unable to do so, will use "127.0.0.1".
-# (string value)
-#my_ip = 127.0.0.1
 
 #
 # From oslo.log
@@ -636,13 +636,13 @@
 # From ironic
 #
 
-# Path to serial console terminal program. Used only by
-# Shell In A Box console. (string value)
+# Path to serial console terminal program. Used only by Shell
+# In A Box console. (string value)
 #terminal = shellinaboxd
 
-# Directory containing the terminal SSL cert(PEM) for serial
-# console access. Used only by Shell In A Box console.
-# (string value)
+# Directory containing the terminal SSL cert (PEM) for serial
+# console access. Used only by Shell In A Box console. (string
+# value)
 #terminal_cert_dir = <None>
 
 # Directory for holding terminal pid files. If not specified,

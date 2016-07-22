@@ -30,7 +30,6 @@ import tempfile
 
 import netaddr
 from oslo_concurrency import processutils
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import timeutils
 import paramiko
@@ -41,21 +40,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LW
-
-utils_opts = [
-    cfg.StrOpt('rootwrap_config',
-               default="/etc/ironic/rootwrap.conf",
-               help=_('Path to the rootwrap configuration file to use for '
-                      'running commands as root.')),
-    cfg.StrOpt('tempdir',
-               default=tempfile.gettempdir(),
-               sample_default='/tmp',
-               help=_('Temporary working directory, default is Python temp '
-                      'dir.')),
-]
-
-CONF = cfg.CONF
-CONF.register_opts(utils_opts)
+from ironic.conf import CONF
 
 LOG = logging.getLogger(__name__)
 

@@ -20,28 +20,15 @@ SHOULD include dedicated exception logging.
 
 """
 
-from oslo_config import cfg
 from oslo_log import log as logging
 import six
 from six.moves import http_client
 
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
-
+from ironic.conf import CONF
 
 LOG = logging.getLogger(__name__)
-
-exc_log_opts = [
-    cfg.BoolOpt('fatal_exception_format_errors',
-                default=False,
-                help=_('Used if there is a formatting error when generating '
-                       'an exception message (a programming error). If True, '
-                       'raise an exception; if False, use the unformatted '
-                       'message.')),
-]
-
-CONF = cfg.CONF
-CONF.register_opts(exc_log_opts)
 
 
 class IronicException(Exception):
