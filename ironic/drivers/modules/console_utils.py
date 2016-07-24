@@ -27,7 +27,6 @@ import subprocess
 import time
 
 from ironic_lib import utils as ironic_utils
-from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import netutils
@@ -151,7 +150,8 @@ def start_shellinabox_console(node_uuid, port, console_cmd):
     :param node_uuid: the uuid for the node.
     :param port: the terminal port for the node.
     :param console_cmd: the shell command that gets the console.
-    :raises: ConsoleError if the directory for the PID file cannot be created.
+    :raises: ConsoleError if the directory for the PID file cannot be created
+        or an old process cannot be stopped.
     :raises: ConsoleSubprocessFailed when invoking the subprocess failed.
     """
 
@@ -161,11 +161,6 @@ def start_shellinabox_console(node_uuid, port, console_cmd):
         _stop_console(node_uuid)
     except exception.NoConsolePid:
         pass
-    except processutils.ProcessExecutionError as exc:
-        LOG.warning(_LW("Failed to kill the old console process "
-                        "before starting a new shellinabox console "
-                        "for node %(node)s. Reason: %(err)s"),
-                    {'node': node_uuid, 'err': exc})
 
     _ensure_console_pid_dir_exists()
     pid_file = _get_console_pid_file(node_uuid)
