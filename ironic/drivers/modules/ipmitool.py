@@ -739,17 +739,22 @@ def _check_temp_dir():
             TMP_DIR_CHECKED = True
 
 
+def _constructor_checks(driver):
+    """Common checks to be performed when instantiating an ipmitool class."""
+    try:
+        _check_option_support(['timing', 'single_bridge', 'dual_bridge'])
+    except OSError:
+        raise exception.DriverLoadError(
+            driver=driver,
+            reason=_("Unable to locate usable ipmitool command in "
+                     "the system path when checking ipmitool version"))
+    _check_temp_dir()
+
+
 class IPMIPower(base.PowerInterface):
 
     def __init__(self):
-        try:
-            _check_option_support(['timing', 'single_bridge', 'dual_bridge'])
-        except OSError:
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to locate usable ipmitool command in "
-                         "the system path when checking ipmitool version"))
-        _check_temp_dir()
+        _constructor_checks(driver=self.__class__.__name__)
 
     def get_properties(self):
         return COMMON_PROPERTIES
@@ -841,14 +846,7 @@ class IPMIManagement(base.ManagementInterface):
         return COMMON_PROPERTIES
 
     def __init__(self):
-        try:
-            _check_option_support(['timing', 'single_bridge', 'dual_bridge'])
-        except OSError:
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to locate usable ipmitool command in "
-                         "the system path when checking ipmitool version"))
-        _check_temp_dir()
+        _constructor_checks(driver=self.__class__.__name__)
 
     @METRICS.timer('IPMIManagement.validate')
     def validate(self, task):
@@ -1041,14 +1039,7 @@ class IPMIManagement(base.ManagementInterface):
 class VendorPassthru(base.VendorInterface):
 
     def __init__(self):
-        try:
-            _check_option_support(['single_bridge', 'dual_bridge'])
-        except OSError:
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to locate usable ipmitool command in "
-                         "the system path when checking ipmitool version"))
-        _check_temp_dir()
+        _constructor_checks(driver=self.__class__.__name__)
 
     @METRICS.timer('VendorPassthru.send_raw')
     @base.passthru(['POST'])
@@ -1138,14 +1129,7 @@ class IPMIConsole(base.ConsoleInterface):
     """A base ConsoleInterface that uses ipmitool."""
 
     def __init__(self):
-        try:
-            _check_option_support(['timing', 'single_bridge', 'dual_bridge'])
-        except OSError:
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to locate usable ipmitool command in "
-                         "the system path when checking ipmitool version"))
-        _check_temp_dir()
+        _constructor_checks(driver=self.__class__.__name__)
 
     def get_properties(self):
         d = COMMON_PROPERTIES.copy()
