@@ -167,10 +167,10 @@ class TestGlanceImageService(base.TestCase):
             'owner': None,
         }
 
-        self.assertDictEqual(expected, image_meta)
+        self.assertEqual(expected, image_meta)
 
         image_metas = self.service.detail()
-        self.assertDictEqual(expected, image_metas[0])
+        self.assertEqual(expected, image_metas[0])
 
     def test_create_without_instance_id(self):
         """Test creating an image without an instance ID.
@@ -201,7 +201,7 @@ class TestGlanceImageService(base.TestCase):
             'owner': None,
         }
         actual = self.service.show(image_id)
-        self.assertDictEqual(expected, actual)
+        self.assertEqual(expected, actual)
 
     def test_create(self):
         fixture = self._make_fixture(name='test image')
@@ -271,7 +271,7 @@ class TestGlanceImageService(base.TestCase):
                 'owner': None,
             }
 
-            self.assertDictEqual(expected, meta)
+            self.assertEqual(expected, meta)
             i = i + 1
 
     def test_detail_limit(self):
@@ -327,7 +327,7 @@ class TestGlanceImageService(base.TestCase):
                 'deleted': None,
                 'owner': None,
             }
-            self.assertDictEqual(expected, meta)
+            self.assertEqual(expected, meta)
             i = i + 1
 
     def test_detail_invalid_marker(self):
