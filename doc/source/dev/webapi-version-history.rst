@@ -2,6 +2,10 @@
 REST API Version History
 ========================
 
+**1.23**
+
+    Added '/v1/portgroups/ endpoint.
+
 **1.22**
 
     Added endpoints for deployment ramdisks.

@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds support for portgroups with a new endpoint `/v1/portgroups/`
+    in the REST API version 1.23. Ports can be combined into
+    portgroups to support static LAG and MLAG configurations.

@@ -22,6 +22,7 @@ import json
 from ironic.api.controllers.v1 import chassis as chassis_controller
 from ironic.api.controllers.v1 import node as node_controller
 from ironic.api.controllers.v1 import port as port_controller
+from ironic.api.controllers.v1 import portgroup as portgroup_controller
 from ironic.tests.unit.db import utils
 
 ADMIN_TOKEN = '4562138218392831'
@@ -130,3 +131,19 @@ def post_get_test_node(**kw):
     chassis = utils.get_test_chassis()
     node['chassis_uuid'] = kw.get('chassis_uuid', chassis['uuid'])
     return node
+
+
+def portgroup_post_data(**kw):
+    """Return a Portgroup object without internal attributes."""
+    portgroup = utils.get_test_portgroup(**kw)
+    portgroup.pop('node_id')
+    internal = portgroup_controller.PortgroupPatchType.internal_attrs()
+    return remove_internal(portgroup, internal)
+
+
+def post_get_test_portgroup(**kw):
+    """Return a Portgroup object with appropriate attributes."""
+    portgroup = portgroup_post_data(**kw)
+    node = utils.get_test_node()
+    portgroup['node_uuid'] = kw.get('node_uuid', node['uuid'])
+    return portgroup

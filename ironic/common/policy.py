@@ -135,6 +135,21 @@ port_policies = [
                        description='Update Port records'),
 ]
 
+portgroup_policies = [
+    policy.RuleDefault('baremetal:portgroup:get',
+                       'rule:is_admin or rule:is_observer',
+                       description='Retrieve Portgroup records'),
+    policy.RuleDefault('baremetal:portgroup:create',
+                       'rule:is_admin',
+                       description='Create Portgroup records'),
+    policy.RuleDefault('baremetal:portgroup:delete',
+                       'rule:is_admin',
+                       description='Delete Portgroup records'),
+    policy.RuleDefault('baremetal:portgroup:update',
+                       'rule:is_admin',
+                       description='Update Portgroup records'),
+]
+
 chassis_policies = [
     policy.RuleDefault('baremetal:chassis:get',
                        'rule:is_admin or rule:is_observer',
@@ -183,6 +198,7 @@ def list_policies():
     policies = (default_policies
                 + node_policies
                 + port_policies
+                + portgroup_policies
                 + chassis_policies
                 + driver_policies
                 + extra_policies)

@@ -50,6 +50,14 @@
 "baremetal:port:delete": "rule:is_admin"
 # Update Port records
 "baremetal:port:update": "rule:is_admin"
+# Retrieve Portgroup records
+"baremetal:portgroup:get": "rule:is_admin or rule:is_observer"
+# Create Portgroup records
+"baremetal:portgroup:create": "rule:is_admin"
+# Delete Portgroup records
+"baremetal:portgroup:delete": "rule:is_admin"
+# Update Portgroup records
+"baremetal:portgroup:update": "rule:is_admin"
 # Retrieve Chassis records
 "baremetal:chassis:get": "rule:is_admin or rule:is_observer"
 # Create Chassis records
