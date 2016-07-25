@@ -1,0 +1,4 @@
+fixes:
+  - Deny too long description of chassis
+    (more than 255 chars) with appropriate
+    correct message.

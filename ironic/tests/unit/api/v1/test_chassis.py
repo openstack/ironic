@@ -43,6 +43,11 @@ class TestChassisObject(base.TestCase):
         chassis = api_chassis.Chassis(**chassis_dict)
         self.assertEqual(wtypes.Unset, chassis.description)
 
+    def test_chassis_sample(self):
+        expected_description = 'Sample chassis'
+        sample = api_chassis.Chassis.sample(expand=False)
+        self.assertEqual(expected_description, sample.as_dict()['description'])
+
 
 class TestListChassis(test_api_base.BaseApiTest):
 
@@ -444,6 +449,25 @@ class TestPost(test_api_base.BaseApiTest):
         self.post_json('/chassis', cdict)
         result = self.get_json('/chassis/%s' % cdict['uuid'])
         self.assertEqual(descr, result['description'])
+
+    def test_create_chassis_toolong_description(self):
+        descr = 'a' * 256
+        valid_error_message = ('Value should have a maximum character '
+                               'requirement of 255')
+        cdict = apiutils.chassis_post_data(description=descr)
+        response = self.post_json('/chassis', cdict, expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertIn(valid_error_message, response.json['error_message'])
+
+    def test_create_chassis_invalid_description(self):
+        descr = 1334
+        valid_error_message = 'Value should be string'
+        cdict = apiutils.chassis_post_data(description=descr)
+        response = self.post_json('/chassis', cdict, expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertIn(valid_error_message, response.json['error_message'])
 
 
 class TestDelete(test_api_base.BaseApiTest):
