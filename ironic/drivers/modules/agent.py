@@ -330,7 +330,7 @@ class AgentDeploy(base.DeployInterface):
             # options get added for the provisioning port.
             manager_utils.node_power_action(task, states.POWER_OFF)
             task.driver.network.add_provisioning_network(task)
-        if node.provision_state != states.ACTIVE:
+        if node.provision_state not in [states.ACTIVE, states.ADOPTING]:
             node.instance_info = build_instance_info_for_deploy(task)
             node.save()
             if CONF.agent.manage_agent_boot:
