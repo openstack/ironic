@@ -23,10 +23,10 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as conductor_utils
-from ironic.db import api as dbapi
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import inspect as ilo_inspect
 from ironic.drivers.modules.ilo import power as ilo_power
+from ironic import objects
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -92,7 +92,7 @@ class IloInspectTestCase(db_base.DbTestCase):
                                                        ilo_object_mock)
             get_capabilities_mock.assert_called_once_with(task.node,
                                                           ilo_object_mock)
-            create_port_mock.assert_called_once_with(task.node, macs)
+            create_port_mock.assert_called_once_with(task, macs)
 
     @mock.patch.object(ilo_inspect, '_get_capabilities', spec_set=True,
                        autospec=True)
@@ -131,7 +131,7 @@ class IloInspectTestCase(db_base.DbTestCase):
                                                        ilo_object_mock)
             get_capabilities_mock.assert_called_once_with(task.node,
                                                           ilo_object_mock)
-            create_port_mock.assert_called_once_with(task.node, macs)
+            create_port_mock.assert_called_once_with(task, macs)
 
     @mock.patch.object(ilo_inspect, '_get_capabilities', spec_set=True,
                        autospec=True)
@@ -170,7 +170,7 @@ class IloInspectTestCase(db_base.DbTestCase):
                                                        ilo_object_mock)
             get_capabilities_mock.assert_called_once_with(task.node,
                                                           ilo_object_mock)
-            create_port_mock.assert_called_once_with(task.node, macs)
+            create_port_mock.assert_called_once_with(task, macs)
 
     @mock.patch.object(ilo_inspect, '_get_capabilities', spec_set=True,
                        autospec=True)
@@ -216,7 +216,7 @@ class IloInspectTestCase(db_base.DbTestCase):
                                                        ilo_object_mock)
             get_capabilities_mock.assert_called_once_with(task.node,
                                                           ilo_object_mock)
-            create_port_mock.assert_called_once_with(task.node, macs)
+            create_port_mock.assert_called_once_with(task, macs)
 
 
 class TestInspectPrivateMethods(db_base.DbTestCase):
@@ -228,31 +228,36 @@ class TestInspectPrivateMethods(db_base.DbTestCase):
             self.context, driver='fake_ilo', driver_info=INFO_DICT)
 
     @mock.patch.object(ilo_inspect.LOG, 'info', spec_set=True, autospec=True)
-    @mock.patch.object(dbapi, 'get_instance', spec_set=True, autospec=True)
-    def test__create_ports_if_not_exist(self, instance_mock, log_mock):
-        db_obj = instance_mock.return_value
+    @mock.patch.object(objects, 'Port', spec_set=True, autospec=True)
+    def test__create_ports_if_not_exist(self, port_mock, log_mock):
         macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
         node_id = self.node.id
         port_dict1 = {'address': 'aa:aa:aa:aa:aa:aa', 'node_id': node_id}
         port_dict2 = {'address': 'bb:bb:bb:bb:bb:bb', 'node_id': node_id}
-        ilo_inspect._create_ports_if_not_exist(self.node, macs)
-        instance_mock.assert_called_once_with()
-        self.assertTrue(log_mock.called)
-        db_obj.create_port.assert_any_call(port_dict1)
-        db_obj.create_port.assert_any_call(port_dict2)
+        port_obj1, port_obj2 = mock.MagicMock(), mock.MagicMock()
+        port_mock.side_effect = [port_obj1, port_obj2]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_inspect._create_ports_if_not_exist(task, macs)
+            self.assertTrue(log_mock.called)
+            expected_calls = [mock.call(task.context, **port_dict1),
+                              mock.call(task.context, **port_dict2)]
+            port_mock.assert_has_calls(expected_calls, any_order=True)
+            port_obj1.create.assert_called_once_with()
+            port_obj2.create.assert_called_once_with()
 
     @mock.patch.object(ilo_inspect.LOG, 'warning',
                        spec_set=True, autospec=True)
-    @mock.patch.object(dbapi, 'get_instance', spec_set=True, autospec=True)
+    @mock.patch.object(objects.Port, 'create', spec_set=True, autospec=True)
     def test__create_ports_if_not_exist_mac_exception(self,
-                                                      instance_mock,
+                                                      create_mock,
                                                       log_mock):
-        dbapi_mock = instance_mock.return_value
-        dbapi_mock.create_port.side_effect = exception.MACAlreadyExists('f')
+        create_mock.side_effect = exception.MACAlreadyExists('f')
         macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
-        ilo_inspect._create_ports_if_not_exist(self.node, macs)
-        instance_mock.assert_called_once_with()
-        self.assertTrue(log_mock.called)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_inspect._create_ports_if_not_exist(task, macs)
+        self.assertEqual(2, log_mock.call_count)
 
     def test__get_essential_properties_ok(self):
         ilo_mock = mock.MagicMock(spec=['get_essential_properties'])
