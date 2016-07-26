@@ -85,6 +85,25 @@ class PXEAndIPMIToolDriver(base.BaseDriver):
         self.raid = agent.AgentRAID()
 
 
+class PXEAndIPMIToolAndSocatDriver(PXEAndIPMIToolDriver):
+    """PXE + IPMITool + socat driver.
+
+    This driver implements the `core` functionality, combining
+    :class:`ironic.drivers.modules.ipmi.IPMI` for power on/off
+    and reboot with
+    :class:`ironic.drivers.modules.iscsi_deploy.ISCSIDeploy` (for
+    image deployment) and with
+    :class:`ironic.drivers.modules.ipmitool.IPMISocatConsole`.
+    This driver uses the socat console interface instead of the shellinabox
+    one.
+    Implementations are in those respective
+    classes; this class is merely the glue between them.
+    """
+    def __init__(self):
+        PXEAndIPMIToolDriver.__init__(self)
+        self.console = ipmitool.IPMISocatConsole()
+
+
 class PXEAndSSHDriver(base.BaseDriver):
     """PXE + SSH driver.
 

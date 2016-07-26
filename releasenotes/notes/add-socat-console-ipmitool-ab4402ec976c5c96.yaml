@@ -1,0 +1,5 @@
+---
+features:
+  - Adds support for socat-based serial console to ipmitool-based drivers.
+    These are available by using the agent_ipmitool_socat and
+    pxe_ipmitool_socat drivers.
