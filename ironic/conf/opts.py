@@ -17,7 +17,6 @@ import ironic.drivers.modules.agent_base_vendor
 import ironic.drivers.modules.agent_client
 import ironic.drivers.modules.amt.common
 import ironic.drivers.modules.amt.power
-import ironic.drivers.modules.deploy_utils
 import ironic.drivers.modules.iscsi_deploy
 import ironic.drivers.modules.pxe
 
@@ -49,7 +48,7 @@ _opts = [
     ('conductor', ironic.conf.conductor.opts),
     ('console', ironic.conf.console.opts),
     ('database', ironic.conf.database.opts),
-    ('deploy', ironic.drivers.modules.deploy_utils.deploy_opts),
+    ('deploy', ironic.conf.deploy.opts),
     ('dhcp', ironic.conf.dhcp.opts),
     ('glance', ironic.conf.glance.opts),
     ('iboot', ironic.conf.iboot.opts),

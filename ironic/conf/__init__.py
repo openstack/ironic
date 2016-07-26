@@ -22,6 +22,7 @@ from ironic.conf import conductor
 from ironic.conf import console
 from ironic.conf import database
 from ironic.conf import default
+from ironic.conf import deploy
 from ironic.conf import dhcp
 from ironic.conf import glance
 from ironic.conf import iboot
@@ -47,6 +48,7 @@ conductor.register_opts(CONF)
 console.register_opts(CONF)
 database.register_opts(CONF)
 default.register_opts(CONF)
+deploy.register_opts(CONF)
 dhcp.register_opts(CONF)
 glance.register_opts(CONF)
 iboot.register_opts(CONF)
