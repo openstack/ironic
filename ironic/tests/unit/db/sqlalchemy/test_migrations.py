@@ -623,6 +623,13 @@ class MigrationCheckersMixin(object):
         for row in result:
             self.assertEqual(CONF.default_portgroup_mode, row['mode'])
 
+    def _check_1d6951876d68(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+        self.assertIn('storage_interface', col_names)
+        self.assertIsInstance(nodes.c.storage_interface.type,
+                              sqlalchemy.types.String)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')
