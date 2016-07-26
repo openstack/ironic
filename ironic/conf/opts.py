@@ -12,7 +12,6 @@
 
 import itertools
 
-import ironic.api
 import ironic.drivers.modules.agent
 import ironic.drivers.modules.agent_base_vendor
 import ironic.drivers.modules.agent_client
@@ -44,7 +43,7 @@ _opts = [
     ('amt', itertools.chain(
         ironic.drivers.modules.amt.common.opts,
         ironic.drivers.modules.amt.power.opts)),
-    ('api', ironic.api.API_SERVICE_OPTS),
+    ('api', ironic.conf.api.opts),
     ('cimc', ironic.conf.cimc.opts),
     ('cisco_ucs', ironic.conf.cisco_ucs.opts),
     ('conductor', ironic.conf.conductor.opts),
