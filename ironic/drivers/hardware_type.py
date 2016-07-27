@@ -22,6 +22,7 @@ import six
 
 from ironic.drivers.modules.network import noop as noop_net
 from ironic.drivers.modules import noop
+from ironic.drivers.modules.storage import noop as noop_storage
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -79,6 +80,11 @@ class AbstractHardwareType(object):
     def supported_raid_interfaces(self):
         """List of supported raid interfaces."""
         return [noop.NoRAID]
+
+    @property
+    def supported_storage_interfaces(self):
+        """List of supported storage interfaces."""
+        return [noop_storage.NoopStorage]
 
     @property
     def supported_vendor_interfaces(self):

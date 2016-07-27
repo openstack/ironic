@@ -67,6 +67,11 @@ class FakeHardware(hardware_type.AbstractHardwareType):
         return [fake.FakeRAID]
 
     @property
+    def supported_storage_interfaces(self):
+        """List of classes of supported storage interfaces."""
+        return [fake.FakeStorage]
+
+    @property
     def supported_vendor_interfaces(self):
         """List of classes of supported rescue interfaces."""
         return [fake.FakeVendorB, fake.FakeVendorA]
