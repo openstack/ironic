@@ -94,7 +94,9 @@ def node_post_data(**kw):
     node.pop('conductor_affinity')
     node.pop('chassis_id')
     node.pop('tags')
-    # TODO(vdrok): Remove popping network_interface when it's exposed in API
+    # NOTE(vdrok): network_interface was introduced in API version 1.20, return
+    # it only if it was explicitly requested, so that tests using older API
+    # versions don't fail
     if 'network_interface' not in kw:
         node.pop('network_interface')
     internal = node_controller.NodePatchType.internal_attrs()
