@@ -131,20 +131,32 @@ class TestApiUtils(base.TestCase):
                           utils.check_allow_specify_fields, ['foo'])
 
     @mock.patch.object(pecan, 'request', spec_set=['version'])
-    def test_check_allow_specify_network_interface(self, mock_request):
+    def test_check_allowed_fields_network_interface(self, mock_request):
         mock_request.version.minor = 20
         self.assertIsNone(
-            utils.check_allow_specify_network_interface_in_fields(
-                ['network_interface']))
+            utils.check_allowed_fields(['network_interface']))
 
     @mock.patch.object(pecan, 'request', spec_set=['version'])
-    def test_check_allow_specify_network_interface_in_fields_fail(
-            self, mock_request):
+    def test_check_allowed_fields_network_interface_fail(self, mock_request):
         mock_request.version.minor = 19
         self.assertRaises(
             exception.NotAcceptable,
-            utils.check_allow_specify_network_interface_in_fields,
+            utils.check_allowed_fields,
             ['network_interface'])
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allowed_fields_resource_class(self, mock_request):
+        mock_request.version.minor = 21
+        self.assertIsNone(
+            utils.check_allowed_fields(['resource_class']))
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allowed_fields_resource_class_fail(self, mock_request):
+        mock_request.version.minor = 20
+        self.assertRaises(
+            exception.NotAcceptable,
+            utils.check_allowed_fields,
+            ['resource_class'])
 
     @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_specify_driver(self, mock_request):
@@ -156,6 +168,17 @@ class TestApiUtils(base.TestCase):
         mock_request.version.minor = 15
         self.assertRaises(exception.NotAcceptable,
                           utils.check_allow_specify_driver, ['fake'])
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allow_specify_resource_class(self, mock_request):
+        mock_request.version.minor = 21
+        self.assertIsNone(utils.check_allow_specify_resource_class(['foo']))
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allow_specify_resource_class_fail(self, mock_request):
+        mock_request.version.minor = 20
+        self.assertRaises(exception.NotAcceptable,
+                          utils.check_allow_specify_resource_class, ['foo'])
 
     @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_manage_verbs(self, mock_request):
@@ -254,6 +277,13 @@ class TestApiUtils(base.TestCase):
         self.assertTrue(utils.allow_network_interface())
         mock_request.version.minor = 19
         self.assertFalse(utils.allow_network_interface())
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_allow_resource_class(self, mock_request):
+        mock_request.version.minor = 21
+        self.assertTrue(utils.allow_resource_class())
+        mock_request.version.minor = 20
+        self.assertFalse(utils.allow_resource_class())
 
 
 class TestNodeIdent(base.TestCase):

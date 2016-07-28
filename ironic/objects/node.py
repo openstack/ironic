@@ -47,7 +47,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     #               and save() validate the input of property values.
     # Version 1.15: Add get_by_port_addresses
     # Version 1.16: Add network_interface field
-    VERSION = '1.16'
+    # Version 1.17: Add resource_class field
+    VERSION = '1.17'
 
     dbapi = db_api.get_instance()
 
@@ -98,6 +99,9 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         # Any error from the most recent (last) asynchronous transaction
         # that started but failed to finish.
         'last_error': object_fields.StringField(nullable=True),
+
+        # Used by nova to relate the node to a flavor
+        'resource_class': object_fields.StringField(nullable=True),
 
         'inspection_finished_at': object_fields.DateTimeField(nullable=True),
         'inspection_started_at': object_fields.DateTimeField(nullable=True),

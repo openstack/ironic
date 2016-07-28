@@ -50,6 +50,7 @@ BASE_VERSION = 1
 # v1.18: Add port.internal_info.
 # v1.19: Add port.local_link_connection and port.pxe_enabled.
 # v1.20: Add node.network_interface
+# v1.21: Add node.resource_class
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -72,11 +73,12 @@ MINOR_17_ADOPT_VERB = 17
 MINOR_18_PORT_INTERNAL_INFO = 18
 MINOR_19_PORT_ADVANCED_NET_FIELDS = 19
 MINOR_20_NETWORK_INTERFACE = 20
+MINOR_21_RESOURCE_CLASS = 21
 
 # When adding another version, update MINOR_MAX_VERSION and also update
 # doc/source/webapi/v1.rst with a detailed explanation of what the version has
 # changed.
-MINOR_MAX_VERSION = MINOR_20_NETWORK_INTERFACE
+MINOR_MAX_VERSION = MINOR_21_RESOURCE_CLASS
 
 # String representations of the minor and maximum versions
 MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

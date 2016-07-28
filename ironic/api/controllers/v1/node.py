@@ -140,6 +140,9 @@ def hide_fields_in_newer_versions(obj):
     if pecan.request.version.minor < versions.MINOR_20_NETWORK_INTERFACE:
         obj.network_interface = wsme.Unset
 
+    if not api_utils.allow_resource_class():
+        obj.resource_class = wsme.Unset
+
 
 def update_state_in_older_versions(obj):
     """Change provision state names for API backwards compatability.
@@ -699,6 +702,11 @@ class Node(base.APIBase):
     extra = {wtypes.text: types.jsontype}
     """This node's meta data"""
 
+    resource_class = wsme.wsattr(wtypes.StringType(max_length=80))
+    """The resource class for the node, useful for classifying or grouping
+       nodes. Used, for example, to classify nodes in Nova's placement
+       engine."""
+
     # NOTE: properties should use a class to enforce required properties
     #       current list: arch, cpus, disk, ram, image
     properties = {wtypes.text: types.jsontype}
@@ -819,7 +827,7 @@ class Node(base.APIBase):
                      inspection_finished_at=None, inspection_started_at=time,
                      console_enabled=False, clean_step={},
                      raid_config=None, target_raid_config=None,
-                     network_interface='flat')
+                     network_interface='flat', resource_class='baremetal-gold')
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
@@ -1006,6 +1014,7 @@ class NodesController(rest.RestController):
     def _get_nodes_collection(self, chassis_uuid, instance_uuid, associated,
                               maintenance, provision_state, marker, limit,
                               sort_key, sort_dir, driver=None,
+                              resource_class=None,
                               resource_url=None, fields=None):
         if self.from_chassis and not chassis_uuid:
             raise exception.MissingParameterValue(
@@ -1038,6 +1047,8 @@ class NodesController(rest.RestController):
                 filters['provision_state'] = provision_state
             if driver:
                 filters['driver'] = driver
+            if resource_class is not None:
+                filters['resource_class'] = resource_class
 
             nodes = objects.Node.list(pecan.request.context, limit, marker_obj,
                                       sort_key=sort_key, sort_dir=sort_dir,
@@ -1128,11 +1139,11 @@ class NodesController(rest.RestController):
     @METRICS.timer('NodesController.get_all')
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
                    types.boolean, wtypes.text, types.uuid, int, wtypes.text,
-                   wtypes.text, wtypes.text, types.listtype)
+                   wtypes.text, wtypes.text, types.listtype, wtypes.text)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
                 maintenance=None, provision_state=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc', driver=None,
-                fields=None):
+                fields=None, resource_class=None):
         """Retrieve a list of nodes.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -1153,28 +1164,34 @@ class NodesController(rest.RestController):
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         :param driver: Optional string value to get only nodes using that
                        driver.
+        :param resource_class: Optional string value to get only nodes with
+                               that resource_class.
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
         """
         api_utils.check_allow_specify_fields(fields)
+        api_utils.check_allowed_fields(fields)
         api_utils.check_for_invalid_state_and_allow_filter(provision_state)
         api_utils.check_allow_specify_driver(driver)
-        api_utils.check_allow_specify_network_interface_in_fields(fields)
+        api_utils.check_allow_specify_resource_class(resource_class)
         if fields is None:
             fields = _DEFAULT_RETURN_FIELDS
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
                                           associated, maintenance,
                                           provision_state, marker,
                                           limit, sort_key, sort_dir,
-                                          driver, fields=fields)
+                                          driver=driver,
+                                          resource_class=resource_class,
+                                          fields=fields)
 
     @METRICS.timer('NodesController.detail')
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
                    types.boolean, wtypes.text, types.uuid, int, wtypes.text,
-                   wtypes.text, wtypes.text)
+                   wtypes.text, wtypes.text, wtypes.text)
     def detail(self, chassis_uuid=None, instance_uuid=None, associated=None,
                maintenance=None, provision_state=None, marker=None,
-               limit=None, sort_key='id', sort_dir='asc', driver=None):
+               limit=None, sort_key='id', sort_dir='asc', driver=None,
+               resource_class=None):
         """Retrieve a list of nodes with detail.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -1195,9 +1212,12 @@ class NodesController(rest.RestController):
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         :param driver: Optional string value to get only nodes using that
                        driver.
+        :param resource_class: Optional string value to get only nodes with
+                               that resource_class.
         """
         api_utils.check_for_invalid_state_and_allow_filter(provision_state)
         api_utils.check_allow_specify_driver(driver)
+        api_utils.check_allow_specify_resource_class(resource_class)
         # /detail should only work against collections
         parent = pecan.request.path.split('/')[:-1][-1]
         if parent != "nodes":
@@ -1208,7 +1228,9 @@ class NodesController(rest.RestController):
                                           associated, maintenance,
                                           provision_state, marker,
                                           limit, sort_key, sort_dir,
-                                          driver, resource_url)
+                                          driver=driver,
+                                          resource_class=resource_class,
+                                          resource_url=resource_url)
 
     @METRICS.timer('NodesController.validate')
     @expose.expose(wtypes.text, types.uuid_or_name, types.uuid)
@@ -1247,7 +1269,7 @@ class NodesController(rest.RestController):
             raise exception.OperationNotPermitted()
 
         api_utils.check_allow_specify_fields(fields)
-        api_utils.check_allow_specify_network_interface_in_fields(fields)
+        api_utils.check_allowed_fields(fields)
 
         rpc_node = api_utils.get_rpc_node(node_ident)
         return Node.convert_with_links(rpc_node, fields=fields)
@@ -1261,6 +1283,10 @@ class NodesController(rest.RestController):
         """
         if self.from_chassis:
             raise exception.OperationNotPermitted()
+
+        if (not api_utils.allow_resource_class() and
+                node.resource_class is not wtypes.Unset):
+            raise exception.NotAcceptable()
 
         n_interface = node.network_interface
         if (not api_utils.allow_network_interface() and
@@ -1321,6 +1347,10 @@ class NodesController(rest.RestController):
         """
         if self.from_chassis:
             raise exception.OperationNotPermitted()
+
+        resource_class = api_utils.get_patch_values(patch, '/resource_class')
+        if resource_class and not api_utils.allow_resource_class():
+            raise exception.NotAcceptable()
 
         n_interfaces = api_utils.get_patch_values(patch, '/network_interface')
         if n_interfaces and not api_utils.allow_network_interface():
