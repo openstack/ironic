@@ -152,7 +152,7 @@ of ironic that may or may not be suitable to every situation.
   Adopting Nodes in an ACTIVE state <deploy/adoption>
   Auditing API Traffic <deploy/api-audit-support>
   Configuring for Multi-tenant Networking <deploy/multitenancy>
-  Configuring node web console <deploy/console>
+  Configuring node web or serial console <deploy/console>
 
 .. TODO::
   Add page on metrics.
