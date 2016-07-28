@@ -336,6 +336,13 @@ instance_uuid:
   in: body
   required: true
   type: string
+internal_info:
+  description: |
+    Internal metadata set and stored by the Port. This field is read-only.
+    Added in API microversion 1.18.
+  in: body
+  required: true
+  type: JSON
 last_error:
   description: |
     Any error from the most recent (last) transaction that started but failed to finish.
@@ -349,6 +356,17 @@ links:
   in: body
   required: true
   type: array
+local_link_connection:
+  description: |
+    The Port binding profile. If specified, must contain ``switch_id`` (only
+    a MAC address or an OpenFlow based datapath_id of the switch are accepted
+    in this field) and ``port_id`` (identifier of the physical port on the
+    switch to which node's port is connected to) fields. ``switch_info`` is an
+    optional string field to be used to store any vendor-specific information.
+    Added in API microversion 1.19.
+  in: body
+  required: true
+  type: JSON
 maintenance:
   description: |
     Whether or not this Node is currently in "maintenance mode". Setting a Node
@@ -485,6 +503,13 @@ provision_updated_at:
   in: body
   required: true
   type: string
+pxe_enabled:
+  description: |
+    Indicates whether PXE is enabled or disabled on the Port. Added in API
+    microversion 1.19.
+  in: body
+  required: true
+  type: boolean
 r_driver_name:
   description: |
     The name of the driver used to manage this Node.

@@ -102,6 +102,9 @@ Response
     - uuid: uuid
     - address: port_address
     - node_uuid: node_uuid
+    - local_link_connection: local_link_connection
+    - pxe_enabled: pxe_enabled
+    - internal_info: internal_info
     - extra: extra
     - created_at: created_at
     - updated_at: updated_at
@@ -148,6 +151,9 @@ Response
     - uuid: uuid
     - address: port_address
     - node_uuid: node_uuid
+    - local_link_connection: local_link_connection
+    - pxe_enabled: pxe_enabled
+    - internal_info: internal_info
     - extra: extra
     - created_at: created_at
     - updated_at: updated_at
@@ -188,6 +194,9 @@ Response
     - uuid: uuid
     - address: port_address
     - node_uuid: node_uuid
+    - local_link_connection: local_link_connection
+    - pxe_enabled: pxe_enabled
+    - internal_info: internal_info
     - extra: extra
     - created_at: created_at
     - updated_at: updated_at
@@ -231,6 +240,9 @@ Response
     - uuid: uuid
     - address: port_address
     - node_uuid: node_uuid
+    - local_link_connection: local_link_connection
+    - pxe_enabled: pxe_enabled
+    - internal_info: internal_info
     - extra: extra
     - created_at: created_at
     - updated_at: updated_at
