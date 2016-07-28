@@ -22,7 +22,6 @@ The Ironic Management Service
 import sys
 
 from oslo_config import cfg
-from oslo_log import log
 from oslo_service import service
 
 from ironic.common import service as ironic_service
@@ -37,10 +36,6 @@ def main():
     mgr = ironic_service.RPCService(CONF.host,
                                     'ironic.conductor.manager',
                                     'ConductorManager')
-
-    LOG = log.getLogger(__name__)
-    LOG.debug("Configuration:")
-    CONF.log_opt_values(LOG, log.DEBUG)
 
     launcher = service.launch(CONF, mgr)
     launcher.wait()
