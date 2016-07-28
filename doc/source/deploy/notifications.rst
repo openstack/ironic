@@ -187,5 +187,73 @@ prior to the correction::
     "publisher_id":"ironic-conductor.cond-hostname02"
    }
 
+baremetal.node.provision_set
+----------------------------
+
+* ``baremetal.node.provision_set.start`` is emitted by the ironic-conductor
+  service when it begins a provision state transition. It has notification
+  level INFO.
+
+* ``baremetal.node.provision_set.end`` is emitted when ironic-conductor
+  successfully completes a provision state transition. It has notification
+  level INFO.
+
+* ``baremetal.node.provision_set.success`` is emitted when ironic-conductor
+  successfully changes provision state instantly, without any intermediate
+  work required (example is AVAILABLE to MANAGEABLE). It has notification level
+  INFO.
+
+* ``baremetal.node.provision_set.error`` is emitted by ironic-conductor when it
+  changes provision state as result of error event processing. It has
+  notification level ERROR.
+
+Here is an example payload for a notification with this event type. The
+"previous_provision_state" and "previous_target_provision_state" payload fields
+indicate a node's provision states before state change, "event" is the FSM
+(finite state machine) event that triggered the state change::
+
+   {
+    "priority": "info",
+    "payload":{
+        "ironic_object.namespace":"ironic",
+        "ironic_object.name":"NodeSetProvisionStatePayload",
+        "ironic_object.version":"1.0",
+        "ironic_object.data":{
+            "clean_step": None,
+            "console_enabled": False,
+            "created_at": "2016-01-26T20:41:03+00:00",
+            "driver": "fake",
+            "extra": {},
+            "inspection_finished_at": None,
+            "inspection_started_at": None,
+            "instance_info": {},
+            "instance_uuid": None,
+            "last_error": None,
+            "maintenance": False,
+            "maintenance_reason": None,
+            "network_interface": "flat",
+            "name": None,
+            "power_state": "power off",
+            "properties": {
+                "memory_mb":  4096,
+                "cpu_arch":  "x86_64",
+                "local_gb":  10,
+                "cpus":  8},
+            "provision_state": "deploying",
+            "provision_updated_at": "2016-01-27T20:41:03+00:00",
+            "resource_class": None,
+            "target_power_state": None,
+            "target_provision_state": "active",
+            "updated_at": "2016-01-27T20:41:03+00:00",
+            "uuid": "1be26c0b-03f2-4d2e-ae87-c02d7f33c123",
+            "previous_provision_state": "available",
+            "previous_target_provision_state": None,
+            "event": "deploy"
+        }
+    },
+    "event_type":"baremetal.node.provision_set.start",
+    "publisher_id":"ironic-conductor.hostname01"
+   }
+
 .. [1] https://wiki.openstack.org/wiki/LoggingStandards#Log_level_definitions
 .. [2] https://www.rabbitmq.com/documentation.html

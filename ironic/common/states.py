@@ -195,6 +195,9 @@ DELETE_ALLOWED_STATES = (AVAILABLE, MANAGEABLE, ENROLL, ADOPTFAIL)
 STABLE_STATES = (ENROLL, MANAGEABLE, AVAILABLE, ACTIVE, ERROR)
 """States that will not transition unless receiving a request."""
 
+UNSTABLE_STATES = (DEPLOYING, DEPLOYWAIT, CLEANING, CLEANWAIT, VERIFYING,
+                   DELETING, INSPECTING, ADOPTING)
+"""States that can be changed without external request."""
 
 ##############
 # Power states

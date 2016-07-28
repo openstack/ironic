@@ -418,7 +418,9 @@ expected_object_fingerprints = {
     'NodeCorrectedPowerStateNotification': '1.0-59acc533c11d306f149846f922739'
                                            'c15',
     'NodeCorrectedPowerStatePayload': '1.0-2a484d7c342caa9fe488de16dc5f1f1e',
-
+    'NodeSetProvisionStateNotification':
+        '1.0-59acc533c11d306f149846f922739c15',
+    'NodeSetProvisionStatePayload': '1.0-91be7439b9b6b04931c9b99b8e1ea87a'
 }
 
 
