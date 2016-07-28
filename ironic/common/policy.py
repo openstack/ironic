@@ -127,6 +127,9 @@ node_policies = [
     policy.RuleDefault('baremetal:node:vif:detach',
                        'rule:is_admin',
                        description='Detach a VIF from a node'),
+    policy.RuleDefault('baremetal:node:inject_nmi',
+                       'rule:is_admin',
+                       description='Inject NMI for a node'),
 ]
 
 port_policies = [

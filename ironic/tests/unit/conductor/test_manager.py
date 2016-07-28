@@ -3380,6 +3380,64 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
             # Compare true exception hidden by @messaging.expected_exceptions
             self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
 
+    def test_inject_nmi(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        with mock.patch.object(self.driver.management, 'validate') as mock_val:
+            with mock.patch.object(self.driver.management,
+                                   'inject_nmi') as mock_sbd:
+                self.service.inject_nmi(self.context, node.uuid)
+                mock_val.assert_called_once_with(mock.ANY)
+                mock_sbd.assert_called_once_with(mock.ANY)
+
+    def test_inject_nmi_node_locked(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          reservation='fake-reserv')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.inject_nmi,
+                                self.context, node.uuid)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+
+    def test_inject_nmi_not_supported(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        # null the management interface
+        self.driver.management = None
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.inject_nmi,
+                                self.context, node.uuid)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.UnsupportedDriverExtension,
+                         exc.exc_info[0])
+
+    def test_inject_nmi_validate_invalid_param(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        with mock.patch.object(self.driver.management, 'validate') as mock_val:
+            mock_val.side_effect = exception.InvalidParameterValue('error')
+            exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                    self.service.inject_nmi,
+                                    self.context, node.uuid)
+            # Compare true exception hidden by @messaging.expected_exceptions
+            self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+
+    def test_inject_nmi_validate_missing_param(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        with mock.patch.object(self.driver.management, 'validate') as mock_val:
+            mock_val.side_effect = exception.MissingParameterValue('error')
+            exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                    self.service.inject_nmi,
+                                    self.context, node.uuid)
+            # Compare true exception hidden by @messaging.expected_exceptions
+            self.assertEqual(exception.MissingParameterValue, exc.exc_info[0])
+
+    def test_inject_nmi_not_implemented(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.inject_nmi,
+                                self.context, node.uuid)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.UnsupportedDriverExtension,
+                         exc.exc_info[0])
+
     def test_get_supported_boot_devices(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
         bootdevs = self.service.get_supported_boot_devices(self.context,

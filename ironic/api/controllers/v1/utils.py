@@ -378,6 +378,14 @@ def allow_soft_power_off():
     return pecan.request.version.minor >= versions.MINOR_27_SOFT_POWER_OFF
 
 
+def allow_inject_nmi():
+    """Check if Inject NMI is allowed for the node.
+
+    Version 1.29 of the API allows Inject NMI for the node.
+    """
+    return pecan.request.version.minor >= versions.MINOR_29_INJECT_NMI
+
+
 def allow_links_node_states_and_driver_properties():
     """Check if links are displayable.
 

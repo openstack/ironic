@@ -281,6 +281,13 @@ class TestApiUtils(base.TestCase):
         utils.check_allow_management_verbs('rebuild')
 
     @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_allow_inject_nmi(self, mock_request):
+        mock_request.version.minor = 29
+        self.assertTrue(utils.allow_inject_nmi())
+        mock_request.version.minor = 28
+        self.assertFalse(utils.allow_inject_nmi())
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_links_node_states_and_driver_properties(self, mock_request):
         mock_request.version.minor = 14
         self.assertTrue(utils.allow_links_node_states_and_driver_properties())

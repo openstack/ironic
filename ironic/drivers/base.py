@@ -822,6 +822,17 @@ class ManagementInterface(BaseInterface):
                       }
         """
 
+    def inject_nmi(self, task):
+        """Inject NMI, Non Maskable Interrupt.
+
+        Inject NMI (Non Maskable Interrupt) for a node immediately.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :raises: UnsupportedDriverExtension
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='inject_nmi')
+
 
 class InspectInterface(BaseInterface):
     """Interface for inspection-related actions."""

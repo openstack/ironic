@@ -2,6 +2,11 @@
 REST API Version History
 ========================
 
+**1.29** (Ocata)
+
+    Add a new management API to support inject NMI,
+    'PUT /v1/nodes/(node_ident)/management/inject_nmi'.
+
 **1.28** (Ocata)
 
     Add '/v1/nodes/<node identifier>/vifs' endpoint for attach, detach and list of VIFs.

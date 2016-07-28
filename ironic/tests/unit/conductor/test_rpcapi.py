@@ -276,6 +276,12 @@ class RPCAPITestCase(base.DbTestCase):
                           version='1.17',
                           node_id=self.fake_node['uuid'])
 
+    def test_inject_nmi(self):
+        self._test_rpcapi('inject_nmi',
+                          'call',
+                          version='1.40',
+                          node_id=self.fake_node['uuid'])
+
     def test_get_supported_boot_devices(self):
         self._test_rpcapi('get_supported_boot_devices',
                           'call',

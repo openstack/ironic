@@ -86,11 +86,12 @@ class ConductorAPI(object):
     |    1.37 - Added destroy_volume_target and update_volume_target
     |    1.38 - Added vif_attach, vif_detach, vif_list
     |    1.39 - Added timeout optional parameter to change_node_power_state
+    |    1.40 - Added inject_nmi
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.39'
+    RPC_API_VERSION = '1.40'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -554,6 +555,25 @@ class ConductorAPI(object):
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.17')
         return cctxt.call(context, 'get_boot_device', node_id=node_id)
+
+    def inject_nmi(self, context, node_id, topic=None):
+        """Inject NMI for a node.
+
+        Inject NMI (Non Maskable Interrupt) for a node immediately.
+        Be aware that not all drivers support this.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support management or management.inject_nmi.
+        :raises: InvalidParameterValue when the wrong driver info is
+                 specified or an invalid boot device is specified.
+        :raises: MissingParameterValue if missing supplied info.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.40')
+        return cctxt.call(context, 'inject_nmi', node_id=node_id)
 
     def get_supported_boot_devices(self, context, node_id, topic=None):
         """Get the list of supported devices.

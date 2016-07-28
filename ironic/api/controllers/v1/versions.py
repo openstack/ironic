@@ -59,6 +59,7 @@ BASE_VERSION = 1
 # v1.26: Add portgroup.mode and portgroup.properties.
 # v1.27: Add soft reboot, soft power off and timeout.
 # v1.28: Add vifs subcontroller to node
+# v1.29: Add inject nmi.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -89,11 +90,12 @@ MINOR_25_UNSET_CHASSIS_UUID = 25
 MINOR_26_PORTGROUP_MODE_PROPERTIES = 26
 MINOR_27_SOFT_POWER_OFF = 27
 MINOR_28_VIFS_SUBCONTROLLER = 28
+MINOR_29_INJECT_NMI = 29
 
 # When adding another version, update MINOR_MAX_VERSION and also update
 # doc/source/dev/webapi-version-history.rst with a detailed explanation of
 # what the version has changed.
-MINOR_MAX_VERSION = MINOR_28_VIFS_SUBCONTROLLER
+MINOR_MAX_VERSION = MINOR_29_INJECT_NMI
 
 # String representations of the minor and maximum versions
 MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)
