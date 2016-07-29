@@ -1958,6 +1958,30 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.MissingParameterValue,
                               task.driver.management.validate, task)
 
+    @mock.patch.object(ipmi.LOG, 'error', spec_set=True, autospec=True)
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_management_interface_inject_nmi_ok(self, mock_exec, mock_log):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_info = ipmi._parse_driver_info(task.node)
+            self.driver.management.inject_nmi(task)
+
+            mock_exec.assert_called_once_with(driver_info, "power diag")
+            self.assertFalse(mock_log.called)
+
+    @mock.patch.object(ipmi.LOG, 'error', spec_set=True, autospec=True)
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_management_interface_inject_nmi_fail(self, mock_exec, mock_log):
+        mock_exec.side_effect = exception.PasswordFileFailedToCreate('error')
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_info = ipmi._parse_driver_info(task.node)
+            self.assertRaises(exception.IPMIFailure,
+                              self.driver.management.inject_nmi,
+                              task)
+
+            mock_exec.assert_called_once_with(driver_info, "power diag")
+            self.assertTrue(mock_log.called)
+
     def test__parse_ipmi_sensor_data_ok(self):
         fake_sensors_data = """
                             Sensor ID              : Temp (0x1)
