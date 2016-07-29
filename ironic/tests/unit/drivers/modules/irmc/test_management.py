@@ -361,3 +361,36 @@ class IRMCManagementTestCase(db_base.DbTestCase):
         self.assertEqual("Failed to get sensor data for node 1be26c0b-" +
                          "03f2-4d2e-ae87-c02d7f33c123. Error: Fake Error",
                          str(e))
+
+    @mock.patch.object(irmc_management.LOG, 'error', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
+                       autospec=True)
+    def test_management_interface_inject_nmi_ok(self, mock_get_irmc_client,
+                                                mock_log):
+        irmc_client = mock_get_irmc_client.return_value
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.driver.management.inject_nmi(task)
+
+            irmc_client.assert_called_once_with(
+                irmc_management.scci.POWER_RAISE_NMI)
+            self.assertFalse(mock_log.called)
+
+    @mock.patch.object(irmc_management.LOG, 'error', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
+                       autospec=True)
+    def test_management_interface_inject_nmi_fail(self, mock_get_irmc_client,
+                                                  mock_log):
+        irmc_client = mock_get_irmc_client.return_value
+        irmc_client.side_effect = Exception()
+        irmc_management.scci.SCCIClientError = Exception
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.IRMCOperationError,
+                              self.driver.management.inject_nmi,
+                              task)
+
+            irmc_client.assert_called_once_with(
+                irmc_management.scci.POWER_RAISE_NMI)
+            self.assertTrue(mock_log.called)
