@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from oslo_config import cfg
 from oslo_log import log
 from oslo_serialization import jsonutils
 import requests
@@ -21,16 +20,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LE
 from ironic.common.i18n import _LW
-
-agent_opts = [
-    cfg.StrOpt('agent_api_version',
-               default='v1',
-               help=_('API version to use for communicating with the ramdisk '
-                      'agent.'))
-]
-
-CONF = cfg.CONF
-CONF.register_opts(agent_opts, group='agent')
+from ironic.conf import CONF
 
 LOG = log.getLogger(__name__)
 
