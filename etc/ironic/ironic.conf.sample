@@ -1158,6 +1158,9 @@
 # operations (integer value)
 #power_wait = 2
 
+# CA certificate file to validate iLO. (string value)
+#ca_file = <None>
+
 
 [inspector]
 

@@ -78,6 +78,8 @@ opts = [
                default=2,
                help=_('Amount of time in seconds to wait in between power '
                       'operations')),
+    cfg.StrOpt('ca_file',
+               help=_('CA certificate file to validate iLO.')),
 ]
 
 
