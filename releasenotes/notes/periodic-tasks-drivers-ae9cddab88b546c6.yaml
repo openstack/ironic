@@ -1,0 +1,5 @@
+---
+deprecations:
+  - Putting periodic tasks on a driver object (rather than interface) is
+    deprecated. Driver developers should move periodic tasks from driver
+    objects to interface objects.
