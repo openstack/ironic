@@ -191,7 +191,159 @@ def validate_image_proxies(node):
         raise exception.InvalidParameterValue(msg)
 
 
-class AgentDeploy(base.DeployInterface):
+class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
+
+    def deploy_has_started(self, task):
+        commands = self._client.get_commands_status(task.node)
+
+        for command in commands:
+            if command['command_name'] == 'prepare_image':
+                # deploy did start at some point
+                return True
+        return False
+
+    def deploy_is_done(self, task):
+        commands = self._client.get_commands_status(task.node)
+        if not commands:
+            return False
+
+        last_command = commands[-1]
+
+        if last_command['command_name'] != 'prepare_image':
+            # catches race condition where prepare_image is still processing
+            # so deploy hasn't started yet
+            return False
+
+        if last_command['command_status'] != 'RUNNING':
+            return True
+
+        return False
+
+    @task_manager.require_exclusive_lock
+    def continue_deploy(self, task):
+        task.process_event('resume')
+        node = task.node
+        image_source = node.instance_info.get('image_source')
+        LOG.debug('Continuing deploy for node %(node)s with image %(img)s',
+                  {'node': node.uuid, 'img': image_source})
+
+        image_info = {
+            'id': image_source.split('/')[-1],
+            'urls': [node.instance_info['image_url']],
+            'checksum': node.instance_info['image_checksum'],
+            # NOTE(comstud): Older versions of ironic do not set
+            # 'disk_format' nor 'container_format', so we use .get()
+            # to maintain backwards compatibility in case code was
+            # upgraded in the middle of a build request.
+            'disk_format': node.instance_info.get('image_disk_format'),
+            'container_format': node.instance_info.get(
+                'image_container_format'),
+            'stream_raw_images': CONF.agent.stream_raw_images,
+        }
+
+        proxies = {}
+        for scheme in ('http', 'https'):
+            proxy_param = 'image_%s_proxy' % scheme
+            proxy = node.driver_info.get(proxy_param)
+            if proxy:
+                proxies[scheme] = proxy
+        if proxies:
+            image_info['proxies'] = proxies
+            no_proxy = node.driver_info.get('image_no_proxy')
+            if no_proxy is not None:
+                image_info['no_proxy'] = no_proxy
+
+        iwdi = node.driver_internal_info.get('is_whole_disk_image')
+        if not iwdi:
+            for label in PARTITION_IMAGE_LABELS:
+                image_info[label] = node.instance_info.get(label)
+            boot_option = deploy_utils.get_boot_option(node)
+            boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
+            if boot_mode:
+                image_info['deploy_boot_mode'] = boot_mode
+            else:
+                image_info['deploy_boot_mode'] = 'bios'
+            image_info['boot_option'] = boot_option
+            disk_label = deploy_utils.get_disk_label(node)
+            if disk_label is not None:
+                image_info['disk_label'] = disk_label
+            image_info['node_uuid'] = node.uuid
+
+        # Tell the client to download and write the image with the given args
+        self._client.prepare_image(node, image_info)
+
+        task.process_event('wait')
+
+    def _get_uuid_from_result(self, task, type_uuid):
+        command = self._client.get_commands_status(task.node)[-1]
+
+        if command['command_result'] is not None:
+            words = command['command_result']['result'].split()
+            for word in words:
+                if type_uuid in word:
+                    result = word.split('=')[1]
+                    if not result:
+                        msg = (_('Command result did not return %(type_uuid)s '
+                                 'for node %(node)s. The version of the IPA '
+                                 'ramdisk used in the deployment might not '
+                                 'have support for provisioning of '
+                                 'partition images.') %
+                               {'type_uuid': type_uuid,
+                                'node': task.node.uuid})
+                        LOG.error(msg)
+                        deploy_utils.set_failed_state(task, msg)
+                        return
+                    return result
+
+    def check_deploy_success(self, node):
+        # should only ever be called after we've validated that
+        # the prepare_image command is complete
+        command = self._client.get_commands_status(node)[-1]
+        if command['command_status'] == 'FAILED':
+            return command['command_error']
+
+    def reboot_to_instance(self, task):
+        task.process_event('resume')
+        node = task.node
+        iwdi = task.node.driver_internal_info.get('is_whole_disk_image')
+        error = self.check_deploy_success(node)
+        if error is not None:
+            # TODO(jimrollenhagen) power off if using neutron dhcp to
+            #                      align with pxe driver?
+            msg = (_('node %(node)s command status errored: %(error)s') %
+                   {'node': node.uuid, 'error': error})
+            LOG.error(msg)
+            deploy_utils.set_failed_state(task, msg)
+            return
+        if not iwdi:
+            root_uuid = self._get_uuid_from_result(task, 'root_uuid')
+            if deploy_utils.get_boot_mode_for_deploy(node) == 'uefi':
+                efi_sys_uuid = (
+                    self._get_uuid_from_result(task,
+                                               'efi_system_partition_uuid'))
+            else:
+                efi_sys_uuid = None
+            task.node.driver_internal_info['root_uuid_or_disk_id'] = root_uuid
+            task.node.save()
+            self.prepare_instance_to_boot(task, root_uuid, efi_sys_uuid)
+        LOG.info(_LI('Image successfully written to node %s'), node.uuid)
+        LOG.debug('Rebooting node %s to instance', node.uuid)
+        if iwdi:
+            manager_utils.node_set_boot_device(task, 'disk', persistent=True)
+
+        self.reboot_and_finish_deploy(task)
+
+        # NOTE(TheJulia): If we deployed a whole disk image, we
+        # should expect a whole disk image and clean-up the tftp files
+        # on-disk incase the node is disregarding the boot preference.
+        # TODO(rameshg87): Not all in-tree drivers using reboot_to_instance
+        # have a boot interface. So include a check for now. Remove this
+        # check once all in-tree drivers have a boot interface.
+        if task.driver.boot and iwdi:
+            task.driver.boot.clean_up_ramdisk(task)
+
+
+class AgentDeploy(AgentDeployMixin, base.DeployInterface):
     """Interface for deploy-related actions."""
 
     def get_properties(self):
@@ -389,156 +541,12 @@ class AgentDeploy(base.DeployInterface):
             task, manage_boot=CONF.agent.manage_agent_boot)
 
 
-class AgentVendorInterface(agent_base_vendor.BaseAgentVendor):
+class AgentVendorInterface(agent_base_vendor.BaseAgentVendor,
+                           AgentDeployMixin):
+    """Implementation of agent vendor interface.
 
-    def deploy_has_started(self, task):
-        commands = self._client.get_commands_status(task.node)
-
-        for command in commands:
-            if command['command_name'] == 'prepare_image':
-                # deploy did start at some point
-                return True
-        return False
-
-    def deploy_is_done(self, task):
-        commands = self._client.get_commands_status(task.node)
-        if not commands:
-            return False
-
-        last_command = commands[-1]
-
-        if last_command['command_name'] != 'prepare_image':
-            # catches race condition where prepare_image is still processing
-            # so deploy hasn't started yet
-            return False
-
-        if last_command['command_status'] != 'RUNNING':
-            return True
-
-        return False
-
-    @task_manager.require_exclusive_lock
-    def continue_deploy(self, task, **kwargs):
-        task.process_event('resume')
-        node = task.node
-        image_source = node.instance_info.get('image_source')
-        LOG.debug('Continuing deploy for node %(node)s with image %(img)s',
-                  {'node': node.uuid, 'img': image_source})
-
-        image_info = {
-            'id': image_source.split('/')[-1],
-            'urls': [node.instance_info['image_url']],
-            'checksum': node.instance_info['image_checksum'],
-            # NOTE(comstud): Older versions of ironic do not set
-            # 'disk_format' nor 'container_format', so we use .get()
-            # to maintain backwards compatibility in case code was
-            # upgraded in the middle of a build request.
-            'disk_format': node.instance_info.get('image_disk_format'),
-            'container_format': node.instance_info.get(
-                'image_container_format'),
-            'stream_raw_images': CONF.agent.stream_raw_images,
-        }
-
-        proxies = {}
-        for scheme in ('http', 'https'):
-            proxy_param = 'image_%s_proxy' % scheme
-            proxy = node.driver_info.get(proxy_param)
-            if proxy:
-                proxies[scheme] = proxy
-        if proxies:
-            image_info['proxies'] = proxies
-            no_proxy = node.driver_info.get('image_no_proxy')
-            if no_proxy is not None:
-                image_info['no_proxy'] = no_proxy
-
-        iwdi = node.driver_internal_info.get('is_whole_disk_image')
-        if not iwdi:
-            for label in PARTITION_IMAGE_LABELS:
-                image_info[label] = node.instance_info.get(label)
-            boot_option = deploy_utils.get_boot_option(node)
-            boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
-            if boot_mode:
-                image_info['deploy_boot_mode'] = boot_mode
-            else:
-                image_info['deploy_boot_mode'] = 'bios'
-            image_info['boot_option'] = boot_option
-            disk_label = deploy_utils.get_disk_label(node)
-            if disk_label is not None:
-                image_info['disk_label'] = disk_label
-            image_info['node_uuid'] = node.uuid
-
-        # Tell the client to download and write the image with the given args
-        self._client.prepare_image(node, image_info)
-
-        task.process_event('wait')
-
-    def _get_uuid_from_result(self, task, type_uuid):
-        command = self._client.get_commands_status(task.node)[-1]
-
-        if command['command_result'] is not None:
-            words = command['command_result']['result'].split()
-            for word in words:
-                if type_uuid in word:
-                    result = word.split('=')[1]
-                    if not result:
-                        msg = (_('Command result did not return %(type_uuid)s '
-                                 'for node %(node)s. The version of the IPA '
-                                 'ramdisk used in the deployment might not '
-                                 'have support for provisioning of '
-                                 'partition images.') %
-                               {'type_uuid': type_uuid,
-                                'node': task.node.uuid})
-                        LOG.error(msg)
-                        deploy_utils.set_failed_state(task, msg)
-                        return
-                    return result
-
-    def check_deploy_success(self, node):
-        # should only ever be called after we've validated that
-        # the prepare_image command is complete
-        command = self._client.get_commands_status(node)[-1]
-        if command['command_status'] == 'FAILED':
-            return command['command_error']
-
-    def reboot_to_instance(self, task, **kwargs):
-        task.process_event('resume')
-        node = task.node
-        iwdi = task.node.driver_internal_info.get('is_whole_disk_image')
-        error = self.check_deploy_success(node)
-        if error is not None:
-            # TODO(jimrollenhagen) power off if using neutron dhcp to
-            #                      align with pxe driver?
-            msg = (_('node %(node)s command status errored: %(error)s') %
-                   {'node': node.uuid, 'error': error})
-            LOG.error(msg)
-            deploy_utils.set_failed_state(task, msg)
-            return
-        if not iwdi:
-            root_uuid = self._get_uuid_from_result(task, 'root_uuid')
-            if deploy_utils.get_boot_mode_for_deploy(node) == 'uefi':
-                efi_sys_uuid = (
-                    self._get_uuid_from_result(task,
-                                               'efi_system_partition_uuid'))
-            else:
-                efi_sys_uuid = None
-            task.node.driver_internal_info['root_uuid_or_disk_id'] = root_uuid
-            task.node.save()
-            self.prepare_instance_to_boot(task, root_uuid, efi_sys_uuid)
-        LOG.info(_LI('Image successfully written to node %s'), node.uuid)
-        LOG.debug('Rebooting node %s to instance', node.uuid)
-        if iwdi:
-            manager_utils.node_set_boot_device(task, 'disk', persistent=True)
-
-        self.reboot_and_finish_deploy(task)
-
-        # NOTE(TheJulia): If we deployed a whole disk image, we
-        # should expect a whole disk image and clean-up the tftp files
-        # on-disk incase the node is disregarding the boot preference.
-        # TODO(rameshg87): Not all in-tree drivers using reboot_to_instance
-        # have a boot interface. So include a check for now. Remove this
-        # check once all in-tree drivers have a boot interface.
-        if task.driver.boot and iwdi:
-            task.driver.boot.clean_up_ramdisk(task)
+    Contains old lookup and heartbeat endpoints currently pending deprecation.
+    """
 
 
 class AgentRAID(base.RAIDInterface):

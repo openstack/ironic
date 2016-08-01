@@ -23,6 +23,7 @@ from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent
+from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
 
 LOG = log.getLogger(__name__)
@@ -107,7 +108,7 @@ class AgentVendorInterface(agent.AgentVendorInterface):
             msg = (_('Error rebooting node %(node)s after deploy. '
                      'Error: %(error)s') %
                    {'node': node.uuid, 'error': e})
-            self._log_and_raise_deployment_error(task, msg)
+            agent_base_vendor.log_and_raise_deployment_error(task, msg)
 
         task.process_event('done')
         LOG.info(_LI('Deployment to node %s done'), task.node.uuid)

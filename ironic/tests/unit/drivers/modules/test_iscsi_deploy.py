@@ -663,6 +663,12 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             agent_execute_clean_step_mock.assert_called_once_with(
                 task, {'some-step': 'step-info'})
 
+    def test_heartbeat(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.driver.deploy.heartbeat(task, 'url')
+            self.assertFalse(task.shared)
+
 
 class TestVendorPassthru(db_base.DbTestCase):
 
