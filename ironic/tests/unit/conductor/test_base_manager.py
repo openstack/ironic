@@ -184,7 +184,8 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         ht_mock.assert_called_once_with()
 
     @mock.patch.object(base_manager, 'LOG')
-    @mock.patch.object(base_manager.BaseConductorManager, 'del_host')
+    @mock.patch.object(base_manager.BaseConductorManager, 'del_host',
+                       autospec=True)
     @mock.patch.object(driver_factory, 'DriverFactory')
     def test_starts_with_only_dynamic_drivers(self, df_mock, del_mock,
                                               log_mock):
@@ -197,7 +198,8 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertFalse(del_mock.called)
 
     @mock.patch.object(base_manager, 'LOG')
-    @mock.patch.object(base_manager.BaseConductorManager, 'del_host')
+    @mock.patch.object(base_manager.BaseConductorManager, 'del_host',
+                       autospec=True)
     @mock.patch.object(driver_factory, 'HardwareTypesFactory')
     def test_starts_with_only_classic_drivers(self, ht_mock, del_mock,
                                               log_mock):
