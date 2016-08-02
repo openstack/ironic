@@ -2351,13 +2351,13 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
     def test__do_node_clean_automated_disabled(self, mock_validate):
         self.config(automated_clean=False, group='conductor')
+
+        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake',
             provision_state=states.CLEANING,
             target_provision_state=states.AVAILABLE,
             last_error=None)
-
-        self._start_service()
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
             self.service._do_node_clean(task)
@@ -2469,6 +2469,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         else:
             tgt_prov_state = states.AVAILABLE
             driver_info = {'clean_steps': self.clean_steps}
+
+        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake',
             provision_state=states.CLEANING,
@@ -2477,7 +2479,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             power_state=states.POWER_OFF,
             driver_internal_info=driver_info)
 
-        self._start_service()
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
             self.service._do_node_clean(task, clean_steps=clean_steps)
@@ -2515,6 +2516,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             tgt_prov_state = states.AVAILABLE
             driver_internal_info['clean_steps'] = self.clean_steps
 
+        self._start_service()
+
         node = obj_utils.create_test_node(
             self.context, driver='fake',
             provision_state=states.CLEANING,
@@ -2524,8 +2527,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             clean_step={})
         mock_execute.return_value = return_state
         expected_first_step = node.driver_internal_info['clean_steps'][0]
-
-        self._start_service()
 
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
@@ -2553,6 +2554,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                                         manual=False):
         # Resume an in-progress cleaning after the first async step
         tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
+
+        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake',
             provision_state=states.CLEANING,
@@ -2562,8 +2565,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                   'clean_step_index': 0},
             clean_step=self.clean_steps[0])
         mock_execute.return_value = return_state
-
-        self._start_service()
 
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
@@ -2591,6 +2592,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
         info = {'clean_steps': self.clean_steps,
                 'clean_step_index': len(self.clean_steps) - 1}
+
+        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake',
             provision_state=states.CLEANING,
@@ -2598,8 +2601,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             last_error=None,
             driver_internal_info=info,
             clean_step=self.clean_steps[-1])
-
-        self._start_service()
 
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
@@ -2628,6 +2629,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                 mock_power_execute, manual=False):
         # Run all steps from start to finish (all synchronous)
         tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
+
+        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake',
             provision_state=states.CLEANING,
@@ -2638,8 +2641,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             clean_step={})
         mock_deploy_execute.return_value = None
         mock_power_execute.return_value = None
-
-        self._start_service()
 
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
@@ -2673,6 +2674,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                          manual=False):
         # When a clean step fails, go to CLEANFAIL
         tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
+
+        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake',
             provision_state=states.CLEANING,
@@ -2682,8 +2685,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                   'clean_step_index': None},
             clean_step={})
         mock_execute.side_effect = Exception()
-
-        self._start_service()
 
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
@@ -2718,6 +2719,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self, tear_mock, power_exec_mock, deploy_exec_mock, log_mock,
             manual=True):
         tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
+
+        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake',
             provision_state=states.CLEANING,
@@ -2730,8 +2733,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         deploy_exec_mock.return_value = None
         power_exec_mock.return_value = None
         tear_mock.side_effect = Exception('boom')
-
-        self._start_service()
 
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
@@ -2775,6 +2776,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                      {'clean_steps': None}):
             # Resume where there are no steps, should be a noop
             tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
+
+            self._start_service()
             node = obj_utils.create_test_node(
                 self.context, driver='fake',
                 uuid=uuidutils.generate_uuid(),
@@ -2783,8 +2786,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 last_error=None,
                 driver_internal_info=info,
                 clean_step={})
-
-            self._start_service()
 
             with task_manager.acquire(
                     self.context, node.uuid, shared=False) as task:
@@ -2813,6 +2814,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self, deploy_exec_mock, power_exec_mock, manual=False):
         # When a clean step fails, go to CLEANFAIL
         tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
+
+        self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake',
             provision_state=states.CLEANING,
@@ -2822,8 +2825,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                   'clean_step_index': None},
             clean_step={})
         deploy_exec_mock.return_value = "foo"
-
-        self._start_service()
 
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
@@ -3425,11 +3426,19 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
         self.assertEqual([(nodes[0].uuid, 'fake', 0)], result)
         mock_nodeinfo_list.assert_called_once_with(
             columns=self.columns, filters=mock.sentinel.filters)
-        mock_fail_if_state.assert_called_once_with(
-            mock.ANY, mock.ANY,
-            {'provision_state': 'deploying', 'reserved': False},
-            'deploying', 'provision_updated_at',
-            last_error=mock.ANY)
+        expected_calls = [mock.call(mock.ANY, mock.ANY,
+                                    {'provision_state': 'deploying',
+                                     'reserved': False},
+                                    'deploying',
+                                    'provision_updated_at',
+                                    last_error=mock.ANY),
+                          mock.call(mock.ANY, mock.ANY,
+                                    {'provision_state': 'cleaning',
+                                     'reserved': False},
+                                    'cleaning',
+                                    'provision_updated_at',
+                                    last_error=mock.ANY)]
+        mock_fail_if_state.assert_has_calls(expected_calls)
 
     @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
     def test_iter_nodes_shutdown(self, mock_nodeinfo_list):
