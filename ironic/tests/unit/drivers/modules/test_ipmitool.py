@@ -193,7 +193,7 @@ class IPMIToolCheckInitTestCase(base.TestCase):
             ipmi.TMP_DIR_CHECKED = True
             ipmi.IPMISocatConsole()
             mock_support.assert_called_with(mock.ANY)
-            self.assertFalse(mock_check_dir.call_count)
+            self.assertFalse(mock_check_dir.called)
 
 
 @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
@@ -2236,7 +2236,7 @@ class IPMIToolSocatDriverTestCase(IPMIToolDriverTestCase):
         mock_stop.assert_called_once_with(self.node.uuid)
         mock_unlink.assert_called_once_with(
             ipmi._console_pwfile_path(self.node.uuid))
-        self.assertFalse(mock_exec_stop.call_count)
+        self.assertFalse(mock_exec_stop.called)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test__exec_stop_console(self, mock_exec):

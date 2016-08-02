@@ -1135,7 +1135,7 @@ class IPMIConsole(base.ConsoleInterface):
     def _start_console(self, driver_info, start_method):
         """Start a remote console for the node.
 
-        :param task: a task from TaskManager
+        :param driver_info: the parameters for accessing a node
         :param start_method: console_utils method to start console
         :raises: InvalidParameterValue if required ipmi parameters are missing
         :raises: PasswordFileFailedToCreate if unable to create a file
