@@ -911,9 +911,10 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
                                   shared=False) as task:
             self.deploy.prepare_instance_to_boot(task, root_uuid,
                                                  efi_system_part_uuid)
-            configure_mock.assert_called_once_with(self.deploy, task,
-                                                   root_uuid,
-                                                   efi_system_part_uuid)
+            configure_mock.assert_called_once_with(
+                self.deploy, task,
+                root_uuid=root_uuid,
+                efi_system_part_uuid=efi_system_part_uuid)
             boot_option_mock.assert_called_once_with(task.node)
             prepare_instance_mock.assert_called_once_with(task.driver.boot,
                                                           task)
@@ -945,9 +946,10 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
             self.assertRaises(exception.InstanceDeployFailure,
                               self.deploy.prepare_instance_to_boot, task,
                               root_uuid, efi_system_part_uuid)
-            configure_mock.assert_called_once_with(self.deploy, task,
-                                                   root_uuid,
-                                                   efi_system_part_uuid)
+            configure_mock.assert_called_once_with(
+                self.deploy, task,
+                root_uuid=root_uuid,
+                efi_system_part_uuid=efi_system_part_uuid)
             boot_option_mock.assert_called_once_with(task.node)
             self.assertFalse(prepare_mock.called)
             self.assertFalse(failed_state_mock.called)

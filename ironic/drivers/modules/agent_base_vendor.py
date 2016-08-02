@@ -20,6 +20,7 @@ import ast
 import collections
 import time
 
+from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_utils import excutils
 from oslo_utils import strutils
@@ -44,6 +45,8 @@ from ironic.drivers.modules import deploy_utils
 from ironic import objects
 
 LOG = log.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 # This contains a nested dictionary containing the post clean step
 # hooks registered for each clean step of every interface.
@@ -79,6 +82,7 @@ def _get_client():
     return client
 
 
+@METRICS.timer('post_clean_step_hook')
 def post_clean_step_hook(interface, step):
     """Decorator method for adding a post clean step hook.
 
@@ -203,6 +207,7 @@ def _get_completed_cleaning_command(task, commands):
         return last_command
 
 
+@METRICS.timer('log_and_raise_deployment_error')
 def log_and_raise_deployment_error(task, msg):
     """Helper method to log the error and raise exception."""
     LOG.error(msg)
@@ -244,6 +249,7 @@ class AgentDeployMixin(object):
 
         """
 
+    @METRICS.timer('AgentDeployMixin._refresh_clean_steps')
     def _refresh_clean_steps(self, task):
         """Refresh the node's cached clean steps from the booted agent.
 
@@ -300,6 +306,7 @@ class AgentDeployMixin(object):
         LOG.debug('Refreshed agent clean step cache for node %(node)s: '
                   '%(steps)s', {'node': node.uuid, 'steps': steps})
 
+    @METRICS.timer('AgentDeployMixin.continue_cleaning')
     def continue_cleaning(self, task, **kwargs):
         """Start the next cleaning step if the previous one is complete.
 
@@ -433,6 +440,7 @@ class AgentDeployMixin(object):
             LOG.error(msg)
             return manager_utils.cleaning_error_handler(task, msg)
 
+    @METRICS.timer('AgentDeployMixin.heartbeat')
     def heartbeat(self, task, callback_url):
         """Process a heartbeat.
 
@@ -511,6 +519,7 @@ class AgentDeployMixin(object):
             elif node.provision_state in (states.DEPLOYING, states.DEPLOYWAIT):
                 deploy_utils.set_failed_state(task, last_error)
 
+    @METRICS.timer('AgentDeployMixin.reboot_and_finish_deploy')
     def reboot_and_finish_deploy(self, task):
         """Helper method to trigger reboot on the node and finish deploy.
 
@@ -581,6 +590,7 @@ class AgentDeployMixin(object):
         task.process_event('done')
         LOG.info(_LI('Deployment to node %s done'), task.node.uuid)
 
+    @METRICS.timer('AgentDeployMixin.prepare_instance_to_boot')
     def prepare_instance_to_boot(self, task, root_uuid, efi_sys_uuid):
         """Prepares instance to boot.
 
@@ -605,6 +615,7 @@ class AgentDeployMixin(object):
             msg = _('Failed to continue agent deployment.')
             log_and_raise_deployment_error(task, msg)
 
+    @METRICS.timer('AgentDeployMixin.configure_local_boot')
     def configure_local_boot(self, task, root_uuid=None,
                              efi_system_part_uuid=None):
         """Helper method to configure local boot on the node.
@@ -692,6 +703,7 @@ class BaseAgentVendor(AgentDeployMixin, base.VendorInterface):
                                                     'payload version: %s')
                                                   % version)
 
+    @METRICS.timer('BaseAgentVendor.heartbeat')
     @base.passthru(['POST'])
     @task_manager.require_exclusive_lock
     def heartbeat(self, task, **kwargs):
@@ -715,6 +727,7 @@ class BaseAgentVendor(AgentDeployMixin, base.VendorInterface):
 
         super(BaseAgentVendor, self).heartbeat(task, callback_url)
 
+    @METRICS.timer('BaseAgentVendor.lookup')
     @base.driver_passthru(['POST'], async=False)
     def lookup(self, context, **kwargs):
         """Find a matching node for the agent.
