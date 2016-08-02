@@ -223,21 +223,14 @@ class BaseConductorManager(object):
         self._periodic_tasks_worker.add_done_callback(
             self._on_periodic_tasks_stop)
 
-        # NOTE(lucasagomes): If the conductor server dies abruptly
-        # mid deployment (OMM Killer, power outage, etc...) we
-        # can not resume the deployment even if the conductor
-        # comes back online. Cleaning the reservation of the nodes
-        # (dbapi.clear_node_reservations_for_conductor) is not enough to
-        # unstick it, so let's gracefully fail the deployment so the node
-        # can go through the steps (deleting & cleaning) to make itself
-        # available again.
-        filters = {'reserved': False,
-                   'provision_state': states.DEPLOYING}
-        last_error = (_("The deployment can't be resumed by conductor "
-                        "%s. Moving to fail state.") % self.host)
-        self._fail_if_in_state(ironic_context.get_admin_context(), filters,
-                               states.DEPLOYING, 'provision_updated_at',
-                               last_error=last_error)
+        self._fail_transient_state(
+            states.DEPLOYING,
+            _("The deployment can't be resumed by conductor "
+              "%s. Moving to fail state.") % self.host)
+        self._fail_transient_state(
+            states.CLEANING,
+            _("The cleaning can't be resumed by conductor "
+              "%s. Moving to fail state.") % self.host)
 
         # Start consoles if it set enabled in a greenthread.
         try:
@@ -258,6 +251,20 @@ class BaseConductorManager(object):
                 self.del_host()
 
         self._started = True
+
+    def _fail_transient_state(self, state, last_error):
+        """Apply "fail" transition to nodes in a transient state.
+
+        If the conductor server dies abruptly mid deployment or cleaning
+        (OMM Killer, power outage, etc...) we can not resume the process even
+        if the conductor comes back online. Cleaning the reservation of
+        the nodes (dbapi.clear_node_reservations_for_conductor) is not enough
+        to unstick it, so let's gracefully fail the process.
+        """
+        filters = {'reserved': False, 'provision_state': state}
+        self._fail_if_in_state(ironic_context.get_admin_context(), filters,
+                               state, 'provision_updated_at',
+                               last_error=last_error)
 
     def del_host(self, deregister=True):
         # Conductor deregistration fails if called on non-initialized

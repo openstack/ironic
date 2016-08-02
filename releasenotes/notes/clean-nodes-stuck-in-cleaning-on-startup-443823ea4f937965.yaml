@@ -1,0 +1,5 @@
+---
+fixes:
+  - When a conductor managing a node dies mid-cleaning the node would get stuck
+    in the CLEANING state. Now upon conductor startup nodes in the CLEANING state
+    will be moved to the CLEANFAIL state.
