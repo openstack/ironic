@@ -17,6 +17,7 @@ from oslo_config import cfg
 
 from ironic.conf import agent
 from ironic.conf import api
+from ironic.conf import audit
 from ironic.conf import cimc
 from ironic.conf import cisco_ucs
 from ironic.conf import conductor
@@ -44,6 +45,7 @@ CONF = cfg.CONF
 
 agent.register_opts(CONF)
 api.register_opts(CONF)
+audit.register_opts(CONF)
 cimc.register_opts(CONF)
 cisco_ucs.register_opts(CONF)
 conductor.register_opts(CONF)

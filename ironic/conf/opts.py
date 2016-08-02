@@ -37,6 +37,7 @@ _opts = [
         ironic.drivers.modules.amt.common.opts,
         ironic.drivers.modules.amt.power.opts)),
     ('api', ironic.conf.api.opts),
+    ('audit', ironic.conf.audit.opts),
     ('cimc', ironic.conf.cimc.opts),
     ('cisco_ucs', ironic.conf.cisco_ucs.opts),
     ('conductor', ironic.conf.conductor.opts),
