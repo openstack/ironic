@@ -160,11 +160,11 @@ class DuplicateName(Conflict):
 
 
 class InvalidUUID(Invalid):
-    _msg_fmt = _("Expected a uuid but received %(uuid)s.")
+    _msg_fmt = _("Expected a UUID but received %(uuid)s.")
 
 
 class InvalidUuidOrName(Invalid):
-    _msg_fmt = _("Expected a logical name or uuid but received %(name)s.")
+    _msg_fmt = _("Expected a logical name or UUID but received %(name)s.")
 
 
 class InvalidName(Invalid):
@@ -172,7 +172,7 @@ class InvalidName(Invalid):
 
 
 class InvalidIdentity(Invalid):
-    _msg_fmt = _("Expected an uuid or int but received %(identity)s.")
+    _msg_fmt = _("Expected a UUID or int but received %(identity)s.")
 
 
 class InvalidMAC(Invalid):
