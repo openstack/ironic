@@ -110,10 +110,20 @@ Configure the Identity service for the Bare Metal service
    and replace IRONIC_NODE with your Bare Metal service's API node::
 
     openstack endpoint create --region RegionOne \
+    baremetal admin http://IRONIC_NODE:6385
+    openstack endpoint create --region RegionOne \
+    baremetal public http://IRONIC_NODE:6385
+    openstack endpoint create --region RegionOne \
+    baremetal internal http://IRONIC_NODE:6385
+
+   If only keystone v2 API is available, use this command instead::
+
+    openstack endpoint create --region RegionOne \
     --publicurl http://IRONIC_NODE:6385 \
     --internalurl http://IRONIC_NODE:6385 \
     --adminurl http://IRONIC_NODE:6385 \
     baremetal
+
 
 Set up the database for Bare Metal
 ----------------------------------
@@ -823,10 +833,10 @@ node(s) where ``ironic-conductor`` is running.
         sudo apt-get install xinetd tftpd-hpa syslinux-common pxelinux
 
     Fedora 21/RHEL7/CentOS7:
-        sudo yum install tftp-server syslinux-tftpboot
+        sudo yum install tftp-server syslinux-tftpboot xinetd
 
     Fedora 22 or higher:
-         sudo dnf install tftp-server syslinux-tftpboot
+         sudo dnf install tftp-server syslinux-tftpboot xinetd
 
 #. Using xinetd to provide a tftp server setup to serve ``/tftpboot``.
    Create or edit ``/etc/xinetd.d/tftp`` as below::
