@@ -20,6 +20,7 @@ import time
 import types
 
 import mock
+from oslo_config import cfg
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -36,6 +37,8 @@ from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as object_utils
+
+CONF = cfg.CONF
 
 INSTANCE_INFO = db_utils.get_test_agent_instance_info()
 DRIVER_INFO = db_utils.get_test_agent_driver_info()
@@ -114,10 +117,29 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         expected = copy.deepcopy(self.node.as_dict())
         if not show_password:
             expected['driver_info']['ipmi_password'] = '******'
+
+        self.config(agent_backend='statsd', group='metrics')
+        expected_metrics = {
+            'metrics': {
+                'backend': 'statsd',
+                'prepend_host': CONF.metrics.agent_prepend_host,
+                'prepend_uuid': CONF.metrics.agent_prepend_uuid,
+                'prepend_host_reverse':
+                    CONF.metrics.agent_prepend_host_reverse,
+                'global_prefix': CONF.metrics.agent_global_prefix
+            },
+            'metrics_statsd': {
+                'statsd_host': CONF.metrics_statsd.agent_statsd_host,
+                'statsd_port': CONF.metrics_statsd.agent_statsd_port
+            },
+            'heartbeat_timeout': CONF.agent.heartbeat_timeout
+        }
+
         find_mock.return_value = self.node
         with task_manager.acquire(self.context, self.node.uuid) as task:
             node = self.passthru.lookup(task.context, **kwargs)
         self.assertEqual(expected, node['node'])
+        self.assertEqual(expected_metrics, node['config'])
 
     def test_lookup_v2_show_password(self):
         self._test_lookup_v2(show_password=True)

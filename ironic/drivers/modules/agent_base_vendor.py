@@ -729,6 +729,10 @@ class BaseAgentVendor(AgentDeployMixin, base.VendorInterface):
         Currently, we don't handle the instance where the agent doesn't have
         a matching node (i.e. a brand new, never been in Ironic node).
 
+        Additionally, we may pass on useful configurations to the agent, which
+        it would then be responsible for applying if relevant. Today these are
+        limited to heartbeat_timeout and metrics configuration.
+
         kwargs should have the following format::
 
          {
@@ -781,8 +785,27 @@ class BaseAgentVendor(AgentDeployMixin, base.VendorInterface):
                 strutils.mask_password(ndict['driver_info'], "******"))
 
         return {
+            # heartbeat_timeout is a config, so moving it into the
+            # config namespace. Instead of a separate deprecation,
+            # this will die when the vendor_passthru version of
+            # lookup goes away.
             'heartbeat_timeout': CONF.agent.heartbeat_timeout,
             'node': ndict,
+            'config': {
+                'metrics': {
+                    'backend': CONF.metrics.agent_backend,
+                    'prepend_host': CONF.metrics.agent_prepend_host,
+                    'prepend_uuid': CONF.metrics.agent_prepend_uuid,
+                    'prepend_host_reverse':
+                        CONF.metrics.agent_prepend_host_reverse,
+                    'global_prefix': CONF.metrics.agent_global_prefix
+                },
+                'metrics_statsd': {
+                    'statsd_host': CONF.metrics_statsd.agent_statsd_host,
+                    'statsd_port': CONF.metrics_statsd.agent_statsd_port
+                },
+                'heartbeat_timeout': CONF.agent.heartbeat_timeout
+            }
         }
 
     def _get_interfaces(self, inventory):

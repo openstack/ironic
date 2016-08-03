@@ -1,0 +1,7 @@
+---
+features:
+  - Adds the ability for ironic conductor to pass
+    configurations for agent metrics on lookup.
+    When paired with a sufficiently new ironic
+    python agent, this will configure the metrics
+    backends.

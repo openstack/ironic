@@ -1539,6 +1539,37 @@
 [metrics]
 
 #
+# From ironic
+#
+
+# Backend for the agent ramdisk to use for metrics. Default
+# possible backends are "noop" and "statsd". (string value)
+#agent_backend = noop
+
+# Prepend the hostname to all metric names sent by the agent
+# ramdisk. The format of metric names is
+# [global_prefix.][uuid.][host_name.]prefix.metric_name.
+# (boolean value)
+#agent_prepend_host = false
+
+# Prepend the node's Ironic uuid to all metric names sent by
+# the agent ramdisk. The format of metric names is
+# [global_prefix.][uuid.][host_name.]prefix.metric_name.
+# (boolean value)
+#agent_prepend_uuid = false
+
+# Split the prepended host value by "." and reverse it for
+# metrics sent by the agent ramdisk (to better match the
+# reverse hierarchical form of domain names). (boolean value)
+#agent_prepend_host_reverse = true
+
+# Prefix all metric names sent by the agent ramdisk with this
+# value. The format of metric names is
+# [global_prefix.][uuid.][host_name.]prefix.metric_name.
+# (string value)
+#agent_global_prefix = <None>
+
+#
 # From ironic_lib.metrics
 #
 
@@ -1565,6 +1596,21 @@
 
 
 [metrics_statsd]
+
+#
+# From ironic
+#
+
+# Host for the agent ramdisk to use with the statsd backend.
+# This must be accessible from networks the agent is booted
+# on. (string value)
+#agent_statsd_host = localhost
+
+# Port for the agent ramdisk to use with the statsd backend.
+# (port value)
+# Minimum value: 0
+# Maximum value: 65535
+#agent_statsd_port = 8125
 
 #
 # From ironic_lib.metrics_statsd
