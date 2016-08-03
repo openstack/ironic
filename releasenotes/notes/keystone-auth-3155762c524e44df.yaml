@@ -4,7 +4,7 @@ upgrade:
     New way of configuring access credentials for OpenStack services clients.
     For each service both Keystone session options
     (timeout, SSL-related ones) and Keystone auth_plugin options
-    (auth_url, auth_type and correspondig auth_plugin options)
+    (auth_url, auth_type and corresponding auth_plugin options)
     should be specified in the config section for this service.
     Config section affected are
 
@@ -15,7 +15,7 @@ upgrade:
     * ``[service_catalog]`` *new section* for Ironic service user,
       used to discover Ironic endpoint from Keystone Catalog
 
-    This enables fine tuning of authentification for each service.
+    This enables fine tuning of authentication for each service.
 
     Backward-compatible options handling is provided
     using values from ``[keystone_authtoken]`` config section,
@@ -34,7 +34,7 @@ upgrade:
 
   - New config section ``[service_catalog]`` for access credentials used
     to discover Ironic API URL from Keystone Catalog.
-    Previousely credentials from ``[keystone_authtoken]`` section were used,
+    Previously credentials from ``[keystone_authtoken]`` section were used,
     which is now deprecated for such purpose.
 fixes:
   - Do not rely on keystonemiddleware config options for instantiating
