@@ -8,19 +8,22 @@ This is a quick walkthrough to get you started developing code for Ironic.
 This assumes you are already familiar with submitting code reviews to
 an OpenStack project.
 
-The gate currently runs the unit tests under both
-Python 2.7 and Python 3.4.  It is strongly encouraged to run the unit tests
-locally under one, the other, or both prior to submitting a patch.
+The gate currently runs the unit tests under Python 2.7, Python 3.4
+and Python 3.5. It is strongly encouraged to run the unit tests locally prior
+to submitting a patch.
 
 .. note::
     Do not run unit tests on the same environment as devstack due to
     conflicting configuration with system dependencies.
 
+.. note::
+    This document is compatible with Python (3.5), Ubuntu (16.04) and Fedora (23).
+
 .. seealso::
 
     http://docs.openstack.org/infra/manual/developers.html#development-workflow
 
-Install prerequisites (for python 2.7):
+Install prerequisites for python 2.7:
 
 - Ubuntu/Debian::
 
@@ -50,12 +53,25 @@ Install prerequisites (for python 2.7):
   `<https://software.opensuse.org/download.html?project=graphics&package=graphviz-plugins>`_.
 
 
-To use Python 3.4, follow the instructions above to install prerequisites and
+If you need Python 3.4, follow the instructions above to install prerequisites for 2.7 and
 additionally install the following packages:
 
-- On Ubuntu/Debian::
+- On Ubuntu 14.x/Debian::
 
     sudo apt-get install python3-dev
+
+- On Ubuntu 16.04::
+
+    wget https://www.python.org/ftp/python/3.4.4/Python-3.4.4.tgz
+    sudo tar xzf Python-3.4.4.tgz
+    cd Python-3.4.4
+    sudo ./configure
+    sudo make altinstall
+
+    # This will install Python 3.4 without replacing 3.5. To check if 3.4 was installed properly
+    run this command:
+
+    python3.4 -V
 
 - On Fedora 21/RHEL7/CentOS7::
 
@@ -64,6 +80,29 @@ additionally install the following packages:
 - On Fedora 22 and higher::
 
     sudo dnf install python3-devel
+
+If you need Python 3.5, follow the instructions for installing prerequisites for Python 2.7 and
+run the following commands.
+
+- On Ubuntu 14.04::
+
+    wget https://www.python.org/ftp/python/3.5.2/Python-3.5.2.tgz
+    sudo tar xzf Python-3.5.2.tgz
+    cd Python-3.5.2
+    sudo ./configure
+    sudo make altinstall
+
+    # This will install Python 3.5 without replacing 3.4. To check if 3.5 was installed properly
+    run this command:
+
+    python3.5 -V
+
+- On Fedora 23::
+
+    sudo dnf install -y dnf-plugins-core
+    sudo dnf copr enable -y mstuchli/Python3.5
+    dnf install -y python35-python3
+
 
 If your distro has at least tox 1.8, use similar command to install
 ``python-tox`` package. Otherwise install this on all distros::
