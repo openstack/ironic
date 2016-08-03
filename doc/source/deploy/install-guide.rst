@@ -424,6 +424,9 @@ Bare Metal service comes with an example file for configuring the
 
   - Modify the ``Directory`` directive to set the path to the Ironic API code.
 
+  - Modify the ``ErrorLog`` and ``CustomLog`` to redirect the logs
+    to the right directory (on Red Hat systems this is usually under
+    /var/log/httpd).
 
 4. Enable the apache ``ironic`` in site and reload::
 
