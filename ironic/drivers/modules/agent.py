@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_utils import excutils
 from oslo_utils import units
@@ -39,6 +40,7 @@ from ironic.drivers.modules import deploy_utils
 
 LOG = log.getLogger(__name__)
 
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 REQUIRED_PROPERTIES = {
     'deploy_kernel': _('UUID (from Glance) of the deployment kernel. '
@@ -69,6 +71,7 @@ PARTITION_IMAGE_LABELS = ('kernel', 'ramdisk', 'root_gb', 'root_mb', 'swap_mb',
                           'deploy_boot_mode')
 
 
+@METRICS.timer('build_instance_info_for_deploy')
 def build_instance_info_for_deploy(task):
     """Build instance_info necessary for deploying to a node.
 
@@ -118,6 +121,7 @@ def build_instance_info_for_deploy(task):
     return instance_info
 
 
+@METRICS.timer('check_image_size')
 def check_image_size(task, image_source):
     """Check if the requested image is larger than the ram size.
 
@@ -155,6 +159,7 @@ def check_image_size(task, image_source):
         raise exception.InvalidParameterValue(msg)
 
 
+@METRICS.timer('validate_image_proxies')
 def validate_image_proxies(node):
     """Check that the provided proxy parameters are valid.
 
@@ -193,6 +198,7 @@ def validate_image_proxies(node):
 
 class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
 
+    @METRICS.timer('AgentDeployMixin.deploy_has_started')
     def deploy_has_started(self, task):
         commands = self._client.get_commands_status(task.node)
 
@@ -202,6 +208,7 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
                 return True
         return False
 
+    @METRICS.timer('AgentDeployMixin.deploy_is_done')
     def deploy_is_done(self, task):
         commands = self._client.get_commands_status(task.node)
         if not commands:
@@ -219,6 +226,7 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
 
         return False
 
+    @METRICS.timer('AgentDeployMixin.continue_deploy')
     @task_manager.require_exclusive_lock
     def continue_deploy(self, task):
         task.process_event('resume')
@@ -295,6 +303,7 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
                         return
                     return result
 
+    @METRICS.timer('AgentDeployMixin.check_deploy_success')
     def check_deploy_success(self, node):
         # should only ever be called after we've validated that
         # the prepare_image command is complete
@@ -302,6 +311,7 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
         if command['command_status'] == 'FAILED':
             return command['command_error']
 
+    @METRICS.timer('AgentDeployMixin.reboot_to_instance')
     def reboot_to_instance(self, task):
         task.process_event('resume')
         node = task.node
@@ -353,6 +363,7 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
         """
         return COMMON_PROPERTIES
 
+    @METRICS.timer('AgentDeploy.validate')
     def validate(self, task):
         """Validate the driver-specific Node deployment info.
 
@@ -393,6 +404,7 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
 
         validate_image_proxies(node)
 
+    @METRICS.timer('AgentDeploy.deploy')
     @task_manager.require_exclusive_lock
     def deploy(self, task):
         """Perform a deployment to a node.
@@ -408,6 +420,7 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
         manager_utils.node_power_action(task, states.REBOOT)
         return states.DEPLOYWAIT
 
+    @METRICS.timer('AgentDeploy.tear_down')
     @task_manager.require_exclusive_lock
     def tear_down(self, task):
         """Tear down a previous deployment on the task's node.
@@ -426,6 +439,7 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
 
         return states.DELETED
 
+    @METRICS.timer('AgentDeploy.prepare')
     @task_manager.require_exclusive_lock
     def prepare(self, task):
         """Prepare the deployment environment for this node.
@@ -457,6 +471,7 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
                 deploy_opts = deploy_utils.build_agent_options(node)
                 task.driver.boot.prepare_ramdisk(task, deploy_opts)
 
+    @METRICS.timer('AgentDeploy.clean_up')
     @task_manager.require_exclusive_lock
     def clean_up(self, task):
         """Clean up the deployment environment for this node.
@@ -490,6 +505,7 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
         """
         pass
 
+    @METRICS.timer('AgentDeploy.get_clean_steps')
     def get_clean_steps(self, task):
         """Get the list of clean steps from the agent.
 
@@ -506,6 +522,7 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
             task, interface='deploy',
             override_priorities=new_priorities)
 
+    @METRICS.timer('AgentDeploy.execute_clean_step')
     def execute_clean_step(self, task, step):
         """Execute a clean step asynchronously on the agent.
 
@@ -517,6 +534,7 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
         """
         return deploy_utils.agent_execute_clean_step(task, step)
 
+    @METRICS.timer('AgentDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
         """Boot into the agent to prepare for cleaning.
 
@@ -530,6 +548,7 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
         return deploy_utils.prepare_inband_cleaning(
             task, manage_boot=CONF.agent.manage_agent_boot)
 
+    @METRICS.timer('AgentDeploy.tear_down_cleaning')
     def tear_down_cleaning(self, task):
         """Clean up the PXE and DHCP files after cleaning.
 
@@ -556,6 +575,7 @@ class AgentRAID(base.RAIDInterface):
         """Return the properties of the interface."""
         return {}
 
+    @METRICS.timer('AgentRAID.create_configuration')
     @base.clean_step(priority=0)
     def create_configuration(self, task,
                              create_root_volume=True,
@@ -652,6 +672,7 @@ class AgentRAID(base.RAIDInterface):
 
         raid.update_raid_info(task.node, clean_result)
 
+    @METRICS.timer('AgentRAID.delete_configuration')
     @base.clean_step(priority=0)
     def delete_configuration(self, task):
         """Deletes RAID configuration on the given node.
