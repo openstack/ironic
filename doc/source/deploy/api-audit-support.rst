@@ -6,7 +6,7 @@ API Audit Logging
 Audit middleware supports delivery of CADF audit events via Oslo messaging
 notifier capability. Based on `notification_driver` configuration, audit events
 can be routed to messaging infrastructure (notification_driver = messagingv2)
-or can be routed to a log file (notification_driver = log).
+or can be routed to a log file (`[oslo_messaging_notifications]/driver = log`).
 
 Audit middleware creates two events per REST API interaction. First event has
 information extracted from request data and the second one has request outcome
@@ -37,7 +37,7 @@ to ``/etc/ironic/ironic.conf``.
 
     [audit]
     ...
-    audit_map_file=/etc/ironic/ironic_api_audit_map.conf
+    audit_map_file=/etc/ironic/api_audit_map.conf
 
 #. Comma separated list of Ironic REST API HTTP methods to be ignored during audit.
    For example: GET,POST. It is used only when API audit is enabled.

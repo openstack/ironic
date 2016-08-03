@@ -21,7 +21,7 @@ validate = None
 boot_device = None
 supported = None
 console = None
-vendor_passthrus = vendor_passthru
+vendor_passthru = vendor_passthru
 
 
 # map endpoint type defined in service catalog to CADF typeURI

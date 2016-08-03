@@ -3,11 +3,11 @@ features:
   - |
     The ironic-api service now supports logging audit messages of
     API calls. The following configuration parameters have been added.
-    By default auditing of ironic-api service is turned off.
+    By default audit logging for ironic-api service is turned off.
 
     * ``[audit]/enabled``
     * ``[audit]/ignore_req_list``
     * ``[audit]/audit_map_file``
 
     Further documentation for this feature is available at
-    http://docs.openstack.org/developer/ironic/deploy/api-audit-support.html.
+    http://docs.openstack.org/developer/ironic/deploy/api-audit-support.html .
