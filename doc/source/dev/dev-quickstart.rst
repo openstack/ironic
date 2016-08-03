@@ -659,7 +659,9 @@ Building developer documentation
 
 If you would like to build the documentation locally, eg. to test your
 documentation changes before uploading them for review, run these
-commands to build the documentation set::
+commands to build the documentation set:
+
+- On your local machine::
 
     # activate your development virtualenv
     source .tox/venv/bin/activate
@@ -667,7 +669,26 @@ commands to build the documentation set::
     # build the docs
     tox -edocs
 
-Now use your browser to open the top-level index.html located at::
+    #Now use your browser to open the top-level index.html located at:
 
     ironic/doc/build/html/index.html
+
+
+- On a remote machine::
+
+    # Go to the directory that contains the docs
+    cd ~/ironic/doc/source/
+
+    # Build the docs
+    tox -edocs
+
+    # Change directory to the newly built HTML files
+    cd ~/ironic/doc/build/html/
+
+    # Create a server using python on port 8000
+    python -m SimpleHTTPServer 8000
+
+    #Now use your browser to open the top-level index.html located at:
+
+    http://your_ip:8000
 
