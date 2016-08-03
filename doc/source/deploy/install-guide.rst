@@ -466,8 +466,8 @@ Compute service's controller nodes and compute nodes.*
     firewall_driver=nova.virt.firewall.NoopFirewallDriver
 
     # The scheduler host manager class to use (string value)
-    #scheduler_host_manager=nova.scheduler.host_manager.HostManager
-    scheduler_host_manager=nova.scheduler.ironic_host_manager.IronicHostManager
+    #scheduler_host_manager=host_manager
+    scheduler_host_manager=ironic_host_manager
 
     # Virtual ram to physical ram allocation ratio which affects
     # all ram filters. This configuration specifies a global ratio
