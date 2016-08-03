@@ -41,9 +41,10 @@ if is_service_enabled ir-api ir-cond; then
                 echo_summary "Creating bridge and VMs"
                 create_bridge_and_vms
             fi
-            if [[ -n "${IRONIC_PROVISION_NETWORK_NAME}" ]]; then
-                echo_summary "Configuring Ironic provisioning network"
-                configure_ironic_provision_network
+
+            if is_service_enabled neutron; then
+                echo_summary "Configuring Ironic networks"
+                configure_ironic_networks
             fi
 
             # Start the ironic API and ironic taskmgr components
