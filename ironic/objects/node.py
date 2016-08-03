@@ -117,14 +117,9 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
 
         'extra': object_fields.FlexibleDictField(nullable=True),
 
-        'network_interface': object_fields.StringField(
-            nullable=False, default=_default_network_interface()),
+        'network_interface': object_fields.StringFieldThatAcceptsCallable(
+            nullable=False, default=_default_network_interface),
     }
-
-    def __init__(self, context=None, **kwargs):
-        self.fields['network_interface']._default = (
-            _default_network_interface())
-        super(Node, self).__init__(context, **kwargs)
 
     def _validate_property_values(self, properties):
         """Check if the input of local_gb, cpus and memory_mb are valid.
