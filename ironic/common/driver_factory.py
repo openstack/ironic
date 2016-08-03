@@ -59,10 +59,6 @@ def _attach_interfaces_to_driver(driver, node, driver_name=None):
         setattr(driver, iface, impl)
 
     network_iface = node.network_interface
-    if network_iface is None:
-        network_iface = (CONF.default_network_interface or
-                         ('flat' if CONF.dhcp.dhcp_provider == 'neutron'
-                          else 'noop'))
     network_factory = NetworkInterfaceFactory()
     try:
         net_driver = network_factory.get_driver(network_iface)

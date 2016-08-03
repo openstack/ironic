@@ -16,17 +16,22 @@
 import mock
 from testtools.matchers import HasLength
 
+from ironic.common import context
 from ironic.common import exception
+from ironic.conf import CONF
 from ironic import objects
 from ironic.tests.unit.db import base
 from ironic.tests.unit.db import utils
+from ironic.tests.unit.objects import utils as obj_utils
 
 
 class TestNodeObject(base.DbTestCase):
 
     def setUp(self):
         super(TestNodeObject, self).setUp()
+        self.ctxt = context.get_admin_context()
         self.fake_node = utils.get_test_node()
+        self.node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
 
     def test_get_by_id(self):
         node_id = self.fake_node['id']
@@ -191,3 +196,22 @@ class TestNodeObject(base.DbTestCase):
             }
             node._validate_property_values(values['properties'])
             self.assertEqual(expect, values['properties'])
+
+    def test_get_network_interface_use_field(self):
+        CONF.set_override('default_network_interface', None)
+        for nif in ('neutron', 'flat', 'noop'):
+            self.node.network_interface = nif
+            self.assertEqual(nif, self.node.network_interface)
+
+    def test_get_network_interface_use_conf(self):
+        for nif in ('neutron', 'flat', 'noop'):
+            CONF.set_override('default_network_interface', nif)
+            self.node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+            self.assertEqual(nif, self.node.network_interface)
+
+    def test_get_network_interface_use_dhcp_provider(self):
+        CONF.set_override('default_network_interface', None)
+        for dhcp, nif in (('neutron', 'flat'), ('none', 'noop')):
+            CONF.set_override('dhcp_provider', dhcp, 'dhcp')
+            self.node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+            self.assertEqual(nif, self.node.network_interface)

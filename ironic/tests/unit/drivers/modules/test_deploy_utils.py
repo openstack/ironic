@@ -1799,6 +1799,8 @@ class AgentMethodsTestCase(db_base.DbTestCase):
     def test_prepare_inband_cleaning_ports_provider_does_not_create(
             self, dhcp_factory_mock, add_clean_net_mock):
         self.config(group='dhcp', dhcp_provider='my_shiny_dhcp_provider')
+        self.node.network_interface = 'noop'
+        self.node.save()
         dhcp_provider = dhcp_factory_mock.return_value.provider
         del dhcp_provider.delete_cleaning_ports
         del dhcp_provider.create_cleaning_ports
@@ -1846,6 +1848,8 @@ class AgentMethodsTestCase(db_base.DbTestCase):
     def test_tear_down_inband_cleaning_ports_provider_does_not_delete(
             self, dhcp_factory_mock, rm_clean_net_mock):
         self.config(group='dhcp', dhcp_provider='my_shiny_dhcp_provider')
+        self.node.network_interface = 'noop'
+        self.node.save()
         dhcp_provider = dhcp_factory_mock.return_value.provider
         del dhcp_provider.delete_cleaning_ports
         with task_manager.acquire(

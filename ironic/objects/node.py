@@ -19,11 +19,19 @@ from oslo_versionedobjects import base as object_base
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.conf import CONF
 from ironic.db import api as db_api
 from ironic.objects import base
 from ironic.objects import fields as object_fields
 
 REQUIRED_INT_PROPERTIES = ['local_gb', 'cpus', 'memory_mb']
+
+
+def _default_network_interface():
+    network_iface = (CONF.default_network_interface or
+                     ('flat' if CONF.dhcp.dhcp_provider == 'neutron'
+                      else 'noop'))
+    return network_iface
 
 
 @base.IronicObjectRegistry.register
@@ -48,7 +56,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.15: Add get_by_port_addresses
     # Version 1.16: Add network_interface field
     # Version 1.17: Add resource_class field
-    VERSION = '1.17'
+    # Version 1.18: Add default setting for network_interface
+    VERSION = '1.18'
 
     dbapi = db_api.get_instance()
 
@@ -108,8 +117,14 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
 
         'extra': object_fields.FlexibleDictField(nullable=True),
 
-        'network_interface': object_fields.StringField(nullable=True),
+        'network_interface': object_fields.StringField(
+            nullable=False, default=_default_network_interface()),
     }
+
+    def __init__(self, context=None, **kwargs):
+        self.fields['network_interface']._default = (
+            _default_network_interface())
+        super(Node, self).__init__(context, **kwargs)
 
     def _validate_property_values(self, properties):
         """Check if the input of local_gb, cpus and memory_mb are valid.
