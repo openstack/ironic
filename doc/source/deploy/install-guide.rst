@@ -491,6 +491,14 @@ Compute service's controller nodes and compute nodes.*
     #scheduler_tracks_instance_changes=True
     scheduler_tracks_instance_changes=False
 
+    # New instances will be scheduled on a host chosen randomly from a subset
+    # of the N best hosts, where N is the value set by this option.  Valid
+    # values are 1 or greater. Any value less than one will be treated as 1.
+    # For ironic, this should be set to a number >= the number of ironic nodes
+    # to more evenly distribute instances across the nodes.
+    #scheduler_host_subset_size=1
+    scheduler_host_subset_size=9999999
+
 2. Change these configuration options in the ``ironic`` section.
    Replace:
 
