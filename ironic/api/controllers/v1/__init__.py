@@ -179,4 +179,4 @@ class Controller(rest.RestController):
         return super(Controller, self)._route(args)
 
 
-__all__ = (Controller)
+__all__ = ('Controller',)
