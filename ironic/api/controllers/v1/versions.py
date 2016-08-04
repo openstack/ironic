@@ -74,6 +74,8 @@ BASE_VERSION = 1
 # v1.35: Add ability to provide configdrive when rebuilding node.
 # v1.36: Add Ironic Python Agent version support.
 # v1.37: Add node traits.
+# v1.38: Add rescue and unrescue provision states
+#        Add rescue_interface to the node object
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -113,6 +115,7 @@ MINOR_34_PORT_PHYSICAL_NETWORK = 34
 MINOR_35_REBUILD_CONFIG_DRIVE = 35
 MINOR_36_AGENT_VERSION_HEARTBEAT = 36
 MINOR_37_NODE_TRAITS = 37
+MINOR_38_RESCUE_INTERFACE = 38
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -120,7 +123,7 @@ MINOR_37_NODE_TRAITS = 37
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_37_NODE_TRAITS
+MINOR_MAX_VERSION = MINOR_38_RESCUE_INTERFACE
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

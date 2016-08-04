@@ -2,6 +2,20 @@
 REST API Version History
 ========================
 
+1.38 (Queens, 10.1.0)
+---------------------
+
+Added provision_state verbs ``rescue`` and ``unrescue`` along with
+the following states: ``rescue``, ``rescue failed``, ``rescue wait``,
+``rescuing``, ``unrescue failed``, and ``unrescuing``.  After rescuing
+a node, it will be left in the ``rescue`` state running a rescue
+ramdisk, configured with the ``rescue_password``, and listening with
+ssh on the specified network interfaces. Unrescuing a node will return
+it to ``active``.
+
+Added ``rescue_interface`` to the node object, to
+allow setting the rescue interface for a dynamic driver.
+
 1.37 (Queens, 10.1.0)
 ---------------------
 
@@ -36,7 +50,7 @@ Added ``agent_version`` parameter to deploy heartbeat request for version
 negotiation with Ironic Python Agent features.
 
 1.35 (Queens, 9.2.0)
----------------------
+--------------------
 
 Added ability to provide ``configdrive`` when node is updated
 to ``rebuild`` provision state.

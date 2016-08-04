@@ -1820,11 +1820,6 @@ class ConductorManager(base_manager.BaseConductorManager):
                                               task.node.instance_info)
             task.node.driver_internal_info['is_whole_disk_image'] = iwdi
             for iface_name in task.driver.non_vendor_interfaces:
-                # TODO(stendulker): Remove this check in 'rescue' API patch
-                # Do not have to return the validation result for 'rescue'
-                # interface.
-                if iface_name == 'rescue':
-                    continue
                 iface = getattr(task.driver, iface_name, None)
                 result = reason = None
                 if iface:

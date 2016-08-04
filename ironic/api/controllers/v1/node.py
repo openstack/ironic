@@ -159,6 +159,9 @@ def hide_fields_in_newer_versions(obj):
     if not api_utils.allow_traits():
         obj.traits = wsme.Unset
 
+    if not api_utils.allow_rescue_interface():
+        obj.rescue_interface = wsme.Unset
+
 
 def update_state_in_older_versions(obj):
     """Change provision state names for API backwards compatibility.
@@ -546,10 +549,10 @@ class NodeStatesController(rest.RestController):
 
     @METRICS.timer('NodeStatesController.provision')
     @expose.expose(None, types.uuid_or_name, wtypes.text,
-                   wtypes.text, types.jsontype,
+                   wtypes.text, types.jsontype, wtypes.text,
                    status_code=http_client.ACCEPTED)
     def provision(self, node_ident, target, configdrive=None,
-                  clean_steps=None):
+                  clean_steps=None, rescue_password=None):
         """Asynchronous trigger the provisioning of the node.
 
         This will set the target provision state of the node, and a
@@ -582,6 +585,9 @@ class NodeStatesController(rest.RestController):
                 'args': {'force': True} }
 
             This is required (and only valid) when target is "clean".
+        :param rescue_password: A string representing the password to be set
+            inside the rescue environment. This is required (and only valid),
+            when target is "rescue".
         :raises: NodeLocked (HTTP 409) if the node is currently locked.
         :raises: ClientSideError (HTTP 409) if the node is already being
                  provisioned.
@@ -634,6 +640,13 @@ class NodeStatesController(rest.RestController):
             raise wsme.exc.ClientSideError(
                 msg, status_code=http_client.BAD_REQUEST)
 
+        if (rescue_password is not None and
+            target != ir_states.VERBS['rescue']):
+            msg = (_('"rescue_password" is only valid when setting target '
+                     'provision state to %s') % ir_states.VERBS['rescue'])
+            raise wsme.exc.ClientSideError(
+                msg, status_code=http_client.BAD_REQUEST)
+
         # Note that there is a race condition. The node state(s) could change
         # by the time the RPC call is made and the TaskManager manager gets a
         # lock.
@@ -644,6 +657,18 @@ class NodeStatesController(rest.RestController):
                                                 rebuild=rebuild,
                                                 configdrive=configdrive,
                                                 topic=topic)
+        elif (target == ir_states.VERBS['unrescue']):
+            pecan.request.rpcapi.do_node_unrescue(
+                pecan.request.context, rpc_node.uuid, topic)
+        elif (target == ir_states.VERBS['rescue']):
+            if not (rescue_password and rescue_password.strip()):
+                msg = (_('A non-empty "rescue_password" is required when '
+                         'setting target provision state to %s') %
+                       ir_states.VERBS['rescue'])
+                raise wsme.exc.ClientSideError(
+                    msg, status_code=http_client.BAD_REQUEST)
+            pecan.request.rpcapi.do_node_rescue(
+                pecan.request.context, rpc_node.uuid, rescue_password, topic)
         elif target == ir_states.DELETED:
             pecan.request.rpcapi.do_node_tear_down(
                 pecan.request.context, rpc_node.uuid, topic)
@@ -947,6 +972,9 @@ class Node(base.APIBase):
     raid_interface = wsme.wsattr(wtypes.text)
     """The raid interface to be used for this node"""
 
+    rescue_interface = wsme.wsattr(wtypes.text)
+    """The rescue interface to be used for this node"""
+
     storage_interface = wsme.wsattr(wtypes.text)
     """The storage interface to be used for this node"""
 
@@ -1110,7 +1138,7 @@ class Node(base.APIBase):
                      deploy_interface=None, inspect_interface=None,
                      management_interface=None, power_interface=None,
                      raid_interface=None, vendor_interface=None,
-                     storage_interface=None, traits=[])
+                     storage_interface=None, traits=[], rescue_interface=None)
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
@@ -1748,6 +1776,10 @@ class NodesController(rest.RestController):
                     "be set via the node traits API.")
             raise exception.Invalid(msg)
 
+        if (not api_utils.allow_rescue_interface() and
+                node.rescue_interface is not wtypes.Unset):
+            raise exception.NotAcceptable()
+
         # NOTE(deva): get_topic_for checks if node.driver is in the hash ring
         #             and raises NoValidHost if it is not.
         #             We need to ensure that node has a UUID before it can
@@ -1824,6 +1856,10 @@ class NodesController(rest.RestController):
             msg = _("Cannot update node traits via node patch. Node traits "
                     "should be updated via the node traits API.")
             raise exception.Invalid(msg)
+
+        r_interface = api_utils.get_patch_values(patch, '/rescue_interface')
+        if r_interface and not api_utils.allow_rescue_interface():
+            raise exception.NotAcceptable()
 
         rpc_node = api_utils.get_rpc_node(node_ident)
 

@@ -202,6 +202,14 @@ class TestApiUtils(base.TestCase):
             ['resource_class'])
 
     @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allowed_fields_rescue_interface_fail(self, mock_request):
+        mock_request.version.minor = 31
+        self.assertRaises(
+            exception.NotAcceptable,
+            utils.check_allowed_fields,
+            ['rescue_interface'])
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allowed_portgroup_fields_mode_properties(self,
                                                             mock_request):
         mock_request.version.minor = 26
@@ -498,6 +506,13 @@ class TestApiUtils(base.TestCase):
         utils.check_allow_configdrive(states.REBUILD)
         mock_request.version.minor = 34
         utils.check_allow_configdrive(states.ACTIVE)
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_allow_rescue_interface(self, mock_request):
+        mock_request.version.minor = 38
+        self.assertTrue(utils.allow_rescue_interface())
+        mock_request.version.minor = 37
+        self.assertFalse(utils.allow_rescue_interface())
 
 
 class TestNodeIdent(base.TestCase):

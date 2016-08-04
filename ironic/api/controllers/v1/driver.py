@@ -75,6 +75,10 @@ def hide_fields_in_newer_versions(obj):
         obj.default_storage_interface = wsme.Unset
         obj.enabled_storage_interfaces = wsme.Unset
 
+    if not api_utils.allow_rescue_interface():
+        obj.default_rescue_interface = wsme.Unset
+        obj.enabled_rescue_interfaces = wsme.Unset
+
 
 class Driver(base.APIBase):
     """API representation of a driver."""
@@ -103,6 +107,7 @@ class Driver(base.APIBase):
     default_network_interface = wtypes.text
     default_power_interface = wtypes.text
     default_raid_interface = wtypes.text
+    default_rescue_interface = wtypes.text
     default_storage_interface = wtypes.text
     default_vendor_interface = wtypes.text
 
@@ -115,6 +120,7 @@ class Driver(base.APIBase):
     enabled_network_interfaces = [wtypes.text]
     enabled_power_interfaces = [wtypes.text]
     enabled_raid_interfaces = [wtypes.text]
+    enabled_rescue_interfaces = [wtypes.text]
     enabled_storage_interfaces = [wtypes.text]
     enabled_vendor_interfaces = [wtypes.text]
 
