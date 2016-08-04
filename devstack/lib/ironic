@@ -131,7 +131,7 @@ IRONIC_VM_LOG_DIR=${IRONIC_VM_LOG_DIR:-$IRONIC_DATA_DIR/logs/}
 IRONIC_VM_LOG_ROTATE=$(trueorfalse True IRONIC_VM_LOG_ROTATE)
 
 # Whether to build the ramdisk or download a prebuilt one.
-IRONIC_BUILD_DEPLOY_RAMDISK=$(trueorfalse False IRONIC_BUILD_DEPLOY_RAMDISK)
+IRONIC_BUILD_DEPLOY_RAMDISK=$(trueorfalse True IRONIC_BUILD_DEPLOY_RAMDISK)
 
 # Ironic IPA ramdisk type, supported types are:
 IRONIC_SUPPORTED_RAMDISK_TYPES_RE="^(coreos|tinyipa|dib)$"
