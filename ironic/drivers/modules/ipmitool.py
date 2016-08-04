@@ -36,6 +36,7 @@ import subprocess
 import tempfile
 import time
 
+from ironic_lib import metrics_utils
 from ironic_lib import utils as ironic_utils
 from oslo_concurrency import processutils
 from oslo_config import cfg
@@ -68,6 +69,8 @@ CONF.import_opt('min_command_interval',
                 group='ipmi')
 
 LOG = logging.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 VALID_PRIV_LEVELS = ['ADMINISTRATOR', 'CALLBACK', 'OPERATOR', 'USER']
 
@@ -650,6 +653,7 @@ def _parse_ipmi_sensors_data(node, sensors_data):
     return sensors_data_dict
 
 
+@METRICS.timer('send_raw')
 @task_manager.require_exclusive_lock
 def send_raw(task, raw_bytes):
     """Send raw bytes to the BMC. Bytes should be a string of bytes.
@@ -682,6 +686,7 @@ def send_raw(task, raw_bytes):
     return out, err
 
 
+@METRICS.timer('dump_sdr')
 def dump_sdr(task, file_path):
     """Dump SDR data to a file.
 
@@ -747,6 +752,7 @@ class IPMIPower(base.PowerInterface):
     def get_properties(self):
         return COMMON_PROPERTIES
 
+    @METRICS.timer('IPMIPower.validate')
     def validate(self, task):
         """Validate driver_info for ipmitool driver.
 
@@ -763,6 +769,7 @@ class IPMIPower(base.PowerInterface):
         #             This is a temporary measure to mitigate problems while
         #             1314954 and 1314961 are resolved.
 
+    @METRICS.timer('IPMIPower.get_power_state')
     def get_power_state(self, task):
         """Get the current power state of the task's node.
 
@@ -777,6 +784,7 @@ class IPMIPower(base.PowerInterface):
         driver_info = _parse_driver_info(task.node)
         return _power_status(driver_info)
 
+    @METRICS.timer('IPMIPower.set_power_state')
     @task_manager.require_exclusive_lock
     def set_power_state(self, task, pstate):
         """Turn the power on or off.
@@ -804,6 +812,7 @@ class IPMIPower(base.PowerInterface):
         if state != pstate:
             raise exception.PowerStateFailure(pstate=pstate)
 
+    @METRICS.timer('IPMIPower.reboot')
     @task_manager.require_exclusive_lock
     def reboot(self, task):
         """Cycles the power to the task's node.
@@ -839,6 +848,7 @@ class IPMIManagement(base.ManagementInterface):
                          "the system path when checking ipmitool version"))
         _check_temp_dir()
 
+    @METRICS.timer('IPMIManagement.validate')
     def validate(self, task):
         """Check that 'driver_info' contains IPMI credentials.
 
@@ -864,6 +874,7 @@ class IPMIManagement(base.ManagementInterface):
         return [boot_devices.PXE, boot_devices.DISK, boot_devices.CDROM,
                 boot_devices.BIOS, boot_devices.SAFE]
 
+    @METRICS.timer('IPMIManagement.set_boot_device')
     @task_manager.require_exclusive_lock
     def set_boot_device(self, task, device, persistent=False):
         """Set the boot device for the task's node.
@@ -915,6 +926,7 @@ class IPMIManagement(base.ManagementInterface):
                         {'node': driver_info['uuid'], 'cmd': cmd, 'error': e})
             raise exception.IPMIFailure(cmd=cmd)
 
+    @METRICS.timer('IPMIManagement.get_boot_device')
     def get_boot_device(self, task):
         """Get the current boot device for the task's node.
 
@@ -976,6 +988,7 @@ class IPMIManagement(base.ManagementInterface):
         response['persistent'] = 'Options apply to all future boots' in out
         return response
 
+    @METRICS.timer('IPMIManagement.get_sensors_data')
     def get_sensors_data(self, task):
         """Get sensors data.
 
@@ -1013,6 +1026,7 @@ class VendorPassthru(base.VendorInterface):
                          "the system path when checking ipmitool version"))
         _check_temp_dir()
 
+    @METRICS.timer('VendorPassthru.send_raw')
     @base.passthru(['POST'])
     @task_manager.require_exclusive_lock
     def send_raw(self, task, http_method, raw_bytes):
@@ -1028,6 +1042,7 @@ class VendorPassthru(base.VendorInterface):
         """
         send_raw(task, raw_bytes)
 
+    @METRICS.timer('VendorPassthru.bmc_reset')
     @base.passthru(['POST'])
     @task_manager.require_exclusive_lock
     def bmc_reset(self, task, http_method, warm=True):
@@ -1068,6 +1083,7 @@ class VendorPassthru(base.VendorInterface):
     def get_properties(self):
         return COMMON_PROPERTIES
 
+    @METRICS.timer('VendorPassthru.validate')
     def validate(self, task, method, **kwargs):
         """Validate vendor-specific actions.
 
@@ -1112,6 +1128,7 @@ class IPMIConsole(base.ConsoleInterface):
         d.update(CONSOLE_PROPERTIES)
         return d
 
+    @METRICS.timer('IPMIConsole.validate')
     def validate(self, task):
         """Validate the Node console info.
 
@@ -1174,6 +1191,7 @@ class IPMIConsole(base.ConsoleInterface):
 class IPMIShellinaboxConsole(IPMIConsole):
     """A ConsoleInterface that uses ipmitool and shellinabox."""
 
+    @METRICS.timer('IPMIShellinaboxConsole.start_console')
     def start_console(self, task):
         """Start a remote console for the node.
 
@@ -1189,6 +1207,7 @@ class IPMIShellinaboxConsole(IPMIConsole):
         self._start_console(driver_info,
                             console_utils.start_shellinabox_console)
 
+    @METRICS.timer('IPMIShellinaboxConsole.stop_console')
     def stop_console(self, task):
         """Stop the remote console session for the node.
 
@@ -1201,6 +1220,7 @@ class IPMIShellinaboxConsole(IPMIConsole):
             ironic_utils.unlink_without_raise(
                 _console_pwfile_path(task.node.uuid))
 
+    @METRICS.timer('IPMIShellinaboxConsole.get_console')
     def get_console(self, task):
         """Get the type and connection information about the console."""
         driver_info = _parse_driver_info(task.node)
@@ -1211,6 +1231,7 @@ class IPMIShellinaboxConsole(IPMIConsole):
 class IPMISocatConsole(IPMIConsole):
     """A ConsoleInterface that uses ipmitool and socat."""
 
+    @METRICS.timer('IPMISocatConsole.start_console')
     def start_console(self, task):
         """Start a remote console for the node.
 
@@ -1232,6 +1253,7 @@ class IPMISocatConsole(IPMIConsole):
             pass
         self._start_console(driver_info, console_utils.start_socat_console)
 
+    @METRICS.timer('IPMISocatConsole.stop_console')
     def stop_console(self, task):
         """Stop the remote console session for the node.
 
@@ -1250,6 +1272,7 @@ class IPMISocatConsole(IPMIConsole):
         cmd = "sol deactivate"
         _exec_ipmitool(driver_info, cmd, check_exit_code=[0, 1])
 
+    @METRICS.timer('IPMISocatConsole.get_console')
     def get_console(self, task):
         """Get the type and connection information about the console.
 
