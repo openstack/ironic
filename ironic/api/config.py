@@ -26,7 +26,6 @@ app = {
     'modules': ['ironic.api'],
     'static_root': '%(confdir)s/public',
     'debug': False,
-    'enable_acl': True,
     'acl_public_routes': [
         '/',
         '/v1',

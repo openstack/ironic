@@ -430,8 +430,8 @@ class CommunicationError(IronicException):
     _msg_fmt = _("Unable to communicate with the server.")
 
 
-class HTTPForbidden(Forbidden):
-    pass
+class HTTPForbidden(NotAuthorized):
+    _msg_fmt = _("Access was denied to the following resource: %(resource)s")
 
 
 class Unauthorized(IronicException):

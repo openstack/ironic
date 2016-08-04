@@ -1,0 +1,22 @@
+---
+features:
+  - |
+    RESTful access to every API resource may now be controlled by adjusting
+    policy settings. Defaults are set in code, and remain backwards compatible
+    with the previously-included policy.json file.  Two new roles are checked
+    by default, "baremetal_admin" and "baremetal_observer", though these may be
+    replaced or overridden by configuration.  The "baremetal_observer" role
+    grants read-only access to Ironic's API.
+security:
+  - |
+    Previously, access to Ironic's REST API was "all or nothing".  With this
+    release, it is now possible to restrict read and write access to API
+    resources to specific cloud roles.
+upgrade:
+  - |
+    During an upgrade, it is recommended that all deployers re-evaluate the
+    settings in their /etc/ironic/policy.json file. This file should now be
+    used only to override default configuration, such as by limiting access to
+    the Bare Metal service to specific tenants or restricting access to
+    specific API endpoints. A policy.json.sample file is provided that lists
+    all supported policies.

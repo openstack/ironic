@@ -722,24 +722,31 @@ function create_ironic_cache_dir {
 
 # create_ironic_accounts() - Set up common required ironic accounts
 
-# Tenant               User       Roles
+# Project              User       Roles
 # ------------------------------------------------------------------
-# service              ironic     admin        # if enabled
+# service              ironic     admin
+# service              nova       baremetal_admin
+# demo                 demo       baremetal_observer
 function create_ironic_accounts {
-
-    # Ironic
-    if [[ "$ENABLED_SERVICES" =~ "ir-api" ]]; then
-        # Get ironic user if exists
-
-        # NOTE(Shrews): This user MUST have admin level privileges!
-        create_service_user "ironic" "admin"
-
+    if [[ "$ENABLED_SERVICES" =~ "ir-api" && "$ENABLED_SERVICES" =~ "key" ]]; then
+        # Define service and endpoints in Keystone
         get_or_create_service "ironic" "baremetal" "Ironic baremetal provisioning service"
         get_or_create_endpoint "baremetal" \
             "$REGION_NAME" \
             "$IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT" \
             "$IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT" \
             "$IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT"
+
+        # Create ironic service user
+        # TODO(deva): make this work with the 'service' role
+        #             https://bugs.launchpad.net/ironic/+bug/1605398
+        create_service_user "ironic" "admin"
+
+        # Create additional bare metal tenant and roles
+        get_or_create_role baremetal_admin
+        get_or_create_role baremetal_observer
+        get_or_add_user_project_role baremetal_admin nova $SERVICE_PROJECT_NAME
+        get_or_add_user_project_role baremetal_observer demo demo
     fi
 }
 

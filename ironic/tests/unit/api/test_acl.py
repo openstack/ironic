@@ -50,7 +50,8 @@ class TestACL(base.BaseApiTest):
     def _make_app(self):
         cfg.CONF.set_override('cache', 'fake.cache',
                               group='keystone_authtoken')
-        return super(TestACL, self)._make_app(enable_acl=True)
+        cfg.CONF.set_override('auth_strategy', 'keystone')
+        return super(TestACL, self)._make_app()
 
     def test_non_authenticated(self):
         response = self.get_json(self.node_path, expect_errors=True)

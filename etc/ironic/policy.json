@@ -1,5 +1,5 @@
+# Beginning with the Newton release, you may leave this file empty
+# to use default policy defined in code.
 {
-    "admin_api": "role:admin or role:administrator",
-    "show_password": "!",
-    "default": "rule:admin_api"
+
 }
