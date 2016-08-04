@@ -138,13 +138,7 @@ def is_node_in_use_by_oneview(node):
              from OneView.
 
     """
-    try:
-        oneview_info = common.get_oneview_info(node)
-    except exception.InvalidParameterValue as e:
-        msg = (_("Error while obtaining OneView info from node "
-                 "%(node_uuid)s. Error: %(error)s") %
-               {'node_uuid': node.uuid, 'error': e})
-        raise exception.OneViewError(error=msg)
+    oneview_info = common.get_oneview_info(node)
 
     oneview_client = common.get_oneview_client()
 
@@ -224,13 +218,7 @@ def _allocate_server_hardware_to_ironic(node, server_profile_name):
 
     if not node_in_use_by_oneview:
 
-        try:
-            oneview_info = common.get_oneview_info(node)
-        except exception.InvalidParameterValue as e:
-            msg = (_("Error while obtaining OneView info from node "
-                     "%(node_uuid)s. Error: %(error)s") %
-                   {'node_uuid': node.uuid, 'error': e})
-            raise exception.OneViewError(error=msg)
+        oneview_info = common.get_oneview_info(node)
 
         applied_sp_uri = node.driver_info.get('applied_server_profile_uri')
 
@@ -299,13 +287,7 @@ def _deallocate_server_hardware_from_ironic(node):
             Hardware to ironic
 
     """
-    try:
-        oneview_info = common.get_oneview_info(node)
-    except exception.InvalidParameterValue as e:
-        msg = (_("Error while obtaining OneView info from node "
-                 "%(node_uuid)s. Error: %(error)s") %
-               {'node_uuid': node.uuid, 'error': e})
-        raise exception.OneViewError(error=msg)
+    oneview_info = common.get_oneview_info(node)
 
     oneview_client = common.get_oneview_client()
     oneview_client.power_off(oneview_info)

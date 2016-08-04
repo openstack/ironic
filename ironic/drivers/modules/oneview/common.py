@@ -194,13 +194,7 @@ def validate_oneview_resources_compatibility(task):
     node = task.node
     node_ports = task.ports
 
-    try:
-        oneview_info = get_oneview_info(task.node)
-    except exception.InvalidParameterValue as e:
-        msg = (_("Error while obtaining OneView info from node "
-                 "%(node_uuid)s. Error: %(error)s") %
-               {'node_uuid': node.uuid, 'error': e})
-        raise exception.OneViewError(error=msg)
+    oneview_info = get_oneview_info(task.node)
 
     try:
         oneview_client = get_oneview_client()
@@ -281,13 +275,7 @@ def node_has_server_profile(func):
     """
     def inner(*args, **kwargs):
         task = args[1]
-        try:
-            oneview_info = get_oneview_info(task.node)
-        except exception.InvalidParameterValue as e:
-            msg = (_("Error while obtaining OneView info from node "
-                     "%(node_uuid)s. Error: %(error)s") %
-                   {'node_uuid': task.node.uuid, 'error': e})
-            raise exception.OneViewError(error=msg)
+        oneview_info = get_oneview_info(task.node)
         oneview_client = get_oneview_client()
         try:
             node_has_server_profile = (
