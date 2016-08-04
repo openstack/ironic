@@ -27,3 +27,13 @@ upgrade:
     set. If it is not set, the network interface is determined by looking at
     the ``[dhcp]dhcp_provider`` value. If it is ``neutron`` - ``flat`` network
     interface is the default, ``noop`` otherwise.
+    The network interface will be set for all nodes without network_interface
+    already set via a database migration. This will be set following the logic
+    above. When running database migrations for an existing deployment, it's
+    important to check the above configuration options to ensure the existing
+    nodes will have the expected network_interface. If
+    ``[DEFAULT]default_network_interface`` is not set, everything should go as
+    expected. If it is set, ensure that it is set to the value that you wish
+    existing nodes to use.
+  - Note that if ``[DEFAULT]default_network_interface`` is set, it must be set
+    in the configuration file for both the API and conductor hosts.

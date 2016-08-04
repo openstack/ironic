@@ -34,6 +34,7 @@ For postgres on Ubuntu this can be done with the following commands:
 
 """
 
+import collections
 import contextlib
 
 from alembic import script
@@ -439,6 +440,37 @@ class MigrationCheckersMixin(object):
         self.assertIn('resource_class', col_names)
         self.assertIsInstance(nodes.c.resource_class.type,
                               sqlalchemy.types.String)
+
+    def _pre_upgrade_c14cef6dfedf(self, engine):
+        # add some nodes.
+        nodes = db_utils.get_table(engine, 'nodes')
+        data = [{'uuid': uuidutils.generate_uuid(),
+                 'network_interface': None},
+                {'uuid': uuidutils.generate_uuid(),
+                 'network_interface': None},
+                {'uuid': uuidutils.generate_uuid(),
+                 'network_interface': 'neutron'}]
+        nodes.insert().values(data).execute()
+        return data
+
+    def _check_c14cef6dfedf(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        result = engine.execute(nodes.select())
+        counts = collections.defaultdict(int)
+
+        def _was_inserted(uuid):
+            for row in data:
+                if row['uuid'] == uuid:
+                    return True
+
+        for row in result:
+            if _was_inserted(row['uuid']):
+                counts[row['network_interface']] += 1
+
+        # using default config values, we should have 2 flat and one neutron
+        self.assertEqual(2, counts['flat'])
+        self.assertEqual(1, counts['neutron'])
+        self.assertEqual(0, counts[None])
 
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
