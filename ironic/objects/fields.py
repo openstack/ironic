@@ -14,6 +14,8 @@
 #    under the License.
 
 import ast
+import hashlib
+import inspect
 import six
 
 from oslo_versionedobjects import fields as object_fields
@@ -31,6 +33,37 @@ class UUIDField(object_fields.UUIDField):
 
 class StringField(object_fields.StringField):
     pass
+
+
+class StringAcceptsCallable(object_fields.String):
+    @staticmethod
+    def coerce(obj, attr, value):
+        if callable(value):
+            value = value()
+        return super(StringAcceptsCallable, StringAcceptsCallable).coerce(
+            obj, attr, value)
+
+
+class StringFieldThatAcceptsCallable(object_fields.StringField):
+    """Custom StringField object that allows for functions as default
+
+    In some cases we need to allow for dynamic defaults based on configuration
+    options, this StringField object allows for a function to be passed as a
+    default, and will only process it at the point the field is coerced
+    """
+
+    AUTO_TYPE = StringAcceptsCallable()
+
+    def __repr__(self):
+        default = self._default
+        if (self._default != object_fields.UnspecifiedDefault and
+                callable(self._default)):
+            default = "%s-%s" % (
+                self._default.__name__,
+                hashlib.md5(inspect.getsource(
+                    self._default).encode()).hexdigest())
+        return '%s(default=%s,nullable=%s)' % (self._type.__class__.__name__,
+                                               default, self._nullable)
 
 
 class DateTimeField(object_fields.DateTimeField):

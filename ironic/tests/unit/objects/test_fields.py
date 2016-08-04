@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import hashlib
+import inspect
 
 from ironic.common import exception
 from ironic.objects import fields
@@ -61,3 +63,45 @@ class TestFlexibleDictField(test_base.TestCase):
         # nullable
         self.field = fields.FlexibleDictField(nullable=True)
         self.assertEqual({}, self.field.coerce('obj', 'attr', None))
+
+
+class TestStringFieldThatAcceptsCallable(test_base.TestCase):
+
+    def setUp(self):
+        super(TestStringFieldThatAcceptsCallable, self).setUp()
+
+        def test_default_function():
+            return "default value"
+
+        self.test_default_function_hash = hashlib.md5(
+            inspect.getsource(test_default_function).encode()).hexdigest()
+        self.field = fields.StringFieldThatAcceptsCallable(
+            default=test_default_function)
+
+    def test_coerce_string(self):
+        self.assertEqual("value", self.field.coerce('obj', 'attr', "value"))
+
+    def test_coerce_function(self):
+        def test_function():
+            return "value"
+        self.assertEqual("value",
+                         self.field.coerce('obj', 'attr', test_function))
+
+    def test_coerce_invalid_type(self):
+        self.assertRaises(ValueError, self.field.coerce,
+                          'obj', 'attr', ('invalid', 'tuple'))
+
+    def test_coerce_function_invalid_type(self):
+        def test_function():
+            return ('invalid', 'tuple',)
+        self.assertRaises(ValueError,
+                          self.field.coerce, 'obj', 'attr', test_function)
+
+    def test_coerce_default_as_function(self):
+        self.assertEqual("default value",
+                         self.field.coerce('obj', 'attr', None))
+
+    def test__repr__includes_default_function_name_and_source_hash(self):
+        expected = ('StringAcceptsCallable(default=test_default_function-%s,'
+                    'nullable=False)' % self.test_default_function_hash)
+        self.assertEqual(expected, repr(self.field))
