@@ -595,6 +595,11 @@ class OneViewError(IronicException):
     _msg_fmt = _("OneView exception occurred. Error: %(error)s")
 
 
+class OneViewInvalidNodeParameter(OneViewError):
+    _msg_fmt = _("Error while obtaining OneView info from node %(node_uuid)s. "
+                 "Error: %(error)s")
+
+
 class NodeTagNotFound(IronicException):
     _msg_fmt = _("Node %(node_id)s doesn't have a tag '%(tag)s'")
 

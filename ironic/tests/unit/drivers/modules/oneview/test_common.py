@@ -1,5 +1,3 @@
-# -*- encoding: utf-8 -*-
-#
 # Copyright 2015 Hewlett Packard Development Company, LP
 # Copyright 2015 Universidade Federal de Campina Grande
 #
@@ -115,6 +113,7 @@ class OneViewCommonTestCase(db_base.DbTestCase):
             'server_hardware_type_uri': 'fake_sht_uri',
             'enclosure_group_uri': 'fake_eg_uri',
             'server_profile_template_uri': 'fake_spt_uri',
+            'applied_server_profile_uri': None,
         }
 
         self.assertEqual(
@@ -124,7 +123,6 @@ class OneViewCommonTestCase(db_base.DbTestCase):
 
     def test_get_oneview_info_missing_spt(self):
         driver_info = db_utils.get_test_oneview_driver_info()
-
         properties = db_utils.get_test_oneview_properties()
         properties["capabilities"] = ("server_hardware_type_uri:fake_sht_uri,"
                                       "enclosure_group_uri:fake_eg_uri")
@@ -138,6 +136,7 @@ class OneViewCommonTestCase(db_base.DbTestCase):
             'server_hardware_type_uri': 'fake_sht_uri',
             'enclosure_group_uri': 'fake_eg_uri',
             'server_profile_template_uri': None,
+            'applied_server_profile_uri': None,
         }
 
         self.assertEqual(
@@ -165,12 +164,27 @@ class OneViewCommonTestCase(db_base.DbTestCase):
             'server_hardware_type_uri': 'fake_sht_uri',
             'enclosure_group_uri': 'fake_eg_uri',
             'server_profile_template_uri': 'fake_spt_uri',
+            'applied_server_profile_uri': None,
         }
 
         self.assertEqual(
             expected_node_info,
             common.get_oneview_info(incomplete_node)
         )
+
+    def test_get_oneview_info_malformed_capabilities(self):
+        driver_info = db_utils.get_test_oneview_driver_info()
+
+        del driver_info["server_hardware_uri"]
+        properties = db_utils.get_test_oneview_properties()
+        properties["capabilities"] = "anything,000"
+
+        self.node.driver_info = driver_info
+        self.node.properties = properties
+
+        self.assertRaises(exception.OneViewInvalidNodeParameter,
+                          common.get_oneview_info,
+                          self.node)
 
     # TODO(gabriel-bezerra): Remove this after Mitaka
     @mock.patch.object(common, 'LOG', autospec=True)
@@ -194,6 +208,7 @@ class OneViewCommonTestCase(db_base.DbTestCase):
             'server_hardware_type_uri': 'fake_sht_uri',
             'enclosure_group_uri': 'fake_eg_uri',
             'server_profile_template_uri': 'fake_spt_uri',
+            'applied_server_profile_uri': None,
         }
 
         self.assertEqual(
@@ -226,6 +241,7 @@ class OneViewCommonTestCase(db_base.DbTestCase):
             'server_hardware_type_uri': 'fake_sht_uri',
             'enclosure_group_uri': 'fake_eg_uri',
             'server_profile_template_uri': 'fake_spt_uri',
+            'applied_server_profile_uri': None,
         }
 
         self.assertEqual(
@@ -281,8 +297,9 @@ class OneViewCommonTestCase(db_base.DbTestCase):
 
     @mock.patch.object(common, 'get_oneview_client', spec_set=True,
                        autospec=True)
-    def test_validate_oneview_resources_compatibility(self,
-                                                      mock_get_ov_client):
+    def test_validate_oneview_resources_compatibility(
+        self, mock_get_ov_client
+    ):
         oneview_client = mock_get_ov_client()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             common.validate_oneview_resources_compatibility(task)
@@ -291,11 +308,122 @@ class OneViewCommonTestCase(db_base.DbTestCase):
             self.assertTrue(
                 oneview_client.validate_node_server_hardware_type.called)
             self.assertTrue(
+                oneview_client.validate_node_enclosure_group.called)
+            self.assertTrue(
+                oneview_client.validate_node_server_profile_template.called)
+            self.assertTrue(
                 oneview_client.check_server_profile_is_applied.called)
             self.assertTrue(
-                oneview_client.is_node_port_mac_compatible_with_server_profile.
-                called)
+                oneview_client.
+                is_node_port_mac_compatible_with_server_profile.called)
+            self.assertFalse(
+                oneview_client.
+                is_node_port_mac_compatible_with_server_hardware.called)
+            self.assertFalse(
+                oneview_client.validate_spt_primary_boot_connection.called)
+
+    @mock.patch.object(common, 'get_oneview_client', spec_set=True,
+                       autospec=True)
+    def test_validate_oneview_resources_compatibility_dynamic_allocation(
+        self, mock_get_ov_client
+    ):
+        """Validate compatibility of resources for Dynamic Allocation model.
+
+        1) Set 'dynamic_allocation' flag as True on node's driver_info
+        2) Check validate_node_server_hardware method is called
+        3) Check validate_node_server_hardware_type method is called
+        4) Check validate_node_enclosure_group method is called
+        5) Check validate_node_server_profile_template method is called
+        6) Check is_node_port_mac_compatible_with_server_hardware method
+           is called
+        7) Check validate_node_server_profile_template method is called
+        8) Check check_server_profile_is_applied method is not called
+        9) Check is_node_port_mac_compatible_with_server_profile method is
+           not called
+
+        """
+        oneview_client = mock_get_ov_client()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_info = task.node.driver_info
+            driver_info['dynamic_allocation'] = True
+            task.node.driver_info = driver_info
+
+            common.validate_oneview_resources_compatibility(task)
+            self.assertTrue(
+                oneview_client.validate_node_server_hardware.called)
+            self.assertTrue(
+                oneview_client.validate_node_server_hardware_type.called)
             self.assertTrue(
                 oneview_client.validate_node_enclosure_group.called)
             self.assertTrue(
                 oneview_client.validate_node_server_profile_template.called)
+            self.assertTrue(
+                oneview_client.
+                is_node_port_mac_compatible_with_server_hardware.called)
+            self.assertTrue(
+                oneview_client.validate_node_server_profile_template.called)
+            self.assertFalse(
+                oneview_client.check_server_profile_is_applied.called)
+            self.assertFalse(
+                oneview_client.
+                is_node_port_mac_compatible_with_server_profile.called)
+
+    def test_is_dynamic_allocation_enabled(self):
+        """Ensure Dynamic Allocation is enabled when flag is True.
+
+        1) Set 'dynamic_allocation' flag as True on node's driver_info
+        2) Check Dynamic Allocation is enabled for the given node
+
+        """
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_info = task.node.driver_info
+            driver_info['dynamic_allocation'] = True
+            task.node.driver_info = driver_info
+
+            self.assertTrue(
+                common.is_dynamic_allocation_enabled(task.node)
+            )
+
+    def test_is_dynamic_allocation_enabled_false(self):
+        """Ensure Dynamic Allocation is disabled when flag is False.
+
+        1) Set 'dynamic_allocation' flag as False on node's driver_info
+        2) Check Dynamic Allocation is disabled for the given node
+
+        """
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_info = task.node.driver_info
+            driver_info['dynamic_allocation'] = False
+            task.node.driver_info = driver_info
+
+            self.assertFalse(
+                common.is_dynamic_allocation_enabled(task.node)
+            )
+
+    def test_is_dynamic_allocation_enabled_none(self):
+        """Ensure Dynamic Allocation is disabled when flag is None.
+
+        1) Set 'dynamic_allocation' flag as None on node's driver_info
+        2) Check Dynamic Allocation is disabled for the given node
+
+        """
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_info = task.node.driver_info
+            driver_info['dynamic_allocation'] = None
+            task.node.driver_info = driver_info
+
+            self.assertFalse(
+                common.is_dynamic_allocation_enabled(task.node)
+            )
+
+    def test_is_dynamic_allocation_enabled_without_flag(self):
+        """Ensure Dynamic Allocation is disabled when node doesnt't have flag.
+
+        1) Create a node without 'dynamic_allocation' flag
+        2) Check Dynamic Allocation is disabled for the given node
+
+        """
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertFalse(
+                common.is_dynamic_allocation_enabled(task.node)
+            )

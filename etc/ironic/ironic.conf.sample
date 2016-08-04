@@ -1909,25 +1909,36 @@
 # From ironic
 #
 
-# URL where OneView is available (string value)
+# URL where OneView is available. (string value)
 #manager_url = <None>
 
-# OneView username to be used (string value)
+# OneView username to be used. (string value)
 #username = <None>
 
-# OneView password to be used (string value)
+# OneView password to be used. (string value)
 #password = <None>
 
-# Option to allow insecure connection with OneView (boolean
+# Option to allow insecure connection with OneView. (boolean
 # value)
 #allow_insecure_connections = false
 
-# Path to CA certificate (string value)
+# Path to CA certificate. (string value)
 #tls_cacert_file = <None>
 
-# Max connection retries to check changes on OneView (integer
+# Max connection retries to check changes on OneView. (integer
 # value)
 #max_polling_attempts = 12
+
+# Period (in seconds) for periodic tasks to be executed.
+# (integer value)
+#periodic_check_interval = 300
+
+# Whether to enable the periodic tasks for OneView driver be
+# aware when OneView hardware resources are taken and released
+# by Ironic or OneView users and proactively manage nodes in
+# clean fail state according to Dynamic Allocation model of
+# hardware resources allocation in OneView. (boolean value)
+#enable_periodic_tasks = true
 
 
 [oslo_concurrency]

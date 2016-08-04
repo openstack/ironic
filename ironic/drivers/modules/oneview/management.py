@@ -97,7 +97,6 @@ class OneViewManagement(base.ManagementInterface):
                  if the server is already powered on.
         :raises: OneViewError if the communication with OneView fails
         """
-
         oneview_info = common.get_oneview_info(task.node)
 
         if device not in self.get_supported_boot_devices(task):
@@ -115,7 +114,6 @@ class OneViewManagement(base.ManagementInterface):
                 "Error setting boot device on OneView. Error: %s")
                 % oneview_exc
             )
-            LOG.error(msg)
             raise exception.OneViewError(error=msg)
 
     @common.node_has_server_profile
@@ -135,7 +133,6 @@ class OneViewManagement(base.ManagementInterface):
         :raises: InvalidParameterValue if the boot device is unknown
         :raises: OneViewError if the communication with OneView fails
         """
-
         oneview_info = common.get_oneview_info(task.node)
 
         try:
@@ -146,7 +143,6 @@ class OneViewManagement(base.ManagementInterface):
                 "Error getting boot device from OneView. Error: %s")
                 % oneview_exc
             )
-            LOG.error(msg)
             raise exception.OneViewError(msg)
 
         primary_device = boot_order[0]

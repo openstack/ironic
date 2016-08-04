@@ -1,4 +1,3 @@
-#
 # Copyright 2015 Hewlett Packard Development Company, LP
 # Copyright 2015 Universidade Federal de Campina Grande
 #
@@ -22,9 +21,9 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
-from ironic.drivers.modules import agent
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules.oneview import common
+from ironic.drivers.modules.oneview import deploy
 from ironic.drivers.modules.oneview import management
 from ironic.drivers.modules.oneview import power
 from ironic.drivers.modules.oneview import vendor
@@ -32,14 +31,12 @@ from ironic.drivers.modules import pxe
 
 
 class AgentPXEOneViewDriver(base.BaseDriver):
-    """Agent + OneView driver.
+    """OneViewDriver using OneViewClient interface.
 
-    This driver implements the `core` functionality, combining
-    :class:`ironic.drivers.ov.OVPower` for power on/off and reboot of virtual
-    machines, with :class:`ironic.driver.pxe.PXEBoot` for booting deploy kernel
-    and ramdisk and :class:`ironic.driver.iscsi_deploy.ISCSIDeploy` for image
-    deployment. Implementations are in those respective classes; this class is
-    merely the glue between them.
+    This driver implements the `core` functionality using
+    :class:ironic.drivers.modules.oneview.power.OneViewPower for power
+    management. And
+    :class:ironic.drivers.modules.oneview.deploy.OneViewAgentDeploy for deploy.
     """
 
     def __init__(self):
@@ -56,19 +53,17 @@ class AgentPXEOneViewDriver(base.BaseDriver):
         self.power = power.OneViewPower()
         self.management = management.OneViewManagement()
         self.boot = pxe.PXEBoot()
-        self.deploy = agent.AgentDeploy()
+        self.deploy = deploy.OneViewAgentDeploy()
         self.vendor = vendor.AgentVendorInterface()
 
 
 class ISCSIPXEOneViewDriver(base.BaseDriver):
-    """PXE + OneView driver.
+    """OneViewDriver using OneViewClient interface.
 
-    This driver implements the `core` functionality, combining
-    :class:`ironic.drivers.ov.OVPower` for power on/off and reboot of virtual
-    machines, with :class:`ironic.driver.pxe.PXEBoot` for booting deploy kernel
-    and ramdisk and :class:`ironic.driver.iscsi_deploy.ISCSIDeploy` for image
-    deployment. Implementations are in those respective classes; this class is
-    merely the glue between them.
+    This driver implements the `core` functionality using
+    :class:ironic.drivers.modules.oneview.power.OneViewPower for power
+    management. And
+    :class:ironic.drivers.modules.oneview.deploy.OneViewIscsiDeploy for deploy.
     """
 
     def __init__(self):
@@ -85,5 +80,5 @@ class ISCSIPXEOneViewDriver(base.BaseDriver):
         self.power = power.OneViewPower()
         self.management = management.OneViewManagement()
         self.boot = pxe.PXEBoot()
-        self.deploy = iscsi_deploy.ISCSIDeploy()
+        self.deploy = deploy.OneViewIscsiDeploy()
         self.vendor = iscsi_deploy.VendorPassthru()
