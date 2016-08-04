@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import six
 from six.moves import http_client
 from six.moves.urllib import parse
 from swiftclient import client as swift_client
@@ -25,60 +26,39 @@ from ironic.common.i18n import _
 from ironic.common import keystone
 from ironic.conf import CONF
 
-CONF.import_opt('admin_user', 'keystonemiddleware.auth_token',
-                group='keystone_authtoken')
-CONF.import_opt('admin_tenant_name', 'keystonemiddleware.auth_token',
-                group='keystone_authtoken')
-CONF.import_opt('admin_password', 'keystonemiddleware.auth_token',
-                group='keystone_authtoken')
-CONF.import_opt('auth_uri', 'keystonemiddleware.auth_token',
-                group='keystone_authtoken')
-CONF.import_opt('auth_version', 'keystonemiddleware.auth_token',
-                group='keystone_authtoken')
-CONF.import_opt('insecure', 'keystonemiddleware.auth_token',
-                group='keystone_authtoken')
-CONF.import_opt('cafile', 'keystonemiddleware.auth_token',
-                group='keystone_authtoken')
-CONF.import_opt('region_name', 'keystonemiddleware.auth_token',
-                group='keystone_authtoken')
+
+_SWIFT_SESSION = None
+
+
+def _get_swift_session():
+    global _SWIFT_SESSION
+    if not _SWIFT_SESSION:
+        _SWIFT_SESSION = keystone.get_session('swift')
+    return _SWIFT_SESSION
 
 
 class SwiftAPI(object):
     """API for communicating with Swift."""
 
-    def __init__(self,
-                 user=None,
-                 tenant_name=None,
-                 key=None,
-                 auth_url=None,
-                 auth_version=None,
-                 region_name=None):
-        """Constructor for creating a SwiftAPI object.
-
-        :param user: the name of the user for Swift account
-        :param tenant_name: the name of the tenant for Swift account
-        :param key: the 'password' or key to authenticate with
-        :param auth_url: the url for authentication
-        :param auth_version: the version of api to use for authentication
-        :param region_name: the region used for getting endpoints of swift
-        """
-        user = user or CONF.keystone_authtoken.admin_user
-        tenant_name = tenant_name or CONF.keystone_authtoken.admin_tenant_name
-        key = key or CONF.keystone_authtoken.admin_password
-        auth_url = auth_url or CONF.keystone_authtoken.auth_uri
-        auth_version = auth_version or CONF.keystone_authtoken.auth_version
-        auth_url = keystone.get_keystone_url(auth_url, auth_version)
-        params = {'retries': CONF.swift.swift_max_retries,
-                  'insecure': CONF.keystone_authtoken.insecure,
-                  'cacert': CONF.keystone_authtoken.cafile,
-                  'user': user,
-                  'tenant_name': tenant_name,
-                  'key': key,
-                  'authurl': auth_url,
-                  'auth_version': auth_version}
-        region_name = region_name or CONF.keystone_authtoken.region_name
-        if region_name:
-            params['os_options'] = {'region_name': region_name}
+    def __init__(self):
+        # TODO(pas-ha): swiftclient does not support keystone sessions ATM.
+        # Must be reworked when LP bug #1518938 is fixed.
+        session = _get_swift_session()
+        params = {
+            'retries': CONF.swift.swift_max_retries,
+            'preauthurl': keystone.get_service_url(
+                session,
+                service_type='object-store'),
+            'preauthtoken': keystone.get_admin_auth_token(session)
+        }
+        # NOTE(pas-ha):session.verify is for HTTPS urls and can be
+        # - False (do not verify)
+        # - True (verify but try to locate system CA certificates)
+        # - Path (verify using specific CA certificate)
+        verify = session.verify
+        params['insecure'] = not verify
+        if verify and isinstance(verify, six.string_types):
+            params['cacert'] = verify
 
         self.connection = swift_client.Connection(**params)
 
@@ -131,8 +111,7 @@ class SwiftAPI(object):
             raise exception.SwiftOperationError(operation=operation,
                                                 error=e)
 
-        storage_url, token = self.connection.get_auth()
-        parse_result = parse.urlparse(storage_url)
+        parse_result = parse.urlparse(self.connection.url)
         swift_object_path = '/'.join((parse_result.path, container, object))
         temp_url_key = account_info['x-account-meta-temp-url-key']
         url_path = swift_utils.generate_temp_url(swift_object_path, timeout,

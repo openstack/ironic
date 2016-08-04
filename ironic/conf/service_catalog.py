@@ -1,6 +1,5 @@
-# Copyright 2016 Intel Corporation
-# Copyright 2014 OpenStack Foundation
-# All Rights Reserved
+# Copyright 2016 Mirantis Inc
+# All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -19,18 +18,16 @@ from oslo_config import cfg
 from ironic.common.i18n import _
 from ironic.conf import auth
 
-opts = [
-    cfg.IntOpt('swift_max_retries',
-               default=2,
-               help=_('Maximum number of times to retry a Swift request, '
-                      'before failing.'))
-]
+SERVCIE_CATALOG_GROUP = cfg.OptGroup(
+    'service_catalog',
+    title='Access info for Ironic service user',
+    help=_('Holds credentials and session options to access '
+           'Keystone catalog for Ironic API endpoint resolution.'))
 
 
 def register_opts(conf):
-    conf.register_opts(opts, group='swift')
-    auth.register_auth_opts(conf, 'swift')
+    auth.register_auth_opts(conf, SERVCIE_CATALOG_GROUP.name)
 
 
 def list_opts():
-    return auth.add_auth_opts(opts)
+    return auth.add_auth_opts([])

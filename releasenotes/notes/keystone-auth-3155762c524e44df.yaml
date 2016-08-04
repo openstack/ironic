@@ -1,0 +1,43 @@
+---
+upgrade:
+  - |
+    New way of configuring access credentials for OpenStack services clients.
+    For each service both Keystone session options
+    (timeout, SSL-related ones) and Keystone auth_plugin options
+    (auth_url, auth_type and correspondig auth_plugin options)
+    should be specified in the config section for this service.
+    Config section affected are
+
+    * ``[neutron]`` for Neutron service user
+    * ``[glance]`` for Glance service user
+    * ``[swift]`` for Swift service user
+    * ``[inspector]`` for Ironic Inspector service user
+    * ``[service_catalog]`` *new section* for Ironic service user,
+      used to discover Ironic endpoint from Keystone Catalog
+
+    This enables fine tuning of authentification for each service.
+
+    Backward-compatible options handling is provided
+    using values from ``[keystone_authtoken]`` config section,
+    but operators are advised to switch to the new config options.
+    For more information on sessions, auth plugins and their settings,
+    please refer to _http://docs.openstack.org/developer/keystoneauth/
+
+  - |
+    Small change in semantics of default for ``[neutron]url`` option
+
+    * default is changed to None.
+    * In case when [neutron]auth_strategy is ``noauth``,
+      default means use ``http://$my_ip:9696``.
+    * In case when [neutron]auth_strategy is ``keystone``,
+      default means to resolve the endpoint from Keystone Catalog.
+
+  - New config section ``[service_catalog]`` for access credentials used
+    to discover Ironic API URL from Keystone Catalog.
+    Previousely credentials from ``[keystone_authtoken]`` section were used,
+    which is now deprecated for such purpose.
+fixes:
+  - Do not rely on keystonemiddleware config options for instantiating
+    clients for other OpenStack services.
+    This allows changing keystonemiddleware options from legacy ones
+    and thus support Keystone V3 for token validation.

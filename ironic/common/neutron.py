@@ -24,29 +24,49 @@ from ironic.conf import CONF
 
 LOG = log.getLogger(__name__)
 
+DEFAULT_NEUTRON_URL = 'http://%s:9696' % CONF.my_ip
+
+_NEUTRON_SESSION = None
+
+
+def _get_neutron_session():
+    global _NEUTRON_SESSION
+    if not _NEUTRON_SESSION:
+        _NEUTRON_SESSION = keystone.get_session('neutron')
+    return _NEUTRON_SESSION
+
 
 def get_client(token=None):
-    params = {
-        'timeout': CONF.neutron.url_timeout,
-        'retries': CONF.neutron.retries,
-        'insecure': CONF.keystone_authtoken.insecure,
-        'ca_cert': CONF.keystone_authtoken.certfile,
-    }
-
+    params = {'retries': CONF.neutron.retries}
+    url = CONF.neutron.url
     if CONF.neutron.auth_strategy == 'noauth':
-        params['endpoint_url'] = CONF.neutron.url
+        params['endpoint_url'] = url or DEFAULT_NEUTRON_URL
         params['auth_strategy'] = 'noauth'
+        params.update({
+            'timeout': CONF.neutron.url_timeout or CONF.neutron.timeout,
+            'insecure': CONF.neutron.insecure,
+            'ca_cert': CONF.neutron.cafile})
     else:
-        params['endpoint_url'] = (
-            CONF.neutron.url or
-            keystone.get_service_url(service_type='network'))
-        params['username'] = CONF.keystone_authtoken.admin_user
-        params['tenant_name'] = CONF.keystone_authtoken.admin_tenant_name
-        params['password'] = CONF.keystone_authtoken.admin_password
-        params['auth_url'] = (CONF.keystone_authtoken.auth_uri or '')
-        if CONF.keystone.region_name:
-            params['region_name'] = CONF.keystone.region_name
-        params['token'] = token
+        session = _get_neutron_session()
+        if token is None:
+            params['session'] = session
+            # NOTE(pas-ha) endpoint_override==None will auto-discover
+            # endpoint from Keystone catalog.
+            # Region is needed only in this case.
+            # SSL related options are ignored as they are already embedded
+            # in keystoneauth Session object
+            if url:
+                params['endpoint_override'] = url
+            else:
+                params['region_name'] = CONF.keystone.region_name
+        else:
+            params['token'] = token
+            params['endpoint_url'] = url or keystone.get_service_url(
+                session, service_type='network')
+            params.update({
+                'timeout': CONF.neutron.url_timeout or CONF.neutron.timeout,
+                'insecure': CONF.neutron.insecure,
+                'ca_cert': CONF.neutron.cafile})
 
     return clientv20.Client(**params)
 

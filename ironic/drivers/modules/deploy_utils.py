@@ -86,6 +86,38 @@ warn_about_unsafe_shred_parameters()
 # All functions are called from deploy() directly or indirectly.
 # They are split for stub-out.
 
+_IRONIC_SESSION = None
+
+
+def _get_ironic_session():
+    global _IRONIC_SESSION
+    if not _IRONIC_SESSION:
+        _IRONIC_SESSION = keystone.get_session('service_catalog')
+    return _IRONIC_SESSION
+
+
+def get_ironic_api_url():
+    """Resolve Ironic API endpoint
+
+    either from config of from Keystone catalog.
+    """
+    ironic_api = CONF.conductor.api_url
+    if not ironic_api:
+        try:
+            ironic_session = _get_ironic_session()
+            ironic_api = keystone.get_service_url(ironic_session)
+        except (exception.KeystoneFailure,
+                exception.CatalogNotFound,
+                exception.KeystoneUnauthorized) as e:
+            raise exception.InvalidParameterValue(_(
+                "Couldn't get the URL of the Ironic API service from the "
+                "configuration file or keystone catalog. Keystone error: "
+                "%s") % six.text_type(e))
+    # NOTE: we should strip '/' from the end because it might be used in
+    # hardcoded ramdisk script
+    ironic_api = ironic_api.rstrip('/')
+    return ironic_api
+
 
 def discovery(portal_address, portal_port):
     """Do iSCSI discovery on portal."""
@@ -998,10 +1030,8 @@ def build_agent_options(node):
     :returns: a dictionary containing the parameters to be passed to
         agent ramdisk.
     """
-    ironic_api = (CONF.conductor.api_url or
-                  keystone.get_service_url()).rstrip('/')
     agent_config_opts = {
-        'ipa-api-url': ironic_api,
+        'ipa-api-url': get_ironic_api_url(),
         'ipa-driver-name': node.driver,
         # NOTE: The below entry is a temporary workaround for bug/1433812
         'coreos.configdrive': 0,

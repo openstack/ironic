@@ -108,7 +108,6 @@ def prepare_service(argv=None):
                                          'qpid.messaging=INFO',
                                          'oslo_messaging=INFO',
                                          'sqlalchemy=WARNING',
-                                         'keystoneclient=INFO',
                                          'stevedore=INFO',
                                          'eventlet.wsgi.server=INFO',
                                          'iso8601=WARNING',

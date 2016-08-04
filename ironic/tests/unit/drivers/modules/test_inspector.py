@@ -16,7 +16,6 @@ import mock
 
 from ironic.common import driver_factory
 from ironic.common import exception
-from ironic.common import keystone
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules import inspector
@@ -128,12 +127,17 @@ class InspectHardwareTestCase(BaseTestCase):
         task.process_event.assert_called_once_with('fail')
 
 
-@mock.patch.object(keystone, 'get_admin_auth_token', lambda: 'the token')
 @mock.patch.object(client, 'get_status')
 class CheckStatusTestCase(BaseTestCase):
     def setUp(self):
         super(CheckStatusTestCase, self).setUp()
         self.node.provision_state = states.INSPECTING
+        mock_session = mock.Mock()
+        mock_session.get_token.return_value = 'the token'
+        sess_patch = mock.patch.object(inspector, '_get_inspector_session',
+                                       return_value=mock_session)
+        sess_patch.start()
+        self.addCleanup(sess_patch.stop)
 
     def test_not_inspecting(self, mock_get):
         self.node.provision_state = states.MANAGEABLE
