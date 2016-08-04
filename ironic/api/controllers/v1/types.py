@@ -272,20 +272,20 @@ class LocalLinkConnectionType(wtypes.UserType):
         """Validate and convert the input to a LocalLinkConnectionType.
 
         :param value: A dictionary of values to validate, switch_id is a MAC
-        address or an OpenFlow based datapath_id, switch_info is an optional
-        field.
+            address or an OpenFlow based datapath_id, switch_info is an
+            optional field.
 
         For example::
-        {
+
+         {
             'switch_id': mac_or_datapath_id(),
             'port_id': 'Ethernet3/1',
             'switch_info': 'switch1'
-        }
+         }
 
         :returns: A dictionary.
         :raises: Invalid if some of the keys in the dictionary being validated
             are unknown, invalid, or some required ones are missing.
-
         """
         wtypes.DictType(wtypes.text, wtypes.text).validate(value)
 
