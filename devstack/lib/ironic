@@ -561,18 +561,8 @@ function configure_ironic {
 # API specific configuration.
 function configure_ironic_api {
     iniset $IRONIC_CONF_FILE DEFAULT auth_strategy $IRONIC_AUTH_STRATEGY
+    configure_auth_token_middleware $IRONIC_CONF_FILE ironic $IRONIC_AUTH_CACHE_DIR/api
     iniset $IRONIC_CONF_FILE oslo_policy policy_file $IRONIC_POLICY_JSON
-
-    # TODO(Yuki Nishiwaki): This is a temporary work-around until Ironic is fixed(bug#1422632).
-    # These codes need to be changed to use the function of configure_auth_token_middleware
-    # after Ironic conforms to the new auth plugin.
-    iniset $IRONIC_CONF_FILE keystone_authtoken identity_uri $KEYSTONE_AUTH_URI
-    iniset $IRONIC_CONF_FILE keystone_authtoken auth_uri $KEYSTONE_SERVICE_URI/v2.0
-    iniset $IRONIC_CONF_FILE keystone_authtoken admin_user ironic
-    iniset $IRONIC_CONF_FILE keystone_authtoken admin_password $SERVICE_PASSWORD
-    iniset $IRONIC_CONF_FILE keystone_authtoken admin_tenant_name $SERVICE_PROJECT_NAME
-    iniset $IRONIC_CONF_FILE keystone_authtoken cafile $SSL_BUNDLE_FILE
-    iniset $IRONIC_CONF_FILE keystone_authtoken signing_dir $IRONIC_AUTH_CACHE_DIR/api
 
     iniset_rpc_backend ironic $IRONIC_CONF_FILE
     iniset $IRONIC_CONF_FILE api port $IRONIC_SERVICE_PORT
@@ -582,9 +572,35 @@ function configure_ironic_api {
     cp -p $IRONIC_DIR/etc/ironic/policy.json $IRONIC_POLICY_JSON
 }
 
+function configure_auth_for {
+    local service_config_section
+    service_config_section=$1
+    iniset $IRONIC_CONF_FILE $service_config_section auth_type password
+    iniset $IRONIC_CONF_FILE $service_config_section auth_url $KEYSTONE_SERVICE_URI
+    iniset $IRONIC_CONF_FILE $service_config_section username ironic
+    iniset $IRONIC_CONF_FILE $service_config_section password $SERVICE_PASSWORD
+    iniset $IRONIC_CONF_FILE $service_config_section project_name $SERVICE_PROJECT_NAME
+    iniset $IRONIC_CONF_FILE $service_config_section user_domain_id default
+    iniset $IRONIC_CONF_FILE $service_config_section project_domain_id default
+    iniset $IRONIC_CONF_FILE $service_config_section cafile $SSL_BUNDLE_FILE
+
+}
+
 # configure_ironic_conductor() - Is used by configure_ironic().
 # Sets conductor specific settings.
 function configure_ironic_conductor {
+
+    # set keystone region for all services
+    iniset $IRONIC_CONF_FILE keystone region_name $REGION_NAME
+
+    # set keystone auth plugin options for services
+    configure_auth_for neutron
+    configure_auth_for swift
+    configure_auth_for glance
+    configure_auth_for inspector
+    # this one is needed for lookup of Ironic API endpoint via Keystone
+    configure_auth_for service_catalog
+
     cp $IRONIC_DIR/etc/ironic/rootwrap.conf $IRONIC_ROOTWRAP_CONF
     cp -r $IRONIC_DIR/etc/ironic/rootwrap.d $IRONIC_CONF_DIR
     local ironic_rootwrap
