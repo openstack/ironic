@@ -16,7 +16,7 @@ from oslo_context import context
 
 
 class RequestContext(context.RequestContext):
-    """Extends security contexts from the OpenStack common library."""
+    """Extends security contexts from the oslo.context library."""
 
     def __init__(self, auth_token=None, domain_id=None, domain_name=None,
                  user=None, tenant=None, is_admin=False, is_public_api=False,
