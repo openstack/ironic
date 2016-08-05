@@ -745,7 +745,9 @@ function create_ironic_accounts {
         # Create additional bare metal tenant and roles
         get_or_create_role baremetal_admin
         get_or_create_role baremetal_observer
-        get_or_add_user_project_role baremetal_admin nova $SERVICE_PROJECT_NAME
+        if is_service_enabled nova; then
+            get_or_add_user_project_role baremetal_admin nova $SERVICE_PROJECT_NAME
+        fi
         get_or_add_user_project_role baremetal_observer demo demo
     fi
 }
