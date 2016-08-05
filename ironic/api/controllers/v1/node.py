@@ -1203,6 +1203,9 @@ class NodesController(rest.RestController):
                                 that provision state.
         :param marker: pagination marker for large data sets.
         :param limit: maximum number of resources to return in a single result.
+                      This value cannot be larger than the value of max_limit
+                      in the [api] section of the ironic configuration, or only
+                      max_limit resources will be returned.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         :param driver: Optional string value to get only nodes using that
@@ -1254,6 +1257,9 @@ class NodesController(rest.RestController):
                                 that provision state.
         :param marker: pagination marker for large data sets.
         :param limit: maximum number of resources to return in a single result.
+                      This value cannot be larger than the value of max_limit
+                      in the [api] section of the ironic configuration, or only
+                      max_limit resources will be returned.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         :param driver: Optional string value to get only nodes using that
