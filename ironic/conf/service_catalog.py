@@ -18,7 +18,7 @@ from oslo_config import cfg
 from ironic.common.i18n import _
 from ironic.conf import auth
 
-SERVCIE_CATALOG_GROUP = cfg.OptGroup(
+SERVICE_CATALOG_GROUP = cfg.OptGroup(
     'service_catalog',
     title='Access info for Ironic service user',
     help=_('Holds credentials and session options to access '
@@ -26,7 +26,7 @@ SERVCIE_CATALOG_GROUP = cfg.OptGroup(
 
 
 def register_opts(conf):
-    auth.register_auth_opts(conf, SERVCIE_CATALOG_GROUP.name)
+    auth.register_auth_opts(conf, SERVICE_CATALOG_GROUP.name)
 
 
 def list_opts():

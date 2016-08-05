@@ -41,8 +41,8 @@ SECTIONS_WITH_AUTH = (
 def _check_auth_options(conf):
     missing = []
     for section in SECTIONS_WITH_AUTH:
-            if not auth.load_auth(conf, section):
-                missing.append('[%s]' % section)
+        if not auth.load_auth(conf, section):
+            missing.append('[%s]' % section)
     if missing:
         link = "http://docs.openstack.org/releasenotes/ironic/newton.html"
         LOG.warning(_LW("Failed to load authentification credentials from "
