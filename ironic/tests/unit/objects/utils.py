@@ -13,9 +13,31 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 """Ironic object test utilities."""
+import six
 
+from ironic.common import exception
+from ironic.common.i18n import _
 from ironic import objects
 from ironic.tests.unit.db import utils as db_utils
+
+
+def check_keyword_arguments(func):
+    @six.wraps(func)
+    def wrapper(**kw):
+        obj_type = kw.pop('object_type')
+        result = func(**kw)
+
+        extra_args = set(kw) - set(result)
+        if extra_args:
+            raise exception.InvalidParameterValue(
+                _("Unknown keyword arguments (%(extra)s) were passed "
+                  "while creating a test %(object_type)s object.") %
+                {"extra": ", ".join(extra_args),
+                 "object_type": obj_type})
+
+        return result
+
+    return wrapper
 
 
 def get_test_node(ctxt, **kw):
@@ -24,7 +46,10 @@ def get_test_node(ctxt, **kw):
     NOTE: The object leaves the attributes marked as changed, such
     that a create() could be used to commit it to the DB.
     """
-    db_node = db_utils.get_test_node(**kw)
+    kw['object_type'] = 'node'
+    get_db_node_checked = check_keyword_arguments(db_utils.get_test_node)
+    db_node = get_db_node_checked(**kw)
+
     # Let DB generate ID if it isn't specified explicitly
     if 'id' not in kw:
         del db_node['id']
@@ -51,7 +76,11 @@ def get_test_port(ctxt, **kw):
     NOTE: The object leaves the attributes marked as changed, such
     that a create() could be used to commit it to the DB.
     """
-    db_port = db_utils.get_test_port(**kw)
+    kw['object_type'] = 'port'
+    get_db_port_checked = check_keyword_arguments(
+        db_utils.get_test_port)
+    db_port = get_db_port_checked(**kw)
+
     # Let DB generate ID if it isn't specified explicitly
     if 'id' not in kw:
         del db_port['id']
@@ -78,7 +107,11 @@ def get_test_chassis(ctxt, **kw):
     NOTE: The object leaves the attributes marked as changed, such
     that a create() could be used to commit it to the DB.
     """
-    db_chassis = db_utils.get_test_chassis(**kw)
+    kw['object_type'] = 'chassis'
+    get_db_chassis_checked = check_keyword_arguments(
+        db_utils.get_test_chassis)
+    db_chassis = get_db_chassis_checked(**kw)
+
     # Let DB generate ID if it isn't specified explicitly
     if 'id' not in kw:
         del db_chassis['id']
@@ -105,7 +138,11 @@ def get_test_portgroup(ctxt, **kw):
     NOTE: The object leaves the attributes marked as changed, such
     that a create() could be used to commit it to the DB.
     """
-    db_portgroup = db_utils.get_test_portgroup(**kw)
+    kw['object_type'] = 'portgroup'
+    get_db_port_group_checked = check_keyword_arguments(
+        db_utils.get_test_portgroup)
+    db_portgroup = get_db_port_group_checked(**kw)
+
     # Let DB generate ID if it isn't specified explicitly
     if 'id' not in kw:
         del db_portgroup['id']

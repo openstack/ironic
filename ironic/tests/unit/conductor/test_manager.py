@@ -271,8 +271,7 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin,
         node = obj_utils.create_test_node(self.context,
                                           driver=existing_driver,
                                           extra={'test': 'one'},
-                                          instance_uuid=None,
-                                          task_state=states.POWER_ON)
+                                          instance_uuid=None)
         # check that it fails because driver not found
         node.driver = wrong_driver
         node.driver_info = {}

@@ -363,8 +363,7 @@ class TestNeutron(db_base.DbTestCase):
                                                 address='aa:bb:cc:dd:ee:ff',
                                                 uuid=uuidutils.generate_uuid(),
                                                 extra={'vif_port_id':
-                                                       'test-vif-A'},
-                                                driver='fake')
+                                                       'test-vif-A'})
         mock_gfia.return_value = expected
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
@@ -380,8 +379,7 @@ class TestNeutron(db_base.DbTestCase):
         port = object_utils.create_test_port(self.context,
                                              node_id=self.node.id,
                                              address='aa:bb:cc:dd:ee:ff',
-                                             uuid=uuidutils.generate_uuid(),
-                                             driver='fake')
+                                             uuid=uuidutils.generate_uuid())
         mock_gfia.return_value = expected
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
@@ -397,8 +395,7 @@ class TestNeutron(db_base.DbTestCase):
         pg = object_utils.create_test_portgroup(self.context,
                                                 node_id=self.node.id,
                                                 address='aa:bb:cc:dd:ee:ff',
-                                                uuid=uuidutils.generate_uuid(),
-                                                driver='fake')
+                                                uuid=uuidutils.generate_uuid())
         mock_gfia.return_value = expected
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
@@ -416,8 +413,7 @@ class TestNeutron(db_base.DbTestCase):
                                              address='aa:bb:cc:dd:ee:ff',
                                              uuid=uuidutils.generate_uuid(),
                                              extra={'vif_port_id':
-                                                    'test-vif-A'},
-                                             driver='fake')
+                                                    'test-vif-A'})
         mock_gfia.return_value = ip_address
         with task_manager.acquire(self.context, self.node.uuid) as task:
             api = dhcp_factory.DHCPFactory().provider
@@ -434,8 +430,7 @@ class TestNeutron(db_base.DbTestCase):
                                                 address='aa:bb:cc:dd:ee:ff',
                                                 uuid=uuidutils.generate_uuid(),
                                                 extra={'vif_port_id':
-                                                       'test-vif-A'},
-                                                driver='fake')
+                                                       'test-vif-A'})
         mock_gfia.return_value = ip_address
         with task_manager.acquire(self.context, self.node.uuid) as task:
             api = dhcp_factory.DHCPFactory().provider
@@ -463,8 +458,7 @@ class TestNeutron(db_base.DbTestCase):
                                            address='aa:bb:cc:dd:ee:ff',
                                            uuid=uuidutils.generate_uuid(),
                                            extra={'vif_port_id':
-                                                  'test-vif-A'},
-                                           driver='fake')
+                                                  'test-vif-A'})
         with task_manager.acquire(self.context, self.node.uuid) as task:
             api = dhcp_factory.DHCPFactory().provider
             api.get_ip_addresses(task)
