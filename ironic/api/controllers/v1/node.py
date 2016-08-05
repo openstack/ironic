@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import ast
 import datetime
 
 from ironic_lib import metrics_utils
@@ -802,9 +801,8 @@ class Node(base.APIBase):
                                                    bookmark=True)]
 
         if not show_password and node.driver_info != wtypes.Unset:
-            node.driver_info = ast.literal_eval(strutils.mask_password(
-                                                node.driver_info,
-                                                "******"))
+            node.driver_info = strutils.mask_dict_password(node.driver_info,
+                                                           "******")
 
         # NOTE(lucasagomes): The numeric ID should not be exposed to
         #                    the user, it's internal only.
