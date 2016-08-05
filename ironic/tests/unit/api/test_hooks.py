@@ -103,9 +103,9 @@ def fake_headers(admin=False):
 class TestNoExceptionTracebackHook(base.BaseApiTest):
 
     TRACE = [u'Traceback (most recent call last):',
-             u'  File "/opt/stack/ironic/ironic/openstack/common/rpc/amqp.py",'
+             u'  File "/opt/stack/ironic/ironic/common/rpc/amqp.py",'
              ' line 434, in _process_data\\n   **args)',
-             u'  File "/opt/stack/ironic/ironic/openstack/common/rpc/'
+             u'  File "/opt/stack/ironic/ironic/common/rpc/'
              'dispatcher.py", line 172, in dispatch\\n   result ='
              ' getattr(proxyobj, method)(ctxt, **kwargs)']
     MSG_WITHOUT_TRACE = "Test exception message."

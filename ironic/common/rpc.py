@@ -30,12 +30,7 @@ ALLOWED_EXMODS = [
 ]
 EXTRA_EXMODS = []
 
-# NOTE(lucasagomes): The ironic.openstack.common.rpc entries are for
-# backwards compat with IceHouse rpc_backend configuration values.
 TRANSPORT_ALIASES = {
-    'ironic.openstack.common.rpc.impl_kombu': 'rabbit',
-    'ironic.openstack.common.rpc.impl_qpid': 'qpid',
-    'ironic.openstack.common.rpc.impl_zmq': 'zmq',
     'ironic.rpc.impl_kombu': 'rabbit',
     'ironic.rpc.impl_qpid': 'qpid',
     'ironic.rpc.impl_zmq': 'zmq',
