@@ -1248,8 +1248,8 @@ class IPMISocatConsole(IPMIConsole):
             self._exec_stop_console(driver_info)
         except OSError:
             # We need to drop any existing sol sessions with sol deactivate.
-            # OSError is raised when sol session is deactive, so we can
-            # ignore it.
+            # OSError is raised when sol session is already deactivated,
+            # so we can ignore it.
             pass
         self._start_console(driver_info, console_utils.start_socat_console)
 
