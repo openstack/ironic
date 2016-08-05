@@ -1446,7 +1446,7 @@ reboots won't happen via PXE or Virtual Media. Instead, it will boot from a
 local boot loader installed on the disk.
 
 It's important to note that in order for this to work the image being
-deployed with Bare Metal serivce **must** contain ``grub2`` installed within it.
+deployed with Bare Metal service **must** contain ``grub2`` installed within it.
 
 Enabling the local boot is different when Bare Metal service is used with
 Compute service and without it.
