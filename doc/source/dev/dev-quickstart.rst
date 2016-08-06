@@ -134,15 +134,15 @@ All unit tests should be run using tox. To run Ironic's entire test suite::
     # run all tests (unit under both py27 and py34, and pep8)
     tox
 
-To run the unit tests under py27 and also run the pep8 tests::
-
-    # run all tests (unit under py27 and pep8)
-    tox -epy27 -epep8
-
 To run the unit tests under py34 and also run the pep8 tests::
 
     # run all tests (unit under py34 and pep8)
     tox -epy34 -epep8
+
+To run the unit tests under py27 and also run the pep8 tests::
+
+    # run all tests (unit under py27 and pep8)
+    tox -epy27 -epep8
 
 .. note::
     If tests are run under py27 and then run under py34 or py35 the following error may occur::
