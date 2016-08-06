@@ -229,3 +229,10 @@ class AgentClient(object):
                              method='standby.sync',
                              params={},
                              wait=True)
+
+    def collect_system_logs(self, node):
+        """Collect and package diagnostic and support data from the ramdisk."""
+        return self._command(node=node,
+                             method='log.collect_system_logs',
+                             params={},
+                             wait=True)

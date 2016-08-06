@@ -32,6 +32,7 @@ from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import pxe
+from ironic.drivers import utils as driver_utils
 from ironic import objects
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
@@ -582,15 +583,17 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
 
         mock_touch.assert_called_once_with(mock.ANY)
 
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(time, 'sleep', lambda seconds: None)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state',
                        spec=types.FunctionType)
     @mock.patch.object(agent_client.AgentClient, 'power_off',
                        spec=types.FunctionType)
-    def test_reboot_and_finish_deploy(self, power_off_mock,
-                                      get_power_state_mock,
-                                      node_power_action_mock):
+    def test_reboot_and_finish_deploy(
+            self, power_off_mock, get_power_state_mock,
+            node_power_action_mock, mock_collect):
+        cfg.CONF.set_override('deploy_logs_collect', 'always', 'agent')
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
@@ -605,7 +608,9 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
                 task, states.POWER_ON)
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            mock_collect.assert_called_once_with(task.node)
 
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(time, 'sleep', lambda seconds: None)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state',
@@ -619,7 +624,7 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
     def test_reboot_and_finish_deploy_soft_poweroff_doesnt_complete(
             self, configure_tenant_net_mock, remove_provisioning_net_mock,
             power_off_mock, get_power_state_mock,
-            node_power_action_mock):
+            node_power_action_mock, mock_collect):
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
@@ -637,7 +642,9 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
             configure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            self.assertFalse(mock_collect.called)
 
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'power_off',
                        spec=types.FunctionType)
@@ -647,7 +654,7 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
                 'configure_tenant_networks', spec_set=True, autospec=True)
     def test_reboot_and_finish_deploy_soft_poweroff_fails(
             self, configure_tenant_net_mock, remove_provisioning_net_mock,
-            power_off_mock, node_power_action_mock):
+            power_off_mock, node_power_action_mock, mock_collect):
         power_off_mock.side_effect = RuntimeError("boom")
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
@@ -664,7 +671,9 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
             configure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            self.assertFalse(mock_collect.called)
 
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(time, 'sleep', lambda seconds: None)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state',
@@ -677,7 +686,8 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
                 'configure_tenant_networks', spec_set=True, autospec=True)
     def test_reboot_and_finish_deploy_get_power_state_fails(
             self, configure_tenant_net_mock, remove_provisioning_net_mock,
-            power_off_mock, get_power_state_mock, node_power_action_mock):
+            power_off_mock, get_power_state_mock, node_power_action_mock,
+            mock_collect):
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
@@ -695,7 +705,9 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
             configure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            self.assertFalse(mock_collect.called)
 
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(time, 'sleep', lambda seconds: None)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state',
@@ -704,7 +716,7 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
                        spec=types.FunctionType)
     def test_reboot_and_finish_deploy_power_action_fails(
             self, power_off_mock, get_power_state_mock,
-            node_power_action_mock):
+            node_power_action_mock, mock_collect):
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
@@ -721,12 +733,14 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
                 mock.call(task, states.POWER_OFF)])
             self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+            mock_collect.assert_called_once_with(task.node)
 
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'sync',
                        spec=types.FunctionType)
     def test_reboot_and_finish_deploy_power_action_oob_power_off(
-            self, sync_mock, node_power_action_mock):
+            self, sync_mock, node_power_action_mock, mock_collect):
         # Enable force power off
         driver_info = self.node.driver_info
         driver_info['deploy_forces_oob_reboot'] = True
@@ -746,13 +760,15 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
             ])
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
+            self.assertFalse(mock_collect.called)
 
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(agent_base_vendor.LOG, 'warning', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'sync',
                        spec=types.FunctionType)
     def test_reboot_and_finish_deploy_power_action_oob_power_off_failed(
-            self, sync_mock, node_power_action_mock, log_mock):
+            self, sync_mock, node_power_action_mock, log_mock, mock_collect):
         # Enable force power off
         driver_info = self.node.driver_info
         driver_info['deploy_forces_oob_reboot'] = True
@@ -779,6 +795,7 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
                 'Failed to flush the file system prior to hard rebooting the '
                 'node %(node)s. Error: %(error)s',
                 {'node': task.node.uuid, 'error': log_error})
+            self.assertFalse(mock_collect.called)
 
     @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
                        autospec=True)
@@ -841,10 +858,12 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
             try_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK)
 
+    @mock.patch.object(agent_client.AgentClient, 'collect_system_logs',
+                       autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
                        autospec=True)
     def test_configure_local_boot_boot_loader_install_fail(
-            self, install_bootloader_mock):
+            self, install_bootloader_mock, collect_logs_mock):
         install_bootloader_mock.return_value = {
             'command_status': 'FAILED', 'command_error': 'boom'}
         self.node.provision_state = states.DEPLOYING
@@ -859,14 +878,18 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
             install_bootloader_mock.assert_called_once_with(
                 mock.ANY, task.node, root_uuid='some-root-uuid',
                 efi_system_part_uuid=None)
+            collect_logs_mock.assert_called_once_with(mock.ANY, task.node)
             self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
 
+    @mock.patch.object(agent_client.AgentClient, 'collect_system_logs',
+                       autospec=True)
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
                        autospec=True)
     def test_configure_local_boot_set_boot_device_fail(
-            self, install_bootloader_mock, try_set_boot_device_mock):
+            self, install_bootloader_mock, try_set_boot_device_mock,
+            collect_logs_mock):
         install_bootloader_mock.return_value = {
             'command_status': 'SUCCESS', 'command_error': None}
         try_set_boot_device_mock.side_effect = RuntimeError('error')
@@ -884,6 +907,7 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
                 efi_system_part_uuid=None)
             try_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK)
+            collect_logs_mock.assert_called_once_with(mock.ANY, task.node)
             self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
 

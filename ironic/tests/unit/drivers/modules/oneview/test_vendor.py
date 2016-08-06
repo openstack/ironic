@@ -28,6 +28,7 @@ from ironic.drivers.modules import agent_client
 from ironic.drivers.modules.oneview import power
 from ironic.drivers.modules.oneview import vendor
 from ironic.drivers.modules import pxe
+from ironic.drivers import utils as driver_utils
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -152,6 +153,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, task.node.provision_state)
             self.assertEqual(states.NOSTATE, task.node.target_provision_state)
 
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(time, 'sleep', lambda seconds: None)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(power.OneViewPower, 'get_power_state',
@@ -160,7 +162,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                        spec=types.FunctionType)
     def test_reboot_and_finish_deploy_power_action_fails(
             self, power_off_mock, get_power_state_mock,
-            node_power_action_mock):
+            node_power_action_mock, collect_ramdisk_logs_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
@@ -179,6 +181,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                 mock.call(task, states.POWER_OFF)])
             self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+            collect_ramdisk_logs_mock.assert_called_once_with(task.node)
 
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(power.OneViewPower, 'get_power_state',

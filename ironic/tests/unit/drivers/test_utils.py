@@ -13,14 +13,22 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
+import os
+
 import mock
+from oslo_config import cfg
+from oslo_utils import timeutils
 
 from ironic.common import driver_factory
 from ironic.common import exception
+from ironic.common import swift
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import fake
 from ironic.drivers import utils as driver_utils
+from ironic.tests import base as tests_base
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
@@ -237,3 +245,136 @@ class UtilsTestCase(db_base.DbTestCase):
         mac_raw = u"0A:1B-2C-3D:4F"
         mac_clean = driver_utils.normalize_mac(mac_raw)
         self.assertEqual("0a1b2c3d4f", mac_clean)
+
+
+class UtilsRamdiskLogsTestCase(tests_base.TestCase):
+
+    def setUp(self):
+        super(UtilsRamdiskLogsTestCase, self).setUp()
+        self.node = obj_utils.get_test_node(self.context)
+
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_get_ramdisk_logs_file_name(self, mock_utcnow):
+        mock_utcnow.return_value = datetime.datetime(2000, 1, 1, 0, 0)
+        name = driver_utils.get_ramdisk_logs_file_name(self.node)
+        expected_name = ('1be26c0b-03f2-4d2e-ae87-c02d7f33c123_'
+                         '2000-01-01-00:00:00.tar.gz')
+        self.assertEqual(expected_name, name)
+
+        # with instance_info
+        instance_uuid = '7a5641ba-d264-424a-a9d7-e2a293ca482b'
+        node2 = obj_utils.get_test_node(
+            self.context, instance_uuid=instance_uuid)
+        name = driver_utils.get_ramdisk_logs_file_name(node2)
+        expected_name = ('1be26c0b-03f2-4d2e-ae87-c02d7f33c123_' +
+                         instance_uuid + '_2000-01-01-00:00:00.tar.gz')
+        self.assertEqual(expected_name, name)
+
+    @mock.patch.object(driver_utils, 'store_ramdisk_logs', autospec=True)
+    @mock.patch.object(agent_client.AgentClient,
+                       'collect_system_logs', autospec=True)
+    def test_collect_ramdisk_logs(self, mock_collect, mock_store):
+        logs = 'Gary the Snail'
+        mock_collect.return_value = {'command_result': {'system_logs': logs}}
+        driver_utils.collect_ramdisk_logs(self.node)
+        mock_store.assert_called_once_with(self.node, logs)
+
+    @mock.patch.object(driver_utils.LOG, 'error', autospec=True)
+    @mock.patch.object(driver_utils, 'store_ramdisk_logs', autospec=True)
+    @mock.patch.object(agent_client.AgentClient,
+                       'collect_system_logs', autospec=True)
+    def test_collect_ramdisk_logs_IPA_command_fail(
+            self, mock_collect, mock_store, mock_log):
+        error_str = 'MR. KRABS! I WANNA GO TO BED!'
+        mock_collect.return_value = {'faultstring': error_str}
+        driver_utils.collect_ramdisk_logs(self.node)
+        # assert store was never invoked
+        self.assertFalse(mock_store.called)
+        mock_log.assert_called_once_with(
+            mock.ANY, {'node': self.node.uuid, 'error': error_str})
+
+    @mock.patch.object(driver_utils, 'store_ramdisk_logs', autospec=True)
+    @mock.patch.object(agent_client.AgentClient,
+                       'collect_system_logs', autospec=True)
+    def test_collect_ramdisk_logs_storage_command_fail(
+            self, mock_collect, mock_store):
+        mock_collect.side_effect = exception.IronicException('boom')
+        self.assertIsNone(driver_utils.collect_ramdisk_logs(self.node))
+        self.assertFalse(mock_store.called)
+
+    @mock.patch.object(driver_utils, 'store_ramdisk_logs', autospec=True)
+    @mock.patch.object(agent_client.AgentClient,
+                       'collect_system_logs', autospec=True)
+    def _collect_ramdisk_logs_storage_fail(
+            self, expected_exception, mock_collect, mock_store):
+        mock_store.side_effect = expected_exception
+        logs = 'Gary the Snail'
+        mock_collect.return_value = {'command_result': {'system_logs': logs}}
+        driver_utils.collect_ramdisk_logs(self.node)
+        mock_store.assert_called_once_with(self.node, logs)
+
+    @mock.patch.object(driver_utils.LOG, 'exception', autospec=True)
+    def test_collect_ramdisk_logs_storage_fail_fs(self, mock_log):
+        error = IOError('boom')
+        self._collect_ramdisk_logs_storage_fail(error)
+        mock_log.assert_called_once_with(
+            mock.ANY, {'node': self.node.uuid, 'error': error})
+        self.assertIn('file-system', mock_log.call_args[0][0])
+
+    @mock.patch.object(driver_utils.LOG, 'error', autospec=True)
+    def test_collect_ramdisk_logs_storage_fail_swift(self, mock_log):
+        error = exception.SwiftOperationError('boom')
+        self._collect_ramdisk_logs_storage_fail(error)
+        mock_log.assert_called_once_with(
+            mock.ANY, {'node': self.node.uuid, 'error': error})
+        self.assertIn('Swift', mock_log.call_args[0][0])
+
+    @mock.patch.object(driver_utils.LOG, 'exception', autospec=True)
+    def test_collect_ramdisk_logs_storage_fail_unkown(self, mock_log):
+        error = Exception('boom')
+        self._collect_ramdisk_logs_storage_fail(error)
+        mock_log.assert_called_once_with(
+            mock.ANY, {'node': self.node.uuid, 'error': error})
+        self.assertIn('Unknown error', mock_log.call_args[0][0])
+
+    @mock.patch.object(swift, 'SwiftAPI', autospec=True)
+    @mock.patch.object(driver_utils,
+                       'get_ramdisk_logs_file_name', autospec=True)
+    def test_store_ramdisk_logs_swift(self, mock_logs_name, mock_swift):
+        container_name = 'ironic_test_container'
+        file_name = 'ironic_test_file.tar.gz'
+        b64str = 'ZW5jb2RlZHN0cmluZw==\n'
+
+        cfg.CONF.set_override('deploy_logs_storage_backend', 'swift', 'agent')
+        cfg.CONF.set_override(
+            'deploy_logs_swift_container', container_name, 'agent')
+        cfg.CONF.set_override('deploy_logs_swift_days_to_expire', 1, 'agent')
+
+        mock_logs_name.return_value = file_name
+        driver_utils.store_ramdisk_logs(self.node, b64str)
+
+        mock_swift.return_value.create_object.assert_called_once_with(
+            container_name, file_name, mock.ANY,
+            object_headers={'X-Delete-After': 86400})
+        mock_logs_name.assert_called_once_with(self.node)
+
+    @mock.patch.object(os, 'makedirs', autospec=True)
+    @mock.patch.object(driver_utils,
+                       'get_ramdisk_logs_file_name', autospec=True)
+    def test_store_ramdisk_logs_local(self, mock_logs_name, mock_makedirs):
+        file_name = 'ironic_test_file.tar.gz'
+        b64str = 'ZW5jb2RlZHN0cmluZw==\n'
+        log_path = '/foo/bar'
+
+        cfg.CONF.set_override('deploy_logs_local_path', log_path, 'agent')
+        mock_logs_name.return_value = file_name
+
+        with mock.patch.object(driver_utils, 'open', new=mock.mock_open(),
+                               create=True) as mock_open:
+            driver_utils.store_ramdisk_logs(self.node, b64str)
+
+            expected_path = os.path.join(log_path, file_name)
+            mock_open.assert_called_once_with(expected_path, 'wb')
+
+        mock_makedirs.assert_called_once_with(log_path)
+        mock_logs_name.assert_called_once_with(self.node)
