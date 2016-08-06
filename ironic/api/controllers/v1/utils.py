@@ -383,6 +383,14 @@ def allow_resource_class():
             versions.MINOR_21_RESOURCE_CLASS)
 
 
+def allow_ramdisk_endpoints():
+    """Check if heartbeat and lookup endpoints are allowed.
+
+    Version 1.22 of the API introduced them.
+    """
+    return pecan.request.version.minor >= versions.MINOR_22_LOOKUP_HEARTBEAT
+
+
 def get_controller_reserved_names(cls):
     """Get reserved names for a given controller.
 

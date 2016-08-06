@@ -44,9 +44,6 @@ opts = [
                        'to the disk. Unless the disk where the image will be '
                        'copied to is really slow, this option should be set '
                        'to True. Defaults to True.')),
-    cfg.IntOpt('heartbeat_timeout',
-               default=300,
-               help=_('Maximum interval (in seconds) for agent heartbeats.')),
     cfg.IntOpt('post_deploy_get_power_state_retries',
                default=6,
                help=_('Number of times to retry getting power state to check '

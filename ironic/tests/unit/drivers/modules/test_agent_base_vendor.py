@@ -132,7 +132,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                 'statsd_host': CONF.metrics_statsd.agent_statsd_host,
                 'statsd_port': CONF.metrics_statsd.agent_statsd_port
             },
-            'heartbeat_timeout': CONF.agent.heartbeat_timeout
+            'heartbeat_timeout': CONF.api.ramdisk_heartbeat_timeout
         }
 
         find_mock.return_value = self.node
