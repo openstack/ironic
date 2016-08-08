@@ -65,7 +65,7 @@ class BaseApiTest(base.DbTestCase):
         # Determine where we are so we can set up paths in the config
         root_dir = self.path_get()
 
-        self.config = {
+        self.app_config = {
             'app': {
                 'root': 'ironic.api.controllers.root.RootController',
                 'modules': ['ironic.api'],
@@ -74,7 +74,7 @@ class BaseApiTest(base.DbTestCase):
                 'acl_public_routes': ['/', '/v1'],
             },
         }
-        return pecan.testing.load_test_app(self.config)
+        return pecan.testing.load_test_app(self.app_config)
 
     def _request_json(self, path, params, expect_errors=False, headers=None,
                       method="post", extra_environ=None, status=None,
