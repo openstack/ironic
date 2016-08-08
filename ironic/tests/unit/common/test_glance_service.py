@@ -705,7 +705,6 @@ class TestGlanceSwiftTempURL(base.TestCase):
                     group='glance')
         self.config(swift_store_multiple_containers_seed=0,
                     group='glance')
-        self.config()
         self.fake_image = {
             'id': '757274c4-2856-4bd2-bb20-9a4a231e187b'
         }
