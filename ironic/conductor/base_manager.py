@@ -110,6 +110,8 @@ class BaseConductorManager(object):
         periodic_task_classes = set()
         self._collect_periodic_tasks(self, (admin_context,))
         for driver_obj in drivers.values():
+            # TODO(dtantsur): collecting tasks from driver objects is
+            # deprecated and should be removed in Ocata.
             self._collect_periodic_tasks(driver_obj, (self, admin_context))
             for iface_name in driver_obj.all_interfaces:
                 iface = getattr(driver_obj, iface_name, None)

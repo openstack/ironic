@@ -76,8 +76,8 @@ Driver-Specific Periodic Tasks
 ------------------------------
 
 Drivers may run their own periodic tasks, i.e. actions run repeatedly after
-a certain amount of time. Such task is created by decorating a method on the
-driver itself or on any interface with periodic_ decorator, e.g.
+a certain amount of time. Such task is created by decorating a method on
+an interface with periodic_ decorator, e.g.
 
 ::
 
@@ -88,17 +88,14 @@ driver itself or on any interface with periodic_ decorator, e.g.
         def task(self, manager, context):
             pass  # do something
 
-    class FakeDriver(base.BaseDriver):
-        def __init__(self):
-            self.power = FakePower()
-
-        @periodics.periodic(spacing=42)
-        def task2(self, manager, context):
-            pass  # do something
-
 
 Here the ``spacing`` argument is a period in seconds for a given periodic task.
 For example 'spacing=5' means every 5 seconds.
+
+.. note::
+    As of the Newton release, it's possible to bind periodic tasks to a driver
+    object instead of an interface. This is deprecated and support for it will
+    be removed in the Ocata release.
 
 
 Message Routing
