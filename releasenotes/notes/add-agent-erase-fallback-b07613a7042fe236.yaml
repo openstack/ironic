@@ -8,7 +8,7 @@ features:
     normal circumstances, the failure of an ATA secure erase
     operation results in the node being put in ``clean failed``
     state.
-upgrades:
+upgrade:
   - A new configuration option
     ``[deploy]continue_if_disk_secure_erase_fails``, which
     has a default value of False, has been added. The default

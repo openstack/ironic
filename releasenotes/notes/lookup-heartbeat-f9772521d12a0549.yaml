@@ -7,10 +7,10 @@ features:
     This endpoint is not authenticated to allow ramdisks to access it without
     passing the credentials to them.
 deprecations:
-  - The configuration option ``[agent]heartbeat_timeout`` was renamed to
-    ``[api]ramdisk_heartbeat_timeout``. The old variant is deprecated.
+  - The configuration option ``[agent]/heartbeat_timeout`` was renamed to
+    ``[api]/ramdisk_heartbeat_timeout``. The old variant is deprecated.
 upgrade:
-  - A new configuration option ``[api]restrict_lookup`` is added, which
+  - A new configuration option ``[api]/restrict_lookup`` is added, which
     restricts the lookup API (normally only used by ramdisks) to only work when
     the node is in specific states used by the ramdisk, and defaults to True.
     Operators that need this endpoint to work in any state may set this to

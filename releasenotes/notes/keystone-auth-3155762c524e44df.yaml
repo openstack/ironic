@@ -1,12 +1,12 @@
 ---
 upgrade:
   - |
-    New way of configuring access credentials for OpenStack services clients.
-    For each service both Keystone session options
+    Changes the way to configure access credentials for OpenStack services
+    clients. For each service, both Keystone session options
     (timeout, SSL-related ones) and Keystone auth_plugin options
     (auth_url, auth_type and corresponding auth_plugin options)
-    should be specified in the config section for this service.
-    Config section affected are
+    should be specified in the configuration section for this service.
+    Configuration sections affected are:
 
     * ``[neutron]`` for Neutron service user
     * ``[glance]`` for Glance service user
@@ -19,23 +19,31 @@ upgrade:
 
     Backward-compatible options handling is provided
     using values from ``[keystone_authtoken]`` config section,
-    but operators are advised to switch to the new config options.
+    but operators are advised to switch to the new config options as the
+    old options are deprecated. The old options will be removed during the
+    Ocata cycle.
     For more information on sessions, auth plugins and their settings,
-    please refer to _http://docs.openstack.org/developer/keystoneauth/
+    please refer to http://docs.openstack.org/developer/keystoneauth/.
 
   - |
-    Small change in semantics of default for ``[neutron]url`` option
+    Small change in semantics of default for ``[neutron]/url`` option
 
     * default is changed to None.
-    * In case when [neutron]auth_strategy is ``noauth``,
+    * For the case when ``[neutron]/auth_strategy`` is ``noauth``,
       default means use ``http://$my_ip:9696``.
-    * In case when [neutron]auth_strategy is ``keystone``,
+    * For the case when ``[neutron]/auth_strategy`` is ``keystone``,
       default means to resolve the endpoint from Keystone Catalog.
 
   - New config section ``[service_catalog]`` for access credentials used
     to discover Ironic API URL from Keystone Catalog.
     Previously credentials from ``[keystone_authtoken]`` section were used,
     which is now deprecated for such purpose.
+deprecations:
+  - The ``[keystone_authtoken]`` configuration section is deprecated for
+    configuring clients for other services (but is still used for configuring
+    API token authentication), in favor of the ``[service_catalog]`` section.
+    The ability to configure clients for other services via the
+    ``[keystone_authtoken]`` section will be removed during the Ocata cycle.
 fixes:
   - Do not rely on keystonemiddleware config options for instantiating
     clients for other OpenStack services.

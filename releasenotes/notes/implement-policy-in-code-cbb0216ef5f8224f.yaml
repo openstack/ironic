@@ -15,8 +15,8 @@ security:
 upgrade:
   - |
     During an upgrade, it is recommended that all deployers re-evaluate the
-    settings in their /etc/ironic/policy.json file. This file should now be
+    settings in their ``/etc/ironic/policy.json`` file. This file should now be
     used only to override default configuration, such as by limiting access to
-    the Bare Metal service to specific tenants or restricting access to
-    specific API endpoints. A policy.json.sample file is provided that lists
-    all supported policies.
+    the ironic service to specific tenants or restricting access to
+    specific API endpoints. A ``policy.json.sample`` file is provided that
+    lists all supported policies.

@@ -1,5 +1,5 @@
 ---
 fixes:
-  - A node using 'agent_ilo' or 'iscsi_ilo' driver has
-    their 'driver_info/ilo_deploy_iso' field validated
-    during node validate. This closes bug #1592335.
+  - A node using the ``agent_ilo`` or ``iscsi_ilo`` driver now has
+    its ``driver_info/ilo_deploy_iso`` field validated
+    during node validation.
