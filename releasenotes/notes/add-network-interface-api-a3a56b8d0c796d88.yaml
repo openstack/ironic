@@ -1,9 +1,0 @@
----
-features:
-    - |
-      Exposes the ``network_interface`` field of the Node resource to the REST
-      API, raising the API maximum version to 1.20. This field is the network
-      interface to use for a node. Its possible values are from the
-      configuration option ``[DEFAULT]enabled_network_interfaces``. Note that
-      the value of this option must be the same on all the ironic-conductor and
-      ironic-api service nodes.
