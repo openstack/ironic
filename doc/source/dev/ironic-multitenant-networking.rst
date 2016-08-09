@@ -131,6 +131,3 @@ configured in Neutron.
     LOGFILE=$HOME/devstack.log
     LOGDIR=$HOME/logs
     IRONIC_VM_LOG_DIR=$HOME/ironic-bm-logs
-
-    IRONIC_ENABLED_NETWORK_INTERFACES=neutron
-    IRONIC_NETWORK_INTERFACE=neutron
