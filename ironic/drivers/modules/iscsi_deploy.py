@@ -16,6 +16,7 @@
 import os
 
 from ironic_lib import disk_utils
+from ironic_lib import metrics_utils
 from ironic_lib import utils as ironic_utils
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -35,6 +36,8 @@ from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
 
 LOG = logging.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 # NOTE(rameshg87): This file now registers some of opts in pxe group.
 # This is acceptable for now as a future refactoring into
@@ -128,6 +131,7 @@ def _save_disk_layout(node, i_info):
     node.save()
 
 
+@METRICS.timer('check_image_size')
 def check_image_size(task):
     """Check if the requested image is larger than the root partition size.
 
@@ -146,6 +150,7 @@ def check_image_size(task):
         raise exception.InstanceDeployFailure(msg)
 
 
+@METRICS.timer('cache_instance_image')
 def cache_instance_image(ctx, node):
     """Fetch the instance's image from Glance
 
@@ -171,6 +176,7 @@ def cache_instance_image(ctx, node):
     return (uuid, image_path)
 
 
+@METRICS.timer('destroy_images')
 def destroy_images(node_uuid):
     """Delete instance's image file.
 
@@ -181,6 +187,7 @@ def destroy_images(node_uuid):
     InstanceImageCache().clean_up()
 
 
+@METRICS.timer('get_deploy_info')
 def get_deploy_info(node, address, iqn, port=None, lun='1'):
     """Returns the information required for doing iSCSI deploy in a dictionary.
 
@@ -234,6 +241,7 @@ def get_deploy_info(node, address, iqn, port=None, lun='1'):
     return params
 
 
+@METRICS.timer('continue_deploy')
 def continue_deploy(task, **kwargs):
     """Resume a deployment upon getting POST data from deploy ramdisk.
 
@@ -305,6 +313,7 @@ def continue_deploy(task, **kwargs):
     return uuid_dict_returned
 
 
+@METRICS.timer('do_agent_iscsi_deploy')
 def do_agent_iscsi_deploy(task, agent_client):
     """Method invoked when deployed with the agent ramdisk.
 
@@ -374,6 +383,7 @@ def _get_boot_mode(node):
     return "bios"
 
 
+@METRICS.timer('validate')
 def validate(task):
     """Validates the pre-requisites for iSCSI deploy.
 
@@ -396,6 +406,7 @@ def validate(task):
 
 class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
 
+    @METRICS.timer('AgentDeployMixin.continue_deploy')
     @task_manager.require_exclusive_lock
     def continue_deploy(self, task):
         """Method invoked when deployed using iSCSI.
@@ -427,6 +438,7 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
     def get_properties(self):
         return {}
 
+    @METRICS.timer('ISCSIDeploy.validate')
     def validate(self, task):
         """Validate the deployment information for the task's node.
 
@@ -445,6 +457,7 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
         # broken down into separate boot and deploy implementations.
         validate(task)
 
+    @METRICS.timer('ISCSIDeploy.deploy')
     @task_manager.require_exclusive_lock
     def deploy(self, task):
         """Start deployment of the task's node.
@@ -465,6 +478,7 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
 
         return states.DEPLOYWAIT
 
+    @METRICS.timer('ISCSIDeploy.tear_down')
     @task_manager.require_exclusive_lock
     def tear_down(self, task):
         """Tear down a previous deployment on the task's node.
@@ -484,6 +498,7 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
         task.driver.network.unconfigure_tenant_networks(task)
         return states.DELETED
 
+    @METRICS.timer('ISCSIDeploy.prepare')
     @task_manager.require_exclusive_lock
     def prepare(self, task):
         """Prepare the deployment environment for this task's node.
@@ -514,6 +529,7 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
             deploy_opts = deploy_utils.build_agent_options(node)
             task.driver.boot.prepare_ramdisk(task, deploy_opts)
 
+    @METRICS.timer('ISCSIDeploy.clean_up')
     def clean_up(self, task):
         """Clean up the deployment environment for the task's node.
 
@@ -531,6 +547,7 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
     def take_over(self, task):
         pass
 
+    @METRICS.timer('ISCSIDeploy.get_clean_steps')
     def get_clean_steps(self, task):
         """Get the list of clean steps from the agent.
 
@@ -546,6 +563,7 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
                 'erase_devices': CONF.deploy.erase_devices_priority})
         return steps
 
+    @METRICS.timer('ISCSIDeploy.execute_clean_step')
     def execute_clean_step(self, task, step):
         """Execute a clean step asynchronously on the agent.
 
@@ -558,6 +576,7 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
         """
         return deploy_utils.agent_execute_clean_step(task, step)
 
+    @METRICS.timer('ISCSIDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
         """Boot into the agent to prepare for cleaning.
 
@@ -569,6 +588,7 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
         return deploy_utils.prepare_inband_cleaning(
             task, manage_boot=True)
 
+    @METRICS.timer('ISCSIDeploy.tear_down_cleaning')
     def tear_down_cleaning(self, task):
         """Clean up the PXE and DHCP files after cleaning.
 

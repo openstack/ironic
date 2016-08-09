@@ -18,6 +18,7 @@ PXE Boot Interface
 import os
 import shutil
 
+from ironic_lib import metrics_utils
 from ironic_lib import utils as ironic_utils
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -92,6 +93,8 @@ pxe_opts = [
 ]
 
 LOG = logging.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 CONF = cfg.CONF
 CONF.register_opts(pxe_opts, group='pxe')
@@ -240,6 +243,7 @@ def _build_pxe_config_options(task, pxe_info):
     return pxe_options
 
 
+@METRICS.timer('validate_boot_option_for_uefi')
 def validate_boot_option_for_uefi(node):
     """In uefi boot mode, validate if the boot option is compatible.
 
@@ -263,6 +267,7 @@ def validate_boot_option_for_uefi(node):
             {'node_uuid': node.uuid})
 
 
+@METRICS.timer('validate_boot_option_for_trusted_boot')
 def validate_boot_parameters_for_trusted_boot(node):
     """Check if boot parameters are valid for trusted boot."""
     boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
@@ -335,6 +340,7 @@ class PXEBoot(base.BootInterface):
         """
         return COMMON_PROPERTIES
 
+    @METRICS.timer('PXEBoot.validate')
     def validate(self, task):
         """Validate the PXE-specific info for booting deploy/instance images.
 
@@ -385,6 +391,7 @@ class PXEBoot(base.BootInterface):
             props = ['kernel', 'ramdisk']
         deploy_utils.validate_image_properties(task.context, d_info, props)
 
+    @METRICS.timer('PXEBoot.prepare_ramdisk')
     def prepare_ramdisk(self, task, ramdisk_params):
         """Prepares the boot of Ironic ramdisk using PXE.
 
@@ -441,6 +448,7 @@ class PXEBoot(base.BootInterface):
         # the image kernel and ramdisk (Or even require it).
         _cache_ramdisk_kernel(task.context, node, pxe_info)
 
+    @METRICS.timer('PXEBoot.clean_up_ramdisk')
     def clean_up_ramdisk(self, task):
         """Cleans up the boot of ironic ramdisk.
 
@@ -461,6 +469,7 @@ class PXEBoot(base.BootInterface):
         else:
             _clean_up_pxe_env(task, images_info)
 
+    @METRICS.timer('PXEBoot.prepare_instance')
     def prepare_instance(self, task):
         """Prepares the boot of instance.
 
@@ -525,6 +534,7 @@ class PXEBoot(base.BootInterface):
             pxe_utils.clean_up_pxe_config(task)
             deploy_utils.try_set_boot_device(task, boot_devices.DISK)
 
+    @METRICS.timer('PXEBoot.clean_up_instance')
     def clean_up_instance(self, task):
         """Cleans up the boot of instance.
 
