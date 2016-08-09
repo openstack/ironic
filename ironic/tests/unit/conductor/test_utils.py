@@ -1075,8 +1075,9 @@ class ErrorHandlersTestCase(tests_base.TestCase):
     def setUp(self):
         super(ErrorHandlersTestCase, self).setUp()
         self.task = mock.Mock(spec=task_manager.TaskManager)
-        self.task.driver = mock.Mock(spec_set=['deploy'])
+        self.task.driver = mock.Mock(spec_set=['deploy', 'network', 'rescue'])
         self.task.node = mock.Mock(spec_set=objects.Node)
+        self.task.shared = False
         self.node = self.task.node
         # NOTE(mariojv) Some of the test cases that use the task below require
         # strict typing of the node power state fields and would fail if passed
@@ -1236,6 +1237,43 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         conductor_utils.power_state_error_handler(exc, self.node, 'foo')
         self.assertFalse(self.node.save.called)
         self.assertFalse(log_mock.warning.called)
+
+    @mock.patch.object(conductor_utils, 'LOG')
+    @mock.patch.object(conductor_utils, 'node_power_action')
+    def test_cleanup_rescuewait_timeout(self, node_power_mock, log_mock):
+        conductor_utils.cleanup_rescuewait_timeout(self.task)
+        self.assertTrue(log_mock.error.called)
+        node_power_mock.assert_called_once_with(mock.ANY, states.POWER_OFF)
+        self.task.driver.rescue.clean_up.assert_called_once_with(self.task)
+        self.assertIn('Timeout reached', self.node.last_error)
+        self.node.save.assert_called_once_with()
+
+    @mock.patch.object(conductor_utils, 'LOG')
+    @mock.patch.object(conductor_utils, 'node_power_action')
+    def test_cleanup_rescuewait_timeout_known_exc(
+            self, node_power_mock, log_mock):
+        clean_up_mock = self.task.driver.rescue.clean_up
+        clean_up_mock.side_effect = exception.IronicException('moocow')
+        conductor_utils.cleanup_rescuewait_timeout(self.task)
+        self.assertEqual(2, log_mock.error.call_count)
+        node_power_mock.assert_called_once_with(mock.ANY, states.POWER_OFF)
+        self.task.driver.rescue.clean_up.assert_called_once_with(self.task)
+        self.assertIn('moocow', self.node.last_error)
+        self.node.save.assert_called_once_with()
+
+    @mock.patch.object(conductor_utils, 'LOG')
+    @mock.patch.object(conductor_utils, 'node_power_action')
+    def test_cleanup_rescuewait_timeout_unknown_exc(
+            self, node_power_mock, log_mock):
+        clean_up_mock = self.task.driver.rescue.clean_up
+        clean_up_mock.side_effect = Exception('moocow')
+        conductor_utils.cleanup_rescuewait_timeout(self.task)
+        self.assertTrue(log_mock.error.called)
+        node_power_mock.assert_called_once_with(mock.ANY, states.POWER_OFF)
+        self.task.driver.rescue.clean_up.assert_called_once_with(self.task)
+        self.assertIn('Rescue timed out', self.node.last_error)
+        self.node.save.assert_called_once_with()
+        self.assertTrue(log_mock.exception.called)
 
 
 class ValidatePortPhysnetTestCase(db_base.DbTestCase):

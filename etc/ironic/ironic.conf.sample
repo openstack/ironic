@@ -1267,6 +1267,12 @@
 # (integer value)
 #check_provision_state_interval = 60
 
+# Interval (seconds) between checks of rescue timeouts. This
+# option is part of rescue feature work, which is not
+# currently exposed to users. (integer value)
+# Minimum value: 1
+#check_rescue_state_interval = 60
+
 # Timeout (seconds) to wait for a callback from a deploy
 # ramdisk. Set to 0 to disable timeout. (integer value)
 #deploy_callback_timeout = 1800
@@ -1354,6 +1360,14 @@
 # be put in the "clean failed" provision state. Set to 0 to
 # disable timeout. (integer value)
 #clean_callback_timeout = 1800
+
+# Timeout (seconds) to wait for a callback from the rescue
+# ramdisk. If the timeout is reached the node will be put in
+# the "rescue failed" provision state. Set to 0 to disable
+# timeout. This option is part of rescue feature work, which
+# is not currently exposed to users. (integer value)
+# Minimum value: 0
+#rescue_callback_timeout = 1800
 
 # Timeout (in seconds) of soft reboot and soft power off
 # operation. This value always has to be positive. (integer

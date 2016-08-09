@@ -1610,6 +1610,32 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
     def test__check_cleanwait_timeouts_manual_clean(self):
         self._check_cleanwait_timeouts(manual=True)
 
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.clean_up')
+    @mock.patch.object(conductor_utils, 'node_power_action')
+    def test_check_rescuewait_timeouts(self, node_power_mock,
+                                       mock_clean_up):
+        self._start_service()
+        CONF.set_override('rescue_callback_timeout', 1, group='conductor')
+        tgt_prov_state = states.RESCUE
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            rescue_interface='fake',
+            network_interface='flat',
+            provision_state=states.RESCUEWAIT,
+            target_provision_state=tgt_prov_state,
+            provision_updated_at=datetime.datetime(2000, 1, 1, 0, 0))
+
+        self.service._check_rescuewait_timeouts(self.context)
+        self._stop_service()
+        node.refresh()
+        self.assertEqual(states.RESCUEFAIL, node.provision_state)
+        self.assertEqual(tgt_prov_state, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
+        self.assertIn('Timeout reached while waiting for rescue ramdisk',
+                      node.last_error)
+        mock_clean_up.assert_called_once_with(mock.ANY)
+        node_power_mock.assert_called_once_with(mock.ANY, states.POWER_OFF)
+
     def test_do_node_tear_down_invalid_state(self):
         self._start_service()
         # test node.provision_state is incorrect for tear_down

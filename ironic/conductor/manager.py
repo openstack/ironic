@@ -1727,6 +1727,27 @@ class ConductorManager(base_manager.BaseConductorManager):
                                keep_target_state=True,
                                callback_method=utils.cleanup_cleanwait_timeout)
 
+    @METRICS.timer('ConductorManager._check_rescuewait_timeouts')
+    @periodics.periodic(spacing=CONF.conductor.check_rescue_state_interval,
+                        enabled=bool(CONF.conductor.rescue_callback_timeout))
+    def _check_rescuewait_timeouts(self, context):
+        """Periodically checks if rescue has timed out waiting for heartbeat.
+
+        If a rescue call has timed out, fail the rescue and clean up.
+
+        :param context: request context.
+        """
+        callback_timeout = CONF.conductor.rescue_callback_timeout
+        filters = {'reserved': False,
+                   'provision_state': states.RESCUEWAIT,
+                   'maintenance': False,
+                   'provisioned_before': callback_timeout}
+        self._fail_if_in_state(context, filters, states.RESCUEWAIT,
+                               'provision_updated_at',
+                               keep_target_state=True,
+                               callback_method=utils.cleanup_rescuewait_timeout
+                               )
+
     @METRICS.timer('ConductorManager._sync_local_state')
     @periodics.periodic(spacing=CONF.conductor.sync_local_state_interval)
     def _sync_local_state(self, context):
