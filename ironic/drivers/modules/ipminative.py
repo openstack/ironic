@@ -21,6 +21,7 @@ Ironic Native IPMI power manager.
 
 import os
 
+from ironic_lib import metrics_utils
 from ironic_lib import utils as ironic_utils
 from oslo_log import log as logging
 from oslo_utils import excutils
@@ -46,6 +47,8 @@ if pyghmi:
     from pyghmi.ipmi import command as ipmi_command
 
 LOG = logging.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 REQUIRED_PROPERTIES = {'ipmi_address': _("IP of the node's BMC. Required."),
                        'ipmi_password': _("IPMI password. Required."),
@@ -329,6 +332,7 @@ class NativeIPMIPower(base.PowerInterface):
     def get_properties(self):
         return COMMON_PROPERTIES
 
+    @METRICS.timer('NativeIPMIPower.validate')
     def validate(self, task):
         """Check that node['driver_info'] contains IPMI credentials.
 
@@ -338,6 +342,7 @@ class NativeIPMIPower(base.PowerInterface):
         """
         _parse_driver_info(task.node)
 
+    @METRICS.timer('NativeIPMIPower.get_power_state')
     def get_power_state(self, task):
         """Get the current power state of the task's node.
 
@@ -351,6 +356,7 @@ class NativeIPMIPower(base.PowerInterface):
         driver_info = _parse_driver_info(task.node)
         return _power_status(driver_info)
 
+    @METRICS.timer('NativeIPMIPower.set_power_state')
     @task_manager.require_exclusive_lock
     def set_power_state(self, task, pstate):
         """Turn the power on or off.
@@ -378,6 +384,7 @@ class NativeIPMIPower(base.PowerInterface):
                 _("set_power_state called with an invalid power state: %s."
                   ) % pstate)
 
+    @METRICS.timer('NativeIPMIPower.reboot')
     @task_manager.require_exclusive_lock
     def reboot(self, task):
         """Cycles the power to the task's node.
@@ -400,6 +407,7 @@ class NativeIPMIManagement(base.ManagementInterface):
     def get_properties(self):
         return COMMON_PROPERTIES
 
+    @METRICS.timer('NativeIPMIManagement.validate')
     def validate(self, task):
         """Check that 'driver_info' contains IPMI credentials.
 
@@ -423,6 +431,7 @@ class NativeIPMIManagement(base.ManagementInterface):
         """
         return list(_BOOT_DEVICES_MAP.keys())
 
+    @METRICS.timer('NativeIPMIManagement.set_boot_device')
     @task_manager.require_exclusive_lock
     def set_boot_device(self, task, device, persistent=False):
         """Set the boot device for the task's node.
@@ -466,6 +475,7 @@ class NativeIPMIManagement(base.ManagementInterface):
                       {'node_id': driver_info['uuid'], 'error': e})
             raise exception.IPMIFailure(cmd=e)
 
+    @METRICS.timer('NativeIPMIManagement.get_boot_device')
     def get_boot_device(self, task):
         """Get the current boot device for the task's node.
 
@@ -520,6 +530,7 @@ class NativeIPMIManagement(base.ManagementInterface):
                                             if hdev == bootdev), None)
         return response
 
+    @METRICS.timer('NativeIPMIManagement.get_sensors_data')
     def get_sensors_data(self, task):
         """Get sensors data.
 
@@ -541,6 +552,7 @@ class NativeIPMIShellinaboxConsole(base.ConsoleInterface):
         d.update(CONSOLE_PROPERTIES)
         return d
 
+    @METRICS.timer('NativeIPMIShellinaboxConsole.validate')
     def validate(self, task):
         """Validate the Node console info.
 
@@ -556,6 +568,7 @@ class NativeIPMIShellinaboxConsole(base.ConsoleInterface):
                 "Missing 'ipmi_terminal_port' parameter in node's"
                 " driver_info."))
 
+    @METRICS.timer('NativeIPMIShellinaboxConsole.start_console')
     def start_console(self, task):
         """Start a remote console for the node.
 
@@ -588,6 +601,7 @@ class NativeIPMIShellinaboxConsole(base.ConsoleInterface):
             with excutils.save_and_reraise_exception():
                 ironic_utils.unlink_without_raise(path)
 
+    @METRICS.timer('NativeIPMIShellinaboxConsole.stop_console')
     def stop_console(self, task):
         """Stop the remote console session for the node.
 
@@ -600,6 +614,7 @@ class NativeIPMIShellinaboxConsole(base.ConsoleInterface):
             password_file = _console_pwfile_path(task.node.uuid)
             ironic_utils.unlink_without_raise(password_file)
 
+    @METRICS.timer('NativeIPMIShellinaboxConsole.get_console')
     def get_console(self, task):
         """Get the type and connection information about the console.
 
@@ -619,6 +634,7 @@ class VendorPassthru(base.VendorInterface):
     def get_properties(self):
         return COMMON_PROPERTIES
 
+    @METRICS.timer('VendorPassthru.validate')
     def validate(self, task, method, **kwargs):
         """Validate vendor-specific actions.
 
@@ -640,6 +656,7 @@ class VendorPassthru(base.VendorInterface):
 
         _parse_driver_info(task.node)
 
+    @METRICS.timer('VendorPassthru.send_raw')
     @base.passthru(['POST'])
     @task_manager.require_exclusive_lock
     def send_raw(self, task, http_method, raw_bytes):
@@ -656,6 +673,7 @@ class VendorPassthru(base.VendorInterface):
         driver_info = _parse_driver_info(task.node)
         _send_raw(driver_info, raw_bytes)
 
+    @METRICS.timer('VendorPassthru.bmc_reset')
     @base.passthru(['POST'])
     @task_manager.require_exclusive_lock
     def bmc_reset(self, task, http_method, warm=True):
