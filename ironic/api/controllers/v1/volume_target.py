@@ -156,6 +156,7 @@ class VolumeTarget(base.APIBase):
 
     @classmethod
     def sample(cls, expand=True):
+        time = datetime.datetime(2000, 1, 1, 12, 0, 0)
         properties = {"auth_method": "CHAP",
                       "auth_username": "XXX",
                       "auth_password": "XXX",
@@ -171,8 +172,8 @@ class VolumeTarget(base.APIBase):
                      volume_id='a2f3ff15-b3ea-4656-ab90-acbaa1a07607',
                      properties=properties,
                      extra={'foo': 'bar'},
-                     created_at=datetime.datetime.utcnow(),
-                     updated_at=datetime.datetime.utcnow())
+                     created_at=time,
+                     updated_at=time)
         sample._node_uuid = '7ae81bb3-dec3-4289-8d6c-da80bd8001ae'
         fields = None if expand else _DEFAULT_RETURN_FIELDS
         return cls._convert_with_links(sample, 'http://localhost:6385',

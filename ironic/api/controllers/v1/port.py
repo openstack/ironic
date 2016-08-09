@@ -221,12 +221,13 @@ class Port(base.APIBase):
 
     @classmethod
     def sample(cls, expand=True):
+        time = datetime.datetime(2000, 1, 1, 12, 0, 0)
         sample = cls(uuid='27e3153e-d5bf-4b7e-b517-fb518e17f34c',
                      address='fe:54:00:77:07:d9',
                      extra={'foo': 'bar'},
                      internal_info={},
-                     created_at=datetime.datetime.utcnow(),
-                     updated_at=datetime.datetime.utcnow(),
+                     created_at=time,
+                     updated_at=time,
                      pxe_enabled=True,
                      local_link_connection={
                          'switch_info': 'host', 'port_id': 'Gig0/1',

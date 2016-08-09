@@ -149,12 +149,13 @@ class VolumeConnector(base.APIBase):
 
     @classmethod
     def sample(cls, expand=True):
+        time = datetime.datetime(2000, 1, 1, 12, 0, 0)
         sample = cls(uuid='86cfd480-0842-4abb-8386-e46149beb82f',
                      type='iqn',
                      connector_id='iqn.2010-10.org.openstack:51332b70524',
                      extra={'foo': 'bar'},
-                     created_at=datetime.datetime.utcnow(),
-                     updated_at=datetime.datetime.utcnow())
+                     created_at=time,
+                     updated_at=time)
         sample._node_uuid = '7ae81bb3-dec3-4289-8d6c-da80bd8001ae'
         fields = None if expand else _DEFAULT_RETURN_FIELDS
         return cls._convert_with_links(sample, 'http://localhost:6385',
