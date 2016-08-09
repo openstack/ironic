@@ -15,6 +15,7 @@
 iLO Deploy Driver(s) and supporting methods.
 """
 
+from ironic_lib import metrics_utils
 from oslo_log import log as logging
 
 from ironic.common import boot_devices
@@ -34,6 +35,8 @@ from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
 
 LOG = logging.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 
 def _prepare_agent_vmedia_boot(task):
@@ -162,6 +165,7 @@ class IloVirtualMediaIscsiDeploy(iscsi_deploy.ISCSIDeploy):
     def get_properties(self):
         return {}
 
+    @METRICS.timer('IloVirtualMediaIscsiDeploy.validate')
     def validate(self, task):
         """Validate the prerequisites for virtual media based deploy.
 
@@ -176,6 +180,7 @@ class IloVirtualMediaIscsiDeploy(iscsi_deploy.ISCSIDeploy):
         _validate(task)
         super(IloVirtualMediaIscsiDeploy, self).validate(task)
 
+    @METRICS.timer('IloVirtualMediaIscsiDeploy.tear_down')
     @task_manager.require_exclusive_lock
     def tear_down(self, task):
         """Tear down a previous deployment on the task's node.
@@ -192,6 +197,7 @@ class IloVirtualMediaIscsiDeploy(iscsi_deploy.ISCSIDeploy):
         _disable_secure_boot_if_supported(task)
         return super(IloVirtualMediaIscsiDeploy, self).tear_down(task)
 
+    @METRICS.timer('IloVirtualMediaIscsiDeploy.prepare')
     def prepare(self, task):
         """Prepare the deployment environment for this task's node.
 
@@ -203,6 +209,7 @@ class IloVirtualMediaIscsiDeploy(iscsi_deploy.ISCSIDeploy):
 
         super(IloVirtualMediaIscsiDeploy, self).prepare(task)
 
+    @METRICS.timer('IloVirtualMediaIscsiDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
         """Boot into the agent to prepare for cleaning.
 
@@ -228,6 +235,7 @@ class IloVirtualMediaAgentDeploy(agent.AgentDeploy):
         """
         return ilo_boot.COMMON_PROPERTIES
 
+    @METRICS.timer('IloVirtualMediaAgentDeploy.validate')
     def validate(self, task):
         """Validate the prerequisites for virtual media based deploy.
 
@@ -242,6 +250,7 @@ class IloVirtualMediaAgentDeploy(agent.AgentDeploy):
         _validate(task)
         super(IloVirtualMediaAgentDeploy, self).validate(task)
 
+    @METRICS.timer('IloVirtualMediaAgentDeploy.tear_down')
     @task_manager.require_exclusive_lock
     def tear_down(self, task):
         """Tear down a previous deployment on the task's node.
@@ -254,6 +263,7 @@ class IloVirtualMediaAgentDeploy(agent.AgentDeploy):
         _disable_secure_boot_if_supported(task)
         return super(IloVirtualMediaAgentDeploy, self).tear_down(task)
 
+    @METRICS.timer('IloVirtualMediaAgentDeploy.prepare')
     def prepare(self, task):
         """Prepare the deployment environment for this node.
 
@@ -265,6 +275,7 @@ class IloVirtualMediaAgentDeploy(agent.AgentDeploy):
 
         super(IloVirtualMediaAgentDeploy, self).prepare(task)
 
+    @METRICS.timer('IloVirtualMediaAgentDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
         """Boot into the agent to prepare for cleaning.
 
@@ -279,6 +290,7 @@ class IloVirtualMediaAgentDeploy(agent.AgentDeploy):
         manager_utils.node_power_action(task, states.POWER_OFF)
         return super(IloVirtualMediaAgentDeploy, self).prepare_cleaning(task)
 
+    @METRICS.timer('IloVirtualMediaAgentDeploy.get_clean_steps')
     def get_clean_steps(self, task):
         """Get the list of clean steps from the agent.
 
@@ -305,6 +317,7 @@ class IloVirtualMediaAgentDeploy(agent.AgentDeploy):
 
 class IloPXEDeploy(iscsi_deploy.ISCSIDeploy):
 
+    @METRICS.timer('IloPXEDeploy.prepare')
     def prepare(self, task):
         """Prepare the deployment environment for this task's node.
 
@@ -334,6 +347,7 @@ class IloPXEDeploy(iscsi_deploy.ISCSIDeploy):
 
         super(IloPXEDeploy, self).prepare(task)
 
+    @METRICS.timer('IloPXEDeploy.deploy')
     def deploy(self, task):
         """Start deployment of the task's node.
 
@@ -346,6 +360,7 @@ class IloPXEDeploy(iscsi_deploy.ISCSIDeploy):
         manager_utils.node_set_boot_device(task, boot_devices.PXE)
         return super(IloPXEDeploy, self).deploy(task)
 
+    @METRICS.timer('IloPXEDeploy.tear_down')
     @task_manager.require_exclusive_lock
     def tear_down(self, task):
         """Tear down a previous deployment on the task's node.
@@ -359,6 +374,7 @@ class IloPXEDeploy(iscsi_deploy.ISCSIDeploy):
         _disable_secure_boot_if_supported(task)
         return super(IloPXEDeploy, self).tear_down(task)
 
+    @METRICS.timer('IloPXEDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
         """Boot into the agent to prepare for cleaning.
 

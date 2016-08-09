@@ -15,6 +15,7 @@
 iLO Management Interface
 """
 
+from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import importutils
@@ -31,6 +32,8 @@ from ironic.drivers.modules.ilo import firmware_processor
 from ironic.drivers.modules import ipmitool
 
 LOG = logging.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 ilo_error = importutils.try_import('proliantutils.exception')
 
@@ -86,6 +89,7 @@ class IloManagement(base.ManagementInterface):
     def get_properties(self):
         return MANAGEMENT_PROPERTIES
 
+    @METRICS.timer('IloManagement.validate')
     def validate(self, task):
         """Check that 'driver_info' contains required ILO credentials.
 
@@ -100,6 +104,7 @@ class IloManagement(base.ManagementInterface):
         """
         ilo_common.parse_driver_info(task.node)
 
+    @METRICS.timer('IloManagement.get_supported_boot_devices')
     def get_supported_boot_devices(self, task):
         """Get a list of the supported boot devices.
 
@@ -110,6 +115,7 @@ class IloManagement(base.ManagementInterface):
         """
         return list(BOOT_DEVICE_MAPPING_TO_ILO.keys())
 
+    @METRICS.timer('IloManagement.get_boot_device')
     def get_boot_device(self, task):
         """Get the current boot device for a node.
 
@@ -152,6 +158,7 @@ class IloManagement(base.ManagementInterface):
 
         return {'boot_device': boot_device, 'persistent': persistent}
 
+    @METRICS.timer('IloManagement.set_boot_device')
     @task_manager.require_exclusive_lock
     def set_boot_device(self, task, device, persistent=False):
         """Set the boot device for a node.
@@ -191,6 +198,7 @@ class IloManagement(base.ManagementInterface):
         LOG.debug("Node %(uuid)s set to boot from %(device)s.",
                   {'uuid': task.node.uuid, 'device': device})
 
+    @METRICS.timer('IloManagement.get_sensors_data')
     def get_sensors_data(self, task):
         """Get sensors data.
 
@@ -207,6 +215,7 @@ class IloManagement(base.ManagementInterface):
         ipmi_management = ipmitool.IPMIManagement()
         return ipmi_management.get_sensors_data(task)
 
+    @METRICS.timer('IloManagement.reset_ilo')
     @base.clean_step(priority=CONF.ilo.clean_priority_reset_ilo)
     def reset_ilo(self, task):
         """Resets the iLO.
@@ -216,6 +225,7 @@ class IloManagement(base.ManagementInterface):
         """
         return _execute_ilo_clean_step(task.node, 'reset_ilo')
 
+    @METRICS.timer('IloManagement.reset_ilo_credential')
     @base.clean_step(priority=CONF.ilo.clean_priority_reset_ilo_credential)
     def reset_ilo_credential(self, task):
         """Resets the iLO password.
@@ -238,6 +248,7 @@ class IloManagement(base.ManagementInterface):
         task.node.driver_info = info
         task.node.save()
 
+    @METRICS.timer('IloManagement.reset_bios_to_default')
     @base.clean_step(priority=CONF.ilo.clean_priority_reset_bios_to_default)
     def reset_bios_to_default(self, task):
         """Resets the BIOS settings to default values.
@@ -250,6 +261,7 @@ class IloManagement(base.ManagementInterface):
         """
         return _execute_ilo_clean_step(task.node, 'reset_bios_to_default')
 
+    @METRICS.timer('IloManagement.reset_secure_boot_keys_to_default')
     @base.clean_step(priority=CONF.ilo.
                      clean_priority_reset_secure_boot_keys_to_default)
     def reset_secure_boot_keys_to_default(self, task):
@@ -263,6 +275,7 @@ class IloManagement(base.ManagementInterface):
         """
         return _execute_ilo_clean_step(task.node, 'reset_secure_boot_keys')
 
+    @METRICS.timer('IloManagement.clear_secure_boot_keys')
     @base.clean_step(priority=CONF.ilo.clean_priority_clear_secure_boot_keys)
     def clear_secure_boot_keys(self, task):
         """Clear all secure boot keys.
@@ -275,6 +288,7 @@ class IloManagement(base.ManagementInterface):
         """
         return _execute_ilo_clean_step(task.node, 'clear_secure_boot_keys')
 
+    @METRICS.timer('IloManagement.activate_license')
     @base.clean_step(priority=0, abortable=False, argsinfo={
         'ilo_license_key': {
             'description': (
@@ -308,6 +322,7 @@ class IloManagement(base.ManagementInterface):
         LOG.info(_LI("iLO license activated for node %(node)s."),
                  {'node': node.uuid})
 
+    @METRICS.timer('IloManagement.update_firmware')
     @base.clean_step(priority=0, abortable=False, argsinfo={
         'firmware_update_mode': {
             'description': (

@@ -16,6 +16,7 @@
 iLO Power Driver
 """
 
+from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import importutils
@@ -33,6 +34,8 @@ from ironic.drivers.modules.ilo import common as ilo_common
 ilo_error = importutils.try_import('proliantutils.exception')
 
 LOG = logging.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 
 def _attach_boot_iso_if_needed(task):
@@ -172,6 +175,7 @@ class IloPower(base.PowerInterface):
     def get_properties(self):
         return ilo_common.COMMON_PROPERTIES
 
+    @METRICS.timer('IloPower.validate')
     def validate(self, task):
         """Check if node.driver_info contains the required iLO credentials.
 
@@ -181,6 +185,7 @@ class IloPower(base.PowerInterface):
         """
         ilo_common.parse_driver_info(task.node)
 
+    @METRICS.timer('IloPower.get_power_state')
     def get_power_state(self, task):
         """Gets the current power state.
 
@@ -193,6 +198,7 @@ class IloPower(base.PowerInterface):
         """
         return _get_power_state(task.node)
 
+    @METRICS.timer('IloPower.set_power_state')
     @task_manager.require_exclusive_lock
     def set_power_state(self, task, power_state):
         """Turn the current power state on or off.
@@ -207,6 +213,7 @@ class IloPower(base.PowerInterface):
         """
         _set_power_state(task, power_state)
 
+    @METRICS.timer('IloPower.reboot')
     @task_manager.require_exclusive_lock
     def reboot(self, task):
         """Reboot the node

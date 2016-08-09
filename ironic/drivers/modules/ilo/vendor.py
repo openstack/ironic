@@ -15,6 +15,7 @@
 Vendor Interface for iLO drivers and its supporting methods.
 """
 
+from ironic_lib import metrics_utils
 from oslo_log import log as logging
 
 from ironic.common import exception
@@ -30,10 +31,13 @@ from ironic.drivers.modules import iscsi_deploy
 
 LOG = logging.getLogger(__name__)
 
+METRICS = metrics_utils.get_metrics_logger(__name__)
+
 
 class IloVirtualMediaAgentVendorInterface(agent.AgentVendorInterface):
     """Interface for vendor passthru related actions."""
 
+    @METRICS.timer('IloVirtualMediaAgentVendorInterface.reboot_to_instance')
     def reboot_to_instance(self, task):
         node = task.node
         LOG.debug('Preparing to reboot to instance for node %s',
@@ -54,6 +58,7 @@ class IloVirtualMediaAgentVendorInterface(agent.AgentVendorInterface):
 class VendorPassthru(iscsi_deploy.VendorPassthru):
     """Vendor-specific interfaces for iLO deploy drivers."""
 
+    @METRICS.timer('IloVendorPassthru.validate')
     def validate(self, task, method, **kwargs):
         """Validate vendor-specific actions.
 
@@ -74,6 +79,7 @@ class VendorPassthru(iscsi_deploy.VendorPassthru):
             return
         super(VendorPassthru, self).validate(task, method, **kwargs)
 
+    @METRICS.timer('IloVendorPassthru.continue_deploy')
     @task_manager.require_exclusive_lock
     def continue_deploy(self, task, **kwargs):
         """Method invoked when deployed with the IPA ramdisk.
@@ -103,6 +109,7 @@ class VendorPassthru(iscsi_deploy.VendorPassthru):
         deploy_utils.validate_image_properties(
             task.context, {'image_source': kwargs.get('boot_iso_href')}, [])
 
+    @METRICS.timer('IloVendorPassthru.boot_into_iso')
     @base.passthru(['POST'])
     @task_manager.require_exclusive_lock
     def boot_into_iso(self, task, **kwargs):

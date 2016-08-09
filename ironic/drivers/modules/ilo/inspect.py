@@ -12,6 +12,7 @@
 """
 iLO Inspect Interface
 """
+from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
 
@@ -27,6 +28,8 @@ from ironic import objects
 ilo_error = importutils.try_import('proliantutils.exception')
 
 LOG = logging.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 CAPABILITIES_KEYS = {'BootMode', 'secure_boot', 'rom_firmware_version',
                      'ilo_firmware_version', 'server_model', 'max_raid_level',
@@ -162,6 +165,7 @@ class IloInspect(base.InspectInterface):
     def get_properties(self):
         return ilo_common.REQUIRED_PROPERTIES
 
+    @METRICS.timer('IloInspect.validate')
     def validate(self, task):
         """Check that 'driver_info' contains required ILO credentials.
 
@@ -176,6 +180,7 @@ class IloInspect(base.InspectInterface):
         node = task.node
         ilo_common.parse_driver_info(node)
 
+    @METRICS.timer('IloInspect.inspect_hardware')
     def inspect_hardware(self, task):
         """Inspect hardware to get the hardware properties.
 

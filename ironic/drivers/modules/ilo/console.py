@@ -15,10 +15,14 @@
 iLO Deploy Driver(s) and supporting methods.
 """
 
+from ironic_lib import metrics_utils
+
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules import ipmitool
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 
 class IloConsoleInterface(ipmitool.IPMIShellinaboxConsole):
@@ -29,6 +33,7 @@ class IloConsoleInterface(ipmitool.IPMIShellinaboxConsole):
         props.update(ilo_common.CONSOLE_PROPERTIES)
         return props
 
+    @METRICS.timer('IloConsoleInterface.validate')
     def validate(self, task):
         """Validate the Node console info.
 
