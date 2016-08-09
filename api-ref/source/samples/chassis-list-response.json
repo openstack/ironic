@@ -1,18 +1,18 @@
 {
-    "chassis": [
+  "chassis": [
+    {
+      "description": "Sample chassis",
+      "links": [
         {
-            "description": "Sample chassis",
-            "links": [
-                {
-                    "href": "http://localhost:6385/v1/chassis/eaaca217-e7d8-47b4-bb41-3f99f20eed89",
-                    "rel": "self"
-                },
-                {
-                    "href": "http://localhost:6385/chassis/eaaca217-e7d8-47b4-bb41-3f99f20eed89",
-                    "rel": "bookmark"
-                }
-            ],
-            "uuid": "eaaca217-e7d8-47b4-bb41-3f99f20eed89"
+          "href": "http://127.0.0.1:6385/v1/chassis/dff29d23-1ded-43b4-8ae1-5eebb3e30de1",
+          "rel": "self"
+        },
+        {
+          "href": "http://127.0.0.1:6385/chassis/dff29d23-1ded-43b4-8ae1-5eebb3e30de1",
+          "rel": "bookmark"
         }
-    ]
+      ],
+      "uuid": "dff29d23-1ded-43b4-8ae1-5eebb3e30de1"
+    }
+  ]
 }

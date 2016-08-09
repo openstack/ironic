@@ -1,0 +1,34 @@
+{
+  "config": {
+    "heartbeat_timeout": 300,
+    "metrics": {
+      "backend": "noop",
+      "global_prefix": null,
+      "prepend_host": false,
+      "prepend_host_reverse": true,
+      "prepend_uuid": false
+    },
+    "metrics_statsd": {
+      "statsd_host": "localhost",
+      "statsd_port": 8125
+    }
+  },
+  "node": {
+    "driver_internal_info": {
+      "clean_steps": null
+    },
+    "instance_info": {},
+    "links": [
+      {
+        "href": "http://127.0.0.1:6385/v1/nodes/6d85703a-565d-469a-96ce-30b6de53079d",
+        "rel": "self"
+      },
+      {
+        "href": "http://127.0.0.1:6385/nodes/6d85703a-565d-469a-96ce-30b6de53079d",
+        "rel": "bookmark"
+      }
+    ],
+    "properties": {},
+    "uuid": "6d85703a-565d-469a-96ce-30b6de53079d"
+  }
+}

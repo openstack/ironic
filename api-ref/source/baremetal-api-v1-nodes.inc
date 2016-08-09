@@ -71,7 +71,15 @@ API microversion 1.7 introduced the ``clean_step`` field`
 API microversion 1.12 introduced support for the ``raid_config`` and
 ``target_raid_config`` fields.
 
-The list and example below are representative of the response as of API microversion 1.16.
+API microversion 1.20 introduced the ``network_interface`` field. If this field
+is not supplied when creating the Node, the default value will be used.
+
+API microversion 1.21 introduced the ``resource_class`` field, which may be used to
+store a resource designation for the proposed OpenStack Placement Engine. This
+field has no effect within Ironic.
+
+
+The list and example below are representative of the response as of API microversion 1.22.
 
 .. rest_parameters:: parameters.yaml
 
@@ -100,6 +108,8 @@ The list and example below are representative of the response as of API microver
     - links: links
     - ports: n_ports
     - states: n_states
+    - network_interface: network_interface
+    - resource_class: resource_class
 
 **Example JSON representation of a Node:**
 
@@ -128,6 +138,9 @@ the list of returned Nodes to be filtered by their current state.
 API microversion 1.16 added the ``driver`` Request parameter, allowing
 the list of returned Nodes to be filtered by their driver name.
 
+API microversion 1.21 added the ``resource_class`` Request parameter,
+allowing the list of returned Nodes to be filtered by this field.
+
 Normal response codes: 200
 
 .. TODO: add error codes
@@ -142,6 +155,7 @@ Request
    - associated: r_associated
    - provision_state: r_provision_state
    - driver: r_driver
+   - resource_class: r_resource_class
    - fields: fields
    - limit: limit
    - marker: marker
@@ -192,6 +206,7 @@ Request
    - associated: r_associated
    - provision_state: r_provision_state
    - driver: r_driver
+   - resource_class: r_resource_class
    - limit: limit
    - marker: marker
    - sort_dir: sort_dir
@@ -227,6 +242,8 @@ Response
     - links: links
     - ports: n_ports
     - states: n_states
+    - network_interface: network_interface
+    - resource_class: resource_class
 
 **Example detailed list of Nodes:**
 
@@ -285,6 +302,8 @@ Response
     - links: links
     - ports: n_ports
     - states: n_states
+    - network_interface: network_interface
+    - resource_class: resource_class
 
 **Example JSON representation of a Node:**
 
@@ -350,6 +369,8 @@ Response
     - links: links
     - ports: n_ports
     - states: n_states
+    - network_interface: network_interface
+    - resource_class: resource_class
 
 **Example JSON representation of a Node:**
 

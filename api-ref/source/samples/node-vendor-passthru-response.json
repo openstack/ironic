@@ -1,26 +1,29 @@
 {
-   "bmc_reset" : {
-      "async" : true,
-      "description" : "",
-      "http_methods" : [
-         "POST"
-      ],
-      "attach" : false
-   },
-   "send_raw" : {
-      "description" : "",
-      "attach" : false,
-      "http_methods" : [
-         "POST"
-      ],
-      "async" : true
-   },
-   "heartbeat" : {
-      "async" : true,
-      "attach" : false,
-      "http_methods" : [
-         "POST"
-      ],
-      "description" : ""
-   }
+  "bmc_reset": {
+    "async": true,
+    "attach": false,
+    "description": "",
+    "http_methods": [
+      "POST"
+    ],
+    "require_exclusive_lock": true
+  },
+  "heartbeat": {
+    "async": true,
+    "attach": false,
+    "description": "",
+    "http_methods": [
+      "POST"
+    ],
+    "require_exclusive_lock": true
+  },
+  "send_raw": {
+    "async": true,
+    "attach": false,
+    "description": "",
+    "http_methods": [
+      "POST"
+    ],
+    "require_exclusive_lock": true
+  }
 }

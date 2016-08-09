@@ -1,7 +1,3 @@
 {
-    "chassis": [
-        {
-            "description": "Sample chassis"
-        }
-    ]
+    "description": "Sample chassis"
 }

@@ -1,27 +1,26 @@
 {
-   "management" : {
-      "result" : true
-   },
-   "inspect" : {
-      "result" : null,
-      "reason" : "not supported"
-   },
-   "power" : {
-      "result" : true
-   },
-   "raid" : {
-      "result" : true
-   },
-   "boot" : {
-      "result" : false,
-      "reason" : "Cannot validate image information for node ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb because one or more parameters are missing from its instance_info.. Missing are: ['ramdisk', 'kernel', 'image_source']"
-   },
-   "console" : {
-      "result" : false,
-      "reason" : "Missing 'ipmi_terminal_port' parameter in node's driver_info."
-   },
-   "deploy" : {
-      "reason" : "Cannot validate image information for node ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb because one or more parameters are missing from its instance_info.. Missing are: ['ramdisk', 'kernel', 'image_source']",
-      "result" : false
-   }
+  "boot": {
+    "result": true
+  },
+  "console": {
+    "result": true
+  },
+  "deploy": {
+    "result": true
+  },
+  "inspect": {
+    "result": true
+  },
+  "management": {
+    "result": true
+  },
+  "network": {
+    "result": true
+  },
+  "power": {
+    "result": true
+  },
+  "raid": {
+    "result": true
+  }
 }

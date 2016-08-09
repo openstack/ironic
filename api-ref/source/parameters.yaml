@@ -15,7 +15,7 @@ openstack-request-id:
   type: string
 x-openstack-ironic-api-max-version:
   description: |
-    Maximum API microversion supported by this endpoint, eg. "1.16"
+    Maximum API microversion supported by this endpoint, eg. "1.22"
   in: header
   required: true
   type: string
@@ -70,6 +70,14 @@ port_ident:
   type: string
 
 
+callback_url:
+  description: |
+    The URL of an active ironic-python-agent ramdisk, sent back to the Bare
+    Metal service and stored temporarily during a provisioning action.
+  in: query
+  required: true
+  type: string
+
 # variables common to all query strings
 fields:
   description: |
@@ -114,6 +122,14 @@ method_name:
   required: true
   type: string
 
+# variable in the lookup query string
+r_addresses:
+  description: |
+    Optional list of one or more Port addresses.
+  in: query
+  required: false
+  type: list
+
 # variables in the node query string
 r_associated:
   description: |
@@ -143,6 +159,13 @@ r_maintenance:
   in: query
   required: false
   type: boolean
+# variable in the lookup query string
+r_node_uuid:
+  description: |
+    Optional Node UUID.
+  in: query
+  required: false
+  type: string
 r_port_address:
   description: |
     Filter the list of returned Ports, and only return the ones with the
@@ -172,6 +195,13 @@ r_provision_state:
   in: query
   required: false
   type: string
+r_resource_class:
+  description: |
+    Filter the list of returned nodes, and only return the ones with the
+    specified resource class. Introduced in API version 1.21.
+  in: query
+  required: false
+  type: string
 sort_dir:
   description: |
     Sorts the response by the requested sort
@@ -195,6 +225,22 @@ sort_key:
   required: false
   type: string
 
+
+
+# variable returned from /lookup
+agent_config:
+  description: |
+    JSON document of configuration data for the ironic-python-agent process.
+  in: body
+  required: true
+  type: JSON
+agent_node:
+  description: |
+    JSON document containing a subset of Node fields, used by the
+    ironic-python-agent process as it operates on the Node.
+  in: body
+  required: true
+  type: JSON
 
 # variables in the API response body
 boot_device:
@@ -412,6 +458,13 @@ name:
   in: body
   required: true
   type: string
+network_interface:
+  description: |
+    Which Network Interface provider to use when plumbing the network
+    connections for this Node. Added in API microversion v1.20
+  in: body
+  required: true
+  type: string
 node_name:
   description: |
     Human-readable identifier for the Node resource. May be undefined. Certain
@@ -545,6 +598,14 @@ reservation:
   in: body
   required: true
   type: string
+resource_class:
+  description: |
+    A string which can be used by external schedulers to identify this Node as
+    a unit of a specific type of resource. This will be used by the openstack
+    Placement Engine in a future release. Added in API microversion 1.21.
+  in: body
+  required: true
+  type: string
 supported_boot_devices:
   description: |
     List of boot devices which this Node's driver supports.
@@ -637,7 +698,7 @@ v_raid:
 
 version:
   description: |
-    Versioning of this API response, eg. "1.16".
+    Versioning of this API response, eg. "1.22".
   in: body
   required: true
   type: string

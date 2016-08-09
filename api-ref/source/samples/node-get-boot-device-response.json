@@ -1,0 +1,4 @@
+{
+  "boot_device": "pxe",
+  "persistent": false
+}

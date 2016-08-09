@@ -1,11 +1,11 @@
 {
-   "last_error" : "",
-   "target_raid_config" : {},
-   "target_power_state" : null,
-   "console_enabled" : false,
-   "target_provision_state" : null,
-   "provision_updated_at" : null,
-   "power_state" : "power off",
-   "raid_config" : {},
-   "provision_state" : "available"
+  "console_enabled": false,
+  "last_error": null,
+  "power_state": "power off",
+  "provision_state": "available",
+  "provision_updated_at": "2016-08-18T22:28:49.382814+00:00",
+  "raid_config": {},
+  "target_power_state": null,
+  "target_provision_state": null,
+  "target_raid_config": {}
 }
