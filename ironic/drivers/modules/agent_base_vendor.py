@@ -16,7 +16,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import ast
 import collections
 import time
 
@@ -806,8 +805,8 @@ class BaseAgentVendor(AgentDeployMixin, base.VendorInterface):
 
         ndict = node.as_dict()
         if not context.show_password:
-            ndict['driver_info'] = ast.literal_eval(
-                strutils.mask_password(ndict['driver_info'], "******"))
+            ndict['driver_info'] = strutils.mask_dict_password(
+                ndict['driver_info'], "******")
 
         return {
             # heartbeat_timeout is a config, so moving it into the
