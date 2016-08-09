@@ -1184,6 +1184,10 @@ function configure_ironic_ssh_keypair {
         fi
         echo -e 'n\n' | ssh-keygen -q -t rsa -P '' -f $IRONIC_KEY_FILE
     fi
+    # NOTE(vsaienko) check for new line character, add if doesn't exist.
+    if [[ "$(tail -c1 $IRONIC_AUTHORIZED_KEYS_FILE | wc -l)" == "0" ]]; then
+        echo "" >> $IRONIC_AUTHORIZED_KEYS_FILE
+    fi
     cat $IRONIC_KEY_FILE.pub | tee -a $IRONIC_AUTHORIZED_KEYS_FILE
     # remove duplicate keys.
     sort -u -o $IRONIC_AUTHORIZED_KEYS_FILE $IRONIC_AUTHORIZED_KEYS_FILE
