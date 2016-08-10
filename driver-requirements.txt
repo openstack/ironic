@@ -4,7 +4,7 @@
 # python projects they should package as optional dependencies for Ironic.
 
 # These are available on pypi
-proliantutils>=2.1.7
+proliantutils>=2.1.10
 pyghmi>=0.8.0
 pysnmp
 python-ironic-inspector-client
