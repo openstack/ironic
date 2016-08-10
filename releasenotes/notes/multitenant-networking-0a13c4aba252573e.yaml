@@ -1,0 +1,77 @@
+---
+features:
+  - |
+    Adds multitenant networking support.
+
+    Ironic now has the concept of "network interfaces" for a node, which
+    represent a networking driver.
+
+    There are three network interfaces available:
+
+    * ``flat``: this replicates the old flat network behavior and is the default
+      when using neutron for DHCP.
+    * ``noop``: this replicates the old flat behavior when not using neutron for
+      DHCP, and is the default when the configuration option
+      ``[DHCP]/dhcp_provider`` is set to "none".
+    * ``neutron``: this allows for separating the provisioning and cleaning
+      networks from the tenant networks, and provides isolation from tenant
+      network to tenant network, and tenant network to control plane.
+      The following configuration options must be set if the neutron interface
+      is enabled, or ironic-conductor will fail to start:
+
+      * ``[neutron]/provisioning_network_uuid``
+      * ``[neutron]/cleaning_network_uuid``
+
+    A ``[DEFAULT]/enabled_network_interfaces`` option (which must be set for
+    both ironic-api and ironic-conductor services) controls which network
+    interfaces are available for use.
+
+    A network interface is set for a node by setting the ``network_interface``
+    field for the node via the REST API. This field is available in API version
+    1.20 and above. Changing the network interface may only be done in the
+    ``enroll``, ``inspecting``, and ``manageable`` states.
+
+    The configuration option ``[DEFAULT]/default_network_interface`` may be
+    used to specify which network interface is defined when a node is created.
+
+    **WARNING: don't set the option ``[DEFAULT]/default_network_interface``
+    before upgrading to this release without reading the upgrade notes about
+    it, due to data migrations depending on the value.**
+deprecations:
+  - |
+    ``create_cleaning_ports`` and ``delete_cleaning_ports`` methods in DHCP
+    providers are deprecated and will be removed completely in the Ocata
+    release. The logic they are implementing should be moved to a custom
+    network interface's ``add_cleaning_network`` and
+    ``remove_cleaning_network`` methods respectively. After that, the methods
+    themselves should be removed from DHCP provider so that the custom
+    network interface is used instead. ``flat`` network interface does not
+    require ``[neutron]/cleaning_network_uuid`` for now so as not to break
+    standalone deployments upon upgrade, but it will be required in the Ocata
+    release if the ``flat`` network interface is enabled.
+upgrade:
+  - |
+    ``[DEFAULT]/default_network_interface`` configuration option is introduced,
+    with empty default value. If set, the specified interface will be used as
+    the network interface for nodes that don't have ``network_interface`` field
+    set. If it is not set, the network interface is determined by looking at
+    the ``[dhcp]/dhcp_provider`` value. If it is ``neutron`` - ``flat`` network
+    interface is the default, ``noop`` otherwise.
+
+    The network interface will be set for all nodes without network_interface
+    already set via a database migration. This will be set following the logic
+    above. When running database migrations for an existing deployment, it's
+    important to check the above configuration options to ensure the existing
+    nodes will have the expected network_interface. If
+    ``[DEFAULT]/default_network_interface`` is not set, everything should go as
+    expected. If it is set, ensure that it is set to the value that you wish
+    existing nodes to use.
+  - Note that if the configuration option
+    ``[DEFAULT]/default_network_interface`` is set, it must be set
+    in the configuration file for both the API and conductor hosts.
+  - If ``neutron`` network interface is specified for the configuration option
+    ``[DEFAULT]/enabled_network_interfaces``, then
+    ``[neutron]/provisioning_network_uuid`` and
+    ``[neutron]/cleaning_network_uuid`` configuration options are required. If
+    either of them is not specified, the ironic-conductor service will fail to
+    start.
