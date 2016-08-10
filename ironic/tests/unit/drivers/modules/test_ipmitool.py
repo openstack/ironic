@@ -40,6 +40,7 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers.modules import console_utils
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import ipmitool as ipmi
 from ironic.drivers import utils as driver_utils
 from ironic.tests import base
@@ -1793,6 +1794,38 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             self.assertRaises(FakeException,
                               self.driver.management.set_boot_device,
                               task, boot_devices.PXE)
+
+    @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy')
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_management_interface_set_boot_device_uefi(self, mock_exec,
+                                                       mock_boot_mode):
+        mock_boot_mode.return_value = 'uefi'
+        mock_exec.return_value = [None, None]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.driver.management.set_boot_device(task, boot_devices.PXE)
+
+        mock_calls = [
+            mock.call(self.info, "raw 0x00 0x08 0x03 0x08"),
+            mock.call(self.info, "chassis bootdev pxe options=efiboot")
+        ]
+        mock_exec.assert_has_calls(mock_calls)
+
+    @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy')
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_management_interface_set_boot_device_uefi_and_persistent(
+            self, mock_exec, mock_boot_mode):
+        mock_boot_mode.return_value = 'uefi'
+        mock_exec.return_value = [None, None]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.driver.management.set_boot_device(task, boot_devices.PXE,
+                                                   persistent=True)
+        mock_calls = [
+            mock.call(self.info, "raw 0x00 0x08 0x03 0x08"),
+            mock.call(self.info, "raw 0x00 0x08 0x05 0xe0 0x04 0x00 0x00 0x00")
+        ]
+        mock_exec.assert_has_calls(mock_calls)
 
     def test_management_interface_get_supported_boot_devices(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:

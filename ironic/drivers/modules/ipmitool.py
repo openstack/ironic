@@ -55,6 +55,7 @@ from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules import console_utils
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers import utils as driver_utils
 
 
@@ -133,6 +134,18 @@ ipmitool_command_options = {
 # be in ipmitool which means the string should always be returned in this
 # form regardless of locale.
 IPMITOOL_RETRYABLE_FAILURES = ['insufficient resources for session']
+
+# NOTE(lucasagomes): A mapping for the boot devices and their hexadecimal
+# value. For more information about these values see the "Set System Boot
+# Options Command" section of the link below (page 418)
+# http://www.intel.com/content/www/us/en/servers/ipmi/ipmi-second-gen-interface-spec-v2-rev1-1.html  # noqa
+BOOT_DEVICE_HEXA_MAP = {
+    boot_devices.PXE: '0x04',
+    boot_devices.DISK: '0x08',
+    boot_devices.CDROM: '0x14',
+    boot_devices.BIOS: '0x18',
+    boot_devices.SAFE: '0x0c'
+}
 
 
 def _check_option_support(options):
@@ -856,8 +869,7 @@ class IPMIManagement(base.ManagementInterface):
                   in :mod:`ironic.common.boot_devices`.
 
         """
-        return [boot_devices.PXE, boot_devices.DISK, boot_devices.CDROM,
-                boot_devices.BIOS, boot_devices.SAFE]
+        return list(BOOT_DEVICE_HEXA_MAP)
 
     @task_manager.require_exclusive_lock
     def set_boot_device(self, task, device, persistent=False):
@@ -896,9 +908,32 @@ class IPMIManagement(base.ManagementInterface):
             # persistent or we do not have admin rights.
             persistent = False
 
-        cmd = "chassis bootdev %s" % device
+        # FIXME(lucasagomes): Older versions of the ipmitool utility
+        # are not able to set the options "efiboot" and "persistent"
+        # at the same time, combining other options seems to work fine,
+        # except efiboot. Newer versions of ipmitool (1.8.17) does fix
+        # this problem but (some) distros still packaging an older version.
+        # To workaround this problem for now we can make use of sending
+        # raw bytes to set the boot device for a node in persistent +
+        # uefi mode, this will work with newer and older versions of the
+        # ipmitool utility. Also see:
+        # https://bugs.launchpad.net/ironic/+bug/1611306
+        boot_mode = deploy_utils.get_boot_mode_for_deploy(task.node)
+        if persistent and boot_mode == 'uefi':
+            raw_cmd = ('0x00 0x08 0x05 0xe0 %s 0x00 0x00 0x00' %
+                       BOOT_DEVICE_HEXA_MAP[device])
+            send_raw(task, raw_cmd)
+            return
+
+        options = []
         if persistent:
-            cmd = cmd + " options=persistent"
+            options.append('persistent')
+        if boot_mode == 'uefi':
+            options.append('efiboot')
+
+        cmd = "chassis bootdev %s" % device
+        if options:
+            cmd = cmd + " options=%s" % ','.join(options)
         driver_info = _parse_driver_info(task.node)
         try:
             out, err = _exec_ipmitool(driver_info, cmd)
