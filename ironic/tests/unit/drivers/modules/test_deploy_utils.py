@@ -1449,7 +1449,7 @@ class VirtualMediaDeployUtilsTestCase(db_base.DbTestCase):
         obj_utils.create_test_port(
             self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
             uuid=uuidutils.generate_uuid(),
-            extra={'vif_port_id': 'test-vif-A'}, driver='iscsi_ilo')
+            extra={'vif_port_id': 'test-vif-A'})
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             address = utils.get_single_nic_with_vif_port_id(task)
@@ -1459,8 +1459,7 @@ class VirtualMediaDeployUtilsTestCase(db_base.DbTestCase):
         obj_utils.create_test_port(
             self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
             uuid=uuidutils.generate_uuid(),
-            internal_info={'cleaning_vif_port_id': 'test-vif-A'},
-            driver='iscsi_ilo')
+            internal_info={'cleaning_vif_port_id': 'test-vif-A'})
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             address = utils.get_single_nic_with_vif_port_id(task)
@@ -1470,8 +1469,7 @@ class VirtualMediaDeployUtilsTestCase(db_base.DbTestCase):
         obj_utils.create_test_port(
             self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
             uuid=uuidutils.generate_uuid(),
-            internal_info={'provisioning_vif_port_id': 'test-vif-A'},
-            driver='iscsi_ilo')
+            internal_info={'provisioning_vif_port_id': 'test-vif-A'})
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             address = utils.get_single_nic_with_vif_port_id(task)
