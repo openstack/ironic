@@ -50,7 +50,12 @@ if is_service_enabled ir-api ir-cond; then
             echo_summary "Starting Ironic"
             start_ironic
             prepare_baremetal_basic_ops
+
+        elif [[ "$2" == "test-config" ]]; then
+        # stack/test-config - Called at the end of devstack used to configure tempest
+        # or any other test environments
             if is_service_enabled tempest; then
+                echo_summary "Configuring Tempest for Ironic needs"
                 ironic_configure_tempest
             fi
         fi
