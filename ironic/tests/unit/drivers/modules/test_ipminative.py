@@ -495,22 +495,22 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(console_utils, 'start_shellinabox_console',
                        autospec=True)
-    def test_start_console(self, mock_exec):
-        mock_exec.return_value = None
+    def test_start_console(self, mock_start):
+        mock_start.return_value = None
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             self.driver.console.start_console(task)
 
-        mock_exec.assert_called_once_with(self.info['uuid'],
-                                          self.info['port'],
-                                          mock.ANY)
-        self.assertTrue(mock_exec.called)
+        mock_start.assert_called_once_with(self.info['uuid'],
+                                           self.info['port'],
+                                           mock.ANY)
+        self.assertTrue(mock_start.called)
 
     @mock.patch.object(console_utils, 'start_shellinabox_console',
                        autospec=True)
-    def test_start_console_fail(self, mock_exec):
-        mock_exec.side_effect = exception.ConsoleSubprocessFailed(
+    def test_start_console_fail(self, mock_start):
+        mock_start.side_effect = exception.ConsoleSubprocessFailed(
             error='error')
 
         with task_manager.acquire(self.context,
@@ -519,17 +519,18 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
                               self.driver.console.start_console,
                               task)
 
+        self.assertTrue(mock_start.called)
+
     @mock.patch.object(console_utils, 'stop_shellinabox_console',
                        autospec=True)
-    def test_stop_console(self, mock_exec):
-        mock_exec.return_value = None
+    def test_stop_console(self, mock_stop):
+        mock_stop.return_value = None
 
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
             self.driver.console.stop_console(task)
 
-        mock_exec.assert_called_once_with(self.info['uuid'])
-        self.assertTrue(mock_exec.called)
+        mock_stop.assert_called_once_with(self.info['uuid'])
 
     @mock.patch.object(console_utils, 'stop_shellinabox_console',
                        autospec=True)
@@ -546,9 +547,9 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(console_utils, 'get_shellinabox_console_url',
                        autospec=True)
-    def test_get_console(self, mock_exec):
+    def test_get_console(self, mock_get_url):
         url = 'http://localhost:4201'
-        mock_exec.return_value = url
+        mock_get_url.return_value = url
         expected = {'type': 'shellinabox', 'url': url}
 
         with task_manager.acquire(self.context,
@@ -556,8 +557,7 @@ class IPMINativeDriverTestCase(db_base.DbTestCase):
             console_info = self.driver.console.get_console(task)
 
         self.assertEqual(expected, console_info)
-        mock_exec.assert_called_once_with(self.info['port'])
-        self.assertTrue(mock_exec.called)
+        mock_get_url.assert_called_once_with(self.info['port'])
 
     @mock.patch.object(ipminative, '_parse_driver_info', autospec=True)
     @mock.patch.object(ipminative, '_parse_raw_bytes', autospec=True)
