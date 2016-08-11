@@ -1,5 +1,20 @@
 ---
 features:
-  - Adds Dynamic Allocation feature for the OneView drivers.
+  - OneView drivers now support dynamic allocation of nodes in OneView,
+    allowing for better resource sharing with non-OpenStack users since Server
+    Hardware will be allocated only when the node is scheduled to be used. To
+    enable the new allocation feature for a node, set the flag
+    ``dynamic_allocation=True`` on the node's ``driver_info``.
+    More information is available at
+    http://docs.openstack.org/developer/ironic/drivers/oneview.html.
 deprecations:
-  - Deprecates pre-allocation feature for the OneView drivers.
+  - Deprecates pre-allocation feature for the OneView drivers since it requires
+    resource allocation to Ironic prior to boot time, which makes Server
+    Hardware unavailable to non-OpenStack OneView users. Pre-allocation will
+    be removed in the OpenStack "P" release. All nodes with
+    ``dynamic_allocation=False`` set, or that don't have the ``dynamic_allocation``
+    flag set, will be assumed to be in pre-allocation. Users may use the REST API
+    or the ``ironic-oneview-cli`` to migrate nodes from pre-allocation to
+    dynamic allocation.
+    More information is available at
+    http://docs.openstack.org/developer/ironic/drivers/oneview.html.
