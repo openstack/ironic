@@ -17,7 +17,6 @@ import datetime
 
 from ironic_lib import metrics_utils
 import jsonschema
-from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import strutils
 from oslo_utils import uuidutils
@@ -40,13 +39,11 @@ from ironic.common.i18n import _
 from ironic.common import policy
 from ironic.common import states as ir_states
 from ironic.conductor import utils as conductor_utils
+import ironic.conf
 from ironic import objects
 
 
-CONF = cfg.CONF
-CONF.import_opt('heartbeat_timeout', 'ironic.conductor.manager',
-                group='conductor')
-CONF.import_opt('enabled_network_interfaces', 'ironic.common.driver_factory')
+CONF = ironic.conf.CONF
 
 LOG = log.getLogger(__name__)
 _CLEAN_STEPS_SCHEMA = {
