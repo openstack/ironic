@@ -38,6 +38,7 @@ from ironic.conductor import task_manager
 from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import console_utils
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers import utils as driver_utils
 
 pyghmi = importutils.try_import('pyghmi')
@@ -453,13 +454,15 @@ class NativeIPMIManagement(base.ManagementInterface):
             # persistent or we do not have admin rights.
             persistent = False
 
+        boot_mode = deploy_utils.get_boot_mode_for_deploy(task.node)
         driver_info = _parse_driver_info(task.node)
         try:
             ipmicmd = ipmi_command.Command(bmc=driver_info['address'],
                                            userid=driver_info['username'],
                                            password=driver_info['password'])
             bootdev = _BOOT_DEVICES_MAP[device]
-            ipmicmd.set_bootdev(bootdev, persist=persistent)
+            uefiboot = boot_mode == 'uefi'
+            ipmicmd.set_bootdev(bootdev, persist=persistent, uefiboot=uefiboot)
         except pyghmi_exception.IpmiException as e:
             LOG.error(_LE("IPMI set boot device failed for node %(node_id)s "
                           "with the following error: %(error)s"),
