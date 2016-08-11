@@ -407,11 +407,13 @@ driver and provide hardware resources (network, baremetal compute nodes)
 using a combination of OpenVSwitch and libvirt.  It is highly recommended
 to deploy on an expendable virtual machine and not on your personal work
 station.  Deploying Ironic with DevStack requires a machine running Ubuntu
-14.04 (or later) or Fedora 20 (or later).
+14.04 (or later) or Fedora 20 (or later). Make sure your machine is fully
+up to date and has the latest packages installed before beginning this process.
 
 .. seealso::
 
     http://docs.openstack.org/developer/devstack/
+
 
 Devstack will no longer create the user 'stack' with the desired
 permissions, but does provide a script to perform the task::
