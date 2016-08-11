@@ -5,11 +5,36 @@ Bare Metal Service Upgrade Guide
 ================================
 
 This document outlines various steps and notes for operators to consider when
-upgrading their Ironic-driven clouds from previous versions of OpenStack.
+upgrading their ironic-driven clouds from previous versions of OpenStack.
 
-The Ironic service is tightly coupled with the Ironic driver that is shipped
-with Nova. Currently, some special considerations must be taken into account
+The ironic service is tightly coupled with the ironic driver that is shipped
+with nova. Some special considerations must be taken into account
 when upgrading your cloud from previous versions of OpenStack.
+
+The `release notes <http://docs.openstack.org/releasenotes/ironic/>`_
+should always be read carefully when upgrading the ironic service. Starting
+with the Mitaka series, specific upgrade steps and considerations are
+well-documented in the release notes. Specific upgrade considerations prior
+to the Mitaka series are documented below.
+
+Upgrades are only supported one series at a time, or within a series.
+
+General upgrades - all versions
+===============================
+
+Starting with the Liberty release, the ironic service should always be upgraded
+before the nova service. The ironic virt driver in nova always uses a specific
+version of the ironic REST API. This API version may be one that was introduced
+in the same development cycle, so upgrading nova first may result in nova being
+unable to use ironic's API.
+
+When upgrading ironic, the following steps should always be taken:
+
+* Update ironic code, without restarting services yet.
+
+* Run database migrations
+
+* Restart ironic-conductor and ironic-api services.
 
 Upgrading from Kilo to Liberty
 ==============================
@@ -25,7 +50,7 @@ the **ironic-discoverd** package. Ironic Liberty supports the
 Please refer to
 `ironic-inspector version support matrix
 <http://docs.openstack.org/developer/ironic-inspector/install.html#version-support-matrix>`_
-for details on which Ironic versions can work with which
+for details on which ironic versions can work with which
 **ironic-inspector**/**ironic-discoverd** versions.
 
 It's also highly recommended that you switch to using **ironic-inspector**,
@@ -62,25 +87,25 @@ The discoverd to inspector upgrade procedure is as follows:
 Upgrading from Juno to Kilo
 ===========================
 
-When upgrading a cloud from Juno to Kilo, users must ensure the Nova
-service is upgraded prior to upgrading the Ironic service. Additionally,
-users need to set a special config flag in Nova prior to upgrading to ensure
-the newer version of Nova is not attempting to take advantage of new Ironic
-features until the Ironic service has been upgraded. The steps for upgrading
-your Nova and Ironic services are as follows:
+When upgrading a cloud from Juno to Kilo, users must ensure the nova
+service is upgraded prior to upgrading the ironic service. Additionally,
+users need to set a special config flag in nova prior to upgrading to ensure
+the newer version of nova is not attempting to take advantage of new ironic
+features until the ironic service has been upgraded. The steps for upgrading
+your nova and ironic services are as follows:
 
 - Edit nova.conf and ensure force_config_drive=False is set in the [DEFAULT]
   group. Restart nova-compute if necessary.
-- Install new Nova code, run database migrations
+- Install new nova code, run database migrations
 - Install new python-ironicclient code.
-- Restart Nova services.
-- Install new Ironic code, run database migrations, restart Ironic services.
+- Restart nova services.
+- Install new ironic code, run database migrations, restart ironic services.
 - Edit nova.conf and set force_config_drive to your liking, restarting
   nova-compute if necessary.
 
-Note that during the period between Nova's upgrade and Ironic's upgrades,
+Note that during the period between nova's upgrade and ironic's upgrades,
 instances can still be provisioned to nodes. However, any attempt by users to
-specify a config drive for an instance will cause an error until Ironic's
+specify a config drive for an instance will cause an error until ironic's
 upgrade has completed.
 
 Cleaning
@@ -90,8 +115,8 @@ workloads to ensure the node is ready for another workload. This can include
 erasing the hard drives, updating firmware, and other steps. For more
 information, see :ref:`automated_cleaning`.
 
-If Ironic is configured with automated cleaning enabled (defaults to True) and
+If ironic is configured with automated cleaning enabled (defaults to True) and
 to use Neutron as the DHCP provider (also the default), you will need to set the
-`cleaning_network_uuid` option in the Ironic configuration file before starting
-the Kilo Ironic service. See :ref:`CleaningNetworkSetup` for information on
-how to set up the cleaning network for Ironic.
+`cleaning_network_uuid` option in the ironic configuration file before starting
+the Kilo ironic service. See :ref:`CleaningNetworkSetup` for information on
+how to set up the cleaning network for ironic.
