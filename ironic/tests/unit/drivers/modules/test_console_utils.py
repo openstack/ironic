@@ -102,35 +102,33 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         self.assertEqual(expected_path, path)
         mock_dir.assert_called_once_with()
 
+    @mock.patch.object(console_utils, 'open',
+                       mock.mock_open(read_data='12345\n'))
     @mock.patch.object(console_utils, '_get_console_pid_file', autospec=True)
-    def test__get_console_pid(self, mock_exec):
+    def test__get_console_pid(self, mock_pid_file):
         tmp_file_handle = tempfile.NamedTemporaryFile()
         tmp_file = tmp_file_handle.name
-        self.addCleanup(ironic_utils.unlink_without_raise, tmp_file)
-        with open(tmp_file, "w") as f:
-            f.write("12345\n")
 
-        mock_exec.return_value = tmp_file
+        mock_pid_file.return_value = tmp_file
 
         pid = console_utils._get_console_pid(self.info['uuid'])
 
-        mock_exec.assert_called_once_with(self.info['uuid'])
+        mock_pid_file.assert_called_once_with(self.info['uuid'])
         self.assertEqual(pid, 12345)
 
+    @mock.patch.object(console_utils, 'open',
+                       mock.mock_open(read_data='Hello World\n'))
     @mock.patch.object(console_utils, '_get_console_pid_file', autospec=True)
-    def test__get_console_pid_not_a_num(self, mock_exec):
+    def test__get_console_pid_not_a_num(self, mock_pid_file):
         tmp_file_handle = tempfile.NamedTemporaryFile()
         tmp_file = tmp_file_handle.name
-        self.addCleanup(ironic_utils.unlink_without_raise, tmp_file)
-        with open(tmp_file, "w") as f:
-            f.write("Hello World\n")
 
-        mock_exec.return_value = tmp_file
+        mock_pid_file.return_value = tmp_file
 
         self.assertRaises(exception.NoConsolePid,
                           console_utils._get_console_pid,
                           self.info['uuid'])
-        mock_exec.assert_called_once_with(self.info['uuid'])
+        mock_pid_file.assert_called_once_with(self.info['uuid'])
 
     def test__get_console_pid_file_not_found(self):
         self.assertRaises(exception.NoConsolePid,
@@ -244,8 +242,10 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
                           filepath,
                           'password')
 
+    @mock.patch.object(console_utils, 'open',
+                       mock.mock_open(read_data='12345\n'))
+    @mock.patch.object(os.path, 'exists', autospec=True)
     @mock.patch.object(subprocess, 'Popen', autospec=True)
-    @mock.patch.object(console_utils, '_get_console_pid', autospec=True)
     @mock.patch.object(psutil, 'pid_exists', autospec=True)
     @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',
                        autospec=True)
@@ -253,17 +253,11 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     def test_start_shellinabox_console(self, mock_stop,
                                        mock_dir_exists,
                                        mock_pid_exists,
-                                       mock_pid,
-                                       mock_popen):
+                                       mock_popen,
+                                       mock_path_exists):
         mock_popen.return_value.poll.return_value = 0
-        mock_pid.return_value = 12345
         mock_pid_exists.return_value = True
-
-        # touch the pid file
-        pid_file = console_utils._get_console_pid_file(self.info['uuid'])
-        open(pid_file, 'a').close()
-        self.addCleanup(os.remove, pid_file)
-        self.assertTrue(os.path.exists(pid_file))
+        mock_path_exists.return_value = True
 
         console_utils.start_shellinabox_console(self.info['uuid'],
                                                 self.info['port'],
@@ -271,15 +265,16 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
 
         mock_stop.assert_called_once_with(self.info['uuid'])
         mock_dir_exists.assert_called_once_with()
-        mock_pid.assert_called_once_with(self.info['uuid'])
         mock_pid_exists.assert_called_once_with(12345)
         mock_popen.assert_called_once_with(mock.ANY,
                                            stdout=subprocess.PIPE,
                                            stderr=subprocess.PIPE)
         mock_popen.return_value.poll.assert_called_once_with()
 
+    @mock.patch.object(console_utils, 'open',
+                       mock.mock_open(read_data='12345\n'))
+    @mock.patch.object(os.path, 'exists', autospec=True)
     @mock.patch.object(subprocess, 'Popen', autospec=True)
-    @mock.patch.object(console_utils, '_get_console_pid', autospec=True)
     @mock.patch.object(psutil, 'pid_exists', autospec=True)
     @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',
                        autospec=True)
@@ -287,19 +282,13 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     def test_start_shellinabox_console_nopid(self, mock_stop,
                                              mock_dir_exists,
                                              mock_pid_exists,
-                                             mock_pid,
-                                             mock_popen):
+                                             mock_popen,
+                                             mock_path_exists):
         # no existing PID file before starting
         mock_stop.side_effect = exception.NoConsolePid('/tmp/blah')
         mock_popen.return_value.poll.return_value = 0
-        mock_pid.return_value = 12345
         mock_pid_exists.return_value = True
-
-        # touch the pid file
-        pid_file = console_utils._get_console_pid_file(self.info['uuid'])
-        open(pid_file, 'a').close()
-        self.addCleanup(os.remove, pid_file)
-        self.assertTrue(os.path.exists(pid_file))
+        mock_path_exists.return_value = True
 
         console_utils.start_shellinabox_console(self.info['uuid'],
                                                 self.info['port'],
@@ -307,7 +296,6 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
 
         mock_stop.assert_called_once_with(self.info['uuid'])
         mock_dir_exists.assert_called_once_with()
-        mock_pid.assert_called_once_with(self.info['uuid'])
         mock_pid_exists.assert_called_once_with(12345)
         mock_popen.assert_called_once_with(mock.ANY,
                                            stdout=subprocess.PIPE,
@@ -336,8 +324,10 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
                                            stderr=subprocess.PIPE)
         mock_popen.return_value.poll.assert_called_once_with()
 
+    @mock.patch.object(console_utils, 'open',
+                       mock.mock_open(read_data='12345\n'))
+    @mock.patch.object(os.path, 'exists', autospec=True)
     @mock.patch.object(subprocess, 'Popen', autospec=True)
-    @mock.patch.object(console_utils, '_get_console_pid', autospec=True)
     @mock.patch.object(psutil, 'pid_exists', autospec=True)
     @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',
                        autospec=True)
@@ -345,18 +335,12 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     def test_start_shellinabox_console_fail_no_pid(self, mock_stop,
                                                    mock_dir_exists,
                                                    mock_pid_exists,
-                                                   mock_pid,
-                                                   mock_popen):
+                                                   mock_popen,
+                                                   mock_path_exists):
         mock_popen.return_value.poll.return_value = 0
-        mock_pid.return_value = 12345
         mock_pid_exists.return_value = False
         mock_popen.return_value.communicate.return_value = ('output', 'error')
-
-        # touch the pid file
-        pid_file = console_utils._get_console_pid_file(self.info['uuid'])
-        open(pid_file, 'a').close()
-        self.addCleanup(os.remove, pid_file)
-        self.assertTrue(os.path.exists(pid_file))
+        mock_path_exists.return_value = True
 
         self.assertRaises(exception.ConsoleSubprocessFailed,
                           console_utils.start_shellinabox_console,
@@ -366,7 +350,6 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
 
         mock_stop.assert_called_once_with(self.info['uuid'])
         mock_dir_exists.assert_called_once_with()
-        mock_pid.assert_called_once_with(self.info['uuid'])
         mock_pid_exists.assert_called_once_with(12345)
         mock_popen.assert_called_once_with(mock.ANY,
                                            stdout=subprocess.PIPE,
