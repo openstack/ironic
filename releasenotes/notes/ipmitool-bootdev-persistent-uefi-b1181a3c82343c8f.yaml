@@ -1,0 +1,5 @@
+---
+fixes:
+  - Fixes a problem where the boot mode (UEFI or BIOS) wasn't checked
+    as part of changing the boot device of a node, making it incorrectly
+    switch from UEFI to Legacy BIOS mode on some hardware models.
