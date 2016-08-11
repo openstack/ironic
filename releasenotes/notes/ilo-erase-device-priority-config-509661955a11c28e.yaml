@@ -1,5 +1,5 @@
 ---
 deprecations:
-  - The [ilo]/clean_priority_erase_devices config is deprecated and will be
-    removed in the Ocata cycle. Please use the [deploy]/erase_devices_priority
-    config instead.
+  - The ``[ilo]/clean_priority_erase_devices`` configuration option is
+    deprecated and will be removed in the Ocata cycle. Please use the
+    ``[deploy]/erase_devices_priority`` option instead.

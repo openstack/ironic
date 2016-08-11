@@ -1,5 +1,5 @@
 ---
 other:
-  - The "continue_deploy" and "reboot_to_instance" methods in the
-    "BaseAgentVendor" class stopped accepting ** arguments. They were never
-    used anyway; the drivers should stop passing anything there.
+  - The ``continue_deploy`` and ``reboot_to_instance`` methods in the
+    ``BaseAgentVendor`` class stopped accepting ** arguments. They were never
+    used anyway; drivers should stop passing anything there.

@@ -1,12 +1,12 @@
 ---
 features:
-  - Adds a `resource_class` field to the node resource,
+  - Adds a ``resource_class`` field to the node resource,
     which will be used by Nova to define which nodes may
     quantitatively match a Nova flavor. Operators should
     populate this accordingly before deploying the Ocata
     version of Nova.
 upgrade:
-  - Adds a `resource_class` field to the node resource,
+  - Adds a ``resource_class`` field to the node resource,
     which will be used by Nova to define which nodes may
     quantitatively match a Nova flavor. Operators should
     populate this accordingly before deploying the Ocata
