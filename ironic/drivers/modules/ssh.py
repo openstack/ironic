@@ -398,8 +398,8 @@ def _parse_driver_info(node):
     # precedence etc).
     if len([v for v in (password, key_filename, key_contents) if v]) != 1:
         raise exception.InvalidParameterValue(_(
-            "SSHPowerDriver requires one and only one of password, "
-            "key_contents and key_filename to be set."))
+            "SSHPowerDriver requires one and only one of ssh_password, "
+            "ssh_key_contents and ssh_key_filename to be set."))
     if password:
         res['password'] = password
     elif key_contents:
