@@ -1,0 +1,6 @@
+---
+fixes:
+  - Update create provisioning ports logic to fail only
+    when no neutron ports were created. If we created at
+    least one neutron port, proceed with the deployment.
+    It was the default behaviour for flat scenario.
