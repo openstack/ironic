@@ -71,9 +71,6 @@ pxe_opts = [
                default=10080,
                help=_('Maximum TTL (in minutes) for old master images in '
                       'cache.')),
-    cfg.StrOpt('disk_devices',
-               default='cciss/c0d0,sda,hda,vda',
-               help=_('The disk devices to scan while doing the deploy.')),
 ]
 
 iscsi_opts = [

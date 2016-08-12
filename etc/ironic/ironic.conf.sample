@@ -247,28 +247,42 @@
 # Deprecated group/name - [DEFAULT]/rpc_conn_pool_size
 #rpc_conn_pool_size = 30
 
+# The pool size limit for connections expiration policy
+# (integer value)
+#conn_pool_min_size = 2
+
+# The time-to-live in sec of idle connections in the pool
+# (integer value)
+#conn_pool_ttl = 1200
+
 # ZeroMQ bind address. Should be a wildcard (*), an ethernet
 # interface, or IP. The "host" option should point or resolve
 # to this address. (string value)
+# Deprecated group/name - [DEFAULT]/rpc_zmq_bind_address
 #rpc_zmq_bind_address = *
 
 # MatchMaker driver. (string value)
 # Allowed values: redis, dummy
+# Deprecated group/name - [DEFAULT]/rpc_zmq_matchmaker
 #rpc_zmq_matchmaker = redis
 
 # Number of ZeroMQ contexts, defaults to 1. (integer value)
+# Deprecated group/name - [DEFAULT]/rpc_zmq_contexts
 #rpc_zmq_contexts = 1
 
 # Maximum number of ingress messages to locally buffer per
 # topic. Default is unlimited. (integer value)
+# Deprecated group/name - [DEFAULT]/rpc_zmq_topic_backlog
 #rpc_zmq_topic_backlog = <None>
 
 # Directory for holding IPC sockets. (string value)
+# Deprecated group/name - [DEFAULT]/rpc_zmq_ipc_dir
 #rpc_zmq_ipc_dir = /var/run/openstack
 
 # Name of this node. Must be a valid hostname, FQDN, or IP
 # address. Must match "host" option, if running Nova. (string
 # value)
+# Deprecated group/name - [DEFAULT]/rpc_zmq_host
 #rpc_zmq_host = localhost
 
 # Seconds to wait before a cast expires (TTL). The default
@@ -276,41 +290,57 @@
 # of 0 specifies no linger period. Pending messages shall be
 # discarded immediately when the socket is closed. Only
 # supported by impl_zmq. (integer value)
+# Deprecated group/name - [DEFAULT]/rpc_cast_timeout
 #rpc_cast_timeout = -1
 
 # The default number of seconds that poll should wait. Poll
 # raises timeout exception when timeout expired. (integer
 # value)
+# Deprecated group/name - [DEFAULT]/rpc_poll_timeout
 #rpc_poll_timeout = 1
 
 # Expiration timeout in seconds of a name service record about
 # existing target ( < 0 means no timeout). (integer value)
+# Deprecated group/name - [DEFAULT]/zmq_target_expire
 #zmq_target_expire = 300
 
 # Update period in seconds of a name service record about
 # existing target. (integer value)
+# Deprecated group/name - [DEFAULT]/zmq_target_update
 #zmq_target_update = 180
 
 # Use PUB/SUB pattern for fanout methods. PUB/SUB always uses
 # proxy. (boolean value)
+# Deprecated group/name - [DEFAULT]/use_pub_sub
 #use_pub_sub = true
 
 # Use ROUTER remote proxy. (boolean value)
+# Deprecated group/name - [DEFAULT]/use_router_proxy
 #use_router_proxy = true
 
 # Minimal port number for random ports range. (port value)
 # Minimum value: 0
 # Maximum value: 65535
+# Deprecated group/name - [DEFAULT]/rpc_zmq_min_port
 #rpc_zmq_min_port = 49153
 
 # Maximal port number for random ports range. (integer value)
 # Minimum value: 1
 # Maximum value: 65536
+# Deprecated group/name - [DEFAULT]/rpc_zmq_max_port
 #rpc_zmq_max_port = 65536
 
 # Number of retries to find free port number before fail with
 # ZMQBindError. (integer value)
+# Deprecated group/name - [DEFAULT]/rpc_zmq_bind_port_retries
 #rpc_zmq_bind_port_retries = 100
+
+# Default serialization mechanism for
+# serializing/deserializing outgoing/incoming messages (string
+# value)
+# Allowed values: json, msgpack
+# Deprecated group/name - [DEFAULT]/rpc_zmq_serialization
+#rpc_zmq_serialization = json
 
 # Size of executor thread pool. (integer value)
 # Deprecated group/name - [DEFAULT]/rpc_thread_pool_size
@@ -838,10 +868,10 @@
 #min_pool_size = 1
 
 # Maximum number of SQL connections to keep open in a pool.
-# (integer value)
+# Setting a value of 0 indicates no limit. (integer value)
 # Deprecated group/name - [DEFAULT]/sql_max_pool_size
 # Deprecated group/name - [DATABASE]/sql_max_pool_size
-#max_pool_size = <None>
+#max_pool_size = 5
 
 # Maximum number of database connection retries during
 # startup. Set to -1 to specify an infinite retry count.
@@ -864,6 +894,8 @@
 
 # Verbosity of SQL debugging information: 0=None,
 # 100=Everything. (integer value)
+# Minimum value: 0
+# Maximum value: 100
 # Deprecated group/name - [DEFAULT]/sql_connection_debug
 #connection_debug = 0
 
@@ -1545,7 +1577,11 @@
 # with Identity API Server. (integer value)
 #http_request_max_retries = 3
 
-# Env key for the swift cache. (string value)
+# Request environment key where the Swift cache object is
+# stored. When auth_token middleware is deployed with a Swift
+# cache, use this option to have the middleware share a
+# caching backend with swift. Otherwise, use the
+# ``memcached_servers`` option instead. (string value)
 #cache = <None>
 
 # Required if identity server requires client certificate
@@ -2142,7 +2178,7 @@
 # available in future versions. (string value)
 #kombu_compression = <None>
 
-# How long to wait a missing client beforce abandoning to send
+# How long to wait a missing client before abandoning to send
 # it its replies. This value should not be longer than
 # rpc_response_timeout. (integer value)
 # Deprecated group/name - [oslo_messaging_rabbit]/kombu_reconnect_timeout
@@ -2223,9 +2259,11 @@
 # 30 seconds. (integer value)
 #rabbit_interval_max = 30
 
-# Maximum number of RabbitMQ connection retries. Default is 0
-# (infinite retry count). (integer value)
+# DEPRECATED: Maximum number of RabbitMQ connection retries.
+# Default is 0 (infinite retry count). (integer value)
 # Deprecated group/name - [DEFAULT]/rabbit_max_retries
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
 #rabbit_max_retries = 0
 
 # Try to use HA queues in RabbitMQ (x-ha-policy: all). If you
@@ -2375,6 +2413,100 @@
 #rpc_retry_delay = 0.25
 
 
+[oslo_messaging_zmq]
+
+#
+# From oslo.messaging
+#
+
+# ZeroMQ bind address. Should be a wildcard (*), an ethernet
+# interface, or IP. The "host" option should point or resolve
+# to this address. (string value)
+# Deprecated group/name - [DEFAULT]/rpc_zmq_bind_address
+#rpc_zmq_bind_address = *
+
+# MatchMaker driver. (string value)
+# Allowed values: redis, dummy
+# Deprecated group/name - [DEFAULT]/rpc_zmq_matchmaker
+#rpc_zmq_matchmaker = redis
+
+# Number of ZeroMQ contexts, defaults to 1. (integer value)
+# Deprecated group/name - [DEFAULT]/rpc_zmq_contexts
+#rpc_zmq_contexts = 1
+
+# Maximum number of ingress messages to locally buffer per
+# topic. Default is unlimited. (integer value)
+# Deprecated group/name - [DEFAULT]/rpc_zmq_topic_backlog
+#rpc_zmq_topic_backlog = <None>
+
+# Directory for holding IPC sockets. (string value)
+# Deprecated group/name - [DEFAULT]/rpc_zmq_ipc_dir
+#rpc_zmq_ipc_dir = /var/run/openstack
+
+# Name of this node. Must be a valid hostname, FQDN, or IP
+# address. Must match "host" option, if running Nova. (string
+# value)
+# Deprecated group/name - [DEFAULT]/rpc_zmq_host
+#rpc_zmq_host = localhost
+
+# Seconds to wait before a cast expires (TTL). The default
+# value of -1 specifies an infinite linger period. The value
+# of 0 specifies no linger period. Pending messages shall be
+# discarded immediately when the socket is closed. Only
+# supported by impl_zmq. (integer value)
+# Deprecated group/name - [DEFAULT]/rpc_cast_timeout
+#rpc_cast_timeout = -1
+
+# The default number of seconds that poll should wait. Poll
+# raises timeout exception when timeout expired. (integer
+# value)
+# Deprecated group/name - [DEFAULT]/rpc_poll_timeout
+#rpc_poll_timeout = 1
+
+# Expiration timeout in seconds of a name service record about
+# existing target ( < 0 means no timeout). (integer value)
+# Deprecated group/name - [DEFAULT]/zmq_target_expire
+#zmq_target_expire = 300
+
+# Update period in seconds of a name service record about
+# existing target. (integer value)
+# Deprecated group/name - [DEFAULT]/zmq_target_update
+#zmq_target_update = 180
+
+# Use PUB/SUB pattern for fanout methods. PUB/SUB always uses
+# proxy. (boolean value)
+# Deprecated group/name - [DEFAULT]/use_pub_sub
+#use_pub_sub = true
+
+# Use ROUTER remote proxy. (boolean value)
+# Deprecated group/name - [DEFAULT]/use_router_proxy
+#use_router_proxy = true
+
+# Minimal port number for random ports range. (port value)
+# Minimum value: 0
+# Maximum value: 65535
+# Deprecated group/name - [DEFAULT]/rpc_zmq_min_port
+#rpc_zmq_min_port = 49153
+
+# Maximal port number for random ports range. (integer value)
+# Minimum value: 1
+# Maximum value: 65536
+# Deprecated group/name - [DEFAULT]/rpc_zmq_max_port
+#rpc_zmq_max_port = 65536
+
+# Number of retries to find free port number before fail with
+# ZMQBindError. (integer value)
+# Deprecated group/name - [DEFAULT]/rpc_zmq_bind_port_retries
+#rpc_zmq_bind_port_retries = 100
+
+# Default serialization mechanism for
+# serializing/deserializing outgoing/incoming messages (string
+# value)
+# Allowed values: json, msgpack
+# Deprecated group/name - [DEFAULT]/rpc_zmq_serialization
+#rpc_zmq_serialization = json
+
+
 [oslo_policy]
 
 #
@@ -2430,10 +2562,6 @@
 # Maximum TTL (in minutes) for old master images in cache.
 # (integer value)
 #image_cache_ttl = 10080
-
-# The disk devices to scan while doing the deploy. (string
-# value)
-#disk_devices = cciss/c0d0,sda,hda,vda
 
 # On ironic-conductor node, template file for PXE
 # configuration. (string value)

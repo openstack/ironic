@@ -161,7 +161,6 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
         self.config(api_url='http://192.168.122.184:6385', group='conductor')
-        self.config(disk_devices='sda', group='pxe')
         self.config(ipxe_timeout=ipxe_timeout, group='pxe')
 
         driver_internal_info = self.node.driver_internal_info
@@ -258,7 +257,6 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
         self.config(api_url='http://192.168.122.184:6385', group='conductor')
-        self.config(disk_devices='sda', group='pxe')
 
         tftp_server = CONF.pxe.tftp_server
 
