@@ -98,25 +98,67 @@ class TestNeutron(db_base.DbTestCase):
             api.provider.update_port_dhcp_opts,
             port_id, opts)
 
+    @mock.patch.object(client.Client, 'show_port')
     @mock.patch.object(client.Client, 'update_port')
     @mock.patch.object(client.Client, '__init__')
-    def test_update_port_address(self, mock_client_init, mock_update_port):
+    def test_update_port_address(self, mock_client_init, mock_update_port,
+                                 mock_show_port):
         address = 'fe:54:00:77:07:d9'
         port_id = 'fake-port-id'
         expected = {'port': {'mac_address': address}}
         mock_client_init.return_value = None
+        mock_show_port.return_value = {}
 
         api = dhcp_factory.DHCPFactory()
         api.provider.update_port_address(port_id, address)
         mock_update_port.assert_called_once_with(port_id, expected)
 
+    @mock.patch.object(client.Client, 'show_port')
     @mock.patch.object(client.Client, 'update_port')
     @mock.patch.object(client.Client, '__init__')
-    def test_update_port_address_with_exception(self, mock_client_init,
-                                                mock_update_port):
+    def test_update_port_address_with_binding(self, mock_client_init,
+                                              mock_update_port,
+                                              mock_show_port):
+        address = 'fe:54:00:77:07:d9'
+        port_id = 'fake-port-id'
+        expected = {'port': {'mac_address': address,
+                             'binding:host_id': 'host'}}
+        mock_client_init.return_value = None
+        mock_show_port.return_value = {'port': {'binding:host_id': 'host'}}
+
+        api = dhcp_factory.DHCPFactory()
+        api.provider.update_port_address(port_id, address)
+        mock_update_port.assert_any_call(port_id,
+                                         {'port': {'binding:host_id': ''}})
+        mock_update_port.assert_any_call(port_id, expected)
+
+    @mock.patch.object(client.Client, 'show_port')
+    @mock.patch.object(client.Client, 'update_port')
+    @mock.patch.object(client.Client, '__init__')
+    def test_update_port_address_show_failed(self, mock_client_init,
+                                             mock_update_port,
+                                             mock_show_port):
         address = 'fe:54:00:77:07:d9'
         port_id = 'fake-port-id'
         mock_client_init.return_value = None
+        mock_show_port.side_effect = (
+            neutron_client_exc.NeutronClientException())
+
+        api = dhcp_factory.DHCPFactory()
+        self.assertRaises(exception.FailedToUpdateMacOnPort,
+                          api.provider.update_port_address, port_id, address)
+        self.assertFalse(mock_update_port.called)
+
+    @mock.patch.object(client.Client, 'show_port')
+    @mock.patch.object(client.Client, 'update_port')
+    @mock.patch.object(client.Client, '__init__')
+    def test_update_port_address_with_exception(self, mock_client_init,
+                                                mock_update_port,
+                                                mock_show_port):
+        address = 'fe:54:00:77:07:d9'
+        port_id = 'fake-port-id'
+        mock_client_init.return_value = None
+        mock_show_port.return_value = {}
 
         api = dhcp_factory.DHCPFactory()
         mock_update_port.side_effect = (
