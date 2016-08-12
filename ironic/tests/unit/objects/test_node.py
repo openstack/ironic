@@ -138,6 +138,18 @@ class TestNodeObject(base.DbTestCase):
             self.assertEqual(expected, mock_get_node.call_args_list)
             self.assertEqual(self.context, n._context)
 
+    def test_save_after_refresh(self):
+        # Ensure that it's possible to do object.save() after object.refresh()
+        db_node = utils.create_test_node()
+        n = objects.Node.get_by_uuid(self.context, db_node.uuid)
+        n_copy = objects.Node.get_by_uuid(self.context, db_node.uuid)
+        n.name = 'b240'
+        n.save()
+        n_copy.refresh()
+        n_copy.name = 'aaff'
+        # Ensure this passes and an exception is not generated
+        n_copy.save()
+
     def test_list(self):
         with mock.patch.object(self.dbapi, 'get_node_list',
                                autospec=True) as mock_get_list:

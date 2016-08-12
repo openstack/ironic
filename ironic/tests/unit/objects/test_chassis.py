@@ -95,6 +95,22 @@ class TestChassisObject(base.DbTestCase):
             self.assertEqual(expected, mock_get_chassis.call_args_list)
             self.assertEqual(self.context, c._context)
 
+    # NOTE(vsaienko) current implementation of update_chassis() dbapi is
+    # differ from other object like update_port() or node_update() which
+    # allows to perform object.save() after object.refresh()
+    # This test will avoid update_chassis() regressions in future.
+    def test_save_after_refresh(self):
+        # Ensure that it's possible to do object.save() after object.refresh()
+        db_chassis = utils.create_test_chassis()
+        c = objects.Chassis.get_by_uuid(self.context, db_chassis.uuid)
+        c_copy = objects.Chassis.get_by_uuid(self.context, db_chassis.uuid)
+        c.description = 'b240'
+        c.save()
+        c_copy.refresh()
+        c_copy.description = 'aaff'
+        # Ensure this passes and an exception is not generated
+        c_copy.save()
+
     def test_list(self):
         with mock.patch.object(self.dbapi, 'get_chassis_list',
                                autospec=True) as mock_get_list:

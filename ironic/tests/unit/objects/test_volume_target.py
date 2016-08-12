@@ -173,3 +173,18 @@ class TestVolumeTargetObject(base.DbTestCase):
             self.assertEqual(expected,
                              mock_get_volume_target.call_args_list)
             self.assertEqual(self.context, target._context)
+
+    def test_save_after_refresh(self):
+        # Ensure that it's possible to do object.save() after object.refresh()
+        db_volume_target = utils.create_test_volume_target()
+
+        vt = objects.VolumeTarget.get_by_uuid(self.context,
+                                              db_volume_target.uuid)
+        vt_copy = objects.VolumeTarget.get_by_uuid(self.context,
+                                                   db_volume_target.uuid)
+        vt.name = 'b240'
+        vt.save()
+        vt_copy.refresh()
+        vt_copy.name = 'aaff'
+        # Ensure this passes and an exception is not generated
+        vt_copy.save()
