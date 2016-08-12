@@ -495,6 +495,7 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
                        autospec=True)
     def test_get_clean_steps_with_conf_option(self, get_clean_step_mock):
         self.config(clean_priority_erase_devices=20, group='ilo')
+        self.config(erase_devices_metadata_priority=10, group='deploy')
         get_clean_step_mock.return_value = [{
             'step': 'erase_devices',
             'priority': 10,
@@ -506,12 +507,14 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
             task.driver.deploy.get_clean_steps(task)
             get_clean_step_mock.assert_called_once_with(
                 task, interface='deploy',
-                override_priorities={'erase_devices': 20})
+                override_priorities={'erase_devices': 20,
+                                     'erase_devices_metadata': 10})
 
     @mock.patch.object(deploy_utils, 'agent_get_clean_steps', spec_set=True,
                        autospec=True)
     def test_get_clean_steps_erase_devices_disable(self, get_clean_step_mock):
         self.config(clean_priority_erase_devices=0, group='ilo')
+        self.config(erase_devices_metadata_priority=0, group='deploy')
         get_clean_step_mock.return_value = [{
             'step': 'erase_devices',
             'priority': 10,
@@ -523,7 +526,8 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
             task.driver.deploy.get_clean_steps(task)
             get_clean_step_mock.assert_called_once_with(
                 task, interface='deploy',
-                override_priorities={'erase_devices': 0})
+                override_priorities={'erase_devices': 0,
+                                     'erase_devices_metadata': 0})
 
     @mock.patch.object(deploy_utils, 'agent_get_clean_steps', spec_set=True,
                        autospec=True)
@@ -539,7 +543,8 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
             task.driver.deploy.get_clean_steps(task)
             get_clean_step_mock.assert_called_once_with(
                 task, interface='deploy',
-                override_priorities={'erase_devices': None})
+                override_priorities={'erase_devices': None,
+                                     'erase_devices_metadata': None})
 
     @mock.patch.object(agent.AgentDeploy, 'prepare_cleaning', spec_set=True,
                        autospec=True)

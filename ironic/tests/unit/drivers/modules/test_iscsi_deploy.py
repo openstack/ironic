@@ -638,6 +638,7 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
     def test_get_clean_steps(self, mock_get_clean_steps):
         # Test getting clean steps
         self.config(group='deploy', erase_devices_priority=10)
+        self.config(group='deploy', erase_devices_metadata_priority=5)
         mock_steps = [{'priority': 10, 'interface': 'deploy',
                        'step': 'erase_devices'}]
         self.node.driver_internal_info = {'agent_url': 'foo'}
@@ -648,7 +649,8 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             mock_get_clean_steps.assert_called_once_with(
                 task, interface='deploy',
                 override_priorities={
-                    'erase_devices': 10})
+                    'erase_devices': 10,
+                    'erase_devices_metadata': 5})
         self.assertEqual(mock_steps, steps)
 
     @mock.patch.object(deploy_utils, 'agent_execute_clean_step', autospec=True)

@@ -951,6 +951,13 @@
 # set to 0, will not run during cleaning. (integer value)
 #erase_devices_priority = <None>
 
+# Priority to run in-band clean step that erases metadata from
+# devices, via the Ironic Python Agent ramdisk. If unset, will
+# use the priority set in the ramdisk (defaults to 99 for the
+# GenericHardwareManager). If set to 0, will not run during
+# cleaning. (integer value)
+#erase_devices_metadata_priority = <None>
+
 # During shred, overwrite all block devices N times with
 # random data. This is only used if a device could not be ATA
 # Secure Erased. Defaults to 1. (integer value)

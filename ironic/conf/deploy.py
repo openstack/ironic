@@ -32,6 +32,13 @@ opts = [
                       'set in the ramdisk (defaults to 10 for the '
                       'GenericHardwareManager). If set to 0, will not run '
                       'during cleaning.')),
+    cfg.IntOpt('erase_devices_metadata_priority',
+               help=_('Priority to run in-band clean step that erases '
+                      'metadata from devices, via the Ironic Python Agent '
+                      'ramdisk. If unset, will use the priority set in the '
+                      'ramdisk (defaults to 99 for the '
+                      'GenericHardwareManager). If set to 0, will not run '
+                      'during cleaning.')),
     # TODO(mmitchell): Remove the deprecated name/group during Ocata cycle.
     cfg.IntOpt('shred_random_overwrite_iterations',
                deprecated_name='erase_devices_iterations',

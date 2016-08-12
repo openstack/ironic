@@ -517,6 +517,8 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
         """
         new_priorities = {
             'erase_devices': CONF.deploy.erase_devices_priority,
+            'erase_devices_metadata':
+                CONF.deploy.erase_devices_metadata_priority,
         }
         return deploy_utils.agent_get_clean_steps(
             task, interface='deploy',
