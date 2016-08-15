@@ -306,15 +306,15 @@ class _TestObject(object):
     def test_get(self):
         obj = MyObj(self.context, foo=1)
         # Foo has value, should not get the default
-        self.assertEqual(obj.get('foo', 2), 1)
+        self.assertEqual(1, obj.get('foo', 2))
         # Foo has value, should return the value without error
-        self.assertEqual(obj.get('foo'), 1)
+        self.assertEqual(1, obj.get('foo'))
         # Bar is not loaded, so we should get the default
-        self.assertEqual(obj.get('bar', 'not-loaded'), 'not-loaded')
+        self.assertEqual('not-loaded', obj.get('bar', 'not-loaded'))
         # Bar without a default should lazy-load
-        self.assertEqual(obj.get('bar'), 'loaded!')
+        self.assertEqual('loaded!', obj.get('bar'))
         # Bar now has a default, but loaded value should be returned
-        self.assertEqual(obj.get('bar', 'not-loaded'), 'loaded!')
+        self.assertEqual('loaded!', obj.get('bar', 'not-loaded'))
         # Invalid attribute should raise AttributeError
         self.assertRaises(AttributeError, obj.get, 'nothing')
         # ...even with a default
@@ -371,8 +371,8 @@ class _TestObject(object):
         current_obj.foo = 2
         current_obj.bar = 'current.bar'
         obj.obj_refresh(current_obj)
-        self.assertEqual(obj.foo, 2)
-        self.assertEqual(obj.bar, 'current.bar')
+        self.assertEqual(2, obj.foo)
+        self.assertEqual('current.bar', obj.bar)
 
     def test_obj_constructor(self):
         obj = MyObj(self.context, foo=123, bar='abc')
