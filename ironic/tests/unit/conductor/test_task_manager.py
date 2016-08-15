@@ -366,7 +366,7 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
         node_get_mock.return_value = self.node
         reserve_mock.return_value = self.node
         with task_manager.TaskManager(self.context, 'fake-node-id',
-                                      shared=True) as task:
+                                      shared=True, purpose='ham') as task:
             self.assertEqual(self.context, task.context)
             self.assertEqual(self.node, task.node)
             self.assertEqual(get_ports_mock.return_value, task.ports)
@@ -377,9 +377,11 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
 
             task.upgrade_lock()
             self.assertFalse(task.shared)
-            # second upgrade does nothing
-            task.upgrade_lock()
+            self.assertEqual('ham', task._purpose)
+            # second upgrade does nothing except changes the purpose
+            task.upgrade_lock(purpose='spam')
             self.assertFalse(task.shared)
+            self.assertEqual('spam', task._purpose)
 
             build_driver_mock.assert_called_once_with(mock.ANY,
                                                       driver_name=None)
