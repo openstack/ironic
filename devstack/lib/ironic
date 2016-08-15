@@ -1512,6 +1512,9 @@ function ironic_configure_tempest {
     image_uuid=$(openstack image show $IRONIC_IMAGE_NAME -f value -c id)
     iniset $TEMPEST_CONFIG compute image_ref $image_uuid
     iniset $TEMPEST_CONFIG compute image_ref_alt $image_uuid
+
+    iniset $TEMPEST_CONFIG auth create_isolated_networks False
+    iniset $TEMPEST_CONFIG network-feature-enabled port_admin_state_change False
 }
 
 # Restore xtrace + pipefail
