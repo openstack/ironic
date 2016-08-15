@@ -1026,6 +1026,9 @@ function ironic_configure_tempest {
     die_if_not_set $LINENO bm_flavor_id "Failed to get id of baremetal flavor"
     iniset $TEMPEST_CONFIG compute flavor_ref $bm_flavor_id
     iniset $TEMPEST_CONFIG compute flavor_ref_alt $bm_flavor_id
+
+    iniset $TEMPEST_CONFIG auth create_isolated_networks False
+    iniset $TEMPEST_CONFIG network-feature-enabled port_admin_state_change False
 }
 
 # Restore xtrace + pipefail
