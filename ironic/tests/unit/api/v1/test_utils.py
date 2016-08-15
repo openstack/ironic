@@ -36,7 +36,7 @@ class TestApiUtils(base.TestCase):
 
     def test_validate_limit(self):
         limit = utils.validate_limit(10)
-        self.assertEqual(10, 10)
+        self.assertEqual(10, limit)
 
         # max limit
         limit = utils.validate_limit(999999999)
