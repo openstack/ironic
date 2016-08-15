@@ -309,15 +309,15 @@ id:
   type: string
 inspection_finished_at:
   description: |
-    The UTC date and time when the resource was created,
-    `ISO 8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ format.
+    The UTC date and time when the last hardware inspection finished
+    successfully, `ISO 8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ format.
     May be "null".
   in: body
   required: true
   type: string
 inspection_started_at:
   description: |
-    The UTC date and time when the resource was created,
+    The UTC date and time when the hardware inspection was started,
     `ISO 8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ format.
     May be "null".
   in: body
