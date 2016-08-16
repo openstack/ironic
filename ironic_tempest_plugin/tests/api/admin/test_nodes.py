@@ -165,5 +165,5 @@ class TestNodes(base.BaseBaremetalTest):
     def test_get_node_by_instance_uuid(self):
         instance_uuid = self._associate_node_with_instance()
         _, body = self.client.show_node_by_instance_uuid(instance_uuid)
-        self.assertEqual(len(body['nodes']), 1)
+        self.assertEqual(1, len(body['nodes']))
         self.assertIn(self.node['uuid'], [n['uuid'] for n in body['nodes']])
