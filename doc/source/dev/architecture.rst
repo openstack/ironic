@@ -93,9 +93,9 @@ Here the ``spacing`` argument is a period in seconds for a given periodic task.
 For example 'spacing=5' means every 5 seconds.
 
 .. note::
-    As of the Newton release, it's possible to bind periodic tasks to a driver
-    object instead of an interface. This is deprecated and support for it will
-    be removed in the Ocata release.
+    In releases prior to and including the Newton release, it's possible to
+    bind periodic tasks to a driver object instead of an interface. This is
+    deprecated and support for it will be removed in the Ocata release.
 
 
 Message Routing
