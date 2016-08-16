@@ -25,7 +25,7 @@ from oslo_utils import uuidutils
 import six
 from six.moves import http_client
 from six.moves.urllib import parse as urlparse
-from testtools.matchers import HasLength
+from testtools import matchers
 from wsme import types as wtypes
 
 from ironic.api.controllers import base as api_base
@@ -560,7 +560,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         data = self.get_json('/nodes?instance_uuid=%s' % instance_uuid,
                              headers={api_base.Version.string: "1.5"})
 
-        self.assertThat(data['nodes'], HasLength(1))
+        self.assertThat(data['nodes'], matchers.HasLength(1))
         self.assertEqual(node['instance_uuid'],
                          data['nodes'][0]["instance_uuid"])
 
@@ -572,7 +572,7 @@ class TestListNodes(test_api_base.BaseApiTest):
 
         data = self.get_json('/nodes?instance_uuid=%s' % wrong_uuid)
 
-        self.assertThat(data['nodes'], HasLength(0))
+        self.assertThat(data['nodes'], matchers.HasLength(0))
 
     def test_node_by_instance_uuid_invalid_uuid(self):
         response = self.get_json('/nodes?instance_uuid=fake',
@@ -618,13 +618,13 @@ class TestListNodes(test_api_base.BaseApiTest):
 
         data = self.get_json('/nodes?associated=False&limit=2')
 
-        self.assertThat(data['nodes'], HasLength(2))
+        self.assertThat(data['nodes'], matchers.HasLength(2))
         self.assertIn(data['nodes'][0]['uuid'], unassociated_nodes)
 
     def test_next_link_with_association(self):
         self._create_association_test_nodes()
         data = self.get_json('/nodes/?limit=3&associated=True')
-        self.assertThat(data['nodes'], HasLength(3))
+        self.assertThat(data['nodes'], matchers.HasLength(3))
         self.assertIn('associated=True', data['next'])
 
     def test_detail_with_association_filter(self):
@@ -637,7 +637,7 @@ class TestListNodes(test_api_base.BaseApiTest):
     def test_next_link_with_association_with_detail(self):
         self._create_association_test_nodes()
         data = self.get_json('/nodes/detail?limit=3&associated=true')
-        self.assertThat(data['nodes'], HasLength(3))
+        self.assertThat(data['nodes'], matchers.HasLength(3))
         self.assertIn('driver', data['nodes'][0])
         self.assertIn('associated=True', data['next'])
 

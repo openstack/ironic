@@ -15,7 +15,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from xml.etree import ElementTree
+from xml import etree
 
 import mock
 
@@ -37,13 +37,14 @@ def build_soap_xml(items, namespace=None):
             xml_string = "{%(namespace)s}%(item)s" % {'namespace': namespace,
                                                       'item': xml_string}
 
-        element = ElementTree.Element(xml_string)
+        element = etree.ElementTree.Element(xml_string)
         element.text = value
         return element
 
     soap_namespace = "http://www.w3.org/2003/05/soap-envelope"
-    envelope_element = ElementTree.Element("{%s}Envelope" % soap_namespace)
-    body_element = ElementTree.Element("{%s}Body" % soap_namespace)
+    envelope_element = etree.ElementTree.Element(
+        "{%s}Envelope" % soap_namespace)
+    body_element = etree.ElementTree.Element("{%s}Body" % soap_namespace)
 
     for item in items:
         for i in item:
@@ -57,7 +58,7 @@ def build_soap_xml(items, namespace=None):
             body_element.append(insertion_point)
 
     envelope_element.append(body_element)
-    return ElementTree.tostring(envelope_element)
+    return etree.ElementTree.tostring(envelope_element)
 
 
 def mock_wsman_root(return_value):

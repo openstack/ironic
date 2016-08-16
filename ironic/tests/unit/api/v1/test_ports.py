@@ -24,7 +24,7 @@ from oslo_utils import uuidutils
 import six
 from six.moves import http_client
 from six.moves.urllib import parse as urlparse
-from testtools.matchers import HasLength
+from testtools import matchers
 from wsme import types as wtypes
 
 from ironic.api.controllers import base as api_base
@@ -249,13 +249,13 @@ class TestListPorts(test_api_base.BaseApiTest):
 
         target_address = address_template % 1
         data = self.get_json('/ports?address=%s' % target_address)
-        self.assertThat(data['ports'], HasLength(1))
+        self.assertThat(data['ports'], matchers.HasLength(1))
         self.assertEqual(target_address, data['ports'][0]['address'])
 
     def test_port_by_address_non_existent_address(self):
         # non-existent address
         data = self.get_json('/ports?address=%s' % 'aa:bb:cc:dd:ee:ff')
-        self.assertThat(data['ports'], HasLength(0))
+        self.assertThat(data['ports'], matchers.HasLength(0))
 
     def test_port_by_address_invalid_address_format(self):
         obj_utils.create_test_port(self.context, node_id=self.node.id)

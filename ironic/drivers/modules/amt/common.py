@@ -14,7 +14,7 @@
 Common functionalities for AMT Driver
 """
 import time
-from xml.etree import ElementTree
+from xml import etree
 
 from oslo_concurrency import processutils
 from oslo_config import cfg
@@ -216,7 +216,7 @@ def xml_find(doc, namespace, item):
     """
     if doc is None:
         raise exception.AMTConnectFailure()
-    tree = ElementTree.fromstring(doc.root().string())
+    tree = etree.ElementTree.fromstring(doc.root().string())
     query = ('.//{%(namespace)s}%(item)s' % {'namespace': namespace,
                                              'item': item})
     return tree.find(query)

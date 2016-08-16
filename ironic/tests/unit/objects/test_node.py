@@ -14,7 +14,7 @@
 #    under the License.
 
 import mock
-from testtools.matchers import HasLength
+from testtools import matchers
 
 from ironic.common import context
 from ironic.common import exception
@@ -113,7 +113,7 @@ class TestNodeObject(base.DbTestCase):
                                autospec=True) as mock_get_list:
             mock_get_list.return_value = [self.fake_node]
             nodes = objects.Node.list(self.context)
-            self.assertThat(nodes, HasLength(1))
+            self.assertThat(nodes, matchers.HasLength(1))
             self.assertIsInstance(nodes[0], objects.Node)
             self.assertEqual(self.context, nodes[0]._context)
 

@@ -19,7 +19,7 @@ from oslo_config import cfg
 from oslo_utils import uuidutils
 import pecan
 from six.moves import http_client
-from webob.static import FileIter
+from webob import static
 import wsme
 
 from ironic.api.controllers.v1 import node as api_node
@@ -443,7 +443,7 @@ class TestVendorPassthru(base.TestCase):
             'fake-data', 'fake-topic')
 
         # Assert file was attached to the response object
-        self.assertIsInstance(mock_response.app_iter, FileIter)
+        self.assertIsInstance(mock_response.app_iter, static.FileIter)
         self.assertEqual(expct_return_value,
                          mock_response.app_iter.file.read())
         # Assert response message is none
