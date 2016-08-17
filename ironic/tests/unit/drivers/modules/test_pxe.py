@@ -15,6 +15,7 @@
 
 """Test class for PXE driver."""
 
+import filecmp
 import os
 import shutil
 import tempfile
@@ -698,18 +699,55 @@ class PXEBootTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_prepare_ramdisk(uefi=True)
 
+    @mock.patch.object(os.path, 'isfile', autospec=True)
+    @mock.patch.object(filecmp, 'cmp', autospec=True)
     @mock.patch.object(shutil, 'copyfile', autospec=True)
-    def test_prepare_ramdisk_ipxe(self, copyfile_mock):
+    def test_prepare_ramdisk_ipxe_with_copy_file_different(
+            self, copyfile_mock, cmp_mock, isfile_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
         self.config(group='pxe', ipxe_enabled=True)
         self.config(group='deploy', http_url='http://myserver')
+        isfile_mock.return_value = True
+        cmp_mock.return_value = False
         self._test_prepare_ramdisk()
         copyfile_mock.assert_called_once_with(
             CONF.pxe.ipxe_boot_script,
             os.path.join(
                 CONF.deploy.http_root,
                 os.path.basename(CONF.pxe.ipxe_boot_script)))
+
+    @mock.patch.object(os.path, 'isfile', autospec=True)
+    @mock.patch.object(filecmp, 'cmp', autospec=True)
+    @mock.patch.object(shutil, 'copyfile', autospec=True)
+    def test_prepare_ramdisk_ipxe_with_copy_no_file(
+            self, copyfile_mock, cmp_mock, isfile_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
+        self.config(group='pxe', ipxe_enabled=True)
+        self.config(group='deploy', http_url='http://myserver')
+        isfile_mock.return_value = False
+        self._test_prepare_ramdisk()
+        self.assertFalse(cmp_mock.called)
+        copyfile_mock.assert_called_once_with(
+            CONF.pxe.ipxe_boot_script,
+            os.path.join(
+                CONF.deploy.http_root,
+                os.path.basename(CONF.pxe.ipxe_boot_script)))
+
+    @mock.patch.object(os.path, 'isfile', autospec=True)
+    @mock.patch.object(filecmp, 'cmp', autospec=True)
+    @mock.patch.object(shutil, 'copyfile', autospec=True)
+    def test_prepare_ramdisk_ipxe_without_copy(
+            self, copyfile_mock, cmp_mock, isfile_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
+        self.config(group='pxe', ipxe_enabled=True)
+        self.config(group='deploy', http_url='http://myserver')
+        isfile_mock.return_value = True
+        cmp_mock.return_value = True
+        self._test_prepare_ramdisk()
+        self.assertFalse(copyfile_mock.called)
 
     def test_prepare_ramdisk_cleaning(self):
         self.node.provision_state = states.CLEANING
