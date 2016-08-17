@@ -120,11 +120,44 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
     def test_configure_tenant_networks_no_vif_id(self, log_mock, client_mock):
         self.port.extra = {}
         self.port.save()
+        upd_mock = mock.Mock()
+        client_mock.return_value.update_port = upd_mock
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.assertRaisesRegex(exception.NetworkError,
+                                   'No neutron ports or portgroups are '
+                                   'associated with node',
+                                   self.interface.configure_tenant_networks,
+                                   task)
+        client_mock.assert_called_once_with(task.context.auth_token)
+        upd_mock.assert_not_called()
+        self.assertIn('No neutron ports or portgroups are associated with',
+                      log_mock.error.call_args[0][0])
+
+    @mock.patch.object(neutron_common, 'get_client')
+    @mock.patch.object(neutron, 'LOG')
+    def test_configure_tenant_networks_multiple_ports_one_vif_id(
+            self, log_mock, client_mock):
+        expected_body = {
+            'port': {
+                'device_owner': 'baremetal:none',
+                'device_id': self.node.instance_uuid or self.node.uuid,
+                'admin_state_up': True,
+                'binding:vnic_type': 'baremetal',
+                'binding:host_id': self.node.uuid,
+                'binding:profile': {'local_link_information':
+                                    [self.port.local_link_connection]}
+            }
+        }
+        utils.create_test_port(self.context, node_id=self.node.id,
+                               address='52:54:00:cf:2d:33', extra={},
+                               uuid=uuidutils.generate_uuid())
+        upd_mock = mock.Mock()
+        client_mock.return_value.update_port = upd_mock
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.configure_tenant_networks(task)
-            client_mock.assert_called_once_with(task.context.auth_token)
-        self.assertIn('no vif_port_id value in extra',
-                      log_mock.warning.call_args[0][0])
+        client_mock.assert_called_once_with(task.context.auth_token)
+        upd_mock.assert_called_once_with(self.port.extra['vif_port_id'],
+                                         expected_body)
 
     @mock.patch.object(neutron_common, 'get_client')
     def test_configure_tenant_networks_update_fail(self, client_mock):

@@ -719,6 +719,39 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
                        spec=types.FunctionType)
     @mock.patch.object(agent_client.AgentClient, 'power_off',
                        spec=types.FunctionType)
+    @mock.patch('ironic.drivers.modules.network.neutron.NeutronNetwork.'
+                'remove_provisioning_network', spec_set=True, autospec=True)
+    @mock.patch('ironic.drivers.modules.network.neutron.NeutronNetwork.'
+                'configure_tenant_networks', spec_set=True, autospec=True)
+    def test_reboot_and_finish_deploy_configure_tenant_network_exception(
+            self, configure_tenant_net_mock, remove_provisioning_net_mock,
+            power_off_mock, get_power_state_mock, node_power_action_mock,
+            mock_collect):
+        self.node.network_interface = 'neutron'
+        self.node.provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            configure_tenant_net_mock.side_effect = exception.NetworkError(
+                "boom")
+            self.assertRaises(exception.InstanceDeployFailure,
+                              self.deploy.reboot_and_finish_deploy, task)
+            self.assertEqual(7, get_power_state_mock.call_count)
+            remove_provisioning_net_mock.assert_called_once_with(mock.ANY,
+                                                                 task)
+            configure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
+            self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+            mock_collect.assert_called_once_with(task.node)
+
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(fake.FakePower, 'get_power_state',
+                       spec=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'power_off',
+                       spec=types.FunctionType)
     def test_reboot_and_finish_deploy_power_action_fails(
             self, power_off_mock, get_power_state_mock,
             node_power_action_mock, mock_collect):
