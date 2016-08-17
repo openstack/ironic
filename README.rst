@@ -26,4 +26,4 @@ on Launchpad:
 http://launchpad.net/ironic
 
 For information on how to contribute to ironic, see
-http://docs.openstack.org/infra/manual/developers.html
+http://docs.openstack.org/developer/ironic/dev/code-contribution-guide.html

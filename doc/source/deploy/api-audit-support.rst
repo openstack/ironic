@@ -1,5 +1,6 @@
 .. _api-audit-support:
 
+=================
 API Audit Logging
 =================
 

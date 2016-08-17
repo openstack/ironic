@@ -18,12 +18,23 @@ to submitting a patch.
 
 .. note::
     This document is compatible with Python (3.5), Ubuntu (16.04) and Fedora (23).
+    When referring to different versions of Python and OS distributions, this
+    is explicitly stated.
 
 .. seealso::
 
     http://docs.openstack.org/infra/manual/developers.html#development-workflow
 
-Install prerequisites for python 2.7:
+Prepare Development System
+==========================
+
+System Prerequisites
+--------------------
+
+The following packages cover the prerequisites for a local development
+environment on most current distributions. Instructions for getting set up with
+non-default versions of Python and on older distributions are included below as
+well.
 
 - Ubuntu/Debian::
 
@@ -53,8 +64,11 @@ Install prerequisites for python 2.7:
   `<https://software.opensuse.org/download.html?project=graphics&package=graphviz-plugins>`_.
 
 
-If you need Python 3.4, follow the instructions above to install prerequisites for 2.7 and
-additionally install the following packages:
+(Optional) Installing Py34 requirements
+---------------------------------------
+
+If you need Python 3.4, follow the instructions above to install prerequisites
+and *additionally* install the following packages:
 
 - On Ubuntu 14.x/Debian::
 
@@ -81,8 +95,12 @@ additionally install the following packages:
 
     sudo dnf install python3-devel
 
-If you need Python 3.5, follow the instructions for installing prerequisites for Python 2.7 and
-run the following commands.
+(Optional) Installing Py35 requirements
+---------------------------------------
+
+If you need Python 3.5 support on an older distro that does not already have
+it, follow the instructions for installing prerequisites above and
+*additionally* run the following commands.
 
 - On Ubuntu 14.04::
 
@@ -103,12 +121,13 @@ run the following commands.
     sudo dnf copr enable -y mstuchli/Python3.5
     dnf install -y python35-python3
 
+Python Prerequisites
+--------------------
 
 If your distro has at least tox 1.8, use similar command to install
 ``python-tox`` package. Otherwise install this on all distros::
 
     sudo pip install -U tox
-
 
 You may need to explicitly upgrade virtualenv if you've installed the one
 from your OS distribution and it is too old (tox will complain). You can
@@ -116,32 +135,29 @@ upgrade it individually, if you need to::
 
     sudo pip install -U virtualenv
 
-Ironic source code should be pulled directly from git::
+
+Running Unit Tests Locally
+==========================
+
+If you haven't already, Ironic source code should be pulled directly from git::
 
     # from your home or source directory
     cd ~
     git clone https://git.openstack.org/openstack/ironic
     cd ironic
 
-Set up a local environment for development and testing should be done with tox,
-for example::
-
-    # create a virtualenv for development
-    tox -evenv --notest
+Running Unit and Style Tests
+----------------------------
 
 All unit tests should be run using tox. To run Ironic's entire test suite::
 
-    # run all tests (unit under both py27 and py34, and pep8)
+    # to run the py27, py34, py35 unit tests, and the style tests
     tox
 
-To run the unit tests under py34 and also run the pep8 tests::
+To run a specific test or tests, use the "-e" option followed by the tox target
+name. For example::
 
-    # run all tests (unit under py34 and pep8)
-    tox -epy34 -epep8
-
-To run the unit tests under py27 and also run the pep8 tests::
-
-    # run all tests (unit under py27 and pep8)
+    # run the unit tests under py27 and also run the pep8 tests
     tox -epy27 -epep8
 
 .. note::
@@ -159,10 +175,6 @@ To run a specific unit test, this passes the -r option and desired test
 
     # run a specific test for Python 2.7
     tox -epy27 -- -r test_conductor
-
-To run only the pep8/flake8 syntax and style checks::
-
-    tox -epep8
 
 Debugging unit tests
 --------------------
@@ -184,25 +196,89 @@ Then run ``tox`` with the debug environment as one of the following::
 For more information see the `oslotest documentation
 <http://docs.openstack.org/developer/oslotest/features.html#debugging-with-oslo-debug-helper>`_.
 
-===============================
+Additional Test Targets
+-----------------------
+
+There are several additional tox targets not included in the default list, such
+as the target which builds the documentation site.   See the ``tox.ini`` file
+for a complete listing of tox targets. These can be run directly by specifying
+the target name::
+
+    # generate the documentation pages locally
+    tox -edocs
+
+    # generate the sample configuration file
+    tox -egenconfig
+
+
 Exercising the Services Locally
 ===============================
 
-If you would like to exercise the Ironic services in isolation within a local
-virtual environment, you can do this without starting any other OpenStack
-services. For example, this is useful for rapidly prototyping and debugging
-interactions over the RPC channel, testing database migrations, and so forth.
+In addition to running automated tests, sometimes it can be helpful to actually
+run the services locally, without needing a server in a remote datacenter.
 
-Step 1: System Dependencies
----------------------------
+If you would like to exercise the Ironic services in isolation within your local
+environment, you can do this without starting any other OpenStack services. For
+example, this is useful for rapidly prototyping and debugging interactions over
+the RPC channel, testing database migrations, and so forth.
 
-There are two ways you may use to install the required system dependencies:
-Manually, or by using the included Vagrant file.
+Here we describe two ways to install and configure the dependencies, either run
+directly on your local machine or encapsulated in a virtual machine or
+container.
 
-Option 1: Manual Install
-########################
+Step 1: Create a Python virtualenv
+----------------------------------
 
-#. Install a few system prerequisites::
+#. If you haven't already downloaded the source code, do that first::
+
+    cd ~
+    git clone https://git.openstack.org/openstack/ironic
+    cd ironic
+
+#. Create the Python virtualenv::
+
+    tox -evenv --notest --develop -r
+
+#. Activate the virtual environment::
+
+    source .tox/venv/bin/activate
+
+#. Export some ENV vars so the client will connect to the local services
+   that you'll start in the next section::
+
+    export OS_AUTH_TOKEN=fake-token
+    export IRONIC_URL=http://localhost:6385/
+
+Next, install and configure system dependencies. Two different approaches are
+described below; you should only do one of these.
+
+Step 2a: System Depdencies In A Virtual Machine
+-----------------------------------------------
+
+This option requires `virtualbox <https://www.virtualbox.org>`_,
+`vagrant <https://www.vagrantup.com>`_, and
+`ansible <https://www.ansible.com>`_. You may install these using your
+favorite package manager, or by downloading from the provided links.
+
+#. Let vagrant do the work::
+
+    vagrant up
+
+This will create a VM available to your local system at `192.168.99.11`,
+will install all the necessary service dependencies,
+and configure some default users. It will also generate
+`./etc/ironic/ironic.conf.local` preconfigured for local dev work.
+We recommend you compare and familiarize yourself with the settings in
+`./etc/ironic/ironic.conf.sample` so you can adjust it to meet your own needs.
+
+Step 2b: Install System Dependencies Locally
+--------------------------------------------
+
+This option will install RabbitMQ and MySQL on your local system. This may not
+be desirable in some situations (eg, you're developing from a laptop and do not
+want to run a MySQL server on it all the time).
+
+#. Install rabbitmq-server::
 
     # install rabbit message broker
     # Ubuntu/Debian:
@@ -220,7 +296,7 @@ Option 1: Manual Install
     sudo zypper install rabbitmq-server
     sudo systemctl start rabbitmq-server.service
 
-    # optionally, install mysql-server
+#. Install mysql-server::
 
     # Ubuntu/Debian:
     # sudo apt-get install mysql-server
@@ -237,17 +313,11 @@ Option 1: Manual Install
     # sudo zypper install mariadb
     # sudo systemctl start mysql.service
 
-#. Clone the ``Ironic`` repository and install it within a virtualenv::
+    # If using MySQL, you need to create the initial database
+    mysql -u root -pMYSQL_ROOT_PWD -e "create schema ironic"
 
-    # activate the virtualenv
-    cd ~
-    git clone https://git.openstack.org/openstack/ironic
-    cd ironic
-    tox -evenv --notest
-    source .tox/venv/bin/activate
-
-    # install ironic within the virtualenv
-    python setup.py develop
+.. NOTE: if you choose not to install mysql-server, ironic will default to
+         using a local sqlite database.
 
 #. Create a configuration file within the ironic source directory::
 
@@ -266,95 +336,41 @@ Option 1: Manual Install
     # turn off the periodic sync_power_state task, to avoid getting NodeLocked exceptions
     sed -i "s/#sync_power_state_interval = 60/sync_power_state_interval = -1/" etc/ironic/ironic.conf.local
 
-#. Initialize the ironic database (optional)::
-
-    # ironic defaults to storing data in ./ironic/ironic.sqlite
-
-    # If using MySQL, you need to create the initial database
-    mysql -u root -pMYSQL_ROOT_PWD -e "create schema ironic"
-
-    # and switch the DB connection from sqlite to something else, eg. mysql
+    # if you opted to install mysql-server, switch the DB connection from sqlite to mysql
     sed -i "s/#connection = .*/connection = mysql\+pymysql:\/\/root:MYSQL_ROOT_PWD@localhost\/ironic/" etc/ironic/ironic.conf.local
 
-At this point, you can continue to Step 2.
+Step 3: Start the Services
+--------------------------
 
-Option 2: Vagrant, VirtualBox, and Ansible
-##########################################
+From within the python virtualenv, run the following command to prepare the
+database before you start the ironic services::
 
-This option requires `virtualbox <https://www.virtualbox.org>`_,
-`vagrant <https://www.vagrantup.com>`_, and
-`ansible <https://www.ansible.com>`_. You may install these using your
-favorite package manager, or by downloading from the provided links.
-
-Next, run vagrant::
-
-    vagrant up
-
-This will create a VM available to your local system at `192.168.99.11`,
-will install all the necessary service dependencies,
-and configure some default users. It will also generate
-`./etc/ironic/ironic.conf.local` preconfigured for local dev work.
-We recommend you compare and familiarize yourself with the settings in
-`./etc/ironic/ironic.conf.sample` so you can adjust it to meet your own needs.
-
-Step 2: Start the API
----------------------
-#. Activate the virtual environment created in the previous section to run
-   the API::
-
-    # switch to the ironic source (Not necessary if you followed Option 1)
-    cd ironic
-
-    # activate the virtualenv
-    source .tox/venv/bin/activate
-
-    # install ironic within the virtualenv
-    python setup.py develop
-
-    # This creates the database tables.
+    # initialize the database for ironic
     ironic-dbsync --config-file etc/ironic/ironic.conf.local create_schema
+
+Next, open two new terminals for this section, and run each of the examples
+here in a separate terminal. In this way, the services will *not* be run as
+daemons; you can observe their output and stop them with Ctrl-C at any time.
 
 #. Start the API service in debug mode and watch its output::
 
-    # start the API service
+    cd ~/ironic
+    source .tox/venv/bin/activate
     ironic-api -v -d --config-file etc/ironic/ironic.conf.local
 
+#. Start the Conductor service in debug mode and watch its output::
 
-Step 3: Install the Client
---------------------------
-#. Clone the ``python-ironicclient`` repository and install it within a
-   virtualenv::
-
-    # from your home or source directory
-    cd ~
-    git clone https://git.openstack.org/openstack/python-ironicclient
-    cd python-ironicclient
-    tox -evenv --notest
+    cd ~/ironic
     source .tox/venv/bin/activate
-
-#. Export some ENV vars so the client will connect to the local services
-   that you'll start in the next section::
-
-    export OS_AUTH_TOKEN=fake-token
-    export IRONIC_URL=http://localhost:6385/
-
-
-Step 4: Start the Conductor Service
------------------------------------
-Open one more window (or screen session), again activate the venv, and then
-start the conductor service and watch its output::
-
-    # activate the virtualenv
-    cd ironic
-    source .tox/venv/bin/activate
-
-    # start the conductor service
     ironic-conductor -v -d --config-file etc/ironic/ironic.conf.local
 
-You should now be able to interact with Ironic via the python client (installed
-in Step 3) and observe both services' debug outputs in the other two
-windows. This is a good way to test new features or play with the functionality
-without necessarily starting DevStack.
+Step 4: Interact with the running services
+------------------------------------------
+
+You should now be able to interact with ironic via the python client, which is
+present in the python virtualenv, and observe both services' debug outputs in
+the other two windows. This is a good way to test new features or play with the
+functionality without necessarily starting DevStack.
 
 To get started, list the available commands and resources::
 
@@ -394,11 +410,35 @@ Here is an example walkthrough of creating a node::
     # its power state from ironic!
     ironic node-set-power-state $NODE on
 
-If you make some code changes and want to test their effects, install
-again with "python setup.py develop", stop the services with Ctrl-C,
-and restart them.
+If you make some code changes and want to test their effects, simply stop the
+services with Ctrl-C and restart them.
 
-==============================
+Step 5: Fixing your test environment
+------------------------------------
+
+If you are testing changes that add or remove python entrypoints, or making
+significant changes to ironic's python modules, or simply keep the virtualenv
+around for a long time, your development environment may reach an inconsistent
+state. It may help to delete cached ".pyc" files, update dependencies,
+reinstall ironic, or even recreate the virtualenv. The following commands may
+help with that, but are not an exhaustive troubleshooting guide.::
+
+  # clear cached pyc files
+  cd ~/ironic/ironic
+  find ./ -name '*.pyc' | xargs rm
+
+  # reinstall ironic modules
+  cd ~/ironic
+  source .tox/venv/bin/activate
+  pip uninstall ironic
+  pip install -e .
+
+  # install and upgrade ironic and all python dependencies
+  cd ~/ironic
+  source .tox/venv/bin/activate
+  pip install -U -e .
+
+
 Deploying Ironic with DevStack
 ==============================
 
@@ -649,7 +689,6 @@ The server should now be accessible via SSH::
     ssh cirros@10.1.0.4
     $
 
-=====================
 Running Tempest tests
 =====================
 
@@ -703,7 +742,6 @@ For more information about the supported parameters see::
    Always be careful when running debuggers in time sensitive code,
    they may cause timeout errors that weren't there before.
 
-================================
 Building developer documentation
 ================================
 
@@ -741,4 +779,3 @@ commands to build the documentation set:
     #Now use your browser to open the top-level index.html located at:
 
     http://your_ip:8000
-

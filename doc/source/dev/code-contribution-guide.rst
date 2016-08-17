@@ -8,6 +8,60 @@ This document provides some necessary points for developers to consider when
 writing and reviewing Ironic code. The checklist will help developers get
 things right.
 
+Getting Started
+===============
+
+If you're completely new to OpenStack and want to contribute to the ironic
+project, please start by familiarizing yourself with the `Infra Team's Developer
+Guide <http://docs.openstack.org/infra/manual/developers.html>`_. This will help
+you get your accounts set up in Launchpad and Gerrit, familiarize you with the
+workflow for the OpenStack continuous integration and testing systems, and help
+you with your first commit.
+
+LaunchPad Project
+-----------------
+
+Most of the tools used for OpenStack require a launchpad.net ID for
+authentication.
+
+.. seealso::
+
+   * https://launchpad.net
+   * https://launchpad.net/ironic
+
+Related Projects
+----------------
+
+There are several projects that are tightly integrated with ironic and which are
+developed by the same community.
+
+.. seealso::
+
+   * https://launchpad.net/bifrost
+   * https://launchpad.net/ironic-inspector
+   * https://launchpad.net/ironic-lib
+   * https://launchpad.net/ironic-python-agent
+   * https://launchpad.net/python-ironicclient
+   * https://launchpad.net/python-ironic-inspector-client
+
+Project Hosting Details
+-----------------------
+
+Bug tracker
+    http://launchpad.net/ironic
+
+Mailing list (prefix Subject line with ``[ironic]``)
+    http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-dev
+
+Wiki
+    http://wiki.openstack.org/Ironic
+
+Code Hosting
+    https://git.openstack.org/cgit/openstack/ironic
+
+Code Review
+    https://review.openstack.org/#/q/status:open+project:openstack/ironic,n,z
+
 Adding New Features
 ===================
 
@@ -208,4 +262,3 @@ For approved and completed specs:
 
 Please see the `Ironic specs process wiki page <https://wiki.openstack.org/
 wiki/Ironic/Specs_Process>`_ for further reference.
-

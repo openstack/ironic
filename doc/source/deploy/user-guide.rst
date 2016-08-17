@@ -4,30 +4,25 @@
 Introduction to Ironic
 ======================
 
-Ironic is an OpenStack project which provisions physical hardware as opposed to
-virtual machines.  Ironic provides several reference drivers which leverage
-common technologies like PXE and IPMI, to cover a wide range of hardware.
-Ironic's pluggable driver architecture also allows vendor-specific drivers to
-be added for improved performance or functionality not provided by reference
-drivers.
+Ironic is an OpenStack project which provisions bare metal (as opposed to
+virtual) machines. It may be used independently or as part of an OpenStack
+Cloud, and integrates with the OpenStack Identity (keystone), Compute (nova),
+Network (neutron), and Image (glance) services.
 
-If one thinks of traditional hypervisor functionality (e.g., creating a
-VM, enumerating virtual devices, managing the power state, loading an OS onto
-the VM, and so on), then Ironic may be thought of as a hypervisor API gluing
-together multiple drivers, each of which implement some portion of that
-functionality with respect to physical hardware.
+When the Bare Metal service is appropriately configured with the Compute and
+Network services, it is possible to provision both virtual and physical
+machines through the Compute service's API. However, the set of instance
+actions is limited, arising from the different characteristics of physical
+servers and switch hardware. For example, live migration can not be performed
+on a bare metal instance.
 
-OpenStack's Ironic project makes physical servers as easy to provision as
-virtual machines in cloud, which in turn will open up new avenues for
-enterprises and service providers.
+The community maintains reference drivers that leverage open-source
+technologies (eg. PXE and IPMI) to cover a wide range of hardware. Ironic's
+pluggable driver architecture also allows hardware vendors to write and
+contribute drivers that may improve performance or add functionality not
+provided by the community drivers.
 
-Ironic's driver replaces the Nova "bare metal" driver (in Grizzly - Juno
-releases). Ironic is available for use and is supported by the Ironic
-developers starting with the Juno release. It is officially integrated with
-OpenStack in the Kilo release.
-
-See https://wiki.openstack.org/wiki/Ironic for links to the project's current
-development status.
+.. TODO: the remainder of this file needs to be cleaned up still
 
 Why Provision Bare Metal
 ========================
