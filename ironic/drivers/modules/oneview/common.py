@@ -15,6 +15,7 @@
 
 from oslo_log import log as logging
 from oslo_utils import importutils
+from oslo_utils import strutils
 
 from ironic.common import exception
 from ironic.common.i18n import _, _LE
@@ -269,12 +270,10 @@ def node_has_server_profile(func):
 def is_dynamic_allocation_enabled(node):
     flag = node.driver_info.get('dynamic_allocation')
     if flag:
-        if isinstance(flag, bool):
-            return flag is True
-        else:
-            msg = (_LE("Invalid dynamic_allocation parameter value in "
-                       "node's %(node_uuid)s driver_info. Valid values "
-                       "are booleans true or false.") %
-                   {"node_uuid": node.uuid})
+        try:
+            return strutils.bool_from_string(flag, strict=True)
+        except ValueError:
+            msg = (_LE("Invalid dynamic_allocation parameter value "
+                       "'%(flag)s' in node's %(node_uuid)s driver_info.") %
+                   {"flag": flag, "node_uuid": node.uuid})
             raise exception.InvalidParameterValue(msg)
-    return False
