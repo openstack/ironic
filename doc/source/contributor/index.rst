@@ -25,6 +25,7 @@ primarily for developers.
   Ironic System Architecture <architecture>
   Provisioning State Machine <states>
   Developing New Notifications <notifications>
+  OSProfiler Tracing <osprofiler-support>
 
 These pages contain information for PTLs, cross-project liaisons, and core
 reviewers.

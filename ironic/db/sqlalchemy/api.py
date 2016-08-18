@@ -29,12 +29,15 @@ from oslo_utils import netutils
 from oslo_utils import strutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
+from osprofiler import sqlalchemy as osp_sqlalchemy
+import sqlalchemy as sa
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.orm import joinedload
 from sqlalchemy import sql
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import profiler
 from ironic.common import states
 from ironic.conf import CONF
 from ironic.db import api
@@ -53,14 +56,20 @@ def get_backend():
 
 
 def _session_for_read():
-    return enginefacade.reader.using(_CONTEXT)
+    return _wrap_session(enginefacade.reader.using(_CONTEXT))
 
 
 # Please add @oslo_db_api.retry_on_deadlock decorator to all methods using
 # _session_for_write (as deadlocks happen on write), so that oslo_db is able
 # to retry in case of deadlocks.
 def _session_for_write():
-    return enginefacade.writer.using(_CONTEXT)
+    return _wrap_session(enginefacade.writer.using(_CONTEXT))
+
+
+def _wrap_session(session):
+    if CONF.profiler.enabled and CONF.profiler.trace_sqlalchemy:
+        session = osp_sqlalchemy.wrap_session(sa, session)
+    return session
 
 
 def _get_node_query_with_tags():
@@ -191,6 +200,7 @@ def _filter_active_conductors(query, interval=None):
     return query
 
 
+@profiler.trace_cls("db_api")
 class Connection(api.Connection):
     """SqlAlchemy connection."""
 
