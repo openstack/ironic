@@ -27,7 +27,6 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import utils
 from ironic.drivers.modules import deploy_utils
-from ironic.drivers import utils as driver_utils
 
 CONF = cfg.CONF
 
@@ -91,8 +90,9 @@ def _link_mac_pxe_configs(task):
         utils.create_link_without_raise(relative_source_path, mac_path)
 
     pxe_config_file_path = get_pxe_config_file_path(task.node.uuid)
-    for mac in driver_utils.get_node_mac_addresses(task):
-        create_link(_get_pxe_mac_path(mac))
+    for port in task.ports:
+        client_id = port.extra.get('client-id')
+        create_link(_get_pxe_mac_path(port.address, client_id=client_id))
 
 
 def _link_ip_address_pxe_configs(task, hex_form):
@@ -123,17 +123,22 @@ def _link_ip_address_pxe_configs(task, hex_form):
                                         ip_address_path)
 
 
-def _get_pxe_mac_path(mac, delimiter='-'):
+def _get_pxe_mac_path(mac, delimiter='-', client_id=None):
     """Convert a MAC address into a PXE config file name.
 
     :param mac: A MAC address string in the format xx:xx:xx:xx:xx:xx.
     :param delimiter: The MAC address delimiter. Defaults to dash ('-').
+    :param client_id: client_id indicate InfiniBand port.
+                      Defaults is None (Ethernet)
     :returns: the path to the config file.
 
     """
     mac_file_name = mac.replace(':', delimiter).lower()
     if not CONF.pxe.ipxe_enabled:
-        mac_file_name = '01-' + mac_file_name
+        hw_type = '01-'
+        if client_id:
+            hw_type = '20-'
+        mac_file_name = hw_type + mac_file_name
 
     return os.path.join(get_root_dir(), PXE_CFG_DIR_NAME, mac_file_name)
 
@@ -273,8 +278,10 @@ def clean_up_pxe_config(task):
             # Cleaning up config files created for elilo.
             ironic_utils.unlink_without_raise(hex_ip_path)
     else:
-        for mac in driver_utils.get_node_mac_addresses(task):
-            ironic_utils.unlink_without_raise(_get_pxe_mac_path(mac))
+        for port in task.ports:
+            client_id = port.extra.get('client-id')
+            ironic_utils.unlink_without_raise(
+                _get_pxe_mac_path(port.address, client_id=client_id))
 
     utils.rmtree_without_raise(os.path.join(get_root_dir(),
                                             task.node.uuid))

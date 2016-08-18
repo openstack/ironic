@@ -18,6 +18,7 @@ import os
 
 import mock
 from oslo_config import cfg
+from oslo_utils import uuidutils
 import six
 
 from ironic.common import pxe_utils
@@ -199,25 +200,25 @@ class TestPXEUtils(db_base.DbTestCase):
 
     @mock.patch('ironic.common.utils.create_link_without_raise', autospec=True)
     @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
-    @mock.patch('ironic.drivers.utils.get_node_mac_addresses', autospec=True)
-    def test__write_mac_pxe_configs(self, get_macs_mock, unlink_mock,
-                                    create_link_mock):
-        macs = [
-            '00:11:22:33:44:55:66',
-            '00:11:22:33:44:55:67'
-        ]
-        get_macs_mock.return_value = macs
+    def test__write_mac_pxe_configs(self, unlink_mock, create_link_mock):
+        port_1 = object_utils.create_test_port(
+            self.context, node_id=self.node.id,
+            address='11:22:33:44:55:66', uuid=uuidutils.generate_uuid())
+        port_2 = object_utils.create_test_port(
+            self.context, node_id=self.node.id,
+            address='11:22:33:44:55:67', uuid=uuidutils.generate_uuid())
         create_link_calls = [
             mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
-                      '/tftpboot/pxelinux.cfg/01-00-11-22-33-44-55-66'),
+                      '/tftpboot/pxelinux.cfg/01-11-22-33-44-55-66'),
             mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
-                      '/tftpboot/pxelinux.cfg/01-00-11-22-33-44-55-67')
+                      '/tftpboot/pxelinux.cfg/01-11-22-33-44-55-67')
         ]
         unlink_calls = [
-            mock.call('/tftpboot/pxelinux.cfg/01-00-11-22-33-44-55-66'),
-            mock.call('/tftpboot/pxelinux.cfg/01-00-11-22-33-44-55-67'),
+            mock.call('/tftpboot/pxelinux.cfg/01-11-22-33-44-55-66'),
+            mock.call('/tftpboot/pxelinux.cfg/01-11-22-33-44-55-67'),
         ]
         with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.ports = [port_1, port_2]
             pxe_utils._link_mac_pxe_configs(task)
 
         unlink_mock.assert_has_calls(unlink_calls)
@@ -225,26 +226,59 @@ class TestPXEUtils(db_base.DbTestCase):
 
     @mock.patch('ironic.common.utils.create_link_without_raise', autospec=True)
     @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
-    @mock.patch('ironic.drivers.utils.get_node_mac_addresses', autospec=True)
-    def test__write_mac_ipxe_configs(self, get_macs_mock, unlink_mock,
-                                     create_link_mock):
-        self.config(ipxe_enabled=True, group='pxe')
-        macs = [
-            '00:11:22:33:44:55:66',
-            '00:11:22:33:44:55:67'
-        ]
-        get_macs_mock.return_value = macs
+    def test__write_infiniband_mac_pxe_configs(
+            self, unlink_mock, create_link_mock):
+        client_id1 = (
+            '20:00:55:04:01:fe:80:00:00:00:00:00:00:00:02:c9:02:00:23:13:92')
+        port_1 = object_utils.create_test_port(
+            self.context, node_id=self.node.id,
+            address='11:22:33:44:55:66', uuid=uuidutils.generate_uuid(),
+            extra={'client-id': client_id1})
+        client_id2 = (
+            '20:00:55:04:01:fe:80:00:00:00:00:00:00:00:02:c9:02:00:23:45:12')
+        port_2 = object_utils.create_test_port(
+            self.context, node_id=self.node.id,
+            address='11:22:33:44:55:67', uuid=uuidutils.generate_uuid(),
+            extra={'client-id': client_id2})
         create_link_calls = [
             mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
-                      '/httpboot/pxelinux.cfg/00-11-22-33-44-55-66'),
+                      '/tftpboot/pxelinux.cfg/20-11-22-33-44-55-66'),
             mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
-                      '/httpboot/pxelinux.cfg/00-11-22-33-44-55-67'),
+                      '/tftpboot/pxelinux.cfg/20-11-22-33-44-55-67')
         ]
         unlink_calls = [
-            mock.call('/httpboot/pxelinux.cfg/00-11-22-33-44-55-66'),
-            mock.call('/httpboot/pxelinux.cfg/00-11-22-33-44-55-67'),
+            mock.call('/tftpboot/pxelinux.cfg/20-11-22-33-44-55-66'),
+            mock.call('/tftpboot/pxelinux.cfg/20-11-22-33-44-55-67'),
         ]
         with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.ports = [port_1, port_2]
+            pxe_utils._link_mac_pxe_configs(task)
+
+        unlink_mock.assert_has_calls(unlink_calls)
+        create_link_mock.assert_has_calls(create_link_calls)
+
+    @mock.patch('ironic.common.utils.create_link_without_raise', autospec=True)
+    @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
+    def test__write_mac_ipxe_configs(self, unlink_mock, create_link_mock):
+        self.config(ipxe_enabled=True, group='pxe')
+        port_1 = object_utils.create_test_port(
+            self.context, node_id=self.node.id,
+            address='11:22:33:44:55:66', uuid=uuidutils.generate_uuid())
+        port_2 = object_utils.create_test_port(
+            self.context, node_id=self.node.id,
+            address='11:22:33:44:55:67', uuid=uuidutils.generate_uuid())
+        create_link_calls = [
+            mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+                      '/httpboot/pxelinux.cfg/11-22-33-44-55-66'),
+            mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+                      '/httpboot/pxelinux.cfg/11-22-33-44-55-67'),
+        ]
+        unlink_calls = [
+            mock.call('/httpboot/pxelinux.cfg/11-22-33-44-55-66'),
+            mock.call('/httpboot/pxelinux.cfg/11-22-33-44-55-67'),
+        ]
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.ports = [port_1, port_2]
             pxe_utils._link_mac_pxe_configs(task)
 
         unlink_mock.assert_has_calls(unlink_calls)

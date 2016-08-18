@@ -162,6 +162,7 @@ class NeutronNetwork(base.NetworkInterface):
                       '%(node_id)s',
                       {'vif_port_id': vif_port_id, 'node_id': node.uuid})
             local_link_info = []
+            client_id_opt = None
             if isinstance(port_like_obj, objects.Portgroup):
                 pg_ports = [p for p in task.ports
                             if p.portgroup_id == port_like_obj.id]
@@ -171,6 +172,10 @@ class NeutronNetwork(base.NetworkInterface):
                 # We iterate only on ports or portgroups, no need to check
                 # that it is a port
                 local_link_info.append(portmap[port_like_obj.uuid])
+                client_id = port_like_obj.extra.get('client-id')
+                if client_id:
+                    client_id_opt = (
+                        {'opt_name': 'client-id', 'opt_value': client_id})
             body = {
                 'port': {
                     'device_owner': 'baremetal:none',
@@ -183,6 +188,8 @@ class NeutronNetwork(base.NetworkInterface):
                     },
                 }
             }
+            if client_id_opt:
+                body['port']['extra_dhcp_opts'] = [client_id_opt]
 
             try:
                 client.update_port(vif_port_id, body)

@@ -26,6 +26,8 @@ from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils
 
 CONF = cfg.CONF
+CLIENT_ID1 = '20:00:55:04:01:fe:80:00:00:00:00:00:00:00:02:c9:02:00:23:13:92'
+CLIENT_ID2 = '20:00:55:04:01:fe:80:00:00:00:00:00:00:00:02:c9:02:00:23:13:93'
 
 
 class NeutronInterfaceTestCase(db_base.DbTestCase):
@@ -136,7 +138,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             client_mock.assert_called_once_with(task.context.auth_token)
 
     @mock.patch.object(neutron_common, 'get_client')
-    def _test_configure_tenant_networks(self, client_mock):
+    def _test_configure_tenant_networks(self, client_mock, is_client_id=False):
         upd_mock = mock.Mock()
         client_mock.return_value.update_port = upd_mock
         second_port = utils.create_test_port(
@@ -147,6 +149,15 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                                    'port_id': 'Ethernet1/1',
                                    'switch_info': 'switch2'}
         )
+        if is_client_id:
+            client_ids = (CLIENT_ID1, CLIENT_ID2)
+            ports = (self.port, second_port)
+            for port, client_id in zip(ports, client_ids):
+                extra = port.extra
+                extra['client-id'] = client_id
+                port.extra = extra
+                port.save()
+
         expected_body = {
             'port': {
                 'device_owner': 'baremetal:none',
@@ -164,6 +175,11 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         port2_body['port']['binding:profile'] = {
             'local_link_information': [second_port.local_link_connection]
         }
+        if is_client_id:
+            port1_body['port']['extra_dhcp_opts'] = (
+                [{'opt_name': 'client-id', 'opt_value': client_ids[0]}])
+            port2_body['port']['extra_dhcp_opts'] = (
+                [{'opt_name': 'client-id', 'opt_value': client_ids[1]}])
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.configure_tenant_networks(task)
             client_mock.assert_called_once_with(task.context.auth_token)
@@ -180,6 +196,11 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
 
     def test_configure_tenant_networks_no_instance_uuid(self):
         self._test_configure_tenant_networks()
+
+    def test_configure_tenant_networks_with_client_id(self):
+        self.node.instance_uuid = uuidutils.generate_uuid()
+        self.node.save()
+        self._test_configure_tenant_networks(is_client_id=True)
 
     @mock.patch.object(neutron_common, 'get_client')
     def test_configure_tenant_networks_with_portgroups(self, client_mock):

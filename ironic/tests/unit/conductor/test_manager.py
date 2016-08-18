@@ -2806,6 +2806,65 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
         mac_update_mock.assert_called_once_with('fake-id', new_address,
                                                 token=self.context.auth_token)
 
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
+    def test_update_port_client_id(self, dhcp_update_mock):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        port = obj_utils.create_test_port(self.context,
+                                          node_id=node.id,
+                                          extra={'vif_port_id': 'fake-id',
+                                                 'client-id': 'fake1'})
+        expected_extra = {'vif_port_id': 'fake-id', 'client-id': 'fake2'}
+        expected_dhcp_opts = [{'opt_name': 'client-id', 'opt_value': 'fake2'}]
+        port.extra = expected_extra
+        res = self.service.update_port(self.context, port)
+        self.assertEqual(expected_extra, res.extra)
+        dhcp_update_mock.assert_called_once_with('fake-id', expected_dhcp_opts,
+                                                 token=self.context.auth_token)
+
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
+    def test_update_port_vif(self, dhcp_update_mock):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        port = obj_utils.create_test_port(self.context,
+                                          node_id=node.id,
+                                          extra={'vif_port_id': 'fake-id',
+                                                 'client-id': 'fake1'})
+        expected_extra = {'vif_port_id': 'new_ake-id', 'client-id': 'fake1'}
+        port.extra = expected_extra
+        res = self.service.update_port(self.context, port)
+        self.assertEqual(expected_extra, res.extra)
+        self.assertFalse(dhcp_update_mock.called)
+
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
+    def test_update_port_client_id_fail(self, dhcp_update_mock):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        expected_extra = {'vif_port_id': 'fake-id', 'client-id': 'fake1'}
+        port = obj_utils.create_test_port(self.context,
+                                          node_id=node.id,
+                                          extra=expected_extra)
+        extra = {'vif_port_id': 'fake-id', 'client-id': 'fake2'}
+        port.extra = extra
+        dhcp_update_mock.side_effect = (
+            exception.FailedToUpdateDHCPOptOnPort(port_id=port.uuid))
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_port,
+                                self.context, port)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(
+            exception.FailedToUpdateDHCPOptOnPort, exc.exc_info[0])
+        port.refresh()
+        self.assertEqual(expected_extra, port.extra)
+
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
+    def test_update_port_client_id_no_vif_id(self, dhcp_update_mock):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        port = obj_utils.create_test_port(self.context, node_id=node.id)
+
+        expected_extra = {'client-id': 'fake2'}
+        port.extra = expected_extra
+        res = self.service.update_port(self.context, port)
+        self.assertEqual(expected_extra, res.extra)
+        self.assertFalse(dhcp_update_mock.called)
+
     def test_update_port_node_deleting_state(self):
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           provision_state=states.DELETING)
