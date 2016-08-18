@@ -537,6 +537,8 @@ function configure_ironic {
     iniset $IRONIC_CONF_FILE database connection `database_connection_url ironic`
     iniset $IRONIC_CONF_FILE DEFAULT state_path $IRONIC_STATE_PATH
     iniset $IRONIC_CONF_FILE DEFAULT use_syslog $SYSLOG
+    # NOTE(vsaienko) with multinode each conductor should have its own host.
+    iniset $IRONIC_CONF_FILE DEFAULT host $LOCAL_HOSTNAME
     # Configure Ironic conductor, if it was enabled.
     if is_service_enabled ir-cond; then
         configure_ironic_conductor
