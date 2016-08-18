@@ -224,7 +224,7 @@ etc. In this case, to be enrolled, the node must have the following parameters:
 
 * In ``driver_info``
 
-  - ``server_hardware_uri``: URI of the Server Hardware on OneView.
+  - ``server_hardware_uri``: URI of the ``Server Hardware`` on OneView.
 
   - ``dynamic_allocation``: Boolean value to enable or disable (True/False)
     ``dynamic allocation`` for the given node. If this parameter is not set,
@@ -234,12 +234,12 @@ etc. In this case, to be enrolled, the node must have the following parameters:
 
 * In ``properties/capabilities``
 
-  - ``server_hardware_type_uri``: URI of the Server Hardware Type of the
-    Server Hardware.
-  - ``server_profile_template_uri``: URI of the Server Profile Template used
-    to create the Server Profile of the Server Hardware.
-  - ``enclosure_group_uri`` (optional): URI of the Enclosure Group of the
-    Server Hardware.
+  - ``server_hardware_type_uri``: URI of the ``Server Hardware Type`` of the
+    ``Server Hardware``.
+  - ``server_profile_template_uri``: URI of the ``Server Profile Template`` used
+    to create the ``Server Profile`` of the ``Server Hardware``.
+  - ``enclosure_group_uri`` (optional): URI of the ``Enclosure Group`` of the
+    ``Server Hardware``.
 
 To enroll a node with any of the OneView drivers, do::
 
@@ -256,30 +256,32 @@ OneView node, do::
   $ ironic node-update $NODE_UUID add \
     properties/capabilities=server_hardware_type_uri:$SHT_URI,enclosure_group_uri:$EG_URI,server_profile_template_uri=$SPT_URI
 
-In order to deploy, ironic will create and apply, at boot time, a Server
-Profile based on the Server Profile Template specified on the node to the
-Server Hardware it represents on OneView. The URI of such Server Profile will
-be stored in ``driver_info.applied_server_profile_uri`` field while the Server
-is allocated to ironic.
+In order to deploy, ironic will create and apply, at boot time, a ``Server
+Profile`` based on the ``Server Profile Template`` specified on the node to the
+``Server Hardware`` it represents on OneView. The URI of such ``Server Profile``
+will be stored in ``driver_info.applied_server_profile_uri`` field while the
+Server is allocated to ironic.
 
-The Server Profile Templates and, therefore, the Server Profiles derived from
-them MUST comply with the following requirements:
+The ``Server Profile Templates`` and, therefore, the ``Server Profiles`` derived
+from them MUST comply with the following requirements:
 
-* The option `MAC Address` in the `Advanced` section of Server Profile/Server
-  Profile Template should be set to `Physical` option;
+* The option `MAC Address` in the `Advanced` section of
+  ``Server Profile``/``Server Profile Template`` should be set to `Physical`
+  option;
+
 * Their first `Connection` interface should be:
 
-    * Connected to ironic's provisioning network and;
-    * The `Boot` option should be set to primary.
+  * Connected to ironic's provisioning network and;
+  * The `Boot` option should be set to primary.
 
 Node ports should be created considering the **MAC address of the first
-Interface** of the given Server Hardware.
+Interface** of the given ``Server Hardware``.
 
 .. note::
    Old versions of ironic using ``pre-allocation`` model (before Newton
    release) and nodes with `dynamic_allocation` flag disabled shall have their
-   Server Profiles applied during node enrollment and can have their ports
-   created using the `Virtual` MAC addresses provided on Server Profile
+   ``Server Profiles`` applied during node enrollment and can have their ports
+   created using the `Virtual` MAC addresses provided on ``Server Profile``
    application.
 
 To tell ironic which NIC should be connected to the provisioning network, do::
@@ -291,6 +293,94 @@ For more information on the enrollment process of an ironic node, see [4]_.
 For more information on the definitions of ``Server Hardware``, ``Server
 Profile``, ``Server Profile Template`` and other OneView entities, refer to
 [1]_ or browse Help in your OneView appliance menu.
+
+Migrating from pre-allocation to dynamic allocation
+===================================================
+
+The migration of a node from an ironic deployment using ``pre-allocation``
+model to the new ``dynamic allocation`` model can be done by using
+``ironic-oneview-cli`` facilities to migrate nodes (further details on [8]_).
+However, the same results can be achieved using the ironic CLI as explained
+below.
+
+Checking if a node can be migrated
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is recommended to migrate nodes which are in a stable `provision state`. That
+means the the conductor is not performing an operation with the node, what can
+impact in the execution of a migration. The possible stable `provision_state`
+values [9_] are: `enroll`, `manageable`, `available`, `active`, `error`,
+`clean failed` and `inspect failed`.
+
+Dynamic allocation mode changes the way a ``Server Profile`` is associated with
+a node. In ``pre-allocation`` mode, when a node is registered in ironic, there
+must be a ``Server Profile`` applied to the ``Server Hardware`` represented by
+the given node what means, from the OneView point of view, the hardware is in
+use. In the ``dynamic allocation`` mode a ``Server Hardware`` is associated only
+when the node is in use by the Compute service or the OneView itself. As a
+result, there are different steps to perform if the node has an instance
+provisioned, in other words, when the `provisioning_state` is set to `active`.
+
+.. note::
+   Verify if the node has not already been migrated checking if there is
+   a `dynamic_allocation` field set to ``True`` in the `driver_info` namespace
+   doing::
+
+     $ ironic node-show  --fields driver_info
+
+Migrating nodes in `active` state
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+List nodes that are in `active` state doing::
+
+  $ ironic node-list --provision-state active --fields uuid driver_info
+
+Execute the following steps for each node:
+
+1. Remove the node's ``Server Profile`` from the ``Server Hardware`` in OneView.
+   To identify which ``Server Profile`` is associated with a node check the
+   property ``server_hardware_uri`` in the ``driver_info`` namespace doing::
+
+   $ ironic node-show <node-uuid> --fields driver_info
+
+2. Then, using the ``server_hardware_uri``, log into OneView and remove the
+   ``Server Profile``.
+
+3. Finally, set the `dynamic_allocation` flag in the ``driver_info`` namespace
+   to ``True`` in order to finish the migration of the node doing::
+
+   $ ironic node-update <node-uuid> add driver_info/dynamic_allocation=True
+
+Other cases for migration
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Remember these steps are valid for nodes in the following states: `enroll`,
+`manageable`, `available`, `error`, `clean failed` and `inspect failed`. So,
+list the nodes in a given state, then execute the migration following steps for
+each node:
+
+1. Place the node in maintenance mode to prevent ironic from working on the node
+   during the migration doing::
+
+   $ ironic node-set-maintenance --reason "Migrating node to dynamic allocation" <node_uuid> true
+
+   .. note::
+      It's recommended to check if the node's state has not changed as there is no way
+      of locking the node between these commands.
+
+2. Identify which ``Server Profile`` is associated by checking the property
+   ``server_hardware_uri`` in the ``driver_info`` namespace. Using the
+   ``server_hardware_uri``, log into OneView and remove the ``Server Profile``.
+
+3. Set the `dynamic_allocation` to ``True`` in the flag ``driver_info``
+   namespace doing::
+
+   $ ironic node-update $NODE_UUID add driver_info/dynamic_allocation=True
+
+4. Finally, in order to put the node back into the resource pool, remove the
+   node from maintenance mode doing::
+
+   $ ironic node-set-maintenance <node_uuid> false
 
 3rd Party Tools
 ===============
@@ -330,3 +420,4 @@ References
 .. [6] Dynamic Allocation in OneView drivers - http://specs.openstack.org/openstack/ironic-specs/specs/not-implemented/oneview-drivers-dynamic-allocation.html
 .. [7] ironic-oneviewd - https://pypi.python.org/pypi/ironic-oneviewd/
 .. [8] ironic-oneview-cli - https://pypi.python.org/pypi/ironic-oneview-cli/
+.. [9] Ironic’s State Machine - http://docs.openstack.org/developer/ironic/dev/states.html#states
