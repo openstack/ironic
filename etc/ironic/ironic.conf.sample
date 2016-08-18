@@ -967,7 +967,7 @@
 
 # Whether to write zeros to a node's block devices after
 # writing random data. This will write zeros to the device
-# even when deploy.shred_random_overwrite_interations is 0.
+# even when deploy.shred_random_overwrite_iterations is 0.
 # This option is only used if a device could not be ATA Secure
 # Erased. Defaults to True. (boolean value)
 #shred_final_overwrite_with_zeros = true
