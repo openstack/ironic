@@ -44,7 +44,7 @@ OneView appliance.
 The Mitaka version of the ironic OneView drivers only supported what we call
 **pre-allocation** of nodes, meaning that resources in OneView are allocated
 prior to the node being made available in ironic. This model is deprecated and
-will be supported until OpenStack's `P` release. From the Newton release on,
+will be supported until OpenStack's Pike release. From the Newton release on,
 OneView drivers enables a new feature called **dynamic allocation** of nodes
 [6]_. In this model, the driver allocates resources in OneView only at boot
 time, allowing idle resources in ironic to be used by OneView users, enabling
@@ -230,7 +230,7 @@ etc. In this case, to be enrolled, the node must have the following parameters:
     ``dynamic allocation`` for the given node. If this parameter is not set,
     the driver will consider the ``pre-allocation`` model to maintain
     compatibility on ironic upgrade. The support for this key will be dropped
-    in P, where only dynamic allocation will be used.
+    in the Pike release, where only dynamic allocation will be used.
 
 * In ``properties/capabilities``
 
