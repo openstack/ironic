@@ -15,7 +15,7 @@
 
 import datetime
 import mock
-from testtools.matchers import HasLength
+from testtools import matchers
 
 from ironic.common import exception
 from ironic import objects
@@ -109,6 +109,6 @@ class TestPortObject(base.DbTestCase):
                                autospec=True) as mock_get_list:
             mock_get_list.return_value = [self.fake_port]
             ports = objects.Port.list(self.context)
-            self.assertThat(ports, HasLength(1))
+            self.assertThat(ports, matchers.HasLength(1))
             self.assertIsInstance(ports[0], objects.Port)
             self.assertEqual(self.context, ports[0]._context)

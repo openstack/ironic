@@ -16,7 +16,7 @@
 import datetime
 import mock
 from oslo_utils import uuidutils
-from testtools.matchers import HasLength
+from testtools import matchers
 
 from ironic.common import exception
 from ironic import objects
@@ -99,6 +99,6 @@ class TestChassisObject(base.DbTestCase):
                                autospec=True) as mock_get_list:
             mock_get_list.return_value = [self.fake_chassis]
             chassis = objects.Chassis.list(self.context)
-            self.assertThat(chassis, HasLength(1))
+            self.assertThat(chassis, matchers.HasLength(1))
             self.assertIsInstance(chassis[0], objects.Chassis)
             self.assertEqual(self.context, chassis[0]._context)

@@ -12,7 +12,7 @@
 
 import datetime
 import mock
-from testtools.matchers import HasLength
+from testtools import matchers
 
 from ironic.common import exception
 from ironic import objects
@@ -119,7 +119,7 @@ class TestPortgroupObject(base.DbTestCase):
                                autospec=True) as mock_get_list:
             mock_get_list.return_value = [self.fake_portgroup]
             portgroups = objects.Portgroup.list(self.context)
-            self.assertThat(portgroups, HasLength(1))
+            self.assertThat(portgroups, matchers.HasLength(1))
             self.assertIsInstance(portgroups[0], objects.Portgroup)
             self.assertEqual(self.context, portgroups[0]._context)
 
@@ -130,6 +130,6 @@ class TestPortgroupObject(base.DbTestCase):
             node_id = self.fake_portgroup['node_id']
             portgroups = objects.Portgroup.list_by_node_id(self.context,
                                                            node_id)
-            self.assertThat(portgroups, HasLength(1))
+            self.assertThat(portgroups, matchers.HasLength(1))
             self.assertIsInstance(portgroups[0], objects.Portgroup)
             self.assertEqual(self.context, portgroups[0]._context)

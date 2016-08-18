@@ -22,7 +22,7 @@ import pecan
 from pecan import rest
 import six
 from six.moves import http_client
-from webob.static import FileIter
+from webob import static
 import wsme
 
 from ironic.api.controllers.v1 import versions
@@ -203,7 +203,7 @@ def vendor_passthru(ident, method, topic, data=None, driver_passthru=False):
             # If unicode, convert to bytes
             return_value = return_value.encode('utf-8')
         file_ = wsme.types.File(content=return_value)
-        pecan.response.app_iter = FileIter(file_.file)
+        pecan.response.app_iter = static.FileIter(file_.file)
         # Since we've attached the return value to the response
         # object the response body should now be empty.
         return_value = None

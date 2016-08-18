@@ -18,7 +18,7 @@ import json
 import mock
 from oslo_config import cfg
 from six.moves import http_client
-from testtools.matchers import HasLength
+from testtools import matchers
 
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers.v1 import driver
@@ -50,7 +50,7 @@ class TestListDrivers(base.BaseApiTest):
             {'name': self.d2, 'hosts': [self.h1, self.h2]},
         ], key=lambda d: d['name'])
         data = self.get_json('/drivers')
-        self.assertThat(data['drivers'], HasLength(2))
+        self.assertThat(data['drivers'], matchers.HasLength(2))
         drivers = sorted(data['drivers'], key=lambda d: d['name'])
         for i in range(len(expected)):
             d = drivers[i]
@@ -61,7 +61,7 @@ class TestListDrivers(base.BaseApiTest):
 
     def test_drivers_no_active_conductor(self):
         data = self.get_json('/drivers')
-        self.assertThat(data['drivers'], HasLength(0))
+        self.assertThat(data['drivers'], matchers.HasLength(0))
         self.assertEqual([], data['drivers'])
 
     @mock.patch.object(rpcapi.ConductorAPI, 'get_driver_properties')

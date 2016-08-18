@@ -16,13 +16,12 @@
 #    under the License.
 
 import keystonemiddleware.audit as audit_middleware
-from keystonemiddleware.audit import PycadfAuditApiConfigError
 from oslo_config import cfg
 import oslo_middleware.cors as cors_middleware
 import pecan
 
 from ironic.api import config
-from ironic.api.controllers.base import Version
+from ironic.api.controllers import base
 from ironic.api import hooks
 from ironic.api import middleware
 from ironic.api.middleware import auth_token
@@ -67,7 +66,8 @@ def setup_app(pecan_config=None, extra_hooks=None):
                 audit_map_file=CONF.audit.audit_map_file,
                 ignore_req_list=CONF.audit.ignore_req_list
             )
-        except (EnvironmentError, OSError, PycadfAuditApiConfigError) as e:
+        except (EnvironmentError, OSError,
+                audit_middleware.PycadfAuditApiConfigError) as e:
             raise exception.InputFileError(
                 file_name=CONF.audit.audit_map_file,
                 reason=e
@@ -82,9 +82,11 @@ def setup_app(pecan_config=None, extra_hooks=None):
     # included in all CORS responses.
     app = cors_middleware.CORS(app, CONF)
     app.set_latent(
-        allow_headers=[Version.max_string, Version.min_string, Version.string],
+        allow_headers=[base.Version.max_string, base.Version.min_string,
+                       base.Version.string],
         allow_methods=['GET', 'PUT', 'POST', 'DELETE', 'PATCH'],
-        expose_headers=[Version.max_string, Version.min_string, Version.string]
+        expose_headers=[base.Version.max_string, base.Version.min_string,
+                        base.Version.string]
     )
 
     return app
