@@ -497,10 +497,6 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
     def take_over(self, task):
         """Take over management of this node from a dead conductor.
 
-        Since this deploy interface only does local boot, there's no need
-        for this conductor to do anything when it takes over management
-        of this node.
-
         :param task: a TaskManager instance.
         """
         pass
