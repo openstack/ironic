@@ -153,9 +153,7 @@ of ironic that may or may not be suitable to every situation.
   Auditing API Traffic <deploy/api-audit-support>
   Configuring for Multi-tenant Networking <deploy/multitenancy>
   Configuring node web or serial console <deploy/console>
-
-.. TODO::
-  Add page on metrics.
+  Emitting software metrics <deploy/metrics>
 
 A reference guide listing all available configuration options is published for
 every major release. Additionally, a `sample configuration file`_ is included
