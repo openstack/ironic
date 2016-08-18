@@ -15,6 +15,7 @@
 PXE Boot Interface
 """
 
+import filecmp
 import os
 import shutil
 
@@ -413,13 +414,14 @@ class PXEBoot(base.BootInterface):
         """
         node = task.node
 
-        # TODO(deva): optimize this if rerun on existing files
         if CONF.pxe.ipxe_enabled:
             # Copy the iPXE boot script to HTTP root directory
             bootfile_path = os.path.join(
                 CONF.deploy.http_root,
                 os.path.basename(CONF.pxe.ipxe_boot_script))
-            shutil.copyfile(CONF.pxe.ipxe_boot_script, bootfile_path)
+            if (not os.path.isfile(bootfile_path) or
+                not filecmp.cmp(CONF.pxe.ipxe_boot_script, bootfile_path)):
+                    shutil.copyfile(CONF.pxe.ipxe_boot_script, bootfile_path)
 
         dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
         provider = dhcp_factory.DHCPFactory()
