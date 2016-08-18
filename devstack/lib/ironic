@@ -208,6 +208,8 @@ IRONIC_HOSTPORT=${IRONIC_HOSTPORT:-$SERVICE_HOST:$IRONIC_SERVICE_PORT}
 
 # Enable iPXE
 IRONIC_IPXE_ENABLED=$(trueorfalse True IRONIC_IPXE_ENABLED)
+# Options below are only applied when IRONIC_IPXE_ENABLED is True
+IRONIC_IPXE_USE_SWIFT=$(trueorfalse False IRONIC_IPXE_USE_SWIFT)
 IRONIC_HTTP_DIR=${IRONIC_HTTP_DIR:-$IRONIC_DATA_DIR/httpboot}
 IRONIC_HTTP_SERVER=${IRONIC_HTTP_SERVER:-$IRONIC_TFTPSERVER_IP}
 IRONIC_HTTP_PORT=${IRONIC_HTTP_PORT:-3928}
@@ -690,6 +692,9 @@ function configure_ironic_conductor {
         iniset $IRONIC_CONF_FILE pxe pxe_bootfile_name $pxebin
         iniset $IRONIC_CONF_FILE deploy http_root $IRONIC_HTTP_DIR
         iniset $IRONIC_CONF_FILE deploy http_url "http://$IRONIC_HTTP_SERVER:$IRONIC_HTTP_PORT"
+        if [[ "$IRONIC_IPXE_USE_SWIFT" == "True" ]]; then
+            iniset $IRONIC_CONF_FILE pxe ipxe_use_swift True
+        fi
     fi
 
     if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
