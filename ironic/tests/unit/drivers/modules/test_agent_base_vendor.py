@@ -237,7 +237,7 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=True) as task:
             node = self.passthru._find_node_by_macs(task, macs)
-        self.assertEqual(node, node)
+        self.assertEqual(self.node, node)
 
     @mock.patch('ironic.drivers.modules.agent_base_vendor.BaseAgentVendor'
                 '._find_ports_by_macs', autospec=True)
