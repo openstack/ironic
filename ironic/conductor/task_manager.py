@@ -203,15 +203,16 @@ class TaskManager(object):
         self._debug_timer = timeutils.StopWatch()
 
         try:
+            node = objects.Node.get(context, node_id)
             LOG.debug("Attempting to get %(type)s lock on node %(node)s (for "
                       "%(purpose)s)",
                       {'type': 'shared' if shared else 'exclusive',
-                       'node': node_id, 'purpose': purpose})
+                       'node': node.uuid, 'purpose': purpose})
             if not self.shared:
                 self._lock()
             else:
                 self._debug_timer.restart()
-                self.node = objects.Node.get(context, node_id)
+                self.node = node
 
             self.ports = objects.Port.list_by_node_id(context, self.node.id)
             self.portgroups = objects.Portgroup.list_by_node_id(context,
