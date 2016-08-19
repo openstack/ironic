@@ -138,7 +138,7 @@ def copy_image_to_swift(source_file_path, destination_object_name):
     container = CONF.ilo.swift_ilo_container
     timeout = CONF.ilo.swift_object_expiry_timeout
 
-    object_headers = {'X-Delete-After': timeout}
+    object_headers = {'X-Delete-After': str(timeout)}
     swift_api = swift.SwiftAPI()
     swift_api.create_object(container, destination_object_name,
                             source_file_path, object_headers=object_headers)

@@ -240,7 +240,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         deploy_args = {'arg1': 'val1', 'arg2': 'val2'}
         swift_obj_mock.get_temp_url.return_value = 'temp-url'
         timeout = CONF.ilo.swift_object_expiry_timeout
-        object_headers = {'X-Delete-After': timeout}
+        object_headers = {'X-Delete-After': str(timeout)}
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -772,7 +772,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         swift_obj_mock = swift_api_mock.return_value
         destination_object_name = 'destination_object_name'
         source_file_path = 'tmp_image_file'
-        object_headers = {'X-Delete-After': timeout}
+        object_headers = {'X-Delete-After': str(timeout)}
         # | WHEN |
         ilo_common.copy_image_to_swift(source_file_path,
                                        destination_object_name)
