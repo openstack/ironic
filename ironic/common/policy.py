@@ -262,7 +262,7 @@ def enforce(rule, target, creds, do_raise=False, exc=None, *args, **kwargs):
     """
     # NOTE(deva): this method is obsoleted by authorize(), but retained for
     # backwards compatibility in case it has been used downstream.
-    # It may be removed in the 'P' cycle.
+    # It may be removed in the Pike cycle.
     LOG.warning(_LW(
         "Deprecation warning: calls to ironic.common.policy.enforce() "
         "should be replaced with authorize(). This method may be removed "

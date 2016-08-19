@@ -207,7 +207,7 @@ def validate_oneview_resources_compatibility(task):
         oneview_client.validate_node_enclosure_group(oneview_info)
         oneview_client.validate_node_server_profile_template(oneview_info)
 
-        # NOTE(thiagop): Support to pre-allocation will be dropped in 'P'
+        # NOTE(thiagop): Support to pre-allocation will be dropped in the Pike
         # release
         if is_dynamic_allocation_enabled(task.node):
             oneview_client.is_node_port_mac_compatible_with_server_hardware(

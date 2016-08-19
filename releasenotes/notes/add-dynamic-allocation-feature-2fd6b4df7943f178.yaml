@@ -11,7 +11,7 @@ deprecations:
   - Deprecates pre-allocation feature for the OneView drivers since it requires
     resource allocation to Ironic prior to boot time, which makes Server
     Hardware unavailable to non-OpenStack OneView users. Pre-allocation will
-    be removed in the OpenStack "P" release. All nodes with
+    be removed in the OpenStack Pike release. All nodes with
     ``dynamic_allocation=False`` set, or that don't have the ``dynamic_allocation``
     flag set, will be assumed to be in pre-allocation. Users may use the REST API
     or the ``ironic-oneview-cli`` to migrate nodes from pre-allocation to
