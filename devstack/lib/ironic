@@ -645,16 +645,6 @@ function configure_ironic_conductor {
 
     pxe_params+=" $IRONIC_EXTRA_PXE_PARAMS"
 
-    # When booting with less than 1GB, we need to switch from default tmpfs
-    # to ramfs for ramdisks to decompress successfully.
-    if ([[ "$IRONIC_IS_HARDWARE" == "True" ]] &&
-        [[ "$IRONIC_HW_NODE_RAM" -lt 1024 ]]) ||
-        ([[ "$IRONIC_IS_HARDWARE" == "False" ]] &&
-        [[ "$IRONIC_VM_SPECS_RAM" -lt 1024 ]]); then
-
-        pxe_params+=" rootfstype=ramfs"
-    fi
-
     if [[ -n "$pxe_params" ]]; then
         iniset $IRONIC_CONF_FILE pxe pxe_append_params "$pxe_params"
     fi
