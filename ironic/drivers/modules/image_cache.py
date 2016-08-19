@@ -30,8 +30,7 @@ import six
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
-from ironic.common.i18n import _LI
-from ironic.common.i18n import _LW
+from ironic.common.i18n import _LI, _LW
 from ironic.common import image_service
 from ironic.common import images
 from ironic.common import utils

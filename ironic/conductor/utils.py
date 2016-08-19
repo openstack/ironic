@@ -16,10 +16,7 @@ from oslo_log import log
 from oslo_utils import excutils
 
 from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.common.i18n import _LE
-from ironic.common.i18n import _LI
-from ironic.common.i18n import _LW
+from ironic.common.i18n import _, _LE, _LI, _LW
 from ironic.common import states
 from ironic.conductor import task_manager
 

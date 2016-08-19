@@ -21,8 +21,7 @@ from oslo_log import log as logging
 import six
 
 from ironic.common import exception
-from ironic.common.i18n import _LE
-from ironic.common.i18n import _LI
+from ironic.common.i18n import _LE, _LI
 from ironic.common import states
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import iscsi_deploy

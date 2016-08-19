@@ -16,9 +16,7 @@ from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.common.i18n import _LI
-from ironic.common.i18n import _LW
+from ironic.common.i18n import _, _LI, _LW
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import utils as conductor_utils

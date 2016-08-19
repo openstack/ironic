@@ -20,8 +20,7 @@ from oslo_log import log as logging
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
-from ironic.common.i18n import _
-from ironic.common.i18n import _LW
+from ironic.common.i18n import _, _LW
 from ironic.common import image_service
 from ironic.common import states
 from ironic.conductor import task_manager

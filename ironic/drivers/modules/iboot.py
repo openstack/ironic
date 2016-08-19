@@ -26,8 +26,7 @@ from oslo_service import loopingcall
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.common.i18n import _LW
+from ironic.common.i18n import _, _LW
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager

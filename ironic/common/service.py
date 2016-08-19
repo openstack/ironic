@@ -27,9 +27,7 @@ from ironic.api import app
 from ironic.common import config
 from ironic.common import context
 from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.common.i18n import _LE
-from ironic.common.i18n import _LI
+from ironic.common.i18n import _, _LE, _LI
 from ironic.common import rpc
 from ironic.conf import CONF
 from ironic import objects

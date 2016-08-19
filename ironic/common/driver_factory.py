@@ -20,8 +20,7 @@ from oslo_log import log
 from stevedore import dispatch
 
 from ironic.common import exception
-from ironic.common.i18n import _LI
-from ironic.common.i18n import _LW
+from ironic.common.i18n import _LI, _LW
 from ironic.conf import CONF
 from ironic.drivers import base as driver_base
 

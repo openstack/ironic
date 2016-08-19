@@ -17,9 +17,7 @@
 from oslo_log import log
 import retrying
 
-from ironic.common.i18n import _
-from ironic.common.i18n import _LI
-from ironic.common.i18n import _LW
+from ironic.common.i18n import _, _LI, _LW
 from ironic.common import states
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent

@@ -20,9 +20,7 @@ from oslo_log import log
 from oslo_utils import uuidutils
 
 from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.common.i18n import _LI
-from ironic.common.i18n import _LW
+from ironic.common.i18n import _, _LI, _LW
 from ironic.common import neutron
 from ironic.drivers import base
 from ironic import objects

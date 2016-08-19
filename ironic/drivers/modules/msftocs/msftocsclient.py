@@ -27,8 +27,7 @@ from requests import auth
 from requests import exceptions as requests_exceptions
 
 from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.common.i18n import _LE
+from ironic.common.i18n import _, _LE
 
 LOG = log.getLogger(__name__)
 

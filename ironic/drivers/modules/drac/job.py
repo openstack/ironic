@@ -19,8 +19,7 @@ from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.common.i18n import _LE
+from ironic.common.i18n import _, _LE
 from ironic.drivers.modules.drac import common as drac_common
 
 drac_exceptions = importutils.try_import('dracclient.exceptions')
