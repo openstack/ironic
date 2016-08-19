@@ -53,7 +53,7 @@ opts = [
                 help=_("Whether to write zeros to a node's block devices "
                        "after writing random data. This will write zeros to "
                        "the device even when "
-                       "deploy.shred_random_overwrite_interations is 0. This "
+                       "deploy.shred_random_overwrite_iterations is 0. This "
                        "option is only used if a device could not be ATA "
                        "Secure Erased. Defaults to True.")),
     cfg.BoolOpt('continue_if_disk_secure_erase_fails',
