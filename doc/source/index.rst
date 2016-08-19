@@ -38,6 +38,7 @@ Administrator's Guide
   drivers/ipa
   deploy/drivers
   deploy/cleaning
+  deploy/multitenancy
   deploy/raid
   deploy/inspection
   deploy/security
