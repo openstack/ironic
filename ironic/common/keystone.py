@@ -121,7 +121,7 @@ def get_service_url(session, service_type='baremetal',
     :returns: an http/https url for the desired endpoint.
     """
     return session.get_endpoint(service_type=service_type,
-                                interface_type=endpoint_type,
+                                interface=endpoint_type,
                                 region=CONF.keystone.region_name)
 
 
