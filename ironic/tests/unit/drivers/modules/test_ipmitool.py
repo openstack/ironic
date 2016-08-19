@@ -31,7 +31,6 @@ import types
 from ironic_lib import utils as ironic_utils
 import mock
 from oslo_concurrency import processutils
-from oslo_config import cfg
 from oslo_utils import uuidutils
 import six
 
@@ -41,6 +40,7 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
+import ironic.conf
 from ironic.drivers.modules import console_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import ipmitool as ipmi
@@ -51,11 +51,7 @@ from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
-CONF = cfg.CONF
-
-CONF.import_opt('min_command_interval',
-                'ironic.drivers.modules.ipminative',
-                group='ipmi')
+CONF = ironic.conf.CONF
 
 INFO_DICT = db_utils.get_test_ipmi_info()
 
