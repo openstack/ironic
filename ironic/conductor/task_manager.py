@@ -253,15 +253,19 @@ class TaskManager(object):
 
         reserve_node()
 
-    def upgrade_lock(self):
+    def upgrade_lock(self, purpose=None):
         """Upgrade a shared lock to an exclusive lock.
 
         Also reloads node object from the database.
-        Does nothing if lock is already exclusive.
+        If lock is already exclusive only changes the lock purpose
+        when provided with one.
 
+        :param purpose: optionally change the purpose of the lock
         :raises: NodeLocked if an exclusive lock remains on the node after
                             "node_locked_retry_attempts"
         """
+        if purpose is not None:
+            self._purpose = purpose
         if self.shared:
             LOG.debug('Upgrading shared lock on node %(uuid)s for %(purpose)s '
                       'to an exclusive one (shared lock was held %(time).2f '
