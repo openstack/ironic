@@ -17,7 +17,6 @@
 from neutronclient.common import exceptions as neutron_exceptions
 from oslo_config import cfg
 from oslo_log import log
-from oslo_utils import uuidutils
 
 from ironic.common import exception
 from ironic.common.i18n import _, _LI
@@ -30,25 +29,36 @@ LOG = log.getLogger(__name__)
 CONF = cfg.CONF
 
 
-class NeutronNetwork(base.NetworkInterface):
+class NeutronNetwork(neutron.NeutronNetworkInterfaceMixin,
+                     base.NetworkInterface):
     """Neutron v2 network interface"""
 
     def __init__(self):
         failures = []
-        cleaning_net = CONF.neutron.cleaning_network_uuid
-        if not uuidutils.is_uuid_like(cleaning_net):
-            failures.append('cleaning_network_uuid=%s' % cleaning_net)
+        cleaning_net = CONF.neutron.cleaning_network
+        if not cleaning_net:
+            failures.append('cleaning_network')
 
-        provisioning_net = CONF.neutron.provisioning_network_uuid
-        if not uuidutils.is_uuid_like(provisioning_net):
-            failures.append('provisioning_network_uuid=%s' % provisioning_net)
+        provisioning_net = CONF.neutron.provisioning_network
+        if not provisioning_net:
+            failures.append('provisioning_network')
 
         if failures:
             raise exception.DriverLoadError(
                 driver=self.__class__.__name__,
                 reason=(_('The following [neutron] group configuration '
-                          'options are incorrect, they must be valid UUIDs: '
-                          '%s') % ', '.join(failures)))
+                          'options are missing: %s') % ', '.join(failures)))
+
+    def validate(self, task):
+        """Validates the network interface.
+
+        :param task: a TaskManager instance.
+        :raises: InvalidParameterValue, if the network interface configuration
+            is invalid.
+        :raises: MissingParameterValue, if some parameters are missing.
+        """
+        self.get_cleaning_network_uuid()
+        self.get_provisioning_network_uuid()
 
     def add_provisioning_network(self, task):
         """Add the provisioning network to a node.
@@ -58,11 +68,11 @@ class NeutronNetwork(base.NetworkInterface):
         """
         # If we have left over ports from a previous provision attempt, remove
         # them
-        neutron.rollback_ports(task, CONF.neutron.provisioning_network_uuid)
+        neutron.rollback_ports(task, self.get_provisioning_network_uuid())
         LOG.info(_LI('Adding provisioning network to node %s'),
                  task.node.uuid)
         vifs = neutron.add_ports_to_network(
-            task, CONF.neutron.provisioning_network_uuid,
+            task, self.get_provisioning_network_uuid(),
             security_groups=CONF.neutron.provisioning_network_security_groups)
         for port in task.ports:
             if port.uuid in vifs:
@@ -80,7 +90,7 @@ class NeutronNetwork(base.NetworkInterface):
         LOG.info(_LI('Removing provisioning network from node %s'),
                  task.node.uuid)
         neutron.remove_ports_from_network(
-            task, CONF.neutron.provisioning_network_uuid)
+            task, self.get_provisioning_network_uuid())
         for port in task.ports:
             if 'provisioning_vif_port_id' in port.internal_info:
                 internal_info = port.internal_info
@@ -96,11 +106,11 @@ class NeutronNetwork(base.NetworkInterface):
         :returns: a dictionary in the form {port.uuid: neutron_port['id']}
         """
         # If we have left over ports from a previous cleaning, remove them
-        neutron.rollback_ports(task, CONF.neutron.cleaning_network_uuid)
+        neutron.rollback_ports(task, self.get_cleaning_network_uuid())
         LOG.info(_LI('Adding cleaning network to node %s'), task.node.uuid)
         security_groups = CONF.neutron.cleaning_network_security_groups
         vifs = neutron.add_ports_to_network(task,
-                                            CONF.neutron.cleaning_network_uuid,
+                                            self.get_cleaning_network_uuid(),
                                             security_groups=security_groups)
         for port in task.ports:
             if port.uuid in vifs:
@@ -118,8 +128,8 @@ class NeutronNetwork(base.NetworkInterface):
         """
         LOG.info(_LI('Removing cleaning network from node %s'),
                  task.node.uuid)
-        neutron.remove_ports_from_network(
-            task, CONF.neutron.cleaning_network_uuid)
+        neutron.remove_ports_from_network(task,
+                                          self.get_cleaning_network_uuid())
         for port in task.ports:
             if 'cleaning_vif_port_id' in port.internal_info:
                 internal_info = port.internal_info

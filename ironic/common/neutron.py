@@ -13,6 +13,7 @@
 from neutronclient.common import exceptions as neutron_exceptions
 from neutronclient.v2_0 import client as clientv20
 from oslo_log import log
+from oslo_utils import uuidutils
 
 from ironic.common import exception
 from ironic.common.i18n import _, _LE, _LI, _LW
@@ -286,3 +287,65 @@ def rollback_ports(task, network_uuid):
             'Failed to rollback port changes for node %(node)s '
             'on network %(network)s'), {'node': task.node.uuid,
                                         'network': network_uuid})
+
+
+def validate_network(uuid_or_name, net_type=_('network')):
+    """Check that the given network is present.
+
+    :param uuid_or_name: network UUID or name
+    :param net_type: human-readable network type for error messages
+    :return: network UUID
+    :raises: MissingParameterValue if uuid_or_name is empty
+    :raises: NetworkError on failure to contact Neutron
+    :raises: InvalidParameterValue for missing or duplicated network
+    """
+    if not uuid_or_name:
+        raise exception.MissingParameterValue(
+            _('UUID or name of %s is not set in configuration') % net_type)
+
+    if uuidutils.is_uuid_like(uuid_or_name):
+        filters = {'id': uuid_or_name}
+    else:
+        filters = {'name': uuid_or_name}
+
+    try:
+        client = get_client()
+        networks = client.list_networks(fields=['id'], **filters)
+    except neutron_exceptions.NeutronClientException as exc:
+        raise exception.NetworkError(_('Could not retrieve network list: %s') %
+                                     exc)
+
+    LOG.debug('Got list of networks matching %(cond)s: %(result)s',
+              {'cond': filters, 'result': networks})
+    networks = [n['id'] for n in networks.get('networks', [])]
+    if not networks:
+        raise exception.InvalidParameterValue(
+            _('%(type)s with name or UUID %(uuid_or_name)s was not found') %
+            {'type': net_type, 'uuid_or_name': uuid_or_name})
+    elif len(networks) > 1:
+        raise exception.InvalidParameterValue(
+            _('More than one %(type)s was found for name %(name)s: %(nets)s') %
+            {'name': uuid_or_name, 'nets': ', '.join(networks),
+             'type': net_type})
+
+    return networks[0]
+
+
+class NeutronNetworkInterfaceMixin(object):
+
+    _cleaning_network_uuid = None
+    _provisioning_network_uuid = None
+
+    def get_cleaning_network_uuid(self):
+        if self._cleaning_network_uuid is None:
+            self._cleaning_network_uuid = validate_network(
+                CONF.neutron.cleaning_network,
+                _('cleaning network'))
+        return self._cleaning_network_uuid
+
+    def get_provisioning_network_uuid(self):
+        if self._provisioning_network_uuid is None:
+            self._provisioning_network_uuid = validate_network(
+                CONF.neutron.provisioning_network,
+                _('provisioning network'))
+        return self._provisioning_network_uuid

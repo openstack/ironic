@@ -119,9 +119,9 @@ class TestCase(testtools.TestCase):
         self.config(use_stderr=False,
                     fatal_exception_format_errors=True,
                     tempdir=tempfile.tempdir)
-        self.config(cleaning_network_uuid=uuidutils.generate_uuid(),
+        self.config(cleaning_network=uuidutils.generate_uuid(),
                     group='neutron')
-        self.config(provisioning_network_uuid=uuidutils.generate_uuid(),
+        self.config(provisioning_network=uuidutils.generate_uuid(),
                     group='neutron')
         self.config(enabled_drivers=['fake'])
         self.config(enabled_network_interfaces=['flat', 'noop', 'neutron'],

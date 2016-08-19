@@ -37,7 +37,7 @@ class TestNeutron(db_base.DbTestCase):
         super(TestNeutron, self).setUp()
         mgr_utils.mock_the_extension_manager(driver='fake')
         self.config(
-            cleaning_network_uuid='00000000-0000-0000-0000-000000000000',
+            cleaning_network='00000000-0000-0000-0000-000000000000',
             group='neutron')
         self.config(enabled_drivers=['fake'])
         self.config(dhcp_provider='neutron',

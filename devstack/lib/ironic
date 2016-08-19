@@ -587,10 +587,7 @@ function configure_ironic_networks {
 }
 
 function configure_ironic_cleaning_network {
-    local cleaning_network_uuid
-    cleaning_network_uuid=$(openstack network show  "$IRONIC_CLEAN_NET_NAME" -c id -f value)
-    die_if_not_set $LINENO cleaning_network_uuid "Failed to get ironic cleaning network id"
-    iniset $IRONIC_CONF_FILE neutron cleaning_network_uuid ${cleaning_network_uuid}
+    iniset $IRONIC_CONF_FILE neutron cleaning_network $IRONIC_CLEAN_NET_NAME
 }
 
 function configure_ironic_provision_network {
@@ -639,7 +636,7 @@ function configure_ironic_provision_network {
         sudo ip addr add dev $OVS_PHYSICAL_BRIDGE $ironic_provision_network_ip/$provision_net_prefix
     fi
 
-    iniset $IRONIC_CONF_FILE neutron provisioning_network_uuid $net_id
+    iniset $IRONIC_CONF_FILE neutron provisioning_network $IRONIC_PROVISION_NETWORK_NAME
 }
 
 function cleanup_ironic_provision_network {

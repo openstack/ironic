@@ -74,14 +74,14 @@ interface as stated above):
 #. Define a provider network in neutron, which we shall refer to as the
    "provisioning" network, and add it in under the neutron section in
    ironic-conductor configuration file. Using ``neutron`` network interface
-   requires that ``provisioning_network_uuid`` and ``cleaning_network_uuid``
-   configuration options are set to a valid neutron network UUIDs, otherwise
-   ironic-conductor will fail to start::
+   requires that ``provisioning_network`` and ``cleaning_network``
+   configuration options are set to a valid neutron network UUIDs or names,
+   otherwise cleaning or provisioning will fail to start::
 
     [neutron]
     ...
-    cleaning_network_uuid=$CLEAN_UUID
-    provisioning_network_uuid=$PROVISION_UUID
+    cleaning_network=$CLEAN_UUID_OR_NAME
+    provisioning_network=$PROVISION_UUID_OR_NAME
 
    Please refer to `Configure the Bare Metal service for cleaning`_ for more
    information about cleaning.

@@ -14,7 +14,6 @@ import mock
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
-from ironic.common import exception
 from ironic.common import neutron
 from ironic.conductor import task_manager
 from ironic.drivers.modules.network import flat as flat_interface
@@ -40,43 +39,48 @@ class TestFlatInterface(db_base.DbTestCase):
 
     @mock.patch.object(flat_interface, 'LOG')
     def test_init_incorrect_cleaning_net(self, mock_log):
-        self.config(cleaning_network_uuid=None, group='neutron')
+        self.config(cleaning_network=None, group='neutron')
         flat_interface.FlatNetwork()
         self.assertTrue(mock_log.warning.called)
 
+    @mock.patch.object(neutron, 'validate_network', autospec=True)
+    def test_validate(self, validate_mock):
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.validate(task)
+        validate_mock.assert_called_once_with(CONF.neutron.cleaning_network,
+                                              'cleaning network')
+
+    @mock.patch.object(neutron, 'validate_network',
+                       side_effect=lambda n, t: n)
     @mock.patch.object(neutron, 'add_ports_to_network')
     @mock.patch.object(neutron, 'rollback_ports')
-    def test_add_cleaning_network(self, rollback_mock, add_mock):
+    def test_add_cleaning_network(self, rollback_mock, add_mock,
+                                  validate_mock):
         add_mock.return_value = {self.port.uuid: 'vif-port-id'}
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.add_cleaning_network(task)
             rollback_mock.assert_called_once_with(
-                task, CONF.neutron.cleaning_network_uuid)
+                task, CONF.neutron.cleaning_network)
             add_mock.assert_called_once_with(
-                task, CONF.neutron.cleaning_network_uuid, is_flat=True)
+                task, CONF.neutron.cleaning_network, is_flat=True)
+            validate_mock.assert_called_once_with(
+                CONF.neutron.cleaning_network,
+                'cleaning network')
         self.port.refresh()
         self.assertEqual('vif-port-id',
                          self.port.internal_info['cleaning_vif_port_id'])
 
-    @mock.patch.object(neutron, 'add_ports_to_network')
-    @mock.patch.object(neutron, 'rollback_ports')
-    def test_add_cleaning_network_no_cleaning_net_uuid(self, rollback_mock,
-                                                       add_mock):
-        with task_manager.acquire(self.context, self.node.id) as task:
-            # This has to go after acquire, or acquire will raise
-            # DriverLoadError.
-            self.config(cleaning_network_uuid='abc', group='neutron')
-            self.assertRaises(exception.InvalidParameterValue,
-                              self.interface.add_cleaning_network, task)
-            self.assertFalse(rollback_mock.called)
-            self.assertFalse(add_mock.called)
-
+    @mock.patch.object(neutron, 'validate_network',
+                       side_effect=lambda n, t: n)
     @mock.patch.object(neutron, 'remove_ports_from_network')
-    def test_remove_cleaning_network(self, remove_mock):
+    def test_remove_cleaning_network(self, remove_mock, validate_mock):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.remove_cleaning_network(task)
             remove_mock.assert_called_once_with(
-                task, CONF.neutron.cleaning_network_uuid)
+                task, CONF.neutron.cleaning_network)
+            validate_mock.assert_called_once_with(
+                CONF.neutron.cleaning_network,
+                'cleaning network')
         self.port.refresh()
         self.assertNotIn('cleaning_vif_port_id', self.port.internal_info)
 
