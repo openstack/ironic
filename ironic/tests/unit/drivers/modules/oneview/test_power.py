@@ -89,6 +89,8 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
     def test_get_power_state(self, mock_get_ov_client):
         oneview_client = mock_get_ov_client()
         oneview_client.get_node_power_state.return_value = POWER_ON
+        self.driver.power.oneview_client = oneview_client
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.driver.power.get_power_state(task)
         oneview_client.get_node_power_state.assert_called_once_with(self.info)
@@ -97,6 +99,8 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
         oneview_client = mock_get_ov_client()
         oneview_client.get_node_power_state.side_effect = \
             oneview_exceptions.OneViewException()
+        self.driver.power.oneview_client = oneview_client
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(
                 exception.OneViewError,
@@ -107,6 +111,8 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
     def test_set_power_on(self, mock_get_ov_client):
         oneview_client = mock_get_ov_client()
         oneview_client.power_on.return_value = POWER_ON
+        self.driver.power.oneview_client = oneview_client
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.driver.power.set_power_state(task, states.POWER_ON)
         oneview_client.power_on.assert_called_once_with(self.info)
@@ -114,6 +120,8 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
     def test_set_power_off(self, mock_get_ov_client):
         oneview_client = mock_get_ov_client()
         oneview_client.power_off.return_value = POWER_OFF
+        self.driver.power.oneview_client = oneview_client
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.driver.power.set_power_state(task, states.POWER_OFF)
         oneview_client.power_off.assert_called_once_with(self.info)
@@ -122,6 +130,8 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
         oneview_client = mock_get_ov_client()
         oneview_client.power_on.side_effect = \
             oneview_exceptions.OneViewException()
+        self.driver.power.oneview_client = oneview_client
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.OneViewError,
                               self.driver.power.set_power_state, task,
@@ -132,6 +142,8 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
         oneview_client = mock_get_ov_client()
         oneview_client.power_off.side_effect = \
             oneview_exceptions.OneViewException()
+        self.driver.power.oneview_client = oneview_client
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.OneViewError,
                               self.driver.power.set_power_state, task,
@@ -148,6 +160,8 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
         oneview_client = mock_get_ov_client()
         oneview_client.power_off.return_value = POWER_OFF
         oneview_client.power_on.return_value = POWER_ON
+        self.driver.power.oneview_client = oneview_client
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.driver.power.set_power_state(task, states.REBOOT)
         oneview_client.power_off.assert_called_once_with(self.info)
@@ -155,9 +169,9 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
 
     def test_reboot(self, mock_get_ov_client):
         oneview_client = mock_get_ov_client()
-
         oneview_client.power_off.return_value = POWER_OFF
         oneview_client.power_on.return_value = POWER_ON
+        self.driver.power.oneview_client = oneview_client
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.driver.power.reboot(task)
@@ -169,6 +183,7 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
         oneview_client = mock_get_ov_client()
         oneview_client.power_off.side_effect = \
             oneview_exceptions.OneViewException()
+        self.driver.power.oneview_client = oneview_client
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
