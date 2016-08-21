@@ -194,7 +194,9 @@ class TestBaseAgentVendor(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             node = self.passthru.lookup(task.context, **kwargs)
         self.assertEqual(expected, node['node'])
-        mock_get_node.assert_called_once_with(mock.ANY, 'fake-uuid')
+        self.assertEqual([mock.call(self.context, self.node.uuid),
+                         mock.call(self.context, 'fake-uuid')],
+                         mock_get_node.call_args_list)
 
     @mock.patch.object(objects.port.Port, 'get_by_address',
                        spec_set=types.FunctionType)
