@@ -22,9 +22,9 @@ from ironic.common.i18n import _LW
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import utils as conductor_utils
-from ironic.db import api as dbapi
 from ironic.drivers import base
 from ironic.drivers.modules.ilo import common as ilo_common
+from ironic import objects
 
 ilo_error = importutils.try_import('proliantutils.exception')
 
@@ -35,24 +35,24 @@ CAPABILITIES_KEYS = {'BootMode', 'secure_boot', 'rom_firmware_version',
                      'pci_gpu_devices', 'sr_iov_devices', 'nic_capacity'}
 
 
-def _create_ports_if_not_exist(node, macs):
+def _create_ports_if_not_exist(task, macs):
     """Create ironic ports for the mac addresses.
 
     Creates ironic ports for the mac addresses returned with inspection
     or as requested by operator.
 
-    :param node: node object.
+    :param task: a TaskManager instance.
     :param macs: A dictionary of port numbers to mac addresses
                  returned by node inspection.
 
     """
-    node_id = node.id
-    sql_dbapi = dbapi.get_instance()
+    node = task.node
     for mac in macs.values():
-        port_dict = {'address': mac, 'node_id': node_id}
+        port_dict = {'address': mac, 'node_id': node.id}
+        port = objects.Port(task.context, **port_dict)
 
         try:
-            sql_dbapi.create_port(port_dict)
+            port.create()
             LOG.info(_LI("Port created for MAC address %(address)s for node "
                          "%(node)s"), {'address': mac, 'node': node.uuid})
         except exception.MACAlreadyExists:
@@ -237,7 +237,7 @@ class IloInspect(base.InspectInterface):
         task.node.save()
 
         # Create ports for the nics detected.
-        _create_ports_if_not_exist(task.node, result['macs'])
+        _create_ports_if_not_exist(task, result['macs'])
 
         LOG.debug(("Node properties for %(node)s are updated as "
                    "%(properties)s"),
