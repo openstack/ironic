@@ -1,0 +1,5 @@
+---
+upgrade:
+  - When registering a OneView node in ironic, operator should make sure field
+    ``server_profile_template_uri`` is set in properties/capabilities and not
+    in driver_info anymore. Otherwise the node will fail on validation.
