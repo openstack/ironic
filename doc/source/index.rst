@@ -41,6 +41,7 @@ Administrator's Guide
   deploy/multitenancy
   deploy/raid
   deploy/inspection
+  deploy/console
   deploy/security
   deploy/adoption
   deploy/api-audit-support
