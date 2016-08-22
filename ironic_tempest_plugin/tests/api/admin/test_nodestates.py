@@ -80,7 +80,7 @@ class TestNodeStatesV1_1(TestNodeStatesMixin, base.BaseBaremetalTest):
     def test_set_node_provision_state(self):
         _, node = self.create_node(self.chassis['uuid'])
         # Nodes appear in NONE state by default until v1.1
-        self.assertEqual(None, node['provision_state'])
+        self.assertIsNone(node['provision_state'])
         provision_states_list = ['active', 'deleted']
         target_states_list = ['active', None]
         for (provision_state, target_state) in zip(provision_states_list,
