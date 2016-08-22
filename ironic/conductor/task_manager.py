@@ -50,6 +50,10 @@ attributes that you may access:
         The Node object
     task.ports
         Ports belonging to the Node
+    task.volume_connectors
+        Storage connectors belonging to the Node
+    task.volume_targets
+        Storage targets assigned to the Node
     task.driver
         The Driver for the Node, or the Driver based on the
         'driver_name' kwarg of TaskManager().
@@ -226,6 +230,10 @@ class TaskManager(object):
             self.ports = objects.Port.list_by_node_id(context, self.node.id)
             self.portgroups = objects.Portgroup.list_by_node_id(context,
                                                                 self.node.id)
+            self.volume_connectors = objects.VolumeConnector.list_by_node_id(
+                context, self.node.id)
+            self.volume_targets = objects.VolumeTarget.list_by_node_id(
+                context, self.node.id)
             self.driver = driver_factory.build_driver_for_task(
                 self, driver_name=driver_name)
 
@@ -344,6 +352,8 @@ class TaskManager(object):
         self.driver = None
         self.ports = None
         self.portgroups = None
+        self.volume_connectors = None
+        self.volume_targets = None
         self.fsm = None
 
     def _write_exception(self, future):
