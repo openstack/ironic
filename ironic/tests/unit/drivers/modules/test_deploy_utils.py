@@ -1258,13 +1258,18 @@ class OtherFunctionTestCase(db_base.DbTestCase):
                        autospec=True)
     def _test_set_failed_state(self, mock_event, mock_power, mock_log,
                                event_value=None, power_value=None,
-                               log_calls=None, poweroff=True):
+                               log_calls=None, poweroff=True,
+                               collect_logs=True):
         err_msg = 'some failure'
         mock_event.side_effect = event_value
         mock_power.side_effect = power_value
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            utils.set_failed_state(task, err_msg)
+            if collect_logs:
+                utils.set_failed_state(task, err_msg)
+            else:
+                utils.set_failed_state(task, err_msg,
+                                       collect_logs=collect_logs)
             mock_event.assert_called_once_with(task, 'fail')
             if poweroff:
                 mock_power.assert_called_once_with(task, states.POWER_OFF)
@@ -1326,6 +1331,12 @@ class OtherFunctionTestCase(db_base.DbTestCase):
     def test_set_failed_state_collect_deploy_logs_never(self, mock_collect):
         cfg.CONF.set_override('deploy_logs_collect', 'never', 'agent')
         self._test_set_failed_state()
+        self.assertFalse(mock_collect.called)
+
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
+    def test_set_failed_state_collect_deploy_logs_overide(self, mock_collect):
+        cfg.CONF.set_override('deploy_logs_collect', 'always', 'agent')
+        self._test_set_failed_state(collect_logs=False)
         self.assertFalse(mock_collect.called)
 
     def test_get_boot_option(self):
