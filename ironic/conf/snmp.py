@@ -1,10 +1,6 @@
 # Copyright 2016 Intel Corporation
 # Copyright 2013,2014 Cray Inc
 #
-# Authors: David Hewson <dhewson@cray.com>
-#          Stig Telfer <stelfer@cray.com>
-#          Mark Goddard <mgoddard@cray.com>
-#
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
