@@ -18,7 +18,6 @@ import os
 from ironic_lib import disk_utils
 from ironic_lib import metrics_utils
 from ironic_lib import utils as ironic_utils
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import fileutils
 from six.moves.urllib import parse
@@ -39,15 +38,6 @@ from ironic.drivers.modules import image_cache
 LOG = logging.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
-
-iscsi_opts = [
-    cfg.PortOpt('portal_port',
-                default=3260,
-                help=_('The port number on which the iSCSI portal listens '
-                       'for incoming connections.')),
-]
-
-CONF.register_opts(iscsi_opts, group='iscsi')
 
 DISK_LAYOUT_PARAMS = ('root_gb', 'swap_mb', 'ephemeral_gb')
 

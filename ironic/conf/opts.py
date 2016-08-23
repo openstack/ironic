@@ -14,7 +14,6 @@ import itertools
 
 import ironic.drivers.modules.amt.common
 import ironic.drivers.modules.amt.power
-import ironic.drivers.modules.iscsi_deploy
 
 _default_opt_lists = [
     ironic.conf.default.api_opts,
@@ -50,7 +49,7 @@ _opts = [
     ('inspector', ironic.conf.inspector.list_opts()),
     ('ipmi', ironic.conf.ipmi.opts),
     ('irmc', ironic.conf.irmc.opts),
-    ('iscsi', ironic.drivers.modules.iscsi_deploy.iscsi_opts),
+    ('iscsi', ironic.conf.iscsi.opts),
     ('keystone', ironic.conf.keystone.opts),
     ('metrics', ironic.conf.metrics.opts),
     ('metrics_statsd', ironic.conf.metrics_statsd.opts),

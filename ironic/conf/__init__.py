@@ -32,6 +32,7 @@ from ironic.conf import ilo
 from ironic.conf import inspector
 from ironic.conf import ipmi
 from ironic.conf import irmc
+from ironic.conf import iscsi
 from ironic.conf import keystone
 from ironic.conf import metrics
 from ironic.conf import metrics_statsd
@@ -64,6 +65,7 @@ ilo.register_opts(CONF)
 inspector.register_opts(CONF)
 ipmi.register_opts(CONF)
 irmc.register_opts(CONF)
+iscsi.register_opts(CONF)
 keystone.register_opts(CONF)
 metrics.register_opts(CONF)
 metrics_statsd.register_opts(CONF)
