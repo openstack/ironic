@@ -94,6 +94,49 @@ class IloInspectTestCase(db_base.DbTestCase):
                                                           ilo_object_mock)
             create_port_mock.assert_called_once_with(task, macs)
 
+    @mock.patch.object(ilo_inspect.LOG, 'warning',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_inspect, '_get_capabilities', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_inspect, '_get_essential_properties', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_power.IloPower, 'get_power_state', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_inspect_essential_ok_local_gb_zero(self, get_ilo_object_mock,
+                                                power_mock,
+                                                get_essential_mock,
+                                                create_port_mock,
+                                                get_capabilities_mock,
+                                                log_mock):
+        ilo_object_mock = get_ilo_object_mock.return_value
+        properties = {'memory_mb': '512', 'local_gb': 0,
+                      'cpus': '1', 'cpu_arch': 'x86_64'}
+        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
+        capabilities = ''
+        result = {'properties': properties, 'macs': macs}
+        get_essential_mock.return_value = result
+        get_capabilities_mock.return_value = capabilities
+        power_mock.return_value = states.POWER_ON
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.properties['local_gb'] = 10
+            task.node.save()
+            expected_properties = {'memory_mb': '512', 'local_gb': 10,
+                                   'cpus': '1', 'cpu_arch': 'x86_64'}
+            task.driver.inspect.inspect_hardware(task)
+            self.assertEqual(expected_properties, task.node.properties)
+            power_mock.assert_called_once_with(mock.ANY, task)
+            get_essential_mock.assert_called_once_with(task.node,
+                                                       ilo_object_mock)
+            self.assertTrue(log_mock.called)
+            get_capabilities_mock.assert_called_once_with(task.node,
+                                                          ilo_object_mock)
+            create_port_mock.assert_called_once_with(task, macs)
+
     @mock.patch.object(ilo_inspect, '_get_capabilities', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_inspect, '_create_ports_if_not_exist',
