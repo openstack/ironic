@@ -196,8 +196,8 @@ Then run ``tox`` with the debug environment as one of the following::
 For more information see the `oslotest documentation
 <http://docs.openstack.org/developer/oslotest/features.html#debugging-with-oslo-debug-helper>`_.
 
-Additional Test Targets
------------------------
+Additional Tox Targets
+----------------------
 
 There are several additional tox targets not included in the default list, such
 as the target which builds the documentation site.   See the ``tox.ini`` file
@@ -243,6 +243,14 @@ Step 1: Create a Python virtualenv
 
     source .tox/venv/bin/activate
 
+#. Install the ironic client::
+
+    pip install python-ironicclient
+
+.. NOTE: You can install python-ironicclient from source by cloning the git
+         repository and running `pip install .` while in the root of the
+         cloned repository.
+
 #. Export some ENV vars so the client will connect to the local services
    that you'll start in the next section::
 
@@ -252,8 +260,8 @@ Step 1: Create a Python virtualenv
 Next, install and configure system dependencies. Two different approaches are
 described below; you should only do one of these.
 
-Step 2a: System Depdencies In A Virtual Machine
------------------------------------------------
+Step 2a: System Dependencies In A Virtual Machine
+-------------------------------------------------
 
 This option requires `virtualbox <https://www.virtualbox.org>`_,
 `vagrant <https://www.vagrantup.com>`_, and

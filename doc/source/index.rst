@@ -16,7 +16,7 @@ with a unified interface to a heterogeneous fleet of servers while also
 providing the Compute service with an interface that allows physical servers to
 be managed as though they were virtual machines.
 
-`An introduction to the ironic's conceptual architecture <deploy/user-guide>`_
+`An introduction to ironic's conceptual architecture <deploy/user-guide>`_
 is available for those new to the project.
 
 Site Notes
@@ -152,6 +152,7 @@ of ironic that may or may not be suitable to every situation.
   Adopting Nodes in an ACTIVE state <deploy/adoption>
   Auditing API Traffic <deploy/api-audit-support>
   Configuring for Multi-tenant Networking <deploy/multitenancy>
+  Configuring node web console <deploy/console>
 
 .. TODO::
   Add page on metrics.
