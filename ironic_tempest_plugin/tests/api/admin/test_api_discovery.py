@@ -31,7 +31,7 @@ class TestApiDiscovery(base.BaseBaremetalTest):
     def test_default_version(self):
         _, descr = self.client.get_api_description()
         default_version = descr['default_version']
-        self.assertEqual(default_version['id'], 'v1')
+        self.assertEqual('v1', default_version['id'])
 
     @test.idempotent_id('abc0b34d-e684-4546-9728-ab7a9ad9f174')
     def test_version_1_resources(self):
