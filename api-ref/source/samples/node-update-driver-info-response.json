@@ -1,71 +1,67 @@
 {
-   "properties" : {
-      "memory_mb" : 1024,
-      "cpus" : 1,
-      "local_gb" : 10,
-      "cpu_arch" : "x86_64"
-   },
-   "maintenance_reason" : null,
-   "instance_info" : {},
-   "states" : [
-      {
-         "rel" : "self",
-         "href" : "http://127.0.0.1:6385/v1/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb/states"
-      },
-      {
-         "href" : "http://127.0.0.1:6385/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb/states",
-         "rel" : "bookmark"
-      }
-   ],
-   "driver_internal_info" : {},
-   "power_state" : "power off",
-   "console_enabled" : false,
-   "last_error" : null,
-   "target_raid_config" : {},
-   "maintenance" : false,
-   "provision_state" : "available",
-   "uuid" : "ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb",
-   "links" : [
-      {
-         "rel" : "self",
-         "href" : "http://127.0.0.1:6385/v1/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb"
-      },
-      {
-         "href" : "http://127.0.0.1:6385/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb",
-         "rel" : "bookmark"
-      }
-   ],
-   "clean_step" : {},
-   "created_at" : "2016-04-20T16:51:03+00:00",
-   "instance_uuid" : null,
-   "target_power_state" : null,
-   "driver_info" : {
-      "ipmi_address" : "10.0.0.123",
-      "deploy_ramdisk" : "http://127.0.0.1/images/ramdisk",
-      "deploy_kernel" : "http://127.0.0.1/images/kernel",
-      "ipmi_password" : "***",
-      "ipmi_username" : "OPERATOR"
-   },
-   "inspection_started_at" : null,
-   "raid_config" : {},
-   "inspection_finished_at" : null,
-   "reservation" : null,
-   "target_provision_state" : null,
-   "extra" : {
-      "foo" : "bar"
-   },
-   "driver" : "fake",
-   "name" : "test_node",
-   "updated_at" : "2016-05-05T18:43:41+00:00",
-   "ports" : [
-      {
-         "href" : "http://127.0.0.1:6385/v1/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb/ports",
-         "rel" : "self"
-      },
-      {
-         "rel" : "bookmark",
-         "href" : "http://127.0.0.1:6385/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb/ports"
-      }
-   ],
-   "provision_updated_at" : null
+  "clean_step": {},
+  "console_enabled": false,
+  "created_at": "2016-08-18T22:28:48+00:00",
+  "driver": "fake",
+  "driver_info": {
+    "deploy_kernel": "http://127.0.0.1/images/kernel",
+    "deploy_ramdisk": "http://127.0.0.1/images/ramdisk",
+    "ipmi_password": "******",
+    "ipmi_username": "OPERATOR"
+  },
+  "driver_internal_info": {
+    "clean_steps": null
+  },
+  "extra": {},
+  "inspection_finished_at": null,
+  "inspection_started_at": null,
+  "instance_info": {},
+  "instance_uuid": null,
+  "last_error": null,
+  "links": [
+    {
+      "href": "http://127.0.0.1:6385/v1/nodes/6d85703a-565d-469a-96ce-30b6de53079d",
+      "rel": "self"
+    },
+    {
+      "href": "http://127.0.0.1:6385/nodes/6d85703a-565d-469a-96ce-30b6de53079d",
+      "rel": "bookmark"
+    }
+  ],
+  "maintenance": true,
+  "maintenance_reason": "Replacing the hard drive",
+  "name": "test_node",
+  "network_interface": "flat",
+  "ports": [
+    {
+      "href": "http://127.0.0.1:6385/v1/nodes/6d85703a-565d-469a-96ce-30b6de53079d/ports",
+      "rel": "self"
+    },
+    {
+      "href": "http://127.0.0.1:6385/nodes/6d85703a-565d-469a-96ce-30b6de53079d/ports",
+      "rel": "bookmark"
+    }
+  ],
+  "power_state": "power off",
+  "properties": {},
+  "provision_state": "available",
+  "provision_updated_at": "2016-08-18T22:28:49+00:00",
+  "raid_config": {},
+  "reservation": null,
+  "resource_class": null,
+  "states": [
+    {
+      "href": "http://127.0.0.1:6385/v1/nodes/6d85703a-565d-469a-96ce-30b6de53079d/states",
+      "rel": "self"
+    },
+    {
+      "href": "http://127.0.0.1:6385/nodes/6d85703a-565d-469a-96ce-30b6de53079d/states",
+      "rel": "bookmark"
+    }
+  ],
+  "target_power_state": null,
+  "target_provision_state": null,
+  "target_raid_config": {},
+  "updated_at": "2016-08-18T22:28:50+00:00",
+  "uuid": "6d85703a-565d-469a-96ce-30b6de53079d"
 }

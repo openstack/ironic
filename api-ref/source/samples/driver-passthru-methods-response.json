@@ -1,10 +1,10 @@
 {
-   "lookup" : {
-      "http_methods" : [
-         "POST"
-      ],
-      "attach" : false,
-      "description" : "",
-      "async" : false
-   }
+  "lookup": {
+    "async": false,
+    "attach": false,
+    "description": "",
+    "http_methods": [
+      "POST"
+    ]
+  }
 }

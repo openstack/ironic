@@ -1,22 +1,22 @@
 {
-   "nodes" : [
-      {
-         "provision_state" : "available",
-         "name" : "test_node",
-         "maintenance" : false,
-         "uuid" : "ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb",
-         "links" : [
-            {
-               "href" : "http://127.0.0.1:6385/v1/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb",
-               "rel" : "self"
-            },
-            {
-               "href" : "http://127.0.0.1:6385/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb",
-               "rel" : "bookmark"
-            }
-         ],
-         "instance_uuid" : null,
-         "power_state" : "power off"
-      }
-   ]
+  "nodes": [
+    {
+      "instance_uuid": null,
+      "links": [
+        {
+          "href": "http://127.0.0.1:6385/v1/nodes/6d85703a-565d-469a-96ce-30b6de53079d",
+          "rel": "self"
+        },
+        {
+          "href": "http://127.0.0.1:6385/nodes/6d85703a-565d-469a-96ce-30b6de53079d",
+          "rel": "bookmark"
+        }
+      ],
+      "maintenance": false,
+      "name": "test_node",
+      "power_state": "power off",
+      "provision_state": "available",
+      "uuid": "6d85703a-565d-469a-96ce-30b6de53079d"
+    }
+  ]
 }

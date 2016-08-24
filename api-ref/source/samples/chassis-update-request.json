@@ -1,7 +1,7 @@
-{
-    "chassis": [
-        {
-            "description": "Sample chassis"
-        }
-    ]
-}
+[
+    {
+        "op": "replace",
+        "path": "/description",
+        "value": "Updated Chassis"
+    }
+]

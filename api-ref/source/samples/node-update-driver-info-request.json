@@ -1,12 +1,17 @@
 [
    {
-      "op" : "replace",
-      "path" : "/driver_info/ipmi_username",
-      "value" : "OPERATOR"
+      "op": "replace",
+      "path": "/driver_info/ipmi_username",
+      "value": "OPERATOR"
    },
    {
-      "value" : "10.0.0.123",
-      "op" : "replace",
-      "path" : "/driver_info/ipmi_address"
+      "op": "add",
+      "path": "/driver_info/deploy_kernel",
+      "value": "http://127.0.0.1/images/kernel"
+   },
+   {
+       "op": "add",
+       "path": "/driver_info/deploy_ramdisk",
+       "value": "http://127.0.0.1/images/ramdisk"
    }
 ]

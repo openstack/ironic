@@ -21,7 +21,8 @@ List chassis with details
 Lists all chassis with details.
 
 Normal response codes: 200
-Error response codes:413,405,404,403,401,400,503,
+
+.. TODO: add error codes
 
 Request
 -------
@@ -58,7 +59,8 @@ Show chassis details
 Shows details for a chassis.
 
 Normal response codes: 200
-Error response codes:413,405,404,403,401,400,503,
+
+.. TODO: add error codes
 
 Request
 -------
@@ -83,6 +85,7 @@ Response Example
 .. literalinclude:: samples/chassis-show-response.json
    :language: javascript
 
+
 Update chassis
 ==============
 
@@ -91,10 +94,14 @@ Update chassis
 Updates a chassis.
 
 Normal response codes: 200
-Error response codes:413,415,405,404,403,401,400,503,409,
+
+.. TODO: add error codes
 
 Request
 -------
+
+The BODY of the PATCH request must be a JSON PATCH document, adhering to
+`RFC 6902 <https://tools.ietf.org/html/rfc6902>`_.
 
 .. rest_parameters:: parameters.yaml
 
@@ -125,7 +132,7 @@ Response Parameters
 Response Example
 ----------------
 
-.. literalinclude:: samples/chassis-show-response.json
+.. literalinclude:: samples/chassis-update-response.json
    :language: javascript
 
 
@@ -136,7 +143,7 @@ Delete chassis
 
 Deletes a chassis.
 
-Error response codes:204,413,415,405,404,403,401,400,503,409,
+.. TODO: add error codes
 
 Request
 -------
@@ -178,6 +185,12 @@ Response Parameters
    - nodes: nodes
    - uuid: uuid
 
+Response Example
+----------------
+
+.. literalinclude:: samples/chassis-show-response.json
+   :language: javascript
+
 List chassis
 ============
 
@@ -186,7 +199,8 @@ List chassis
 Lists all chassis.
 
 Normal response codes: 200
-Error response codes:413,405,404,403,401,400,503,
+
+.. TODO: add error codes
 
 Request
 -------

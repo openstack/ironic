@@ -1,71 +1,65 @@
 {
-   "target_provision_state" : null,
-   "instance_info" : {},
-   "updated_at" : "2016-05-05T00:28:40+00:00",
-   "maintenance_reason" : null,
-   "inspection_started_at" : null,
-   "target_power_state" : null,
-   "ports" : [
-      {
-         "rel" : "self",
-         "href" : "http://127.0.0.1:6385/v1/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb/ports"
-      },
-      {
-         "href" : "http://127.0.0.1:6385/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb/ports",
-         "rel" : "bookmark"
-      }
-   ],
-   "maintenance" : false,
-   "driver" : "fake",
-   "provision_state" : "available",
-   "reservation" : null,
-   "uuid" : "ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb",
-   "extra" : {
-      "foo" : "bar"
-   },
-   "driver_internal_info" : {},
-   "states" : [
-      {
-         "href" : "http://127.0.0.1:6385/v1/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb/states",
-         "rel" : "self"
-      },
-      {
-         "rel" : "bookmark",
-         "href" : "http://127.0.0.1:6385/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb/states"
-      }
-   ],
-   "target_raid_config" : {},
-   "console_enabled" : false,
-   "clean_step" : {},
-   "last_error" : null,
-   "links" : [
-      {
-         "rel" : "self",
-         "href" : "http://127.0.0.1:6385/v1/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb"
-      },
-      {
-         "rel" : "bookmark",
-         "href" : "http://127.0.0.1:6385/nodes/ecddf26d-8c9c-4ddf-8f45-fd57e09ccddb"
-      }
-   ],
-   "provision_updated_at" : null,
-   "name" : "test_node",
-   "properties" : {
-      "local_gb" : 10,
-      "cpu_arch" : "x86_64",
-      "cpus" : 1,
-      "memory_mb" : 1024
-   },
-   "power_state" : "power off",
-   "created_at" : "2016-04-20T16:51:03+00:00",
-   "instance_uuid" : null,
-   "raid_config" : {},
-   "driver_info" : {
-      "ipmi_password" : "***",
-      "ipmi_username" : "ADMIN",
-      "ipmi_address" : "1.2.3.4",
-      "deploy_kernel" : "http://127.0.0.1/images/kernel",
-      "deploy_ramdisk" : "http://127.0.0.1/images/ramdisk"
-   },
-   "inspection_finished_at" : null
+  "clean_step": {},
+  "console_enabled": false,
+  "created_at": "2016-08-18T22:28:48.643434+00:00",
+  "driver": "fake",
+  "driver_info": {
+    "ipmi_password": "******",
+    "ipmi_username": "ADMIN"
+  },
+  "driver_internal_info": {
+    "clean_steps": null
+  },
+  "extra": {},
+  "inspection_finished_at": null,
+  "inspection_started_at": null,
+  "instance_info": {},
+  "instance_uuid": null,
+  "last_error": null,
+  "links": [
+    {
+      "href": "http://127.0.0.1:6385/v1/nodes/6d85703a-565d-469a-96ce-30b6de53079d",
+      "rel": "self"
+    },
+    {
+      "href": "http://127.0.0.1:6385/nodes/6d85703a-565d-469a-96ce-30b6de53079d",
+      "rel": "bookmark"
+    }
+  ],
+  "maintenance": false,
+  "maintenance_reason": null,
+  "name": "test_node",
+  "network_interface": "flat",
+  "ports": [
+    {
+      "href": "http://127.0.0.1:6385/v1/nodes/6d85703a-565d-469a-96ce-30b6de53079d/ports",
+      "rel": "self"
+    },
+    {
+      "href": "http://127.0.0.1:6385/nodes/6d85703a-565d-469a-96ce-30b6de53079d/ports",
+      "rel": "bookmark"
+    }
+  ],
+  "power_state": "power off",
+  "properties": {},
+  "provision_state": "available",
+  "provision_updated_at": "2016-08-18T22:28:49.382814+00:00",
+  "raid_config": {},
+  "reservation": null,
+  "resource_class": null,
+  "states": [
+    {
+      "href": "http://127.0.0.1:6385/v1/nodes/6d85703a-565d-469a-96ce-30b6de53079d/states",
+      "rel": "self"
+    },
+    {
+      "href": "http://127.0.0.1:6385/nodes/6d85703a-565d-469a-96ce-30b6de53079d/states",
+      "rel": "bookmark"
+    }
+  ],
+  "target_power_state": null,
+  "target_provision_state": null,
+  "target_raid_config": {},
+  "updated_at": "2016-08-18T22:28:49.653974+00:00",
+  "uuid": "6d85703a-565d-469a-96ce-30b6de53079d"
 }

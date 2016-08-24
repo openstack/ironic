@@ -155,7 +155,7 @@ Request
 
 **Example JSON request body to set boot device:**
 
-.. literalinclude:: samples/node-get-or-set-boot-device.json
+.. literalinclude:: samples/node-set-boot-device.json
 
 
 Get Boot Device
@@ -190,7 +190,7 @@ Response
 
 **Example JSON response to get boot device:**
 
-.. literalinclude:: samples/node-get-or-set-boot-device.json
+.. literalinclude:: samples/node-get-boot-device-response.json
 
 
 Get Supported Boot Devices
