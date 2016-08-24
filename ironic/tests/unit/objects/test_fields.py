@@ -105,3 +105,18 @@ class TestStringFieldThatAcceptsCallable(test_base.TestCase):
         expected = ('StringAcceptsCallable(default=test_default_function-%s,'
                     'nullable=False)' % self.test_default_function_hash)
         self.assertEqual(expected, repr(self.field))
+
+
+class TestNotificationLevelField(test_base.TestCase):
+
+    def setUp(self):
+        super(TestNotificationLevelField, self).setUp()
+        self.field = fields.NotificationLevelField()
+
+    def test_coerce_good_value(self):
+        self.assertEqual(fields.NotificationLevel.WARNING,
+                         self.field.coerce('obj', 'attr', 'warning'))
+
+    def test_coerce_bad_value(self):
+        self.assertRaises(ValueError, self.field.coerce, 'obj', 'attr',
+                          'not_a_priority')

@@ -1,0 +1,6 @@
+---
+features:
+  - Add support for inter-service notifications (disabled by default until the
+    ``notification_level`` configuration option is set). For more information,
+    see the notifications documentation in the developer's guide
+    (http://docs.openstack.org/developer/ironic/dev/notifications.html).

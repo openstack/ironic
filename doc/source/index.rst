@@ -76,6 +76,7 @@ primarily for developers.
 
   Ironic System Architecture <dev/architecture>
   Provisioning State Machine <dev/states>
+  Notifications <dev/notifications>
 
 
 Writing Drivers

@@ -151,6 +151,17 @@ netconf_opts = [
                       '"127.0.0.1".')),
 ]
 
+# NOTE(mariojv) By default, accessing this option when it's unset will return
+# None, indicating no notifications will be sent. oslo.config returns None by
+# default for options without set defaults that aren't required.
+notification_opts = [
+    cfg.StrOpt('notification_level',
+               choices=['debug', 'info', 'warning', 'error', 'critical'],
+               help=_('Specifies the minimum level for which to send '
+                      'notifications. If not set, no notifications will '
+                      'be sent. The default is for this option to be unset.'))
+]
+
 path_opts = [
     cfg.StrOpt('pybasedir',
                default=os.path.abspath(os.path.join(os.path.dirname(__file__),
@@ -198,6 +209,7 @@ def register_opts(conf):
     conf.register_opts(image_opts)
     conf.register_opts(img_cache_opts)
     conf.register_opts(netconf_opts)
+    conf.register_opts(notification_opts)
     conf.register_opts(path_opts)
     conf.register_opts(service_opts)
     conf.register_opts(utils_opts)

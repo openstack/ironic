@@ -611,3 +611,19 @@ class NetworkError(IronicException):
 class IncompleteLookup(Invalid):
     _msg_fmt = _("At least one of 'addresses' and 'node_uuid' parameters "
                  "is required")
+
+
+class NotificationSchemaObjectError(IronicException):
+    _msg_fmt = _("Expected object %(obj)s when populating notification payload"
+                 " but got object %(source)s")
+
+
+class NotificationSchemaKeyError(IronicException):
+    _msg_fmt = _("Object %(obj)s doesn't have the field \"%(field)s\" "
+                 "required for populating notification schema key "
+                 "\"%(key)s\"")
+
+
+class NotificationPayloadError(IronicException):
+    _msg_fmt = _("Payload not populated when trying to send notification "
+                 "\"%(class_name)s\"")

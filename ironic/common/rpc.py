@@ -21,9 +21,11 @@ from ironic.common import exception
 
 
 CONF = cfg.CONF
+
 TRANSPORT = None
 NOTIFICATION_TRANSPORT = None
-NOTIFIER = None
+SENSORS_NOTIFIER = None
+VERSIONED_NOTIFIER = None
 
 ALLOWED_EXMODS = [
     exception.__name__,
@@ -38,7 +40,8 @@ TRANSPORT_ALIASES = {
 
 
 def init(conf):
-    global TRANSPORT, NOTIFICATION_TRANSPORT, NOTIFIER
+    global TRANSPORT, NOTIFICATION_TRANSPORT
+    global SENSORS_NOTIFIER, VERSIONED_NOTIFIER
     exmods = get_allowed_exmods()
     TRANSPORT = messaging.get_transport(conf,
                                         allowed_remote_exmods=exmods,
@@ -47,19 +50,32 @@ def init(conf):
         conf,
         allowed_remote_exmods=exmods,
         aliases=TRANSPORT_ALIASES)
+
     serializer = RequestContextSerializer(messaging.JsonPayloadSerializer())
-    NOTIFIER = messaging.Notifier(NOTIFICATION_TRANSPORT,
-                                  serializer=serializer)
+    SENSORS_NOTIFIER = messaging.Notifier(NOTIFICATION_TRANSPORT,
+                                          serializer=serializer)
+    if conf.notification_level is None:
+        VERSIONED_NOTIFIER = messaging.Notifier(NOTIFICATION_TRANSPORT,
+                                                serializer=serializer,
+                                                driver='noop')
+    else:
+        VERSIONED_NOTIFIER = messaging.Notifier(NOTIFICATION_TRANSPORT,
+                                                serializer=serializer,
+                                                topics=['ironic_versioned_'
+                                                        'notifications'])
 
 
 def cleanup():
-    global TRANSPORT, NOTIFICATION_TRANSPORT, NOTIFIER
+    global TRANSPORT, NOTIFICATION_TRANSPORT
+    global SENSORS_NOTIFIER, VERSIONED_NOTIFIER
     assert TRANSPORT is not None
     assert NOTIFICATION_TRANSPORT is not None
-    assert NOTIFIER is not None
+    assert SENSORS_NOTIFIER is not None
+    assert VERSIONED_NOTIFIER is not None
     TRANSPORT.cleanup()
     NOTIFICATION_TRANSPORT.cleanup()
-    TRANSPORT = NOTIFICATION_TRANSPORT = NOTIFIER = None
+    TRANSPORT = NOTIFICATION_TRANSPORT = None
+    SENSORS_NOTIFIER = VERSIONED_NOTIFIER = None
 
 
 def set_defaults(control_exchange):
@@ -123,8 +139,14 @@ def get_server(target, endpoints, serializer=None):
                                     serializer=serializer)
 
 
-def get_notifier(service=None, host=None, publisher_id=None):
-    assert NOTIFIER is not None
+def get_sensors_notifier(service=None, host=None, publisher_id=None):
+    assert SENSORS_NOTIFIER is not None
     if not publisher_id:
         publisher_id = "%s.%s" % (service, host or CONF.host)
-    return NOTIFIER.prepare(publisher_id=publisher_id)
+    return SENSORS_NOTIFIER.prepare(publisher_id=publisher_id)
+
+
+def get_versioned_notifier(publisher_id=None):
+    assert VERSIONED_NOTIFIER is not None
+    assert publisher_id is not None
+    return VERSIONED_NOTIFIER.prepare(publisher_id=publisher_id)

@@ -105,6 +105,12 @@
 # (string value)
 #my_ip = 127.0.0.1
 
+# Specifies the minimum level for which to send notifications.
+# If not set, no notifications will be sent. The default is
+# for this option to be unset. (string value)
+# Allowed values: debug, info, warning, error, critical
+#notification_level = <None>
+
 # Directory where the ironic python module is installed.
 # (string value)
 #pybasedir = /usr/lib/python/site-packages/ironic/ironic
@@ -1481,6 +1487,8 @@
 #remote_image_user_domain =
 
 # Port to be used for iRMC operations (port value)
+# Minimum value: 0
+# Maximum value: 65535
 # Allowed values: 443, 80
 #port = 443
 
