@@ -171,6 +171,21 @@ class TestListPortgroups(test_api_base.BaseApiTest):
         uuids = [n['uuid'] for n in data['portgroups']]
         six.assertCountEqual(self, portgroups, uuids)
 
+    def test_links(self):
+        uuid = uuidutils.generate_uuid()
+        obj_utils.create_test_portgroup(self.context,
+                                        uuid=uuid,
+                                        node_id=self.node.id)
+        data = self.get_json('/portgroups/%s' % uuid, headers=self.headers)
+        self.assertIn('links', data)
+        self.assertIn('ports', data)
+        self.assertEqual(2, len(data['links']))
+        self.assertIn(uuid, data['links'][0]['href'])
+        for l in data['links']:
+            bookmark = l['rel'] == 'bookmark'
+            self.assertTrue(self.validate_link(l['href'], bookmark=bookmark,
+                            headers=self.headers))
+
     def test_collection_links(self):
         portgroups = []
         for id_ in range(5):
@@ -204,6 +219,47 @@ class TestListPortgroups(test_api_base.BaseApiTest):
         next_marker = data['portgroups'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
 
+    def test_ports_subresource(self):
+        pg = obj_utils.create_test_portgroup(self.context,
+                                             uuid=uuidutils.generate_uuid(),
+                                             node_id=self.node.id)
+
+        for id_ in range(2):
+            obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                       uuid=uuidutils.generate_uuid(),
+                                       portgroup_id=pg.id,
+                                       address='52:54:00:cf:2d:3%s' % id_)
+
+        data = self.get_json('/portgroups/%s/ports' % pg.uuid,
+                             headers=self.headers)
+        self.assertEqual(2, len(data['ports']))
+        self.assertNotIn('next', data.keys())
+
+        data = self.get_json('/portgroups/%s/ports/detail' % pg.uuid,
+                             headers=self.headers)
+        self.assertEqual(2, len(data['ports']))
+        self.assertNotIn('next', data.keys())
+
+        # Test collection pagination
+        data = self.get_json('/portgroups/%s/ports?limit=1' % pg.uuid,
+                             headers=self.headers)
+        self.assertEqual(1, len(data['ports']))
+        self.assertIn('next', data.keys())
+
+        # Test get one old api version, /portgroups controller not allowed
+        response = self.get_json('/portgroups/%s/ports/%s' % (
+            pg.uuid, uuidutils.generate_uuid()),
+            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+
+        # Test get one not allowed to access to /portgroups/<uuid>/ports/<uuid>
+        response = self.get_json(
+            '/portgroups/%s/ports/%s' % (pg.uuid, uuidutils.generate_uuid()),
+            headers={api_base.Version.string: str(api_v1.MAX_VER)},
+            expect_errors=True)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
     def test_ports_subresource_no_portgroups_allowed(self):
         pg = obj_utils.create_test_portgroup(self.context,
                                              uuid=uuidutils.generate_uuid(),
@@ -220,11 +276,32 @@ class TestListPortgroups(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
         self.assertEqual('application/json', response.content_type)
 
+    def test_get_all_ports_by_portgroup_uuid(self):
+        pg = obj_utils.create_test_portgroup(self.context,
+                                             node_id=self.node.id)
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          portgroup_id=pg.id)
+        data = self.get_json('/portgroups/%s/ports' % pg.uuid,
+                             headers={api_base.Version.string: '1.24'})
+        self.assertEqual(port.uuid, data['ports'][0]['uuid'])
+
+    def test_ports_subresource_not_allowed(self):
+        pg = obj_utils.create_test_portgroup(self.context,
+                                             node_id=self.node.id)
+        response = self.get_json('/portgroups/%s/ports' % pg.uuid,
+                                 expect_errors=True,
+                                 headers={api_base.Version.string: '1.23'})
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+        self.assertIn('The resource could not be found.',
+                      response.json['error_message'])
+
     def test_ports_subresource_portgroup_not_found(self):
         non_existent_uuid = 'eeeeeeee-cccc-aaaa-bbbb-cccccccccccc'
         response = self.get_json('/portgroups/%s/ports' % non_existent_uuid,
                                  expect_errors=True, headers=self.headers)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
+        self.assertIn('Portgroup %s could not be found.' % non_existent_uuid,
+                      response.json['error_message'])
 
     def test_portgroup_by_address(self):
         address_template = "aa:bb:cc:dd:ee:f%d"
@@ -743,6 +820,29 @@ class TestPost(test_api_base.BaseApiTest):
         result = self.get_json('/portgroups/%s' % pdict['uuid'],
                                headers=self.headers)
         self.assertEqual(pdict['uuid'], result['uuid'])
+        self.assertFalse(result['updated_at'])
+        return_created_at = timeutils.parse_isotime(
+            result['created_at']).replace(tzinfo=None)
+        self.assertEqual(test_time, return_created_at)
+        # Check location header
+        self.assertIsNotNone(response.location)
+        expected_location = '/v1/portgroups/%s' % pdict['uuid']
+        self.assertEqual(urlparse.urlparse(response.location).path,
+                         expected_location)
+
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_create_portgroup_v123(self, mock_utcnow):
+        pdict = apiutils.post_get_test_portgroup()
+        test_time = datetime.datetime(2000, 1, 1, 0, 0)
+        mock_utcnow.return_value = test_time
+        headers = {api_base.Version.string: "1.23"}
+        response = self.post_json('/portgroups', pdict,
+                                  headers=headers)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        result = self.get_json('/portgroups/%s' % pdict['uuid'],
+                               headers=headers)
+        self.assertEqual(pdict['uuid'], result['uuid'])
+        self.assertEqual(pdict['node_uuid'], result['node_uuid'])
         self.assertFalse(result['updated_at'])
         return_created_at = timeutils.parse_isotime(
             result['created_at']).replace(tzinfo=None)

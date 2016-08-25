@@ -42,18 +42,23 @@ from ironic.tests.unit.objects import utils as obj_utils
 
 
 # NOTE(lucasagomes): When creating a port via API (POST)
-#                    we have to use node_uuid
+#                    we have to use node_uuid and portgroup_uuid
 def post_get_test_port(**kw):
     port = apiutils.port_post_data(**kw)
     node = dbutils.get_test_node()
+    portgroup = dbutils.get_test_portgroup()
     port['node_uuid'] = kw.get('node_uuid', node['uuid'])
+    port['portgroup_uuid'] = kw.get('portgroup_uuid', portgroup['uuid'])
     return port
 
 
 class TestPortObject(base.TestCase):
 
-    def test_port_init(self):
-        port_dict = apiutils.port_post_data(node_id=None)
+    @mock.patch("pecan.request")
+    def test_port_init(self, mock_pecan_req):
+        mock_pecan_req.version.minor = 1
+        port_dict = apiutils.port_post_data(node_id=None,
+                                            portgroup_uuid=None)
         del port_dict['extra']
         port = api_port.Port(**port_dict)
         self.assertEqual(wtypes.Unset, port.extra)
@@ -84,8 +89,24 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertEqual(port.uuid, data['uuid'])
         self.assertIn('extra', data)
         self.assertIn('node_uuid', data)
-        # never expose the node_id
+        # never expose the node_id, port_id, portgroup_id
         self.assertNotIn('node_id', data)
+        self.assertNotIn('port_id', data)
+        self.assertNotIn('portgroup_id', data)
+        self.assertNotIn('portgroup_uuid', data)
+
+    def test_get_one_portgroup_is_none(self):
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id)
+        data = self.get_json('/ports/%s' % port.uuid,
+                             headers={api_base.Version.string: '1.24'})
+        self.assertEqual(port.uuid, data['uuid'])
+        self.assertIn('extra', data)
+        self.assertIn('node_uuid', data)
+        # never expose the node_id, port_id, portgroup_id
+        self.assertNotIn('node_id', data)
+        self.assertNotIn('port_id', data)
+        self.assertNotIn('portgroup_id', data)
+        self.assertIn('portgroup_uuid', data)
 
     def test_get_one_custom_fields(self):
         port = obj_utils.create_test_port(self.context, node_id=self.node.id)
@@ -146,7 +167,14 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
     def test_detail(self):
-        port = obj_utils.create_test_port(self.context, node_id=self.node.id)
+        llc = {'switch_info': 'switch', 'switch_id': 'aa:bb:cc:dd:ee:ff',
+               'port_id': 'Gig0/1'}
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=self.node.id)
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          portgroup_id=portgroup.id,
+                                          pxe_enabled=False,
+                                          local_link_connection=llc)
         data = self.get_json(
             '/ports/detail',
             headers={api_base.Version.string: str(api_v1.MAX_VER)}
@@ -157,8 +185,10 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertIn('node_uuid', data['ports'][0])
         self.assertIn('pxe_enabled', data['ports'][0])
         self.assertIn('local_link_connection', data['ports'][0])
-        # never expose the node_id
+        self.assertIn('portgroup_uuid', data['ports'][0])
+        # never expose the node_id and portgroup_id
         self.assertNotIn('node_id', data['ports'][0])
+        self.assertNotIn('portgroup_id', data['ports'][0])
 
     def test_detail_against_single(self):
         port = obj_utils.create_test_port(self.context, node_id=self.node.id)
@@ -353,6 +383,50 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertEqual(0, mock_get_rpc_node.call_count)
         self.assertEqual(http_client.NOT_ACCEPTABLE, data.status_int)
 
+    def test_get_all_by_portgroup_uuid(self):
+        pg = obj_utils.create_test_portgroup(self.context,
+                                             node_id=self.node.id)
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          portgroup_id=pg.id)
+        data = self.get_json('/ports/detail?portgroup=%s' % pg.uuid,
+                             headers={api_base.Version.string: '1.24'})
+        self.assertEqual(port.uuid, data['ports'][0]['uuid'])
+        self.assertEqual(pg.uuid,
+                         data['ports'][0]['portgroup_uuid'])
+
+    def test_get_all_by_portgroup_uuid_older_api_version(self):
+        pg = obj_utils.create_test_portgroup(self.context,
+                                             node_id=self.node.id)
+        response = self.get_json(
+            '/ports/detail?portgroup=%s' % pg.uuid,
+            headers={api_base.Version.string: '1.14'},
+            expect_errors=True
+        )
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+    def test_get_all_by_portgroup_name(self):
+        pg = obj_utils.create_test_portgroup(self.context,
+                                             node_id=self.node.id)
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          portgroup_id=pg.id)
+        data = self.get_json('/ports/detail?portgroup=%s' % pg.name,
+                             headers={api_base.Version.string: '1.24'})
+        self.assertEqual(port.uuid, data['ports'][0]['uuid'])
+        self.assertEqual(pg.uuid,
+                         data['ports'][0]['portgroup_uuid'])
+        self.assertEqual(1, len(data['ports']))
+
+    def test_get_all_by_portgroup_uuid_and_node_uuid(self):
+        pg = obj_utils.create_test_portgroup(self.context,
+                                             node_id=self.node.id)
+        response = self.get_json(
+            '/ports/detail?portgroup=%s&node=%s' % (pg.uuid, self.node.uuid),
+            headers={api_base.Version.string: '1.24'},
+            expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
     @mock.patch.object(api_port.PortsController, '_get_ports_collection')
     def test_detail_with_incorrect_api_usage(self, mock_gpc):
         # GET /v1/ports/detail specifying node and node_uuid.  In this case
@@ -361,7 +435,22 @@ class TestListPorts(test_api_base.BaseApiTest):
                       ('test-node', self.node.uuid))
         mock_gpc.assert_called_once_with(self.node.uuid, mock.ANY, mock.ANY,
                                          mock.ANY, mock.ANY, mock.ANY,
-                                         mock.ANY)
+                                         mock.ANY, mock.ANY)
+
+    def test_portgroups_subresource_node_not_found(self):
+        non_existent_uuid = 'eeeeeeee-cccc-aaaa-bbbb-cccccccccccc'
+        response = self.get_json('/portgroups/%s/ports' % non_existent_uuid,
+                                 expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+
+    def test_portgroups_subresource_invalid_ident(self):
+        invalid_ident = '123 123'
+        response = self.get_json('/portgroups/%s/ports' % invalid_ident,
+                                 headers={api_base.Version.string: '1.24'},
+                                 expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertIn('Expected a logical name or UUID',
+                      response.json['error_message'])
 
 
 @mock.patch.object(rpcapi.ConductorAPI, 'update_port')
@@ -496,6 +585,96 @@ class TestPatch(test_api_base.BaseApiTest):
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+
+    def test_add_portgroup_uuid(self, mock_upd):
+        mock_upd.return_value = self.port
+        pg = obj_utils.create_test_portgroup(self.context,
+                                             node_id=self.node.id,
+                                             uuid=uuidutils.generate_uuid(),
+                                             address='bb:bb:bb:bb:bb:bb',
+                                             name='bar')
+        headers = {api_base.Version.string: '1.24'}
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   [{'path':
+                                     '/portgroup_uuid',
+                                     'value': pg.uuid,
+                                     'op': 'add'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_replace_portgroup_uuid(self, mock_upd):
+        pg = obj_utils.create_test_portgroup(self.context,
+                                             node_id=self.node.id,
+                                             uuid=uuidutils.generate_uuid(),
+                                             address='bb:bb:bb:bb:bb:bb',
+                                             name='bar')
+        mock_upd.return_value = self.port
+        headers = {api_base.Version.string: '1.24'}
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   [{'path': '/portgroup_uuid',
+                                     'value': pg.uuid,
+                                     'op': 'replace'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_replace_portgroup_uuid_remove(self, mock_upd):
+        pg = obj_utils.create_test_portgroup(self.context,
+                                             node_id=self.node.id,
+                                             uuid=uuidutils.generate_uuid(),
+                                             address='bb:bb:bb:bb:bb:bb',
+                                             name='bar')
+        mock_upd.return_value = self.port
+        headers = {api_base.Version.string: '1.24'}
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   [{'path': '/portgroup_uuid',
+                                     'value': pg.uuid,
+                                     'op': 'remove'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertIsNone(mock_upd.call_args[0][1].portgroup_id)
+
+    def test_replace_portgroup_uuid_remove_add(self, mock_upd):
+        pg = obj_utils.create_test_portgroup(self.context,
+                                             node_id=self.node.id,
+                                             uuid=uuidutils.generate_uuid(),
+                                             address='bb:bb:bb:bb:bb:bb',
+                                             name='bar')
+        pg1 = obj_utils.create_test_portgroup(self.context,
+                                              node_id=self.node.id,
+                                              uuid=uuidutils.generate_uuid(),
+                                              address='bb:bb:bb:bb:bb:b1',
+                                              name='bbb')
+        mock_upd.return_value = self.port
+        headers = {api_base.Version.string: '1.24'}
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   [{'path': '/portgroup_uuid',
+                                     'value': pg.uuid,
+                                     'op': 'remove'},
+                                    {'path': '/portgroup_uuid',
+                                     'value': pg1.uuid,
+                                     'op': 'add'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(pg1.id, mock_upd.call_args[0][1].portgroup_id)
+
+    def test_replace_portgroup_uuid_old_api(self, mock_upd):
+        pg = obj_utils.create_test_portgroup(self.context,
+                                             node_id=self.node.id,
+                                             uuid=uuidutils.generate_uuid(),
+                                             address='bb:bb:bb:bb:bb:bb',
+                                             name='bar')
+        mock_upd.return_value = self.port
+        headers = {api_base.Version.string: '1.15'}
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   [{'path': '/portgroup_uuid',
+                                     'value': pg.uuid,
+                                     'op': 'replace'}],
+                                   headers=headers,
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
 
     def test_add_node_uuid(self, mock_upd):
@@ -729,12 +908,30 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
         self.assertFalse(mock_upd.called)
 
+    def test_portgroups_subresource_patch(self, mock_upd):
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=self.node.id)
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          uuid=uuidutils.generate_uuid(),
+                                          portgroup_id=portgroup.id,
+                                          address='52:55:00:cf:2d:31')
+        headers = {api_base.Version.string: '1.24'}
+        response = self.patch_json(
+            '/portgroups/%(portgroup)s/ports/%(port)s' %
+            {'portgroup': portgroup.uuid, 'port': port.uuid},
+            [{'path': '/address', 'value': '00:00:00:00:00:00',
+              'op': 'replace'}], headers=headers, expect_errors=True)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+
 
 class TestPost(test_api_base.BaseApiTest):
 
     def setUp(self):
         super(TestPost, self).setUp()
         self.node = obj_utils.create_test_node(self.context)
+        self.portgroup = obj_utils.create_test_portgroup(self.context,
+                                                         node_id=self.node.id)
         self.headers = {api_base.Version.string: str(
             versions.MAX_VERSION_STRING)}
 
@@ -853,6 +1050,53 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertTrue(response.json['error_message'])
 
+    def test_create_port_portgroup_uuid_not_found(self):
+        pdict = post_get_test_port(
+            portgroup_uuid='1a1a1a1a-2b2b-3c3c-4d4d-5e5e5e5e5e5e')
+        response = self.post_json('/ports', pdict, expect_errors=True,
+                                  headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertTrue(response.json['error_message'])
+
+    def test_create_port_portgroup_uuid_not_found_old_api_version(self):
+        pdict = post_get_test_port(
+            portgroup_uuid='1a1a1a1a-2b2b-3c3c-4d4d-5e5e5e5e5e5e')
+        response = self.post_json('/ports', pdict, expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+        self.assertTrue(response.json['error_message'])
+
+    def test_create_port_portgroup(self):
+        pdict = post_get_test_port(
+            portgroup_uuid=self.portgroup.uuid,
+            node_uuid=self.node.uuid)
+
+        response = self.post_json('/ports', pdict, headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.CREATED, response.status_int)
+
+    def test_create_port_portgroup_different_nodes(self):
+        pdict = post_get_test_port(
+            portgroup_uuid=self.portgroup.uuid,
+            node_uuid=uuidutils.generate_uuid())
+
+        response = self.post_json('/ports', pdict, headers=self.headers,
+                                  expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    def test_create_port_portgroup_old_api_version(self):
+        pdict = post_get_test_port(
+            portgroup_uuid=self.portgroup.uuid,
+            node_uuid=self.node.uuid
+        )
+        headers = {api_base.Version.string: '1.15'}
+        response = self.post_json('/ports', pdict, expect_errors=True,
+                                  headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
     def test_create_port_address_already_exist(self):
         address = 'AA:AA:AA:11:22:33'
         pdict = post_get_test_port(address=address)
@@ -936,10 +1180,19 @@ class TestPost(test_api_base.BaseApiTest):
         headers = {api_base.Version.string: '1.14'}
         pdict = post_get_test_port(pxe_enabled=False)
         del pdict['local_link_connection']
+        del pdict['portgroup_uuid']
         response = self.post_json('/ports', pdict, headers=headers,
                                   expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+    def test_portgroups_subresource_post(self):
+        headers = {api_base.Version.string: '1.24'}
+        pdict = post_get_test_port()
+        response = self.post_json('/portgroups/%s/ports' % self.portgroup.uuid,
+                                  pdict, headers=headers, expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
 
 @mock.patch.object(rpcapi.ConductorAPI, 'destroy_port')
@@ -975,3 +1228,18 @@ class TestDelete(test_api_base.BaseApiTest):
         self.assertEqual(http_client.CONFLICT, ret.status_code)
         self.assertTrue(ret.json['error_message'])
         self.assertTrue(mock_dpt.called)
+
+    def test_portgroups_subresource_delete(self, mock_dpt):
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=self.node.id)
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          uuid=uuidutils.generate_uuid(),
+                                          portgroup_id=portgroup.id,
+                                          address='52:55:00:cf:2d:31')
+        headers = {api_base.Version.string: '1.24'}
+        response = self.delete(
+            '/portgroups/%(portgroup)s/ports/%(port)s' %
+            {'portgroup': portgroup.uuid, 'port': port.uuid},
+            headers=headers, expect_errors=True)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertEqual('application/json', response.content_type)

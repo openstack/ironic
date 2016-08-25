@@ -49,6 +49,9 @@ def hide_fields_in_newer_versions(obj):
     if not api_utils.allow_port_advanced_net_fields():
         obj.pxe_enabled = wsme.Unset
         obj.local_link_connection = wsme.Unset
+    # if requested version is < 1.24, hide portgroup_uuid field
+    if not api_utils.allow_portgroups_subcontrollers():
+        obj.portgroup_uuid = wsme.Unset
 
 
 class Port(base.APIBase):
@@ -59,6 +62,7 @@ class Port(base.APIBase):
     """
 
     _node_uuid = None
+    _portgroup_uuid = None
 
     def _get_node_uuid(self):
         return self._node_uuid
@@ -83,6 +87,36 @@ class Port(base.APIBase):
         elif value == wtypes.Unset:
             self._node_uuid = wtypes.Unset
 
+    def _get_portgroup_uuid(self):
+        return self._portgroup_uuid
+
+    def _set_portgroup_uuid(self, value):
+        if value and self._portgroup_uuid != value:
+            if not api_utils.allow_portgroups_subcontrollers():
+                self._portgroup_uuid = wtypes.Unset
+                return
+            try:
+                portgroup = objects.Portgroup.get(pecan.request.context, value)
+                if portgroup.node_id != self.node_id:
+                    raise exception.BadRequest(_('Port can not be added to a '
+                                                 'portgroup belonging to a '
+                                                 'different node.'))
+                self._portgroup_uuid = portgroup.uuid
+                # NOTE(lucasagomes): Create the portgroup_id attribute
+                #                    on-the-fly to satisfy the api ->
+                #                    rpc object conversion.
+                self.portgroup_id = portgroup.id
+            except exception.PortgroupNotFound as e:
+                # Change error code because 404 (NotFound) is inappropriate
+                # response for a POST request to create a Port
+                e.code = http_client.BAD_REQUEST  # BadRequest
+                raise e
+        elif value == wtypes.Unset:
+            self._portgroup_uuid = wtypes.Unset
+        elif value is None and api_utils.allow_portgroups_subcontrollers():
+            # This is to output portgroup_uuid field if API version allows this
+            self._portgroup_uuid = None
+
     uuid = types.uuid
     """Unique UUID for this port"""
 
@@ -99,6 +133,10 @@ class Port(base.APIBase):
                                 mandatory=True)
     """The UUID of the node this port belongs to"""
 
+    portgroup_uuid = wsme.wsproperty(types.uuid, _get_portgroup_uuid,
+                                     _set_portgroup_uuid, mandatory=False)
+    """The UUID of the portgroup this port belongs to"""
+
     pxe_enabled = types.boolean
     """Indicates whether pxe is enabled or disabled on the node."""
 
@@ -114,6 +152,9 @@ class Port(base.APIBase):
         # NOTE(lucasagomes): node_uuid is not part of objects.Port.fields
         #                    because it's an API-only attribute
         fields.append('node_uuid')
+        # NOTE: portgroup_uuid is not part of objects.Port.fields
+        #                    because it's an API-only attribute
+        fields.append('portgroup_uuid')
         for field in fields:
             # Add fields we expose.
             if hasattr(self, field):
@@ -127,6 +168,14 @@ class Port(base.APIBase):
         self.fields.append('node_id')
         setattr(self, 'node_uuid', kwargs.get('node_id', wtypes.Unset))
 
+        # NOTE: portgroup_id is an attribute created on-the-fly
+        # by _set_portgroup_uuid(), it needs to be present in the fields so
+        # that as_dict() will contain portgroup_id field when converting it
+        # before saving it in the database.
+        self.fields.append('portgroup_id')
+        setattr(self, 'portgroup_uuid', kwargs.get('portgroup_id',
+                                                   wtypes.Unset))
+
     @staticmethod
     def _convert_with_links(port, url, fields=None):
         # NOTE(lucasagomes): Since we are able to return a specified set of
@@ -138,6 +187,9 @@ class Port(base.APIBase):
 
         # never expose the node_id attribute
         port.node_id = wtypes.Unset
+
+        # never expose the portgroup_id attribute
+        port.portgroup_id = wtypes.Unset
 
         port.links = [link.Link.make_link('self', url,
                                           'ports', port_uuid),
@@ -174,6 +226,7 @@ class Port(base.APIBase):
         # NOTE(lucasagomes): node_uuid getter() method look at the
         # _node_uuid variable
         sample._node_uuid = '7ae81bb3-dec3-4289-8d6c-da80bd8001ae'
+        sample._portgroup_uuid = '037d9a52-af89-4560-b5a3-a33283295ba2'
         fields = None if expand else _DEFAULT_RETURN_FIELDS
         return cls._convert_with_links(sample, 'http://localhost:6385',
                                        fields=fields)
@@ -223,13 +276,14 @@ class PortsController(rest.RestController):
 
     advanced_net_fields = ['pxe_enabled', 'local_link_connection']
 
-    def __init__(self, node_ident=None):
+    def __init__(self, node_ident=None, portgroup_ident=None):
         super(PortsController, self).__init__()
         self.parent_node_ident = node_ident
+        self.parent_portgroup_ident = portgroup_ident
 
-    def _get_ports_collection(self, node_ident, address, marker, limit,
-                              sort_key, sort_dir, resource_url=None,
-                              fields=None):
+    def _get_ports_collection(self, node_ident, address, portgroup_ident,
+                              marker, limit, sort_key, sort_dir,
+                              resource_url=None, fields=None):
 
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
@@ -245,7 +299,23 @@ class PortsController(rest.RestController):
                   "sorting") % {'key': sort_key})
 
         node_ident = self.parent_node_ident or node_ident
-        if node_ident:
+        portgroup_ident = self.parent_portgroup_ident or portgroup_ident
+
+        if node_ident and portgroup_ident:
+            raise exception.OperationNotPermitted()
+
+        if portgroup_ident:
+            # FIXME: Since all we need is the portgroup ID, we can
+            #                 make this more efficient by only querying
+            #                 for that column. This will get cleaned up
+            #                 as we move to the object interface.
+            portgroup = api_utils.get_rpc_portgroup(portgroup_ident)
+            ports = objects.Port.list_by_portgroup_id(pecan.request.context,
+                                                      portgroup.id, limit,
+                                                      marker_obj,
+                                                      sort_key=sort_key,
+                                                      sort_dir=sort_dir)
+        elif node_ident:
             # FIXME(comstud): Since all we need is the node ID, we can
             #                 make this more efficient by only querying
             #                 for that column. This will get cleaned up
@@ -285,9 +355,10 @@ class PortsController(rest.RestController):
     @METRICS.timer('PortsController.get_all')
     @expose.expose(PortCollection, types.uuid_or_name, types.uuid,
                    types.macaddress, types.uuid, int, wtypes.text,
-                   wtypes.text, types.listtype)
+                   wtypes.text, types.listtype, types.uuid_or_name)
     def get_all(self, node=None, node_uuid=None, address=None, marker=None,
-                limit=None, sort_key='id', sort_dir='asc', fields=None):
+                limit=None, sort_key='id', sort_dir='asc', fields=None,
+                portgroup=None):
         """Retrieve a list of ports.
 
         Note that the 'node_uuid' interface is deprecated in favour
@@ -308,14 +379,23 @@ class PortsController(rest.RestController):
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
-        :raises: NotAcceptable
+        :param portgroup: UUID or name of a portgroup, to get only ports
+                                   for that portgroup.
+        :raises: NotAcceptable, HTTPNotFound
         """
         cdict = pecan.request.context.to_dict()
         policy.authorize('baremetal:port:get', cdict, cdict)
 
         api_utils.check_allow_specify_fields(fields)
-        if (fields and not api_utils.allow_port_advanced_net_fields() and
-                set(fields).intersection(self.advanced_net_fields)):
+        if fields:
+            if (not api_utils.allow_port_advanced_net_fields() and
+                    set(fields).intersection(self.advanced_net_fields)):
+                raise exception.NotAcceptable()
+            if ('portgroup_uuid' in fields and not
+                    api_utils.allow_portgroups_subcontrollers()):
+                    raise exception.NotAcceptable()
+
+        if portgroup and not api_utils.allow_portgroups_subcontrollers():
             raise exception.NotAcceptable()
 
         if fields is None:
@@ -329,16 +409,16 @@ class PortsController(rest.RestController):
                 not uuidutils.is_uuid_like(node)):
                 raise exception.NotAcceptable()
 
-        return self._get_ports_collection(node_uuid or node, address, marker,
-                                          limit, sort_key, sort_dir,
-                                          fields=fields)
+        return self._get_ports_collection(node_uuid or node, address,
+                                          portgroup, marker, limit, sort_key,
+                                          sort_dir, fields=fields)
 
     @METRICS.timer('PortsController.detail')
     @expose.expose(PortCollection, types.uuid_or_name, types.uuid,
                    types.macaddress, types.uuid, int, wtypes.text,
-                   wtypes.text)
+                   wtypes.text, types.uuid_or_name)
     def detail(self, node=None, node_uuid=None, address=None, marker=None,
-               limit=None, sort_key='id', sort_dir='asc'):
+               limit=None, sort_key='id', sort_dir='asc', portgroup=None):
         """Retrieve a list of ports with detail.
 
         Note that the 'node_uuid' interface is deprecated in favour
@@ -350,6 +430,8 @@ class PortsController(rest.RestController):
                           node.
         :param address: MAC address of a port, to get the port which has
                         this MAC address.
+        :param portgroup: UUID or name of a portgroup, to get only ports
+                           for that portgroup.
         :param marker: pagination marker for large data sets.
         :param limit: maximum number of resources to return in a single result.
                       This value cannot be larger than the value of max_limit
@@ -361,6 +443,9 @@ class PortsController(rest.RestController):
         """
         cdict = pecan.request.context.to_dict()
         policy.authorize('baremetal:port:get', cdict, cdict)
+
+        if portgroup and not api_utils.allow_portgroups_subcontrollers():
+            raise exception.NotAcceptable()
 
         if not node_uuid and node:
             # We're invoking this interface using positional notation, or
@@ -376,9 +461,9 @@ class PortsController(rest.RestController):
             raise exception.HTTPNotFound()
 
         resource_url = '/'.join(['ports', 'detail'])
-        return self._get_ports_collection(node_uuid or node, address, marker,
-                                          limit, sort_key, sort_dir,
-                                          resource_url)
+        return self._get_ports_collection(node_uuid or node, address,
+                                          portgroup, marker, limit, sort_key,
+                                          sort_dir, resource_url)
 
     @METRICS.timer('PortsController.get_one')
     @expose.expose(Port, types.uuid, types.listtype)
@@ -388,12 +473,12 @@ class PortsController(rest.RestController):
         :param port_uuid: UUID of a port.
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
-        :raises: NotAcceptable
+        :raises: NotAcceptable, HTTPNotFound
         """
         cdict = pecan.request.context.to_dict()
         policy.authorize('baremetal:port:get', cdict, cdict)
 
-        if self.parent_node_ident:
+        if self.parent_node_ident or self.parent_portgroup_ident:
             raise exception.OperationNotPermitted()
 
         api_utils.check_allow_specify_fields(fields)
@@ -407,18 +492,21 @@ class PortsController(rest.RestController):
         """Create a new port.
 
         :param port: a port within the request body.
-        :raises: NotAcceptable
+        :raises: NotAcceptable, HTTPNotFound
         """
         cdict = pecan.request.context.to_dict()
         policy.authorize('baremetal:port:create', cdict, cdict)
 
-        if self.parent_node_ident:
+        if self.parent_node_ident or self.parent_portgroup_ident:
             raise exception.OperationNotPermitted()
 
         pdict = port.as_dict()
-        if not api_utils.allow_port_advanced_net_fields():
-            if set(pdict).intersection(self.advanced_net_fields):
-                raise exception.NotAcceptable()
+        if (not api_utils.allow_port_advanced_net_fields() and
+                set(pdict).intersection(self.advanced_net_fields)):
+            raise exception.NotAcceptable()
+        if (not api_utils.allow_portgroups_subcontrollers() and
+            'portgroup_uuid' in pdict):
+            raise exception.NotAcceptable()
 
         new_port = objects.Port(pecan.request.context,
                                 **pdict)
@@ -436,19 +524,26 @@ class PortsController(rest.RestController):
 
         :param port_uuid: UUID of a port.
         :param patch: a json PATCH document to apply to this port.
-        :raises: NotAcceptable
+        :raises: NotAcceptable, HTTPNotFound
         """
         cdict = pecan.request.context.to_dict()
         policy.authorize('baremetal:port:update', cdict, cdict)
 
-        if self.parent_node_ident:
+        if self.parent_node_ident or self.parent_portgroup_ident:
             raise exception.OperationNotPermitted()
-        if not api_utils.allow_port_advanced_net_fields():
-            for field in self.advanced_net_fields:
-                field_path = '/%s' % field
-                if (api_utils.get_patch_values(patch, field_path) or
-                        api_utils.is_path_removed(patch, field_path)):
-                    raise exception.NotAcceptable()
+
+        fields_to_check = set()
+        for field in self.advanced_net_fields + ['portgroup_uuid']:
+            field_path = '/%s' % field
+            if (api_utils.get_patch_values(patch, field_path) or
+                    api_utils.is_path_removed(patch, field_path)):
+                fields_to_check.add(field)
+        if (fields_to_check.intersection(self.advanced_net_fields) and
+                not api_utils.allow_port_advanced_net_fields()):
+            raise exception.NotAcceptable()
+        if ('portgroup_uuid' in fields_to_check and
+                not api_utils.allow_portgroups_subcontrollers()):
+            raise exception.NotAcceptable()
 
         rpc_port = objects.Port.get_by_uuid(pecan.request.context, port_uuid)
         try:
@@ -458,9 +553,17 @@ class PortsController(rest.RestController):
             #    not present in the API object
             # 2) Add node_uuid
             port_dict['node_uuid'] = port_dict.pop('node_id', None)
+            # NOTE(vsaienko):
+            # 1) Remove portgroup_id because it's an internal value and
+            #    not present in the API object
+            # 2) Add portgroup_uuid
+            port_dict['portgroup_uuid'] = port_dict.pop('portgroup_id', None)
             port = Port(**api_utils.apply_jsonpatch(port_dict, patch))
         except api_utils.JSONPATCH_EXCEPTIONS as e:
             raise exception.PatchError(patch=patch, reason=e)
+
+        if api_utils.is_path_removed(patch, '/portgroup_uuid'):
+            rpc_port.portgroup_id = None
 
         # Update only the fields that have changed
         for field in objects.Port.fields:
@@ -489,12 +592,14 @@ class PortsController(rest.RestController):
         """Delete a port.
 
         :param port_uuid: UUID of a port.
+        :raises OperationNotPermitted, HTTPNotFound
         """
         cdict = pecan.request.context.to_dict()
         policy.authorize('baremetal:port:delete', cdict, cdict)
 
-        if self.parent_node_ident:
+        if self.parent_node_ident or self.parent_portgroup_ident:
             raise exception.OperationNotPermitted()
+
         rpc_port = objects.Port.get_by_uuid(pecan.request.context,
                                             port_uuid)
         rpc_node = objects.Node.get_by_id(pecan.request.context,
