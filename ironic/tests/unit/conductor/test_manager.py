@@ -4349,7 +4349,7 @@ class StoreConfigDriveTestCase(tests_base.TestCase):
         container_name = 'foo_container'
         timeout = 123
         expected_obj_name = 'configdrive-%s' % self.node.uuid
-        expected_obj_header = {'X-Delete-After': timeout}
+        expected_obj_header = {'X-Delete-After': str(timeout)}
         expected_instance_info = {'configdrive': 'http://1.2.3.4'}
 
         # set configs and mocks

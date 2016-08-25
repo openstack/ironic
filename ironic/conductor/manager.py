@@ -2303,7 +2303,7 @@ def _store_configdrive(node, configdrive):
         container = CONF.conductor.configdrive_swift_container
         object_name = _get_configdrive_obj_name(node)
 
-        object_headers = {'X-Delete-After': timeout}
+        object_headers = {'X-Delete-After': str(timeout)}
 
         with tempfile.NamedTemporaryFile(dir=CONF.tempdir) as fileobj:
             fileobj.write(configdrive)

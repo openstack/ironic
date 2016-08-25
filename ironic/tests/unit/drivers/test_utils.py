@@ -355,7 +355,7 @@ class UtilsRamdiskLogsTestCase(tests_base.TestCase):
 
         mock_swift.return_value.create_object.assert_called_once_with(
             container_name, file_name, mock.ANY,
-            object_headers={'X-Delete-After': 86400})
+            object_headers={'X-Delete-After': '86400'})
         mock_logs_name.assert_called_once_with(self.node)
 
     @mock.patch.object(os, 'makedirs', autospec=True)
