@@ -18,9 +18,7 @@ from oslo_serialization import jsonutils
 import requests
 
 from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.common.i18n import _LE
-from ironic.common.i18n import _LW
+from ironic.common.i18n import _, _LE, _LW
 from ironic.conf import CONF
 
 LOG = log.getLogger(__name__)

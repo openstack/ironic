@@ -23,8 +23,7 @@ from oslo_utils import importutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.common.i18n import _LE
+from ironic.common.i18n import _, _LE
 from ironic.drivers import base
 from ironic.drivers.modules.ucs import helper as ucs_helper
 

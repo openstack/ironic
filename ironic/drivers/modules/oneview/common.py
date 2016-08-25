@@ -17,8 +17,7 @@ from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.common.i18n import _LE
+from ironic.common.i18n import _, _LE
 from ironic.common import states
 from ironic.conf import CONF
 from ironic.drivers import utils

@@ -24,8 +24,7 @@ from oslo_log import log as logging
 import six
 from six.moves import http_client
 
-from ironic.common.i18n import _
-from ironic.common.i18n import _LE
+from ironic.common.i18n import _, _LE
 from ironic.conf import CONF
 
 LOG = logging.getLogger(__name__)

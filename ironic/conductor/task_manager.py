@@ -104,9 +104,7 @@ import six
 
 from ironic.common import driver_factory
 from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.common.i18n import _LE
-from ironic.common.i18n import _LW
+from ironic.common.i18n import _, _LE, _LW
 from ironic.common import states
 from ironic import objects
 

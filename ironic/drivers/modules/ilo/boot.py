@@ -27,9 +27,7 @@ import six.moves.urllib.parse as urlparse
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
-from ironic.common.i18n import _
-from ironic.common.i18n import _LE
-from ironic.common.i18n import _LW
+from ironic.common.i18n import _, _LE, _LW
 from ironic.common import image_service
 from ironic.common import images
 from ironic.common import states

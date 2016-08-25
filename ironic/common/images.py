@@ -31,8 +31,7 @@ from oslo_utils import fileutils
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
-from ironic.common.i18n import _
-from ironic.common.i18n import _LE
+from ironic.common.i18n import _, _LE
 from ironic.common import image_service as service
 from ironic.common import utils
 from ironic.conf import CONF

@@ -19,9 +19,7 @@ from oslo_utils import importutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.common.i18n import _LE
-from ironic.common.i18n import _LW
+from ironic.common.i18n import _, _LE, _LW
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager

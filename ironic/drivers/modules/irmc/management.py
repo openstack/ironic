@@ -20,8 +20,7 @@ from oslo_utils import importutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.common.i18n import _LE
+from ironic.common.i18n import _, _LE
 from ironic.conductor import task_manager
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import common as irmc_common

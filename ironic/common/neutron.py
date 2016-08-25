@@ -15,10 +15,7 @@ from neutronclient.v2_0 import client as clientv20
 from oslo_log import log
 
 from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.common.i18n import _LE
-from ironic.common.i18n import _LI
-from ironic.common.i18n import _LW
+from ironic.common.i18n import _, _LE, _LI, _LW
 from ironic.common import keystone
 from ironic.conf import CONF
 

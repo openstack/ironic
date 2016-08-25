@@ -27,8 +27,7 @@ from oslo_log import log
 import six
 import webob
 
-from ironic.common.i18n import _
-from ironic.common.i18n import _LE
+from ironic.common.i18n import _, _LE
 
 LOG = log.getLogger(__name__)
 

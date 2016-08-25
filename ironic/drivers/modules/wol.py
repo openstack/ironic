@@ -24,8 +24,7 @@ import time
 from oslo_log import log
 
 from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.common.i18n import _LI
+from ironic.common.i18n import _, _LI
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager

@@ -56,10 +56,7 @@ from ironic.common import dhcp_factory
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
-from ironic.common.i18n import _
-from ironic.common.i18n import _LE
-from ironic.common.i18n import _LI
-from ironic.common.i18n import _LW
+from ironic.common.i18n import _, _LE, _LI, _LW
 from ironic.common import images
 from ironic.common import states
 from ironic.common import swift
