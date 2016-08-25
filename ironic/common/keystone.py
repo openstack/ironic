@@ -89,6 +89,13 @@ def _get_legacy_auth():
     Used only to provide backward compatibility with old configs.
     """
     conf = getattr(CONF, ironic_auth.LEGACY_SECTION)
+    # NOTE(pas-ha) first try to load auth from legacy section
+    # using the new keystoneauth options that might be already set there
+    auth = ironic_auth.load_auth(CONF, ironic_auth.LEGACY_SECTION)
+    if auth:
+        return auth
+    # NOTE(pas-ha) now we surely have legacy config section for auth
+    # and with legacy options set in it, deal with it.
     legacy_loader = kaloading.get_plugin_loader('password')
     auth_params = {
         'auth_url': conf.auth_uri,

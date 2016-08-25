@@ -139,6 +139,7 @@ class KeystoneLegacyTestCase(base.TestCase):
     def test_legacy_loading_v2(self, load_auth_mock, load_mock):
         keystone.get_session(self.test_group)
         load_mock.assert_called_once_with(**self.expected)
+        self.assertEqual(2, load_auth_mock.call_count)
 
     @mock.patch.object(ironic_auth, 'load_auth', return_value=None)
     def test_legacy_loading_v3(self, load_auth_mock, load_mock):
@@ -150,3 +151,24 @@ class KeystoneLegacyTestCase(base.TestCase):
             user_domain_id='default'))
         keystone.get_session(self.test_group)
         load_mock.assert_called_once_with(**self.expected)
+        self.assertEqual(2, load_auth_mock.call_count)
+
+    @mock.patch.object(ironic_auth, 'load_auth')
+    def test_legacy_loading_new_in_legacy(self, load_auth_mock, load_mock):
+        # NOTE(pas-ha) this is due to auth_plugin options
+        # being dynamically registered on first load,
+        # but we need to set the config before
+        plugin = kaloading.get_plugin_loader('password')
+        opts = kaloading.get_auth_plugin_conf_options(plugin)
+        self.cfg_fixture.register_opts(opts, group=ironic_auth.LEGACY_SECTION)
+        self.config(group=ironic_auth.LEGACY_SECTION,
+                    auth_uri='http://127.0.0.1:9898',
+                    username='fake_user',
+                    password='fake_pass',
+                    project_name='fake_tenant',
+                    auth_url='http://127.0.0.1:9898',
+                    auth_type='password')
+        load_auth_mock.side_effect = [None, mock.Mock()]
+        keystone.get_session(self.test_group)
+        self.assertFalse(load_mock.called)
+        self.assertEqual(2, load_auth_mock.call_count)
