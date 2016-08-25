@@ -1023,18 +1023,11 @@ class NodesController(rest.RestController):
     """A resource used for vendors to expose a custom functionality in
     the API"""
 
-    ports = port.PortsController()
-    """Expose ports as a sub-element of nodes"""
-
     management = NodeManagementController()
     """Expose management as a sub-element of nodes"""
 
     maintenance = NodeMaintenanceController()
     """Expose maintenance as a sub-element of nodes"""
-
-    # Set the flag to indicate that the requests to this resource are
-    # coming from a top-level resource
-    ports.from_nodes = True
 
     from_chassis = False
     """A flag to indicate if the requests to this controller are coming
@@ -1048,6 +1041,17 @@ class NodesController(rest.RestController):
     invalid_sort_key_list = ['properties', 'driver_info', 'extra',
                              'instance_info', 'driver_internal_info',
                              'clean_step', 'raid_config', 'target_raid_config']
+
+    _subcontroller_map = {
+        'ports': port.PortsController
+    }
+
+    @pecan.expose()
+    def _lookup(self, ident, subres, *remainder):
+        ident = types.uuid_or_name.validate(ident)
+        subcontroller = self._subcontroller_map.get(subres)
+        if subcontroller:
+            return subcontroller(node_ident=ident), remainder
 
     def _get_nodes_collection(self, chassis_uuid, instance_uuid, associated,
                               maintenance, provision_state, marker, limit,

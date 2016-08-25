@@ -215,10 +215,6 @@ class PortCollection(collection.Collection):
 class PortsController(rest.RestController):
     """REST controller for Ports."""
 
-    from_nodes = False
-    """A flag to indicate if the requests to this controller are coming
-    from the top-level resource Nodes."""
-
     _custom_actions = {
         'detail': ['GET'],
     }
@@ -227,12 +223,13 @@ class PortsController(rest.RestController):
 
     advanced_net_fields = ['pxe_enabled', 'local_link_connection']
 
+    def __init__(self, node_ident=None):
+        super(PortsController, self).__init__()
+        self.parent_node_ident = node_ident
+
     def _get_ports_collection(self, node_ident, address, marker, limit,
                               sort_key, sort_dir, resource_url=None,
                               fields=None):
-        if self.from_nodes and not node_ident:
-            raise exception.MissingParameterValue(
-                _("Node identifier not specified."))
 
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
@@ -247,6 +244,7 @@ class PortsController(rest.RestController):
                 _("The sort_key value %(key)s is an invalid field for "
                   "sorting") % {'key': sort_key})
 
+        node_ident = self.parent_node_ident or node_ident
         if node_ident:
             # FIXME(comstud): Since all we need is the node ID, we can
             #                 make this more efficient by only querying
@@ -395,7 +393,7 @@ class PortsController(rest.RestController):
         cdict = pecan.request.context.to_dict()
         policy.authorize('baremetal:port:get', cdict, cdict)
 
-        if self.from_nodes:
+        if self.parent_node_ident:
             raise exception.OperationNotPermitted()
 
         api_utils.check_allow_specify_fields(fields)
@@ -414,7 +412,7 @@ class PortsController(rest.RestController):
         cdict = pecan.request.context.to_dict()
         policy.authorize('baremetal:port:create', cdict, cdict)
 
-        if self.from_nodes:
+        if self.parent_node_ident:
             raise exception.OperationNotPermitted()
 
         pdict = port.as_dict()
@@ -443,7 +441,7 @@ class PortsController(rest.RestController):
         cdict = pecan.request.context.to_dict()
         policy.authorize('baremetal:port:update', cdict, cdict)
 
-        if self.from_nodes:
+        if self.parent_node_ident:
             raise exception.OperationNotPermitted()
         if not api_utils.allow_port_advanced_net_fields():
             for field in self.advanced_net_fields:
@@ -495,7 +493,7 @@ class PortsController(rest.RestController):
         cdict = pecan.request.context.to_dict()
         policy.authorize('baremetal:port:delete', cdict, cdict)
 
-        if self.from_nodes:
+        if self.parent_node_ident:
             raise exception.OperationNotPermitted()
         rpc_port = objects.Port.get_by_uuid(pecan.request.context,
                                             port_uuid)

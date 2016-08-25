@@ -477,7 +477,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         obj_utils.create_test_port(self.context, node_id=node.id)
         # No node id specified
         response = self.get_json('/nodes/ports', expect_errors=True)
-        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
     def test_ports_subresource_node_not_found(self):
         non_existent_uuid = 'eeeeeeee-cccc-aaaa-bbbb-cccccccccccc'
@@ -1184,10 +1184,18 @@ class TestPatch(test_api_base.BaseApiTest):
         self.mock_update_node.assert_called_once_with(
             mock.ANY, mock.ANY, 'test-topic')
 
-    def test_patch_ports_subresource(self):
+    def test_patch_ports_subresource_no_port_id(self):
         response = self.patch_json('/nodes/%s/ports' % self.node.uuid,
                                    [{'path': '/extra/foo', 'value': 'bar',
                                      'op': 'add'}], expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    def test_patch_ports_subresource(self):
+        response = self.patch_json(
+            '/nodes/%s/ports/9bb50f13-0b8d-4ade-ad2d-d91fefdef9cc' %
+            self.node.uuid,
+            [{'path': '/extra/foo', 'value': 'bar',
+              'op': 'add'}], expect_errors=True)
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     def test_remove_uuid(self):
@@ -1876,11 +1884,19 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
-    def test_post_ports_subresource(self):
+    def test_post_ports_subresource_no_node_id(self):
         node = obj_utils.create_test_node(self.context)
         pdict = test_api_utils.port_post_data(node_id=None)
         pdict['node_uuid'] = node.uuid
         response = self.post_json('/nodes/ports', pdict,
+                                  expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    def test_post_ports_subresource(self):
+        node = obj_utils.create_test_node(self.context)
+        pdict = test_api_utils.port_post_data(node_id=None)
+        pdict['node_uuid'] = node.uuid
+        response = self.post_json('/nodes/%s/ports' % node.uuid, pdict,
                                   expect_errors=True)
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
@@ -2074,10 +2090,19 @@ class TestDelete(test_api_base.BaseApiTest):
         self.assertTrue(response.json['error_message'])
         mock_gbn.assert_called_once_with(mock.ANY, node.name)
 
-    def test_delete_ports_subresource(self):
+    def test_delete_ports_subresource_no_port_id(self):
         node = obj_utils.create_test_node(self.context)
         response = self.delete('/nodes/%s/ports' % node.uuid,
                                expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    def test_delete_ports_subresource(self):
+        node = obj_utils.create_test_node(self.context)
+        port = obj_utils.create_test_port(self.context, node_id=node.id)
+        response = self.delete(
+            '/nodes/%(node_uuid)s/ports/%(port_uuid)s' %
+            {'node_uuid': node.uuid, 'port_uuid': port.uuid},
+            expect_errors=True)
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node')
