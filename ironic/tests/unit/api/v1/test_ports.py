@@ -955,6 +955,18 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(urlparse.urlparse(response.location).path,
                          expected_location)
 
+    def test_create_port_min_api_version(self):
+        pdict = post_get_test_port(
+            node_uuid=self.node.uuid)
+        pdict.pop('local_link_connection')
+        pdict.pop('pxe_enabled')
+        pdict.pop('extra')
+        headers = {api_base.Version.string: str(api_v1.MIN_VER)}
+        response = self.post_json('/ports', pdict, headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        self.assertEqual(self.node.uuid, response.json['node_uuid'])
+
     def test_create_port_doesnt_contain_id(self):
         with mock.patch.object(self.dbapi, 'create_port',
                                wraps=self.dbapi.create_port) as cp_mock:
@@ -1193,6 +1205,103 @@ class TestPost(test_api_base.BaseApiTest):
                                   pdict, headers=headers, expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    def _test_create_port(self, has_vif=False, in_portgroup=False,
+                          pxe_enabled=True, standalone_ports=True,
+                          http_status=http_client.CREATED):
+        extra = {}
+        if has_vif:
+            extra = {'vif_port_id': uuidutils.generate_uuid()}
+        pdict = post_get_test_port(
+            node_uuid=self.node.uuid,
+            pxe_enabled=pxe_enabled,
+            extra=extra)
+
+        if not in_portgroup:
+            pdict.pop('portgroup_uuid')
+        else:
+            self.portgroup.standalone_ports_supported = standalone_ports
+            self.portgroup.save()
+
+        expect_errors = http_status != http_client.CREATED
+
+        response = self.post_json('/ports', pdict, headers=self.headers,
+                                  expect_errors=expect_errors)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_status, response.status_int)
+        if not expect_errors:
+            expected_portgroup_uuid = pdict.get('portgroup_uuid', None)
+            self.assertEqual(expected_portgroup_uuid,
+                             response.json['portgroup_uuid'])
+            self.assertEqual(extra, response.json['extra'])
+
+    def test_create_port_novif_pxe_noportgroup(self):
+        self._test_create_port(has_vif=False, in_portgroup=False,
+                               pxe_enabled=True,
+                               http_status=http_client.CREATED)
+
+    def test_create_port_novif_nopxe_noportgroup(self):
+        self._test_create_port(has_vif=False, in_portgroup=False,
+                               pxe_enabled=False,
+                               http_status=http_client.CREATED)
+
+    def test_create_port_vif_pxe_noportgroup(self):
+        self._test_create_port(has_vif=True, in_portgroup=False,
+                               pxe_enabled=True,
+                               http_status=http_client.CREATED)
+
+    def test_create_port_vif_nopxe_noportgroup(self):
+        self._test_create_port(has_vif=True, in_portgroup=False,
+                               pxe_enabled=False,
+                               http_status=http_client.CREATED)
+
+    def test_create_port_novif_pxe_portgroup_standalone_ports(self):
+        self._test_create_port(has_vif=False, in_portgroup=True,
+                               pxe_enabled=True,
+                               standalone_ports=True,
+                               http_status=http_client.CREATED)
+
+    def test_create_port_novif_pxe_portgroup_nostandalone_ports(self):
+        self._test_create_port(has_vif=False, in_portgroup=True,
+                               pxe_enabled=True,
+                               standalone_ports=False,
+                               http_status=http_client.CONFLICT)
+
+    def test_create_port_novif_nopxe_portgroup_standalone_ports(self):
+        self._test_create_port(has_vif=False, in_portgroup=True,
+                               pxe_enabled=False,
+                               standalone_ports=True,
+                               http_status=http_client.CREATED)
+
+    def test_create_port_novif_nopxe_portgroup_nostandalone_ports(self):
+        self._test_create_port(has_vif=False, in_portgroup=True,
+                               pxe_enabled=False,
+                               standalone_ports=False,
+                               http_status=http_client.CREATED)
+
+    def test_create_port_vif_pxe_portgroup_standalone_ports(self):
+        self._test_create_port(has_vif=True, in_portgroup=True,
+                               pxe_enabled=True,
+                               standalone_ports=True,
+                               http_status=http_client.CREATED)
+
+    def test_create_port_vif_pxe_portgroup_nostandalone_ports(self):
+        self._test_create_port(has_vif=True, in_portgroup=True,
+                               pxe_enabled=True,
+                               standalone_ports=False,
+                               http_status=http_client.CONFLICT)
+
+    def test_create_port_vif_nopxe_portgroup_standalone_ports(self):
+        self._test_create_port(has_vif=True, in_portgroup=True,
+                               pxe_enabled=False,
+                               standalone_ports=True,
+                               http_status=http_client.CREATED)
+
+    def test_create_port_vif_nopxe_portgroup_nostandalone_ports(self):
+        self._test_create_port(has_vif=True, in_portgroup=True,
+                               pxe_enabled=False,
+                               standalone_ports=False,
+                               http_status=http_client.CONFLICT)
 
 
 @mock.patch.object(rpcapi.ConductorAPI, 'destroy_port')

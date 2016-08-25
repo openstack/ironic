@@ -3110,6 +3110,143 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
         port.refresh()
         self.assertEqual(True, port.pxe_enabled)
 
+    def _test_update_port(self, has_vif=False, in_portgroup=False,
+                          pxe_enabled=True, standalone_ports=True,
+                          expect_errors=False):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.ENROLL)
+
+        pg = obj_utils.create_test_portgroup(
+            self.context, node_id=node.id,
+            standalone_ports_supported=standalone_ports)
+
+        extra_vif = {'vif_port_id': uuidutils.generate_uuid()}
+        if has_vif:
+            extra = extra_vif
+            opposite_extra = {}
+        else:
+            extra = {}
+            opposite_extra = extra_vif
+        opposite_pxe_enabled = not pxe_enabled
+
+        pg_id = None
+        if in_portgroup:
+            pg_id = pg.id
+
+        ports = []
+
+        # Update only portgroup id on existed port with different
+        # combinations of pxe_enabled/vif_port_id
+        p1 = obj_utils.create_test_port(self.context, node_id=node.id,
+                                        uuid=uuidutils.generate_uuid(),
+                                        address="aa:bb:cc:dd:ee:01",
+                                        extra=extra,
+                                        pxe_enabled=pxe_enabled)
+        p1.portgroup_id = pg_id
+        ports.append(p1)
+
+        # Update portgroup_id/pxe_enabled/vif_port_id in one request
+        p2 = obj_utils.create_test_port(self.context, node_id=node.id,
+                                        uuid=uuidutils.generate_uuid(),
+                                        address="aa:bb:cc:dd:ee:02",
+                                        extra=opposite_extra,
+                                        pxe_enabled=opposite_pxe_enabled)
+        p2.extra = extra
+        p2.pxe_enabled = pxe_enabled
+        p2.portgroup_id = pg_id
+        ports.append(p2)
+
+        # Update portgroup_id and pxe_enabled
+        p3 = obj_utils.create_test_port(self.context, node_id=node.id,
+                                        uuid=uuidutils.generate_uuid(),
+                                        address="aa:bb:cc:dd:ee:03",
+                                        extra=extra,
+                                        pxe_enabled=opposite_pxe_enabled)
+        p3.pxe_enabled = pxe_enabled
+        p3.portgroup_id = pg_id
+        ports.append(p3)
+
+        # Update portgroup_id and vif_port_id
+        p4 = obj_utils.create_test_port(self.context, node_id=node.id,
+                                        uuid=uuidutils.generate_uuid(),
+                                        address="aa:bb:cc:dd:ee:04",
+                                        pxe_enabled=pxe_enabled,
+                                        extra=opposite_extra)
+        p4.extra = extra
+        p4.portgroup_id = pg_id
+        ports.append(p4)
+
+        for port in ports:
+            if not expect_errors:
+                res = self.service.update_port(self.context, port)
+                self.assertEqual(port.pxe_enabled, res.pxe_enabled)
+                self.assertEqual(port.portgroup_id, res.portgroup_id)
+                self.assertEqual(port.extra, res.extra)
+            else:
+                self.assertRaises(messaging.rpc.ExpectedException,
+                                  self.service.update_port,
+                                  self.context, port)
+
+    def test_update_port_novif_pxe_noportgroup(self):
+        self._test_update_port(has_vif=False, in_portgroup=False,
+                               pxe_enabled=True,
+                               expect_errors=False)
+
+    def test_update_port_novif_nopxe_noportgroup(self):
+        self._test_update_port(has_vif=False, in_portgroup=False,
+                               pxe_enabled=False,
+                               expect_errors=False)
+
+    def test_update_port_vif_pxe_noportgroup(self):
+        self._test_update_port(has_vif=True, in_portgroup=False,
+                               pxe_enabled=True,
+                               expect_errors=False)
+
+    def test_update_port_vif_nopxe_noportgroup(self):
+        self._test_update_port(has_vif=True, in_portgroup=False,
+                               pxe_enabled=False,
+                               expect_errors=False)
+
+    def test_update_port_novif_pxe_portgroup_standalone_ports(self):
+        self._test_update_port(has_vif=False, in_portgroup=True,
+                               pxe_enabled=True, standalone_ports=True,
+                               expect_errors=False)
+
+    def test_update_port_novif_pxe_portgroup_nostandalone_ports(self):
+        self._test_update_port(has_vif=False, in_portgroup=True,
+                               pxe_enabled=True, standalone_ports=False,
+                               expect_errors=True)
+
+    def test_update_port_novif_nopxe_portgroup_standalone_ports(self):
+        self._test_update_port(has_vif=False, in_portgroup=True,
+                               pxe_enabled=False, standalone_ports=True,
+                               expect_errors=False)
+
+    def test_update_port_novif_nopxe_portgroup_nostandalone_ports(self):
+        self._test_update_port(has_vif=False, in_portgroup=True,
+                               pxe_enabled=False, standalone_ports=False,
+                               expect_errors=False)
+
+    def test_update_port_vif_pxe_portgroup_standalone_ports(self):
+        self._test_update_port(has_vif=True, in_portgroup=True,
+                               pxe_enabled=True, standalone_ports=True,
+                               expect_errors=False)
+
+    def test_update_port_vif_pxe_portgroup_nostandalone_ports(self):
+        self._test_update_port(has_vif=True, in_portgroup=True,
+                               pxe_enabled=True, standalone_ports=False,
+                               expect_errors=True)
+
+    def test_update_port_vif_nopxe_portgroup_standalone_ports(self):
+        self._test_update_port(has_vif=True, in_portgroup=True,
+                               pxe_enabled=True, standalone_ports=True,
+                               expect_errors=False)
+
+    def test_update_port_vif_nopxe_portgroup_nostandalone_ports(self):
+        self._test_update_port(has_vif=True, in_portgroup=True,
+                               pxe_enabled=False, standalone_ports=False,
+                               expect_errors=True)
+
     def test__filter_out_unsupported_types_all(self):
         self._start_service()
         CONF.set_override('send_sensor_data_types', ['All'], group='conductor')
@@ -3468,6 +3605,84 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin,
         pg.refresh()
         self.assertEqual(new_address, pg.address)
         self.assertFalse(mac_update_mock.called)
+
+    def _test_update_portgroup(self, has_vif=False, with_ports=False,
+                               pxe_enabled=True, standalone_ports=True,
+                               expect_errors=False):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.ENROLL)
+
+        # NOTE(vsaienko) make sure that old values are opposite to new,
+        # to guarantee that object.what_changes() returns true.
+        old_standalone_ports_supported = not standalone_ports
+
+        pg = obj_utils.create_test_portgroup(
+            self.context, node_id=node.id,
+            standalone_ports_supported=old_standalone_ports_supported)
+
+        if with_ports:
+            extra = {}
+            if has_vif:
+                extra = {'vif_port_id': uuidutils.generate_uuid()}
+
+            obj_utils.create_test_port(
+                self.context, node_id=node.id, extra=extra,
+                pxe_enabled=pxe_enabled, portgroup_id=pg.id)
+
+        pg.standalone_ports_supported = standalone_ports
+
+        if not expect_errors:
+            res = self.service.update_portgroup(self.context, pg)
+            self.assertEqual(pg.standalone_ports_supported,
+                             res.standalone_ports_supported)
+        else:
+            self.assertRaises(messaging.rpc.ExpectedException,
+                              self.service.update_portgroup,
+                              self.context, pg)
+
+    def test_update_portgroup_standalone_ports_noports(self):
+        self._test_update_portgroup(with_ports=False, standalone_ports=True,
+                                    expect_errors=False)
+
+    def test_update_portgroup_standalone_ports_novif_pxe_ports(self):
+        self._test_update_portgroup(with_ports=True, standalone_ports=True,
+                                    has_vif=False, pxe_enabled=True,
+                                    expect_errors=False)
+
+    def test_update_portgroup_nostandalone_ports_novif_pxe_ports(self):
+        self._test_update_portgroup(with_ports=True, standalone_ports=False,
+                                    has_vif=False, pxe_enabled=True,
+                                    expect_errors=True)
+
+    def test_update_portgroup_nostandalone_ports_novif_nopxe_ports(self):
+        self._test_update_portgroup(with_ports=True, standalone_ports=False,
+                                    has_vif=False, pxe_enabled=False,
+                                    expect_errors=False)
+
+    def test_update_portgroup_standalone_ports_novif_nopxe_ports(self):
+        self._test_update_portgroup(with_ports=True, standalone_ports=True,
+                                    has_vif=False, pxe_enabled=False,
+                                    expect_errors=False)
+
+    def test_update_portgroup_standalone_ports_vif_pxe_ports(self):
+        self._test_update_portgroup(with_ports=True, standalone_ports=True,
+                                    has_vif=True, pxe_enabled=True,
+                                    expect_errors=False)
+
+    def test_update_portgroup_nostandalone_ports_vif_pxe_ports(self):
+        self._test_update_portgroup(with_ports=True, standalone_ports=False,
+                                    has_vif=True, pxe_enabled=True,
+                                    expect_errors=True)
+
+    def test_update_portgroup_standalone_ports_vif_nopxe_ports(self):
+        self._test_update_portgroup(with_ports=True, standalone_ports=True,
+                                    has_vif=True, pxe_enabled=False,
+                                    expect_errors=False)
+
+    def test_update_portgroup_nostandalone_ports_vif_nopxe_ports(self):
+        self._test_update_portgroup(with_ports=True, standalone_ports=False,
+                                    has_vif=True, pxe_enabled=False,
+                                    expect_errors=True)
 
 
 @mgr_utils.mock_record_keepalive

@@ -492,7 +492,7 @@ class PortsController(rest.RestController):
         """Create a new port.
 
         :param port: a port within the request body.
-        :raises: NotAcceptable, HTTPNotFound
+        :raises: NotAcceptable, HTTPNotFound, Conflict
         """
         cdict = pecan.request.context.to_dict()
         policy.authorize('baremetal:port:create', cdict, cdict)
@@ -507,6 +507,20 @@ class PortsController(rest.RestController):
         if (not api_utils.allow_portgroups_subcontrollers() and
             'portgroup_uuid' in pdict):
             raise exception.NotAcceptable()
+
+        extra = pdict.get('extra')
+        vif = extra.get('vif_port_id') if extra else None
+        if (pdict.get('portgroup_uuid') and
+                (pdict.get('pxe_enabled') or vif)):
+            rpc_pg = objects.Portgroup.get_by_uuid(pecan.request.context,
+                                                   pdict['portgroup_uuid'])
+            if not rpc_pg.standalone_ports_supported:
+                msg = _("Port group %s doesn't support standalone ports. "
+                        "This port cannot be created as a member of that "
+                        "port group because either 'extra/vif_port_id' "
+                        "was specified or 'pxe_enabled' was set to True.")
+                raise exception.Conflict(
+                    msg % pdict['portgroup_uuid'])
 
         new_port = objects.Port(pecan.request.context,
                                 **pdict)
