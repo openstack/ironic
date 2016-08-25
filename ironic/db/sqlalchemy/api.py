@@ -20,7 +20,6 @@ import collections
 import datetime
 import threading
 
-from oslo_config import cfg
 from oslo_db import exception as db_exc
 from oslo_db.sqlalchemy import enginefacade
 from oslo_db.sqlalchemy import utils as db_utils
@@ -36,13 +35,10 @@ from ironic.common import exception
 from ironic.common.i18n import _, _LW
 from ironic.common import states
 from ironic.common import utils
+from ironic.conf import CONF
 from ironic.db import api
 from ironic.db.sqlalchemy import models
 
-CONF = cfg.CONF
-CONF.import_opt('heartbeat_timeout',
-                'ironic.conductor.manager',
-                group='conductor')
 
 LOG = log.getLogger(__name__)
 

@@ -12,8 +12,7 @@
 
 import itertools
 
-import ironic.drivers.modules.amt.common
-import ironic.drivers.modules.amt.power
+import ironic.conf
 
 _default_opt_lists = [
     ironic.conf.default.api_opts,
@@ -32,13 +31,11 @@ _default_opt_lists = [
 _opts = [
     ('DEFAULT', itertools.chain(*_default_opt_lists)),
     ('agent', ironic.conf.agent.opts),
-    ('amt', itertools.chain(
-        ironic.drivers.modules.amt.common.opts,
-        ironic.drivers.modules.amt.power.opts)),
+    ('amt', ironic.conf.amt.opts),
     ('api', ironic.conf.api.opts),
     ('audit', ironic.conf.audit.opts),
-    ('cimc', ironic.conf.cimc.opts),
-    ('cisco_ucs', ironic.conf.cisco_ucs.opts),
+    ('cimc', ironic.conf.cisco.cimc_opts),
+    ('cisco_ucs', ironic.conf.cisco.ucsm_opts),
     ('conductor', ironic.conf.conductor.opts),
     ('console', ironic.conf.console.opts),
     ('database', ironic.conf.database.opts),

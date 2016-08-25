@@ -17,7 +17,6 @@ import time
 from xml import etree
 
 from oslo_concurrency import processutils
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 import six
@@ -26,6 +25,7 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _, _LE
 from ironic.common import utils
+from ironic.conf import CONF
 
 
 pywsman = importutils.try_import('pywsman')
@@ -45,28 +45,6 @@ OPTIONAL_PROPERTIES = {
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
-
-opts = [
-    cfg.StrOpt('protocol',
-               default='http',
-               choices=['http', 'https'],
-               help=_('Protocol used for AMT endpoint')),
-    cfg.IntOpt('awake_interval',
-               default=60,
-               min=0,
-               help=_('Time interval (in seconds) for successive awake call '
-                      'to AMT interface, this depends on the IdleTimeout '
-                      'setting on AMT interface. AMT Interface will go to '
-                      'sleep after 60 seconds of inactivity by default. '
-                      'IdleTimeout=0 means AMT will not go to sleep at all. '
-                      'Setting awake_interval=0 will disable awake call.')),
-]
-
-CONF = cfg.CONF
-opt_group = cfg.OptGroup(name='amt',
-                         title='Options for the AMT power driver')
-CONF.register_group(opt_group)
-CONF.register_opts(opts, opt_group)
 
 # TODO(lintan): More boot devices are supported by AMT, but not useful
 # currently. Add them in the future.

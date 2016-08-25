@@ -17,7 +17,22 @@ from oslo_config import cfg
 
 from ironic.common.i18n import _
 
-opts = [
+# NOTE: options for CIMC (Cisco Integrated Management Controller), which talks
+# to UCS (Unified Computing System) in standalone mode
+cimc_opts = [
+    cfg.IntOpt('max_retry',
+               default=6,
+               help=_('Number of times a power operation needs to be '
+                      'retried')),
+    cfg.IntOpt('action_interval',
+               default=10,
+               help=_('Amount of time in seconds to wait in between power '
+                      'operations')),
+]
+
+# NOTE: options for UCSM (UCS Manager), which talks to UCS via a centralized
+# management controller
+ucsm_opts = [
     cfg.IntOpt('max_retry',
                default=6,
                help=_('Number of times a power operation needs to be '
@@ -30,4 +45,5 @@ opts = [
 
 
 def register_opts(conf):
-    conf.register_opts(opts, group='cisco_ucs')
+    conf.register_opts(cimc_opts, group='cimc')
+    conf.register_opts(ucsm_opts, group='cisco_ucs')

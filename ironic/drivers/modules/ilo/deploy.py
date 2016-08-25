@@ -35,9 +35,6 @@ from ironic.drivers.modules import pxe
 
 LOG = logging.getLogger(__name__)
 
-CONF.import_opt('pxe_append_params', 'ironic.drivers.modules.iscsi_deploy',
-                group='pxe')
-
 
 def _prepare_agent_vmedia_boot(task):
     """Ejects virtual media devices and prepares for vmedia boot."""
