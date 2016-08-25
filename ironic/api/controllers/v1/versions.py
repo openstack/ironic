@@ -17,8 +17,8 @@
 BASE_VERSION = 1
 
 # Here goes a short log of changes in every version.
-# Refer to doc/source/webapi/v1.rst for a detailed explanation of what
-# each version contains.
+# Refer to doc/source/dev/webapi-version-history.rst for a detailed explanation
+# of what each version contains.
 #
 # v1.0: corresponds to Juno API, not supported since Kilo
 # v1.1: API at the point in time when versioning support was added,
@@ -78,8 +78,8 @@ MINOR_21_RESOURCE_CLASS = 21
 MINOR_22_LOOKUP_HEARTBEAT = 22
 
 # When adding another version, update MINOR_MAX_VERSION and also update
-# doc/source/webapi/v1.rst with a detailed explanation of what the version has
-# changed.
+# doc/source/dev/webapi-version-history.rst with a detailed explanation of
+# what the version has changed.
 MINOR_MAX_VERSION = MINOR_22_LOOKUP_HEARTBEAT
 
 # String representations of the minor and maximum versions
