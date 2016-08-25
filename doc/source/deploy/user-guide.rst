@@ -7,7 +7,7 @@ Introduction to Ironic
 Ironic is an OpenStack project which provisions bare metal (as opposed to
 virtual) machines. It may be used independently or as part of an OpenStack
 Cloud, and integrates with the OpenStack Identity (keystone), Compute (nova),
-Network (neutron), and Image (glance) services.
+Network (neutron), Image (glance) and Object (swift) services.
 
 When the Bare Metal service is appropriately configured with the Compute and
 Network services, it is possible to provision both virtual and physical
