@@ -62,10 +62,9 @@ class IronicException(Exception):
             except Exception as e:
                 # kwargs doesn't match a variable in self._msg_fmt
                 # log the issue and the kwargs
-                LOG.exception(_LE('Exception in string format operation'))
-                for name, value in kwargs.items():
-                    LOG.error("%s: %s" % (name, value))
-
+                prs = ', '.join('%s: %s' % pair for pair in kwargs.items())
+                LOG.exception(_LE('Exception in string format operation '
+                                  '(arguments %s)'), prs)
                 if CONF.fatal_exception_format_errors:
                     raise e
                 else:
