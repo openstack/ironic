@@ -80,6 +80,15 @@ opts = [
                       'operations')),
     cfg.StrOpt('ca_file',
                help=_('CA certificate file to validate iLO.')),
+    cfg.StrOpt('default_boot_mode',
+               default='auto',
+               choices=['auto', 'bios', 'uefi'],
+               help=_('Default boot mode to be used in provisioning when '
+                      '"boot_mode" capability is not provided in the'
+                      '"properties/capabilities" of the node. The default is '
+                      '"auto" for backward compatibility. When "auto" is '
+                      'specified, default boot mode will be selected based '
+                      'on boot mode settings on the system.')),
 ]
 
 

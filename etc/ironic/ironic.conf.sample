@@ -1337,6 +1337,15 @@
 # CA certificate file to validate iLO. (string value)
 #ca_file = <None>
 
+# Default boot mode to be used in provisioning when
+# "boot_mode" capability is not provided in
+# the"properties/capabilities" of the node. The default is
+# "auto" for backward compatibility. When "auto" is specified,
+# default boot mode will be selected based on boot mode
+# settings on the system. (string value)
+# Allowed values: auto, bios, uefi
+#default_boot_mode = auto
+
 
 [inspector]
 

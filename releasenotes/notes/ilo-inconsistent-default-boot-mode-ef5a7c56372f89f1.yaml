@@ -1,0 +1,12 @@
+---
+fixes:
+  - When no boot mode is explicitly set on a node using
+    an iLO driver, ironic automatically picks a boot
+    mode based on hardware capabilities. This confuses
+    deployers, as these factors are system specific and
+    not configurable. In order to ensure predictable
+    behavior, a new configuration parameter,
+    ``[ilo]/default_boot_mode``, was added to allow
+    deployers to explicitly set a default. The default
+    value of this option keeps behavior consistent for
+    existing deployments.
