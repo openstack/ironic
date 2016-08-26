@@ -22,8 +22,7 @@ opts = [
                 help=_('whether to enable inspection using ironic-inspector')),
     cfg.StrOpt('service_url',
                help=_('ironic-inspector HTTP endpoint. If this is not set, '
-                      'the ironic-inspector client default '
-                      '(http://127.0.0.1:5050) will be used.')),
+                      'the service catalog will be used.')),
     cfg.IntOpt('status_check_period', default=60,
                help=_('period (in seconds) to check status of nodes '
                       'on inspection')),

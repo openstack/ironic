@@ -40,9 +40,20 @@ IBOOT_SPEC = (
 
 # ironic_inspector
 IRONIC_INSPECTOR_CLIENT_SPEC = (
-    'introspect',
-    'get_status',
+    'ClientV1',
 )
+
+
+class InspectorClientV1Specs(object):
+    def __init__(self, session, inspector_url, api_version):
+        pass
+
+    def introspect(self, uuid):
+        pass
+
+    def get_status(self, uuid):
+        pass
+
 
 # proliantutils
 PROLIANTUTILS_SPEC = (

@@ -1,0 +1,8 @@
+---
+fixes:
+  - Ironic Inspector inspection interface will not fetch the service endpoint
+    for the service catalog, if "service_url" is not provided and keystone
+    support is enabled.
+upgrade:
+  - Minimum required version of python-ironic-inspector-client was bumped
+    to 1.5.0 (released as part of the Mitaka cycle).

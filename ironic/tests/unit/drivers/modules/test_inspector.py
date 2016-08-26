@@ -93,151 +93,129 @@ class CommonFunctionsTestCase(BaseTestCase):
         self.assertTrue(warn_mock.called)
 
 
+@mock.patch('ironic.common.keystone.get_session',
+            lambda _n: mock.sentinel.session)
 @mock.patch.object(eventlet, 'spawn_n', lambda f, *a, **kw: f(*a, **kw))
-@mock.patch.object(client, 'introspect')
+@mock.patch.object(client.ClientV1, 'introspect')
+@mock.patch.object(client.ClientV1, '__init__', return_value=None)
 class InspectHardwareTestCase(BaseTestCase):
-    def test_ok(self, mock_introspect):
+    def test_ok(self, mock_init, mock_introspect):
         self.assertEqual(states.INSPECTING,
                          self.driver.inspect.inspect_hardware(self.task))
-        mock_introspect.assert_called_once_with(
-            self.node.uuid,
+        mock_init.assert_called_once_with(
+            session=mock.sentinel.session,
             api_version=self.api_version,
-            auth_token=self.task.context.auth_token)
+            inspector_url=None)
+        mock_introspect.assert_called_once_with(self.node.uuid)
 
-    def test_url(self, mock_introspect):
+    def test_url(self, mock_init, mock_introspect):
         self.config(service_url='meow', group='inspector')
         self.assertEqual(states.INSPECTING,
                          self.driver.inspect.inspect_hardware(self.task))
-        mock_introspect.assert_called_once_with(
-            self.node.uuid,
+        mock_init.assert_called_once_with(
+            session=mock.sentinel.session,
             api_version=self.api_version,
-            auth_token=self.task.context.auth_token,
-            base_url='meow')
+            inspector_url='meow')
+        mock_introspect.assert_called_once_with(self.node.uuid)
 
     @mock.patch.object(task_manager, 'acquire', autospec=True)
-    def test_error(self, mock_acquire, mock_introspect):
+    def test_error(self, mock_acquire, mock_init, mock_introspect):
         mock_introspect.side_effect = RuntimeError('boom')
         self.driver.inspect.inspect_hardware(self.task)
-        mock_introspect.assert_called_once_with(
-            self.node.uuid,
-            api_version=self.api_version,
-            auth_token=self.task.context.auth_token)
+        mock_introspect.assert_called_once_with(self.node.uuid)
         task = mock_acquire.return_value.__enter__.return_value
         self.assertIn('boom', task.node.last_error)
         task.process_event.assert_called_once_with('fail')
 
+    def test_is_standalone(self, mock_init, mock_introspect):
+        self.config(auth_strategy='noauth')
+        self.assertEqual(states.INSPECTING,
+                         self.driver.inspect.inspect_hardware(self.task))
+        mock_init.assert_called_once_with(
+            session=None,
+            api_version=self.api_version,
+            inspector_url=None)
+        mock_introspect.assert_called_once_with(self.node.uuid)
 
-@mock.patch.object(client, 'get_status')
+
+@mock.patch('ironic.common.keystone.get_session',
+            lambda _n: mock.sentinel.session)
+@mock.patch.object(client.ClientV1, 'get_status')
+@mock.patch.object(client.ClientV1, '__init__', return_value=None)
 class CheckStatusTestCase(BaseTestCase):
     def setUp(self):
         super(CheckStatusTestCase, self).setUp()
         self.node.provision_state = states.INSPECTING
-        mock_session = mock.Mock()
-        mock_session.get_token.return_value = 'the token'
-        sess_patch = mock.patch.object(inspector, '_get_inspector_session',
-                                       return_value=mock_session)
-        sess_patch.start()
-        self.addCleanup(sess_patch.stop)
 
-    def test_not_inspecting(self, mock_get):
+    def test_not_inspecting(self, mock_init, mock_get):
         self.node.provision_state = states.MANAGEABLE
         inspector._check_status(self.task)
         self.assertFalse(mock_get.called)
 
-    def test_not_inspector(self, mock_get):
+    def test_not_inspector(self, mock_init, mock_get):
         self.task.driver.inspect = object()
         inspector._check_status(self.task)
         self.assertFalse(mock_get.called)
 
-    def test_not_finished(self, mock_get):
+    def test_not_finished(self, mock_init, mock_get):
         mock_get.return_value = {}
         inspector._check_status(self.task)
-        mock_get.assert_called_once_with(self.node.uuid,
-                                         api_version=self.api_version,
-                                         auth_token='the token')
+        mock_init.assert_called_once_with(
+            session=mock.sentinel.session,
+            api_version=self.api_version,
+            inspector_url=None)
+        mock_get.assert_called_once_with(self.node.uuid)
         self.assertFalse(self.task.process_event.called)
 
-    def test_exception_ignored(self, mock_get):
+    def test_exception_ignored(self, mock_init, mock_get):
         mock_get.side_effect = RuntimeError('boom')
         inspector._check_status(self.task)
-        mock_get.assert_called_once_with(self.node.uuid,
-                                         api_version=self.api_version,
-                                         auth_token='the token')
+        mock_init.assert_called_once_with(
+            session=mock.sentinel.session,
+            api_version=self.api_version,
+            inspector_url=None)
+        mock_get.assert_called_once_with(self.node.uuid)
         self.assertFalse(self.task.process_event.called)
 
-    def test_status_ok(self, mock_get):
+    def test_status_ok(self, mock_init, mock_get):
         mock_get.return_value = {'finished': True}
         inspector._check_status(self.task)
-        mock_get.assert_called_once_with(self.node.uuid,
-                                         api_version=self.api_version,
-                                         auth_token='the token')
+        mock_init.assert_called_once_with(
+            session=mock.sentinel.session,
+            api_version=self.api_version,
+            inspector_url=None)
+        mock_get.assert_called_once_with(self.node.uuid)
         self.task.process_event.assert_called_once_with('done')
 
-    def test_status_error(self, mock_get):
+    def test_status_error(self, mock_init, mock_get):
         mock_get.return_value = {'error': 'boom'}
         inspector._check_status(self.task)
-        mock_get.assert_called_once_with(self.node.uuid,
-                                         api_version=self.api_version,
-                                         auth_token='the token')
+        mock_init.assert_called_once_with(
+            session=mock.sentinel.session,
+            api_version=self.api_version,
+            inspector_url=None)
+        mock_get.assert_called_once_with(self.node.uuid)
         self.task.process_event.assert_called_once_with('fail')
         self.assertIn('boom', self.node.last_error)
 
-    def test_service_url(self, mock_get):
+    def test_service_url(self, mock_init, mock_get):
         self.config(service_url='meow', group='inspector')
         mock_get.return_value = {'finished': True}
         inspector._check_status(self.task)
-        mock_get.assert_called_once_with(self.node.uuid,
-                                         api_version=self.api_version,
-                                         auth_token='the token',
-                                         base_url='meow')
+        mock_init.assert_called_once_with(
+            session=mock.sentinel.session,
+            api_version=self.api_version,
+            inspector_url='meow')
+        mock_get.assert_called_once_with(self.node.uuid)
         self.task.process_event.assert_called_once_with('done')
 
-    def test_is_standalone(self, mock_get):
+    def test_is_standalone(self, mock_init, mock_get):
         self.config(auth_strategy='noauth')
         mock_get.return_value = {'finished': True}
         inspector._check_status(self.task)
-        mock_get.assert_called_once_with(
-            self.node.uuid,
+        mock_init.assert_called_once_with(
+            session=None,
             api_version=self.api_version,
-            auth_token=self.task.context.auth_token)
+            inspector_url=None)
+        mock_get.assert_called_once_with(self.node.uuid)
         self.task.process_event.assert_called_once_with('done')
-
-    def test_not_standalone(self, mock_get):
-        self.config(auth_strategy='keystone')
-        mock_get.return_value = {'finished': True}
-        inspector._check_status(self.task)
-        mock_get.assert_called_once_with(self.node.uuid,
-                                         api_version=self.api_version,
-                                         auth_token='the token')
-        self.task.process_event.assert_called_once_with('done')
-
-
-@mock.patch.object(eventlet.greenthread, 'spawn_n',
-                   lambda f, *a, **kw: f(*a, **kw))
-@mock.patch.object(task_manager, 'acquire', autospec=True)
-@mock.patch.object(inspector, '_check_status', autospec=True)
-class PeriodicTaskTestCase(BaseTestCase):
-    def test_ok(self, mock_check, mock_acquire):
-        mgr = mock.MagicMock(spec=['iter_nodes'])
-        mgr.iter_nodes.return_value = [('1', 'd1'), ('2', 'd2')]
-        tasks = [mock.sentinel.task1, mock.sentinel.task2]
-        mock_acquire.side_effect = (
-            mock.MagicMock(__enter__=mock.MagicMock(return_value=task))
-            for task in tasks
-        )
-        inspector.Inspector()._periodic_check_result(
-            mgr, mock.sentinel.context)
-        mock_check.assert_any_call(tasks[0])
-        mock_check.assert_any_call(tasks[1])
-        self.assertEqual(2, mock_acquire.call_count)
-
-    def test_node_locked(self, mock_check, mock_acquire):
-        iter_nodes_ret = [('1', 'd1'), ('2', 'd2')]
-        mock_acquire.side_effect = ([exception.NodeLocked("boom")] *
-                                    len(iter_nodes_ret))
-        mgr = mock.MagicMock(spec=['iter_nodes'])
-        mgr.iter_nodes.return_value = iter_nodes_ret
-        inspector.Inspector()._periodic_check_result(
-            mgr, mock.sentinel.context)
-        self.assertFalse(mock_check.called)
-        self.assertEqual(2, mock_acquire.call_count)

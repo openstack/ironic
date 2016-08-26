@@ -7,7 +7,7 @@
 proliantutils>=2.1.10
 pyghmi>=0.8.0
 pysnmp
-python-ironic-inspector-client
+python-ironic-inspector-client>=1.5.0
 python-oneviewclient<3.0.0,>=2.0.2
 python-scciclient>=0.3.0
 python-seamicroclient>=0.4.0

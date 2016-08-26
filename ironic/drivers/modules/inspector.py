@@ -40,10 +40,20 @@ _INSPECTOR_SESSION = None
 
 
 def _get_inspector_session():
+    if CONF.auth_strategy != 'keystone':
+        return
+
     global _INSPECTOR_SESSION
     if not _INSPECTOR_SESSION:
         _INSPECTOR_SESSION = keystone.get_session('inspector')
     return _INSPECTOR_SESSION
+
+
+def _get_client():
+    """Helper to get inspector client instance."""
+    return client.ClientV1(api_version=INSPECTOR_API_VERSION,
+                           inspector_url=CONF.inspector.service_url,
+                           session=_get_inspector_session())
 
 
 class Inspector(base.InspectInterface):
@@ -127,20 +137,10 @@ class Inspector(base.InspectInterface):
                 continue
 
 
-def _call_inspector(func, uuid, context):
-    """Wrapper around calls to inspector."""
-    # NOTE(dtantsur): due to bug #1428652 None is not accepted for base_url.
-    kwargs = {'api_version': INSPECTOR_API_VERSION}
-    if CONF.inspector.service_url:
-        kwargs['base_url'] = CONF.inspector.service_url
-    return func(uuid, auth_token=context.auth_token, **kwargs)
-
-
 def _start_inspection(node_uuid, context):
     """Call to inspector to start inspection."""
-    context.ensure_thread_contain_context()
     try:
-        _call_inspector(client.introspect, node_uuid, context)
+        _get_client().introspect(node_uuid)
     except Exception as exc:
         LOG.exception(_LE('Exception during contacting ironic-inspector '
                           'for inspection of node %(node)s: %(err)s'),
@@ -168,13 +168,8 @@ def _check_status(task):
     LOG.debug('Calling to inspector to check status of node %s',
               task.node.uuid)
 
-    # NOTE(dtantsur): periodic tasks do not have proper tokens in context
-    if CONF.auth_strategy == 'keystone':
-        session = _get_inspector_session()
-        task.context.auth_token = keystone.get_admin_auth_token(session)
-
     try:
-        status = _call_inspector(client.get_status, node.uuid, task.context)
+        status = _get_client().get_status(node.uuid)
     except Exception:
         # NOTE(dtantsur): get_status should not normally raise
         # let's assume it's a transient failure and retry later

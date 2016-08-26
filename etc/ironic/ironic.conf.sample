@@ -1411,8 +1411,7 @@
 #project_name = <None>
 
 # ironic-inspector HTTP endpoint. If this is not set, the
-# ironic-inspector client default (http://127.0.0.1:5050) will
-# be used. (string value)
+# service catalog will be used. (string value)
 #service_url = <None>
 
 # period (in seconds) to check status of nodes on inspection
