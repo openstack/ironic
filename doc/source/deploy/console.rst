@@ -1,7 +1,18 @@
 .. _console:
 
-Configure node web console
---------------------------
+=================================
+Configuring Web or Serial Console
+=================================
+
+Overview
+--------
+
+There are two types of console which are available in Bare Metal service,
+one is web console (`Node web console`_) which is available directly from web
+browser, another is serial console (`Node serial console`_).
+
+Node web console
+----------------
 
 The web console can be configured in Bare Metal service in the following way:
 
@@ -58,11 +69,13 @@ The web console can be configured in Bare Metal service in the following way:
    # Options defined in ironic.drivers.modules.console_utils
    #
 
-   # Path to serial console terminal program (string value)
+   # Path to serial console terminal program. Used only by Shell
+   # In A Box console. (string value)
    #terminal=shellinaboxd
 
-   # Directory containing the terminal SSL cert(PEM) for serial
-   # console access (string value)
+   # Directory containing the terminal SSL cert (PEM) for serial
+   # console access. Used only by Shell In A Box console. (string
+   # value)
    terminal_cert_dir=/tmp/ca
 
    # Directory for holding terminal pid files. If not specified,
@@ -116,7 +129,7 @@ The web console can be configured in Bare Metal service in the following way:
   number to ``<customized_port>``, for example ``8023``, this customized port is used in
   web console url.
 
-* Get web console information::
+  Get web console information for a node as follows::
 
    ironic node-get-console <node-uuid>
    +-----------------+----------------------------------------------------------------------+
@@ -128,8 +141,84 @@ The web console can be configured in Bare Metal service in the following way:
 
   You can open web console using above ``url`` through web browser. If ``console_enabled`` is
   ``false``, ``console_info`` is ``None``, web console is disabled. If you want to launch web
-  console, refer to ``Enable web console`` part.
+  console, see the ``Configure node web console`` part.
 
 .. _`shellinabox page`: https://code.google.com/p/shellinabox/
 .. _`openssl page`: https://www.openssl.org/
 .. _`FedoraProject page`: https://fedoraproject.org/wiki/Infrastructure/Mirroring
+
+
+Node serial console
+-------------------
+
+Serial consoles for nodes are implemented using `socat`_.
+In Newton, the following drivers support socat consoles for nodes:
+
+* agent_ipmitool_socat
+* fake_ipmitool_socat
+* pxe_ipmitool_socat
+
+Serial consoles can be configured in the Bare Metal service as follows:
+
+* Install socat on the ironic conductor node. Also, ``socat`` needs to be in
+  the $PATH environment variable that the ironic-conductor service uses.
+
+  Installation example::
+
+    Ubuntu:
+        sudo apt-get install socat
+
+    Fedora 21/RHEL7/CentOS7:
+        sudo yum install socat
+
+    Fedora 22 or higher:
+        sudo dnf install socat
+
+* Append ``console`` parameters for bare metal PXE boot in the Bare Metal
+  service configuration file
+  (``[pxe]`` section in ``/etc/ironic/ironic.conf``),
+  including the serial port terminal and serial speed. Serial speed must be
+  the same as the serial configuration in the BIOS settings, so that the
+  operating system boot process can be seen in the serial console.
+  In the following example, the console parameter 'console=ttyS0,115200n8'
+  uses ttyS0 for console output at 115200bps, 8bit, non-parity::
+
+   pxe_* driver:
+
+        [pxe]
+
+        #Additional append parameters for bare metal PXE boot. (string value)
+        pxe_append_params = nofb nomodeset vga=normal console=ttyS0,115200n8
+
+* Configure node console.
+
+  Enable the serial console, for example::
+
+   ironic node-update <node-uuid> add driver_info/ipmi_terminal_port=<port>
+   ironic node-set-console-mode <node-uuid> true
+
+  Check whether the serial console is enabled, for example::
+
+   ironic node-validate <node-uuid>
+
+  Disable the serial console, for example::
+
+   ironic node-set-console-mode <node-uuid> false
+   ironic node-update <node-uuid> remove driver_info/ipmi_terminal_port
+
+Serial console information is available from the Bare Metal service.  Get
+serial console information for a node from the Bare Metal service as follows::
+
+ ironic node-get-console <node-uuid>
+ +-----------------+----------------------------------------------------------------------+
+ | Property        | Value                                                                |
+ +-----------------+----------------------------------------------------------------------+
+ | console_enabled | True                                                                 |
+ | console_info    | {u'url': u'tcp://<host>:<port>', u'type': u'socat'}                  |
+ +-----------------+----------------------------------------------------------------------+
+
+If ``console_enabled`` is ``false`` or ``console_info`` is ``None`` then
+the serial console is disabled. If you want to launch serial console, see the
+``Configure node console``.
+
+.. _`socat`: http://www.dest-unreach.org/socat
