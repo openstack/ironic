@@ -1,0 +1,10 @@
+---
+features:
+  - Adds support for security groups for the provisioning and cleaning
+    network. These are optionally specified by the configuration options
+   ``[neutron]/provisioning_network_security_groups`` and
+   ``[neutron]/cleaning_network_security_groups``, respectively.
+   If not specified,
+   the default security group for the network is used. These options are only
+   applicable for nodes using the "neutron" network interface. These options
+   are ignored for nodes using the "flat" and "noop" network interfaces.

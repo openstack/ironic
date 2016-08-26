@@ -68,7 +68,30 @@ def get_client(token=None):
     return clientv20.Client(**params)
 
 
-def add_ports_to_network(task, network_uuid, is_flat=False):
+def _verify_security_groups(security_groups, client):
+    if not security_groups:
+        return
+    try:
+        neutron_sec_groups = (
+            client.list_security_groups().get('security_groups') or [])
+    except neutron_exceptions.NeutronClientException as e:
+        msg = (_("Could not retrieve neutron security groups %(exc)s") %
+               {'exc': e})
+        LOG.exception(msg)
+        raise exception.NetworkError(msg)
+
+    existing_sec_groups = [sec_group['id'] for sec_group in neutron_sec_groups]
+    missing_sec_groups = set(security_groups) - set(existing_sec_groups)
+    if missing_sec_groups:
+        msg = (_('Security Groups specified in Ironic config '
+                 '%(ir-sg)s are not found') %
+               {'ir-sg': list(missing_sec_groups)})
+        LOG.exception(msg)
+        raise exception.NetworkError(msg)
+
+
+def add_ports_to_network(task, network_uuid, is_flat=False,
+                         security_groups=None):
     """Create neutron ports to boot the ramdisk.
 
     Create neutron ports for each pxe_enabled port on task.node to boot
@@ -78,11 +101,16 @@ def add_ports_to_network(task, network_uuid, is_flat=False):
     :param network_uuid: UUID of a neutron network where ports will be
         created.
     :param is_flat: Indicates whether it is a flat network or not.
+    :param security_groups: List of Security Groups UUIDs to be used for
+        network.
     :raises: NetworkError
     :returns: a dictionary in the form {port.uuid: neutron_port['id']}
     """
     client = get_client(task.context.auth_token)
     node = task.node
+
+    # If Security Groups are specified, verify that they exist
+    _verify_security_groups(security_groups, client)
 
     LOG.debug('For node %(node)s, creating neutron ports on network '
               '%(network_uuid)s using %(net_iface)s network interface.',
@@ -96,6 +124,8 @@ def add_ports_to_network(task, network_uuid, is_flat=False):
             'device_owner': 'baremetal:none',
         }
     }
+    if security_groups:
+        body['port']['security_groups'] = security_groups
 
     if not is_flat:
         # NOTE(vdrok): It seems that change

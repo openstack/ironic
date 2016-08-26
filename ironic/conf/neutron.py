@@ -54,6 +54,22 @@ opts = [
                help=_('Neutron network UUID for the ramdisk to be booted '
                       'into for provisioning nodes. Required for "neutron" '
                       'network interface.')),
+    cfg.ListOpt('provisioning_network_security_groups',
+                default=[],
+                help=_('List of Neutron Security Group UUIDs to be '
+                       'applied during provisioning of the nodes. '
+                       'Optional for the "neutron" network interface and not '
+                       'used for the "flat" or "noop" network interfaces. '
+                       'If not specified, default security group '
+                       'is used.')),
+    cfg.ListOpt('cleaning_network_security_groups',
+                default=[],
+                help=_('List of Neutron Security Group UUIDs to be '
+                       'applied during cleaning of the nodes. '
+                       'Optional for the "neutron" network interface and not '
+                       'used for the "flat" or "noop" network interfaces. '
+                       'If not specified, default security group '
+                       'is used.')),
 ]
 
 
