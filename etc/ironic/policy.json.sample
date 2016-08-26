@@ -27,7 +27,7 @@
 # Set maintenance flag, taking a Node out of service
 "baremetal:node:set_maintenance": "rule:is_admin"
 # Clear maintenance flag, placing the Node into service again
-"baremetal:node:clear_maintenance": "role:is_admin"
+"baremetal:node:clear_maintenance": "rule:is_admin"
 # Change Node boot device
 "baremetal:node:set_boot_device": "rule:is_admin"
 # Change Node power status
