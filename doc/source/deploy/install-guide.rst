@@ -580,9 +580,6 @@ An example of this is shown in the `Enrollment`_ section.
     [ml2_type_flat]
     flat_networks = physnet1
 
-    [ml2_type_vlan]
-    network_vlan_ranges = physnet1
-
     [securitygroup]
     firewall_driver = neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver
     enable_security_group = True
