@@ -387,6 +387,8 @@ def get_test_portgroup(**kw):
         'created_at': kw.get('created_at'),
         'updated_at': kw.get('updated_at'),
         'internal_info': kw.get('internal_info', {"bar": "buzz"}),
+        'standalone_ports_supported': kw.get('standalone_ports_supported',
+                                             True),
     }
 
 
