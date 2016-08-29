@@ -1,28 +1,48 @@
 .. _security:
 
-========
-Security
-========
-
-Overview
-========
+=================
+Security Overview
+=================
 
 While the Bare Metal service is intended to be a secure application, it is
 important to understand what it does and does not cover today.
 
 Deployers must properly evaluate their use case and take the appropriate
-actions to secure their environment appropriately. This document is intended to
-provide an overview of what risks an operator of the Bare Metal service should
-be aware of. It is not intended as a How-To guide for securing a data center
-or an OpenStack deployment.
+actions to secure their environment(s). This document is intended to provide an
+overview of what risks an operator of the Bare Metal service should be aware
+of. It is not intended as a How-To guide for securing a data center or an
+OpenStack deployment.
 
 .. TODO: add "Security Considerations for Network Boot" section
 
 .. TODO: add "Credential Storage and Management" section
 
-.. TODO: add "Securing Ironic's REST API" section
-
 .. TODO: add "Multi-tenancy Considerations" section
+
+
+REST API: user roles and policy settings
+========================================
+
+Beginning with the Newton (6.1.0) release, the Bare Metal service allows
+operators significant control over API access:
+
+* Access may be restricted to each method (GET, PUT, etc) for each
+  REST resource. Defaults are provided with the release and defined in code.
+* Access may be divided between an "administrative" role with full access and
+  "observer" role with read-only access. By default, these roles are assigned
+  the names ``baremetal_admin`` and ``baremetal_observer``, respectively.
+* As before, passwords may be hidden in ``driver_info``.
+
+Prior to the Newton (6.1.0) release, the Bare Metal service only supported two
+policy options:
+
+* API access may be secured by a simple policy rule: users with administrative
+  privileges may access all API resources, whereas users without administrative
+  privileges may only access public API resources.
+* Passwords contained in the ``driver_info`` field may be hidden from all API
+  responses with the ``show_password`` policy setting. This defaults to always
+  hide passwords, regardless of the user's role.
+
 
 Firmware security
 =================

@@ -462,6 +462,13 @@ up to date and has the latest packages installed before beginning this process.
 
     http://docs.openstack.org/developer/devstack/
 
+.. note::
+    The devstack "demo" tenant is now granted the "baremetal_observer" role
+    and thereby has read-only access to ironic's API. This is sufficient for
+    all the examples below. Should you want to create or modify bare metal
+    resources directly (ie. through ironic rather than through nova) you will
+    need to use the devstack "admin" tenant.
+
 
 Devstack will no longer create the user 'stack' with the desired
 permissions, but does provide a script to perform the task::
@@ -609,7 +616,7 @@ Run stack.sh::
 
     ./stack.sh
 
-Source credentials, create a key, and spawn an instance::
+Source credentials, create a key, and spawn an instance as the ``demo`` user::
 
     source ~/devstack/openrc
 
@@ -618,22 +625,22 @@ Source credentials, create a key, and spawn an instance::
 
     # create keypair
     ssh-keygen
-    nova keypair-add default --pub-key ~/.ssh/id_rsa.pub
+    openstack keypair create --public-key ~/.ssh/id_rsa.pub default
 
     # spawn instance
-    nova boot --flavor baremetal --image $image --key-name default testing
+    openstack server create --flavor baremetal --image $image --key-name default testing
 
 .. note::
     Because devstack create multiple networks, we need to pass an additional parameter
     ``--nic net-id`` to the nova boot command when using the admin account, for example::
 
-      net_id=$(neutron net-list | egrep "$PRIVATE_NETWORK_NAME"'[^-]' | awk '{ print $2 }')
+      net_id=$(openstack network list | egrep "$PRIVATE_NETWORK_NAME"'[^-]' | awk '{ print $2 }')
 
-      nova boot --flavor baremetal --nic net-id=$net_id --image $image --key-name default testing
+      openstack server create --flavor baremetal --nic net-id=$net_id --image $image --key-name default testing
 
-As the demo tenant, you should now see a Nova instance building::
+You should now see a Nova instance building::
 
-    nova list
+    openstack server list
     +--------------------------------------+---------+--------+------------+-------------+----------+
     | ID                                   | Name    | Status | Task State | Power State | Networks |
     +--------------------------------------+---------+--------+------------+-------------+----------+
@@ -644,9 +651,7 @@ Nova will be interfacing with Ironic conductor to spawn the node.  On the
 Ironic side, you should see an Ironic node associated with this Nova instance.
 It should be powered on and in a 'wait call-back' provisioning state::
 
-    # Note that 'ironic' calls must be made with admin credentials
-    . ~/devstack/openrc admin admin
-    ironic node-list
+    openstack baremetal node list
     +--------------------------------------+--------------------------------------+-------------+--------------------+
     | UUID                                 | Instance UUID                        | Power State | Provisioning State |
     +--------------------------------------+--------------------------------------+-------------+--------------------+
@@ -671,7 +676,7 @@ This provisioning process may take some time depending on the performance of
 the host system, but Ironic should eventually show the node as having an
 'active' provisioning state::
 
-    ironic node-list
+    openstack baremetal node list
     +--------------------------------------+--------------------------------------+-------------+--------------------+
     | UUID                                 | Instance UUID                        | Power State | Provisioning State |
     +--------------------------------------+--------------------------------------+-------------+--------------------+
@@ -683,9 +688,7 @@ the host system, but Ironic should eventually show the node as having an
 This should also be reflected in the Nova instance state, which at this point
 should be ACTIVE, Running and an associated private IP::
 
-    # Note that 'nova' calls must be made with the credentials of the demo tenant
-    . ~/devstack/openrc demo demo
-    nova list
+    openstack server list
     +--------------------------------------+---------+--------+------------+-------------+------------------+
     | ID                                   | Name    | Status | Task State | Power State | Networks         |
     +--------------------------------------+---------+--------+------------+-------------+------------------+

@@ -17,6 +17,11 @@ and by a unique human-readable "name" in any request. Throughout this
 documentation, this is referred to as the ``node_ident``. Responses clearly
 indicate whether a given field is a ``uuid`` or a ``name``.
 
+Depending on the Roles assigned to the authenticated OpenStack User, and upon
+the configuration of the Bare Metal service, API responses may change. For
+example, the default value of the "show_password" settings cause all API
+responses to mask passwords within ``driver_info`` with the literal string
+"\*\*\*\*\*\*".
 
 Create Node
 ===========
