@@ -1,0 +1,5 @@
+---
+fixes:
+  - dynamic_allocation flag in node's driver_info can now accept all
+    the values that can be converted to booleans by bool_from_string
+    function from oslo_utils.

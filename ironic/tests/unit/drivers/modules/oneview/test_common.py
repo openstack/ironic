@@ -302,7 +302,7 @@ class OneViewCommonTestCase(db_base.DbTestCase):
                 oneview_client.
                 is_node_port_mac_compatible_with_server_profile.called)
 
-    def test_is_dynamic_allocation_enabled(self):
+    def test_is_dynamic_allocation_enabled_boolean(self):
         """Ensure Dynamic Allocation is enabled when flag is True.
 
         1) Set 'dynamic_allocation' flag as True on node's driver_info
@@ -318,7 +318,23 @@ class OneViewCommonTestCase(db_base.DbTestCase):
                 common.is_dynamic_allocation_enabled(task.node)
             )
 
-    def test_is_dynamic_allocation_enabled_false(self):
+    def test_is_dynamic_allocation_enabled_string(self):
+        """Ensure Dynamic Allocation is enabled when flag is 'True'.
+
+        1) Set 'dynamic_allocation' flag as True on node's driver_info
+        2) Check Dynamic Allocation is enabled for the given node
+
+        """
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_info = task.node.driver_info
+            driver_info['dynamic_allocation'] = 'True'
+            task.node.driver_info = driver_info
+
+            self.assertTrue(
+                common.is_dynamic_allocation_enabled(task.node)
+            )
+
+    def test_is_dynamic_allocation_enabled_false_boolean(self):
         """Ensure Dynamic Allocation is disabled when flag is False.
 
         1) Set 'dynamic_allocation' flag as False on node's driver_info
@@ -334,7 +350,23 @@ class OneViewCommonTestCase(db_base.DbTestCase):
                 common.is_dynamic_allocation_enabled(task.node)
             )
 
-    def test_is_dynamic_allocation_enabled_none(self):
+    def test_is_dynamic_allocation_enabled_false_string(self):
+        """Ensure Dynamic Allocation is disabled when flag is 'False'.
+
+        1) Set 'dynamic_allocation' flag as False on node's driver_info
+        2) Check Dynamic Allocation is disabled for the given node
+
+        """
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_info = task.node.driver_info
+            driver_info['dynamic_allocation'] = 'False'
+            task.node.driver_info = driver_info
+
+            self.assertFalse(
+                common.is_dynamic_allocation_enabled(task.node)
+            )
+
+    def test_is_dynamic_allocation_enabled_none_object(self):
         """Ensure Dynamic Allocation is disabled when flag is None.
 
         1) Set 'dynamic_allocation' flag as None on node's driver_info
@@ -360,4 +392,22 @@ class OneViewCommonTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertFalse(
                 common.is_dynamic_allocation_enabled(task.node)
+            )
+
+    def test_is_dynamic_allocation_enabled_with_invalid_value_for_flag(self):
+        """Ensure raises an InvalidParameterValue when flag is invalid.
+
+        1) Create a node with an invalid value for 'dynamic_allocation' flag
+        2) Check if method raises an InvalidParameterValue for the given node
+
+        """
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_info = task.node.driver_info
+            driver_info['dynamic_allocation'] = 'invalid flag'
+            task.node.driver_info = driver_info
+
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                common.is_dynamic_allocation_enabled,
+                task.node
             )
