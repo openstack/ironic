@@ -55,11 +55,10 @@ class FakeRequestState(object):
         is_admin = ('admin' in creds['roles'] or
                     'administrator' in creds['roles'])
         is_public_api = self.request.environ.get('is_public_api', False)
-        show_password = ('admin' in creds['tenant'])
 
         self.request.context = context.RequestContext(
             is_admin=is_admin, is_public_api=is_public_api,
-            show_password=show_password, **creds)
+            **creds)
 
 
 def fake_headers(admin=False):
@@ -227,7 +226,6 @@ class TestContextHook(base.BaseApiTest):
             domain_id=headers['X-User-Domain-Id'],
             domain_name=headers['X-User-Domain-Name'],
             is_public_api=False,
-            show_password=False,
             is_admin=False,
             roles=headers['X-Roles'].split(','))
 
@@ -245,7 +243,6 @@ class TestContextHook(base.BaseApiTest):
             domain_id=headers['X-User-Domain-Id'],
             domain_name=headers['X-User-Domain-Name'],
             is_public_api=False,
-            show_password=True,
             is_admin=True,
             roles=headers['X-Roles'].split(','))
 
@@ -264,7 +261,6 @@ class TestContextHook(base.BaseApiTest):
             domain_id=headers['X-User-Domain-Id'],
             domain_name=headers['X-User-Domain-Name'],
             is_public_api=True,
-            show_password=True,
             is_admin=True,
             roles=headers['X-Roles'].split(','))
 
@@ -282,7 +278,6 @@ class TestContextHook(base.BaseApiTest):
             domain_id=headers['X-User-Domain-Id'],
             domain_name=headers['X-User-Domain-Name'],
             is_public_api=False,
-            show_password=False,
             is_admin=False,
             roles=headers['X-Roles'].split(','))
 

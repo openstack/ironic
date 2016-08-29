@@ -1,0 +1,19 @@
+---
+features:
+  - This change adds a new policy rule that may be used to mask
+    instance-specific secrets, such as configdrive contents or the temp URL
+    used to store a configdrive or instance image.  This is similar to how
+    passwords are already masked.
+upgrade:
+  - After this change, instance secrets will, by default, be masked in API
+    responses.  Operators wishing to expose the configdrive or instance image
+    to specific users will need to update their policy.json file and grant the
+    relevant keystone roles.
+security:
+  - Configdrives often contain sensitive information. Users may upload their
+    own images, which could also contain sensitive information.  The Agent
+    drivers may store this information in a Swift temp URL to allow access from
+    the Agent ramdisk. These URLs are considered sensitive information because
+    they grant unauthenticated access to sensitive information.  With this
+    change, we being to only selectively expose this information to privileged
+    users, whereas previously it was exposed to all authenticated users.

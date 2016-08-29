@@ -193,7 +193,21 @@ def get_test_node(**kw):
         "local_gb": "10",
         "memory_mb": "4096",
     }
-    fake_info = {"foo": "bar", "fake_password": "fakepass"}
+    # NOTE(deva): API unit tests confirm that sensitive fields in instance_info
+    #             and driver_info will get scrubbed from the API response
+    #             but other fields (eg, 'foo') do not.
+    fake_instance_info = {
+        "configdrive": "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQ=",
+        "image_url": "http://example.com/test_image_url",
+        "foo": "bar",
+    }
+    fake_driver_info = {
+        "foo": "bar",
+        "fake_password": "fakepass",
+    }
+    fake_internal_info = {
+        "private_state": "secret value"
+    }
     return {
         'id': kw.get('id', 123),
         'name': kw.get('name', None),
@@ -208,10 +222,11 @@ def get_test_node(**kw):
         'provision_updated_at': kw.get('provision_updated_at'),
         'last_error': kw.get('last_error'),
         'instance_uuid': kw.get('instance_uuid'),
-        'instance_info': kw.get('instance_info', fake_info),
+        'instance_info': kw.get('instance_info', fake_instance_info),
         'driver': kw.get('driver', 'fake'),
-        'driver_info': kw.get('driver_info', fake_info),
-        'driver_internal_info': kw.get('driver_internal_info', fake_info),
+        'driver_info': kw.get('driver_info', fake_driver_info),
+        'driver_internal_info': kw.get('driver_internal_info',
+                                       fake_internal_info),
         'clean_step': kw.get('clean_step'),
         'properties': kw.get('properties', properties),
         'reservation': kw.get('reservation'),

@@ -2,8 +2,10 @@
 "admin_api": "role:admin or role:administrator"
 # Internal flag for public API routes
 "public_api": "is_public_api:True"
-# Show or mask passwords in API responses
+# Show or mask secrets within driver_info in API responses
 "show_password": "!"
+# Show or mask secrets within instance_info in API responses
+"show_instance_secrets": "!"
 # May be used to restrict access to specific tenants
 "is_member": "tenant:demo or tenant:baremetal"
 # Read-only API access

@@ -79,7 +79,7 @@ class TestNodeObject(base.DbTestCase):
                                    autospec=True) as mock_update_node:
 
                 n = objects.Node.get(self.context, uuid)
-                self.assertEqual({"foo": "bar", "fake_password": "fakepass"},
+                self.assertEqual({"private_state": "secret value"},
                                  n.driver_internal_info)
                 n.properties = {"fake": "property"}
                 n.driver = "fake-driver"

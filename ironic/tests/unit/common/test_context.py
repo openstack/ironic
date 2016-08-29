@@ -31,7 +31,6 @@ class RequestContextTestCase(tests_base.TestCase):
         self.assertFalse(test_context.is_public_api)
         self.assertIsNone(test_context.domain_id)
         self.assertIsNone(test_context.domain_name)
-        self.assertTrue(test_context.show_password)
         self.assertEqual([], test_context.roles)
 
     def test_from_dict(self):
@@ -41,7 +40,6 @@ class RequestContextTestCase(tests_base.TestCase):
             "is_public_api": True,
             "domain_id": "domain_id1",
             "domain_name": "domain_name1",
-            "show_password": False,
             "roles": None
         }
         ctx = context.RequestContext.from_dict(dict)
@@ -50,7 +48,6 @@ class RequestContextTestCase(tests_base.TestCase):
         self.assertTrue(ctx.is_public_api)
         self.assertEqual("domain_id1", ctx.domain_id)
         self.assertEqual("domain_name1", ctx.domain_name)
-        self.assertFalse(ctx.show_password)
         self.assertEqual([], ctx.roles)
 
     def test_to_dict(self):
@@ -65,7 +62,6 @@ class RequestContextTestCase(tests_base.TestCase):
             "is_public_api": True,
             "domain_id": "domain_id1",
             "domain_name": "domain_name1",
-            "show_password": False,
             "roles": None,
             "overwrite": True
         }
@@ -81,7 +77,6 @@ class RequestContextTestCase(tests_base.TestCase):
         self.assertIn('domain_id', ctx_dict)
         self.assertIn('roles', ctx_dict)
         self.assertIn('domain_name', ctx_dict)
-        self.assertIn('show_password', ctx_dict)
         self.assertIn('is_public_api', ctx_dict)
         self.assertNotIn('overwrite', ctx_dict)
 
@@ -95,7 +90,6 @@ class RequestContextTestCase(tests_base.TestCase):
         self.assertTrue(ctx_dict['is_public_api'])
         self.assertEqual('domain_id1', ctx_dict['domain_id'])
         self.assertEqual('domain_name1', ctx_dict['domain_name'])
-        self.assertFalse(ctx_dict['show_password'])
         self.assertEqual([], ctx_dict['roles'])
 
     def test_get_admin_context(self):

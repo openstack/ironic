@@ -775,8 +775,7 @@ class Node(base.APIBase):
         setattr(self, 'chassis_uuid', kwargs.get('chassis_id', wtypes.Unset))
 
     @staticmethod
-    def _convert_with_links(node, url, fields=None, show_password=True,
-                            show_states_links=True):
+    def _convert_with_links(node, url, fields=None, show_states_links=True):
         # NOTE(lucasagomes): Since we are able to return a specified set of
         # fields the "uuid" can be unset, so we need to save it in another
         # variable to use when building the links
@@ -797,10 +796,6 @@ class Node(base.APIBase):
                                                    node_uuid + "/states",
                                                    bookmark=True)]
 
-        if not show_password and node.driver_info != wtypes.Unset:
-            node.driver_info = strutils.mask_dict_password(node.driver_info,
-                                                           "******")
-
         # NOTE(lucasagomes): The numeric ID should not be exposed to
         #                    the user, it's internal only.
         node.chassis_id = wtypes.Unset
@@ -819,14 +814,35 @@ class Node(base.APIBase):
         if fields is not None:
             api_utils.check_for_invalid_fields(fields, node.as_dict())
 
+        cdict = pecan.request.context.to_dict()
+        # NOTE(deva): the 'show_password' policy setting name exists for legacy
+        #             purposes and can not be changed. Changing it will cause
+        #             upgrade problems for any operators who have customized
+        #             the value of this field
+        show_driver_secrets = policy.check("show_password", cdict, cdict)
+        show_instance_secrets = policy.check("show_instance_secrets",
+                                             cdict, cdict)
+
+        if not show_driver_secrets and node.driver_info != wtypes.Unset:
+            node.driver_info = strutils.mask_dict_password(
+                node.driver_info, "******")
+        if not show_instance_secrets and node.instance_info != wtypes.Unset:
+            node.instance_info = strutils.mask_dict_password(
+                node.instance_info, "******")
+            # NOTE(deva): agent driver may store a swift temp_url on the
+            # instance_info, which shouldn't be exposed to non-admin users.
+            # Now that ironic supports additional policies, we need to hide
+            # it here, based on this policy.
+            # Related to bug #1613903
+            if node.instance_info.get('image_url'):
+                node.instance_info['image_url'] = "******"
+
         update_state_in_older_versions(node)
         hide_fields_in_newer_versions(node)
-        show_password = pecan.request.context.show_password
         show_states_links = (
             api_utils.allow_links_node_states_and_driver_properties())
         return cls._convert_with_links(node, pecan.request.public_url,
                                        fields=fields,
-                                       show_password=show_password,
                                        show_states_links=show_states_links)
 
     @classmethod
