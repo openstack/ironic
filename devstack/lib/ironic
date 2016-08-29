@@ -85,6 +85,9 @@ IRONIC_HW_ARCH=${IRONIC_HW_ARCH:-x86_64}
 # *_oneview:
 #   <Server Hardware URI> <Server Hardware Type URI> <Enclosure Group URI> <Server Profile Template URI> <MAC of primary connection> <Applied Server Profile URI>
 #
+# *_drac:
+#   <BMC address> <MAC address> <BMC username> <BMC password>
+#
 # IRONIC_IPMIINFO_FILE is deprecated, please use IRONIC_HWINFO_FILE. IRONIC_IPMIINFO_FILE will be removed in Ocata.
 IRONIC_IPMIINFO_FILE=${IRONIC_IPMIINFO_FILE:-""}
 if [ ! -z "$IRONIC_IPMIINFO_FILE" ]; then
@@ -195,7 +198,8 @@ fi
 # are ``pxe_ssh``, ``pxe_ipmitool``, ``agent_ssh`` and ``agent_ipmitool``.
 #
 # Additional valid choices if IRONIC_IS_HARDWARE == true are:
-# ``pxe_iscsi_cimc``, ``pxe_agent_cimc``, ``pxe_ucs``, ``pxe_cimc`` and ``*_pxe_oneview``
+# ``pxe_iscsi_cimc``, ``pxe_agent_cimc``, ``pxe_ucs``, ``pxe_cimc``, 
+# ``*_pxe_oneview`` and ``pxe_drac`` 
 IRONIC_DEPLOY_DRIVER=${IRONIC_DEPLOY_DRIVER:-pxe_ssh}
 
 # Support entry points installation of console scripts
@@ -333,6 +337,11 @@ function is_deployed_by_oneview {
 
 function is_deployed_by_ilo {
     [[ -z "${IRONIC_DEPLOY_DRIVER##*_ilo}" ]] && return 0
+    return 1
+}
+
+function is_deployed_by_drac {
+    [[ -z "${IRONIC_DEPLOY_DRIVER##*_drac}" ]] && return 0
     return 1
 }
 
@@ -1062,6 +1071,9 @@ function enroll_nodes {
                 if [[ $IRONIC_DEPLOY_DRIVER -ne "pxe_ilo" ]]; then
                     node_options+=" -i ilo_deploy_iso=$IRONIC_DEPLOY_ISO_ID"
                 fi
+            elif is_deployed_by_drac; then
+                node_options+=" -i drac_host=$bmc_address -i drac_password=$bmc_passwd\
+                    -i drac_username=$bmc_username"
             fi
         fi
 
