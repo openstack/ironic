@@ -78,13 +78,13 @@ class IronicException(Exception):
     def __str__(self):
         """Encode to utf-8 then wsme api can consume it as well."""
         if not six.PY3:
-            return unicode(self.args[0]).encode('utf-8')
+            return six.text_type(self.args[0]).encode('utf-8')
 
         return self.args[0]
 
     def __unicode__(self):
         """Return a unicode representation of the exception message."""
-        return unicode(self.args[0])
+        return six.text_type(self.args[0])
 
 
 class NotAuthorized(IronicException):

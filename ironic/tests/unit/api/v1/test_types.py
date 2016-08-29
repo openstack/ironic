@@ -285,9 +285,8 @@ class TestJsonType(base.TestCase):
     def test_apimultitype_tostring(self):
         vts = str(types.jsontype)
         self.assertIn(str(wtypes.text), vts)
-        self.assertIn(str(int), vts)
-        if six.PY2:
-            self.assertIn(str(long), vts)
+        for int_type in six.integer_types:
+            self.assertIn(str(int_type), vts)
         self.assertIn(str(float), vts)
         self.assertIn(str(types.BooleanType), vts)
         self.assertIn(str(list), vts)
