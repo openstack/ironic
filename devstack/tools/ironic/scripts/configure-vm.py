@@ -80,7 +80,7 @@ def main():
     parser.add_argument('--disk-format', default='qcow2',
                         help='Disk format to use.')
     args = parser.parse_args()
-    with file(templatedir + '/vm.xml', 'rb') as f:
+    with open(templatedir + '/vm.xml', 'rb') as f:
         source_template = f.read()
     params = {
         'name': args.name,

@@ -372,18 +372,6 @@ def read_cached_file(filename, cache_info, reload_func=None):
     return cache_info['data']
 
 
-def file_open(*args, **kwargs):
-    """Open file
-
-    see built-in file() documentation for more details
-
-    Note: The reason this is kept in a separate module is to easily
-          be able to provide a stub module that doesn't alter system
-          state at all (for unit tests)
-    """
-    return file(*args, **kwargs)
-
-
 def _get_hash_object(hash_algo_name):
     """Create a hash object based on given algorithm.
 
