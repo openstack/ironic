@@ -44,6 +44,39 @@ policy options:
   hide passwords, regardless of the user's role.
 
 
+Multi-tenancy
+=============
+
+There are two aspects of multitenancy to consider when evaluating a deployment
+of the Bare Metal Service: interactions between tenants on the network, and
+actions one tenant can take on a machine that will affect the next tenant.
+
+Network Interactions
+--------------------
+Interactions between tenants' workloads running simultaneously on separate
+servers include, but are not limited to: IP spoofing, packet sniffing, and
+network man-in-the-middle attacks.
+
+By default, the Bare Metal service provisions all nodes on a "flat" network, and
+does not take any precautions to avoid or prevent interaction between tenants.
+This can be addressed by integration with the OpenStack Identity, Compute, and
+Networking services, so as to provide tenant-network isolation. Additional
+documentation on `network multi-tenancy <multitenancy>`_ is available.
+
+Lingering Effects
+-----------------
+Interactions between tenants placed sequentially on the same server include, but
+are not limited to: changes in BIOS settings, modifications to firmware, or
+files left on disk or peripheral storage devices (if these devices are not
+erased between uses).
+
+By default, the Bare Metal service will erase (clean) the local disk drives
+during the "cleaning" phase, after deleting an instance. It *does not* reset
+BIOS or reflash firmware or peripheral devices. This can be addressed through
+customizing the utility ramdisk used during the "cleaning" phase. See details in
+the `Firmware security`_ section.
+
+
 Firmware security
 =================
 
