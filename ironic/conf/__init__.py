@@ -26,6 +26,7 @@ from ironic.conf import database
 from ironic.conf import default
 from ironic.conf import deploy
 from ironic.conf import dhcp
+from ironic.conf import drac
 from ironic.conf import glance
 from ironic.conf import iboot
 from ironic.conf import ilo
@@ -58,6 +59,7 @@ console.register_opts(CONF)
 database.register_opts(CONF)
 default.register_opts(CONF)
 deploy.register_opts(CONF)
+drac.register_opts(CONF)
 dhcp.register_opts(CONF)
 glance.register_opts(CONF)
 iboot.register_opts(CONF)

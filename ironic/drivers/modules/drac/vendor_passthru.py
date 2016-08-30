@@ -12,17 +12,17 @@
 # under the License.
 
 """
-DRAC VendorPassthruBios Driver
+DRAC vendor-passthru interface
 """
 
 from ironic.conductor import task_manager
 from ironic.drivers import base
-from ironic.drivers.modules.drac import bios
+from ironic.drivers.modules.drac import bios as drac_bios
 from ironic.drivers.modules.drac import common as drac_common
 
 
 class DracVendorPassthru(base.VendorInterface):
-    """Interface for DRAC specific BIOS configuration methods."""
+    """Interface for DRAC specific methods."""
 
     def get_properties(self):
         """Return the properties of the interface."""
@@ -54,10 +54,10 @@ class DracVendorPassthru(base.VendorInterface):
         :returns: a dictionary containing BIOS settings.
         """
         bios_attrs = {}
-        for name, bios_attr in bios.get_config(task.node).items():
+        for name, bios_attr in drac_bios.get_config(task.node).items():
             # NOTE(ifarkas): call from python-dracclient returns list of
             #                namedtuples, converting it to dict here.
-            bios_attrs[name] = bios_attr.__dict__
+            bios_attrs[name] = bios_attr._asdict()
 
         return bios_attrs
 
@@ -71,11 +71,11 @@ class DracVendorPassthru(base.VendorInterface):
         :param task: a TaskManager instance containing the node to act on.
         :param kwargs: a dictionary of {'AttributeName': 'NewValue'}
         :raises: DracOperationError on an error from python-dracclient.
-        :returns: A dictionary containing the commit_required key with a
+        :returns: A dictionary containing the ``commit_required`` key with a
                   Boolean value indicating whether commit_bios_config() needs
                   to be called to make the changes.
         """
-        return bios.set_config(task, **kwargs)
+        return drac_bios.set_config(task, **kwargs)
 
     @base.passthru(['POST'], async=False)
     @task_manager.require_exclusive_lock
@@ -90,12 +90,12 @@ class DracVendorPassthru(base.VendorInterface):
                        created with the config job.
         :param kwargs: not used.
         :raises: DracOperationError on an error from python-dracclient.
-        :returns: A dictionary containing the job_id key with the id of the
-                  newly created config job, and the reboot_required key
-                  indicating whether to node needs to be rebooted to start the
+        :returns: A dictionary containing the ``job_id`` key with the id of the
+                  newly created config job, and the ``reboot_required`` key
+                  indicating whether the node needs to be rebooted to start the
                   config job.
         """
-        job_id = bios.commit_config(task, reboot=reboot)
+        job_id = drac_bios.commit_config(task, reboot=reboot)
         return {'job_id': job_id, 'reboot_required': not reboot}
 
     @base.passthru(['DELETE'], async=False)
@@ -110,4 +110,4 @@ class DracVendorPassthru(base.VendorInterface):
         :param kwargs: not used.
         :raises: DracOperationError on an error from python-dracclient.
         """
-        bios.abandon_config(task)
+        drac_bios.abandon_config(task)

@@ -30,6 +30,7 @@ from ironic.drivers.modules.drac import management as drac_mgmt
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
+from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 INFO_DICT = db_utils.get_test_drac_info()
@@ -67,11 +68,12 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         mock_client.list_boot_modes.return_value = [
-            mock.Mock(**self.boot_mode_ipl),
-            mock.Mock(**self.boot_mode_one_time)]
+            test_utils.dict_to_namedtuple(values=self.boot_mode_ipl),
+            test_utils.dict_to_namedtuple(values=self.boot_mode_one_time)]
         mock_client.list_boot_devices.return_value = {
-            'IPL': [mock.Mock(**self.boot_device_pxe),
-                    mock.Mock(**self.boot_device_disk)]}
+            'IPL': [test_utils.dict_to_namedtuple(values=self.boot_device_pxe),
+                    test_utils.dict_to_namedtuple(
+                        values=self.boot_device_disk)]}
 
         boot_device = drac_mgmt._get_boot_device(self.node)
 
@@ -85,11 +87,12 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
         mock_get_drac_client.return_value = mock_client
         self.boot_mode_one_time['is_next'] = True
         mock_client.list_boot_modes.return_value = [
-            mock.Mock(**self.boot_mode_ipl),
-            mock.Mock(**self.boot_mode_one_time)]
+            test_utils.dict_to_namedtuple(values=self.boot_mode_ipl),
+            test_utils.dict_to_namedtuple(values=self.boot_mode_one_time)]
         mock_client.list_boot_devices.return_value = {
-            'OneTime': [mock.Mock(**self.boot_device_pxe),
-                        mock.Mock(**self.boot_device_disk)]}
+            'OneTime': [
+                test_utils.dict_to_namedtuple(values=self.boot_device_pxe),
+                test_utils.dict_to_namedtuple(values=self.boot_device_disk)]}
 
         boot_device = drac_mgmt._get_boot_device(self.node)
 
@@ -116,11 +119,12 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         mock_client.list_boot_modes.return_value = [
-            mock.Mock(**self.boot_mode_ipl),
-            mock.Mock(**self.boot_mode_one_time)]
+            test_utils.dict_to_namedtuple(values=self.boot_mode_ipl),
+            test_utils.dict_to_namedtuple(values=self.boot_mode_one_time)]
         mock_client.list_boot_devices.return_value = {
-            'IPL': [mock.Mock(**self.boot_device_pxe),
-                    mock.Mock(**self.boot_device_disk)]}
+            'IPL': [test_utils.dict_to_namedtuple(values=self.boot_device_pxe),
+                    test_utils.dict_to_namedtuple(
+                        values=self.boot_device_disk)]}
         boot_device = {'boot_device': ironic.common.boot_devices.DISK,
                        'persistent': True}
         mock__get_boot_device.return_value = boot_device
@@ -143,11 +147,12 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         mock_client.list_boot_modes.return_value = [
-            mock.Mock(**self.boot_mode_ipl),
-            mock.Mock(**self.boot_mode_one_time)]
+            test_utils.dict_to_namedtuple(values=self.boot_mode_ipl),
+            test_utils.dict_to_namedtuple(values=self.boot_mode_one_time)]
         mock_client.list_boot_devices.return_value = {
-            'IPL': [mock.Mock(**self.boot_device_pxe),
-                    mock.Mock(**self.boot_device_disk)]}
+            'IPL': [test_utils.dict_to_namedtuple(values=self.boot_device_pxe),
+                    test_utils.dict_to_namedtuple(
+                        values=self.boot_device_disk)]}
         boot_device = {'boot_device': ironic.common.boot_devices.PXE,
                        'persistent': True}
         mock__get_boot_device.return_value = boot_device

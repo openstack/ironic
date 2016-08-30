@@ -35,18 +35,48 @@ def validate_job_queue(node):
     :param node: an ironic node object.
     :raises: DracOperationError on an error from python-dracclient.
     """
+
+    unfinished_jobs = list_unfinished_jobs(node)
+    if unfinished_jobs:
+        msg = _('Unfinished config jobs found: %(jobs)r. Make sure they are '
+                'completed before retrying.') % {'jobs': unfinished_jobs}
+        raise exception.DracOperationError(error=msg)
+
+
+def get_job(node, job_id):
+    """Get the details of a Lifecycle job of the node.
+
+    :param node: an ironic node object.
+    :param job_id: ID of the Lifecycle job.
+    :returns: a Job object from dracclient.
+    :raises: DracOperationError on an error from python-dracclient.
+    """
     client = drac_common.get_drac_client(node)
 
     try:
-        unfinished_jobs = client.list_jobs(only_unfinished=True)
+        return client.get_job(job_id)
+    except drac_exceptions.BaseClientException as exc:
+        LOG.error(_LE('DRAC driver failed to get the job %(job_id)s '
+                      'for node %(node_uuid)s. Reason: %(error)s.'),
+                  {'node_uuid': node.uuid,
+                   'error': exc})
+        raise exception.DracOperationError(error=exc)
+
+
+def list_unfinished_jobs(node):
+    """List unfinished config jobs of the node.
+
+    :param node: an ironic node object.
+    :returns: a list of Job objects from dracclient.
+    :raises: DracOperationError on an error from python-dracclient.
+    """
+    client = drac_common.get_drac_client(node)
+
+    try:
+        return client.list_jobs(only_unfinished=True)
     except drac_exceptions.BaseClientException as exc:
         LOG.error(_LE('DRAC driver failed to get the list of unfinished jobs '
                       'for node %(node_uuid)s. Reason: %(error)s.'),
                   {'node_uuid': node.uuid,
                    'error': exc})
         raise exception.DracOperationError(error=exc)
-
-    if unfinished_jobs:
-        msg = _('Unfinished config jobs found: %(jobs)r. Make sure they are '
-                'completed before retrying.') % {'jobs': unfinished_jobs}
-        raise exception.DracOperationError(error=msg)
