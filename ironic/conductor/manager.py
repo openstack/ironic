@@ -47,6 +47,7 @@ import tempfile
 
 import eventlet
 from futurist import periodics
+from ironic_lib import metrics_utils
 from oslo_log import log
 import oslo_messaging as messaging
 from oslo_utils import excutils
@@ -71,6 +72,8 @@ MANAGER_TOPIC = 'ironic.conductor_manager'
 
 LOG = log.getLogger(__name__)
 
+METRICS = metrics_utils.get_metrics_logger(__name__)
+
 SYNC_EXCLUDED_STATES = (states.DEPLOYWAIT, states.CLEANWAIT, states.ENROLL)
 
 
@@ -86,6 +89,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         super(ConductorManager, self).__init__(host, topic)
         self.power_state_sync_count = collections.defaultdict(int)
 
+    @METRICS.timer('ConductorManager.update_node')
     @messaging.expected_exceptions(exception.InvalidParameterValue,
                                    exception.MissingParameterValue,
                                    exception.NodeLocked,
@@ -140,6 +144,7 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         return node_obj
 
+    @METRICS.timer('ConductorManager.change_node_power_state')
     @messaging.expected_exceptions(exception.InvalidParameterValue,
                                    exception.MissingParameterValue,
                                    exception.NoFreeConductorWorker,
@@ -181,6 +186,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             task.spawn_after(self._spawn_worker, utils.node_power_action,
                              task, new_state)
 
+    @METRICS.timer('ConductorManager.vendor_passthru')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
                                    exception.InvalidParameterValue,
@@ -268,6 +274,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                     'async': is_async,
                     'attach': vendor_opts['attach']}
 
+    @METRICS.timer('ConductorManager.driver_vendor_passthru')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.InvalidParameterValue,
                                    exception.MissingParameterValue,
@@ -347,6 +354,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 'async': is_async,
                 'attach': vendor_opts['attach']}
 
+    @METRICS.timer('ConductorManager.get_node_vendor_passthru_methods')
     @messaging.expected_exceptions(exception.UnsupportedDriverExtension)
     def get_node_vendor_passthru_methods(self, context, node_id):
         """Retrieve information about vendor methods of the given node.
@@ -369,6 +377,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             return get_vendor_passthru_metadata(
                 task.driver.vendor.vendor_routes)
 
+    @METRICS.timer('ConductorManager.get_driver_vendor_passthru_methods')
     @messaging.expected_exceptions(exception.UnsupportedDriverExtension,
                                    exception.DriverNotFound)
     def get_driver_vendor_passthru_methods(self, context, driver_name):
@@ -391,6 +400,7 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         return get_vendor_passthru_metadata(driver.vendor.driver_routes)
 
+    @METRICS.timer('ConductorManager.do_node_deploy')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
                                    exception.NodeInMaintenance,
@@ -483,6 +493,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                     action=event, node=task.node.uuid,
                     state=task.node.provision_state)
 
+    @METRICS.timer('ConductorManager.do_node_tear_down')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
                                    exception.InstanceDeployFailure,
@@ -615,6 +626,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             ind = None
         return ind
 
+    @METRICS.timer('ConductorManager.do_node_clean')
     @messaging.expected_exceptions(exception.InvalidParameterValue,
                                    exception.InvalidStateRequested,
                                    exception.NodeInMaintenance,
@@ -680,6 +692,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                     action='manual clean', node=node.uuid,
                     state=node.provision_state)
 
+    @METRICS.timer('ConductorManager.continue_node_clean')
     def continue_node_clean(self, context, node_id):
         """RPC method to continue cleaning a node.
 
@@ -994,6 +1007,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         node.save()
         LOG.info(info_message)
 
+    @METRICS.timer('ConductorManager.do_provisioning_action')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
                                    exception.InvalidParameterValue,
@@ -1090,6 +1104,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                     action=action, node=node.uuid,
                     state=node.provision_state)
 
+    @METRICS.timer('ConductorManager._sync_power_states')
     @periodics.periodic(spacing=CONF.conductor.sync_power_state_interval)
     def _sync_power_states(self, context):
         """Periodic task to sync power states for the nodes.
@@ -1158,6 +1173,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 # Yield on every iteration
                 eventlet.sleep(0)
 
+    @METRICS.timer('ConductorManager._check_deploy_timeouts')
     @periodics.periodic(spacing=CONF.conductor.check_provision_state_interval)
     def _check_deploy_timeouts(self, context):
         """Periodically checks whether a deploy RPC call has timed out.
@@ -1180,6 +1196,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         self._fail_if_in_state(context, filters, states.DEPLOYWAIT,
                                sort_key, callback_method, err_handler)
 
+    @METRICS.timer('ConductorManager._check_deploying_status')
     @periodics.periodic(spacing=CONF.conductor.check_provision_state_interval)
     def _check_deploying_status(self, context):
         """Periodically checks the status of nodes in DEPLOYING state.
@@ -1231,6 +1248,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 callback_method=utils.cleanup_after_timeout,
                 err_handler=utils.provisioning_error_handler)
 
+    @METRICS.timer('ConductorManager._do_adoption')
     @task_manager.require_exclusive_lock
     def _do_adoption(self, task):
         """Adopt the node.
@@ -1279,6 +1297,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             node.last_error = msg
             task.process_event('fail')
 
+    @METRICS.timer('ConductorManager._do_takeover')
     def _do_takeover(self, task):
         """Take over this node.
 
@@ -1311,6 +1330,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         task.node.conductor_affinity = self.conductor.id
         task.node.save()
 
+    @METRICS.timer('ConductorManager._check_cleanwait_timeouts')
     @periodics.periodic(spacing=CONF.conductor.check_provision_state_interval)
     def _check_cleanwait_timeouts(self, context):
         """Periodically checks for nodes being cleaned.
@@ -1333,6 +1353,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                                keep_target_state=True,
                                callback_method=utils.cleanup_cleanwait_timeout)
 
+    @METRICS.timer('ConductorManager._sync_local_state')
     @periodics.periodic(spacing=CONF.conductor.sync_local_state_interval)
     def _sync_local_state(self, context):
         """Perform any actions necessary to sync local state.
@@ -1377,6 +1398,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             if workers_count == CONF.conductor.periodic_max_workers:
                 break
 
+    @METRICS.timer('ConductorManager.validate_driver_interfaces')
     @messaging.expected_exceptions(exception.NodeLocked)
     def validate_driver_interfaces(self, context, node_id):
         """Validate the `core` and `standardized` interfaces for drivers.
@@ -1423,6 +1445,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                     ret_dict[iface_name]['reason'] = reason
         return ret_dict
 
+    @METRICS.timer('ConductorManager.destroy_node')
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.NodeAssociated,
                                    exception.InvalidState)
@@ -1476,6 +1499,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             LOG.info(_LI('Successfully deleted node %(node)s.'),
                      {'node': node.uuid})
 
+    @METRICS.timer('ConductorManager.destroy_port')
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.NodeNotFound)
     def destroy_port(self, context, port):
@@ -1498,6 +1522,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                          '%(node)s'),
                      {'port': port.uuid, 'node': task.node.uuid})
 
+    @METRICS.timer('ConductorManager.destroy_portgroup')
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.NodeNotFound,
                                    exception.PortgroupNotEmpty)
@@ -1522,6 +1547,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                          '%(node)s'),
                      {'portgroup': portgroup.uuid, 'node': task.node.uuid})
 
+    @METRICS.timer('ConductorManager.get_console_information')
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
                                    exception.NodeConsoleNotEnabled,
@@ -1554,6 +1580,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             task.driver.console.validate(task)
             return task.driver.console.get_console(task)
 
+    @METRICS.timer('ConductorManager.set_console_mode')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
@@ -1624,6 +1651,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         finally:
             node.save()
 
+    @METRICS.timer('ConductorManager.update_port')
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.FailedToUpdateMacOnPort,
                                    exception.MACAlreadyExists,
@@ -1730,6 +1758,7 @@ class ConductorManager(base_manager.BaseConductorManager):
 
             return port_obj
 
+    @METRICS.timer('ConductorManager.update_portgroup')
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.FailedToUpdateMacOnPort,
                                    exception.PortgroupMACAlreadyExists,
@@ -1816,6 +1845,7 @@ class ConductorManager(base_manager.BaseConductorManager):
 
             return portgroup_obj
 
+    @METRICS.timer('ConductorManager.get_driver_properties')
     @messaging.expected_exceptions(exception.DriverNotFound)
     def get_driver_properties(self, context, driver_name):
         """Get the properties of the driver.
@@ -1832,6 +1862,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         driver = driver_factory.get_driver(driver_name)
         return driver.get_properties()
 
+    @METRICS.timer('ConductorManager._send_sensor_data')
     @periodics.periodic(spacing=CONF.conductor.send_sensor_data_interval)
     def _send_sensor_data(self, context):
         """Periodically sends sensor data to Ceilometer."""
@@ -1914,6 +1945,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         return dict((sensor_type, sensor_value) for (sensor_type, sensor_value)
                     in sensors_data.items() if sensor_type.lower() in allowed)
 
+    @METRICS.timer('ConductorManager.set_boot_device')
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
                                    exception.InvalidParameterValue,
@@ -1948,6 +1980,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             task.driver.management.set_boot_device(task, device,
                                                    persistent=persistent)
 
+    @METRICS.timer('ConductorManager.get_boot_device')
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
                                    exception.InvalidParameterValue,
@@ -1982,6 +2015,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             task.driver.management.validate(task)
             return task.driver.management.get_boot_device(task)
 
+    @METRICS.timer('ConductorManager.get_supported_boot_devices')
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
                                    exception.InvalidParameterValue,
@@ -2012,6 +2046,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                     driver=task.node.driver, extension='management')
             return task.driver.management.get_supported_boot_devices(task)
 
+    @METRICS.timer('ConductorManager.inspect_hardware')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
                                    exception.HardwareInspectionFailure,
@@ -2066,6 +2101,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                     action='inspect', node=task.node.uuid,
                     state=task.node.provision_state)
 
+    @METRICS.timer('ConductorManager._check_inspect_timeouts')
     @periodics.periodic(spacing=CONF.conductor.check_provision_state_interval)
     def _check_inspect_timeouts(self, context):
         """Periodically checks inspect_timeout and fails upon reaching it.
@@ -2085,6 +2121,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         self._fail_if_in_state(context, filters, states.INSPECTING,
                                sort_key, last_error=last_error)
 
+    @METRICS.timer('ConductorManager.set_target_raid_config')
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
                                    exception.InvalidParameterValue,
@@ -2124,6 +2161,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             node.target_raid_config = target_raid_config
             node.save()
 
+    @METRICS.timer('ConductorManager.get_raid_logical_disk_properties')
     @messaging.expected_exceptions(exception.UnsupportedDriverExtension)
     def get_raid_logical_disk_properties(self, context, driver_name):
         """Get the logical disk properties for RAID configuration.
@@ -2148,6 +2186,7 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         return driver.raid.get_logical_disk_properties()
 
+    @METRICS.timer('ConductorManager.heartbeat')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker)
     def heartbeat(self, context, node_id, callback_url):
         """Process a heartbeat from the ramdisk.
@@ -2190,6 +2229,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             # there's no reason to log it here.
             raise messaging.ExpectedException()
 
+    @METRICS.timer('ConductorManager.object_class_action_versions')
     def object_class_action_versions(self, context, objname, objmethod,
                                      object_versions, args, kwargs):
         """Perform an action on a VersionedObject class.
@@ -2216,6 +2256,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 version_manifest=object_versions)
         return result
 
+    @METRICS.timer('ConductorManager.object_action')
     def object_action(self, context, objinst, objmethod, args, kwargs):
         """Perform an action on a VersionedObject instance.
 
@@ -2247,6 +2288,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         updates['obj_what_changed'] = objinst.obj_what_changed()
         return updates, result
 
+    @METRICS.timer('ConductorManager.object_backport_versions')
     def object_backport_versions(self, context, objinst, object_versions):
         """Perform a backport of an object instance.
 
@@ -2270,6 +2312,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                                         version_manifest=object_versions)
 
 
+@METRICS.timer('get_vendor_passthru_metadata')
 def get_vendor_passthru_metadata(route_dict):
     d = {}
     for method, metadata in route_dict.items():
@@ -2320,6 +2363,7 @@ def _store_configdrive(node, configdrive):
     node.instance_info = i_info
 
 
+@METRICS.timer('do_node_deploy')
 @task_manager.require_exclusive_lock
 def do_node_deploy(task, conductor_id, configdrive=None):
     """Prepare the environment and deploy a node."""
@@ -2420,6 +2464,7 @@ def handle_sync_power_state_max_retries_exceeded(task, actual_power_state,
     LOG.error(msg)
 
 
+@METRICS.timer('do_sync_power_state')
 def do_sync_power_state(task, count):
     """Sync the power state for this node, incrementing the counter on failure.
 
