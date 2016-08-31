@@ -1163,6 +1163,21 @@ class IPMIConsole(base.ConsoleInterface):
                 "Check the 'ipmi_protocol_version' parameter in "
                 "node's driver_info"))
 
+    def _get_ipmi_cmd(self, driver_info, pw_file):
+        """Get ipmi command for ipmitool usage.
+
+        :param driver_info: driver info with the ipmitool parameters
+        :param pw_file: password file to be used in ipmitool command
+        :returns: returns a command string for ipmitool
+        """
+        user = driver_info.get('username')
+        user = ' -U {}'.format(user) if user else ''
+        return ("ipmitool -H %(address)s -I lanplus"
+                "%(user)s -f %(pwfile)s"
+                % {'address': driver_info['address'],
+                   'user': user,
+                   'pwfile': pw_file})
+
     def _start_console(self, driver_info, start_method):
         """Start a remote console for the node.
 
@@ -1178,14 +1193,7 @@ class IPMIConsole(base.ConsoleInterface):
         path = _console_pwfile_path(driver_info['uuid'])
         pw_file = console_utils.make_persistent_password_file(
             path, driver_info['password'] or '\0')
-
-        ipmi_cmd = ("/:%(uid)s:%(gid)s:HOME:ipmitool -H %(address)s"
-                    " -I lanplus -U %(user)s -f %(pwfile)s"
-                    % {'uid': os.getuid(),
-                       'gid': os.getgid(),
-                       'address': driver_info['address'],
-                       'user': driver_info['username'],
-                       'pwfile': pw_file})
+        ipmi_cmd = self._get_ipmi_cmd(driver_info, pw_file)
 
         for name, option in BRIDGING_OPTIONS:
             if driver_info[name] is not None:
@@ -1204,6 +1212,20 @@ class IPMIConsole(base.ConsoleInterface):
 
 class IPMIShellinaboxConsole(IPMIConsole):
     """A ConsoleInterface that uses ipmitool and shellinabox."""
+
+    def _get_ipmi_cmd(self, driver_info, pw_file):
+        """Get ipmi command for ipmitool usage.
+
+        :param driver_info: driver info with the ipmitool parameters
+        :param pw_file: password file to be used in ipmitool command
+        :returns: returns a command string for ipmitool
+        """
+        command = super(IPMIShellinaboxConsole, self)._get_ipmi_cmd(
+            driver_info, pw_file)
+        return ("/:%(uid)s:%(gid)s:HOME:%(basic_command)s"
+                % {'uid': os.getuid(),
+                   'gid': os.getgid(),
+                   'basic_command': command})
 
     @METRICS.timer('IPMIShellinaboxConsole.start_console')
     def start_console(self, task):
