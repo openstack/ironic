@@ -3253,7 +3253,7 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin,
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
     def test_update_portgroup_address_no_vif_id(self, mac_update_mock):
         node = obj_utils.create_test_node(self.context, driver='fake')
-        pg = obj_utils.create_test_port(self.context, node_id=node.id)
+        pg = obj_utils.create_test_portgroup(self.context, node_id=node.id)
 
         new_address = '11:22:33:44:55:bb'
         pg.address = new_address
