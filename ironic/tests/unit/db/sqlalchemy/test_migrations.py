@@ -239,10 +239,9 @@ class MigrationCheckersMixin(object):
 
         self.assertIn('console_enabled', col_names)
         # in some backends bool type is integer
-        self.assertTrue(isinstance(nodes.c.console_enabled.type,
-                                   sqlalchemy.types.Boolean) or
-                        isinstance(nodes.c.console_enabled.type,
-                                   sqlalchemy.types.Integer))
+        self.assertIsInstance(nodes.c.console_enabled.type,
+                              (sqlalchemy.types.Boolean,
+                               sqlalchemy.types.Integer))
 
     def _check_31baaf680d2b(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')
@@ -441,10 +440,9 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(ports.c.portgroup_id.type,
                               sqlalchemy.types.Integer)
         # in some backends bool type is integer
-        self.assertTrue(isinstance(ports.c.pxe_enabled.type,
-                                   sqlalchemy.types.Boolean) or
-                        isinstance(ports.c.pxe_enabled.type,
-                                   sqlalchemy.types.Integer))
+        self.assertIsInstance(ports.c.pxe_enabled.type,
+                              (sqlalchemy.types.Boolean,
+                               sqlalchemy.types.Integer))
 
     def _pre_upgrade_f6fdb920c182(self, engine):
         # add some ports.

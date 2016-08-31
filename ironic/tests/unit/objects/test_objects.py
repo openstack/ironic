@@ -449,7 +449,7 @@ class TestObjectSerializer(test_base.TestCase):
             primitive = ser.serialize_entity(self.context, thing)
             self.assertEqual(1, len(primitive))
             for item in primitive:
-                self.assertFalse(isinstance(item, base.IronicObject))
+                self.assertNotIsInstance(item, base.IronicObject)
             thing2 = ser.deserialize_entity(self.context, primitive)
             self.assertEqual(1, len(thing2))
             for item in thing2:
