@@ -1058,9 +1058,17 @@ function enroll_nodes {
                 mac_address=$(echo $hardware_info |awk '{print $5}')
                 local applied_server_profile_uri
                 applied_server_profile_uri=$(echo $hardware_info |awk '{print $6}')
+                local dynamic_allocation
+                dynamic_allocation=$(echo $hardware_info |awk '{print $7}')
+                dynamic_allocation=$(trueorfalse False dynamic_allocation)
 
                 node_options+=" -i server_hardware_uri=$server_hardware_uri"
-                node_options+=" -i applied_server_profile_uri=$applied_server_profile_uri"
+                if [[ -n "$applied_server_profile_uri" ]]; then
+                    node_options+=" -i applied_server_profile_uri=$applied_server_profile_uri"
+                fi
+                if [[ "$dynamic_allocation" == "True" ]]; then
+                    node_options+=" -i dynamic_allocation=$dynamic_allocation"
+                fi
                 node_options+=" -p capabilities="
                 node_options+="server_hardware_type_uri:$server_hardware_type_uri,"
                 node_options+="enclosure_group_uri:$enclosure_group_uri,"
