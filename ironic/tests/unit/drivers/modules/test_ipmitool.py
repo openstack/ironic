@@ -1618,6 +1618,34 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.console.validate, task)
 
+    def test__get_ipmi_cmd(self):
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            driver_info = ipmi._parse_driver_info(task.node)
+            ipmi_cmd = self.driver.console._get_ipmi_cmd(driver_info,
+                                                         'pw_file')
+            expected_ipmi_cmd = ("/:%(uid)s:%(gid)s:HOME:ipmitool "
+                                 "-H %(address)s -I lanplus -U %(user)s "
+                                 "-f pw_file" %
+                                 {'uid': os.getuid(), 'gid': os.getgid(),
+                                  'address': driver_info['address'],
+                                  'user': driver_info['username']})
+        self.assertEqual(expected_ipmi_cmd, ipmi_cmd)
+
+    def test__get_ipmi_cmd_without_user(self):
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            driver_info = ipmi._parse_driver_info(task.node)
+            driver_info['username'] = None
+            ipmi_cmd = self.driver.console._get_ipmi_cmd(driver_info,
+                                                         'pw_file')
+            expected_ipmi_cmd = ("/:%(uid)s:%(gid)s:HOME:ipmitool "
+                                 "-H %(address)s -I lanplus "
+                                 "-f pw_file" %
+                                 {'uid': os.getuid(), 'gid': os.getgid(),
+                                  'address': driver_info['address']})
+        self.assertEqual(expected_ipmi_cmd, ipmi_cmd)
+
     @mock.patch.object(ipmi.IPMIConsole, '_start_console', autospec=True)
     def test_start_console(self, mock_start):
         mock_start.return_value = None
@@ -1630,9 +1658,10 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             self.driver.console, driver_info,
             console_utils.start_shellinabox_console)
 
+    @mock.patch.object(ipmi.IPMIConsole, '_get_ipmi_cmd', autospec=True)
     @mock.patch.object(console_utils, 'start_shellinabox_console',
                        autospec=True)
-    def test__start_console(self, mock_start):
+    def test__start_console(self, mock_start, mock_ipmi_cmd):
         mock_start.return_value = None
 
         with task_manager.acquire(self.context,
@@ -1644,6 +1673,8 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_start.assert_called_once_with(self.info['uuid'],
                                            self.info['port'],
                                            mock.ANY)
+        mock_ipmi_cmd.assert_called_once_with(self.driver.console,
+                                              driver_info, mock.ANY)
 
     @mock.patch.object(console_utils, 'start_shellinabox_console',
                        autospec=True)
@@ -2167,6 +2198,30 @@ class IPMIToolSocatDriverTestCase(IPMIToolDriverTestCase):
     def setUp(self):
         super(IPMIToolSocatDriverTestCase, self).setUp(terminal="socat")
 
+    def test__get_ipmi_cmd(self):
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            driver_info = ipmi._parse_driver_info(task.node)
+            ipmi_cmd = self.driver.console._get_ipmi_cmd(driver_info,
+                                                         'pw_file')
+            expected_ipmi_cmd = ("ipmitool -H %(address)s -I lanplus "
+                                 "-U %(user)s -f pw_file" %
+                                 {'address': driver_info['address'],
+                                  'user': driver_info['username']})
+        self.assertEqual(expected_ipmi_cmd, ipmi_cmd)
+
+    def test__get_ipmi_cmd_without_user(self):
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            driver_info = ipmi._parse_driver_info(task.node)
+            driver_info['username'] = None
+            ipmi_cmd = self.driver.console._get_ipmi_cmd(driver_info,
+                                                         'pw_file')
+            expected_ipmi_cmd = ("ipmitool -H %(address)s -I lanplus "
+                                 "-f pw_file" %
+                                 {'address': driver_info['address']})
+        self.assertEqual(expected_ipmi_cmd, ipmi_cmd)
+
     @mock.patch.object(ipmi.IPMIConsole, '_start_console', autospec=True)
     @mock.patch.object(ipmi.IPMISocatConsole, '_exec_stop_console',
                        autospec=True)
@@ -2183,9 +2238,10 @@ class IPMIToolSocatDriverTestCase(IPMIToolDriverTestCase):
             self.driver.console, driver_info,
             console_utils.start_socat_console)
 
+    @mock.patch.object(ipmi.IPMISocatConsole, '_get_ipmi_cmd', autospec=True)
     @mock.patch.object(console_utils, 'start_socat_console',
                        autospec=True)
-    def test__start_console(self, mock_start):
+    def test__start_console(self, mock_start, mock_ipmi_cmd):
         mock_start.return_value = None
 
         with task_manager.acquire(self.context,
@@ -2197,6 +2253,8 @@ class IPMIToolSocatDriverTestCase(IPMIToolDriverTestCase):
         mock_start.assert_called_once_with(self.info['uuid'],
                                            self.info['port'],
                                            mock.ANY)
+        mock_ipmi_cmd.assert_called_once_with(self.driver.console,
+                                              driver_info, mock.ANY)
 
     @mock.patch.object(console_utils, 'start_socat_console',
                        autospec=True)
