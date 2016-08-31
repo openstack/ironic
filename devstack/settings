@@ -1,1 +1,6 @@
 enable_service ironic ir-api ir-cond
+# Neutron public network type was changed to flat by default recently:
+# https://review.openstack.org/#/c/346282/
+# TODO(vsaienko) remove once ironic-multitenant job variable and ironic
+# developer documentation are updated.
+Q_USE_PROVIDERNET_FOR_PUBLIC=False
