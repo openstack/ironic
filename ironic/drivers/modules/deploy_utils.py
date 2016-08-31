@@ -461,7 +461,7 @@ def fetch_images(ctx, cache, images_info, force_raw=True):
         cache.fetch_image(href, path, ctx=ctx, force_raw=force_raw)
 
 
-def set_failed_state(task, msg):
+def set_failed_state(task, msg, collect_logs=True):
     """Sets the deploy status as failed with relevant messages.
 
     This method sets the deployment as fail with the given message.
@@ -470,10 +470,15 @@ def set_failed_state(task, msg):
 
     :param task: a TaskManager instance containing the node to act on.
     :param msg: the message to set in last_error of the node.
+    :param collect_logs: boolean indicating whether to attempt collect
+                         logs from IPA-based ramdisk. Defaults to True.
+                         Actual log collection is also affected by
+                         CONF.agent.deploy_logs_collect config option.
     """
     node = task.node
 
-    if CONF.agent.deploy_logs_collect in ('on_failure', 'always'):
+    if (collect_logs and
+            CONF.agent.deploy_logs_collect in ('on_failure', 'always')):
         driver_utils.collect_ramdisk_logs(node)
 
     try:
