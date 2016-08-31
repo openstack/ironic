@@ -92,7 +92,7 @@ have already been set up.
 Configure the Identity service for the Bare Metal service
 ---------------------------------------------------------
 
-#. Create the Bare Metal service user (for example,``ironic``).
+#. Create the Bare Metal service user (for example, ``ironic``).
    The service uses this to authenticate with the Identity service.
    Use the ``service`` tenant and give the user the ``admin`` role::
 
