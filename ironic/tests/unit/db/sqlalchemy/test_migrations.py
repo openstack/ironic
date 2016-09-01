@@ -522,6 +522,14 @@ class MigrationCheckersMixin(object):
         self.assertEqual(1, counts['neutron'])
         self.assertEqual(0, counts[None])
 
+    def _check_60cf717201bc(self, engine, data):
+        portgroups = db_utils.get_table(engine, 'portgroups')
+        col_names = [column.name for column in portgroups.c]
+        self.assertIn('standalone_ports_supported', col_names)
+        self.assertIsInstance(portgroups.c.standalone_ports_supported.type,
+                              (sqlalchemy.types.Boolean,
+                               sqlalchemy.types.Integer))
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')
