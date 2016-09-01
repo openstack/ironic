@@ -13,8 +13,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from oslo_log import log as logging
-
 from ironic_tempest_plugin.tests.scenario import baremetal_manager
 from tempest import config
 from tempest.lib.common.utils import data_utils
@@ -22,8 +20,6 @@ from tempest.scenario import manager
 from tempest import test
 
 CONF = config.CONF
-
-LOG = logging.getLogger(__name__)
 
 
 class BaremetalMultitenancy(baremetal_manager.BaremetalScenarioTest,
