@@ -192,7 +192,7 @@ class TaskManager(object):
         self._on_error_method = None
 
         self.context = context
-        self.node = None
+        self._node = None
         self.node_id = node_id
         self.shared = shared
 
@@ -218,18 +218,20 @@ class TaskManager(object):
             self.driver = driver_factory.build_driver_for_task(
                 self, driver_name=driver_name)
 
-            # NOTE(deva): this handles the Juno-era NOSTATE state
-            #             and should be deleted after Kilo is released
-            if self.node.provision_state is states.NOSTATE:
-                self.node.provision_state = states.AVAILABLE
-                self.node.save()
-
-            self.fsm.initialize(start_state=self.node.provision_state,
-                                target_state=self.node.target_provision_state)
-
         except Exception:
             with excutils.save_and_reraise_exception():
                 self.release_resources()
+
+    @property
+    def node(self):
+        return self._node
+
+    @node.setter
+    def node(self, node):
+        self._node = node
+        if node is not None:
+            self.fsm.initialize(start_state=self.node.provision_state,
+                                target_state=self.node.target_provision_state)
 
     def _lock(self):
         self._debug_timer.restart()

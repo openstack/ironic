@@ -396,6 +396,28 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
         get_ports_mock.assert_called_once_with(self.context, self.node.id)
         get_portgroups_mock.assert_called_once_with(self.context, self.node.id)
 
+    def test_upgrade_lock_refreshes_fsm(self, get_portgroups_mock,
+                                        get_ports_mock, build_driver_mock,
+                                        reserve_mock, release_mock,
+                                        node_get_mock):
+        reserve_mock.return_value = self.node
+        node_get_mock.return_value = self.node
+        with task_manager.acquire(self.context, 'fake-node-id',
+                                  shared=True) as task1:
+            self.assertEqual(states.AVAILABLE, task1.node.provision_state)
+
+            with task_manager.acquire(self.context, 'fake-node-id',
+                                      shared=False) as task2:
+                # move the node to manageable
+                task2.process_event('manage')
+                self.assertEqual(states.MANAGEABLE, task1.node.provision_state)
+
+            # now upgrade our shared task and try to go to cleaning
+            # this will explode if task1's FSM doesn't get refreshed
+            task1.upgrade_lock()
+            task1.process_event('provide')
+            self.assertEqual(states.CLEANING, task1.node.provision_state)
+
     def test_spawn_after(
             self, get_portgroups_mock, get_ports_mock, build_driver_mock,
             reserve_mock, release_mock, node_get_mock):

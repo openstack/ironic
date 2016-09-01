@@ -763,27 +763,6 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                                 mock_iwdi):
         self._test_do_node_deploy_validate_fail(mock_validate, mock_iwdi)
 
-    @mock.patch('ironic.conductor.task_manager.TaskManager.process_event')
-    def test_deploy_with_nostate_converts_to_available(self, mock_pe,
-                                                       mock_iwdi):
-        # expressly create a node using the Juno-era NOSTATE state
-        # and assert that it does not result in an error, and that the state
-        # is converted to the new AVAILABLE state.
-        # Mock the process_event call, because the transitions from
-        # AVAILABLE are tested thoroughly elsewhere
-        # NOTE(deva): This test can be deleted after Kilo is released
-        mock_iwdi.return_value = False
-        self._start_service()
-        node = obj_utils.create_test_node(self.context, driver='fake',
-                                          provision_state=states.NOSTATE)
-        self.assertEqual(states.NOSTATE, node.provision_state)
-        self.service.do_node_deploy(self.context, node.uuid)
-        self.assertTrue(mock_pe.called)
-        node.refresh()
-        self.assertEqual(states.AVAILABLE, node.provision_state)
-        mock_iwdi.assert_called_once_with(self.context, node.instance_info)
-        self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
-
     def test_do_node_deploy_partial_ok(self, mock_iwdi):
         mock_iwdi.return_value = False
         self._start_service()

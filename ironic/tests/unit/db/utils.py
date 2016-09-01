@@ -216,7 +216,7 @@ def get_test_node(**kw):
         'conductor_affinity': kw.get('conductor_affinity', None),
         'power_state': kw.get('power_state', states.NOSTATE),
         'target_power_state': kw.get('target_power_state', states.NOSTATE),
-        'provision_state': kw.get('provision_state', states.NOSTATE),
+        'provision_state': kw.get('provision_state', states.AVAILABLE),
         'target_provision_state': kw.get('target_provision_state',
                                          states.NOSTATE),
         'provision_updated_at': kw.get('provision_updated_at'),
