@@ -1,0 +1,4 @@
+---
+upgrade:
+  - Updated python-scciclient required version number for iRMC driver to
+    0.3.1 which contains the bug fix '#1561852' and maintenance updates.

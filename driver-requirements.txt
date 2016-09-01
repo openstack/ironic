@@ -9,7 +9,7 @@ pyghmi>=0.8.0
 pysnmp
 python-ironic-inspector-client
 python-oneviewclient<3.0.0,>=2.0.2
-python-scciclient>=0.3.0
+python-scciclient<0.4.0,>=0.3.1
 python-seamicroclient>=0.4.0
 UcsSdk==0.8.2.2
 python-dracclient>=0.0.5
