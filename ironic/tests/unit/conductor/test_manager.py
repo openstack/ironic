@@ -2806,6 +2806,44 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
         mac_update_mock.assert_called_once_with('fake-id', new_address,
                                                 token=self.context.auth_token)
 
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
+    def test_update_port_portgroup_active_node(self, mac_update_mock):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          instance_uuid=None,
+                                          provision_state='active')
+        pg1 = obj_utils.create_test_portgroup(self.context, node_id=node.id)
+        pg2 = obj_utils.create_test_portgroup(
+            self.context, node_id=node.id, name='bar',
+            address='aa:bb:cc:dd:ee:ff', uuid=uuidutils.generate_uuid())
+        port = obj_utils.create_test_port(self.context,
+                                          node_id=node.id,
+                                          portgroup_id=pg1.id)
+        port.portgroup_id = pg2.id
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_port,
+                                self.context, port)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.InvalidState, exc.exc_info[0])
+        port.refresh()
+        self.assertEqual(pg1.id, port.portgroup_id)
+
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
+    def test_update_port_portgroup_enroll_node(self, mac_update_mock):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          instance_uuid=None,
+                                          provision_state='enroll')
+        pg1 = obj_utils.create_test_portgroup(self.context, node_id=node.id)
+        pg2 = obj_utils.create_test_portgroup(
+            self.context, node_id=node.id, name='bar',
+            address='aa:bb:cc:dd:ee:ff', uuid=uuidutils.generate_uuid())
+        port = obj_utils.create_test_port(self.context,
+                                          node_id=node.id,
+                                          portgroup_id=pg1.id)
+        port.portgroup_id = pg2.id
+        self.service.update_port(self.context, port)
+        port.refresh()
+        self.assertEqual(pg2.id, port.portgroup_id)
+
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
     def test_update_port_client_id(self, dhcp_update_mock):
         node = obj_utils.create_test_node(self.context, driver='fake')
