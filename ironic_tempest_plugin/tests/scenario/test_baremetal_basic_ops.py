@@ -15,12 +15,9 @@
 
 from oslo_log import log as logging
 from tempest.common import waiters
-from tempest import config
 from tempest import test
 
 from ironic_tempest_plugin.tests.scenario import baremetal_manager
-
-CONF = config.CONF
 
 LOG = logging.getLogger(__name__)
 
