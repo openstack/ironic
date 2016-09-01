@@ -35,22 +35,25 @@ class EventType(base.IronicObject):
     """Defines the event_type to be sent on the wire.
 
     An EventType must specify the object being acted on, a string describing
-    the action being taken on the notification, and the phase of the action,
-    if applicable.
+    the action being taken on the notification, and the status of the action.
     """
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: "phase" field was renamed to "status" and only accepts
+    #              "start", "end", "error", or "success" as valid
+    VERSION = '1.1'
 
     fields = {
         'object': fields.StringField(nullable=False),
         'action': fields.StringField(nullable=False),
-        'phase': fields.StringField(nullable=True)
+        'status': fields.EnumField(valid_values=['start', 'end', 'error',
+                                                 'success'],
+                                   nullable=False)
     }
 
     def to_event_type_field(self):
-        parts = ['baremetal', self.object, self.action]
-        if self.obj_attr_is_set('phase') and self.phase is not None:
-            parts.append(self.phase)
+        if self.status not in ['start', 'end', 'error', 'success']:
+            raise exception.NotificationEventTypeError(status=self.status)
+        parts = ['baremetal', self.object, self.action, self.status]
         return '.'.join(parts)
 
 

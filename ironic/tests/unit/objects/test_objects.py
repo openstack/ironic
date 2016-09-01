@@ -410,7 +410,7 @@ expected_object_fingerprints = {
     'Port': '1.6-609504503d68982a10f495659990084b',
     'Portgroup': '1.2-37b374b19bfd25db7e86aebc364e611e',
     'Conductor': '1.1-5091f249719d4a465062a1b3dc7f860d',
-    'EventType': '1.0-3daeec50c6deb956990255f92b863333',
+    'EventType': '1.1-5d44b591d93189b2ea91a1af9b082df6',
     'NotificationPublisher': '1.0-51a09397d6c0687771fb5be9a999605d',
 }
 
