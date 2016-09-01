@@ -198,8 +198,8 @@ fi
 # are ``pxe_ssh``, ``pxe_ipmitool``, ``agent_ssh`` and ``agent_ipmitool``.
 #
 # Additional valid choices if IRONIC_IS_HARDWARE == true are:
-# ``pxe_iscsi_cimc``, ``pxe_agent_cimc``, ``pxe_ucs``, ``pxe_cimc``, 
-# ``*_pxe_oneview`` and ``pxe_drac`` 
+# ``pxe_iscsi_cimc``, ``pxe_agent_cimc``, ``pxe_ucs``, ``pxe_cimc``,
+# ``*_pxe_oneview`` and ``pxe_drac``
 IRONIC_DEPLOY_DRIVER=${IRONIC_DEPLOY_DRIVER:-pxe_ssh}
 
 # Support entry points installation of console scripts
@@ -277,6 +277,22 @@ IRONIC_PROVISION_SUBNET_GATEWAY=${IRONIC_PROVISION_SUBNET_GATEWAY:-}
 # Ironic provision subnet prefix
 # Example: IRONIC_PROVISION_SUBNET_PREFIX=10.0.5.0/24
 IRONIC_PROVISION_SUBNET_PREFIX=${IRONIC_PROVISION_SUBNET_PREFIX:-}
+
+# Retrieving logs from the deploy ramdisk
+#
+# IRONIC_DEPLOY_LOGS_COLLECT possible values are:
+# * always: Collect the ramdisk logs from the deployment on success or
+#           failure (Default in DevStack for debugging purpose).
+# * on_failure: Collect the ramdisk logs upon a deployment failure
+#               (Default in Ironic).
+# * never: Never collect the ramdisk logs.
+IRONIC_DEPLOY_LOGS_COLLECT=${IRONIC_DEPLOY_LOGS_COLLECT:-always}
+# IRONIC_DEPLOY_LOGS_STORAGE_BACKEND possible values are:
+# * local: To store the logs in the local filesystem (Default in Ironic and DevStack).
+# * swift: To store the logs in Swift.
+IRONIC_DEPLOY_LOGS_STORAGE_BACKEND=${IRONIC_DEPLOY_LOGS_STORAGE_BACKEND:-local}
+# The path to the directory where Ironic should put the logs when IRONIC_DEPLOY_LOGS_STORAGE_BACKEND is set to "local"
+IRONIC_DEPLOY_LOGS_LOCAL_PATH=${IRONIC_DEPLOY_LOGS_LOCAL_PATH:-$IRONIC_VM_LOG_DIR/deploy_logs}
 
 # get_pxe_boot_file() - Get the PXE/iPXE boot file path
 function get_pxe_boot_file {
@@ -483,6 +499,11 @@ function configure_ironic_dirs {
         # More info: http://www.syslinux.org/wiki/index.php/Library_modules
         cp -aR $(dirname $IRONIC_PXE_BOOT_IMAGE)/*.{c32,0} $IRONIC_TFTPBOOT_DIR
     fi
+
+    # Create the logs directory when saving the deploy logs to the filesystem
+    if [ "$IRONIC_DEPLOY_LOGS_STORAGE_BACKEND" = "local"] && [ "$IRONIC_DEPLOY_LOGS_COLLECT" != "never" ]; then
+        sudo install -d -o $STACK_USER $IRONIC_DEPLOY_LOGS_LOCAL_PATH
+    fi
 }
 
 function configure_ironic_provision_network {
@@ -548,6 +569,11 @@ function configure_ironic {
     iniset $IRONIC_CONF_FILE DEFAULT use_syslog $SYSLOG
     # NOTE(vsaienko) with multinode each conductor should have its own host.
     iniset $IRONIC_CONF_FILE DEFAULT host $LOCAL_HOSTNAME
+    # Retrieve deployment logs
+    iniset $IRONIC_CONF_FILE agent deploy_logs_collect $IRONIC_DEPLOY_LOGS_COLLECT
+    iniset $IRONIC_CONF_FILE agent deploy_logs_storage_backend $IRONIC_DEPLOY_LOGS_STORAGE_BACKEND
+    iniset $IRONIC_CONF_FILE agent deploy_logs_local_path $IRONIC_DEPLOY_LOGS_LOCAL_PATH
+
     # Configure Ironic conductor, if it was enabled.
     if is_service_enabled ir-cond; then
         configure_ironic_conductor
