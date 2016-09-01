@@ -489,6 +489,14 @@ class TestListNodes(test_api_base.BaseApiTest):
                                  expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
+    def test_ports_subresource_invalid_ident(self):
+        invalid_ident = '123~123'
+        response = self.get_json('/nodes/%s/ports' % invalid_ident,
+                                 expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertIn('Expected a logical name or UUID',
+                      response.json['error_message'])
+
     @mock.patch.object(timeutils, 'utcnow')
     def _test_node_states(self, mock_utcnow, api_version=None):
         fake_state = 'fake-state'

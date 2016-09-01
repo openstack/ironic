@@ -1064,7 +1064,10 @@ class NodesController(rest.RestController):
 
     @pecan.expose()
     def _lookup(self, ident, subres, *remainder):
-        ident = types.uuid_or_name.validate(ident)
+        try:
+            ident = types.uuid_or_name.validate(ident)
+        except exception.InvalidUuidOrName as e:
+            pecan.abort(http_client.BAD_REQUEST, e.args[0])
         subcontroller = self._subcontroller_map.get(subres)
         if subcontroller:
             return subcontroller(node_ident=ident), remainder
