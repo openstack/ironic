@@ -1694,7 +1694,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             # node should be in MANAGEABLE/INSPECTING/ENROLL provisioning state
             # or in maintenance mode.
             # Otherwise InvalidState exception is raised.
-            connectivity_attr = {'portgroup_uuid',
+            connectivity_attr = {'portgroup_id',
                                  'pxe_enabled',
                                  'local_link_connection'}
             allowed_update_states = [states.ENROLL,
