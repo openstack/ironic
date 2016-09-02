@@ -11,8 +11,7 @@ LIBVIRT_CONNECT_URI=${LIBVIRT_CONNECT_URI:-"qemu:///system"}
 
 # Keep track of the DevStack directory
 TOP_DIR=$(cd $(dirname "$0")/.. && pwd)
-BRIDGE_SUFFIX=${1:-''}
-BRIDGE_NAME=brbm$BRIDGE_SUFFIX
+BRIDGE_NAME=${1:-brbm}
 
 export VIRSH_DEFAULT_CONNECT_URI="$LIBVIRT_CONNECT_URI"
 
