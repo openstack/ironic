@@ -21,6 +21,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
 from ironic.drivers.modules.drac import deploy
+from ironic.drivers.modules.drac import inspect as drac_inspect
 from ironic.drivers.modules.drac import management
 from ironic.drivers.modules.drac import power
 from ironic.drivers.modules.drac import raid
@@ -56,4 +57,13 @@ class PXEDracDriver(base.BaseDriver):
         self.driver_passthru_mapping = {'lookup': self.iscsi_vendor}
         self.vendor = utils.MixinVendorInterface(self.mapping,
                                                  self.driver_passthru_mapping)
-        self.inspect = inspector.Inspector.create_if_enabled('PXEDracDriver')
+        self.inspect = drac_inspect.DracInspect()
+
+
+class PXEDracInspectorDriver(PXEDracDriver):
+    """Drac driver using PXE for deploy and OOB inspection interface."""
+
+    def __init__(self):
+        super(PXEDracInspectorDriver, self).__init__()
+        self.inspect = inspector.Inspector.create_if_enabled(
+            'PXEDracInspectorDriver')

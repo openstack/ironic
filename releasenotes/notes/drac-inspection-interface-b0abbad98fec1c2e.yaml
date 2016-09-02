@@ -1,0 +1,7 @@
+---
+features:
+  - Adds out-of-band inspection interface usable by DRAC drivers.
+upgrade:
+  - The ``inspect`` interface of the ``pxe_drac`` driver has switched to use
+    out-of-band inspection. For inband inspection, the node should be updated
+    to use the ``pxe_drac_inspector`` driver instead.
