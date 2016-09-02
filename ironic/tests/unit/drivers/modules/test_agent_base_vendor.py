@@ -81,11 +81,14 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             agent_url = 'url-%s' % state
             with task_manager.acquire(self.context, self.node.uuid,
                                       shared=True) as task:
-                self.deploy.heartbeat(task, agent_url)
+                self.deploy.heartbeat(task, agent_url, '3.2.0')
                 self.assertFalse(task.shared)
                 self.assertEqual(
                     agent_url,
                     task.node.driver_internal_info['agent_url'])
+                self.assertEqual(
+                    '3.2.0',
+                    task.node.driver_internal_info['agent_version'])
             self.assertEqual(0, ncrc_mock.call_count)
             self.assertEqual(0, rti_mock.call_count)
             self.assertEqual(0, cd_mock.call_count)
@@ -105,7 +108,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             with task_manager.acquire(self.context, self.node.uuid,
                                       shared=True) as task:
                 self.node.provision_state = state
-                self.deploy.heartbeat(task, 'url')
+                self.deploy.heartbeat(task, 'url', '1.0.0')
                 self.assertTrue(task.shared)
             self.assertEqual(0, ncrc_mock.call_count)
             self.assertEqual(0, rti_mock.call_count)
@@ -125,7 +128,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                 self.context, self.node['uuid'], shared=False) as task:
             task.node.provision_state = states.DEPLOYWAIT
             task.node.target_provision_state = states.ACTIVE
-            self.deploy.heartbeat(task, 'http://127.0.0.1:8080')
+            self.deploy.heartbeat(task, 'http://127.0.0.1:8080', '1.0.0')
             failed_mock.assert_called_once_with(
                 task, mock.ANY, collect_logs=True)
         log_mock.assert_called_once_with(
@@ -155,7 +158,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             task.node.provision_state = states.DEPLOYWAIT
             task.node.target_provision_state = states.ACTIVE
             done_mock.side_effect = driver_failure
-            self.deploy.heartbeat(task, 'http://127.0.0.1:8080')
+            self.deploy.heartbeat(task, 'http://127.0.0.1:8080', '1.0.0')
             # task.node.provision_state being set to DEPLOYFAIL
             # within the driver_failue, hearbeat should not call
             # deploy_utils.set_failed_state anymore
@@ -178,7 +181,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         self.node.save()
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-            self.deploy.heartbeat(task, 'http://127.0.0.1:8080')
+            self.deploy.heartbeat(task, 'http://127.0.0.1:8080', '1.0.0')
 
         mock_touch.assert_called_once_with(mock.ANY)
         mock_refresh.assert_called_once_with(mock.ANY, task)
@@ -206,7 +209,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             failed_mock.side_effect = Exception()
             with task_manager.acquire(
                     self.context, self.node.uuid, shared=False) as task:
-                self.deploy.heartbeat(task, 'http://127.0.0.1:8080')
+                self.deploy.heartbeat(task, 'http://127.0.0.1:8080', '1.0.0')
 
             mock_touch.assert_called_once_with(mock.ANY)
             mock_handler.assert_called_once_with(task, mock.ANY)
@@ -234,7 +237,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         self.node.save()
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-            self.deploy.heartbeat(task, 'http://127.0.0.1:8080')
+            self.deploy.heartbeat(task, 'http://127.0.0.1:8080', '1.0.0')
 
         mock_touch.assert_called_once_with(mock.ANY)
         mock_continue.assert_called_once_with(mock.ANY, task)
@@ -257,7 +260,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         self.node.save()
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-            self.deploy.heartbeat(task, 'http://127.0.0.1:8080')
+            self.deploy.heartbeat(task, 'http://127.0.0.1:8080', '1.0.0')
 
         mock_continue.assert_called_once_with(mock.ANY, task)
         mock_handler.assert_called_once_with(task, mock.ANY)
@@ -274,9 +277,11 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         self.node.save()
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-            self.deploy.heartbeat(task, 'http://127.0.0.1:8080')
+            self.deploy.heartbeat(task, 'http://127.0.0.1:8080', '3.2.0')
             self.assertEqual('http://127.0.0.1:8080',
                              task.node.driver_internal_info['agent_url'])
+            self.assertEqual('3.2.0',
+                             task.node.driver_internal_info['agent_version'])
         mock_touch.assert_called_once_with(mock.ANY)
 
 

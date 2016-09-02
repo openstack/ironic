@@ -406,7 +406,7 @@ class TestDeployInterface(base.TestCase):
         deploy = fake.FakeDeploy()
         deploy.heartbeat(mock.Mock(node=mock.Mock(uuid='uuid',
                                                   driver='driver')),
-                         'url')
+                         'url', '3.2.0')
         self.assertTrue(mock_log.called)
 
 

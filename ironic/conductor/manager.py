@@ -82,6 +82,11 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 
 SYNC_EXCLUDED_STATES = (states.DEPLOYWAIT, states.CLEANWAIT, states.ENROLL)
 
+# NOTE(sambetts) This list is used to keep track of deprecation warnings that
+# have already been issued for deploy drivers that do not accept the
+# agent_version parameter and need updating.
+_SEEN_AGENT_VERSION_DEPRECATIONS = []
+
 
 class ConductorManager(base_manager.BaseConductorManager):
     """Ironic Conductor manager main class."""
@@ -89,7 +94,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.41'
+    RPC_API_VERSION = '1.42'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -2549,23 +2554,51 @@ class ConductorManager(base_manager.BaseConductorManager):
 
     @METRICS.timer('ConductorManager.heartbeat')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker)
-    def heartbeat(self, context, node_id, callback_url):
+    def heartbeat(self, context, node_id, callback_url, agent_version=None):
         """Process a heartbeat from the ramdisk.
 
         :param context: request context.
         :param node_id: node id or uuid.
+        :param agent_version: The version of the agent that is heartbeating. If
+            not provided it either indicates that the agent that is
+            heartbeating is a version before sending agent_version was
+            introduced or that we're in the middle of a rolling upgrade and the
+            RPC version is pinned so the API isn't passing us the
+            agent_version, in these cases assume agent v3.0.0 (the last release
+            before sending agent_version was introduced).
         :param callback_url: URL to reach back to the ramdisk.
         :raises: NoFreeConductorWorker if there are no conductors to process
             this heartbeat request.
         """
         LOG.debug('RPC heartbeat called for node %s', node_id)
 
+        if agent_version is None:
+            agent_version = '3.0.0'
+
+        def heartbeat_with_deprecation(task, callback_url, agent_version):
+            global _SEEN_AGENT_VERSION_DEPRECATIONS
+            # FIXME(sambetts) Remove this try/except statement in Rocky making
+            # taking the agent_version in the deploy driver heartbeat function
+            # mandatory.
+            try:
+                task.driver.deploy.heartbeat(task, callback_url, agent_version)
+            except TypeError:
+                deploy_driver_name = task.driver.deploy.__class__.__name__
+                if deploy_driver_name not in _SEEN_AGENT_VERSION_DEPRECATIONS:
+                    LOG.warning('Deploy driver %s does not support '
+                                'agent_version as part of the heartbeat '
+                                'request, this will be required from Rocky '
+                                'onward.', deploy_driver_name)
+                    _SEEN_AGENT_VERSION_DEPRECATIONS.append(deploy_driver_name)
+                task.driver.deploy.heartbeat(task, callback_url)
+
         # NOTE(dtantsur): we acquire a shared lock to begin with, drivers are
         # free to promote it to an exclusive one.
         with task_manager.acquire(context, node_id, shared=True,
                                   purpose='heartbeat') as task:
-            task.spawn_after(self._spawn_worker, task.driver.deploy.heartbeat,
-                             task, callback_url)
+            task.spawn_after(
+                self._spawn_worker, heartbeat_with_deprecation,
+                task, callback_url, agent_version)
 
     @METRICS.timer('ConductorManager.vif_list')
     @messaging.expected_exceptions(exception.NetworkError,

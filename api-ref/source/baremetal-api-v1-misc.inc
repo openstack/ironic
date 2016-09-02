@@ -95,6 +95,9 @@ Normal response codes: 202
 
 Error response codes: 400 404
 
+.. versionadded:: 1.36 ``agent_version`` parameter for passing the version of
+  the Ironic Python Agent to Ironic during heartbeat
+
 Request
 -------
 
@@ -102,3 +105,4 @@ Request
 
     - node_ident: node_ident
     - callback_url: callback_url
+    - agent_version: agent_version

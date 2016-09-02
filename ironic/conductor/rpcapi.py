@@ -90,13 +90,14 @@ class ConductorAPI(object):
     |    1.39 - Added timeout optional parameter to change_node_power_state
     |    1.40 - Added inject_nmi
     |    1.41 - Added create_port
+    |    1.42 - Added optional agent_version to heartbeat
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.41'
+    RPC_API_VERSION = '1.42'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -744,17 +745,24 @@ class ConductorAPI(object):
         return cctxt.call(context, 'do_node_clean',
                           node_id=node_id, clean_steps=clean_steps)
 
-    def heartbeat(self, context, node_id, callback_url, topic=None):
+    def heartbeat(self, context, node_id, callback_url, agent_version,
+                  topic=None):
         """Process a node heartbeat.
 
         :param context: request context.
         :param node_id: node ID or UUID.
         :param callback_url: URL to reach back to the ramdisk.
         :param topic: RPC topic. Defaults to self.topic.
+        :param agent_version: the version of the agent that is heartbeating
         """
-        cctxt = self.client.prepare(topic=topic or self.topic, version='1.34')
+        new_kws = {}
+        version = '1.34'
+        if self.client.can_send_version('1.42'):
+            version = '1.42'
+            new_kws['agent_version'] = agent_version
+        cctxt = self.client.prepare(topic=topic or self.topic, version=version)
         return cctxt.call(context, 'heartbeat', node_id=node_id,
-                          callback_url=callback_url)
+                          callback_url=callback_url, **new_kws)
 
     def object_class_action_versions(self, context, objname, objmethod,
                                      object_versions, args, kwargs):

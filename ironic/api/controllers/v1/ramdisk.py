@@ -152,12 +152,17 @@ class HeartbeatController(rest.RestController):
     """Controller handling heartbeats from deploy ramdisk."""
 
     @expose.expose(None, types.uuid_or_name, wtypes.text,
-                   status_code=http_client.ACCEPTED)
-    def post(self, node_ident, callback_url):
+                   wtypes.text, status_code=http_client.ACCEPTED)
+    def post(self, node_ident, callback_url, agent_version=None):
         """Process a heartbeat from the deploy ramdisk.
 
         :param node_ident: the UUID or logical name of a node.
         :param callback_url: the URL to reach back to the ramdisk.
+        :param agent_version: The version of the agent that is heartbeating.
+            ``None`` indicates that the agent that is heartbeating is a version
+            before sending agent_version was introduced so agent v3.0.0 (the
+            last release before sending agent_version was introduced) will be
+            assumed.
         :raises: NodeNotFound if node with provided UUID or name was not found.
         :raises: InvalidUuidOrName if node_ident is not valid name or UUID.
         :raises: NoValidHost if RPC topic for node could not be retrieved.
@@ -166,6 +171,10 @@ class HeartbeatController(rest.RestController):
         """
         if not api_utils.allow_ramdisk_endpoints():
             raise exception.NotFound()
+
+        if agent_version and not api_utils.allow_agent_version_in_heartbeat():
+            raise exception.InvalidParameterValue(
+                _('Field "agent_version" not recognised'))
 
         cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:ipa_heartbeat', cdict, cdict)
@@ -178,6 +187,6 @@ class HeartbeatController(rest.RestController):
             e.code = http_client.BAD_REQUEST
             raise
 
-        pecan.request.rpcapi.heartbeat(pecan.request.context,
-                                       rpc_node.uuid, callback_url,
-                                       topic=topic)
+        pecan.request.rpcapi.heartbeat(
+            pecan.request.context, rpc_node.uuid, callback_url,
+            agent_version, topic=topic)

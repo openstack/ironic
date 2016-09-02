@@ -272,11 +272,12 @@ class HeartbeatMixin(object):
         return (states.DEPLOYWAIT, states.CLEANWAIT)
 
     @METRICS.timer('HeartbeatMixin.heartbeat')
-    def heartbeat(self, task, callback_url):
+    def heartbeat(self, task, callback_url, agent_version):
         """Process a heartbeat.
 
         :param task: task to work with.
         :param callback_url: agent HTTP API URL.
+        :param agent_version: The version of the agent that is heartbeating
         """
         # NOTE(pas-ha) immediately skip the rest if nothing to do
         if task.node.provision_state not in self.heartbeat_allowed_states:
@@ -293,6 +294,7 @@ class HeartbeatMixin(object):
 
         driver_internal_info = node.driver_internal_info
         driver_internal_info['agent_url'] = callback_url
+        driver_internal_info['agent_version'] = agent_version
         node.driver_internal_info = driver_internal_info
         node.save()
 

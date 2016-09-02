@@ -602,6 +602,16 @@ def allow_node_rebuild_with_configdrive():
             versions.MINOR_35_REBUILD_CONFIG_DRIVE)
 
 
+def allow_agent_version_in_heartbeat():
+    """Check if agent version is allowed to be passed into heartbeat.
+
+    Version 1.36 of the API added the ability for agents to pass their version
+    information to Ironic on heartbeat.
+    """
+    return (pecan.request.version.minor >=
+            versions.MINOR_36_AGENT_VERSION_HEARTBEAT)
+
+
 def get_controller_reserved_names(cls):
     """Get reserved names for a given controller.
 
