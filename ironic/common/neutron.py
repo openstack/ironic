@@ -127,24 +127,20 @@ def add_ports_to_network(task, network_uuid, is_flat=False):
         try:
             port = client.create_port(body)
         except neutron_exceptions.NeutronClientException as e:
-            rollback_ports(task, network_uuid)
-            msg = (_('Could not create neutron port for ironic port '
-                     '%(ir-port)s on given network %(net)s from node '
-                     '%(node)s. %(exc)s') %
-                   {'net': network_uuid, 'node': node.uuid,
-                    'ir-port': ironic_port.uuid, 'exc': e})
-            LOG.exception(msg)
-            raise exception.NetworkError(msg)
-
-        try:
-            ports[ironic_port.uuid] = port['port']['id']
-        except KeyError:
             failures.append(ironic_port.uuid)
+            LOG.warning(_LW("Could not create neutron port for node's "
+                            "%(node)s port %(ir-port) on the neutron "
+                            "network %(net)s. %(exc)s"),
+                        {'net': network_uuid, 'node': node.uuid,
+                         'ir-port': ironic_port.uuid, 'exc': e})
+        else:
+            ports[ironic_port.uuid] = port['port']['id']
 
     if failures:
         if len(failures) == len(pxe_enabled_ports):
+            rollback_ports(task, network_uuid)
             raise exception.NetworkError(_(
-                "Failed to update vif_port_id for any PXE enabled port "
+                "Failed to create neutron ports for any PXE enabled port "
                 "on node %s.") % node.uuid)
         else:
             LOG.warning(_LW("Some errors were encountered when updating "
@@ -203,14 +199,6 @@ def remove_neutron_ports(task, params):
         return
 
     for port in ports:
-        if not port['id']:
-            # TODO(morgabra) client.list_ports() sometimes returns
-            # port objects with null ids. It's unclear why this happens.
-            LOG.warning(_LW("Deleting neutron port failed, missing 'id'. "
-                            "Node: %(node)s, neutron port: %(port)s."),
-                        {'node': node_uuid, 'port': port})
-            continue
-
         LOG.debug('Deleting neutron port %(vif_port_id)s of node '
                   '%(node_id)s.',
                   {'vif_port_id': port['id'], 'node_id': node_uuid})

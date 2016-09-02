@@ -223,31 +223,6 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
     def test_add_ports_with_client_id_to_flat_network(self):
         self._test_add_ports_to_flat_network(is_client_id=True)
 
-    def test_add_ports_to_flat_network_no_neutron_port_id(self):
-        port = self.ports[0]
-        expected_body = {
-            'port': {
-                'network_id': self.network_uuid,
-                'admin_state_up': True,
-                'binding:vnic_type': 'baremetal',
-                'device_owner': 'baremetal:none',
-                'device_id': self.node.uuid,
-                'mac_address': port.address,
-                'binding:profile': {
-                    'local_link_information': [port.local_link_connection]
-                }
-            }
-        }
-        del self.neutron_port['id']
-        self.client_mock.create_port.return_value = {
-            'port': self.neutron_port}
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaises(exception.NetworkError,
-                              neutron.add_ports_to_network,
-                              task, self.network_uuid, is_flat=True)
-            self.client_mock.create_port.assert_called_once_with(
-                expected_body)
-
     def test_add_ports_to_vlan_network_instance_uuid(self):
         self.node.instance_uuid = uuidutils.generate_uuid()
         self.node.save()
@@ -275,44 +250,33 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             self.client_mock.create_port.assert_called_once_with(expected_body)
 
     @mock.patch.object(neutron, 'rollback_ports')
-    def test_add_network_fail(self, rollback_mock):
+    def test_add_network_all_ports_fail(self, rollback_mock):
         # Check that if creating a port fails, the ports are cleaned up
         self.client_mock.create_port.side_effect = \
             neutron_client_exc.ConnectionFailed
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaisesRegex(
-                exception.NetworkError, 'Could not create neutron port',
-                neutron.add_ports_to_network, task, self.network_uuid)
+            self.assertRaises(
+                exception.NetworkError, neutron.add_ports_to_network, task,
+                self.network_uuid)
             rollback_mock.assert_called_once_with(task, self.network_uuid)
 
-    @mock.patch.object(neutron, 'rollback_ports')
-    def test_add_network_fail_create_any_port_empty(self, rollback_mock):
-        self.client_mock.create_port.return_value = {}
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaisesRegex(
-                exception.NetworkError, 'any PXE enabled port',
-                neutron.add_ports_to_network, task, self.network_uuid)
-            self.assertFalse(rollback_mock.called)
-
     @mock.patch.object(neutron, 'LOG')
-    @mock.patch.object(neutron, 'rollback_ports')
-    def test_add_network_fail_create_some_ports_empty(self, rollback_mock,
-                                                      log_mock):
-        port2 = object_utils.create_test_port(
+    def test_add_network_create_some_ports_fail(self, log_mock):
+        object_utils.create_test_port(
             self.context, node_id=self.node.id,
             uuid=uuidutils.generate_uuid(),
             address='52:54:55:cf:2d:32',
             extra={'vif_port_id': uuidutils.generate_uuid()}
         )
         self.client_mock.create_port.side_effect = [
-            {'port': self.neutron_port}, {}]
+            {'port': self.neutron_port}, neutron_client_exc.ConnectionFailed]
         with task_manager.acquire(self.context, self.node.uuid) as task:
             neutron.add_ports_to_network(task, self.network_uuid)
-            self.assertIn(str(port2.uuid),
-                          # Call #0, argument #1
-                          log_mock.warning.call_args[0][1]['ports'])
-            self.assertFalse(rollback_mock.called)
+            self.assertIn("Could not create neutron port for node's",
+                          log_mock.warning.call_args_list[0][0][0])
+            self.assertIn("Some errors were encountered when updating",
+                          log_mock.warning.call_args_list[1][0][0])
 
     @mock.patch.object(neutron, 'remove_neutron_ports')
     def test_remove_ports_from_network(self, remove_mock):
