@@ -698,6 +698,44 @@ class TestMigrationsMySQL(MigrationCheckersMixin,
                           test_base.BaseTestCase):
     FIXTURE = test_fixtures.MySQLOpportunisticFixture
 
+    def _pre_upgrade_e918ff30eb42(self, engine):
+
+        nodes = db_utils.get_table(engine, 'nodes')
+
+        # this should always fail pre-upgrade
+        mediumtext = 'a' * (pow(2, 16) + 1)
+        uuid = uuidutils.generate_uuid()
+        expected_to_fail_data = {'uuid': uuid, 'instance_info': mediumtext}
+        self.assertRaises(db_exc.DBError,
+                          nodes.insert().execute, expected_to_fail_data)
+
+        # this should always work pre-upgrade
+        text = 'a' * (pow(2, 16) - 1)
+        uuid = uuidutils.generate_uuid()
+        valid_pre_upgrade_data = {'uuid': uuid, 'instance_info': text}
+        nodes.insert().execute(valid_pre_upgrade_data)
+
+        return valid_pre_upgrade_data
+
+    def _check_e918ff30eb42(self, engine, data):
+
+        nodes = db_utils.get_table(engine, 'nodes')
+
+        # check that the data for the successful pre-upgrade
+        # entry didn't change
+        node = nodes.select(nodes.c.uuid == data['uuid']).execute().first()
+        self.assertIsNotNone(node)
+        self.assertEqual(data['instance_info'], node['instance_info'])
+
+        # now this should pass post-upgrade
+        test = 'b' * (pow(2, 16) + 1)
+        uuid = uuidutils.generate_uuid()
+        data = {'uuid': uuid, 'instance_info': test}
+        nodes.insert().execute(data)
+
+        node = nodes.select(nodes.c.uuid == uuid).execute().first()
+        self.assertEqual(test, node['instance_info'])
+
 
 class TestMigrationsPostgreSQL(MigrationCheckersMixin,
                                WalkVersionsMixin,
