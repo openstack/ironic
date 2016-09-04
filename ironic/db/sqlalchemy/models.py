@@ -136,7 +136,7 @@ class Node(Base):
     target_provision_state = Column(String(15), nullable=True)
     provision_updated_at = Column(DateTime, nullable=True)
     last_error = Column(Text, nullable=True)
-    instance_info = Column(db_types.JsonEncodedDict)
+    instance_info = Column(db_types.JsonEncodedDict(mysql_as_long=True))
     properties = Column(db_types.JsonEncodedDict)
     driver = Column(String(255))
     driver_info = Column(db_types.JsonEncodedDict)
