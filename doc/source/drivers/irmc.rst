@@ -21,7 +21,7 @@ Prerequisites
 
 * Install `python-scciclient package <https://pypi.python.org/pypi/python-scciclient>`_::
 
-  $ pip install "python-scciclient>=0.3.0"
+  $ pip install "python-scciclient>=0.4.0"
 
 Drivers
 =======
