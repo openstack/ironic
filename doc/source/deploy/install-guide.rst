@@ -13,68 +13,10 @@ to look at earlier versions of this document for guidance.
 Service overview
 ================
 
-The Bare Metal service is a collection of components that provides support to
-manage and provision physical machines.
+The `service overview`_ section has been moved to the Bare Metal service
+Install Guide.
 
-Also known as the ``ironic`` project, the Bare Metal service may, depending
-upon configuration, interact with several other OpenStack services. This
-includes:
-
-- the OpenStack Telemetry module (ceilometer) for consuming the IPMI metrics
-- the OpenStack Identity service (keystone) for request authentication and to
-  locate other OpenStack services
-- the OpenStack Image service (glance) from which to retrieve images and image meta-data
-- the OpenStack Networking service (neutron) for DHCP and network configuration
-- the OpenStack Compute service (nova) works with the Bare Metal service and acts as
-  a user-facing API for instance management, while the Bare Metal service
-  provides the admin/operator API for hardware management.  The OpenStack
-  Compute service also provides scheduling facilities (matching flavors <->
-  images <-> hardware), tenant quotas, IP assignment, and other services which
-  the Bare Metal service does not, in and of itself, provide.
-
-- the OpenStack Block Storage (cinder) provides volumes, but this aspect is not
-  yet available.
-
-The Bare Metal service includes the following components:
-
-- ironic-api: A RESTful API that processes application requests by sending
-  them to the ironic-conductor over RPC.
-- ironic-conductor: Adds/edits/deletes nodes; powers on/off nodes with
-  ipmi or ssh; provisions/deploys/decommissions bare metal nodes.
-- ironic-python-agent: A python service which is run in a temporary ramdisk to
-  provide ironic-conductor service(s) with remote access and in-band hardware
-  control.
-- python-ironicclient: A command-line interface (CLI) for interacting with
-  the Bare Metal service.
-
-Additionally, the Bare Metal service has certain external dependencies, which are
-very similar to other OpenStack services:
-
-- A database to store hardware information and state. You can set the database
-  back-end type and location. A simple approach is to use the same database
-  back end as the Compute service. Another approach is to use a separate
-  database back-end to further isolate bare metal resources (and associated
-  metadata) from users.
-- A queue. A central hub for passing messages, such as RabbitMQ.
-  It should use the same implementation as that of the Compute service.
-
-Optionally, one may wish to utilize the following associated projects for
-additional functionality:
-
-- ironic-inspector_; An associated service which performs in-band hardware
-  introspection by PXE booting unregistered hardware into a "discovery ramdisk".
-- diskimage-builder_; May be used to customize machine images, create and
-  discovery deploy ramdisks, if necessary.
-- bifrost_; a set of Ansible playbooks that automates the task of deploying a
-  base image onto a set of known hardware using ironic.
-
-.. _ironic-inspector: http://docs.openstack.org/developer/ironic-inspector/
-.. _diskimage-builder: http://docs.openstack.org/developer/diskimage-builder/
-.. _bifrost: http://docs.openstack.org/developer/bifrost/
-
-
-.. todo: include coreos-image-builder reference here, once the split is done
-
+.. _`service overview`: http://docs.openstack.org/project-install-guide/baremetal/draft/get_started.html
 
 Install and configure prerequisites
 ===================================
@@ -1399,6 +1341,7 @@ The following sections will describe both methods.
    with diskimage-builder_ **version >= 0.1.42** or ironic-python-agent_
    in the kilo-era.
 
+
 Enabling local boot with Compute service
 ----------------------------------------
 
@@ -2604,3 +2547,4 @@ following command.
 
 
 .. _ironic-python-agent: http://docs.openstack.org/developer/ironic-python-agent/
+.. _diskimage-builder: http://docs.openstack.org/developer/diskimage-builder/

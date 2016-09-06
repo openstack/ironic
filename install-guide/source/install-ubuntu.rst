@@ -6,7 +6,7 @@ Install and configure for Ubuntu
 This section describes how to install and configure the Bare Metal
 service for Ubuntu 14.04 (LTS).
 
-.. include:: common_prerequisites.rst
+.. include:: include/common-prerequisites.rst
 
 Install and configure components
 --------------------------------
