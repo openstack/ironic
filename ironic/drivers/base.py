@@ -48,6 +48,13 @@ class BaseDriver(object):
     the interfaces are appropriate.
     """
 
+    supported = True
+    """Indicates if a driver is supported.
+
+    This will be set to False for drivers which are untested in first- or
+    third-party CI, or in the proces of being deprecated.
+    """
+
     core_interfaces = []
     standard_interfaces = []
 
@@ -166,6 +173,14 @@ class BareDriver(BaseDriver):
 
 class BaseInterface(object):
     """A base interface implementing common functions for Driver Interfaces."""
+
+    supported = True
+    """Indicates if an interface is supported.
+
+    This will be set to False for interfaces which are untested in first- or
+    third-party CI, or in the proces of being deprecated.
+    """
+
     interface_type = 'base'
 
     def __new__(cls, *args, **kwargs):
@@ -1021,8 +1036,10 @@ class RAIDInterface(BaseInterface):
 
 
 @six.add_metaclass(abc.ABCMeta)
-class NetworkInterface(object):
+class NetworkInterface(BaseInterface):
     """Base class for network interfaces."""
+
+    interface_type = 'network'
 
     def get_properties(self):
         """Return the properties of the interface.

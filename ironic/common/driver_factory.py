@@ -184,7 +184,8 @@ class BaseDriverFactory(object):
                 cls._entrypoint_name,
                 _check_func,
                 invoke_on_load=True,
-                on_load_failure_callback=_catch_driver_not_found))
+                on_load_failure_callback=_catch_driver_not_found,
+                propagate_map_exceptions=True))
 
         # NOTE(deva): if we were unable to load any configured driver, perhaps
         #             because it is not present on the system, raise an error.
@@ -197,6 +198,10 @@ class BaseDriverFactory(object):
             raise exception.DriverNotFoundInEntrypoint(
                 driver_name=names, entrypoint=cls._entrypoint_name)
 
+        # warn for any untested/unsupported/deprecated drivers or interfaces
+        cls._extension_manager.map(cls._extension_manager.names(),
+                                   _warn_if_unsupported)
+
         LOG.info(_LI("Loaded the following drivers: %s"),
                  cls._extension_manager.names())
 
@@ -204,6 +209,12 @@ class BaseDriverFactory(object):
     def names(self):
         """The list of driver names available."""
         return self._extension_manager.names()
+
+
+def _warn_if_unsupported(ext):
+    if not ext.obj.supported:
+        LOG.warning(_LW('Driver "%s" is UNSUPPORTED. It has been deprecated '
+                        'and may be removed in a future release.'), ext.name)
 
 
 class DriverFactory(BaseDriverFactory):
