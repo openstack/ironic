@@ -96,6 +96,45 @@ class SSHValidateParametersTestCase(db_base.DbTestCase):
         self.assertEqual('1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
                          info['uuid'])
 
+    def test__parse_driver_info_good_file_with_passphrase(self):
+        # make sure we get back the expected things
+        d_info = db_utils.get_test_ssh_info('file_with_passphrase')
+        tempdir = tempfile.mkdtemp()
+        key_path = tempdir + '/foo'
+        open(key_path, 'wt').close()
+        d_info['ssh_key_filename'] = key_path
+        node = obj_utils.get_test_node(
+            self.context,
+            driver='fake_ssh',
+            driver_info=d_info)
+        info = ssh._parse_driver_info(node)
+        self.assertEqual('1.2.3.4', info['host'])
+        self.assertEqual('admin', info['username'])
+        self.assertEqual('fake', info['password'])
+        self.assertEqual(key_path, info['key_filename'])
+        self.assertEqual(22, info['port'])
+        self.assertEqual('virsh', info['virt_type'])
+        self.assertIsNotNone(info['cmd_set'])
+        self.assertEqual('1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                         info['uuid'])
+
+    def test__parse_driver_info_good_key_with_passphrase(self):
+        # make sure we get back the expected things
+        node = obj_utils.get_test_node(
+            self.context,
+            driver='fake_ssh',
+            driver_info=db_utils.get_test_ssh_info('key_with_passphrase'))
+        info = ssh._parse_driver_info(node)
+        self.assertEqual('1.2.3.4', info['host'])
+        self.assertEqual('admin', info['username'])
+        self.assertEqual('fake', info['password'])
+        self.assertEqual('--BEGIN PRIVATE ...blah', info['key_contents'])
+        self.assertEqual(22, info['port'])
+        self.assertEqual('virsh', info['virt_type'])
+        self.assertIsNotNone(info['cmd_set'])
+        self.assertEqual('1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                         info['uuid'])
+
     def test__parse_driver_info_bad_file(self):
         # A filename that doesn't exist errors.
         info = db_utils.get_test_ssh_info('file')
@@ -107,11 +146,10 @@ class SSHValidateParametersTestCase(db_base.DbTestCase):
             exception.InvalidParameterValue, ssh._parse_driver_info, node)
 
     def test__parse_driver_info_too_many(self):
-        info = db_utils.get_test_ssh_info('too_many')
         node = obj_utils.get_test_node(
             self.context,
             driver='fake_ssh',
-            driver_info=info)
+            driver_info=db_utils.get_test_ssh_info('too_many'))
         self.assertRaises(
             exception.InvalidParameterValue, ssh._parse_driver_info, node)
 
