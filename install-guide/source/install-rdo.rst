@@ -7,7 +7,7 @@ Install and configure for Red Hat Enterprise Linux and CentOS
 This section describes how to install and configure the Bare Metal service
 for Red Hat Enterprise Linux 7 and CentOS 7.
 
-.. include:: common_prerequisites.rst
+.. include:: include/common-prerequisites.rst
 
 Install and configure components
 --------------------------------
