@@ -51,7 +51,7 @@ class Chassis(base.APIBase):
     uuid = types.uuid
     """The UUID of the chassis"""
 
-    description = wtypes.text
+    description = wtypes.StringType(max_length=255)
     """The description of the chassis"""
 
     extra = {wtypes.text: types.jsontype}
