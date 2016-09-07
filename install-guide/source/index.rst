@@ -7,6 +7,7 @@ Bare Metal service
 
    get_started.rst
    install.rst
+   configure-integration.rst
    verify.rst
    next-steps.rst
 
