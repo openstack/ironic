@@ -77,8 +77,9 @@ class DracInspect(base.InspectInterface):
             properties['memory_mb'] = sum(
                 [memory.size_mb for memory in client.list_memory()])
             cpus = client.list_cpus()
-            properties['cpus'] = len(cpus)
-            properties['cpu_arch'] = 'x86_64' if cpus[0].arch64 else 'x86'
+            if cpus:
+                properties['cpus'] = len(cpus)
+                properties['cpu_arch'] = 'x86_64' if cpus[0].arch64 else 'x86'
 
             virtual_disks = client.list_virtual_disks()
             root_disk = self._guess_root_disk(virtual_disks)
@@ -133,8 +134,15 @@ class DracInspect(base.InspectInterface):
         LOG.info(_LI('Node %s successfully inspected.'), node.uuid)
         return states.MANAGEABLE
 
-    def _guess_root_disk(self, disks, min_size_required=4 * units.Ki):
+    def _guess_root_disk(self, disks, min_size_required_mb=4 * units.Ki):
+        """Find a root disk.
+
+        :param disks: list of disks.
+        :param min_size_required_mb: minimum required size of the root disk in
+                                     megabytes.
+        :returns: root disk.
+        """
         disks.sort(key=lambda disk: disk.size_mb)
         for disk in disks:
-            if disk.size_mb >= min_size_required:
+            if disk.size_mb >= min_size_required_mb:
                 return disk

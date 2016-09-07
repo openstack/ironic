@@ -210,6 +210,24 @@ class DracInspectionTestCase(db_base.DbTestCase):
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
     @mock.patch.object(objects.Port, 'create', spec_set=True, autospec=True)
+    def test_inspect_hardware_no_cpu(
+            self, mock_port_create, mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        mock_client.list_memory.return_value = self.memory
+        mock_client.list_cpus.return_value = []
+        mock_client.list_virtual_disks.return_value = []
+        mock_client.list_physical_disks.return_value = self.physical_disks
+        mock_client.list_nics.return_value = self.nics
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.HardwareInspectionFailure,
+                              task.driver.inspect.inspect_hardware, task)
+
+    @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(objects.Port, 'create', spec_set=True, autospec=True)
     def test_inspect_hardware_with_existing_ports(self, mock_port_create,
                                                   mock_get_drac_client):
         expected_node_properties = {
@@ -233,3 +251,11 @@ class DracInspectionTestCase(db_base.DbTestCase):
         self.assertEqual(expected_node_properties, self.node.properties)
         self.assertEqual(states.MANAGEABLE, return_value)
         self.assertEqual(2, mock_port_create.call_count)
+
+    def test__guess_root_disk(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            root_disk = task.driver.inspect._guess_root_disk(
+                self.physical_disks)
+
+            self.assertEqual(285888, root_disk.size_mb)
