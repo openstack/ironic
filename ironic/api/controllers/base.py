@@ -110,3 +110,6 @@ class Version(object):
 
     def __eq__(a, b):
         return (a.major, a.minor) == (b.major, b.minor)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
