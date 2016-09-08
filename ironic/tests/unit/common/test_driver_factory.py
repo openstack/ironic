@@ -65,7 +65,7 @@ class DriverLoadTestCase(base.TestCase):
         with mock.patch.object(dispatch.NameDispatchExtensionManager,
                                '__init__', self._fake_init_driver_err):
             driver_factory.DriverFactory._init_extension_manager()
-            self.assertEqual(2, mock_em.call_count)
+            self.assertEqual(3, mock_em.call_count)
 
     @mock.patch.object(driver_factory.LOG, 'warning', autospec=True)
     def test_driver_duplicated_entry(self, mock_log):
@@ -74,6 +74,33 @@ class DriverLoadTestCase(base.TestCase):
         self.assertEqual(
             ['fake'], driver_factory.DriverFactory._extension_manager.names())
         self.assertTrue(mock_log.called)
+
+    @mock.patch.object(driver_factory, '_warn_if_unsupported')
+    def test_driver_init_checks_unsupported(self, mock_warn):
+        self.config(enabled_drivers=['fake'])
+        driver_factory.DriverFactory._init_extension_manager()
+        self.assertEqual(
+            ['fake'], driver_factory.DriverFactory._extension_manager.names())
+        self.assertTrue(mock_warn.called)
+
+
+class WarnUnsupportedDriversTestCase(base.TestCase):
+    @mock.patch.object(driver_factory.LOG, 'warning', autospec=True)
+    def _test__warn_if_unsupported(self, supported, mock_log):
+        ext = mock.Mock()
+        ext.obj = mock.Mock()
+        ext.obj.supported = supported
+        driver_factory._warn_if_unsupported(ext)
+        if supported:
+            self.assertFalse(mock_log.called)
+        else:
+            self.assertTrue(mock_log.called)
+
+    def test__warn_if_unsupported_with_supported(self):
+        self._test__warn_if_unsupported(True)
+
+    def test__warn_if_unsupported_with_unsupported(self):
+        self._test__warn_if_unsupported(False)
 
 
 class GetDriverTestCase(base.TestCase):
@@ -98,7 +125,8 @@ class NetworkInterfaceFactoryTestCase(db_base.DbTestCase):
         driver_factory.NetworkInterfaceFactory._extension_manager = None
         self.config(enabled_drivers=['fake'])
 
-    def test_build_driver_for_task(self):
+    @mock.patch.object(driver_factory, '_warn_if_unsupported')
+    def test_build_driver_for_task(self, mock_warn):
         # flat and noop network interfaces are enabled in base test case
         factory = driver_factory.NetworkInterfaceFactory
         node = obj_utils.create_test_node(self.context, driver='fake',
@@ -112,6 +140,9 @@ class NetworkInterfaceFactoryTestCase(db_base.DbTestCase):
                          factory._entrypoint_name)
         self.assertEqual(['flat', 'neutron', 'noop'],
                          sorted(factory._enabled_driver_list))
+        # NOTE(jroll) 4 checks, one for the driver we're building and
+        # one for each of the 3 network interfaces
+        self.assertEqual(4, mock_warn.call_count)
 
     def test_build_driver_for_task_default_is_none(self):
         # flat and noop network interfaces are enabled in base test case
