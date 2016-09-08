@@ -97,8 +97,24 @@ class TestVersion(base.BaseApiTest):
             {cbase.Version.string: '123.456'}, mock.ANY, mock.ANY)
         ver_2 = cbase.Version(
             {cbase.Version.string: '123.456'}, mock.ANY, mock.ANY)
+        ver_3 = cbase.Version(
+            {cbase.Version.string: '654.321'}, mock.ANY, mock.ANY)
         self.assertTrue(hasattr(ver_1, '__eq__'))
         self.assertEqual(ver_1, ver_2)
+        # Force __eq__ to be called and return False
+        self.assertFalse(ver_1 == ver_3)
+
+    def test_not_equals(self):
+        ver_1 = cbase.Version(
+            {cbase.Version.string: '123.456'}, mock.ANY, mock.ANY)
+        ver_2 = cbase.Version(
+            {cbase.Version.string: '123.456'}, mock.ANY, mock.ANY)
+        ver_3 = cbase.Version(
+            {cbase.Version.string: '654.321'}, mock.ANY, mock.ANY)
+        self.assertTrue(hasattr(ver_1, '__ne__'))
+        self.assertNotEqual(ver_1, ver_3)
+        # Force __ne__ to be called and return False
+        self.assertFalse(ver_1 != ver_2)
 
     def test_greaterthan(self):
         ver_1 = cbase.Version(
@@ -107,6 +123,8 @@ class TestVersion(base.BaseApiTest):
             {cbase.Version.string: '123.456'}, mock.ANY, mock.ANY)
         self.assertTrue(hasattr(ver_1, '__gt__'))
         self.assertGreater(ver_1, ver_2)
+        # Force __gt__ to be called and return False
+        self.assertFalse(ver_2 > ver_1)
 
     def test_lessthan(self):
         # __lt__ is created by @functools.total_ordering, make sure it exists
@@ -117,3 +135,5 @@ class TestVersion(base.BaseApiTest):
             {cbase.Version.string: '123.457'}, mock.ANY, mock.ANY)
         self.assertTrue(hasattr(ver_1, '__lt__'))
         self.assertLess(ver_1, ver_2)
+        # Force __lt__ to be called and return False
+        self.assertFalse(ver_2 < ver_1)
