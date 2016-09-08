@@ -155,13 +155,12 @@ def validate_oneview_resources_compatibility(task):
     including server_hardware_uri, server_hardware_type_uri,
     server_profile_template_uri, enclosure_group_uri and node ports. Also
     verifies if a Server Profile is applied to the Server Hardware the node
-    represents. If any validation fails, python-oneviewclient will raise
-    an appropriate OneViewException.
+    represents when in pre-allocation model. If any validation fails,
+    python-oneviewclient will raise an appropriate OneViewException.
 
     :param: task: a TaskManager instance containing the node to act on.
     """
 
-    node = task.node
     node_ports = task.ports
 
     oneview_info = get_oneview_info(task.node)
@@ -169,13 +168,15 @@ def validate_oneview_resources_compatibility(task):
     try:
         oneview_client = get_oneview_client()
 
-        oneview_client.validate_node_server_hardware(
-            oneview_info, node.properties.get('memory_mb'),
-            node.properties.get('cpus')
-        )
+        oneview_client.validate_node_server_profile_template(oneview_info)
         oneview_client.validate_node_server_hardware_type(oneview_info)
         oneview_client.validate_node_enclosure_group(oneview_info)
-        oneview_client.validate_node_server_profile_template(oneview_info)
+
+        oneview_client.validate_node_server_hardware(
+            oneview_info,
+            task.node.properties.get('memory_mb'),
+            task.node.properties.get('cpus')
+        )
 
         # NOTE(thiagop): Support to pre-allocation will be dropped in the Pike
         # release
@@ -183,12 +184,12 @@ def validate_oneview_resources_compatibility(task):
             oneview_client.is_node_port_mac_compatible_with_server_hardware(
                 oneview_info, node_ports
             )
-            oneview_client.validate_node_server_profile_template(oneview_info)
         else:
             oneview_client.check_server_profile_is_applied(oneview_info)
             oneview_client.is_node_port_mac_compatible_with_server_profile(
                 oneview_info, node_ports
             )
+
     except oneview_exceptions.OneViewException as oneview_exc:
         msg = (_("Error validating node resources with OneView: %s") %
                oneview_exc)

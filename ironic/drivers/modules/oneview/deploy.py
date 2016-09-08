@@ -211,6 +211,14 @@ class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
     def get_properties(self):
         deploy_utils.get_properties()
 
+    def validate(self, task):
+        common.verify_node_info(task.node)
+        try:
+            common.validate_oneview_resources_compatibility(task)
+        except exception.OneViewError as oneview_exc:
+            raise exception.InvalidParameterValue(oneview_exc)
+        super(OneViewIscsiDeploy, self).validate(task)
+
     def prepare(self, task):
         if common.is_dynamic_allocation_enabled(task.node):
             deploy_utils.prepare(task)
@@ -240,6 +248,14 @@ class OneViewAgentDeploy(agent.AgentDeploy, OneViewPeriodicTasks):
 
     def get_properties(self):
         deploy_utils.get_properties()
+
+    def validate(self, task):
+        common.verify_node_info(task.node)
+        try:
+            common.validate_oneview_resources_compatibility(task)
+        except exception.OneViewError as oneview_exc:
+            raise exception.InvalidParameterValue(oneview_exc)
+        super(OneViewAgentDeploy, self).validate(task)
 
     def prepare(self, task):
         if common.is_dynamic_allocation_enabled(task.node):
