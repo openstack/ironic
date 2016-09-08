@@ -27,6 +27,7 @@ from ironic.drivers.modules.amt import management as amt_mgmt
 from ironic.drivers.modules.amt import power as amt_power
 from ironic.drivers.modules.cimc import management as cimc_mgmt
 from ironic.drivers.modules.cimc import power as cimc_power
+from ironic.drivers.modules.drac import deploy as drac_deploy
 from ironic.drivers.modules.drac import inspect as drac_inspect
 from ironic.drivers.modules.drac import management as drac_mgmt
 from ironic.drivers.modules.drac import power as drac_power
@@ -200,7 +201,7 @@ class FakeDracDriver(base.BaseDriver):
                 reason=_('Unable to import python-dracclient library'))
 
         self.power = drac_power.DracPower()
-        self.deploy = fake.FakeDeploy()
+        self.deploy = drac_deploy.DracDeploy()
         self.management = drac_mgmt.DracManagement()
         self.raid = drac_raid.DracRAID()
         self.vendor = drac_vendor.DracVendorPassthru()

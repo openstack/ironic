@@ -1,0 +1,4 @@
+---
+fixes:
+  - Fixes DRAC deploy interface failure when automated cleaning is called
+    without any clean step.

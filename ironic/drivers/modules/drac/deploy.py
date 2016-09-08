@@ -39,7 +39,7 @@ class DracDeploy(iscsi_deploy.ISCSIDeploy):
         node = task.node
 
         inband_steps = [step for step
-                        in node.driver_internal_info['clean_steps']
+                        in node.driver_internal_info.get('clean_steps', [])
                         if {'interface': step['interface'],
                             'step': step['step']} not in _OOB_CLEAN_STEPS]
 
