@@ -52,7 +52,7 @@ class BaseDriver(object):
     """Indicates if a driver is supported.
 
     This will be set to False for drivers which are untested in first- or
-    third-party CI, or in the proces of being deprecated.
+    third-party CI, or in the process of being deprecated.
     """
 
     core_interfaces = []
@@ -178,7 +178,7 @@ class BaseInterface(object):
     """Indicates if an interface is supported.
 
     This will be set to False for interfaces which are untested in first- or
-    third-party CI, or in the proces of being deprecated.
+    third-party CI, or in the process of being deprecated.
     """
 
     interface_type = 'base'

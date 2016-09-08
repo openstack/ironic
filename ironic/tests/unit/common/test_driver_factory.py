@@ -127,13 +127,15 @@ class NetworkInterfaceFactoryTestCase(db_base.DbTestCase):
 
     @mock.patch.object(driver_factory, '_warn_if_unsupported')
     def test_build_driver_for_task(self, mock_warn):
-        # flat and noop network interfaces are enabled in base test case
+        # flat, neutron, and noop network interfaces are enabled in base test
+        # case
         factory = driver_factory.NetworkInterfaceFactory
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           network_interface='flat')
         with task_manager.acquire(self.context, node.id) as task:
             extension_mgr = factory._extension_manager
             self.assertIn('flat', extension_mgr)
+            self.assertIn('neutron', extension_mgr)
             self.assertIn('noop', extension_mgr)
             self.assertEqual(extension_mgr['flat'].obj, task.driver.network)
         self.assertEqual('ironic.hardware.interfaces.network',
@@ -145,18 +147,21 @@ class NetworkInterfaceFactoryTestCase(db_base.DbTestCase):
         self.assertEqual(4, mock_warn.call_count)
 
     def test_build_driver_for_task_default_is_none(self):
-        # flat and noop network interfaces are enabled in base test case
+        # flat, neutron, and noop network interfaces are enabled in base test
+        # case
         factory = driver_factory.NetworkInterfaceFactory
         self.config(dhcp_provider='none', group='dhcp')
         node = obj_utils.create_test_node(self.context, driver='fake')
         with task_manager.acquire(self.context, node.id) as task:
             extension_mgr = factory._extension_manager
             self.assertIn('flat', extension_mgr)
+            self.assertIn('neutron', extension_mgr)
             self.assertIn('noop', extension_mgr)
             self.assertEqual(extension_mgr['noop'].obj, task.driver.network)
 
     def test_build_driver_for_task_default_network_interface_is_set(self):
-        # flat and noop network interfaces are enabled in base test case
+        # flat, neutron, and noop network interfaces are enabled in base test
+        # case
         factory = driver_factory.NetworkInterfaceFactory
         self.config(dhcp_provider='none', group='dhcp')
         self.config(default_network_interface='flat')
@@ -164,16 +169,19 @@ class NetworkInterfaceFactoryTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, node.id) as task:
             extension_mgr = factory._extension_manager
             self.assertIn('flat', extension_mgr)
+            self.assertIn('neutron', extension_mgr)
             self.assertIn('noop', extension_mgr)
             self.assertEqual(extension_mgr['flat'].obj, task.driver.network)
 
     def test_build_driver_for_task_default_is_flat(self):
-        # flat and noop network interfaces are enabled in base test case
+        # flat, neutron, and noop network interfaces are enabled in base test
+        # case
         factory = driver_factory.NetworkInterfaceFactory
         node = obj_utils.create_test_node(self.context, driver='fake')
         with task_manager.acquire(self.context, node.id) as task:
             extension_mgr = factory._extension_manager
             self.assertIn('flat', extension_mgr)
+            self.assertIn('neutron', extension_mgr)
             self.assertIn('noop', extension_mgr)
             self.assertEqual(extension_mgr['flat'].obj, task.driver.network)
 
