@@ -175,6 +175,11 @@ class TestPXEUtils(db_base.DbTestCase):
     def test__build_elilo_config(self):
         pxe_opts = self.pxe_options
         pxe_opts['boot_mode'] = 'uefi'
+        self.config(
+            uefi_pxe_config_template=('ironic/drivers/modules/'
+                                      'elilo_efi_pxe_config.template'),
+            group='pxe'
+        )
         rendered_template = pxe_utils._build_pxe_config(
             pxe_opts, CONF.pxe.uefi_pxe_config_template,
             '{{ ROOT }}', '{{ DISK_IDENTIFIER }}')
@@ -189,9 +194,9 @@ class TestPXEUtils(db_base.DbTestCase):
         pxe_opts = self.pxe_options
         pxe_opts['boot_mode'] = 'uefi'
         pxe_opts['tftp_server'] = '192.0.2.1'
-        grub_tmplte = "ironic/drivers/modules/pxe_grub_config.template"
         rendered_template = pxe_utils._build_pxe_config(
-            pxe_opts, grub_tmplte, '(( ROOT ))', '(( DISK_IDENTIFIER ))')
+            pxe_opts, CONF.pxe.uefi_pxe_config_template,
+            '(( ROOT ))', '(( DISK_IDENTIFIER ))')
 
         template_file = 'ironic/tests/unit/drivers/pxe_grub_config.template'
         expected_template = open(template_file).read().rstrip()
@@ -335,6 +340,11 @@ class TestPXEUtils(db_base.DbTestCase):
     @mock.patch('oslo_utils.fileutils.ensure_tree', autospec=True)
     def test_create_pxe_config_uefi_elilo(self, ensure_tree_mock, build_mock,
                                           write_mock, link_ip_configs_mock):
+        self.config(
+            uefi_pxe_config_template=('ironic/drivers/modules/'
+                                      'elilo_efi_pxe_config.template'),
+            group='pxe'
+        )
         build_mock.return_value = self.pxe_options_uefi
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.properties['capabilities'] = 'boot_mode:uefi'

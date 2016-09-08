@@ -968,17 +968,7 @@ PXE UEFI setup
 If you want to deploy on a UEFI supported bare metal, perform these additional
 steps on the ironic conductor node to configure the PXE UEFI environment.
 
-#. Download and untar the elilo bootloader version >= 3.16 from
-   http://sourceforge.net/projects/elilo/::
-
-    sudo tar zxvf elilo-3.16-all.tar.gz
-
-#. Copy the elilo boot loader image to ``/tftpboot`` directory::
-
-    sudo cp ./elilo-3.16-x86_64.efi /tftpboot/elilo.efi
-
-#. Grub2 is an alternate UEFI bootloader supported in Bare Metal service.
-   Install grub2 and shim packages::
+#. Install Grub2 and shim packages::
 
     Ubuntu: (14.04LTS and later)
         sudo apt-get install grub-efi-amd64-signed shim-signed
@@ -1028,18 +1018,6 @@ steps on the ironic conductor node to configure the PXE UEFI environment.
 
     sudo chmod 644 $GRUB_DIR/grub.cfg
 
-#. Update bootfile and template file configuration parameters for UEFI PXE boot
-   in the Bare Metal Service's configuration file (/etc/ironic/ironic.conf)::
-
-    [pxe]
-
-    # Bootfile DHCP parameter for UEFI boot mode. (string value)
-    uefi_pxe_bootfile_name=bootx64.efi
-
-    # Template file for PXE configuration for UEFI boot loader.
-    # (string value)
-    uefi_pxe_config_template=$pybasedir/drivers/modules/pxe_grub_config.template
-
 #. Update the bare metal node with ``boot_mode`` capability in node's properties
    field::
 
@@ -1052,7 +1030,37 @@ steps on the ironic conductor node to configure the PXE UEFI environment.
    boot device on the bare metal node. So this step is not required for
    ``pxe_ilo`` driver.
 
-For more information on configuring boot modes, refer boot_mode_support_.
+.. note::
+  For more information on configuring boot modes, see boot_mode_support_.
+
+
+Elilo: an alternative to Grub2
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Elilo is a UEFI bootloader. It is an alternative to Grub2, although it
+isn't recommended since it is not being supported.
+
+#. Download and untar the elilo bootloader version >= 3.16 from
+   http://sourceforge.net/projects/elilo/::
+
+    sudo tar zxvf elilo-3.16-all.tar.gz
+
+#. Copy the elilo boot loader image to ``/tftpboot`` directory::
+
+    sudo cp ./elilo-3.16-x86_64.efi /tftpboot/elilo.efi
+
+#. Update bootfile and template file configuration parameters for UEFI
+   PXE boot in the Bare Metal Service's configuration file
+   (/etc/ironic/ironic.conf)::
+
+    [pxe]
+
+    # Bootfile DHCP parameter for UEFI boot mode. (string value)
+    uefi_pxe_bootfile_name=elilo.efi
+
+    # Template file for PXE configuration for UEFI boot loader.
+    # (string value)
+    uefi_pxe_config_template=$pybasedir/drivers/modules/elilo_efi_pxe_config.template
 
 
 iPXE setup

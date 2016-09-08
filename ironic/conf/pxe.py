@@ -55,7 +55,7 @@ opts = [
     cfg.StrOpt('uefi_pxe_config_template',
                default=os.path.join(
                    '$pybasedir',
-                   'drivers/modules/elilo_efi_pxe_config.template'),
+                   'drivers/modules/pxe_grub_config.template'),
                help=_('On ironic-conductor node, template file for PXE '
                       'configuration for UEFI boot loader.')),
     cfg.StrOpt('tftp_server',
@@ -77,7 +77,7 @@ opts = [
                default='pxelinux.0',
                help=_('Bootfile DHCP parameter.')),
     cfg.StrOpt('uefi_pxe_bootfile_name',
-               default='elilo.efi',
+               default='bootx64.efi',
                help=_('Bootfile DHCP parameter for UEFI boot mode.')),
     cfg.BoolOpt('ipxe_enabled',
                 default=False,
