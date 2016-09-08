@@ -19,6 +19,7 @@ from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.drac import bios as drac_bios
 from ironic.drivers.modules.drac import common as drac_common
+from ironic.drivers.modules.drac import job as drac_job
 
 
 class DracVendorPassthru(base.VendorInterface):
@@ -111,3 +112,21 @@ class DracVendorPassthru(base.VendorInterface):
         :raises: DracOperationError on an error from python-dracclient.
         """
         drac_bios.abandon_config(task)
+
+    @base.passthru(['GET'], async=False,
+                   description=('List unfinished config jobs of the node. '
+                                'Required argument: a TaskManager instance '
+                                'containing the node to act on.'))
+    def list_unfinished_jobs(self, task, **kwargs):
+        """List unfinished config jobs of the node.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :param kwargs: not used.
+        :returns: a dictionary containing the ``unfinished_jobs`` key; this key
+                  points to a list of dicts, with each dict representing a Job
+                  object.
+        :raises: DracOperationError on an error from python-dracclient.
+        """
+        jobs = drac_job.list_unfinished_jobs(task.node)
+        # FIXME(mgould) Do this without calling private methods.
+        return {'unfinished_jobs': [job._asdict() for job in jobs]}

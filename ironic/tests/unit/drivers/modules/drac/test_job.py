@@ -19,6 +19,7 @@ from dracclient import exceptions as drac_exceptions
 import mock
 
 from ironic.common import exception
+from ironic.conductor import task_manager
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
 from ironic.tests.unit.conductor import mgr_utils
@@ -113,3 +114,47 @@ class DracJobTestCase(db_base.DbTestCase):
 
         self.assertRaises(exception.DracOperationError,
                           drac_job.validate_job_queue, self.node)
+
+
+@mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                   autospec=True)
+class DracVendorPassthruJobTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(DracVendorPassthruJobTestCase, self).setUp()
+        mgr_utils.mock_the_extension_manager(driver='fake_drac')
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake_drac',
+                                               driver_info=INFO_DICT)
+        self.job_dict = {
+            'id': 'JID_001436912645',
+            'name': 'ConfigBIOS:BIOS.Setup.1-1',
+            'start_time': '00000101000000',
+            'until_time': 'TIME_NA',
+            'message': 'Job in progress',
+            'state': 'Running',
+            'percent_complete': 34}
+        self.job = test_utils.dict_to_namedtuple(values=self.job_dict)
+
+    def test_list_unfinished_jobs(self, mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        mock_client.list_jobs.return_value = [self.job]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            resp = task.driver.vendor.list_unfinished_jobs(task)
+
+        mock_client.list_jobs.assert_called_once_with(only_unfinished=True)
+        self.assertEqual([self.job_dict], resp['unfinished_jobs'])
+
+    def test_list_unfinished_jobs_fail(self, mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        exc = exception.DracOperationError('boom')
+        mock_client.list_jobs.side_effect = exc
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.DracOperationError,
+                              task.driver.vendor.list_unfinished_jobs, task)

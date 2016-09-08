@@ -1,0 +1,6 @@
+---
+features:
+  - Adds ``list_unfinished_jobs`` method to the vendor-passthru interface of
+    the DRAC driver. It provides a way to check the status of the remote config
+    job after a BIOS configuration change was submitted using the
+    ``set_bios_config`` method.
