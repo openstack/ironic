@@ -245,7 +245,6 @@ IRONIC_IPXE_ENABLED=$(trueorfalse True IRONIC_IPXE_ENABLED)
 # Options below are only applied when IRONIC_IPXE_ENABLED is True
 IRONIC_IPXE_USE_SWIFT=$(trueorfalse False IRONIC_IPXE_USE_SWIFT)
 IRONIC_HTTP_DIR=${IRONIC_HTTP_DIR:-$IRONIC_DATA_DIR/httpboot}
-IRONIC_HTTP_SERVER=${IRONIC_HTTP_SERVER:-$IRONIC_TFTPSERVER_IP}
 IRONIC_HTTP_PORT=${IRONIC_HTTP_PORT:-3928}
 
 # Whether DevStack will be setup for bare metal or VMs
@@ -313,6 +312,17 @@ IRONIC_PROVISION_SUBNET_SUBNODE_IP=${IRONIC_PROVISION_SUBNET_SUBNODE_IP:-'10.0.5
 # Ironic provision subnet prefix
 # Example: IRONIC_PROVISION_SUBNET_PREFIX=10.0.5.0/24
 IRONIC_PROVISION_SUBNET_PREFIX=${IRONIC_PROVISION_SUBNET_PREFIX:-'10.0.5.0/24'}
+
+if [[ "$HOST_TOPOLOGY_ROLE" == 'primary' ]]; then
+    IRONIC_TFTPSERVER_IP=$IRONIC_PROVISION_SUBNET_GATEWAY
+    IRONIC_HTTP_SERVER=$IRONIC_PROVISION_SUBNET_GATEWAY
+fi
+if [[ "$HOST_TOPOLOGY_ROLE" == 'subnode' ]]; then
+    IRONIC_TFTPSERVER_IP=$IRONIC_PROVISION_SUBNET_SUBNODE_IP
+    IRONIC_HTTP_SERVER=$IRONIC_PROVISION_SUBNET_SUBNODE_IP
+fi
+
+IRONIC_HTTP_SERVER=${IRONIC_HTTP_SERVER:-$IRONIC_TFTPSERVER_IP}
 
 # Retrieving logs from the deploy ramdisk
 #
@@ -739,7 +749,7 @@ function configure_ironic_conductor {
 
     iniset $IRONIC_CONF_FILE DEFAULT rootwrap_config $IRONIC_ROOTWRAP_CONF
     iniset $IRONIC_CONF_FILE DEFAULT enabled_drivers $IRONIC_ENABLED_DRIVERS
-    iniset $IRONIC_CONF_FILE conductor api_url $IRONIC_SERVICE_PROTOCOL://$HOST_IP:$IRONIC_SERVICE_PORT
+    iniset $IRONIC_CONF_FILE conductor api_url $IRONIC_SERVICE_PROTOCOL://$SERVICE_HOST:$IRONIC_SERVICE_PORT
     if [[ -n "$IRONIC_CALLBACK_TIMEOUT" ]]; then
         iniset $IRONIC_CONF_FILE conductor deploy_callback_timeout $IRONIC_CALLBACK_TIMEOUT
     fi
@@ -784,7 +794,7 @@ function configure_ironic_conductor {
                         "Glance with Swift was explicitly requested with " \
                         "IRONIC_CONFIGURE_GLANCE_WITH_SWIFT=True"
         fi
-        iniset $IRONIC_CONF_FILE glance swift_endpoint_url ${SWIFT_SERVICE_PROTOCOL}://${HOST_IP}:${SWIFT_DEFAULT_BIND_PORT:-8080}
+        iniset $IRONIC_CONF_FILE glance swift_endpoint_url ${SWIFT_SERVICE_PROTOCOL}://${SERVICE_HOST}:${SWIFT_DEFAULT_BIND_PORT:-8080}
         iniset $IRONIC_CONF_FILE glance swift_api_version v1
         local tenant_id
         tenant_id=$(get_or_create_project $SERVICE_PROJECT_NAME default)
@@ -792,6 +802,8 @@ function configure_ironic_conductor {
         iniset $IRONIC_CONF_FILE glance swift_container glance
         iniset $IRONIC_CONF_FILE glance swift_temp_url_duration 3600
         iniset $IRONIC_CONF_FILE glance glance_protocol $GLANCE_SERVICE_PROTOCOL
+        iniset $IRONIC_CONF_FILE glance glance_host $SERVICE_HOST
+        iniset $IRONIC_CONF_FILE glance glance_port $GLANCE_SERVICE_PORT
     fi
 
     if is_deployed_by_agent; then
@@ -1282,15 +1294,16 @@ function configure_iptables {
     # explicitly allow DHCP - packets are occasionally being dropped here
     sudo iptables -I INPUT -p udp --dport 67:68 --sport 67:68 -j ACCEPT || true
     # nodes boot from TFTP and callback to the API server listening on $HOST_IP
-    sudo iptables -I INPUT -d $HOST_IP -p udp --dport 69 -j ACCEPT || true
+    sudo iptables -I INPUT -d $IRONIC_TFTPSERVER_IP -p udp --dport 69 -j ACCEPT || true
     sudo iptables -I INPUT -d $HOST_IP -p tcp --dport $IRONIC_SERVICE_PORT -j ACCEPT || true
     if is_deployed_by_agent; then
         # agent ramdisk gets instance image from swift
         sudo iptables -I INPUT -d $HOST_IP -p tcp --dport ${SWIFT_DEFAULT_BIND_PORT:-8080} -j ACCEPT || true
+        sudo iptables -I INPUT -d $HOST_IP -p tcp --dport $GLANCE_SERVICE_PORT -j ACCEPT || true
     fi
 
     if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
-        sudo iptables -I INPUT -d $HOST_IP -p tcp --dport $IRONIC_HTTP_PORT -j ACCEPT || true
+        sudo iptables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport $IRONIC_HTTP_PORT -j ACCEPT || true
     fi
 }
 
