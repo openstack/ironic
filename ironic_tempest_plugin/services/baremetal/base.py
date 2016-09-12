@@ -13,7 +13,6 @@
 import functools
 
 from oslo_serialization import jsonutils as json
-import six
 from six.moves.urllib import parse as urllib
 from tempest.lib.common import api_version_utils
 from tempest.lib.common import rest_client
@@ -98,7 +97,7 @@ class BaremetalClient(rest_client.RestClient):
 
         """
         def get_change(kwargs, path='/'):
-            for name, value in six.iteritems(kwargs):
+            for name, value in kwargs.items():
                 if isinstance(value, dict):
                     for ch in get_change(value, path + '%s/' % name):
                         yield ch
