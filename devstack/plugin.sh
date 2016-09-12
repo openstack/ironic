@@ -46,6 +46,9 @@ if is_service_enabled ir-api ir-cond; then
                 echo_summary "Configuring Ironic networks"
                 configure_ironic_networks
             fi
+            if [[ "$HOST_TOPOLOGY" == 'multinode' ]]; then
+                setup_vxlan_network
+            fi
 
             # Start the ironic API and ironic taskmgr components
             echo_summary "Starting Ironic"
