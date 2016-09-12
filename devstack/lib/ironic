@@ -1254,22 +1254,24 @@ function enroll_nodes {
         total_cpus=$((total_cpus+$ironic_node_cpu))
     done < $ironic_hwinfo_file
 
-    if [ "$VIRT_DRIVER" == "ironic" ]; then
-        local adjusted_disk
-        adjusted_disk=$(($ironic_node_disk - $ironic_ephemeral_disk))
-        openstack flavor create --ephemeral $ironic_ephemeral_disk --ram $ironic_node_ram --disk $adjusted_disk --vcpus $ironic_node_cpu baremetal
-        openstack flavor set baremetal --property "cpu_arch"="$ironic_node_arch"
+    if [[ "$HOST_TOPOLOGY_ROLE" != 'subnode' ]]; then
+        if [ "$VIRT_DRIVER" == "ironic" ]; then
+            local adjusted_disk
+            adjusted_disk=$(($ironic_node_disk - $ironic_ephemeral_disk))
+            openstack flavor create --ephemeral $ironic_ephemeral_disk --ram $ironic_node_ram --disk $adjusted_disk --vcpus $ironic_node_cpu baremetal
+            openstack flavor set baremetal --property "cpu_arch"="$ironic_node_arch"
 
-        # NOTE(dtantsur): sometimes nova compute fails to start with ironic due
-        # to keystone restarting and not being able to authenticate us.
-        # Restart it just to be sure (and avoid gate problems like bug 1537076)
-        stop_nova_compute || /bin/true
-        # NOTE(pas-ha) if nova compute failed before restart, .failure file
-        # that was created will fail the service_check in the end of the deployment
-        _clean_ncpu_failure
-        start_nova_compute
-        wait_for_nova_resources "count" $total_nodes
-        wait_for_nova_resources "vcpus" $total_cpus
+            # NOTE(dtantsur): sometimes nova compute fails to start with ironic due
+            # to keystone restarting and not being able to authenticate us.
+            # Restart it just to be sure (and avoid gate problems like bug 1537076)
+            stop_nova_compute || /bin/true
+            # NOTE(pas-ha) if nova compute failed before restart, .failure file
+            # that was created will fail the service_check in the end of the deployment
+            _clean_ncpu_failure
+            start_nova_compute
+            wait_for_nova_resources "count" $total_nodes
+            wait_for_nova_resources "vcpus" $total_cpus
+        fi
     fi
 }
 
@@ -1456,7 +1458,6 @@ function build_ipa_dib_ramdisk {
 # this function sets ``IRONIC_DEPLOY_KERNEL_ID``, ``IRONIC_DEPLOY_RAMDISK_ID``
 function upload_baremetal_ironic_deploy {
     declare -g IRONIC_DEPLOY_KERNEL_ID IRONIC_DEPLOY_RAMDISK_ID
-    echo_summary "Creating and uploading baremetal images for ironic"
 
     if [ -z "$IRONIC_DEPLOY_KERNEL" -o -z "$IRONIC_DEPLOY_RAMDISK" -o -z "$IRONIC_DEPLOY_ISO" ]; then
         local IRONIC_DEPLOY_KERNEL_PATH=$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.kernel
@@ -1468,49 +1469,60 @@ function upload_baremetal_ironic_deploy {
         local IRONIC_DEPLOY_ISO_PATH=$IRONIC_DEPLOY_ISO
     fi
 
-    if [ ! -e "$IRONIC_DEPLOY_RAMDISK_PATH" ] || \
-            [ ! -e "$IRONIC_DEPLOY_KERNEL_PATH" ]  || \
-            ( is_deploy_iso_required && [ ! -e "$IRONIC_DEPLOY_ISO_PATH" ] ); then
-        # files don't exist, need to build them
-        if [ "$IRONIC_BUILD_DEPLOY_RAMDISK" = "True" ]; then
-            # we can build them only if we're not offline
-            if [ "$OFFLINE" != "True" ]; then
-                build_ipa_ramdisk $IRONIC_DEPLOY_KERNEL_PATH $IRONIC_DEPLOY_RAMDISK_PATH $IRONIC_DEPLOY_ISO_PATH
+    local ironic_deploy_kernel_name
+    local ironic_deploy_ramdisk_name
+    ironic_deploy_kernel_name=$(basename $IRONIC_DEPLOY_KERNEL_PATH)
+    ironic_deploy_ramdisk_name=$(basename $IRONIC_DEPLOY_RAMDISK_PATH)
+    if [[ "$HOST_TOPOLOGY_ROLE" != 'subnode' ]]; then
+        echo_summary "Creating and uploading baremetal images for ironic"
+
+        if [ ! -e "$IRONIC_DEPLOY_RAMDISK_PATH" ] || \
+                [ ! -e "$IRONIC_DEPLOY_KERNEL_PATH" ]  || \
+                ( is_deploy_iso_required && [ ! -e "$IRONIC_DEPLOY_ISO_PATH" ] ); then
+            # files don't exist, need to build them
+            if [ "$IRONIC_BUILD_DEPLOY_RAMDISK" = "True" ]; then
+                # we can build them only if we're not offline
+                if [ "$OFFLINE" != "True" ]; then
+                    build_ipa_ramdisk $IRONIC_DEPLOY_KERNEL_PATH $IRONIC_DEPLOY_RAMDISK_PATH $IRONIC_DEPLOY_ISO_PATH
+                else
+                    die $LINENO "Deploy kernel+ramdisk or iso files don't exist and cannot be built in OFFLINE mode"
+                fi
             else
-                die $LINENO "Deploy kernel+ramdisk or iso files don't exist and cannot be built in OFFLINE mode"
+                # download the agent image tarball
+                wget "$IRONIC_AGENT_KERNEL_URL" -O $IRONIC_DEPLOY_KERNEL_PATH
+                wget "$IRONIC_AGENT_RAMDISK_URL" -O $IRONIC_DEPLOY_RAMDISK_PATH
             fi
-        else
-            # download the agent image tarball
-            wget "$IRONIC_AGENT_KERNEL_URL" -O $IRONIC_DEPLOY_KERNEL_PATH
-            wget "$IRONIC_AGENT_RAMDISK_URL" -O $IRONIC_DEPLOY_RAMDISK_PATH
         fi
-    fi
 
-    # load them into glance
-    IRONIC_DEPLOY_KERNEL_ID=$(openstack \
-        image create \
-        $(basename $IRONIC_DEPLOY_KERNEL_PATH) \
-        --public --disk-format=aki \
-        --container-format=aki \
-        < $IRONIC_DEPLOY_KERNEL_PATH  | grep ' id ' | get_field 2)
-    die_if_not_set $LINENO IRONIC_DEPLOY_KERNEL_ID "Failed to load kernel image into glance"
-
-    IRONIC_DEPLOY_RAMDISK_ID=$(openstack \
-        image create \
-        $(basename $IRONIC_DEPLOY_RAMDISK_PATH) \
-        --public --disk-format=ari \
-        --container-format=ari \
-        < $IRONIC_DEPLOY_RAMDISK_PATH  | grep ' id ' | get_field 2)
-    die_if_not_set $LINENO IRONIC_DEPLOY_RAMDISK_ID "Failed to load ramdisk image into glance"
-
-    if is_deploy_iso_required; then
-        IRONIC_DEPLOY_ISO_ID=$(openstack \
+        # load them into glance
+        IRONIC_DEPLOY_KERNEL_ID=$(openstack \
             image create \
-            $(basename $IRONIC_DEPLOY_ISO_PATH) \
-            --public --disk-format=iso \
-            --container-format=bare \
-            < $IRONIC_DEPLOY_ISO_PATH  -f value -c id)
-        die_if_not_set $LINENO IRONIC_DEPLOY_ISO_ID "Failed to load deploy iso into glance"
+            $ironic_deploy_kernel_name \
+            --public --disk-format=aki \
+            --container-format=aki \
+            < $IRONIC_DEPLOY_KERNEL_PATH  | grep ' id ' | get_field 2)
+        die_if_not_set $LINENO IRONIC_DEPLOY_KERNEL_ID "Failed to load kernel image into glance"
+
+        IRONIC_DEPLOY_RAMDISK_ID=$(openstack \
+            image create \
+            $ironic_deploy_ramdisk_name \
+            --public --disk-format=ari \
+            --container-format=ari \
+            < $IRONIC_DEPLOY_RAMDISK_PATH  | grep ' id ' | get_field 2)
+        die_if_not_set $LINENO IRONIC_DEPLOY_RAMDISK_ID "Failed to load ramdisk image into glance"
+
+        if is_deploy_iso_required; then
+            IRONIC_DEPLOY_ISO_ID=$(openstack \
+                image create \
+                $(basename $IRONIC_DEPLOY_ISO_PATH) \
+                --public --disk-format=iso \
+                --container-format=bare \
+                < $IRONIC_DEPLOY_ISO_PATH  -f value -c id)
+            die_if_not_set $LINENO IRONIC_DEPLOY_ISO_ID "Failed to load deploy iso into glance"
+        fi
+    else
+        IRONIC_DEPLOY_KERNEL_ID=$(openstack image show $ironic_deploy_kernel_name -f value -c id)
+        IRONIC_DEPLOY_RAMDISK_ID=$(openstack image show $ironic_deploy_ramdisk_name -f value -c id)
     fi
 }
 
