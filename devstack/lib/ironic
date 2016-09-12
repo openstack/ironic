@@ -298,17 +298,21 @@ IRONIC_PROVISION_SEGMENTATION_ID=${IRONIC_PROVISION_SEGMENTATION_ID:-}
 
 # Allocation network pool for provision network
 # Example: IRONIC_PROVISION_ALLOCATION_POOL=start=10.0.5.10,end=10.0.5.100
-IRONIC_PROVISION_ALLOCATION_POOL=${IRONIC_PROVISION_ALLOCATION_POOL:-}
+IRONIC_PROVISION_ALLOCATION_POOL=${IRONIC_PROVISION_ALLOCATION_POOL:-'start=10.0.5.10,end=10.0.5.100'}
 
 # Ironic provision subnet name.
 IRONIC_PROVISION_PROVIDER_SUBNET_NAME=${IRONIC_PROVISION_PROVIDER_SUBNET_NAME:-${IRONIC_PROVISION_NETWORK_NAME}-subnet}
 
+
+# With multinode case all ironic-conductors should have IP from provisioning network.
+# IRONIC_PROVISION_SUBNET_GATEWAY - is configured on primary node.
 # Ironic provision subnet gateway.
-IRONIC_PROVISION_SUBNET_GATEWAY=${IRONIC_PROVISION_SUBNET_GATEWAY:-}
+IRONIC_PROVISION_SUBNET_GATEWAY=${IRONIC_PROVISION_SUBNET_GATEWAY:-'10.0.5.1'}
+IRONIC_PROVISION_SUBNET_SUBNODE_IP=${IRONIC_PROVISION_SUBNET_SUBNODE_IP:-'10.0.5.2'}
 
 # Ironic provision subnet prefix
 # Example: IRONIC_PROVISION_SUBNET_PREFIX=10.0.5.0/24
-IRONIC_PROVISION_SUBNET_PREFIX=${IRONIC_PROVISION_SUBNET_PREFIX:-}
+IRONIC_PROVISION_SUBNET_PREFIX=${IRONIC_PROVISION_SUBNET_PREFIX:-'10.0.5.0/24'}
 
 # Retrieving logs from the deploy ramdisk
 #
@@ -560,28 +564,35 @@ function configure_ironic_cleaning_network {
 }
 
 function configure_ironic_provision_network {
-
-    die_if_not_set $LINENO IRONIC_PROVISION_SUBNET_PREFIX "You must specify the IRONIC_PROVISION_SUBNET_PREFIX"
-    die_if_not_set $LINENO PHYSICAL_NETWORK "You must specify the PHYSICAL_NETWORK"
-    die_if_not_set $LINENO IRONIC_PROVISION_SUBNET_GATEWAY "You must specify the IRONIC_PROVISION_SUBNET_GATEWAY"
-
     local net_id
-    net_id=$(openstack network create --provider-network-type $IRONIC_PROVISION_PROVIDER_NETWORK_TYPE \
-        --provider-physical-network "$PHYSICAL_NETWORK" \
-        ${IRONIC_PROVISION_SEGMENTATION_ID:+--provider-segment $IRONIC_PROVISION_SEGMENTATION_ID} \
-        ${IRONIC_PROVISION_NETWORK_NAME} -f value -c id)
+    local ironic_provision_network_ip
+    # NOTE(vsaienko) For multinode case there is no need to create a new provisioning
+    # network on subnode, as it was created on primary node. Just get an existed network UUID.
+    if [[ "$HOST_TOPOLOGY_ROLE" != 'subnode' ]]; then
+        die_if_not_set $LINENO IRONIC_PROVISION_SUBNET_PREFIX "You must specify the IRONIC_PROVISION_SUBNET_PREFIX"
+        die_if_not_set $LINENO PHYSICAL_NETWORK "You must specify the PHYSICAL_NETWORK"
+        die_if_not_set $LINENO IRONIC_PROVISION_SUBNET_GATEWAY "You must specify the IRONIC_PROVISION_SUBNET_GATEWAY"
 
-    die_if_not_set $LINENO net_id "Failure creating net_id for $IRONIC_PROVISION_NETWORK_NAME"
-    local subnet_id
-    subnet_id="$(openstack subnet create --ip-version 4 \
-        ${IRONIC_PROVISION_ALLOCATION_POOL:+--allocation-pool $IRONIC_PROVISION_ALLOCATION_POOL} \
-        $IRONIC_PROVISION_PROVIDER_SUBNET_NAME \
-        --gateway $IRONIC_PROVISION_SUBNET_GATEWAY --network $net_id \
-        --subnet-range $IRONIC_PROVISION_SUBNET_PREFIX -f value -c id)"
+        net_id=$(openstack network create --provider-network-type $IRONIC_PROVISION_PROVIDER_NETWORK_TYPE \
+            --provider-physical-network "$PHYSICAL_NETWORK" \
+            ${IRONIC_PROVISION_SEGMENTATION_ID:+--provider-segment $IRONIC_PROVISION_SEGMENTATION_ID} \
+            ${IRONIC_PROVISION_NETWORK_NAME} -f value -c id)
 
-    die_if_not_set $LINENO subnet_id "Failure creating SUBNET_ID for $IRONIC_PROVISION_NETWORK_NAME"
+        die_if_not_set $LINENO net_id "Failure creating net_id for $IRONIC_PROVISION_NETWORK_NAME"
+        local subnet_id
+        subnet_id="$(openstack subnet create --ip-version 4 \
+            ${IRONIC_PROVISION_ALLOCATION_POOL:+--allocation-pool $IRONIC_PROVISION_ALLOCATION_POOL} \
+            $IRONIC_PROVISION_PROVIDER_SUBNET_NAME \
+            --gateway $IRONIC_PROVISION_SUBNET_GATEWAY --network $net_id \
+            --subnet-range $IRONIC_PROVISION_SUBNET_PREFIX -f value -c id)"
 
-    iniset $IRONIC_CONF_FILE neutron provisioning_network_uuid $net_id
+        die_if_not_set $LINENO subnet_id "Failure creating SUBNET_ID for $IRONIC_PROVISION_NETWORK_NAME"
+
+        ironic_provision_network_ip=$IRONIC_PROVISION_SUBNET_GATEWAY
+    else
+        net_id=$(openstack network show $IRONIC_PROVISION_NETWORK_NAME -f value -c id)
+        ironic_provision_network_ip=$IRONIC_PROVISION_SUBNET_SUBNODE_IP
+    fi
 
     IRONIC_PROVISION_SEGMENTATION_ID=${IRONIC_PROVISION_SEGMENTATION_ID:-`openstack network show ${net_id} -f value -c provider:segmentation_id`}
     provision_net_prefix=${IRONIC_PROVISION_SUBNET_PREFIX##*/}
@@ -592,11 +603,13 @@ function configure_ironic_provision_network {
     if [[ "$IRONIC_PROVISION_PROVIDER_NETWORK_TYPE" == "vlan" ]]; then
         sudo ip link add link $OVS_PHYSICAL_BRIDGE name $OVS_PHYSICAL_BRIDGE.$IRONIC_PROVISION_SEGMENTATION_ID type vlan id $IRONIC_PROVISION_SEGMENTATION_ID
         sudo ip link set dev $OVS_PHYSICAL_BRIDGE.$IRONIC_PROVISION_SEGMENTATION_ID up
-        sudo ip addr add dev $OVS_PHYSICAL_BRIDGE.$IRONIC_PROVISION_SEGMENTATION_ID $IRONIC_PROVISION_SUBNET_GATEWAY/$provision_net_prefix
+        sudo ip addr add dev $OVS_PHYSICAL_BRIDGE.$IRONIC_PROVISION_SEGMENTATION_ID $ironic_provision_network_ip/$provision_net_prefix
     else
         sudo ip link set dev $OVS_PHYSICAL_BRIDGE up
-        sudo ip addr add dev $OVS_PHYSICAL_BRIDGE $IRONIC_PROVISION_SUBNET_GATEWAY/$provision_net_prefix
+        sudo ip addr add dev $OVS_PHYSICAL_BRIDGE $ironic_provision_network_ip/$provision_net_prefix
     fi
+
+    iniset $IRONIC_CONF_FILE neutron provisioning_network_uuid $net_id
 }
 
 function cleanup_ironic_provision_network {
