@@ -105,11 +105,11 @@ class Version(object):
                 "Invalid value for %s header") % Version.string)
         return version
 
-    def __gt__(a, b):
-        return (a.major, a.minor) > (b.major, b.minor)
+    def __gt__(self, other):
+        return (self.major, self.minor) > (other.major, other.minor)
 
-    def __eq__(a, b):
-        return (a.major, a.minor) == (b.major, b.minor)
+    def __eq__(self, other):
+        return (self.major, self.minor) == (other.major, other.minor)
 
     def __ne__(self, other):
         return not self.__eq__(other)
