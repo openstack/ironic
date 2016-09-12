@@ -17,7 +17,6 @@ import collections
 import time
 
 from oslo_utils import uuidutils
-import six
 from six.moves.urllib import parse as urlparse
 from swiftclient import utils as swift_utils
 
@@ -260,7 +259,7 @@ class GlanceImageService(base_image_service.BaseImageService,
             int(time.time()) +
             CONF.glance.swift_temp_url_expected_download_start_delay)
         keys_to_remove = [
-            k for k, v in six.iteritems(self._cache)
+            k for k, v in self._cache.items()
             if (v.url_expires_at < max_valid_time)]
         for k in keys_to_remove:
             del self._cache[k]
