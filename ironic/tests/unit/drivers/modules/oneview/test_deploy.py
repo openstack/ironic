@@ -141,4 +141,4 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
         self.assertTrue(self.node.maintenance)
         self.assertEqual(common.NODE_IN_USE_BY_ONEVIEW,
                          self.node.maintenance_reason)
-        self.assertDictEqual({}, self.node.driver_internal_info)
+        self.assertEqual({}, self.node.driver_internal_info)
