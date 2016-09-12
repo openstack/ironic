@@ -871,7 +871,7 @@ function _ironic_bm_vm_names {
     local num_vms
     num_vms=$(($IRONIC_VM_COUNT - 1))
     for idx in $(seq 0 $num_vms); do
-        echo "node-${idx}"
+        echo "$(get_ironic_node_prefix)-${idx}"
     done
 }
 
@@ -1059,6 +1059,9 @@ function enroll_nodes {
     chassis_id=$(ironic chassis-create -d "ironic test chassis" | grep " uuid " | get_field 2)
     die_if_not_set $LINENO chassis_id "Failed to create chassis"
 
+    local node_prefix
+    node_prefix=$(get_ironic_node_prefix)
+
     if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
         local ironic_node_cpu=$IRONIC_VM_SPECS_CPU
         local ironic_node_ram=$IRONIC_VM_SPECS_RAM
@@ -1197,7 +1200,7 @@ function enroll_nodes {
         node_id=$(ironic node-create $standalone_node_uuid\
             --chassis_uuid $chassis_id \
             --driver $IRONIC_DEPLOY_DRIVER \
-            --name node-$total_nodes \
+            --name $node_prefix-$total_nodes \
             -p cpus=$ironic_node_cpu\
             -p memory_mb=$ironic_node_ram\
             -p local_gb=$ironic_node_disk\
@@ -1559,6 +1562,14 @@ function ironic_configure_tempest {
     image_uuid=$(openstack image show $IRONIC_IMAGE_NAME -f value -c id)
     iniset $TEMPEST_CONFIG compute image_ref $image_uuid
     iniset $TEMPEST_CONFIG compute image_ref_alt $image_uuid
+}
+
+function get_ironic_node_prefix {
+    local node_prefix="node"
+    if [[ "$HOST_TOPOLOGY_ROLE" == "subnode" ]]; then
+        node_prefix="$HOST_TOPOLOGY_ROLE"
+    fi
+    echo $node_prefix
 }
 
 # Restore xtrace + pipefail
