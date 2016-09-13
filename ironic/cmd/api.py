@@ -23,6 +23,7 @@ from oslo_config import cfg
 
 from ironic.common import service as ironic_service
 from ironic.objects import base
+from ironic.objects import indirection
 
 CONF = cfg.CONF
 
@@ -32,7 +33,8 @@ def main():
     ironic_service.prepare_service(sys.argv)
 
     # Enable object backporting via the conductor
-    base.IronicObject.indirection_api = base.IronicObjectIndirectionAPI()
+    base.IronicObject.indirection_api = (
+        indirection.IronicObjectIndirectionAPI())
 
     # Build and start the WSGI app
     launcher = ironic_service.process_launcher()

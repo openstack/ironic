@@ -90,36 +90,6 @@ class IronicObject(object_base.VersionedObject):
         return obj
 
 
-class IronicObjectIndirectionAPI(object_base.VersionedObjectIndirectionAPI):
-    def __init__(self):
-        super(IronicObjectIndirectionAPI, self).__init__()
-        # FIXME(xek): importing here due to a cyclical import error
-        from ironic.conductor import rpcapi as conductor_api
-        self._conductor = conductor_api.ConductorAPI()
-
-    def object_action(self, context, objinst, objmethod, args, kwargs):
-        return self._conductor.object_action(context, objinst, objmethod,
-                                             args, kwargs)
-
-    def object_class_action(self, context, objname, objmethod, objver,
-                            args, kwargs):
-        # NOTE(xek): This method is implemented for compatibility with
-        # oslo.versionedobjects 0.10.0 and older. It will be replaced by
-        # object_class_action_versions.
-        versions = object_base.obj_tree_get_versions(objname)
-        return self.object_class_action_versions(
-            context, objname, objmethod, versions, args, kwargs)
-
-    def object_class_action_versions(self, context, objname, objmethod,
-                                     object_versions, args, kwargs):
-        return self._conductor.object_class_action_versions(
-            context, objname, objmethod, object_versions, args, kwargs)
-
-    def object_backport_versions(self, context, objinst, object_versions):
-        return self._conductor.object_backport_versions(context, objinst,
-                                                        object_versions)
-
-
 class IronicObjectSerializer(object_base.VersionedObjectSerializer):
     # Base class to use for object hydration
     OBJ_BASE_CLASS = IronicObject
