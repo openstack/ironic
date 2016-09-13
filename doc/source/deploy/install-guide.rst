@@ -47,201 +47,21 @@ Metal service Install Guide.
 Configure Compute to use the Bare Metal service
 ===============================================
 
-The Compute service needs to be configured to use the Bare Metal service's
-driver.  The configuration file for the Compute service is typically located at
-``/etc/nova/nova.conf``. *This configuration file must be modified on the
-Compute service's controller nodes and compute nodes.*
+The `Configure Compute to use the Bare Metal service`_ section has been moved
+to the Bare Metal service Install Guide.
 
-1. Change these configuration options in the ``default`` section, as follows::
-
-    [default]
-
-    # Driver to use for controlling virtualization. Options
-    # include: libvirt.LibvirtDriver, xenapi.XenAPIDriver,
-    # fake.FakeDriver, baremetal.BareMetalDriver,
-    # vmwareapi.VMwareESXDriver, vmwareapi.VMwareVCDriver (string
-    # value)
-    #compute_driver=<None>
-    compute_driver=ironic.IronicDriver
-
-    # Firewall driver (defaults to hypervisor specific iptables
-    # driver) (string value)
-    #firewall_driver=<None>
-    firewall_driver=nova.virt.firewall.NoopFirewallDriver
-
-    # The scheduler host manager class to use (string value)
-    #scheduler_host_manager=host_manager
-    scheduler_host_manager=ironic_host_manager
-
-    # Virtual ram to physical ram allocation ratio which affects
-    # all ram filters. This configuration specifies a global ratio
-    # for RamFilter. For AggregateRamFilter, it will fall back to
-    # this configuration value if no per-aggregate setting found.
-    # (floating point value)
-    #ram_allocation_ratio=1.5
-    ram_allocation_ratio=1.0
-
-    # Amount of disk in MB to reserve for the host (integer value)
-    #reserved_host_disk_mb=0
-    reserved_host_memory_mb=0
-
-    # Flag to decide whether to use baremetal_scheduler_default_filters or not.
-    # (boolean value)
-    #scheduler_use_baremetal_filters=False
-    scheduler_use_baremetal_filters=True
-
-    # Determines if the Scheduler tracks changes to instances to help with
-    # its filtering decisions (boolean value)
-    #scheduler_tracks_instance_changes=True
-    scheduler_tracks_instance_changes=False
-
-    # New instances will be scheduled on a host chosen randomly from a subset
-    # of the N best hosts, where N is the value set by this option.  Valid
-    # values are 1 or greater. Any value less than one will be treated as 1.
-    # For ironic, this should be set to a number >= the number of ironic nodes
-    # to more evenly distribute instances across the nodes.
-    #scheduler_host_subset_size=1
-    scheduler_host_subset_size=9999999
-
-2. Change these configuration options in the ``ironic`` section.
-   Replace:
-
-   - IRONIC_PASSWORD with the password you chose for the ``ironic``
-     user in the Identity Service
-   - IRONIC_NODE with the hostname or IP address of the ironic-api node
-   - IDENTITY_IP with the IP of the Identity server
-
-  ::
-
-    [ironic]
-
-    # Ironic keystone admin name
-    admin_username=ironic
-
-    #Ironic keystone admin password.
-    admin_password=IRONIC_PASSWORD
-
-    # keystone API endpoint
-    admin_url=http://IDENTITY_IP:35357/v2.0
-
-    # Ironic keystone tenant name.
-    admin_tenant_name=service
-
-    # URL for Ironic API endpoint.
-    api_endpoint=http://IRONIC_NODE:6385/v1
-
-3. On the Compute service's controller nodes, restart the ``nova-scheduler`` process::
-
-    Fedora/RHEL7/CentOS7:
-      sudo systemctl restart openstack-nova-scheduler
-
-    Ubuntu:
-      sudo service nova-scheduler restart
-
-4. On the Compute service's compute nodes, restart the ``nova-compute`` process::
-
-    Fedora/RHEL7/CentOS7:
-      sudo systemctl restart openstack-nova-compute
-
-    Ubuntu:
-      sudo service nova-compute restart
+.. _`Configure Compute to use the Bare Metal service`: http://docs.openstack.org/project-install-guide/baremetal/draft/configure-integration.html#configure-compute-to-use-the-bare-metal-service
 
 .. _NeutronFlatNetworking:
 
 Configure Networking to communicate with the bare metal server
 ==============================================================
 
-You need to configure Networking so that the bare metal server can communicate
-with the Networking service for DHCP, PXE boot and other requirements.
-This section covers configuring Networking for a single flat
-network for bare metal provisioning.
+The `Configure Networking to communicate with the bare metal server`_ section
+has been moved to the Bare Metal service Install Guide.
 
-You will also need to provide Bare Metal service with the MAC address(es) of
-each node that it is provisioning; Bare Metal service in turn will pass this
-information to Networking service for DHCP and PXE boot configuration.
-An example of this is shown in the `Enrollment`_ section.
+.. _`Configure Networking to communicate with the bare metal server`: http://docs.openstack.org/project-install-guide/baremetal/draft/configure-integration.html#configure-networking-to-communicate-with-the-bare-metal-server
 
-#. Edit ``/etc/neutron/plugins/ml2/ml2_conf.ini`` and modify these::
-
-    [ml2]
-    type_drivers = flat
-    tenant_network_types = flat
-    mechanism_drivers = openvswitch
-
-    [ml2_type_flat]
-    flat_networks = physnet1
-
-    [securitygroup]
-    firewall_driver = neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver
-    enable_security_group = True
-
-    [ovs]
-    bridge_mappings = physnet1:br-eth2
-    # Replace eth2 with the interface on the neutron node which you
-    # are using to connect to the bare metal server
-
-#. If neutron-openvswitch-agent runs with ``ovs_neutron_plugin.ini`` as the input
-   config-file, edit ``ovs_neutron_plugin.ini`` to configure the bridge mappings
-   by adding the [ovs] section described in the previous step, and restart the
-   neutron-openvswitch-agent.
-
-#. Add the integration bridge to Open vSwitch::
-
-    ovs-vsctl add-br br-int
-
-#. Create the br-eth2 network bridge to handle communication between the
-   OpenStack services (and the Bare Metal services) and the bare metal nodes
-   using eth2.
-   Replace eth2 with the interface on the network node which you are
-   using to connect to the Bare Metal service::
-
-    ovs-vsctl add-br br-eth2
-    ovs-vsctl add-port br-eth2 eth2
-
-#. Restart the Open vSwitch agent::
-
-    service neutron-plugin-openvswitch-agent restart
-
-#. On restarting the Networking service Open vSwitch agent, the veth pair
-   between the bridges br-int and br-eth2 is automatically created.
-
-   Your Open vSwitch bridges should look something like this after
-   following the above steps::
-
-    ovs-vsctl show
-
-        Bridge br-int
-            fail_mode: secure
-            Port "int-br-eth2"
-                Interface "int-br-eth2"
-                    type: patch
-                    options: {peer="phy-br-eth2"}
-            Port br-int
-                Interface br-int
-                    type: internal
-        Bridge "br-eth2"
-            Port "phy-br-eth2"
-                Interface "phy-br-eth2"
-                    type: patch
-                    options: {peer="int-br-eth2"}
-            Port "eth2"
-                Interface "eth2"
-            Port "br-eth2"
-                Interface "br-eth2"
-                    type: internal
-        ovs_version: "2.3.0"
-
-#. Create the flat network on which you are going to launch the
-   instances::
-
-    neutron net-create --tenant-id $TENANT_ID sharednet1 --shared \
-    --provider:network_type flat --provider:physical_network physnet1
-
-#. Create the subnet on the newly created network::
-
-    neutron subnet-create sharednet1 $NETWORK_CIDR --name $SUBNET_NAME \
-    --ip-version=4 --gateway=$GATEWAY_IP --allocation-pool \
-    start=$START_IP,end=$END_IP --enable-dhcp
 
 Configuring Tenant Networks
 ===========================
@@ -253,30 +73,10 @@ See :ref:`multitenancy`
 Configure the Bare Metal service for cleaning
 =============================================
 
-#. If you configure Bare Metal service to use :ref:`cleaning` (which is enabled by
-   default), you will need to set the ``cleaning_network_uuid`` configuration
-   option. Note the network UUID (the `id` field) of the network you created in
-   :ref:`NeutronFlatNetworking` or another network you created for cleaning::
+The `Configure the Bare Metal service for cleaning`_ section
+has been moved to the Bare Metal service Install Guide.
 
-    neutron net-list
-
-#. Configure the cleaning network UUID via the ``cleaning_network_uuid``
-   option in the Bare Metal service configuration file (/etc/ironic/ironic.conf).
-   In the following, replace NETWORK_UUID with the UUID you noted in the
-   previous step::
-
-    [neutron]
-    ...
-
-    cleaning_network_uuid = NETWORK_UUID
-
-#. Restart the Bare Metal service's ironic-conductor::
-
-    Fedora/RHEL7/CentOS7:
-      sudo systemctl restart openstack-ironic-conductor
-
-    Ubuntu:
-      sudo service ironic-conductor restart
+.. _`Configure the Bare Metal service for cleaning`: http://docs.openstack.org/project-install-guide/baremetal/draft/configure-cleaning.html
 
 .. _ImageRequirement:
 
