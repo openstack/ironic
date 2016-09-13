@@ -8,6 +8,8 @@ Bare Metal service
    get_started.rst
    install.rst
    configure-integration.rst
+   configure-cleaning.rst
+   configure-tenant-networks.rst
    verify.rst
    next-steps.rst
 
