@@ -26,6 +26,7 @@ from oslo_log import log
 from oslo_service import service
 
 from ironic.common.i18n import _LW
+from ironic.common import rpc_service
 from ironic.common import service as ironic_service
 from ironic.conf import auth
 
@@ -58,12 +59,20 @@ def _check_auth_options(conf):
 
 
 def main():
+    # NOTE(lucasagomes): Safeguard to prevent 'ironic.conductor.manager'
+    # from being imported prior to the configuration options being loaded.
+    # If this happened, the periodic decorators would always use the
+    # default values of the options instead of the configured ones. For
+    # more information see: https://bugs.launchpad.net/ironic/+bug/1562258
+    # and https://bugs.launchpad.net/ironic/+bug/1279774.
+    assert 'ironic.conductor.manager' not in sys.modules
+
     # Parse config file and command line options, then start logging
     ironic_service.prepare_service(sys.argv)
 
-    mgr = ironic_service.RPCService(CONF.host,
-                                    'ironic.conductor.manager',
-                                    'ConductorManager')
+    mgr = rpc_service.RPCService(CONF.host,
+                                 'ironic.conductor.manager',
+                                 'ConductorManager')
 
     _check_auth_options(CONF)
 
