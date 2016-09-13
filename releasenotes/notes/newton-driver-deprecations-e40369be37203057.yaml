@@ -1,0 +1,30 @@
+---
+deprecations:
+  - |
+    The following drivers are marked as unsupported and therefore deprecated.
+    Some or all of these drivers may be removed in the Ocata cycle or later.
+
+    * ``agent_amt``
+    * ``agent_iboot``
+    * ``agent_pyghmi``
+    * ``agent_ssh``
+    * ``agent_vbox``
+    * ``agent_wol``
+    * ``fake_ipminative``
+    * ``fake_ssh``
+    * ``fake_seamicro``
+    * ``fake_iboot``
+    * ``fake_snmp``
+    * ``fake_vbox``
+    * ``fake_amt``
+    * ``fake_msftocs``
+    * ``fake_wol``
+    * ``pxe_ipminative``
+    * ``pxe_ssh``
+    * ``pxe_vbox``
+    * ``pxe_seamicro``
+    * ``pxe_iboot``
+    * ``pxe_snmp``
+    * ``pxe_amt``
+    * ``pxe_msftocs``
+    * ``pxe_wol``

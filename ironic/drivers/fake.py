@@ -116,6 +116,8 @@ class FakePXEDriver(base.BaseDriver):
 class FakeSSHDriver(base.BaseDriver):
     """Example implementation of a Driver."""
 
+    supported = False
+
     def __init__(self):
         self.power = ssh.SSHPower()
         self.deploy = fake.FakeDeploy()
@@ -125,6 +127,8 @@ class FakeSSHDriver(base.BaseDriver):
 
 class FakeIPMINativeDriver(base.BaseDriver):
     """Fake IPMINative driver."""
+
+    supported = False
 
     def __init__(self):
         if not importutils.try_import('pyghmi'):
@@ -140,6 +144,8 @@ class FakeIPMINativeDriver(base.BaseDriver):
 
 class FakeSeaMicroDriver(base.BaseDriver):
     """Fake SeaMicro driver."""
+
+    supported = False
 
     def __init__(self):
         if not importutils.try_import('seamicroclient'):
@@ -166,6 +172,8 @@ class FakeAgentDriver(base.BaseDriver):
 
 class FakeIBootDriver(base.BaseDriver):
     """Fake iBoot driver."""
+
+    supported = False
 
     def __init__(self):
         if not importutils.try_import('iboot'):
@@ -210,6 +218,8 @@ class FakeDracDriver(base.BaseDriver):
 class FakeSNMPDriver(base.BaseDriver):
     """Fake SNMP driver."""
 
+    supported = False
+
     def __init__(self):
         if not importutils.try_import('pysnmp'):
             raise exception.DriverLoadError(
@@ -235,6 +245,8 @@ class FakeIRMCDriver(base.BaseDriver):
 
 class FakeVirtualBoxDriver(base.BaseDriver):
     """Fake VirtualBox driver."""
+
+    supported = False
 
     def __init__(self):
         if not importutils.try_import('pyremotevbox'):
@@ -264,6 +276,8 @@ class FakeIPMIToolInspectorDriver(base.BaseDriver):
 class FakeAMTDriver(base.BaseDriver):
     """Fake AMT driver."""
 
+    supported = False
+
     def __init__(self):
         if not importutils.try_import('pywsman'):
             raise exception.DriverLoadError(
@@ -276,6 +290,8 @@ class FakeAMTDriver(base.BaseDriver):
 
 class FakeMSFTOCSDriver(base.BaseDriver):
     """Fake MSFT OCS driver."""
+
+    supported = False
 
     def __init__(self):
         self.power = msftocs_power.MSFTOCSPower()
@@ -311,6 +327,8 @@ class FakeCIMCDriver(base.BaseDriver):
 
 class FakeWakeOnLanDriver(base.BaseDriver):
     """Fake Wake-On-Lan driver."""
+
+    supported = False
 
     def __init__(self):
         self.power = wol.WakeOnLanPower()
