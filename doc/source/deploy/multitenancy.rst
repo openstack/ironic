@@ -88,7 +88,21 @@ interface as stated above):
 
    .. note::
       The "provisioning" and "cleaning" networks may be the same neutron
-      provider network, or may be distinct networks.
+      provider network, or may be distinct networks. To ensure communication
+      between ironic and the deploy ramdisk works, it's important to ensure
+      that security groups are disabled for these networks, *or* the default
+      security groups allow:
+
+      * DHCP
+      * TFTP
+      * egress port used for ironic (6385 by default)
+      * ingress port used for ironic-python-agent (9999 by default)
+      * if using the iSCSI deploy method (``pxe_*`` and ``iscsi_*`` drivers),
+        the egress port used for iSCSI (3260 by default)
+      * if using the direct deploy method (``agent_*`` drivers), the egress
+        port used for swift (typically 80 or 443)
+      * if using iPXE, the egress port used for the HTTP server running
+        on the ironic conductor nodes (typically 80).
 
 #. Install and configure a compatible ML2 mechanism driver which supports bare
    metal provisioning for your switch. See `ML2 plugin configuration manual
