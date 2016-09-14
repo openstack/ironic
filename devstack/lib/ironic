@@ -189,8 +189,9 @@ IRONIC_DIB_RAMDISK_OPTIONS=${IRONIC_DIB_RAMDISK_OPTIONS:-'ubuntu'}
 # Set this variable to "true" to build an ISO for deploy ramdisk and
 # upload to Glance.
 IRONIC_DEPLOY_ISO_REQUIRED=$(trueorfalse False IRONIC_DEPLOY_ISO_REQUIRED)
-if $IRONIC_DEPLOY_ISO_REQUIRED = 'True' && $IRONIC_BUILD_DEPLOY_RAMDISK = 'False'\
-    && [ -n $IRONIC_DEPLOY_ISO ];  then
+if [[ "$IRONIC_DEPLOY_ISO_REQUIRED" = "True" \
+    && "$IRONIC_BUILD_DEPLOY_RAMDISK" = "False" \
+    && -n "$IRONIC_DEPLOY_ISO" ]];  then
     die "Prebuilt ISOs are not available, provide an ISO via IRONIC_DEPLOY_ISO \
         or set IRONIC_BUILD_DEPLOY_RAMDISK=True to use ISOs"
 fi
