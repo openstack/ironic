@@ -11,6 +11,8 @@ Bare Metal service
    configure-cleaning.rst
    configure-tenant-networks.rst
    enrollment.rst
+   enabling-https.rst
+   standalone.rst
    advanced.rst
    troubleshooting.rst
    next-steps.rst

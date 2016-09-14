@@ -45,6 +45,7 @@ an ``extra_spec`` to the Compute service flavor, for example::
     ``gpt``. The ``EFI partition`` will be used later by the boot loader
     (which is installed from the deploy ramdisk).
 
+.. _local-boot-without-compute:
 
 Enabling local boot without Compute
 ===================================
