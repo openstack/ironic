@@ -11,9 +11,7 @@ metal provisioning.
 You will also need to provide Bare Metal service with the MAC address(es) of
 each node that it is provisioning; Bare Metal service in turn will pass this
 information to Networking service for DHCP and PXE boot configuration.
-An example of this is shown in the `Enrollment`_ section.
-
-.. _`Enrollment`: http://docs.openstack.org/developer/ironic/deploy/install-guide.html#enrollment
+An example of this is shown in the :ref:`enrollment` section.
 
 #. Edit ``/etc/neutron/plugins/ml2/ml2_conf.ini`` and modify these:
 

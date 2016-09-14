@@ -10,8 +10,9 @@ Bare Metal service
    configure-integration.rst
    configure-cleaning.rst
    configure-tenant-networks.rst
+   enrollment.rst
    advanced.rst
-   verify.rst
+   troubleshooting.rst
    next-steps.rst
 
 The Bare Metal service is a collection of components that provides support to
