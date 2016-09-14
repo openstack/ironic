@@ -126,7 +126,7 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
     def create_chassis(cls, description=None, expect_errors=False):
         """Wrapper utility for creating test chassis.
 
-        :param description: A description of the chassis. if not supplied,
+        :param description: A description of the chassis. If not supplied,
             a random value will be generated.
         :return: Created chassis.
 
@@ -141,6 +141,7 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
                     memory_mb=4096):
         """Wrapper utility for creating test baremetal nodes.
 
+        :param chassis_id: The unique identifier of the chassis.
         :param cpu_arch: CPU architecture of the node. Default: x86.
         :param cpus: Number of CPUs. Default: 8.
         :param local_gb: Disk size. Default: 10.
@@ -160,6 +161,7 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
     def create_port(cls, node_id, address, extra=None, uuid=None):
         """Wrapper utility for creating test ports.
 
+        :param node_id: The unique identifier of the node.
         :param address: MAC address of the port.
         :param extra: Meta data of the port. If not supplied, an empty
             dictionary will be created.
@@ -177,7 +179,7 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
     def delete_chassis(cls, chassis_id):
         """Deletes a chassis having the specified UUID.
 
-        :param uuid: The unique identifier of the chassis.
+        :param chassis_id: The unique identifier of the chassis.
         :return: Server response.
 
         """
@@ -193,7 +195,7 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
     def delete_node(cls, node_id):
         """Deletes a node having the specified UUID.
 
-        :param uuid: The unique identifier of the node.
+        :param node_id: The unique identifier of the node.
         :return: Server response.
 
         """
@@ -209,7 +211,7 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
     def delete_port(cls, port_id):
         """Deletes a port having the specified UUID.
 
-        :param uuid: The unique identifier of the port.
+        :param port_id: The unique identifier of the port.
         :return: Server response.
 
         """
