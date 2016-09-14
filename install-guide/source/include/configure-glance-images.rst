@@ -48,10 +48,8 @@ them to the Image service:
    If you want to use Fedora image, replace ``ubuntu`` with ``fedora`` in the
    chosen command.
 
-   .. note:: To build the deploy image take a look at the `Building or
-            downloading a deploy ramdisk image`_ section.
-
-            .. _`Building or downloading a deploy ramdisk image`: http://docs.openstack.org/developer/ironic/deploy/install-guide.html#building-or-downloading-a-deploy-ramdisk-image
+   .. note:: To build the deploy image take a look at the :ref:`deploy-ramdisk`
+             section.
 
 #. Add the user images to the Image service
 
