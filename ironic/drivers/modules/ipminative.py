@@ -658,7 +658,10 @@ class VendorPassthru(base.VendorInterface):
         _parse_driver_info(task.node)
 
     @METRICS.timer('VendorPassthru.send_raw')
-    @base.passthru(['POST'])
+    @base.passthru(['POST'],
+                   description=_("Send raw bytes to the BMC. Required "
+                                 "argument: 'raw_bytes' - a string of raw "
+                                 "bytes (e.g. '0x00 0x01')."))
     @task_manager.require_exclusive_lock
     def send_raw(self, task, http_method, raw_bytes):
         """Send raw bytes to the BMC. Bytes should be a string of bytes.
@@ -675,7 +678,10 @@ class VendorPassthru(base.VendorInterface):
         _send_raw(driver_info, raw_bytes)
 
     @METRICS.timer('VendorPassthru.bmc_reset')
-    @base.passthru(['POST'])
+    @base.passthru(['POST'],
+                   description=_("Reset the BMC. Required argument: 'warm' "
+                                 "(Boolean) - for warm (True) or cold (False) "
+                                 "reset."))
     @task_manager.require_exclusive_lock
     def bmc_reset(self, task, http_method, warm=True):
         """Reset BMC via IPMI command.

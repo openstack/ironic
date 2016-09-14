@@ -15,6 +15,7 @@
 DRAC vendor-passthru interface
 """
 
+from ironic.common.i18n import _
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.drac import bios as drac_bios
@@ -42,7 +43,9 @@ class DracVendorPassthru(base.VendorInterface):
         """
         return drac_common.parse_driver_info(task.node)
 
-    @base.passthru(['GET'], async=False)
+    @base.passthru(['GET'], async=False,
+                   description=_("Returns a dictionary containing the BIOS "
+                                 "settings from a node."))
     def get_bios_config(self, task, **kwargs):
         """Get the BIOS configuration.
 
@@ -61,7 +64,14 @@ class DracVendorPassthru(base.VendorInterface):
 
         return bios_attrs
 
-    @base.passthru(['POST'], async=False)
+    @base.passthru(['POST'], async=False,
+                   description=_("Change the BIOS configuration on a node. "
+                                 "Required argument : a dictionary of "
+                                 "{'AttributeName': 'NewValue'}. Returns "
+                                 "a dictionary containing the "
+                                 "'commit_required' key with a Boolean value "
+                                 "indicating whether commit_bios_config() "
+                                 "needs to be called to make the changes."))
     @task_manager.require_exclusive_lock
     def set_bios_config(self, task, **kwargs):
         """Change BIOS settings.
@@ -77,7 +87,17 @@ class DracVendorPassthru(base.VendorInterface):
         """
         return drac_bios.set_config(task, **kwargs)
 
-    @base.passthru(['POST'], async=False)
+    @base.passthru(['POST'], async=False,
+                   description=_("Commit a BIOS configuration job submitted "
+                                 "through set_bios_config(). Required "
+                                 "argument: 'reboot' - indicates whether a "
+                                 "reboot job should be automatically created "
+                                 "with the config job. Returns a dictionary "
+                                 "containing the 'job_id' key with the ID of "
+                                 "the newly created config job, and the "
+                                 "'reboot_required' key indicating whether "
+                                 "the node needs to be rebooted to start the "
+                                 "config job."))
     @task_manager.require_exclusive_lock
     def commit_bios_config(self, task, reboot=False, **kwargs):
         """Commit a BIOS configuration job.
@@ -98,7 +118,9 @@ class DracVendorPassthru(base.VendorInterface):
         job_id = drac_bios.commit_config(task, reboot=reboot)
         return {'job_id': job_id, 'reboot_required': not reboot}
 
-    @base.passthru(['DELETE'], async=False)
+    @base.passthru(['DELETE'], async=False,
+                   description=_("Abandon a BIOS configuration job previously "
+                                 "submitted through set_bios_config()."))
     @task_manager.require_exclusive_lock
     def abandon_bios_config(self, task, **kwargs):
         """Abandon a BIOS configuration job.
