@@ -72,7 +72,7 @@ class BaremetalClient(base.BaremetalClient):
     def show_node_by_instance_uuid(self, instance_uuid):
         """Gets a node associated with given instance uuid.
 
-        :param uuid: Unique identifier of the node in UUID format.
+        :param instance_uuid: Unique identifier of the instance in UUID format.
         :return: Serialized node as a dictionary.
 
         """
@@ -126,6 +126,7 @@ class BaremetalClient(base.BaremetalClient):
     def create_node(self, chassis_id=None, **kwargs):
         """Create a baremetal node with the specified parameters.
 
+        :param chassis_id: The unique identifier of the chassis.
         :param cpu_arch: CPU architecture of the node. Default: x86_64.
         :param cpus: Number of CPUs. Default: 8.
         :param local_gb: Disk size. Default: 1024.
@@ -257,7 +258,7 @@ class BaremetalClient(base.BaremetalClient):
         """Set power state of the specified node.
 
         :param node_uuid: The unique identifier of the node.
-        :state: desired state to set (on/off/reboot).
+        :param state: desired state to set (on/off/reboot).
 
         """
         target = {'target': state}
@@ -269,7 +270,7 @@ class BaremetalClient(base.BaremetalClient):
         """Set provision state of the specified node.
 
         :param node_uuid: The unique identifier of the node.
-        :state: desired state to set
+        :param state: desired state to set
                 (active/rebuild/deleted/inspect/manage/provide).
         :config_drive: A gzipped, base64-encoded configuration drive string.
         """
@@ -291,7 +292,7 @@ class BaremetalClient(base.BaremetalClient):
     def validate_driver_interface(self, node_uuid):
         """Get all driver interfaces of a specific node.
 
-        :param uuid: Unique identifier of the node in UUID format.
+        :param node_uuid: Unique identifier of the node in UUID format.
 
         """
 
