@@ -91,33 +91,10 @@ Install Guide.
 Flavor creation
 ===============
 
-You'll need to create a special bare metal flavor in the Compute service.
-The flavor is mapped to the bare metal node through the hardware specifications.
+The `Flavor creation`_ section has been moved to the Bare Metal service Install
+Guide.
 
-#. Change these to match your hardware::
-
-    RAM_MB=1024
-    CPU=2
-    DISK_GB=100
-    ARCH={i686|x86_64}
-
-#. Create the bare metal flavor by executing the following command::
-
-    nova flavor-create my-baremetal-flavor auto $RAM_MB $DISK_GB $CPU
-
-   *Note: You can replace auto with your own flavor id.*
-
-#. Set the architecture as extra_specs information of the flavor. This
-   will be used to match against the properties of bare metal nodes::
-
-    nova flavor-key my-baremetal-flavor set cpu_arch=$ARCH
-
-#. Associate the deploy ramdisk and kernel images with the ironic node::
-
-    ironic node-update $NODE_UUID add \
-    driver_info/deploy_kernel=$DEPLOY_VMLINUZ_UUID \
-    driver_info/deploy_ramdisk=$DEPLOY_INITRD_UUID
-
+.. _`Flavor creation`: http://docs.openstack.org/project-install-guide/baremetal/draft/configure-integration.html#configure-compute-flavors-for-use-with-the-bare-metal-service
 
 Setup the drivers for the Bare Metal service
 ============================================
