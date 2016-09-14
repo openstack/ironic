@@ -10,6 +10,7 @@ Bare Metal service
    configure-integration.rst
    configure-cleaning.rst
    configure-tenant-networks.rst
+   advanced.rst
    verify.rst
    next-steps.rst
 
