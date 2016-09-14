@@ -14,6 +14,7 @@ Bare Metal service
    enabling-https.rst
    standalone.rst
    configdrive.rst
+   deploy-ramdisk.rst
    advanced.rst
    troubleshooting.rst
    next-steps.rst
