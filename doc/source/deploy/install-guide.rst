@@ -4,33 +4,34 @@
 Installation Guide
 ==================
 
-This document is continually updated and reflects the latest
-available code of the Bare Metal service (ironic).
-Users of releases may encounter differences and are encouraged
-to look at earlier versions of this document for guidance.
+.. warning:: This installation guide has moved to the `Bare Metal
+             service installation guide`_. This page will not be
+             updated.
+
+.. _`Bare Metal service installation guide`: http://docs.openstack.org/project-install-guide/baremetal/draft/
 
 
 Service overview
 ================
 
-The `service overview`_ section has been moved to the Bare Metal service
-Install Guide.
+See the `service overview`_ section in the installation guide for the Bare
+Metal service.
 
 .. _`service overview`: http://docs.openstack.org/project-install-guide/baremetal/draft/get_started.html
 
 Install and configure prerequisites
 ===================================
 
-The `prerequisites`_ section has been moved to the Bare Metal service Install
-Guide.
+See the `prerequisites`_ section in the installation guide for the Bare Metal
+service.
 
 .. _`prerequisites`: http://docs.openstack.org/project-install-guide/baremetal/draft/install-ubuntu.html#prerequisites
 
 Install the Bare Metal service
 ==============================
 
-The `Install and configure components`_ section has been moved to the Bare
-Metal service Install Guide.
+See the `Install and configure components`_ section in the installation guide
+for the Bare Metal service.
 
 .. _`Install and configure components`: http://docs.openstack.org/project-install-guide/baremetal/draft/install-ubuntu.html#install-and-configure-components
 
@@ -38,8 +39,8 @@ Metal service Install Guide.
 Configure the Bare Metal service
 ================================
 
-The `Install and configure components`_ section has been moved to the Bare
-Metal service Install Guide.
+See the `Install and configure components`_ section in the installation guide
+for the Bare Metal service.
 
 .. _`Install and configure components`: http://docs.openstack.org/project-install-guide/baremetal/draft/install-ubuntu.html#install-and-configure-components
 
@@ -47,8 +48,8 @@ Metal service Install Guide.
 Configure Compute to use the Bare Metal service
 ===============================================
 
-The `Configure Compute to use the Bare Metal service`_ section has been moved
-to the Bare Metal service Install Guide.
+See the `Configure Compute to use the Bare Metal service`_ section in the
+installation guide for the Bare Metal service.
 
 .. _`Configure Compute to use the Bare Metal service`: http://docs.openstack.org/project-install-guide/baremetal/draft/configure-integration.html#configure-compute-to-use-the-bare-metal-service
 
@@ -57,8 +58,8 @@ to the Bare Metal service Install Guide.
 Configure Networking to communicate with the bare metal server
 ==============================================================
 
-The `Configure Networking to communicate with the bare metal server`_ section
-has been moved to the Bare Metal service Install Guide.
+See the `Configure Networking to communicate with the bare metal server`_
+section in the installation guide for the Bare Metal service.
 
 .. _`Configure Networking to communicate with the bare metal server`: http://docs.openstack.org/project-install-guide/baremetal/draft/configure-integration.html#configure-networking-to-communicate-with-the-bare-metal-server
 
@@ -73,8 +74,8 @@ See :ref:`multitenancy`
 Configure the Bare Metal service for cleaning
 =============================================
 
-The `Configure the Bare Metal service for cleaning`_ section
-has been moved to the Bare Metal service Install Guide.
+See the `Configure the Bare Metal service for cleaning`_ section in the
+installation guide for the Bare Metal service.
 
 .. _`Configure the Bare Metal service for cleaning`: http://docs.openstack.org/project-install-guide/baremetal/draft/configure-cleaning.html
 
@@ -83,24 +84,24 @@ has been moved to the Bare Metal service Install Guide.
 Image requirements
 ==================
 
-The `Image requirements`_ section has been moved to the Bare Metal service
-Install Guide.
+See the `Image requirements`_ section in the installation guide for the Bare
+Metal service.
 
 .. _`Image requirements`: http://docs.openstack.org/project-install-guide/baremetal/draft/configure-integration.html#configure-the-image-service
 
 Flavor creation
 ===============
 
-The `Flavor creation`_ section has been moved to the Bare Metal service Install
-Guide.
+See the `Flavor creation`_ section in the installation guide for the Bare Metal
+service.
 
 .. _`Flavor creation`: http://docs.openstack.org/project-install-guide/baremetal/draft/configure-integration.html#configure-compute-flavors-for-use-with-the-bare-metal-service
 
 Setup the drivers for the Bare Metal service
 ============================================
 
-The `Setup the drivers for the Bare Metal service`_ section has been moved to
-the Bare Metal service Install Guide.
+See the `Setup the drivers for the Bare Metal service`_ section in the
+installation guide for the Bare Metal service.
 
 .. _`Setup the drivers for the Bare Metal service`: http://docs.openstack.org/project-install-guide/baremetal/draft/setup-drivers.html
 
@@ -108,8 +109,8 @@ the Bare Metal service Install Guide.
 Local boot with partition images
 ================================
 
-The `Local boot with partition images`_ section has been moved to the Bare
-Metal service Install Guide.
+See the `Local boot with partition images`_ section in the installation guide
+for the Bare Metal service.
 
 .. _`Local boot with partition images`: http://docs.openstack.org/project-install-guide/baremetal/draft/advanced.html#local-boot-with-partition-images
 
@@ -117,16 +118,16 @@ Metal service Install Guide.
 Enrollment
 ==========
 
-The `Enrollment`_ section has been moved to the Bare Metal service Install
-Guide.
+See the `Enrollment`_ section in the installation guide for the Bare Metal
+service.
 
 .. _`Enrollment`: http://docs.openstack.org/project-install-guide/baremetal/draft/enrollment.html
 
 Specifying the disk for deployment
 ==================================
 
-The `Specifying the disk for deployment`_ section has been moved to the Bare
-Metal service Install Guide.
+See the `Specifying the disk for deployment`_ section in the installation guide
+for the Bare Metal service.
 
 .. _`Specifying the disk for deployment`: http://docs.openstack.org/project-install-guide/baremetal/draft/advanced.html#specifying-the-disk-for-deployment-root-device-hints
 
@@ -136,8 +137,8 @@ Metal service Install Guide.
 Enabling HTTPS in Swift
 =======================
 
-The `Enabling HTTPS in Swift`_ section has been moved to the Bare Metal service
-Install Guide.
+See the `Enabling HTTPS in Swift`_ section in the installation guide for the
+Bare Metal service.
 
 .. _`Enabling HTTPS in Swift`: http://docs.openstack.org/project-install-guide/baremetal/draft/enabling-https.html#enabling-https-in-swift
 
@@ -147,8 +148,8 @@ Install Guide.
 Enabling HTTPS in Image service
 ===============================
 
-The `Enabling HTTPS in Image service`_ section has been moved to the Bare Metal
-service Install Guide.
+See the `Enabling HTTPS in Image service`_ section in the installation guide
+for the Bare Metal service.
 
 .. _`Enabling HTTPS in Image service`: http://docs.openstack.org/project-install-guide/baremetal/draft/enabling-https.html#enabling-https-in-image-service
 
@@ -156,8 +157,8 @@ service Install Guide.
 Enabling HTTPS communication between Image service and Object storage
 =====================================================================
 
-The `Enabling HTTPS communication between Image service and Object storage`_
-section has been moved to the Bare Metal service Install Guide.
+See the `Enabling HTTPS communication between Image service and Object
+storage`_ section in the installation guide for the Bare Metal service.
 
 .. _`Enabling HTTPS communication between Image service and Object storage`: http://docs.openstack.org/project-install-guide/baremetal/draft/enabling-https.html#enabling-https-communication-between-image-service-and-object-storage
 
@@ -165,8 +166,8 @@ section has been moved to the Bare Metal service Install Guide.
 Enabling HTTPS communication between Image service and Bare Metal service
 =========================================================================
 
-The `Enabling HTTPS communication between Image service and Bare Metal
-service`_ section has been moved to the Bare Metal service Install Guide.
+See the `Enabling HTTPS communication between Image service and Bare Metal
+service`_ section in the installation guide for the Bare Metal service.
 
 .. _`Enabling HTTPS communication between Image service and Bare Metal service`: http://docs.openstack.org/project-install-guide/baremetal/draft/enabling-https.html#enabling-https-communication-between-image-service-and-bare-metal-service
 
@@ -175,8 +176,8 @@ Using Bare Metal service as a standalone service
 ================================================
 
 
-The `Using Bare Metal service as a standalone service`_ section has been moved
-to the Bare Metal service Install Guide.
+See the `Using Bare Metal service as a standalone service`_ section in the
+installation guide for the Bare Metal service.
 
 .. _`Using Bare Metal service as a standalone service`: http://docs.openstack.org/project-install-guide/baremetal/draft/standalone.html
 
@@ -186,8 +187,8 @@ to the Bare Metal service Install Guide.
 Enabling the configuration drive (configdrive)
 ==============================================
 
-The `Enabling the configuration drive (configdrive)`_ section has been moved
-to the Bare Metal service Install Guide.
+See the `Enabling the configuration drive (configdrive)`_ section in the
+installation guide for the Bare Metal service.
 
 .. _`Enabling the configuration drive (configdrive)`: http://docs.openstack.org/project-install-guide/baremetal/draft/configdrive.html
 
@@ -195,8 +196,8 @@ to the Bare Metal service Install Guide.
 Appending kernel parameters to boot instances
 =============================================
 
-The `Appending kernel parameters to boot instances`_ section has been moved
-to the Bare Metal service Install Guide.
+See the `Appending kernel parameters to boot instances`_ section in the
+installation guide for the Bare Metal service.
 
 .. _`Appending kernel parameters to boot instances`: http://docs.openstack.org/project-install-guide/baremetal/draft/advanced.html#appending-kernel-parameters-to-boot-instances
 
@@ -206,8 +207,8 @@ to the Bare Metal service Install Guide.
 Building or downloading a deploy ramdisk image
 ==============================================
 
-The `Building or downloading a deploy ramdisk image`_ section has been moved to
-the Bare Metal service Install Guide.
+See the `Building or downloading a deploy ramdisk image`_ section in the
+installation guide for the Bare Metal service.
 
 .. _`Building or downloading a deploy ramdisk image`: http://docs.openstack.org/project-install-guide/baremetal/draft/deploy-ramdisk.html
 
@@ -215,8 +216,8 @@ the Bare Metal service Install Guide.
 Trusted boot with partition image
 =================================
 
-The `Trusted boot with partition image`_ section has been moved to the Bare
-Metal service Install Guide.
+See the `Trusted boot with partition image`_ section in the installation guide
+for the Bare Metal service.
 
 .. _`Trusted boot with partition image`: http://docs.openstack.org/project-install-guide/baremetal/draft/advanced.html#trusted-boot-with-partition-image
 
@@ -224,7 +225,7 @@ Metal service Install Guide.
 Troubleshooting
 ===============
 
-The `Troubleshooting`_ section has been moved to the Bare Metal service Install
-Guide.
+See the `Troubleshooting`_ section in the installation guide for the Bare Metal
+service.
 
 .. _`Troubleshooting`: http://docs.openstack.org/project-install-guide/baremetal/draft/troubleshooting.html
