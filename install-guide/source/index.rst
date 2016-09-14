@@ -13,6 +13,7 @@ Bare Metal service
    enrollment.rst
    enabling-https.rst
    standalone.rst
+   configdrive.rst
    advanced.rst
    troubleshooting.rst
    next-steps.rst
