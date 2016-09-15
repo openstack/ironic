@@ -4,7 +4,7 @@
 # devstack plugin contract defined at:
 # http://docs.openstack.org/developer/devstack/plugins.html
 
-echo_summary "ironic's plugin.sh was called..."
+echo_summary "ironic devstack plugin.sh called: $1/$2"
 source $DEST/ironic/devstack/lib/ironic
 
 if is_service_enabled ir-api ir-cond; then
