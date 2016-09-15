@@ -43,9 +43,9 @@ Prerequisites
   which contains set of modules for managing HPE ProLiant hardware.
 
   Install ``proliantutils`` module on the ironic conductor node. Minimum
-  version required is 2.1.10.::
+  version required is 2.1.11.::
 
-   $ pip install "proliantutils>=2.1.10"
+   $ pip install "proliantutils>=2.1.11"
 
 * ``ipmitool`` command must be present on the service node(s) where
   ``ironic-conductor`` is running. On most distros, this is provided as part
