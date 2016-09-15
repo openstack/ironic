@@ -16,7 +16,7 @@ with a unified interface to a heterogeneous fleet of servers while also
 providing the Compute service with an interface that allows physical servers to
 be managed as though they were virtual machines.
 
-`An introduction to ironic's conceptual architecture <deploy/user-guide>`_
+`An introduction to ironic's conceptual architecture <deploy/user-guide.html>`_
 is available for those new to the project.
 
 Site Notes
