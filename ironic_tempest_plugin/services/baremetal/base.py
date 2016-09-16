@@ -205,7 +205,7 @@ class BaremetalClient(rest_client.RestClient):
 
     @handle_errors
     def get_version_description(self, version='v1'):
-        """Retrieves the desctription of the API.
+        """Retrieves the description of the API.
 
         :param version: The version of the API. Default: 'v1'.
         :returns: Serialized description of API resources.
