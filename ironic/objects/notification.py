@@ -51,8 +51,6 @@ class EventType(base.IronicObject):
     }
 
     def to_event_type_field(self):
-        if self.status not in ['start', 'end', 'error', 'success']:
-            raise exception.NotificationEventTypeError(status=self.status)
         parts = ['baremetal', self.object, self.action, self.status]
         return '.'.join(parts)
 

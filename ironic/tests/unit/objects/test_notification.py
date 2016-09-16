@@ -246,3 +246,11 @@ class TestNotificationBase(test_base.TestCase):
         self.assertRaises(ValueError,
                           notification.EventType, object="some_obj",
                           action="some_action", status="invalid")
+
+    def test_event_type_make_status_invalid(self):
+        def make_status_invalid():
+            event_type.status = "Roar"
+
+        event_type = notification.EventType(
+            object='test_object', action='test', status='start')
+        self.assertRaises(ValueError, make_status_invalid)

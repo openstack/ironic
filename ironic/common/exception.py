@@ -611,11 +611,6 @@ class IncompleteLookup(Invalid):
                  "is required")
 
 
-class NotificationEventTypeError(IronicException):
-    _msg_fmt = _('Expected "status" to be one of "start", "end", '
-                 '"error", or "success", but got "%(status)s"')
-
-
 class NotificationSchemaObjectError(IronicException):
     _msg_fmt = _("Expected object %(obj)s when populating notification payload"
                  " but got object %(source)s")
