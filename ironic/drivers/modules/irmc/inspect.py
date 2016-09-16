@@ -14,7 +14,7 @@
 """
 iRMC Inspect Interface
 """
-
+from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
 
@@ -29,6 +29,8 @@ from ironic import objects
 scci = importutils.try_import('scciclient.irmc.scci')
 
 LOG = logging.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 """
 SC2.mib: sc2UnitNodeClass returns NIC type.
@@ -142,6 +144,7 @@ class IRMCInspect(base.InspectInterface):
         """
         return irmc_common.COMMON_PROPERTIES
 
+    @METRICS.timer('IRMCInspect.validate')
     def validate(self, task):
         """Validate the driver-specific inspection information.
 
@@ -155,6 +158,7 @@ class IRMCInspect(base.InspectInterface):
         """
         irmc_common.parse_driver_info(task.node)
 
+    @METRICS.timer('IRMCInspect.inspect_hardware')
     def inspect_hardware(self, task):
         """Inspect hardware.
 

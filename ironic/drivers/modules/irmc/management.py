@@ -14,7 +14,7 @@
 """
 iRMC Management Driver
 """
-
+from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
 
@@ -29,6 +29,8 @@ from ironic.drivers import utils as driver_utils
 scci = importutils.try_import('scciclient.irmc.scci')
 
 LOG = logging.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 # Boot Option Parameters #5 Data2 defined in
 # Set/Get System Boot Options Command, IPMI spec v2.0.
@@ -113,6 +115,7 @@ class IRMCManagement(ipmitool.IPMIManagement):
         """
         return irmc_common.COMMON_PROPERTIES
 
+    @METRICS.timer('IRMCManagement.validate')
     def validate(self, task):
         """Validate the driver-specific management information.
 
@@ -127,6 +130,7 @@ class IRMCManagement(ipmitool.IPMIManagement):
         irmc_common.update_ipmi_properties(task)
         super(IRMCManagement, self).validate(task)
 
+    @METRICS.timer('IRMCManagement.set_boot_device')
     @task_manager.require_exclusive_lock
     def set_boot_device(self, task, device, persistent=False):
         """Set the boot device for a node.
@@ -177,6 +181,7 @@ class IRMCManagement(ipmitool.IPMIManagement):
         cmd8 = bootparam5 % (data1, data2)
         ipmitool.send_raw(task, cmd8)
 
+    @METRICS.timer('IRMCManagement.get_sensors_data')
     def get_sensors_data(self, task):
         """Get sensors data method.
 
