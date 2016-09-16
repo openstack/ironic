@@ -2617,8 +2617,11 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_agent')
 
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
     @mock.patch.object(image_service, 'GlanceImageService', autospec=True)
-    def test_build_instance_info_for_deploy_glance_image(self, glance_mock):
+    def test_build_instance_info_for_deploy_glance_image(self, glance_mock,
+                                                         validate_mock):
         i_info = self.node.instance_info
         i_info['image_source'] = '733d1c44-a2ea-414b-aca7-69decf20d810'
         driver_internal_info = self.node.driver_internal_info
@@ -2631,7 +2634,8 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
                       'container_format': 'bare', 'properties': {}}
         glance_mock.return_value.show = mock.MagicMock(spec_set=[],
                                                        return_value=image_info)
-
+        glance_mock.return_value.swift_temp_url.return_value = (
+            'http://temp-url')
         mgr_utils.mock_the_extension_manager(driver='fake_agent')
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
@@ -2644,11 +2648,15 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
                 self.node.instance_info['image_source'])
             glance_mock.return_value.swift_temp_url.assert_called_once_with(
                 image_info)
+            validate_mock.assert_called_once_with(mock.ANY, 'http://temp-url',
+                                                  secret=True)
 
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
     @mock.patch.object(utils, 'parse_instance_info', autospec=True)
     @mock.patch.object(image_service, 'GlanceImageService', autospec=True)
     def test_build_instance_info_for_deploy_glance_partition_image(
-            self, glance_mock, parse_instance_info_mock):
+            self, glance_mock, parse_instance_info_mock, validate_mock):
         i_info = {}
         i_info['image_source'] = '733d1c44-a2ea-414b-aca7-69decf20d810'
         i_info['kernel'] = '13ce5a56-1de3-4916-b8b2-be778645d003'
@@ -2671,7 +2679,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
         glance_mock.return_value.show = mock.MagicMock(spec_set=[],
                                                        return_value=image_info)
         glance_obj_mock = glance_mock.return_value
-        glance_obj_mock.swift_temp_url.return_value = 'temp-url'
+        glance_obj_mock.swift_temp_url.return_value = 'http://temp-url'
         parse_instance_info_mock.return_value = {'swap_mb': 4}
         image_source = '733d1c44-a2ea-414b-aca7-69decf20d810'
         expected_i_info = {'root_gb': 5,
@@ -2680,7 +2688,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
                            'ephemeral_format': None,
                            'configdrive': 'configdrive',
                            'image_source': image_source,
-                           'image_url': 'temp-url',
+                           'image_url': 'http://temp-url',
                            'kernel': 'kernel',
                            'ramdisk': 'ramdisk',
                            'image_type': 'partition',
@@ -2702,6 +2710,8 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
                 self.node.instance_info['image_source'])
             glance_mock.return_value.swift_temp_url.assert_called_once_with(
                 image_info)
+            validate_mock.assert_called_once_with(
+                mock.ANY, 'http://temp-url', secret=True)
             image_type = task.node.instance_info['image_type']
             self.assertEqual('partition', image_type)
             self.assertEqual('kernel', info['kernel'])
@@ -2733,7 +2743,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
             self.assertEqual(self.node.instance_info['image_source'],
                              info['image_url'])
             validate_href_mock.assert_called_once_with(
-                mock.ANY, 'http://image-ref')
+                mock.ANY, 'http://image-ref', False)
 
     @mock.patch.object(utils, 'parse_instance_info', autospec=True)
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
@@ -2775,7 +2785,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
             self.assertEqual(self.node.instance_info['image_source'],
                              info['image_url'])
             validate_href_mock.assert_called_once_with(
-                mock.ANY, 'http://image-ref')
+                mock.ANY, 'http://image-ref', False)
             self.assertEqual('partition', info['image_type'])
             self.assertEqual(expected_i_info, info)
             parse_instance_info_mock.assert_called_once_with(task.node)
