@@ -124,7 +124,7 @@ IRONIC_VM_NETWORK_BRIDGE=${IRONIC_VM_NETWORK_BRIDGE:-brbm}
 IRONIC_VM_NETWORK_RANGE=${IRONIC_VM_NETWORK_RANGE:-192.0.2.0/24}
 IRONIC_VM_MACS_CSV_FILE=${IRONIC_VM_MACS_CSV_FILE:-$IRONIC_DATA_DIR/ironic_macs.csv}
 IRONIC_AUTHORIZED_KEYS_FILE=${IRONIC_AUTHORIZED_KEYS_FILE:-$HOME/.ssh/authorized_keys}
-IRONIC_CLEAN_NET_NAME=${IRONIC_CLEAN_NET_NAME:-$PRIVATE_NETWORK_NAME}
+IRONIC_CLEAN_NET_NAME=${IRONIC_CLEAN_NET_NAME:-${IRONIC_PROVISION_NETWORK_NAME:-${PRIVATE_NETWORK_NAME}}}
 IRONIC_EXTRA_PXE_PARAMS=${IRONIC_EXTRA_PXE_PARAMS:-}
 IRONIC_TTY_DEV=${IRONIC_TTY_DEV:-ttyS0}
 
@@ -506,6 +506,24 @@ function configure_ironic_dirs {
     fi
 }
 
+function configure_ironic_networks {
+
+    if [[ -n "${IRONIC_PROVISION_NETWORK_NAME}" ]]; then
+        echo_summary "Configuring Ironic provisioning network"
+        configure_ironic_provision_network
+    fi
+
+    echo_summary "Configuring Ironic cleaning network"
+    configure_ironic_cleaning_network
+}
+
+function configure_ironic_cleaning_network {
+    local cleaning_network_uuid
+    cleaning_network_uuid=$(openstack network show  "$IRONIC_CLEAN_NET_NAME" -c id -f value)
+    die_if_not_set $LINENO cleaning_network_uuid "Failed to get ironic cleaning network id"
+    iniset $IRONIC_CONF_FILE neutron cleaning_network_uuid ${cleaning_network_uuid}
+}
+
 function configure_ironic_provision_network {
 
     die_if_not_set $LINENO IRONIC_PROVISION_SUBNET_PREFIX "You must specify the IRONIC_PROVISION_SUBNET_PREFIX"
@@ -782,14 +800,6 @@ function create_ironic_accounts {
 
 # init_ironic() - Initialize databases, etc.
 function init_ironic {
-    if is_service_enabled neutron; then
-        # Save private network as cleaning network
-        local cleaning_network_uuid
-        cleaning_network_uuid=$(openstack network show  "$IRONIC_CLEAN_NET_NAME" -c id -f value)
-        die_if_not_set $LINENO cleaning_network_uuid "Failed to get ironic cleaning network id"
-        iniset $IRONIC_CONF_FILE neutron cleaning_network_uuid ${cleaning_network_uuid}
-    fi
-
     # (Re)create  ironic database
     recreate_database ironic
 
