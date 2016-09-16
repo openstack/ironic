@@ -359,7 +359,13 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             # Clean driver_internal_info when changes driver
             self.driver_internal_info = {}
             updates = self.obj_get_changes()
-        self.dbapi.update_node(self.uuid, updates)
+        db_node = self.dbapi.update_node(self.uuid, updates)
+
+        # TODO(galyna): updating specific field not touching others to not
+        # change default behaviour. Otherwise it will break a bunch of tests
+        # This can be updated in other way when more fields like `updated_at`
+        # will appear
+        self.updated_at = db_node['updated_at']
         self.obj_reset_changes()
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
