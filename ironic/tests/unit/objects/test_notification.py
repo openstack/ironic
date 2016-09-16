@@ -95,7 +95,7 @@ class TestNotificationBase(test_base.TestCase):
         payload.populate_schema(test_obj=self.fake_obj)
         notif = self.TestNotification(
             event_type=notification.EventType(
-                object='test_object', action='test', phase='start'),
+                object='test_object', action='test', status='start'),
             level=fields.NotificationLevel.DEBUG,
             publisher=notification.NotificationPublisher(
                 service='ironic-conductor',
@@ -132,7 +132,7 @@ class TestNotificationBase(test_base.TestCase):
         payload.populate_schema(test_obj=self.fake_obj)
         notif = self.TestNotification(
             event_type=notification.EventType(
-                object='test_object', action='test', phase='start'),
+                object='test_object', action='test', status='start'),
             level=fields.NotificationLevel.DEBUG,
             publisher=notification.NotificationPublisher(
                 service='ironic-conductor',
@@ -153,7 +153,7 @@ class TestNotificationBase(test_base.TestCase):
         payload.populate_schema(test_obj=self.fake_obj)
         notif = self.TestNotification(
             event_type=notification.EventType(
-                object='test_object', action='test', phase='start'),
+                object='test_object', action='test', status='start'),
             level=fields.NotificationLevel.DEBUG,
             publisher=notification.NotificationPublisher(
                 service='ironic-conductor',
@@ -172,7 +172,7 @@ class TestNotificationBase(test_base.TestCase):
                                                an_optional_field=1)
         notif = self.TestNotification(
             event_type=notification.EventType(
-                object='test_object', action='test', phase='start'),
+                object='test_object', action='test', status='start'),
             level=fields.NotificationLevel.DEBUG,
             publisher=notification.NotificationPublisher(
                 service='ironic-conductor',
@@ -190,7 +190,7 @@ class TestNotificationBase(test_base.TestCase):
         payload = self.TestNotificationPayloadEmptySchema(fake_field='123')
         notif = self.TestNotificationEmptySchema(
             event_type=notification.EventType(
-                object='test_object', action='test', phase='fail'),
+                object='test_object', action='test', status='error'),
             level=fields.NotificationLevel.ERROR,
             publisher=notification.NotificationPublisher(
                 service='ironic-conductor',
@@ -203,7 +203,7 @@ class TestNotificationBase(test_base.TestCase):
         self._verify_notification(
             mock_notifier,
             mock_context,
-            expected_event_type='baremetal.test_object.test.fail',
+            expected_event_type='baremetal.test_object.test.error',
             expected_payload={
                 'ironic_object.name': 'TestNotificationPayloadEmptySchema',
                 'ironic_object.data': {
@@ -230,14 +230,19 @@ class TestNotificationBase(test_base.TestCase):
                           payload.populate_schema,
                           test_obj=test_obj)
 
-    def test_event_type_with_phase(self):
+    def test_event_type_with_status(self):
         event_type = notification.EventType(
-            object="some_obj", action="some_action", phase="some_phase")
-        self.assertEqual("baremetal.some_obj.some_action.some_phase",
+            object="some_obj", action="some_action", status="success")
+        self.assertEqual("baremetal.some_obj.some_action.success",
                          event_type.to_event_type_field())
 
-    def test_event_type_without_phase(self):
+    def test_event_type_without_status_fails(self):
         event_type = notification.EventType(
             object="some_obj", action="some_action")
-        self.assertEqual("baremetal.some_obj.some_action",
-                         event_type.to_event_type_field())
+        self.assertRaises(NotImplementedError,
+                          event_type.to_event_type_field)
+
+    def test_event_type_invalid_status_fails(self):
+        self.assertRaises(ValueError,
+                          notification.EventType, object="some_obj",
+                          action="some_action", status="invalid")

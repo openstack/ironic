@@ -102,6 +102,10 @@ class FlexibleDictField(object_fields.AutoTypedField):
         super(FlexibleDictField, self)._null(obj, attr)
 
 
+class EnumField(object_fields.EnumField):
+    pass
+
+
 class NotificationLevel(object_fields.Enum):
     DEBUG = 'debug'
     INFO = 'info'

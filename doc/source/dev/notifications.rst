@@ -147,14 +147,24 @@ in the ironic notification base classes) and emit it::
 
     notify = ExampleNotification(
         event_type=notification.EventType(object='example_obj',
-            action='do_something', phase='start'),
+            action='do_something', status='start'),
         publisher=notification.NotificationPublisher(service='conductor',
                                                      host='cond-hostname01'),
         level=fields.NotificationLevel.DEBUG,
         payload=my_notify_payload)
     notify.emit(context)
 
-This will send the following notification over the message bus::
+When specifying the event_type, ``object`` will specify the object being acted
+on, ``action`` will be a string describing what action is being performed on
+that object, and ``status`` will be one of "start", "end", "fail", or
+"success". "start" and "end" are used to indicate when actions that are not
+immediate begin and succeed. "success" is used to indicate when actions that
+are immediate succeed. "fail" is used to indicate when any type of action
+fails, regardless of whether it's immediate or not. As a result of specifying
+these parameters, event_type will be formatted as
+``baremetal.<object>.<action>.<status>`` on the message bus.
+
+This example will send the following notification over the message bus::
 
    {
        "priority": "debug",
@@ -170,6 +180,12 @@ This will send the following notification over the message bus::
        "event_type":"baremetal.example_obj.do_something.start",
        "publisher_id":"conductor.cond-hostname01"
     }
+
+Existing notifications
+----------------------
+
+Descriptions of notifications emitted by ironic will be documented here when
+they are added.
 
 .. [1] http://docs.openstack.org/developer/oslo.messaging/notifier.html
 .. [2] http://docs.openstack.org/developer/oslo.versionedobjects
