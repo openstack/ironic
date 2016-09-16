@@ -56,8 +56,28 @@ REQUIRED_PROPERTIES = {
 OPTIONAL_PROPERTIES = {
     'client_port': _("port to be used for iLO operations. Optional."),
     'client_timeout': _("timeout (in seconds) for iLO operations. Optional."),
-    'ca_file': _("CA certificate file to validate iLO. optional"),
+    'ca_file': _("CA certificate file to validate iLO. Optional")
 }
+
+SNMP_PROPERTIES = {
+    'snmp_auth_user': _("User for SNMPv3. "
+                        "Required for SNMP inspection"),
+    'snmp_auth_prot_password': _("Authentication Protocol Passphrase. "
+                                 "Required for SNMP inspection"),
+    'snmp_auth_priv_password': _("Authentication Privacy Passphrase. "
+                                 "Required for SNMP inspection"),
+}
+
+SNMP_OPTIONAL_PROPERTIES = {
+    'snmp_auth_protocol': _("Authentication Protocol. Optional, used "
+                            "for SNMP inspection. If not specified, the "
+                            "default value as 'MD5' is used."),
+    'snmp_auth_priv_protocol': _("Privacy Protocol. Optional, "
+                                 "used for SNMP inspection. "
+                                 "If not specified, the default value "
+                                 "as 'DES' is used.")
+}
+
 CONSOLE_PROPERTIES = {
     'console_port': _("node's UDP port to connect to. Only required for "
                       "console access.")
@@ -221,6 +241,10 @@ def parse_driver_info(node):
             except ValueError:
                 not_integers.append(param)
 
+    snmp_info = _parse_snmp_driver_info(info)
+    if snmp_info:
+        d_info.update(snmp_info)
+
     for param in CONSOLE_PROPERTIES:
         value = info.get(param)
         if value:
@@ -237,6 +261,45 @@ def parse_driver_info(node):
     return d_info
 
 
+def _parse_snmp_driver_info(info):
+    """Parses the SNMP related driver_info parameters.
+
+    :param info: driver_info dictionary.
+    :returns: a dictionary containing SNMP information.
+    :raises exception.MissingParameterValue if any of the mandatory
+        parameter values are not provided.
+    :raises exception.InvalidParameterValue if the value provided
+        for SNMP_OPTIONAL_PROPERTIES has an invalid value.
+    """
+    snmp_info = {}
+    missing_info = []
+    valid_values = {'snmp_auth_protocol': ['MD5', 'SHA'],
+                    'snmp_auth_priv_protocol': ['AES', 'DES']}
+    if info.get('snmp_auth_user'):
+        for param in SNMP_PROPERTIES:
+            try:
+                snmp_info[param] = info[param]
+            except KeyError:
+                missing_info.append(param)
+        if missing_info:
+            raise exception.MissingParameterValue(_(
+                "The following required SNMP parameters are missing from the "
+                "node's driver_info: %s") % missing_info)
+
+        for param in SNMP_OPTIONAL_PROPERTIES:
+            try:
+                value = six.text_type(info[param]).upper()
+                if value not in valid_values[param]:
+                    raise exception.InvalidParameterValue(_(
+                        "Invalid value %(value)s given for driver_info "
+                        "parameter %(param)s") % {'param': param,
+                                                  'value': info[param]})
+                snmp_info[param] = value
+            except KeyError:
+                pass
+    return snmp_info
+
+
 def get_ilo_object(node):
     """Gets an IloClient object from proliantutils library.
 
@@ -250,12 +313,27 @@ def get_ilo_object(node):
         is missing on the node
     """
     driver_info = parse_driver_info(node)
+    snmp_info = _parse_snmp_driver_info(driver_info)
+    info = {}
+    # This mapping is done as per what proliantutils expect the input
+    # to be. This will be removed once proliantutils is fixed for this
+    # in its next release.
+    if snmp_info:
+        info['snmp_inspection'] = True
+        info['auth_user'] = snmp_info['snmp_auth_user']
+        info['auth_prot_pp'] = snmp_info['snmp_auth_prot_password']
+        info['auth_priv_pp'] = snmp_info['snmp_auth_priv_password']
+        if snmp_info.get('snmp_auth_protocol'):
+            info['auth_protocol'] = snmp_info['snmp_auth_protocol']
+        if snmp_info.get('snmp_priv_protocol'):
+            info['priv_protocol'] = snmp_info['snmp_auth_priv_protocol']
     ilo_object = ilo_client.IloClient(driver_info['ilo_address'],
                                       driver_info['ilo_username'],
                                       driver_info['ilo_password'],
                                       driver_info['client_timeout'],
                                       driver_info['client_port'],
-                                      cacert=driver_info.get('ca_file'))
+                                      cacert=driver_info.get('ca_file'),
+                                      snmp_credentials=info)
     return ilo_object
 
 

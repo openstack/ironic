@@ -163,7 +163,10 @@ def _get_capabilities(node, ilo_object):
 class IloInspect(base.InspectInterface):
 
     def get_properties(self):
-        return ilo_common.REQUIRED_PROPERTIES
+        props = ilo_common.REQUIRED_PROPERTIES.copy()
+        props.update(ilo_common.SNMP_PROPERTIES)
+        props.update(ilo_common.SNMP_OPTIONAL_PROPERTIES)
+        return props
 
     @METRICS.timer('IloInspect.validate')
     def validate(self, task):
