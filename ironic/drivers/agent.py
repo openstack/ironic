@@ -97,6 +97,8 @@ class AgentAndIPMINativeDriver(base.BaseDriver):
     glue between them.
     """
 
+    supported = False
+
     def __init__(self):
         self.power = ipminative.NativeIPMIPower()
         self.boot = pxe.PXEBoot()
@@ -131,6 +133,8 @@ class AgentAndSSHDriver(base.BaseDriver):
     is merely the glue between them.
     """
 
+    supported = False
+
     def __init__(self):
         self.power = ssh.SSHPower()
         self.boot = pxe.PXEBoot()
@@ -156,6 +160,8 @@ class AgentAndVirtualBoxDriver(base.BaseDriver):
     is merely the glue between them.
     """
 
+    supported = False
+
     def __init__(self):
         if not importutils.try_import('pyremotevbox'):
             raise exception.DriverLoadError(
@@ -178,6 +184,9 @@ class AgentAndAMTDriver(base.BaseDriver):
     deployment. Implementations are in those respective classes; this
     class is merely the glue between them.
     """
+
+    supported = False
+
     def __init__(self):
         if not importutils.try_import('pywsman'):
             raise exception.DriverLoadError(
@@ -249,6 +258,9 @@ class AgentAndWakeOnLanDriver(base.BaseDriver):
     Implementations are in those respective classes;
     this class is merely the glue between them.
     """
+
+    supported = False
+
     def __init__(self):
         self.power = wol.WakeOnLanPower()
         self.boot = pxe.PXEBoot()
@@ -266,6 +278,9 @@ class AgentAndIBootDriver(base.BaseDriver):
     Implementations are in those respective classes;
     this class is merely the glue between them.
     """
+
+    supported = False
+
     def __init__(self):
         if not importutils.try_import('iboot'):
             raise exception.DriverLoadError(

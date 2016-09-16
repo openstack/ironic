@@ -116,6 +116,9 @@ class PXEAndSSHDriver(base.BaseDriver):
     image deployment. Implementations are in those respective
     classes; this class is merely the glue between them.
     """
+
+    supported = False
+
     def __init__(self):
         self.power = ssh.SSHPower()
         self.boot = pxe.PXEBoot()
@@ -138,6 +141,9 @@ class PXEAndIPMINativeDriver(base.BaseDriver):
     for image deployment.  Implementations are in those respective
     classes; this class is merely the glue between them.
     """
+
+    supported = False
+
     def __init__(self):
         if not importutils.try_import('pyghmi'):
             raise exception.DriverLoadError(
@@ -173,6 +179,9 @@ class PXEAndSeaMicroDriver(base.BaseDriver):
     for image deployment.  Implementations are in those respective
     classes; this class is merely the glue between them.
     """
+
+    supported = False
+
     def __init__(self):
         if not importutils.try_import('seamicroclient'):
             raise exception.DriverLoadError(
@@ -203,6 +212,9 @@ class PXEAndIBootDriver(base.BaseDriver):
     image deployment.  Implementations are in those respective classes;
     this class is merely the glue between them.
     """
+
+    supported = False
+
     def __init__(self):
         if not importutils.try_import('iboot'):
             raise exception.DriverLoadError(
@@ -247,6 +259,9 @@ class PXEAndSNMPDriver(base.BaseDriver):
     deployment. Implentations are in those respective classes; this
     class is merely the glue between them.
     """
+
+    supported = False
+
     def __init__(self):
         # Driver has a runtime dependency on PySNMP, abort load if it is absent
         if not importutils.try_import('pysnmp'):
@@ -297,6 +312,9 @@ class PXEAndVirtualBoxDriver(base.BaseDriver):
     deployment. Implementations are in those respective classes;
     this class is merely the glue between them.
     """
+
+    supported = False
+
     def __init__(self):
         if not importutils.try_import('pyremotevbox'):
             raise exception.DriverLoadError(
@@ -319,6 +337,9 @@ class PXEAndAMTDriver(base.BaseDriver):
     deployment. Implementations are in those respective classes; this
     class is merely the glue between them.
     """
+
+    supported = False
+
     def __init__(self):
         if not importutils.try_import('pywsman'):
             raise exception.DriverLoadError(
@@ -340,6 +361,9 @@ class PXEAndMSFTOCSDriver(base.BaseDriver):
     for image deployment.  Implementations are in those respective classes;
     this class is merely the glue between them.
     """
+
+    supported = False
+
     def __init__(self):
         self.power = msftocs_power.MSFTOCSPower()
         self.boot = pxe.PXEBoot()
@@ -405,6 +429,9 @@ class PXEAndWakeOnLanDriver(base.BaseDriver):
     deployment.  Implementations are in those respective classes;
     this class is merely the glue between them.
     """
+
+    supported = False
+
     def __init__(self):
         self.power = wol.WakeOnLanPower()
         self.boot = pxe.PXEBoot()
