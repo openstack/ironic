@@ -874,8 +874,10 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         self.assertEqual(root_uuid, uuid_dict_returned['root uuid'])
         mock_unlink.assert_called_once_with('configdrive-path')
 
+    @mock.patch.object(disk_utils, 'create_config_drive_partition',
+                       autospec=True)
     @mock.patch.object(disk_utils, 'get_disk_identifier', autospec=True)
-    def test_deploy_whole_disk_image(self, mock_gdi):
+    def test_deploy_whole_disk_image(self, mock_gdi, create_config_drive_mock):
         """Check loosely all functions are called with right args."""
         address = '127.0.0.1'
         port = 3306
@@ -904,10 +906,55 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                                      mock.call.populate_image(image_path, dev)]
 
         uuid_dict_returned = utils.deploy_disk_image(address, port, iqn, lun,
-                                                     image_path, node_uuid)
+                                                     image_path, node_uuid,
+                                                     configdrive=None)
 
         self.assertEqual(utils_calls_expected, utils_mock.mock_calls)
         self.assertEqual(disk_utils_calls_expected, disk_utils_mock.mock_calls)
+        self.assertFalse(create_config_drive_mock.called)
+        self.assertEqual('0x12345678', uuid_dict_returned['disk identifier'])
+
+    @mock.patch.object(disk_utils, 'create_config_drive_partition',
+                       autospec=True)
+    @mock.patch.object(disk_utils, 'get_disk_identifier', autospec=True)
+    def test_deploy_whole_disk_image_with_config_drive(self, mock_gdi,
+                                                       create_partition_mock):
+        """Check loosely all functions are called with right args."""
+        address = '127.0.0.1'
+        port = 3306
+        iqn = 'iqn.xyz'
+        lun = 1
+        image_path = '/tmp/xyz/image'
+        node_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
+        config_url = 'http://1.2.3.4/cd'
+
+        dev = '/dev/fake'
+        utils_list = ['get_dev', 'discovery', 'login_iscsi', 'logout_iscsi',
+                      'delete_iscsi']
+
+        disk_utils_list = ['is_block_device', 'populate_image']
+        utils_mock = self._mock_calls(utils_list, utils)
+        disk_utils_mock = self._mock_calls(disk_utils_list, disk_utils)
+        utils_mock.get_dev.return_value = dev
+        disk_utils_mock.is_block_device.return_value = True
+        mock_gdi.return_value = '0x12345678'
+        utils_calls_expected = [mock.call.get_dev(address, port, iqn, lun),
+                                mock.call.discovery(address, port),
+                                mock.call.login_iscsi(address, port, iqn),
+                                mock.call.logout_iscsi(address, port, iqn),
+                                mock.call.delete_iscsi(address, port, iqn)]
+
+        disk_utils_calls_expected = [mock.call.is_block_device(dev),
+                                     mock.call.populate_image(image_path, dev)]
+
+        uuid_dict_returned = utils.deploy_disk_image(address, port, iqn, lun,
+                                                     image_path, node_uuid,
+                                                     configdrive=config_url)
+
+        utils_mock.assert_has_calls(utils_calls_expected)
+        disk_utils_mock.assert_has_calls(disk_utils_calls_expected)
+        create_partition_mock.assert_called_once_with(node_uuid, dev,
+                                                      config_url)
         self.assertEqual('0x12345678', uuid_dict_returned['disk identifier'])
 
     @mock.patch.object(common_utils, 'execute', autospec=True)

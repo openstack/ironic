@@ -363,7 +363,7 @@ def deploy_partition_image(
 
 
 def deploy_disk_image(address, port, iqn, lun,
-                      image_path, node_uuid):
+                      image_path, node_uuid, configdrive=None):
     """All-in-one function to deploy a whole disk image to a node.
 
     :param address: The iSCSI IP address.
@@ -373,6 +373,8 @@ def deploy_disk_image(address, port, iqn, lun,
     :param image_path: Path for the instance's disk image.
     :param node_uuid: node's uuid. Used for logging. Currently not in use
         by this function but could be used in the future.
+    :param configdrive: Optional. Base64 encoded Gzipped configdrive content
+                        or configdrive HTTP URL.
     :returns: a dictionary containing the key 'disk identifier' to identify
         the disk which was used for deployment.
     """
@@ -380,6 +382,10 @@ def deploy_disk_image(address, port, iqn, lun,
                                         lun) as dev:
         disk_utils.populate_image(image_path, dev)
         disk_identifier = disk_utils.get_disk_identifier(dev)
+
+        if configdrive:
+            disk_utils.create_config_drive_partition(node_uuid, dev,
+                                                     configdrive)
 
     return {'disk identifier': disk_identifier}
 
@@ -1181,6 +1187,7 @@ def parse_instance_info(node):
     # ensuring that it is possible
     i_info['swap_mb'] = info.get('swap_mb', 0)
     i_info['ephemeral_gb'] = info.get('ephemeral_gb', 0)
+    i_info['configdrive'] = info.get('configdrive')
     err_msg_invalid = _("Cannot validate parameter for driver deploy. "
                         "Invalid parameter %(param)s. Reason: %(reason)s")
     for param in DISK_LAYOUT_PARAMS:

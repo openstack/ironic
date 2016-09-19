@@ -183,12 +183,13 @@ def get_deploy_info(node, address, iqn, port=None, lun='1'):
             _("Parameters %s were not passed to ironic"
               " for deploy.") % missing)
 
+    # configdrive is nullable
+    params['configdrive'] = i_info.get('configdrive')
     if is_whole_disk_image:
         return params
 
-    # configdrive and ephemeral_format are nullable
+    # ephemeral_format is nullable
     params['ephemeral_format'] = i_info.get('ephemeral_format')
-    params['configdrive'] = i_info.get('configdrive')
 
     return params
 
