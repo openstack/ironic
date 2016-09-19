@@ -1187,7 +1187,6 @@ def parse_instance_info(node):
     # ensuring that it is possible
     i_info['swap_mb'] = info.get('swap_mb', 0)
     i_info['ephemeral_gb'] = info.get('ephemeral_gb', 0)
-    i_info['configdrive'] = info.get('configdrive')
     err_msg_invalid = _("Cannot validate parameter for driver deploy. "
                         "Invalid parameter %(param)s. Reason: %(reason)s")
     for param in DISK_LAYOUT_PARAMS:
