@@ -96,6 +96,16 @@ opts = [
                choices=['4', '6'],
                help=_('The IP version that will be used for PXE booting. '
                       'Defaults to 4. EXPERIMENTAL')),
+    cfg.BoolOpt('ipxe_use_swift',
+                default=False,
+                help=_("Download deploy images directly from swift using "
+                       "temporary URLs. "
+                       "If set to false (default), images are downloaded "
+                       "to the ironic-conductor node and served over its "
+                       "local HTTP server. "
+                       "Applicable only when 'ipxe_enabled' option is "
+                       "set to true.")),
+
 ]
 
 
