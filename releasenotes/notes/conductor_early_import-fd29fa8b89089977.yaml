@@ -1,0 +1,5 @@
+---
+fixes:
+  - Fixes a bug which prevented the ironic-conductor service from
+    using the interval values from the configuration options, for
+    the periodic tasks. Instead, the default values had been used.

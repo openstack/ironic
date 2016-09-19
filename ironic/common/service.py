@@ -14,88 +14,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import signal
-
-from oslo_concurrency import processutils
 from oslo_log import log
-import oslo_messaging as messaging
 from oslo_service import service
-from oslo_service import wsgi
-from oslo_utils import importutils
 
-from ironic.api import app
 from ironic.common import config
-from ironic.common import context
-from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LI
-from ironic.common import rpc
 from ironic.conf import CONF
 from ironic import objects
-from ironic.objects import base as objects_base
 
 LOG = log.getLogger(__name__)
-
-
-class RPCService(service.Service):
-
-    def __init__(self, host, manager_module, manager_class):
-        super(RPCService, self).__init__()
-        self.host = host
-        manager_module = importutils.try_import(manager_module)
-        manager_class = getattr(manager_module, manager_class)
-        self.manager = manager_class(host, manager_module.MANAGER_TOPIC)
-        self.topic = self.manager.topic
-        self.rpcserver = None
-        self.deregister = True
-
-    def start(self):
-        super(RPCService, self).start()
-        admin_context = context.get_admin_context()
-
-        target = messaging.Target(topic=self.topic, server=self.host)
-        endpoints = [self.manager]
-        serializer = objects_base.IronicObjectSerializer()
-        self.rpcserver = rpc.get_server(target, endpoints, serializer)
-        self.rpcserver.start()
-
-        self.handle_signal()
-        self.manager.init_host(admin_context)
-
-        LOG.info(_LI('Created RPC server for service %(service)s on host '
-                     '%(host)s.'),
-                 {'service': self.topic, 'host': self.host})
-
-    def stop(self):
-        try:
-            self.rpcserver.stop()
-            self.rpcserver.wait()
-        except Exception as e:
-            LOG.exception(_LE('Service error occurred when stopping the '
-                              'RPC server. Error: %s'), e)
-        try:
-            self.manager.del_host(deregister=self.deregister)
-        except Exception as e:
-            LOG.exception(_LE('Service error occurred when cleaning up '
-                              'the RPC manager. Error: %s'), e)
-
-        super(RPCService, self).stop(graceful=True)
-        LOG.info(_LI('Stopped RPC server for service %(service)s on host '
-                     '%(host)s.'),
-                 {'service': self.topic, 'host': self.host})
-
-    def _handle_signal(self, signo, frame):
-        LOG.info(_LI('Got signal SIGUSR1. Not deregistering on next shutdown '
-                     'of service %(service)s on host %(host)s.'),
-                 {'service': self.topic, 'host': self.host})
-        self.deregister = False
-
-    def handle_signal(self):
-        """Add a signal handler for SIGUSR1.
-
-        The handler ensures that the manager is not deregistered when it is
-        shutdown.
-        """
-        signal.signal(signal.SIGUSR1, self._handle_signal)
 
 
 def prepare_service(argv=None):
@@ -124,56 +50,3 @@ def prepare_service(argv=None):
 
 def process_launcher():
     return service.ProcessLauncher(CONF)
-
-
-class WSGIService(service.ServiceBase):
-    """Provides ability to launch ironic API from wsgi app."""
-
-    def __init__(self, name, use_ssl=False):
-        """Initialize, but do not start the WSGI server.
-
-        :param name: The name of the WSGI server given to the loader.
-        :param use_ssl: Wraps the socket in an SSL context if True.
-        :returns: None
-        """
-        self.name = name
-        self.app = app.VersionSelectorApplication()
-        self.workers = (CONF.api.api_workers or
-                        processutils.get_worker_count())
-        if self.workers and self.workers < 1:
-            raise exception.ConfigInvalid(
-                _("api_workers value of %d is invalid, "
-                  "must be greater than 0.") % self.workers)
-
-        self.server = wsgi.Server(CONF, name, self.app,
-                                  host=CONF.api.host_ip,
-                                  port=CONF.api.port,
-                                  use_ssl=use_ssl)
-
-    def start(self):
-        """Start serving this service using loaded configuration.
-
-        :returns: None
-        """
-        self.server.start()
-
-    def stop(self):
-        """Stop serving this API.
-
-        :returns: None
-        """
-        self.server.stop()
-
-    def wait(self):
-        """Wait for the service to stop serving this API.
-
-        :returns: None
-        """
-        self.server.wait()
-
-    def reset(self):
-        """Reset server greenpool size to default.
-
-        :returns: None
-        """
-        self.server.reset()
