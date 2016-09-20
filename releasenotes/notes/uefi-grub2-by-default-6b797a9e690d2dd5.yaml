@@ -1,0 +1,7 @@
+---
+upgrade:
+  - The default bootloader for PXE + UEFI has changed from ELILO to Grub2
+    because ELILO is not being actively developed anymore. Operators relying
+    on ELILO should explicitly set the ``[pxe]/uefi_pxe_bootfile_name``
+    and ``[pxe]/uefi_pxe_config_template`` configuration options to the
+    ELILO ROM and configuration template.

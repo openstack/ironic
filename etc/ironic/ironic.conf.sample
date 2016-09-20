@@ -2721,7 +2721,7 @@
 
 # On ironic-conductor node, template file for PXE
 # configuration for UEFI boot loader. (string value)
-#uefi_pxe_config_template = $pybasedir/drivers/modules/elilo_efi_pxe_config.template
+#uefi_pxe_config_template = $pybasedir/drivers/modules/pxe_grub_config.template
 
 # IP address of ironic-conductor node's TFTP server. (string
 # value)
@@ -2740,7 +2740,7 @@
 #pxe_bootfile_name = pxelinux.0
 
 # Bootfile DHCP parameter for UEFI boot mode. (string value)
-#uefi_pxe_bootfile_name = elilo.efi
+#uefi_pxe_bootfile_name = bootx64.efi
 
 # Enable iPXE boot. (boolean value)
 #ipxe_enabled = false
