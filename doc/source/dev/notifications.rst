@@ -156,10 +156,10 @@ in the ironic notification base classes) and emit it::
 
 When specifying the event_type, ``object`` will specify the object being acted
 on, ``action`` will be a string describing what action is being performed on
-that object, and ``status`` will be one of "start", "end", "fail", or
+that object, and ``status`` will be one of "start", "end", "error", or
 "success". "start" and "end" are used to indicate when actions that are not
 immediate begin and succeed. "success" is used to indicate when actions that
-are immediate succeed. "fail" is used to indicate when any type of action
+are immediate succeed. "error" is used to indicate when any type of action
 fails, regardless of whether it's immediate or not. As a result of specifying
 these parameters, event_type will be formatted as
 ``baremetal.<object>.<action>.<status>`` on the message bus.
