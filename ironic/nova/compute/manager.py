@@ -23,15 +23,32 @@ work. The goal here is to generalise the areas where n-c talking to a clustered
 hypervisor has issues, and long term fold them into the main ComputeManager.
 """
 
+from oslo_concurrency import lockutils
+from oslo_log import log as logging
+
 from nova.compute import manager
 import nova.context
-from oslo_concurrency import lockutils
+from nova.i18n import _LW
 
+
+LOG = logging.getLogger(__name__)
 
 CCM_SEMAPHORE = 'clustered_compute_manager'
 
 
+# TODO(jroll) delete this in Ocata
 class ClusteredComputeManager(manager.ComputeManager):
+
+    def __init__(self, *args, **kwargs):
+        LOG.warning(_LW('ClusteredComputeManager is deprecated. As of the '
+                        'Newton release of Nova, the ironic '
+                        'virt driver directly supports using multiple '
+                        'compute hosts without ClusteredComputeManager. '
+                        'Users should unset the `compute_manager` '
+                        'configuration option to use Nova\'s default '
+                        'instead. ClusteredComputeManager will be removed '
+                        'during the Ocata cycle.'))
+        super(ClusteredComputeManager, self).__init__(*args, **kwargs)
 
     def init_host(self):
         """Initialization for a clustered compute service."""
