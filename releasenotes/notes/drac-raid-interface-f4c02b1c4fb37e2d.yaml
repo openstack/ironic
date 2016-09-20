@@ -3,9 +3,8 @@ features:
   - Adds out-of-band RAID management to DRAC driver using the generic RAID
     interface which makes the functionality available via manual cleaning
     steps.
-upgrade:
-  - New configuration option, ``[drac]query_raid_config_job_status_interval``
-    is added. After Ironic has created the RAID config job on the DRAC card,
+  - New configuration option, ``[drac]/query_raid_config_job_status_interval``
+    was added. After Ironic has created the RAID config job on the DRAC card,
     it continues to check for status update on the config job to determine
-    whether the RAID configuration was successfully finished at this interval.
-    Default is 120 seconds.
+    whether the RAID configuration was successfully finished within
+    this interval. Default is 120 seconds.
