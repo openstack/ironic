@@ -25,9 +25,6 @@ from ironic.tests.unit.objects import utils as obj_utils
 
 
 class DisabledTestCase(db_base.DbTestCase):
-    def setUp(self):
-        super(DisabledTestCase, self).setUp()
-
     def _do_mock(self):
         # NOTE(dtantsur): fake driver always has inspection, using another one
         mgr_utils.mock_the_extension_manager("pxe_ssh")
