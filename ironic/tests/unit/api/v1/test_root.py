@@ -21,9 +21,6 @@ from ironic.tests.unit.api import base as api_base
 
 
 class TestV1Routing(api_base.BaseApiTest):
-    def setUp(self):
-        super(TestV1Routing, self).setUp()
-
     def test_route_checks_version(self):
         self.get_json('/')
         self._check_version.assert_called_once_with(mock.ANY,
