@@ -17,14 +17,12 @@ TEMPDIR=`mktemp -d /tmp/${PROJECT_NAME}.XXXXXX`
 trap "rm -rf $TEMPDIR" EXIT
 
 oslo-config-generator --config-file=${OSLO_CFGFILE_OPTION} --output-file ${TEMPDIR}/${CFGFILE_NAME}
-if [ $? != 0 ]
-then
+if [ $? != 0 ]; then
     exit 1
 fi
 
-if ! diff -u ${TEMPDIR}/${CFGFILE_NAME} ${CFGFILE}
-then
-   echo "${0##*/}: ${PROJECT_NAME}.conf.sample is not up to date."
-   echo "${0##*/}: Please run oslo-config-generator --config-file=${OSLO_CFGFILE_OPTION}"
-   exit 1
+if ! diff -u ${TEMPDIR}/${CFGFILE_NAME} ${CFGFILE}; then
+    echo "${0##*/}: ${PROJECT_NAME}.conf.sample is not up to date."
+    echo "${0##*/}: Please run oslo-config-generator --config-file=${OSLO_CFGFILE_OPTION}"
+    exit 1
 fi

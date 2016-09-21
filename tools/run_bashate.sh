@@ -12,16 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-find  "$@"  -not \( -type d -name .?\* -prune \)    \
-            -type f                                 \
-            -not -name \*.swp                       \
-            -not -name \*~                          \
-            -not -name \*.xml                       \
-            -not -name \*.template                  \
-            -not -name \*.py                        \
-            \(                                      \
-                -name \*.sh -or                     \
-                -wholename \*/lib/\* -or            \
-                -wholename \*/tools/\*              \
-            \)                                      \
+find  "$@"  -not \( -type d -name .?\* -prune \)                    \
+            -type f                                                 \
+            \(                                                      \
+                -wholename \*/devstack/files/hooks/qemu -or         \
+                -wholename \*/devstack/lib/ironic -or               \
+                -name \*.sh                                         \
+            \)                                                      \
             -print0 | xargs -0 bashate -v -iE006 -eE005,E042
