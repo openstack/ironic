@@ -15,6 +15,7 @@ Bare Metal service
    standalone.rst
    configdrive.rst
    deploy-ramdisk.rst
+   setup-drivers.rst
    advanced.rst
    troubleshooting.rst
    next-steps.rst
