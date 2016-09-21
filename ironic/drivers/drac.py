@@ -53,6 +53,7 @@ class PXEDracDriver(base.BaseDriver):
                         'set_bios_config': self.drac_vendor,
                         'commit_bios_config': self.drac_vendor,
                         'abandon_bios_config': self.drac_vendor,
+                        'list_unfinished_jobs': self.drac_vendor,
                         }
         self.driver_passthru_mapping = {'lookup': self.iscsi_vendor}
         self.vendor = utils.MixinVendorInterface(self.mapping,
