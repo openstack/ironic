@@ -154,9 +154,10 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_client, 'IloClient', spec_set=True,
                        autospec=True)
     def _test_get_ilo_object(self, ilo_client_mock, isFile_mock, ca_file=None):
-        self.info['client_timeout'] = 60
-        self.info['client_port'] = 443
+        self.info['client_timeout'] = 600
+        self.info['client_port'] = 4433
         self.info['ca_file'] = ca_file
+        self.node.driver_info = self.info
         ilo_client_mock.return_value = 'ilo_object'
         returned_ilo_object = ilo_common.get_ilo_object(self.node)
         ilo_client_mock.assert_called_with(
@@ -164,7 +165,8 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             self.info['ilo_username'],
             self.info['ilo_password'],
             self.info['client_timeout'],
-            self.info['client_port'])
+            self.info['client_port'],
+            cacert=self.info['ca_file'])
         self.assertEqual('ilo_object', returned_ilo_object)
 
     def test_get_ilo_object_cafile(self):
