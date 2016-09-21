@@ -14,6 +14,8 @@ blockdev: CommandFilter, blockdev, root
 hexdump: CommandFilter, hexdump, root
 qemu-img: CommandFilter, qemu-img, root
 wipefs: CommandFilter, wipefs, root
+sgdisk: CommandFilter, sgdisk, root
+partprobe: CommandFilter, partprobe, root
 
 # ironic_lib/utils.py
 mkswap: CommandFilter, mkswap, root
