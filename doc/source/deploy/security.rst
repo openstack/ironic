@@ -122,5 +122,5 @@ Additional references:
   - `UEFI Secure Boot mode`_
 
 .. _automated cleaning: http://docs.openstack.org/developer/ironic/deploy/cleaning.html#automated-cleaning
-.. _trusted boot with partition image: http://docs.openstack.org/developer/ironic/deploy/install-guide.html?highlight=txt#trusted-boot-with-partition-image
+.. _trusted boot with partition image: http://docs.openstack.org/project-install-guide/baremetal/draft/advanced.html#trusted-boot-with-partition-image
 .. _UEFI Secure Boot mode: http://docs.openstack.org/developer/ironic/drivers/ilo.html?highlight=secure%20boot#uefi-secure-boot-support
