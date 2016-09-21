@@ -36,6 +36,10 @@ whether to add a release note for your change or not, keep in mind that it is
 intended to contain information for deployers, so changes to unit tests or
 documentation are unlikely to require one.
 
+Note that we prefer to use present tense in release notes. For example, a
+release note should say "Adds support for feature foo", not "Added support
+for feature foo".
+
 ...create a new release note?
 -----------------------------
 
