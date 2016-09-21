@@ -2,10 +2,10 @@
 features:
   - By default, the ironic-conductor service caches the node's deploy
     ramdisk and kernel images locally and serves them via a separate
-    HTTP server. A new ``[pxe]ipxe_use_swift`` configuration option
+    HTTP server. A new ``[pxe]/ipxe_use_swift`` configuration option
     (disabled by default) allows images to be accessed directly
     from object store via Swift temporary URLs.
-    This is only applicable if iPXE is enabled (via ``[pxe]ipxe_enabled``
+    This is only applicable if iPXE is enabled (via ``[pxe]/ipxe_enabled``
     configuration option) and image store is in Glance/Swift.
     For user images that are partition images requiring non-local boot,
     the default behavior with local caching and an HTTP server

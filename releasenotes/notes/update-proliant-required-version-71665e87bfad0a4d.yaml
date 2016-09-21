@@ -1,5 +1,0 @@
----
-upgrade:
-  - Updated proliantutils required version number for iLO drivers
-    to 2.1.10 which fixes the defects of iLO based firmware upgrade
-    and iLO based RAID configuration.

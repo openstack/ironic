@@ -3,4 +3,4 @@ features:
   - Add the field `standalone_ports_supported` to the
     portgroup object. This field indicates whether
     ports that are members of this portgroup can be
-    used as stand alone ports. By default is True.
+    used as stand-alone ports. The default is True.

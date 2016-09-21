@@ -1,6 +1,6 @@
 ---
 fixes:
   - Fixed updating a MAC on a port for active instances in maintenance mode
-    (used to return HTTP 500 previously).
+    (previously returned HTTP 500).
   - Return HTTP 400 for requests to update a MAC on a port for an active
-    instance without maintenance mode set (used to return HTTP 500 previously).
+    instance without maintenance mode set (previously returned HTTP 500).

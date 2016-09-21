@@ -1,4 +1,4 @@
 ---
 fixes:
-  - Removed invalid accidental API URL v1/nodes/ports
-    See https://bugs.launchpad.net/ironic/+bug/1580997
+  - Removed invalid API URL ``/v1/nodes/ports``.
+    For more information, see https://bugs.launchpad.net/ironic/+bug/1580997.

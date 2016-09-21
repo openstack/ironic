@@ -1,6 +1,6 @@
 ---
 upgrade:
-  - Updated proliantutils required version number for iLO drivers
-    to 2.1.11. This version includes fixes for the bugs caused by
-    python request library version 2.11.0, Proliant Gen7 support
-    and iLO based RAID configuration.
+  - The minimum required version of proliantutils (needed for iLO
+    drivers) was bumped to 2.1.11. This version includes fixes for the bugs
+    caused by python request library version 2.11.0, Proliant Gen7 support and
+    iLO based RAID configuration.

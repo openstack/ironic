@@ -1,4 +1,4 @@
 ---
 features:
-  - Add support for InfiniBand network to allow
-    Hardware inspection and PXE boot over InfiniBand.
+  - Adds support for InfiniBand networking to allow
+    hardware inspection and PXE boot over InfiniBand.

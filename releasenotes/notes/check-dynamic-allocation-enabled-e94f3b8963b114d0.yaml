@@ -1,5 +1,6 @@
 ---
 fixes:
-  - dynamic_allocation flag in node's driver_info can now accept all
-    the values that can be converted to booleans by bool_from_string
-    function from oslo_utils.
+  - The ``dynamic_allocation`` flag in a node's driver_info previously
+    only accepted a Boolean. It now also accepts the strings 't', 'true',
+    'on', 'y', 'yes', or '1' as True, and the strings 'f', 'false', 'off', 'n',
+    'no', or '0' as False. These are matched case-insensitively.
