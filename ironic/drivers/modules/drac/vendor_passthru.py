@@ -114,9 +114,10 @@ class DracVendorPassthru(base.VendorInterface):
         drac_bios.abandon_config(task)
 
     @base.passthru(['GET'], async=False,
-                   description=('List unfinished config jobs of the node. '
-                                'Required argument: a TaskManager instance '
-                                'containing the node to act on.'))
+                   description=('Returns a dictionary containing the key '
+                                '"unfinished_jobs"; its value is a list of '
+                                'dictionaries. Each dictionary represents '
+                                'an unfinished config Job object.'))
     def list_unfinished_jobs(self, task, **kwargs):
         """List unfinished config jobs of the node.
 
