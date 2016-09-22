@@ -176,9 +176,42 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             params = iscsi_deploy.get_deploy_info(task.node, **kwargs)
-            self.assertRaises(exception.InstanceDeployFailure,
-                              iscsi_deploy.continue_deploy,
-                              task, **kwargs)
+            # Ironic exceptions are preserved as they are
+            self.assertRaisesRegex(exception.InstanceDeployFailure,
+                                   '^test deploy error$',
+                                   iscsi_deploy.continue_deploy,
+                                   task, **kwargs)
+            self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+            self.assertIsNotNone(task.node.last_error)
+            deploy_mock.assert_called_once_with(**params)
+            power_mock.assert_called_once_with(task, states.POWER_OFF)
+            mock_image_cache.assert_called_once_with()
+            mock_image_cache.return_value.clean_up.assert_called_once_with()
+            self.assertFalse(mock_disk_layout.called)
+            mock_collect_logs.assert_called_once_with(task.node)
+
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
+    @mock.patch.object(iscsi_deploy, '_save_disk_layout', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'InstanceImageCache', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(deploy_utils, 'deploy_partition_image', autospec=True)
+    def test_continue_deploy_unexpected_fail(
+            self, deploy_mock, power_mock, mock_image_cache, mock_disk_layout,
+            mock_collect_logs):
+        kwargs = {'address': '123456', 'iqn': 'aaa-bbb'}
+        deploy_mock.side_effect = KeyError('boom')
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            params = iscsi_deploy.get_deploy_info(task.node, **kwargs)
+            self.assertRaisesRegex(exception.InstanceDeployFailure,
+                                   "Deploy failed.*Error: 'boom'",
+                                   iscsi_deploy.continue_deploy,
+                                   task, **kwargs)
             self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             self.assertIsNotNone(task.node.last_error)
