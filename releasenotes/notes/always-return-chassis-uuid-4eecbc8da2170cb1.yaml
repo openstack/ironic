@@ -1,0 +1,5 @@
+---
+fixes:
+  - Fixed an issue of not returning ``chassis_uuid`` field of a node in API
+    responses if it does not belong to a chassis. It should be always returned,
+    either set to None, or to a corresponding chassis UUID.

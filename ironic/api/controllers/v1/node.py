@@ -635,7 +635,9 @@ class Node(base.APIBase):
         return self._chassis_uuid
 
     def _set_chassis_uuid(self, value):
-        if value and self._chassis_uuid != value:
+        if value in (wtypes.Unset, None):
+            self._chassis_uuid = value
+        elif self._chassis_uuid != value:
             try:
                 chassis = objects.Chassis.get(pecan.request.context, value)
                 self._chassis_uuid = chassis.uuid
@@ -648,8 +650,6 @@ class Node(base.APIBase):
                 # response for a POST request to create a Port
                 e.code = http_client.BAD_REQUEST
                 raise
-        elif value == wtypes.Unset:
-            self._chassis_uuid = wtypes.Unset
 
     uuid = types.uuid
     """Unique UUID for this node"""
