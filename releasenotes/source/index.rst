@@ -6,7 +6,7 @@
    :maxdepth: 1
 
    Current (unreleased) <current-series>
-   Newton (unreleased) <newton>
+   Newton (6.0.0 - 6.2.x) <newton>
    Mitaka (4.3.0 - 5.1.x) <mitaka>
    Liberty (4.0.0 - 4.2.x) <liberty>
    Kilo (2015.1) <https://wiki.openstack.org/wiki/Ironic/ReleaseNotes/Kilo>
