@@ -1,0 +1,4 @@
+---
+fixes:
+  - Fixes a bug in the oneview driver where the periodic task to
+    check if a node is in use by oneview may end prematurely.
