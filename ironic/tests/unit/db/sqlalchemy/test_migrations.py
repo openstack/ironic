@@ -58,7 +58,7 @@ from ironic.tests import base
 LOG = logging.getLogger(__name__)
 
 # NOTE(vdrok): This was introduced after migration tests started taking more
-# time in gate
+# time in gate. Timeout value in seconds for tests performing migrations.
 MIGRATIONS_TIMEOUT = 300
 
 
