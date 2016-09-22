@@ -36,6 +36,7 @@ For postgres on Ubuntu this can be done with the following commands:
 
 import collections
 import contextlib
+import fixtures
 
 from alembic import script
 import mock
@@ -55,6 +56,10 @@ from ironic.db.sqlalchemy import models
 from ironic.tests import base
 
 LOG = logging.getLogger(__name__)
+
+# NOTE(vdrok): This was introduced after migration tests started taking more
+# time in gate
+MIGRATIONS_TIMEOUT = 300
 
 
 def _get_connect_string(backend, user, passwd, database):
@@ -212,6 +217,8 @@ class MigrationCheckersMixin(object):
         super(MigrationCheckersMixin, self).setUp()
         self.config = migration._alembic_config()
         self.migration_api = migration
+        self.useFixture(fixtures.Timeout(MIGRATIONS_TIMEOUT,
+                                         gentle=True))
 
     def test_walk_versions(self):
         self._walk_versions(self.engine, self.config)
@@ -568,6 +575,11 @@ class TestMigrationsPostgreSQL(MigrationCheckersMixin,
 
 
 class ModelsMigrationSyncMixin(object):
+
+    def setUp(self):
+        super(ModelsMigrationSyncMixin, self).setUp()
+        self.useFixture(fixtures.Timeout(MIGRATIONS_TIMEOUT,
+                                         gentle=True))
 
     def get_metadata(self):
         return models.Base.metadata
