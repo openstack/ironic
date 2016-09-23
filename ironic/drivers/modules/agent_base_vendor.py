@@ -457,12 +457,7 @@ class AgentDeployMixin(object):
             {'node': node.uuid,
              'heartbeat': driver_internal_info.get('agent_last_heartbeat')})
         driver_internal_info['agent_last_heartbeat'] = int(time.time())
-        try:
-            driver_internal_info['agent_url'] = callback_url
-        except KeyError:
-            raise exception.MissingParameterValue(_('For heartbeat operation, '
-                                                    '"agent_url" must be '
-                                                    'specified.'))
+        driver_internal_info['agent_url'] = callback_url
 
         node.driver_internal_info = driver_internal_info
         node.save()
