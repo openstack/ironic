@@ -19,7 +19,6 @@ from oslo_config import cfg
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
-from ironic.common import image_service
 from ironic.common import images
 from ironic.common import raid
 from ironic.common import states
@@ -52,184 +51,16 @@ class TestAgentMethods(db_base.DbTestCase):
                                                   driver='fake_agent')
         dhcp_factory.DHCPFactory._dhcp_provider = None
 
-    @mock.patch.object(image_service, 'GlanceImageService', autospec=True)
-    def test_build_instance_info_for_deploy_glance_image(self, glance_mock):
-        i_info = self.node.instance_info
-        i_info['image_source'] = '733d1c44-a2ea-414b-aca7-69decf20d810'
-        driver_internal_info = self.node.driver_internal_info
-        driver_internal_info['is_whole_disk_image'] = True
-        self.node.driver_internal_info = driver_internal_info
-        self.node.instance_info = i_info
-        self.node.save()
-
-        image_info = {'checksum': 'aa', 'disk_format': 'qcow2',
-                      'container_format': 'bare'}
-        glance_mock.return_value.show = mock.MagicMock(spec_set=[],
-                                                       return_value=image_info)
-
+    @mock.patch.object(agent.LOG, 'warning', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
+                       autospec=True)
+    def test_build_instance_info_for_deploy_warn(self, build_mock, warn_mock):
         mgr_utils.mock_the_extension_manager(driver='fake_agent')
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-
             agent.build_instance_info_for_deploy(task)
-
-            glance_mock.assert_called_once_with(version=2,
-                                                context=task.context)
-            glance_mock.return_value.show.assert_called_once_with(
-                self.node.instance_info['image_source'])
-            glance_mock.return_value.swift_temp_url.assert_called_once_with(
-                image_info)
-
-    @mock.patch.object(deploy_utils, 'parse_instance_info', autospec=True)
-    @mock.patch.object(image_service, 'GlanceImageService', autospec=True)
-    def test_build_instance_info_for_deploy_glance_partition_image(
-            self, glance_mock, parse_instance_info_mock):
-        i_info = {}
-        i_info['image_source'] = '733d1c44-a2ea-414b-aca7-69decf20d810'
-        i_info['kernel'] = '13ce5a56-1de3-4916-b8b2-be778645d003'
-        i_info['ramdisk'] = 'a5a370a8-1b39-433f-be63-2c7d708e4b4e'
-        i_info['root_gb'] = 5
-        i_info['swap_mb'] = 4
-        i_info['ephemeral_gb'] = 0
-        i_info['ephemeral_format'] = None
-        i_info['configdrive'] = 'configdrive'
-        driver_internal_info = self.node.driver_internal_info
-        driver_internal_info['is_whole_disk_image'] = False
-        self.node.driver_internal_info = driver_internal_info
-        self.node.instance_info = i_info
-        self.node.save()
-
-        image_info = {'checksum': 'aa', 'disk_format': 'qcow2',
-                      'container_format': 'bare',
-                      'properties': {'kernel_id': 'kernel',
-                                     'ramdisk_id': 'ramdisk'}}
-        glance_mock.return_value.show = mock.MagicMock(spec_set=[],
-                                                       return_value=image_info)
-        glance_obj_mock = glance_mock.return_value
-        glance_obj_mock.swift_temp_url.return_value = 'temp-url'
-        parse_instance_info_mock.return_value = {'swap_mb': 4}
-        image_source = '733d1c44-a2ea-414b-aca7-69decf20d810'
-        expected_i_info = {'root_gb': 5,
-                           'swap_mb': 4,
-                           'ephemeral_gb': 0,
-                           'ephemeral_format': None,
-                           'configdrive': 'configdrive',
-                           'image_source': image_source,
-                           'image_url': 'temp-url',
-                           'kernel': 'kernel',
-                           'ramdisk': 'ramdisk',
-                           'image_type': 'partition',
-                           'image_checksum': 'aa',
-                           'image_container_format': 'bare',
-                           'image_disk_format': 'qcow2'}
-        mgr_utils.mock_the_extension_manager(driver='fake_agent')
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-
-            info = agent.build_instance_info_for_deploy(task)
-
-            glance_mock.assert_called_once_with(version=2,
-                                                context=task.context)
-            glance_mock.return_value.show.assert_called_once_with(
-                self.node.instance_info['image_source'])
-            glance_mock.return_value.swift_temp_url.assert_called_once_with(
-                image_info)
-            image_type = task.node.instance_info['image_type']
-            self.assertEqual('partition', image_type)
-            self.assertEqual('kernel', info['kernel'])
-            self.assertEqual('ramdisk', info['ramdisk'])
-            self.assertEqual(expected_i_info, info)
-            parse_instance_info_mock.assert_called_once_with(task.node)
-
-    @mock.patch.object(image_service.HttpImageService, 'validate_href',
-                       autospec=True)
-    def test_build_instance_info_for_deploy_nonglance_image(
-            self, validate_href_mock):
-        i_info = self.node.instance_info
-        driver_internal_info = self.node.driver_internal_info
-        i_info['image_source'] = 'http://image-ref'
-        i_info['image_checksum'] = 'aa'
-        i_info['root_gb'] = 10
-        i_info['image_checksum'] = 'aa'
-        driver_internal_info['is_whole_disk_image'] = True
-        self.node.instance_info = i_info
-        self.node.driver_internal_info = driver_internal_info
-        self.node.save()
-
-        mgr_utils.mock_the_extension_manager(driver='fake_agent')
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-
-            info = agent.build_instance_info_for_deploy(task)
-
-            self.assertEqual(self.node.instance_info['image_source'],
-                             info['image_url'])
-            validate_href_mock.assert_called_once_with(
-                mock.ANY, 'http://image-ref')
-
-    @mock.patch.object(deploy_utils, 'parse_instance_info', autospec=True)
-    @mock.patch.object(image_service.HttpImageService, 'validate_href',
-                       autospec=True)
-    def test_build_instance_info_for_deploy_nonglance_partition_image(
-            self, validate_href_mock, parse_instance_info_mock):
-        i_info = {}
-        driver_internal_info = self.node.driver_internal_info
-        i_info['image_source'] = 'http://image-ref'
-        i_info['kernel'] = 'http://kernel-ref'
-        i_info['ramdisk'] = 'http://ramdisk-ref'
-        i_info['image_checksum'] = 'aa'
-        i_info['root_gb'] = 10
-        i_info['configdrive'] = 'configdrive'
-        driver_internal_info['is_whole_disk_image'] = False
-        self.node.instance_info = i_info
-        self.node.driver_internal_info = driver_internal_info
-        self.node.save()
-
-        mgr_utils.mock_the_extension_manager(driver='fake_agent')
-        validate_href_mock.side_effect = ['http://image-ref',
-                                          'http://kernel-ref',
-                                          'http://ramdisk-ref']
-        parse_instance_info_mock.return_value = {'swap_mb': 5}
-        expected_i_info = {'image_source': 'http://image-ref',
-                           'image_url': 'http://image-ref',
-                           'image_type': 'partition',
-                           'kernel': 'http://kernel-ref',
-                           'ramdisk': 'http://ramdisk-ref',
-                           'image_checksum': 'aa',
-                           'root_gb': 10,
-                           'swap_mb': 5,
-                           'configdrive': 'configdrive'}
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-
-            info = agent.build_instance_info_for_deploy(task)
-
-            self.assertEqual(self.node.instance_info['image_source'],
-                             info['image_url'])
-            validate_href_mock.assert_called_once_with(
-                mock.ANY, 'http://image-ref')
-            self.assertEqual('partition', info['image_type'])
-            self.assertEqual(expected_i_info, info)
-            parse_instance_info_mock.assert_called_once_with(task.node)
-
-    @mock.patch.object(image_service.HttpImageService, 'validate_href',
-                       autospec=True)
-    def test_build_instance_info_for_deploy_nonsupported_image(
-            self, validate_href_mock):
-        validate_href_mock.side_effect = exception.ImageRefValidationFailed(
-            image_href='file://img.qcow2', reason='fail')
-        i_info = self.node.instance_info
-        i_info['image_source'] = 'file://img.qcow2'
-        i_info['image_checksum'] = 'aa'
-        self.node.instance_info = i_info
-        self.node.save()
-
-        mgr_utils.mock_the_extension_manager(driver='fake_agent')
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-
-            self.assertRaises(exception.ImageRefValidationFailed,
-                              agent.build_instance_info_for_deploy, task)
+            build_mock.assert_called_once_with(task)
+        self.assertTrue(warn_mock.called)
 
     @mock.patch.object(images, 'image_show', autospec=True)
     def test_check_image_size(self, show_mock):
@@ -452,7 +283,7 @@ class TestAgentDeploy(db_base.DbTestCase):
 
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
     @mock.patch.object(deploy_utils, 'build_agent_options')
-    @mock.patch.object(agent, 'build_instance_info_for_deploy')
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
                 'add_provisioning_network', autospec=True)
     def test_prepare(self, add_provisioning_net_mock, build_instance_info_mock,
@@ -476,7 +307,7 @@ class TestAgentDeploy(db_base.DbTestCase):
 
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
     @mock.patch.object(deploy_utils, 'build_agent_options')
-    @mock.patch.object(agent, 'build_instance_info_for_deploy')
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
     def test_prepare_manage_agent_boot_false(
             self, build_instance_info_mock, build_options_mock,
             pxe_prepare_ramdisk_mock):
@@ -499,7 +330,7 @@ class TestAgentDeploy(db_base.DbTestCase):
                 'add_provisioning_network', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
     @mock.patch.object(deploy_utils, 'build_agent_options')
-    @mock.patch.object(agent, 'build_instance_info_for_deploy')
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
     def test_prepare_active(
             self, build_instance_info_mock, build_options_mock,
             pxe_prepare_ramdisk_mock, add_provisioning_net_mock):
@@ -518,7 +349,7 @@ class TestAgentDeploy(db_base.DbTestCase):
                 'add_provisioning_network', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
     @mock.patch.object(deploy_utils, 'build_agent_options')
-    @mock.patch.object(agent, 'build_instance_info_for_deploy')
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
     def test_prepare_adopting(
             self, build_instance_info_mock, build_options_mock,
             pxe_prepare_ramdisk_mock, add_provisioning_net_mock):

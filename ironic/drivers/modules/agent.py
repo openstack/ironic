@@ -14,15 +14,13 @@
 
 from ironic_lib import metrics_utils
 from oslo_log import log
-from oslo_utils import excutils
 from oslo_utils import units
 import six.moves.urllib_parse as urlparse
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
-from ironic.common.i18n import _, _LE, _LI, _LW
-from ironic.common import image_service
+from ironic.common.i18n import _, _LI, _LW
 from ironic.common import images
 from ironic.common import raid
 from ironic.common import states
@@ -68,54 +66,15 @@ PARTITION_IMAGE_LABELS = ('kernel', 'ramdisk', 'root_gb', 'root_mb', 'swap_mb',
                           'deploy_boot_mode')
 
 
-@METRICS.timer('build_instance_info_for_deploy')
 def build_instance_info_for_deploy(task):
-    """Build instance_info necessary for deploying to a node.
-
-    :param task: a TaskManager object containing the node
-    :returns: a dictionary containing the properties to be updated
-        in instance_info
-    :raises: exception.ImageRefValidationFailed if image_source is not
-        Glance href and is not HTTP(S) URL.
-    """
-    node = task.node
-    instance_info = node.instance_info
-    iwdi = node.driver_internal_info.get('is_whole_disk_image')
-    image_source = instance_info['image_source']
-    if service_utils.is_glance_image(image_source):
-        glance = image_service.GlanceImageService(version=2,
-                                                  context=task.context)
-        image_info = glance.show(image_source)
-        swift_temp_url = glance.swift_temp_url(image_info)
-        LOG.debug('Got image info: %(info)s for node %(node)s.',
-                  {'info': image_info, 'node': node.uuid})
-        instance_info['image_url'] = swift_temp_url
-        instance_info['image_checksum'] = image_info['checksum']
-        instance_info['image_disk_format'] = image_info['disk_format']
-        instance_info['image_container_format'] = (
-            image_info['container_format'])
-
-        if not iwdi:
-            instance_info['kernel'] = image_info['properties']['kernel_id']
-            instance_info['ramdisk'] = image_info['properties']['ramdisk_id']
-    else:
-        try:
-            image_service.HttpImageService().validate_href(image_source)
-        except exception.ImageRefValidationFailed:
-            with excutils.save_and_reraise_exception():
-                LOG.error(_LE("Agent deploy supports only HTTP(S) URLs as "
-                              "instance_info['image_source']. Either %s "
-                              "is not a valid HTTP(S) URL or "
-                              "is not reachable."), image_source)
-        instance_info['image_url'] = image_source
-
-    if not iwdi:
-        instance_info['image_type'] = 'partition'
-        i_info = deploy_utils.parse_instance_info(node)
-        instance_info.update(i_info)
-    else:
-        instance_info['image_type'] = 'whole-disk-image'
-    return instance_info
+    # TODO(pas-ha) remove this at the end of Ocata release
+    LOG.warning(_LW("This function is moved to "
+                    "'ironic.drivers.modules.deploy_utils' module. "
+                    "Using it from 'ironic.drivers.modules.agent' module "
+                    "is deprecated and will be impossible in Ocata release. "
+                    "Please update your driver to use this function "
+                    "from its new location."))
+    return deploy_utils.build_instance_info_for_deploy(task)
 
 
 @METRICS.timer('check_image_size')
@@ -462,7 +421,8 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
             manager_utils.node_power_action(task, states.POWER_OFF)
             task.driver.network.add_provisioning_network(task)
         if node.provision_state not in [states.ACTIVE, states.ADOPTING]:
-            node.instance_info = build_instance_info_for_deploy(task)
+            node.instance_info = deploy_utils.build_instance_info_for_deploy(
+                task)
             node.save()
             if CONF.agent.manage_agent_boot:
                 deploy_opts = deploy_utils.build_agent_options(node)
