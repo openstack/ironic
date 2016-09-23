@@ -104,7 +104,7 @@ class CiscoUcsHelper(object):
     def connect_ucsm(self):
         """Creates the UcsHandle
 
-        :raises: UcsConnectionError, if ucs helper failes to establish session
+        :raises: UcsConnectionError, if ucs helper fails to establish session
             with UCS Manager.
         """
 
