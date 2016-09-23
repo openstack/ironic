@@ -49,6 +49,9 @@ configured in Neutron.
     ENABLE_TENANT_VLANS=True
     Q_ML2_TENANT_NETWORK_TYPE=vlan
     TENANT_VLAN_RANGE=100:150
+    # Neutron public network type was changed to flat by default
+    # in neutron commit 1554adef26bd3bd184ddab668660428bdf392232
+    Q_USE_PROVIDERNET_FOR_PUBLIC=False
 
     # Credentials
     ADMIN_PASSWORD=password
