@@ -337,16 +337,24 @@ List nodes that are in `active` state doing::
 
 Execute the following steps for each node:
 
-1. Remove the node's ``Server Profile`` from the ``Server Hardware`` in OneView.
-   To identify which ``Server Profile`` is associated with a node check the
-   property ``server_hardware_uri`` in the ``driver_info`` namespace doing::
+1. Identify the ``Server Hardware`` UUID looking at ``server_hardware_uri``
+   property (formatted as ``/rest/server-hardware/<server-hardware-uuid>``) in
+   the node's ``driver_info`` namespace doing::
 
    $ ironic node-show <node-uuid> --fields driver_info
 
-2. Then, using the ``server_hardware_uri``, log into OneView and remove the
-   ``Server Profile``.
+2. Log into OneView and find the ``Server Hardware`` searching for the
+   ``Server Hardware`` UUID identified in step 1. On the overview section,
+   find the applied ``Server Profile`` entry, click on it and copy the
+   ``Server Profile`` URI. The copied excerpt should look like
+   ``/rest/server-profiles/<server-profile-uuid>``.
 
-3. Finally, set the `dynamic_allocation` flag in the ``driver_info`` namespace
+3. Then, set the copied excerpt from the ``Server Profile`` URI to the property
+   ``applied_server_profile_uri`` in the ``driver_info`` namespace doing::
+
+   $ ironic node-update <node-uuid> add driver_info/applied_server_profile_uri=<server_profile_uri>
+
+4. Finally, set the `dynamic_allocation` flag in the ``driver_info`` namespace
    to ``True`` in order to finish the migration of the node doing::
 
    $ ironic node-update <node-uuid> add driver_info/dynamic_allocation=True
