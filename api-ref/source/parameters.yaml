@@ -128,7 +128,7 @@ r_addresses:
     Optional list of one or more Port addresses.
   in: query
   required: false
-  type: list
+  type: array
 
 # variables in the node query string
 r_associated:
