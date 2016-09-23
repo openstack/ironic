@@ -1,10 +1,10 @@
-<domain type='%(engine)s'>
-  <name>%(name)s</name>
-  <memory unit='KiB'>%(memory)s</memory>
-  <vcpu>%(cpus)s</vcpu>
+<domain type='{{ engine }}'>
+  <name>{{ name }}</name>
+  <memory unit='KiB'>{{ memory }}</memory>
+  <vcpu>{{ cpus }}</vcpu>
   <os>
-    <type arch='%(arch)s' machine='pc-1.0'>hvm</type>
-    <boot dev='%(bootdev)s'/>
+    <type arch='{{ arch }}' machine='pc-1.0'>hvm</type>
+    <boot dev='{{ bootdev }}'/>
     <bootmenu enable='no'/>
     <bios useserial='yes'/>
   </os>
@@ -18,10 +18,10 @@
   <on_reboot>restart</on_reboot>
   <on_crash>restart</on_crash>
   <devices>
-    <emulator>%(emulator)s</emulator>
+    <emulator>{{ emulator }}</emulator>
     <disk type='file' device='disk'>
-      <driver name='qemu' type='%(disk_format)s' cache='writeback'/>
-      <source file='%(imagefile)s'/>
+      <driver name='qemu' type='{{ disk_format }}' cache='writeback'/>
+      <source file='{{ imagefile }}'/>
       <target dev='vda' bus='virtio'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x06' function='0x0'/>
     </disk>
@@ -29,8 +29,8 @@
       <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x1'/>
     </controller>
     <interface type='bridge'>
-      <source bridge='%(bridge)s'/>
-      <model type='%(nicdriver)s'/>
+      <source bridge='{{ bridge }}'/>
+      <model type='{{ nicdriver }}'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x04' function='0x0'/>
     </interface>
     <input type='mouse' bus='ps2'/>
@@ -39,7 +39,7 @@
       <model type='cirrus' vram='9216' heads='1'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
     </video>
-    %(console)s
+    {{ console }}
     <memballoon model='virtio'>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x07' function='0x0'/>
     </memballoon>

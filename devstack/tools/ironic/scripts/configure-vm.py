@@ -16,6 +16,7 @@
 import argparse
 import os.path
 
+import jinja2
 import libvirt
 
 templatedir = os.path.join(os.path.dirname(os.path.dirname(__file__)),
@@ -80,8 +81,10 @@ def main():
     parser.add_argument('--disk-format', default='qcow2',
                         help='Disk format to use.')
     args = parser.parse_args()
-    with open(templatedir + '/vm.xml', 'rb') as f:
-        source_template = f.read()
+
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(templatedir))
+    template = env.get_template('vm.xml')
+
     params = {
         'name': args.name,
         'imagefile': args.image,
@@ -108,7 +111,7 @@ def main():
         params['console'] = CONSOLE_LOG % {'console_log': args.console_log}
     else:
         params['console'] = CONSOLE_PTY
-    libvirt_template = source_template % params
+    libvirt_template = template.render(**params)
     conn = libvirt.open("qemu:///system")
 
     a = conn.defineXML(libvirt_template)
