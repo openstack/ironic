@@ -15,6 +15,7 @@
 DRAC vendor-passthru interface
 """
 
+from ironic.common.i18n import _
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.drac import bios as drac_bios
@@ -114,10 +115,10 @@ class DracVendorPassthru(base.VendorInterface):
         drac_bios.abandon_config(task)
 
     @base.passthru(['GET'], async=False,
-                   description=('Returns a dictionary containing the key '
-                                '"unfinished_jobs"; its value is a list of '
-                                'dictionaries. Each dictionary represents '
-                                'an unfinished config Job object.'))
+                   description=_('Returns a dictionary containing the key '
+                                 '"unfinished_jobs"; its value is a list of '
+                                 'dictionaries. Each dictionary represents '
+                                 'an unfinished config Job object.'))
     def list_unfinished_jobs(self, task, **kwargs):
         """List unfinished config jobs of the node.
 
