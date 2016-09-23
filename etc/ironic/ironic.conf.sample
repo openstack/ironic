@@ -996,6 +996,14 @@
 # to True. (boolean value)
 #power_off_after_deploy_failure = true
 
+# Default boot option to use when no boot option is requested
+# in node's driver_info. Currently the default is "netboot",
+# but it will be changed to "local" in the future. It is
+# recommended to set an explicit value for this option.
+# (string value)
+# Allowed values: netboot, local
+#default_boot_option = <None>
+
 
 [dhcp]
 

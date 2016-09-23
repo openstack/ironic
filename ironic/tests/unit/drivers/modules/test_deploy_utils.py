@@ -1396,6 +1396,19 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         result = utils.get_boot_option(self.node)
         self.assertEqual("netboot", result)
 
+    def test_get_boot_option_overriden_default_value(self):
+        cfg.CONF.set_override('default_boot_option', 'local', 'deploy')
+        self.node.instance_info = {}
+        result = utils.get_boot_option(self.node)
+        self.assertEqual("local", result)
+
+    def test_get_boot_option_instance_info_priority(self):
+        cfg.CONF.set_override('default_boot_option', 'local', 'deploy')
+        self.node.instance_info = {'capabilities':
+                                   '{"boot_option": "netboot"}'}
+        result = utils.get_boot_option(self.node)
+        self.assertEqual("netboot", result)
+
     @mock.patch.object(image_cache, 'clean_up_caches', autospec=True)
     def test_fetch_images(self, mock_clean_up_caches):
 

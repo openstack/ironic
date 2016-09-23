@@ -770,6 +770,9 @@ function configure_ironic_conductor {
     if [[ -n "$IRONIC_ENABLED_NETWORK_INTERFACES" ]]; then
         iniset $IRONIC_CONF_FILE DEFAULT enabled_network_interfaces $IRONIC_ENABLED_NETWORK_INTERFACES
     fi
+
+    # TODO(dtantsur): change this when we change the default value.
+    iniset $IRONIC_CONF_FILE deploy default_boot_option netboot
 }
 
 # create_ironic_cache_dir() - Part of the init_ironic() process
