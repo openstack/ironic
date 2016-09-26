@@ -888,8 +888,8 @@ class AgentRescueTests(AgentDeployMixinBaseTest):
 
 class AgentDeployMixinTest(AgentDeployMixinBaseTest):
     @mock.patch.object(manager_utils, 'power_on_node_if_needed', autospec=True)
-    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state',
                        spec=types.FunctionType)
@@ -991,8 +991,8 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.assertFalse(mock_collect.called)
 
     @mock.patch.object(manager_utils, 'power_on_node_if_needed', autospec=True)
-    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state',
                        spec=types.FunctionType)
@@ -1005,7 +1005,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            get_power_state_mock.side_effect = RuntimeError("boom")
+            get_power_state_mock.return_value = RuntimeError("boom")
             power_on_node_if_needed_mock.return_value = None
             self.deploy.tear_down_agent(task)
             power_off_mock.assert_called_once_with(task.node)

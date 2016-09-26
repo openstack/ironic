@@ -24,7 +24,7 @@ from glanceclient import exc as glance_exc
 from keystoneauth1 import loading as ks_loading
 from oslo_config import cfg
 from oslo_utils import uuidutils
-import retrying
+import tenacity
 import testtools
 
 from ironic.common import context
@@ -163,8 +163,11 @@ class TestGlanceImageService(base.TestCase):
         self.assertEqual(self.NOW_DATETIME, image_meta['created_at'])
         self.assertEqual(self.NOW_DATETIME, image_meta['updated_at'])
 
-    def test_show_raises_when_no_authtoken_in_the_context(self):
+    @mock.patch.object(service_utils, 'is_image_active', autospec=True)
+    def test_show_raises_when_no_authtoken_in_the_context(self,
+                                                          mock_is_active):
         self.context.auth_token = False
+        mock_is_active.return_value = True
         self.assertRaises(exception.ImageNotFound,
                           self.service.show,
                           uuidutils.generate_uuid())
@@ -177,8 +180,8 @@ class TestGlanceImageService(base.TestCase):
             self.assertRaises(exception.ImageUnacceptable,
                               self.service.show, image_id)
 
-    @mock.patch.object(retrying.time, 'sleep', autospec=True)
-    def test_download_with_retries(self, mock_sleep):
+    @mock.patch.object(tenacity, 'retry', autospec=True)
+    def test_download_with_retries(self, mock_retry):
         tries = [0]
 
         class MyGlanceStubClient(stubs.StubGlanceClient):
@@ -196,6 +199,7 @@ class TestGlanceImageService(base.TestCase):
         stub_context.project_id = 'fake'
         stub_service = image_service.GlanceImageService(stub_client,
                                                         stub_context)
+        stub_service.call.retry.sleep = mock.Mock()
         image_id = uuidutils.generate_uuid()
         writer = NullWriter()
 
@@ -211,7 +215,7 @@ class TestGlanceImageService(base.TestCase):
                                                         stub_context)
         tries = [0]
         stub_service.download(image_id, writer)
-        self.assertTrue(mock_sleep.called)
+        mock_retry.assert_called_once()
 
     def test_download_no_data(self):
         self.client.fake_wrapped = None

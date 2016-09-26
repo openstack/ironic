@@ -16,6 +16,7 @@
 import collections
 import copy
 import os
+import time
 from unittest import mock
 
 from oslo_config import cfg
@@ -202,12 +203,11 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         redfish_utils.get_system(self.node)
         fake_conn.get_system.assert_called_once_with(None)
 
-    @mock.patch('time.sleep', autospec=True)
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
     @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch('ironic.drivers.modules.redfish.utils.'
                 'SessionCache._sessions', {})
-    def test_get_system_resource_connection_error_retry(self, mock_sushy,
-                                                        mock_sleep):
+    def test_get_system_resource_connection_error_retry(self, mock_sushy):
         # Redfish specific configurations
         self.config(connection_attempts=3, group='redfish')
 
@@ -223,8 +223,8 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
             mock.call(self.parsed_driver_info['system_id']),
         ]
         fake_conn.get_system.assert_has_calls(expected_get_system_calls)
-        mock_sleep.assert_called_with(
-            redfish_utils.CONF.redfish.connection_retry_interval)
+        self.assertEqual(fake_conn.get_system.call_count,
+                         redfish_utils.CONF.redfish.connection_attempts)
 
     @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch('ironic.drivers.modules.redfish.utils.'

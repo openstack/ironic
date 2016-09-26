@@ -21,8 +21,8 @@ from oslo_log import log
 from oslo_utils import excutils
 from oslo_utils import importutils
 from oslo_utils import strutils
-import retrying
 import rfc3986
+import tenacity
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -300,11 +300,12 @@ def _get_connection(node, lambda_fun, *args):
     """
     driver_info = parse_driver_info(node)
 
-    @retrying.retry(
-        retry_on_exception=(
-            lambda e: isinstance(e, exception.RedfishConnectionError)),
-        stop_max_attempt_number=CONF.redfish.connection_attempts,
-        wait_fixed=CONF.redfish.connection_retry_interval * 1000)
+    @tenacity.retry(
+        retry=tenacity.retry_if_exception_type(
+            exception.RedfishConnectionError),
+        stop=tenacity.stop_after_attempt(CONF.redfish.connection_attempts),
+        wait=tenacity.wait_fixed(CONF.redfish.connection_retry_interval),
+        reraise=True)
     def _get_cached_connection(lambda_fun, *args):
         try:
             with SessionCache(driver_info) as conn:

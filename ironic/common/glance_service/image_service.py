@@ -25,9 +25,9 @@ from glanceclient import client
 from glanceclient import exc as glance_exc
 from oslo_log import log
 from oslo_utils import uuidutils
-import retrying
 import sendfile
 from swiftclient import utils as swift_utils
+import tenacity
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
@@ -112,11 +112,12 @@ class GlanceImageService(object):
         self.context = context
         self.endpoint = None
 
-    @retrying.retry(
-        stop_max_attempt_number=CONF.glance.num_retries + 1,
-        retry_on_exception=lambda e: isinstance(
-            e, exception.GlanceConnectionFailed),
-        wait_fixed=1000
+    @tenacity.retry(
+        retry=tenacity.retry_if_exception_type(
+            exception.GlanceConnectionFailed),
+        stop=tenacity.stop_after_attempt(CONF.glance.num_retries + 1),
+        wait=tenacity.wait_fixed(1),
+        reraise=True
     )
     def call(self, method, *args, **kwargs):
         """Call a glance client method.
@@ -124,7 +125,6 @@ class GlanceImageService(object):
         If we get a connection error,
         retry the request according to CONF.num_retries.
 
-        :param context: The request context, for access checks.
         :param method: The method requested to be called.
         :param args: A list of positional arguments for the method called
         :param kwargs: A dict of keyword arguments for the method called

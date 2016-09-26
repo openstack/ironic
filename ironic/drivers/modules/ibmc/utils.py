@@ -21,7 +21,7 @@ from oslo_log import log
 from oslo_utils import importutils
 from oslo_utils import netutils
 from oslo_utils import strutils
-import retrying
+import tenacity
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -133,10 +133,11 @@ def handle_ibmc_exception(action):
                          {'retry_times': CONF.ibmc.connection_attempts})
             return connect_error
 
-        @retrying.retry(
-            retry_on_exception=should_retry,
-            stop_max_attempt_number=CONF.ibmc.connection_attempts,
-            wait_fixed=CONF.ibmc.connection_retry_interval * 1000)
+        @tenacity.retry(
+            retry=tenacity.retry_if_exception(should_retry),
+            stop=tenacity.stop_after_attempt(CONF.ibmc.connection_attempts),
+            wait=tenacity.wait_fixed(CONF.ibmc.connection_retry_interval),
+            reraise=True)
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
             # NOTE(dtantsur): this code could be written simpler, but then unit

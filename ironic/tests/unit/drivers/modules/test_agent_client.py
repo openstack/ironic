@@ -17,7 +17,6 @@ import json
 from unittest import mock
 
 import requests
-import retrying
 
 from ironic.common import exception
 from ironic import conf
@@ -384,7 +383,6 @@ class TestAgentClient(base.TestCase):
         self.assertRaises(exception.InvalidParameterValue,
                           self.client._command, self.node, method, params)
 
-    @mock.patch('time.sleep', lambda seconds: None)
     def test__command_poll(self):
         response_data = {'status': 'ok'}
         final_status = MockCommandStatus('SUCCEEDED', name='run_image')
@@ -696,9 +694,7 @@ class TestAgentClientAttempts(base.TestCase):
         self.client.session = mock.MagicMock(autospec=requests.Session)
         self.node = MockNode()
 
-    @mock.patch.object(retrying.time, 'sleep', autospec=True)
-    def test__command_fail_all_attempts(self, mock_sleep):
-        mock_sleep.return_value = None
+    def test__command_fail_all_attempts(self):
         error = 'Connection Timeout'
         method = 'standby.run_image'
         image_info = {'image_id': 'test_image'}
@@ -720,9 +716,7 @@ class TestAgentClientAttempts(base.TestCase):
                           'error': error}, str(e))
         self.assertEqual(3, self.client.session.post.call_count)
 
-    @mock.patch.object(retrying.time, 'sleep', autospec=True)
-    def test__command_succeed_after_two_timeouts(self, mock_sleep):
-        mock_sleep.return_value = None
+    def test__command_succeed_after_two_timeouts(self):
         error = 'Connection Timeout'
         response_data = {'status': 'ok'}
         method = 'standby.run_image'
@@ -742,9 +736,7 @@ class TestAgentClientAttempts(base.TestCase):
             timeout=60,
             verify=True)
 
-    @mock.patch.object(retrying.time, 'sleep', autospec=True)
-    def test__command_fail_agent_token_required(self, mock_sleep):
-        mock_sleep.return_value = None
+    def test__command_fail_agent_token_required(self):
         error = 'Unknown Argument: "agent_token"'
         method = 'standby.run_image'
         image_info = {'image_id': 'test_image'}
@@ -769,9 +761,7 @@ class TestAgentClientAttempts(base.TestCase):
             'meowmeowmeow',
             self.node.driver_internal_info.get('agent_secret_token'))
 
-    @mock.patch.object(retrying.time, 'sleep', autospec=True)
-    def test__command_succeed_after_one_timeout(self, mock_sleep):
-        mock_sleep.return_value = None
+    def test__command_succeed_after_one_timeout(self):
         error = 'Connection Timeout'
         response_data = {'status': 'ok'}
         method = 'standby.run_image'

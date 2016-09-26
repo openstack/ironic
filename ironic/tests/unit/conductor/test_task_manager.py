@@ -21,6 +21,7 @@ from unittest import mock
 
 import futurist
 from oslo_utils import uuidutils
+import tenacity
 
 from ironic.common import driver_factory
 from ironic.common import exception
@@ -222,13 +223,13 @@ class TaskManagerTestCase(db_base.DbTestCase):
         reserve_mock.assert_called_once_with(self.context, self.host,
                                              'fake-node-id')
 
+    @mock.patch.object(tenacity, 'stop_after_attempt',
+                       return_value=tenacity.stop_after_attempt(4),
+                       autospec=True)
     def test_excl_lock_exception_patient(
-            self, get_voltgt_mock, get_volconn_mock, get_portgroups_mock,
-            get_ports_mock, build_driver_mock,
+            self, stop_mock, get_voltgt_mock, get_volconn_mock,
+            get_portgroups_mock, get_ports_mock, build_driver_mock,
             reserve_mock, release_mock, node_get_mock):
-        retry_attempts = 3
-        self.config(node_locked_retry_attempts=retry_attempts,
-                    group='conductor')
 
         # Fail on the first 3 attempts, succeed on the fourth.
         reserve_mock.side_effect = (

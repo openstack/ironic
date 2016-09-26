@@ -16,7 +16,8 @@ import ipaddress
 import openstack
 from openstack.connection import exceptions as openstack_exc
 from oslo_log import log
-import retrying
+import tenacity
+from tenacity import retry
 
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import context as ironic_context
@@ -865,11 +866,11 @@ def get_physnets_by_port_uuid(client, port_uuid):
                 if network.provider_physical_network else set())
 
 
-@retrying.retry(
-    stop_max_attempt_number=CONF.agent.neutron_agent_max_attempts,
-    retry_on_exception=lambda e: isinstance(e, exception.NetworkError),
-    wait_fixed=CONF.agent.neutron_agent_status_retry_interval * 1000
-)
+@retry(
+    retry=tenacity.retry_if_exception_type(exception.NetworkError),
+    stop=tenacity.stop_after_attempt(CONF.agent.neutron_agent_max_attempts),
+    wait=tenacity.wait_fixed(CONF.agent.neutron_agent_status_retry_interval),
+    reraise=True)
 def wait_for_host_agent(client, host_id, target_state='up'):
     """Wait for neutron agent to become target state
 
@@ -904,11 +905,11 @@ def wait_for_host_agent(client, host_id, target_state='up'):
             'host': host_id, 'state': target_state})
 
 
-@retrying.retry(
-    stop_max_attempt_number=CONF.agent.neutron_agent_max_attempts,
-    retry_on_exception=lambda e: isinstance(e, exception.NetworkError),
-    wait_fixed=CONF.agent.neutron_agent_status_retry_interval * 1000
-)
+@retry(
+    retry=tenacity.retry_if_exception_type(exception.NetworkError),
+    stop=tenacity.stop_after_attempt(CONF.agent.neutron_agent_max_attempts),
+    wait=tenacity.wait_fixed(CONF.agent.neutron_agent_status_retry_interval),
+    reraise=True)
 def wait_for_port_status(client, port_id, status):
     """Wait for port status to be the desired status
 
