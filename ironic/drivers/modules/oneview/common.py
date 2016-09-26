@@ -240,7 +240,7 @@ def _verify_node_info(node_namespace, node_info_dict, info_required):
 
 
 def node_has_server_profile(func):
-    """Checks if the node's Server Hardware as a Server Profile associated.
+    """Checks if the node's Server Hardware has a Server Profile associated.
 
     """
     def inner(*args, **kwargs):
@@ -254,7 +254,7 @@ def node_has_server_profile(func):
         except oneview_exceptions.OneViewException as oneview_exc:
             LOG.error(
                 _LE("Failed to get server profile from OneView appliance for"
-                    "node %(node)s. Error: %(message)s"),
+                    " node %(node)s. Error: %(message)s"),
                 {"node": task.node.uuid, "message": oneview_exc}
             )
             raise exception.OneViewError(error=oneview_exc)
