@@ -26,6 +26,7 @@ from ironic.drivers import utils
 LOG = logging.getLogger(__name__)
 
 client = importutils.try_import('oneview_client.client')
+oneview_utils = importutils.try_import('oneview_client.utils')
 oneview_states = importutils.try_import('oneview_client.states')
 oneview_exceptions = importutils.try_import('oneview_client.exceptions')
 
@@ -166,6 +167,10 @@ def validate_oneview_resources_compatibility(oneview_client, task):
     oneview_info = get_oneview_info(task.node)
 
     try:
+        spt_uuid = oneview_utils.get_uuid_from_uri(
+            oneview_info.get("server_profile_template_uri")
+        )
+
         oneview_client.validate_node_server_profile_template(oneview_info)
         oneview_client.validate_node_server_hardware_type(oneview_info)
         oneview_client.validate_node_enclosure_group(oneview_info)
@@ -176,11 +181,15 @@ def validate_oneview_resources_compatibility(oneview_client, task):
         )
 
         # NOTE(thiagop): Support to pre-allocation will be dropped in the Pike
-        # release
+        # release.
+        # NOTE(mrtenio): The Server Profile Template needs to have a physical
+        # MAC when using dynamic_allocation. This will be the default behavior
+        # in the Pike Release.
         if is_dynamic_allocation_enabled(task.node):
             oneview_client.is_node_port_mac_compatible_with_server_hardware(
                 oneview_info, node_ports
             )
+            oneview_client.validate_server_profile_template_mac_type(spt_uuid)
         else:
             oneview_client.check_server_profile_is_applied(oneview_info)
             oneview_client.is_node_port_mac_compatible_with_server_profile(
