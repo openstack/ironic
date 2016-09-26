@@ -220,6 +220,7 @@ def force_persistent_boot(task, device, persistent):
     node = task.node
     driver_internal_info = node.driver_internal_info
     if persistent:
+        driver_internal_info.pop('is_next_boot_persistent', None)
         driver_internal_info['persistent_boot_device'] = device
     else:
         driver_internal_info['is_next_boot_persistent'] = False
