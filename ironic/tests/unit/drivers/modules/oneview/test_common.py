@@ -383,7 +383,7 @@ class OneViewCommonTestCase(db_base.DbTestCase):
             )
 
     def test_is_dynamic_allocation_enabled_without_flag(self):
-        """Ensure Dynamic Allocation is disabled when node doesnt't have flag.
+        """Ensure Dynamic Allocation is disabled when node doesn't have flag.
 
         1) Create a node without 'dynamic_allocation' flag
         2) Check Dynamic Allocation is disabled for the given node
