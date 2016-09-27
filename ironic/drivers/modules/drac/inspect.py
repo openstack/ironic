@@ -15,6 +15,7 @@
 DRAC inspection interface
 """
 
+from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
 from oslo_utils import units
@@ -33,6 +34,8 @@ drac_exceptions = importutils.try_import('dracclient.exceptions')
 
 LOG = logging.getLogger(__name__)
 
+METRICS = metrics_utils.get_metrics_logger(__name__)
+
 
 class DracInspect(base.InspectInterface):
 
@@ -43,6 +46,7 @@ class DracInspect(base.InspectInterface):
         """
         return drac_common.COMMON_PROPERTIES
 
+    @METRICS.timer('DracInspect.validate')
     def validate(self, task):
         """Validate the driver-specific info supplied.
 
@@ -57,6 +61,7 @@ class DracInspect(base.InspectInterface):
         """
         return drac_common.parse_driver_info(task.node)
 
+    @METRICS.timer('DracInspect.inspect_hardware')
     def inspect_hardware(self, task):
         """Inspect hardware.
 

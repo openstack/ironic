@@ -15,6 +15,7 @@
 DRAC power interface
 """
 
+from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
 
@@ -30,6 +31,8 @@ drac_constants = importutils.try_import('dracclient.constants')
 drac_exceptions = importutils.try_import('dracclient.exceptions')
 
 LOG = logging.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 if drac_constants:
     POWER_STATES = {
@@ -119,6 +122,7 @@ class DracPower(base.PowerInterface):
         """Return the properties of the interface."""
         return drac_common.COMMON_PROPERTIES
 
+    @METRICS.timer('DracPower.validate')
     def validate(self, task):
         """Validate the driver-specific Node power info.
 
@@ -132,6 +136,7 @@ class DracPower(base.PowerInterface):
         """
         return drac_common.parse_driver_info(task.node)
 
+    @METRICS.timer('DracPower.get_power_state')
     def get_power_state(self, task):
         """Return the power state of the node.
 
@@ -143,6 +148,7 @@ class DracPower(base.PowerInterface):
         """
         return _get_power_state(task.node)
 
+    @METRICS.timer('DracPower.set_power_state')
     @task_manager.require_exclusive_lock
     def set_power_state(self, task, power_state):
         """Set the power state of the node.
@@ -155,6 +161,7 @@ class DracPower(base.PowerInterface):
         """
         _set_power_state(task.node, power_state)
 
+    @METRICS.timer('DracPower.reboot')
     @task_manager.require_exclusive_lock
     def reboot(self, task):
         """Perform a reboot of the task's node.

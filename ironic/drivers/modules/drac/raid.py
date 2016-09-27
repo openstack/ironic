@@ -18,6 +18,7 @@ DRAC RAID specific methods
 import math
 
 from futurist import periodics
+from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
 from oslo_utils import units
@@ -36,6 +37,8 @@ from ironic.drivers.modules.drac import job as drac_job
 drac_exceptions = importutils.try_import('dracclient.exceptions')
 
 LOG = logging.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 RAID_LEVELS = {
     '0': {
@@ -663,6 +666,7 @@ class DracRAID(base.RAIDInterface):
         """Return the properties of the interface."""
         return drac_common.COMMON_PROPERTIES
 
+    @METRICS.timer('DracRAID.create_configuration')
     @base.clean_step(priority=0, abortable=False, argsinfo={
         'create_root_volume': {
             'description': (
@@ -740,6 +744,7 @@ class DracRAID(base.RAIDInterface):
 
         return _commit_to_controllers(node, list(controllers))
 
+    @METRICS.timer('DracRAID.delete_configuration')
     @base.clean_step(priority=0)
     def delete_configuration(self, task):
         """Delete the RAID configuration.
@@ -758,6 +763,7 @@ class DracRAID(base.RAIDInterface):
 
         return _commit_to_controllers(node, list(controllers))
 
+    @METRICS.timer('DracRAID.get_logical_disks')
     def get_logical_disks(self, task):
         """Get the RAID configuration of the node.
 
@@ -783,6 +789,7 @@ class DracRAID(base.RAIDInterface):
 
         return {'logical_disks': logical_disks}
 
+    @METRICS.timer('DracRAID._query_raid_config_job_status')
     @periodics.periodic(
         spacing=CONF.drac.query_raid_config_job_status_interval)
     def _query_raid_config_job_status(self, manager, context):
@@ -816,6 +823,7 @@ class DracRAID(base.RAIDInterface):
                              "%(node)s was already locked by another process. "
                              "Skip."), {'node': node_uuid})
 
+    @METRICS.timer('DracRAID._check_node_raid_jobs')
     def _check_node_raid_jobs(self, task):
         """Check the progress of running RAID config jobs of a node."""
 
