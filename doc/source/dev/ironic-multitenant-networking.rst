@@ -25,10 +25,10 @@ configured in Neutron.
     [[local|localrc]]
 
     # Configure ironic from ironic devstack plugin.
-    enable_plugin ironic https://review.openstack.org/openstack/ironic
+    enable_plugin ironic https://git.openstack.org/openstack/ironic
 
     # Install networking-generic-switch Neutron ML2 driver that interacts with OVS
-    enable_plugin networking-generic-switch https://review.openstack.org/openstack/networking-generic-switch
+    enable_plugin networking-generic-switch https://git.openstack.org/openstack/networking-generic-switch
     Q_PLUGIN_EXTRA_CONF_PATH=/etc/neutron/plugins/ml2
     Q_PLUGIN_EXTRA_CONF_FILES['networking-generic-switch']=ml2_conf_genericswitch.ini
 
