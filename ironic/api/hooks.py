@@ -139,7 +139,7 @@ class NoExceptionTracebackHook(hooks.PecanHook):
             faultstring = faultstring.split(traceback_marker, 1)[0]
             # Remove trailing newlines and spaces if any.
             json_body['faultstring'] = faultstring.rstrip()
-            # Replace the whole json. Cannot change original one beacause it's
+            # Replace the whole json. Cannot change original one because it's
             # generated on the fly.
             state.response.json = json_body
 

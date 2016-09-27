@@ -85,7 +85,7 @@ class Version(object):
         :param headers: webob headers
         :param default_version: version to use if not specified in headers
         :param latest_version: version to use if latest is requested
-        :returns: a tupe of (major, minor) version numbers
+        :returns: a tuple of (major, minor) version numbers
         :raises: webob.HTTPNotAcceptable
         """
         version_str = headers.get(Version.string, default_version)
