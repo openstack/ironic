@@ -272,7 +272,8 @@ class BaremetalClient(base.BaremetalClient):
         :param node_uuid: The unique identifier of the node.
         :param state: desired state to set
                 (active/rebuild/deleted/inspect/manage/provide).
-        :config_drive: A gzipped, base64-encoded configuration drive string.
+        :param configdrive: A gzipped, base64-encoded
+            configuration drive string.
         """
         data = {'target': state, 'configdrive': configdrive}
         return self._put_request('nodes/%s/states/provision' % node_uuid,
@@ -283,7 +284,7 @@ class BaremetalClient(base.BaremetalClient):
         """Set raid config of the specified node.
 
         :param node_uuid: The unique identifier of the node.
-        :target_raid_config: desired RAID configuration of the node.
+        :param target_raid_config: desired RAID configuration of the node.
         """
         return self._put_request('nodes/%s/states/raid' % node_uuid,
                                  target_raid_config)
