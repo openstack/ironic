@@ -21,7 +21,7 @@ booted instances by:
 
 * Copying a template from shipped templates to another place, for example::
 
-    https://git.openstack.org/cgit/openstack/ironic/tree/ironic/drivers/modules/pxe_config.template
+    https://git.openstack.org/cgit/openstack/ironic/tree/ironic/drivers/modules/pxe_config.template?stable%2Fnewton
 
   Making the modifications and pointing to the custom template via the configuration
   options: ``[pxe]/pxe_config_template`` and ``[pxe]/uefi_pxe_config_template``.

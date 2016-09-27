@@ -405,7 +405,7 @@ Configure node web console
 
 See `Configuring Web or Serial Console`_.
 
-.. _`Configuring Web or Serial Console`: http://docs.openstack.org/developer/ironic/deploy/console.html
+.. _`Configuring Web or Serial Console`: http://docs.openstack.org/developer/ironic/newton/deploy/console.html
 
 .. _boot_mode_support:
 

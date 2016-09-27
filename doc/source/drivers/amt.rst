@@ -86,4 +86,4 @@ A detailed reference is available here, and a short guide follows below:
     not attempt to PXE / network boot the kernel, using `local boot`_ solves this
     known issue.
 
-.. _`local boot`: http://docs.openstack.org/project-install-guide/baremetal/draft/advanced.html#local-boot-with-partition-images
+.. _`local boot`: http://docs.openstack.org/project-install-guide/baremetal/newton/advanced.html#local-boot-with-partition-images

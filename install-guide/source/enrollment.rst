@@ -325,7 +325,7 @@ To move a node from ``manageable`` to ``available`` provision state::
 
 
 For more details on the Bare Metal service's state machine, see the
-`state machine <http://docs.openstack.org/developer/ironic/dev/states.html>`_
+`state machine <http://docs.openstack.org/developer/ironic/newton/dev/states.html>`_
 documentation.
 
 
@@ -395,4 +395,4 @@ Hardware Inspection
 Starting with the Kilo release, Bare Metal service supports hardware inspection
 that simplifies enrolling nodes - please see `inspection`_ for details.
 
-.. _`inspection`: http://docs.openstack.org/developer/ironic/deploy/inspection.html#inspection
+.. _`inspection`: http://docs.openstack.org/developer/ironic/newton/deploy/inspection.html#inspection

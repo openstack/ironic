@@ -9,10 +9,10 @@ service running on it for controlling and deploying bare metal nodes.
 You can download a pre-built version of the deploy ramdisk built with
 the `CoreOS tools`_ at:
 
-* `CoreOS deploy kernel <http://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe.vmlinuz>`_
-* `CoreOS deploy ramdisk <http://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe_image-oem.cpio.gz>`_
+* `CoreOS deploy kernel <http://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe-stable-newton.vmlinuz>`_
+* `CoreOS deploy ramdisk <http://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe_image-oem-stable-newton.cpio.gz>`_
 
-.. _ironic-python-agent: http://docs.openstack.org/developer/ironic-python-agent/
+.. _ironic-python-agent: http://docs.openstack.org/developer/ironic-python-agent/newton/
 
 Building from source
 --------------------

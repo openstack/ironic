@@ -130,7 +130,7 @@ the services.
 .. toctree::
   :maxdepth: 1
 
-  Installation Guide <http://docs.openstack.org/project-install-guide/baremetal/draft/>
+  Installation Guide <http://docs.openstack.org/project-install-guide/baremetal/newton/>
   Upgrade Guide <deploy/upgrade-guide>
   Release Notes <http://docs.openstack.org/releasenotes/ironic/>
   Troubleshooting FAQ <deploy/troubleshooting>
@@ -162,9 +162,9 @@ within the project and kept continually up to date.
 .. toctree::
   :maxdepth: 1
 
-  Configuration Reference (Mitaka) <http://docs.openstack.org/mitaka/config-reference/bare-metal.html>
+  Configuration Reference (Newton) <http://docs.openstack.org/newton/config-reference/bare-metal.html>
 
-.. _sample configuration file: https://git.openstack.org/cgit/openstack/ironic/tree/etc/ironic/ironic.conf.sample
+.. _sample configuration file: https://git.openstack.org/cgit/openstack/ironic/tree/etc/ironic/ironic.conf.sample?h=stable%2Fnewton
 
 Dashboard Integration
 ---------------------
