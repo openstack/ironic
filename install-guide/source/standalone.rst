@@ -11,7 +11,7 @@ You should make the following changes to ``/etc/ironic/ironic.conf``:
 
     [DEFAULT]
     ...
-    auth_strategy=none
+    auth_strategy=noauth
 
 #. If you want to disable the Networking service, you should have your network
    pre-configured to serve DHCP and TFTP for machines that you're deploying.
