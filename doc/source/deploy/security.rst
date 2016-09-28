@@ -100,7 +100,7 @@ system or device firmware or firmware settings.
 
 Operators are encouraged to write their own hardware manager plugins for the
 ``ironic-python-agent`` ramdisk.  This should include custom ``clean steps``
-that would be run during the `automated cleaning`_ process, as part of Node
+that would be run during the :ref:`cleaning` process, as part of Node
 de-provisioning. The ``clean steps``
 would perform the specific actions necessary within that environment to ensure
 the integrity of each server's firmware.
@@ -111,16 +111,14 @@ include:
 
   - installing signed firmware for BIOS and peripheral devices
   - using a TPM (Trusted Platform Module) to validate signatures at boot time
-  - booting machines in `UEFI Secure Boot mode`_, rather than BIOS mode, to
+  - booting machines in :ref:`iLO UEFI Secure Boot Support`, rather than BIOS mode, to
     validate kernel signatures
   - disabling local (in-band) access from the host OS to the management controller (BMC)
   - disabling modifications to boot settings from the host OS
 
 Additional references:
-  - `automated cleaning`_
+  - :ref:`cleaning`
   - `trusted boot with partition image`_
-  - `UEFI Secure Boot mode`_
+  - :ref:`iLO UEFI Secure Boot Support`
 
-.. _automated cleaning: http://docs.openstack.org/developer/ironic/deploy/cleaning.html#automated-cleaning
 .. _trusted boot with partition image: http://docs.openstack.org/project-install-guide/baremetal/draft/advanced.html#trusted-boot-with-partition-image
-.. _UEFI Secure Boot mode: http://docs.openstack.org/developer/ironic/drivers/ilo.html?highlight=secure%20boot#uefi-secure-boot-support
