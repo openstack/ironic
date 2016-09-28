@@ -53,7 +53,7 @@ None.
 Configuring and Enabling the driver
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-1. Build or download a deploy image, see :ref:`BuildingDeployRamdisk`
+1. Build or download a deploy image, see `Building or downloading a deploy ramdisk image`_.
 
 2. Upload these images to Glance::
 
@@ -113,3 +113,5 @@ References
 ==========
 .. [1] Python-seamicroclient - https://pypi.python.org/pypi/python-seamicroclient
 .. [2] DiskImage-Builder - http://docs.openstack.org/developer/diskimage-builder/
+
+.. _`Building or downloading a deploy ramdisk image`: http://docs.openstack.org/project-install-guide/baremetal/draft/deploy-ramdisk.html

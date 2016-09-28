@@ -118,5 +118,7 @@ information, see :ref:`automated_cleaning`.
 If ironic is configured with automated cleaning enabled (defaults to True) and
 to use Neutron as the DHCP provider (also the default), you will need to set the
 `cleaning_network_uuid` option in the ironic configuration file before starting
-the Kilo ironic service. See :ref:`CleaningNetworkSetup` for information on
-how to set up the cleaning network for ironic.
+the Kilo ironic service. See `Configure the Bare Metal service for cleaning`_
+for information on how to set up the cleaning network for ironic.
+
+.. _`Configure the Bare Metal service for cleaning`: http://docs.openstack.org/project-install-guide/baremetal/draft/configure-cleaning.html

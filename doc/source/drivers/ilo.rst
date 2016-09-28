@@ -208,11 +208,12 @@ Target Users
 
   The PXE driver passes management information in clear-text to the
   bare metal node.  However, if swift proxy server and glance have HTTPS
-  endpoints (See :ref:`EnableHTTPSinSwift`, :ref:`EnableHTTPSinGlance` for more
-  information), the ``iscsi_ilo`` driver provides enhanced security by
-  exchanging management information with swift and glance endpoints over HTTPS.
-  The management information, deploy ramdisk and boot images for the instance
-  will be retrieved over encrypted management network via iLO virtual media.
+  endpoints (See `Enabling HTTPS in Swift`_, `Enabling HTTPS in Image
+  service`_ for more information), the ``iscsi_ilo`` driver provides enhanced
+  security by exchanging management information with swift and glance
+  endpoints over HTTPS.  The management information, deploy ramdisk and boot
+  images for the instance will be retrieved over encrypted management network
+  via iLO virtual media.
 
 Tested Platforms
 ~~~~~~~~~~~~~~~~
@@ -241,10 +242,10 @@ Features
 * UEFI Secure Boot Support
 * Passing management information via secure, encrypted management network
   (virtual media) if swift proxy server and glance have HTTPS endpoints. See
-  :ref:`EnableHTTPSinSwift`, :ref:`EnableHTTPSinGlance` for more info.  User
-  image provisioning is done using iSCSI over data network, so this driver has
-  the benefit of security enhancement with the same performance. It segregates
-  management info from data channel.
+  `Enabling HTTPS in Swift`_, `Enabling HTTPS in Image service`_ for more
+  information.  User image provisioning is done using iSCSI over data network,
+  so this driver has the benefit of security enhancement with the same
+  performance. It segregates management info from data channel.
 * Supports both out-of-band and in-band cleaning operations. For more details,
   see :ref:`InbandvsOutOfBandCleaning`.
 * Remote Console
@@ -362,11 +363,11 @@ Target Users
 
   The PXE based agent drivers pass management information in clear-text to
   the bare metal node.  However, if swift proxy server and glance have HTTPS
-  endpoints (See :ref:`EnableHTTPSinSwift`, :ref:`EnableHTTPSinGlance` for more
-  information), the ``agent_ilo`` driver provides enhanced security by
-  exchanging authtoken and management information with swift and glance
-  endpoints over HTTPS.  The management information and deploy ramdisk will be
-  retrieved over encrypted management network via iLO.
+  endpoints (See `Enabling HTTPS in Swift`_, `Enabling HTTPS in Image
+  service`_ for more information), the ``agent_ilo`` driver provides enhanced
+  security by exchanging authtoken and management information with swift and
+  glance endpoints over HTTPS.  The management information and deploy ramdisk
+  will be retrieved over encrypted management network via iLO.
 
 Tested Platforms
 ~~~~~~~~~~~~~~~~
@@ -1517,3 +1518,5 @@ use the ``proliant-tools`` element in DIB::
 
   disk-image-create -o proliant-agent-ramdisk ironic-agent fedora proliant-tools
 
+.. _`Enabling HTTPS in Swift`: http://docs.openstack.org/project-install-guide/baremetal/draft/enabling-https.html#enabling-https-in-swift
+.. _`Enabling HTTPS in Image service`: http://docs.openstack.org/project-install-guide/baremetal/draft/enabling-https.html#enabling-https-in-image-service

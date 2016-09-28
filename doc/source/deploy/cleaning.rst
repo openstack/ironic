@@ -189,7 +189,7 @@ If you are using the Neutron DHCP provider (the default) you will also need to
 ensure you have configured a cleaning network. This network will be used to
 boot the ramdisk for in-band cleaning. You can use the same network as your
 tenant network. For steps to set up the cleaning network, please see
-:ref:`CleaningNetworkSetup`.
+`Configure the Bare Metal service for cleaning`_.
 
 .. _InbandvsOutOfBandCleaning:
 
@@ -328,3 +328,5 @@ to allow it to be scheduled by nova.
 
 The node will begin automated cleaning from the start, and move to
 ``available`` state when complete.
+
+.. _`Configure the Bare Metal service for cleaning`: http://docs.openstack.org/project-install-guide/baremetal/draft/configure-cleaning.html
