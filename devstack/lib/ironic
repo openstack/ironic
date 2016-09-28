@@ -1184,12 +1184,12 @@ function enroll_nodes {
         total_cpus=$((total_cpus+$ironic_node_cpu))
     done < $ironic_hwinfo_file
 
-    local adjusted_disk
-    adjusted_disk=$(($ironic_node_disk - $ironic_ephemeral_disk))
-    openstack flavor create --ephemeral $ironic_ephemeral_disk --ram $ironic_node_ram --disk $adjusted_disk --vcpus $ironic_node_cpu baremetal
-    openstack flavor set baremetal --property "cpu_arch"="$ironic_node_arch"
-
     if [ "$VIRT_DRIVER" == "ironic" ]; then
+        local adjusted_disk
+        adjusted_disk=$(($ironic_node_disk - $ironic_ephemeral_disk))
+        openstack flavor create --ephemeral $ironic_ephemeral_disk --ram $ironic_node_ram --disk $adjusted_disk --vcpus $ironic_node_cpu baremetal
+        openstack flavor set baremetal --property "cpu_arch"="$ironic_node_arch"
+
         # NOTE(dtantsur): sometimes nova compute fails to start with ironic due
         # to keystone restarting and not being able to authenticate us.
         # Restart it just to be sure (and avoid gate problems like bug 1537076)
