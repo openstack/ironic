@@ -74,7 +74,7 @@ interface as stated above):
 #. Define a provider network in neutron, which we shall refer to as the
    "provisioning" network, and add it in under the neutron section in
    ironic-conductor configuration file. Using ``neutron`` network interface
-   requires that ``provision_network_uuid`` and ``cleaning_network_uuid``
+   requires that ``provisioning_network_uuid`` and ``cleaning_network_uuid``
    configuration options are set to a valid neutron network UUIDs, otherwise
    ironic-conductor will fail to start::
 
