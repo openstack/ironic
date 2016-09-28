@@ -1,0 +1,6 @@
+---
+features:
+  - Adds the use of DHCP option 210 (tftp-path-prefix). This
+    enables PXE for systems using petitboot, which cannot
+    infer their tftp-path-prefix from the boot file location
+    as petitboot does not use a boot file.
