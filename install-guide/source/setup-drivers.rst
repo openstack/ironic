@@ -219,6 +219,8 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
     echo 'r ^([^/]) /tftpboot/\1' > /tftpboot/map-file
     echo 'r ^(/tftpboot/) /tftpboot/\2' >> /tftpboot/map-file
 
+.. _HTTP server:
+
 #. Set up TFTP and HTTP servers.
 
    These servers should be running and configured to use the local
@@ -231,24 +233,26 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
    The Bare Metal service's configuration file (/etc/ironic/ironic.conf)
    should be edited accordingly to specify the TFTP and HTTP root
-   directories and server addresses. For example::
+   directories and server addresses. For example:
 
-    [pxe]
+   .. code-block:: ini
 
-    # Ironic compute node's tftp root path. (string value)
-    tftp_root=/tftpboot
+      [pxe]
 
-    # IP address of Ironic compute node's tftp server. (string
-    # value)
-    tftp_server=192.168.0.2
+      # Ironic compute node's tftp root path. (string value)
+      tftp_root=/tftpboot
 
-    [deploy]
-    # Ironic compute node's http root path. (string value)
-    http_root=/httpboot
+      # IP address of Ironic compute node's tftp server. (string
+      # value)
+      tftp_server=192.168.0.2
 
-    # Ironic compute node's HTTP server URL. Example:
-    # http://192.1.2.3:8080 (string value)
-    http_url=http://192.168.0.2:8080
+      [deploy]
+      # Ironic compute node's http root path. (string value)
+      http_root=/httpboot
+
+      # Ironic compute node's HTTP server URL. Example:
+      # http://192.1.2.3:8080 (string value)
+      http_url=http://192.168.0.2:8080
 
 #. Install the iPXE package with the boot images::
 
@@ -277,25 +281,69 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
       from source, see http://ipxe.org/download for more information.
 
 #. Enable/Configure iPXE in the Bare Metal Service's configuration file
-   (/etc/ironic/ironic.conf)::
+   (/etc/ironic/ironic.conf):
 
-    [pxe]
+   .. code-block:: ini
 
-    # Enable iPXE boot. (boolean value)
-    ipxe_enabled=True
+      [pxe]
 
-    # Neutron bootfile DHCP parameter. (string value)
-    pxe_bootfile_name=undionly.kpxe
+      # Enable iPXE boot. (boolean value)
+      ipxe_enabled=True
 
-    # Bootfile DHCP parameter for UEFI boot mode. (string value)
-    uefi_pxe_bootfile_name=ipxe.efi
+      # Neutron bootfile DHCP parameter. (string value)
+      pxe_bootfile_name=undionly.kpxe
 
-    # Template file for PXE configuration. (string value)
-    pxe_config_template=$pybasedir/drivers/modules/ipxe_config.template
+      # Bootfile DHCP parameter for UEFI boot mode. (string value)
+      uefi_pxe_bootfile_name=ipxe.efi
 
-    # Template file for PXE configuration for UEFI boot loader.
-    # (string value)
-    uefi_pxe_config_template=$pybasedir/drivers/modules/ipxe_config.template
+      # Template file for PXE configuration. (string value)
+      pxe_config_template=$pybasedir/drivers/modules/ipxe_config.template
+
+      # Template file for PXE configuration for UEFI boot loader.
+      # (string value)
+      uefi_pxe_config_template=$pybasedir/drivers/modules/ipxe_config.template
+
+
+#. It is possible to configure the Bare Metal service in such a way
+   that nodes will boot into the deploy image directly from Object Storage.
+   Doing this avoids having to cache the images on the ironic-conductor
+   host and serving them via the ironic-conductor's `HTTP server`_.
+   This can be done if:
+
+   #. the Image Service is used for image storage;
+   #. the images in the Image Service are internally stored in
+      Object Storage;
+   #. the Object Storage supports generating temporary URLs
+      for accessing objects stored in it.
+      Both the OpenStack Swift and RADOS Gateway provide support for this.
+
+      * See `Ceph Object Gateway support`_ on how to configure
+        the Bare Metal Service with RADOS Gateway as the Object Storage.
+
+   Configure this by setting the ``[pxe]/ipxe_use_swift`` configuration
+   option to ``True`` as follows:
+
+   .. code-block:: ini
+
+      [pxe]
+
+      # Download deploy images directly from swift using temporary
+      # URLs. If set to false (default), images are downloaded to
+      # the ironic-conductor node and served over its local HTTP
+      # server. Applicable only when 'ipxe_enabled' option is set to
+      # true. (boolean value)
+      ipxe_use_swift=True
+
+   Although the `HTTP server`_ still has to be deployed and configured
+   (as it will serve iPXE boot script and boot configuration files for nodes),
+   such configuration will shift some load from ironic-conductor hosts
+   to the Object Storage service which can be scaled horizontally.
+
+   Note that when SSL is enabled on the Object Storage service
+   you have to ensure that iPXE firmware on the nodes can indeed
+   boot from generated temporary URLs that use HTTPS protocol.
+
+   .. _Ceph Object Gateway support: http://docs.openstack.org/developer/ironic/deploy/radosgw.html
 
 #. Restart the ``ironic-conductor`` process::
 
