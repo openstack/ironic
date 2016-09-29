@@ -523,10 +523,9 @@ class DbNodeTestCase(base.DbTestCase):
 
         r = 'fake-reservation'
         self.dbapi.reserve_node(r, uuid)
-        try:
-            self.dbapi.reserve_node('another', uuid)
-        except exception.NodeLocked as e:
-            self.assertIn(r, str(e))
+        exc = self.assertRaises(exception.NodeLocked, self.dbapi.reserve_node,
+                                'another', uuid)
+        self.assertIn(r, str(exc))
 
     def test_reservation_non_existent_node(self):
         node = utils.create_test_node()
