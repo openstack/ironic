@@ -305,6 +305,12 @@ Nodes configured for iLO driver should have the ``driver`` property set to
    `ilo_address` while enrolling node to Bare Metal service to avoid SSL
    certificate validation errors related to hostname mismatch.
 
+.. note::
+   If configuration values for ``ca_file``, ``client_port`` and
+   ``client_timeout`` are not provided in the ``driver_info`` of the node,
+   the corresponding config variables defined under ``[ilo]`` section in
+   ironic.conf will be used.
+
 For example, you could run a similar command like below to enroll the ProLiant
 node::
 
@@ -451,6 +457,12 @@ Nodes configured for iLO driver should have the ``driver`` property set to
    `ilo_address` while enrolling node to Bare Metal service to avoid SSL
    certificate validation errors related to hostname mismatch.
 
+.. note::
+   If configuration values for ``ca_file``, ``client_port`` and
+   ``client_timeout`` are not provided in the ``driver_info`` of the node,
+   the corresponding config variables defined under ``[ilo]`` section in
+   ironic.conf will be used.
+
 For example, you could run a similar command like below to enroll the ProLiant
 node::
 
@@ -578,6 +590,12 @@ Nodes configured for iLO driver should have the ``driver`` property set to
    generating Certificate Signing Request (CSR). Use the same value as
    `ilo_address` while enrolling node to Bare Metal service to avoid SSL
    certificate validation errors related to hostname mismatch.
+
+.. note::
+   If configuration values for ``ca_file``, ``client_port`` and
+   ``client_timeout`` are not provided in the ``driver_info`` of the node,
+   the corresponding config variables defined under ``[ilo]`` section in
+   ironic.conf will be used.
 
 For example, you could run a similar command like below to enroll the ProLiant
 node::
@@ -1504,8 +1522,21 @@ All the fields in the firmware image block are mandatory.
 RAID Support
 ^^^^^^^^^^^^
 
-The inband RAID functionality is now supported by iLO drivers.
-See :ref:`raid` for more information.
+The inband RAID functionality is supported by iLO drivers. See :ref:`raid`
+for more information.
+Bare Metal service update node with following information after successful
+configuration of RAID:
+
+* Node ``properties/local_gb`` is set to the size of root volume.
+* Node ``properties/root_device`` is filled with ``wwn`` details of root
+  volume. It is used by iLO drivers as root device hint during provisioning.
+* The value of raid level of root volume is added as ``raid_level`` capability
+  to the node's ``capabilities`` parameter within ``properties`` field. The
+  operator can specify the ``raid_level`` capability in nova flavor for node
+  to be selected for scheduling::
+
+    nova flavor-key ironic-test set capabilities:raid_level="1+0"
+    nova boot --flavor ironic-test --image test-image instance-1
 
 .. _DIB_raid_support:
 
