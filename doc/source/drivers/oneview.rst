@@ -127,7 +127,7 @@ Configuring and enabling the driver
 .. note::
    An operator can set the ``periodic_check_interval`` option in the [oneview]
    section to set the interval between running the periodic check. The default
-   value is 300 seconds (5 minutes). A lower value will reduce the likelyhood
+   value is 300 seconds (5 minutes). A lower value will reduce the likelihood
    of races between ironic and OneView at the cost of being more resource
    intensive.
 
@@ -183,7 +183,7 @@ Configuring and enabling the driver
 .. note::
    An operator can set the ``periodic_check_interval`` option in the [oneview]
    section to set the interval between running the periodic check. The default
-   value is 300 seconds (5 minutes). A lower value will reduce the likelyhood
+   value is 300 seconds (5 minutes). A lower value will reduce the likelihood
    of races between ironic and OneView at the cost of being more resource
    intensive.
 

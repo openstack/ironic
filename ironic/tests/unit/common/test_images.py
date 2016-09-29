@@ -744,7 +744,7 @@ class FsImageTestCase(base.TestCase):
             'ctx', 'kernel-uuid', 'tmpdir/kernel-uuid')
         fetch_images_mock.assert_any_call(
             'ctx', 'ramdisk-uuid', 'tmpdir/ramdisk-uuid')
-        # Note (NobodyCam): the orginal assert asserted that fetch_images
+        # Note (NobodyCam): the original assert asserted that fetch_images
         #                   was not called with parameters, this did not
         #                   work, So I instead assert that there were only
         #                   Two calls to the mock validating the above

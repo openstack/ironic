@@ -17,7 +17,7 @@ Enabling API Audit Logging
 ==========================
 
 Audit middleware is available as part of `keystonemiddleware` (>= 1.6) library.
-For infomation regarding how audit middleware functions refer `here.
+For information regarding how audit middleware functions refer `here.
 <http://docs.openstack.org/developer/keystonemiddleware/audit.html>`_
 
 Auditing can be enabled for the Bare Metal service by making the following changes
