@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
 
@@ -26,6 +27,8 @@ from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy_utils
 
 LOG = logging.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 BOOT_DEVICE_MAPPING_TO_OV = {
     boot_devices.DISK: 'HardDisk',
@@ -46,6 +49,7 @@ class OneViewManagement(base.ManagementInterface):
     def get_properties(self):
         return common.COMMON_PROPERTIES
 
+    @METRICS.timer('OneViewManagement.validate')
     def validate(self, task):
         """Checks required info on 'driver_info' and validates node with OneView
 
@@ -73,6 +77,7 @@ class OneViewManagement(base.ManagementInterface):
         except exception.OneViewError as oneview_exc:
             raise exception.InvalidParameterValue(oneview_exc)
 
+    @METRICS.timer('OneViewManagement.get_supported_boot_devices')
     def get_supported_boot_devices(self, task):
         """Gets a list of the supported boot devices.
 
@@ -83,6 +88,7 @@ class OneViewManagement(base.ManagementInterface):
 
         return sorted(BOOT_DEVICE_MAPPING_TO_OV.keys())
 
+    @METRICS.timer('OneViewManagement.set_boot_device')
     @task_manager.require_exclusive_lock
     @common.node_has_server_profile
     def set_boot_device(self, task, device, persistent=False):
@@ -121,6 +127,7 @@ class OneViewManagement(base.ManagementInterface):
             )
             raise exception.OneViewError(error=msg)
 
+    @METRICS.timer('OneViewManagement.get_boot_device')
     @common.node_has_server_profile
     def get_boot_device(self, task):
         """Get the current boot device for the task's node.
@@ -164,6 +171,7 @@ class OneViewManagement(base.ManagementInterface):
 
         return boot_device
 
+    @METRICS.timer('OneViewManagement.get_sensors_data')
     def get_sensors_data(self, task):
         """Get sensors data.
 

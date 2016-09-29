@@ -15,6 +15,7 @@
 #    under the License.
 
 from futurist import periodics
+from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
 
@@ -29,6 +30,8 @@ from ironic.conf import CONF
 
 LOG = logging.getLogger(__name__)
 
+METRICS = metrics_utils.get_metrics_logger(__name__)
+
 oneview_exception = importutils.try_import('oneview_client.exceptions')
 oneview_utils = importutils.try_import('oneview_client.utils')
 
@@ -39,6 +42,7 @@ class OneViewInspect(inspector.Inspector):
     def get_properties(self):
         return common.COMMON_PROPERTIES
 
+    @METRICS.timer('OneViewInspect.validate')
     def validate(self, task):
         """Checks required info on 'driver_info' and validates node with OneView
 
@@ -60,6 +64,7 @@ class OneViewInspect(inspector.Inspector):
         except exception.OneViewError as oneview_exc:
             raise exception.InvalidParameterValue(oneview_exc)
 
+    @METRICS.timer('OneViewInspect.inspect_hardware')
     def inspect_hardware(self, task):
         profile_name = 'Ironic Inspecting [%s]' % task.node.uuid
         deploy_utils.allocate_server_hardware_to_ironic(
