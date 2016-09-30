@@ -78,6 +78,10 @@ function early_create {
     r_net_gateway=$(sudo ip netns exec qrouter-$router_id ip -4 route get 8.8.8.8 |grep dev | awk '{print $7}')
     sudo ip route replace $RESOURCES_FIXED_RANGE via $r_net_gateway
 
+    # NOTE(vsaienko) remove connection between br-int and brbm from old setup
+    sudo ovs-vsctl -- --if-exists del-port ovs-1-tap1
+    sudo ovs-vsctl -- --if-exists del-port brbm-1-tap1
+
     create_ovs_taps $net_id
 }
 
@@ -94,7 +98,26 @@ function verify_noapi {
 }
 
 function destroy {
-    :
+    # NOTE(vsaienko) move ironic VMs back to private network.
+    local net_id
+    net_id=$(openstack network show private -f value -c id)
+    create_ovs_taps $net_id
+
+    # NOTE(vsaienko) during early_create phase we update grenade resources neutron/subnet_id,
+    # neutron/router_id, neutron/net_id. It was needed to instruct nova to boot instances
+    # in ironic_grenade network instead of neutron_grenade during resources phase. As result
+    # during neutron/resources.sh destroy phase ironic_grenade router|subnet|network were deleted.
+    # Make sure that we removed neutron resources here.
+    neutron router-gateway-clear neutron_grenade || /bin/true
+    neutron router-interface-delete neutron_grenade neutron_grenade || /bin/true
+    neutron router-delete neutron_grenade || /bin/true
+    neutron net-delete neutron_grenade || /bin/true
+
+    # NOTE(vsaienko) fixed_network_name tempest config option setting logic was changed in
+    # https://review.openstack.org/374311/ and until it is not reverted or
+    # https://review.openstack.org/380006 is merged we need to set fixed_network_name explicitly.
+    TEMPEST_CONFIG="$TARGET_RELEASE_DIR/tempest/etc/tempest.conf"
+    iniset $TEMPEST_CONFIG compute fixed_network_name $PRIVATE_NETWORK_NAME
 }
 
 # Dispatcher

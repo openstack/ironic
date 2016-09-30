@@ -910,8 +910,8 @@ function create_ovs_taps {
     tag_id=$(sudo ovs-vsctl get port ${tapdev} tag)
     die_if_not_set $LINENO tag_id "Failed to get tag id"
 
-    local ovs_tap=ovs-${tag_id}-tap1
-    local brbm_tap=brbm-${tag_id}-tap1
+    local ovs_tap=ovs-tap
+    local brbm_tap=brbm-tap
     # make sure veth pair is not existing, otherwise delete its links
     sudo ip link show $ovs_tap && sudo ip link delete $ovs_tap
     sudo ip link show $brbm_tap && sudo ip link delete $brbm_tap
