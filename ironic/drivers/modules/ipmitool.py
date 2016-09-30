@@ -440,7 +440,7 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None):
                     if ((time.time() > end_time) or
                         (num_tries == 0) or
                         not err_list):
-                        LOG.error(_LE('IPMI Error while attempting "%(cmd)s"'
+                        LOG.error(_LE('IPMI Error while attempting "%(cmd)s" '
                                       'for node %(node)s. Error: %(error)s'), {
                                   'node': driver_info['uuid'],
                                   'cmd': e.cmd, 'error': e
