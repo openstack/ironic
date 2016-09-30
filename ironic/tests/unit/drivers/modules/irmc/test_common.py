@@ -106,12 +106,10 @@ class IRMCValidateParametersTestCase(db_base.DbTestCase):
     def test_parse_driver_info_missing_multiple_params(self):
         del self.node.driver_info['irmc_password']
         del self.node.driver_info['irmc_address']
-        try:
-            irmc_common.parse_driver_info(self.node)
-            self.fail("parse_driver_info did not throw exception.")
-        except exception.MissingParameterValue as e:
-            self.assertIn('irmc_password', str(e))
-            self.assertIn('irmc_address', str(e))
+        e = self.assertRaises(exception.MissingParameterValue,
+                              irmc_common.parse_driver_info, self.node)
+        self.assertIn('irmc_password', str(e))
+        self.assertIn('irmc_address', str(e))
 
     def test_parse_driver_info_invalid_snmp_version(self):
         self.node.driver_info['irmc_snmp_version'] = 'v3x'
