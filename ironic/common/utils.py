@@ -300,14 +300,6 @@ def validate_and_normalize_datapath_id(datapath_id):
     return datapath_id.lower()
 
 
-def is_valid_ipv6_cidr(address):
-    try:
-        str(netaddr.IPNetwork(address, version=6).cidr)
-        return True
-    except Exception:
-        return False
-
-
 def get_shortened_ipv6(address):
     addr = netaddr.IPAddress(address, version=6)
     return str(addr.ipv6())
