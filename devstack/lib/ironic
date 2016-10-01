@@ -653,7 +653,6 @@ function configure_auth_for {
     iniset $IRONIC_CONF_FILE $service_config_section user_domain_id default
     iniset $IRONIC_CONF_FILE $service_config_section project_domain_id default
     iniset $IRONIC_CONF_FILE $service_config_section cafile $SSL_BUNDLE_FILE
-
 }
 
 # configure_ironic_conductor() - Is used by configure_ironic().
@@ -732,13 +731,14 @@ function configure_ironic_conductor {
                         "Glance with Swift was explicitly requested with " \
                         "IRONIC_CONFIGURE_GLANCE_WITH_SWIFT=True"
         fi
-        iniset $IRONIC_CONF_FILE glance swift_endpoint_url http://${HOST_IP}:${SWIFT_DEFAULT_BIND_PORT:-8080}
+        iniset $IRONIC_CONF_FILE glance swift_endpoint_url ${SWIFT_SERVICE_PROTOCOL}://${HOST_IP}:${SWIFT_DEFAULT_BIND_PORT:-8080}
         iniset $IRONIC_CONF_FILE glance swift_api_version v1
         local tenant_id
         tenant_id=$(get_or_create_project $SERVICE_PROJECT_NAME default)
         iniset $IRONIC_CONF_FILE glance swift_account AUTH_${tenant_id}
         iniset $IRONIC_CONF_FILE glance swift_container glance
         iniset $IRONIC_CONF_FILE glance swift_temp_url_duration 3600
+        iniset $IRONIC_CONF_FILE glance glance_protocol $GLANCE_SERVICE_PROTOCOL
     fi
 
     if is_deployed_by_agent; then
