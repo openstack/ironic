@@ -277,7 +277,7 @@ to the ``manageable`` state and then to the ``available`` state.
 To move a node to a different provision state, use the
 ``node-set-provision-state`` command.
 
-.. note:: Since it is an asychronous call, the response for
+.. note:: Since it is an asynchronous call, the response for
           ``ironic node-set-provision-state`` will not indicate whether the
           transition succeeded or not. You can check the status of the
           operation via ``ironic node-show``. If it was successful,
@@ -395,4 +395,4 @@ Hardware Inspection
 Starting with the Kilo release, Bare Metal service supports hardware inspection
 that simplifies enrolling nodes - please see `inspection`_ for details.
 
-.. _`inspection`: http://docs.openstack.org/developer/ironic/deploy/inspection.html#inspection
+.. _`inspection`: http://docs.openstack.org/developer/ironic/deploy/inspection.html
