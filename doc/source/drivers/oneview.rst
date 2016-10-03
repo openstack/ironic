@@ -307,7 +307,7 @@ Checking if a node can be migrated
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 It is recommended to migrate nodes which are in a stable `provision state`. That
-means the the conductor is not performing an operation with the node, what can
+means the conductor is not performing an operation with the node, what can
 impact in the execution of a migration. The possible stable `provision_state`
 values [9_] are: `enroll`, `manageable`, `available`, `active`, `error`,
 `clean failed` and `inspect failed`.
