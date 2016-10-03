@@ -13,6 +13,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+"""oslo.i18n integration module.
+
+See http://docs.openstack.org/developer/oslo.i18n/usage.html
+
+"""
+
 import oslo_i18n as i18n
 
 _translators = i18n.TranslatorFactory(domain='ironic')
