@@ -91,7 +91,6 @@ class ConductorManager(base_manager.BaseConductorManager):
 
     @METRICS.timer('ConductorManager.update_node')
     @messaging.expected_exceptions(exception.InvalidParameterValue,
-                                   exception.MissingParameterValue,
                                    exception.NodeLocked,
                                    exception.InvalidState)
     def update_node(self, context, node_obj):
@@ -146,7 +145,6 @@ class ConductorManager(base_manager.BaseConductorManager):
 
     @METRICS.timer('ConductorManager.change_node_power_state')
     @messaging.expected_exceptions(exception.InvalidParameterValue,
-                                   exception.MissingParameterValue,
                                    exception.NoFreeConductorWorker,
                                    exception.NodeLocked)
     def change_node_power_state(self, context, node_id, new_state):
@@ -190,8 +188,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
                                    exception.InvalidParameterValue,
-                                   exception.UnsupportedDriverExtension,
-                                   exception.MissingParameterValue)
+                                   exception.UnsupportedDriverExtension)
     def vendor_passthru(self, context, node_id, driver_method,
                         http_method, info):
         """RPC method to encapsulate vendor action.
@@ -277,7 +274,6 @@ class ConductorManager(base_manager.BaseConductorManager):
     @METRICS.timer('ConductorManager.driver_vendor_passthru')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.InvalidParameterValue,
-                                   exception.MissingParameterValue,
                                    exception.UnsupportedDriverExtension,
                                    exception.DriverNotFound)
     def driver_vendor_passthru(self, context, driver_name, driver_method,
@@ -472,8 +468,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             try:
                 task.driver.power.validate(task)
                 task.driver.deploy.validate(task)
-            except (exception.InvalidParameterValue,
-                    exception.MissingParameterValue) as e:
+            except exception.InvalidParameterValue as e:
                 raise exception.InstanceDeployFailure(
                     _("Failed to validate deploy or power info for node "
                       "%(node_uuid)s. Error: %(msg)s") %
@@ -522,8 +517,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 # a tear-down. Deploy info is useful to purge the cache but not
                 # required for this method.
                 task.driver.power.validate(task)
-            except (exception.InvalidParameterValue,
-                    exception.MissingParameterValue) as e:
+            except exception.InvalidParameterValue as e:
                 raise exception.InstanceDeployFailure(_(
                     "Failed to validate power driver interface. "
                     "Can not delete instance. Error: %(msg)s") % {'msg': e})
@@ -806,8 +800,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             # NOTE(ghe): Valid power driver values are needed to perform
             # a cleaning.
             task.driver.power.validate(task)
-        except (exception.InvalidParameterValue,
-                exception.MissingParameterValue) as e:
+        except exception.InvalidParameterValue as e:
             msg = (_('Failed to validate power driver interface. '
                      'Can not clean node %(node)s. Error: %(msg)s') %
                    {'node': node.uuid, 'msg': e})
@@ -1011,7 +1004,6 @@ class ConductorManager(base_manager.BaseConductorManager):
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
                                    exception.InvalidParameterValue,
-                                   exception.MissingParameterValue,
                                    exception.InvalidStateRequested)
     def do_provisioning_action(self, context, node_id, action):
         """RPC method to initiate certain provisioning state transitions.
@@ -1432,8 +1424,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                         iface.validate(task)
                         result = True
                     except (exception.InvalidParameterValue,
-                            exception.UnsupportedDriverExtension,
-                            exception.MissingParameterValue) as e:
+                            exception.UnsupportedDriverExtension) as e:
                         result = False
                         reason = str(e)
                 else:
@@ -1551,8 +1542,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
                                    exception.NodeConsoleNotEnabled,
-                                   exception.InvalidParameterValue,
-                                   exception.MissingParameterValue)
+                                   exception.InvalidParameterValue)
     def get_console_information(self, context, node_id):
         """Get connection information about the console.
 
@@ -1584,8 +1574,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
-                                   exception.InvalidParameterValue,
-                                   exception.MissingParameterValue)
+                                   exception.InvalidParameterValue)
     def set_console_mode(self, context, node_id, enabled):
         """Enable/Disable the console.
 
@@ -1948,8 +1937,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     @METRICS.timer('ConductorManager.set_boot_device')
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
-                                   exception.InvalidParameterValue,
-                                   exception.MissingParameterValue)
+                                   exception.InvalidParameterValue)
     def set_boot_device(self, context, node_id, device, persistent=False):
         """Set the boot device for a node.
 
@@ -1983,8 +1971,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     @METRICS.timer('ConductorManager.get_boot_device')
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
-                                   exception.InvalidParameterValue,
-                                   exception.MissingParameterValue)
+                                   exception.InvalidParameterValue)
     def get_boot_device(self, context, node_id):
         """Get the current boot device.
 
@@ -2018,8 +2005,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     @METRICS.timer('ConductorManager.get_supported_boot_devices')
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
-                                   exception.InvalidParameterValue,
-                                   exception.MissingParameterValue)
+                                   exception.InvalidParameterValue)
     def get_supported_boot_devices(self, context, node_id):
         """Get the list of supported devices.
 
@@ -2082,8 +2068,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             try:
                 task.driver.power.validate(task)
                 task.driver.inspect.validate(task)
-            except (exception.InvalidParameterValue,
-                    exception.MissingParameterValue) as e:
+            except exception.InvalidParameterValue as e:
                 error = (_("Failed to validate inspection or power info. "
                            "Error: %(msg)s")
                          % {'msg': e})
@@ -2124,8 +2109,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     @METRICS.timer('ConductorManager.set_target_raid_config')
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
-                                   exception.InvalidParameterValue,
-                                   exception.MissingParameterValue)
+                                   exception.InvalidParameterValue)
     def set_target_raid_config(self, context, node_id, target_raid_config):
         """Stores the target RAID configuration on the node.
 
@@ -2488,8 +2472,7 @@ def do_sync_power_state(task, count):
     if node.power_state is None:
         try:
             task.driver.power.validate(task)
-        except (exception.InvalidParameterValue,
-                exception.MissingParameterValue):
+        except exception.InvalidParameterValue:
             return 0
 
     try:
