@@ -22,11 +22,9 @@ import shutil
 import tempfile
 
 import mock
-import netaddr
 from oslo_concurrency import processutils
 from oslo_config import cfg
 import six
-import six.moves.builtins as __builtin__
 
 from ironic.common import exception
 from ironic.common import utils
@@ -36,12 +34,6 @@ CONF = cfg.CONF
 
 
 class BareMetalUtilsTestCase(base.TestCase):
-
-    def test_random_alnum(self):
-        s = utils.random_alnum(10)
-        self.assertEqual(10, len(s))
-        s = utils.random_alnum(100)
-        self.assertEqual(100, len(s))
 
     def test_create_link(self):
         with mock.patch.object(os, "symlink", autospec=True) as symlink_mock:
@@ -192,75 +184,6 @@ grep foo
 
 
 class GenericUtilsTestCase(base.TestCase):
-    def test_hostname_unicode_sanitization(self):
-        hostname = u"\u7684.test.example.com"
-        self.assertEqual(b"test.example.com",
-                         utils.sanitize_hostname(hostname))
-
-    def test_hostname_sanitize_periods(self):
-        hostname = "....test.example.com..."
-        self.assertEqual(b"test.example.com",
-                         utils.sanitize_hostname(hostname))
-
-    def test_hostname_sanitize_dashes(self):
-        hostname = "----test.example.com---"
-        self.assertEqual(b"test.example.com",
-                         utils.sanitize_hostname(hostname))
-
-    def test_hostname_sanitize_characters(self):
-        hostname = "(#@&$!(@*--#&91)(__=+--test-host.example!!.com-0+"
-        self.assertEqual(b"91----test-host.example.com-0",
-                         utils.sanitize_hostname(hostname))
-
-    def test_hostname_translate(self):
-        hostname = "<}\x1fh\x10e\x08l\x02l\x05o\x12!{>"
-        self.assertEqual(b"hello", utils.sanitize_hostname(hostname))
-
-    def test_read_cached_file(self):
-        with mock.patch.object(
-                os.path, "getmtime", autospec=True) as getmtime_mock:
-            getmtime_mock.return_value = 1
-
-            cache_data = {"data": 1123, "mtime": 1}
-            data = utils.read_cached_file("/this/is/a/fake", cache_data)
-            self.assertEqual(cache_data["data"], data)
-            getmtime_mock.assert_called_once_with(mock.ANY)
-
-    def test_read_modified_cached_file(self):
-        with mock.patch.object(
-                os.path, "getmtime", autospec=True) as getmtime_mock:
-            with mock.patch.object(
-                    __builtin__, 'open', autospec=True) as open_mock:
-                getmtime_mock.return_value = 2
-                fake_contents = "lorem ipsum"
-                fake_file = mock.Mock()
-                fake_file.read.return_value = fake_contents
-                fake_context_manager = mock.MagicMock()
-                fake_context_manager.__enter__.return_value = fake_file
-                fake_context_manager.__exit__.return_value = None
-                open_mock.return_value = fake_context_manager
-
-                cache_data = {"data": 1123, "mtime": 1}
-                self.reload_called = False
-
-                def test_reload(reloaded_data):
-                    self.assertEqual(fake_contents, reloaded_data)
-                    self.reload_called = True
-
-                data = utils.read_cached_file("/this/is/a/fake",
-                                              cache_data,
-                                              reload_func=test_reload)
-
-                self.assertEqual(fake_contents, data)
-                self.assertTrue(self.reload_called)
-                getmtime_mock.assert_called_once_with(mock.ANY)
-                open_mock.assert_called_once_with(mock.ANY)
-                fake_file.read.assert_called_once_with()
-                fake_context_manager.__exit__.assert_called_once_with(mock.ANY,
-                                                                      mock.ANY,
-                                                                      mock.ANY)
-                fake_context_manager.__enter__.assert_called_once_with()
-
     @mock.patch.object(utils, 'hashlib', autospec=True)
     def test__get_hash_object(self, hashlib_mock):
         algorithms_available = ('md5', 'sha1', 'sha224',
@@ -323,45 +246,6 @@ class GenericUtilsTestCase(base.TestCase):
         # | WHEN | & | THEN |
         self.assertRaises(exception.InvalidParameterValue, utils.hash_file,
                           file_like_object, 'hickory-dickory-dock')
-
-    def test_is_valid_boolstr(self):
-        self.assertTrue(utils.is_valid_boolstr('true'))
-        self.assertTrue(utils.is_valid_boolstr('false'))
-        self.assertTrue(utils.is_valid_boolstr('yes'))
-        self.assertTrue(utils.is_valid_boolstr('no'))
-        self.assertTrue(utils.is_valid_boolstr('y'))
-        self.assertTrue(utils.is_valid_boolstr('n'))
-        self.assertTrue(utils.is_valid_boolstr('1'))
-        self.assertTrue(utils.is_valid_boolstr('0'))
-
-        self.assertFalse(utils.is_valid_boolstr('maybe'))
-        self.assertFalse(utils.is_valid_boolstr('only on tuesdays'))
-
-    def test_get_shortened_ipv6(self):
-        self.assertEqual("abcd:ef01:2345:6789:abcd:ef01:c0a8:fefe",
-                         utils.get_shortened_ipv6(
-                             "abcd:ef01:2345:6789:abcd:ef01:192.168.254.254"))
-        self.assertEqual("::1", utils.get_shortened_ipv6(
-            "0000:0000:0000:0000:0000:0000:0000:0001"))
-        self.assertEqual("caca::caca:0:babe:201:102",
-                         utils.get_shortened_ipv6(
-                             "caca:0000:0000:caca:0000:babe:0201:0102"))
-        self.assertRaises(netaddr.AddrFormatError, utils.get_shortened_ipv6,
-                          "127.0.0.1")
-        self.assertRaises(netaddr.AddrFormatError, utils.get_shortened_ipv6,
-                          "failure")
-
-    def test_get_shortened_ipv6_cidr(self):
-        self.assertEqual("2600::/64", utils.get_shortened_ipv6_cidr(
-            "2600:0000:0000:0000:0000:0000:0000:0000/64"))
-        self.assertEqual("2600::/64", utils.get_shortened_ipv6_cidr(
-            "2600::1/64"))
-        self.assertRaises(netaddr.AddrFormatError,
-                          utils.get_shortened_ipv6_cidr,
-                          "127.0.0.1")
-        self.assertRaises(netaddr.AddrFormatError,
-                          utils.get_shortened_ipv6_cidr,
-                          "failure")
 
     def test_is_valid_mac(self):
         self.assertTrue(utils.is_valid_mac("52:54:00:cf:2d:31"))

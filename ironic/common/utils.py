@@ -23,12 +23,10 @@ import datetime
 import errno
 import hashlib
 import os
-import random
 import re
 import shutil
 import tempfile
 
-import netaddr
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import timeutils
@@ -77,13 +75,6 @@ def execute(*cmd, **kwargs):
     return result
 
 
-def trycmd(*args, **kwargs):
-    """Convenience wrapper around oslo's trycmd() method."""
-    if kwargs.get('run_as_root') and 'root_helper' not in kwargs:
-        kwargs['root_helper'] = _get_root_helper()
-    return processutils.trycmd(*args, **kwargs)
-
-
 def ssh_connect(connection):
     """Method to connect to a remote system using ssh protocol.
 
@@ -122,23 +113,6 @@ def ssh_connect(connection):
         raise exception.SSHConnectFailed(host=connection.get('host'))
 
     return ssh
-
-
-def generate_uid(topic, size=8):
-    characters = '01234567890abcdefghijklmnopqrstuvwxyz'
-    choices = [random.choice(characters) for _x in range(size)]
-    return '%s-%s' % (topic, ''.join(choices))
-
-
-def random_alnum(size=32):
-    characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    return ''.join(random.choice(characters) for _ in range(size))
-
-
-def is_valid_boolstr(val):
-    """Check if the provided string is a valid bool string or not."""
-    boolstrs = ('true', 'false', 'yes', 'no', 'y', 'n', '1', '0')
-    return str(val).lower() in boolstrs
 
 
 def is_valid_mac(address):
@@ -288,70 +262,6 @@ def validate_and_normalize_datapath_id(datapath_id):
     return datapath_id.lower()
 
 
-def get_shortened_ipv6(address):
-    addr = netaddr.IPAddress(address, version=6)
-    return str(addr.ipv6())
-
-
-def get_shortened_ipv6_cidr(address):
-    net = netaddr.IPNetwork(address, version=6)
-    return str(net.cidr)
-
-
-def get_ip_version(network):
-    """Returns the IP version of a network (IPv4 or IPv6).
-
-    :raises: AddrFormatError if invalid network.
-    """
-    if netaddr.IPNetwork(network).version == 6:
-        return "IPv6"
-    elif netaddr.IPNetwork(network).version == 4:
-        return "IPv4"
-
-
-def convert_to_list_dict(lst, label):
-    """Convert a value or list into a list of dicts."""
-    if not lst:
-        return None
-    if not isinstance(lst, list):
-        lst = [lst]
-    return [{label: x} for x in lst]
-
-
-def sanitize_hostname(hostname):
-    """Return a hostname which conforms to RFC-952 and RFC-1123 specs."""
-    if isinstance(hostname, six.text_type):
-        hostname = hostname.encode('latin-1', 'ignore')
-
-    hostname = re.sub(b'[ _]', b'-', hostname)
-    hostname = re.sub(b'[^\w.-]+', b'', hostname)
-    hostname = hostname.lower()
-    hostname = hostname.strip(b'.-')
-
-    return hostname
-
-
-def read_cached_file(filename, cache_info, reload_func=None):
-    """Read from a file if it has been modified.
-
-    :param cache_info: dictionary to hold opaque cache.
-    :param reload_func: optional function to be called with data when
-                        file is reloaded due to a modification.
-
-    :returns: data from file
-
-    """
-    mtime = os.path.getmtime(filename)
-    if not cache_info or mtime != cache_info.get('mtime'):
-        LOG.debug("Reloading cached file %s" % filename)
-        with open(filename) as fap:
-            cache_info['data'] = fap.read()
-        cache_info['mtime'] = mtime
-        if reload_func:
-            reload_func(cache_info['data'])
-    return cache_info['data']
-
-
 def _get_hash_object(hash_algo_name):
     """Create a hash object based on given algorithm.
 
@@ -385,57 +295,6 @@ def hash_file(file_like_object, hash_algo='md5'):
     for chunk in iter(lambda: file_like_object.read(32768), b''):
         checksum.update(chunk)
     return checksum.hexdigest()
-
-
-@contextlib.contextmanager
-def temporary_mutation(obj, **kwargs):
-    """Temporarily change object attribute.
-
-    Temporarily set the attr on a particular object to a given value then
-    revert when finished.
-
-    One use of this is to temporarily set the read_deleted flag on a context
-    object:
-
-        with temporary_mutation(context, read_deleted="yes"):
-            do_something_that_needed_deleted_objects()
-    """
-    def is_dict_like(thing):
-        return hasattr(thing, 'has_key')
-
-    def get(thing, attr, default):
-        if is_dict_like(thing):
-            return thing.get(attr, default)
-        else:
-            return getattr(thing, attr, default)
-
-    def set_value(thing, attr, val):
-        if is_dict_like(thing):
-            thing[attr] = val
-        else:
-            setattr(thing, attr, val)
-
-    def delete(thing, attr):
-        if is_dict_like(thing):
-            del thing[attr]
-        else:
-            delattr(thing, attr)
-
-    NOT_PRESENT = object()
-
-    old_values = {}
-    for attr, new_value in kwargs.items():
-        old_values[attr] = get(obj, attr, NOT_PRESENT)
-        set_value(obj, attr, new_value)
-
-    try:
-        yield
-    finally:
-        for attr, old_value in old_values.items():
-            if old_value is NOT_PRESENT:
-                delete(obj, attr)
-            else:
-                set_value(obj, attr, old_value)
 
 
 @contextlib.contextmanager
