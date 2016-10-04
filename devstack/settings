@@ -4,3 +4,7 @@ enable_service ironic ir-api ir-cond
 # TODO(vsaienko) remove once ironic-multitenant job variable and ironic
 # developer documentation are updated.
 Q_USE_PROVIDERNET_FOR_PUBLIC=False
+
+# TODO(jroll) this hacks around a bug, remove when fixed in devstack
+# https://bugs.launchpad.net/devstack/+bug/1629133
+SUBNETPOOL_PREFIX_V4=$FIXED_RANGE
