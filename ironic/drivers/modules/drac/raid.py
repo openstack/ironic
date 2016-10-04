@@ -858,7 +858,9 @@ class DracRAID(base.RAIDInterface):
         node.driver_internal_info = driver_internal_info
         node.save()
 
-    def _delete_cached_config_job_id(self, node, finished_config_job_ids=[]):
+    def _delete_cached_config_job_id(self, node, finished_config_job_ids=None):
+        if finished_config_job_ids is None:
+            finished_config_job_ids = []
         driver_internal_info = node.driver_internal_info
         unfinished_job_ids = [job_id for job_id
                               in driver_internal_info['raid_config_job_ids']
