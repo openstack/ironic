@@ -142,7 +142,7 @@ def hide_fields_in_newer_versions(obj):
 
 
 def update_state_in_older_versions(obj):
-    """Change provision state names for API backwards compatability.
+    """Change provision state names for API backwards compatibility.
 
     :param obj: The object being returned to the API client that is
                 to be updated by this method.

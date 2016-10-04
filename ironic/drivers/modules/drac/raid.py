@@ -643,7 +643,7 @@ def _commit_to_controllers(node, controllers):
             job_id = commit_config(node, raid_controller=controller,
                                    reboot=False)
 
-        LOG.info(_LI('Change has been commited to RAID controller '
+        LOG.info(_LI('Change has been committed to RAID controller '
                      '%(controller)s on node %(node)s. '
                      'DRAC job id: %(job_id)s'),
                  {'controller': controller, 'node': node.uuid,

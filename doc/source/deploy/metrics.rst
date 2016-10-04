@@ -45,7 +45,7 @@ Enabling metrics in ironic-python-agent
 ---------------------------------------
 
 The ironic-python-agent process receives its configuration in the response from
-the inital lookup request to the ironic-api service. This means to configure
+the initial lookup request to the ironic-api service. This means to configure
 ironic-python-agent to emit metrics, you must enable the agent metrics backend
 in your ironic configuration file on all ironic-conductor hosts::
 
