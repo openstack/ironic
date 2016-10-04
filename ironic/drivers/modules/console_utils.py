@@ -29,11 +29,11 @@ import time
 from ironic_lib import utils as ironic_utils
 from oslo_log import log as logging
 from oslo_service import loopingcall
+from oslo_utils import fileutils
 from oslo_utils import netutils
 
 from ironic.common import exception
 from ironic.common.i18n import _, _LE, _LW
-from ironic.common import utils
 from ironic.conf import CONF
 
 
@@ -117,13 +117,13 @@ def make_persistent_password_file(path, password):
     """Writes a file containing a password until deleted."""
 
     try:
-        utils.delete_if_exists(path)
+        fileutils.delete_if_exists(path)
         with open(path, 'wb') as file:
             os.chmod(path, 0o600)
             file.write(password.encode())
         return path
     except Exception as e:
-        utils.delete_if_exists(path)
+        fileutils.delete_if_exists(path)
         raise exception.PasswordFileFailedToCreate(error=e)
 
 

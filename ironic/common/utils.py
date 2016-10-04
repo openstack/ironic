@@ -135,18 +135,6 @@ def random_alnum(size=32):
     return ''.join(random.choice(characters) for _ in range(size))
 
 
-def delete_if_exists(pathname):
-    """delete a file, but ignore file not found error."""
-
-    try:
-        os.unlink(pathname)
-    except OSError as e:
-        if e.errno == errno.ENOENT:
-            return
-        else:
-            raise
-
-
 def is_valid_boolstr(val):
     """Check if the provided string is a valid bool string or not."""
     boolstrs = ('true', 'false', 'yes', 'no', 'y', 'n', '1', '0')
