@@ -91,7 +91,7 @@ Setting up development environment
   ``/etc/ironic/ironic.conf``, and restart Ironic conductor.
 
 * Set up flat networking on ``eth1``. For details on how to do this, see
-  :ref:`NeutronFlatNetworking`.
+  `Configure Networking to communicate with the bare metal server`_.
 
 * Enroll a VirtualBox node. The following examples use the ``pxe_vbox``
   driver.
@@ -117,3 +117,5 @@ Setting up development environment
     Ironic (during provisioning), VirtualBox will automatically pop up a
     dialog box asking to 'Select start-up disk'. Just press 'Cancel' to
     continue booting the VM.
+
+.. _`Configure Networking to communicate with the bare metal server`: http://docs.openstack.org/project-install-guide/baremetal/draft/configure-integration.html#configure-networking-to-communicate-with-the-bare-metal-server

@@ -83,8 +83,8 @@ interface as stated above):
     cleaning_network_uuid=$CLEAN_UUID
     provisioning_network_uuid=$PROVISION_UUID
 
-   Please refer to :ref:`CleaningNetworkSetup` for more information about
-   cleaning.
+   Please refer to `Configure the Bare Metal service for cleaning`_ for more
+   information about cleaning.
 
    .. note::
       The "provisioning" and "cleaning" networks may be the same neutron
@@ -224,3 +224,5 @@ Configuring nodes
 After these steps, the provisioning of the created node will happen in the
 provisioning network, and then the node will be moved to the tenant network
 that was requested.
+
+.. _`Configure the Bare Metal service for cleaning`: http://docs.openstack.org/project-install-guide/baremetal/draft/configure-cleaning.html

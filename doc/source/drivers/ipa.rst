@@ -46,7 +46,7 @@ Requirements
 ------------
 
 Using IPA requires it to be present and configured on the deploy ramdisk, see
-:ref:`BuildingDeployRamdisk` for details.
+`Building or downloading a deploy ramdisk image`_.
 
 Using proxies for image download in agent drivers
 =================================================
@@ -125,3 +125,4 @@ example, the below command sets this configuration in a specific node::
 
   ironic node-update <UUID or name> add driver_info/deploy_forces_oob_reboot=True
 
+.. _`Building or downloading a deploy ramdisk image`: http://docs.openstack.org/project-install-guide/baremetal/draft/deploy-ramdisk.html
