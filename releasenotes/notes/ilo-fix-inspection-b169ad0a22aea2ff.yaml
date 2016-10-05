@@ -1,0 +1,5 @@
+---
+fixes:
+  - Fixes a bug in the iLO drivers' inspection where
+    an existing ``local_gb`` node property was
+    overwritten with "0" if not detected.

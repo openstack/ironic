@@ -217,7 +217,22 @@ class IloInspect(base.InspectInterface):
 
         inspected_properties = {}
         result = _get_essential_properties(task.node, ilo_object)
+
+        # A temporary hook for OOB inspection to not to update 'local_gb'
+        # for hardware if the storage is a "Direct Attached Storage" or
+        # "Dynamic Smart Array Controllers" and the operator has manually
+        # updated the local_gb in node properties prior to node inspection.
+        # This will be removed once we have inband inspection support for
+        # ilo drivers.
+        current_local_gb = task.node.properties.get('local_gb')
         properties = result['properties']
+        if current_local_gb:
+            if properties['local_gb'] == 0 and current_local_gb > 0:
+                properties['local_gb'] = current_local_gb
+                LOG.warning(_LW('Could not discover size of disk on the node '
+                                '%s. Value of `properties/local_gb` of the '
+                                'node is not overwritten.'), task.node.uuid)
+
         for known_property in self.ESSENTIAL_PROPERTIES:
             inspected_properties[known_property] = properties[known_property]
         node_properties = task.node.properties
