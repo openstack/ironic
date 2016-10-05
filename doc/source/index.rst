@@ -154,17 +154,9 @@ of ironic that may or may not be suitable to every situation.
   Configuring for Multi-tenant Networking <deploy/multitenancy>
   Configuring node web or serial console <deploy/console>
   Emitting software metrics <deploy/metrics>
+  Configuration Reference <http://docs.openstack.org/draft/config-reference/bare-metal.html>
+  Sample configuration file <https://git.openstack.org/cgit/openstack/ironic/tree/etc/ironic/ironic.conf.sample>
 
-A reference guide listing all available configuration options is published for
-every major release. Additionally, a `sample configuration file`_ is included
-within the project and kept continually up to date.
-
-.. toctree::
-  :maxdepth: 1
-
-  Configuration Reference (Mitaka) <http://docs.openstack.org/mitaka/config-reference/bare-metal.html>
-
-.. _sample configuration file: https://git.openstack.org/cgit/openstack/ironic/tree/etc/ironic/ironic.conf.sample
 
 Dashboard Integration
 ---------------------
