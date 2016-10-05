@@ -247,9 +247,9 @@ Step 1: Create a Python virtualenv
 
     pip install python-ironicclient
 
-.. NOTE: You can install python-ironicclient from source by cloning the git
-         repository and running `pip install .` while in the root of the
-         cloned repository.
+   .. note:: You can install python-ironicclient from source by cloning the git
+             repository and running `pip install .` while in the root of the
+             cloned repository.
 
 #. Export some ENV vars so the client will connect to the local services
    that you'll start in the next section::
@@ -324,8 +324,8 @@ want to run a MySQL server on it all the time).
     # If using MySQL, you need to create the initial database
     mysql -u root -pMYSQL_ROOT_PWD -e "create schema ironic"
 
-.. NOTE: if you choose not to install mysql-server, ironic will default to
-         using a local sqlite database.
+   .. note:: if you choose not to install mysql-server, ironic will default to
+            using a local sqlite database.
 
 #. Create a configuration file within the ironic source directory::
 
