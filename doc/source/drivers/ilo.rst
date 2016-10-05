@@ -698,6 +698,9 @@ element to the diskimage-builder command to build the image.  For example::
 
   disk-image-create ubuntu baremetal iso
 
+
+.. _`iLO UEFI Secure Boot Support`:
+
 UEFI Secure Boot Support
 ^^^^^^^^^^^^^^^^^^^^^^^^
 The following drivers support UEFI secure boot deploy:

@@ -23,6 +23,8 @@ An Ironic deployment will be composed of the following components:
 
     - **NOTE:** The agent is never run inside a tenant instance.
 
+.. _`architecture_drivers`:
+
 Drivers
 =======
 

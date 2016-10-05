@@ -103,7 +103,7 @@ higher::
 
     PUT /v1/nodes/<node_ident>/states/provision
 
-(Additional information is available `here <http://docs.openstack.org/developer/ironic/webapi/v1.html#nodes>`_.)
+(Additional information is available `here <http://developer.openstack.org/api-ref/baremetal/index.html?expanded=change-node-provision-state-detail#change-node-provision-state>`_.)
 
 This API will allow operators to put a node directly into ``cleaning``
 provision state from ``manageable`` state via 'target': 'clean'.
