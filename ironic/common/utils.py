@@ -88,7 +88,7 @@ def ssh_connect(connection):
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         key_contents = connection.get('key_contents')
         if key_contents:
-            data = six.moves.StringIO(key_contents)
+            data = six.StringIO(key_contents)
             if "BEGIN RSA PRIVATE" in key_contents:
                 pkey = paramiko.RSAKey.from_private_key(data)
             elif "BEGIN DSA PRIVATE" in key_contents:
