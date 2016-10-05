@@ -217,14 +217,17 @@ Target Users
 
 Tested Platforms
 ~~~~~~~~~~~~~~~~
-This driver should work on HPE ProLiant Gen8 Servers and above with iLO 4.
+This driver should work on HPE ProLiant Gen7 Servers with iLO 3,
+Gen8 Servers and above with iLO 4.
 It has been tested with the following servers:
 
+* ProLiant DL380 G7
 * ProLiant DL380e Gen8
 * ProLiant DL580 Gen8 UEFI
 * ProLiant DL180 Gen9 UEFI
 * ProLiant DL360 Gen9 UEFI
 * ProLiant DL380 Gen9 UEFI
+* ProLiant XL450 Gen9 UEFI
 
 For more up-to-date information on server platform support info, refer
 `iLO driver wiki page <https://wiki.openstack.org/wiki/Ironic/Drivers/iLODrivers>`_.
@@ -377,14 +380,17 @@ Target Users
 
 Tested Platforms
 ~~~~~~~~~~~~~~~~
-This driver should work on HPE ProLiant Gen8 Servers and above with iLO 4.
+This driver should work on HPE ProLiant Gen7 Servers with iLO 3,
+Gen8 Servers and above with iLO 4.
 It has been tested with the following servers:
 
+* ProLiant DL380 G7
 * ProLiant DL380e Gen8
 * ProLiant DL580e Gen8
 * ProLiant DL360 Gen9 UEFI
 * ProLiant DL380 Gen9 UEFI
 * ProLiant DL180 Gen9 UEFI
+* ProLiant XL450 Gen9 UEFI
 
 For more up-to-date information, check the
 `iLO driver wiki page <https://wiki.openstack.org/wiki/Ironic/Drivers/iLODrivers>`_.
@@ -408,6 +414,8 @@ Features
 * Swiftless deploy for intermediate images.
 * HTTP(S) Based Deploy.
 * iLO drivers with standalone ironic.
+* Supports tenant network isolation for node instances provisioned for
+  vlan type networks.
 
 Requirements
 ~~~~~~~~~~~~
@@ -518,14 +526,17 @@ Target Users
 
 Tested Platforms
 ~~~~~~~~~~~~~~~~
-This driver should work on HPE ProLiant Gen8 Servers and above with iLO 4.
+This driver should work on HPE ProLiant Gen7 Servers with iLO 3,
+Gen8 Servers and above with iLO 4.
 It has been tested with the following servers:
 
+* ProLiant DL380 G7
 * ProLiant DL380e Gen8
 * ProLiant DL380e Gen8
 * ProLiant DL580 Gen8 (BIOS/UEFI)
 * ProLiant DL360 Gen9 UEFI
 * ProLiant DL380 Gen9 UEFI
+* ProLiant XL450 Gen9 UEFI
 
 For more up-to-date information, check the
 `iLO driver wiki page <https://wiki.openstack.org/wiki/Ironic/Drivers/iLODrivers>`_.
