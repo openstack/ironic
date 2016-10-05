@@ -109,32 +109,79 @@ Configuring ironic-conductor service
    cleaning, see `CleaningNetworkSetup <http://docs.openstack.org/developer/ironic/deploy/cleaning.html>`_
    from the Ironic deploy guide.
 
-#. Configure the ironic-conductor service to use these credentials with the
-   Identity service. Ironic-conductor should use the same configuration as
-   ironic-api. Replace ``IDENTITY_IP`` with the IP of the Identity server,
-   and replace ``IRONIC_PASSWORD`` with the password you chose for the
-   ``ironic`` user in the Identity service:
+#. Configure credentials for accessing other OpenStack services.
+
+   In order to communicate with other OpenStack services, the Bare Metal
+   service needs to use service users to authenticate to the OpenStack
+   Identity service when making requests to other services.
+   These users' credentials have to be configured in each
+   configuration file section related to the corresponding service:
+
+   * ``[neutron]`` - to access the OpenStack Networking service
+   * ``[glance]`` - to access the OpenStack Image service
+   * ``[swift]`` - to access the OpenStack Object Storage service
+   * ``[inspector]`` - to access the OpenStack Bare Metal Introspection
+     service
+   * ``[service_catalog]`` - a special section holding credentials
+     the Bare Metal service will use to discover its own API URL endpoint
+     as registered in the OpenStack Identity service catalog.
+
+   For simplicity, you can use the same service user for all services.
+   For backward compatibility, this should be the same user configured
+   in the ``[keystone_authtoken]`` section for the ironic-api service
+   (see "Configuring ironic-api service").
+   However, this is not necessary, and you can create and configure separate
+   service users for each service.
+
+   Under the hood, Bare Metal service uses ``keystoneauth`` library
+   together with ``Authentication plugin`` and ``Session`` concepts
+   provided by it to instantiate service clients.
+   Please refer to `Keystoneauth documentation`_ for supported plugins,
+   their available options as well as Session-related options
+   for authentication and connection respectively.
+
+   In the example below, authentication information for user to access the
+   OpenStack Networking service is configured to use:
+
+   * HTTPS connection with specific CA SSL certificate when making requests
+   * the same service user as configured for ironic-api service
+   * dynamic ``password`` authentication plugin that will discover
+     appropriate version of Identity service API based on other
+     provided options
+
+     - replace ``IDENTITY_IP`` with the IP of the Identity server,
+       and replace ``IRONIC_PASSWORD`` with the password you chose for the
+       ``ironic`` user in the Identity service
+
 
    .. code-block:: ini
 
-      [keystone_authtoken]
+      [neutron]
 
-      # Complete public Identity API endpoint (string value)
-      auth_uri=http://IDENTITY_IP:5000/
+      # Authentication type to load (string value)
+      auth_type = password
 
-      # Complete admin Identity API endpoint. This should specify
-      # the unversioned root endpoint e.g. https://localhost:35357/
-      # (string value)
-      identity_uri=http://IDENTITY_IP:35357/
+      # Authentication URL (string value)
+      auth_url=https://IDENTITY_IP:5000/
 
-      # Service username. (string value)
-      admin_user=ironic
+      # Username (string value)
+      username=ironic
 
-      # Service account password. (string value)
-      admin_password=IRONIC_PASSWORD
+      # User's password (string value)
+      password=IRONIC_PASSWORD
 
-      # Service tenant name. (string value)
-      admin_tenant_name=service
+      # Project name to scope to (string value)
+      project_name=service
+
+      # Domain ID containing project (string value)
+      project_domain_id=default
+
+      # User's domain id (string value)
+      user_domain_id=default
+
+      # PEM encoded Certificate Authority to use when verifying
+      # HTTPs connections. (string value)
+      cafile=/opt/stack/data/ca-bundle.pem
 
 #. Make sure that ``qemu-img`` and ``iscsiadm`` (in the case of using iscsi-deploy driver)
    binaries are installed and prepare the host system as described at
@@ -150,3 +197,6 @@ Configuring ironic-conductor service
 
       Ubuntu:
         sudo service ironic-conductor restart
+
+
+.. _Keystoneauth documentation: http://docs.openstack.org/developer/keystoneauth/
