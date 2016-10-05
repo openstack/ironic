@@ -171,32 +171,6 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
     def test_get_ilo_object_no_cafile(self):
         self._test_get_ilo_object()
 
-    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
-                       autospec=True)
-    def test_get_ilo_license(self, get_ilo_object_mock):
-        ilo_advanced_license = {'LICENSE_TYPE': 'iLO 3 Advanced'}
-        ilo_standard_license = {'LICENSE_TYPE': 'iLO 3'}
-
-        ilo_mock_object = get_ilo_object_mock.return_value
-        ilo_mock_object.get_all_licenses.return_value = ilo_advanced_license
-
-        license = ilo_common.get_ilo_license(self.node)
-        self.assertEqual(ilo_common.ADVANCED_LICENSE, license)
-
-        ilo_mock_object.get_all_licenses.return_value = ilo_standard_license
-        license = ilo_common.get_ilo_license(self.node)
-        self.assertEqual(ilo_common.STANDARD_LICENSE, license)
-
-    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
-                       autospec=True)
-    def test_get_ilo_license_fail(self, get_ilo_object_mock):
-        ilo_mock_object = get_ilo_object_mock.return_value
-        exc = ilo_error.IloError('error')
-        ilo_mock_object.get_all_licenses.side_effect = exc
-        self.assertRaises(exception.IloOperationError,
-                          ilo_common.get_ilo_license,
-                          self.node)
-
     def test_update_ipmi_properties(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:

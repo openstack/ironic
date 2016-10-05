@@ -259,40 +259,6 @@ def get_ilo_object(node):
     return ilo_object
 
 
-def get_ilo_license(node):
-    """Gives the current installed license on the node.
-
-    Given an ironic node object, this method queries the iLO
-    for currently installed license and returns it back.
-
-    :param node: an ironic node object.
-    :returns: a constant defined in this module which
-        refers to the current license installed on the node.
-    :raises: InvalidParameterValue on invalid inputs.
-    :raises: MissingParameterValue if some mandatory information
-        is missing on the node
-    :raises: IloOperationError if it failed to retrieve the
-        installed licenses from the iLO.
-    """
-    # Get the ilo client object, and then the license from the iLO
-    ilo_object = get_ilo_object(node)
-    try:
-        license_info = ilo_object.get_all_licenses()
-    except ilo_error.IloError as ilo_exception:
-        raise exception.IloOperationError(operation=_('iLO license check'),
-                                          error=str(ilo_exception))
-
-    # Check the license to see if the given license exists
-    current_license_type = license_info['LICENSE_TYPE']
-
-    if current_license_type.endswith("Advanced"):
-        return ADVANCED_LICENSE
-    elif current_license_type.endswith("Essentials"):
-        return ESSENTIALS_LICENSE
-    else:
-        return STANDARD_LICENSE
-
-
 def update_ipmi_properties(task):
     """Update ipmi properties to node driver_info
 
