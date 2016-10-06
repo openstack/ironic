@@ -15,16 +15,18 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import mock
 import time
 import types
 
-import mock
+from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent_client
+from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import power
 from ironic.drivers.modules.oneview import vendor
 from ironic.drivers.modules import pxe
@@ -34,10 +36,13 @@ from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
+oneview_models = importutils.try_import('oneview_client.models')
+
 
 GET_POWER_STATE_RETRIES = 5
 
 
+@mock.patch.object(common, 'get_oneview_client', spec_set=True, autospec=True)
 class TestBaseAgentVendor(db_base.DbTestCase):
 
     def setUp(self):
@@ -63,7 +68,8 @@ class TestBaseAgentVendor(db_base.DbTestCase):
     @mock.patch('ironic.conductor.utils.node_set_boot_device', autospec=True)
     def test_reboot_and_finish_deploy(self, set_bootdev_mock, power_off_mock,
                                       get_power_state_mock,
-                                      node_power_action_mock):
+                                      node_power_action_mock,
+                                      mock_get_ov_client):
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
@@ -89,9 +95,18 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                        spec=types.FunctionType)
     def test_reboot_and_finish_deploy_soft_poweroff_doesnt_complete(
             self, power_off_mock, get_power_state_mock,
-            node_power_action_mock):
+            node_power_action_mock, mock_get_ov_client):
+        client = mock_get_ov_client.return_value
+        fake_server_hardware = oneview_models.ServerHardware()
+        fake_server_hardware.server_profile_uri = 'any/applied_sp_uri/'
+        client.get_server_hardware_by_uuid.return_value = fake_server_hardware
+        mock_get_ov_client.return_value = client
+
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
+        driver_info = self.node.driver_info
+        driver_info['applied_server_profile_uri'] = 'any/applied_sp_uri/'
+        self.node.driver_info = driver_info
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -111,10 +126,20 @@ class TestBaseAgentVendor(db_base.DbTestCase):
     @mock.patch.object(agent_client.AgentClient, 'power_off',
                        spec=types.FunctionType)
     def test_reboot_and_finish_deploy_soft_poweroff_fails(
-            self, power_off_mock, node_power_action_mock):
+            self, power_off_mock, node_power_action_mock,
+            mock_get_ov_client):
+        client = mock_get_ov_client.return_value
+        fake_server_hardware = oneview_models.ServerHardware()
+        fake_server_hardware.server_profile_uri = 'any/applied_sp_uri/'
+        client.get_server_hardware_by_uuid.return_value = fake_server_hardware
+        mock_get_ov_client.return_value = client
+
         power_off_mock.side_effect = RuntimeError("boom")
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
+        driver_info = self.node.driver_info
+        driver_info['applied_server_profile_uri'] = 'any/applied_sp_uri/'
+        self.node.driver_info = driver_info
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -135,9 +160,18 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                        spec=types.FunctionType)
     def test_reboot_and_finish_deploy_get_power_state_fails(
             self, power_off_mock, get_power_state_mock,
-            node_power_action_mock):
+            node_power_action_mock, mock_get_ov_client):
+        client = mock_get_ov_client.return_value
+        fake_server_hardware = oneview_models.ServerHardware()
+        fake_server_hardware.server_profile_uri = 'any/applied_sp_uri/'
+        client.get_server_hardware_by_uuid.return_value = fake_server_hardware
+        mock_get_ov_client.return_value = client
+
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
+        driver_info = self.node.driver_info
+        driver_info['applied_server_profile_uri'] = 'any/applied_sp_uri/'
+        self.node.driver_info = driver_info
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -162,7 +196,8 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                        spec=types.FunctionType)
     def test_reboot_and_finish_deploy_power_action_fails(
             self, power_off_mock, get_power_state_mock,
-            node_power_action_mock, collect_ramdisk_logs_mock):
+            node_power_action_mock, collect_ramdisk_logs_mock,
+            mock_get_ov_client):
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
@@ -193,11 +228,20 @@ class TestBaseAgentVendor(db_base.DbTestCase):
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     def test_reboot_to_instance(self, clean_pxe_mock, check_deploy_mock,
                                 power_off_mock, get_power_state_mock,
-                                node_power_action_mock):
+                                node_power_action_mock, mock_get_ov_client):
         check_deploy_mock.return_value = None
+
+        client = mock_get_ov_client.return_value
+        fake_server_hardware = oneview_models.ServerHardware()
+        fake_server_hardware.server_profile_uri = 'any/applied_sp_uri/'
+        client.get_server_hardware_by_uuid.return_value = fake_server_hardware
+        mock_get_ov_client.return_value = client
 
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
+        driver_info = self.node.driver_info
+        driver_info['applied_server_profile_uri'] = 'any/applied_sp_uri/'
+        self.node.driver_info = driver_info
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -227,11 +271,21 @@ class TestBaseAgentVendor(db_base.DbTestCase):
                                           check_deploy_mock,
                                           power_off_mock,
                                           get_power_state_mock,
-                                          node_power_action_mock):
+                                          node_power_action_mock,
+                                          mock_get_ov_client):
+        client = mock_get_ov_client.return_value
+        fake_server_hardware = oneview_models.ServerHardware()
+        fake_server_hardware.server_profile_uri = 'any/applied_sp_uri/'
+        client.get_server_hardware_by_uuid.return_value = fake_server_hardware
+        mock_get_ov_client.return_value = client
+
         check_deploy_mock.return_value = None
 
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
+        driver_info = self.node.driver_info
+        driver_info['applied_server_profile_uri'] = 'any/applied_sp_uri/'
+        self.node.driver_info = driver_info
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:

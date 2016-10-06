@@ -242,6 +242,43 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
                 deploy_utils.is_node_in_use_by_oneview(task.node)
             )
 
+    # Tests for is_node_in_use_by_oneview
+    def test_is_node_in_use_by_ironic(self, mock_get_ov_client):
+        """Node has a Server Profile applied by ironic.
+
+        """
+        fake_sh = oneview_models.ServerHardware()
+        fake_sh.server_profile_uri = "same/applied_sp_uri/"
+
+        ov_client = mock_get_ov_client.return_value
+        ov_client.get_server_hardware_by_uuid.return_value = fake_sh
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_info = task.node.driver_info
+            driver_info['dynamic_allocation'] = True
+            driver_info['applied_server_profile_uri'] = 'same/applied_sp_uri/'
+            task.node.driver_info = driver_info
+            self.assertTrue(
+                deploy_utils.is_node_in_use_by_ironic(task.node)
+            )
+
+    def test_is_node_in_use_by_ironic_no_server_profile(
+        self, mock_get_ov_client
+    ):
+        """Node has no Server Profile.
+
+        """
+        fake_sh = oneview_models.ServerHardware()
+        fake_sh.server_profile_uri = None
+
+        ov_client = mock_get_ov_client.return_value
+        ov_client.get_server_hardware_by_uuid.return_value = fake_sh
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertFalse(
+                deploy_utils.is_node_in_use_by_ironic(task.node)
+            )
+
     # Tests for _add_applied_server_profile_uri_field
     def test__add_applied_server_profile_uri_field(self, mock_get_ov_client):
         """Checks if applied_server_profile_uri was added to driver_info.
@@ -276,9 +313,9 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
             self.assertNotIn('applied_server_profile_uri',
                              task.node.driver_info)
 
-    # Tests for _allocate_server_hardware_to_ironic
+    # Tests for allocate_server_hardware_to_ironic
     @mock.patch.object(objects.Node, 'save')
-    def test__allocate_server_hardware_to_ironic(
+    def test_allocate_server_hardware_to_ironic(
         self, mock_node_save, mock_get_ov_client
     ):
         """Checks if a Server Profile was created and its uri is in driver_info.
@@ -291,7 +328,7 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
         mock_get_ov_client.return_value = ov_client
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            deploy_utils._allocate_server_hardware_to_ironic(
+            deploy_utils.allocate_server_hardware_to_ironic(
                 task.node, 'serverProfileName'
             )
             self.assertTrue(ov_client.clone_template_and_apply.called)
@@ -300,7 +337,7 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(objects.Node, 'save')
     @mock.patch.object(deploy_utils,
                        '_del_applied_server_profile_uri_field')
-    def test__allocate_server_hardware_to_ironic_node_has_server_profile(
+    def test_allocate_server_hardware_to_ironic_node_has_server_profile(
         self, mock_delete_applied_sp, mock_node_save, mock_get_ov_client
     ):
         """Tests server profile allocation when applied_server_profile_uri exists.
@@ -321,14 +358,14 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
             driver_info['applied_server_profile_uri'] = 'any/applied_sp_uri/'
             task.node.driver_info = driver_info
 
-            deploy_utils._allocate_server_hardware_to_ironic(
+            deploy_utils.allocate_server_hardware_to_ironic(
                 task.node, 'serverProfileName'
             )
             self.assertTrue(mock_delete_applied_sp.called)
 
-    # Tests for _deallocate_server_hardware_from_ironic
+    # Tests for deallocate_server_hardware_from_ironic
     @mock.patch.object(objects.Node, 'save')
-    def test__deallocate_server_hardware_from_ironic(
+    def test_deallocate_server_hardware_from_ironic(
         self, mock_node_save, mock_get_ov_client
     ):
         ov_client = mock_get_ov_client.return_value
@@ -342,7 +379,7 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
             driver_info['applied_server_profile_uri'] = 'any/applied_sp_uri/'
             task.node.driver_info = driver_info
 
-            deploy_utils._deallocate_server_hardware_from_ironic(task.node)
+            deploy_utils.deallocate_server_hardware_from_ironic(task.node)
             self.assertTrue(ov_client.delete_server_profile.called)
             self.assertTrue(
                 'applied_server_profile_uri' not in task.node.driver_info

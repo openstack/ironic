@@ -14,11 +14,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import operator
+
 from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LI, _LW
+from ironic.common.i18n import _, _LE, _LI
 from ironic.common import states
 from ironic.drivers.modules.oneview import common
 
@@ -54,7 +56,7 @@ def prepare(task):
                 {"instance_name": instance_display_name,
                  "instance_uuid": instance_uuid}
             )
-            _allocate_server_hardware_to_ironic(task.node, server_profile_name)
+            allocate_server_hardware_to_ironic(task.node, server_profile_name)
         except exception.OneViewError as e:
             raise exception.InstanceDeployFailure(node=task.node.uuid,
                                                   reason=e)
@@ -74,7 +76,7 @@ def tear_down(task):
 
     """
     try:
-        _deallocate_server_hardware_from_ironic(task.node)
+        deallocate_server_hardware_from_ironic(task.node)
     except exception.OneViewError as e:
         raise exception.InstanceDeployFailure(node=task.node.uuid, reason=e)
 
@@ -94,7 +96,7 @@ def prepare_cleaning(task):
     """
     try:
         server_profile_name = "Ironic Cleaning [%s]" % task.node.uuid
-        _allocate_server_hardware_to_ironic(task.node, server_profile_name)
+        allocate_server_hardware_to_ironic(task.node, server_profile_name)
     except exception.OneViewError as e:
         oneview_error = common.SERVER_HARDWARE_ALLOCATION_ERROR
         driver_internal_info = task.node.driver_internal_info
@@ -119,9 +121,27 @@ def tear_down_cleaning(task):
 
     """
     try:
-        _deallocate_server_hardware_from_ironic(task.node)
+        deallocate_server_hardware_from_ironic(task.node)
     except exception.OneViewError as e:
         raise exception.NodeCleaningFailure(node=task.node.uuid, reason=e)
+
+
+def _is_node_in_use(server_hardware, applied_sp_uri, by_oneview=False):
+    """Check if node is in use by ironic or by OneView.
+
+    :param by_oneview: Boolean value. True when want to verify if node is in
+                       use by OneView. False to verify if node is in use by
+                       ironic.
+    :param node: an ironic node object
+    :returns: Boolean value. True if by_oneview param is also True and node is
+              in use by OneView, False otherwise. True if by_oneview param is
+              False and node is in use by ironic, False otherwise.
+
+    """
+
+    operation = operator.ne if by_oneview else operator.eq
+    return (server_hardware.server_profile_uri not in (None, '') and
+            operation(applied_sp_uri, server_hardware.server_profile_uri))
 
 
 def is_node_in_use_by_oneview(node):
@@ -131,6 +151,54 @@ def is_node_in_use_by_oneview(node):
     :returns: Boolean value. True if node is in use by OneView,
               False otherwise.
     :raises OneViewError: if not possible to get OneView's informations
+            for the given node, if not possible to retrieve Server Hardware
+            from OneView.
+
+    """
+
+    positive = _("Node '%s' is in use by OneView.") % node.uuid
+    negative = _("Node '%s' is not in use by OneView.") % node.uuid
+
+    def predicate(server_hardware, applied_sp_uri):
+        # Check if Profile exists in Oneview and it is different of the one
+        # applied by ironic
+        return _is_node_in_use(server_hardware, applied_sp_uri,
+                               by_oneview=True)
+
+    return _check_applied_server_profile(node, predicate, positive, negative)
+
+
+def is_node_in_use_by_ironic(node):
+    """Check if node is in use by ironic in OneView.
+
+    :param node: an ironic node object
+    :returns: Boolean value. True if node is in use by ironic,
+              False otherwise.
+    :raises OneViewError: if not possible to get OneView's information
+            for the given node, if not possible to retrieve Server Hardware
+            from OneView.
+
+    """
+
+    positive = _("Node '%s' is in use by Ironic.") % node.uuid
+    negative = _("Node '%s' is not in use by Ironic.") % node.uuid
+
+    def predicate(server_hardware, applied_sp_uri):
+        # Check if Profile exists in Oneview and it is equals of the one
+        # applied by ironic
+        return _is_node_in_use(server_hardware, applied_sp_uri,
+                               by_oneview=False)
+
+    return _check_applied_server_profile(node, predicate, positive, negative)
+
+
+def _check_applied_server_profile(node, predicate, positive, negative):
+    """Check if node is in use by ironic in OneView.
+
+    :param node: an ironic node object
+    :returns: Boolean value. True if node is in use by ironic,
+              False otherwise.
+    :raises OneViewError: if not possible to get OneView's information
              for the given node, if not possible to retrieve Server Hardware
              from OneView.
 
@@ -157,24 +225,14 @@ def is_node_in_use_by_oneview(node):
         node.driver_info.get('applied_server_profile_uri')
     )
 
-    # Check if Profile exists in Oneview and it is different of the one
-    # applied by ironic
-    if (server_hardware.server_profile_uri not in (None, '') and
-            applied_sp_uri != server_hardware.server_profile_uri):
+    result = predicate(server_hardware, applied_sp_uri)
 
-        LOG.warning(_LW("Node %s is already in use by OneView."),
-                    node.uuid)
-
-        return True
-
+    if result:
+        LOG.debug(positive)
     else:
-        LOG.debug(_(
-            "Hardware %(hardware_uri)s is free for use by "
-            "ironic on node %(node_uuid)s."),
-            {"hardware_uri": server_hardware.uri,
-             "node_uuid": node.uuid})
+        LOG.debug(negative)
 
-        return False
+    return result
 
 
 def _add_applied_server_profile_uri_field(node, applied_profile):
@@ -201,7 +259,7 @@ def _del_applied_server_profile_uri_field(node):
     node.save()
 
 
-def _allocate_server_hardware_to_ironic(node, server_profile_name):
+def allocate_server_hardware_to_ironic(node, server_profile_name):
     """Allocate Server Hardware to ironic.
 
     :param node: an ironic node object
@@ -276,7 +334,7 @@ def _allocate_server_hardware_to_ironic(node, server_profile_name):
         raise exception.OneViewError(error=msg)
 
 
-def _deallocate_server_hardware_from_ironic(node):
+def deallocate_server_hardware_from_ironic(node):
     """Deallocate Server Hardware from ironic.
 
     :param node: an ironic node object

@@ -238,8 +238,6 @@ class OneViewCommonTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             common.validate_oneview_resources_compatibility(task)
             self.assertTrue(
-                oneview_client.validate_node_server_hardware.called)
-            self.assertTrue(
                 oneview_client.validate_node_server_hardware_type.called)
             self.assertTrue(
                 oneview_client.validate_node_enclosure_group.called)
@@ -264,15 +262,14 @@ class OneViewCommonTestCase(db_base.DbTestCase):
         """Validate compatibility of resources for Dynamic Allocation model.
 
         1) Set 'dynamic_allocation' flag as True on node's driver_info
-        2) Check validate_node_server_hardware method is called
-        3) Check validate_node_server_hardware_type method is called
-        4) Check validate_node_enclosure_group method is called
-        5) Check validate_node_server_profile_template method is called
-        6) Check is_node_port_mac_compatible_with_server_hardware method
+        2) Check validate_node_server_hardware_type method is called
+        3) Check validate_node_enclosure_group method is called
+        4) Check validate_node_server_profile_template method is called
+        5) Check is_node_port_mac_compatible_with_server_hardware method
            is called
-        7) Check validate_node_server_profile_template method is called
-        8) Check check_server_profile_is_applied method is not called
-        9) Check is_node_port_mac_compatible_with_server_profile method is
+        6) Check validate_node_server_profile_template method is called
+        7) Check check_server_profile_is_applied method is not called
+        8) Check is_node_port_mac_compatible_with_server_profile method is
            not called
 
         """
@@ -283,8 +280,6 @@ class OneViewCommonTestCase(db_base.DbTestCase):
             task.node.driver_info = driver_info
 
             common.validate_oneview_resources_compatibility(task)
-            self.assertTrue(
-                oneview_client.validate_node_server_hardware.called)
             self.assertTrue(
                 oneview_client.validate_node_server_hardware_type.called)
             self.assertTrue(

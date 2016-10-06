@@ -354,3 +354,4 @@ class FakeOneViewDriver(base.BaseDriver):
         self.management = oneview_management.OneViewManagement()
         self.boot = fake.FakeBoot()
         self.deploy = fake.FakeDeploy()
+        self.inspect = fake.FakeInspect()

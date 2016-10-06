@@ -32,6 +32,7 @@ from ironic.tests.unit.objects import utils as obj_utils
 
 
 oneview_exceptions = importutils.try_import('oneview_client.exceptions')
+oneview_models = importutils.try_import('oneview_client.models')
 
 
 @mock.patch.object(common, 'get_oneview_client', spect_set=True, autospec=True)
@@ -56,9 +57,36 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(common, 'validate_oneview_resources_compatibility',
                        spect_set=True, autospec=True)
     def test_validate(self, mock_validate, mock_get_ov_client):
+        client = mock_get_ov_client.return_value
+        fake_server_hardware = oneview_models.ServerHardware()
+        fake_server_hardware.server_profile_uri = 'any/applied_sp_uri/'
+        client.get_server_hardware_by_uuid.return_value = fake_server_hardware
+        mock_get_ov_client.return_value = client
+        driver_info = self.node.driver_info
+        driver_info['applied_server_profile_uri'] = 'any/applied_sp_uri/'
+        self.node.driver_info = driver_info
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.management.validate(task)
             self.assertTrue(mock_validate.called)
+
+    @mock.patch.object(common, 'validate_oneview_resources_compatibility',
+                       spect_set=True, autospec=True)
+    def test_validate_for_node_not_in_use_by_ironic(self,
+                                                    mock_validate,
+                                                    mock_get_ov_client):
+        client = mock_get_ov_client.return_value
+        fake_server_hardware = oneview_models.ServerHardware()
+        fake_server_hardware.server_profile_uri = 'any/applied_sp_uri/'
+        client.get_server_hardware_by_uuid.return_value = fake_server_hardware
+        mock_get_ov_client.return_value = client
+        driver_info = self.node.driver_info
+        driver_info['applied_server_profile_uri'] = 'other/applied_sp_uri/'
+        self.node.driver_info = driver_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.management.validate, task)
 
     def test_validate_fail(self, mock_get_ov_client):
         node = obj_utils.create_test_node(self.context,

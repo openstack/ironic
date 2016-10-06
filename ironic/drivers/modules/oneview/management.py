@@ -23,6 +23,7 @@ from ironic.common.i18n import _
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.oneview import common
+from ironic.drivers.modules.oneview import deploy_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -65,6 +66,10 @@ class OneViewManagement(base.ManagementInterface):
 
         try:
             common.validate_oneview_resources_compatibility(task)
+
+            if not deploy_utils.is_node_in_use_by_ironic(task.node):
+                raise exception.InvalidParameterValue(
+                    _("Node %s is not in use by ironic.") % task.node.uuid)
         except exception.OneViewError as oneview_exc:
             raise exception.InvalidParameterValue(oneview_exc)
 
