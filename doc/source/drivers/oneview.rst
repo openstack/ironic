@@ -28,6 +28,7 @@ To provide a bare metal instance there are four components involved in the
 process:
 
 * The ironic service
+* The ironic-inspector service (if using hardware inspection)
 * The ironic driver for OneView, which can be:
     * `iscsi_pxe_oneview` or
     * `agent_pxe_oneview`
@@ -75,6 +76,8 @@ The following requirements apply for both ``iscsi_pxe_oneview`` and
   up-to-date version.::
 
   $ pip install "python-oneviewclient<3.0.0,>=2.4.0"
+
+* ``ironic-inspector`` if using hardware inspection.
 
 Tested platforms
 ================
@@ -211,6 +214,20 @@ Here is an overview of the deploy process for this driver:
 10. Driver sets boot device to Disk.
 11. Driver powers on the machine.
 12. Baremetal node is active and ready to be used.
+
+Hardware inspection
+===================
+
+OneView drivers for ironic have the ability to do hardware inspection.
+Hardware inspection is the process of discovering hardware properties like
+memory size, CPU cores, processor architecture and disk size, of a given
+hardware. OneView drivers do in-band inspection, that involves booting a
+ramdisk on the hardware and fetching information directly from it. For that,
+your cloud controller needs to have the ``ironic-inspector`` component
+[10]_ running and properly enabled in ironic's configuration file.
+
+See [11]_ for more information on how to install and configure
+``ironic-inspector``.
 
 Registering a OneView node in ironic
 ====================================
@@ -429,3 +446,5 @@ References
 .. [7] ironic-oneviewd - https://pypi.python.org/pypi/ironic-oneviewd/
 .. [8] ironic-oneview-cli - https://pypi.python.org/pypi/ironic-oneview-cli/
 .. [9] :ref:`states`
+.. [10] ironic-inspector - http://docs.openstack.org/developer/ironic-inspector/
+.. [11] ironic-inspector install - http://docs.openstack.org/developer/ironic-inspector/install.html
