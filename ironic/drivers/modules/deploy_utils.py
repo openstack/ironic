@@ -1049,12 +1049,6 @@ def build_agent_options(node):
         # NOTE: The below entry is a temporary workaround for bug/1433812
         'coreos.configdrive': 0,
     }
-    # TODO(dtantsur): deprecate in favor of reading root hints directly from a
-    # node record.
-    root_device = parse_root_device_hints(node)
-    if root_device:
-        agent_config_opts['root_device'] = root_device
-
     return agent_config_opts
 
 

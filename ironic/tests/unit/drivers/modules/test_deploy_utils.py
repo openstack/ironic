@@ -2044,14 +2044,6 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         self.assertEqual('fake_agent', options['ipa-driver-name'])
         self.assertEqual(0, options['coreos.configdrive'])
 
-    def test_build_agent_options_root_device_hints(self):
-        self.config(api_url='api-url', group='conductor')
-        self.node.properties['root_device'] = {'model': 'fake_model'}
-        options = utils.build_agent_options(self.node)
-        self.assertEqual('api-url', options['ipa-api-url'])
-        self.assertEqual('fake_agent', options['ipa-driver-name'])
-        self.assertEqual('model=fake_model', options['root_device'])
-
 
 @mock.patch.object(disk_utils, 'is_block_device', autospec=True)
 @mock.patch.object(utils, 'login_iscsi', lambda *_: None)
