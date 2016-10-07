@@ -205,7 +205,7 @@ def list_policies():
     return policies
 
 
-@lockutils.synchronized('policy_enforcer', 'ironic-')
+@lockutils.synchronized('policy_enforcer')
 def init_enforcer(policy_file=None, rules=None,
                   default_rule=None, use_conf=True):
     """Synchronously initializes the policy enforcer

@@ -135,7 +135,7 @@ class BaseDriverFactory(object):
     # NOTE(deva): Use lockutils to avoid a potential race in eventlet
     #             that might try to create two driver factories.
     @classmethod
-    @lockutils.synchronized(EM_SEMAPHORE, 'ironic-')
+    @lockutils.synchronized(EM_SEMAPHORE)
     def _init_extension_manager(cls):
         # NOTE(deva): In case multiple greenthreads queue up on this lock
         #             before _extension_manager is initialized, prevent

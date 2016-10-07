@@ -37,7 +37,7 @@ class DHCPFactory(object):
     # NOTE(lucasagomes): Use lockutils to avoid a potential race in eventlet
     #                    that might try to create two dhcp factories.
     @classmethod
-    @lockutils.synchronized(EM_SEMAPHORE, 'ironic-')
+    @lockutils.synchronized(EM_SEMAPHORE)
     def _set_dhcp_provider(cls, **kwargs):
         """Initialize the dhcp provider
 
