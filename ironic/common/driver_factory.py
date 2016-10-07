@@ -23,6 +23,7 @@ from stevedore import dispatch
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.i18n import _LI
+from ironic.common.i18n import _LW
 from ironic.drivers import base as driver_base
 
 
@@ -136,6 +137,18 @@ class DriverFactory(object):
         if cls._extension_manager:
             return
 
+        # Check for duplicated driver entries and warn the operator
+        # about them
+        counter = collections.Counter(CONF.enabled_drivers).items()
+        duplicated_drivers = list(dup for (dup, i) in counter if i > 1)
+        if duplicated_drivers:
+            LOG.warning(_LW('The driver(s) "%s" is/are duplicated in the '
+                            'list of enabled_drivers. Please check your '
+                            'configuration file.'),
+                        ', '.join(duplicated_drivers))
+
+        enabled_drivers = set(CONF.enabled_drivers)
+
         # NOTE(deva): Drivers raise "DriverLoadError" if they are unable to be
         #             loaded, eg. due to missing external dependencies.
         #             We capture that exception, and, only if it is for an
@@ -147,13 +160,13 @@ class DriverFactory(object):
         def _catch_driver_not_found(mgr, ep, exc):
             # NOTE(deva): stevedore loads plugins *before* evaluating
             #             _check_func, so we need to check here, too.
-            if ep.name in CONF.enabled_drivers:
+            if ep.name in enabled_drivers:
                 if not isinstance(exc, exception.DriverLoadError):
                     raise exception.DriverLoadError(driver=ep.name, reason=exc)
                 raise exc
 
         def _check_func(ext):
-            return ext.name in CONF.enabled_drivers
+            return ext.name in enabled_drivers
 
         cls._extension_manager = (
             dispatch.NameDispatchExtensionManager(
@@ -164,10 +177,10 @@ class DriverFactory(object):
 
         # NOTE(deva): if we were unable to load any configured driver, perhaps
         #             because it is not present on the system, raise an error.
-        if (sorted(CONF.enabled_drivers) !=
+        if (sorted(enabled_drivers) !=
                 sorted(cls._extension_manager.names())):
             found = cls._extension_manager.names()
-            names = [n for n in CONF.enabled_drivers if n not in found]
+            names = [n for n in enabled_drivers if n not in found]
             # just in case more than one could not be found ...
             names = ', '.join(names)
             raise exception.DriverNotFound(driver_name=names)
