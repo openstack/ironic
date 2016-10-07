@@ -5,9 +5,9 @@
 # Yuta Hono <yuta.hono@ntt.com>, 2016. #zanata
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 5.1.1.dev356\n"
+"Project-Id-Version: ironic 6.2.1.dev114\n"
 "Report-Msgid-Bugs-To: https://bugs.launchpad.net/openstack-i18n/\n"
-"POT-Creation-Date: 2016-06-10 21:23+0000\n"
+"POT-Creation-Date: 2016-10-06 23:40+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -407,17 +407,6 @@ msgid "Copying floppy image file"
 msgstr "フロッピーイメージファイルのコピー中"
 
 #, python-format
-msgid "Could not authorize in Keystone: %s"
-msgstr "keystone で認可できませんでした: %s"
-
-#, python-format
-msgid ""
-"Could not create cleaning port on network %(net)s from %(node)s. %(exc)s"
-msgstr ""
-"%(node)s からネットワーク %(net)s にクリーニングポートを作成できませんでし"
-"た。%(exc)s"
-
-#, python-format
 msgid "Could not find config at %(path)s"
 msgstr "%(path)s に config がありませんでした"
 
@@ -428,22 +417,6 @@ msgstr "pid ファイル %(pid_path)s に pid が見つかりませんでした"
 #, python-format
 msgid "Could not find the following driver(s): %(driver_name)s."
 msgstr "次のドライバーが見つかりませんでした。%(driver_name)s"
-
-#, python-format
-msgid ""
-"Could not get cleaning network vif for %(node)s from Neutron, possible "
-"network issue. %(exc)s"
-msgstr ""
-"%(node)s のクリーニングネットワークの仮想インターフェースを Neutron から取得"
-"できませんでした。ネットワークの問題が考えられます。%(exc)s"
-
-#, python-format
-msgid ""
-"Could not remove cleaning ports on network %(net)s from %(node)s, possible "
-"network issue. %(exc)s"
-msgstr ""
-"ネットワーク %(net)s 上でクリーニング・ポートを %(node)s から削除できませんで"
-"した。ネットワークの問題が考えられます。%(exc)s"
 
 #, python-format
 msgid "Could not stop the console for node '%(node)s'. Reason: %(err)s."
@@ -648,18 +621,6 @@ msgstr "MAC アドレスが必要ですが、%(mac)s を受け取りました。
 msgid "Expected a logical name but received %(name)s."
 msgstr "論理名が必要ですが、%(name)s を受け取りました。"
 
-#, python-format
-msgid "Expected a logical name or uuid but received %(name)s."
-msgstr "論理名または UUID が必要ですが、%(name)s を受け取りました。"
-
-#, python-format
-msgid "Expected a uuid but received %(uuid)s."
-msgstr "UUID が必要ですが、%(uuid)s を受け取りました。"
-
-#, python-format
-msgid "Expected an uuid or int but received %(identity)s."
-msgstr "UUID または整数が必要ですが、%(identity)s を受け取りました。"
-
 msgid "Failed checking if deploy is done."
 msgstr "デプロイが実行されたかどうかの検査に失敗しました。"
 
@@ -692,10 +653,6 @@ msgid "Failed to create a file system. File system %(fs)s is not supported."
 msgstr ""
 "ファイルシステムの作成に失敗しました。ファイルシステム %(fs)s はサポートされ"
 "ていません。"
-
-#, python-format
-msgid "Failed to create cleaning ports for node %(node)s"
-msgstr "ノード %(node)s のクリーニングポートの作成に失敗しました"
 
 #, python-format
 msgid "Failed to create the password file. %(error)s"
@@ -1084,9 +1041,6 @@ msgstr ""
 msgid "Invalid volume id specified"
 msgstr "無効なボリューム ID が指定されました"
 
-msgid "Keystone API endpoint is missing"
-msgstr "keystone API エンドポイントがありません。"
-
 msgid "Limit must be positive"
 msgstr "「limit」は正の値でなければなりません"
 
@@ -1160,9 +1114,6 @@ msgstr ""
 "FQDN、または IP アドレスとは限りません。ただし、ノード名はAMQP鍵の中で有効で"
 "あり、ZeroMQを使用する場合には、有効なホスト名、FQDN、またはIP アドレスでなけ"
 "ればなりません。"
-
-msgid "No Keystone service catalog loaded"
-msgstr "keystone のサービスカタログが読み込まれていません"
 
 #, python-format
 msgid ""
@@ -1257,9 +1208,6 @@ msgstr "ノードがデプロイ用のイメージの取得に失敗しました
 msgid "Node failed to move to active state."
 msgstr "ノードを稼働状態に移行できませんでした。"
 
-msgid "Node identifier not specified."
-msgstr "ノード ID が指定されていません。"
-
 #, python-format
 msgid "Not authorized for image %(image_id)s."
 msgstr "イメージ %(image_id)s では許可されていません。"
@@ -1347,9 +1295,6 @@ msgstr "パス %(dir)s が存在しません。"
 msgid "Path to isolinux binary file."
 msgstr "isolinux バイナリーファイルのパス。"
 
-msgid "Path to serial console terminal program"
-msgstr "シリアルコンソールのターミナルプログラムのパス"
-
 #, python-format
 msgid "Port %(port)s could not be found."
 msgstr "ポート %(port)s が見つかりませんでした。"
@@ -1403,14 +1348,6 @@ msgstr "プロビジョニング状態 \"%s\" が有効ではありません。"
 #, python-format
 msgid "RAID config validation error: %s"
 msgstr "RAID 設定の検証エラー: %s"
-
-#, python-format
-msgid ""
-"RPC inspect_hardware failed to validate inspection or power info. Error: "
-"%(msg)s"
-msgstr ""
-"RPC inspect_hardware による検査情報または電源情報の検証に失敗しました。エ"
-"ラー: %(msg)s"
 
 #, python-format
 msgid ""
@@ -1507,13 +1444,6 @@ msgstr "SSHPowerDriver「%(virt_type)s」は有効な virt_type ではありま�
 #, python-format
 msgid "SSHPowerDriver '%(virt_type)s' is not a valid virt_type."
 msgstr "SSHPowerDriver「%(virt_type)s」は有効な virt_type ではありません。"
-
-msgid ""
-"SSHPowerDriver requires one and only one of password, key_contents and "
-"key_filename to be set."
-msgstr ""
-"SSHPowerDriver は、唯一のパスワード、key_contents、および key_filename の設定"
-"を必要とします。"
 
 #, python-format
 msgid ""
@@ -1755,9 +1685,6 @@ msgstr "UCS Manager のパスワード。必須。"
 msgid "UCS Manager service-profile name. Required."
 msgstr "UCS Manager サービスプロファイル名。必須。"
 
-msgid "URL for connecting to neutron."
-msgstr "neutron に接続するための URL。"
-
 msgid ""
 "URL of Ironic API service. If not set ironic can get the current value from "
 "the keystone service catalog."
@@ -1873,9 +1800,6 @@ msgstr "シャーシマネージャーの REST API にアクセスするユー�
 
 msgid "Username to log into AMT system. Required."
 msgstr "AMT システムにログインするためのユーザー名。必須。"
-
-msgid "Valid cleaning network UUID not provided"
-msgstr "有効なクリーニングネットワーク UUID が指定されていません"
 
 #, python-format
 msgid "Validation of image href %(image_href)s failed, reason: %(reason)s"
@@ -2002,9 +1926,6 @@ msgstr "iBoot PDU リレー ID。デフォルトは 1。オプション。"
 msgid "iLO get_power_status"
 msgstr "iLO get_power_status"
 
-msgid "iLO license check"
-msgstr "iLO ライセンスチェック"
-
 msgid "iLO set_power_state"
 msgstr "iLO set_power_state"
 
@@ -2043,13 +1964,6 @@ msgid ""
 msgstr ""
 "image_source の image_checksum をノード %s の instance_info で指定する必要が"
 "あります"
-
-msgid ""
-"ironic-inspector HTTP endpoint. If this is not set, the ironic-inspector "
-"client default (http://127.0.0.1:5050) will be used."
-msgstr ""
-"ironic-inspector の HTTP エンドポイント。設定されていない場合、ironic-"
-"inspector クライアントのデフォルト (http://127.0.0.1:5050) が使用されます。"
 
 #, python-format
 msgid "ironic-inspector inspection failed: %s"
