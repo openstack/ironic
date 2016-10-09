@@ -369,7 +369,7 @@ class IloPXEDeploy(iscsi_deploy.ISCSIDeploy):
         :returns: states.DELETED
         """
         # Powering off the Node before disabling secure boot. If the node is
-        # is in POST, disable secure boot will fail.
+        # in POST, disable secure boot will fail.
         manager_utils.node_power_action(task, states.POWER_OFF)
         _disable_secure_boot_if_supported(task)
         return super(IloPXEDeploy, self).tear_down(task)
