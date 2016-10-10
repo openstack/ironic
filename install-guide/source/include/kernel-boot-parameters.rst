@@ -67,3 +67,40 @@ to fit their use case:
      os.remove(old_grub_file)
      os.system('update-grub')
      os.system('reboot')
+
+
+Console
+=======
+
+In order to change default console configuration in the Bare Metal
+service configuration file (``[pxe]`` section in ``/etc/ironic/ironic.conf``),
+include the serial port terminal and serial speed. Serial speed must be
+the same as the serial configuration in the BIOS settings, so that the
+operating system boot process can be seen in the serial console or web console.
+Following examples represent possible parameters for serial and web console
+respectively.
+
+* Node serial console. The console parameter ``console=ttyS0,115200n8``
+  uses ``ttyS0`` for console output at ``115200bps, 8bit, non-parity``, e.g.::
+
+        [pxe]
+
+        # Additional append parameters for baremetal PXE boot.
+        pxe_append_params = nofb nomodeset vga=normal console=ttyS0,115200n8
+
+
+* For node web console configuration is similar with the addition of ``ttyX``
+  parameter, see example::
+
+        [pxe]
+
+        # Additional append parameters for baremetal PXE boot.
+        pxe_append_params = nofb nomodeset vga=normal console=tty0 console=ttyS0,115200n8
+
+For detailed information on how to add consoles see the reference documents
+`kernel params`_ and `serial console`_.
+In case of local boot the Bare Metal service is not able to control kernel boot
+parameters.  To configure console locally, follow 'Local boot' section above.
+
+.. _`kernel params`: https://www.kernel.org/doc/Documentation/kernel-parameters.txt
+.. _`serial console`: https://www.kernel.org/doc/Documentation/serial-console.txt
