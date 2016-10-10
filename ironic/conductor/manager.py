@@ -1128,7 +1128,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         # (through to its DB API call) so that we can eliminate our call
         # and first set of checks below.
 
-        filters = {'reserved': False, 'maintenance': False}
+        filters = {'maintenance': False}
         node_iter = self.iter_nodes(fields=['id'], filters=filters)
         for (node_uuid, driver, node_id) in node_iter:
             try:
@@ -1144,7 +1144,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                     # sync power state when a power action is in progress
                     if (task.node.provision_state in SYNC_EXCLUDED_STATES or
                             task.node.maintenance or
-                            task.node.target_power_state):
+                            task.node.target_power_state or
+                            task.node.reservation):
                         continue
                     count = do_sync_power_state(
                         task, self.power_state_sync_count[node_uuid])

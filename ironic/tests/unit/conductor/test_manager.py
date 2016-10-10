@@ -3585,7 +3585,7 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
         self.service = manager.ConductorManager('hostname', 'test-topic')
         self.service.dbapi = self.dbapi
         self.node = self._create_node()
-        self.filters = {'reserved': False, 'maintenance': False}
+        self.filters = {'maintenance': False}
         self.columns = ['uuid', 'driver', 'id']
 
     def test_node_not_mapped(self, get_nodeinfo_mock,
@@ -3606,8 +3606,9 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
                                     mapped_mock, acquire_mock, sync_mock):
         get_nodeinfo_mock.return_value = self._get_nodeinfo_list_response()
         mapped_mock.return_value = True
-        acquire_mock.side_effect = exception.NodeLocked(node=self.node.uuid,
-                                                        host='fake')
+        task = self._create_task(
+            node_attrs=dict(reservation='host1', uuid=self.node.uuid))
+        acquire_mock.side_effect = self._get_acquire_side_effect(task)
 
         self.service._sync_power_states(self.context)
 
