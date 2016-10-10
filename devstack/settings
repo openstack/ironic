@@ -2,3 +2,12 @@ enable_service ironic ir-api ir-cond
 # TODO(jroll) this hacks around a bug, remove when fixed in devstack
 # https://bugs.launchpad.net/devstack/+bug/1629133
 SUBNETPOOL_PREFIX_V4=$FIXED_RANGE
+
+# NOTE(vsaienko) mtu calculation has been changed recently to 1450
+# https://github.com/openstack/neutron/commit/51a697
+# and caused https://bugs.launchpad.net/ironic/+bug/1631875
+# Get the smallest local MTU
+local_mtu=$(ip link show | sed -ne 's/.*mtu \([0-9]\+\).*/\1/p' | sort -n | head -1)
+# 50 bytes is overhead for vxlan (which is greater than GRE
+# allowing us to use either overlay option with this MTU.
+PUBLIC_BRIDGE_MTU=$((local_mtu - 50))
