@@ -10,7 +10,9 @@ user images are installed on the bare metal server to be used by the
 end user. Below are the steps to create the required images and add
 them to the Image service:
 
-#. The `disk-image-builder`_ can be used to create images required for
+#. Build the user images
+
+   The `disk-image-builder`_ can be used to create user images required for
    deployment and the actual OS which the user is going to run.
 
    .. _disk-image-builder: http://docs.openstack.org/developer/diskimage-builder/
@@ -47,9 +49,6 @@ them to the Image service:
 
    If you want to use Fedora image, replace ``ubuntu`` with ``fedora`` in the
    chosen command.
-
-   .. note:: To build the deploy image take a look at the :ref:`deploy-ramdisk`
-             section.
 
 #. Add the user images to the Image service
 
@@ -94,21 +93,35 @@ them to the Image service:
                   --disk-format qcow2 \
                   --container-format bare < my-whole-disk-image.qcow2
 
+#. Build or download the deploy images
+
+   The deploy images are used initially for preparing the server (creating disk
+   partitions) before the actual OS can be deployed.
+
+   There are several methods to build or download deploy images, please read
+   the :ref:`deploy-ramdisk` section.
+
+   The recommended method is to use CoreOS to build deploy images, you will get
+   one kernel disk ``coreos_production_pxe.vmlinuz`` and one ram disk
+   ``coreos_production_pxe_image-oem.cpio.gz``.
+
+   .. note:: If you want to customize your deploy images, please read `Image Builders <http://docs.openstack.org/developer/ironic-python-agent/index.html#image-builders>`_.
+
 #. Add the deploy images to the Image service
 
-   Add the *my-deploy-ramdisk.kernel* and *my-deploy-ramdisk.initramfs* images
-   to the Image service:
+   Add the *coreos_production_pxe.vmlinuz* and *coreos_production_pxe_image-oem.cpio.gz*
+   images to the Image service:
 
    .. code-block:: console
 
       $ glance image-create --name deploy-vmlinuz --visibility public \
-        --disk-format aki --container-format aki < my-deploy-ramdisk.kernel
+        --disk-format aki --container-format aki < coreos_production_pxe.vmlinuz
 
    Store the image UUID obtained from the above step as ``DEPLOY_VMLINUZ_UUID``.
 
    .. code-block:: console
 
       $ glance image-create --name deploy-initrd --visibility public \
-        --disk-format ari --container-format ari < my-deploy-ramdisk.initramfs
+        --disk-format ari --container-format ari < coreos_production_pxe_image-oem.cpio.gz
 
    Store the image UUID obtained from the above step as ``DEPLOY_INITRD_UUID``.
