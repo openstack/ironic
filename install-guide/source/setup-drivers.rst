@@ -219,7 +219,7 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
     echo 'r ^([^/]) /tftpboot/\1' > /tftpboot/map-file
     echo 'r ^(/tftpboot/) /tftpboot/\2' >> /tftpboot/map-file
 
-.. _HTTP server:
+   .. _HTTP server:
 
 #. Set up TFTP and HTTP servers.
 
