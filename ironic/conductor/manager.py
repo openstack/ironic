@@ -1716,6 +1716,17 @@ class ConductorManager(base_manager.BaseConductorManager):
                                   purpose='port update') as task:
             node = task.node
 
+            # Only allow updating MAC addresses for active nodes if maintenance
+            # mode is on.
+            if ((node.provision_state == states.ACTIVE or node.instance_uuid)
+                and 'address' in port_obj.obj_what_changed() and
+                not node.maintenance):
+                    action = _("Cannot update hardware address for port "
+                               "%(port)s as node %(node)s is active or has "
+                               "instance UUID assigned")
+                    raise exception.InvalidState(action % {'node': node.uuid,
+                                                           'port': port_uuid})
+
             # If port update is modifying the portgroup membership of the port
             # or modifying the local_link_connection or pxe_enabled flags then
             # node should be in MANAGEABLE/INSPECTING/ENROLL provisioning state
