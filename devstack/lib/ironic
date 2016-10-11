@@ -955,7 +955,7 @@ function setup_qemu_log_hook {
 
 function create_bridge_and_vms {
     # Call libvirt setup scripts in a new shell to ensure any new group membership
-    sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/setup-network.sh"
+    sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/setup-network.sh $IRONIC_VM_NETWORK_BRIDGE"
     if [[ "$IRONIC_VM_LOG_CONSOLE" == "True" ]] ; then
         local log_arg="-l $IRONIC_VM_LOG_DIR"
 
