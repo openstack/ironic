@@ -104,7 +104,7 @@ import six
 
 from ironic.common import driver_factory
 from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LW
+from ironic.common.i18n import _, _LE, _LI, _LW
 from ironic.common import states
 from ironic import objects
 
@@ -394,6 +394,7 @@ class TaskManager(object):
                                       self.node.provision_state,
                                       self.node.target_provision_state)
 
+        previous_state = self.node.provision_state
         self.node.provision_state = self.fsm.current_state
 
         # NOTE(lucasagomes): If there's no extra processing
@@ -416,6 +417,12 @@ class TaskManager(object):
 
         # publish the state transition by saving the Node
         self.node.save()
+        LOG.info(_LI('Node %(node)s moved to provision state "%(state)s" from '
+                     'state "%(previous)s"; target provision state is '
+                     '"%(target)s"'),
+                 {'node': self.node.uuid, 'state': self.node.provision_state,
+                  'target': self.node.target_provision_state,
+                  'previous': previous_state})
 
     def __enter__(self):
         return self
