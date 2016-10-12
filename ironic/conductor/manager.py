@@ -566,12 +566,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             node.save()
 
         # Begin cleaning
-        try:
-            task.process_event('clean')
-        except exception.InvalidState:
-            raise exception.InvalidStateRequested(
-                action='clean', node=node.uuid,
-                state=node.provision_state)
+        task.process_event('clean')
         self._do_node_clean(task)
 
     def _get_node_next_clean_steps(self, task, skip_current_step=True):
