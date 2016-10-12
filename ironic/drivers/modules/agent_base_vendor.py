@@ -704,7 +704,11 @@ class BaseAgentVendor(AgentDeployMixin, base.VendorInterface):
                                                   % version)
 
     @METRICS.timer('BaseAgentVendor.heartbeat')
-    @base.passthru(['POST'])
+    @base.passthru(['POST'],
+                   description=_("Used by ramdisk agent to check in with the "
+                                 "ironic-conductor service. Required argument:"
+                                 " 'agent_url' - the API URL of the agent, in "
+                                 "the form http://<agent_host>:<agent_port>."))
     @task_manager.require_exclusive_lock
     def heartbeat(self, task, **kwargs):
         """Method for agent to periodically check in.
@@ -728,7 +732,12 @@ class BaseAgentVendor(AgentDeployMixin, base.VendorInterface):
         super(BaseAgentVendor, self).heartbeat(task, callback_url)
 
     @METRICS.timer('BaseAgentVendor.lookup')
-    @base.driver_passthru(['POST'], async=False)
+    @base.driver_passthru(['POST'], async=False,
+                          description=_("This should only be called by a "
+                                        "ramdisk agent, the first time the "
+                                        "agent checks in. It finds the Node "
+                                        "associated with the ramdisk and "
+                                        "returns the Node object."))
     def lookup(self, context, **kwargs):
         """Find a matching node for the agent.
 

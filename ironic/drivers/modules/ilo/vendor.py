@@ -110,7 +110,11 @@ class VendorPassthru(iscsi_deploy.VendorPassthru):
             task.context, {'image_source': kwargs.get('boot_iso_href')}, [])
 
     @METRICS.timer('IloVendorPassthru.boot_into_iso')
-    @base.passthru(['POST'])
+    @base.passthru(['POST'],
+                   description=_("Attaches an ISO image and reboots the node. "
+                                 "Required argument: 'boot_iso_href' - href "
+                                 "of the image to be booted. This can be a "
+                                 "Glance UUID or an HTTP(S) URL."))
     @task_manager.require_exclusive_lock
     def boot_into_iso(self, task, **kwargs):
         """Attaches an ISO image in glance and reboots bare metal.

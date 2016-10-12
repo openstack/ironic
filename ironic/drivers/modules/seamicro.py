@@ -434,7 +434,10 @@ class VendorPassthru(base.VendorInterface):
     def validate(self, task, method, **kwargs):
         _parse_driver_info(task.node)
 
-    @base.passthru(['POST'])
+    @base.passthru(['POST'],
+                   description=_("Set an untagged VLAN ID for NIC 0 of node. "
+                                 "Required argument: 'vlan_id' - ID of "
+                                 "untagged VLAN."))
     def set_node_vlan_id(self, task, **kwargs):
         """Sets an untagged vlan id for NIC 0 of node.
 
@@ -463,7 +466,13 @@ class VendorPassthru(base.VendorInterface):
         node.properties = properties
         node.save()
 
-    @base.passthru(['POST'])
+    @base.passthru(['POST'],
+                   description=_("Attach volume to node. Arguments: "
+                                 "1. 'volume_id' - ID of pre-provisioned "
+                                 "volume. This is optional. If not specified, "
+                                 "a volume is created in SeaMicro storage "
+                                 "pool. 2. 'volume_size' - size of new volume "
+                                 "(if volume_id is not specified)."))
     def attach_volume(self, task, **kwargs):
         """Attach a volume to a node.
 
