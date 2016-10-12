@@ -98,7 +98,7 @@ interface as stated above):
       * egress port used for ironic (6385 by default)
       * ingress port used for ironic-python-agent (9999 by default)
       * if using the iSCSI deploy method (``pxe_*`` and ``iscsi_*`` drivers),
-        the egress port used for iSCSI (3260 by default)
+        the ingress port used for iSCSI (3260 by default)
       * if using the direct deploy method (``agent_*`` drivers), the egress
         port used for swift (typically 80 or 443)
       * if using iPXE, the egress port used for the HTTP server running
@@ -106,7 +106,7 @@ interface as stated above):
 
 #. Install and configure a compatible ML2 mechanism driver which supports bare
    metal provisioning for your switch. See `ML2 plugin configuration manual
-   <http://docs.openstack.org/networking-guide/config-ml2-plug-in.html>`_
+   <http://docs.openstack.org/networking-guide/config-ml2.html>`_
    for details.
 
 #. Restart the ironic conductor and API services after the modifications:
