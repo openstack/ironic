@@ -819,6 +819,48 @@ def get_boot_mode_for_deploy(node):
     return boot_mode.lower() if boot_mode else boot_mode
 
 
+def get_pxe_boot_file(node):
+    """Return the PXE boot file name requested for deploy.
+
+    This method returns PXE boot file name to be used for deploy.
+    Architecture specific boot file is searched first. BIOS/UEFI
+    boot file is used if no valid architecture specific file found.
+
+    :param node: A single Node.
+    :returns: The PXE boot file name.
+    """
+    cpu_arch = node.properties.get('cpu_arch')
+    boot_file = CONF.pxe.pxe_bootfile_name_by_arch.get(cpu_arch)
+    if boot_file is None:
+        if get_boot_mode_for_deploy(node) == 'uefi':
+            boot_file = CONF.pxe.uefi_pxe_bootfile_name
+        else:
+            boot_file = CONF.pxe.pxe_bootfile_name
+
+    return boot_file
+
+
+def get_pxe_config_template(node):
+    """Return the PXE config template file name requested for deploy.
+
+    This method returns PXE config template file to be used for deploy.
+    Architecture specific template file is searched first. BIOS/UEFI
+    template file is used if no valid architecture specific file found.
+
+    :param node: A single Node.
+    :returns: The PXE config template file name.
+    """
+    cpu_arch = node.properties.get('cpu_arch')
+    config_template = CONF.pxe.pxe_config_template_by_arch.get(cpu_arch)
+    if config_template is None:
+        if get_boot_mode_for_deploy(node) == 'uefi':
+            config_template = CONF.pxe.uefi_pxe_config_template
+        else:
+            config_template = CONF.pxe.pxe_config_template
+
+    return config_template
+
+
 def validate_capabilities(node):
     """Validates that specified supported capabilities have valid value
 

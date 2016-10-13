@@ -354,6 +354,55 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
       sudo service ironic-conductor restart
 
 
+PXE Multi-Arch setup
+--------------------
+
+It is possible to deploy servers of different architecture by one conductor.
+
+To support this feature, architecture specific boot and template files must
+be configured correctly in the options listed below:
+
+* ``pxe_bootfile_name_by_arch``
+* ``pxe_config_template_by_arch``
+
+These two options are dictionary values. Node's ``cpu_arch`` property is used
+as the key to find according boot file and template. If according ``cpu_arch``
+is not found in the dictionary, ``pxe_bootfile_name``, ``pxe_config_template``,
+``uefi_pxe_bootfile_name`` and ``uefi_pxe_config_template`` are referenced as
+usual.
+
+In below example, x86 and x86_64 nodes will be deployed by bootf1 or bootf2
+based on ``boot_mode`` capability('bios' or 'uefi') as there's no 'x86' or
+'x86_64' keys available in ``pxe_bootfile_name_by_arch``. While aarch64 nodes
+will be deployed by bootf3, and ppc64 nodes by bootf4::
+
+    pxe_bootfile_name = bootf1
+    uefi_pxe_bootfile_name = bootf2
+    pxe_bootfile_name_by_arch = aarch64:bootf3,ppc64:bootf4
+
+Following example assumes you are provisioning x86_64 and aarch64 servers, both
+in UEFI boot mode.
+
+Update bootfile and template file configuration parameters in the Bare Metal
+Service's configuration file (/etc/ironic/ironic.conf)::
+
+    [pxe]
+
+    # Bootfile DHCP parameter for UEFI boot mode. (string value)
+    uefi_pxe_bootfile_name=bootx64.efi
+
+    # Template file for PXE configuration for UEFI boot loader.
+    # (string value)
+    uefi_pxe_config_template=$pybasedir/drivers/modules/pxe_grub_config.template
+
+    # Bootfile DHCP parameter per node architecture. (dictionary value)
+    pxe_bootfile_name_by_arch=aarch64:grubaa64.efi
+
+    # Template file for PXE configuration per node architecture.
+    # (dictionary value)
+    pxe_config_template_by_arch=aarch64:pxe_grubaa64_config.template
+
+
 Networking service configuration
 --------------------------------
 

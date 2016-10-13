@@ -399,10 +399,7 @@ class PXEBoot(base.BootInterface):
         pxe_options = _build_pxe_config_options(task, pxe_info)
         pxe_options.update(ramdisk_params)
 
-        if deploy_utils.get_boot_mode_for_deploy(node) == 'uefi':
-            pxe_config_template = CONF.pxe.uefi_pxe_config_template
-        else:
-            pxe_config_template = CONF.pxe.pxe_config_template
+        pxe_config_template = deploy_utils.get_pxe_config_template(node)
 
         pxe_utils.create_pxe_config(task, pxe_options,
                                     pxe_config_template)

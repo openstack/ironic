@@ -1,0 +1,13 @@
+---
+features:
+  - Support multi architecture deployment. E.g., to
+    deploy x86_64, aarch64 servers by one ironic conductor.
+    Two new config options, ``pxe_config_template_by_arch``
+    and ``pxe_bootfile_name_by_arch``, are introduced to
+    support multi architecture deployment. They are
+    dictionary values to hold pxe config templates and
+    boot files for multiple architectures, with cpu_arch
+    property per node as the key. If cpu_arch is not found
+    in dictionary, options ``pxe_config_template``,
+    ``pxe_bootfile_name``, ``uefi_pxe_config_template``,
+    ``uefi_pxe_bootfile_name`` will be used as usual.

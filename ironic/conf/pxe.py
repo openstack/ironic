@@ -58,6 +58,12 @@ opts = [
                    'drivers/modules/pxe_grub_config.template'),
                help=_('On ironic-conductor node, template file for PXE '
                       'configuration for UEFI boot loader.')),
+    cfg.DictOpt('pxe_config_template_by_arch',
+                default={},
+                help=_('On ironic-conductor node, template file for PXE '
+                       'configuration per node architecture. '
+                       'For example: '
+                       'aarch64:/opt/share/grubaa64_pxe_config.template')),
     cfg.StrOpt('tftp_server',
                default='$my_ip',
                help=_("IP address of ironic-conductor node's TFTP server.")),
@@ -71,14 +77,16 @@ opts = [
                help=_('On ironic-conductor node, directory where master TFTP '
                       'images are stored on disk. '
                       'Setting to <None> disables image caching.')),
-    # NOTE(dekehn): Additional boot files options may be created in the event
-    #  other architectures require different boot files.
     cfg.StrOpt('pxe_bootfile_name',
                default='pxelinux.0',
                help=_('Bootfile DHCP parameter.')),
     cfg.StrOpt('uefi_pxe_bootfile_name',
                default='bootx64.efi',
                help=_('Bootfile DHCP parameter for UEFI boot mode.')),
+    cfg.DictOpt('pxe_bootfile_name_by_arch',
+                default={},
+                help=_('Bootfile DHCP parameter per node architecture. '
+                       'For example: aarch64:grubaa64.efi')),
     cfg.BoolOpt('ipxe_enabled',
                 default=False,
                 help=_('Enable iPXE boot.')),
