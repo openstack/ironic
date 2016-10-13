@@ -17,7 +17,7 @@ import os
 
 from ironic_lib import disk_utils
 from ironic_lib import metrics_utils
-from ironic_lib import utils as ironic_utils
+from ironic_lib import utils as il_utils
 from oslo_log import log as logging
 from oslo_utils import fileutils
 from six.moves.urllib import parse
@@ -134,7 +134,7 @@ def destroy_images(node_uuid):
 
     :param node_uuid: the uuid of the ironic node.
     """
-    ironic_utils.unlink_without_raise(_get_image_file_path(node_uuid))
+    il_utils.unlink_without_raise(_get_image_file_path(node_uuid))
     utils.rmtree_without_raise(_get_image_dir_path(node_uuid))
     InstanceImageCache().clean_up()
 
@@ -353,7 +353,14 @@ def validate(task):
     # TODO(lucasagomes): Validate the format of the URL
     deploy_utils.get_ironic_api_url()
     # Validate the root device hints
-    deploy_utils.parse_root_device_hints(task.node)
+    try:
+        root_device = task.node.properties.get('root_device')
+        il_utils.parse_root_device_hints(root_device)
+    except ValueError as e:
+        raise exception.InvalidParameterValue(
+            _('Failed to validate the root device hints for node '
+              '%(node)s. Error: %(error)s') % {'node': task.node.uuid,
+                                               'error': e})
     deploy_utils.parse_instance_info(task.node)
 
 

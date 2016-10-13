@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from ironic_lib import metrics_utils
+from ironic_lib import utils as il_utils
 from oslo_log import log
 from oslo_utils import excutils
 from oslo_utils import units
@@ -394,7 +395,14 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
 
         check_image_size(task, image_source)
         # Validate the root device hints
-        deploy_utils.parse_root_device_hints(node)
+        try:
+            root_device = node.properties.get('root_device')
+            il_utils.parse_root_device_hints(root_device)
+        except ValueError as e:
+            raise exception.InvalidParameterValue(
+                _('Failed to validate the root device hints for node '
+                  '%(node)s. Error: %(error)s') % {'node': node.uuid,
+                                                   'error': e})
 
         # Validate node capabilities
         deploy_utils.validate_capabilities(node)
