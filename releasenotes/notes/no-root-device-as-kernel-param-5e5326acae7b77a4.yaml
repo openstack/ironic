@@ -1,0 +1,11 @@
+---
+upgrade:
+  - Ironic no longer passes ``root_device`` as kernel parameter via boot
+    config files.
+    Passing root device hints to Ironic Python Agent (IPA) as kernel
+    parameters was deprecated in Newton release.
+    As a consequence, using root device hints with Ironic as of Ocata release
+    will not be possible when deploying nodes with the help of ramdisks based
+    on IPA as of Mitaka release.
+    Operators relying on root device hints functionality are advised
+    to update their IPA-based Ironic deploy images.
