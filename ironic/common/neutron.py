@@ -129,7 +129,7 @@ def add_ports_to_network(task, network_uuid, is_flat=False):
         except neutron_exceptions.NeutronClientException as e:
             failures.append(ironic_port.uuid)
             LOG.warning(_LW("Could not create neutron port for node's "
-                            "%(node)s port %(ir-port) on the neutron "
+                            "%(node)s port %(ir-port)s on the neutron "
                             "network %(net)s. %(exc)s"),
                         {'net': network_uuid, 'node': node.uuid,
                          'ir-port': ironic_port.uuid, 'exc': e})
