@@ -78,6 +78,14 @@ primarily for developers.
   Provisioning State Machine <dev/states>
   Notifications <dev/notifications>
 
+These pages contain information for PTLs, cross-project liaisons, and core
+reviewers.
+
+.. toctree::
+  :maxdepth: 1
+
+  Releasing Ironic Projects <dev/releasing>
+
 
 Writing Drivers
 ---------------
