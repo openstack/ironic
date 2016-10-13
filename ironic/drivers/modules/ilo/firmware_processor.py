@@ -377,8 +377,8 @@ class FirmwareImageLocation(object):
     def remove(self):
         """Exposed method to remove the wrapped firmware file
 
-        This method gets overriden by the remove method for the respective type
-        of firmware file location it wraps.
+        This method gets overridden by the remove method for the respective
+        type of firmware file location it wraps.
         """
         pass
 
