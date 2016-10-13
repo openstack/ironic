@@ -51,7 +51,7 @@ default_policies = [
     policy.RuleDefault('show_instance_secrets',
                        '!',
                        description='Show or mask secrets within instance information in API responses'),  # noqa
-    # Roles likely to be overriden by operator
+    # Roles likely to be overridden by operator
     policy.RuleDefault('is_member',
                        'tenant:demo or tenant:baremetal',
                        description='May be used to restrict access to specific tenants'),  # noqa
