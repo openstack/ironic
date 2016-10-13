@@ -74,20 +74,28 @@ driver.  The configuration file for the Compute service is typically located at
 
       [ironic]
 
+      # Ironic authentication type
+      auth_type=password
+
+      # Keystone API endpoint
+      auth_url=http://IDENTITY_IP:35357/v3
+
+      # Ironic keystone project name
+      project_name=service
+
       # Ironic keystone admin name
-      admin_username=ironic
+      username=ironic
 
-      #Ironic keystone admin password.
-      admin_password=IRONIC_PASSWORD
+      # Ironic keystone admin password
+      password=IRONIC_PASSWORD
 
-      # keystone API endpoint
-      admin_url=http://IDENTITY_IP:35357/v2.0
+      # Ironic keystone project domain
+      # or set project_domain_id
+      project_domain_name=Default
 
-      # Ironic keystone tenant name.
-      admin_tenant_name=service
-
-      # URL for Ironic API endpoint.
-      api_endpoint=http://IRONIC_NODE:6385/v1
+      # Ironic keystone user domain
+      # or set user_domain_id
+      user_domain_name=Default
 
 #. On the Compute service's controller nodes, restart the ``nova-scheduler``
    process:
