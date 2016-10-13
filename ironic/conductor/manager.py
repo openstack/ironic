@@ -1205,8 +1205,6 @@ class ConductorManager(base_manager.BaseConductorManager):
             filters={'provision_state': states.DEPLOYING,
                      'maintenance': False,
                      'reserved_by_any_of': offline_conductors})
-        if not node_iter:
-            return
 
         for node_uuid, driver, node_id, conductor_hostname in node_iter:
             # NOTE(lucasagomes): Although very rare, this may lead to a
