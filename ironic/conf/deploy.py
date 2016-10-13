@@ -68,6 +68,13 @@ opts = [
                 default=True,
                 help=_('Whether to power off a node after deploy failure. '
                        'Defaults to True.')),
+    cfg.StrOpt('default_boot_option',
+               choices=['netboot', 'local'],
+               help=_('Default boot option to use when no boot option is '
+                      'requested in node\'s driver_info. Currently the '
+                      'default is "netboot", but it will be changed to '
+                      '"local" in the future. It is recommended to set '
+                      'an explicit value for this option.')),
 ]
 
 

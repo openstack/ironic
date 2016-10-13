@@ -79,7 +79,17 @@ def warn_about_unsafe_shred_parameters():
                         'Secure Erase. This is a possible SECURITY ISSUE!'))
 
 
+def warn_about_missing_default_boot_option():
+    if not CONF.deploy.default_boot_option:
+        LOG.warning(_LW('The default value of default_boot_option '
+                        'configuration will change eventually from '
+                        '"netboot" to "local". It is recommended to set '
+                        'an explicit value for it during the transition '
+                        'period'))
+
+
 warn_about_unsafe_shred_parameters()
+warn_about_missing_default_boot_option()
 
 # All functions are called from deploy() directly or indirectly.
 # They are split for stub-out.
@@ -311,7 +321,7 @@ def deploy_partition_image(
         address, port, iqn, lun, image_path,
         root_mb, swap_mb, ephemeral_mb, ephemeral_format, node_uuid,
         preserve_ephemeral=False, configdrive=None,
-        boot_option="netboot", boot_mode="bios", disk_label=None):
+        boot_option=None, boot_mode="bios", disk_label=None):
     """All-in-one function to deploy a partition image to a node.
 
     :param address: The iSCSI IP address.
@@ -345,6 +355,7 @@ def deploy_partition_image(
         NOTE: If key exists but value is None, it means partition doesn't
               exist.
     """
+    boot_option = boot_option or get_default_boot_option()
     image_mb = disk_utils.get_image_mb(image_path)
     if image_mb > root_mb:
         msg = (_('Root partition is too small for requested image. Image '
@@ -949,6 +960,11 @@ def validate_image_properties(ctx, deploy_info, properties):
             "%(properties)s") % {'image': image_href, 'properties': props})
 
 
+def get_default_boot_option():
+    """Gets the default boot option."""
+    return CONF.deploy.default_boot_option or 'netboot'
+
+
 def get_boot_option(node):
     """Gets the boot option.
 
@@ -959,7 +975,7 @@ def get_boot_option(node):
         'netboot'.
     """
     capabilities = parse_instance_info_capabilities(node)
-    return capabilities.get('boot_option', 'netboot').lower()
+    return capabilities.get('boot_option', get_default_boot_option()).lower()
 
 
 # TODO(vdrok): This method is left here for backwards compatibility with out of
