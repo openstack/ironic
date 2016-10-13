@@ -311,6 +311,14 @@ For more information on the definitions of ``Server Hardware``, ``Server
 Profile``, ``Server Profile Template`` and other OneView entities, refer to
 [1]_ or browse Help in your OneView appliance menu.
 
+.. note::
+   Ironic manages OneView machines either when they have
+   a Server Profile applied by the driver or when they don't have any Server
+   Profile. Trying to change the power state of the machine in OneView without
+   first assigning a Server Profile will lead to allowing Ironic to revert the
+   power state change. Ironic will NOT change the power state of machines
+   which the Server Profile was applied by another OneView user.
+
 Migrating from pre-allocation to dynamic allocation
 ===================================================
 
