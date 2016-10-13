@@ -70,10 +70,16 @@ class OneViewPeriodicTasks(object):
             try:
                 oneview_using = deploy_utils.is_node_in_use_by_oneview(node)
             except exception.OneViewError as e:
+                # NOTE(xavierr): Skip this node and process the
+                # remaining nodes. This node will be checked in
+                # the next periodic call.
+
                 LOG.error(_LE("Error while determining if node "
                               "%(node_uuid)s is in use by OneView. "
                               "Error: %(error)s"),
                           {'node_uuid': node.uuid, 'error': e})
+
+                continue
 
             if oneview_using:
                 purpose = (_LI('Updating node %(node_uuid)s in use '
@@ -126,10 +132,16 @@ class OneViewPeriodicTasks(object):
                         node
                     )
                 except exception.OneViewError as e:
+                    # NOTE(xavierr): Skip this node and process the
+                    # remaining nodes. This node will be checked in
+                    # the next periodic call.
+
                     LOG.error(_LE("Error while determining if node "
                                   "%(node_uuid)s is in use by OneView. "
                                   "Error: %(error)s"),
                               {'node_uuid': node.uuid, 'error': e})
+
+                    continue
 
                 if not oneview_using:
                     purpose = (_LI('Bringing node %(node_uuid)s back from '
