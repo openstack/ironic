@@ -20,7 +20,7 @@ from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LI
+from ironic.common.i18n import _, _LE, _LI, _LW
 from ironic.common import states
 from ironic.drivers.modules.oneview import common
 
@@ -354,30 +354,30 @@ def deallocate_server_hardware_from_ironic(oneview_client, node):
             Hardware to ironic
 
     """
-    oneview_info = common.get_oneview_info(node)
 
-    oneview_client.power_off(oneview_info)
+    if is_node_in_use_by_ironic(oneview_client, node):
 
-    applied_sp_uuid = oneview_utils.get_uuid_from_uri(
-        oneview_info.get('applied_server_profile_uri')
-    )
-
-    try:
-        oneview_client.delete_server_profile(applied_sp_uuid)
-        _del_applied_server_profile_uri_field(node)
-
-        LOG.info(
-            _LI("Server Profile %(server_profile_uuid)s was successfully"
-                " deleted from node %(node_uuid)s."
-                ),
-            {"node_uuid": node.uuid, "server_profile_uuid": applied_sp_uuid}
+        oneview_info = common.get_oneview_info(node)
+        server_profile_uuid = oneview_utils.get_uuid_from_uri(
+            oneview_info.get('applied_server_profile_uri')
         )
-    except oneview_exception.OneViewException as e:
 
-        msg = (_("Error while deleting applied Server Profile from node "
-                 "%(node_uuid)s. Error: %(error)s") %
-               {'node_uuid': node.uuid, 'error': e})
+        try:
+            oneview_client.power_off(oneview_info)
+            oneview_client.delete_server_profile(server_profile_uuid)
+            _del_applied_server_profile_uri_field(node)
 
-        raise exception.OneViewError(
-            node=node.uuid, reason=msg
-        )
+            LOG.info(_LI("Server Profile %(server_profile_uuid)s was deleted "
+                         "from node %(node_uuid)s in OneView."),
+                     {'server_profile_uuid': server_profile_uuid,
+                      'node_uuid': node.uuid})
+        except (ValueError, oneview_exception.OneViewException) as e:
+            msg = (_("Error while deleting applied Server Profile from node "
+                     "%(node_uuid)s. Error: %(error)s") %
+                   {'node_uuid': node.uuid, 'error': e})
+            raise exception.OneViewError(error=msg)
+
+    else:
+        LOG.warning(_LW("Cannot deallocate node %(node_uuid)s "
+                        "in OneView because it is not in use by "
+                        "ironic."), {'node_uuid': node.uuid})

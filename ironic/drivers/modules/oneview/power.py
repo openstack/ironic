@@ -114,6 +114,14 @@ class OneViewPower(base.PowerInterface):
         :raises: PowerStateFailure if the power couldn't be set to power_state.
         :raises: OneViewError if OneView fails setting the power state.
         """
+        if deploy_utils.is_node_in_use_by_oneview(self.oneview_client,
+                                                  task.node):
+            raise exception.PowerStateFailure(_(
+                "Cannot set power state '%(power_state)s' to node %(node)s. "
+                "The node is in use by OneView.") %
+                {'power_state': power_state,
+                 'node': task.node.uuid})
+
         oneview_info = common.get_oneview_info(task.node)
 
         LOG.debug('Setting power state of node %(node_uuid)s to '
