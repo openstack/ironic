@@ -55,7 +55,7 @@ REST API Versions History
 .. toctree::
    :maxdepth: 1
 
-   API Version History <dev/webapi-version-history>
+   API Version History <webapi-version-history>
 
 
 Exceptions from Versioning
