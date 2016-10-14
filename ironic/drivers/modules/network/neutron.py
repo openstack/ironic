@@ -20,7 +20,7 @@ from oslo_log import log
 from oslo_utils import uuidutils
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LI, _LW
+from ironic.common.i18n import _, _LI
 from ironic.common import neutron
 from ironic.drivers import base
 from ironic import objects
@@ -145,15 +145,12 @@ class NeutronNetwork(base.NetworkInterface):
         portmap = neutron.get_node_portmap(task)
 
         client = neutron.get_client(task.context.auth_token)
+        pobj_without_vif = 0
         for port_like_obj in ports + portgroups:
             vif_port_id = port_like_obj.extra.get('vif_port_id')
 
             if not vif_port_id:
-                LOG.warning(
-                    _LW('%(port_like_object)s %(pobj_uuid)s in node %(node)s '
-                        'has no vif_port_id value in extra field.'),
-                    {'port_like_object': port_like_obj.__class__.__name__,
-                     'pobj_uuid': port_like_obj.uuid, 'node': node.uuid})
+                pobj_without_vif += 1
                 continue
 
             LOG.debug('Mapping tenant port %(vif_port_id)s to node '
@@ -199,6 +196,12 @@ class NeutronNetwork(base.NetworkInterface):
                         'exc': e})
                 LOG.error(msg)
                 raise exception.NetworkError(msg)
+
+        if pobj_without_vif == len(ports + portgroups):
+            msg = _("No neutron ports or portgroups are associated with "
+                    "node %s") % node.uuid
+            LOG.error(msg)
+            raise exception.NetworkError(msg)
 
     def unconfigure_tenant_networks(self, task):
         """Unconfigure tenant networks for a node.

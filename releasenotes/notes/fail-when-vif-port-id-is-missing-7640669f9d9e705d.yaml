@@ -1,0 +1,5 @@
+---
+fixes:
+  - Fail deployment when no ports or port groups are linked to
+    a node. This is to avoid active nodes not connected to any
+    tenant network.
