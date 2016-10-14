@@ -959,8 +959,6 @@ class ConductorManager(base_manager.BaseConductorManager):
             LOG.error(error)
             node.last_error = error
             task.process_event('fail')
-            node.target_provision_state = None
-            node.save()
 
     @task_manager.require_exclusive_lock
     def _do_node_clean_abort(self, task, step_name=None):
