@@ -17,7 +17,6 @@
 #    under the License.
 
 import collections
-import time
 
 from ironic_lib import metrics_utils
 from oslo_log import log
@@ -452,11 +451,7 @@ class AgentDeployMixin(object):
 
         node = task.node
         driver_internal_info = node.driver_internal_info
-        LOG.debug(
-            'Heartbeat from %(node)s, last heartbeat at %(heartbeat)s.',
-            {'node': node.uuid,
-             'heartbeat': driver_internal_info.get('agent_last_heartbeat')})
-        driver_internal_info['agent_last_heartbeat'] = int(time.time())
+        LOG.debug('Heartbeat from node %s' % node.uuid)
         driver_internal_info['agent_url'] = callback_url
 
         node.driver_internal_info = driver_internal_info

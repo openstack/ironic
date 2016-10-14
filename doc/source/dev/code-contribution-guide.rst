@@ -201,7 +201,6 @@ Common attributes:
 
 Agent driver attributes:
   * ``agent_url``: A String value of IPA API URL so that Ironic can talk to IPA ramdisk.
-  * ``agent_last_heartbeat``: An Integer value of the last agent heartbeat time.
   * ``hardware_manager_version``: A String value of the version of the hardware manager in IPA ramdisk.
   * ``target_raid_config``: A Dictionary containing the target RAID configuration. This is a copy of
     the same name attribute in Node object. But this one is never actually saved into DB and is only
