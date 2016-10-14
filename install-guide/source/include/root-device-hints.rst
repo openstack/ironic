@@ -47,5 +47,45 @@ That will guarantee that Bare Metal service will pick the disk device that
 has the ``wwn`` equal to the specified wwn value, or fail the deployment if it
 can not be found.
 
+The hints can have an operator at the beginning of the value string. If
+no operator is specified the default is ``==`` (for numerical values)
+and ``s==`` (for string values). The supported operators are:
+
+* For numerical values:
+
+  * ``=`` equal to or greater than. This is equivalent to ``>=`` and is
+    supported for `legacy reasons <http://docs.openstack.org/developer/nova/filter_scheduler.html#ComputeCapabilitiesFilter>`_
+  * ``==`` equal to
+  * ``!=`` not equal to
+  * ``>=`` greater than or equal to
+  * ``>`` greater than
+  * ``<=`` less than or equal to
+  * ``<`` less than
+
+* For strings (as python comparisons):
+
+  * ``s==`` equal to
+  * ``s!=`` not equal to
+  * ``s>=`` greater than or equal to
+  * ``s>`` greater than
+  * ``s<=`` less than or equal to
+  * ``s<`` less than
+  * ``<in>`` substring
+
+* For collections:
+
+  * ``<all-in>`` all elements contained in collection
+  * ``<or>`` find one of these
+
+Examples are:
+
+* Finding a disk larger or equal to 60 GiB and non-rotational (SSD)::
+
+    ironic node-update <node-uuid> add properties/root_device='{"size": ">= 60", "rotational": false}'
+
+* Finding a disk whose vendor is ``samsung`` or ``winsys``::
+
+    ironic node-update <node-uuid> add properties/root_device='{"vendor": "<or> samsung <or> winsys"}'
+
 .. note::
     If multiple hints are specified, a device must satisfy all the hints.

@@ -1,6 +1,7 @@
 ---
 features:
   - Adds support for using operators with the root device hints mechanism.
-    The currently supported operators are, ``=``, ``==``, ``!=``, ``>=``,
-    ``<=``, ``>``, ``<``, ``s==``, ``s!=``, ``s>=``, ``s>``, ``s<=``,
-    ``s<``, ``<in>``, ``<all-in>`` and ``<or>``.
+    The supported operators are, ``=``, ``==``, ``!=``, ``>=``,
+    ``<=``, ``>``, ``<``, ``s==``, ``s!=``, ``s>=``, ``s>``,
+    ``s<=``, ``s<``, ``<in>``, ``<all-in>`` and ``<or>``. See
+    http://docs.openstack.org/project-install-guide/baremetal/draft/advanced.html#specifying-the-disk-for-deployment-root-device-hints
