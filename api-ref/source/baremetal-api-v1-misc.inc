@@ -20,7 +20,7 @@ official REST API.
 .. note::
     It is possible to include keys in your ramdisk, or pass keys in via the
     boot method, if your driver supports it; if that is done, you may configure
-    these endpoint to require authentication by changing the policy rules
+    these endpoints to require authentication by changing the policy rules
     ``baremetal:driver:ipa_lookup`` and ``baremetal:node:ipa_heartbeat``.
     In light of that, operators are recommended to ensure that this endpoint is
     only available on the ``provisioning`` and ``cleaning`` networks.
