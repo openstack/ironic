@@ -737,7 +737,7 @@ class BaseAgentVendor(AgentDeployMixin, base.VendorInterface):
         """Find a matching node for the agent.
 
         Method to be called the first time a ramdisk agent checks in. This
-        can be because this is a node just entering decom or a node that
+        can be because this is a node just entering cleaning or a node that
         rebooted for some reason. We will use the mac addresses listed in the
         kwargs to find the matching node, then return the node object to the
         agent. The agent can that use that UUID to use the node vendor

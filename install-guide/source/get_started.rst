@@ -34,7 +34,7 @@ ironic-api
 
 ironic-conductor
   Adds/edits/deletes nodes; powers on/off nodes with ipmi or ssh;
-  provisions/deploys/decommissions bare metal nodes.
+  provisions/deploys/cleans bare metal nodes.
 
 ironic-python-agent
   A python service which is run in a temporary ramdisk to provide
