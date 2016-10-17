@@ -56,6 +56,9 @@ class NeutronNetwork(base.NetworkInterface):
         :param task: A TaskManager instance.
         :raises: NetworkError
         """
+        # If we have left over ports from a previous provision attempt, remove
+        # them
+        neutron.rollback_ports(task, CONF.neutron.provisioning_network_uuid)
         LOG.info(_LI('Adding provisioning network to node %s'),
                  task.node.uuid)
         vifs = neutron.add_ports_to_network(

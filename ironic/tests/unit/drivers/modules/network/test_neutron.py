@@ -54,11 +54,16 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         self.config(cleaning_network_uuid='asdf', group='neutron')
         self.assertRaises(exception.DriverLoadError, neutron.NeutronNetwork)
 
+    @mock.patch.object(neutron_common, 'rollback_ports')
     @mock.patch.object(neutron_common, 'add_ports_to_network')
-    def test_add_provisioning_network(self, add_ports_mock):
+    def test_add_provisioning_network(self, add_ports_mock, rollback_mock):
+        self.port.internal_info = {'provisioning_vif_port_id': 'vif-port-id'}
+        self.port.save()
         add_ports_mock.return_value = {self.port.uuid: self.neutron_port['id']}
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.add_provisioning_network(task)
+            rollback_mock.assert_called_once_with(
+                task, CONF.neutron.provisioning_network_uuid)
             add_ports_mock.assert_called_once_with(
                 task, CONF.neutron.provisioning_network_uuid)
         self.port.refresh()
