@@ -1456,6 +1456,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
     def test_reboot_ok(self, mock_on, mock_off, mock_next_boot):
         manager = mock.MagicMock()
         # NOTE(rloo): if autospec is True, then manager.mock_calls is empty
+        mock_off.return_value = states.POWER_OFF
         mock_on.return_value = states.POWER_ON
         manager.attach_mock(mock_off, 'power_off')
         manager.attach_mock(mock_on, 'power_on')
@@ -1471,9 +1472,28 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_power_off', spec_set=types.FunctionType)
     @mock.patch.object(ipmi, '_power_on', spec_set=types.FunctionType)
-    def test_reboot_fail(self, mock_on, mock_off):
+    def test_reboot_fail_power_off(self, mock_on, mock_off):
         manager = mock.MagicMock()
         # NOTE(rloo): if autospec is True, then manager.mock_calls is empty
+        mock_off.return_value = states.ERROR
+        manager.attach_mock(mock_off, 'power_off')
+        manager.attach_mock(mock_on, 'power_on')
+        expected = [mock.call.power_off(self.info)]
+
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            self.assertRaises(exception.PowerStateFailure,
+                              self.driver.power.reboot,
+                              task)
+
+        self.assertEqual(manager.mock_calls, expected)
+
+    @mock.patch.object(ipmi, '_power_off', spec_set=types.FunctionType)
+    @mock.patch.object(ipmi, '_power_on', spec_set=types.FunctionType)
+    def test_reboot_fail_power_on(self, mock_on, mock_off):
+        manager = mock.MagicMock()
+        # NOTE(rloo): if autospec is True, then manager.mock_calls is empty
+        mock_off.return_value = states.POWER_OFF
         mock_on.return_value = states.ERROR
         manager.attach_mock(mock_off, 'power_off')
         manager.attach_mock(mock_on, 'power_on')
