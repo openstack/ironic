@@ -3,7 +3,7 @@ default=deploy
 image={{pxe_options.deployment_aki_path}}
         label=deploy
         initrd={{pxe_options.deployment_ari_path}}
-        append="selinux=0 troubleshoot=0 text {{ pxe_options.pxe_append_params|default("", true) }} ip=%I:{{pxe_options.tftp_server}}:%G:%M:%H::on ipa-api-url={{ pxe_options['ipa-api-url'] }} ipa-driver-name={{ pxe_options['ipa-driver-name'] }} coreos.configdrive=0"
+        append="selinux=0 troubleshoot=0 text {{ pxe_options.pxe_append_params|default("", true) }} ip=%I:{{pxe_options.tftp_server}}:%G:%M:%H::on ipa-api-url={{ pxe_options['ipa-api-url'] }} coreos.configdrive=0"
 
 
 image={{pxe_options.aki_path}}
