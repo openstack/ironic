@@ -168,3 +168,20 @@ class TestCase(testtools.TestCase):
         """Asserts that 2 complex data structures are json equivalent."""
         self.assertEqual(jsonutils.dumps(expected, sort_keys=True),
                          jsonutils.dumps(observed, sort_keys=True))
+
+    def assertNotificationEqual(self, notif_args, service, host, event_type,
+                                level):
+        """Asserts properties of arguments passed when creating a notification.
+
+           :param notif_args: dict of arguments notification instantiated with
+           :param service: expected service that emits the notification
+           :param host: expected host that emits the notification
+           :param event_type: expected value of EventType field of notification
+                              as a string
+           :param level: expected NotificationLevel
+       """
+        self.assertEqual(service, notif_args['publisher'].service)
+        self.assertEqual(host, notif_args['publisher'].host)
+        self.assertEqual(event_type, notif_args['event_type'].
+                         to_event_type_field())
+        self.assertEqual(level, notif_args['level'])

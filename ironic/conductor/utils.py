@@ -12,15 +12,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import excutils
 
 from ironic.common import exception
 from ironic.common.i18n import _, _LE, _LI, _LW
 from ironic.common import states
+from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import task_manager
+from ironic.objects import fields
 
 LOG = log.getLogger(__name__)
+CONF = cfg.CONF
 
 CLEANING_INTERFACE_PRIORITY = {
     # When two clean steps have the same priority, their order is determined
@@ -78,6 +82,9 @@ def node_power_action(task, new_state):
              wrong occurred during the power action.
 
     """
+    notify_utils.emit_power_set_notification(
+        task, fields.NotificationLevel.INFO, fields.NotificationStatus.START,
+        new_state)
     node = task.node
     target_state = states.POWER_ON if new_state == states.REBOOT else new_state
 
@@ -91,6 +98,9 @@ def node_power_action(task, new_state):
                     "Error: %(error)s") % {'target': new_state, 'error': e}
                 node['target_power_state'] = states.NOSTATE
                 node.save()
+                notify_utils.emit_power_set_notification(
+                    task, fields.NotificationLevel.ERROR,
+                    fields.NotificationStatus.ERROR, new_state)
 
         if curr_state == new_state:
             # Neither the ironic service nor the hardware has erred. The
@@ -107,6 +117,9 @@ def node_power_action(task, new_state):
             node['power_state'] = new_state
             node['target_power_state'] = states.NOSTATE
             node.save()
+            notify_utils.emit_power_set_notification(
+                task, fields.NotificationLevel.INFO,
+                fields.NotificationStatus.END, new_state)
             LOG.warning(_LW("Not going to change node %(node)s power "
                             "state because current state = requested state "
                             "= '%(state)s'."),
@@ -134,18 +147,25 @@ def node_power_action(task, new_state):
             task.driver.power.reboot(task)
     except Exception as e:
         with excutils.save_and_reraise_exception():
+            node['target_power_state'] = states.NOSTATE
             node['last_error'] = _(
                 "Failed to change power state to '%(target)s'. "
                 "Error: %(error)s") % {'target': target_state, 'error': e}
+            node.save()
+            notify_utils.emit_power_set_notification(
+                task, fields.NotificationLevel.ERROR,
+                fields.NotificationStatus.ERROR, new_state)
     else:
         # success!
         node['power_state'] = target_state
+        node['target_power_state'] = states.NOSTATE
+        node.save()
+        notify_utils.emit_power_set_notification(
+            task, fields.NotificationLevel.INFO, fields.NotificationStatus.END,
+            new_state)
         LOG.info(_LI('Successfully set node %(node)s power state to '
                      '%(state)s.'),
                  {'node': node.uuid, 'state': target_state})
-    finally:
-        node['target_power_state'] = states.NOSTATE
-        node.save()
 
 
 @task_manager.require_exclusive_lock
@@ -276,6 +296,9 @@ def power_state_error_handler(e, node, power_state):
     :param power_state: the power state to set on the node.
 
     """
+    # NOTE This error will not emit a power state change notification since
+    # this is related to spawning the worker thread, not the power state change
+    # itself.
     if isinstance(e, exception.NoFreeConductorWorker):
         node.power_state = power_state
         node.target_power_state = states.NOSTATE

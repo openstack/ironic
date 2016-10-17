@@ -62,6 +62,7 @@ from ironic.common import images
 from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import base_manager
+from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils
 from ironic.conf import CONF
@@ -953,8 +954,14 @@ class ConductorManager(base_manager.BaseConductorManager):
                          {'node': node.uuid, 'msg': e})
 
         if error is None:
-            node.power_state = power_state
-            task.process_event('done')
+            if power_state != node.power_state:
+                old_power_state = node.power_state
+                node.power_state = power_state
+                task.process_event('done')
+                notify_utils.emit_power_state_corrected_notification(
+                    task, old_power_state)
+            else:
+                task.process_event('done')
         else:
             LOG.error(error)
             node.last_error = error
@@ -2432,11 +2439,15 @@ def handle_sync_power_state_max_retries_exceeded(task, actual_power_state,
     if exception is not None:
         msg += _(" Error: %s") % exception
 
+    old_power_state = node.power_state
     node.power_state = actual_power_state
     node.last_error = msg
     node.maintenance = True
     node.maintenance_reason = msg
     node.save()
+    if old_power_state != actual_power_state:
+        notify_utils.emit_power_state_corrected_notification(
+            task, old_power_state)
     LOG.error(msg)
 
 
@@ -2455,6 +2466,7 @@ def do_sync_power_state(task, count):
               On failure, the count is incremented by one
     """
     node = task.node
+    old_power_state = node.power_state
     power_state = None
     count += 1
 
@@ -2507,13 +2519,15 @@ def do_sync_power_state(task, count):
         return 0
     elif node.power_state is None:
         # If node has no prior state AND we successfully got a state,
-        # simply record that.
+        # simply record that and send a notification.
         LOG.info(_LI("During sync_power_state, node %(node)s has no "
                      "previous known state. Recording current state "
                      "'%(state)s'."),
                  {'node': node.uuid, 'state': power_state})
         node.power_state = power_state
         node.save()
+        notify_utils.emit_power_state_corrected_notification(
+            task, None)
         return 0
 
     if count > max_retries:
@@ -2546,6 +2560,8 @@ def do_sync_power_state(task, count):
                      'state': node.power_state})
         node.power_state = power_state
         node.save()
+        notify_utils.emit_power_state_corrected_notification(
+            task, old_power_state)
 
     return count
 

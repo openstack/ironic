@@ -410,8 +410,15 @@ expected_object_fingerprints = {
     'Port': '1.6-609504503d68982a10f495659990084b',
     'Portgroup': '1.2-37b374b19bfd25db7e86aebc364e611e',
     'Conductor': '1.1-5091f249719d4a465062a1b3dc7f860d',
-    'EventType': '1.1-5d44b591d93189b2ea91a1af9b082df6',
+    'EventType': '1.1-aa2ba1afd38553e3880c267404e8d370',
     'NotificationPublisher': '1.0-51a09397d6c0687771fb5be9a999605d',
+    'NodePayload': '1.0-ccb491ab5cd247e2ba3f21af4c12eb7c',
+    'NodeSetPowerStateNotification': '1.0-59acc533c11d306f149846f922739c15',
+    'NodeSetPowerStatePayload': '1.0-80986cc6a099cccd481fe3e288157a07',
+    'NodeCorrectedPowerStateNotification': '1.0-59acc533c11d306f149846f922739'
+                                           'c15',
+    'NodeCorrectedPowerStatePayload': '1.0-2a484d7c342caa9fe488de16dc5f1f1e',
+
 }
 
 

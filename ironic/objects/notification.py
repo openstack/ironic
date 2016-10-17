@@ -45,12 +45,18 @@ class EventType(base.IronicObject):
     fields = {
         'object': fields.StringField(nullable=False),
         'action': fields.StringField(nullable=False),
-        'status': fields.EnumField(valid_values=['start', 'end', 'error',
-                                                 'success'],
-                                   nullable=False)
+        'status': fields.NotificationStatusField()
     }
 
     def to_event_type_field(self):
+        """Constructs string for event_type to be sent on the wire.
+
+           The string is in the format: baremetal.<object>.<action>.<status>
+
+           :raises: ValueError if self.status is not one of
+                    :class:`fields.NotificationStatusField`
+           :returns: event_type string
+        """
         parts = ['baremetal', self.object, self.action, self.status]
         return '.'.join(parts)
 
@@ -91,7 +97,11 @@ class NotificationBase(base.IronicObject):
                 NOTIFY_LEVELS[CONF.notification_level])
 
     def emit(self, context):
-        """Send the notification."""
+        """Send the notification.
+
+           :raises NotificationPayloadError
+           :raises oslo_versionedobjects.exceptions.MessageDeliveryFailure
+        """
         if not self._should_notify():
             return
         if not self.payload.populated:
@@ -132,6 +142,8 @@ class NotificationPayloadBase(base.IronicObject):
 
         :param kwargs: A dict contains the source object and the keys defined
                        in the SCHEMA
+        :raises NotificationSchemaObjectError
+        :raises NotificationSchemaKeyError
         """
         for key, (obj, field) in self.SCHEMA.items():
             try:
