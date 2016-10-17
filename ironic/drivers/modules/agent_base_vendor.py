@@ -450,9 +450,16 @@ class AgentDeployMixin(object):
         task.upgrade_lock()
 
         node = task.node
+        LOG.debug('Heartbeat from node %s', node.uuid)
+
         driver_internal_info = node.driver_internal_info
-        LOG.debug('Heartbeat from node %s' % node.uuid)
         driver_internal_info['agent_url'] = callback_url
+
+        # TODO(rloo): 'agent_last_heartbeat' was deprecated since it wasn't
+        # being used so remove that entry if it exists.
+        # Hopefully all nodes will have been updated by Pike, so
+        # we can delete this code then.
+        driver_internal_info.pop('agent_last_heartbeat', None)
 
         node.driver_internal_info = driver_internal_info
         node.save()

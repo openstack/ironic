@@ -557,6 +557,31 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
                        'reboot_to_instance', autospec=True)
     @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
                        autospec=True)
+    def test_heartbeat_no_agent_last_heartbeat(self, ncrc_mock, rti_mock,
+                                               cd_mock):
+        """node.driver_internal_info doesn't have 'agent_last_heartbeat'."""
+        node = self.node
+        node.maintenance = True
+        node.provision_state = states.AVAILABLE
+        driver_internal_info = {'agent_last_heartbeat': 'time'}
+        node.driver_internal_info = driver_internal_info
+        node.save()
+        with task_manager.acquire(
+                self.context, node['uuid'], shared=False) as task:
+            self.deploy.heartbeat(task, 'http://127.0.0.1:8080')
+
+        self.assertEqual(0, ncrc_mock.call_count)
+        self.assertEqual(0, rti_mock.call_count)
+        self.assertEqual(0, cd_mock.call_count)
+        node.refresh()
+        self.assertNotIn('agent_last_heartbeat', node.driver_internal_info)
+
+    @mock.patch.object(agent_base_vendor.AgentDeployMixin, 'continue_deploy',
+                       autospec=True)
+    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+                       'reboot_to_instance', autospec=True)
+    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
+                       autospec=True)
     def test_heartbeat_noops_maintenance_mode(self, ncrc_mock, rti_mock,
                                               cd_mock):
         """Ensures that heartbeat() no-ops for a maintenance node."""
