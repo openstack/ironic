@@ -1,6 +1,6 @@
 # An ironic-lib.filters to be used with rootwrap command.
 # The following commands should be used in filters for disk manipulation.
-# This file should be owned by (and only-writeable by) the root user.
+# This file should be owned by (and only-writable by) the root user.
 
 # NOTE: this file is a copy of ironic-lib.filters from the ironic-lib
 # repository that should ultimately be remove. At this point, we still
