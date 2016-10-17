@@ -115,7 +115,7 @@ agent_ipmitool example
 
 This is an example to create a new node, named ``testnode``, with
 sufficient information to pass basic validation in order to be taken
-from the ``manageable`` state to ``active`` state.::
+from the ``manageable`` state to ``active`` state::
 
     # Explicitly set the client API version environment variable to
     # 1.17, which introduces the adoption capability.

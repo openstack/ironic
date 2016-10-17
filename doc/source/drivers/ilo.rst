@@ -18,7 +18,7 @@ Currently there are 3 iLO drivers:
 
 * ``iscsi_ilo``
 * ``agent_ilo``
-* ``pxe_ilo``.
+* ``pxe_ilo``
 
 The ``iscsi_ilo`` and ``agent_ilo`` drivers provide security enhanced
 PXE-less deployment by using iLO virtual media to boot up the bare metal node.
@@ -43,7 +43,7 @@ Prerequisites
   which contains set of modules for managing HPE ProLiant hardware.
 
   Install ``proliantutils`` module on the ironic conductor node. Minimum
-  version required is 2.1.11.::
+  version required is 2.1.11::
 
    $ pip install "proliantutils>=2.1.11"
 
@@ -69,7 +69,7 @@ Glance Configuration
 
 3. Fill the required parameters in the ``[glance]`` section   in
    ``/etc/ironic/ironic.conf``. Normally you would be required to fill in the
-   following details.::
+   following details::
 
     [glance]
     swift_temp_url_key=mysecretkeyforglance
@@ -90,7 +90,7 @@ Glance Configuration
 
 4. Swift must be accessible with the same admin credentials configured in
    Ironic. For example, if Ironic is configured with the below credentials in
-   ``/etc/ironic/ironic.conf``.::
+   ``/etc/ironic/ironic.conf``::
 
     [keystone_authtoken]
     admin_password = password
@@ -117,7 +117,7 @@ Glance Configuration
                     Content-Type: text/plain; charset=utf-8
                    Accept-Ranges: bytes
 
-5. Restart the Ironic conductor service.::
+5. Restart the Ironic conductor service::
 
     $ service ironic-conductor restart
 
@@ -170,7 +170,7 @@ Enable driver
 2. See `Glance Configuration`_ for configuring glance image service with its storage
    backend as ``swift``.
 
-3. Upload this image to Glance.::
+3. Upload this image to Glance::
 
     glance image-create --name deploy-ramdisk.iso --disk-format iso --container-format bare < deploy-ramdisk.iso
 
@@ -181,7 +181,7 @@ Enable driver
 
    Similarly it can be added for ``agent_ilo`` and ``pxe_ilo`` drivers.
 
-5. Restart the ironic conductor service.::
+5. Restart the ironic conductor service::
 
     $ service ironic-conductor restart
 
@@ -562,7 +562,7 @@ Configuring and Enabling the driver
 
 1. Build a deploy image, see :ref:`BuildingDibBasedDeployRamdisk`
 
-2. Upload this image to glance.::
+2. Upload this image to glance::
 
     glance image-create --name deploy-ramdisk.kernel --disk-format aki --container-format aki < deploy-ramdisk.kernel
     glance image-create --name deploy-ramdisk.initramfs --disk-format ari --container-format ari < deploy-ramdisk.initramfs
@@ -572,7 +572,7 @@ Configuring and Enabling the driver
 
     enabled_drivers = fake,pxe_ssh,pxe_ipmitool,pxe_ilo
 
-4. Restart the ironic conductor service.::
+4. Restart the ironic conductor service::
 
     service ironic-conductor restart
 
@@ -762,7 +762,7 @@ Refer :ref:`BuildingDibBasedDeployRamdisk` for more information on building
 deploy ramdisk.
 
 The below command creates files named cloud-image-boot.iso, cloud-image.initrd,
-cloud-image.vmlinuz and cloud-image.qcow2 in the current working directory.::
+cloud-image.vmlinuz and cloud-image.qcow2 in the current working directory::
 
  cd <path-to-diskimage-builder>
  ./bin/disk-image-create -o cloud-image ubuntu-signed baremetal iso

@@ -17,7 +17,7 @@ Prerequisites
   for managing SeaMicro Fabric Compute systems.
 
   Install ``python-seamicroclient`` [1]_ module on the Ironic conductor node.
-  Minimum version required is 0.4.0.::
+  Minimum version required is 0.4.0::
 
    $ pip install "python-seamicroclient>=0.4.0"
 
