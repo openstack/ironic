@@ -20,6 +20,7 @@ import re
 import time
 
 from ironic_lib import disk_utils
+from ironic_lib import metrics_utils
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
@@ -52,6 +53,8 @@ if CONF.rootwrap_config != '/etc/ironic/rootwrap.conf':
     CONF.set_default('root_helper', root_helper, 'ironic_lib')
 
 LOG = logging.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 VALID_ROOT_DEVICE_HINTS = set(('size', 'model', 'wwn', 'serial', 'vendor',
                                'wwn_with_extension', 'wwn_vendor_extension',
@@ -1257,3 +1260,55 @@ def _check_disk_layout_unchanged(node, i_info):
                             "from previous deployment:%(error_msg)s")
         raise exception.InvalidParameterValue(err_msg_invalid %
                                               {'error_msg': error_msg})
+
+
+@METRICS.timer('build_instance_info_for_deploy')
+def build_instance_info_for_deploy(task):
+    """Build instance_info necessary for deploying to a node.
+
+    :param task: a TaskManager object containing the node
+    :returns: a dictionary containing the properties to be updated
+        in instance_info
+    :raises: exception.ImageRefValidationFailed if image_source is not
+        Glance href and is not HTTP(S) URL.
+    """
+    node = task.node
+    instance_info = node.instance_info
+    iwdi = node.driver_internal_info.get('is_whole_disk_image')
+    image_source = instance_info['image_source']
+    if service_utils.is_glance_image(image_source):
+        glance = image_service.GlanceImageService(version=2,
+                                                  context=task.context)
+        image_info = glance.show(image_source)
+        swift_temp_url = glance.swift_temp_url(image_info)
+        LOG.debug('Got image info: %(info)s for node %(node)s.',
+                  {'info': image_info, 'node': node.uuid})
+        instance_info['image_url'] = swift_temp_url
+        instance_info['image_checksum'] = image_info['checksum']
+        instance_info['image_disk_format'] = image_info['disk_format']
+        instance_info['image_container_format'] = (
+            image_info['container_format'])
+        instance_info['image_tags'] = image_info.get('tags', [])
+        instance_info['image_properties'] = image_info['properties']
+
+        if not iwdi:
+            instance_info['kernel'] = image_info['properties']['kernel_id']
+            instance_info['ramdisk'] = image_info['properties']['ramdisk_id']
+    else:
+        try:
+            image_service.HttpImageService().validate_href(image_source)
+        except exception.ImageRefValidationFailed:
+            with excutils.save_and_reraise_exception():
+                LOG.error(_LE("Agent deploy supports only HTTP(S) URLs as "
+                              "instance_info['image_source']. Either %s "
+                              "is not a valid HTTP(S) URL or "
+                              "is not reachable."), image_source)
+        instance_info['image_url'] = image_source
+
+    if not iwdi:
+        instance_info['image_type'] = 'partition'
+        i_info = parse_instance_info(node)
+        instance_info.update(i_info)
+    else:
+        instance_info['image_type'] = 'whole-disk-image'
+    return instance_info
