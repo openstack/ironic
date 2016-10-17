@@ -73,7 +73,7 @@ The following requirements apply for both ``iscsi_pxe_oneview`` and
 
   Install the ``python-oneviewclient`` module to enable the communication.
   Minimum version required is 2.4.0 but it is recommended to install the most
-  up-to-date version.::
+  up-to-date version::
 
   $ pip install "python-oneviewclient<3.0.0,>=2.4.0"
 

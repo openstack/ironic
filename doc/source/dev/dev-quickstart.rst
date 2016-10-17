@@ -429,7 +429,7 @@ significant changes to ironic's python modules, or simply keep the virtualenv
 around for a long time, your development environment may reach an inconsistent
 state. It may help to delete cached ".pyc" files, update dependencies,
 reinstall ironic, or even recreate the virtualenv. The following commands may
-help with that, but are not an exhaustive troubleshooting guide.::
+help with that, but are not an exhaustive troubleshooting guide::
 
   # clear cached pyc files
   cd ~/ironic/ironic
