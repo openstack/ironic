@@ -1383,45 +1383,6 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         actual = utils.get_dev('1.2.3.4', 5678, 'iqn.fake', 9)
         self.assertEqual(expected, actual)
 
-    def test_parse_root_device_hints(self):
-        self.node.properties['root_device'] = {
-            'wwn': '123456', 'model': 'foo-model', 'size': 123,
-            'serial': 'foo-serial', 'vendor': 'foo-vendor', 'name': '/dev/sda',
-            'wwn_with_extension': '123456111', 'wwn_vendor_extension': '111',
-            'rotational': True,
-        }
-        expected = ('model=foo-model,name=/dev/sda,rotational=True,'
-                    'serial=foo-serial,size=123,vendor=foo-vendor,wwn=123456,'
-                    'wwn_vendor_extension=111,wwn_with_extension=123456111')
-        result = utils.parse_root_device_hints(self.node)
-        self.assertEqual(expected, result)
-
-    def test_parse_root_device_hints_string_space(self):
-        self.node.properties['root_device'] = {'model': 'fake model'}
-        expected = 'model=fake%20model'
-        result = utils.parse_root_device_hints(self.node)
-        self.assertEqual(expected, result)
-
-    def test_parse_root_device_hints_no_hints(self):
-        self.node.properties = {}
-        result = utils.parse_root_device_hints(self.node)
-        self.assertIsNone(result)
-
-    def test_parse_root_device_hints_invalid_hints(self):
-        self.node.properties['root_device'] = {'vehicle': 'Owlship'}
-        self.assertRaises(exception.InvalidParameterValue,
-                          utils.parse_root_device_hints, self.node)
-
-    def test_parse_root_device_hints_invalid_size(self):
-        self.node.properties['root_device'] = {'size': 'not-int'}
-        self.assertRaises(exception.InvalidParameterValue,
-                          utils.parse_root_device_hints, self.node)
-
-    def test_parse_root_device_hints_invalid_rotational(self):
-        self.node.properties['root_device'] = {'rotational': 'not-boolean'}
-        self.assertRaises(exception.InvalidParameterValue,
-                          utils.parse_root_device_hints, self.node)
-
     @mock.patch.object(utils, 'LOG', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(task_manager.TaskManager, 'process_event',
