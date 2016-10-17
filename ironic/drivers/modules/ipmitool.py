@@ -828,11 +828,13 @@ class IPMIPower(base.PowerInterface):
         :raises: MissingParameterValue if required ipmi parameters are missing.
         :raises: InvalidParameterValue if an invalid power state was specified.
         :raises: PowerStateFailure if the final state of the node is not
-            POWER_ON.
+            POWER_ON or the intermediate state of the node is not POWER_OFF.
 
         """
         driver_info = _parse_driver_info(task.node)
-        _power_off(driver_info)
+        intermediate_state = _power_off(driver_info)
+        if intermediate_state != states.POWER_OFF:
+            raise exception.PowerStateFailure(pstate=states.POWER_OFF)
         driver_utils.ensure_next_boot_device(task, driver_info)
         state = _power_on(driver_info)
 
