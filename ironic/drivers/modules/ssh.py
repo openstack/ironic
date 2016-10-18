@@ -58,14 +58,18 @@ REQUIRED_PROPERTIES = {
                        "vmware, parallels, xenserver. Required.")
 }
 OTHER_PROPERTIES = {
-    'ssh_key_contents': _("private key(s). One of this, ssh_key_filename, "
-                          "or ssh_password must be specified."),
+    'ssh_key_contents': _("private key(s). If ssh_password is also specified "
+                          "it will be used for unlocking the private key. Do "
+                          "not specify ssh_key_filename when this property is "
+                          "specified."),
     'ssh_key_filename': _("(list of) filename(s) of optional private key(s) "
-                          "for authentication. One of this, ssh_key_contents, "
-                          "or ssh_password must be specified."),
+                          "for authentication. If ssh_password is also "
+                          "specified it will be used for unlocking the "
+                          "private key. Do not specify ssh_key_contents when "
+                          "this property is specified."),
     'ssh_password': _("password to use for authentication or for unlocking a "
-                      "private key. One of this, ssh_key_contents, or "
-                      "ssh_key_filename must be specified."),
+                      "private key. At least one of this, ssh_key_contents, "
+                      "or ssh_key_filename must be specified."),
     'ssh_port': _("port on the node to connect to; default is 22. Optional."),
     'vbox_use_headless': _("True or False (Default). Optional. "
                            "In the case of VirtualBox 3.2 and above, allows "
@@ -392,17 +396,25 @@ def _parse_driver_info(node):
     cmd_set = _get_command_sets(virt_type, use_headless)
     res['cmd_set'] = cmd_set
 
-    # Only one credential may be set (avoids complexity around having
-    # precedence etc).
-    if len([v for v in (password, key_filename, key_contents) if v]) != 1:
+    # Set at least one credential method.
+    if len([v for v in (password, key_filename, key_contents) if v]) == 0:
         raise exception.InvalidParameterValue(_(
-            "SSHPowerDriver requires one and only one of ssh_password, "
+            "SSHPowerDriver requires at least one of ssh_password, "
             "ssh_key_contents and ssh_key_filename to be set."))
+
+    # Set only credential file or content but not both
+    if key_filename and key_contents:
+        raise exception.InvalidParameterValue(_(
+            "SSHPowerDriver requires one and only one of "
+            "ssh_key_contents and ssh_key_filename to be set."))
+
     if password:
         res['password'] = password
-    elif key_contents:
+
+    if key_contents:
         res['key_contents'] = key_contents
-    else:
+
+    if key_filename:
         if not os.path.isfile(key_filename):
             raise exception.InvalidParameterValue(_(
                 "SSH key file %s not found.") % key_filename)

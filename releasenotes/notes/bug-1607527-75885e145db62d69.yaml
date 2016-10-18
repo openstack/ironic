@@ -1,0 +1,4 @@
+---
+fixes:
+  - Fixes bug where the user tries to configure the ssh power driver using a
+    private key protected by a passphrase.

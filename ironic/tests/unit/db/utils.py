@@ -53,8 +53,14 @@ def get_test_ssh_info(auth_type='password', virt_type='virsh'):
         result['ssh_key_filename'] = '/not/real/file'
     elif 'key' == auth_type:
         result['ssh_key_contents'] = '--BEGIN PRIVATE ...blah'
-    elif 'too_many' == auth_type:
+    elif 'file_with_passphrase' == auth_type:
         result['ssh_password'] = 'fake'
+        result['ssh_key_filename'] = '/not/real/file'
+    elif 'key_with_passphrase' == auth_type:
+        result['ssh_password'] = 'fake'
+        result['ssh_key_contents'] = '--BEGIN PRIVATE ...blah'
+    elif 'too_many' == auth_type:
+        result['ssh_key_contents'] = '--BEGIN PRIVATE ...blah'
         result['ssh_key_filename'] = '/not/real/file'
     else:
         # No auth details (is invalid)
