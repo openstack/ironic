@@ -978,9 +978,12 @@ function create_bridge_and_vms {
             -p $vbmc_port -f $IRONIC_VM_SPECS_DISK_FORMAT $log_arg" >> $IRONIC_VM_MACS_CSV_FILE
         vbmc_port=$((vbmc_port+1))
     done
-    local ironic_net_id
-    ironic_net_id=$(openstack network show "$PRIVATE_NETWORK_NAME" -c id -f value)
-    create_ovs_taps $ironic_net_id
+
+    if [[ -z "${IRONIC_PROVISION_NETWORK_NAME}" ]]; then
+        local ironic_net_id
+        ironic_net_id=$(openstack network show "$PRIVATE_NETWORK_NAME" -c id -f value)
+        create_ovs_taps $ironic_net_id
+    fi
 }
 
 function wait_for_nova_resources {
