@@ -19,6 +19,7 @@
 DRAC management interface
 """
 
+from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
 
@@ -33,6 +34,8 @@ from ironic.drivers.modules.drac import job as drac_job
 drac_exceptions = importutils.try_import('dracclient.exceptions')
 
 LOG = logging.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 _BOOT_DEVICES_MAP = {
     boot_devices.DISK: 'HardDisk',
@@ -123,6 +126,7 @@ class DracManagement(base.ManagementInterface):
         """Return the properties of the interface."""
         return drac_common.COMMON_PROPERTIES
 
+    @METRICS.timer('DracManagement.validate')
     def validate(self, task):
         """Validate the driver-specific info supplied.
 
@@ -137,6 +141,7 @@ class DracManagement(base.ManagementInterface):
         """
         return drac_common.parse_driver_info(task.node)
 
+    @METRICS.timer('DracManagement.get_supported_boot_devices')
     def get_supported_boot_devices(self, task):
         """Get a list of the supported boot devices.
 
@@ -147,6 +152,7 @@ class DracManagement(base.ManagementInterface):
         """
         return list(_BOOT_DEVICES_MAP.keys())
 
+    @METRICS.timer('DracManagement.get_boot_device')
     def get_boot_device(self, task):
         """Get the current boot device for a node.
 
@@ -169,6 +175,7 @@ class DracManagement(base.ManagementInterface):
 
         return _get_boot_device(node)
 
+    @METRICS.timer('DracManagement.set_boot_device')
     @task_manager.require_exclusive_lock
     def set_boot_device(self, task, device, persistent=False):
         """Set the boot device for a node.
@@ -205,6 +212,7 @@ class DracManagement(base.ManagementInterface):
         node.driver_internal_info = driver_internal_info
         node.save()
 
+    @METRICS.timer('DracManagement.get_sensors_data')
     def get_sensors_data(self, task):
         """Get sensors data.
 

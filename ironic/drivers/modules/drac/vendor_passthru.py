@@ -15,12 +15,16 @@
 DRAC vendor-passthru interface
 """
 
+from ironic_lib import metrics_utils
+
 from ironic.common.i18n import _
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.drac import bios as drac_bios
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 
 class DracVendorPassthru(base.VendorInterface):
@@ -30,6 +34,7 @@ class DracVendorPassthru(base.VendorInterface):
         """Return the properties of the interface."""
         return drac_common.COMMON_PROPERTIES
 
+    @METRICS.timer('DracVendorPassthru.validate')
     def validate(self, task, **kwargs):
         """Validate the driver-specific info supplied.
 
@@ -44,6 +49,7 @@ class DracVendorPassthru(base.VendorInterface):
         """
         return drac_common.parse_driver_info(task.node)
 
+    @METRICS.timer('DracVendorPassthru.get_bios_config')
     @base.passthru(['GET'], async=False,
                    description=_("Returns a dictionary containing the BIOS "
                                  "settings from a node."))
@@ -65,6 +71,7 @@ class DracVendorPassthru(base.VendorInterface):
 
         return bios_attrs
 
+    @METRICS.timer('DracVendorPassthru.set_bios_config')
     @base.passthru(['POST'], async=False,
                    description=_("Change the BIOS configuration on a node. "
                                  "Required argument : a dictionary of "
@@ -88,6 +95,7 @@ class DracVendorPassthru(base.VendorInterface):
         """
         return drac_bios.set_config(task, **kwargs)
 
+    @METRICS.timer('DracVendorPassthru.commit_bios_config')
     @base.passthru(['POST'], async=False,
                    description=_("Commit a BIOS configuration job submitted "
                                  "through set_bios_config(). Required "
@@ -119,6 +127,7 @@ class DracVendorPassthru(base.VendorInterface):
         job_id = drac_bios.commit_config(task, reboot=reboot)
         return {'job_id': job_id, 'reboot_required': not reboot}
 
+    @METRICS.timer('DracVendorPassthru.abandon_bios_config')
     @base.passthru(['DELETE'], async=False,
                    description=_("Abandon a BIOS configuration job previously "
                                  "submitted through set_bios_config()."))

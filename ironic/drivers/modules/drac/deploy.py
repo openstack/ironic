@@ -15,6 +15,8 @@
 DRAC deploy interface
 """
 
+from ironic_lib import metrics_utils
+
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import iscsi_deploy
 
@@ -23,9 +25,12 @@ _OOB_CLEAN_STEPS = [
     {'interface': 'raid', 'step': 'delete_configuration'}
 ]
 
+METRICS = metrics_utils.get_metrics_logger(__name__)
+
 
 class DracDeploy(iscsi_deploy.ISCSIDeploy):
 
+    @METRICS.timer('DracDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
         """Prepare environment for cleaning
 
