@@ -15,6 +15,8 @@
 
 """Policy Engine For Ironic."""
 
+import sys
+
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log
@@ -225,6 +227,27 @@ def get_enforcer():
         init_enforcer()
 
     return _ENFORCER
+
+
+def get_oslo_policy_enforcer():
+    # This method is for use by oslopolicy CLI scripts. Those scripts need the
+    # 'output-file' and 'namespace' options, but having those in sys.argv means
+    # loading the Ironic config options will fail as those are not expected to
+    # be present. So we pass in an arg list with those stripped out.
+
+    conf_args = []
+    # Start at 1 because cfg.CONF expects the equivalent of sys.argv[1:]
+    i = 1
+    while i < len(sys.argv):
+        if sys.argv[i].strip('-') in ['namespace', 'output-file']:
+            i += 2
+            continue
+        conf_args.append(sys.argv[i])
+        i += 1
+
+    cfg.CONF(conf_args, project='ironic')
+
+    return get_enforcer()
 
 
 # NOTE(deva): We can't call these methods from within decorators because the

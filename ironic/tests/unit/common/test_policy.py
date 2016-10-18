@@ -15,6 +15,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import sys
+
+import mock
+from oslo_config import cfg
 from oslo_policy import policy as oslo_policy
 
 from ironic.common import exception
@@ -119,3 +123,34 @@ class PolicyTestCase(base.TestCase):
             exception.IronicException,
             policy.enforce, 'has_foo_role', creds, creds, True,
             exception.IronicException)
+
+    @mock.patch.object(cfg, 'CONF', autospec=True)
+    @mock.patch.object(policy, 'get_enforcer', autospec=True)
+    def test_get_oslo_policy_enforcer_no_args(self, mock_gpe, mock_cfg):
+        mock_gpe.return_value = mock.Mock()
+        args = []
+        with mock.patch.object(sys, 'argv', args):
+            policy.get_oslo_policy_enforcer()
+        mock_cfg.assert_called_once_with([], project='ironic')
+        self.assertEqual(1, mock_gpe.call_count)
+
+    @mock.patch.object(cfg, 'CONF', autospec=True)
+    @mock.patch.object(policy, 'get_enforcer', autospec=True)
+    def test_get_oslo_policy_enforcer_namespace(self, mock_gpe, mock_cfg):
+        mock_gpe.return_value = mock.Mock()
+        args = ['opg', '--namespace', 'ironic']
+        with mock.patch.object(sys, 'argv', args):
+            policy.get_oslo_policy_enforcer()
+        mock_cfg.assert_called_once_with([], project='ironic')
+        self.assertEqual(1, mock_gpe.call_count)
+
+    @mock.patch.object(cfg, 'CONF', autospec=True)
+    @mock.patch.object(policy, 'get_enforcer', autospec=True)
+    def test_get_oslo_policy_enforcer_config_file(self, mock_gpe, mock_cfg):
+        mock_gpe.return_value = mock.Mock()
+        args = ['opg', '--namespace', 'ironic', '--config-file', 'my.cfg']
+        with mock.patch.object(sys, 'argv', args):
+            policy.get_oslo_policy_enforcer()
+        mock_cfg.assert_called_once_with(['--config-file', 'my.cfg'],
+                                         project='ironic')
+        self.assertEqual(1, mock_gpe.call_count)
