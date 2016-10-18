@@ -474,7 +474,7 @@ def _sleep_time(iter):
 def _set_and_wait(target_state, driver_info):
     """Helper function for DynamicLoopingCall.
 
-    This method changes the power state and polls the BMCuntil the desired
+    This method changes the power state and polls the BMC until the desired
     power state is reached, or CONF.ipmi.retry_timeout would be exceeded by the
     next iteration.
 
