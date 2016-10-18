@@ -41,6 +41,10 @@ GITREPO["virtualbmc"]=${VIRTUALBMC_REPO:-${GIT_BASE}/openstack/virtualbmc.git}
 GITBRANCH["virtualbmc"]=${VIRTUALBMC_BRANCH:-master}
 GITDIR["virtualbmc"]=$DEST/virtualbmc
 
+GITREPO["virtualpdu"]=${VIRTUALPDU_REPO:-${GIT_BASE}/openstack/virtualpdu.git}
+GITBRANCH["virtualpdu"]=${VIRTUALPDU_BRANCH:-master}
+GITDIR["virtualpdu"]=$DEST/virtualpdu
+
 IRONIC_DIR=$DEST/ironic
 IRONIC_DEVSTACK_DIR=$IRONIC_DIR/devstack
 IRONIC_DEVSTACK_FILES_DIR=$IRONIC_DEVSTACK_DIR/files
@@ -225,7 +229,7 @@ if [[ "$IRONIC_DEPLOY_ISO_REQUIRED" = "True" \
         or set IRONIC_BUILD_DEPLOY_RAMDISK=True to use ISOs"
 fi
 # Which deploy driver to use - valid choices right now
-# are ``pxe_ssh``, ``pxe_ipmitool``, ``agent_ssh`` and ``agent_ipmitool``.
+# are ``pxe_ssh``, ``pxe_ipmitool``, ``agent_ssh``, ``agent_ipmitool`` and ``pxe_snmp``.
 #
 # Additional valid choices if IRONIC_IS_HARDWARE == true are:
 # ``pxe_iscsi_cimc``, ``pxe_agent_cimc``, ``pxe_ucs``, ``pxe_cimc``,
@@ -262,6 +266,14 @@ IRONIC_IS_HARDWARE=$(trueorfalse False IRONIC_IS_HARDWARE)
 IRONIC_VBMC_PORT_RANGE_START=${IRONIC_VBMC_PORT_RANGE_START:-6230}
 IRONIC_VBMC_CONFIG_FILE=${IRONIC_VBMC_CONFIG_FILE:-$HOME/.vbmc/virtualbmc.conf}
 IRONIC_VBMC_LOGFILE=${IRONIC_VBMC_LOGFILE:-$IRONIC_VM_LOG_DIR/virtualbmc.log}
+
+# Virtual PDU configs
+IRONIC_VPDU_CONFIG_FILE=${IRONIC_VPDU_CONFIG_FILE:-$HOME/.vpdu/virtualpdu.conf}
+IRONIC_VPDU_PORT_RANGE_START=${IRONIC_VPDU_PORT_RANGE_START:-1}
+IRONIC_VPDU_LISTEN_PORT=${IRONIC_VPDU_LISTEN_PORT:-1161}
+IRONIC_VPDU_COMMUNITY=${IRONIC_VPDU_COMMUNITY:-private}
+IRONIC_VPDU_SNMPDRIVER=${IRONIC_VPDU_SNMPDRIVER:-apc_rackpdu}
+
 
 # To explicitly enable configuration of Glance with Swift
 # (which is required by some vendor drivers), set this
@@ -421,6 +433,11 @@ function is_deployed_by_drac {
     return 1
 }
 
+function is_deployed_by_snmp {
+    [[ -z "${IRONIC_DEPLOY_DRIVER##*_snmp}" ]] && return 0
+    return 1
+}
+
 function is_glance_configuration_required {
     is_deployed_by_agent || [[ "$IRONIC_CONFIGURE_GLANCE_WITH_SWIFT" == "True" ]] && return 0
     return 1
@@ -471,6 +488,39 @@ function setup_virtualbmc {
     iniset $IRONIC_VBMC_CONFIG_FILE log logfile $IRONIC_VBMC_LOGFILE
 }
 
+
+function setup_virtualpdu {
+    if use_library_from_git "virtualpdu"; then
+        git_clone_by_name "virtualpdu"
+        setup_dev_lib "virtualpdu"
+    else
+        pip_install "virtualpdu"
+    fi
+
+    mkdir -p $(dirname $IRONIC_VPDU_CONFIG_FILE)
+
+    iniset $IRONIC_VPDU_CONFIG_FILE global debug True
+    iniset $IRONIC_VPDU_CONFIG_FILE global libvirt_uri "qemu:///system"
+    iniset $IRONIC_VPDU_CONFIG_FILE PDU listen_address ${HOST_IP}
+    iniset $IRONIC_VPDU_CONFIG_FILE PDU listen_port ${IRONIC_VPDU_LISTEN_PORT}
+    iniset $IRONIC_VPDU_CONFIG_FILE PDU community ${IRONIC_VPDU_COMMUNITY}
+    iniset $IRONIC_VPDU_CONFIG_FILE PDU ports $(_generate_pdu_ports)
+    iniset $IRONIC_VPDU_CONFIG_FILE PDU outlet_default_state "OFF"
+
+    enable_service ir-vpdu
+}
+
+# _generate_pdu_ports() - Generates list of port:node_name.
+function _generate_pdu_ports {
+    pdu_port_number=${IRONIC_VPDU_PORT_RANGE_START}
+    port_config=()
+    for vm_name in $(_ironic_bm_vm_names); do
+        port_config+=("${pdu_port_number}:${vm_name}")
+        (( pdu_port_number++ ))
+    done
+    echo ${port_config[*]} | tr ' ' ','
+}
+
 # install_ironic() - Install the things!
 function install_ironic {
     # NOTE(vsaienko) do not check required_services on subnode
@@ -500,6 +550,10 @@ function install_ironic {
 
     if is_deployed_by_ipmitool && [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
         setup_virtualbmc
+    fi
+
+    if is_deployed_by_snmp && [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
+        setup_virtualpdu
     fi
 }
 
@@ -925,6 +979,10 @@ function start_ironic {
     if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
         restart_apache_server
     fi
+
+    if is_service_enabled ir-vpdu; then
+        start_virtualpdu
+    fi
 }
 
 # start_ironic_api() - Used by start_ironic().
@@ -943,6 +1001,12 @@ function start_ironic_conductor {
     run_process ir-cond "$IRONIC_BIN_DIR/ironic-conductor --config-file=$IRONIC_CONF_FILE"
     # TODO(romcheg): Find a way to check whether the conductor has started.
 }
+
+# Starts VirtualPDU
+function start_virtualpdu {
+    run_process ir-vpdu "virtualpdu $IRONIC_VPDU_CONFIG_FILE" libvirtd
+}
+
 
 # stop_ironic() - Stop running processes
 function stop_ironic {
@@ -1039,6 +1103,7 @@ function create_bridge_and_vms {
     fi
 
     local vbmc_port=$IRONIC_VBMC_PORT_RANGE_START
+    local pdu_outlet=$IRONIC_VPDU_PORT_RANGE_START
     local vm_name
     local vm_opts=""
     if [[ -n "$IRONIC_VM_EMULATOR" ]]; then
@@ -1050,8 +1115,9 @@ function create_bridge_and_vms {
         sudo -E su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/create-node.sh -n $vm_name \
             -c $IRONIC_VM_SPECS_CPU -m $IRONIC_VM_SPECS_RAM -d $IRONIC_VM_SPECS_DISK \
             -a $IRONIC_VM_SPECS_CPU_ARCH -b $IRONIC_VM_NETWORK_BRIDGE $vm_opts \
-            -p $vbmc_port -f $IRONIC_VM_SPECS_DISK_FORMAT $log_arg" >> $IRONIC_VM_MACS_CSV_FILE
+            -p $vbmc_port -o $pdu_outlet -f $IRONIC_VM_SPECS_DISK_FORMAT $log_arg" >> $IRONIC_VM_MACS_CSV_FILE
         vbmc_port=$((vbmc_port+1))
+        pdu_outlet=$((pdu_outlet+1))
     done
 
     if [[ -z "${IRONIC_PROVISION_NETWORK_NAME}" ]]; then
@@ -1123,6 +1189,13 @@ function enroll_nodes {
                 -i ipmi_address=${HOST_IP} \
                 -i ipmi_username=admin \
                 -i ipmi_password=password"
+        elif is_deployed_by_snmp; then
+            local node_options="\
+                -i snmp_driver=${IRONIC_VPDU_SNMPDRIVER} \
+                -i snmp_address=${HOST_IP} \
+                -i snmp_port=${IRONIC_VPDU_LISTEN_PORT} \
+                -i snmp_protocol=2c \
+                -i snmp_community=${IRONIC_VPDU_COMMUNITY}"
         else
             local node_options="\
                 -i ssh_virt_type=$IRONIC_SSH_VIRT_TYPE \
@@ -1156,6 +1229,10 @@ function enroll_nodes {
                 local vbmc_port
                 vbmc_port=$(echo $hardware_info | awk '{print $2}')
                 node_options+=" -i ipmi_port=$vbmc_port"
+            elif is_deployed_by_snmp; then
+                local pdu_outlet
+                pdu_outlet=$(echo $hardware_info | awk '{print $3}')
+                node_options+=" -i snmp_outlet=$pdu_outlet"
             fi
             # Local-link-connection options
             if [[ "${IRONIC_USE_LINK_LOCAL}" == "True" ]]; then
@@ -1164,9 +1241,9 @@ function enroll_nodes {
                 local switch_id
                 local port_id
 
-                switch_info=$(echo $hardware_info |awk '{print $3}')
-                switch_id=$(echo $hardware_info |awk '{print $4}')
-                port_id=$(echo $hardware_info |awk '{print $5}')
+                switch_info=$(echo $hardware_info |awk '{print $4}')
+                switch_id=$(echo $hardware_info |awk '{print $5}')
+                port_id=$(echo $hardware_info |awk '{print $6}')
 
                 llc_opts="-l switch_id=${switch_id} -l switch_info=${switch_info} -l port_id=${port_id}"
 

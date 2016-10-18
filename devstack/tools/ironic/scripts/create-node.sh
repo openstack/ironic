@@ -12,7 +12,7 @@ export PS4='+ ${BASH_SOURCE:-}:${FUNCNAME[0]:-}:L${LINENO:-}:   '
 # Keep track of the DevStack directory
 TOP_DIR=$(cd $(dirname "$0")/.. && pwd)
 
-while getopts "n:c:m:d:a:b:e:E:p:f:l:L:N:" arg; do
+while getopts "n:c:m:d:a:b:e:E:p:o:f:l:L:N:" arg; do
     case $arg in
         n) NAME=$OPTARG;;
         c) CPU=$OPTARG;;
@@ -25,6 +25,7 @@ while getopts "n:c:m:d:a:b:e:E:p:f:l:L:N:" arg; do
         e) EMULATOR=$OPTARG;;
         E) ENGINE=$OPTARG;;
         p) VBMC_PORT=$OPTARG;;
+        o) PDU_OUTLET=$OPTARG;;
         f) DISK_FORMAT=$OPTARG;;
         l) LOGDIR=$OPTARG;;
         L) UEFI_LOADER=$OPTARG;;
@@ -121,4 +122,4 @@ fi
 # echo mac
 VM_MAC=$(virsh dumpxml $NAME | grep "mac address" | head -1 | cut -d\' -f2)
 switch_id=$(ip link show dev $BRIDGE | egrep -o "ether [A-Za-z0-9:]+"|sed "s/ether\ //")
-echo $VM_MAC $VBMC_PORT $BRIDGE $switch_id ovs-$NAME
+echo $VM_MAC $VBMC_PORT $PDU_OUTLET $BRIDGE $switch_id ovs-$NAME
