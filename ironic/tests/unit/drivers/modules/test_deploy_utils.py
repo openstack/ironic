@@ -21,6 +21,7 @@ import types
 
 from ironic_lib import disk_utils
 import mock
+from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_utils import uuidutils
 import testtools
@@ -642,36 +643,63 @@ class PhysicalWorkTestCase(tests_base.TestCase):
             delay_on_retry=True)
 
         mock_verify.assert_called_once_with(iqn)
-
         mock_update.assert_called_once_with(iqn)
-
         mock_check_dev.assert_called_once_with(address, port, iqn)
 
+    @mock.patch.object(utils, 'LOG', autospec=True)
     @mock.patch.object(common_utils, 'execute', autospec=True)
     @mock.patch.object(utils, 'verify_iscsi_connection', autospec=True)
     @mock.patch.object(utils, 'force_iscsi_lun_update', autospec=True)
     @mock.patch.object(utils, 'check_file_system_for_iscsi_device',
                        autospec=True)
-    def test_ipv6_address_wrapped(self,
-                                  mock_check_dev,
-                                  mock_update,
-                                  mock_verify,
-                                  mock_exec):
-        address = '2001:DB8::1111'
+    @mock.patch.object(utils, 'delete_iscsi', autospec=True)
+    @mock.patch.object(utils, 'logout_iscsi', autospec=True)
+    def test_login_iscsi_calls_raises(
+            self, mock_loiscsi, mock_discsi, mock_check_dev, mock_update,
+            mock_verify, mock_exec, mock_log):
+        address = '127.0.0.1'
         port = 3306
         iqn = 'iqn.xyz'
         mock_exec.return_value = ['iqn.xyz', '']
-        utils.login_iscsi(address, port, iqn)
-        mock_exec.assert_called_once_with(
-            'iscsiadm',
-            '-m', 'node',
-            '-p', '[%s]:%s' % (address, port),
-            '-T', iqn,
-            '--login',
-            run_as_root=True,
-            check_exit_code=[0],
-            attempts=5,
-            delay_on_retry=True)
+        mock_check_dev.side_effect = exception.InstanceDeployFailure('boom')
+        self.assertRaises(exception.InstanceDeployFailure,
+                          utils.login_iscsi,
+                          address, port, iqn)
+        mock_verify.assert_called_once_with(iqn)
+        mock_update.assert_called_once_with(iqn)
+        mock_loiscsi.assert_called_once_with(address, port, iqn)
+        mock_discsi.assert_called_once_with(address, port, iqn)
+        self.assertIsInstance(mock_log.error.call_args[0][1],
+                              exception.InstanceDeployFailure)
+
+    @mock.patch.object(utils, 'LOG', autospec=True)
+    @mock.patch.object(common_utils, 'execute', autospec=True)
+    @mock.patch.object(utils, 'verify_iscsi_connection', autospec=True)
+    @mock.patch.object(utils, 'force_iscsi_lun_update', autospec=True)
+    @mock.patch.object(utils, 'check_file_system_for_iscsi_device',
+                       autospec=True)
+    @mock.patch.object(utils, 'delete_iscsi', autospec=True)
+    @mock.patch.object(utils, 'logout_iscsi', autospec=True)
+    def test_login_iscsi_calls_raises_during_cleanup(
+            self, mock_loiscsi, mock_discsi, mock_check_dev, mock_update,
+            mock_verify, mock_exec, mock_log):
+        address = '127.0.0.1'
+        port = 3306
+        iqn = 'iqn.xyz'
+        mock_exec.return_value = ['iqn.xyz', '']
+        mock_check_dev.side_effect = exception.InstanceDeployFailure('boom')
+        mock_discsi.side_effect = processutils.ProcessExecutionError('boom')
+        self.assertRaises(exception.InstanceDeployFailure,
+                          utils.login_iscsi,
+                          address, port, iqn)
+        mock_verify.assert_called_once_with(iqn)
+        mock_update.assert_called_once_with(iqn)
+        mock_loiscsi.assert_called_once_with(address, port, iqn)
+        mock_discsi.assert_called_once_with(address, port, iqn)
+        self.assertIsInstance(mock_log.error.call_args[0][1],
+                              exception.InstanceDeployFailure)
+        self.assertIsInstance(mock_log.warning.call_args[0][1],
+                              processutils.ProcessExecutionError)
 
     @mock.patch.object(disk_utils, 'is_block_device', lambda d: True)
     def test_always_logout_and_delete_iscsi(self):
@@ -731,6 +759,32 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         self.assertEqual(utils_calls_expected, utils_mock.mock_calls)
         self.assertEqual(disk_utils_calls_expected, disk_utils_mock.mock_calls)
+
+    @mock.patch.object(common_utils, 'execute', autospec=True)
+    @mock.patch.object(utils, 'verify_iscsi_connection', autospec=True)
+    @mock.patch.object(utils, 'force_iscsi_lun_update', autospec=True)
+    @mock.patch.object(utils, 'check_file_system_for_iscsi_device',
+                       autospec=True)
+    def test_ipv6_address_wrapped(self,
+                                  mock_check_dev,
+                                  mock_update,
+                                  mock_verify,
+                                  mock_exec):
+        address = '2001:DB8::1111'
+        port = 3306
+        iqn = 'iqn.xyz'
+        mock_exec.return_value = ['iqn.xyz', '']
+        utils.login_iscsi(address, port, iqn)
+        mock_exec.assert_called_once_with(
+            'iscsiadm',
+            '-m', 'node',
+            '-p', '[%s]:%s' % (address, port),
+            '-T', iqn,
+            '--login',
+            run_as_root=True,
+            check_exit_code=[0],
+            attempts=5,
+            delay_on_retry=True)
 
 
 class SwitchPxeConfigTestCase(tests_base.TestCase):
