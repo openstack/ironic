@@ -190,7 +190,8 @@ Available notifications
 
 
 The notifications that ironic emits are described here. They are listed
-(alphabetically) by service first, then by event_type.
+(alphabetically) by service first, then by event_type. All examples below
+show payloads before serialization to JSON.
 
 ------------------------------
 ironic-conductor notifications
@@ -239,10 +240,10 @@ ironic-conductor is attempting to change the node::
             "name": None,
             "power_state": "power off",
             "properties": {
-                "memory_mb":  "4096",
-                "cpu_arch":  "x86_64',
-                "local_gb":  "10",
-                "cpus":  "8"},
+                "memory_mb":  4096,
+                "cpu_arch":  "x86_64",
+                "local_gb":  10,
+                "cpus":  8},
             "provision_state": "available",
             "provision_updated_at": "2016-01-27T20:41:03+00:00",
             "resource_class": None,
@@ -293,10 +294,10 @@ prior to the correction::
             "name": None,
             "power_state": "power off",
             "properties": {
-                "memory_mb":  "4096",
-                "cpu_arch":  "x86_64',
-                "local_gb":  "10",
-                "cpus":  "8"},
+                "memory_mb":  4096,
+                "cpu_arch":  "x86_64",
+                "local_gb":  10,
+                "cpus":  8},
             "provision_state": "available",
             "provision_updated_at": "2016-01-27T20:41:03+00:00",
             "resource_class": None,
