@@ -153,6 +153,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         self.node.save()
         image_info = pxe._get_instance_image_info(self.node, self.context)
         self.assertEqual({}, image_info)
+        boot_opt_mock.assert_called_once_with(self.node)
 
     @mock.patch.object(base_image_service.BaseImageService, '_show',
                        autospec=True)
@@ -163,18 +164,12 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         image_info = pxe._get_instance_image_info(self.node, self.context)
         self.assertEqual({}, image_info)
 
-    @mock.patch('ironic.common.image_service.GlanceImageService',
-                autospec=True)
     @mock.patch.object(pxe_utils, '_build_pxe_config', autospec=True)
-    def _test_build_pxe_config_options(self, build_pxe_mock, glance_mock,
-                                       whle_dsk_img=False,
-                                       ipxe_enabled=False,
-                                       ipxe_timeout=0,
-                                       ipxe_use_swift=False):
+    def _test_build_pxe_config_options_pxe(self, build_pxe_mock,
+                                           whle_dsk_img=False):
         self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
         self.config(api_url='http://192.168.122.184:6385', group='conductor')
-        self.config(ipxe_timeout=ipxe_timeout, group='pxe')
 
         driver_internal_info = self.node.driver_internal_info
         driver_internal_info['is_whole_disk_image'] = whle_dsk_img
@@ -183,37 +178,129 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
         tftp_server = CONF.pxe.tftp_server
 
-        if ipxe_enabled:
-            http_url = 'http://192.1.2.3:1234'
-            self.config(ipxe_enabled=True, group='pxe')
-            self.config(http_url=http_url, group='deploy')
-            if ipxe_use_swift:
-                self.config(ipxe_use_swift=True, group='pxe')
-                glance = mock.Mock()
-                glance_mock.return_value = glance
-                glance.swift_temp_url.side_effect = [
-                    deploy_kernel, deploy_ramdisk] = [
-                    'swift_kernel', 'swift_ramdisk']
-            else:
-                deploy_kernel = os.path.join(http_url, self.node.uuid,
-                                             'deploy_kernel')
-                deploy_ramdisk = os.path.join(http_url, self.node.uuid,
-                                              'deploy_ramdisk')
-            kernel = os.path.join(http_url, self.node.uuid, 'kernel')
-            ramdisk = os.path.join(http_url, self.node.uuid, 'ramdisk')
-            root_dir = CONF.deploy.http_root
-        else:
-            deploy_kernel = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
-                                         'deploy_kernel')
-            deploy_ramdisk = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
-                                          'deploy_ramdisk')
-            kernel = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
-                                  'kernel')
-            ramdisk = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
-                                   'ramdisk')
-            root_dir = CONF.pxe.tftp_root
+        deploy_kernel = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
+                                     'deploy_kernel')
+        deploy_ramdisk = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
+                                      'deploy_ramdisk')
+        kernel = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
+                              'kernel')
+        ramdisk = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
+                               'ramdisk')
+        root_dir = CONF.pxe.tftp_root
 
+        image_info = {
+            'deploy_kernel': ('deploy_kernel',
+                              os.path.join(root_dir,
+                                           self.node.uuid,
+                                           'deploy_kernel')),
+            'deploy_ramdisk': ('deploy_ramdisk',
+                               os.path.join(root_dir,
+                                            self.node.uuid,
+                                            'deploy_ramdisk'))
+        }
+
+        if (whle_dsk_img or
+            deploy_utils.get_boot_option(self.node) == 'local'):
+                ramdisk = 'no_ramdisk'
+                kernel = 'no_kernel'
+        else:
+            image_info.update({
+                'kernel': ('kernel_id',
+                           os.path.join(root_dir,
+                                        self.node.uuid,
+                                        'kernel')),
+                'ramdisk': ('ramdisk_id',
+                            os.path.join(root_dir,
+                                         self.node.uuid,
+                                         'ramdisk'))
+            })
+
+        expected_options = {
+            'ari_path': ramdisk,
+            'deployment_ari_path': deploy_ramdisk,
+            'pxe_append_params': 'test_param',
+            'aki_path': kernel,
+            'deployment_aki_path': deploy_kernel,
+            'tftp_server': tftp_server,
+            'ipxe_timeout': 0,
+        }
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            options = pxe._build_pxe_config_options(task, image_info)
+        self.assertEqual(expected_options, options)
+
+    def test__build_pxe_config_options_pxe(self):
+        self._test_build_pxe_config_options_pxe(whle_dsk_img=True)
+
+    def test__build_pxe_config_options_pxe_local_boot(self):
+        del self.node.driver_internal_info['is_whole_disk_image']
+        i_info = self.node.instance_info
+        i_info.update({'capabilities': {'boot_option': 'local'}})
+        self.node.instance_info = i_info
+        self.node.save()
+        self._test_build_pxe_config_options_pxe(whle_dsk_img=False)
+
+    def test__build_pxe_config_options_pxe_without_is_whole_disk_image(self):
+        del self.node.driver_internal_info['is_whole_disk_image']
+        self.node.save()
+        self._test_build_pxe_config_options_pxe(whle_dsk_img=False)
+
+    def test__build_pxe_config_options_pxe_no_kernel_no_ramdisk(self):
+        del self.node.driver_internal_info['is_whole_disk_image']
+        self.node.save()
+        self.config(group='pxe', tftp_server='my-tftp-server')
+        self.config(group='pxe', pxe_append_params='my-pxe-append-params')
+        image_info = {
+            'deploy_kernel': ('deploy_kernel',
+                              'path-to-deploy_kernel'),
+            'deploy_ramdisk': ('deploy_ramdisk',
+                               'path-to-deploy_ramdisk')}
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            options = pxe._build_pxe_config_options(task, image_info)
+
+        expected_options = {
+            'deployment_aki_path': 'path-to-deploy_kernel',
+            'deployment_ari_path': 'path-to-deploy_ramdisk',
+            'pxe_append_params': 'my-pxe-append-params',
+            'tftp_server': 'my-tftp-server',
+            'aki_path': 'no_kernel',
+            'ari_path': 'no_ramdisk',
+            'ipxe_timeout': 0}
+        self.assertEqual(expected_options, options)
+
+    @mock.patch('ironic.common.image_service.GlanceImageService',
+                autospec=True)
+    @mock.patch.object(pxe_utils, '_build_pxe_config', autospec=True)
+    def _test_build_pxe_config_options_ipxe(self, build_pxe_mock, glance_mock,
+                                            whle_dsk_img=False,
+                                            ipxe_timeout=0,
+                                            ipxe_use_swift=False):
+        self.config(pxe_append_params='test_param', group='pxe')
+        # NOTE: right '/' should be removed from url string
+        self.config(api_url='http://192.168.122.184:6385', group='conductor')
+        self.config(ipxe_timeout=ipxe_timeout, group='pxe')
+        root_dir = CONF.deploy.http_root
+
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['is_whole_disk_image'] = whle_dsk_img
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        tftp_server = CONF.pxe.tftp_server
+
+        http_url = 'http://192.1.2.3:1234'
+        self.config(ipxe_enabled=True, group='pxe')
+        self.config(http_url=http_url, group='deploy')
         if ipxe_use_swift:
+            self.config(ipxe_use_swift=True, group='pxe')
+            glance = mock.Mock()
+            glance_mock.return_value = glance
+            glance.swift_temp_url.side_effect = [
+                deploy_kernel, deploy_ramdisk] = [
+                'swift_kernel', 'swift_ramdisk']
             image_info = {
                 'deploy_kernel': (str(uuid.uuid4()),
                                   os.path.join(root_dir,
@@ -225,6 +312,10 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                                 'deploy_ramdisk'))
             }
         else:
+            deploy_kernel = os.path.join(http_url, self.node.uuid,
+                                         'deploy_kernel')
+            deploy_ramdisk = os.path.join(http_url, self.node.uuid,
+                                          'deploy_ramdisk')
             image_info = {
                 'deploy_kernel': ('deploy_kernel',
                                   os.path.join(root_dir,
@@ -236,6 +327,8 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                                 'deploy_ramdisk'))
             }
 
+        kernel = os.path.join(http_url, self.node.uuid, 'kernel')
+        ramdisk = os.path.join(http_url, self.node.uuid, 'ramdisk')
         if (whle_dsk_img or
             deploy_utils.get_boot_option(self.node) == 'local'):
                 ramdisk = 'no_ramdisk'
@@ -269,22 +362,8 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             options = pxe._build_pxe_config_options(task, image_info)
         self.assertEqual(expected_options, options)
 
-    def test__build_pxe_config_options(self):
-        self._test_build_pxe_config_options(whle_dsk_img=True,
-                                            ipxe_enabled=False)
-
-    def test__build_pxe_config_options_local_boot(self):
-        del self.node.driver_internal_info['is_whole_disk_image']
-        i_info = self.node.instance_info
-        i_info.update({'capabilities': {'boot_option': 'local'}})
-        self.node.instance_info = i_info
-        self.node.save()
-        self._test_build_pxe_config_options(whle_dsk_img=False,
-                                            ipxe_enabled=False)
-
     def test__build_pxe_config_options_ipxe(self):
-        self._test_build_pxe_config_options(whle_dsk_img=True,
-                                            ipxe_enabled=True)
+        self._test_build_pxe_config_options_ipxe(whle_dsk_img=True)
 
     def test__build_pxe_config_options_ipxe_local_boot(self):
         del self.node.driver_internal_info['is_whole_disk_image']
@@ -292,54 +371,19 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         i_info.update({'capabilities': {'boot_option': 'local'}})
         self.node.instance_info = i_info
         self.node.save()
-        self._test_build_pxe_config_options(whle_dsk_img=False,
-                                            ipxe_enabled=True)
+        self._test_build_pxe_config_options_ipxe(whle_dsk_img=False)
 
     def test__build_pxe_config_options_ipxe_swift_wdi(self):
-        self._test_build_pxe_config_options(whle_dsk_img=True,
-                                            ipxe_enabled=True,
-                                            ipxe_use_swift=True)
+        self._test_build_pxe_config_options_ipxe(whle_dsk_img=True,
+                                                 ipxe_use_swift=True)
 
     def test__build_pxe_config_options_ipxe_swift_partition(self):
-        self._test_build_pxe_config_options(whle_dsk_img=False,
-                                            ipxe_enabled=True,
-                                            ipxe_use_swift=True)
-
-    def test__build_pxe_config_options_without_is_whole_disk_image(self):
-        del self.node.driver_internal_info['is_whole_disk_image']
-        self.node.save()
-        self._test_build_pxe_config_options(whle_dsk_img=False,
-                                            ipxe_enabled=False)
+        self._test_build_pxe_config_options_ipxe(whle_dsk_img=False,
+                                                 ipxe_use_swift=True)
 
     def test__build_pxe_config_options_ipxe_and_ipxe_timeout(self):
-        self._test_build_pxe_config_options(whle_dsk_img=True,
-                                            ipxe_enabled=True,
-                                            ipxe_timeout=120)
-
-    def test__build_pxe_config_options_no_kernel_no_ramdisk(self):
-        del self.node.driver_internal_info['is_whole_disk_image']
-        self.node.save()
-        self.config(group='pxe', tftp_server='my-tftp-server')
-        self.config(group='pxe', pxe_append_params='my-pxe-append-params')
-        image_info = {
-            'deploy_kernel': ('deploy_kernel',
-                              'path-to-deploy_kernel'),
-            'deploy_ramdisk': ('deploy_ramdisk',
-                               'path-to-deploy_ramdisk')}
-
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            options = pxe._build_pxe_config_options(task, image_info)
-
-        expected_options = {
-            'deployment_aki_path': 'path-to-deploy_kernel',
-            'deployment_ari_path': 'path-to-deploy_ramdisk',
-            'pxe_append_params': 'my-pxe-append-params',
-            'tftp_server': 'my-tftp-server',
-            'aki_path': 'no_kernel',
-            'ari_path': 'no_ramdisk',
-            'ipxe_timeout': 0}
-        self.assertEqual(expected_options, options)
+        self._test_build_pxe_config_options_ipxe(whle_dsk_img=True,
+                                                 ipxe_timeout=120)
 
     @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
     def test__cache_tftp_images_master_path(self, mock_fetch_image):
