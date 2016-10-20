@@ -119,7 +119,8 @@ IRONIC_VM_SPECS_CPU_ARCH=${IRONIC_VM_SPECS_CPU_ARCH:-'x86_64'}
 IRONIC_VM_SPECS_DISK=${IRONIC_VM_SPECS_DISK:-10}
 IRONIC_VM_SPECS_DISK_FORMAT=${IRONIC_VM_SPECS_DISK_FORMAT:-qcow2}
 IRONIC_VM_EPHEMERAL_DISK=${IRONIC_VM_EPHEMERAL_DISK:-0}
-IRONIC_VM_EMULATOR=${IRONIC_VM_EMULATOR:-/usr/bin/qemu-system-x86_64}
+IRONIC_VM_EMULATOR=${IRONIC_VM_EMULATOR:-}
+IRONIC_VM_ENGINE=${IRONIC_VM_ENGINE:-}
 IRONIC_VM_NETWORK_BRIDGE=${IRONIC_VM_NETWORK_BRIDGE:-brbm}
 IRONIC_VM_NETWORK_RANGE=${IRONIC_VM_NETWORK_RANGE:-192.0.2.0/24}
 IRONIC_VM_MACS_CSV_FILE=${IRONIC_VM_MACS_CSV_FILE:-$IRONIC_DATA_DIR/ironic_macs.csv}
@@ -127,6 +128,22 @@ IRONIC_AUTHORIZED_KEYS_FILE=${IRONIC_AUTHORIZED_KEYS_FILE:-$HOME/.ssh/authorized
 IRONIC_CLEAN_NET_NAME=${IRONIC_CLEAN_NET_NAME:-${IRONIC_PROVISION_NETWORK_NAME:-${PRIVATE_NETWORK_NAME}}}
 IRONIC_EXTRA_PXE_PARAMS=${IRONIC_EXTRA_PXE_PARAMS:-}
 IRONIC_TTY_DEV=${IRONIC_TTY_DEV:-ttyS0}
+
+# NOTE(vsaienko) nova already pick right libvirt type at
+# https://review.openstack.org/#/c/31177/4/lib/nova@240
+# pick hardware virtualization if possible while it is not set explicitly
+if [[ -z "$IRONIC_VM_ENGINE" ]]; then
+    sudo modprobe kvm || true
+    if [ ! -e /dev/kvm ]; then
+        echo "WARNING: Switching to QEMU"
+        IRONIC_VM_ENGINE=qemu
+        if [[ -z "$IRONIC_VM_EMULATOR" ]]; then
+            IRONIC_VM_EMULATOR='/usr/bin/qemu-system-x86_64'
+        fi
+    else
+        IRONIC_VM_ENGINE=kvm
+    fi
+fi
 
 # By default, baremetal VMs will console output to file.
 IRONIC_VM_LOG_CONSOLE=$(trueorfalse True IRONIC_VM_LOG_CONSOLE)
@@ -971,10 +988,16 @@ function create_bridge_and_vms {
 
     local vbmc_port=$IRONIC_VBMC_PORT_RANGE_START
     local vm_name
+    local vm_opts=""
+    if [[ -n "$IRONIC_VM_EMULATOR" ]]; then
+        vm_opts+=" -e $IRONIC_VM_EMULATOR"
+    fi
+    vm_opts+=" -E $IRONIC_VM_ENGINE"
+
     for vm_name in $(_ironic_bm_vm_names); do
         sudo -E su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/create-node.sh -n $vm_name \
             -c $IRONIC_VM_SPECS_CPU -m $IRONIC_VM_SPECS_RAM -d $IRONIC_VM_SPECS_DISK \
-            -a $IRONIC_VM_SPECS_CPU_ARCH -b $IRONIC_VM_NETWORK_BRIDGE -e $IRONIC_VM_EMULATOR \
+            -a $IRONIC_VM_SPECS_CPU_ARCH -b $IRONIC_VM_NETWORK_BRIDGE $vm_opts \
             -p $vbmc_port -f $IRONIC_VM_SPECS_DISK_FORMAT $log_arg" >> $IRONIC_VM_MACS_CSV_FILE
         vbmc_port=$((vbmc_port+1))
     done
