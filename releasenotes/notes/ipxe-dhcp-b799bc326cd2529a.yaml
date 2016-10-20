@@ -1,0 +1,4 @@
+---
+fixes:
+  - Remove "dhcp" command from the default iPXE script. It is redundant, and
+    may even break booting when the provisioning NIC is not the first one.
