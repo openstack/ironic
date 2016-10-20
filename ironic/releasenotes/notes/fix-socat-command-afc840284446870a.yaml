@@ -1,0 +1,8 @@
+---
+fixes:
+    - Fixes issue with socat console support where an unlimited
+      number of connections could be created, resulting in the prior
+      session being destroyed.  Connections are now limited
+      to a single connection per server.  Socat now closes the
+      console connection upon disconnect or timeout 10min.  To reconnect,
+      users should re-activate the console.

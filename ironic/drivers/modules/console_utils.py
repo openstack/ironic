@@ -282,13 +282,17 @@ def start_socat_console(node_uuid, port, console_cmd):
 
     # put together the command and arguments for invoking the console
     args = ['socat']
+    # set timeout check for user's connection. After 10min of inactivity
+    # on client side, connection will be closed.
+    # TODO(ashestakov) Make timeout value configurable
+    args.append('-T600')
     args.append('-L%s' % pid_file)
 
     console_host = CONF.my_ip
     if netutils.is_valid_ipv6(console_host):
-        arg = 'TCP6-LISTEN:%(port)s,bind=[%(host)s],reuseaddr,fork'
+        arg = 'TCP6-LISTEN:%(port)s,bind=[%(host)s],reuseaddr'
     else:
-        arg = 'TCP4-LISTEN:%(port)s,bind=%(host)s,reuseaddr,fork'
+        arg = 'TCP4-LISTEN:%(port)s,bind=%(host)s,reuseaddr'
     args.append(arg % {'host': console_host,
                        'port': port})
 
