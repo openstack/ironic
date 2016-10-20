@@ -68,11 +68,11 @@ PARTITION_IMAGE_LABELS = ('kernel', 'ramdisk', 'root_gb', 'root_mb', 'swap_mb',
 
 
 def build_instance_info_for_deploy(task):
-    # TODO(pas-ha) remove this at the end of Ocata release
-    LOG.warning(_LW("This function is moved to "
+    # TODO(pas-ha) remove this in Pike cycle
+    LOG.warning(_LW("This function has moved to "
                     "'ironic.drivers.modules.deploy_utils' module. "
                     "Using it from 'ironic.drivers.modules.agent' module "
-                    "is deprecated and will be impossible in Ocata release. "
+                    "is deprecated and will be removed in the Pike release. "
                     "Please update your driver to use this function "
                     "from its new location."))
     return deploy_utils.build_instance_info_for_deploy(task)
