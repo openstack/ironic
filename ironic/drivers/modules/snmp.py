@@ -444,7 +444,7 @@ class SNMPDriverAPCMasterSwitchPlus(SNMPDriverSimple):
 class SNMPDriverAPCRackPDU(SNMPDriverSimple):
     """SNMP driver class for APC RackPDU devices.
 
-    SNMP objects for APC SNMPDriverAPCMasterSwitch PDU:
+    SNMP objects for APC SNMPDriverAPCRackPDU PDU:
     # 1.3.6.1.4.1.318.1.1.12.3.3.1.1.4 rPDUOutletControlOutletCommand
     Values: 1=On, 2=Off, 3=PowerCycle, [...more options follow]
     """
