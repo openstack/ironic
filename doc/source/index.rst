@@ -76,7 +76,7 @@ primarily for developers.
 
   Ironic System Architecture <dev/architecture>
   Provisioning State Machine <dev/states>
-  Notifications <dev/notifications>
+  Developing New Notifications <dev/notifications>
 
 These pages contain information for PTLs, cross-project liaisons, and core
 reviewers.
@@ -158,10 +158,11 @@ of ironic that may or may not be suitable to every situation.
   Configuring RAID during deployment <deploy/raid>
   Security considerations for your Bare Metal installation <deploy/security>
   Adopting Nodes in an ACTIVE state <deploy/adoption>
-  Auditing API Traffic <deploy/api-audit-support>
   Configuring for Multi-tenant Networking <deploy/multitenancy>
   Configuring node web or serial console <deploy/console>
   Emitting software metrics <deploy/metrics>
+  Auditing API Traffic <deploy/api-audit-support>
+  Notifications <deploy/notifications>
   Configuration Reference <http://docs.openstack.org/draft/config-reference/bare-metal.html>
   Sample configuration file <https://git.openstack.org/cgit/openstack/ironic/tree/etc/ironic/ironic.conf.sample>
 
