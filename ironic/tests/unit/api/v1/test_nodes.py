@@ -1662,9 +1662,12 @@ class TestPost(test_api_base.BaseApiTest):
         self.addCleanup(p.stop)
 
     @mock.patch.object(timeutils, 'utcnow')
-    def _test_create_node(self, mock_utcnow, headers=None, **kwargs):
+    def _test_create_node(self, mock_utcnow, headers=None,
+                          remove_chassis_uuid=False, **kwargs):
         headers = headers or {}
         ndict = test_api_utils.post_get_test_node(**kwargs)
+        if remove_chassis_uuid:
+            del ndict['chassis_uuid']
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = test_time
         response = self.post_json('/nodes', ndict,
@@ -1686,6 +1689,20 @@ class TestPost(test_api_base.BaseApiTest):
 
     def test_create_node(self):
         self._test_create_node()
+
+    def test_create_node_chassis_uuid_always_in_response(self):
+        result = self._test_create_node(chassis_uuid=None)
+        self.assertEqual(None, result['chassis_uuid'])
+        result = self._test_create_node(uuid=uuidutils.generate_uuid(),
+                                        remove_chassis_uuid=True)
+        self.assertEqual(None, result['chassis_uuid'])
+
+    def test_create_node_invalid_chassis(self):
+        ndict = test_api_utils.post_get_test_node(chassis_uuid=0)
+        response = self.post_json('/nodes', ndict, expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(response.json['error_message'])
 
     def test_create_node_explicit_network_interface(self):
         headers = {api_base.Version.string: '1.20'}
