@@ -1,7 +1,4 @@
 enable_service ironic ir-api ir-cond
-# TODO(jroll) this hacks around a bug, remove when fixed in devstack
-# https://bugs.launchpad.net/devstack/+bug/1629133
-SUBNETPOOL_PREFIX_V4=$FIXED_RANGE
 
 # NOTE(vsaienko) mtu calculation has been changed recently to 1450
 # https://github.com/openstack/neutron/commit/51a697
