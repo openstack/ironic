@@ -45,15 +45,10 @@ def _get_glance_session():
     return _GLANCE_SESSION
 
 
-def import_versioned_module(version, submodule=None):
-    module = 'ironic.common.glance_service.v%s' % version
-    if submodule:
-        module = '.'.join((module, submodule))
-    return importutils.try_import(module)
-
-
 def GlanceImageService(client=None, version=1, context=None):
-    module = import_versioned_module(version, 'image_service')
+    module_str = 'ironic.common.glance_service'
+    module = importutils.import_versioned_module(module_str, version,
+                                                 'image_service')
     service_class = getattr(module, 'GlanceImageService')
     if (context is not None and CONF.glance.auth_strategy == 'keystone'
         and not context.auth_token):
