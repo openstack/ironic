@@ -24,6 +24,7 @@ import tempfile
 import mock
 from oslo_concurrency import processutils
 from oslo_config import cfg
+from oslo_utils import netutils
 import six
 
 from ironic.common import exception
@@ -247,17 +248,6 @@ class GenericUtilsTestCase(base.TestCase):
         self.assertRaises(exception.InvalidParameterValue, utils.hash_file,
                           file_like_object, 'hickory-dickory-dock')
 
-    def test_is_valid_mac(self):
-        self.assertTrue(utils.is_valid_mac("52:54:00:cf:2d:31"))
-        self.assertTrue(utils.is_valid_mac(u"52:54:00:cf:2d:31"))
-        self.assertFalse(utils.is_valid_mac("127.0.0.1"))
-        self.assertFalse(utils.is_valid_mac("not:a:mac:address"))
-        self.assertFalse(utils.is_valid_mac("52-54-00-cf-2d-31"))
-        self.assertFalse(utils.is_valid_mac("aa bb cc dd ee ff"))
-        self.assertTrue(utils.is_valid_mac("AA:BB:CC:DD:EE:FF"))
-        self.assertFalse(utils.is_valid_mac("AA BB CC DD EE FF"))
-        self.assertFalse(utils.is_valid_mac("AA-BB-CC-DD-EE-FF"))
-
     def test_is_valid_datapath_id(self):
         self.assertTrue(utils.is_valid_datapath_id("525400cf2d319fdf"))
         self.assertTrue(utils.is_valid_datapath_id("525400CF2D319FDF"))
@@ -332,7 +322,8 @@ class GenericUtilsTestCase(base.TestCase):
 
     def test_validate_and_normalize_mac(self):
         mac = 'AA:BB:CC:DD:EE:FF'
-        with mock.patch.object(utils, 'is_valid_mac', autospec=True) as m_mock:
+        with mock.patch.object(netutils, 'is_valid_mac',
+                               autospec=True) as m_mock:
             m_mock.return_value = True
             self.assertEqual(mac.lower(),
                              utils.validate_and_normalize_mac(mac))
@@ -347,7 +338,8 @@ class GenericUtilsTestCase(base.TestCase):
                                  datapath_id))
 
     def test_validate_and_normalize_mac_invalid_format(self):
-        with mock.patch.object(utils, 'is_valid_mac', autospec=True) as m_mock:
+        with mock.patch.object(netutils, 'is_valid_mac',
+                               autospec=True) as m_mock:
             m_mock.return_value = False
             self.assertRaises(exception.InvalidMAC,
                               utils.validate_and_normalize_mac, 'invalid-mac')

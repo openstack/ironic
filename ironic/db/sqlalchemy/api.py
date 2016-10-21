@@ -24,6 +24,7 @@ from oslo_db import exception as db_exc
 from oslo_db.sqlalchemy import enginefacade
 from oslo_db.sqlalchemy import utils as db_utils
 from oslo_log import log
+from oslo_utils import netutils
 from oslo_utils import strutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
@@ -34,7 +35,6 @@ from sqlalchemy import sql
 from ironic.common import exception
 from ironic.common.i18n import _, _LW
 from ironic.common import states
-from ironic.common import utils
 from ironic.conf import CONF
 from ironic.db import api
 from ironic.db.sqlalchemy import models
@@ -102,7 +102,7 @@ def add_port_filter(query, value):
     :param value: Value for filtering results by.
     :return: Modified query.
     """
-    if utils.is_valid_mac(value):
+    if netutils.is_valid_mac(value):
         return query.filter_by(address=value)
     else:
         return add_identity_filter(query, value)
@@ -127,7 +127,7 @@ def add_portgroup_filter(query, value):
     :param value: Value for filtering results by.
     :return: Modified query.
     """
-    if utils.is_valid_mac(value):
+    if netutils.is_valid_mac(value):
         return query.filter_by(address=value)
     else:
         return add_identity_filter(query, value)

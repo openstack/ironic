@@ -13,12 +13,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_utils import netutils
 from oslo_utils import strutils
 from oslo_utils import uuidutils
 from oslo_versionedobjects import base as object_base
 
 from ironic.common import exception
-from ironic.common import utils
 from ironic.db import api as dbapi
 from ironic.objects import base
 from ironic.objects import fields as object_fields
@@ -77,7 +77,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
             return cls.get_by_id(context, port_id)
         elif uuidutils.is_uuid_like(port_id):
             return cls.get_by_uuid(context, port_id)
-        elif utils.is_valid_mac(port_id):
+        elif netutils.is_valid_mac(port_id):
             return cls.get_by_address(context, port_id)
         else:
             raise exception.InvalidIdentity(identity=port_id)
