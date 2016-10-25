@@ -5,9 +5,9 @@
 # Yuta Hono <yuta.hono@ntt.com>, 2016. #zanata
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 6.2.1.dev114\n"
+"Project-Id-Version: ironic 6.2.1.dev213\n"
 "Report-Msgid-Bugs-To: https://bugs.launchpad.net/openstack-i18n/\n"
-"POT-Creation-Date: 2016-10-06 23:40+0000\n"
+"POT-Creation-Date: 2016-10-21 13:44+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -101,13 +101,6 @@ msgstr "「qemu-img info」の解析に失敗しました。"
 #, python-format
 msgid "'set_power_state' called with invalid power state '%s'"
 msgstr "無効な電源状態「%s」で「set_power_state」が呼び出されました"
-
-msgid ""
-"(list of) filename(s) of optional private key(s) for authentication. One of "
-"this, ssh_key_contents, or ssh_password must be specified."
-msgstr ""
-"認証に使用するオプションの秘密鍵のファイル名 (の一覧)。この中の 1 つ、"
-"ssh_key_contents、または ssh_password のいずれかを指定する必要があります。"
 
 #, python-format
 msgid "A chassis with UUID %(uuid)s already exists."
@@ -1385,9 +1378,6 @@ msgstr "リソースが一時的に使用できません。再試行してくだ
 msgid "Retrieve IP address on port: %(port_id)s failed."
 msgstr "ポート %(port_id)s での IP アドレスの取得に失敗しました。"
 
-msgid "Root device hint \"size\" is not an integer value."
-msgstr "ルートデバイスヒント「size」が整数値ではありません。"
-
 #, python-format
 msgid "SNMP driver requires snmp_community to be set for version %s."
 msgstr ""
@@ -1603,14 +1593,6 @@ msgstr "ノードの driver_info に次の必須 iLO パラメーターがあり
 #, python-format
 msgid "The given image info does not have a valid image id: %s"
 msgstr "指定されたイメージ情報には有効なイメージ ID がありません: %s"
-
-#, python-format
-msgid ""
-"The hints \"%(invalid_hints)s\" are invalid. Valid hints are: "
-"\"%(valid_hints)s\""
-msgstr ""
-"ヒント「%(invalid_hints)s」は無効です。有効なヒントは以下のとおりです: "
-"「%(valid_hints)s」"
 
 msgid ""
 "The maximum number of items returned in a single response from a collection "
@@ -2013,14 +1995,6 @@ msgstr ""
 msgid "password for ilo_username. Required."
 msgstr "ilo_username のパスワード。必須。"
 
-msgid ""
-"password to use for authentication or for unlocking a private key. One of "
-"this, ssh_key_contents, or ssh_key_filename must be specified."
-msgstr ""
-"認証または秘密鍵のロック解除に使用するパスワード。この中の 1 つ、"
-"ssh_key_contents、または ssh_key_filename のいずれかを指定する必要がありま"
-"す。"
-
 msgid "password used for authentication. Required."
 msgstr "認証に使用するパスワード。必須。"
 
@@ -2045,13 +2019,6 @@ msgstr "WS-Man エンドポイントに使用するポート。デフォルト�
 
 msgid "post object"
 msgstr "post オブジェクト"
-
-msgid ""
-"private key(s). One of this, ssh_key_filename, or ssh_password must be "
-"specified."
-msgstr ""
-"秘密鍵。ssh_key_filename または ssh_password のどちらかを指定する必要がありま"
-"す。"
 
 #, python-format
 msgid "privilege level; default is ADMINISTRATOR. One of %s. Optional."
