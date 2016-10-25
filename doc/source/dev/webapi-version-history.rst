@@ -2,6 +2,10 @@
 REST API Version History
 ========================
 
+**1.25**
+
+    Add possibility to unset chassis_uuid from a node.
+
 **1.24**
 
     Added new endpoints '/v1/nodes/<node>/portgroups' and '/v1/portgroups/<portgroup>/ports'.
