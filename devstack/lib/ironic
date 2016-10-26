@@ -570,7 +570,7 @@ function configure_ironic_provision_network {
     # Add vlan on br interface in case of IRONIC_PROVISION_PROVIDER_NETWORK_TYPE==vlan
     # othervise assign ip to br interface directly.
     if [[ "$IRONIC_PROVISION_PROVIDER_NETWORK_TYPE" == "vlan" ]]; then
-        sudo vconfig add $OVS_PHYSICAL_BRIDGE $IRONIC_PROVISION_SEGMENTATION_ID
+        sudo ip link add link $OVS_PHYSICAL_BRIDGE name $OVS_PHYSICAL_BRIDGE.$IRONIC_PROVISION_SEGMENTATION_ID type vlan id $IRONIC_PROVISION_SEGMENTATION_ID
         sudo ip link set dev $OVS_PHYSICAL_BRIDGE.$IRONIC_PROVISION_SEGMENTATION_ID up
         sudo ip addr add dev $OVS_PHYSICAL_BRIDGE.$IRONIC_PROVISION_SEGMENTATION_ID $IRONIC_PROVISION_SUBNET_GATEWAY/$provision_net_prefix
     else
