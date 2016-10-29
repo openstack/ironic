@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2015 Dell, Inc.
+# Copyright (c) 2015-2016 Dell Inc. or its subsidiaries.
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -28,7 +28,6 @@ from ironic.drivers.modules.drac import common as drac_common
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
-from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 INFO_DICT = db_utils.get_test_drac_info()
@@ -51,15 +50,13 @@ class DracBIOSConfigurationTestCase(db_base.DbTestCase):
         self.addCleanup(patch_get_drac_client.stop)
 
         proc_virt_attr = {
-            'name': 'ProcVirtualization',
             'current_value': 'Enabled',
             'pending_value': None,
             'read_only': False,
             'possible_values': ['Enabled', 'Disabled']}
-        self.bios_attrs = {
-            'ProcVirtualization': test_utils.dict_to_namedtuple(
-                values=proc_virt_attr)
-        }
+        mock_proc_virt_attr = mock.NonCallableMock(spec=[], **proc_virt_attr)
+        mock_proc_virt_attr.name = 'ProcVirtualization'
+        self.bios_attrs = {'ProcVirtualization': mock_proc_virt_attr}
 
     def test_get_config(self):
         self.mock_client.list_bios_settings.return_value = self.bios_attrs
