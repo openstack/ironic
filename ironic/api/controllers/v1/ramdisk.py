@@ -13,6 +13,7 @@
 #    under the License.
 
 from oslo_config import cfg
+from oslo_log import log
 import pecan
 from pecan import rest
 from six.moves import http_client
@@ -24,12 +25,15 @@ from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
 from ironic.common import exception
+from ironic.common.i18n import _LW
 from ironic.common import policy
 from ironic.common import states
+from ironic.common import utils
 from ironic import objects
 
 
 CONF = cfg.CONF
+LOG = log.getLogger(__name__)
 
 _LOOKUP_RETURN_FIELDS = ('uuid', 'properties', 'instance_info',
                          'driver_internal_info')
@@ -78,7 +82,7 @@ class LookupResult(base.APIBase):
 class LookupController(rest.RestController):
     """Controller handling node lookup for a deploy ramdisk."""
 
-    @expose.expose(LookupResult, types.list_of_macaddress, types.uuid)
+    @expose.expose(LookupResult, types.listtype, types.uuid)
     def get_all(self, addresses=None, node_uuid=None):
         """Look up a node by its MAC addresses and optionally UUID.
 
@@ -97,7 +101,29 @@ class LookupController(rest.RestController):
         cdict = pecan.request.context.to_dict()
         policy.authorize('baremetal:driver:ipa_lookup', cdict, cdict)
 
-        if not addresses and not node_uuid:
+        # Validate the list of MAC addresses
+        if addresses is None:
+            addresses = []
+
+        valid_addresses = []
+        invalid_addresses = []
+        for addr in addresses:
+            try:
+                mac = utils.validate_and_normalize_mac(addr)
+                valid_addresses.append(mac)
+            except exception.InvalidMAC:
+                invalid_addresses.append(addr)
+
+        if invalid_addresses:
+            node_log = ('' if not node_uuid
+                        else _LW('(Node UUID: %s)') % node_uuid)
+            LOG.warning(_LW('The following MAC addresses "%(addrs)s" are '
+                            'invalid and will be ignored by the lookup '
+                            'request %(node)s'),
+                        {'addrs': ', '.join(invalid_addresses),
+                         'node': node_log})
+
+        if not valid_addresses and not node_uuid:
             raise exception.IncompleteLookup()
 
         try:
@@ -106,7 +132,7 @@ class LookupController(rest.RestController):
                     pecan.request.context, node_uuid)
             else:
                 node = objects.Node.get_by_port_addresses(
-                    pecan.request.context, addresses)
+                    pecan.request.context, valid_addresses)
         except exception.NotFound:
             # NOTE(dtantsur): we are reraising the same exception to make sure
             # we don't disclose the difference between nodes that are not found

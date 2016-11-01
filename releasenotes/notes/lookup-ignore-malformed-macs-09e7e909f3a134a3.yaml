@@ -1,0 +1,8 @@
+---
+fixes:
+  - Fixes a problem where the deployment of a node would fail to continue
+    if a malformed MAC address was passed to the lookup mechanism in the
+    Ironic API. For example, if a node contains an Infiniband card, the
+    lookup used to fail because the agent ramdisk passes a MAC address
+    (or GID) with 20 octets (instead of the expected 6 octets) as part
+    of the lookup request. Invalid addresses are now ignored.
