@@ -8,6 +8,9 @@
     <bootmenu enable='no'/>
     <bios useserial='yes'/>
   </os>
+  {% if engine == 'kvm' %}
+    <cpu mode='host-passthrough'/>
+  {% endif %}
   <features>
     <acpi/>
     <apic/>
