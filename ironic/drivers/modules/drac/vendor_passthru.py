@@ -65,9 +65,7 @@ class DracVendorPassthru(base.VendorInterface):
         """
         bios_attrs = {}
         for name, bios_attr in drac_bios.get_config(task.node).items():
-            # NOTE(ifarkas): call from python-dracclient returns list of
-            #                namedtuples, converting it to dict here.
-            bios_attrs[name] = bios_attr._asdict()
+            bios_attrs[name] = bios_attr.__dict__
 
         return bios_attrs
 
