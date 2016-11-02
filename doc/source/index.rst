@@ -85,6 +85,7 @@ reviewers.
   :maxdepth: 1
 
   Releasing Ironic Projects <dev/releasing>
+  Ironic Governance Structure <dev/governance>
 
 
 Writing Drivers
