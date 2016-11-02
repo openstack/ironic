@@ -1,7 +1,5 @@
 #!ipxe
 
-dhcp
-
 goto deploy
 
 :deploy
