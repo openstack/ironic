@@ -15,6 +15,7 @@
 
 
 import contextlib
+import glob
 import os
 import re
 import time
@@ -174,10 +175,14 @@ def check_file_system_for_iscsi_device(portal_address,
         if os.path.exists(check_dir):
             break
         time.sleep(1)
-        LOG.debug("iSCSI connection not seen by file system. Rechecking. "
-                  "Attempt %(attempt)d out of %(total)d",
-                  {"attempt": attempt + 1,
-                   "total": total_checks})
+        if LOG.isEnabledFor(logging.DEBUG):
+            existing_devs = ', '.join(glob.iglob('/dev/disk/by-path/*iscsi*'))
+            LOG.debug("iSCSI connection not seen by file system. Rechecking. "
+                      "Attempt %(attempt)d out of %(total)d. Available iSCSI "
+                      "devices: %(devs)s.",
+                      {"attempt": attempt + 1,
+                       "total": total_checks,
+                       "devs": existing_devs})
     else:
         msg = _("iSCSI connection was not seen by the file system after "
                 "attempting to verify %d times.") % total_checks
