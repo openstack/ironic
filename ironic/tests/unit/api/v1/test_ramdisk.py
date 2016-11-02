@@ -100,6 +100,23 @@ class TestLookup(test_api_base.BaseApiTest):
                          set(data['node']))
         self._check_config(data)
 
+    @mock.patch.object(ramdisk.LOG, 'warning', autospec=True)
+    def test_ignore_malformed_address(self, mock_log):
+        obj_utils.create_test_port(self.context,
+                                   node_id=self.node.id,
+                                   address=self.addresses[1])
+
+        addresses = ('not-a-valid-address,80:00:02:48:fe:80:00:00:00:00:00:00'
+                     ':f4:52:14:03:00:54:06:c2,' + ','.join(self.addresses))
+        data = self.get_json(
+            '/lookup?addresses=%s' % addresses,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        self.assertEqual(self.node.uuid, data['node']['uuid'])
+        self.assertEqual(set(ramdisk._LOOKUP_RETURN_FIELDS) | {'links'},
+                         set(data['node']))
+        self._check_config(data)
+        self.assertTrue(mock_log.called)
+
     def test_found_by_uuid(self):
         data = self.get_json(
             '/lookup?addresses=%s&node_uuid=%s' %

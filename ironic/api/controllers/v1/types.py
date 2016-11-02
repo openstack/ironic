@@ -176,26 +176,6 @@ class ListType(wtypes.UserType):
         return ListType.validate(value)
 
 
-class ListOfMacAddressesType(ListType):
-    """List of MAC addresses."""
-
-    @staticmethod
-    def validate(value):
-        """Validate and convert the input to a ListOfMacAddressesType.
-
-        :param value: A comma separated string of MAC addresses.
-        :returns: A list of unique MACs, whose order is not guaranteed.
-        """
-        items = ListType.validate(value)
-        return [MacAddressType.validate(item) for item in items]
-
-    @staticmethod
-    def frombasetype(value):
-        if value is None:
-            return None
-        return ListOfMacAddressesType.validate(value)
-
-
 macaddress = MacAddressType()
 uuid_or_name = UuidOrNameType()
 name = NameType()
@@ -204,7 +184,6 @@ boolean = BooleanType()
 listtype = ListType()
 # Can't call it 'json' because that's the name of the stdlib module
 jsontype = JsonType()
-list_of_macaddress = ListOfMacAddressesType()
 
 
 class JsonPatchType(wtypes.Base):
