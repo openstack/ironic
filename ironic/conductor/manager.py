@@ -2579,19 +2579,23 @@ def _do_inspect_hardware(task):
     """
     node = task.node
 
-    def handle_failure(e):
+    def handle_failure(e, log_func=LOG.error):
         node.last_error = e
         task.process_event('fail')
-        LOG.error(_LE("Failed to inspect node %(node)s: %(err)s"),
-                  {'node': node.uuid, 'err': e})
+        log_func(_LE("Failed to inspect node %(node)s: %(err)s"),
+                 {'node': node.uuid, 'err': e})
 
     try:
         new_state = task.driver.inspect.inspect_hardware(task)
-
-    except Exception as e:
+    except exception.IronicException as e:
         with excutils.save_and_reraise_exception():
             error = str(e)
             handle_failure(error)
+    except Exception as e:
+        error = (_('Unexpected exception of type %(type)s: %(msg)s') %
+                 {'type': type(e).__name__, 'msg': e})
+        handle_failure(error, log_func=LOG.exception)
+        raise exception.HardwareInspectionFailure(error=error)
 
     if new_state == states.MANAGEABLE:
         task.process_event('done')

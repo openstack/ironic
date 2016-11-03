@@ -4754,12 +4754,32 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin,
                                           target_provision_state=state)
         task = task_manager.TaskManager(self.context, node.uuid)
 
-        self.assertRaises(exception.HardwareInspectionFailure,
-                          manager._do_inspect_hardware, task)
+        self.assertRaisesRegex(exception.HardwareInspectionFailure, '^test$',
+                               manager._do_inspect_hardware, task)
         node.refresh()
         self.assertEqual(states.INSPECTFAIL, node.provision_state)
         self.assertEqual(states.MANAGEABLE, node.target_provision_state)
-        self.assertIsNotNone(node.last_error)
+        self.assertEqual('test', node.last_error)
+        self.assertTrue(mock_inspect.called)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware')
+    def test_inspect_hardware_unexpected_error(self, mock_inspect):
+        self._start_service()
+        mock_inspect.side_effect = RuntimeError('x')
+        state = states.MANAGEABLE
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.INSPECTING,
+                                          target_provision_state=state)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        self.assertRaisesRegex(exception.HardwareInspectionFailure,
+                               'Unexpected exception of type RuntimeError: x',
+                               manager._do_inspect_hardware, task)
+        node.refresh()
+        self.assertEqual(states.INSPECTFAIL, node.provision_state)
+        self.assertEqual(states.MANAGEABLE, node.target_provision_state)
+        self.assertEqual('Unexpected exception of type RuntimeError: x',
+                         node.last_error)
         self.assertTrue(mock_inspect.called)
 
 

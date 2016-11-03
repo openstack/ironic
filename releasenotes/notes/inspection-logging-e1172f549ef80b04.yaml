@@ -1,0 +1,4 @@
+---
+fixes:
+  - Correctly handle unexpected exceptions during inspection. Return more
+    detailed error message to a user and log the traceback.
