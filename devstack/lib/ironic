@@ -428,16 +428,19 @@ function setup_virtualbmc {
 
 # install_ironic() - Install the things!
 function install_ironic {
-    # make sure all needed service were enabled
-    local req_services="key"
-    if [[ "$VIRT_DRIVER" == "ironic" ]]; then
-        req_services+=" nova glance neutron"
-    fi
-    for srv in $req_services; do
-        if ! is_service_enabled "$srv"; then
-            die $LINENO "$srv should be enabled for Ironic."
+    # NOTE(vsaienko) do not check required_services on subnode
+    if [[ "$HOST_TOPOLOGY_ROLE" != "subnode" ]]; then
+        # make sure all needed service were enabled
+        local req_services="key"
+        if [[ "$VIRT_DRIVER" == "ironic" ]]; then
+            req_services+=" nova glance neutron"
         fi
-    done
+        for srv in $req_services; do
+            if ! is_service_enabled "$srv"; then
+                die $LINENO "$srv should be enabled for Ironic."
+            fi
+        done
+    fi
 
     if use_library_from_git "ironic-lib"; then
         git_clone_by_name "ironic-lib"
