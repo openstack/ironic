@@ -21,6 +21,7 @@ from ironic.common import exception
 from ironic.db import api as dbapi
 from ironic.objects import base
 from ironic.objects import fields as object_fields
+from ironic.objects import notification
 
 
 @base.IronicObjectRegistry.register
@@ -195,3 +196,40 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
         """
         current = self.__class__.get_by_uuid(self._context, uuid=self.uuid)
         self.obj_refresh(current)
+
+
+@base.IronicObjectRegistry.register
+class ChassisCRUDNotification(notification.NotificationBase):
+    """Notification emitted when ironic creates, updates, deletes a chassis."""
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'payload': object_fields.ObjectField('ChassisCRUDPayload')
+    }
+
+
+@base.IronicObjectRegistry.register
+class ChassisCRUDPayload(notification.NotificationPayloadBase):
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    SCHEMA = {
+        'description': ('chassis', 'description'),
+        'extra': ('chassis', 'extra'),
+        'created_at': ('chassis', 'created_at'),
+        'updated_at': ('chassis', 'updated_at'),
+        'uuid': ('chassis', 'uuid')
+    }
+
+    fields = {
+        'description': object_fields.StringField(nullable=True),
+        'extra': object_fields.FlexibleDictField(nullable=True),
+        'created_at': object_fields.DateTimeField(nullable=True),
+        'updated_at': object_fields.DateTimeField(nullable=True),
+        'uuid': object_fields.UUIDField()
+    }
+
+    def __init__(self, chassis, **kwargs):
+        super(ChassisCRUDPayload, self).__init__(**kwargs)
+        self.populate_schema(chassis=chassis)

@@ -31,6 +31,7 @@ from wsme import types as wtypes
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import node as api_node
+from ironic.api.controllers.v1 import notification_utils
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import versions
 from ironic.common import boot_devices
@@ -39,6 +40,7 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import rpcapi
 from ironic import objects
+from ironic.objects import fields as obj_fields
 from ironic.tests import base
 from ironic.tests.unit.api import base as test_api_base
 from ironic.tests.unit.api import utils as test_api_utils
@@ -1077,7 +1079,8 @@ class TestPatch(test_api_base.BaseApiTest):
         self.mock_cnps = p.start()
         self.addCleanup(p.stop)
 
-    def test_update_ok(self):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_update_ok(self, mock_notify):
         self.mock_update_node.return_value = self.node
         (self
          .mock_update_node
@@ -1094,6 +1097,14 @@ class TestPatch(test_api_base.BaseApiTest):
                          timeutils.parse_isotime(response.json['updated_at']))
         self.mock_update_node.assert_called_once_with(
             mock.ANY, mock.ANY, 'test-topic')
+        mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'update',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.START,
+                                      chassis_uuid=self.chassis.uuid),
+                                      mock.call(mock.ANY, mock.ANY, 'update',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.END,
+                                      chassis_uuid=self.chassis.uuid)])
 
     def test_update_by_name_unsupported(self):
         self.mock_update_node.return_value = self.node
@@ -1137,7 +1148,8 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
-    def test_update_fails_bad_driver_info(self):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_update_fails_bad_driver_info(self, mock_notify):
         fake_err = 'Fake Error Message'
         self.mock_update_node.side_effect = (
             exception.InvalidParameterValue(fake_err))
@@ -1155,6 +1167,14 @@ class TestPatch(test_api_base.BaseApiTest):
 
         self.mock_update_node.assert_called_once_with(
             mock.ANY, mock.ANY, 'test-topic')
+        mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'update',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.START,
+                                      chassis_uuid=self.chassis.uuid),
+                                      mock.call(mock.ANY, mock.ANY, 'update',
+                                      obj_fields.NotificationLevel.ERROR,
+                                      obj_fields.NotificationStatus.ERROR,
+                                      chassis_uuid=self.chassis.uuid)])
 
     def test_update_fails_bad_driver(self):
         self.mock_gtf.side_effect = exception.NoValidHost('Fake Error')
@@ -1765,8 +1785,12 @@ class TestPost(test_api_base.BaseApiTest):
                          expected_location)
         return result
 
-    def test_create_node(self):
+    @mock.patch.object(notification_utils.LOG, 'exception', autospec=True)
+    @mock.patch.object(notification_utils.LOG, 'warning', autospec=True)
+    def test_create_node(self, mock_warning, mock_exception):
         self._test_create_node()
+        self.assertFalse(mock_warning.called)
+        self.assertFalse(mock_exception.called)
 
     def test_create_node_chassis_uuid_always_in_response(self):
         result = self._test_create_node(chassis_uuid=None)
@@ -2037,7 +2061,8 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(urlparse.urlparse(response.location).path,
                          expected_location)
 
-    def test_create_node_with_chassis_uuid(self):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_create_node_with_chassis_uuid(self, mock_notify):
         ndict = test_api_utils.post_get_test_node(
             chassis_uuid=self.chassis.uuid)
         response = self.post_json('/nodes', ndict)
@@ -2050,6 +2075,14 @@ class TestPost(test_api_base.BaseApiTest):
         expected_location = '/v1/nodes/%s' % ndict['uuid']
         self.assertEqual(urlparse.urlparse(response.location).path,
                          expected_location)
+        mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'create',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.START,
+                                      chassis_uuid=self.chassis.uuid),
+                                      mock.call(mock.ANY, mock.ANY, 'create',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.END,
+                                      chassis_uuid=self.chassis.uuid)])
 
     def test_create_node_chassis_uuid_not_found(self):
         ndict = test_api_utils.post_get_test_node(
@@ -2145,11 +2178,20 @@ class TestDelete(test_api_base.BaseApiTest):
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
 
+    @mock.patch.object(notification_utils, '_emit_api_notification')
     @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node')
-    def test_delete_node(self, mock_dn):
+    def test_delete_node(self, mock_dn, mock_notify):
         node = obj_utils.create_test_node(self.context)
         self.delete('/nodes/%s' % node.uuid)
         mock_dn.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+        mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'delete',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.START,
+                                      chassis_uuid=None),
+                                      mock.call(mock.ANY, mock.ANY, 'delete',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.END,
+                                      chassis_uuid=None)])
 
     @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node')
     def test_delete_node_by_name_unsupported(self, mock_dn):
@@ -2224,8 +2266,9 @@ class TestDelete(test_api_base.BaseApiTest):
             headers={'X-OpenStack-Ironic-API-Version': '1.24'})
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
+    @mock.patch.object(notification_utils, '_emit_api_notification')
     @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node')
-    def test_delete_associated(self, mock_dn):
+    def test_delete_associated(self, mock_dn, mock_notify):
         node = obj_utils.create_test_node(
             self.context,
             instance_uuid='aaaaaaaa-1111-bbbb-2222-cccccccccccc')
@@ -2235,6 +2278,14 @@ class TestDelete(test_api_base.BaseApiTest):
         response = self.delete('/nodes/%s' % node.uuid, expect_errors=True)
         self.assertEqual(http_client.CONFLICT, response.status_int)
         mock_dn.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+        mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'delete',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.START,
+                                      chassis_uuid=None),
+                                      mock.call(mock.ANY, mock.ANY, 'delete',
+                                      obj_fields.NotificationLevel.ERROR,
+                                      obj_fields.NotificationStatus.ERROR,
+                                      chassis_uuid=None)])
 
     @mock.patch.object(objects.Node, 'get_by_uuid')
     @mock.patch.object(rpcapi.ConductorAPI, 'update_node')

@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 from oslo_config import cfg
+from oslo_utils import strutils
 
 from ironic.common import exception
 from ironic.common import rpc
@@ -182,3 +183,16 @@ class NotificationPublisher(base.IronicObject):
         'service': fields.StringField(nullable=False),
         'host': fields.StringField(nullable=False)
     }
+
+
+def mask_secrets(payload):
+    """Remove secrets from payload object."""
+    mask = '******'
+    if hasattr(payload, 'instance_info'):
+        payload.instance_info = strutils.mask_dict_password(
+            payload.instance_info, mask)
+        if 'image_url' in payload.instance_info:
+            payload.instance_info['image_url'] = mask
+    if hasattr(payload, 'driver_info'):
+        payload.driver_info = strutils.mask_dict_password(
+            payload.driver_info, mask)

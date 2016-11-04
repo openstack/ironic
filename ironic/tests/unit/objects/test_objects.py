@@ -412,17 +412,23 @@ expected_object_fingerprints = {
     'Conductor': '1.1-5091f249719d4a465062a1b3dc7f860d',
     'EventType': '1.1-aa2ba1afd38553e3880c267404e8d370',
     'NotificationPublisher': '1.0-51a09397d6c0687771fb5be9a999605d',
-    'NodePayload': '1.1-d895cf6411ac666f9e982f85ea0a9499',
+    'NodePayload': '1.2-f4e7a1def3b2a5784863eeed46e3a25f',
     'NodeSetPowerStateNotification': '1.0-59acc533c11d306f149846f922739c15',
-    'NodeSetPowerStatePayload': '1.1-b8fab1bea5a2da5900445ab515e41715',
+    'NodeSetPowerStatePayload': '1.2-06b6daec792fdef69c672ab5899c6a07',
     'NodeCorrectedPowerStateNotification': '1.0-59acc533c11d306f149846f922739'
                                            'c15',
-    'NodeCorrectedPowerStatePayload': '1.1-5d1544defc858ae8a722f4cadd511bac',
+    'NodeCorrectedPowerStatePayload': '1.2-ef6515d2f20944f4ed3d3e06a6476396',
     'NodeSetProvisionStateNotification':
         '1.0-59acc533c11d306f149846f922739c15',
-    'NodeSetProvisionStatePayload': '1.1-743be1f5748f346e3da33390983172b1',
+    'NodeSetProvisionStatePayload': '1.2-2695d18d1eccbb0f5d3bbcb0575630dc',
     'VolumeConnector': '1.0-3e0252c0ab6e6b9d158d09238a577d97',
     'VolumeTarget': '1.0-0b10d663d8dae675900b2c7548f76f5e',
+    'ChassisCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
+    'ChassisCRUDPayload': '1.0-dce63895d8186279a7dd577cffccb202',
+    'NodeCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
+    'NodeCRUDPayload': '1.0-37bb4cdd2c84b59fd6ad0547dbf713a0',
+    'PortCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
+    'PortCRUDPayload': '1.0-88acd98c9b08b4c8810e77793152057b'
 }
 
 

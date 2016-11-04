@@ -29,6 +29,7 @@ from wsme import types as wtypes
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
+from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import port
 from ironic.api.controllers.v1 import portgroup
 from ironic.api.controllers.v1 import types
@@ -776,7 +777,9 @@ class Node(base.APIBase):
         # that as_dict() will contain chassis_id field when converting it
         # before saving it in the database.
         self.fields.append('chassis_id')
-        setattr(self, 'chassis_uuid', kwargs.get('chassis_id', wtypes.Unset))
+        if 'chassis_uuid' not in kwargs:
+            setattr(self, 'chassis_uuid', kwargs.get('chassis_id',
+                                                     wtypes.Unset))
 
     @staticmethod
     def _convert_with_links(node, url, fields=None, show_states_links=True,
@@ -1395,7 +1398,8 @@ class NodesController(rest.RestController):
 
         :param node: a node within the request body.
         """
-        cdict = pecan.request.context.to_policy_values()
+        context = pecan.request.context
+        cdict = context.to_policy_values()
         policy.authorize('baremetal:node:create', cdict, cdict)
 
         if self.from_chassis:
@@ -1431,13 +1435,19 @@ class NodesController(rest.RestController):
             self._check_names_acceptable([node.name], error_msg)
         node.provision_state = api_utils.initial_node_provision_state()
 
-        new_node = objects.Node(pecan.request.context,
-                                **node.as_dict())
-        new_node = pecan.request.rpcapi.create_node(
-            pecan.request.context, new_node, topic)
+        new_node = objects.Node(context, **node.as_dict())
+        notify.emit_start_notification(context, new_node, 'create',
+                                       chassis_uuid=node.chassis_uuid)
+        with notify.handle_error_notification(context, new_node, 'create',
+                                              chassis_uuid=node.chassis_uuid):
+            new_node = pecan.request.rpcapi.create_node(context,
+                                                        new_node, topic)
         # Set the HTTP Location Header
         pecan.response.location = link.build_url('nodes', new_node.uuid)
-        return Node.convert_with_links(new_node)
+        api_node = Node.convert_with_links(new_node)
+        notify.emit_end_notification(context, new_node, 'create',
+                                     chassis_uuid=api_node.chassis_uuid)
+        return api_node
 
     @METRICS.timer('NodesController.patch')
     @wsme.validate(types.uuid, [NodePatchType])
@@ -1448,7 +1458,8 @@ class NodesController(rest.RestController):
         :param node_ident: UUID or logical name of a node.
         :param patch: a json PATCH document to apply to this node.
         """
-        cdict = pecan.request.context.to_policy_values()
+        context = pecan.request.context
+        cdict = context.to_policy_values()
         policy.authorize('baremetal:node:update', cdict, cdict)
 
         if self.from_chassis:
@@ -1508,10 +1519,19 @@ class NodesController(rest.RestController):
             e.code = http_client.BAD_REQUEST
             raise
         self._check_driver_changed_and_console_enabled(rpc_node, node_ident)
-        new_node = pecan.request.rpcapi.update_node(
-            pecan.request.context, rpc_node, topic)
 
-        return Node.convert_with_links(new_node)
+        notify.emit_start_notification(context, rpc_node, 'update',
+                                       chassis_uuid=node.chassis_uuid)
+        with notify.handle_error_notification(context, rpc_node, 'update',
+                                              chassis_uuid=node.chassis_uuid):
+            new_node = pecan.request.rpcapi.update_node(context,
+                                                        rpc_node, topic)
+
+        api_node = Node.convert_with_links(new_node)
+        notify.emit_end_notification(context, new_node, 'update',
+                                     chassis_uuid=api_node.chassis_uuid)
+
+        return api_node
 
     @METRICS.timer('NodesController.delete')
     @expose.expose(None, types.uuid_or_name,
@@ -1521,19 +1541,28 @@ class NodesController(rest.RestController):
 
         :param node_ident: UUID or logical name of a node.
         """
-        cdict = pecan.request.context.to_policy_values()
+        context = pecan.request.context
+        cdict = context.to_policy_values()
         policy.authorize('baremetal:node:delete', cdict, cdict)
 
         if self.from_chassis:
             raise exception.OperationNotPermitted()
 
         rpc_node = api_utils.get_rpc_node(node_ident)
+        chassis_uuid = None
+        if rpc_node.chassis_id:
+            chassis_uuid = objects.Chassis.get_by_id(context,
+                                                     rpc_node.chassis_id).uuid
+        notify.emit_start_notification(context, rpc_node, 'delete',
+                                       chassis_uuid=chassis_uuid)
+        with notify.handle_error_notification(context, rpc_node, 'delete',
+                                              chassis_uuid=chassis_uuid):
+            try:
+                topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+            except exception.NoValidHost as e:
+                e.code = http_client.BAD_REQUEST
+                raise
 
-        try:
-            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-        except exception.NoValidHost as e:
-            e.code = http_client.BAD_REQUEST
-            raise
-
-        pecan.request.rpcapi.destroy_node(pecan.request.context,
-                                          rpc_node.uuid, topic)
+            pecan.request.rpcapi.destroy_node(context, rpc_node.uuid, topic)
+        notify.emit_end_notification(context, rpc_node, 'delete',
+                                     chassis_uuid=chassis_uuid)

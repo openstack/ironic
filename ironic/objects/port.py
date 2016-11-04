@@ -22,6 +22,7 @@ from ironic.common import exception
 from ironic.db import api as dbapi
 from ironic.objects import base
 from ironic.objects import fields as object_fields
+from ironic.objects import notification
 
 
 @base.IronicObjectRegistry.register
@@ -289,3 +290,47 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         """
         current = self.__class__.get_by_uuid(self._context, uuid=self.uuid)
         self.obj_refresh(current)
+
+
+@base.IronicObjectRegistry.register
+class PortCRUDNotification(notification.NotificationBase):
+    """Notification emitted when ironic creates, updates or deletes a port."""
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'payload': object_fields.ObjectField('PortCRUDPayload')
+    }
+
+
+@base.IronicObjectRegistry.register
+class PortCRUDPayload(notification.NotificationPayloadBase):
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    SCHEMA = {
+        'address': ('port', 'address'),
+        'extra': ('port', 'extra'),
+        'local_link_connection': ('port', 'local_link_connection'),
+        'pxe_enabled': ('port', 'pxe_enabled'),
+        'created_at': ('port', 'created_at'),
+        'updated_at': ('port', 'updated_at'),
+        'uuid': ('port', 'uuid')
+    }
+
+    fields = {
+        'address': object_fields.MACAddressField(nullable=True),
+        'extra': object_fields.FlexibleDictField(nullable=True),
+        'local_link_connection': object_fields.FlexibleDictField(
+            nullable=True),
+        'pxe_enabled': object_fields.BooleanField(nullable=True),
+        'node_uuid': object_fields.UUIDField(),
+        'created_at': object_fields.DateTimeField(nullable=True),
+        'updated_at': object_fields.DateTimeField(nullable=True),
+        'uuid': object_fields.UUIDField()
+        # TODO(yuriyz): add "portgroup_uuid" field with portgroup notifications
+    }
+
+    def __init__(self, port, node_uuid):
+        super(PortCRUDPayload, self).__init__(node_uuid=node_uuid)
+        self.populate_schema(port=port)

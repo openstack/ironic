@@ -16,6 +16,7 @@
 import datetime
 
 from ironic_lib import metrics_utils
+from oslo_utils import uuidutils
 import pecan
 from pecan import rest
 from six.moves import http_client
@@ -26,6 +27,7 @@ from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import node
+from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
@@ -270,12 +272,19 @@ class ChassisController(rest.RestController):
 
         :param chassis: a chassis within the request body.
         """
-        cdict = pecan.request.context.to_policy_values()
+        context = pecan.request.context
+        cdict = context.to_policy_values()
         policy.authorize('baremetal:chassis:create', cdict, cdict)
 
-        new_chassis = objects.Chassis(pecan.request.context,
-                                      **chassis.as_dict())
-        new_chassis.create()
+        # NOTE(yuriyz): UUID is mandatory for notifications payload
+        if not chassis.uuid:
+            chassis.uuid = uuidutils.generate_uuid()
+
+        new_chassis = objects.Chassis(context, **chassis.as_dict())
+        notify.emit_start_notification(context, new_chassis, 'create')
+        with notify.handle_error_notification(context, new_chassis, 'create'):
+            new_chassis.create()
+        notify.emit_end_notification(context, new_chassis, 'create')
         # Set the HTTP Location Header
         pecan.response.location = link.build_url('chassis', new_chassis.uuid)
         return Chassis.convert_with_links(new_chassis)
@@ -289,11 +298,11 @@ class ChassisController(rest.RestController):
         :param chassis_uuid: UUID of a chassis.
         :param patch: a json PATCH document to apply to this chassis.
         """
-        cdict = pecan.request.context.to_policy_values()
+        context = pecan.request.context
+        cdict = context.to_policy_values()
         policy.authorize('baremetal:chassis:update', cdict, cdict)
 
-        rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context,
-                                                  chassis_uuid)
+        rpc_chassis = objects.Chassis.get_by_uuid(context, chassis_uuid)
         try:
             chassis = Chassis(
                 **api_utils.apply_jsonpatch(rpc_chassis.as_dict(), patch))
@@ -313,7 +322,10 @@ class ChassisController(rest.RestController):
             if rpc_chassis[field] != patch_val:
                 rpc_chassis[field] = patch_val
 
-        rpc_chassis.save()
+        notify.emit_start_notification(context, rpc_chassis, 'update')
+        with notify.handle_error_notification(context, rpc_chassis, 'update'):
+            rpc_chassis.save()
+        notify.emit_end_notification(context, rpc_chassis, 'update')
         return Chassis.convert_with_links(rpc_chassis)
 
     @METRICS.timer('ChassisController.delete')
@@ -323,9 +335,12 @@ class ChassisController(rest.RestController):
 
         :param chassis_uuid: UUID of a chassis.
         """
-        cdict = pecan.request.context.to_policy_values()
+        context = pecan.request.context
+        cdict = context.to_policy_values()
         policy.authorize('baremetal:chassis:delete', cdict, cdict)
 
-        rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context,
-                                                  chassis_uuid)
-        rpc_chassis.destroy()
+        rpc_chassis = objects.Chassis.get_by_uuid(context, chassis_uuid)
+        notify.emit_start_notification(context, rpc_chassis, 'delete')
+        with notify.handle_error_notification(context, rpc_chassis, 'delete'):
+            rpc_chassis.destroy()
+        notify.emit_end_notification(context, rpc_chassis, 'delete')
