@@ -21,6 +21,7 @@ import os.path
 import shutil
 import tempfile
 
+import jinja2
 import mock
 from oslo_concurrency import processutils
 from oslo_config import cfg
@@ -247,6 +248,20 @@ class GenericUtilsTestCase(base.TestCase):
         # | WHEN | & | THEN |
         self.assertRaises(exception.InvalidParameterValue, utils.hash_file,
                           file_like_object, 'hickory-dickory-dock')
+
+    def test_file_has_content_equal(self):
+        data = b'Mary had a little lamb, its fleece as white as snow'
+        ref = data
+        with mock.patch('ironic.common.utils.open',
+                        mock.mock_open(read_data=data)):
+            self.assertTrue(utils.file_has_content('foo', ref))
+
+    def test_file_has_content_differ(self):
+        data = b'Mary had a little lamb, its fleece as white as snow'
+        ref = data + b'!'
+        with mock.patch('ironic.common.utils.open',
+                        mock.mock_open(read_data=data)):
+            self.assertFalse(utils.file_has_content('foo', ref))
 
     def test_is_valid_datapath_id(self):
         self.assertTrue(utils.is_valid_datapath_id("525400cf2d319fdf"))
@@ -613,3 +628,28 @@ class GetUpdatedCapabilitiesTestCase(base.TestCase):
                                'Port "invalid" is not a valid integer.',
                                utils.validate_network_port,
                                'invalid')
+
+
+class JinjaTemplatingTestCase(base.TestCase):
+
+    def setUp(self):
+        super(JinjaTemplatingTestCase, self).setUp()
+        self.template = '{{ foo }} {{ bar }}'
+        self.params = {'foo': 'spam', 'bar': 'ham'}
+        self.expected = 'spam ham'
+
+    def test_render_string(self):
+        self.assertEqual(self.expected,
+                         utils.render_template(self.template,
+                                               self.params,
+                                               is_file=False))
+
+    @mock.patch('ironic.common.utils.jinja2.FileSystemLoader')
+    def test_render_file(self, jinja_fsl_mock):
+        path = '/path/to/template.j2'
+        jinja_fsl_mock.return_value = jinja2.DictLoader(
+            {'template.j2': self.template})
+        self.assertEqual(self.expected,
+                         utils.render_template(path,
+                                               self.params))
+        jinja_fsl_mock.assert_called_once_with('/path/to')
