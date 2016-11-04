@@ -11,19 +11,26 @@ fi
 OS_AUTH_TOKEN=$(openstack token issue | grep ' id ' | awk '{print $4}')
 IRONIC_URL="http://127.0.0.1:6385"
 
+IRONIC_API_VERSION="1.24"
+
 export OS_AUTH_TOKEN IRONIC_URL
+
+DOC_CHASSIS_UUID="dff29d23-1ded-43b4-8ae1-5eebb3e30de1"
+DOC_NODE_UUID="6d85703a-565d-469a-96ce-30b6de53079d"
+DOC_PORT_UUID="d2b30520-907d-46c8-bfee-c5586e6fb3a1"
+DOC_PORTGROUP_UUID="e059deab-6e86-40d1-9e70-62d525f16728"
 
 function GET {
     # GET $RESOURCE
     curl -s -H "X-Auth-Token: $OS_AUTH_TOKEN" \
-            -H 'X-OpenStack-Ironic-API-Version: 1.22' \
+            -H "X-OpenStack-Ironic-API-Version: $IRONIC_API_VERSION" \
             ${IRONIC_URL}/$1 | jq -S '.'
 }
 
 function POST {
     # POST $RESOURCE $FILENAME
     curl -s -H "X-Auth-Token: $OS_AUTH_TOKEN" \
-            -H 'X-OpenStack-Ironic-API-Version: 1.22' \
+            -H "X-OpenStack-Ironic-API-Version: $IRONIC_API_VERSION" \
             -H "Content-Type: application/json" \
             -X POST --data @$2 \
             ${IRONIC_URL}/$1 | jq -S '.'
@@ -32,7 +39,7 @@ function POST {
 function PATCH {
     # POST $RESOURCE $FILENAME
     curl -s -H "X-Auth-Token: $OS_AUTH_TOKEN" \
-            -H 'X-OpenStack-Ironic-API-Version: 1.22' \
+            -H "X-OpenStack-Ironic-API-Version: $IRONIC_API_VERSION" \
             -H "Content-Type: application/json" \
             -X PATCH --data @$2 \
             ${IRONIC_URL}/$1 | jq -S '.'
@@ -41,7 +48,7 @@ function PATCH {
 function PUT {
     # PUT $RESOURCE $FILENAME
     curl -s -H "X-Auth-Token: $OS_AUTH_TOKEN" \
-            -H 'X-OpenStack-Ironic-API-Version: 1.22' \
+            -H "X-OpenStack-Ironic-API-Version: $IRONIC_API_VERSION" \
             -H "Content-Type: application/json" \
             -X PUT --data @$2 \
             ${IRONIC_URL}/$1
@@ -122,12 +129,35 @@ GET v1/nodes/$NID > node-show-response.json
 # Put the Node in maintenance mode, then continue doing everything else
 PUT v1/nodes/$NID/maintenance node-maintenance-request.json
 
+############
+# PORTGROUPS
+
+# Before we can create a portgroup, we must
+# write NODE ID into the create request document body
+sed -i "s/.*node_uuid.*/    \"node_uuid\": \"$NID\",/" portgroup-create-request.json
+
+POST v1/portgroups portgroup-create-request.json > portgroup-create-response.json
+PGID=$(cat portgroup-create-response.json | grep '"uuid"' | sed 's/.*"\([0-9a-f\-]*\)",*/\1/')
+if [ "$PGID" == "" ]; then
+    exit 1
+else
+    echo "Portgroup created. UUID: $PGID"
+fi
+
+GET v1/portgroups > portgroup-list-response.json
+GET v1/portgroups/detail > portgroup-list-detail-response.json
+PATCH v1/portgroups/$PGID portgroup-update-request.json > portgroup-update-response.json
+
+# skip GET $PGID because same result as POST
+# skip DELETE
+
 ###########
 # PORTS
 
 # Before we can create a port, we must
-# write NODE ID into the create request document body
+# write NODE ID and PORTGROUP ID into the create request document body
 sed -i "s/.*node_uuid.*/    \"node_uuid\": \"$NID\",/" port-create-request.json
+sed -i "s/.*portgroup_uuid.*/    \"portgroup_uuid\": \"$PGID\",/" port-create-request.json
 
 POST v1/ports port-create-request.json > port-create-response.json
 PID=$(cat port-create-response.json | grep '"uuid"' | sed 's/.*"\([0-9a-f\-]*\)",*/\1/')
@@ -150,6 +180,15 @@ PATCH v1/ports/$PID port-update-request.json > port-update-response.json
 GET v1/nodes/$NID/ports > node-port-list-response.json
 GET v1/nodes/$NID/ports/detail > node-port-detail-response.json
 
+#####################
+# NODE PORTGROUP APIs
+GET v1/nodes/$NID/portgroups > node-portgroup-list-response.json
+GET v1/nodes/$NID/portgroups/detail > node-portgroup-detail-response.json
+
+#####################
+# PORTGROUPS PORT APIs
+GET v1/portgroups/$PGID/ports > portgroup-port-list-response.json
+GET v1/portgroups/$PGID/ports/detail > portgroup-port-detail-response.json
 
 ############
 # LOOKUP API
@@ -169,3 +208,11 @@ PATCH v1/nodes/$NID node-update-driver-info-request.json > node-update-driver-in
 GET v1/nodes/$NID/management/boot_device/supported > node-get-supported-boot-devices-response.json
 PUT v1/nodes/$NID/management/boot_device node-set-boot-device.json
 GET v1/nodes/$NID/management/boot_device > node-get-boot-device-response.json
+
+
+#####################
+# Replace automatically generated UUIDs by already used in documentation
+sed -i "s/$CID/$DOC_CHASSIS_UUID/" *.json
+sed -i "s/$NID/$DOC_NODE_UUID/" *.json
+sed -i "s/$PID/$DOC_PORT_UUID/" *.json
+sed -i "s/$PGID/$DOC_PORTGROUP_UUID/" *.json

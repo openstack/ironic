@@ -1,0 +1,18 @@
+{
+  "ports": [
+    {
+      "address": "22:22:22:22:22:22",
+      "links": [
+        {
+          "href": "http://127.0.0.1:6385/v1/ports/d2b30520-907d-46c8-bfee-c5586e6fb3a1",
+          "rel": "self"
+        },
+        {
+          "href": "http://127.0.0.1:6385/ports/d2b30520-907d-46c8-bfee-c5586e6fb3a1",
+          "rel": "bookmark"
+        }
+      ],
+      "uuid": "d2b30520-907d-46c8-bfee-c5586e6fb3a1"
+    }
+  ]
+}

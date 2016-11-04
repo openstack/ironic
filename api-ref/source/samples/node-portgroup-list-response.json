@@ -1,0 +1,19 @@
+{
+  "portgroups": [
+    {
+      "address": "22:22:22:22:22:22",
+      "links": [
+        {
+          "href": "http://127.0.0.1:6385/v1/portgroups/e43c722c-248e-4c6e-8ce8-0d8ff129387a",
+          "rel": "self"
+        },
+        {
+          "href": "http://127.0.0.1:6385/portgroups/e43c722c-248e-4c6e-8ce8-0d8ff129387a",
+          "rel": "bookmark"
+        }
+      ],
+      "name": "test_portgroup",
+      "uuid": "e43c722c-248e-4c6e-8ce8-0d8ff129387a"
+    }
+  ]
+}

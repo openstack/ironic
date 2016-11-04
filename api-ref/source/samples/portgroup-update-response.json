@@ -1,0 +1,31 @@
+{
+  "address": "22:22:22:22:22:22",
+  "created_at": "2016-08-18T22:28:48.165105+00:00",
+  "extra": {},
+  "internal_info": {},
+  "links": [
+    {
+      "href": "http://127.0.0.1:6385/v1/portgroups/e43c722c-248e-4c6e-8ce8-0d8ff129387a",
+      "rel": "self"
+    },
+    {
+      "href": "http://127.0.0.1:6385/portgroups/e43c722c-248e-4c6e-8ce8-0d8ff129387a",
+      "rel": "bookmark"
+    }
+  ],
+  "name": "test_portgroup",
+  "node_uuid": "6d85703a-565d-469a-96ce-30b6de53079d",
+  "ports": [
+    {
+      "href": "http://127.0.0.1:6385/v1/portgroups/e43c722c-248e-4c6e-8ce8-0d8ff129387a/ports",
+      "rel": "self"
+    },
+    {
+      "href": "http://127.0.0.1:6385/portgroups/e43c722c-248e-4c6e-8ce8-0d8ff129387a/ports",
+      "rel": "bookmark"
+    }
+  ],
+  "standalone_ports_supported": true,
+  "updated_at": "2016-11-04T17:46:09+00:00",
+  "uuid": "e43c722c-248e-4c6e-8ce8-0d8ff129387a"
+}
