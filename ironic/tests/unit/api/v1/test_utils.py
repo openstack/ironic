@@ -286,6 +286,13 @@ class TestApiUtils(base.TestCase):
         self.assertFalse(utils.allow_resource_class())
 
     @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_allow_ramdisk_endpoints(self, mock_request):
+        mock_request.version.minor = 22
+        self.assertTrue(utils.allow_ramdisk_endpoints())
+        mock_request.version.minor = 21
+        self.assertFalse(utils.allow_ramdisk_endpoints())
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_portgroups(self, mock_request):
         mock_request.version.minor = 23
         self.assertTrue(utils.allow_portgroups())
