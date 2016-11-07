@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from ironic.api.controllers import base as api_base
 from ironic.api.controllers.v1 import versions
 from ironic.tests.unit.api import base
 
@@ -57,25 +56,13 @@ class TestV1Root(base.BaseApiTest):
         self.assertIn({'type': 'application/vnd.openstack.ironic.v1+json',
                        'base': 'application/json'}, data['media_types'])
 
-    def test_get_v1_root_version_1_22(self):
-        headers = {api_base.Version.string: '1.22'}
-        data = self.get_json('/', headers=headers)
-        self.assertEqual('v1', data['id'])
-        # Check fields are not empty
-        for f in data:
-            self.assertNotIn(f, ['', []])
-        # Check if all known resources are present and there are no extra ones.
-        not_resources = ('id', 'links', 'media_types')
-        actual_resources = tuple(set(data.keys()) - set(not_resources))
-        expected_resources = ('chassis', 'drivers', 'heartbeat',
-                              'lookup', 'nodes', 'ports')
-        self.assertEqual(sorted(expected_resources), sorted(actual_resources))
-
-        self.assertIn({'type': 'application/vnd.openstack.ironic.v1+json',
-                       'base': 'application/json'}, data['media_types'])
-
     def test_get_v1_root(self):
         self._test_get_root()
+
+    def test_get_v1_22_root(self):
+        self._test_get_root(headers={'X-OpenStack-Ironic-API-Version': '1.22'},
+                            additional_expected_resources=['heartbeat',
+                                                           'lookup'])
 
     def test_get_v1_23_root(self):
         self._test_get_root(headers={'X-OpenStack-Ironic-API-Version': '1.23'},
