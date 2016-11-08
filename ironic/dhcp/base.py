@@ -42,7 +42,7 @@ class BaseDHCP(object):
                                 'opt_value': '123.123.123.456'},
                                {'opt_name': 'tftp-server',
                                 'opt_value': '123.123.123.123'}]
-        :param token: An optional authenticaiton token.
+        :param token: An optional authentication token.
 
         :raises: FailedToUpdateDHCPOptOnPort
         """
@@ -53,7 +53,7 @@ class BaseDHCP(object):
 
         :param port_id: port id.
         :param address: new MAC address.
-        :param token: An optional authenticaiton token.
+        :param token: An optional authentication token.
 
         :raises: FailedToUpdateMacOnPort
         """
