@@ -12,7 +12,6 @@
 
 """Test class for Ironic SeaMicro driver."""
 
-import uuid
 
 import mock
 from oslo_utils import uuidutils
@@ -68,7 +67,8 @@ class Fake_Server(object):
 class Fake_Volume(object):
     def __init__(self, id=None, *args, **kwargs):
         if id is None:
-            self.id = "%s/%s/%s" % ("0", "ironic-p6-6", str(uuid.uuid4()))
+            self.id = "%s/%s/%s" % ("0", "ironic-p6-6",
+                                    uuidutils.generate_uuid())
         else:
             self.id = id
 

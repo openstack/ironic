@@ -19,13 +19,13 @@ import filecmp
 import os
 import shutil
 import tempfile
-import uuid
 
 from ironic_lib import utils as ironic_utils
 import mock
 from oslo_config import cfg
 from oslo_serialization import jsonutils as json
 from oslo_utils import fileutils
+from oslo_utils import uuidutils
 
 from ironic.common import boot_devices
 from ironic.common import dhcp_factory
@@ -302,11 +302,11 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                 deploy_kernel, deploy_ramdisk] = [
                 'swift_kernel', 'swift_ramdisk']
             image_info = {
-                'deploy_kernel': (str(uuid.uuid4()),
+                'deploy_kernel': (uuidutils.generate_uuid(),
                                   os.path.join(root_dir,
                                                self.node.uuid,
                                                'deploy_kernel')),
-                'deploy_ramdisk': (str(uuid.uuid4()),
+                'deploy_ramdisk': (uuidutils.generate_uuid(),
                                    os.path.join(root_dir,
                                                 self.node.uuid,
                                                 'deploy_ramdisk'))
