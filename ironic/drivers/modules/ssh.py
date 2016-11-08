@@ -491,12 +491,12 @@ def _get_hosts_name_for_node(ssh_obj, driver_info):
         cmd_to_exec = "%s %s" % (driver_info['cmd_set']['base_cmd'],
                                  driver_info['cmd_set']['list_all'])
         full_node_list = _ssh_execute(ssh_obj, cmd_to_exec)
-        LOG.debug("Retrieved Node List: %s" % repr(full_node_list))
+        LOG.debug("Retrieved Node List: %s", repr(full_node_list))
         # for each node check Mac Addresses
         for node in full_node_list:
             if not node:
                 continue
-            LOG.debug("Checking Node: %s's Mac address." % node)
+            LOG.debug("Checking Node: %s's Mac address.", node)
             cmd_to_exec = "%s %s" % (driver_info['cmd_set']['base_cmd'],
                                      driver_info['cmd_set']['get_node_macs'])
             cmd_to_exec = cmd_to_exec.replace('{_NodeName_}', node)
@@ -508,7 +508,7 @@ def _get_hosts_name_for_node(ssh_obj, driver_info):
                 for node_mac in driver_info['macs']:
                     if (driver_utils.normalize_mac(host_mac)
                             in driver_utils.normalize_mac(node_mac)):
-                        LOG.debug("Found Mac address: %s" % node_mac)
+                        LOG.debug("Found Mac address: %s", node_mac)
                         matched_name = node
                         break
 

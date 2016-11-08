@@ -277,10 +277,10 @@ def _parse_driver_info(node):
 
     if not username:
         LOG.warning(_LW('ipmi_username is not defined or empty for node %s: '
-                        'NULL user will be utilized.') % node.uuid)
+                        'NULL user will be utilized.'), node.uuid)
     if not password:
         LOG.warning(_LW('ipmi_password is not defined or empty for node %s: '
-                        'NULL password will be utilized.') % node.uuid)
+                        'NULL password will be utilized.'), node.uuid)
 
     if protocol_version not in VALID_PROTO_VERSIONS:
         valid_versions = ', '.join(VALID_PROTO_VERSIONS)

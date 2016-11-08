@@ -178,8 +178,8 @@ class BaseImageService(object):
 
         :raises: ImageNotFound
         """
-        LOG.debug("Getting image metadata from glance. Image: %s"
-                  % image_href)
+        LOG.debug("Getting image metadata from glance. Image: %s",
+                  image_href)
         (image_id, self.glance_host,
          self.glance_port, use_ssl) = service_utils.parse_image_ref(image_href)
 

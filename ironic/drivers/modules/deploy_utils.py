@@ -693,7 +693,7 @@ def try_set_boot_device(task, device, persistent=True):
         if get_boot_mode_for_deploy(task.node) == 'uefi':
             LOG.warning(_LW("ipmitool is unable to set boot device while "
                             "the node %s is in UEFI boot mode. Please set "
-                            "the boot device manually.") % task.node.uuid)
+                            "the boot device manually."), task.node.uuid)
         else:
             raise
 

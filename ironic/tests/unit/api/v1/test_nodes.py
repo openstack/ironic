@@ -1692,10 +1692,10 @@ class TestPost(test_api_base.BaseApiTest):
 
     def test_create_node_chassis_uuid_always_in_response(self):
         result = self._test_create_node(chassis_uuid=None)
-        self.assertEqual(None, result['chassis_uuid'])
+        self.assertIsNone(result['chassis_uuid'])
         result = self._test_create_node(uuid=uuidutils.generate_uuid(),
                                         remove_chassis_uuid=True)
-        self.assertEqual(None, result['chassis_uuid'])
+        self.assertIsNone(result['chassis_uuid'])
 
     def test_create_node_invalid_chassis(self):
         ndict = test_api_utils.post_get_test_node(chassis_uuid=0)

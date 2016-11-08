@@ -628,7 +628,7 @@ def _commit_to_controllers(node, controllers):
     """Commit changes to RAID controllers on the node."""
 
     if not controllers:
-        LOG.debug('No changes on any of the controllers on node %s' %
+        LOG.debug('No changes on any of the controllers on node %s',
                   node.uuid)
         return
 

@@ -106,7 +106,7 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         """
         node_id = node_obj.uuid
-        LOG.debug("RPC update_node called for node %s." % node_id)
+        LOG.debug("RPC update_node called for node %s.", node_id)
 
         # NOTE(jroll) clear maintenance_reason if node.update sets
         # maintenance to False for backwards compatibility, for tools
@@ -222,7 +222,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 or return it in the response body (False).
 
         """
-        LOG.debug("RPC vendor_passthru called for node %s." % node_id)
+        LOG.debug("RPC vendor_passthru called for node %s.", node_id)
         # NOTE(mariojv): Not all vendor passthru methods require an exclusive
         # lock on a node, so we acquire a shared lock initially. If a method
         # requires an exclusive lock, we'll acquire one after checking
@@ -314,7 +314,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         """
         # Any locking in a top-level vendor action will need to be done by the
         # implementation, as there is little we could reasonably lock on here.
-        LOG.debug("RPC driver_vendor_passthru for driver %s." % driver_name)
+        LOG.debug("RPC driver_vendor_passthru for driver %s.", driver_name)
         driver = driver_factory.get_driver(driver_name)
         if not getattr(driver, 'vendor', None):
             raise exception.UnsupportedDriverExtension(
@@ -361,8 +361,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         :returns: dictionary of <method name>:<method metadata> entries.
 
         """
-        LOG.debug("RPC get_node_vendor_passthru_methods called for node %s"
-                  % node_id)
+        LOG.debug("RPC get_node_vendor_passthru_methods called for node %s",
+                  node_id)
         lock_purpose = 'listing vendor passthru methods'
         with task_manager.acquire(context, node_id, shared=True,
                                   purpose=lock_purpose) as task:
@@ -387,8 +387,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         """
         # Any locking in a top-level vendor action will need to be done by the
         # implementation, as there is little we could reasonably lock on here.
-        LOG.debug("RPC get_driver_vendor_passthru_methods for driver %s"
-                  % driver_name)
+        LOG.debug("RPC get_driver_vendor_passthru_methods for driver %s",
+                  driver_name)
         driver = driver_factory.get_driver(driver_name)
         if not getattr(driver, 'vendor', None):
             raise exception.UnsupportedDriverExtension(
@@ -426,7 +426,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                  target from the current state.
 
         """
-        LOG.debug("RPC do_node_deploy called for node %s." % node_id)
+        LOG.debug("RPC do_node_deploy called for node %s.", node_id)
 
         # NOTE(comstud): If the _sync_power_states() periodic task happens
         # to have locked this node, we'll fail to acquire the lock. The
@@ -509,7 +509,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                  target from the current state.
 
         """
-        LOG.debug("RPC do_node_tear_down called for node %s." % node_id)
+        LOG.debug("RPC do_node_tear_down called for node %s.", node_id)
 
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='node tear down') as task:
@@ -896,7 +896,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 # Kill this worker, the async step will make an RPC call to
                 # continue_node_clean to continue cleaning
                 LOG.info(_LI('Clean step %(step)s on node %(node)s being '
-                             'executed asynchronously, waiting for driver.') %
+                             'executed asynchronously, waiting for driver.'),
                          {'node': node.uuid, 'step': step})
                 target_state = states.MANAGEABLE if manual_clean else None
                 task.process_event('wait', target_state=target_state)
@@ -1553,7 +1553,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         :raises: InvalidParameterValue when the wrong driver info is specified.
         :raises: MissingParameterValue if missing supplied info.
         """
-        LOG.debug('RPC get_console_information called for node %s' % node_id)
+        LOG.debug('RPC get_console_information called for node %s', node_id)
 
         lock_purpose = 'getting console information'
         with task_manager.acquire(context, node_id, shared=True,
@@ -2160,7 +2160,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             description for them.
         """
         LOG.debug("RPC get_raid_logical_disk_properties "
-                  "called for driver %s" % driver_name)
+                  "called for driver %s", driver_name)
 
         driver = driver_factory.get_driver(driver_name)
         if not getattr(driver, 'raid', None):

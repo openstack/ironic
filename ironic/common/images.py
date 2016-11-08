@@ -299,7 +299,7 @@ def fetch(context, image_href, path, force_raw=False):
     #             checked before we got here.
     image_service = service.get_image_service(image_href,
                                               context=context)
-    LOG.debug("Using %(image_service)s to download image %(image_href)s." %
+    LOG.debug("Using %(image_service)s to download image %(image_href)s.",
               {'image_service': image_service.__class__,
                'image_href': image_href})
 
@@ -330,7 +330,7 @@ def image_to_raw(image_href, path, path_tmp):
 
         if fmt != "raw":
             staged = "%s.converted" % path
-            LOG.debug("%(image)s was %(format)s, converting to raw" %
+            LOG.debug("%(image)s was %(format)s, converting to raw",
                       {'image': image_href, 'format': fmt})
             with fileutils.remove_path_on_error(staged):
                 disk_utils.convert_image(path_tmp, staged, 'raw')
