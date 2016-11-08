@@ -18,28 +18,16 @@ Configuring ironic-api service
       connection=mysql+pymysql://ironic:IRONIC_DBPASSWORD@DB_IP/ironic?charset=utf8
 
 #. Configure the ironic-api service to use the RabbitMQ message broker by
-   setting one or more of these options. Replace ``RABBIT_HOST`` with the
-   address of the RabbitMQ server:
+   setting the following option. Replace ``RPC_*`` with appropriate
+   address details and credentials of RabbitMQ server:
 
    .. code-block:: ini
 
       [DEFAULT]
 
-      # The messaging driver to use, defaults to rabbit. Other
-      # drivers include qpid and zmq. (string value)
-      #rpc_backend=rabbit
-
-      [oslo_messaging_rabbit]
-
-      # The RabbitMQ broker address where a single node is used
-      # (string value)
-      rabbit_host=RABBIT_HOST
-
-      # The RabbitMQ userid (string value)
-      #rabbit_userid=guest
-
-      # The RabbitMQ password (string value)
-      #rabbit_password=guest
+      # A URL representing the messaging driver to use and its full
+      # configuration. (string value)
+      transport_url = rabbit://RPC_USER:RPC_PASSWORD@RPC_HOST:RPC_PORT/
 
 #. Configure the ironic-api service to use these credentials with the Identity
    service. Replace ``PUBLIC_IDENTITY_IP`` with the public IP of the Identity
