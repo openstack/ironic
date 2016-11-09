@@ -328,18 +328,27 @@ IRONIC_DEPLOY_LOGS_LOCAL_PATH=${IRONIC_DEPLOY_LOGS_LOCAL_PATH:-$IRONIC_VM_LOG_DI
 
 # get_pxe_boot_file() - Get the PXE/iPXE boot file path
 function get_pxe_boot_file {
-    local relpath=syslinux/pxelinux.0
-    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
-        relpath=ipxe/undionly.kpxe
-    fi
-
     local pxe_boot_file
-    if is_ubuntu; then
-        pxe_boot_file=/usr/lib/$relpath
-    elif is_fedora || is_suse; then
-        pxe_boot_file=/usr/share/$relpath
+    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
+        if is_ubuntu; then
+            pxe_boot_file=/usr/lib/ipxe/undionly.kpxe
+        elif is_fedora || is_suse; then
+            pxe_boot_file=/usr/share/ipxe/undionly.kpxe
+        fi
+    else
+        # Standard PXE
+        if is_ubuntu; then
+            # Ubuntu Xenial (16.04) places the file under /usr/lib/PXELINUX
+            pxe_paths="/usr/lib/syslinux/pxelinux.0 /usr/lib/PXELINUX/pxelinux.0"
+            for p in $pxe_paths; do
+                if [[ -f $p ]]; then
+                    pxe_boot_file=$p
+                fi
+            done
+        elif is_fedora || is_suse; then
+            pxe_boot_file=/usr/share/syslinux/pxelinux.0
+        fi
     fi
-
     echo $pxe_boot_file
 }
 
@@ -401,6 +410,23 @@ function is_glance_configuration_required {
 function is_deploy_iso_required {
     [[ "$IRONIC_IS_HARDWARE" == "True" && "$IRONIC_DEPLOY_ISO_REQUIRED" == "True" ]] && return 0
     return 1
+}
+
+# Syslinux >= 5.00 pxelinux.0 binary is not "stand-alone" anymore,
+# it depends on some c32 modules to work correctly.
+# More info: http://www.syslinux.org/wiki/index.php/Library_modules
+function setup_syslinux_modules {
+    # Ignore it for iPXE, it doesn't repend on syslinux modules
+    [[ "$IRONIC_IPXE_ENABLED" == "True" ]] && return 0
+
+    # Ubuntu Xenial keeps doesn't ship pxelinux.0 as part of syslinux anymore
+    if is_ubuntu && [[ -d /usr/lib/PXELINUX/ ]]; then
+        # TODO(lucasagomes): Figure out whether its UEFI or BIOS once
+        # we have UEFI support in DevStack
+        cp -aR /usr/lib/syslinux/modules/bios/*.c32 $IRONIC_TFTPBOOT_DIR
+    else
+        cp -aR $(dirname $IRONIC_PXE_BOOT_IMAGE)/*.c32 $IRONIC_TFTPBOOT_DIR
+    fi
 }
 
 function setup_virtualbmc {
@@ -526,14 +552,8 @@ function configure_ironic_dirs {
     fi
 
     # Copy PXE binary
-    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
-        cp $IRONIC_PXE_BOOT_IMAGE $IRONIC_TFTPBOOT_DIR
-    else
-        # Syslinux >= 5.00 pxelinux.0 binary is not "stand-alone" anymore,
-        # it depends on some c32 modules to work correctly.
-        # More info: http://www.syslinux.org/wiki/index.php/Library_modules
-        cp -aR $(dirname $IRONIC_PXE_BOOT_IMAGE)/*.{c32,0} $IRONIC_TFTPBOOT_DIR
-    fi
+    cp $IRONIC_PXE_BOOT_IMAGE $IRONIC_TFTPBOOT_DIR
+    setup_syslinux_modules
 
     # Create the logs directory when saving the deploy logs to the filesystem
     if [ "$IRONIC_DEPLOY_LOGS_STORAGE_BACKEND" = "local"] && [ "$IRONIC_DEPLOY_LOGS_COLLECT" != "never" ]; then
