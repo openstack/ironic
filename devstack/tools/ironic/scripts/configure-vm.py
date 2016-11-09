@@ -80,6 +80,12 @@ def main():
                         help='Path to emulator bin for vm template')
     parser.add_argument('--disk-format', default='qcow2',
                         help='Disk format to use.')
+    parser.add_argument('--uefi-loader', default='',
+                        help='The absolute path of the UEFI firmware blob.')
+    parser.add_argument('--uefi-nvram', default='',
+                        help=('The absolute path of the non-volatile memory '
+                              'to store the UEFI variables. Should be used '
+                              'only when --uefi-loader is also specified.'))
     args = parser.parse_args()
 
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(templatedir))
@@ -96,7 +102,9 @@ def main():
         'bridge': args.bridge,
         'nicdriver': args.libvirt_nic_driver,
         'emulator': args.emulator,
-        'disk_format': args.disk_format
+        'disk_format': args.disk_format,
+        'uefi_loader': args.uefi_loader,
+        'uefi_nvram': args.uefi_nvram,
     }
 
     if args.emulator:

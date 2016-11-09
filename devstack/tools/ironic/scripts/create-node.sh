@@ -12,7 +12,7 @@ export PS4='+ ${BASH_SOURCE:-}:${FUNCNAME[0]:-}:L${LINENO:-}:   '
 # Keep track of the DevStack directory
 TOP_DIR=$(cd $(dirname "$0")/.. && pwd)
 
-while getopts "n:c:m:d:a:b:e:E:p:f:l:" arg; do
+while getopts "n:c:m:d:a:b:e:E:p:f:l:L:N:" arg; do
     case $arg in
         n) NAME=$OPTARG;;
         c) CPU=$OPTARG;;
@@ -27,10 +27,17 @@ while getopts "n:c:m:d:a:b:e:E:p:f:l:" arg; do
         p) VBMC_PORT=$OPTARG;;
         f) DISK_FORMAT=$OPTARG;;
         l) LOGDIR=$OPTARG;;
+        L) UEFI_LOADER=$OPTARG;;
+        N) UEFI_NVRAM=$OPTARG;;
     esac
 done
 
 shift $(( $OPTIND - 1 ))
+
+if [ -z "$UEFI_LOADER" ] && [ ! -z "$UEFI_NVRAM" ]; then
+    echo "Parameter -N (UEFI NVRAM) cannot be used without -L (UEFI Loader)"
+    exit 1
+fi
 
 LIBVIRT_NIC_DRIVER=${LIBVIRT_NIC_DRIVER:-"virtio"}
 LIBVIRT_STORAGE_POOL=${LIBVIRT_STORAGE_POOL:-"default"}
@@ -66,6 +73,15 @@ else
 fi
 VOL_NAME="${NAME}.${DISK_FORMAT}"
 
+UEFI_OPTS=""
+if [ ! -z "$UEFI_LOADER" ]; then
+    UEFI_OPTS="--uefi-loader $UEFI_LOADER"
+
+    if [ ! -z "$UEFI_NVRAM" ]; then
+        UEFI_OPTS+=" --uefi-nvram $UEFI_NVRAM"
+    fi
+fi
+
 # Create bridge and add VM interface to it.
 # Additional interface will be added to this bridge and
 # it will be plugged to OVS.
@@ -93,7 +109,7 @@ if ! virsh list --all | grep -q $NAME; then
     $TOP_DIR/scripts/configure-vm.py \
         --bootdev network --name $NAME --image "$volume_path" \
         --arch $ARCH --cpus $CPU --memory $MEM --libvirt-nic-driver $LIBVIRT_NIC_DRIVER \
-        --bridge br-$NAME --disk-format $DISK_FORMAT $VM_LOGGING --engine $ENGINE $vm_opts >&2
+        --bridge br-$NAME --disk-format $DISK_FORMAT $VM_LOGGING --engine $ENGINE $UEFI_OPTS $vm_opts >&2
 
     # Createa Virtual BMC for the node if IPMI is used
     if [[ $(type -P vbmc) != "" ]]; then
