@@ -53,6 +53,8 @@ BASE_VERSION = 1
 # v1.21: Add node.resource_class
 # v1.22: Ramdisk lookup and heartbeat endpoints.
 # v1.23: Add portgroup support.
+# v1.24: Add subcontrollers: node.portgroup, portgroup.ports.
+#        Add port.portgroup_uuid field.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -78,11 +80,12 @@ MINOR_20_NETWORK_INTERFACE = 20
 MINOR_21_RESOURCE_CLASS = 21
 MINOR_22_LOOKUP_HEARTBEAT = 22
 MINOR_23_PORTGROUPS = 23
+MINOR_24_PORTGROUPS_SUBCONTROLLERS = 24
 
 # When adding another version, update MINOR_MAX_VERSION and also update
 # doc/source/dev/webapi-version-history.rst with a detailed explanation of
 # what the version has changed.
-MINOR_MAX_VERSION = MINOR_23_PORTGROUPS
+MINOR_MAX_VERSION = MINOR_24_PORTGROUPS_SUBCONTROLLERS
 
 # String representations of the minor and maximum versions
 MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

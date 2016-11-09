@@ -223,7 +223,7 @@ class BaseApiTest(base.DbTestCase):
         print('GOT:%s' % response)
         return response
 
-    def validate_link(self, link, bookmark=False):
+    def validate_link(self, link, bookmark=False, headers=None):
         """Checks if the given link can get correct data."""
         # removes the scheme and net location parts of the link
         url_parts = list(urlparse.urlparse(link))
@@ -235,7 +235,7 @@ class BaseApiTest(base.DbTestCase):
 
         full_path = urlparse.urlunparse(url_parts)
         try:
-            self.get_json(full_path, path_prefix='')
+            self.get_json(full_path, path_prefix='', headers=headers)
             return True
         except Exception:
             return False

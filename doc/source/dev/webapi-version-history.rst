@@ -2,6 +2,11 @@
 REST API Version History
 ========================
 
+**1.24**
+
+    Added new endpoints '/v1/nodes/<node>/portgroups' and '/v1/portgroups/<portgroup>/ports'.
+    Added new field ``port.portgroup_uuid``.
+
 **1.23**
 
     Added '/v1/portgroups/ endpoint.

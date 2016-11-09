@@ -422,6 +422,16 @@ def allow_portgroups():
             versions.MINOR_23_PORTGROUPS)
 
 
+def allow_portgroups_subcontrollers():
+    """Check if portgroups can be used as subcontrollers.
+
+    Version 1.24 of the API added support for Portgroups as
+    subcontrollers
+    """
+    return (pecan.request.version.minor >=
+            versions.MINOR_24_PORTGROUPS_SUBCONTROLLERS)
+
+
 def get_controller_reserved_names(cls):
     """Get reserved names for a given controller.
 

@@ -30,6 +30,7 @@ from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import port
+from ironic.api.controllers.v1 import portgroup
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import versions
@@ -746,6 +747,9 @@ class Node(base.APIBase):
     ports = wsme.wsattr([link.Link], readonly=True)
     """Links to the collection of ports on this node"""
 
+    portgroups = wsme.wsattr([link.Link], readonly=True)
+    """Links to the collection of portgroups on this node"""
+
     states = wsme.wsattr([link.Link], readonly=True)
     """Links to endpoint for retrieving and setting node states"""
 
@@ -775,7 +779,8 @@ class Node(base.APIBase):
         setattr(self, 'chassis_uuid', kwargs.get('chassis_id', wtypes.Unset))
 
     @staticmethod
-    def _convert_with_links(node, url, fields=None, show_states_links=True):
+    def _convert_with_links(node, url, fields=None, show_states_links=True,
+                            show_portgroups=True):
         # NOTE(lucasagomes): Since we are able to return a specified set of
         # fields the "uuid" can be unset, so we need to save it in another
         # variable to use when building the links
@@ -795,6 +800,13 @@ class Node(base.APIBase):
                                link.Link.make_link('bookmark', url, 'nodes',
                                                    node_uuid + "/states",
                                                    bookmark=True)]
+            if show_portgroups:
+                node.portgroups = [
+                    link.Link.make_link('self', url, 'nodes',
+                                        node_uuid + "/portgroups"),
+                    link.Link.make_link('bookmark', url, 'nodes',
+                                        node_uuid + "/portgroups",
+                                        bookmark=True)]
 
         # NOTE(lucasagomes): The numeric ID should not be exposed to
         #                    the user, it's internal only.
@@ -841,9 +853,11 @@ class Node(base.APIBase):
         hide_fields_in_newer_versions(node)
         show_states_links = (
             api_utils.allow_links_node_states_and_driver_properties())
+        show_portgroups = api_utils.allow_portgroups_subcontrollers()
         return cls._convert_with_links(node, pecan.request.public_url,
                                        fields=fields,
-                                       show_states_links=show_states_links)
+                                       show_states_links=show_states_links,
+                                       show_portgroups=show_portgroups)
 
     @classmethod
     def sample(cls, expand=True):
@@ -1059,7 +1073,8 @@ class NodesController(rest.RestController):
                              'clean_step', 'raid_config', 'target_raid_config']
 
     _subcontroller_map = {
-        'ports': port.PortsController
+        'ports': port.PortsController,
+        'portgroups': portgroup.PortgroupsController,
     }
 
     @pecan.expose()
@@ -1071,6 +1086,9 @@ class NodesController(rest.RestController):
         if remainder:
             subcontroller = self._subcontroller_map.get(remainder[0])
             if subcontroller:
+                if (remainder[0] == 'portgroups' and
+                        not api_utils.allow_portgroups_subcontrollers()):
+                    pecan.abort(http_client.NOT_FOUND)
                 return subcontroller(node_ident=ident), remainder[1:]
 
     def _get_nodes_collection(self, chassis_uuid, instance_uuid, associated,

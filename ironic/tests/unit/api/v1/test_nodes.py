@@ -459,6 +459,47 @@ class TestListNodes(test_api_base.BaseApiTest):
         data = self.get_json('/nodes/%s' % node.uuid)
         self.assertIn('ports', data)
 
+    def test_portgroups_subresource(self):
+        node = obj_utils.create_test_node(self.context)
+        headers = {'X-OpenStack-Ironic-API-Version': '1.24'}
+        for id_ in range(2):
+            obj_utils.create_test_portgroup(self.context, node_id=node.id,
+                                            name="pg-%s" % id_,
+                                            uuid=uuidutils.generate_uuid(),
+                                            address='52:54:00:cf:2d:3%s' % id_)
+
+        data = self.get_json('/nodes/%s/portgroups' % node.uuid,
+                             headers=headers)
+        self.assertEqual(2, len(data['portgroups']))
+        self.assertNotIn('next', data)
+
+        # Test collection pagination
+        data = self.get_json('/nodes/%s/portgroups?limit=1' % node.uuid,
+                             headers=headers)
+        self.assertEqual(1, len(data['portgroups']))
+        self.assertIn('next', data)
+
+    def test_portgroups_subresource_link(self):
+        node = obj_utils.create_test_node(self.context)
+        data = self.get_json(
+            '/nodes/%s' % node.uuid,
+            headers={'X-OpenStack-Ironic-API-Version': '1.24'})
+        self.assertIn('portgroups', data.keys())
+
+    def test_portgroups_subresource_link_hidden_for_older_versions(self):
+        node = obj_utils.create_test_node(self.context)
+        data = self.get_json(
+            '/nodes/%s' % node.uuid,
+            headers={'X-OpenStack-Ironic-API-Version': '1.20'})
+        self.assertNotIn('portgroups', data.keys())
+
+    def test_portgroups_subresource_old_api_version(self):
+        node = obj_utils.create_test_node(self.context)
+        response = self.get_json(
+            '/nodes/%s/portgroups' % node.uuid, expect_errors=True,
+            headers={'X-OpenStack-Ironic-API-Version': '1.23'})
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+
     def test_ports_subresource(self):
         node = obj_utils.create_test_node(self.context)
 
@@ -496,6 +537,15 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertIn('Expected a logical name or UUID',
                       response.json['error_message'])
+
+    def test_ports_subresource_via_portgroups_subres_not_allowed(self):
+        node = obj_utils.create_test_node(self.context)
+        pg = obj_utils.create_test_portgroup(self.context,
+                                             node_id=node.id)
+        response = self.get_json('/nodes/%s/portgroups/%s/ports' % (
+            node.uuid, pg.uuid), expect_errors=True,
+            headers={api_base.Version.string: '1.24'})
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     @mock.patch.object(timeutils, 'utcnow')
     def _test_node_states(self, mock_utcnow, api_version=None):
@@ -1208,6 +1258,15 @@ class TestPatch(test_api_base.BaseApiTest):
             self.node.uuid,
             [{'path': '/extra/foo', 'value': 'bar',
               'op': 'add'}], expect_errors=True)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    def test_patch_portgroups_subresource(self):
+        response = self.patch_json(
+            '/nodes/%s/portgroups/9bb50f13-0b8d-4ade-ad2d-d91fefdef9cc' %
+            self.node.uuid,
+            [{'path': '/extra/foo', 'value': 'bar',
+              'op': 'add'}], expect_errors=True,
+            headers={'X-OpenStack-Ironic-API-Version': '1.24'})
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     def test_remove_uuid(self):
@@ -1929,6 +1988,15 @@ class TestPost(test_api_base.BaseApiTest):
                                   expect_errors=True)
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
+    def test_post_portgroups_subresource(self):
+        node = obj_utils.create_test_node(self.context)
+        pgdict = test_api_utils.portgroup_post_data(node_id=None)
+        pgdict['node_uuid'] = node.uuid
+        response = self.post_json(
+            '/nodes/%s/portgroups' % node.uuid, pgdict, expect_errors=True,
+            headers={'X-OpenStack-Ironic-API-Version': '1.24'})
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
     def test_create_node_no_mandatory_field_driver(self):
         ndict = test_api_utils.post_get_test_node()
         del ndict['driver']
@@ -2132,6 +2200,16 @@ class TestDelete(test_api_base.BaseApiTest):
             '/nodes/%(node_uuid)s/ports/%(port_uuid)s' %
             {'node_uuid': node.uuid, 'port_uuid': port.uuid},
             expect_errors=True)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    def test_delete_portgroup_subresource(self):
+        node = obj_utils.create_test_node(self.context)
+        pg = obj_utils.create_test_portgroup(self.context, node_id=node.id)
+        response = self.delete(
+            '/nodes/%(node_uuid)s/portgroups/%(pg_uuid)s' %
+            {'node_uuid': node.uuid, 'pg_uuid': pg.uuid},
+            expect_errors=True,
+            headers={'X-OpenStack-Ironic-API-Version': '1.24'})
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node')

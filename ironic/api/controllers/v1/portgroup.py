@@ -21,6 +21,7 @@ from wsme import types as wtypes
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
+from ironic.api.controllers.v1 import port
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
@@ -92,6 +93,9 @@ class Portgroup(base.APIBase):
     standalone_ports_supported = types.boolean
     """Indicates whether ports of this portgroup may be used as
        single NIC ports"""
+
+    ports = wsme.wsattr([link.Link], readonly=True)
+    """Links to the collection of ports of this portgroup"""
 
     def __init__(self, **kwargs):
         self.fields = []
@@ -216,6 +220,30 @@ class PortgroupsController(pecan.rest.RestController):
 
     invalid_sort_key_list = ['extra', 'internal_info']
 
+    _subcontroller_map = {
+        'ports': port.PortsController,
+    }
+
+    @pecan.expose()
+    def _lookup(self, ident, subres, *remainder):
+        if not api_utils.allow_portgroups():
+            pecan.abort(http_client.NOT_FOUND)
+        try:
+            ident = types.uuid_or_name.validate(ident)
+        except exception.InvalidUuidOrName as e:
+            pecan.abort(http_client.BAD_REQUEST, e.args[0])
+        subcontroller = self._subcontroller_map.get(subres)
+        if subcontroller:
+            if api_utils.allow_portgroups_subcontrollers():
+                return subcontroller(
+                    portgroup_ident=ident,
+                    node_ident=self.parent_node_ident), remainder
+            pecan.abort(http_client.NOT_FOUND)
+
+    def __init__(self, node_ident=None):
+        super(PortgroupsController, self).__init__()
+        self.parent_node_ident = node_ident
+
     def _get_portgroups_collection(self, node_ident, address,
                                    marker, limit, sort_key, sort_dir,
                                    resource_url=None, fields=None):
@@ -243,6 +271,8 @@ class PortgroupsController(pecan.rest.RestController):
             raise exception.InvalidParameterValue(
                 _("The sort_key value %(key)s is an invalid field for "
                   "sorting") % {'key': sort_key})
+
+        node_ident = self.parent_node_ident or node_ident
 
         if node_ident:
             # FIXME: Since all we need is the node ID, we can
@@ -367,6 +397,9 @@ class PortgroupsController(pecan.rest.RestController):
         cdict = pecan.request.context.to_dict()
         policy.authorize('baremetal:portgroup:get', cdict, cdict)
 
+        if self.parent_node_ident:
+            raise exception.OperationNotPermitted()
+
         rpc_portgroup = api_utils.get_rpc_portgroup(portgroup_ident)
         return Portgroup.convert_with_links(rpc_portgroup, fields=fields)
 
@@ -382,6 +415,9 @@ class PortgroupsController(pecan.rest.RestController):
 
         cdict = pecan.request.context.to_dict()
         policy.authorize('baremetal:portgroup:create', cdict, cdict)
+
+        if self.parent_node_ident:
+            raise exception.OperationNotPermitted()
 
         if (portgroup.name and
                 not api_utils.is_valid_logical_name(portgroup.name)):
@@ -412,6 +448,9 @@ class PortgroupsController(pecan.rest.RestController):
 
         cdict = pecan.request.context.to_dict()
         policy.authorize('baremetal:portgroup:update', cdict, cdict)
+
+        if self.parent_node_ident:
+            raise exception.OperationNotPermitted()
 
         rpc_portgroup = api_utils.get_rpc_portgroup(portgroup_ident)
 
@@ -472,6 +511,9 @@ class PortgroupsController(pecan.rest.RestController):
 
         cdict = pecan.request.context.to_dict()
         policy.authorize('baremetal:portgroup:delete', cdict, cdict)
+
+        if self.parent_node_ident:
+            raise exception.OperationNotPermitted()
 
         rpc_portgroup = api_utils.get_rpc_portgroup(portgroup_ident)
         rpc_node = objects.Node.get_by_id(pecan.request.context,
