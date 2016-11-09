@@ -405,7 +405,7 @@ class AgentDeployMixin(object):
             clean_step_hook = _get_post_clean_step_hook(node)
             if clean_step_hook is not None:
                 LOG.debug('For node %(node)s, executing post clean step '
-                          'hook %(method)s for clean step %(step)s' %
+                          'hook %(method)s for clean step %(step)s',
                           {'method': clean_step_hook.__name__,
                            'node': node.uuid,
                            'step': node.clean_step})

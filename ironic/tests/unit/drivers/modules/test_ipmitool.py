@@ -652,11 +652,9 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         ipmi._parse_driver_info(node)
         calls = [
             mock.call(u'ipmi_username is not defined or empty for node '
-                      u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123: NULL user will '
-                      u'be utilized.'),
+                      u'%s: NULL user will be utilized.', self.node.uuid),
             mock.call(u'ipmi_password is not defined or empty for node '
-                      u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123: NULL password '
-                      u'will be utilized.'),
+                      u'%s: NULL password will be utilized.', self.node.uuid),
         ]
         mock_log.assert_has_calls(calls)
 

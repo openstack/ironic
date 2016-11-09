@@ -1792,7 +1792,7 @@ class TrySetBootDeviceTestCase(db_base.DbTestCase):
                                       persistent=True)
             node_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK, persistent=True)
-            log_mock.warning.assert_called_once_with(mock.ANY)
+            log_mock.warning.assert_called_once_with(mock.ANY, self.node.uuid)
 
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     def test_try_set_boot_device_ipmifailure_bios(

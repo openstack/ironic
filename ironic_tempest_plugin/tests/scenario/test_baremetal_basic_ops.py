@@ -62,18 +62,18 @@ class BaremetalBasicOps(baremetal_manager.BaremetalScenarioTest):
 
     def verify_partition(self, client, label, mount, gib_size):
         """Verify a labeled partition's mount point and size."""
-        LOG.info("Looking for partition %s mounted on %s" % (label, mount))
+        LOG.info("Looking for partition %s mounted on %s", label, mount)
 
         # Validate we have a device with the given partition label
         cmd = "/sbin/blkid | grep '%s' | cut -d':' -f1" % label
         device = client.exec_command(cmd).rstrip('\n')
-        LOG.debug("Partition device is %s" % device)
+        LOG.debug("Partition device is %s", device)
         self.assertNotEqual('', device)
 
         # Validate the mount point for the device
         cmd = "mount | grep '%s' | cut -d' ' -f3" % device
         actual_mount = client.exec_command(cmd).rstrip('\n')
-        LOG.debug("Partition mount point is %s" % actual_mount)
+        LOG.debug("Partition mount point is %s", actual_mount)
         self.assertEqual(actual_mount, mount)
 
         # Validate the partition size matches what we expect
@@ -83,7 +83,7 @@ class BaremetalBasicOps(baremetal_manager.BaremetalScenarioTest):
         num_bytes = client.exec_command(cmd).rstrip('\n')
         num_bytes = int(num_bytes) * 512
         actual_gib_size = num_bytes / (1024 * 1024 * 1024)
-        LOG.debug("Partition size is %d GiB" % actual_gib_size)
+        LOG.debug("Partition size is %d GiB", actual_gib_size)
         self.assertEqual(actual_gib_size, gib_size)
 
     def get_flavor_ephemeral_size(self):

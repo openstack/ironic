@@ -70,8 +70,8 @@ def execute(*cmd, **kwargs):
     result = processutils.execute(*cmd, **kwargs)
     LOG.debug('Execution completed, command line is "%s"',
               ' '.join(map(str, cmd)))
-    LOG.debug('Command stdout is: "%s"' % result[0])
-    LOG.debug('Command stderr is: "%s"' % result[1])
+    LOG.debug('Command stdout is: "%s"', result[0])
+    LOG.debug('Command stderr is: "%s"', result[1])
     return result
 
 
@@ -109,7 +109,7 @@ def ssh_connect(connection):
         # send TCP keepalive packets every 20 seconds
         ssh.get_transport().set_keepalive(20)
     except Exception as e:
-        LOG.debug("SSH connect failed: %s" % e)
+        LOG.debug("SSH connect failed: %s", e)
         raise exception.SSHConnectFailed(host=connection.get('host'))
 
     return ssh

@@ -180,7 +180,7 @@ class ImageCache(object):
         if self.master_dir is None:
             return
 
-        LOG.debug("Starting clean up for master image cache %(dir)s" %
+        LOG.debug("Starting clean up for master image cache %(dir)s",
                   {'dir': self.master_dir})
 
         amount_copy = amount
