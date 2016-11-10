@@ -29,7 +29,18 @@ opts = [
                default=0,
                min=0,
                help=_('Time (in seconds) to sleep between when rebooting '
-                      '(powering off and on again)'))
+                      '(powering off and on again)')),
+    cfg.FloatOpt('udp_transport_timeout',
+                 default=1.0,
+                 min=0.0,
+                 help=_('Response timeout in seconds used for UDP transport. '
+                        'Timeout should be a multiple of 0.5 seconds and '
+                        'is applicable to each retry.')),
+    cfg.IntOpt('udp_transport_retries',
+               default=5,
+               min=0,
+               help=_('Maximum number of UDP request retries, '
+                      '0 means no retries.')),
 ]
 
 

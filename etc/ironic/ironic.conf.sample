@@ -3609,6 +3609,17 @@
 # Minimum value: 0
 #reboot_delay = 0
 
+# Response timeout in seconds used for UDP transport. Timeout
+# should be a multiple of 0.5 seconds and is applicable to
+# each retry. (floating point value)
+# Minimum value: 0
+#udp_transport_timeout = 1.0
+
+# Maximum number of UDP request retries, 0 means just a single
+# request. (integer value)
+# Minimum value: 0
+#udp_transport_retries = 5
+
 
 [ssl]
 
