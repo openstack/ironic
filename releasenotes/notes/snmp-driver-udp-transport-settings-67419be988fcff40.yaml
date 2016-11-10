@@ -1,0 +1,7 @@
+---
+features:
+  - Adds SNMP request timeout and retries settings for the SNMP UDP transport.
+    Some SNMP devices take longer than others to respond.
+    The new Ironic configuration settings ``[snmp]/udp_transport_retries``
+    and ``[snmp]/udp_transport_timeout`` allow to change the number of
+    retries and the timeout values respectively for the the SNMP driver.

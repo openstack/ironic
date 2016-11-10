@@ -122,7 +122,10 @@ class SNMPClient(object):
         # The transport target accepts timeout and retries parameters, which
         # default to 1 (second) and 5 respectively. These are deemed sensible
         # enough to allow for an unreliable network or slow device.
-        return cmdgen.UdpTransportTarget((self.address, self.port))
+        return cmdgen.UdpTransportTarget(
+            (self.address, self.port),
+            timeout=CONF.snmp.udp_transport_timeout,
+            retries=CONF.snmp.udp_transport_retries)
 
     def get(self, oid):
         """Use PySNMP to perform an SNMP GET operation on a single object.
