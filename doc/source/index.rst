@@ -111,6 +111,7 @@ the developer community about any implementation using this functionality.
   Driver Overview <dev/drivers>
   Driver Base Class Definition <api/ironic.drivers.base.html>
   Writing "vendor_passthru" methods <dev/vendor-passthru>
+  Third party continuous integration testing <dev/third-party-ci>
 
 Testing Network Integration
 ---------------------------
