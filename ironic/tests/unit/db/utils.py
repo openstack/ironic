@@ -19,6 +19,7 @@ from oslo_utils import timeutils
 
 from ironic.common import states
 from ironic.db import api as db_api
+from ironic.drivers import base as drivers_base
 
 
 def get_test_ipmi_info():
@@ -214,7 +215,7 @@ def get_test_node(**kw):
     fake_internal_info = {
         "private_state": "secret value"
     }
-    return {
+    result = {
         'id': kw.get('id', 123),
         'name': kw.get('name', None),
         'uuid': kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'),
@@ -248,8 +249,13 @@ def get_test_node(**kw):
         'target_raid_config': kw.get('target_raid_config'),
         'tags': kw.get('tags', []),
         'resource_class': kw.get('resource_class'),
-        'network_interface': kw.get('network_interface'),
     }
+
+    for iface in drivers_base.ALL_INTERFACES:
+        name = '%s_interface' % iface
+        result[name] = kw.get(name)
+
+    return result
 
 
 def create_test_node(**kw):

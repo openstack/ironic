@@ -53,6 +53,7 @@ import sqlalchemy.exc
 from ironic.common.i18n import _LE
 from ironic.db.sqlalchemy import migration
 from ironic.db.sqlalchemy import models
+from ironic.drivers import base as base_driver
 from ironic.tests import base
 
 LOG = logging.getLogger(__name__)
@@ -536,6 +537,15 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(portgroups.c.standalone_ports_supported.type,
                               (sqlalchemy.types.Boolean,
                                sqlalchemy.types.Integer))
+
+    def _check_bcdd431ba0bf(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+        for iface in base_driver.ALL_INTERFACES:
+            name = '%s_interface' % iface
+            self.assertIn(name, col_names)
+            self.assertIsInstance(getattr(nodes.c, name).type,
+                                  sqlalchemy.types.String)
 
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):

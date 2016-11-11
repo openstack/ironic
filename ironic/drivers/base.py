@@ -171,6 +171,13 @@ class BareDriver(BaseDriver):
         self.core_interfaces.append('network')
 
 
+ALL_INTERFACES = set(BareDriver().all_interfaces)
+"""Constant holding all known interfaces.
+
+Includes interfaces not exposed via BaseDriver.all_interfaces.
+"""
+
+
 @six.add_metaclass(abc.ABCMeta)
 class BaseInterface(object):
     """A base interface implementing common functions for Driver Interfaces."""

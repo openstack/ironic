@@ -144,7 +144,15 @@ class Node(Base):
     inspection_started_at = Column(DateTime, nullable=True)
     extra = Column(db_types.JsonEncodedDict)
 
+    boot_interface = Column(String(255), nullable=True)
+    console_interface = Column(String(255), nullable=True)
+    deploy_interface = Column(String(255), nullable=True)
+    inspect_interface = Column(String(255), nullable=True)
+    management_interface = Column(String(255), nullable=True)
     network_interface = Column(String(255), nullable=True)
+    raid_interface = Column(String(255), nullable=True)
+    power_interface = Column(String(255), nullable=True)
+    vendor_interface = Column(String(255), nullable=True)
 
 
 class Port(Base):

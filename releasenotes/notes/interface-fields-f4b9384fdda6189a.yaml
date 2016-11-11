@@ -1,0 +1,4 @@
+---
+upgrade:
+  - Add database migration to add new fields corresponding to all interfaces
+    to the node table.
