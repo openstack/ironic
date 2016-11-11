@@ -585,6 +585,10 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
                                                node_id=self.node.id)
         self.info = common.get_oneview_info(self.node)
 
+    def test_get_properties(self, mock_get_ov_client):
+        expected = common.COMMON_PROPERTIES
+        self.assertEqual(expected, self.driver.deploy.get_properties())
+
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'validate',
                        spec_set=True, autospec=True)
     def test_validate(self, iscsi_deploy_validate_mock, mock_get_ov_client):
@@ -655,8 +659,9 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
         iscsi_tear_down_mock.return_value = states.DELETED
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.deploy.tear_down(task)
+            returned_state = task.driver.deploy.tear_down(task)
             iscsi_tear_down_mock.assert_called_once_with(mock.ANY, task)
+            self.assertEqual(states.DELETED, returned_state)
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'tear_down', spec_set=True,
                        autospec=True)
@@ -674,8 +679,10 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.deploy.tear_down(task)
+            returned_state = task.driver.deploy.tear_down(task)
             iscsi_tear_down_mock.assert_called_once_with(mock.ANY, task)
+            self.assertEqual(states.DELETED, returned_state)
+            self.assertTrue(deallocate_server_hardware_mock.called)
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare_cleaning',
                        spec_set=True, autospec=True)
@@ -760,6 +767,10 @@ class OneViewAgentDeployTestCase(db_base.DbTestCase):
                                                node_id=self.node.id)
         self.info = common.get_oneview_info(self.node)
 
+    def test_get_properties(self, mock_get_ov_client):
+        expected = common.COMMON_PROPERTIES
+        self.assertEqual(expected, self.driver.deploy.get_properties())
+
     @mock.patch.object(agent.AgentDeploy, 'validate',
                        spec_set=True, autospec=True)
     def test_validate(self, agent_deploy_validate_mock, mock_get_ov_client):
@@ -830,8 +841,9 @@ class OneViewAgentDeployTestCase(db_base.DbTestCase):
         agent_tear_down_mock.return_value = states.DELETED
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.deploy.tear_down(task)
+            returned_state = task.driver.deploy.tear_down(task)
             agent_tear_down_mock.assert_called_once_with(mock.ANY, task)
+            self.assertEqual(states.DELETED, returned_state)
 
     @mock.patch.object(agent.AgentDeploy, 'tear_down', spec_set=True,
                        autospec=True)
@@ -849,8 +861,10 @@ class OneViewAgentDeployTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.deploy.tear_down(task)
+            returned_state = task.driver.deploy.tear_down(task)
             agent_tear_down_mock.assert_called_once_with(mock.ANY, task)
+            self.assertEqual(states.DELETED, returned_state)
+            self.assertTrue(deallocate_server_hardware_mock.called)
 
     @mock.patch.object(agent.AgentDeploy, 'prepare_cleaning',
                        spec_set=True, autospec=True)

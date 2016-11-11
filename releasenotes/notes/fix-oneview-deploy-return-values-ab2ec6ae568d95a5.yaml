@@ -1,0 +1,5 @@
+---
+fixes:
+  - Fixes an issue where the OneView deploy interface does not
+    return the node properties and in the tear down phase does
+    not return the state of the node.
