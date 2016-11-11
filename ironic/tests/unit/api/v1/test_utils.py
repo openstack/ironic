@@ -300,6 +300,13 @@ class TestApiUtils(base.TestCase):
         self.assertFalse(utils.allow_portgroups())
 
     @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_allow_portgroups_subcontrollers(self, mock_request):
+        mock_request.version.minor = 24
+        self.assertTrue(utils.allow_portgroups_subcontrollers())
+        mock_request.version.minor = 23
+        self.assertFalse(utils.allow_portgroups_subcontrollers())
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_allow_remove_chassis_uuid(self, mock_request):
         mock_request.version.minor = 25
         self.assertTrue(utils.allow_remove_chassis_uuid())
