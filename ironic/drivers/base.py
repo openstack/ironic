@@ -171,6 +171,7 @@ class BareDriver(BaseDriver):
         self.core_interfaces.append('network')
 
 
+@six.add_metaclass(abc.ABCMeta)
 class BaseInterface(object):
     """A base interface implementing common functions for Driver Interfaces."""
 
@@ -182,6 +183,30 @@ class BaseInterface(object):
     """
 
     interface_type = 'base'
+    """Interface type, used for clean steps and logging."""
+
+    @abc.abstractmethod
+    def get_properties(self):
+        """Return the properties of the interface.
+
+        :returns: dictionary of <property name>:<property description> entries.
+        """
+
+    @abc.abstractmethod
+    def validate(self, task):
+        """Validate the driver-specific Node deployment info.
+
+        This method validates whether the 'driver_info' and/or 'instance_info'
+        properties of the task's node contains the required information for
+        this interface to function.
+
+        This method is often executed synchronously in API requests, so it
+        should not conduct long-running checks.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :raises: InvalidParameterValue on malformed parameter(s)
+        :raises: MissingParameterValue on missing parameter(s)
+        """
 
     def __new__(cls, *args, **kwargs):
         # Get the list of clean steps when the interface is initialized by
@@ -252,31 +277,9 @@ class BaseInterface(object):
             return getattr(self, step['step'])(task)
 
 
-@six.add_metaclass(abc.ABCMeta)
 class DeployInterface(BaseInterface):
     """Interface for deploy-related actions."""
     interface_type = 'deploy'
-
-    @abc.abstractmethod
-    def get_properties(self):
-        """Return the properties of the interface.
-
-        :returns: dictionary of <property name>:<property description> entries.
-        """
-
-    @abc.abstractmethod
-    def validate(self, task):
-        """Validate the driver-specific Node deployment info.
-
-        This method validates whether the 'driver_info' property of the
-        task's node contains the required information for this driver to
-        deploy images to the node. If invalid, raises an exception; otherwise
-        returns None.
-
-        :param task: a TaskManager instance containing the node to act on.
-        :raises: InvalidParameterValue
-        :raises: MissingParameterValue
-        """
 
     @abc.abstractmethod
     def deploy(self, task):
@@ -402,30 +405,9 @@ class DeployInterface(BaseInterface):
                     {'node': task.node.uuid, 'driver': task.node.driver})
 
 
-@six.add_metaclass(abc.ABCMeta)
-class BootInterface(object):
+class BootInterface(BaseInterface):
     """Interface for boot-related actions."""
-
-    @abc.abstractmethod
-    def get_properties(self):
-        """Return the properties of the interface.
-
-        :returns: dictionary of <property name>:<property description> entries.
-        """
-
-    @abc.abstractmethod
-    def validate(self, task):
-        """Validate the driver-specific info for booting.
-
-        This method validates the driver-specific info for booting the
-        ramdisk and instance on the node.  If invalid, raises an
-        exception; otherwise returns None.
-
-        :param task: a task from TaskManager.
-        :returns: None
-        :raises: InvalidParameterValue
-        :raises: MissingParameterValue
-        """
+    interface_type = 'boot'
 
     @abc.abstractmethod
     def prepare_ramdisk(self, task, ramdisk_params):
@@ -482,31 +464,9 @@ class BootInterface(object):
         """
 
 
-@six.add_metaclass(abc.ABCMeta)
 class PowerInterface(BaseInterface):
     """Interface for power-related actions."""
     interface_type = 'power'
-
-    @abc.abstractmethod
-    def get_properties(self):
-        """Return the properties of the interface.
-
-        :returns: dictionary of <property name>:<property description> entries.
-        """
-
-    @abc.abstractmethod
-    def validate(self, task):
-        """Validate the driver-specific Node power info.
-
-        This method validates whether the 'driver_info' property of the
-        supplied node contains the required information for this driver to
-        manage the power state of the node. If invalid, raises an exception;
-        otherwise, returns None.
-
-        :param task: a TaskManager instance containing the node to act on.
-        :raises: InvalidParameterValue
-        :raises: MissingParameterValue
-        """
 
     @abc.abstractmethod
     def get_power_state(self, task):
@@ -538,30 +498,9 @@ class PowerInterface(BaseInterface):
         """
 
 
-@six.add_metaclass(abc.ABCMeta)
-class ConsoleInterface(object):
+class ConsoleInterface(BaseInterface):
     """Interface for console-related actions."""
-
-    @abc.abstractmethod
-    def get_properties(self):
-        """Return the properties of the interface.
-
-        :returns: dictionary of <property name>:<property description> entries.
-        """
-
-    @abc.abstractmethod
-    def validate(self, task):
-        """Validate the driver-specific Node console info.
-
-        This method validates whether the 'driver_info' property of the
-        supplied node contains the required information for this driver to
-        provide console access to the Node. If invalid, raises an exception;
-        otherwise returns None.
-
-        :param task: a TaskManager instance containing the node to act on.
-        :raises: InvalidParameterValue
-        :raises: MissingParameterValue
-        """
+    interface_type = "console"
 
     @abc.abstractmethod
     def start_console(self, task):
@@ -591,27 +530,9 @@ class ConsoleInterface(object):
         """
 
 
-@six.add_metaclass(abc.ABCMeta)
-class RescueInterface(object):
+class RescueInterface(BaseInterface):
     """Interface for rescue-related actions."""
-
-    @abc.abstractmethod
-    def get_properties(self):
-        """Return the properties of the interface.
-
-        :returns: dictionary of <property name>:<property description> entries.
-        """
-
-    @abc.abstractmethod
-    def validate(self, task):
-        """Validate the rescue info stored in the node' properties.
-
-        If invalid, raises an exception; otherwise returns None.
-
-        :param task: a TaskManager instance containing the node to act on.
-        :raises: InvalidParameterValue
-        :raises: MissingParameterValue
-        """
+    interface_type = "rescue"
 
     @abc.abstractmethod
     def rescue(self, task):
@@ -714,8 +635,7 @@ def driver_passthru(http_methods, method=None, async=True, description=None,
                      description=description, attach=attach)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class VendorInterface(object):
+class VendorInterface(BaseInterface):
     """Interface for all vendor passthru functionality.
 
     Additional vendor- or driver-specific capabilities should be
@@ -725,6 +645,7 @@ class VendorInterface(object):
     Methods decorated with @driver_passthru should be short-lived because
     it is a blocking call.
     """
+    interface_type = "vendor"
 
     def __new__(cls, *args, **kwargs):
         super_new = super(VendorInterface, cls).__new__
@@ -751,13 +672,6 @@ class VendorInterface(object):
                 inst.driver_routes.update({dmeta.method: metadata})
 
         return inst
-
-    @abc.abstractmethod
-    def get_properties(self):
-        """Return the properties of the interface.
-
-        :returns: dictionary of <property name>:<property description> entries.
-        """
 
     @abc.abstractmethod
     def validate(self, task, method=None, **kwargs):
@@ -788,28 +702,9 @@ class VendorInterface(object):
         pass
 
 
-@six.add_metaclass(abc.ABCMeta)
 class ManagementInterface(BaseInterface):
     """Interface for management related actions."""
     interface_type = 'management'
-
-    @abc.abstractmethod
-    def get_properties(self):
-        """Return the properties of the interface.
-
-        :returns: dictionary of <property name>:<property description> entries.
-        """
-
-    @abc.abstractmethod
-    def validate(self, task):
-        """Validate the driver-specific management information.
-
-        If invalid, raises an exception; otherwise returns None.
-
-        :param task: a task from TaskManager.
-        :raises: InvalidParameterValue
-        :raises: MissingParameterValue
-        """
 
     @abc.abstractmethod
     def get_supported_boot_devices(self, task):
@@ -899,30 +794,12 @@ class ManagementInterface(BaseInterface):
         """
 
 
-@six.add_metaclass(abc.ABCMeta)
-class InspectInterface(object):
+class InspectInterface(BaseInterface):
     """Interface for inspection-related actions."""
+    interface_type = 'inspect'
 
     ESSENTIAL_PROPERTIES = {'memory_mb', 'local_gb', 'cpus', 'cpu_arch'}
     """The properties required by scheduler/deploy."""
-
-    @abc.abstractmethod
-    def get_properties(self):
-        """Return the properties of the interface.
-
-        :returns: dictionary of <property name>:<property description> entries.
-        """
-
-    @abc.abstractmethod
-    def validate(self, task):
-        """Validate the driver-specific inspection information.
-
-        If invalid, raises an exception; otherwise returns None.
-
-        :param task: a task from TaskManager.
-        :raises: InvalidParameterValue
-        :raises: MissingParameterValue
-        """
 
     @abc.abstractmethod
     def inspect_hardware(self, task):
@@ -947,12 +824,12 @@ class RAIDInterface(BaseInterface):
         with open(RAID_CONFIG_SCHEMA, 'r') as raid_schema_fobj:
             self.raid_schema = json.load(raid_schema_fobj)
 
-    @abc.abstractmethod
     def get_properties(self):
         """Return the properties of the interface.
 
         :returns: dictionary of <property name>:<property description> entries.
         """
+        return {}
 
     def validate(self, task):
         """Validates the RAID Interface.
@@ -1035,7 +912,6 @@ class RAIDInterface(BaseInterface):
         return raid.get_logical_disk_properties(self.raid_schema)
 
 
-@six.add_metaclass(abc.ABCMeta)
 class NetworkInterface(BaseInterface):
     """Base class for network interfaces."""
 

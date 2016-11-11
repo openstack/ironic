@@ -226,7 +226,14 @@ class CleanStepTestCase(base.TestCase):
         method_args_mock = mock.MagicMock(spec_set=[])
         task_mock = mock.MagicMock(spec_set=[])
 
-        class TestClass(driver_base.BaseInterface):
+        class BaseTestClass(driver_base.BaseInterface):
+            def get_properties(self):
+                return {}
+
+            def validate(self, task):
+                pass
+
+        class TestClass(BaseTestClass):
             interface_type = 'test'
 
             @driver_base.clean_step(priority=0)
@@ -240,7 +247,7 @@ class CleanStepTestCase(base.TestCase):
             def not_clean_method(self, task):
                 pass
 
-        class TestClass2(driver_base.BaseInterface):
+        class TestClass2(BaseTestClass):
             interface_type = 'test2'
 
             @driver_base.clean_step(priority=0)
@@ -254,7 +261,7 @@ class CleanStepTestCase(base.TestCase):
             def not_clean_method2(self, task):
                 pass
 
-        class TestClass3(driver_base.BaseInterface):
+        class TestClass3(BaseTestClass):
             interface_type = 'test3'
 
             @driver_base.clean_step(priority=0, abortable=True, argsinfo={
