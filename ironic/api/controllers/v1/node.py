@@ -893,8 +893,6 @@ class NodePatchType(types.JsonPatchType):
 
     _api_base = Node
 
-    _extra_non_removable_attrs = {'/chassis_uuid'}
-
     @staticmethod
     def internal_attrs():
         defaults = types.JsonPatchType.internal_attrs()
@@ -1192,7 +1190,17 @@ class NodesController(rest.RestController):
             try:
                 patch_val = getattr(node, field)
             except AttributeError:
-                # Ignore fields that aren't exposed in the API
+                # Ignore fields that aren't exposed in the API, except
+                # chassis_id. chassis_id would have been set (instead of
+                # chassis_uuid) if the node belongs to a chassis. This
+                # AttributeError is raised for chassis_id only if
+                # 1. the node doesn't belong to a chassis or
+                # 2. the node belonged to a chassis but is now being removed
+                # from the chassis.
+                if (field == "chassis_id" and rpc_node[field] is not None):
+                    if not api_utils.allow_remove_chassis_uuid():
+                        raise exception.NotAcceptable()
+                    rpc_node[field] = None
                 continue
             if patch_val == wtypes.Unset:
                 patch_val = None

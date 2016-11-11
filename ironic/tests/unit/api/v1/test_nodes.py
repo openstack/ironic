@@ -32,6 +32,7 @@ from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import node as api_node
 from ironic.api.controllers.v1 import utils as api_utils
+from ironic.api.controllers.v1 import versions
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import states
@@ -1316,6 +1317,40 @@ class TestPatch(test_api_base.BaseApiTest):
                                      'op': 'add'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
+
+    def test_remove_chassis_uuid(self):
+        self.mock_update_node.return_value = self.node
+        headers = {api_base.Version.string: "1.25"}
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
+                                   [{'path': '/chassis_uuid',
+                                     'op': 'remove'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_remove_chassis_uuid_invalid_api_version(self):
+        self.mock_update_node.return_value = self.node
+        headers = {api_base.Version.string: "1.24"}
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
+                                   [{'path': '/chassis_uuid',
+                                     'op': 'remove'}],
+                                   headers=headers,
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
+    @mock.patch("pecan.request")
+    def test__update_changed_fields_remove_chassis_uuid(self, mock_pecan_req):
+        mock_pecan_req.version.minor = versions.MINOR_MAX_VERSION
+        controller = api_node.NodesController()
+
+        node_dict = self.node.as_dict()
+        del node_dict['chassis_id']
+        node_no_chassis = api_node.Node(**node_dict)
+
+        controller._update_changed_fields(node_no_chassis, self.node)
+        self.assertIsNone(self.node.chassis_id)
 
     def test_add_chassis_id(self):
         response = self.patch_json('/nodes/%s' % self.node.uuid,

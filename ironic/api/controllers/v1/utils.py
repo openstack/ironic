@@ -432,6 +432,16 @@ def allow_portgroups_subcontrollers():
             versions.MINOR_24_PORTGROUPS_SUBCONTROLLERS)
 
 
+def allow_remove_chassis_uuid():
+    """Check if chassis_uuid can be removed from node.
+
+    Version 1.25 of the API added support for chassis_uuid
+    removal
+    """
+    return (pecan.request.version.minor >=
+            versions.MINOR_25_UNSET_CHASSIS_UUID)
+
+
 def get_controller_reserved_names(cls):
     """Get reserved names for a given controller.
 

@@ -326,6 +326,8 @@ Updates the information stored about a Node.
 Note that this endpoint can not be used to request state changes, which are
 managed through sub-resources.
 
+API microversion 1.25 introduced the ability to unset a node's chassis UUID.
+
 Normal response codes: 200
 
 .. TODO: add error codes

@@ -299,6 +299,13 @@ class TestApiUtils(base.TestCase):
         mock_request.version.minor = 22
         self.assertFalse(utils.allow_portgroups())
 
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_allow_remove_chassis_uuid(self, mock_request):
+        mock_request.version.minor = 25
+        self.assertTrue(utils.allow_remove_chassis_uuid())
+        mock_request.version.minor = 24
+        self.assertFalse(utils.allow_remove_chassis_uuid())
+
 
 class TestNodeIdent(base.TestCase):
 
