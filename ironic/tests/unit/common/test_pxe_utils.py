@@ -36,7 +36,7 @@ class TestPXEUtils(db_base.DbTestCase):
         super(TestPXEUtils, self).setUp()
         mgr_utils.mock_the_extension_manager(driver="fake")
 
-        common_pxe_options = {
+        self.pxe_options = {
             'deployment_aki_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-'
                                    u'c02d7f33c123/deploy_kernel',
             'aki_path': u'/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/'
@@ -49,11 +49,6 @@ class TestPXEUtils(db_base.DbTestCase):
             'ipa-api-url': 'http://192.168.122.184:6385',
             'ipxe_timeout': 0,
         }
-
-        self.pxe_options = {
-            'ipa-driver-name': 'pxe_ssh',
-        }
-        self.pxe_options.update(common_pxe_options)
 
         self.ipxe_options = self.pxe_options.copy()
         self.ipxe_options.update({

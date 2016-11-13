@@ -1056,7 +1056,6 @@ def build_agent_options(node):
     """
     agent_config_opts = {
         'ipa-api-url': get_ironic_api_url(),
-        'ipa-driver-name': node.driver,
         # NOTE: The below entry is a temporary workaround for bug/1433812
         'coreos.configdrive': 0,
     }

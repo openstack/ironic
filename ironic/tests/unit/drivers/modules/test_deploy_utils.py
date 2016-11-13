@@ -2127,7 +2127,6 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         self.config(api_url='api-url', group='conductor')
         options = utils.build_agent_options(self.node)
         self.assertEqual('api-url', options['ipa-api-url'])
-        self.assertEqual('fake_agent', options['ipa-driver-name'])
         self.assertEqual(0, options['coreos.configdrive'])
 
     @mock.patch.object(utils, '_get_ironic_session')
@@ -2138,7 +2137,6 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         session_mock.return_value = sess
         options = utils.build_agent_options(self.node)
         self.assertEqual('api-url', options['ipa-api-url'])
-        self.assertEqual('fake_agent', options['ipa-driver-name'])
         self.assertEqual(0, options['coreos.configdrive'])
 
 

@@ -422,7 +422,7 @@ class BootInterface(BaseInterface):
             different ways by passing parameters to them.  For example,
 
             When Agent ramdisk is booted to deploy a node, it takes the
-            parameters ipa-driver-name, ipa-api-url, etc.
+            parameters ipa-api-url, etc.
 
             Other implementations can make use of ramdisk_params to pass such
             information.  Different implementations of boot interface will
