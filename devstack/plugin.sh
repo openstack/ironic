@@ -42,7 +42,7 @@ if is_service_enabled ir-api ir-cond; then
                 create_bridge_and_vms
             fi
 
-            if is_service_enabled neutron; then
+            if is_service_enabled neutron || [[ "$HOST_TOPOLOGY" == "multinode" ]]; then
                 echo_summary "Configuring Ironic networks"
                 configure_ironic_networks
             fi
