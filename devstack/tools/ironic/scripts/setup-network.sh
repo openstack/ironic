@@ -7,6 +7,9 @@
 
 set -exu
 
+# Make tracing more educational
+export PS4='+ ${BASH_SOURCE:-}:${FUNCNAME[0]:-}:L${LINENO:-}:   '
+
 LIBVIRT_CONNECT_URI=${LIBVIRT_CONNECT_URI:-"qemu:///system"}
 
 # Keep track of the DevStack directory
