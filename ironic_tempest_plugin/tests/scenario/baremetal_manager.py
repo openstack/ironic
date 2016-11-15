@@ -58,8 +58,8 @@ class BaremetalScenarioTest(manager.ScenarioTest):
     @classmethod
     def skip_checks(cls):
         super(BaremetalScenarioTest, cls).skip_checks()
-        if not CONF.baremetal.driver_enabled:
-            msg = 'Ironic not available or Ironic compute driver not enabled'
+        if CONF.network_feature_enabled.port_admin_state_change:
+            msg = "Port state change feature isn't supported by Ironic."
             raise cls.skipException(msg)
 
     @classmethod

@@ -36,9 +36,15 @@ class Manager(clients.Manager):
         :param service: service name
         """
         super(Manager, self).__init__(credentials, service)
+        default_params_with_timeout_values = {
+            'build_interval': CONF.compute.build_interval,
+            'build_timeout': CONF.compute.build_timeout
+        }
+        default_params_with_timeout_values.update(self.default_params)
+
         self.baremetal_client = BaremetalClient(
             self.auth_provider,
             CONF.baremetal.catalog_type,
             CONF.identity.region,
             endpoint_type=CONF.baremetal.endpoint_type,
-            **self.default_params_with_timeout_values)
+            **default_params_with_timeout_values)

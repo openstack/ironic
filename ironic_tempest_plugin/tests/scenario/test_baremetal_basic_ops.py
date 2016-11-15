@@ -39,6 +39,7 @@ class BaremetalBasicOps(baremetal_manager.BaremetalScenarioTest):
         * Monitors the associated Ironic node for power and
           expected state transitions
     """
+
     def rebuild_instance(self, preserve_ephemeral=False):
         self.rebuild_server(server_id=self.instance['id'],
                             preserve_ephemeral=preserve_ephemeral,
