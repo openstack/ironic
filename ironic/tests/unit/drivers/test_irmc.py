@@ -48,7 +48,6 @@ class IRMCVirtualMediaIscsiTestCase(testtools.TestCase):
                               irmc.ipmitool.IPMIShellinaboxConsole)
         self.assertIsInstance(driver.management,
                               irmc.management.IRMCManagement)
-        self.assertIsInstance(driver.vendor, iscsi_deploy.VendorPassthru)
         self.assertIsInstance(driver.inspect, irmc.inspect.IRMCInspect)
 
     @mock.patch.object(irmc.importutils, 'try_import')
@@ -91,7 +90,6 @@ class IRMCVirtualMediaAgentTestCase(testtools.TestCase):
                               irmc.ipmitool.IPMIShellinaboxConsole)
         self.assertIsInstance(driver.management,
                               irmc.management.IRMCManagement)
-        self.assertIsInstance(driver.vendor, irmc.agent.AgentVendorInterface)
         self.assertIsInstance(driver.inspect, irmc.inspect.IRMCInspect)
 
     @mock.patch.object(irmc.importutils, 'try_import')

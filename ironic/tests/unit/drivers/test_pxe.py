@@ -31,6 +31,7 @@ from ironic.drivers.modules.ilo import console as ilo_console
 from ironic.drivers.modules.ilo import inspect as ilo_inspect
 from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules.ilo import power as ilo_power
+from ironic.drivers.modules.ilo import vendor as ilo_vendor
 from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import management as irmc_management
@@ -47,7 +48,6 @@ from ironic.drivers.modules.ucs import power as ucs_power
 from ironic.drivers.modules import virtualbox
 from ironic.drivers.modules import wol
 from ironic.drivers import pxe
-from ironic.drivers import utils
 
 
 class PXEDriversTestCase(testtools.TestCase):
@@ -61,8 +61,7 @@ class PXEDriversTestCase(testtools.TestCase):
         self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
         self.assertIsInstance(driver.management, ipmitool.IPMIManagement)
         self.assertIsNone(driver.inspect)
-        # TODO(rameshg87): Need better way of asserting the routes.
-        self.assertIsInstance(driver.vendor, utils.MixinVendorInterface)
+        self.assertIsInstance(driver.vendor, ipmitool.VendorPassthru)
         self.assertIsInstance(driver.raid, agent.AgentRAID)
 
     def test_pxe_ipmitool_socat_driver(self):
@@ -74,8 +73,7 @@ class PXEDriversTestCase(testtools.TestCase):
         self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
         self.assertIsInstance(driver.management, ipmitool.IPMIManagement)
         self.assertIsNone(driver.inspect)
-        # TODO(rameshg87): Need better way of asserting the routes.
-        self.assertIsInstance(driver.vendor, utils.MixinVendorInterface)
+        self.assertIsInstance(driver.vendor, ipmitool.VendorPassthru)
         self.assertIsInstance(driver.raid, agent.AgentRAID)
 
     def test_pxe_ssh_driver(self):
@@ -85,7 +83,6 @@ class PXEDriversTestCase(testtools.TestCase):
         self.assertIsInstance(driver.boot, pxe_module.PXEBoot)
         self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
         self.assertIsInstance(driver.management, ssh.SSHManagement)
-        self.assertIsInstance(driver.vendor, iscsi_deploy.VendorPassthru)
         self.assertIsNone(driver.inspect)
         self.assertIsInstance(driver.raid, agent.AgentRAID)
 
@@ -103,8 +100,7 @@ class PXEDriversTestCase(testtools.TestCase):
         self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
         self.assertIsInstance(driver.management,
                               ipminative.NativeIPMIManagement)
-        # TODO(rameshg87): Need better way of asserting the routes.
-        self.assertIsInstance(driver.vendor, utils.MixinVendorInterface)
+        self.assertIsInstance(driver.vendor, ipminative.VendorPassthru)
         self.assertIsNone(driver.inspect)
         self.assertIsInstance(driver.raid, agent.AgentRAID)
 
@@ -127,9 +123,7 @@ class PXEDriversTestCase(testtools.TestCase):
         self.assertIsInstance(driver.boot, pxe_module.PXEBoot)
         self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
         self.assertIsInstance(driver.management, seamicro.Management)
-        self.assertIsInstance(driver.seamicro_vendor, seamicro.VendorPassthru)
-        self.assertIsInstance(driver.iscsi_vendor, iscsi_deploy.VendorPassthru)
-        self.assertIsInstance(driver.vendor, utils.MixinVendorInterface)
+        self.assertIsInstance(driver.vendor, seamicro.VendorPassthru)
         self.assertIsInstance(driver.console, seamicro.ShellinaboxConsole)
 
     @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
@@ -170,7 +164,7 @@ class PXEDriversTestCase(testtools.TestCase):
         self.assertIsInstance(driver.power, ilo_power.IloPower)
         self.assertIsInstance(driver.boot, pxe_module.PXEBoot)
         self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
-        self.assertIsInstance(driver.vendor, iscsi_deploy.VendorPassthru)
+        self.assertIsInstance(driver.vendor, ilo_vendor.VendorPassthru)
         self.assertIsInstance(driver.console,
                               ilo_console.IloConsoleInterface)
         self.assertIsInstance(driver.management,
@@ -196,7 +190,6 @@ class PXEDriversTestCase(testtools.TestCase):
         self.assertIsInstance(driver.power, snmp.SNMPPower)
         self.assertIsInstance(driver.boot, pxe_module.PXEBoot)
         self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
-        self.assertIsInstance(driver.vendor, iscsi_deploy.VendorPassthru)
         self.assertIsNone(driver.management)
 
     @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
@@ -220,7 +213,6 @@ class PXEDriversTestCase(testtools.TestCase):
         self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
         self.assertIsInstance(driver.management,
                               irmc_management.IRMCManagement)
-        self.assertIsInstance(driver.vendor, iscsi_deploy.VendorPassthru)
 
     @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
                        autospec=True)
@@ -242,7 +234,6 @@ class PXEDriversTestCase(testtools.TestCase):
         self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
         self.assertIsInstance(driver.management,
                               virtualbox.VirtualBoxManagement)
-        self.assertIsInstance(driver.vendor, iscsi_deploy.VendorPassthru)
         self.assertIsInstance(driver.raid, agent.AgentRAID)
 
     @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
@@ -287,7 +278,6 @@ class PXEDriversTestCase(testtools.TestCase):
         self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
         self.assertIsInstance(driver.management,
                               msftocs_management.MSFTOCSManagement)
-        self.assertIsInstance(driver.vendor, iscsi_deploy.VendorPassthru)
 
     @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
                        autospec=True)
@@ -301,7 +291,6 @@ class PXEDriversTestCase(testtools.TestCase):
         self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
         self.assertIsInstance(driver.management,
                               ucs_management.UcsManagement)
-        self.assertIsInstance(driver.vendor, iscsi_deploy.VendorPassthru)
 
     @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
                        autospec=True)
@@ -323,7 +312,6 @@ class PXEDriversTestCase(testtools.TestCase):
         self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
         self.assertIsInstance(driver.management,
                               cimc_management.CIMCManagement)
-        self.assertIsInstance(driver.vendor, iscsi_deploy.VendorPassthru)
 
     @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
                        autospec=True)

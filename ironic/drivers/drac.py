@@ -27,9 +27,7 @@ from ironic.drivers.modules.drac import power
 from ironic.drivers.modules.drac import raid
 from ironic.drivers.modules.drac import vendor_passthru
 from ironic.drivers.modules import inspector
-from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
-from ironic.drivers import utils
 
 
 class PXEDracDriver(base.BaseDriver):
@@ -46,18 +44,7 @@ class PXEDracDriver(base.BaseDriver):
         self.deploy = deploy.DracDeploy()
         self.management = management.DracManagement()
         self.raid = raid.DracRAID()
-        self.iscsi_vendor = iscsi_deploy.VendorPassthru()
-        self.drac_vendor = vendor_passthru.DracVendorPassthru()
-        self.mapping = {'heartbeat': self.iscsi_vendor,
-                        'get_bios_config': self.drac_vendor,
-                        'set_bios_config': self.drac_vendor,
-                        'commit_bios_config': self.drac_vendor,
-                        'abandon_bios_config': self.drac_vendor,
-                        'list_unfinished_jobs': self.drac_vendor,
-                        }
-        self.driver_passthru_mapping = {'lookup': self.iscsi_vendor}
-        self.vendor = utils.MixinVendorInterface(self.mapping,
-                                                 self.driver_passthru_mapping)
+        self.vendor = vendor_passthru.DracVendorPassthru()
         self.inspect = drac_inspect.DracInspect()
 
 

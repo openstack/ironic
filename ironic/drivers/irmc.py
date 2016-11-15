@@ -50,7 +50,6 @@ class IRMCVirtualMediaIscsiDriver(base.BaseDriver):
         self.deploy = iscsi_deploy.ISCSIDeploy()
         self.console = ipmitool.IPMIShellinaboxConsole()
         self.management = management.IRMCManagement()
-        self.vendor = iscsi_deploy.VendorPassthru()
         self.inspect = inspect.IRMCInspect()
 
 
@@ -75,5 +74,4 @@ class IRMCVirtualMediaAgentDriver(base.BaseDriver):
         self.deploy = agent.AgentDeploy()
         self.console = ipmitool.IPMIShellinaboxConsole()
         self.management = management.IRMCManagement()
-        self.vendor = agent.AgentVendorInterface()
         self.inspect = inspect.IRMCInspect()
