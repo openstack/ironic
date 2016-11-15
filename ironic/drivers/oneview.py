@@ -21,13 +21,11 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
-from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy
 from ironic.drivers.modules.oneview import inspect
 from ironic.drivers.modules.oneview import management
 from ironic.drivers.modules.oneview import power
-from ironic.drivers.modules.oneview import vendor
 from ironic.drivers.modules import pxe
 
 
@@ -55,7 +53,6 @@ class AgentPXEOneViewDriver(base.BaseDriver):
         self.management = management.OneViewManagement()
         self.boot = pxe.PXEBoot()
         self.deploy = deploy.OneViewAgentDeploy()
-        self.vendor = vendor.AgentVendorInterface()
         self.inspect = inspect.OneViewInspect.create_if_enabled(
             'AgentPXEOneViewDriver')
 
@@ -84,6 +81,5 @@ class ISCSIPXEOneViewDriver(base.BaseDriver):
         self.management = management.OneViewManagement()
         self.boot = pxe.PXEBoot()
         self.deploy = deploy.OneViewIscsiDeploy()
-        self.vendor = iscsi_deploy.VendorPassthru()
         self.inspect = inspect.OneViewInspect.create_if_enabled(
             'ISCSIPXEOneViewDriver')
