@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The deprecated ironic.nova.ClusteredComputerManager module is now removed.
+    This is not required with nova >= 14.0.0 (Newton).
