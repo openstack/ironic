@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
 
@@ -24,8 +25,9 @@ from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.oneview import common
 
-
 LOG = logging.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 oneview_exceptions = importutils.try_import('oneview_client.exceptions')
 
@@ -35,6 +37,7 @@ class OneViewPower(base.PowerInterface):
     def get_properties(self):
         return common.COMMON_PROPERTIES
 
+    @METRICS.timer('OneViewPower.validate')
     def validate(self, task):
         """Checks required info on 'driver_info' and validates node with OneView
 
@@ -58,6 +61,7 @@ class OneViewPower(base.PowerInterface):
         except exception.OneViewError as oneview_exc:
             raise exception.InvalidParameterValue(oneview_exc)
 
+    @METRICS.timer('OneViewPower.get_power_state')
     def get_power_state(self, task):
         """Gets the current power state.
 
@@ -82,6 +86,7 @@ class OneViewPower(base.PowerInterface):
             raise exception.OneViewError(error=oneview_exc)
         return common.translate_oneview_power_state(power_state)
 
+    @METRICS.timer('OneViewPower.set_power_state')
     @task_manager.require_exclusive_lock
     def set_power_state(self, task, power_state):
         """Turn the current power state on or off.
@@ -119,6 +124,7 @@ class OneViewPower(base.PowerInterface):
                 _("Error setting power state: %s") % exc
             )
 
+    @METRICS.timer('OneViewPower.reboot')
     @task_manager.require_exclusive_lock
     def reboot(self, task):
         """Reboot the node

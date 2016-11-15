@@ -17,6 +17,7 @@
 import abc
 
 from futurist import periodics
+from ironic_lib import metrics_utils
 from oslo_log import log as logging
 import six
 
@@ -30,6 +31,8 @@ from ironic.drivers.modules.oneview import deploy_utils
 from ironic import objects
 
 LOG = logging.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 CONF = common.CONF
 
@@ -223,6 +226,7 @@ class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
     def get_properties(self):
         deploy_utils.get_properties()
 
+    @METRICS.timer('OneViewIscsiDeploy.validate')
     def validate(self, task):
         common.verify_node_info(task.node)
         try:
@@ -231,22 +235,26 @@ class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
             raise exception.InvalidParameterValue(oneview_exc)
         super(OneViewIscsiDeploy, self).validate(task)
 
+    @METRICS.timer('OneViewIscsiDeploy.prepare')
     def prepare(self, task):
         if common.is_dynamic_allocation_enabled(task.node):
             deploy_utils.prepare(task)
         super(OneViewIscsiDeploy, self).prepare(task)
 
+    @METRICS.timer('OneViewIscsiDeploy.tear_down')
     def tear_down(self, task):
         if (common.is_dynamic_allocation_enabled(task.node) and
            not CONF.conductor.automated_clean):
             deploy_utils.tear_down(task)
         super(OneViewIscsiDeploy, self).tear_down(task)
 
+    @METRICS.timer('OneViewIscsiDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
         if common.is_dynamic_allocation_enabled(task.node):
             deploy_utils.prepare_cleaning(task)
         return super(OneViewIscsiDeploy, self).prepare_cleaning(task)
 
+    @METRICS.timer('OneViewIscsiDeploy.tear_down_cleaning')
     def tear_down_cleaning(self, task):
         if common.is_dynamic_allocation_enabled(task.node):
             deploy_utils.tear_down_cleaning(task)
@@ -261,6 +269,7 @@ class OneViewAgentDeploy(agent.AgentDeploy, OneViewPeriodicTasks):
     def get_properties(self):
         deploy_utils.get_properties()
 
+    @METRICS.timer('OneViewAgentDeploy.validate')
     def validate(self, task):
         common.verify_node_info(task.node)
         try:
@@ -269,22 +278,26 @@ class OneViewAgentDeploy(agent.AgentDeploy, OneViewPeriodicTasks):
             raise exception.InvalidParameterValue(oneview_exc)
         super(OneViewAgentDeploy, self).validate(task)
 
+    @METRICS.timer('OneViewAgentDeploy.prepare')
     def prepare(self, task):
         if common.is_dynamic_allocation_enabled(task.node):
             deploy_utils.prepare(task)
         super(OneViewAgentDeploy, self).prepare(task)
 
+    @METRICS.timer('OneViewAgentDeploy.tear_down')
     def tear_down(self, task):
         if (common.is_dynamic_allocation_enabled(task.node) and
            not CONF.conductor.automated_clean):
             deploy_utils.tear_down(task)
         super(OneViewAgentDeploy, self).tear_down(task)
 
+    @METRICS.timer('OneViewAgentDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
         if common.is_dynamic_allocation_enabled(task.node):
             deploy_utils.prepare_cleaning(task)
         return super(OneViewAgentDeploy, self).prepare_cleaning(task)
 
+    @METRICS.timer('OneViewAgentDeploy.tear_down_cleaning')
     def tear_down_cleaning(self, task):
         if common.is_dynamic_allocation_enabled(task.node):
             deploy_utils.tear_down_cleaning(task)

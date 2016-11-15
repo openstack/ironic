@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from ironic_lib import metrics_utils
 from oslo_log import log
 import retrying
 
@@ -25,6 +26,9 @@ from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
 
 LOG = log.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
+
 CONF = agent.CONF
 
 
@@ -36,6 +40,7 @@ CONF = agent.CONF
 # TODO(thiagop): remove this interface once bug/1503855 is fixed
 class AgentVendorInterface(agent.AgentVendorInterface):
 
+    @METRICS.timer('AgentVendorInterface.reboot_to_instance')
     def reboot_to_instance(self, task, **kwargs):
         task.process_event('resume')
         node = task.node
@@ -63,6 +68,7 @@ class AgentVendorInterface(agent.AgentVendorInterface):
         if task.driver.boot:
             task.driver.boot.clean_up_ramdisk(task)
 
+    @METRICS.timer('AgentVendorInterface.reboot_and_finish_deploy')
     def reboot_and_finish_deploy(self, task):
         """Helper method to trigger reboot on the node and finish deploy.
 
