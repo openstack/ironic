@@ -618,3 +618,14 @@ class NodeMaintenanceNotification(notification.NotificationBase):
     fields = {
         'payload': object_fields.ObjectField('NodePayload')
     }
+
+
+@base.IronicObjectRegistry.register
+class NodeConsoleNotification(notification.NotificationBase):
+    """Notification emitted when node console state changed."""
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'payload': object_fields.ObjectField('NodePayload')
+    }

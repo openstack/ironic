@@ -69,6 +69,7 @@ from ironic.conf import CONF
 from ironic.drivers import base as drivers_base
 from ironic import objects
 from ironic.objects import base as objects_base
+from ironic.objects import fields
 
 MANAGER_TOPIC = 'ironic.conductor_manager'
 
@@ -1335,7 +1336,10 @@ class ConductorManager(base_manager.BaseConductorManager):
         task.driver.deploy.take_over(task)
         # NOTE(zhenguo): If console enabled, take over the console session
         # as well.
+        console_error = None
         if task.node.console_enabled:
+            notify_utils.emit_console_notification(
+                task, 'console_restore', fields.NotificationStatus.START)
             try:
                 task.driver.console.start_console(task)
             except Exception as err:
@@ -1347,10 +1351,17 @@ class ConductorManager(base_manager.BaseConductorManager):
                 # back to False and set node's last error.
                 task.node.last_error = msg
                 task.node.console_enabled = False
+                console_error = True
+            else:
+                notify_utils.emit_console_notification(
+                    task, 'console_restore', fields.NotificationStatus.END)
         # NOTE(lucasagomes): Set the ID of the new conductor managing
         #                    this node
         task.node.conductor_affinity = self.conductor.id
         task.node.save()
+        if console_error:
+            notify_utils.emit_console_notification(
+                task, 'console_restore', fields.NotificationStatus.ERROR)
 
     @METRICS.timer('ConductorManager._check_cleanwait_timeouts')
     @periodics.periodic(spacing=CONF.conductor.check_provision_state_interval)
@@ -1510,12 +1521,20 @@ class ConductorManager(base_manager.BaseConductorManager):
                         'valid_states': states.DELETE_ALLOWED_STATES})
                 raise exception.InvalidState(msg)
             if node.console_enabled:
+                notify_utils.emit_console_notification(
+                    task, 'console_set', fields.NotificationStatus.START)
                 try:
                     task.driver.console.stop_console(task)
                 except Exception as err:
                     LOG.error(_LE('Failed to stop console while deleting '
                                   'the node %(node)s: %(err)s.'),
                               {'node': node.uuid, 'err': err})
+                    notify_utils.emit_console_notification(
+                        task, 'console_set', fields.NotificationStatus.ERROR)
+                else:
+                    node.console_enabled = False
+                    notify_utils.emit_console_notification(
+                        task, 'console_set', fields.NotificationStatus.END)
             node.destroy()
             LOG.info(_LI('Successfully deleted node %(node)s.'),
                      {'node': node.uuid})
@@ -1699,6 +1718,8 @@ class ConductorManager(base_manager.BaseConductorManager):
     def _set_console_mode(self, task, enabled):
         """Internal method to set console mode on a node."""
         node = task.node
+        notify_utils.emit_console_notification(
+            task, 'console_set', fields.NotificationStatus.START)
         try:
             if enabled:
                 task.driver.console.start_console(task)
@@ -1715,11 +1736,15 @@ class ConductorManager(base_manager.BaseConductorManager):
                                              'error': e})
             node.last_error = msg
             LOG.error(msg)
+            node.save()
+            notify_utils.emit_console_notification(
+                task, 'console_set', fields.NotificationStatus.ERROR)
         else:
             node.console_enabled = enabled
             node.last_error = None
-        finally:
             node.save()
+            notify_utils.emit_console_notification(
+                task, 'console_set', fields.NotificationStatus.END)
 
     @METRICS.timer('ConductorManager.update_port')
     @messaging.expected_exceptions(exception.NodeLocked,

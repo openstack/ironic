@@ -152,3 +152,27 @@ def emit_provision_set_notification(task, level, status, prev_state,
         prev_target=prev_target,
         event=event
     )
+
+
+def emit_console_notification(task, action, status):
+    """Helper for conductor sending a set console state notification.
+
+    :param task: a TaskManager instance.
+    :param action: Action string to go in the EventType. Must be either
+                   'console_set' or 'console_restore'.
+    :param status: One of `ironic.objects.fields.NotificationStatus.START`,
+                   END or ERROR.
+    """
+    if status == fields.NotificationStatus.ERROR:
+        level = fields.NotificationLevel.ERROR
+    else:
+        level = fields.NotificationLevel.INFO
+
+    _emit_conductor_node_notification(
+        task,
+        node_objects.NodeConsoleNotification,
+        node_objects.NodePayload,
+        action,
+        level,
+        status,
+    )

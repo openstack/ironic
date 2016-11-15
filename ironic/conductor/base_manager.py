@@ -30,10 +30,12 @@ from ironic.common import hash_ring as hash
 from ironic.common.i18n import _, _LC, _LE, _LI, _LW
 from ironic.common import rpc
 from ironic.common import states
+from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import task_manager
 from ironic.conf import CONF
 from ironic.db import api as dbapi
 from ironic import objects
+from ironic.objects import fields as obj_fields
 
 
 LOG = log.getLogger(__name__)
@@ -383,12 +385,18 @@ class BaseConductorManager(object):
             try:
                 with task_manager.acquire(context, node_uuid, shared=False,
                                           purpose='start console') as task:
+                    notify_utils.emit_console_notification(
+                        task, 'console_restore',
+                        obj_fields.NotificationStatus.START)
                     try:
                         LOG.debug('Trying to start console of node %(node)s',
                                   {'node': node_uuid})
                         task.driver.console.start_console(task)
                         LOG.info(_LI('Successfully started console of node '
                                      '%(node)s'), {'node': node_uuid})
+                        notify_utils.emit_console_notification(
+                            task, 'console_restore',
+                            obj_fields.NotificationStatus.END)
                     except Exception as err:
                         msg = (_('Failed to start console of node %(node)s '
                                  'while starting the conductor, so changing '
@@ -401,6 +409,9 @@ class BaseConductorManager(object):
                         task.node.last_error = msg
                         task.node.console_enabled = False
                         task.node.save()
+                        notify_utils.emit_console_notification(
+                            task, 'console_restore',
+                            obj_fields.NotificationStatus.ERROR)
             except exception.NodeLocked:
                 LOG.warning(_LW('Node %(node)s is locked while trying to '
                                 'start console on conductor startup'),

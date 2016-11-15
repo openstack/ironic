@@ -36,6 +36,7 @@ from ironic.common import images
 from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import manager
+from ironic.conductor import notification_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as conductor_utils
 from ironic.db import api as dbapi
@@ -2652,21 +2653,34 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
             self._stop_service()
             spawn_mock.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
-    def test_set_console_mode_enabled(self):
+    @mock.patch.object(notification_utils, 'emit_console_notification')
+    def test_set_console_mode_enabled(self, mock_notify):
         node = obj_utils.create_test_node(self.context, driver='fake')
         self._start_service()
         self.service.set_console_mode(self.context, node.uuid, True)
         self._stop_service()
         node.refresh()
         self.assertTrue(node.console_enabled)
+        mock_notify.assert_has_calls(
+            [mock.call(mock.ANY, 'console_set',
+                       obj_fields.NotificationStatus.START),
+             mock.call(mock.ANY, 'console_set',
+                       obj_fields.NotificationStatus.END)])
 
-    def test_set_console_mode_disabled(self):
-        node = obj_utils.create_test_node(self.context, driver='fake')
+    @mock.patch.object(notification_utils, 'emit_console_notification')
+    def test_set_console_mode_disabled(self, mock_notify):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          console_enabled=True)
         self._start_service()
         self.service.set_console_mode(self.context, node.uuid, False)
         self._stop_service()
         node.refresh()
         self.assertFalse(node.console_enabled)
+        mock_notify.assert_has_calls(
+            [mock.call(mock.ANY, 'console_set',
+                       obj_fields.NotificationStatus.START),
+             mock.call(mock.ANY, 'console_set',
+                       obj_fields.NotificationStatus.END)])
 
     def test_set_console_mode_not_supported(self):
         node = obj_utils.create_test_node(self.context, driver='fake',
@@ -2695,7 +2709,8 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
             # Compare true exception hidden by @messaging.expected_exceptions
             self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
 
-    def test_set_console_mode_start_fail(self):
+    @mock.patch.object(notification_utils, 'emit_console_notification')
+    def test_set_console_mode_start_fail(self, mock_notify):
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           last_error=None,
                                           console_enabled=False)
@@ -2708,8 +2723,14 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
             mock_sc.assert_called_once_with(mock.ANY)
             node.refresh()
             self.assertIsNotNone(node.last_error)
+            mock_notify.assert_has_calls(
+                [mock.call(mock.ANY, 'console_set',
+                           obj_fields.NotificationStatus.START),
+                 mock.call(mock.ANY, 'console_set',
+                           obj_fields.NotificationStatus.ERROR)])
 
-    def test_set_console_mode_stop_fail(self):
+    @mock.patch.object(notification_utils, 'emit_console_notification')
+    def test_set_console_mode_stop_fail(self, mock_notify):
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           last_error=None,
                                           console_enabled=True)
@@ -2722,8 +2743,14 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
             mock_sc.assert_called_once_with(mock.ANY)
             node.refresh()
             self.assertIsNotNone(node.last_error)
+            mock_notify.assert_has_calls(
+                [mock.call(mock.ANY, 'console_set',
+                           obj_fields.NotificationStatus.START),
+                 mock.call(mock.ANY, 'console_set',
+                           obj_fields.NotificationStatus.ERROR)])
 
-    def test_enable_console_already_enabled(self):
+    @mock.patch.object(notification_utils, 'emit_console_notification')
+    def test_enable_console_already_enabled(self, mock_notify):
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           console_enabled=True)
         self._start_service()
@@ -2732,8 +2759,10 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
             self.service.set_console_mode(self.context, node.uuid, True)
             self._stop_service()
             self.assertFalse(mock_sc.called)
+            self.assertFalse(mock_notify.called)
 
-    def test_disable_console_already_disabled(self):
+    @mock.patch.object(notification_utils, 'emit_console_notification')
+    def test_disable_console_already_disabled(self, mock_notify):
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           console_enabled=False)
         self._start_service()
@@ -2742,6 +2771,7 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
             self.service.set_console_mode(self.context, node.uuid, False)
             self._stop_service()
             self.assertFalse(mock_sc.called)
+            self.assertFalse(mock_notify.called)
 
     def test_get_console(self):
         node = obj_utils.create_test_node(self.context, driver='fake',
@@ -2860,7 +2890,8 @@ class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin,
                                           power_state=states.POWER_OFF)
         self.service.destroy_node(self.context, node.uuid)
 
-    def test_destroy_node_console_enabled(self):
+    @mock.patch.object(notification_utils, 'emit_console_notification')
+    def test_destroy_node_console_enabled(self, mock_notify):
         self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           console_enabled=True)
@@ -2871,6 +2902,30 @@ class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin,
             self.assertRaises(exception.NodeNotFound,
                               self.dbapi.get_node_by_uuid,
                               node.uuid)
+            mock_notify.assert_has_calls(
+                [mock.call(mock.ANY, 'console_set',
+                           obj_fields.NotificationStatus.START),
+                 mock.call(mock.ANY, 'console_set',
+                           obj_fields.NotificationStatus.END)])
+
+    @mock.patch.object(notification_utils, 'emit_console_notification')
+    def test_destroy_node_console_disable_fail(self, mock_notify):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          console_enabled=True)
+        with mock.patch.object(self.driver.console,
+                               'stop_console') as mock_sc:
+            mock_sc.side_effect = Exception()
+            self.service.destroy_node(self.context, node.uuid)
+            mock_sc.assert_called_once_with(mock.ANY)
+            self.assertRaises(exception.NodeNotFound,
+                              self.dbapi.get_node_by_uuid,
+                              node.uuid)
+            mock_notify.assert_has_calls(
+                [mock.call(mock.ANY, 'console_set',
+                           obj_fields.NotificationStatus.START),
+                 mock.call(mock.ANY, 'console_set',
+                           obj_fields.NotificationStatus.ERROR)])
 
     def test_destroy_node_adopt_failed_no_power_change(self):
         self._start_service()
@@ -5522,12 +5577,14 @@ class DoNodeTakeOverTestCase(mgr_utils.ServiceSetUpMixin,
         mock_take_over.assert_called_once_with(mock.ANY)
         self.assertFalse(mock_start_console.called)
 
+    @mock.patch.object(notification_utils, 'emit_console_notification')
     @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
     def test__do_takeover_with_console_enabled(self, mock_prepare,
                                                mock_take_over,
-                                               mock_start_console):
+                                               mock_start_console,
+                                               mock_notify):
         self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           console_enabled=True)
@@ -5540,13 +5597,20 @@ class DoNodeTakeOverTestCase(mgr_utils.ServiceSetUpMixin,
         mock_prepare.assert_called_once_with(mock.ANY)
         mock_take_over.assert_called_once_with(mock.ANY)
         mock_start_console.assert_called_once_with(mock.ANY)
+        mock_notify.assert_has_calls(
+            [mock.call(task, 'console_restore',
+                       obj_fields.NotificationStatus.START),
+             mock.call(task, 'console_restore',
+                       obj_fields.NotificationStatus.END)])
 
+    @mock.patch.object(notification_utils, 'emit_console_notification')
     @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
     def test__do_takeover_with_console_exception(self, mock_prepare,
                                                  mock_take_over,
-                                                 mock_start_console):
+                                                 mock_start_console,
+                                                 mock_notify):
         self._start_service()
         mock_start_console.side_effect = Exception()
         node = obj_utils.create_test_node(self.context, driver='fake',
@@ -5560,6 +5624,11 @@ class DoNodeTakeOverTestCase(mgr_utils.ServiceSetUpMixin,
         mock_prepare.assert_called_once_with(mock.ANY)
         mock_take_over.assert_called_once_with(mock.ANY)
         mock_start_console.assert_called_once_with(mock.ANY)
+        mock_notify.assert_has_calls(
+            [mock.call(task, 'console_restore',
+                       obj_fields.NotificationStatus.START),
+             mock.call(task, 'console_restore',
+                       obj_fields.NotificationStatus.ERROR)])
 
 
 @mgr_utils.mock_record_keepalive
