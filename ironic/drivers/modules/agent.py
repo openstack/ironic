@@ -60,6 +60,7 @@ OPTIONAL_PROPERTIES = {
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
+COMMON_PROPERTIES.update(agent_base_vendor.VENDOR_PROPERTIES)
 
 PARTITION_IMAGE_LABELS = ('kernel', 'ramdisk', 'root_gb', 'root_mb', 'swap_mb',
                           'ephemeral_mb', 'ephemeral_format', 'configdrive',
