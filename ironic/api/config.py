@@ -32,9 +32,6 @@ app = {
         # IPA ramdisk methods
         '/v1/lookup',
         '/v1/heartbeat/[a-z0-9\-]+',
-        # Old IPA ramdisk methods - will be removed in the Ocata release
-        '/v1/drivers/[a-z0-9_]*/vendor_passthru/lookup',
-        '/v1/nodes/[a-z0-9\-]+/vendor_passthru/heartbeat',
     ],
 }
 

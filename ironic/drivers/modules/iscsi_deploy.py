@@ -573,13 +573,3 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
         """
         deploy_utils.tear_down_inband_cleaning(
             task, manage_boot=True)
-
-
-class VendorPassthru(AgentDeployMixin, agent_base_vendor.BaseAgentVendor):
-    """Interface to mix IPMI and PXE vendor-specific interfaces.
-
-    Contains old lookup and heartbeat endpoints currently pending deprecation.
-
-    WARNING: This class is deprecated and will be removed in the Ocata release.
-    Drivers should stop relying on it.
-    """
