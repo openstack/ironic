@@ -77,6 +77,5 @@ class IloVirtualMediaAgentDriver(base.BaseDriver):
         self.deploy = deploy.IloVirtualMediaAgentDeploy()
         self.console = console.IloConsoleInterface()
         self.management = management.IloManagement()
-        self.vendor = vendor.IloVirtualMediaAgentVendorInterface()
         self.inspect = inspect.IloInspect()
         self.raid = agent.AgentRAID()

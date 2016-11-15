@@ -160,10 +160,56 @@ def _validate(task):
                 "the given URL is not reachable.") % deploy_iso)
 
 
-class IloVirtualMediaIscsiDeploy(iscsi_deploy.ISCSIDeploy):
+class IloIscsiDeployMixin(object):
 
-    def get_properties(self):
-        return {}
+    @METRICS.timer('IloIscsiDeployMixin.tear_down')
+    @task_manager.require_exclusive_lock
+    def tear_down(self, task):
+        """Tear down a previous deployment on the task's node.
+
+        Power off the node. All actual clean-up is done in the clean_up()
+        method which should be called separately.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :returns: deploy state DELETED.
+        :raises: IloOperationError, if some operation on iLO failed.
+        """
+
+        manager_utils.node_power_action(task, states.POWER_OFF)
+        _disable_secure_boot_if_supported(task)
+        return super(IloIscsiDeployMixin, self).tear_down(task)
+
+    @METRICS.timer('IloIscsiDeployMixin.prepare_cleaning')
+    def prepare_cleaning(self, task):
+        """Boot into the agent to prepare for cleaning.
+
+        :param task: a TaskManager object containing the node
+        :returns: states.CLEANWAIT to signify an asynchronous prepare.
+        :raises NodeCleaningFailure: if the previous cleaning ports cannot
+            be removed or if new cleaning ports cannot be created
+        :raises: IloOperationError, if some operation on iLO failed.
+        """
+        # Powering off the Node before initiating boot for node cleaning.
+        # If node is in system POST, setting boot device fails.
+        manager_utils.node_power_action(task, states.POWER_OFF)
+        return super(IloIscsiDeployMixin, self).prepare_cleaning(task)
+
+    @METRICS.timer('IloIscsiDeployMixin.continue_deploy')
+    @task_manager.require_exclusive_lock
+    def continue_deploy(self, task, **kwargs):
+        """Method invoked when deployed with the IPA ramdisk.
+
+        This method is invoked during a heartbeat from an agent when
+        the node is in wait-call-back state.
+        This updates boot mode and secure boot settings, if required.
+        """
+        ilo_common.update_boot_mode(task)
+        ilo_common.update_secure_boot_mode(task, True)
+        super(IloIscsiDeployMixin, self).continue_deploy(task, **kwargs)
+
+
+class IloVirtualMediaIscsiDeploy(IloIscsiDeployMixin,
+                                 iscsi_deploy.ISCSIDeploy):
 
     @METRICS.timer('IloVirtualMediaIscsiDeploy.validate')
     def validate(self, task):
@@ -180,23 +226,6 @@ class IloVirtualMediaIscsiDeploy(iscsi_deploy.ISCSIDeploy):
         _validate(task)
         super(IloVirtualMediaIscsiDeploy, self).validate(task)
 
-    @METRICS.timer('IloVirtualMediaIscsiDeploy.tear_down')
-    @task_manager.require_exclusive_lock
-    def tear_down(self, task):
-        """Tear down a previous deployment on the task's node.
-
-        Power off the node. All actual clean-up is done in the clean_up()
-        method which should be called separately.
-
-        :param task: a TaskManager instance containing the node to act on.
-        :returns: deploy state DELETED.
-        :raises: IloOperationError, if some operation on iLO failed.
-        """
-
-        manager_utils.node_power_action(task, states.POWER_OFF)
-        _disable_secure_boot_if_supported(task)
-        return super(IloVirtualMediaIscsiDeploy, self).tear_down(task)
-
     @METRICS.timer('IloVirtualMediaIscsiDeploy.prepare')
     def prepare(self, task):
         """Prepare the deployment environment for this task's node.
@@ -208,21 +237,6 @@ class IloVirtualMediaIscsiDeploy(iscsi_deploy.ISCSIDeploy):
             _prepare_node_for_deploy(task)
 
         super(IloVirtualMediaIscsiDeploy, self).prepare(task)
-
-    @METRICS.timer('IloVirtualMediaIscsiDeploy.prepare_cleaning')
-    def prepare_cleaning(self, task):
-        """Boot into the agent to prepare for cleaning.
-
-        :param task: a TaskManager object containing the node
-        :returns: states.CLEANWAIT to signify an asynchronous prepare.
-        :raises NodeCleaningFailure: if the previous cleaning ports cannot
-            be removed or if new cleaning ports cannot be created
-        :raises: IloOperationError, if some operation on iLO failed.
-        """
-        # Powering off the Node before initiating boot for node cleaning.
-        # If node is in system POST, setting boot device fails.
-        manager_utils.node_power_action(task, states.POWER_OFF)
-        return super(IloVirtualMediaIscsiDeploy, self).prepare_cleaning(task)
 
 
 class IloVirtualMediaAgentDeploy(agent.AgentDeploy):
@@ -314,8 +328,25 @@ class IloVirtualMediaAgentDeploy(agent.AgentDeploy):
             task, interface='deploy',
             override_priorities=new_priorities)
 
+    @METRICS.timer('IloVirtualMediaAgentDeploy.reboot_to_instance')
+    def reboot_to_instance(self, task):
+        node = task.node
+        LOG.debug('Preparing to reboot to instance for node %s',
+                  node.uuid)
 
-class IloPXEDeploy(iscsi_deploy.ISCSIDeploy):
+        error = self.check_deploy_success(node)
+        if error is None:
+            # Set boot mode
+            ilo_common.update_boot_mode(task)
+
+            # Need to enable secure boot, if being requested
+            ilo_common.update_secure_boot_mode(task, True)
+
+        super(IloVirtualMediaAgentDeploy,
+              self).reboot_to_instance(task)
+
+
+class IloPXEDeploy(IloIscsiDeployMixin, iscsi_deploy.ISCSIDeploy):
 
     @METRICS.timer('IloPXEDeploy.prepare')
     def prepare(self, task):
@@ -359,32 +390,3 @@ class IloPXEDeploy(iscsi_deploy.ISCSIDeploy):
         """
         manager_utils.node_set_boot_device(task, boot_devices.PXE)
         return super(IloPXEDeploy, self).deploy(task)
-
-    @METRICS.timer('IloPXEDeploy.tear_down')
-    @task_manager.require_exclusive_lock
-    def tear_down(self, task):
-        """Tear down a previous deployment on the task's node.
-
-        :param task: a TaskManager instance.
-        :returns: states.DELETED
-        """
-        # Powering off the Node before disabling secure boot. If the node is
-        # in POST, disable secure boot will fail.
-        manager_utils.node_power_action(task, states.POWER_OFF)
-        _disable_secure_boot_if_supported(task)
-        return super(IloPXEDeploy, self).tear_down(task)
-
-    @METRICS.timer('IloPXEDeploy.prepare_cleaning')
-    def prepare_cleaning(self, task):
-        """Boot into the agent to prepare for cleaning.
-
-        :param task: a TaskManager object containing the node
-        :returns: states.CLEANWAIT to signify an asynchronous prepare.
-        :raises NodeCleaningFailure: if the previous cleaning ports cannot
-            be removed or if new cleaning ports cannot be created
-        :raises: IloOperationError, if some operation on iLO failed.
-        """
-        # Powering off the Node before initiating boot for node cleaning.
-        # If node is in system POST, setting boot device fails.
-        manager_utils.node_power_action(task, states.POWER_OFF)
-        return super(IloPXEDeploy, self).prepare_cleaning(task)

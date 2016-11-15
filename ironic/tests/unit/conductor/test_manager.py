@@ -4667,7 +4667,7 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
         expected = ['ilo_address', 'ilo_username', 'ilo_password',
                     'client_port', 'client_timeout', 'ilo_deploy_iso',
                     'console_port', 'ilo_change_password',
-                    'deploy_forces_oob_reboot', 'ca_file']
+                    'ca_file']
         self._check_driver_properties("agent_ilo", expected)
 
     def test_driver_properties_fail(self):
