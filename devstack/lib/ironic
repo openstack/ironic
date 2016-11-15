@@ -1028,6 +1028,10 @@ function ironic_configure_tempest {
     iniset $TEMPEST_CONFIG compute flavor_ref_alt $bm_flavor_id
 
     iniset $TEMPEST_CONFIG auth create_isolated_networks False
+    # NOTE(jroll) this disables multitenant network tests from tempest's
+    # tree, but not from our tree. This is a bit inconsistent, we should
+    # fix it.
+    iniset $TEMPEST_CONFIG network shared_physical_network True
     iniset $TEMPEST_CONFIG network-feature-enabled port_admin_state_change False
 }
 
