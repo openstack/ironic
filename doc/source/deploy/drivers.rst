@@ -31,13 +31,6 @@ DRAC with PXE deploy
   ``/etc/ironic/ironic.conf``
 - Install python-dracclient package
 
-AMT driver
-----------
-
-.. toctree::
-  :maxdepth: 1
-
-  ../drivers/amt
 
 SNMP driver
 -----------
@@ -89,24 +82,6 @@ Cisco UCS driver
   ../drivers/ucs
 
 
-Wake-On-Lan driver
-------------------
-
-.. toctree::
-  :maxdepth: 1
-
-  ../drivers/wol
-
-
-iBoot driver
-------------
-
-.. toctree::
-  :maxdepth: 1
-
-  ../drivers/iboot
-
-
 CIMC driver
 -----------
 
@@ -132,3 +107,16 @@ XenServer ssh driver
   :maxdepth: 1
 
   ../drivers/xenserver
+
+
+Unsupported drivers
+-------------------
+
+The following drivers were declared as unsupported in ironic Newton release
+and as of Ocata release they are removed form ironic:
+
+- AMT driver - available as part of ironic-staging-drivers_
+- iBoot driver - available as part of ironic-staging-drivers_
+- Wake-On-Lan driver - available as part of ironic-staging-drivers_
+
+.. _ironic-staging-drivers: http://ironic-staging-drivers.readthedocs.io

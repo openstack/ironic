@@ -127,15 +127,6 @@ def get_test_irmc_info():
     }
 
 
-def get_test_amt_info():
-    return {
-        "amt_address": "1.2.3.4",
-        "amt_protocol": "http",
-        "amt_username": "admin",
-        "amt_password": "fake",
-    }
-
-
 def get_test_msftocs_info():
     return {
         "msftocs_base_url": "http://fakehost:8000",
@@ -167,14 +158,6 @@ def get_test_agent_driver_internal_info():
     return {
         'agent_url': 'http://127.0.0.1/foo',
         'is_whole_disk_image': True,
-    }
-
-
-def get_test_iboot_info():
-    return {
-        "iboot_address": "1.2.3.4",
-        "iboot_username": "admin",
-        "iboot_password": "fake",
     }
 
 

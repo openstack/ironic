@@ -134,17 +134,6 @@ if not oneview_client:
         six.moves.reload_module(sys.modules['ironic.drivers.modules.oneview'])
 
 
-# attempt to load the external 'pywsman' library, which is required by
-# the optional drivers.modules.amt module
-pywsman = importutils.try_import('pywsman')
-if not pywsman:
-    pywsman = mock.MagicMock(spec_set=mock_specs.PYWSMAN_SPEC)
-    sys.modules['pywsman'] = pywsman
-    # Now that the external library has been mocked, if anything had already
-    # loaded any of the drivers, reload them.
-    if 'ironic.drivers.modules.amt' in sys.modules:
-        six.moves.reload_module(sys.modules['ironic.drivers.modules.amt'])
-
 # attempt to load the external 'python-dracclient' library, which is required
 # by the optional drivers.modules.drac module
 dracclient = importutils.try_import('dracclient')
@@ -167,20 +156,6 @@ if not dracclient:
     # loaded any of the drivers, reload them.
     if 'ironic.drivers.modules.drac' in sys.modules:
         six.moves.reload_module(sys.modules['ironic.drivers.modules.drac'])
-
-# attempt to load the external 'iboot' library, which is required by
-# the optional drivers.modules.iboot module
-iboot = importutils.try_import("iboot")
-if not iboot:
-    ib = mock.MagicMock(spec_set=mock_specs.IBOOT_SPEC)
-    ib.iBootInterface = mock.MagicMock(spec_set=[])
-    sys.modules['iboot'] = ib
-
-# if anything has loaded the iboot driver yet, reload it now that the
-# external library has been mocked
-if 'ironic.drivers.modules.iboot' in sys.modules:
-    six.moves.reload_module(sys.modules['ironic.drivers.modules.iboot'])
-
 
 # attempt to load the external 'pysnmp' library, which is required by
 # the optional drivers.modules.snmp module

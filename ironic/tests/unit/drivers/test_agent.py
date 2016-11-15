@@ -16,18 +16,10 @@
 Test class for Agent Deploy Driver
 """
 
-import mock
-import testtools
-
-from ironic.common import exception
 from ironic.drivers import agent
 from ironic.drivers.modules import agent as agent_module
-from ironic.drivers.modules.amt import management as amt_management
-from ironic.drivers.modules.amt import power as amt_power
-from ironic.drivers.modules import iboot
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
-from ironic.drivers.modules import wol
 from ironic.tests import base
 
 
@@ -57,47 +49,3 @@ class AgentAndIPMIToolAndSocatDriverTestCase(base.TestCase):
         self.assertIsInstance(driver.management, ipmitool.IPMIManagement)
         self.assertIsInstance(driver.vendor, ipmitool.VendorPassthru)
         self.assertIsInstance(driver.raid, agent_module.AgentRAID)
-
-
-class AgentAndAMTDriverTestCase(testtools.TestCase):
-
-    @mock.patch.object(agent.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test___init__(self, mock_try_import):
-        mock_try_import.return_value = True
-        driver = agent.AgentAndAMTDriver()
-
-        self.assertIsInstance(driver.power, amt_power.AMTPower)
-        self.assertIsInstance(driver.boot, pxe.PXEBoot)
-        self.assertIsInstance(driver.deploy, agent_module.AgentDeploy)
-        self.assertIsInstance(driver.management, amt_management.AMTManagement)
-        self.assertIsInstance(driver.vendor, agent_module.AgentVendorInterface)
-
-    @mock.patch.object(agent.importutils, 'try_import')
-    def test___init___try_import_exception(self, mock_try_import):
-        mock_try_import.return_value = False
-
-        self.assertRaises(exception.DriverLoadError,
-                          agent.AgentAndAMTDriver)
-
-
-class AgentAndWakeOnLanDriverTestCase(testtools.TestCase):
-
-    def test___init__(self):
-        driver = agent.AgentAndWakeOnLanDriver()
-
-        self.assertIsInstance(driver.power, wol.WakeOnLanPower)
-        self.assertIsInstance(driver.boot, pxe.PXEBoot)
-        self.assertIsInstance(driver.deploy, agent_module.AgentDeploy)
-        self.assertIsInstance(driver.vendor, agent_module.AgentVendorInterface)
-
-
-class AgentAndIBootDriverTestCase(testtools.TestCase):
-
-    def test___init__(self):
-        driver = agent.AgentAndIBootDriver()
-
-        self.assertIsInstance(driver.power, iboot.IBootPower)
-        self.assertIsInstance(driver.boot, pxe.PXEBoot)
-        self.assertIsInstance(driver.deploy, agent_module.AgentDeploy)
-        self.assertIsInstance(driver.vendor, agent_module.AgentVendorInterface)

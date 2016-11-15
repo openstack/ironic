@@ -31,7 +31,6 @@ _default_opt_lists = [
 _opts = [
     ('DEFAULT', itertools.chain(*_default_opt_lists)),
     ('agent', ironic.conf.agent.opts),
-    ('amt', ironic.conf.amt.opts),
     ('api', ironic.conf.api.opts),
     ('audit', ironic.conf.audit.opts),
     ('cimc', ironic.conf.cisco.cimc_opts),
@@ -43,7 +42,6 @@ _opts = [
     ('dhcp', ironic.conf.dhcp.opts),
     ('drac', ironic.conf.drac.opts),
     ('glance', ironic.conf.glance.list_opts()),
-    ('iboot', ironic.conf.iboot.opts),
     ('ilo', ironic.conf.ilo.opts),
     ('inspector', ironic.conf.inspector.list_opts()),
     ('ipmi', ironic.conf.ipmi.opts),

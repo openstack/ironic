@@ -33,11 +33,6 @@ DRACCLIENT_CONSTANTS_MOD_SPEC = (
     'REBOOT'
 )
 
-# iboot
-IBOOT_SPEC = (
-    'iBootInterface',
-)
-
 # ironic_inspector
 IRONIC_INSPECTOR_CLIENT_SPEC = (
     'ClientV1',
