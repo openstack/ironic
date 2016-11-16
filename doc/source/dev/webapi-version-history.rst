@@ -2,6 +2,10 @@
 REST API Version History
 ========================
 
+**1.26** (Ocata)
+
+    Add portgroup ``mode`` and ``properties`` fields.
+
 **1.25** (Ocata)
 
     Add possibility to unset chassis_uuid from a node.

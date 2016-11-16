@@ -71,7 +71,7 @@ class Portgroup(base.APIBase):
     uuid = types.uuid
     """Unique UUID for this portgroup"""
 
-    address = wsme.wsattr(types.macaddress, mandatory=True)
+    address = wsme.wsattr(types.macaddress)
     """MAC Address for this portgroup"""
 
     extra = {wtypes.text: types.jsontype}
@@ -93,6 +93,14 @@ class Portgroup(base.APIBase):
     standalone_ports_supported = types.boolean
     """Indicates whether ports of this portgroup may be used as
        single NIC ports"""
+
+    mode = wsme.wsattr(wtypes.text)
+    """The mode for this portgroup. See linux bonding
+    documentation for details:
+    https://www.kernel.org/doc/Documentation/networking/bonding.txt"""
+
+    properties = {wtypes.text: types.jsontype}
+    """This portgroup's properties"""
 
     ports = wsme.wsattr([link.Link], readonly=True)
     """Links to the collection of ports of this portgroup"""
@@ -165,6 +173,8 @@ class Portgroup(base.APIBase):
                      extra={'foo': 'bar'},
                      internal_info={'baz': 'boo'},
                      standalone_ports_supported=True,
+                     mode='active-backup',
+                     properties={},
                      created_at=datetime.datetime(2000, 1, 1, 12, 0, 0),
                      updated_at=datetime.datetime(2000, 1, 1, 12, 0, 0))
         # NOTE(lucasagomes): node_uuid getter() method look at the
@@ -218,7 +228,7 @@ class PortgroupsController(pecan.rest.RestController):
         'detail': ['GET'],
     }
 
-    invalid_sort_key_list = ['extra', 'internal_info']
+    invalid_sort_key_list = ['extra', 'internal_info', 'properties']
 
     _subcontroller_map = {
         'ports': port.PortsController,
@@ -339,6 +349,8 @@ class PortgroupsController(pecan.rest.RestController):
         cdict = pecan.request.context.to_dict()
         policy.authorize('baremetal:portgroup:get', cdict, cdict)
 
+        api_utils.check_allowed_portgroup_fields(fields)
+
         if fields is None:
             fields = _DEFAULT_RETURN_FIELDS
 
@@ -400,6 +412,8 @@ class PortgroupsController(pecan.rest.RestController):
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
 
+        api_utils.check_allowed_portgroup_fields(fields)
+
         rpc_portgroup = api_utils.get_rpc_portgroup(portgroup_ident)
         return Portgroup.convert_with_links(rpc_portgroup, fields=fields)
 
@@ -418,6 +432,11 @@ class PortgroupsController(pecan.rest.RestController):
 
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
+
+        if (not api_utils.allow_portgroup_mode_properties() and
+                (portgroup.mode is not wtypes.Unset or
+                 portgroup.properties is not wtypes.Unset)):
+            raise exception.NotAcceptable()
 
         if (portgroup.name and
                 not api_utils.is_valid_logical_name(portgroup.name)):
@@ -451,6 +470,11 @@ class PortgroupsController(pecan.rest.RestController):
 
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
+
+        if (not api_utils.allow_portgroup_mode_properties() and
+                (api_utils.is_path_updated(patch, '/mode') or
+                 api_utils.is_path_updated(patch, '/properties'))):
+            raise exception.NotAcceptable()
 
         rpc_portgroup = api_utils.get_rpc_portgroup(portgroup_ident)
 

@@ -139,7 +139,18 @@ def post_get_test_node(**kw):
 def portgroup_post_data(**kw):
     """Return a Portgroup object without internal attributes."""
     portgroup = utils.get_test_portgroup(**kw)
+
+    # node_id is not a part of the API object
     portgroup.pop('node_id')
+
+    # NOTE(jroll): pop out fields that were introduced in later API versions,
+    # unless explicitly requested. Otherwise, these will cause tests using
+    # older API versions to fail.
+    new_api_ver_arguments = ['mode', 'properties']
+    for arg in new_api_ver_arguments:
+        if arg not in kw:
+            portgroup.pop(arg)
+
     internal = portgroup_controller.PortgroupPatchType.internal_attrs()
     return remove_internal(portgroup, internal)
 

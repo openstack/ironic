@@ -51,6 +51,7 @@ import sqlalchemy
 import sqlalchemy.exc
 
 from ironic.common.i18n import _LE
+from ironic.conf import CONF
 from ironic.db.sqlalchemy import migration
 from ironic.db.sqlalchemy import models
 from ironic.tests import base
@@ -600,6 +601,27 @@ class MigrationCheckersMixin(object):
                               sqlalchemy.types.String)
         self.assertIsInstance(targets.c.volume_id.type,
                               sqlalchemy.types.String)
+
+    def _pre_upgrade_493d8f27f235(self, engine):
+        portgroups = db_utils.get_table(engine, 'portgroups')
+        data = [{'uuid': uuidutils.generate_uuid()},
+                {'uuid': uuidutils.generate_uuid()}]
+        portgroups.insert().values(data).execute()
+        return data
+
+    def _check_493d8f27f235(self, engine, data):
+        portgroups = db_utils.get_table(engine, 'portgroups')
+        col_names = [column.name for column in portgroups.c]
+        self.assertIn('properties', col_names)
+        self.assertIsInstance(portgroups.c.properties.type,
+                              sqlalchemy.types.TEXT)
+        self.assertIn('mode', col_names)
+        self.assertIsInstance(portgroups.c.mode.type,
+                              sqlalchemy.types.String)
+
+        result = engine.execute(portgroups.select())
+        for row in result:
+            self.assertEqual(CONF.default_portgroup_mode, row['mode'])
 
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):

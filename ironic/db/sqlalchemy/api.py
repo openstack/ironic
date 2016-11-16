@@ -568,6 +568,8 @@ class Connection(api.Connection):
     def create_portgroup(self, values):
         if not values.get('uuid'):
             values['uuid'] = uuidutils.generate_uuid()
+        if not values.get('mode'):
+            values['mode'] = CONF.default_portgroup_mode
 
         portgroup = models.Portgroup()
         portgroup.update(values)

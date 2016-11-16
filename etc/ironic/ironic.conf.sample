@@ -123,6 +123,12 @@
 # value)
 #state_path = $pybasedir
 
+# Default mode for portgroups. Allowed values can be found in
+# the linux kernel documentation on bonding:
+# https://www.kernel.org/doc/Documentation/networking/bonding.txt.
+# (string value)
+#default_portgroup_mode = active-backup
+
 # Name of this node. This can be an opaque identifier. It is
 # not necessarily a hostname, FQDN, or IP address. However,
 # the node name must be valid within an AMQP key, and if using
@@ -2299,6 +2305,11 @@
 # value)
 # Minimum value: 5
 #default_notify_timeout = 30
+
+# The duration to schedule a purge of idle sender links.
+# Detach link after expiry. (integer value)
+# Minimum value: 1
+#default_sender_link_timeout = 600
 
 # Indicates the addressing mode used by the driver.
 # Permitted values:

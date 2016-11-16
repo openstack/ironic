@@ -200,3 +200,14 @@ class DbportgroupTestCase(base.DbTestCase):
                           node_id=self.node.id,
                           name=str(uuidutils.generate_uuid()),
                           address='aa:bb:cc:33:11:22')
+
+    def test_create_portgroup_no_mode(self):
+        self.config(default_portgroup_mode='802.3ad')
+        name = uuidutils.generate_uuid()
+        db_utils.create_test_portgroup(uuid=uuidutils.generate_uuid(),
+                                       node_id=self.node.id, name=name,
+                                       address='aa:bb:cc:dd:ee:ff')
+        res = self.dbapi.get_portgroup_by_id(self.portgroup.id)
+        self.assertEqual('active-backup', res.mode)
+        res = self.dbapi.get_portgroup_by_name(name)
+        self.assertEqual('802.3ad', res.mode)

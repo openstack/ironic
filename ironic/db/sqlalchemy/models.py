@@ -191,6 +191,8 @@ class Portgroup(Base):
     extra = Column(db_types.JsonEncodedDict)
     internal_info = Column(db_types.JsonEncodedDict)
     standalone_ports_supported = Column(Boolean, default=True)
+    mode = Column(String(255))
+    properties = Column(db_types.JsonEncodedDict)
 
 
 class NodeTag(Base):
