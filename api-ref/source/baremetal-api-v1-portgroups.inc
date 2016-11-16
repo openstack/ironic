@@ -5,9 +5,9 @@ Portgroups (portgroups)
 =======================
 
 Starting with API version 1.23 ports can be combined into portgroups to support
-static LAG or MLAG configurations.
-Listing, Searching, Creating, Updating, and Deleting of bare metal Portgroup
-resources are done through the ``v1/portgroups`` resource.
+static link aggregation group (LAG) or multi-chassis link aggregation group
+(MLAG) configurations. Listing, Searching, Creating, Updating, and Deleting of
+bare metal Portgroup resources are done through the ``v1/portgroups`` resource.
 
 All Portgroups must be associated with a Node when created. This association
 can be changed, though the request may be rejected if either the current
@@ -27,6 +27,8 @@ some parameters with the request.
 By default, this query will return the UUID, name and address for each Portgroup.
 
 Normal response code: 200
+
+Error codes: 400,401,403,404
 
 Request
 -------
@@ -70,6 +72,8 @@ Portgroup (MAC address in most cases).
 
 Normal response code: 201
 
+Error codes: 400,401,403,404
+
 Request
 -------
 
@@ -98,6 +102,7 @@ Response
     - created_at: created_at
     - updated_at: updated_at
     - links: links
+    - ports: pg_ports
 
 **Example Portgroup creation response:**
 
@@ -113,6 +118,8 @@ List Detailed Portgroups
 Return a list of bare metal Portgroups, with detailed information.
 
 Normal response code: 200
+
+Error codes: 400,401,403,404
 
 Request
 -------
@@ -142,6 +149,7 @@ Response
     - created_at: created_at
     - updated_at: updated_at
     - links: links
+    - ports: pg_ports
 
 **Example detailed Portgroup list response:**
 
@@ -157,6 +165,8 @@ Show Portgroup Details
 Show details for the given Portgroup.
 
 Normal response code: 200
+
+Error codes: 400,401,403,404
 
 Request
 -------
@@ -181,6 +191,7 @@ Response
     - created_at: created_at
     - updated_at: updated_at
     - links: links
+    - ports: pg_ports
 
 **Example Portgroup details:**
 
@@ -196,6 +207,8 @@ Update a Portgroup
 Update a Portgroup.
 
 Normal response code: 200
+
+Error codes: 400,401,403,404
 
 Request
 -------
@@ -227,6 +240,7 @@ Response
     - created_at: created_at
     - updated_at: updated_at
     - links: links
+    - ports: pg_ports
 
 **Example Portgroup update response:**
 
@@ -242,6 +256,8 @@ Delete Portgroup
 Delete a Portgroup.
 
 Normal response code: 204
+
+Error codes: 400,401,403,404
 
 Request
 -------

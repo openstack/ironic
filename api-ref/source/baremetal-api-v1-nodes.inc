@@ -79,14 +79,15 @@ API microversion 1.12 introduced support for the ``raid_config`` and
 API microversion 1.20 introduced the ``network_interface`` field. If this field
 is not supplied when creating the Node, the default value will be used.
 
-API microversion 1.21 introduced the ``resource_class`` field, which may be used to
-store a resource designation for the proposed OpenStack Placement Engine. This
-field has no effect within Ironic.
+API microversion 1.21 introduced the ``resource_class`` field, which may be
+used to store a resource designation for the proposed OpenStack Placement
+Engine. This field has no effect within Ironic.
 
-API microversion 1.24 introduced the ``/nodes/{node_ident}/portgroups`` endpoint.
+API microversion 1.24 introduced the ``/nodes/{node_ident}/portgroups``
+endpoint.
 
-
-The list and example below are representative of the response as of API microversion 1.22.
+The list and example below are representative of the response as of API
+microversion 1.24.
 
 .. rest_parameters:: parameters.yaml
 

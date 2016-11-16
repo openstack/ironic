@@ -202,14 +202,6 @@ r_port_portgroup_ident:
   in: query
   required: false
   type: string
-r_port_portgroup_uuid:
-  description: |
-    Filter the list of returned Ports, and only return the ones associated
-    with this specific Portgroup UUID, or an empty set if not found.
-    Added in API microversion 1.24.
-  in: query
-  required: false
-  type: string
 r_portgroup_address:
   description: |
     Filter the list of returned Portgroups, and only return the ones with the
@@ -223,14 +215,6 @@ r_portgroup_node_ident:
     Filter the list of returned Portgroups, and only return the ones associated
     with this specific node (name or UUID), or an empty set if not found.
     Added in API microversion 1.23.
-  in: query
-  required: false
-  type: string
-r_portgroup_node_uuid:
-  description: |
-    Filter the list of returned Portgroups, and only return the ones associated
-    with this specific node UUID, or an empty set if not found. Added in API
-    microversion 1.23.
   in: query
   required: false
   type: string
@@ -571,6 +555,13 @@ persistent:
   in: body
   required: true
   type: boolean
+pg_ports:
+  description: |
+    Links to the collection of ports belonging to this portgroup. Added in
+    API microversion 1.24.
+  in: body
+  required: true
+  type: array
 port_address:
   description: |
     Physical hardware address of this network Port, typically the hardware

@@ -4,8 +4,8 @@
 Listing Ports by Portgroup (portgroup, ports)
 =============================================
 
-Given a Portgroup identifier (``uuid`` or ``name``), the API exposes the list of,
-and details of, all Ports associated with that Portgroup.
+Given a Portgroup identifier (``uuid`` or ``name``), the API exposes the list
+of, and details of, all Ports associated with that Portgroup.
 
 These endpoints do not allow modification of the Ports; that should be done
 by accessing the Port resources under the ``/v1/ports`` endpoint.
@@ -24,7 +24,7 @@ Return a list of bare metal Ports associated with ``portgroup_ident``.
 
 Normal response code: 200
 
-Error codes: 400,401,403,404,406
+Error codes: 400,401,403,404
 
 Request
 -------
@@ -62,7 +62,7 @@ Return a detailed list of bare metal Ports associated with ``portgroup_ident``.
 
 Normal response code: 200
 
-Error codes: 400,401,403,404,406
+Error codes: 400,401,403,404
 
 Request
 -------
@@ -88,7 +88,7 @@ Response
     - pxe_enabled: pxe_enabled
     - internal_info: internal_info
     - extra: extra
-    - portgroup_uuid: uuid
+    - portgroup_uuid: portgroup_uuid
     - created_at: created_at
     - updated_at: updated_at
     - links: links
