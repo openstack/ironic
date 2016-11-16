@@ -37,6 +37,8 @@ fields.
 
 .. TODO: add pxe_enabled and local_link_connection to all sample files
 
+API microversion 1.24 added the portgroup_uuid field.
+
 Normal response code: 200
 
 Request
@@ -46,6 +48,7 @@ Request
 
     - node: r_port_node_ident
     - node_uuid: r_port_node_uuid
+    - portgroup: r_port_portgroup_ident
     - address: r_port_address
     - fields: fields
     - limit: limit
@@ -102,6 +105,7 @@ Response
     - uuid: uuid
     - address: port_address
     - node_uuid: node_uuid
+    - portgroup_uuid: portgroup_uuid
     - local_link_connection: local_link_connection
     - pxe_enabled: pxe_enabled
     - internal_info: internal_info
@@ -127,6 +131,9 @@ Return a list of bare metal Ports, with detailed information.
 ``node_uuid`` and ``node`` are specified in the request, ``node_uuid``
 will be used to filter results.
 
+``portgroup`` query parameter and ``portgroup_uuid`` response field
+were added in API microversion 1.24.
+
 Normal response code: 200
 
 Request
@@ -136,6 +143,7 @@ Request
 
     - node: r_port_node_ident
     - node_uuid: r_port_node_uuid
+    - portgroup: r_port_portgroup_ident
     - address: r_port_address
     - limit: limit
     - marker: marker
@@ -151,6 +159,7 @@ Response
     - uuid: uuid
     - address: port_address
     - node_uuid: node_uuid
+    - portgroup_uuid: portgroup_uuid
     - local_link_connection: local_link_connection
     - pxe_enabled: pxe_enabled
     - internal_info: internal_info
@@ -176,6 +185,9 @@ API microversion 1.8 added the ``fields`` Request parameter. When specified,
 this causes the content of the Response to include only the specified fields,
 rather than the default set.
 
+``portgroup`` query parameter and ``portgroup_uuid`` response field
+were added in API microversion 1.24.
+
 Normal response code: 200
 
 Request
@@ -194,6 +206,7 @@ Response
     - uuid: uuid
     - address: port_address
     - node_uuid: node_uuid
+    - portgroup_uuid: portgroup_uuid
     - local_link_connection: local_link_connection
     - pxe_enabled: pxe_enabled
     - internal_info: internal_info
@@ -240,6 +253,7 @@ Response
     - uuid: uuid
     - address: port_address
     - node_uuid: node_uuid
+    - portgroup_uuid: portgroup_uuid
     - local_link_connection: local_link_connection
     - pxe_enabled: pxe_enabled
     - internal_info: internal_info

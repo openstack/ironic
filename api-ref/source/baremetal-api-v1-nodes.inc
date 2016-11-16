@@ -83,6 +83,8 @@ API microversion 1.21 introduced the ``resource_class`` field, which may be used
 store a resource designation for the proposed OpenStack Placement Engine. This
 field has no effect within Ironic.
 
+API microversion 1.24 introduced the ``/nodes/{node_ident}/portgroups`` endpoint.
+
 
 The list and example below are representative of the response as of API microversion 1.22.
 
@@ -112,6 +114,7 @@ The list and example below are representative of the response as of API microver
     - clean_step: clean_step
     - links: links
     - ports: n_ports
+    - portgroups: n_portgroups
     - states: n_states
     - network_interface: network_interface
     - resource_class: resource_class
@@ -246,6 +249,7 @@ Response
     - clean_step: clean_step
     - links: links
     - ports: n_ports
+    - portgroups: n_portgroups
     - states: n_states
     - network_interface: network_interface
     - resource_class: resource_class
@@ -306,6 +310,7 @@ Response
     - clean_step: clean_step
     - links: links
     - ports: n_ports
+    - portgroups: n_portgroups
     - states: n_states
     - network_interface: network_interface
     - resource_class: resource_class
@@ -375,6 +380,7 @@ Response
     - clean_step: clean_step
     - links: links
     - ports: n_ports
+    - portgroups: n_portgroups
     - states: n_states
     - network_interface: network_interface
     - resource_class: resource_class

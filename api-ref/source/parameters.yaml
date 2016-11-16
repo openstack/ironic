@@ -68,6 +68,12 @@ port_ident:
   in: path
   required: true
   type: string
+portgroup_ident:
+  description: |
+    The UUID or Name of the portgroup. Added in API microversion 1.23.
+  in: path
+  required: true
+  type: string
 
 
 callback_url:
@@ -185,6 +191,46 @@ r_port_node_uuid:
   description: |
     Filter the list of returned Ports, and only return the ones associated
     with this specific node UUID, or an empty set if not found.
+  in: query
+  required: false
+  type: string
+r_port_portgroup_ident:
+  description: |
+    Filter the list of returned Ports, and only return the ones associated
+    with this specific Portgroup (name or UUID), or an empty set if not found.
+    Added in API microversion 1.24.
+  in: query
+  required: false
+  type: string
+r_port_portgroup_uuid:
+  description: |
+    Filter the list of returned Ports, and only return the ones associated
+    with this specific Portgroup UUID, or an empty set if not found.
+    Added in API microversion 1.24.
+  in: query
+  required: false
+  type: string
+r_portgroup_address:
+  description: |
+    Filter the list of returned Portgroups, and only return the ones with the
+    specified physical hardware address, typically MAC, or an empty set if not
+    found. Added in API microversion 1.23.
+  in: query
+  required: false
+  type: string
+r_portgroup_node_ident:
+  description: |
+    Filter the list of returned Portgroups, and only return the ones associated
+    with this specific node (name or UUID), or an empty set if not found.
+    Added in API microversion 1.23.
+  in: query
+  required: false
+  type: string
+r_portgroup_node_uuid:
+  description: |
+    Filter the list of returned Portgroups, and only return the ones associated
+    with this specific node UUID, or an empty set if not found. Added in API
+    microversion 1.23.
   in: query
   required: false
   type: string
@@ -432,6 +478,13 @@ maintenance_reason:
   in: body
   required: false
   type: string
+n_portgroups:
+  description: |
+    Links to the collection of portgroups on this node.
+    Added in API microversion 1.24.
+  in: body
+  required: true
+  type: array
 n_ports:
   description: |
     Links to the collection of ports on this node
@@ -525,6 +578,39 @@ port_address:
   in: body
   required: true
   type: string
+portgroup_address:
+  description: |
+    Physical hardware address of this Portgroup, typically the hardware
+    MAC address. Added in API microversion 1.23.
+  in: body
+  required: true
+  type: string
+portgroup_internal_info:
+  description: |
+    Internal metadata set and stored by the Portgroup. This field is read-only.
+    Added in API microversion 1.23.
+  in: body
+  required: true
+  type: JSON
+portgroup_name:
+  description: |
+    Human-readable identifier for the Portgroup resource. May be undefined.
+    Added in API microversion 1.23.
+  in: body
+  required: false
+  type: string
+portgroup_uuid:
+  description: |
+    UUID of the Portgroup this resource belongs to. Added in API microversion 1.23.
+  in: body
+  required: true
+  type: string
+portgroups:
+  description: |
+    A collection of Portgroup resources. Added in API microversion 1.23.
+  in: body
+  required: true
+  type: array
 ports:
   description: |
     A collection of Port resources.
@@ -606,6 +692,13 @@ resource_class:
   in: body
   required: true
   type: string
+standalone_ports_supported:
+  description: |
+    Indicates whether ports that are members of this portgroup can be
+    used as stand-alone ports. Added in API microversion 1.23.
+  in: body
+  required: true
+  type: boolean
 supported_boot_devices:
   description: |
     List of boot devices which this Node's driver supports.
