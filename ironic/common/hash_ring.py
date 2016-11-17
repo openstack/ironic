@@ -13,124 +13,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import bisect
-import hashlib
 import threading
 import time
 
-import six
+from tooz import hashring
 
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.conf import CONF
 from ironic.db import api as dbapi
-
-
-class HashRing(object):
-    """A stable hash ring.
-
-    We map item N to a host Y based on the closest lower hash:
-
-    - hash(item) -> partition
-    - hash(host) -> divider
-    - closest lower divider is the host to use
-    - we hash each host many times to spread load more finely
-      as otherwise adding a host gets (on average) 50% of the load of
-      just one other host assigned to it.
-    """
-
-    def __init__(self, hosts, replicas=None):
-        """Create a new hash ring across the specified hosts.
-
-        :param hosts: an iterable of hosts which will be mapped.
-        :param replicas: number of hosts to map to each hash partition,
-                         or len(hosts), which ever is lesser.
-                         Default: CONF.hash_distribution_replicas
-
-        """
-        if replicas is None:
-            replicas = CONF.hash_distribution_replicas
-
-        try:
-            self.hosts = set(hosts)
-            self.replicas = replicas if replicas <= len(hosts) else len(hosts)
-        except TypeError:
-            raise exception.Invalid(
-                _("Invalid hosts supplied when building HashRing."))
-
-        self._host_hashes = {}
-        for host in hosts:
-            key = str(host).encode('utf8')
-            key_hash = hashlib.md5(key)
-            for p in range(2 ** CONF.hash_partition_exponent):
-                key_hash.update(key)
-                hashed_key = self._hash2int(key_hash)
-                self._host_hashes[hashed_key] = host
-        # Gather the (possibly colliding) resulting hashes into a bisectable
-        # list.
-        self._partitions = sorted(self._host_hashes.keys())
-
-    def _hash2int(self, key_hash):
-        """Convert the given hash's digest to a numerical value for the ring.
-
-        :returns: An integer equivalent value of the digest.
-        """
-        return int(key_hash.hexdigest(), 16)
-
-    def _get_partition(self, data):
-        try:
-            if six.PY3 and data is not None:
-                data = data.encode('utf-8')
-            key_hash = hashlib.md5(data)
-            hashed_key = self._hash2int(key_hash)
-            position = bisect.bisect(self._partitions, hashed_key)
-            return position if position < len(self._partitions) else 0
-        except TypeError:
-            raise exception.Invalid(
-                _("Invalid data supplied to HashRing.get_hosts."))
-
-    def get_hosts(self, data, ignore_hosts=None):
-        """Get the list of hosts which the supplied data maps onto.
-
-        :param data: A string identifier to be mapped across the ring.
-        :param ignore_hosts: A list of hosts to skip when performing the hash.
-                             Useful to temporarily skip down hosts without
-                             performing a full rebalance.
-                             Default: None.
-        :returns: a list of hosts.
-                  The length of this list depends on the number of replicas
-                  this `HashRing` was created with. It may be less than this
-                  if ignore_hosts is not None.
-        """
-        hosts = []
-        if ignore_hosts is None:
-            ignore_hosts = set()
-        else:
-            ignore_hosts = set(ignore_hosts)
-            ignore_hosts.intersection_update(self.hosts)
-        partition = self._get_partition(data)
-        for replica in range(0, self.replicas):
-            if len(hosts) + len(ignore_hosts) == len(self.hosts):
-                # prevent infinite loop - cannot allocate more fallbacks.
-                break
-            # Linear probing: partition N, then N+1 etc.
-            host = self._get_host(partition)
-            while host in hosts or host in ignore_hosts:
-                partition += 1
-                if partition >= len(self._partitions):
-                    partition = 0
-                host = self._get_host(partition)
-            hosts.append(host)
-        return hosts
-
-    def _get_host(self, partition):
-        """Find what host is serving a partition.
-
-        :param partition: The index of the partition in the partition map.
-            e.g. 0 is the first partition, 1 is the second.
-        :return: The host object the ring was constructed with.
-        """
-        return self._host_hashes[self._partitions[partition]]
 
 
 class HashRingManager(object):
@@ -161,7 +52,8 @@ class HashRingManager(object):
         d2c = self.dbapi.get_active_driver_dict()
 
         for driver_name, hosts in d2c.items():
-            rings[driver_name] = HashRing(hosts)
+            rings[driver_name] = hashring.HashRing(
+                hosts, partitions=2 ** CONF.hash_partition_exponent)
         return rings
 
     @classmethod

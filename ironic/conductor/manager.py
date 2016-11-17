@@ -34,11 +34,12 @@ locked by each conductor when performing actions which change the state of that
 node; these locks are represented by the
 :py:class:`ironic.conductor.task_manager.TaskManager` class.
 
-A :py:class:`ironic.common.hash_ring.HashRing` is used to distribute nodes
-across the set of active conductors which support each node's driver.
-Rebalancing this ring can trigger various actions by each conductor, such as
-building or tearing down the TFTP environment for a node, notifying Neutron of
-a change, etc.
+A `tooz.hashring.HashRing
+<https://git.openstack.org/cgit/openstack/tooz/tree/tooz/hashring.py>`_
+is used to distribute nodes across the set of active conductors which support
+each node's driver.  Rebalancing this ring can trigger various actions by each
+conductor, such as building or tearing down the TFTP environment for a node,
+notifying Neutron of a change, etc.
 """
 
 import collections

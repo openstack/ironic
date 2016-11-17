@@ -27,6 +27,7 @@ from ironic.common import hash_ring
 from ironic.common.i18n import _
 from ironic.common import rpc
 from ironic.conductor import manager
+from ironic.conf import CONF
 from ironic.objects import base as objects_base
 
 
@@ -119,8 +120,9 @@ class ConductorAPI(object):
 
         try:
             ring = self.ring_manager[node.driver]
-            dest = ring.get_hosts(node.uuid)
-            return self.topic + "." + dest[0]
+            dest = ring.get_nodes(node.uuid.encode('utf-8'),
+                                  replicas=CONF.hash_distribution_replicas)
+            return '%s.%s' % (self.topic, dest.pop())
         except exception.DriverNotFound:
             reason = (_('No conductor service registered which supports '
                         'driver %s.') % node.driver)
@@ -140,8 +142,8 @@ class ConductorAPI(object):
         """
         self.ring_manager.reset()
 
-        hash_ring = self.ring_manager[driver_name]
-        host = random.choice(list(hash_ring.hosts))
+        ring = self.ring_manager[driver_name]
+        host = random.choice(list(ring.nodes))
         return self.topic + "." + host
 
     def create_node(self, context, node_obj, topic=None):
