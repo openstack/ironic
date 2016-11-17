@@ -368,6 +368,38 @@ def _get_client(snmp_info):
                       snmp_info.get("context_name"))
 
 
+_memoized = {}
+
+
+def memoize(f):
+    def memoized(self, node_info):
+        hashable_node_info = frozenset((key, val)
+                                       for key, val in node_info.items()
+                                       if key is not 'outlet')
+        if hashable_node_info not in _memoized:
+            _memoized[hashable_node_info] = f(self)
+        return _memoized[hashable_node_info]
+    return memoized
+
+
+def retry_on_outdated_cache(f):
+    def wrapper(self):
+        try:
+            return f(self)
+
+        except exception.SNMPFailure:
+            hashable_node_info = (
+                frozenset((key, val)
+                          for key, val in self.snmp_info.items()
+                          if key is not 'outlet')
+            )
+            del _memoized[hashable_node_info]
+            self.driver = self._get_pdu_driver(self.snmp_info)
+            return f(self)
+
+    return wrapper
+
+
 @six.add_metaclass(abc.ABCMeta)
 class SNMPDriverBase(object):
     """SNMP power driver base class.
@@ -737,7 +769,9 @@ class SNMPDriverAuto(SNMPDriverBase):
 
     def __init__(self, *args, **kwargs):
         super(SNMPDriverAuto, self).__init__(*args, **kwargs)
+        self.driver = self._get_pdu_driver(*args, **kwargs)
 
+    def _get_pdu_driver(self, *args, **kwargs):
         drivers_map = {}
 
         for name, obj in DRIVER_CLASSES.items():
@@ -756,7 +790,7 @@ class SNMPDriverAuto(SNMPDriverBase):
             LOG.debug("SNMP driver mapping %(system_id)s -> %(name)s",
                       {'system_id': system_id, 'name': obj.__name__})
 
-        system_id = self.client.get(self.SYS_OBJ_OID)
+        system_id = self._fetch_driver(*args, **kwargs)
 
         LOG.debug("SNMP device reports sysObjectID %(system_id)s",
                   {'system_id': system_id})
@@ -770,8 +804,7 @@ class SNMPDriverAuto(SNMPDriverBase):
                 LOG.debug("Chosen SNMP driver %(name)s based on sysObjectID "
                           "prefix %(system_id_prefix)s", {Driver.__name__,
                                                           system_id_prefix})
-                self.driver = Driver(*args, **kwargs)
-                return
+                return Driver(*args, **kwargs)
 
             except KeyError:
                 system_id_prefix = system_id_prefix[:-1]
@@ -780,16 +813,22 @@ class SNMPDriverAuto(SNMPDriverBase):
             "SNMPDriverAuto: no driver matching %(system_id)s") %
             {'system_id': system_id})
 
+    @retry_on_outdated_cache
     def _snmp_power_state(self):
         current_power_state = self.driver._snmp_power_state()
         return current_power_state
 
+    @retry_on_outdated_cache
     def _snmp_power_on(self):
         return self.driver._snmp_power_on()
 
+    @retry_on_outdated_cache
     def _snmp_power_off(self):
         return self.driver._snmp_power_off()
 
+    @memoize
+    def _fetch_driver(self):
+        return self.client.get(self.SYS_OBJ_OID)
 
 # A dictionary of supported drivers keyed by snmp_driver attribute
 DRIVER_CLASSES = {

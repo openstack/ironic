@@ -27,6 +27,7 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules import snmp
+from ironic.drivers.modules.snmp import SNMPDriverAuto
 from ironic.tests import base
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -664,6 +665,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
     def setUp(self):
         super(SNMPDeviceDriverTestCase, self).setUp()
         self.config(enabled_power_interfaces=['fake', 'snmp'])
+        snmp._memoized = {}
         self.node = obj_utils.get_test_node(
             self.context,
             power_interface='snmp',
@@ -1341,6 +1343,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
             mock_client = mock_get_client.return_value
             mock_client.reset_mock()
             mock_client.get.return_value = sys_obj_oid
+            snmp._memoized.clear()
             self._update_driver_info(snmp_driver="auto")
             driver = snmp._get_driver(self.node)
 
@@ -1361,7 +1364,8 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
             mock_client = mock_get_client.return_value
             mock_client.reset_mock()
             mock_client.get.return_value = sys_obj_oid
-            self._update_driver_info(snmp_driver="auto")
+            snmp._memoized.clear()
+            self._update_driver_info(snmp_driver="auto",)
             driver = snmp._get_driver(self.node)
 
             second_node = obj_utils.get_test_node(
@@ -1381,7 +1385,8 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
             mock_client = mock_get_client.return_value
             mock_client.reset_mock()
             mock_client.get.return_value = sys_obj_oid
-            self._update_driver_info(snmp_driver="auto")
+            snmp._memoized.clear()
+            self._update_driver_info(snmp_driver="auto",)
             driver = snmp._get_driver(self.node)
 
             second_node = obj_utils.get_test_node(
@@ -1403,6 +1408,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
             mock_client = mock_get_client.return_value
             mock_client.reset_mock()
             mock_client.get.return_value = sys_obj_oid
+            snmp._memoized.clear()
             self._update_driver_info(snmp_driver="auto")
             driver = snmp._get_driver(self.node)
 
@@ -1425,6 +1431,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
             mock_client = mock_get_client.return_value
             mock_client.reset_mock()
             mock_client.get.side_effect = [sys_obj_oid, sys_obj_oid]
+            snmp._memoized.clear()
             self._update_driver_info(snmp_driver="auto")
             driver = snmp._get_driver(self.node)
 
@@ -1575,6 +1582,49 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
 
     def test_baytech_mrp27_power_reset(self, mock_get_client):
         self._test_simple_device_power_reset('baytech_mrp27', mock_get_client)
+
+    def test_auto_power_on_cached_driver(self, mock_get_client):
+        mock_client = mock_get_client.return_value
+        mock_client.reset_mock()
+        mock_client.get.return_value = (1, 3, 6, 1, 4, 1, 318, 1, 1, 4)
+        self._update_driver_info(snmp_driver="auto")
+
+        for i in range(5):
+            snmp._get_driver(self.node)
+
+        mock_client.get.assert_called_once_with(SNMPDriverAuto.SYS_OBJ_OID)
+
+    @mock.patch.object(snmp.SNMPDriverAPCRackPDU, "_snmp_power_on")
+    def test_snmp_auto_cache_supports_pdu_replacement(
+            self, broken_pdu_power_on_mock, mock_get_client):
+
+        broken_pdu_exception = exception.SNMPFailure(operation=1, error=2)
+        broken_pdu_power_on_mock.side_effect = broken_pdu_exception
+
+        broken_pdu_oid = (1, 3, 6, 1, 4, 1, 318, 1, 1, 12)
+        hashable_node_info = frozenset(
+            {('address', '1.2.3.4'), ('port', 161), ('community', 'public'),
+             ('version', '1'), ('driver', 'auto')})
+        snmp._memoized = {hashable_node_info: broken_pdu_oid}
+
+        self._update_driver_info(snmp_driver="auto")
+
+        mock_client = mock_get_client.return_value
+        mock_client.get.return_value = broken_pdu_oid
+
+        driver = snmp._get_driver(self.node)
+
+        mock_client.reset_mock()
+        replacement_pdu_oid = (1, 3, 6, 1, 4, 1, 318, 1, 1, 4)
+        mock_client.get.side_effect = [replacement_pdu_oid,
+                                       driver.driver.value_power_on]
+
+        pstate = driver.power_on()
+
+        mock_client.set.assert_called_once_with(
+            driver.driver.oid, driver.driver.value_power_on)
+
+        self.assertEqual(states.POWER_ON, pstate)
 
 
 @mock.patch.object(snmp, '_get_driver', autospec=True)
