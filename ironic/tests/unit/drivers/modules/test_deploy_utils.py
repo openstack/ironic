@@ -28,7 +28,6 @@ import testtools
 from testtools import matchers
 
 from ironic.common import boot_devices
-from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common import image_service
 from ironic.common import states
@@ -1959,110 +1958,6 @@ class AgentMethodsTestCase(db_base.DbTestCase):
                 'agent_erase_devices_zeroize'])
             self.assertEqual(True, task.node.driver_internal_info[
                 'agent_continue_if_ata_erase_failed'])
-
-    @mock.patch.object(utils.LOG, 'warning', autospec=True)
-    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
-    def _test_prepare_inband_cleaning_ports_out_of_tree(
-            self, dhcp_factory_mock, log_mock, return_vif_port_id=True):
-        self.config(group='dhcp', dhcp_provider='my_shiny_dhcp_provider')
-        dhcp_provider = dhcp_factory_mock.return_value.provider
-        create = dhcp_provider.create_cleaning_ports
-        delete = dhcp_provider.delete_cleaning_ports
-        if return_vif_port_id:
-            create.return_value = {self.ports[0].uuid: 'vif-port-id'}
-        else:
-            create.return_value = {}
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-            utils.prepare_cleaning_ports(task)
-            create.assert_called_once_with(task)
-            delete.assert_called_once_with(task)
-            self.assertTrue(log_mock.called)
-
-        self.ports[0].refresh()
-        self.assertEqual('vif-port-id',
-                         self.ports[0].internal_info['cleaning_vif_port_id'])
-
-    def test_prepare_inband_cleaning_ports_out_of_tree(self):
-        self._test_prepare_inband_cleaning_ports_out_of_tree()
-
-    def test_prepare_inband_cleaning_ports_out_of_tree_no_vif_port_id(self):
-        self.assertRaises(
-            exception.NodeCleaningFailure,
-            self._test_prepare_inband_cleaning_ports_out_of_tree,
-            return_vif_port_id=False)
-
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
-                'add_cleaning_network')
-    def test_prepare_inband_cleaning_ports_neutron(self, add_clean_net_mock):
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-            utils.prepare_cleaning_ports(task)
-            add_clean_net_mock.assert_called_once_with(task)
-
-    @mock.patch('ironic.drivers.modules.network.noop.NoopNetwork.'
-                'add_cleaning_network')
-    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
-    def test_prepare_inband_cleaning_ports_provider_does_not_create(
-            self, dhcp_factory_mock, add_clean_net_mock):
-        self.config(group='dhcp', dhcp_provider='my_shiny_dhcp_provider')
-        self.node.network_interface = 'noop'
-        self.node.save()
-        dhcp_provider = dhcp_factory_mock.return_value.provider
-        del dhcp_provider.delete_cleaning_ports
-        del dhcp_provider.create_cleaning_ports
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-            utils.prepare_cleaning_ports(task)
-            add_clean_net_mock.assert_called_once_with(task)
-
-    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
-    def test_tear_down_inband_cleaning_ports_out_of_tree(self,
-                                                         dhcp_factory_mock):
-        self.config(group='dhcp', dhcp_provider='my_shiny_dhcp_provider')
-        dhcp_provider = dhcp_factory_mock.return_value.provider
-        delete = dhcp_provider.delete_cleaning_ports
-        internal_info = self.ports[0].internal_info
-        internal_info['cleaning_vif_port_id'] = 'vif-port-id-1'
-        self.ports[0].internal_info = internal_info
-        self.ports[0].save()
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-            utils.tear_down_cleaning_ports(task)
-            delete.assert_called_once_with(task)
-
-        self.ports[0].refresh()
-        self.assertNotIn('cleaning_vif_port_id', self.ports[0].internal_info)
-        self.assertNotIn('vif_port_id', self.ports[0].extra)
-
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
-                'remove_cleaning_network')
-    def test_tear_down_inband_cleaning_ports_neutron(self, rm_clean_net_mock):
-        extra_port = obj_utils.create_test_port(
-            self.context, node_id=self.node.id, address='10:00:00:00:00:01',
-            extra={'vif_port_id': 'vif-port'}, uuid=uuidutils.generate_uuid()
-        )
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-            utils.tear_down_cleaning_ports(task)
-            rm_clean_net_mock.assert_called_once_with(task)
-        extra_port.refresh()
-        self.assertNotIn('vif_port_id', extra_port.extra)
-
-    @mock.patch('ironic.drivers.modules.network.noop.NoopNetwork.'
-                'remove_cleaning_network')
-    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
-    def test_tear_down_inband_cleaning_ports_provider_does_not_delete(
-            self, dhcp_factory_mock, rm_clean_net_mock):
-        self.config(group='dhcp', dhcp_provider='my_shiny_dhcp_provider')
-        self.node.network_interface = 'noop'
-        self.node.save()
-        dhcp_provider = dhcp_factory_mock.return_value.provider
-        del dhcp_provider.delete_cleaning_ports
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-            utils.tear_down_cleaning_ports(task)
-            rm_clean_net_mock.assert_called_once_with(task)
 
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
