@@ -15,6 +15,8 @@
 """
 iRMC Power Driver using the Base Server Profile
 """
+
+from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
 
@@ -31,6 +33,8 @@ from ironic.drivers.modules.irmc import common as irmc_common
 scci = importutils.try_import('scciclient.irmc.scci')
 
 LOG = logging.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 if scci:
     STATES_MAP = {states.POWER_OFF: scci.POWER_OFF,
@@ -83,6 +87,7 @@ class IRMCPower(base.PowerInterface):
         """
         return irmc_common.COMMON_PROPERTIES
 
+    @METRICS.timer('IRMCPower.validate')
     def validate(self, task):
         """Validate the driver-specific Node power info.
 
@@ -97,6 +102,7 @@ class IRMCPower(base.PowerInterface):
         """
         irmc_common.parse_driver_info(task.node)
 
+    @METRICS.timer('IRMCPower.get_power_state')
     def get_power_state(self, task):
         """Return the power state of the task's node.
 
@@ -111,6 +117,7 @@ class IRMCPower(base.PowerInterface):
         ipmi_power = ipmitool.IPMIPower()
         return ipmi_power.get_power_state(task)
 
+    @METRICS.timer('IRMCPower.set_power_state')
     @task_manager.require_exclusive_lock
     def set_power_state(self, task, power_state):
         """Set the power state of the task's node.
@@ -124,6 +131,7 @@ class IRMCPower(base.PowerInterface):
         """
         _set_power_state(task, power_state)
 
+    @METRICS.timer('IRMCPower.reboot')
     @task_manager.require_exclusive_lock
     def reboot(self, task):
         """Perform a hard reboot of the task's node.

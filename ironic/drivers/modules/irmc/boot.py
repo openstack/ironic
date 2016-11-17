@@ -20,6 +20,7 @@ import os
 import shutil
 import tempfile
 
+from ironic_lib import metrics_utils
 from ironic_lib import utils as ironic_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
@@ -46,6 +47,8 @@ except Exception:
     pass
 
 LOG = logging.getLogger(__name__)
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 REQUIRED_PROPERTIES = {
     'irmc_deploy_iso': _("Deployment ISO image file name. "
@@ -533,6 +536,7 @@ class IRMCVirtualMediaBoot(base.BootInterface):
     def get_properties(self):
         return COMMON_PROPERTIES
 
+    @METRICS.timer('IRMCVirtualMediaBoot.validate')
     def validate(self, task):
         """Validate the deployment information for the task's node.
 
@@ -557,6 +561,7 @@ class IRMCVirtualMediaBoot(base.BootInterface):
         deploy_utils.validate_image_properties(task.context, d_info,
                                                props)
 
+    @METRICS.timer('IRMCVirtualMediaBoot.prepare_ramdisk')
     def prepare_ramdisk(self, task, ramdisk_params):
         """Prepares the deploy ramdisk using virtual media.
 
@@ -587,6 +592,7 @@ class IRMCVirtualMediaBoot(base.BootInterface):
 
         _setup_deploy_iso(task, ramdisk_params)
 
+    @METRICS.timer('IRMCVirtualMediaBoot.clean_up_ramdisk')
     def clean_up_ramdisk(self, task):
         """Cleans up the boot of ironic ramdisk.
 
@@ -599,6 +605,7 @@ class IRMCVirtualMediaBoot(base.BootInterface):
         """
         _cleanup_vmedia_boot(task)
 
+    @METRICS.timer('IRMCVirtualMediaBoot.prepare_instance')
     def prepare_instance(self, task):
         """Prepares the boot of instance.
 
@@ -620,6 +627,7 @@ class IRMCVirtualMediaBoot(base.BootInterface):
             root_uuid_or_disk_id = driver_internal_info['root_uuid_or_disk_id']
             self._configure_vmedia_boot(task, root_uuid_or_disk_id)
 
+    @METRICS.timer('IRMCVirtualMediaBoot.clean_up_instance')
     def clean_up_instance(self, task):
         """Cleans up the boot of instance.
 
