@@ -132,16 +132,21 @@ def _get_deploy_image_info(node):
 
 def _get_pxe_kernel_ramdisk(pxe_info):
     pxe_opts = {}
-    pxe_opts['deployment_aki_path'] = pxe_info['deploy_kernel'][1]
-    pxe_opts['deployment_ari_path'] = pxe_info['deploy_ramdisk'][1]
+    pxe_opts['deployment_aki_path'] = pxe_utils.get_path_relative_to_tftp_root(
+        pxe_info['deploy_kernel'][1])
+    pxe_opts['deployment_ari_path'] = pxe_utils.get_path_relative_to_tftp_root(
+        pxe_info['deploy_ramdisk'][1])
     # It is possible that we don't have kernel/ramdisk or even
     # image_source to determine if it's a whole disk image or not.
     # For example, when transitioning to 'available' state for first
     # time from 'manage' state.
     if 'kernel' in pxe_info:
-        pxe_opts['aki_path'] = pxe_info['kernel'][1]
+        pxe_opts['aki_path'] = pxe_utils.get_path_relative_to_tftp_root(
+            pxe_info['kernel'][1])
     if 'ramdisk' in pxe_info:
-        pxe_opts['ari_path'] = pxe_info['ramdisk'][1]
+        pxe_opts['ari_path'] = pxe_utils.get_path_relative_to_tftp_root(
+            pxe_info['ramdisk'][1])
+
     return pxe_opts
 
 

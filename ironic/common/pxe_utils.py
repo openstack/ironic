@@ -319,6 +319,12 @@ def dhcp_options_for_instance(task):
     else:
         dhcp_opts.append({'opt_name': 'bootfile-name',
                           'opt_value': boot_file})
+        # 210 == tftp server path-prefix or tftp root, will be used to find
+        # pxelinux.cfg directory. The pxelinux.0 loader infers this information
+        # from it's own path, but Petitboot needs it to be specified by this
+        # option since it doesn't use pxelinux.0 loader.
+        dhcp_opts.append({'opt_name': '210',
+                          'opt_value': get_tftp_path_prefix()})
 
     dhcp_opts.append({'opt_name': 'server-ip-address',
                       'opt_value': CONF.pxe.tftp_server})
@@ -330,3 +336,20 @@ def dhcp_options_for_instance(task):
         opt.update({'ip_version': int(CONF.pxe.ip_version)})
 
     return dhcp_opts
+
+
+def get_tftp_path_prefix():
+    """Adds trailing slash (if needed) necessary for path-prefix
+
+    :return: CONF.pxe.tftp_root ensured to have a trailing slash
+    """
+    return os.path.join(CONF.pxe.tftp_root, '')
+
+
+def get_path_relative_to_tftp_root(file_path):
+    """Return file relative path to CONF.pxe.tftp_root
+
+    :param file_path: full file path to be made relative path.
+    :returns: The path relative to CONF.pxe.tftp_root
+    """
+    return os.path.relpath(file_path, get_tftp_path_prefix())

@@ -178,14 +178,10 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
         tftp_server = CONF.pxe.tftp_server
 
-        deploy_kernel = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
-                                     'deploy_kernel')
-        deploy_ramdisk = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
-                                      'deploy_ramdisk')
-        kernel = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
-                              'kernel')
-        ramdisk = os.path.join(CONF.pxe.tftp_root, self.node.uuid,
-                               'ramdisk')
+        deploy_kernel = os.path.join(self.node.uuid, 'deploy_kernel')
+        deploy_ramdisk = os.path.join(self.node.uuid, 'deploy_ramdisk')
+        kernel = os.path.join(self.node.uuid, 'kernel')
+        ramdisk = os.path.join(self.node.uuid, 'ramdisk')
         root_dir = CONF.pxe.tftp_root
 
         image_info = {
@@ -251,11 +247,14 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         self.node.save()
         self.config(group='pxe', tftp_server='my-tftp-server')
         self.config(group='pxe', pxe_append_params='my-pxe-append-params')
+        self.config(group='pxe', tftp_root='/tftp-path/')
         image_info = {
             'deploy_kernel': ('deploy_kernel',
-                              'path-to-deploy_kernel'),
+                              os.path.join(CONF.pxe.tftp_root,
+                                           'path-to-deploy_kernel')),
             'deploy_ramdisk': ('deploy_ramdisk',
-                               'path-to-deploy_ramdisk')}
+                               os.path.join(CONF.pxe.tftp_root,
+                                            'path-to-deploy_ramdisk'))}
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:

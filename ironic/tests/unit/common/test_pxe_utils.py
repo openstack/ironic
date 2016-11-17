@@ -419,8 +419,12 @@ class TestPXEUtils(db_base.DbTestCase):
         self.config(ip_version=ip_version, group='pxe')
         self.config(tftp_server='192.0.2.1', group='pxe')
         self.config(pxe_bootfile_name='fake-bootfile', group='pxe')
+        self.config(tftp_root='/tftp-path/', group='pxe')
         expected_info = [{'opt_name': 'bootfile-name',
                           'opt_value': 'fake-bootfile',
+                          'ip_version': ip_version},
+                         {'opt_name': '210',
+                          'opt_value': '/tftp-path/',
                           'ip_version': ip_version},
                          {'opt_name': 'server-ip-address',
                           'opt_value': '192.0.2.1',
@@ -598,3 +602,25 @@ class TestPXEUtils(db_base.DbTestCase):
                 '/httpboot/pxelinux.cfg/aa-aa-aa-aa-aa-aa')
             rmtree_mock.assert_called_once_with(
                 os.path.join(CONF.deploy.http_root, self.node.uuid))
+
+    def test_get_tftp_path_prefix_with_trailing_slash(self):
+        self.config(tftp_root='/tftpboot-path/', group='pxe')
+        path_prefix = pxe_utils.get_tftp_path_prefix()
+        self.assertEqual(path_prefix, '/tftpboot-path/')
+
+    def test_get_tftp_path_prefix_without_trailing_slash(self):
+        self.config(tftp_root='/tftpboot-path', group='pxe')
+        path_prefix = pxe_utils.get_tftp_path_prefix()
+        self.assertEqual(path_prefix, '/tftpboot-path/')
+
+    def test_get_path_relative_to_tftp_root_with_trailing_slash(self):
+        self.config(tftp_root='/tftpboot-path/', group='pxe')
+        test_file_path = '/tftpboot-path/pxelinux.cfg/test'
+        relpath = pxe_utils.get_path_relative_to_tftp_root(test_file_path)
+        self.assertEqual(relpath, 'pxelinux.cfg/test')
+
+    def test_get_path_relative_to_tftp_root_without_trailing_slash(self):
+        self.config(tftp_root='/tftpboot-path', group='pxe')
+        test_file_path = '/tftpboot-path/pxelinux.cfg/test'
+        relpath = pxe_utils.get_path_relative_to_tftp_root(test_file_path)
+        self.assertEqual(relpath, 'pxelinux.cfg/test')
