@@ -551,7 +551,7 @@ function configure_ironic_dirs {
         sudo install -d -o $STACK_USER -g $LIBVIRT_GROUP $IRONIC_HTTP_DIR
     fi
 
-    if [ ! -f $IRONIC_PXE_BOOT_IMAGE ]; then
+    if [ ! -f "$IRONIC_PXE_BOOT_IMAGE" ]; then
         die $LINENO "PXE boot file $IRONIC_PXE_BOOT_IMAGE not found."
     fi
 
