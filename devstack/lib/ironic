@@ -1044,7 +1044,21 @@ function create_bridge_and_vms {
         local ironic_net_id
         ironic_net_id=$(openstack network show "$PRIVATE_NETWORK_NAME" -c id -f value)
         create_ovs_taps $ironic_net_id
+
+        # NOTE(vsaienko) Neutron no longer setup routing to private network.
+        # https://github.com/openstack-dev/devstack/commit/1493bdeba24674f6634160d51b8081c571df4017
+        # Add route here to have connection to VMs during provisioning.
+        local pub_router_id
+        local r_net_gateway
+        pub_router_id=$(openstack router show $Q_ROUTER_NAME -f value -c id)
+        r_net_gateway=$(sudo ip netns exec qrouter-$pub_router_id ip -4 route get 8.8.8.8 |grep dev | awk '{print $7}')
+        local replace_range=${SUBNETPOOL_PREFIX_V4}
+        if [[ -z "${SUBNETPOOL_V4_ID}" ]]; then
+            replace_range=${FIXED_RANGE}
+        fi
+        sudo ip route replace $replace_range via $r_net_gateway
     fi
+
 }
 
 function wait_for_nova_resources {
