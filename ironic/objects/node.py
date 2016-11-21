@@ -58,7 +58,10 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.16: Add network_interface field
     # Version 1.17: Add resource_class field
     # Version 1.18: Add default setting for network_interface
-    VERSION = '1.18'
+    # Version 1.19: Add fields: boot_interface, console_interface,
+    #               deploy_interface, inspect_interface, management_interface,
+    #               power_interface, raid_interface, vendor_interface
+    VERSION = '1.19'
 
     dbapi = db_api.get_instance()
 
@@ -118,8 +121,16 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
 
         'extra': object_fields.FlexibleDictField(nullable=True),
 
+        'boot_interface': object_fields.StringField(nullable=True),
+        'console_interface': object_fields.StringField(nullable=True),
+        'deploy_interface': object_fields.StringField(nullable=True),
+        'inspect_interface': object_fields.StringField(nullable=True),
+        'management_interface': object_fields.StringField(nullable=True),
         'network_interface': object_fields.StringFieldThatAcceptsCallable(
             nullable=False, default=_default_network_interface),
+        'power_interface': object_fields.StringField(nullable=True),
+        'raid_interface': object_fields.StringField(nullable=True),
+        'vendor_interface': object_fields.StringField(nullable=True),
     }
 
     def _validate_property_values(self, properties):
