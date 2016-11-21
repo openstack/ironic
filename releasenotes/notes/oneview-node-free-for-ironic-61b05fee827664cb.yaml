@@ -1,0 +1,4 @@
+---
+fixes:
+  - Fixes an issue with ironic being able to change
+    the power state of nodes currently in use by OneView.

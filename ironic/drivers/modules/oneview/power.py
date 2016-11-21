@@ -23,7 +23,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.oneview import common
-
+from ironic.drivers.modules.oneview import deploy_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -44,17 +44,26 @@ class OneViewPower(base.PowerInterface):
         enclosure_group_uri. Also, checks if the server profile of the node is
         applied, if NICs are valid for the server profile of the node, and if
         the server hardware attributes (ram, memory, vcpus count) are
-        consistent with OneView.
+        consistent with OneView. It validates if the node is being used by
+        Oneview.
 
         :param task: a task from TaskManager.
         :raises: MissingParameterValue if a required parameter is missing.
         :raises: InvalidParameterValue if parameters set are inconsistent with
                  resources in OneView
+        :raises: InvalidParameterValue if the node in use by OneView.
+        :raises: OneViewError if not possible to get OneView's information
+                 for the given node, if not possible to retrieve Server
+                 Hardware from OneView.
         """
         common.verify_node_info(task.node)
 
         try:
             common.validate_oneview_resources_compatibility(task)
+
+            if deploy_utils.is_node_in_use_by_oneview(task.node):
+                raise exception.InvalidParameterValue(
+                    _("Node %s is in use by OneView.") % task.node.uuid)
         except exception.OneViewError as oneview_exc:
             raise exception.InvalidParameterValue(oneview_exc)
 
@@ -62,7 +71,6 @@ class OneViewPower(base.PowerInterface):
         """Gets the current power state.
 
         :param task: a TaskManager instance.
-        :param node: The Node.
         :returns: one of :mod:`ironic.common.states` POWER_OFF,
                   POWER_ON or ERROR.
         :raises: OneViewError if fails to retrieve power state of OneView
@@ -87,7 +95,6 @@ class OneViewPower(base.PowerInterface):
         """Turn the current power state on or off.
 
         :param task: a TaskManager instance.
-        :param node: The Node.
         :param power_state: The desired power state POWER_ON, POWER_OFF or
                             REBOOT from :mod:`ironic.common.states`.
         :raises: InvalidParameterValue if an invalid power state was specified.
@@ -124,7 +131,6 @@ class OneViewPower(base.PowerInterface):
         """Reboot the node
 
         :param task: a TaskManager instance.
-        :param node: The Node.
         :raises: PowerStateFailure if the final state of the node is not
                  POWER_ON.
         """
