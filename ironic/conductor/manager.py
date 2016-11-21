@@ -2136,7 +2136,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             node = task.node
             if not getattr(task.driver, 'raid', None):
                 raise exception.UnsupportedDriverExtension(
-                    driver=task.driver, extension='raid')
+                    driver=task.node.driver, extension='raid')
             # Operator may try to unset node.target_raid_config.  So, try to
             # validate only if it is not empty.
             if target_raid_config:
