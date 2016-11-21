@@ -25,8 +25,10 @@ from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import fsm
 from ironic.common import states
+from ironic.conductor import notification_utils
 from ironic.conductor import task_manager
 from ironic import objects
+from ironic.objects import fields
 from ironic.tests import base as tests_base
 from ironic.tests.unit.db import base as tests_db_base
 from ironic.tests.unit.objects import utils as obj_utils
@@ -418,9 +420,11 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
             task1.process_event('provide')
             self.assertEqual(states.CLEANING, task1.node.provision_state)
 
+    @mock.patch.object(task_manager.TaskManager,
+                       '_notify_provision_state_change', autospec=True)
     def test_spawn_after(
-            self, get_portgroups_mock, get_ports_mock, build_driver_mock,
-            reserve_mock, release_mock, node_get_mock):
+            self, notify_mock, get_portgroups_mock, get_ports_mock,
+            build_driver_mock, reserve_mock, release_mock, node_get_mock):
         spawn_mock = mock.Mock(return_value=self.future_mock)
         task_release_mock = mock.Mock()
         reserve_mock.return_value = self.node
@@ -437,6 +441,7 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
         # release resources pending the finishing of the background
         # thread
         self.assertFalse(task_release_mock.called)
+        notify_mock.assert_called_once_with(task)
 
     def test_spawn_after_exception_while_yielded(
             self, get_portgroups_mock, get_ports_mock, build_driver_mock,
@@ -455,9 +460,11 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
         self.assertFalse(spawn_mock.called)
         task_release_mock.assert_called_once_with()
 
+    @mock.patch.object(task_manager.TaskManager,
+                       '_notify_provision_state_change', autospec=True)
     def test_spawn_after_spawn_fails(
-            self, get_portgroups_mock, get_ports_mock, build_driver_mock,
-            reserve_mock, release_mock, node_get_mock):
+            self, notify_mock, get_portgroups_mock, get_ports_mock,
+            build_driver_mock, reserve_mock, release_mock, node_get_mock):
         spawn_mock = mock.Mock(side_effect=exception.IronicException('foo'))
         task_release_mock = mock.Mock()
         reserve_mock.return_value = self.node
@@ -471,6 +478,7 @@ class TaskManagerTestCase(tests_db_base.DbTestCase):
 
         spawn_mock.assert_called_once_with(1, 2, foo='bar', cat='meow')
         task_release_mock.assert_called_once_with()
+        self.assertFalse(notify_mock.called)
 
     def test_spawn_after_link_fails(
             self, get_portgroups_mock, get_ports_mock, build_driver_mock,
@@ -672,6 +680,11 @@ class TaskManagerStateModelTestCases(tests_base.TestCase):
             self.assertEqual(states.NOSTATE,
                              self.task.node.target_provision_state)
 
+    def test_process_event_no_callback_notify(self):
+        self.task.process_event = task_manager.TaskManager.process_event
+        self.task.process_event(self.task, 'fake')
+        self.task._notify_provision_state_change.assert_called_once_with()
+
 
 @task_manager.require_exclusive_lock
 def _req_excl_lock_method(*args, **kwargs):
@@ -762,3 +775,98 @@ class ThreadExceptionTestCase(tests_base.TestCase):
         self.future_mock.exception.assert_called_once_with()
         self.assertIsNone(self.node.last_error)
         self.assertTrue(log_mock.called)
+
+
+@mock.patch.object(notification_utils, 'emit_provision_set_notification',
+                   autospec=True)
+class ProvisionNotifyTestCase(tests_base.TestCase):
+    def setUp(self):
+        super(ProvisionNotifyTestCase, self).setUp()
+        self.node = mock.Mock(spec=objects.Node)
+        self.task = mock.Mock(spec=task_manager.TaskManager)
+        self.task.node = self.node
+        notifier = task_manager.TaskManager._notify_provision_state_change
+        self.task.notifier = notifier
+        self.task._prev_target_provision_state = 'oldtarget'
+        self.task._event = 'event'
+
+    def test_notify_no_state_change(self, emit_mock):
+        self.task._event = None
+        self.task.notifier(self.task)
+        self.assertFalse(emit_mock.called)
+
+    def test_notify_error_state(self, emit_mock):
+        self.task._event = 'fail'
+        self.task._prev_provision_state = 'fake'
+        self.task.notifier(self.task)
+        emit_mock.assert_called_once_with(self.task,
+                                          fields.NotificationLevel.ERROR,
+                                          fields.NotificationStatus.ERROR,
+                                          'fake', 'oldtarget', 'fail')
+        self.assertIsNone(self.task._event)
+
+    def test_notify_unstable_to_unstable(self, emit_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.task._prev_provision_state = states.DEPLOYWAIT
+        self.task.notifier(self.task)
+        emit_mock.assert_called_once_with(self.task,
+                                          fields.NotificationLevel.INFO,
+                                          fields.NotificationStatus.SUCCESS,
+                                          states.DEPLOYWAIT,
+                                          'oldtarget', 'event')
+
+    def test_notify_stable_to_unstable(self, emit_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.task._prev_provision_state = states.AVAILABLE
+        self.task.notifier(self.task)
+        emit_mock.assert_called_once_with(self.task,
+                                          fields.NotificationLevel.INFO,
+                                          fields.NotificationStatus.START,
+                                          states.AVAILABLE,
+                                          'oldtarget', 'event')
+
+    def test_notify_unstable_to_stable(self, emit_mock):
+        self.node.provision_state = states.ACTIVE
+        self.task._prev_provision_state = states.DEPLOYING
+        self.task.notifier(self.task)
+        emit_mock.assert_called_once_with(self.task,
+                                          fields.NotificationLevel.INFO,
+                                          fields.NotificationStatus.END,
+                                          states.DEPLOYING,
+                                          'oldtarget', 'event')
+
+    def test_notify_stable_to_stable(self, emit_mock):
+        self.node.provision_state = states.MANAGEABLE
+        self.task._prev_provision_state = states.AVAILABLE
+        self.task.notifier(self.task)
+        emit_mock.assert_called_once_with(self.task,
+                                          fields.NotificationLevel.INFO,
+                                          fields.NotificationStatus.SUCCESS,
+                                          states.AVAILABLE,
+                                          'oldtarget', 'event')
+
+    def test_notify_resource_released(self, emit_mock):
+        node = mock.Mock(spec=objects.Node)
+        node.provision_state = states.DEPLOYING
+        node.target_provision_state = states.ACTIVE
+        task = mock.Mock(spec=task_manager.TaskManager)
+        task._prev_provision_state = states.AVAILABLE
+        task._prev_target_provision_state = states.NOSTATE
+        task._event = 'event'
+        task.node = None
+        task._saved_node = node
+        notifier = task_manager.TaskManager._notify_provision_state_change
+        task.notifier = notifier
+        task.notifier(task)
+        task_arg = emit_mock.call_args[0][0]
+        self.assertEqual(node, task_arg.node)
+        self.assertIsNot(task, task_arg)
+
+    def test_notify_only_once(self, emit_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.task._prev_provision_state = states.AVAILABLE
+        self.task.notifier(self.task)
+        self.assertIsNone(self.task._event)
+        self.task.notifier(self.task)
+        self.assertEqual(1, emit_mock.call_count)
+        self.assertIsNone(self.task._event)

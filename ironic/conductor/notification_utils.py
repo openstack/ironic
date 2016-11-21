@@ -13,6 +13,7 @@
 from oslo_config import cfg
 from oslo_log import log
 from oslo_messaging import exceptions as oslo_msg_exc
+from oslo_utils import strutils
 from oslo_versionedobjects import exception as oslo_vo_exc
 
 from ironic.common import exception
@@ -23,6 +24,17 @@ from ironic.objects import notification
 
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
+
+
+def mask_secrets(payload):
+    """Remove secrets from payload object."""
+    mask = '******'
+    if hasattr(payload, 'instance_info'):
+        payload.instance_info = strutils.mask_dict_password(
+            payload.instance_info, mask)
+        if 'image_url' in payload.instance_info:
+            payload.instance_info['image_url'] = mask
+    # TODO(yuriyz): add "driver_info" support
 
 
 def _emit_conductor_node_notification(task, notification_method,
@@ -58,6 +70,7 @@ def _emit_conductor_node_notification(task, notification_method,
                                "payload_method %(payload_method)s, error "
                                "%(error)s"))
         payload = payload_method(task.node, **kwargs)
+        mask_secrets(payload)
         notification_method(
             publisher=notification.NotificationPublisher(
                 service='ironic-conductor', host=CONF.host),
@@ -128,4 +141,26 @@ def emit_power_state_corrected_notification(task, from_power):
         fields.NotificationLevel.INFO,
         fields.NotificationStatus.SUCCESS,
         from_power=from_power
+    )
+
+
+def emit_provision_set_notification(task, level, status, prev_state,
+                                    prev_target, event):
+    """Helper for conductor sending a set provision state notification.
+
+    :param task: a TaskManager instance.
+    :param level: One of fields.NotificationLevel.
+    :param status: One of fields.NotificationStatus.
+    :param prev_state: Previous provision state.
+    :param prev_target: Previous target provision state.
+    :param event: FSM event that triggered provision state change.
+    """
+    _emit_conductor_node_notification(
+        task,
+        node_objects.NodeSetProvisionStateNotification,
+        node_objects.NodeSetProvisionStatePayload,
+        'provision_set', level, status,
+        prev_state=prev_state,
+        prev_target=prev_target,
+        event=event
     )

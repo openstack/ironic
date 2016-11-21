@@ -530,3 +530,37 @@ class NodeCorrectedPowerStatePayload(NodePayload):
     def __init__(self, node, from_power):
         super(NodeCorrectedPowerStatePayload, self).__init__(
             node, from_power=from_power)
+
+
+@base.IronicObjectRegistry.register
+class NodeSetProvisionStateNotification(notification.NotificationBase):
+    """Notification emitted when ironic changes a node provision state."""
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'payload': object_fields.ObjectField('NodeSetProvisionStatePayload')
+    }
+
+
+@base.IronicObjectRegistry.register
+class NodeSetProvisionStatePayload(NodePayload):
+    """Payload schema for when ironic changes a node provision state."""
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    SCHEMA = dict(NodePayload.SCHEMA,
+                  **{'instance_info': ('node', 'instance_info')})
+
+    fields = {
+        'instance_info': object_fields.FlexibleDictField(nullable=True),
+        'event': object_fields.StringField(nullable=True),
+        'previous_provision_state': object_fields.StringField(nullable=True),
+        'previous_target_provision_state':
+            object_fields.StringField(nullable=True)
+    }
+
+    def __init__(self, node, prev_state, prev_target, event):
+        super(NodeSetProvisionStatePayload, self).__init__(
+            node, event=event, previous_provision_state=prev_state,
+            previous_target_provision_state=prev_target)

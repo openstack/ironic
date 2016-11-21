@@ -94,6 +94,8 @@ raised in the background thread.):
 
 """
 
+import copy
+
 import futurist
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -106,7 +108,9 @@ from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common.i18n import _, _LE, _LI, _LW
 from ironic.common import states
+from ironic.conductor import notification_utils as notify
 from ironic import objects
+from ironic.objects import fields
 
 LOG = logging.getLogger(__name__)
 
@@ -199,6 +203,12 @@ class TaskManager(object):
         self.fsm = states.machine.copy()
         self._purpose = purpose
         self._debug_timer = timeutils.StopWatch()
+
+        # states and event for notification
+        self._prev_provision_state = None
+        self._prev_target_provision_state = None
+        self._event = None
+        self._saved_node = None
 
         try:
             node = objects.Node.get(context, node_id)
@@ -358,6 +368,44 @@ class TaskManager(object):
                     except exception.NodeNotFound:
                         pass
 
+    def _notify_provision_state_change(self):
+        """Emit notification about change of the node provision state."""
+        if self._event is None:
+            return
+
+        if self.node is None:
+            # Rare case if resource released before notification
+            task = copy.copy(self)
+            task.fsm = states.machine.copy()
+            task.node = self._saved_node
+        else:
+            task = self
+
+        node = task.node
+
+        state = node.provision_state
+        prev_state = self._prev_provision_state
+        new_unstable = state in states.UNSTABLE_STATES
+        prev_unstable = prev_state in states.UNSTABLE_STATES
+        level = fields.NotificationLevel.INFO
+
+        if self._event in ('fail', 'error'):
+            status = fields.NotificationStatus.ERROR
+            level = fields.NotificationLevel.ERROR
+        elif (prev_unstable, new_unstable) == (False, True):
+            status = fields.NotificationStatus.START
+        elif (prev_unstable, new_unstable) == (True, False):
+            status = fields.NotificationStatus.END
+        else:
+            status = fields.NotificationStatus.SUCCESS
+
+        notify.emit_provision_set_notification(
+            task, level, status, self._prev_provision_state,
+            self._prev_target_provision_state, self._event)
+
+        # reset saved event, avoiding duplicate notification
+        self._event = None
+
     def _thread_release_resources(self, fut):
         """Thread callback to release resources."""
         try:
@@ -382,6 +430,11 @@ class TaskManager(object):
         :raises: InvalidState if the event is not allowed by the associated
                  state machine
         """
+        # save previous states and event
+        self._prev_provision_state = self.node.provision_state
+        self._prev_target_provision_state = self.node.target_provision_state
+        self._event = event
+
         # Advance the state model for the given event. Note that this doesn't
         # alter the node in any way. This may raise InvalidState, if this event
         # is not allowed in the current state.
@@ -394,7 +447,6 @@ class TaskManager(object):
                                       self.node.provision_state,
                                       self.node.target_provision_state)
 
-        previous_state = self.node.provision_state
         self.node.provision_state = self.fsm.current_state
 
         # NOTE(lucasagomes): If there's no extra processing
@@ -422,7 +474,14 @@ class TaskManager(object):
                      '"%(target)s"'),
                  {'node': self.node.uuid, 'state': self.node.provision_state,
                   'target': self.node.target_provision_state,
-                  'previous': previous_state})
+                  'previous': self._prev_provision_state})
+
+        if callback is None:
+            self._notify_provision_state_change()
+        else:
+            # save the node, in case it is released before a notification is
+            # emitted at __exit__().
+            self._saved_node = self.node
 
     def __enter__(self):
         return self
@@ -450,6 +509,13 @@ class TaskManager(object):
                 fut.add_done_callback(self._thread_release_resources)
                 # Don't unlock! The unlock will occur when the
                 # thread finishes.
+                # NOTE(yuriyz): A race condition with process_event()
+                # in callback is possible here if eventlet changes behavior.
+                # E.g., if the execution of the new thread (that handles the
+                # event processing) finishes before we get here, that new
+                # thread may emit the "end" notification before we emit the
+                # following "start" notification.
+                self._notify_provision_state_change()
                 return
             except Exception as e:
                 with excutils.save_and_reraise_exception():

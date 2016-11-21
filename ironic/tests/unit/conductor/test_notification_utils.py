@@ -21,8 +21,10 @@ from oslo_versionedobjects.exception import VersionedObjectsException
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import notification_utils as notif_utils
+from ironic.conductor import task_manager
 from ironic.objects import fields
 from ironic.objects import node as node_objects
+from ironic.tests import base as tests_base
 from ironic.tests.unit.db import base
 from ironic.tests.unit.objects import utils as obj_utils
 
@@ -67,7 +69,8 @@ class TestNotificationUtils(base.DbTestCase):
             to_power=states.POWER_ON
         )
 
-    def test__emit_conductor_node_notification(self):
+    @mock.patch.object(notif_utils, 'mask_secrets')
+    def test__emit_conductor_node_notification(self, mock_secrets):
         mock_notify_method = mock.Mock()
         # Required for exception handling
         mock_notify_method.__name__ = 'MockNotificationConstructor'
@@ -88,6 +91,7 @@ class TestNotificationUtils(base.DbTestCase):
 
         mock_payload_method.assert_called_once_with(
             self.task.node, **mock_kwargs)
+        mock_secrets.assert_called_once_with(mock_payload_method.return_value)
         mock_notify_method.assert_called_once_with(
             publisher=mock.ANY,
             event_type=mock.ANY,
@@ -120,7 +124,9 @@ class TestNotificationUtils(base.DbTestCase):
 
         self.assertFalse(mock_notify_method.called)
 
-    def test__emit_conductor_node_notification_known_notify_exc(self):
+    @mock.patch.object(notif_utils, 'mask_secrets')
+    def test__emit_conductor_node_notification_known_notify_exc(self,
+                                                                mock_secrets):
         """Test exception caught for a known notification exception."""
         mock_notify_method = mock.Mock()
         # Required for exception handling
@@ -142,3 +148,49 @@ class TestNotificationUtils(base.DbTestCase):
         )
 
         self.assertFalse(mock_notify_method.return_value.emit.called)
+
+
+class ProvisionNotifyTestCase(tests_base.TestCase):
+    @mock.patch('ironic.objects.node.NodeSetProvisionStateNotification')
+    def test_emit_notification(self, provision_mock):
+        provision_mock.__name__ = 'NodeSetProvisionStateNotification'
+        self.config(host='fake-host')
+        node = obj_utils.get_test_node(self.context,
+                                       provision_state='fake state',
+                                       target_provision_state='fake target',
+                                       instance_info={'foo': 'baz'})
+        task = mock.Mock(spec=task_manager.TaskManager)
+        task.node = node
+        test_level = fields.NotificationLevel.INFO
+        test_status = fields.NotificationStatus.SUCCESS
+        notif_utils.emit_provision_set_notification(
+            task, test_level, test_status, 'fake_old',
+            'fake_old_target', 'event')
+        init_kwargs = provision_mock.call_args[1]
+        publisher = init_kwargs['publisher']
+        event_type = init_kwargs['event_type']
+        level = init_kwargs['level']
+        payload = init_kwargs['payload']
+        self.assertEqual('fake-host', publisher.host)
+        self.assertEqual('ironic-conductor', publisher.service)
+        self.assertEqual('node', event_type.object)
+        self.assertEqual('provision_set', event_type.action)
+        self.assertEqual(test_status, event_type.status)
+        self.assertEqual(test_level, level)
+        self.assertEqual(node.uuid, payload.uuid)
+        self.assertEqual('fake state', payload.provision_state)
+        self.assertEqual('fake target', payload.target_provision_state)
+        self.assertEqual('fake_old', payload.previous_provision_state)
+        self.assertEqual('fake_old_target',
+                         payload.previous_target_provision_state)
+        self.assertEqual({'foo': 'baz'}, payload.instance_info)
+
+    def test_mask_secrets(self):
+        test_info = {'configdrive': 'fake_drive', 'image_url': 'fake-url',
+                     'some_value': 'fake-value'}
+        node = obj_utils.get_test_node(self.context,
+                                       instance_info=test_info)
+        notif_utils.mask_secrets(node)
+        self.assertEqual('******', node.instance_info['configdrive'])
+        self.assertEqual('******', node.instance_info['image_url'])
+        self.assertEqual('fake-value', node.instance_info['some_value'])
