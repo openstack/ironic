@@ -27,6 +27,7 @@ import oslo_messaging as messaging
 from oslo_utils import uuidutils
 from oslo_versionedobjects import base as ovo_base
 from oslo_versionedobjects import fields
+import six
 
 from ironic.common import boot_devices
 from ironic.common import driver_factory
@@ -3519,6 +3520,7 @@ class RaidTestCases(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.node.refresh()
         self.assertEqual({}, self.node.target_raid_config)
         self.assertEqual(exception.UnsupportedDriverExtension, exc.exc_info[0])
+        self.assertIn('fake', six.text_type(exc.exc_info[1]))
 
     def test_set_target_raid_config_invalid_parameter_value(self):
         # Missing raid_level in the below raid config.
