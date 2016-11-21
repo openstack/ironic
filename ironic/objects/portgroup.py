@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_utils import netutils
 from oslo_utils import strutils
 from oslo_utils import uuidutils
 from oslo_versionedobjects import base as object_base
@@ -68,7 +69,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
             return cls.get_by_id(context, portgroup_ident)
         elif uuidutils.is_uuid_like(portgroup_ident):
             return cls.get_by_uuid(context, portgroup_ident)
-        elif utils.is_valid_mac(portgroup_ident):
+        elif netutils.is_valid_mac(portgroup_ident):
             return cls.get_by_address(context, portgroup_ident)
         elif utils.is_valid_logical_name(portgroup_ident):
             return cls.get_by_name(context, portgroup_ident)

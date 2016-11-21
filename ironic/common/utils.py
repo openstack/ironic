@@ -29,6 +29,7 @@ import tempfile
 
 from oslo_concurrency import processutils
 from oslo_log import log as logging
+from oslo_utils import netutils
 from oslo_utils import timeutils
 import paramiko
 import pytz
@@ -113,21 +114,6 @@ def ssh_connect(connection):
         raise exception.SSHConnectFailed(host=connection.get('host'))
 
     return ssh
-
-
-def is_valid_mac(address):
-    """Verify the format of a MAC address.
-
-    Check if a MAC address is valid and contains six octets. Accepts
-    colon-separated format only.
-
-    :param address: MAC address to be validated.
-    :returns: True if valid. False if not.
-
-    """
-    m = "[0-9a-f]{2}(:[0-9a-f]{2}){5}$"
-    return (isinstance(address, six.string_types) and
-            re.match(m, address.lower()))
 
 
 def is_valid_datapath_id(datapath_id):
@@ -240,7 +226,7 @@ def validate_and_normalize_mac(address):
     :raises: InvalidMAC If the MAC address is not valid.
 
     """
-    if not is_valid_mac(address):
+    if not netutils.is_valid_mac(address):
         raise exception.InvalidMAC(mac=address)
     return address.lower()
 
