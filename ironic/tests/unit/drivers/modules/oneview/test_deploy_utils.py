@@ -255,7 +255,7 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
                                                        task.node)
             )
 
-    # Tests for is_node_in_use_by_oneview
+    # Tests for is_node_in_use_by_ironic
     def test_is_node_in_use_by_ironic(self, mock_get_ov_client):
         """Node has a Server Profile applied by ironic.
 

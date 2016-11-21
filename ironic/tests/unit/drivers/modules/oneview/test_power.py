@@ -24,11 +24,11 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules.oneview import common
+from ironic.drivers.modules.oneview import deploy_utils
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
-
 
 oneview_exceptions = importutils.try_import('oneview_client.exceptions')
 
@@ -58,7 +58,11 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(common, 'validate_oneview_resources_compatibility',
                        spect_set=True, autospec=True)
-    def test_power_interface_validate(self, mock_validate, mock_get_ov_client):
+    @mock.patch.object(deploy_utils, 'is_node_in_use_by_oneview',
+                       spect_set=True, autospec=True)
+    def test_power_interface_validate(self, mock_is_node_in_use_by_oneview,
+                                      mock_validate, mock_get_ov_client):
+        mock_is_node_in_use_by_oneview.return_value = False
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.power.validate(task)
             self.assertTrue(mock_validate.called)
@@ -77,6 +81,35 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
     def test_power_interface_validate_fail_exception(self, mock_validate,
                                                      mock_get_ov_client):
         mock_validate.side_effect = exception.OneViewError('message')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.power.validate,
+                              task)
+
+    @mock.patch.object(common, 'validate_oneview_resources_compatibility',
+                       spect_set=True, autospec=True)
+    @mock.patch.object(deploy_utils, 'is_node_in_use_by_oneview',
+                       spect_set=True, autospec=True)
+    def test_power_validate_fail_node_used_by_oneview(
+            self, mock_is_node_in_use_by_oneview, mock_validate,
+            mock_get_ov_client):
+        mock_validate.return_value = True
+        mock_is_node_in_use_by_oneview.return_value = True
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.power.validate,
+                              task)
+
+    @mock.patch.object(common, 'validate_oneview_resources_compatibility',
+                       spect_set=True, autospec=True)
+    @mock.patch.object(deploy_utils, 'is_node_in_use_by_oneview',
+                       spect_set=True, autospec=True)
+    def test_validate_fail_node_in_use_by_oneview(
+            self, mock_is_node_in_use_by_oneview, mock_validate,
+            mock_get_ov_client):
+        mock_validate.return_value = True
+        mock_is_node_in_use_by_oneview.side_effect = (
+            exception.OneViewError('message'))
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.power.validate,
