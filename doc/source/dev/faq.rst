@@ -18,14 +18,15 @@ How do I...
 ...create a migration script template?
 --------------------------------------
 
-Using the ``alembic revision`` command, e.g::
+Using the ``ironic-dbsync revision`` command, e.g::
 
-  $ cd ironic/ironic/db/sqlalchemy
-  $ alembic revision -m "create foo table"
+  $ cd ironic
+  $ tox -evenv -- ironic-dbsync revision -m \"create foo table\"
 
-For more information see the `alembic documentation`_.
+It will create an empty alembic migration. For more information see the
+`alembic documentation`_.
 
-.. _`alembic documentation`: https://alembic.readthedocs.org/en/latest/tutorial.html#create-a-migration-script
+.. _`alembic documentation`: http://alembic.zzzcomputing.com/en/latest/tutorial.html#create-a-migration-script
 
 ...know if a release note is needed for my change?
 --------------------------------------------------
