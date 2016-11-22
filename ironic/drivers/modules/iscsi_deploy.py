@@ -19,12 +19,13 @@ from ironic_lib import disk_utils
 from ironic_lib import metrics_utils
 from ironic_lib import utils as il_utils
 from oslo_log import log as logging
+from oslo_utils import excutils
 from oslo_utils import fileutils
 from six.moves.urllib import parse
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
-from ironic.common.i18n import _
+from ironic.common.i18n import _, _LE
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
@@ -219,12 +220,16 @@ def continue_deploy(task, **kwargs):
 
     params = get_deploy_info(node, **kwargs)
 
-    def _fail_deploy(task, msg):
+    def _fail_deploy(task, msg, raise_exception=True):
         """Fail the deploy after logging and setting error states."""
-        LOG.error(msg)
+        if isinstance(msg, Exception):
+            msg = (_('Deploy failed for instance %(instance)s. '
+                     'Error: %(error)s') %
+                   {'instance': node.instance_uuid, 'error': msg})
         deploy_utils.set_failed_state(task, msg)
         destroy_images(task.node.uuid)
-        raise exception.InstanceDeployFailure(msg)
+        if raise_exception:
+            raise exception.InstanceDeployFailure(msg)
 
     # NOTE(lucasagomes): Let's make sure we don't log the full content
     # of the config drive here because it can be up to 64MB in size,
@@ -243,11 +248,18 @@ def continue_deploy(task, **kwargs):
             uuid_dict_returned = deploy_utils.deploy_disk_image(**params)
         else:
             uuid_dict_returned = deploy_utils.deploy_partition_image(**params)
+    except exception.IronicException as e:
+        with excutils.save_and_reraise_exception():
+            LOG.error(_LE('Deploy of instance %(instance)s on node %(node)s '
+                          'failed: %(error)s'),
+                      {'instance': node.instance_uuid, 'node': node.uuid,
+                       'error': e})
+            _fail_deploy(task, e, raise_exception=False)
     except Exception as e:
-        msg = (_('Deploy failed for instance %(instance)s. '
-                 'Error: %(error)s') %
-               {'instance': node.instance_uuid, 'error': e})
-        _fail_deploy(task, msg)
+        LOG.exception(_LE('Deploy of instance %(instance)s on node %(node)s '
+                          'failed with exception'),
+                      {'instance': node.instance_uuid, 'node': node.uuid})
+        _fail_deploy(task, e)
 
     root_uuid_or_disk_id = uuid_dict_returned.get(
         'root uuid', uuid_dict_returned.get('disk identifier'))
@@ -255,6 +267,7 @@ def continue_deploy(task, **kwargs):
         msg = (_("Couldn't determine the UUID of the root "
                  "partition or the disk identifier after deploying "
                  "node %s") % node.uuid)
+        LOG.error(msg)
         _fail_deploy(task, msg)
 
     if params.get('preserve_ephemeral', False):
