@@ -1043,6 +1043,18 @@ class TestListNodes(test_api_base.BaseApiTest):
         # rpc_node lookup and pass that downwards
         mock_vdi.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
 
+    def test_ssh_creds_masked(self):
+        driver_info = {"ssh_password": "password", "ssh_key_contents": "key"}
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id,
+                                          driver_info=driver_info)
+        data = self.get_json(
+            '/nodes/%s' % node.uuid,
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+
+        self.assertEqual("******", data["driver_info"]["ssh_password"])
+        self.assertEqual("******", data["driver_info"]["ssh_key_contents"])
+
 
 class TestPatch(test_api_base.BaseApiTest):
 
