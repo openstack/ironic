@@ -31,9 +31,6 @@ from ironic import objects
 
 LOG = logging.getLogger(__name__)
 
-create_cleaning_ports_deprecation = False
-delete_cleaning_ports_deprecation = False
-
 
 class NeutronDHCPApi(base.BaseDHCP):
     """API for communicating to neutron 2.x API."""
@@ -298,38 +295,3 @@ class NeutronDHCPApi(base.BaseDHCP):
             task, task.portgroups, client)
 
         return port_ip_addresses + portgroup_ip_addresses
-
-    # TODO(vsaienko) Remove this method when deprecation period is passed
-    # in Ocata.
-    def create_cleaning_ports(self, task):
-        """Create neutron ports for each port on task.node to boot the ramdisk.
-
-        :param task: a TaskManager instance.
-        :raises: NetworkError, InvalidParameterValue
-        :returns: a dictionary in the form {port.uuid: neutron_port['id']}
-        """
-        global create_cleaning_ports_deprecation
-        if not create_cleaning_ports_deprecation:
-            LOG.warning(_LW('create_cleaning_ports via dhcp provider is '
-                            'deprecated. The node.network_interface setting '
-                            'should be used instead.'))
-            create_cleaning_ports_deprecation = True
-
-        return task.driver.network.add_cleaning_network(task)
-
-    # TODO(vsaienko) Remove this method when deprecation period is passed
-    # in Ocata.
-    def delete_cleaning_ports(self, task):
-        """Deletes the neutron port created for booting the ramdisk.
-
-        :param task: a TaskManager instance.
-        :raises: NetworkError, InvalidParameterValue
-        """
-        global delete_cleaning_ports_deprecation
-        if not delete_cleaning_ports_deprecation:
-            LOG.warning(_LW('delete_cleaning_ports via dhcp provider is '
-                            'deprecated. The node.network_interface setting '
-                            'should be used instead.'))
-            delete_cleaning_ports_deprecation = True
-
-        task.driver.network.remove_cleaning_network(task)

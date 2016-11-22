@@ -507,35 +507,3 @@ class TestNeutron(db_base.DbTestCase):
             get_ip_mock.assert_has_calls(
                 [mock.call(task, task.ports[0], mock.ANY),
                  mock.call(task, task.portgroups[0], mock.ANY)])
-
-    @mock.patch.object(neutron, 'create_cleaning_ports_deprecation', False)
-    @mock.patch.object(neutron, 'LOG', autospec=True)
-    def test_create_cleaning_ports(self, log_mock):
-        self.config(cleaning_network_uuid=uuidutils.generate_uuid(),
-                    group='neutron')
-        api = dhcp_factory.DHCPFactory().provider
-
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            with mock.patch.object(
-                    task.driver.network, 'add_cleaning_network',
-                    autospec=True) as add_net_mock:
-                api.create_cleaning_ports(task)
-                add_net_mock.assert_called_once_with(task)
-
-                api.create_cleaning_ports(task)
-                self.assertEqual(1, log_mock.warning.call_count)
-
-    @mock.patch.object(neutron, 'delete_cleaning_ports_deprecation', False)
-    @mock.patch.object(neutron, 'LOG', autospec=True)
-    def test_delete_cleaning_ports(self, log_mock):
-        api = dhcp_factory.DHCPFactory().provider
-
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            with mock.patch.object(
-                    task.driver.network, 'remove_cleaning_network',
-                    autospec=True) as rm_net_mock:
-                api.delete_cleaning_ports(task)
-                rm_net_mock.assert_called_once_with(task)
-
-                api.delete_cleaning_ports(task)
-                self.assertEqual(1, log_mock.warning.call_count)
