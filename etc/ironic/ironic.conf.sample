@@ -56,7 +56,7 @@
 # this value, please make sure that every enabled hardware
 # type will have the same set of enabled boot interfaces on
 # every ironic-conductor service. (list value)
-#enabled_boot_interfaces =
+#enabled_boot_interfaces = pxe
 
 # WARNING: This configuration option is part of the incomplete
 # driver composition work, changing it's setting has no
@@ -104,7 +104,7 @@
 # this value, please make sure that every enabled hardware
 # type will have the same set of enabled deploy interfaces on
 # every ironic-conductor service. (list value)
-#enabled_deploy_interfaces =
+#enabled_deploy_interfaces = iscsi,direct
 
 # WARNING: This configuration option is part of the incomplete
 # driver composition work, changing it's setting has no
@@ -222,7 +222,7 @@
 # this value, please make sure that every enabled hardware
 # type will have the same set of enabled raid interfaces on
 # every ironic-conductor service. (list value)
-#enabled_raid_interfaces = no-raid
+#enabled_raid_interfaces = agent,no-raid
 
 # WARNING: This configuration option is part of the incomplete
 # driver composition work, changing it's setting has no
