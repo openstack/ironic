@@ -551,7 +551,8 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
     def test_get_properties(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            self.assertEqual({}, task.driver.deploy.get_properties())
+            props = task.driver.deploy.get_properties()
+            self.assertEqual(['deploy_forces_oob_reboot'], list(props))
 
     @mock.patch.object(iscsi_deploy, 'validate', autospec=True)
     @mock.patch.object(deploy_utils, 'validate_capabilities', autospec=True)

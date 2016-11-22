@@ -409,7 +409,7 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
     """iSCSI Deploy Interface for deploy-related actions."""
 
     def get_properties(self):
-        return {}
+        return agent_base_vendor.VENDOR_PROPERTIES
 
     @METRICS.timer('ISCSIDeploy.validate')
     def validate(self, task):
