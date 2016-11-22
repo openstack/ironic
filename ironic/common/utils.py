@@ -27,6 +27,7 @@ import re
 import shutil
 import tempfile
 
+import jinja2
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import netutils
@@ -283,6 +284,22 @@ def hash_file(file_like_object, hash_algo='md5'):
     return checksum.hexdigest()
 
 
+def file_has_content(path, content, hash_algo='md5'):
+    """Checks that content of the file is the same as provided reference.
+
+    :param path: path to file
+    :param content: reference content to check against
+    :param hash_algo: hashing algo from hashlib to use, default is 'md5'
+    :returns: True if the hash of reference content is the same as
+        the hash of file's content, False otherwise
+    """
+    with open(path) as existing:
+        file_hash_hex = hash_file(existing, hash_algo=hash_algo)
+    ref_hash = _get_hash_object(hash_algo)
+    ref_hash.update(content)
+    return file_hash_hex == ref_hash.hexdigest()
+
+
 @contextlib.contextmanager
 def tempdir(**kwargs):
     tempfile.tempdir = CONF.tempdir
@@ -500,3 +517,22 @@ def validate_network_port(port, port_name="Port"):
             'numbers must be between 1 and 65535.') %
             {'port_name': port_name, 'port': port})
     return port
+
+
+def render_template(template, params, is_file=True):
+    """Renders Jinja2 template file with given parameters.
+
+    :param template: full path to the Jinja2 template file
+    :param params: dictionary with parameters to use when rendering
+    :param is_file: whether template is file or string with template itself
+    :returns: the rendered template as a string
+    """
+    if is_file:
+        tmpl_path, tmpl_name = os.path.split(template)
+        loader = jinja2.FileSystemLoader(tmpl_path)
+    else:
+        tmpl_name = 'template'
+        loader = jinja2.DictLoader({tmpl_name: template})
+    env = jinja2.Environment(loader=loader)
+    tmpl = env.get_template(tmpl_name)
+    return tmpl.render(params)

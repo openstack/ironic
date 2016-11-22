@@ -15,9 +15,7 @@
 PXE Boot Interface
 """
 
-import filecmp
 import os
-import shutil
 
 from ironic_lib import metrics_utils
 from ironic_lib import utils as ironic_utils
@@ -33,6 +31,7 @@ from ironic.common import image_service as service
 from ironic.common import images
 from ironic.common import pxe_utils
 from ironic.common import states
+from ironic.common import utils
 from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
@@ -382,13 +381,20 @@ class PXEBoot(base.BootInterface):
         node = task.node
 
         if CONF.pxe.ipxe_enabled:
-            # Copy the iPXE boot script to HTTP root directory
+            # Render the iPXE boot script template and save it
+            # to HTTP root directory
+            boot_script = utils.render_template(
+                CONF.pxe.ipxe_boot_script,
+                {'ipxe_for_mac_uri': pxe_utils.PXE_CFG_DIR_NAME + '/'})
             bootfile_path = os.path.join(
                 CONF.deploy.http_root,
                 os.path.basename(CONF.pxe.ipxe_boot_script))
+            # NOTE(pas-ha) to prevent unneeded writes,
+            # only write to file if its content is different from required,
+            # which should be rather rare
             if (not os.path.isfile(bootfile_path) or
-                not filecmp.cmp(CONF.pxe.ipxe_boot_script, bootfile_path)):
-                    shutil.copyfile(CONF.pxe.ipxe_boot_script, bootfile_path)
+                not utils.file_has_content(bootfile_path, boot_script)):
+                    utils.write_to_file(bootfile_path, boot_script)
 
         dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
         provider = dhcp_factory.DHCPFactory()

@@ -17,7 +17,6 @@
 import os
 
 from ironic_lib import utils as ironic_utils
-import jinja2
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import fileutils
@@ -52,28 +51,6 @@ def _ensure_config_dirs_exist(node_uuid):
     root_dir = get_root_dir()
     fileutils.ensure_tree(os.path.join(root_dir, node_uuid))
     fileutils.ensure_tree(os.path.join(root_dir, PXE_CFG_DIR_NAME))
-
-
-def _build_pxe_config(pxe_options, template, root_tag, disk_ident_tag):
-    """Build the PXE boot configuration file.
-
-    This method builds the PXE boot configuration file by rendering the
-    template with the given parameters.
-
-    :param pxe_options: A dict of values to set on the configuration file.
-    :param template: The PXE configuration template.
-    :param root_tag: Root tag used in the PXE config file.
-    :param disk_ident_tag: Disk identifier tag used in the PXE config file.
-    :returns: A formatted string with the file content.
-
-    """
-    tmpl_path, tmpl_file = os.path.split(template)
-    env = jinja2.Environment(loader=jinja2.FileSystemLoader(tmpl_path))
-    template = env.get_template(tmpl_file)
-    return template.render({'pxe_options': pxe_options,
-                            'ROOT': root_tag,
-                            'DISK_IDENTIFIER': disk_ident_tag,
-                            })
 
 
 def _link_mac_pxe_configs(task):
@@ -237,8 +214,11 @@ def create_pxe_config(task, pxe_options, template=None):
         pxe_config_root_tag = '{{ ROOT }}'
         pxe_config_disk_ident = '{{ DISK_IDENTIFIER }}'
 
-    pxe_config = _build_pxe_config(pxe_options, template, pxe_config_root_tag,
-                                   pxe_config_disk_ident)
+    params = {'pxe_options': pxe_options,
+              'ROOT': pxe_config_root_tag,
+              'DISK_IDENTIFIER': pxe_config_disk_ident}
+
+    pxe_config = utils.render_template(template, params)
     utils.write_to_file(pxe_config_file_path, pxe_config)
 
     if is_uefi_boot_mode and not CONF.pxe.ipxe_enabled:
