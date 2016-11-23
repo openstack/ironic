@@ -65,7 +65,31 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             rollback_mock.assert_called_once_with(
                 task, CONF.neutron.provisioning_network_uuid)
             add_ports_mock.assert_called_once_with(
+                task, CONF.neutron.provisioning_network_uuid,
+                security_groups=[])
+        self.port.refresh()
+        self.assertEqual(self.neutron_port['id'],
+                         self.port.internal_info['provisioning_vif_port_id'])
+
+    @mock.patch.object(neutron_common, 'rollback_ports')
+    @mock.patch.object(neutron_common, 'add_ports_to_network')
+    def test_add_provisioning_network_with_sg(self, add_ports_mock,
+                                              rollback_mock):
+        sg_ids = []
+        for i in range(2):
+            sg_ids.append(uuidutils.generate_uuid())
+
+        self.config(provisioning_network_security_groups=sg_ids,
+                    group='neutron')
+        add_ports_mock.return_value = {self.port.uuid: self.neutron_port['id']}
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.add_provisioning_network(task)
+            rollback_mock.assert_called_once_with(
                 task, CONF.neutron.provisioning_network_uuid)
+            add_ports_mock.assert_called_once_with(
+                task, CONF.neutron.provisioning_network_uuid,
+                security_groups=(
+                    CONF.neutron.provisioning_network_security_groups))
         self.port.refresh()
         self.assertEqual(self.neutron_port['id'],
                          self.port.internal_info['provisioning_vif_port_id'])
@@ -87,6 +111,26 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         add_ports_mock.return_value = {self.port.uuid: self.neutron_port['id']}
         with task_manager.acquire(self.context, self.node.id) as task:
             res = self.interface.add_cleaning_network(task)
+            rollback_mock.assert_called_once_with(
+                task, CONF.neutron.cleaning_network_uuid)
+            self.assertEqual(res, add_ports_mock.return_value)
+        self.port.refresh()
+        self.assertEqual(self.neutron_port['id'],
+                         self.port.internal_info['cleaning_vif_port_id'])
+
+    @mock.patch.object(neutron_common, 'rollback_ports')
+    @mock.patch.object(neutron_common, 'add_ports_to_network')
+    def test_add_cleaning_network_with_sg(self, add_ports_mock, rollback_mock):
+        add_ports_mock.return_value = {self.port.uuid: self.neutron_port['id']}
+        sg_ids = []
+        for i in range(2):
+            sg_ids.append(uuidutils.generate_uuid())
+        self.config(cleaning_network_security_groups=sg_ids, group='neutron')
+        with task_manager.acquire(self.context, self.node.id) as task:
+            res = self.interface.add_cleaning_network(task)
+            add_ports_mock.assert_called_once_with(
+                task, CONF.neutron.cleaning_network_uuid,
+                security_groups=CONF.neutron.cleaning_network_security_groups)
             rollback_mock.assert_called_once_with(
                 task, CONF.neutron.cleaning_network_uuid)
             self.assertEqual(res, add_ports_mock.return_value)

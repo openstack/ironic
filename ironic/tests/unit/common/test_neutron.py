@@ -136,7 +136,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
-    def _test_add_ports_to_vlan_network(self, is_client_id):
+    def _test_add_ports_to_vlan_network(self, is_client_id,
+                                        security_groups=None):
         # Ports will be created only if pxe_enabled is True
         object_utils.create_test_port(
             self.context, node_id=self.node.id,
@@ -164,6 +165,9 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                 }
             }
         }
+        if security_groups:
+            expected_body['port']['security_groups'] = security_groups
+
         if is_client_id:
             expected_body['port']['extra_dhcp_opts'] = (
                 [{'opt_name': 'client-id', 'opt_value': self._CLIENT_ID}])
@@ -172,13 +176,80 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             'port': self.neutron_port}
         expected = {port.uuid: self.neutron_port['id']}
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            ports = neutron.add_ports_to_network(task, self.network_uuid)
+            ports = neutron.add_ports_to_network(
+                task, self.network_uuid, security_groups=security_groups)
             self.assertEqual(expected, ports)
             self.client_mock.create_port.assert_called_once_with(
                 expected_body)
 
     def test_add_ports_to_vlan_network(self):
-        self._test_add_ports_to_vlan_network(is_client_id=False)
+        self._test_add_ports_to_vlan_network(is_client_id=False,
+                                             security_groups=None)
+
+    @mock.patch.object(neutron, '_verify_security_groups')
+    def test_add_ports_to_vlan_network_with_sg(self, verify_mock):
+        sg_ids = []
+        for i in range(2):
+            sg_ids.append(uuidutils.generate_uuid())
+        self._test_add_ports_to_vlan_network(is_client_id=False,
+                                             security_groups=sg_ids)
+
+    def test_verify_sec_groups(self):
+        sg_ids = []
+        for i in range(2):
+            sg_ids.append(uuidutils.generate_uuid())
+
+        expected_vals = {'security_groups': []}
+        for sg in sg_ids:
+            expected_vals['security_groups'].append({'id': sg})
+
+        client = mock.MagicMock()
+        client.list_security_groups.return_value = expected_vals
+
+        self.assertIsNone(
+            neutron._verify_security_groups(sg_ids, client))
+
+    def test_verify_sec_groups_less_than_configured(self):
+        sg_ids = []
+        for i in range(2):
+            sg_ids.append(uuidutils.generate_uuid())
+
+        expected_vals = {'security_groups': []}
+        for sg in sg_ids:
+            expected_vals['security_groups'].append({'id': sg})
+
+        client = mock.MagicMock()
+        client.list_security_groups.return_value = expected_vals
+
+        self.assertIsNone(
+            neutron._verify_security_groups(sg_ids[:1], client))
+
+    def test_verify_sec_groups_more_than_configured(self):
+        sg_ids = []
+        for i in range(1):
+            sg_ids.append(uuidutils.generate_uuid())
+
+        client = mock.MagicMock()
+        expected_vals = {'security_groups': []}
+        client.list_security_groups.return_value = expected_vals
+
+        self.assertRaises(
+            exception.NetworkError,
+            neutron._verify_security_groups, sg_ids, client)
+
+    def test_verify_sec_groups_exception_by_neutronclient(self):
+        sg_ids = []
+        for i in range(2):
+            sg_ids.append(uuidutils.generate_uuid())
+
+        client = mock.MagicMock()
+        client.list_security_groups.side_effect = \
+            neutron_client_exc.NeutronClientException
+
+        self.assertRaisesRegex(
+            exception.NetworkError,
+            "Could not retrieve neutron security groups",
+            neutron._verify_security_groups, sg_ids, client)
 
     def test_add_ports_with_client_id_to_vlan_network(self):
         self._test_add_ports_to_vlan_network(is_client_id=True)

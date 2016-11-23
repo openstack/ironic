@@ -62,7 +62,8 @@ class NeutronNetwork(base.NetworkInterface):
         LOG.info(_LI('Adding provisioning network to node %s'),
                  task.node.uuid)
         vifs = neutron.add_ports_to_network(
-            task, CONF.neutron.provisioning_network_uuid)
+            task, CONF.neutron.provisioning_network_uuid,
+            security_groups=CONF.neutron.provisioning_network_security_groups)
         for port in task.ports:
             if port.uuid in vifs:
                 internal_info = port.internal_info
@@ -97,8 +98,10 @@ class NeutronNetwork(base.NetworkInterface):
         # If we have left over ports from a previous cleaning, remove them
         neutron.rollback_ports(task, CONF.neutron.cleaning_network_uuid)
         LOG.info(_LI('Adding cleaning network to node %s'), task.node.uuid)
+        security_groups = CONF.neutron.cleaning_network_security_groups
         vifs = neutron.add_ports_to_network(task,
-                                            CONF.neutron.cleaning_network_uuid)
+                                            CONF.neutron.cleaning_network_uuid,
+                                            security_groups=security_groups)
         for port in task.ports:
             if port.uuid in vifs:
                 internal_info = port.internal_info

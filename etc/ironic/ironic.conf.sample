@@ -1933,6 +1933,13 @@
 # interface or "neutron" DHCP provider. (string value)
 #cleaning_network_uuid = <None>
 
+# List of Neutron Security Group UUIDs to be applied during
+# cleaning of the nodes. Optional for the "neutron" network
+# interface and not used for the "flat" or "noop" network
+# interfaces. If not specified, default security
+# group is used. (list value)
+#cleaning_network_security_groups =
+
 # Optional domain ID to use with v3 and v2 parameters. It will
 # be used for both the user and project domain in v3 and
 # ignored in v2 authentication. (string value)
@@ -1981,6 +1988,13 @@
 # provisioning nodes. Required for "neutron" network
 # interface. (string value)
 #provisioning_network_uuid = <None>
+
+# List of Neutron Security Group UUIDs to be applied during
+# provisioning of the nodes. Optional for the "neutron"
+# network interface and not used for the "flat" or "noop"
+# network interfaces. If not specified, default
+# security group is used. (list value)
+#provisioning_network_security_groups =
 
 # Client retries in the case of a failed request. (integer
 # value)
