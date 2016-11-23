@@ -56,13 +56,6 @@ class BaremetalScenarioTest(manager.ScenarioTest):
     credentials = ['primary', 'admin']
 
     @classmethod
-    def skip_checks(cls):
-        super(BaremetalScenarioTest, cls).skip_checks()
-        if CONF.network_feature_enabled.port_admin_state_change:
-            msg = "Port state change feature isn't supported by Ironic."
-            raise cls.skipException(msg)
-
-    @classmethod
     def setup_clients(cls):
         super(BaremetalScenarioTest, cls).setup_clients()
 
