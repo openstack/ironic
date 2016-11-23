@@ -37,6 +37,7 @@ import testtools
 
 from ironic.common import config as ironic_config
 from ironic.common import context as ironic_context
+from ironic.common import driver_factory
 from ironic.common import hash_ring
 from ironic.conf import CONF
 from ironic.objects import base as objects_base
@@ -110,6 +111,9 @@ class TestCase(testtools.TestCase):
         self.useFixture(fixtures.EnvironmentVariable('http_proxy'))
         self.policy = self.useFixture(policy_fixture.PolicyFixture())
 
+        driver_factory.DriverFactory._extension_manager = None
+        driver_factory.NetworkInterfaceFactory._extension_manager = None
+
     def _set_config(self):
         self.cfg_fixture = self.useFixture(config_fixture.Config(CONF))
         self.config(use_stderr=False,
@@ -119,7 +123,9 @@ class TestCase(testtools.TestCase):
                     group='neutron')
         self.config(provisioning_network_uuid=uuidutils.generate_uuid(),
                     group='neutron')
-        self.config(enabled_network_interfaces=['flat', 'noop', 'neutron'])
+        self.config(enabled_drivers=['fake'])
+        self.config(enabled_network_interfaces=['flat', 'noop', 'neutron'],
+                    default_network_interface=None)
         self.set_defaults(host='fake-mini',
                           debug=True)
         self.set_defaults(connection="sqlite://",

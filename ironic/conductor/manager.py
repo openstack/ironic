@@ -82,7 +82,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.35'
+    RPC_API_VERSION = '1.36'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -90,10 +90,29 @@ class ConductorManager(base_manager.BaseConductorManager):
         super(ConductorManager, self).__init__(host, topic)
         self.power_state_sync_count = collections.defaultdict(int)
 
+    @METRICS.timer('ConductorManager.create_node')
+    @messaging.expected_exceptions(exception.InvalidParameterValue,
+                                   exception.InterfaceNotFoundInEntrypoint)
+    def create_node(self, context, node_obj):
+        """Create a node in database.
+
+        :param context: an admin context
+        :param node_obj: a created (but not saved to the database) node object.
+        :returns: created node object.
+        :raises: InterfaceNotFoundInEntrypoint if validation fails for any
+                 dynamic interfaces (e.g. network_interface).
+        :raises: InvalidParameterValue if some fields fail validation.
+        """
+        LOG.debug("RPC create_node called for node %s.", node_obj.uuid)
+        driver_factory.check_and_update_node_interfaces(node_obj)
+        node_obj.create()
+        return node_obj
+
     @METRICS.timer('ConductorManager.update_node')
     @messaging.expected_exceptions(exception.InvalidParameterValue,
                                    exception.NodeLocked,
-                                   exception.InvalidState)
+                                   exception.InvalidState,
+                                   exception.InterfaceNotFoundInEntrypoint)
     def update_node(self, context, node_obj):
         """Update a node with the supplied data.
 
@@ -126,15 +145,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                 raise exception.InvalidState(
                     action % {'node': node_obj.uuid,
                               'allowed': ', '.join(allowed_update_states)})
-            net_iface = node_obj.network_interface
-            if net_iface not in CONF.enabled_network_interfaces:
-                raise exception.InvalidParameterValue(
-                    _("Cannot change network_interface to invalid value "
-                      "%(n_interface)s for node %(node)s, valid interfaces "
-                      "are: %(valid_choices)s.") % {
-                        'n_interface': net_iface, 'node': node_obj.uuid,
-                        'valid_choices': CONF.enabled_network_interfaces,
-                    })
+
+        driver_factory.check_and_update_node_interfaces(node_obj)
 
         driver_name = node_obj.driver if 'driver' in delta else None
         with task_manager.acquire(context, node_id, shared=False,

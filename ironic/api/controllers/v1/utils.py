@@ -276,21 +276,6 @@ def check_allowed_fields(fields):
         raise exception.NotAcceptable()
 
 
-# NOTE(vsaienko) The validation is performed on API side, all conductors
-# and api should have the same list of enabled_network_interfaces.
-# TODO(vsaienko) remove it once driver-composition-reform is implemented.
-def is_valid_network_interface(network_interface):
-    """Determine if the provided network_interface is valid.
-
-    Check to see that the provided network_interface is in the enabled
-    network interfaces list.
-
-    :param: network_interface: the node network interface to check.
-    :returns: True if the network_interface is valid, False otherwise.
-    """
-    return network_interface in CONF.enabled_network_interfaces
-
-
 def check_allow_management_verbs(verb):
     min_version = MIN_VERB_VERSIONS.get(verb)
     if min_version is not None and pecan.request.version.minor < min_version:

@@ -82,11 +82,12 @@ class ConductorAPI(object):
     |    1.33 - Added update and destroy portgroup.
     |    1.34 - Added heartbeat
     |    1.35 - Added destroy_volume_connector and update_volume_connector
+    |    1.36 - Added create_node
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.35'
+    RPC_API_VERSION = '1.36'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -139,6 +140,21 @@ class ConductorAPI(object):
         hash_ring = self.ring_manager[driver_name]
         host = random.choice(list(hash_ring.hosts))
         return self.topic + "." + host
+
+    def create_node(self, context, node_obj, topic=None):
+        """Synchronously, have a conductor validate and create a node.
+
+        Create the node's information in the database and return a node object.
+
+        :param context: request context.
+        :param node_obj: a created (but not saved) node object.
+        :param topic: RPC topic. Defaults to self.topic.
+        :returns: created node object.
+        :raises: InterfaceNotFoundInEntrypoint if validation fails for any
+                 dynamic interfaces (e.g. network_interface).
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.36')
+        return cctxt.call(context, 'create_node', node_obj=node_obj)
 
     def update_node(self, context, node_obj, topic=None):
         """Synchronously, have a conductor update the node's information.

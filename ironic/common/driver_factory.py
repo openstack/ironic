@@ -44,8 +44,11 @@ def build_driver_for_task(task, driver_name=None):
     :returns: A driver object for the task.
     :raises: DriverNotFound if node.driver could not be
              found in the "ironic.drivers" namespace.
+    :raises: InterfaceNotFoundInEntrypoint if some node interfaces are set
+             to invalid or unsupported values.
     """
     node = task.node
+    check_and_update_node_interfaces(node)
     driver = driver_base.BareDriver()
     _attach_interfaces_to_driver(driver, node, driver_name=driver_name)
     return driver
@@ -62,10 +65,38 @@ def _attach_interfaces_to_driver(driver, node, driver_name=None):
     try:
         net_driver = network_factory.get_driver(network_iface)
     except KeyError:
-        raise exception.DriverNotFoundInEntrypoint(
-            driver_name=network_iface,
-            entrypoint=network_factory._entrypoint_name)
+        raise exception.InterfaceNotFoundInEntrypoint(
+            iface=network_iface,
+            entrypoint=network_factory._entrypoint_name,
+            valid=network_factory.names)
     driver.network = net_driver
+
+
+def check_and_update_node_interfaces(node):
+    """Ensure that node interfaces (e.g. for creation or updating) are valid.
+
+    Updates interfaces with calculated defaults, if they are not provided.
+
+    :param node: node object to check and potentially update
+    :raises: InterfaceNotFoundInEntrypoint on validation failure
+    :returns: True if any changes were made to the node, otherwise False
+    """
+    # NOTE(dtantsur): objects raise NotImplementedError on accessing fields
+    # that are known, but missing from an object. Thus, we cannot just use
+    # getattr(node, 'network_interface', None) here.
+    if 'network_interface' in node and node.network_interface is not None:
+        if node.network_interface not in CONF.enabled_network_interfaces:
+            raise exception.InterfaceNotFoundInEntrypoint(
+                iface=node.network_interface,
+                entrypoint=NetworkInterfaceFactory._entrypoint_name,
+                valid=NetworkInterfaceFactory().names)
+    else:
+        node.network_interface = (
+            CONF.default_network_interface or
+            ('flat' if CONF.dhcp.dhcp_provider == 'neutron' else 'noop'))
+        return True
+
+    return False
 
 
 def get_driver(driver_name):

@@ -19,20 +19,12 @@ from oslo_versionedobjects import base as object_base
 
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.conf import CONF
 from ironic.db import api as db_api
 from ironic.objects import base
 from ironic.objects import fields as object_fields
 from ironic.objects import notification
 
 REQUIRED_INT_PROPERTIES = ['local_gb', 'cpus', 'memory_mb']
-
-
-def _default_network_interface():
-    network_iface = (CONF.default_network_interface or
-                     ('flat' if CONF.dhcp.dhcp_provider == 'neutron'
-                      else 'noop'))
-    return network_iface
 
 
 @base.IronicObjectRegistry.register
@@ -61,7 +53,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.19: Add fields: boot_interface, console_interface,
     #               deploy_interface, inspect_interface, management_interface,
     #               power_interface, raid_interface, vendor_interface
-    VERSION = '1.19'
+    # Version 1.20: Type of network_interface changed to just nullable string
+    VERSION = '1.20'
 
     dbapi = db_api.get_instance()
 
@@ -126,8 +119,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         'deploy_interface': object_fields.StringField(nullable=True),
         'inspect_interface': object_fields.StringField(nullable=True),
         'management_interface': object_fields.StringField(nullable=True),
-        'network_interface': object_fields.StringFieldThatAcceptsCallable(
-            nullable=False, default=_default_network_interface),
+        'network_interface': object_fields.StringField(nullable=True),
         'power_interface': object_fields.StringField(nullable=True),
         'raid_interface': object_fields.StringField(nullable=True),
         'vendor_interface': object_fields.StringField(nullable=True),
@@ -445,7 +437,9 @@ class NodePayload(notification.NotificationPayloadBase):
         'uuid': ('node', 'uuid')
     }
     # Version 1.0: Initial version, based off of Node version 1.18.
-    VERSION = '1.0'
+    # Version 1.1: Type of network_interface changed to just nullable string
+    #              similar to version 1.20 of Node.
+    VERSION = '1.1'
     fields = {
         'clean_step': object_fields.FlexibleDictField(nullable=True),
         'console_enabled': object_fields.BooleanField(),
@@ -458,7 +452,7 @@ class NodePayload(notification.NotificationPayloadBase):
         'last_error': object_fields.StringField(nullable=True),
         'maintenance': object_fields.BooleanField(),
         'maintenance_reason': object_fields.StringField(nullable=True),
-        'network_interface': object_fields.StringFieldThatAcceptsCallable(),
+        'network_interface': object_fields.StringField(nullable=True),
         'name': object_fields.StringField(nullable=True),
         'power_state': object_fields.StringField(nullable=True),
         'properties': object_fields.FlexibleDictField(nullable=True),
@@ -491,7 +485,8 @@ class NodeSetPowerStateNotification(notification.NotificationBase):
 class NodeSetPowerStatePayload(NodePayload):
     """Payload schema for when ironic changes a node's power state."""
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Parent NodePayload version 1.1
+    VERSION = '1.1'
 
     fields = {
         # "to_power" indicates the future target_power_state of the node. A
@@ -532,7 +527,8 @@ class NodeCorrectedPowerStatePayload(NodePayload):
        before the node was updated.
     """
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Parent NodePayload version 1.1
+    VERSION = '1.1'
 
     fields = {
         'from_power': object_fields.StringField(nullable=True)
@@ -558,7 +554,8 @@ class NodeSetProvisionStateNotification(notification.NotificationBase):
 class NodeSetProvisionStatePayload(NodePayload):
     """Payload schema for when ironic changes a node provision state."""
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Parent NodePayload version 1.1
+    VERSION = '1.1'
 
     SCHEMA = dict(NodePayload.SCHEMA,
                   **{'instance_info': ('node', 'instance_info')})

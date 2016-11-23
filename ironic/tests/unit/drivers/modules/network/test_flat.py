@@ -62,8 +62,10 @@ class TestFlatInterface(db_base.DbTestCase):
     @mock.patch.object(neutron, 'rollback_ports')
     def test_add_cleaning_network_no_cleaning_net_uuid(self, rollback_mock,
                                                        add_mock):
-        self.config(cleaning_network_uuid='abc', group='neutron')
         with task_manager.acquire(self.context, self.node.id) as task:
+            # This has to go after acquire, or acquire will raise
+            # DriverLoadError.
+            self.config(cleaning_network_uuid='abc', group='neutron')
             self.assertRaises(exception.InvalidParameterValue,
                               self.interface.add_cleaning_network, task)
             self.assertFalse(rollback_mock.called)
