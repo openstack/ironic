@@ -34,18 +34,43 @@ class DracCommonMethodsTestCase(db_base.DbTestCase):
                                           driver='fake_drac',
                                           driver_info=INFO_DICT)
         info = drac_common.parse_driver_info(node)
-        self.assertEqual(INFO_DICT['drac_host'], info['drac_host'])
+        self.assertEqual(INFO_DICT['drac_address'], info['drac_address'])
         self.assertEqual(INFO_DICT['drac_port'], info['drac_port'])
         self.assertEqual(INFO_DICT['drac_path'], info['drac_path'])
         self.assertEqual(INFO_DICT['drac_protocol'], info['drac_protocol'])
         self.assertEqual(INFO_DICT['drac_username'], info['drac_username'])
         self.assertEqual(INFO_DICT['drac_password'], info['drac_password'])
 
+    @mock.patch.object(drac_common.LOG, 'warning')
+    def test_parse_driver_info_drac_host(self, mock_log):
+        driver_info = db_utils.get_test_drac_info()
+        driver_info['drac_host'] = '4.5.6.7'
+        driver_info.pop('drac_address')
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake_drac',
+                                          driver_info=driver_info)
+        info = drac_common.parse_driver_info(node)
+        self.assertEqual('4.5.6.7', info['drac_address'])
+        self.assertNotIn('drac_host', info)
+        self.assertTrue(mock_log.called)
+
+    @mock.patch.object(drac_common.LOG, 'warning')
+    def test_parse_driver_info_drac_host_and_drac_address(self, mock_log):
+        driver_info = db_utils.get_test_drac_info()
+        driver_info['drac_host'] = '4.5.6.7'
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake_drac',
+                                          driver_info=driver_info)
+        info = drac_common.parse_driver_info(node)
+        self.assertEqual('4.5.6.7', driver_info['drac_host'])
+        self.assertEqual(driver_info['drac_address'], info['drac_address'])
+        self.assertTrue(mock_log.called)
+
     def test_parse_driver_info_missing_host(self):
         node = obj_utils.create_test_node(self.context,
                                           driver='fake_drac',
                                           driver_info=INFO_DICT)
-        del node.driver_info['drac_host']
+        del node.driver_info['drac_address']
         self.assertRaises(exception.InvalidParameterValue,
                           drac_common.parse_driver_info, node)
 

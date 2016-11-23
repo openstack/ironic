@@ -1,0 +1,5 @@
+---
+deprecations:
+  - For DRAC drivers, the node's ``driver_info["drac_host"]`` property is
+    deprecated and will be ignored starting in the Pike release.
+    Please use ``driver_info["drac_address"]`` instead.
