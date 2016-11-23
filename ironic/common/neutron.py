@@ -69,13 +69,21 @@ def get_client(token=None):
 
 
 def _verify_security_groups(security_groups, client):
+    """Verify that the security groups exist.
+
+    :param security_groups: a list of security group UUIDs; may be None or
+        empty
+    :param client: Neutron client
+    :raises: NetworkError
+    """
+
     if not security_groups:
         return
     try:
         neutron_sec_groups = (
-            client.list_security_groups().get('security_groups') or [])
+            client.list_security_groups().get('security_groups', []))
     except neutron_exceptions.NeutronClientException as e:
-        msg = (_("Could not retrieve neutron security groups %(exc)s") %
+        msg = (_("Could not retrieve security groups from neutron: %(exc)s") %
                {'exc': e})
         LOG.exception(msg)
         raise exception.NetworkError(msg)
@@ -83,10 +91,10 @@ def _verify_security_groups(security_groups, client):
     existing_sec_groups = [sec_group['id'] for sec_group in neutron_sec_groups]
     missing_sec_groups = set(security_groups) - set(existing_sec_groups)
     if missing_sec_groups:
-        msg = (_('Security Groups specified in Ironic config '
-                 '%(ir-sg)s are not found') %
-               {'ir-sg': list(missing_sec_groups)})
-        LOG.exception(msg)
+        msg = (_('Could not find these security groups (specified via ironic '
+                 'config) in neutron: %(ir-sg)s')
+               % {'ir-sg': list(missing_sec_groups)})
+        LOG.error(msg)
         raise exception.NetworkError(msg)
 
 
