@@ -42,15 +42,28 @@ class PolicyInCodeTestCase(base.TestCase):
         self.assertTrue(policy.check('public_api', creds, creds))
 
     def test_show_password(self):
-        creds = {'roles': [u'admin'], 'tenant': 'admin'}
-        self.assertTrue(policy.check('show_password', creds, creds))
+        creds = {'roles': [u'admin'], 'project_name': 'admin',
+                 'project_domain_id': 'default'}
+        self.assertFalse(policy.check('show_password', creds, creds))
+
+    def test_is_member(self):
+        creds = [{'project_name': 'demo', 'project_domain_id': 'default'},
+                 {'project_name': 'baremetal', 'project_domain_id': 'default'},
+                 {'project_name': 'demo', 'project_domain_id': None},
+                 {'project_name': 'baremetal', 'project_domain_id': None}]
+        for c in creds:
+            self.assertTrue(policy.check('is_member', c, c))
+        c = {'project_name': 'demo1', 'project_domain_id': 'default2'}
+        self.assertFalse(policy.check('is_member', c, c))
 
     def test_node_get(self):
-        creds = {'roles': ['baremetal_observer'], 'tenant': 'demo'}
+        creds = {'roles': ['baremetal_observer'], 'project_name': 'demo',
+                 'project_domain_id': 'default'}
         self.assertTrue(policy.check('baremetal:node:get', creds, creds))
 
     def test_node_create(self):
-        creds = {'roles': ['baremetal_admin'], 'tenant': 'demo'}
+        creds = {'roles': ['baremetal_admin'], 'project_name': 'demo',
+                 'project_domain_id': 'default'}
         self.assertTrue(policy.check('baremetal:node:create', creds, creds))
 
 

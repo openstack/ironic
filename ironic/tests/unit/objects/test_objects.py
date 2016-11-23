@@ -209,8 +209,8 @@ class _TestObject(object):
                           base.IronicObject.obj_class_from_name, 'foo', '1.0')
 
     def test_with_alternate_context(self):
-        ctxt1 = context.RequestContext('foo', 'foo')
-        ctxt2 = context.RequestContext('bar', tenant='alternate')
+        ctxt1 = context.RequestContext(auth_token='foo', tenant='foo')
+        ctxt2 = context.RequestContext(auth_token='bar', tenant='alternate')
         obj = MyObj.query(ctxt1)
         obj.update_test(ctxt2)
         self.assertEqual('alternate-context', obj.bar)

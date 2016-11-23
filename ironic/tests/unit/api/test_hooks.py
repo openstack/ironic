@@ -25,6 +25,8 @@ from six.moves import http_client
 from ironic.api.controllers import root
 from ironic.api import hooks
 from ironic.common import context
+from ironic.common import policy
+from ironic.tests import base as tests_base
 from ironic.tests.unit.api import base
 
 
@@ -41,24 +43,6 @@ class FakeRequestState(object):
     def __init__(self, headers=None, context=None, environ=None):
         self.request = FakeRequest(headers, context, environ)
         self.response = FakeRequest(headers, context, environ)
-
-    def set_context(self):
-        headers = self.request.headers
-        creds = {
-            'user': headers.get('X-User') or headers.get('X-User-Id'),
-            'tenant': headers.get('X-Tenant') or headers.get('X-Tenant-Id'),
-            'domain_id': headers.get('X-User-Domain-Id'),
-            'domain_name': headers.get('X-User-Domain-Name'),
-            'auth_token': headers.get('X-Auth-Token'),
-            'roles': headers.get('X-Roles', '').split(','),
-        }
-        is_admin = ('admin' in creds['roles'] or
-                    'administrator' in creds['roles'])
-        is_public_api = self.request.environ.get('is_public_api', False)
-
-        self.request.context = context.RequestContext(
-            is_admin=is_admin, is_public_api=is_public_api,
-            **creds)
 
 
 def fake_headers(admin=False):
@@ -97,6 +81,14 @@ def fake_headers(admin=False):
             'X-Roles': '_member_',
         })
     return headers
+
+
+def headers_to_environ(headers, **kwargs):
+    environ = {}
+    for k, v in headers.items():
+        environ['HTTP_%s' % k.replace('-', '_').upper()] = v
+    environ.update(kwargs)
+    return environ
 
 
 class TestNoExceptionTracebackHook(base.BaseApiTest):
@@ -212,94 +204,71 @@ class TestNoExceptionTracebackHook(base.BaseApiTest):
 
 
 class TestContextHook(base.BaseApiTest):
-    @mock.patch.object(context, 'RequestContext')
-    def test_context_hook_not_admin(self, mock_ctx):
-        cfg.CONF.set_override('auth_strategy', 'keystone')
-        headers = fake_headers(admin=False)
-        reqstate = FakeRequestState(headers=headers)
-        context_hook = hooks.ContextHook(None)
-        context_hook.before(reqstate)
-        mock_ctx.assert_called_with(
-            auth_token=headers['X-Auth-Token'],
-            user=headers['X-User'],
-            tenant=headers['X-Tenant'],
-            domain_id=headers['X-User-Domain-Id'],
-            domain_name=headers['X-User-Domain-Name'],
-            is_public_api=False,
-            is_admin=False,
-            roles=headers['X-Roles'].split(','))
 
     @mock.patch.object(context, 'RequestContext')
-    def test_context_hook_admin(self, mock_ctx):
-        cfg.CONF.set_override('auth_strategy', 'keystone')
-        headers = fake_headers(admin=True)
-        reqstate = FakeRequestState(headers=headers)
+    @mock.patch.object(policy, 'check')
+    def _test_context_hook(self, mock_policy, mock_ctx, is_admin=False,
+                           is_public_api=False, auth_strategy='keystone',
+                           request_id=None):
+        cfg.CONF.set_override('auth_strategy', auth_strategy)
+        headers = fake_headers(admin=is_admin)
+        environ = headers_to_environ(headers, is_public_api=is_public_api)
+        reqstate = FakeRequestState(headers=headers, environ=environ)
         context_hook = hooks.ContextHook(None)
+        ctx = mock.Mock()
+        if request_id:
+            ctx.request_id = request_id
+        mock_ctx.from_environ.return_value = ctx
+        policy_dict = {'user_id': 'foo'}  # Lots of other values here
+        ctx.to_policy_values.return_value = policy_dict
+        mock_policy.return_value = is_admin
         context_hook.before(reqstate)
-        mock_ctx.assert_called_with(
-            auth_token=headers['X-Auth-Token'],
-            user=headers['X-User'],
-            tenant=headers['X-Tenant'],
-            domain_id=headers['X-User-Domain-Id'],
-            domain_name=headers['X-User-Domain-Name'],
-            is_public_api=False,
-            is_admin=True,
-            roles=headers['X-Roles'].split(','))
+        creds_dict = {'is_public_api': is_public_api}
+        mock_ctx.from_environ.assert_called_once_with(environ, **creds_dict)
+        mock_policy.assert_called_once_with('is_admin', policy_dict,
+                                            policy_dict)
+        self.assertIs(is_admin, ctx.is_admin)
+        if auth_strategy == 'noauth':
+            self.assertIsNone(ctx.auth_token)
+        return context_hook, reqstate
 
-    @mock.patch.object(context, 'RequestContext')
-    def test_context_hook_public_api(self, mock_ctx):
-        cfg.CONF.set_override('auth_strategy', 'keystone')
-        headers = fake_headers(admin=True)
-        env = {'is_public_api': True}
-        reqstate = FakeRequestState(headers=headers, environ=env)
-        context_hook = hooks.ContextHook(None)
-        context_hook.before(reqstate)
-        mock_ctx.assert_called_with(
-            auth_token=headers['X-Auth-Token'],
-            user=headers['X-User'],
-            tenant=headers['X-Tenant'],
-            domain_id=headers['X-User-Domain-Id'],
-            domain_name=headers['X-User-Domain-Name'],
-            is_public_api=True,
-            is_admin=True,
-            roles=headers['X-Roles'].split(','))
+    def test_context_hook_not_admin(self):
+        self._test_context_hook()
 
-    @mock.patch.object(context, 'RequestContext')
-    def test_context_hook_noauth_token_removed(self, mock_ctx):
-        cfg.CONF.set_override('auth_strategy', 'noauth')
-        headers = fake_headers(admin=False)
-        reqstate = FakeRequestState(headers=headers)
-        context_hook = hooks.ContextHook(None)
-        context_hook.before(reqstate)
-        mock_ctx.assert_called_with(
-            auth_token=None,
-            user=headers['X-User'],
-            tenant=headers['X-Tenant'],
-            domain_id=headers['X-User-Domain-Id'],
-            domain_name=headers['X-User-Domain-Name'],
-            is_public_api=False,
-            is_admin=False,
-            roles=headers['X-Roles'].split(','))
+    def test_context_hook_admin(self):
+        self._test_context_hook(is_admin=True)
 
-    @mock.patch.object(context, 'RequestContext')
-    def test_context_hook_after_add_request_id(self, mock_ctx):
-        headers = fake_headers(admin=True)
-        reqstate = FakeRequestState(headers=headers)
-        reqstate.set_context()
-        reqstate.request.context.request_id = 'fake-id'
-        context_hook = hooks.ContextHook(None)
+    def test_context_hook_public_api(self):
+        self._test_context_hook(is_admin=True, is_public_api=True)
+
+    def test_context_hook_noauth_token_removed(self):
+        self._test_context_hook(auth_strategy='noauth')
+
+    def test_context_hook_after_add_request_id(self):
+        context_hook, reqstate = self._test_context_hook(is_admin=True,
+                                                         request_id='fake-id')
         context_hook.after(reqstate)
-        self.assertIn('Openstack-Request-Id',
-                      reqstate.response.headers)
-        self.assertEqual(
-            'fake-id',
-            reqstate.response.headers['Openstack-Request-Id'])
+        self.assertEqual('fake-id',
+                         reqstate.response.headers['Openstack-Request-Id'])
 
     def test_context_hook_after_miss_context(self):
         response = self.get_json('/bad/path',
                                  expect_errors=True)
         self.assertNotIn('Openstack-Request-Id',
                          response.headers)
+
+
+class TestPolicyDeprecation(tests_base.TestCase):
+
+    @mock.patch.object(hooks, 'CHECKED_DEPRECATED_POLICY_ARGS', False)
+    @mock.patch.object(hooks.LOG, 'warning')
+    @mock.patch.object(policy, 'get_enforcer')
+    def test_policy_deprecation_check(self, enforcer_mock, warning_mock):
+        rules = {'is_member': 'project_name:demo or tenant:baremetal',
+                 'is_default_project_domain': 'project_domain_id:default'}
+        enforcer_mock.return_value = mock.Mock(file_rules=rules, autospec=True)
+        hooks.policy_deprecation_check()
+        self.assertEqual(1, warning_mock.call_count)
 
 
 class TestPublicUrlHook(base.BaseApiTest):

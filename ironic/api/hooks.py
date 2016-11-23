@@ -14,14 +14,54 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import re
+
 from oslo_config import cfg
+from oslo_log import log
 from pecan import hooks
+import six
 from six.moves import http_client
 
 from ironic.common import context
+from ironic.common.i18n import _LW
 from ironic.common import policy
 from ironic.conductor import rpcapi
 from ironic.db import api as dbapi
+
+LOG = log.getLogger(__name__)
+
+CHECKED_DEPRECATED_POLICY_ARGS = False
+
+
+def policy_deprecation_check():
+    global CHECKED_DEPRECATED_POLICY_ARGS
+    if not CHECKED_DEPRECATED_POLICY_ARGS:
+        enforcer = policy.get_enforcer()
+        substitution_dict = {
+            'user': 'user_id',
+            'domain_id': 'user_domain_id',
+            'domain_name': 'user_domain_id',
+            'tenant': 'project_name',
+        }
+        policy_rules = enforcer.file_rules.values()
+        for rule in policy_rules:
+            str_rule = six.text_type(rule)
+            for deprecated, replacement in substitution_dict.items():
+                if re.search(r'\b%s\b' % deprecated, str_rule):
+                    LOG.warning(_LW(
+                        "Deprecated argument %(deprecated)s is used in policy "
+                        "file rule (%(rule)s), please use %(replacement)s "
+                        "argument instead. The possibility to use deprecated "
+                        "arguments will be removed in the Pike release."),
+                        {'deprecated': deprecated, 'replacement': replacement,
+                         'rule': str_rule})
+                    if deprecated == 'domain_name':
+                        LOG.warning(_LW(
+                            "Please note that user_domain_id is an ID of the "
+                            "user domain, while the deprecated domain_name is "
+                            "its name. The policy rule has to be updated "
+                            "accordingly."))
+        CHECKED_DEPRECATED_POLICY_ARGS = True
 
 
 class ConfigHook(hooks.PecanHook):
@@ -39,52 +79,25 @@ class DBHook(hooks.PecanHook):
 
 
 class ContextHook(hooks.PecanHook):
-    """Configures a request context and attaches it to the request.
-
-    The following HTTP request headers are used:
-
-    X-User-Id or X-User:
-        Used for context.user_id.
-
-    X-Tenant-Id or X-Tenant:
-        Used for context.tenant.
-
-    X-Auth-Token:
-        Used for context.auth_token.
-
-    X-Roles:
-        Used for setting context.is_admin flag to either True or False.
-        The flag is set to True, if X-Roles contains either an administrator
-        or admin substring. Otherwise it is set to False.
-
-    """
+    """Configures a request context and attaches it to the request."""
     def __init__(self, public_api_routes):
         self.public_api_routes = public_api_routes
         super(ContextHook, self).__init__()
 
     def before(self, state):
-        headers = state.request.headers
-
-        # Do not pass any token with context for noauth mode
-        auth_token = (None if cfg.CONF.auth_strategy == 'noauth' else
-                      headers.get('X-Auth-Token'))
         is_public_api = state.request.environ.get('is_public_api', False)
+        ctx = context.RequestContext.from_environ(state.request.environ,
+                                                  is_public_api=is_public_api)
+        # Do not pass any token with context for noauth mode
+        if cfg.CONF.auth_strategy == 'noauth':
+            ctx.auth_token = None
 
-        creds = {
-            'user': headers.get('X-User') or headers.get('X-User-Id'),
-            'tenant': headers.get('X-Tenant') or headers.get('X-Tenant-Id'),
-            'domain_id': headers.get('X-User-Domain-Id'),
-            'domain_name': headers.get('X-User-Domain-Name'),
-            'auth_token': auth_token,
-            'roles': headers.get('X-Roles', '').split(','),
-            'is_public_api': is_public_api,
-        }
-
+        creds = ctx.to_policy_values()
         is_admin = policy.check('is_admin', creds, creds)
+        ctx.is_admin = is_admin
+        policy_deprecation_check()
 
-        state.request.context = context.RequestContext(
-            is_admin=is_admin,
-            **creds)
+        state.request.context = ctx
 
     def after(self, state):
         if state.request.context == {}:

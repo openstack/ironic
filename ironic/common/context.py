@@ -13,49 +13,40 @@
 # under the License.
 
 from oslo_context import context
+from oslo_log import log
+
+LOG = log.getLogger(__name__)
 
 
 class RequestContext(context.RequestContext):
     """Extends security contexts from the oslo.context library."""
 
-    def __init__(self, auth_token=None, domain_id=None, domain_name=None,
-                 user=None, tenant=None, is_admin=False, is_public_api=False,
-                 read_only=False, show_deleted=False, request_id=None,
-                 roles=None, overwrite=True):
+    def __init__(self, is_public_api=False, **kwargs):
         """Initialize the RequestContext
 
-        :param auth_token: The authentication token of the current request.
-        :param domain_id: The ID of the domain.
-        :param domain_name: The name of the domain.
-        :param user: The name of the user.
-        :param tenant: The name of the tenant.
-        :param is_admin: Indicates if the request context is an administrator
-                         context.
         :param is_public_api: Specifies whether the request should be processed
-                              without authentication.
-        :param read_only: unused flag for Ironic.
-        :param show_deleted: unused flag for Ironic.
-        :param request_id: The UUID of the request.
-        :param roles: List of user's roles if any.
-        :param overwrite: Set to False to ensure that the greenthread local
-                             copy of the index is not overwritten.
+            without authentication.
+        :param kwargs: additional arguments passed to oslo.context.
         """
-        super(RequestContext, self).__init__(auth_token=auth_token,
-                                             user=user, tenant=tenant,
-                                             is_admin=is_admin,
-                                             read_only=read_only,
-                                             show_deleted=show_deleted,
-                                             request_id=request_id,
-                                             overwrite=overwrite)
+        super(RequestContext, self).__init__(**kwargs)
         self.is_public_api = is_public_api
-        self.domain_id = domain_id
-        self.domain_name = domain_name
-        # NOTE(dims): roles was added in context.RequestContext recently.
-        # we should pass roles in __init__ above instead of setting the
-        # value here once the minimum version of oslo.context is updated.
-        self.roles = roles or []
+
+    def to_policy_values(self):
+        policy_values = super(RequestContext, self).to_policy_values()
+        # TODO(vdrok): remove all of these apart from is_public_api and
+        # project_name after deprecation period
+        policy_values.update({
+            'user': self.user,
+            'domain_id': self.user_domain,
+            'domain_name': self.user_domain_name,
+            'tenant': self.tenant,
+            'project_name': self.project_name,
+            'is_public_api': self.is_public_api,
+        })
+        return policy_values
 
     def to_dict(self):
+        # TODO(vdrok): reuse the base class to_dict in Pike
         return {'auth_token': self.auth_token,
                 'user': self.user,
                 'tenant': self.tenant,
@@ -63,16 +54,18 @@ class RequestContext(context.RequestContext):
                 'read_only': self.read_only,
                 'show_deleted': self.show_deleted,
                 'request_id': self.request_id,
-                'domain_id': self.domain_id,
+                'domain_id': self.user_domain,
                 'roles': self.roles,
-                'domain_name': self.domain_name,
+                'domain_name': self.user_domain_name,
                 'is_public_api': self.is_public_api}
 
     @classmethod
-    def from_dict(cls, values):
-        values.pop('user', None)
-        values.pop('tenant', None)
-        return cls(**values)
+    def from_dict(cls, values, **kwargs):
+        kwargs.setdefault('is_public_api', values.get('is_public_api', False))
+        if 'domain_id' in values:
+            kwargs.setdefault('user_domain', values['domain_id'])
+        return super(RequestContext, RequestContext).from_dict(values,
+                                                               **kwargs)
 
     def ensure_thread_contain_context(self):
         """Ensure threading contains context
@@ -90,7 +83,7 @@ class RequestContext(context.RequestContext):
 def get_admin_context():
     """Create an administrator context."""
 
-    context = RequestContext(None,
+    context = RequestContext(auth_token=None,
                              tenant=None,
                              is_admin=True,
                              overwrite=False)

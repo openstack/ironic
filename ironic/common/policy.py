@@ -55,8 +55,8 @@ default_policies = [
                        description='Show or mask secrets within instance information in API responses'),  # noqa
     # Roles likely to be overridden by operator
     policy.RuleDefault('is_member',
-                       'tenant:demo or tenant:baremetal',
-                       description='May be used to restrict access to specific tenants'),  # noqa
+                       '(project_domain_id:default or project_domain_id:None) and (project_name:demo or project_name:baremetal)',  # noqa
+                       description='May be used to restrict access to specific projects'),  # noqa
     policy.RuleDefault('is_observer',
                        'rule:is_member and (role:observer or role:baremetal_observer)',  # noqa
                        description='Read-only API access'),
