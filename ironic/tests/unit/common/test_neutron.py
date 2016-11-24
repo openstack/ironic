@@ -208,6 +208,7 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
 
         self.assertIsNone(
             neutron._verify_security_groups(sg_ids, client))
+        client.list_security_groups.assert_called_once_with()
 
     def test_verify_sec_groups_less_than_configured(self):
         sg_ids = []
@@ -223,6 +224,7 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
 
         self.assertIsNone(
             neutron._verify_security_groups(sg_ids[:1], client))
+        client.list_security_groups.assert_called_once_with()
 
     def test_verify_sec_groups_more_than_configured(self):
         sg_ids = []
@@ -236,6 +238,20 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         self.assertRaises(
             exception.NetworkError,
             neutron._verify_security_groups, sg_ids, client)
+        client.list_security_groups.assert_called_once_with()
+
+    def test_verify_sec_groups_no_sg_from_neutron(self):
+        sg_ids = []
+        for i in range(1):
+            sg_ids.append(uuidutils.generate_uuid())
+
+        client = mock.MagicMock()
+        client.list_security_groups.return_value = {}
+
+        self.assertRaises(
+            exception.NetworkError,
+            neutron._verify_security_groups, sg_ids, client)
+        client.list_security_groups.assert_called_once_with()
 
     def test_verify_sec_groups_exception_by_neutronclient(self):
         sg_ids = []
@@ -248,8 +264,9 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
 
         self.assertRaisesRegex(
             exception.NetworkError,
-            "Could not retrieve neutron security groups",
+            "Could not retrieve security groups",
             neutron._verify_security_groups, sg_ids, client)
+        client.list_security_groups.assert_called_once_with()
 
     def test_add_ports_with_client_id_to_vlan_network(self):
         self._test_add_ports_to_vlan_network(is_client_id=True)
