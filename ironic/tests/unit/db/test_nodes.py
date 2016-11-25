@@ -359,6 +359,26 @@ class DbNodeTestCase(base.DbTestCase):
         self.dbapi.destroy_node(node.uuid)
         self.assertFalse(self.dbapi.node_tag_exists(node.id, tag.tag))
 
+    def test_volume_connector_get_destroyed_after_destroying_a_node(self):
+        node = utils.create_test_node()
+
+        connector = utils.create_test_volume_connector(node_id=node.id)
+
+        self.dbapi.destroy_node(node.id)
+
+        self.assertRaises(exception.VolumeConnectorNotFound,
+                          self.dbapi.get_volume_connector_by_id, connector.id)
+
+    def test_volume_connector_get_destroyed_after_destroying_a_node_uuid(self):
+        node = utils.create_test_node()
+
+        connector = utils.create_test_volume_connector(node_id=node.id)
+
+        self.dbapi.destroy_node(node.uuid)
+
+        self.assertRaises(exception.VolumeConnectorNotFound,
+                          self.dbapi.get_volume_connector_by_id, connector.id)
+
     def test_update_node(self):
         node = utils.create_test_node()
 

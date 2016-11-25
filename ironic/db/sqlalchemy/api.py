@@ -382,6 +382,10 @@ class Connection(api.Connection):
             tag_query = model_query(models.NodeTag).filter_by(node_id=node_id)
             tag_query.delete()
 
+            volume_connector_query = model_query(
+                models.VolumeConnector).filter_by(node_id=node_id)
+            volume_connector_query.delete()
+
             query.delete()
 
     def update_node(self, node_id, values):
@@ -871,3 +875,80 @@ class Connection(api.Connection):
             raise exception.NodeNotFound(
                 _('Multiple nodes with port addresses %s were found')
                 % addresses)
+
+    def get_volume_connector_list(self, limit=None, marker=None,
+                                  sort_key=None, sort_dir=None):
+        return _paginate_query(models.VolumeConnector, limit, marker,
+                               sort_key, sort_dir)
+
+    def get_volume_connector_by_id(self, id):
+        query = model_query(models.VolumeConnector).filter_by(id=id)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.VolumeConnectorNotFound(connector=id)
+
+    def get_volume_connector_by_uuid(self, connector_uuid):
+        query = model_query(models.VolumeConnector).filter_by(
+            uuid=connector_uuid)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.VolumeConnectorNotFound(connector=connector_uuid)
+
+    def get_volume_connectors_by_node_id(self, node_id, limit=None,
+                                         marker=None, sort_key=None,
+                                         sort_dir=None):
+        query = model_query(models.VolumeConnector).filter_by(node_id=node_id)
+        return _paginate_query(models.VolumeConnector, limit, marker,
+                               sort_key, sort_dir, query)
+
+    def create_volume_connector(self, connector_info):
+        if 'uuid' not in connector_info:
+            connector_info['uuid'] = uuidutils.generate_uuid()
+
+        connector = models.VolumeConnector()
+        connector.update(connector_info)
+        with _session_for_write() as session:
+            try:
+                session.add(connector)
+                session.flush()
+            except db_exc.DBDuplicateEntry as exc:
+                if 'type' in exc.columns:
+                    raise exception.VolumeConnectorTypeAndIdAlreadyExists(
+                        type=connector_info['type'],
+                        connector_id=connector_info['connector_id'])
+                raise exception.VolumeConnectorAlreadyExists(
+                    uuid=connector_info['uuid'])
+            return connector
+
+    def update_volume_connector(self, ident, connector_info):
+        if 'uuid' in connector_info:
+            msg = _("Cannot overwrite UUID for an existing Volume Connector.")
+            raise exception.InvalidParameterValue(err=msg)
+
+        try:
+            with _session_for_write() as session:
+                query = model_query(models.VolumeConnector)
+                query = add_identity_filter(query, ident)
+                ref = query.one()
+                orig_type = ref['type']
+                orig_connector_id = ref['connector_id']
+                ref.update(connector_info)
+                session.flush()
+        except db_exc.DBDuplicateEntry:
+            raise exception.VolumeConnectorTypeAndIdAlreadyExists(
+                type=connector_info.get('type', orig_type),
+                connector_id=connector_info.get('connector_id',
+                                                orig_connector_id))
+        except NoResultFound:
+            raise exception.VolumeConnectorNotFound(connector=ident)
+        return ref
+
+    def destroy_volume_connector(self, ident):
+        with _session_for_write():
+            query = model_query(models.VolumeConnector)
+            query = add_identity_filter(query, ident)
+            count = query.delete()
+            if count == 0:
+                raise exception.VolumeConnectorNotFound(connector=ident)

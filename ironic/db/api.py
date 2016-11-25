@@ -614,3 +614,101 @@ class Connection(object):
         :returns: Node object.
         :raises: NodeNotFound if none or several nodes are found.
         """
+
+    @abc.abstractmethod
+    def get_volume_connector_list(self, limit=None, marker=None,
+                                  sort_key=None, sort_dir=None):
+        """Return a list of volume connectors.
+
+        :param limit: Maximum number of volume connectors to return.
+        :param marker: The last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted.
+        :param sort_dir: Direction in which results should be sorted.
+                         (asc, desc)
+        :returns: A list of volume connectors.
+        :raises: InvalidParameterValue If sort_key does not exist.
+        """
+
+    @abc.abstractmethod
+    def get_volume_connector_by_id(self, id):
+        """Return a volume connector representation.
+
+        :param id: The ID of a volume connector.
+        :returns: A volume connector with the specified ID.
+        :raises: VolumeConnectorNotFound If a volume connector
+                 with the specified ID is not found.
+        """
+
+    @abc.abstractmethod
+    def get_volume_connector_by_uuid(self, connector_uuid):
+        """Return a volume connector representation.
+
+        :param connector_uuid: The UUID of a connector.
+        :returns: A volume connector with the specified UUID.
+        :raises: VolumeConnectorNotFound If a volume connector
+                 with the specified UUID is not found.
+        """
+
+    @abc.abstractmethod
+    def get_volume_connectors_by_node_id(self, node_id, limit=None,
+                                         marker=None, sort_key=None,
+                                         sort_dir=None):
+        """List all the volume connectors for a given node.
+
+        :param node_id: The integer node ID.
+        :param limit: Maximum number of volume connectors to return.
+        :param marker: The last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted
+        :param sort_dir: Direction in which results should be sorted
+                         (asc, desc)
+        :returns: A list of volume connectors.
+        :raises: InvalidParameterValue If sort_key does not exist.
+        """
+
+    @abc.abstractmethod
+    def create_volume_connector(self, connector_info):
+        """Create a new volume connector.
+
+        :param connector_info: Dictionary containing information about the
+                               connector. Example::
+
+                                   {
+                                       'uuid': '000000-..',
+                                       'type': 'wwnn',
+                                       'connector_id': '00:01:02:03:04:05:06',
+                                       'node_id': 2
+                                   }
+
+        :returns: A volume connector.
+        :raises: VolumeConnectorTypeAndIdAlreadyExists If a connector
+                 already exists with a matching type and connector_id.
+        :raises: VolumeConnectorAlreadyExists If a volume connector with
+                 the same UUID already exists.
+        """
+    @abc.abstractmethod
+    def update_volume_connector(self, ident, connector_info):
+        """Update properties of a volume connector.
+
+        :param ident: The UUID or integer ID of a volume connector.
+        :param connector_info: Dictionary containing the information about
+                               connector to update.
+        :returns: A volume connector.
+        :raises: VolumeConnectorTypeAndIdAlreadyExists If another
+                 connector already exists with a matching type and
+                 connector_id field.
+        :raises: VolumeConnectorNotFound If a volume connector
+                 with the specified ident does not exist.
+        :raises: InvalidParameterValue When a UUID is included in
+                 connector_info.
+        """
+
+    @abc.abstractmethod
+    def destroy_volume_connector(self, ident):
+        """Destroy a volume connector.
+
+        :param ident: The UUID or integer ID of a volume connector.
+        :raises: VolumeConnectorNotFound If a volume connector
+                 with the specified ident does not exist.
+        """
