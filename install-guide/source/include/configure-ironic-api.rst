@@ -48,22 +48,28 @@ Configuring ironic-api service
       [keystone_authtoken]
 
       # Authentication type to load (string value)
-      auth_type=v3password
+      auth_type=password
 
       # Complete public Identity API endpoint (string value)
-      auth_uri=http://PUBLIC_IDENTITY_IP:5000/v3/
+      auth_uri=http://PUBLIC_IDENTITY_IP:5000
 
       # Complete admin Identity API endpoint. (string value)
-      auth_url=http://PRIVATE_IDENTITY_IP:35357/v3/
+      auth_url=http://PRIVATE_IDENTITY_IP:35357
 
       # Service username. (string value)
-      admin_user=ironic
+      username=ironic
 
       # Service account password. (string value)
-      admin_password=IRONIC_PASSWORD
+      password=IRONIC_PASSWORD
 
       # Service tenant name. (string value)
-      admin_tenant_name=service
+      project_name=service
+
+      # Domain name containing project (string value)
+      project_domain_name=Default
+
+      # User's domain name (string value)
+      user_domain_name=Default
 
 #. Create the Bare Metal service database tables:
 
