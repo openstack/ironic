@@ -29,3 +29,4 @@ def register_all():
     __import__('ironic.objects.node')
     __import__('ironic.objects.port')
     __import__('ironic.objects.portgroup')
+    __import__('ironic.objects.volume_connector')
