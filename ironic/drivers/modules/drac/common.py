@@ -15,18 +15,20 @@
 Common functionalities shared between different DRAC modules.
 """
 
+from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common.i18n import _
+from ironic.common.i18n import _, _LW
 from ironic.common import utils
 
 drac_client = importutils.try_import('dracclient.client')
 drac_constants = importutils.try_import('dracclient.constants')
 
+LOG = logging.getLogger(__name__)
 
 REQUIRED_PROPERTIES = {
-    'drac_host': _('IP address or hostname of the DRAC card. Required.'),
+    'drac_address': _('IP address or hostname of the DRAC card. Required.'),
     'drac_username': _('username used for authentication. Required.'),
     'drac_password': _('password used for authentication. Required.')
 }
@@ -37,8 +39,13 @@ OPTIONAL_PROPERTIES = {
     'drac_protocol': _('protocol used for WS-Man endpoint; one of http, https;'
                        ' default is "https". Optional.'),
 }
+DEPRECATED_PROPERTIES = {
+    'drac_host': _('IP address or hostname of the DRAC card. DEPRECATED, '
+                   'PLEASE USE "drac_address" INSTEAD.'),
+}
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
+COMMON_PROPERTIES.update(DEPRECATED_PROPERTIES)
 
 
 def parse_driver_info(node):
@@ -55,6 +62,21 @@ def parse_driver_info(node):
     """
     driver_info = node.driver_info
     parsed_driver_info = {}
+
+    if 'drac_host' in driver_info and 'drac_address' not in driver_info:
+        LOG.warning(_LW('The driver_info["drac_host"] property is deprecated '
+                        'and will be removed in the Pike release. Please '
+                        'update the node %s driver_info field to use '
+                        '"drac_address" instead'), node.uuid)
+        address = driver_info.pop('drac_host', None)
+        if address:
+            driver_info['drac_address'] = address
+    elif 'drac_host' in driver_info and 'drac_address' in driver_info:
+        LOG.warning(_LW('Both driver_info["drac_address"] and '
+                        'driver_info["drac_host"] properties are '
+                        'specified for node %s. Please remove the '
+                        '"drac_host" property from the node. Ignoring '
+                        '"drac_host" for now'), node.uuid)
 
     error_msgs = []
     for param in REQUIRED_PROPERTIES:
@@ -104,7 +126,7 @@ def get_drac_client(node):
              node or on invalid input.
     """
     driver_info = parse_driver_info(node)
-    client = drac_client.DRACClient(driver_info['drac_host'],
+    client = drac_client.DRACClient(driver_info['drac_address'],
                                     driver_info['drac_username'],
                                     driver_info['drac_password'],
                                     driver_info['drac_port'],
