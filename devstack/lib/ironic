@@ -1621,6 +1621,15 @@ function get_ironic_node_prefix {
     echo $node_prefix
 }
 
+function setup_vxlan_network {
+    sudo ovs-vsctl add-port $IRONIC_VM_NETWORK_BRIDGE phy-brbm-vxlan
+    sudo ovs-vsctl add-port br_ironic_vxlan phy-vxlan-brbm
+    sudo ovs-vsctl set interface phy-brbm-vxlan type=patch
+    sudo ovs-vsctl set interface phy-vxlan-brbm type=patch
+    sudo ovs-vsctl set interface phy-vxlan-brbm options:peer=phy-brbm-vxlan
+    sudo ovs-vsctl set interface phy-brbm-vxlan options:peer=phy-vxlan-brbm
+}
+
 # Restore xtrace + pipefail
 $_XTRACE_IRONIC
 $_PIPEFAIL_IRONIC
