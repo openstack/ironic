@@ -73,16 +73,17 @@ class VolumeConnector(base.IronicObject,
     # Implications of calling new remote procedures should be thought through.
     # @object_base.remotable_classmethod
     @classmethod
-    def get_by_id(cls, context, id):
+    def get_by_id(cls, context, db_id):
         """Find a volume connector based on its integer ID.
 
-        :param context: security context
-        :param id: the integer (database primary key) ID of a volume connector
-        :returns: a :class:`VolumeConnector` object
+        :param context: Security context.
+        :param db_id: The integer (database primary key) ID of a
+                      volume connector.
+        :returns: A :class:`VolumeConnector` object.
         :raises: VolumeConnectorNotFound if no volume connector exists with
-                 the specified ID
+                 the specified ID.
         """
-        db_connector = cls.dbapi.get_volume_connector_by_id(id)
+        db_connector = cls.dbapi.get_volume_connector_by_id(db_id)
         connector = VolumeConnector._from_db_object(cls(context), db_connector)
         return connector
 

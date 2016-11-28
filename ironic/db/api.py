@@ -631,10 +631,10 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_volume_connector_by_id(self, id):
+    def get_volume_connector_by_id(self, db_id):
         """Return a volume connector representation.
 
-        :param id: The ID of a volume connector.
+        :param db_id: The integer database ID of a volume connector.
         :returns: A volume connector with the specified ID.
         :raises: VolumeConnectorNotFound If a volume connector
                  with the specified ID is not found.
