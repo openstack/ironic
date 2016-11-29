@@ -18,6 +18,12 @@ from oslo_config import cfg
 from tempest import config  # noqa
 
 
+service_option = cfg.BoolOpt('ironic',
+                             default=False,
+                             help='Whether or not Ironic is expected to be '
+                                  'available')
+
+
 baremetal_group = cfg.OptGroup(name='baremetal',
                                title='Baremetal provisioning service options',
                                help='When enabling baremetal tests, Nova '

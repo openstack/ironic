@@ -59,6 +59,8 @@ class BaremetalScenarioTest(manager.ScenarioTest):
         if CONF.network_feature_enabled.port_admin_state_change:
             msg = "Port state change feature isn't supported by Ironic."
             raise cls.skipException(msg)
+        if not CONF.service_available.ironic:
+            raise cls.skipException('Ironic is not enabled.')
 
     @classmethod
     def setup_clients(cls):

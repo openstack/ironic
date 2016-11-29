@@ -1021,6 +1021,8 @@ function cleanup_baremetal_basic_ops {
 }
 
 function ironic_configure_tempest {
+    iniset $TEMPEST_CONFIG service_available ironic True
+
     local bm_flavor_id
     bm_flavor_id=$(openstack flavor show baremetal -f value -c id)
     die_if_not_set $LINENO bm_flavor_id "Failed to get id of baremetal flavor"
@@ -1032,7 +1034,6 @@ function ironic_configure_tempest {
     # tree, but not from our tree. This is a bit inconsistent, we should
     # fix it.
     iniset $TEMPEST_CONFIG network shared_physical_network True
-    iniset $TEMPEST_CONFIG network-feature-enabled port_admin_state_change False
 }
 
 # Restore xtrace + pipefail
