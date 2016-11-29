@@ -105,7 +105,7 @@ class BaremetalBasicOps(baremetal_manager.BaremetalScenarioTest):
             self.assertEqual(n_port['mac_address'], port['address'])
 
     @test.idempotent_id('549173a5-38ec-42bb-b0e2-c8b9f4a08943')
-    @test.services('baremetal', 'compute', 'image', 'network')
+    @test.services('compute', 'image', 'network')
     def test_baremetal_server_ops(self):
         self.add_keypair()
         self.instance, self.node = self.boot_instance()
