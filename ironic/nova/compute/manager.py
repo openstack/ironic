@@ -97,7 +97,7 @@ class ClusteredComputeManager(manager.ComputeManager):
         except Exception:
             pass
 
-    @lockutils.synchronized(CCM_SEMAPHORE, 'ironic-')
+    @lockutils.synchronized(CCM_SEMAPHORE)
     def _update_resources(self, node_uuid):
         """Update the specified node resource
 

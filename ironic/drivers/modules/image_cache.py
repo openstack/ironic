@@ -82,7 +82,7 @@ class ImageCache(object):
         if self.master_dir is None:
             # NOTE(ghe): We don't share images between instances/hosts
             if not CONF.parallel_image_downloads:
-                with lockutils.lock(img_download_lock_name, 'ironic-'):
+                with lockutils.lock(img_download_lock_name):
                     _fetch(ctx, href, dest_path, force_raw)
             else:
                 _fetch(ctx, href, dest_path, force_raw)
@@ -106,7 +106,7 @@ class ImageCache(object):
             img_download_lock_name = 'download-image:%s' % master_file_name
 
         # TODO(dtantsur): lock expiration time
-        with lockutils.lock(img_download_lock_name, 'ironic-'):
+        with lockutils.lock(img_download_lock_name):
             # NOTE(vdrok): After rebuild requested image can change, so we
             # should ensure that dest_path and master_path (if exists) are
             # pointing to the same file and their content is up to date
@@ -123,7 +123,7 @@ class ImageCache(object):
 
             if cache_up_to_date:
                 # NOTE(dtantsur): ensure we're not in the middle of clean up
-                with lockutils.lock('master_image', 'ironic-'):
+                with lockutils.lock('master_image'):
                     os.link(master_path, dest_path)
                 LOG.debug("Master cache hit for image %(href)s",
                           {'href': href})
@@ -165,7 +165,7 @@ class ImageCache(object):
         finally:
             utils.rmtree_without_raise(tmp_dir)
 
-    @lockutils.synchronized('master_image', 'ironic-')
+    @lockutils.synchronized('master_image')
     def clean_up(self, amount=None):
         """Clean up directory with images, keeping cache of the latest images.
 
