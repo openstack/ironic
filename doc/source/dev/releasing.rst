@@ -35,10 +35,15 @@ documented in the `Project Team Guide`_.
 Things to do before releasing
 =============================
 
-Review the unreleased release notes, if the project uses them. Make sure
-they follow our `standards`_, are coherent, and have proper grammar. Combine
-release notes if necessary (for example, a release note for a feature and
-another release note to add to that feature may be combined).
+* Review the unreleased release notes, if the project uses them. Make sure
+  they follow our `standards`_, are coherent, and have proper grammar.
+  Combine release notes if necessary (for example, a release note for a
+  feature and another release note to add to that feature may be combined).
+
+* For ironic releases only, not ironic-inspector releases: if any new API
+  microversions have been added since the last release, update the REST API
+  version history (doc/source/dev/webapi-version-history.rst) to
+  indicate that they were part of the new release.
 
 .. _`standards`: http://docs.openstack.org/developer/ironic/dev/faq.html#know-if-a-release-note-is-needed-for-my-change
 
