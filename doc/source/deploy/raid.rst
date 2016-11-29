@@ -17,8 +17,6 @@ The bare metal node needs to use a driver that supports RAID
 configuration. Drivers may implement RAID configuration either in-band or
 out-of-band.
 
-Currently, no upstream driver supports out-of-band RAID configuration.
-
 In-band RAID configuration is done using the Ironic Python Agent
 ramdisk. For in-band RAID configuration using agent ramdisk, a hardware
 manager which supports RAID should be bundled with the ramdisk.
