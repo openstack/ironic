@@ -134,6 +134,11 @@ class BaremetalScenarioTest(manager.ScenarioTest):
             ports.append(p)
         return ports
 
+    def get_node_vifs(self, node_uuid, api_version='1.28'):
+        _, body = self.baremetal_client.vif_list(node_uuid,
+                                                 api_version=api_version)
+        return body['vifs']
+
     def add_keypair(self):
         self.keypair = self.create_keypair()
 

@@ -372,3 +372,43 @@ class BaremetalClient(base.BaremetalClient):
                                        enabled)
         self.expected_success(202, resp.status)
         return resp, body
+
+    @base.handle_errors
+    def vif_list(self, node_uuid, api_version=None):
+        """Get list of attached VIFs.
+
+        :param node_uuid: Unique identifier of the node in UUID format.
+        :param api_version: Ironic API version to use.
+        """
+        extra_headers = False
+        headers = None
+        if api_version is not None:
+            extra_headers = True
+            headers = {'x-openstack-ironic-api-version': api_version}
+        return self._list_request('nodes/%s/vifs' % node_uuid,
+                                  headers=headers,
+                                  extra_headers=extra_headers)
+
+    @base.handle_errors
+    def vif_attach(self, node_uuid, vif_id):
+        """Attach a VIF to a node
+
+        :param node_uuid: Unique identifier of the node in UUID format.
+        :param vif_id: An ID representing the VIF
+        """
+        vif = {'id': vif_id}
+        resp = self._create_request_no_response_body(
+            'nodes/%s/vifs' % node_uuid, vif)
+
+        return resp
+
+    @base.handle_errors
+    def vif_detach(self, node_uuid, vif_id):
+        """Detach a VIF from a node
+
+        :param node_uuid: Unique identifier of the node in UUID format.
+        :param vif_id: An ID representing the VIF
+        """
+        resp, body = self._delete_request('nodes/%s/vifs' % node_uuid, vif_id)
+        self.expected_success(204, resp.status)
+        return resp, body

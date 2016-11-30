@@ -3207,3 +3207,227 @@ class TestCheckCleanSteps(base.TestCase):
 
         step2 = {"step": "configure raid", "interface": "raid"}
         api_node._check_clean_steps([step1, step2])
+
+
+class TestAttachDetachVif(test_api_base.BaseApiTest):
+
+    def setUp(self):
+        super(TestAttachDetachVif, self).setUp()
+        self.vif_version = "1.28"
+        self.node = obj_utils.create_test_node(
+            self.context,
+            provision_state=states.AVAILABLE, name='node-39')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        self.mock_gtf = p.start()
+        self.mock_gtf.return_value = 'test-topic'
+        self.addCleanup(p.stop)
+
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    def test_vif_subcontroller_old_version(self, mock_get):
+        mock_get.return_value = self.node
+        ret = self.get_json('/nodes/%s/vifs' % self.node.uuid,
+                            headers={api_base.Version.string: "1.26"},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_list')
+    def test_vif_list(self, mock_list, mock_get):
+        mock_get.return_value = self.node
+        self.get_json('/nodes/%s/vifs' % self.node.uuid,
+                      headers={api_base.Version.string:
+                               self.vif_version})
+
+        mock_get.assert_called_once_with(mock.ANY, self.node.uuid)
+        mock_list.assert_called_once_with(mock.ANY, self.node.uuid,
+                                          topic='test-topic')
+
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach')
+    def test_vif_attach(self, mock_attach, mock_get):
+        vif_id = uuidutils.generate_uuid()
+        request_body = {
+            'id': vif_id
+        }
+
+        mock_get.return_value = self.node
+
+        ret = self.post_json('/nodes/%s/vifs' % self.node.uuid,
+                             request_body,
+                             headers={api_base.Version.string:
+                                      self.vif_version})
+
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
+        mock_get.assert_called_once_with(mock.ANY, self.node.uuid)
+        mock_attach.assert_called_once_with(mock.ANY, self.node.uuid,
+                                            vif_info=request_body,
+                                            topic='test-topic')
+
+    @mock.patch.object(objects.Node, 'get_by_name')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach')
+    def test_vif_attach_by_node_name(self, mock_attach, mock_get):
+        vif_id = uuidutils.generate_uuid()
+        request_body = {
+            'id': vif_id
+        }
+
+        mock_get.return_value = self.node
+
+        ret = self.post_json('/nodes/%s/vifs' % self.node.name,
+                             request_body,
+                             headers={api_base.Version.string:
+                                      self.vif_version})
+
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
+        mock_get.assert_called_once_with(mock.ANY, self.node.name)
+        mock_attach.assert_called_once_with(mock.ANY, self.node.uuid,
+                                            vif_info=request_body,
+                                            topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach')
+    def test_vif_attach_node_not_found(self, mock_attach):
+        vif_id = uuidutils.generate_uuid()
+        request_body = {
+            'id': vif_id
+        }
+
+        ret = self.post_json('/nodes/doesntexist/vifs',
+                             request_body, expect_errors=True,
+                             headers={api_base.Version.string:
+                                      self.vif_version})
+
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
+        self.assertFalse(mock_attach.called)
+
+    @mock.patch.object(objects.Node, 'get_by_name')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach')
+    def test_vif_attach_conductor_unavailable(self, mock_attach, mock_get):
+        vif_id = uuidutils.generate_uuid()
+        request_body = {
+            'id': vif_id
+        }
+        mock_get.return_value = self.node
+        self.mock_gtf.side_effect = exception.NoValidHost('boom')
+        ret = self.post_json('/nodes/%s/vifs' % self.node.name,
+                             request_body, expect_errors=True,
+                             headers={api_base.Version.string:
+                                      self.vif_version})
+
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
+        self.assertFalse(mock_attach.called)
+
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach')
+    def test_vif_attach_no_vif_id(self, mock_attach, mock_get):
+        vif_id = uuidutils.generate_uuid()
+        request_body = {
+            'bad_id': vif_id
+        }
+
+        mock_get.return_value = self.node
+
+        ret = self.post_json('/nodes/%s/vifs' % self.node.uuid,
+                             request_body, expect_errors=True,
+                             headers={api_base.Version.string:
+                                      self.vif_version})
+
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
+
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach')
+    def test_vif_attach_invalid_vif_id(self, mock_attach, mock_get):
+        request_body = {
+            'id': "invalid%id^"
+        }
+
+        mock_get.return_value = self.node
+
+        ret = self.post_json('/nodes/%s/vifs' % self.node.uuid,
+                             request_body, expect_errors=True,
+                             headers={api_base.Version.string:
+                                      self.vif_version})
+
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
+
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach')
+    def test_vif_attach_node_locked(self, mock_attach, mock_get):
+        vif_id = uuidutils.generate_uuid()
+        request_body = {
+            'id': vif_id
+        }
+
+        mock_get.return_value = self.node
+        mock_attach.side_effect = exception.NodeLocked(node='', host='')
+
+        ret = self.post_json('/nodes/%s/vifs' % self.node.uuid,
+                             request_body, expect_errors=True,
+                             headers={api_base.Version.string:
+                                      self.vif_version})
+
+        self.assertEqual(http_client.CONFLICT, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
+
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_detach')
+    def test_vif_detach(self, mock_detach, mock_get):
+        vif_id = uuidutils.generate_uuid()
+
+        mock_get.return_value = self.node
+
+        ret = self.delete('/nodes/%s/vifs/%s' % (self.node.uuid, vif_id),
+                          headers={api_base.Version.string:
+                                   self.vif_version})
+
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
+        mock_get.assert_called_once_with(mock.ANY, self.node.uuid)
+        mock_detach.assert_called_once_with(mock.ANY, self.node.uuid,
+                                            vif_id=vif_id,
+                                            topic='test-topic')
+
+    @mock.patch.object(objects.Node, 'get_by_name')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_detach')
+    def test_vif_detach_by_node_name(self, mock_detach, mock_get):
+        vif_id = uuidutils.generate_uuid()
+
+        mock_get.return_value = self.node
+
+        ret = self.delete('/nodes/%s/vifs/%s' % (self.node.name, vif_id),
+                          headers={api_base.Version.string: self.vif_version})
+
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
+        mock_get.assert_called_once_with(mock.ANY, self.node.name)
+        mock_detach.assert_called_once_with(mock.ANY, self.node.uuid,
+                                            vif_id=vif_id,
+                                            topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_detach')
+    def test_vif_detach_node_not_found(self, mock_detach):
+        vif_id = uuidutils.generate_uuid()
+
+        ret = self.delete('/nodes/doesntexist/vifs/%s' % vif_id,
+                          headers={api_base.Version.string: self.vif_version},
+                          expect_errors=True)
+
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
+        self.assertFalse(mock_detach.called)
+
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_detach')
+    def test_vif_detach_node_locked(self, mock_detach, mock_get):
+        vif_id = uuidutils.generate_uuid()
+
+        mock_get.return_value = self.node
+        mock_detach.side_effect = exception.NodeLocked(node='', host='')
+
+        ret = self.delete('/nodes/%s/vifs/%s' % (self.node.uuid, vif_id),
+                          headers={api_base.Version.string: self.vif_version},
+                          expect_errors=True)
+
+        self.assertEqual(http_client.CONFLICT, ret.status_code)
+        self.assertTrue(ret.json['error_message'])

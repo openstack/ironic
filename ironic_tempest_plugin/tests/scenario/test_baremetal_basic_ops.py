@@ -97,12 +97,16 @@ class BaremetalBasicOps(baremetal_manager.BaremetalScenarioTest):
         return int(ephemeral)
 
     def validate_ports(self):
-        for port in self.get_ports(self.node['uuid']):
-            n_port_id = port['extra']['vif_port_id']
+        node_uuid = self.node['uuid']
+        vifs = self.get_node_vifs(node_uuid)
+        ir_ports = self.get_ports(node_uuid)
+        ir_ports_addresses = [x['address'] for x in ir_ports]
+        for vif in vifs:
+            n_port_id = vif['id']
             body = self.ports_client.show_port(n_port_id)
             n_port = body['port']
             self.assertEqual(n_port['device_id'], self.instance['id'])
-            self.assertEqual(n_port['mac_address'], port['address'])
+            self.assertIn(n_port['mac_address'], ir_ports_addresses)
 
     @test.idempotent_id('549173a5-38ec-42bb-b0e2-c8b9f4a08943')
     @test.services('compute', 'image', 'network')

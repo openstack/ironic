@@ -118,6 +118,15 @@ node_policies = [
     policy.RuleDefault('baremetal:node:set_console_state',
                        'rule:is_admin',
                        description='Change Node console status'),
+    policy.RuleDefault('baremetal:node:vif:list',
+                       'rule:is_admin',
+                       description='List VIFs attached to node'),
+    policy.RuleDefault('baremetal:node:vif:attach',
+                       'rule:is_admin',
+                       description='Attach a VIF to a node'),
+    policy.RuleDefault('baremetal:node:vif:detach',
+                       'rule:is_admin',
+                       description='Detach a VIF from a node'),
 ]
 
 port_policies = [

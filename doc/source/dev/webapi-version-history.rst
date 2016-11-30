@@ -2,6 +2,10 @@
 REST API Version History
 ========================
 
+**1.28** (Ocata)
+
+    Add '/v1/nodes/<node identifier>/vifs' endpoint for attach, detach and list of VIFs.
+
 **1.27** (Ocata)
 
     Add ``soft rebooting`` and ``soft power off`` as possible values

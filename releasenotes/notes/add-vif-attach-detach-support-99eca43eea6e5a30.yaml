@@ -1,0 +1,8 @@
+---
+features:
+  - Adds support of attaching/detaching network VIFs
+    to ironic ports by using ``v1/nodes/<node>/vifs``
+    API endpoint that was added in API version 1.28.
+deprecations:
+  - Using port.extra['vif_port_id'] for attaching/detaching
+    VIFs to ports is deprecated and will be removed in Pike release.

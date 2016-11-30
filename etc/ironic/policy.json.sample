@@ -42,6 +42,12 @@
 "baremetal:node:get_console": "rule:is_admin"
 # Change Node console status
 "baremetal:node:set_console_state": "rule:is_admin"
+# List VIFs attached to node
+"baremetal:node:vif:list": "rule:is_admin"
+# Attach a VIF to a node
+"baremetal:node:vif:attach": "rule:is_admin"
+# Detach a VIF from a node
+"baremetal:node:vif:detach": "rule:is_admin"
 # Retrieve Port records
 "baremetal:port:get": "rule:is_admin or rule:is_observer"
 # Create Port records

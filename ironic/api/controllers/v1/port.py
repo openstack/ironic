@@ -33,6 +33,7 @@ from ironic.api import expose
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
+from ironic.common import utils as common_utils
 from ironic import objects
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
@@ -512,6 +513,8 @@ class PortsController(rest.RestController):
 
         extra = pdict.get('extra')
         vif = extra.get('vif_port_id') if extra else None
+        if vif:
+            common_utils.warn_about_deprecated_extra_vif_port_id()
         if (pdict.get('portgroup_uuid') and
                 (pdict.get('pxe_enabled') or vif)):
             rpc_pg = objects.Portgroup.get_by_uuid(context,

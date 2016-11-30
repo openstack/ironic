@@ -42,6 +42,8 @@ from ironic.conf import CONF
 
 LOG = logging.getLogger(__name__)
 
+warn_deprecated_extra_vif_port_id = False
+
 
 def _get_root_helper():
     # NOTE(jlvillal): This function has been moved to ironic-lib. And is
@@ -536,3 +538,13 @@ def render_template(template, params, is_file=True):
     env = jinja2.Environment(loader=loader)
     tmpl = env.get_template(tmpl_name)
     return tmpl.render(params)
+
+
+def warn_about_deprecated_extra_vif_port_id():
+    global warn_deprecated_extra_vif_port_id
+    if not warn_deprecated_extra_vif_port_id:
+        warn_deprecated_extra_vif_port_id = True
+        LOG.warning(_LW("Attaching VIF to a port via "
+                        "extra['vif_port_id'] is deprecated and will not "
+                        "be supported in Pike release. API endpoint "
+                        "v1/nodes/<node>/vifs should be used instead."))
