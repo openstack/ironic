@@ -1,0 +1,25 @@
+---
+other:
+  - |
+    Some combinations of port group protocols and hardware might not support
+    falling back to single interface mode. If a static port group was created
+    under such circumstances (where
+    ``portgroup.standalone_ports_supported = False``), additional restrictions
+    apply to such ports and port groups, for example such ports will not
+    support booting over PXE.
+
+    Certain restrictions are imposed on values of port properties for ports
+    belonging to a port group:
+
+    * ``port.pxe_enabled`` cannot be set to True if the port is a member of
+      a port group with portgroup.standalone_ports_supported already
+      set to False.
+    * ``portgroup.standalone_ports_supported`` cannot be set to False on a
+      portgroup if at least one port in that port group has
+      ``port.pxe_enabled=True``
+    * ``port.extra.vif_port_id`` cannot be set on a port that is a member of
+      a port group with ``portgroup.standalone_ports_supported=False`` as
+      setting it means that we using port in single interface mode.
+    * ``portgroup.standalone_ports_supported`` cannot be set to False on a
+      port group if it has at least one port with ``port.extra.vif_port_id``
+      set.

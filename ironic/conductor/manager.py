@@ -1644,7 +1644,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                    exception.FailedToUpdateMacOnPort,
                                    exception.MACAlreadyExists,
                                    exception.InvalidState,
-                                   exception.FailedToUpdateDHCPOptOnPort)
+                                   exception.FailedToUpdateDHCPOptOnPort,
+                                   exception.Conflict)
     def update_port(self, context, port_obj):
         """Update a port.
 
@@ -1658,6 +1659,9 @@ class ConductorManager(base_manager.BaseConductorManager):
         :raises: InvalidState if port connectivity attributes
                  are updated while node not in a MANAGEABLE or ENROLL or
                  INSPECTING state or not in MAINTENANCE mode.
+        :raises: Conflict if trying to set extra/vif_port_id or
+                 pxe_enabled=True on port which is a member of portgroup with
+                 standalone_ports_supported=False.
         """
         port_uuid = port_obj.uuid
         LOG.debug("RPC update_port called for port %s.", port_uuid)
@@ -1665,6 +1669,10 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, port_obj.node_id,
                                   purpose='port update') as task:
             node = task.node
+            portgroup_obj = None
+            if port_obj.portgroup_id:
+                portgroup_obj = [pg for pg in task.portgroups if
+                                 pg.id == port_obj.portgroup_id][0]
 
             # Only allow updating MAC addresses for active nodes if maintenance
             # mode is on.
@@ -1717,12 +1725,12 @@ class ConductorManager(base_manager.BaseConductorManager):
                         "address."),
                         {'port': port_uuid, 'instance': node.instance_uuid})
 
+            vif = port_obj.extra.get('vif_port_id')
             if 'extra' in port_obj.obj_what_changed():
                 orignal_port = objects.Port.get_by_id(context, port_obj.id)
                 updated_client_id = port_obj.extra.get('client-id')
                 if (orignal_port.extra.get('client-id') !=
                     updated_client_id):
-                    vif = port_obj.extra.get('vif_port_id')
                     # DHCP Option with opt_value=None will remove it
                     # from the neutron port
                     if vif:
@@ -1742,6 +1750,19 @@ class ConductorManager(base_manager.BaseConductorManager):
                             {'port': port_uuid,
                              'instance': node.instance_uuid})
 
+            if portgroup_obj and ((set(port_obj.obj_what_changed()) &
+                                  {'pxe_enabled', 'portgroup_id'}) or vif):
+                if ((port_obj.pxe_enabled or vif) and not
+                    portgroup_obj.standalone_ports_supported):
+                    msg = (_("Port group %(portgroup)s doesn't support "
+                             "standalone ports. This port %(port)s cannot be "
+                             " a member of that port group because either "
+                             "'extra/vif_port_id' was specified or "
+                             "'pxe_enabled' was set to True.") %
+                           {"portgroup": portgroup_obj.uuid,
+                            "port": port_uuid})
+                    raise exception.Conflict(msg)
+
             port_obj.save()
 
             return port_obj
@@ -1751,7 +1772,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                    exception.FailedToUpdateMacOnPort,
                                    exception.PortgroupMACAlreadyExists,
                                    exception.PortgroupNotEmpty,
-                                   exception.InvalidState)
+                                   exception.InvalidState,
+                                   exception.Conflict)
     def update_portgroup(self, context, portgroup_obj):
         """Update a portgroup.
 
@@ -1767,6 +1789,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                  in MAINTENANCE mode.
         :raises: PortgroupNotEmpty if there are ports associated with this
                  portgroup.
+        :raises: Conflict when trying to set standalone_ports_supported=False
+                 on portgroup with ports that has pxe_enabled=True and vice
+                 versa.
         """
         portgroup_uuid = portgroup_obj.uuid
         LOG.debug("RPC update_portgroup called for portgroup %s.",
@@ -1828,6 +1853,21 @@ class ConductorManager(base_manager.BaseConductorManager):
                         {'portgroup': portgroup_uuid,
                          'instance': node.instance_uuid,
                          'node': node.uuid})
+
+            if ('standalone_ports_supported' in
+                    portgroup_obj.obj_what_changed()):
+                if not portgroup_obj.standalone_ports_supported:
+                    ports = [p for p in task.ports if
+                             p.portgroup_id == portgroup_obj.id]
+                    for p in ports:
+                        extra = p.extra
+                        vif = extra.get('vif_port_id')
+                        if vif or p.pxe_enabled:
+                            msg = _("standalone_ports_supported can not be "
+                                    "set to False, because the port group %s "
+                                    "contains ports with 'extra/vif_port_id' "
+                                    "or pxe_enabled=True") % portgroup_uuid
+                            raise exception.Conflict(msg)
 
             portgroup_obj.save()
 
