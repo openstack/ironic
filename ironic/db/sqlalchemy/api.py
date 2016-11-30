@@ -881,12 +881,12 @@ class Connection(api.Connection):
         return _paginate_query(models.VolumeConnector, limit, marker,
                                sort_key, sort_dir)
 
-    def get_volume_connector_by_id(self, id):
-        query = model_query(models.VolumeConnector).filter_by(id=id)
+    def get_volume_connector_by_id(self, db_id):
+        query = model_query(models.VolumeConnector).filter_by(id=db_id)
         try:
             return query.one()
         except NoResultFound:
-            raise exception.VolumeConnectorNotFound(connector=id)
+            raise exception.VolumeConnectorNotFound(connector=db_id)
 
     def get_volume_connector_by_uuid(self, connector_uuid):
         query = model_query(models.VolumeConnector).filter_by(
