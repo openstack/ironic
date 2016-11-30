@@ -434,3 +434,23 @@ class RPCAPITestCase(base.DbTestCase):
                           'call',
                           version='1.37',
                           target=fake_volume_target)
+
+    def test_vif_attach(self):
+        self._test_rpcapi('vif_attach',
+                          'call',
+                          node_id='fake-node',
+                          vif_info={"id": "vif"},
+                          version='1.38')
+
+    def test_vif_detach(self):
+        self._test_rpcapi('vif_detach',
+                          'call',
+                          node_id='fake-node',
+                          vif_id="vif",
+                          version='1.38')
+
+    def test_vif_list(self):
+        self._test_rpcapi('vif_list',
+                          'call',
+                          node_id='fake-node',
+                          version='1.38')

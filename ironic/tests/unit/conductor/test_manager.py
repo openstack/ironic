@@ -3323,6 +3323,114 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
 
 
 @mgr_utils.mock_record_keepalive
+@mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+class VifTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
+
+    def setUp(self):
+        super(VifTestCase, self).setUp()
+        self.vif = {'id': 'fake'}
+
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_list', autospec=True)
+    def test_vif_list(self, mock_list, mock_valid):
+        mock_list.return_value = ['VIF_ID']
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        data = self.service.vif_list(self.context, node.uuid)
+        mock_list.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_valid.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertEqual(mock_list.return_value, data)
+
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_attach', autospec=True)
+    def test_vif_attach(self, mock_attach, mock_valid):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        self.service.vif_attach(self.context, node.uuid, self.vif)
+        mock_attach.assert_called_once_with(mock.ANY, mock.ANY, self.vif)
+        mock_valid.assert_called_once_with(mock.ANY, mock.ANY)
+
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_attach', autospec=True)
+    def test_vif_attach_node_locked(self, mock_attach, mock_valid):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          reservation='fake-reserv')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.vif_attach,
+                                self.context, node.uuid, self.vif)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+        self.assertFalse(mock_attach.called)
+        self.assertFalse(mock_valid.called)
+
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_attach', autospec=True)
+    def test_vif_attach_raises_network_error(self, mock_attach,
+                                             mock_valid):
+        mock_attach.side_effect = exception.NetworkError("BOOM")
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.vif_attach,
+                                self.context, node.uuid, self.vif)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NetworkError, exc.exc_info[0])
+        mock_valid.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_attach.assert_called_once_with(mock.ANY, mock.ANY, self.vif)
+
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_attach', autpspec=True)
+    def test_vif_attach_validate_error(self, mock_attach,
+                                       mock_valid):
+        mock_valid.side_effect = exception.MissingParameterValue("BOOM")
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.vif_attach,
+                                self.context, node.uuid, self.vif)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.MissingParameterValue, exc.exc_info[0])
+        mock_valid.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertFalse(mock_attach.called)
+
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_detach', autpspec=True)
+    def test_vif_detach(self, mock_detach, mock_valid):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        self.service.vif_detach(self.context, node.uuid, "interface")
+        mock_detach.assert_called_once_with(mock.ANY, "interface")
+        mock_valid.assert_called_once_with(mock.ANY, mock.ANY)
+
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_detach', autpspec=True)
+    def test_vif_detach_node_locked(self, mock_detach, mock_valid):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          reservation='fake-reserv')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.vif_detach,
+                                self.context, node.uuid, "interface")
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+        self.assertFalse(mock_detach.called)
+        self.assertFalse(mock_valid.called)
+
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_detach', autpspec=True)
+    def test_vif_detach_raises_network_error(self, mock_detach,
+                                             mock_valid):
+        mock_detach.side_effect = exception.NetworkError("BOOM")
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.vif_detach,
+                                self.context, node.uuid, "interface")
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NetworkError, exc.exc_info[0])
+        mock_valid.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_detach.assert_called_once_with(mock.ANY, "interface")
+
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_detach', autpspec=True)
+    def test_vif_detach_validate_error(self, mock_detach,
+                                       mock_valid):
+        mock_valid.side_effect = exception.MissingParameterValue("BOOM")
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.vif_detach,
+                                self.context, node.uuid, "interface")
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.MissingParameterValue, exc.exc_info[0])
+        mock_valid.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertFalse(mock_detach.called)
+
+
+@mgr_utils.mock_record_keepalive
 class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin,
                               tests_db_base.DbTestCase):
     @mock.patch.object(n_flat.FlatNetwork, 'portgroup_changed', autospec=True)
