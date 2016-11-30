@@ -81,11 +81,12 @@ class ConductorAPI(object):
     |    1.32 - Add do_node_clean
     |    1.33 - Added update and destroy portgroup.
     |    1.34 - Added heartbeat
+    |    1.35 - Added destroy_volume_connector and update_volume_connector
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.34'
+    RPC_API_VERSION = '1.35'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -735,3 +736,49 @@ class ConductorAPI(object):
         cctxt = self.client.prepare(topic=self.topic, version='1.31')
         return cctxt.call(context, 'object_backport_versions', objinst=objinst,
                           object_versions=object_versions)
+
+    def destroy_volume_connector(self, context, connector, topic=None):
+        """Delete a volume connector.
+
+        Delete the volume connector. The conductor will lock the related node
+        during this operation.
+
+        :param context: request context
+        :param connector: volume connector object
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: NodeLocked if node is locked by another conductor
+        :raises: NodeNotFound if the node associated with the connector does
+                 not exist
+        :raises: VolumeConnectorNotFound if the volume connector cannot be
+                 found
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.35')
+        return cctxt.call(context, 'destroy_volume_connector',
+                          connector=connector)
+
+    def update_volume_connector(self, context, connector, topic=None):
+        """Update the volume connector's information.
+
+        Update the volume connector's information in the database and return
+        a volume connector object. The conductor will lock the related node
+        during this operation.
+
+        :param context: request context
+        :param connector: a changed (but not saved) volume connector object
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: InvalidParameterValue if the volume connector's UUID is being
+                 changed
+        :raises: NodeLocked if node is locked by another conductor
+        :raises: NodeNotFound if the node associated with the connector does
+                 not exist
+        :raises: VolumeConnectorNotFound if the volume connector cannot be
+                 found
+        :raises: VolumeConnectorTypeAndIdAlreadyExists if another connector
+                 already exists with the same values for type and connector_id
+                 fields
+        :returns: updated volume connector object, including all fields.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.35')
+        return cctxt.call(context, 'update_volume_connector',
+                          connector=connector)

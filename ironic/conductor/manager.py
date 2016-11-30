@@ -82,7 +82,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.34'
+    RPC_API_VERSION = '1.35'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -1537,6 +1537,33 @@ class ConductorManager(base_manager.BaseConductorManager):
                          '%(node)s'),
                      {'portgroup': portgroup.uuid, 'node': task.node.uuid})
 
+    @METRICS.timer('ConductorManager.destroy_volume_connector')
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.NodeNotFound,
+                                   exception.VolumeConnectorNotFound)
+    def destroy_volume_connector(self, context, connector):
+        """Delete a volume connector.
+
+        :param context: request context
+        :param connector: volume connector object
+        :raises: NodeLocked if node is locked by another conductor
+        :raises: NodeNotFound if the node associated with the connector does
+                 not exist
+        :raises: VolumeConnectorNotFound if the volume connector cannot be
+                 found
+        """
+        LOG.debug('RPC destroy_volume_connector called for volume connector '
+                  '%(connector)s',
+                  {'connector': connector.uuid})
+        with task_manager.acquire(context, connector.node_id,
+                                  purpose='volume connector deletion') as task:
+            connector.destroy()
+            LOG.info(_LI('Successfully deleted volume connector '
+                         '%(connector)s. '
+                         'The node associated with the connector was '
+                         '%(node)s'),
+                     {'connector': connector.uuid, 'node': task.node.uuid})
+
     @METRICS.timer('ConductorManager.get_console_information')
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
@@ -1872,6 +1899,42 @@ class ConductorManager(base_manager.BaseConductorManager):
             portgroup_obj.save()
 
             return portgroup_obj
+
+    @METRICS.timer('ConductorManager.update_volume_connector')
+    @messaging.expected_exceptions(
+        exception.InvalidParameterValue,
+        exception.NodeLocked,
+        exception.NodeNotFound,
+        exception.VolumeConnectorNotFound,
+        exception.VolumeConnectorTypeAndIdAlreadyExists)
+    def update_volume_connector(self, context, connector):
+        """Update a volume connector.
+
+        :param context: request context
+        :param connector: a changed (but not saved) volume connector object
+        :returns: an updated volume connector object
+        :raises: InvalidParameterValue if the volume connector's UUID is being
+                 changed
+        :raises: NodeLocked if the node is already locked
+        :raises: NodeNotFound if the node associated with the conductor does
+                 not exist
+        :raises: VolumeConnectorNotFound if the volume connector cannot be
+                 found
+        :raises: VolumeConnectorTypeAndIdAlreadyExists if another connector
+                 already exists with the same values for type and connector_id
+                 fields
+        """
+        LOG.debug("RPC update_volume_connector called for connector "
+                  "%(connector)s.",
+                  {'connector': connector.uuid})
+
+        with task_manager.acquire(context, connector.node_id,
+                                  purpose='volume connector update'):
+            connector.save()
+            LOG.info(_LI("Successfully updated volume connector "
+                         "%(connector)s."),
+                     {'connector': connector.uuid})
+            return connector
 
     @METRICS.timer('ConductorManager.get_driver_properties')
     @messaging.expected_exceptions(exception.DriverNotFound)
