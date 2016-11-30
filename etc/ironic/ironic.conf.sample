@@ -712,7 +712,8 @@
 #heartbeat_interval = 10
 
 # URL of Ironic API service. If not set ironic can get the
-# current value from the keystone service catalog. (string
+# current value from the keystone service catalog. If set, the
+# value must start with either http:// or https://. (string
 # value)
 #api_url = <None>
 
@@ -2299,6 +2300,11 @@
 # value)
 # Minimum value: 5
 #default_notify_timeout = 30
+
+# The duration to schedule a purge of idle sender links.
+# Detach link after expiry. (integer value)
+# Minimum value: 1
+#default_sender_link_timeout = 600
 
 # Indicates the addressing mode used by the driver.
 # Permitted values:
