@@ -69,6 +69,69 @@ def get_client(token=None):
     return clientv20.Client(**params)
 
 
+def unbind_neutron_port(port_id, client=None, token=None):
+    """Unbind a neutron port
+
+    Remove a neutron port's binding profile and host ID so that it returns to
+    an unbound state.
+
+    :param port_id: Neutron port ID.
+    :param token: Optional auth token.
+    :param client: Optional a Neutron client object.
+    :raises: NetworkError
+    """
+
+    if not client:
+        client = get_client(token)
+
+    body = {'port': {'binding:host_id': '',
+                     'binding:profile': {}}}
+
+    try:
+        client.update_port(port_id, body)
+    except neutron_exceptions.NeutronClientException as e:
+        msg = (_('Unable to clear binding profile for '
+                 'neutron port %(port_id)s. Error: '
+                 '%(err)s') % {'port_id': port_id, 'err': e})
+        LOG.exception(msg)
+        raise exception.NetworkError(msg)
+
+
+def update_port_address(port_id, address, token=None):
+    """Update a port's mac address.
+
+    :param port_id: Neutron port id.
+    :param address: new MAC address.
+    :param token: optional auth token.
+    :raises: FailedToUpdateMacOnPort
+    """
+    client = get_client(token)
+    port_req_body = {'port': {'mac_address': address}}
+
+    try:
+        msg = (_("Failed to get the current binding on Neutron "
+                 "port %s.") % port_id)
+        port = client.show_port(port_id).get('port', {})
+        binding_host_id = port.get('binding:host_id')
+        binding_profile = port.get('binding:profile')
+
+        if binding_host_id:
+            # Unbind port before we update it's mac address, because you can't
+            # change a bound port's mac address.
+            msg = (_("Failed to remove the current binding from "
+                     "Neutron port %s, while updating its MAC "
+                     "address.") % port_id)
+            unbind_neutron_port(port_id, client=client)
+            port_req_body['port']['binding:host_id'] = binding_host_id
+            port_req_body['port']['binding:profile'] = binding_profile
+
+        msg = (_("Failed to update MAC address on Neutron port %s.") % port_id)
+        client.update_port(port_id, port_req_body)
+    except (neutron_exceptions.NeutronClientException, exception.NetworkError):
+        LOG.exception(msg)
+        raise exception.FailedToUpdateMacOnPort(port_id=port_id)
+
+
 def _verify_security_groups(security_groups, client):
     """Verify that the security groups exist.
 

@@ -53,7 +53,6 @@ import oslo_messaging as messaging
 from oslo_utils import excutils
 from oslo_utils import uuidutils
 
-from ironic.common import dhcp_factory
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
@@ -1727,7 +1726,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                                    exception.MACAlreadyExists,
                                    exception.InvalidState,
                                    exception.FailedToUpdateDHCPOptOnPort,
-                                   exception.Conflict)
+                                   exception.Conflict,
+                                   exception.InvalidParameterValue,
+                                   exception.NetworkError)
     def update_port(self, context, port_obj):
         """Update a port.
 
@@ -1751,10 +1752,6 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, port_obj.node_id,
                                   purpose='port update') as task:
             node = task.node
-            portgroup_obj = None
-            if port_obj.portgroup_id:
-                portgroup_obj = [pg for pg in task.portgroups if
-                                 pg.id == port_obj.portgroup_id][0]
 
             # Only allow updating MAC addresses for active nodes if maintenance
             # mode is on.
@@ -1792,58 +1789,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                               'connect': ', '.join(connectivity_attr),
                               'allowed': ', '.join(allowed_update_states)})
 
-            if 'address' in port_obj.obj_what_changed():
-                vif = port_obj.extra.get('vif_port_id')
-                if vif:
-                    api = dhcp_factory.DHCPFactory()
-                    api.provider.update_port_address(vif, port_obj.address,
-                                                     token=context.auth_token)
-                # Log warning if there is no vif_port_id and an instance
-                # is associated with the node.
-                elif node.instance_uuid:
-                    LOG.warning(_LW(
-                        "No VIF found for instance %(instance)s "
-                        "port %(port)s when attempting to update port MAC "
-                        "address."),
-                        {'port': port_uuid, 'instance': node.instance_uuid})
-
-            vif = port_obj.extra.get('vif_port_id')
-            if 'extra' in port_obj.obj_what_changed():
-                orignal_port = objects.Port.get_by_id(context, port_obj.id)
-                updated_client_id = port_obj.extra.get('client-id')
-                if (orignal_port.extra.get('client-id') !=
-                    updated_client_id):
-                    # DHCP Option with opt_value=None will remove it
-                    # from the neutron port
-                    if vif:
-                        api = dhcp_factory.DHCPFactory()
-                        client_id_opt = {'opt_name': 'client-id',
-                                         'opt_value': updated_client_id}
-
-                        api.provider.update_port_dhcp_opts(
-                            vif, [client_id_opt], token=context.auth_token)
-                    # Log warning if there is no vif_port_id and an instance
-                    # is associated with the node.
-                    elif node.instance_uuid:
-                        LOG.warning(_LW(
-                            "No VIF found for instance %(instance)s "
-                            "port %(port)s when attempting to update port "
-                            "client-id."),
-                            {'port': port_uuid,
-                             'instance': node.instance_uuid})
-
-            if portgroup_obj and ((set(port_obj.obj_what_changed()) &
-                                  {'pxe_enabled', 'portgroup_id'}) or vif):
-                if ((port_obj.pxe_enabled or vif) and not
-                    portgroup_obj.standalone_ports_supported):
-                    msg = (_("Port group %(portgroup)s doesn't support "
-                             "standalone ports. This port %(port)s cannot be "
-                             " a member of that port group because either "
-                             "'extra/vif_port_id' was specified or "
-                             "'pxe_enabled' was set to True.") %
-                           {"portgroup": portgroup_obj.uuid,
-                            "port": port_uuid})
-                    raise exception.Conflict(msg)
+            task.driver.network.validate(task)
+            # Handle mac_address update and VIF attach/detach stuff.
+            task.driver.network.port_changed(task, port_obj)
 
             port_obj.save()
 
@@ -1855,7 +1803,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                                    exception.PortgroupMACAlreadyExists,
                                    exception.PortgroupNotEmpty,
                                    exception.InvalidState,
-                                   exception.Conflict)
+                                   exception.Conflict,
+                                   exception.InvalidParameterValue,
+                                   exception.NetworkError)
     def update_portgroup(self, context, portgroup_obj):
         """Update a portgroup.
 
@@ -1917,39 +1867,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                         action % {'portgroup': portgroup_uuid,
                                   'node': node.uuid})
 
-            if 'address' in portgroup_obj.obj_what_changed():
-                vif = portgroup_obj.extra.get('vif_port_id')
-                if vif:
-                    api = dhcp_factory.DHCPFactory()
-                    api.provider.update_port_address(
-                        vif,
-                        portgroup_obj.address,
-                        token=context.auth_token)
-                # Log warning if there is no vif_port_id and an instance
-                # is associated with the node.
-                elif node.instance_uuid:
-                    LOG.warning(_LW(
-                        "No VIF was found for instance %(instance)s "
-                        "on node %(node)s, when attempting to update "
-                        "portgroup %(portgroup)s MAC address."),
-                        {'portgroup': portgroup_uuid,
-                         'instance': node.instance_uuid,
-                         'node': node.uuid})
-
-            if ('standalone_ports_supported' in
-                    portgroup_obj.obj_what_changed()):
-                if not portgroup_obj.standalone_ports_supported:
-                    ports = [p for p in task.ports if
-                             p.portgroup_id == portgroup_obj.id]
-                    for p in ports:
-                        extra = p.extra
-                        vif = extra.get('vif_port_id')
-                        if vif or p.pxe_enabled:
-                            msg = _("standalone_ports_supported can not be "
-                                    "set to False, because the port group %s "
-                                    "contains ports with 'extra/vif_port_id' "
-                                    "or pxe_enabled=True") % portgroup_uuid
-                            raise exception.Conflict(msg)
+            task.driver.network.validate(task)
+            # Handle mac_address update and VIF attach/detach stuff.
+            task.driver.network.portgroup_changed(task, portgroup_obj)
 
             portgroup_obj.save()
 

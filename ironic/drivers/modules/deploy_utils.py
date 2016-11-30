@@ -534,9 +534,7 @@ def get_single_nic_with_vif_port_id(task):
     # and presence of cleaning_vif_port_id means we're doing cleaning, of
     # provisioning_vif_port_id - provisioning. Otherwise it's a tenant network
     for port in task.ports:
-        if (port.internal_info.get('cleaning_vif_port_id') or
-                port.internal_info.get('provisioning_vif_port_id') or
-                port.extra.get('vif_port_id')):
+        if task.driver.network.get_current_vif(task, port):
             return port.address
 
 

@@ -14,12 +14,15 @@
 Flat network interface. Useful for shared, flat networks.
 """
 
+from neutronclient.common import exceptions as neutron_exceptions
 from oslo_config import cfg
 from oslo_log import log
 
-from ironic.common.i18n import _LI, _LW
+from ironic.common import exception
+from ironic.common.i18n import _, _LI, _LW
 from ironic.common import neutron
 from ironic.drivers import base
+from ironic.drivers.modules.network import common
 
 
 LOG = log.getLogger(__name__)
@@ -27,7 +30,8 @@ LOG = log.getLogger(__name__)
 CONF = cfg.CONF
 
 
-class FlatNetwork(neutron.NeutronNetworkInterfaceMixin, base.NetworkInterface):
+class FlatNetwork(common.VIFPortIDMixin, neutron.NeutronNetworkInterfaceMixin,
+                  base.NetworkInterface):
     """Flat network interface."""
 
     def __init__(self):
@@ -57,8 +61,40 @@ class FlatNetwork(neutron.NeutronNetworkInterfaceMixin, base.NetworkInterface):
         """Add the provisioning network to a node.
 
         :param task: A TaskManager instance.
+        :raises: NetworkError when failed to set binding:host_id
         """
-        pass
+        LOG.debug("Binding flat network ports")
+        node = task.node
+        host_id = node.instance_info.get('nova_host_id')
+        if not host_id:
+            return
+
+        # FIXME(sambetts): Uncomment when we support vifs attached to
+        # portgroups
+        #
+        # ports = [p for p in task.ports if not p.portgroup_id]
+        # portgroups = task.portgroups
+
+        client = neutron.get_client(task.context.auth_token)
+        for port_like_obj in task.ports:  # + portgroups:
+            vif_port_id = (port_like_obj.extra.get('vif_port_id') or
+                           port_like_obj.internal_info.get(
+                               'tenant_vif_port_id'))
+            if not vif_port_id:
+                continue
+            body = {
+                'port': {
+                    'binding:host_id': host_id
+                }
+            }
+            try:
+                client.update_port(vif_port_id, body)
+            except neutron_exceptions.NeutronClientException as e:
+                msg = (_('Unable to set binding:host_id for '
+                         'neutron port %(port_id)s. Error: '
+                         '%(err)s') % {'port_id': vif_port_id, 'err': e})
+                LOG.exception(msg)
+                raise exception.NetworkError(msg)
 
     def remove_provisioning_network(self, task):
         """Remove the provisioning network from a node.
@@ -79,11 +115,7 @@ class FlatNetwork(neutron.NeutronNetworkInterfaceMixin, base.NetworkInterface):
 
         :param task: A TaskManager instance.
         """
-        for port in task.ports:
-            extra_dict = port.extra
-            extra_dict.pop('vif_port_id', None)
-            port.extra = extra_dict
-            port.save()
+        pass
 
     def add_cleaning_network(self, task):
         """Add the cleaning network to a node.

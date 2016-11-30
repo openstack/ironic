@@ -47,7 +47,8 @@ class BaseDHCP(object):
         :raises: FailedToUpdateDHCPOptOnPort
         """
 
-    @abc.abstractmethod
+    # TODO(vsaienko) Remove this method when deprecation period is passed
+    # in Pike.
     def update_port_address(self, port_id, address, token=None):
         """Update a port's MAC address.
 
@@ -57,6 +58,7 @@ class BaseDHCP(object):
 
         :raises: FailedToUpdateMacOnPort
         """
+        pass
 
     @abc.abstractmethod
     def update_dhcp_opts(self, task, options, vifs=None):

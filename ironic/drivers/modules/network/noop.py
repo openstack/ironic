@@ -16,6 +16,67 @@ from ironic.drivers import base
 class NoopNetwork(base.NetworkInterface):
     """Noop network interface."""
 
+    def port_changed(self, task, port_obj):
+        """Handle any actions required when a port changes
+
+        :param task: a TaskManager instance.
+        :param port_obj: a changed Port object.
+        :raises: Conflict, FailedToUpdateDHCPOptOnPort
+        """
+        pass
+
+    def portgroup_changed(self, task, portgroup_obj):
+        """Handle any actions required when a portgroup changes
+
+        :param task: a TaskManager instance.
+        :param portgroup_obj: a changed Portgroup object.
+        :raises: Conflict, FailedToUpdateDHCPOptOnPort
+        """
+        pass
+
+    def vif_attach(self, task, vif_info):
+        """Attach a virtual network interface to a node
+
+        :param task: A TaskManager instance.
+        :param vif_info: a dictionary of information about a VIF.
+            It must have an 'id' key, whose value is a unique
+            identifier for that VIF.
+        :raises: NetworkError, VifAlreadyAttached, NoFreePhysicalPorts
+        """
+        pass
+
+    def vif_detach(self, task, vif_id):
+        """Detach a virtual network interface from a node
+
+        :param task: A TaskManager instance.
+        :param vif_id: A VIF ID to detach
+        :raises: NetworkError, VifNotAttached
+        """
+        pass
+
+    def vif_list(self, task):
+        """List attached VIF IDs for a node.
+
+        :param task: A TaskManager instance.
+        :returns: List of VIF dictionaries, each dictionary will have an 'id'
+            entry with the ID of the VIF.
+        """
+        pass
+
+    def get_current_vif(self, task, p_obj):
+        """Returns the currently used VIF associated with port or portgroup
+
+        We are booting the node only in one network at a time, and presence of
+        cleaning_vif_port_id means we're doing cleaning, of
+        provisioning_vif_port_id - provisioning.
+        Otherwise it's a tenant network
+
+        :param task: A TaskManager instance.
+        :param p_obj: Ironic port or portgroup object.
+        :returns: VIF ID associated with p_obj or None.
+        """
+        pass
+
     def add_provisioning_network(self, task):
         """Add the provisioning network to a node.
 

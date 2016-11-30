@@ -22,6 +22,7 @@ from ironic.common import exception
 from ironic.common.i18n import _, _LI
 from ironic.common import neutron
 from ironic.drivers import base
+from ironic.drivers.modules.network import common
 from ironic import objects
 
 LOG = log.getLogger(__name__)
@@ -29,7 +30,8 @@ LOG = log.getLogger(__name__)
 CONF = cfg.CONF
 
 
-class NeutronNetwork(neutron.NeutronNetworkInterfaceMixin,
+class NeutronNetwork(common.VIFPortIDMixin,
+                     neutron.NeutronNetworkInterfaceMixin,
                      base.NetworkInterface):
     """Neutron v2 network interface"""
 
@@ -163,7 +165,9 @@ class NeutronNetwork(neutron.NeutronNetworkInterfaceMixin,
         client = neutron.get_client(task.context.auth_token)
         pobj_without_vif = 0
         for port_like_obj in ports + portgroups:
-            vif_port_id = port_like_obj.extra.get('vif_port_id')
+            vif_port_id = (
+                port_like_obj.internal_info.get('tenant_vif_port_id') or
+                port_like_obj.extra.get('vif_port_id'))
 
             if not vif_port_id:
                 pobj_without_vif += 1
@@ -222,15 +226,23 @@ class NeutronNetwork(neutron.NeutronNetworkInterfaceMixin,
     def unconfigure_tenant_networks(self, task):
         """Unconfigure tenant networks for a node.
 
-        Even though nova takes care of port removal from tenant network, we
-        remove it here/now to avoid the possibility of the ironic port being
-        bound to the tenant and cleaning networks at the same time.
+        Nova takes care of port removal from tenant network, we unbind it
+        here/now to avoid the possibility of the ironic port being bound to the
+        tenant and cleaning networks at the same time.
 
         :param task: A TaskManager instance.
         :raises: NetworkError
         """
         node = task.node
-        LOG.info(_LI('Unmapping instance ports from node %s'), node.uuid)
-        params = {'device_id': node.instance_uuid or node.uuid}
+        LOG.info(_LI('Unbinding instance ports from node %s'), node.uuid)
 
-        neutron.remove_neutron_ports(task, params)
+        ports = [p for p in task.ports if not p.portgroup_id]
+        portgroups = task.portgroups
+        for port_like_obj in ports + portgroups:
+            vif_port_id = (
+                port_like_obj.internal_info.get('tenant_vif_port_id') or
+                port_like_obj.extra.get('vif_port_id'))
+            if not vif_port_id:
+                continue
+            neutron.unbind_neutron_port(vif_port_id,
+                                        token=task.context.auth_token)

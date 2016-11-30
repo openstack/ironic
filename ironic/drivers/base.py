@@ -31,6 +31,7 @@ import six
 from ironic.common import exception
 from ironic.common.i18n import _, _LE, _LW
 from ironic.common import raid
+from ironic.drivers.modules.network import common as net_common
 
 LOG = logging.getLogger(__name__)
 
@@ -924,6 +925,15 @@ class NetworkInterface(BaseInterface):
 
     interface_type = 'network'
 
+    # Use these booleans to prevent conductor logs being spammed by deprecation
+    # warnings.
+    _deprecated_port_change_shown = False
+    _deprecated_portgroup_change_shown = False
+    _deprecated_vif_attach_shown = False
+    _deprecated_vif_detach_shown = False
+    _deprecated_vif_list_shown = False
+    _deprecated_get_current_vif_shown = False
+
     def get_properties(self):
         """Return the properties of the interface.
 
@@ -939,6 +949,121 @@ class NetworkInterface(BaseInterface):
             is invalid.
         :raises: MissingParameterValue, if some parameters are missing.
         """
+
+    # TODO(vsaienko) Make this method abstract in Pike.
+    def port_changed(self, task, port_obj):
+        """Handle any actions required when a port changes
+
+        :param task: a TaskManager instance.
+        :param port_obj: a changed Port object.
+        :raises: Conflict, FailedToUpdateDHCPOptOnPort
+        """
+        default_impl = net_common.VIFPortIDMixin()
+        if not self._deprecated_port_change_shown:
+            self.__class__._deprecated_port_change_shown = True
+            LOG.warning(_LW('The network interface %s should be updated to '
+                            'implement the port_changed function. Falling '
+                            'back to default implementation, this behaviour '
+                            'will be removed in Pike'),
+                        self.__class__.__name__)
+        return default_impl.port_changed(task, port_obj)
+
+    # TODO(vsaienko) Make this method abstract in Pike.
+    def portgroup_changed(self, task, portgroup_obj):
+        """Handle any actions required when a port changes
+
+        :param task: a TaskManager instance.
+        :param portgroup_obj: a changed Port object.
+        :raises: Conflict, FailedToUpdateDHCPOptOnPort
+        """
+        default_impl = net_common.VIFPortIDMixin()
+        if not self._deprecated_portgroup_change_shown:
+            self.__class__._deprecated_port_change_shown = True
+            LOG.warning(_LW('The network interface %s should be updated to '
+                            'implement the portgroup_changed function. '
+                            'Falling back to default implementation, this '
+                            'behaviour will be removed in Pike'),
+                        self.__class__.__name__)
+        return default_impl.portgroup_changed(task, portgroup_obj)
+
+    # TODO(vsaienko) Make this method abstract in Pike.
+    def vif_attach(self, task, vif_info):
+        """Attach a virtual network interface to a node
+
+        :param task: A TaskManager instance.
+        :param vif_info: a dictionary of information about a VIF.
+            It must have an 'id' key, whose value is a unique identifier
+            for that VIF.
+        :raises: NetworkError, VifAlreadyAttached, NoFreePhysicalPorts
+        """
+        default_impl = net_common.VIFPortIDMixin()
+        if not self._deprecated_vif_attach_shown:
+            self.__class__._deprecated_vif_attach_shown = True
+            LOG.warning(_LW('The network interface %s should be updated to '
+                            'implement the vif_attach function. Falling '
+                            'back to default implementation, this behaviour '
+                            'will be removed in Pike'),
+                        self.__class__.__name__)
+        return default_impl.vif_attach(task, vif_info)
+
+    # TODO(vsaienko) Make this method abstract in Pike.
+    def vif_detach(self, task, vif_id):
+        """Detach a virtual network interface from a node
+
+        :param task: A TaskManager instance.
+        :param vif_id: A VIF ID to detach
+        :raises: NetworkError, VifNotAttached
+        """
+        default_impl = net_common.VIFPortIDMixin()
+        if not self._deprecated_vif_detach_shown:
+            self.__class__._deprecated_vif_detach_shown = True
+            LOG.warning(_LW('The network interface %s should be updated to '
+                            'implement the vif_detach function. Falling '
+                            'back to default implementation, this behaviour '
+                            'will be removed in Pike'),
+                        self.__class__.__name__)
+        return default_impl.vif_detach(task, vif_id)
+
+    # TODO(vsaienko) Make this method abstract in Pike.
+    def vif_list(self, task):
+        """List attached VIF IDs for a node
+
+        :param task: A TaskManager instance.
+        :returns: List of VIF dictionaries, each dictionary will have an 'id'
+            entry with the ID of the VIF.
+        """
+        default_impl = net_common.VIFPortIDMixin()
+        if not self._deprecated_vif_list_shown:
+            self.__class__._deprecated_vif_list_shown = True
+            LOG.warning(_LW('The network interface %s should be updated to '
+                            'implement the vif_list function. Falling '
+                            'back to default implementation, this behaviour '
+                            'will be removed in Pike'),
+                        self.__class__.__name__)
+        return default_impl.vif_list(task)
+
+    # TODO(vsaienko) Make this method abstract in Pike.
+    def get_current_vif(self, task, p_obj):
+        """Returns the currently used VIF associated with port or portgroup
+
+        We are booting the node only in one network at a time, and presence of
+        cleaning_vif_port_id means we're doing cleaning, of
+        provisioning_vif_port_id - provisioning.
+        Otherwise it's a tenant network
+
+        :param task: A TaskManager instance.
+        :param p_obj: Ironic port or portgroup object.
+        :returns: VIF ID associated with p_obj or None.
+        """
+        default_impl = net_common.VIFPortIDMixin()
+        if not self.__class__._deprecated_get_current_vif_shown:
+            self.__class__._deprecated_get_current_vif_shown = True
+            LOG.warning(_LW('The network interface %s should be updated to '
+                            'implement the get_current_vif function. Falling '
+                            'back to default implementation, this behaviour '
+                            'will be removed in Pike'),
+                        self.__class__.__name__)
+        return default_impl.get_current_vif(task, p_obj)
 
     @abc.abstractmethod
     def add_provisioning_network(self, task):

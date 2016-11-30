@@ -226,6 +226,21 @@ class VolumeTargetBootIndexAlreadyExists(Conflict):
                  "for the same node already exists.")
 
 
+class VifAlreadyAttached(Conflict):
+    _msg_fmt = _("Unable to attach VIF because VIF %(vif)s is already "
+                 "attached to Ironic port %(port_uuid)s")
+
+
+class NoFreePhysicalPorts(Invalid):
+    _msg_fmt = _("Unable to attach VIF %(vif)s, not "
+                 "enough free physical ports.")
+
+
+class VifNotAttached(Invalid):
+    _msg_fmt = _("Unable to detach VIF %(vif)s from node %(node)s "
+                 "because it is not attached to it.")
+
+
 class InvalidUUID(Invalid):
     _msg_fmt = _("Expected a UUID but received %(uuid)s.")
 

@@ -28,6 +28,7 @@ from ironic.tests.unit.objects import utils
 CONF = cfg.CONF
 CLIENT_ID1 = '20:00:55:04:01:fe:80:00:00:00:00:00:00:00:02:c9:02:00:23:13:92'
 CLIENT_ID2 = '20:00:55:04:01:fe:80:00:00:00:00:00:00:00:02:c9:02:00:23:13:93'
+VIFMIXINPATH = 'ironic.drivers.modules.network.common.VIFPortIDMixin'
 
 
 class NeutronInterfaceTestCase(db_base.DbTestCase):
@@ -45,6 +46,33 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             extra={'vif_port_id': uuidutils.generate_uuid()})
         self.neutron_port = {'id': '132f871f-eaec-4fed-9475-0d54465e0f00',
                              'mac_address': '52:54:00:cf:2d:32'}
+
+    @mock.patch('%s.vif_list' % VIFMIXINPATH)
+    def test_vif_list(self, mock_vif_list):
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.vif_list(task)
+            mock_vif_list.assert_called_once_with(task)
+
+    @mock.patch('%s.vif_attach' % VIFMIXINPATH)
+    def test_vif_attach(self, mock_vif_attach):
+        vif = mock.MagicMock()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.vif_attach(task, vif)
+            mock_vif_attach.assert_called_once_with(task, vif)
+
+    @mock.patch('%s.vif_detach' % VIFMIXINPATH)
+    def test_vif_detach(self, mock_vif_detach):
+        vif_id = "vif"
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.vif_detach(task, vif_id)
+            mock_vif_detach.assert_called_once_with(task, vif_id)
+
+    @mock.patch('%s.port_changed' % VIFMIXINPATH)
+    def test_vif_port_changed(self, mock_p_changed):
+        port = mock.MagicMock()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.port_changed(task, port)
+            mock_p_changed.assert_called_once_with(task, port)
 
     def test_init_incorrect_provisioning_net(self):
         self.config(provisioning_network=None, group='neutron')
@@ -187,12 +215,12 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         self.port.refresh()
         self.assertNotIn('cleaning_vif_port_id', self.port.internal_info)
 
-    @mock.patch.object(neutron_common, 'remove_neutron_ports')
-    def test_unconfigure_tenant_networks(self, remove_ports_mock):
+    @mock.patch.object(neutron_common, 'unbind_neutron_port')
+    def test_unconfigure_tenant_networks(self, mock_unbind_port):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.unconfigure_tenant_networks(task)
-            remove_ports_mock.assert_called_once_with(
-                task, {'device_id': task.node.uuid})
+            mock_unbind_port.assert_called_once_with(
+                self.port.extra['vif_port_id'], token=None)
 
     def test_configure_tenant_networks_no_ports_for_node(self):
         n = utils.create_test_node(self.context, network_interface='neutron',
@@ -258,16 +286,25 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             client_mock.assert_called_once_with(task.context.auth_token)
 
     @mock.patch.object(neutron_common, 'get_client')
-    def _test_configure_tenant_networks(self, client_mock, is_client_id=False):
+    def _test_configure_tenant_networks(self, client_mock, is_client_id=False,
+                                        vif_int_info=False):
         upd_mock = mock.Mock()
         client_mock.return_value.update_port = upd_mock
+        if vif_int_info:
+            kwargs = {'internal_info': {
+                'tenant_vif_port_id': uuidutils.generate_uuid()}}
+            self.port.internal_info = {
+                'tenant_vif_port_id': self.port.extra['vif_port_id']}
+            self.port.extra = {}
+        else:
+            kwargs = {'extra': {'vif_port_id': uuidutils.generate_uuid()}}
         second_port = utils.create_test_port(
             self.context, node_id=self.node.id, address='52:54:00:cf:2d:33',
-            extra={'vif_port_id': uuidutils.generate_uuid()},
             uuid=uuidutils.generate_uuid(),
             local_link_connection={'switch_id': '0a:1b:2c:3d:4e:ff',
                                    'port_id': 'Ethernet1/1',
-                                   'switch_info': 'switch2'}
+                                   'switch_info': 'switch2'},
+            **kwargs
         )
         if is_client_id:
             client_ids = (CLIENT_ID1, CLIENT_ID2)
@@ -303,16 +340,27 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.configure_tenant_networks(task)
             client_mock.assert_called_once_with(task.context.auth_token)
+        if vif_int_info:
+            portid1 = self.port.internal_info['tenant_vif_port_id']
+            portid2 = second_port.internal_info['tenant_vif_port_id']
+        else:
+            portid1 = self.port.extra['vif_port_id']
+            portid2 = second_port.extra['vif_port_id']
         upd_mock.assert_has_calls(
-            [mock.call(self.port.extra['vif_port_id'], port1_body),
-             mock.call(second_port.extra['vif_port_id'], port2_body)],
+            [mock.call(portid1, port1_body),
+             mock.call(portid2, port2_body)],
             any_order=True
         )
 
-    def test_configure_tenant_networks(self):
+    def test_configure_tenant_networks_vif_extra(self):
         self.node.instance_uuid = uuidutils.generate_uuid()
         self.node.save()
         self._test_configure_tenant_networks()
+
+    def test_configure_tenant_networks_vif_int_info(self):
+        self.node.instance_uuid = uuidutils.generate_uuid()
+        self.node.save()
+        self._test_configure_tenant_networks(vif_int_info=True)
 
     def test_configure_tenant_networks_no_instance_uuid(self):
         self._test_configure_tenant_networks()
