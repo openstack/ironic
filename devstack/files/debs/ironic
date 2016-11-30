@@ -28,7 +28,7 @@ qemu-kvm
 qemu-utils
 sgabios
 shellinabox
-syslinux
+syslinux # dist:wheezy,trusty
 syslinux-common # dist:jessie,xenial
 tftpd-hpa
 xinetd
