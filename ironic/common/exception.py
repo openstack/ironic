@@ -250,6 +250,12 @@ class DriverNotFoundInEntrypoint(DriverNotFound):
                  "'%(entrypoint)s' entrypoint: %(driver_name)s.")
 
 
+class InterfaceNotFoundInEntrypoint(InvalidParameterValue):
+    _msg_fmt = _("Could not find the following interface in the "
+                 "'%(entrypoint)s' entrypoint: %(iface)s. Valid interfaces "
+                 "are %(valid)s.")
+
+
 class ImageNotFound(NotFound):
     _msg_fmt = _("Image %(image_id)s could not be found.")
 

@@ -381,6 +381,38 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
 
 
 @mgr_utils.mock_record_keepalive
+class CreateNodeTestCase(mgr_utils.ServiceSetUpMixin,
+                         tests_db_base.DbTestCase):
+    def test_create_node(self):
+        node = obj_utils.get_test_node(self.context, driver='fake',
+                                       extra={'test': 'one'})
+
+        res = self.service.create_node(self.context, node)
+
+        self.assertEqual({'test': 'one'}, res['extra'])
+        res = objects.Node.get_by_uuid(self.context, node['uuid'])
+        self.assertEqual({'test': 'one'}, res['extra'])
+
+    @mock.patch.object(driver_factory, 'check_and_update_node_interfaces',
+                       autospec=True)
+    def test_create_node_validation_fails(self, mock_validate):
+        node = obj_utils.get_test_node(self.context, driver='fake',
+                                       extra={'test': 'one'})
+        mock_validate.side_effect = exception.InterfaceNotFoundInEntrypoint(
+            'boom')
+
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.create_node,
+                                self.context, node)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.InterfaceNotFoundInEntrypoint,
+                         exc.exc_info[0])
+
+        self.assertRaises(exception.NotFound,
+                          objects.Node.get_by_uuid, self.context, node['uuid'])
+
+
+@mgr_utils.mock_record_keepalive
 class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin,
                          tests_db_base.DbTestCase):
     def test_update_node(self):
@@ -503,7 +535,8 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin,
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.update_node,
                                 self.context, node)
-        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+        self.assertEqual(exception.InterfaceNotFoundInEntrypoint,
+                         exc.exc_info[0])
         node.refresh()
         self.assertEqual(old_iface, node.network_interface)
 

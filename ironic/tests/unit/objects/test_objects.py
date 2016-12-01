@@ -404,7 +404,7 @@ class TestObject(_LocalTest, _TestObject):
 # version bump. It is md5 hash of object fields and remotable methods.
 # The fingerprint values should only be changed if there is a version bump.
 expected_object_fingerprints = {
-    'Node': '1.19-e8b294016d8d5b322df813f790d092b4',
+    'Node': '1.20-b6a13eb50f9d64fa6c9d614c61dbec31',
     'MyObj': '1.5-4f5efe8f0fcaf182bbe1c7fe3ba858db',
     'Chassis': '1.3-d656e039fd8ae9f34efc232ab3980905',
     'Port': '1.6-609504503d68982a10f495659990084b',
@@ -412,15 +412,15 @@ expected_object_fingerprints = {
     'Conductor': '1.1-5091f249719d4a465062a1b3dc7f860d',
     'EventType': '1.1-aa2ba1afd38553e3880c267404e8d370',
     'NotificationPublisher': '1.0-51a09397d6c0687771fb5be9a999605d',
-    'NodePayload': '1.0-ccb491ab5cd247e2ba3f21af4c12eb7c',
+    'NodePayload': '1.1-d895cf6411ac666f9e982f85ea0a9499',
     'NodeSetPowerStateNotification': '1.0-59acc533c11d306f149846f922739c15',
-    'NodeSetPowerStatePayload': '1.0-80986cc6a099cccd481fe3e288157a07',
+    'NodeSetPowerStatePayload': '1.1-b8fab1bea5a2da5900445ab515e41715',
     'NodeCorrectedPowerStateNotification': '1.0-59acc533c11d306f149846f922739'
                                            'c15',
-    'NodeCorrectedPowerStatePayload': '1.0-2a484d7c342caa9fe488de16dc5f1f1e',
+    'NodeCorrectedPowerStatePayload': '1.1-5d1544defc858ae8a722f4cadd511bac',
     'NodeSetProvisionStateNotification':
         '1.0-59acc533c11d306f149846f922739c15',
-    'NodeSetProvisionStatePayload': '1.0-91be7439b9b6b04931c9b99b8e1ea87a',
+    'NodeSetProvisionStatePayload': '1.1-743be1f5748f346e3da33390983172b1',
     'VolumeConnector': '1.0-3e0252c0ab6e6b9d158d09238a577d97'
 }
 

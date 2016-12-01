@@ -34,10 +34,10 @@ from ironic.api.controllers.v1 import node as api_node
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import versions
 from ironic.common import boot_devices
+from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import rpcapi
-from ironic.conf import CONF
 from ironic import objects
 from ironic.tests import base
 from ironic.tests.unit.api import base as test_api_base
@@ -1646,43 +1646,6 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
 
-    def test_update_network_interface_null_sets_default(self):
-        CONF.set_override('default_network_interface', 'neutron')
-        node = obj_utils.create_test_node(self.context,
-                                          uuid=uuidutils.generate_uuid(),
-                                          network_interface='flat')
-        self.mock_update_node.return_value = node
-        network_interface = 'neutron'
-        headers = {api_base.Version.string: str(api_v1.MAX_VER)}
-        response = self.patch_json('/nodes/%s' % node.uuid,
-                                   [{'path': '/network_interface',
-                                     'value': None,
-                                     'op': 'add'}],
-                                   headers=headers)
-        self.assertEqual('application/json', response.content_type)
-        self.assertEqual(http_client.OK, response.status_code)
-        # check the node we pass to updated_node
-        node_arg = self.mock_update_node.call_args[0][1]
-        self.assertEqual(network_interface, node_arg['network_interface'])
-
-    def test_update_network_interface_remove_sets_default(self):
-        CONF.set_override('default_network_interface', 'neutron')
-        node = obj_utils.create_test_node(self.context,
-                                          uuid=uuidutils.generate_uuid(),
-                                          network_interface='flat')
-        self.mock_update_node.return_value = node
-        network_interface = 'neutron'
-        headers = {api_base.Version.string: str(api_v1.MAX_VER)}
-        response = self.patch_json('/nodes/%s' % node.uuid,
-                                   [{'path': '/network_interface',
-                                     'op': 'remove'}],
-                                   headers=headers)
-        self.assertEqual('application/json', response.content_type)
-        self.assertEqual(http_client.OK, response.status_code)
-        # check the node we pass to updated_node
-        node_arg = self.mock_update_node.call_args[0][1]
-        self.assertEqual(network_interface, node_arg['network_interface'])
-
     def test_update_network_interface_old_api(self):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
@@ -1757,6 +1720,14 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
 
 
+def _create_node_locally(node):
+    driver_factory.check_and_update_node_interfaces(node)
+    node.create()
+    return node
+
+
+@mock.patch.object(rpcapi.ConductorAPI, 'create_node',
+                   lambda _api, _ctx, node, _topic: _create_node_locally(node))
 class TestPost(test_api_base.BaseApiTest):
 
     def setUp(self):
@@ -1814,13 +1785,6 @@ class TestPost(test_api_base.BaseApiTest):
         headers = {api_base.Version.string: '1.20'}
         result = self._test_create_node(headers=headers,
                                         network_interface='neutron')
-        self.assertEqual('neutron', result['network_interface'])
-
-    def test_create_node_default_network_interface(self):
-        CONF.set_override('default_network_interface', 'neutron')
-        CONF.set_override('enabled_network_interfaces', 'flat,noop,neutron')
-        headers = {api_base.Version.string: '1.20'}
-        result = self._test_create_node(headers=headers)
         self.assertEqual('neutron', result['network_interface'])
 
     def test_create_node_name_empty_invalid(self):

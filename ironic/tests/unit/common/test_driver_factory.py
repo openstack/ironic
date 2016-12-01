@@ -30,10 +30,6 @@ class FakeEp(object):
 
 class DriverLoadTestCase(base.TestCase):
 
-    def setUp(self):
-        super(DriverLoadTestCase, self).setUp()
-        driver_factory.DriverFactory._extension_manager = None
-
     def _fake_init_name_err(self, *args, **kwargs):
         kwargs['on_load_failure_callback'](None, FakeEp, NameError('aaa'))
 
@@ -104,11 +100,6 @@ class WarnUnsupportedDriversTestCase(base.TestCase):
 
 
 class GetDriverTestCase(base.TestCase):
-    def setUp(self):
-        super(GetDriverTestCase, self).setUp()
-        driver_factory.DriverFactory._extension_manager = None
-        self.config(enabled_drivers=['fake'])
-
     def test_get_driver_known(self):
         driver = driver_factory.get_driver('fake')
         self.assertIsInstance(driver, drivers_base.BaseDriver)
@@ -119,12 +110,6 @@ class GetDriverTestCase(base.TestCase):
 
 
 class NetworkInterfaceFactoryTestCase(db_base.DbTestCase):
-    def setUp(self):
-        super(NetworkInterfaceFactoryTestCase, self).setUp()
-        driver_factory.DriverFactory._extension_manager = None
-        driver_factory.NetworkInterfaceFactory._extension_manager = None
-        self.config(enabled_drivers=['fake'])
-
     @mock.patch.object(driver_factory, '_warn_if_unsupported')
     def test_build_driver_for_task(self, mock_warn):
         # flat, neutron, and noop network interfaces are enabled in base test
@@ -188,7 +173,7 @@ class NetworkInterfaceFactoryTestCase(db_base.DbTestCase):
     def test_build_driver_for_task_unknown_network_interface(self):
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           network_interface='meow')
-        self.assertRaises(exception.DriverNotFoundInEntrypoint,
+        self.assertRaises(exception.InterfaceNotFoundInEntrypoint,
                           task_manager.acquire, self.context, node.id)
 
 
@@ -201,3 +186,41 @@ class NewFactoryTestCase(db_base.DbTestCase):
         factory = NewDriverFactory()
         self.assertEqual('woof', factory._entrypoint_name)
         self.assertEqual([], factory._enabled_driver_list)
+
+
+class CheckAndUpdateNodeInterfacesTestCase(db_base.DbTestCase):
+    def test_no_network_interface(self):
+        node = obj_utils.get_test_node(self.context, driver='fake')
+        self.assertTrue(driver_factory.check_and_update_node_interfaces(node))
+        self.assertEqual('flat', node.network_interface)
+
+    def test_none_network_interface(self):
+        node = obj_utils.get_test_node(self.context, driver='fake',
+                                       network_interface=None)
+        self.assertTrue(driver_factory.check_and_update_node_interfaces(node))
+        self.assertEqual('flat', node.network_interface)
+
+    def test_no_network_interface_default_from_conf(self):
+        self.config(default_network_interface='noop')
+        node = obj_utils.get_test_node(self.context, driver='fake')
+        self.assertTrue(driver_factory.check_and_update_node_interfaces(node))
+        self.assertEqual('noop', node.network_interface)
+
+    def test_no_network_interface_default_from_dhcp(self):
+        self.config(dhcp_provider='none', group='dhcp')
+        node = obj_utils.get_test_node(self.context, driver='fake')
+        self.assertTrue(driver_factory.check_and_update_node_interfaces(node))
+        # "none" dhcp provider corresponds to "noop" network_interface
+        self.assertEqual('noop', node.network_interface)
+
+    def test_valid_network_interface(self):
+        node = obj_utils.get_test_node(self.context, driver='fake',
+                                       network_interface='noop')
+        self.assertFalse(driver_factory.check_and_update_node_interfaces(node))
+
+    def test_invalid_network_interface(self):
+        node = obj_utils.get_test_node(self.context, driver='fake',
+                                       network_interface='banana')
+        self.assertRaises(exception.InterfaceNotFoundInEntrypoint,
+                          driver_factory.check_and_update_node_interfaces,
+                          node)

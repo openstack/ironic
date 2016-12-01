@@ -1410,21 +1410,6 @@ class NodesController(rest.RestController):
                 n_interface is not wtypes.Unset):
             raise exception.NotAcceptable()
 
-        # NOTE(vsaienko) The validation is performed on API side,
-        # all conductors and api should have the same list of
-        # enabled_network_interfaces.
-        # TODO(vsaienko) remove it once driver-composition-reform
-        # is implemented.
-        if (n_interface is not wtypes.Unset and
-            not api_utils.is_valid_network_interface(n_interface)):
-            error_msg = _("Cannot create node with the invalid network "
-                          "interface '%(n_interface)s'. Enabled network "
-                          "interfaces are: %(enabled_int)s")
-            raise wsme.exc.ClientSideError(
-                error_msg % {'n_interface': n_interface,
-                             'enabled_int': CONF.enabled_network_interfaces},
-                status_code=http_client.BAD_REQUEST)
-
         # NOTE(deva): get_topic_for checks if node.driver is in the hash ring
         #             and raises NoValidHost if it is not.
         #             We need to ensure that node has a UUID before it can
@@ -1433,7 +1418,7 @@ class NodesController(rest.RestController):
             node.uuid = uuidutils.generate_uuid()
 
         try:
-            pecan.request.rpcapi.get_topic_for(node)
+            topic = pecan.request.rpcapi.get_topic_for(node)
         except exception.NoValidHost as e:
             # NOTE(deva): convert from 404 to 400 because client can see
             #             list of available drivers and shouldn't request
@@ -1448,7 +1433,8 @@ class NodesController(rest.RestController):
 
         new_node = objects.Node(pecan.request.context,
                                 **node.as_dict())
-        new_node.create()
+        new_node = pecan.request.rpcapi.create_node(
+            pecan.request.context, new_node, topic)
         # Set the HTTP Location Header
         pecan.response.location = link.build_url('nodes', new_node.uuid)
         return Node.convert_with_links(new_node)
@@ -1475,17 +1461,6 @@ class NodesController(rest.RestController):
         n_interfaces = api_utils.get_patch_values(patch, '/network_interface')
         if n_interfaces and not api_utils.allow_network_interface():
             raise exception.NotAcceptable()
-
-        for n_interface in n_interfaces:
-            if (n_interface is not None and
-                not api_utils.is_valid_network_interface(n_interface)):
-                error_msg = _("Node %(node)s: Cannot change "
-                              "network_interface to invalid value: "
-                              "%(n_interface)s")
-                raise wsme.exc.ClientSideError(
-                    error_msg % {'node': node_ident,
-                                 'n_interface': n_interface},
-                    status_code=http_client.BAD_REQUEST)
 
         rpc_node = api_utils.get_rpc_node(node_ident)
 

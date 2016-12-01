@@ -187,6 +187,7 @@ class TaskManager(object):
                             from the Node's current driver.
         :param purpose: human-readable purpose to put to debug logs.
         :raises: DriverNotFound
+        :raises: InterfaceNotFoundInEntrypoint
         :raises: NodeNotFound
         :raises: NodeLocked
 
