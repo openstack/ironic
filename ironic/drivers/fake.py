@@ -219,8 +219,6 @@ class FakeDracDriver(base.BaseDriver):
 class FakeSNMPDriver(base.BaseDriver):
     """Fake SNMP driver."""
 
-    supported = False
-
     def __init__(self):
         if not importutils.try_import('pysnmp'):
             raise exception.DriverLoadError(

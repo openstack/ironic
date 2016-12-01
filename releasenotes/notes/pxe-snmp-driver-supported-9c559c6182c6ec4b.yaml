@@ -1,0 +1,4 @@
+---
+features:
+  - The pxe_snmp and fake_snmp are now supported and
+    tested.
