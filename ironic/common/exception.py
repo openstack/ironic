@@ -20,7 +20,10 @@ SHOULD include dedicated exception logging.
 
 """
 
+import collections
+
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 import six
 from six.moves import http_client
 
@@ -28,6 +31,52 @@ from ironic.common.i18n import _, _LE
 from ironic.conf import CONF
 
 LOG = logging.getLogger(__name__)
+
+
+def _ensure_exception_kwargs_serializable(exc_class_name, kwargs):
+    """Ensure that kwargs are serializable
+
+    Ensure that all kwargs passed to exception constructor can be passed over
+    RPC, by trying to convert them to JSON, or, as a last resort, to string.
+    If it is not possible, unserializable kwargs will be removed, letting the
+    receiver to handle the exception string as it is configured to.
+
+    :param exc_class_name: an IronicException class name.
+    :param kwargs: a dictionary of keyword arguments passed to the exception
+        constructor.
+    :returns: a dictionary of serializable keyword arguments.
+    """
+    serializers = [(jsonutils.dumps, _('when converting to JSON')),
+                   (six.text_type, _('when converting to string'))]
+    exceptions = collections.defaultdict(list)
+    serializable_kwargs = {}
+    for k, v in kwargs.items():
+        for serializer, msg in serializers:
+            try:
+                serializable_kwargs[k] = serializer(v)
+                exceptions.pop(k, None)
+                break
+            except Exception as e:
+                exceptions[k].append(
+                    '(%(serializer_type)s) %(e_type)s: %(e_contents)s' %
+                    {'serializer_type': msg, 'e_contents': e,
+                     'e_type': e.__class__.__name__})
+    if exceptions:
+        LOG.error(
+            _LE("One or more arguments passed to the %(exc_class)s "
+                "constructor as kwargs can not be serialized. The serialized "
+                "arguments: %(serialized)s. These unserialized kwargs were "
+                "dropped because of the exceptions encountered during their "
+                "serialization:\n%(errors)s"),
+            dict(errors=';\n'.join("%s: %s" % (k, '; '.join(v))
+                                   for k, v in exceptions.items()),
+                 exc_class=exc_class_name, serialized=serializable_kwargs)
+        )
+        # We might be able to actually put the following keys' values into
+        # format string, but there is no guarantee, drop it just in case.
+        for k in exceptions:
+            del kwargs[k]
+    return serializable_kwargs
 
 
 class IronicException(Exception):
@@ -47,7 +96,9 @@ class IronicException(Exception):
     safe = False
 
     def __init__(self, message=None, **kwargs):
-        self.kwargs = kwargs
+
+        self.kwargs = _ensure_exception_kwargs_serializable(
+            self.__class__.__name__, kwargs)
 
         if 'code' not in self.kwargs:
             try:
