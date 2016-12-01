@@ -165,7 +165,7 @@ the intermediate floppy image and the boot ISO.
 Enable driver
 =============
 
-1. Build a deploy ISO (and kernel and ramdisk) image, see :ref:`BuildingDibBasedDeployRamdisk`
+1. Build a deploy ISO (and kernel and ramdisk) image, see :ref:`BuildingDeployRamdisk`
 
 2. See `Glance Configuration`_ for configuring glance image service with its storage
    backend as ``swift``.
@@ -560,7 +560,7 @@ None.
 Configuring and Enabling the driver
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-1. Build a deploy image, see :ref:`BuildingDibBasedDeployRamdisk`
+1. Build a deploy image, see :ref:`BuildingDeployRamdisk`
 
 2. Upload this image to glance::
 
@@ -758,7 +758,7 @@ flavor.
 Use element ``ubuntu-signed`` or ``fedora`` to build signed deploy iso and
 user images from
 `diskimage-builder <https://pypi.python.org/pypi/diskimage-builder>`_.
-Refer :ref:`BuildingDibBasedDeployRamdisk` for more information on building
+Refer :ref:`BuildingDeployRamdisk` for more information on building
 deploy ramdisk.
 
 The below command creates files named cloud-image-boot.iso, cloud-image.initrd,
