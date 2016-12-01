@@ -572,19 +572,6 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(connectors.c.extra.type,
                               sqlalchemy.types.TEXT)
 
-        typestring = 'a' * 32
-        connector_idstring = 'a' * 255
-        uuid = uuidutils.generate_uuid()
-        data = {'uuid': uuid, 'node_id': 1, 'type': typestring,
-                'connector_id': connector_idstring, 'extra': '{}'}
-        connectors.insert().execute(data)
-        connector = connectors.select(
-            connectors.c.uuid == uuid).execute().first()
-        self.assertEqual(typestring, connector['type'])
-        self.assertEqual(connector_idstring, connector['connector_id'])
-        self.assertEqual(1, connector['node_id'])
-        self.assertEqual('{}', connector['extra'])
-
     def _check_1a59178ebdf6(self, engine, data):
         targets = db_utils.get_table(engine, 'volume_targets')
         col_names = [column.name for column in targets.c]
