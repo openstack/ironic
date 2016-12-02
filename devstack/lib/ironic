@@ -1118,7 +1118,7 @@ function enroll_nodes {
 
         if is_deployed_by_ipmitool; then
             local node_options="\
-                -i ipmi_address=127.0.0.1 \
+                -i ipmi_address=${HOST_IP} \
                 -i ipmi_username=admin \
                 -i ipmi_password=password"
         else
