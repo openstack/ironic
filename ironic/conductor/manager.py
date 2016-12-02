@@ -82,7 +82,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.36'
+    RPC_API_VERSION = '1.37'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -1576,6 +1576,30 @@ class ConductorManager(base_manager.BaseConductorManager):
                          '%(node)s'),
                      {'connector': connector.uuid, 'node': task.node.uuid})
 
+    @METRICS.timer('ConductorManager.destroy_volume_target')
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.NodeNotFound,
+                                   exception.VolumeTargetNotFound)
+    def destroy_volume_target(self, context, target):
+        """Delete a volume target.
+
+        :param context: request context
+        :param target: volume target object
+        :raises: NodeLocked if node is locked by another conductor
+        :raises: NodeNotFound if the node associated with the target does
+                 not exist
+        :raises: VolumeTargetNotFound if the volume target cannot be found
+        """
+        LOG.debug('RPC destroy_volume_target called for volume target '
+                  '%(target)s',
+                  {'target': target.uuid})
+        with task_manager.acquire(context, target.node_id,
+                                  purpose='volume target deletion') as task:
+            target.destroy()
+            LOG.info(_LI('Successfully deleted volume target %(target)s. '
+                         'The node associated with the target was %(node)s'),
+                     {'target': target.uuid, 'node': task.node.uuid})
+
     @METRICS.timer('ConductorManager.get_console_information')
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.UnsupportedDriverExtension,
@@ -1947,6 +1971,38 @@ class ConductorManager(base_manager.BaseConductorManager):
                          "%(connector)s."),
                      {'connector': connector.uuid})
             return connector
+
+    @METRICS.timer('ConductorManager.update_volume_target')
+    @messaging.expected_exceptions(
+        exception.InvalidParameterValue,
+        exception.NodeLocked,
+        exception.NodeNotFound,
+        exception.VolumeTargetNotFound,
+        exception.VolumeTargetBootIndexAlreadyExists)
+    def update_volume_target(self, context, target):
+        """Update a volume target.
+
+        :param context: request context
+        :param target: a changed (but not saved) volume target object
+        :returns: an updated volume target object
+        :raises: InvalidParameterValue if the volume target's UUID is being
+                 changed
+        :raises: NodeLocked if the node is already locked
+        :raises: NodeNotFound if the node associated with the volume target
+                 does not exist
+        :raises: VolumeTargetNotFound if the volume target cannot be found
+        :raises: VolumeTargetBootIndexAlreadyExists if a volume target already
+                 exists with the same node ID and boot index values
+        """
+        LOG.debug("RPC update_volume_target called for target %(target)s.",
+                  {'target': target.uuid})
+
+        with task_manager.acquire(context, target.node_id,
+                                  purpose='volume target update'):
+            target.save()
+            LOG.info(_LI("Successfully updated volume target %(target)s."),
+                     {'target': target.uuid})
+            return target
 
     @METRICS.timer('ConductorManager.get_driver_properties')
     @messaging.expected_exceptions(exception.DriverNotFound)
