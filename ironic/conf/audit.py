@@ -21,15 +21,15 @@ opts = [
                        ' (for ironic-api service).')),
 
     cfg.StrOpt('audit_map_file',
-               default='/etc/ironic/ironic_api_audit_map.conf',
+               default='/etc/ironic/api_audit_map.conf',
                help=_('Path to audit map file for ironic-api service. '
                       'Used only when API audit is enabled.')),
 
     cfg.StrOpt('ignore_req_list',
                help=_('Comma separated list of Ironic REST API HTTP methods '
-                      'to be ignored during audit. For example: auditing '
-                      'will not be done on any GET or POST requests '
-                      'if this is set to "GET,POST". It is used '
+                      'to be ignored during audit logging. For example: '
+                      'auditing will not be done on any GET or POST '
+                      'requests if this is set to "GET,POST". It is used '
                       'only when API audit is enabled.')),
 ]
 
