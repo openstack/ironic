@@ -1438,6 +1438,18 @@ class ConductorManager(base_manager.BaseConductorManager):
                             exception.UnsupportedDriverExtension) as e:
                         result = False
                         reason = str(e)
+                    except Exception as e:
+                        result = False
+                        reason = (_('Unexpected exception, traceback saved '
+                                    'into log by ironic conductor service '
+                                    'that is running on %(host)s: %(error)s')
+                                  % {'host': self.host, 'error': e})
+                        LOG.exception(_LE(
+                            'Unexpected exception occurred while validating '
+                            '%(iface)s driver interface for driver '
+                            '%(driver)s: %(err)s on node %(node)s.'),
+                            {'iface': iface_name, 'driver': task.node.driver,
+                             'err': e, 'node': task.node.uuid})
                 else:
                     reason = _('not supported')
 

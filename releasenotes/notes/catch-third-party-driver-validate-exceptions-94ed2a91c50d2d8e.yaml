@@ -1,0 +1,4 @@
+---
+fixes:
+  - Catch unknown exceptions with traceback
+    when validating driver interfaces.
