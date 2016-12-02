@@ -20,10 +20,10 @@
 # - stop_ironic
 # - cleanup_ironic
 
-# Save trace and pipefail settings
+# Save xtrace and pipefail settings
 _XTRACE_IRONIC=$(set +o | grep xtrace)
 _PIPEFAIL_IRONIC=$(set +o | grep pipefail)
-set +o xtrace
+set -o xtrace
 set +o pipefail
 
 # Defaults
