@@ -421,7 +421,8 @@ expected_object_fingerprints = {
     'NodeSetProvisionStateNotification':
         '1.0-59acc533c11d306f149846f922739c15',
     'NodeSetProvisionStatePayload': '1.1-743be1f5748f346e3da33390983172b1',
-    'VolumeConnector': '1.0-3e0252c0ab6e6b9d158d09238a577d97'
+    'VolumeConnector': '1.0-3e0252c0ab6e6b9d158d09238a577d97',
+    'VolumeTarget': '1.0-0b10d663d8dae675900b2c7548f76f5e',
 }
 
 
