@@ -5,7 +5,7 @@ Configure the Bare Metal service for cleaning
 
 .. note:: If you configured the Bare Metal service to use `Node cleaning`_
           (which is enabled by default), you will need to set the
-          ``cleaning_network_uuid`` configuration option.
+          ``cleaning_network`` configuration option.
 
 .. _`Node cleaning`: http://docs.openstack.org/developer/ironic/deploy/cleaning.html#node-cleaning
 
@@ -16,7 +16,7 @@ Configure the Bare Metal service for cleaning
 
       $ neutron net-list
 
-#. Configure the cleaning network UUID via the ``cleaning_network_uuid``
+#. Configure the cleaning network UUID via the ``cleaning_network``
    option in the Bare Metal service configuration file
    (``/etc/ironic/ironic.conf``). In the following, replace ``NETWORK_UUID``
    with the UUID you noted in the previous step:
@@ -24,7 +24,7 @@ Configure the Bare Metal service for cleaning
    .. code-block:: ini
 
       [neutron]
-      cleaning_network_uuid = NETWORK_UUID
+      cleaning_network = NETWORK_UUID
 
 #. Restart the Bare Metal service's ironic-conductor:
 

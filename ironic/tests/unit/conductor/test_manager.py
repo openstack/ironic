@@ -2579,7 +2579,8 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
         target_raid_config = {'logical_disks': [{'size_gb': 1,
                                                  'raid_level': '1'}]}
         node = obj_utils.create_test_node(
-            self.context, driver='fake', target_raid_config=target_raid_config)
+            self.context, driver='fake', target_raid_config=target_raid_config,
+            network_interface='noop')
         ret = self.service.validate_driver_interfaces(self.context,
                                                       node.uuid)
         expected = {'console': {'result': True},
@@ -2596,7 +2597,8 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
     @mock.patch.object(images, 'is_whole_disk_image')
     def test_validate_driver_interfaces_validation_fail(self, mock_iwdi):
         mock_iwdi.return_value = False
-        node = obj_utils.create_test_node(self.context, driver='fake')
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          network_interface='noop')
         with mock.patch(
             'ironic.drivers.modules.fake.FakeDeploy.validate'
         ) as deploy:

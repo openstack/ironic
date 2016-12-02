@@ -1,0 +1,11 @@
+---
+features:
+  - Names can now be used instead of UUIDs for "cleaning_network" and
+    "provisioning_network" options (former "cleaning_network_uuid" and
+    "provisioning_network_uuid"). Care has to be taken to ensure that the
+    names are unique among all networks in this case. Note that mapping between
+    a name and a UUID is cached for the lifetime of the conductor.
+deprecations:
+  - Configuration options "[neutron]cleaning_network_uuid" and
+    "[neutron]provisioning_network_uuid" were deprecated in favor of new
+    "[neutron]cleaning_network" and "[neutron]provisioning_network".

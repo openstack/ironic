@@ -1927,17 +1927,20 @@
 # PEM encoded client certificate cert file (string value)
 #certfile = <None>
 
-# Neutron network UUID for the ramdisk to be booted into for
-# cleaning nodes. Required for "neutron" network interface. It
-# is also required if cleaning nodes when using "flat" network
-# interface or "neutron" DHCP provider. (string value)
-#cleaning_network_uuid = <None>
+# Neutron network UUID or name for the ramdisk to be booted
+# into for cleaning nodes. Required for "neutron" network
+# interface. It is also required if cleaning nodes when using
+# "flat" network interface or "neutron" DHCP provider. If a
+# name is provided, it must be unique among all networks or
+# cleaning will fail. (string value)
+# Deprecated group/name - [neutron]/cleaning_network_uuid
+#cleaning_network = <None>
 
 # List of Neutron Security Group UUIDs to be applied during
 # cleaning of the nodes. Optional for the "neutron" network
 # interface and not used for the "flat" or "noop" network
-# interfaces. If not specified, default security
-# group is used. (list value)
+# interfaces. If not specified, default security group is
+# used. (list value)
 #cleaning_network_security_groups =
 
 # Optional domain ID to use with v3 and v2 parameters. It will
@@ -1986,14 +1989,16 @@
 
 # Neutron network UUID for the ramdisk to be booted into for
 # provisioning nodes. Required for "neutron" network
-# interface. (string value)
-#provisioning_network_uuid = <None>
+# interface. If a name is provided, it must be unique among
+# all networks or deploy will fail. (string value)
+# Deprecated group/name - [neutron]/provisioning_network_uuid
+#provisioning_network = <None>
 
 # List of Neutron Security Group UUIDs to be applied during
 # provisioning of the nodes. Optional for the "neutron"
 # network interface and not used for the "flat" or "noop"
-# network interfaces. If not specified, default
-# security group is used. (list value)
+# network interfaces. If not specified, default security group
+# is used. (list value)
 #provisioning_network_security_groups =
 
 # Client retries in the case of a failed request. (integer

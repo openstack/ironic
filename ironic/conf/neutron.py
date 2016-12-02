@@ -44,16 +44,20 @@ opts = [
                       'neutron. Running neutron in noauth mode (related to '
                       'but not affected by this setting) is insecure and '
                       'should only be used for testing.')),
-    cfg.StrOpt('cleaning_network_uuid',
-               help=_('Neutron network UUID for the ramdisk to be booted '
-                      'into for cleaning nodes. Required for "neutron" '
+    cfg.StrOpt('cleaning_network',
+               help=_('Neutron network UUID or name for the ramdisk to be '
+                      'booted into for cleaning nodes. Required for "neutron" '
                       'network interface. It is also required if cleaning '
                       'nodes when using "flat" network interface or "neutron" '
-                      'DHCP provider.')),
-    cfg.StrOpt('provisioning_network_uuid',
+                      'DHCP provider. If a name is provided, it must be '
+                      'unique among all networks or cleaning will fail.'),
+               deprecated_name='cleaning_network_uuid'),
+    cfg.StrOpt('provisioning_network',
                help=_('Neutron network UUID for the ramdisk to be booted '
                       'into for provisioning nodes. Required for "neutron" '
-                      'network interface.')),
+                      'network interface. If a name is provided, it must be '
+                      'unique among all networks or deploy will fail.'),
+               deprecated_name='provisioning_network_uuid'),
     cfg.ListOpt('provisioning_network_security_groups',
                 default=[],
                 help=_('List of Neutron Security Group UUIDs to be '

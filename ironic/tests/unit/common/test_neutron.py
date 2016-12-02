@@ -447,3 +447,69 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             neutron.rollback_ports(task, self.network_uuid)
             self.assertTrue(log_mock.exception.called)
+
+
+@mock.patch.object(neutron, 'get_client', autospec=True)
+class TestValidateNetwork(base.TestCase):
+    def setUp(self):
+        super(TestValidateNetwork, self).setUp()
+
+        self.uuid = uuidutils.generate_uuid()
+
+    def test_by_uuid(self, client_mock):
+        net_mock = client_mock.return_value.list_networks
+        net_mock.return_value = {
+            'networks': [
+                {'id': self.uuid},
+            ]
+        }
+
+        self.assertEqual(self.uuid, neutron.validate_network(self.uuid))
+        net_mock.assert_called_once_with(fields=['id'],
+                                         id=self.uuid)
+
+    def test_by_name(self, client_mock):
+        net_mock = client_mock.return_value.list_networks
+        net_mock.return_value = {
+            'networks': [
+                {'id': self.uuid},
+            ]
+        }
+
+        self.assertEqual(self.uuid, neutron.validate_network('name'))
+        net_mock.assert_called_once_with(fields=['id'],
+                                         name='name')
+
+    def test_not_found(self, client_mock):
+        net_mock = client_mock.return_value.list_networks
+        net_mock.return_value = {
+            'networks': []
+        }
+
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'was not found',
+                               neutron.validate_network, self.uuid)
+        net_mock.assert_called_once_with(fields=['id'],
+                                         id=self.uuid)
+
+    def test_failure(self, client_mock):
+        net_mock = client_mock.return_value.list_networks
+        net_mock.side_effect = neutron_client_exc.NeutronClientException('foo')
+
+        self.assertRaisesRegex(exception.NetworkError, 'foo',
+                               neutron.validate_network, 'name')
+        net_mock.assert_called_once_with(fields=['id'],
+                                         name='name')
+
+    def test_duplicate(self, client_mock):
+        net_mock = client_mock.return_value.list_networks
+        net_mock.return_value = {
+            'networks': [{'id': self.uuid},
+                         {'id': 'uuid2'}]
+        }
+
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'More than one network',
+                               neutron.validate_network, 'name')
+        net_mock.assert_called_once_with(fields=['id'],
+                                         name='name')
