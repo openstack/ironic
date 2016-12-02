@@ -54,39 +54,6 @@ source $IRONIC_DEVSTACK_DIR/lib/ironic
 # an error.  It is also useful for following allowing as the install occurs.
 set -o xtrace
 
-function is_nova_migration {
-    # Deterine whether we're "upgrading" from another compute driver
-    # read localrc from the end, pick only first match
-    _ironic_old_driver=$( tac $BASE_DEVSTACK_DIR/localrc |grep -m 1 VIRT_DRIVER | awk -F '=' '{print $2}')
-    [ "$_ironic_old_driver" != "ironic" ]
-}
-
-# Duplicate all required devstack setup that is needed before starting
-# Ironic during a sideways upgrade, where we are migrating from an
-# devstack environment without Ironic.
-function init_ironic {
-    # We need to source credentials here but doing so in the gate will unset
-    # HOST_IP.
-    local tmp_host_ip=$HOST_IP
-    source $TARGET_DEVSTACK_DIR/openrc admin admin
-    HOST_IP=$tmp_host_ip
-    IRONIC_BAREMETAL_BASIC_OPS="True"
-    $TARGET_DEVSTACK_DIR/tools/install_prereqs.sh
-    initialize_database_backends
-    recreate_database ironic utf8
-    install_nova_hypervisor
-    configure_nova_hypervisor
-    configure_ironic_dirs
-    create_ironic_cache_dir
-    configure_ironic
-    create_ironic_accounts
-    configure_tftpd
-    configure_iptables
-    configure_ironic_auxiliary
-    upload_baremetal_ironic_deploy
-    stop_nova_compute || true
-    start_nova_compute
-}
 
 function wait_for_keystone {
     if ! wait_for_service $SERVICE_TIMEOUT ${KEYSTONE_AUTH_URI}/v$IDENTITY_API_VERSION/; then
@@ -100,13 +67,6 @@ if  [[ -d $IRONIC_CONF_DIR ]] && [[ ! -d $SAVE_DIR/etc.ironic ]] ; then
 fi
 
 stack_install_service ironic
-
-# If we are sideways upgrading and migrating from a base deployed /w
-# VIRT_DRIVER=fake, we need to run Ironic install, config and init
-# code from devstac.
-if is_nova_migration ; then
-    init_ironic
-fi
 
 $IRONIC_BIN_DIR/ironic-dbsync --config-file=$IRONIC_CONF_FILE
 
