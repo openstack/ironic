@@ -21,10 +21,7 @@ from oslo_utils import importutils
 from oslo_utils import units
 
 from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.common.i18n import _LE
-from ironic.common.i18n import _LI
-from ironic.common.i18n import _LW
+from ironic.common.i18n import _, _LE, _LI, _LW
 from ironic.common import states
 from ironic.drivers import base
 from ironic.drivers.modules.drac import common as drac_common
