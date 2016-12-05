@@ -85,6 +85,8 @@ class BaseConductorManager(object):
         :raises: DriverLoadError if an enabled driver cannot be loaded.
         :raises: DriverNameConflict if a classic driver and a dynamic driver
                  are both enabled and have the same name.
+        :raises: ConfigInvalid if required config options for connection with
+                 radosgw are missing while storing config drive.
         """
         if self._started:
             raise RuntimeError(_('Attempt to start an already running '
@@ -171,6 +173,18 @@ class BaseConductorManager(object):
         self._periodic_tasks = periodics.PeriodicWorker(
             self._periodic_task_callables,
             executor_factory=periodics.ExistingExecutor(self._executor))
+
+        # Check for required config options if object_store_endpoint_type is
+        # radosgw
+        if (CONF.deploy.configdrive_use_object_store and
+            CONF.deploy.object_store_endpoint_type == "radosgw"):
+            if (None in (CONF.swift.auth_url, CONF.swift.username,
+                         CONF.swift.password)):
+                msg = _("Parameters missing to make a connection with "
+                        "radosgw. Ensure that [swift]/auth_url, "
+                        "[swift]/username, and [swift]/password are all "
+                        "configured.")
+                raise exception.ConfigInvalid(msg)
 
         # clear all target_power_state with locks by this conductor
         self.dbapi.clear_node_target_power_state(self.host)

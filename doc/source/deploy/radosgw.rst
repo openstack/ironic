@@ -64,6 +64,9 @@ Configure Ironic and Glance with RADOS Gateway
     swift_api_version = v1
     swift_endpoint_url = http://RADOS_IP:PORT
     swift_temp_url_key = TEMP_URL_KEY
-    temp_url_endpoint_type=radosgw
+
+    [deploy]
+
+    object_store_endpoint_type = radosgw
 
 #. Restart Ironic conductor service(s).

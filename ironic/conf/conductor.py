@@ -107,13 +107,11 @@ opts = [
                       'conductor will check for nodes that it should '
                       '"take over". Set it to a negative value to disable '
                       'the check entirely.')),
-    cfg.BoolOpt('configdrive_use_swift',
-                default=False,
-                help=_('Whether to upload the config drive to Swift.')),
     cfg.StrOpt('configdrive_swift_container',
                default='ironic_configdrive_container',
                help=_('Name of the Swift container to store config drive '
-                      'data. Used when configdrive_use_swift is True.')),
+                      'data. Used when configdrive_use_object_store is '
+                      'True.')),
     cfg.IntOpt('inspect_timeout',
                default=1800,
                help=_('Timeout (seconds) for waiting for node inspection. '

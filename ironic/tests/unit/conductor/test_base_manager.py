@@ -250,6 +250,28 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.service.del_host()
         self.assertTrue(wait_mock.called)
 
+    def test_start_fails_on_missing_config_for_configdrive(self):
+        """Check to fail conductor on missing config options"""
+
+        missing_parameters_error = ("Parameters missing to make a "
+                                    "connection with radosgw")
+        CONF.set_override('configdrive_use_object_store', True,
+                          group='deploy')
+        CONF.set_override('object_store_endpoint_type', 'radosgw',
+                          group='deploy')
+        params = {'auth_url': 'http://1.2.3.4',
+                  'username': 'foo', 'password': 'foo_pass'}
+        CONF.register_opts((cfg.StrOpt(x) for x in params),
+                           group='swift')
+        for key, value in params.items():
+            test_params = params.copy()
+            test_params[key] = None
+            for test_key, test_value in test_params.items():
+                CONF.set_override(key, test_value, group='swift')
+            with self.assertRaisesRegex(exception.ConfigInvalid,
+                                        missing_parameters_error):
+                self._start_service()
+
 
 class CheckInterfacesTestCase(mgr_utils.ServiceSetUpMixin,
                               tests_db_base.DbTestCase):

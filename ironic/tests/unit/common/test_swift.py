@@ -13,6 +13,7 @@
 # under the License.
 
 import mock
+from oslo_config import cfg
 import six
 from six.moves import builtins as __builtin__
 from six.moves import http_client
@@ -24,6 +25,7 @@ from ironic.common import exception
 from ironic.common import swift
 from ironic.tests import base
 
+CONF = cfg.CONF
 
 if six.PY3:
     import io
@@ -39,9 +41,34 @@ class SwiftTestCase(base.TestCase):
         self.swift_exception = swift_exception.ClientException('', '')
 
     def test___init__(self, connection_mock, keystone_mock):
+        """Check if client is properly initialized with swift"""
+
         swift.SwiftAPI()
         connection_mock.assert_called_once_with(
             session=keystone_mock.return_value)
+
+    def test___init___radosgw(self, connection_mock, swift_session_mock):
+        """Check if client is properly initialized with radosgw"""
+
+        auth_url = 'http://1.2.3.4'
+        username = 'foo'
+        password = 'foo_password'
+        CONF.set_override('object_store_endpoint_type', 'radosgw',
+                          group='deploy')
+        opts = [cfg.StrOpt('auth_url'), cfg.StrOpt('username'),
+                cfg.StrOpt('password')]
+        CONF.register_opts(opts, group='swift')
+
+        CONF.set_override('auth_url', auth_url, group='swift')
+        CONF.set_override('username', username, group='swift')
+        CONF.set_override('password', password, group='swift')
+
+        swift.SwiftAPI()
+        params = {'authurl': auth_url,
+                  'user': username,
+                  'key': password}
+        connection_mock.assert_called_once_with(**params)
+        swift_session_mock.assert_not_called()
 
     @mock.patch.object(__builtin__, 'open', autospec=True)
     def test_create_object(self, open_mock, connection_mock, keystone_mock):

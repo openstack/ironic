@@ -58,6 +58,54 @@ for example::
     ironic node-set-provision-state --config-drive /dir/configdrive_files $node_identifier active
 
 
+Configuration drive storage in an object store
+----------------------------------------------
+
+Under normal circumstances, the configuration drive can be stored in the
+Bare Metal service when the size is less than 64KB. Optionally, if the size
+is larger than 64KB there is support to store it in swift or radosgw backed
+object store. Both swift and radosgw use swift-style APIs.
+
+The following option in ``/etc/ironic/ironic.conf`` enables swift as an object
+store backend to store config drive. This uses the Identity service to
+establish a session between the Bare Metal service and the
+Object Storage service. ::
+
+    [deploy]
+    ...
+
+    configdrive_use_object_store = True
+
+Use the following options in ``/etc/ironic/ironic.conf`` to enable radosgw.
+Credentials in the swift section are needed because radosgw will not use the
+Identity service and relies on radosgw's username and password authentication
+instead. ::
+
+    [deploy]
+    ...
+
+    configdrive_use_object_store = True
+    object_store_endpoint_type = radosgw
+
+    [swift]
+    ...
+
+    username = USERNAME
+    password = PASSWORD
+    auth_url = http://RADOSGW_IP:8000/auth/v1
+
+Make sure that if an agent_* driver is being used, edit
+``/etc/glance/glance-api.conf`` to store the instance images in respective
+object store (radosgw or swift) as well::
+
+    [glance_store]
+    ...
+
+    swift_store_user = USERNAME
+    swift_store_key = PASSWORD
+    swift_store_auth_address = http://RADOSGW_OR_SWIFT_IP:PORT/auth/v1
+
+
 Accessing the configuration drive data
 --------------------------------------
 
@@ -81,9 +129,12 @@ the configuration drive and mount it, for example::
     mount $CONFIG_DEV /mnt/config
 
 
-.. [*] A config drive could also be a data block with a VFAT filesystem
+.. [*] A configuration drive could also be a data block with a VFAT filesystem
        on it instead of ISO 9660. But it's unlikely that it would be needed
        since ISO 9660 is widely supported across operating systems.
+
+For more information see `Store metadata on a configuration drive
+<http://docs.openstack.org/user-guide/cli-config-drive.html>`_.
 
 
 Cloud-init integration

@@ -744,7 +744,7 @@ class TestGlanceSwiftTempURL(base.TestCase):
 
     @mock.patch('swiftclient.utils.generate_temp_url', autospec=True)
     def test_swift_temp_url_radosgw(self, tempurl_mock):
-        self.config(temp_url_endpoint_type='radosgw', group='glance')
+        self.config(object_store_endpoint_type='radosgw', group='deploy')
         path = ('/v1'
                 '/glance'
                 '/757274c4-2856-4bd2-bb20-9a4a231e187b')
@@ -769,7 +769,7 @@ class TestGlanceSwiftTempURL(base.TestCase):
     def test_swift_temp_url_radosgw_endpoint_with_swift(self, tempurl_mock):
         self.config(swift_endpoint_url='https://swift.radosgw.com/swift',
                     group='glance')
-        self.config(temp_url_endpoint_type='radosgw', group='glance')
+        self.config(object_store_endpoint_type='radosgw', group='deploy')
         path = ('/v1'
                 '/glance'
                 '/757274c4-2856-4bd2-bb20-9a4a231e187b')
@@ -793,7 +793,7 @@ class TestGlanceSwiftTempURL(base.TestCase):
     def test_swift_temp_url_radosgw_endpoint_invalid(self, tempurl_mock):
         self.config(swift_endpoint_url='https://swift.radosgw.com/eggs/',
                     group='glance')
-        self.config(temp_url_endpoint_type='radosgw', group='glance')
+        self.config(object_store_endpoint_type='radosgw', group='deploy')
         self.service._validate_temp_url_config = mock.Mock()
 
         self.assertRaises(exception.InvalidParameterValue,
@@ -851,7 +851,7 @@ class TestGlanceSwiftTempURL(base.TestCase):
 
     def test__validate_temp_url_no_account_exception_radosgw(self):
         self.config(swift_account=None, group='glance')
-        self.config(temp_url_endpoint_type='radosgw', group='glance')
+        self.config(object_store_endpoint_type='radosgw', group='deploy')
         self.service._validate_temp_url_config()
 
     def test__validate_temp_url_endpoint_less_than_download_delay(self):

@@ -1,0 +1,23 @@
+---
+features:
+  - Adds support for storing the configdrive in radosgw using
+    the swift API.
+  - |
+    Adds support to use the radosgw authentication mechanism that relies
+    on username and password instead of auth token.
+    The following options must be specified in ironic configuration file:
+
+     * ``[swift]/auth_url``
+     * ``[swift]/username``
+     * ``[swift]/password``
+
+deprecations:
+  - The ``[conductor]/configdrive_use_swift`` and
+    ``[glance]/temp_url_endpoint_type`` options are deprecated and will be
+    removed in the Queens release.
+    Use ``[deploy]/configdrive_use_object_store`` and
+    ``[deploy]/object_store_endpoint_type`` respectively instead.
+upgrade:
+  - Adds a ``[deploy]/object_store_endpoint_type`` option to specify the
+    type of endpoint to use for instance images and configdrive storage.
+    Allowed values are 'swift' or 'radosgw'. The default is 'swift'.

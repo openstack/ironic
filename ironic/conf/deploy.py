@@ -72,6 +72,20 @@ opts = [
                       'default is "netboot", but it will be changed to '
                       '"local" in the future. It is recommended to set '
                       'an explicit value for this option.')),
+    cfg.BoolOpt('configdrive_use_object_store',
+                default=False,
+                deprecated_group='conductor',
+                deprecated_name='configdrive_use_swift',
+                help=_('Whether to upload the config drive to object store. '
+                       'Set this option to True to store config drive '
+                       'in swift or radosgw.')),
+    cfg.StrOpt('object_store_endpoint_type',
+               default='swift',
+               deprecated_group='glance',
+               deprecated_name='temp_url_endpoint_type',
+               choices=['swift', 'radosgw'],
+               help=_('Type of object store endpoint type to be '
+                      'used as a backend')),
 ]
 
 
