@@ -232,6 +232,11 @@ fi
 # ``*_pxe_oneview`` and ``pxe_drac``
 IRONIC_DEPLOY_DRIVER=${IRONIC_DEPLOY_DRIVER:-pxe_ssh}
 
+# If the requested driver is not yet enable, enable it, if it is not it will fail anyway
+if [[ -z "$(echo ${IRONIC_ENABLED_DRIVERS} | grep -w ${IRONIC_DEPLOY_DRIVER})" ]]; then
+    IRONIC_ENABLED_DRIVERS=${IRONIC_ENABLED_DRIVERS},${IRONIC_DEPLOY_DRIVER}
+fi
+
 # Support entry points installation of console scripts
 IRONIC_BIN_DIR=$(get_python_exec_prefix)
 
