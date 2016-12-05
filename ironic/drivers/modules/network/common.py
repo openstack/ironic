@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
+
 from neutronclient.common import exceptions as neutron_exceptions
 from oslo_config import cfg
 from oslo_log import log
@@ -28,6 +30,108 @@ CONF = cfg.CONF
 LOG = log.getLogger(__name__)
 
 TENANT_VIF_KEY = 'tenant_vif_port_id'
+
+
+def _vif_attached(port_like_obj, vif_id):
+    """Check if VIF is already attached to a port or portgroup.
+
+    Raises an exception if a VIF with id=vif_id is attached to the port-like
+    (Port or Portgroup) object. Otherwise, returns whether a VIF is attached.
+
+    :param port_like_obj: port-like object to check.
+    :param vif_id: identifier of the VIF to look for in port_like_obj.
+    :returns: True if a VIF (but not vif_id) is attached to port_like_obj,
+        False otherwise.
+    :raises: VifAlreadyAttached, if vif_id is attached to port_like_obj.
+    """
+    attached_vif_id = port_like_obj.internal_info.get(
+        TENANT_VIF_KEY, port_like_obj.extra.get('vif_port_id'))
+    if attached_vif_id == vif_id:
+        raise exception.VifAlreadyAttached(
+            object_type=port_like_obj.__class__.__name__,
+            vif=vif_id, object_uuid=port_like_obj.uuid)
+    return attached_vif_id is not None
+
+
+def _get_free_portgroups_and_ports(task, vif_id):
+    """Get free portgroups and ports.
+
+    It only returns ports or portgroups that can be used for attachment of
+    vif_id.
+
+    :param task: a TaskManager instance.
+    :param vif_id: Name or UUID of a VIF.
+    :returns: tuple of: list of free portgroups, list of free ports.
+    :raises: VifAlreadyAttached, if vif_id is attached to any of the
+        node's ports or portgroups.
+    """
+
+    # This list contains ports selected as candidates for attachment
+    free_ports = []
+    # This is a mapping of portgroup id to collection of its free ports
+    ports_by_portgroup = collections.defaultdict(list)
+    # This set contains IDs of portgroups that should be ignored, as they have
+    # at least one port with vif already attached to it
+    non_usable_portgroups = set()
+
+    for p in task.ports:
+        if _vif_attached(p, vif_id):
+            # Consider such portgroup unusable. The fact that we can have None
+            # added in this set is not a problem
+            non_usable_portgroups.add(p.portgroup_id)
+            continue
+        if p.portgroup_id is None:
+            # ports without portgroup_id are always considered candidates
+            free_ports.append(p)
+        else:
+            ports_by_portgroup[p.portgroup_id].append(p)
+
+    # This list contains portgroups selected as candidates for attachment
+    free_portgroups = []
+
+    for pg in task.portgroups:
+        if _vif_attached(pg, vif_id):
+            continue
+        if pg.id in non_usable_portgroups:
+            # This portgroup has vifs attached to its ports, consider its
+            # ports instead to avoid collisions
+            free_ports.extend(ports_by_portgroup[pg.id])
+        # Also ignore empty portgroups
+        elif ports_by_portgroup[pg.id]:
+            free_portgroups.append(pg)
+
+    return free_portgroups, free_ports
+
+
+def get_free_port_like_object(task, vif_id):
+    """Find free port-like object (portgroup or port) VIF will be attached to.
+
+    Ensures that VIF is not already attached to this node. It will return the
+    first free port group. If there are no free port groups, then the first
+    available port (pxe_enabled preferably) is used.
+
+    :param task: a TaskManager instance.
+    :param vif_id: Name or UUID of a VIF.
+    :raises: VifAlreadyAttached, if VIF is already attached to the node.
+    :raises: NoFreePhysicalPorts, if there is no port-like object VIF can be
+        attached to.
+    :returns: port-like object VIF will be attached to.
+    """
+
+    free_portgroups, free_ports = _get_free_portgroups_and_ports(task, vif_id)
+
+    if free_portgroups:
+        # portgroups are higher priority
+        return free_portgroups[0]
+
+    if not free_ports:
+        raise exception.NoFreePhysicalPorts(vif=vif_id)
+
+    # Sort ports by pxe_enabled to ensure we always bind pxe_enabled ports
+    # first
+    sorted_free_ports = sorted(free_ports, key=lambda p: p.pxe_enabled,
+                               reverse=True)
+    return sorted_free_ports[0]
 
 
 class VIFPortIDMixin(object):
@@ -112,12 +216,24 @@ class VIFPortIDMixin(object):
 
         context = task.context
         portgroup_uuid = portgroup_obj.uuid
-        if 'address' in portgroup_obj.obj_what_changed():
-            pg_vif = portgroup_obj.extra.get('vif_port_id')
+        # NOTE(vsaienko) address is not mandatory field in portgroup.
+        # Do not touch neutron port if we removed address on portgroup.
+        if ('address' in portgroup_obj.obj_what_changed() and
+                portgroup_obj.address):
+            pg_vif = (portgroup_obj.internal_info.get(TENANT_VIF_KEY) or
+                      portgroup_obj.extra.get('vif_port_id'))
             if pg_vif:
                 neutron.update_port_address(pg_vif,
                                             portgroup_obj.address,
                                             token=context.auth_token)
+
+        if 'extra' in portgroup_obj.obj_what_changed():
+            original_portgroup = objects.Portgroup.get_by_id(context,
+                                                             portgroup_obj.id)
+            if (portgroup_obj.extra.get('vif_port_id') and
+                    portgroup_obj.extra['vif_port_id'] !=
+                    original_portgroup.extra.get('vif_port_id')):
+                utils.warn_about_deprecated_extra_vif_port_id()
 
         if ('standalone_ports_supported' in
                 portgroup_obj.obj_what_changed()):
@@ -149,15 +265,19 @@ class VIFPortIDMixin(object):
             entry with the ID of the VIF.
         """
         vifs = []
-        for port in task.ports:
-            vif_id = port.internal_info.get(
-                TENANT_VIF_KEY, port.extra.get('vif_port_id'))
+        for port_like_obj in task.ports + task.portgroups:
+            vif_id = port_like_obj.internal_info.get(
+                TENANT_VIF_KEY, port_like_obj.extra.get('vif_port_id'))
             if vif_id:
                 vifs.append({'id': vif_id})
         return vifs
 
     def vif_attach(self, task, vif_info):
         """Attach a virtual network interface to a node
+
+        Attach a virtual interface to a node. It will use the first free port
+        group. If there are no free port groups, then the first available port
+        (pxe_enabled preferably) is used.
 
         :param task: A TaskManager instance.
         :param vif_info: a dictionary of information about a VIF.
@@ -166,53 +286,39 @@ class VIFPortIDMixin(object):
         :raises: NetworkError, VifAlreadyAttached, NoFreePhysicalPorts
         """
         vif_id = vif_info['id']
-        # Sort ports by pxe_enabled to ensure we always bind pxe_enabled ports
-        # first
-        sorted_ports = sorted(task.ports, key=lambda p: p.pxe_enabled,
-                              reverse=True)
-        free_ports = []
-        # Check all ports to ensure this VIF isn't already attached
-        for port in sorted_ports:
-            port_id = port.internal_info.get(TENANT_VIF_KEY,
-                                             port.extra.get('vif_port_id'))
-            if port_id is None:
-                free_ports.append(port)
-            elif port_id == vif_id:
-                raise exception.VifAlreadyAttached(
-                    vif=vif_id, port_uuid=port.uuid)
 
-        if not free_ports:
-            raise exception.NoFreePhysicalPorts(vif=vif_id)
+        port_like_obj = get_free_port_like_object(task, vif_id)
 
-        # Get first free port
-        port = free_ports.pop(0)
-
-        # Check if the requested vif_id is a neutron port. If it is
-        # then attempt to update the port's MAC address.
-        try:
-            client = neutron.get_client(task.context.auth_token)
-            client.show_port(vif_id)
-        except neutron_exceptions.NeutronClientException:
-            # NOTE(sambetts): If a client error occurs this is because either
-            # neutron doesn't exist because we're running in standalone
-            # environment or we can't find a matching neutron port which means
-            # a user might be requesting a non-neutron port. So skip trying to
-            # update the neutron port MAC address in these cases.
-            pass
-        else:
+        # Address is optional for portgroups
+        if port_like_obj.address:
+            # Check if the requested vif_id is a neutron port. If it is
+            # then attempt to update the port's MAC address.
             try:
-                neutron.update_port_address(vif_id, port.address)
-            except exception.FailedToUpdateMacOnPort:
-                raise exception.NetworkError(_(
-                    "Unable to attach VIF %(vif)s because Ironic can not "
-                    "update Neutron port %(port)s MAC address to match "
-                    "physical MAC address %(mac)s") % {
-                        'vif': vif_id, 'port': vif_id, 'mac': port.address})
+                client = neutron.get_client(task.context.auth_token)
+                client.show_port(vif_id)
+            except neutron_exceptions.NeutronClientException:
+                # NOTE(sambetts): If a client error occurs this is because
+                # either neutron doesn't exist because we're running in
+                # standalone environment or we can't find a matching neutron
+                # port which means a user might be requesting a non-neutron
+                # port. So skip trying to update the neutron port MAC address
+                # in these cases.
+                pass
+            else:
+                try:
+                    neutron.update_port_address(vif_id, port_like_obj.address)
+                except exception.FailedToUpdateMacOnPort:
+                    raise exception.NetworkError(_(
+                        "Unable to attach VIF %(vif)s because Ironic can not "
+                        "update Neutron port %(port)s MAC address to match "
+                        "physical MAC address %(mac)s") % {
+                            'vif': vif_id, 'port': vif_id,
+                            'mac': port_like_obj.address})
 
-        int_info = port.internal_info
+        int_info = port_like_obj.internal_info
         int_info[TENANT_VIF_KEY] = vif_id
-        port.internal_info = int_info
-        port.save()
+        port_like_obj.internal_info = int_info
+        port_like_obj.save()
 
     def vif_detach(self, task, vif_id):
         """Detach a virtual network interface from a node
@@ -221,18 +327,21 @@ class VIFPortIDMixin(object):
         :param vif_id: A VIF ID to detach
         :raises: VifNotAttached
         """
-        for port in task.ports:
+
+        ports = [p for p in task.ports if p.portgroup_id is None]
+        portgroups = task.portgroups
+        for port_like_obj in portgroups + ports:
             # FIXME(sambetts) Remove this when we no longer support a nova
             # driver that uses port.extra
-            if (port.extra.get("vif_port_id") == vif_id or
-                    port.internal_info.get(TENANT_VIF_KEY) == vif_id):
-                int_info = port.internal_info
-                extra = port.extra
+            if (port_like_obj.extra.get("vif_port_id") == vif_id or
+                    port_like_obj.internal_info.get(TENANT_VIF_KEY) == vif_id):
+                int_info = port_like_obj.internal_info
+                extra = port_like_obj.extra
                 int_info.pop(TENANT_VIF_KEY, None)
                 extra.pop('vif_port_id', None)
-                port.extra = extra
-                port.internal_info = int_info
-                port.save()
+                port_like_obj.extra = extra
+                port_like_obj.internal_info = int_info
+                port_like_obj.save()
                 break
         else:
             raise exception.VifNotAttached(vif=vif_id, node=task.node.uuid)
@@ -252,5 +361,5 @@ class VIFPortIDMixin(object):
 
         return (p_obj.internal_info.get('cleaning_vif_port_id') or
                 p_obj.internal_info.get('provisioning_vif_port_id') or
-                p_obj.internal_info.get('tenant_vif_port_id') or
+                p_obj.internal_info.get(TENANT_VIF_KEY) or
                 p_obj.extra.get('vif_port_id') or None)

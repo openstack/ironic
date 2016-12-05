@@ -228,7 +228,7 @@ class VolumeTargetBootIndexAlreadyExists(Conflict):
 
 class VifAlreadyAttached(Conflict):
     _msg_fmt = _("Unable to attach VIF because VIF %(vif)s is already "
-                 "attached to Ironic port %(port_uuid)s")
+                 "attached to Ironic %(object_type)s %(object_uuid)s")
 
 
 class NoFreePhysicalPorts(Invalid):
