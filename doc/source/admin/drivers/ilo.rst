@@ -822,6 +822,13 @@ Supported **Automated** Cleaning Operations
     servers. By default, this step is disabled.
   ``reset_ilo``:
     Resets the iLO. By default, this step is disabled.
+  ``erase_devices``:
+    An inband clean step that performs disk erase on all the disks including
+    the disks visible to OS as well as the raw disks visible to Smart
+    Storage Administrator (SSA). This step supports erasing of the raw disks
+    visible to SSA in Proliant servers only with the ramdisk created using
+    diskimage-builder from Ocata release. By default, this step is disabled.
+    See `Disk Erase Support`_ for more details.
 
 * For in-band cleaning operations supported by ``agent_ilo`` driver, see
   :ref:`InbandvsOutOfBandCleaning`.
@@ -835,13 +842,17 @@ Supported **Automated** Cleaning Operations
   and will not run during automated cleaning.
 
 * Configuration Options for the automated clean steps are listed under
-  ``[ilo]`` section in ironic.conf ::
+  ``[ilo]`` and ``[deploy]`` section in ironic.conf ::
 
-  - clean_priority_reset_ilo=0
-  - clean_priority_reset_bios_to_default=10
-  - clean_priority_reset_secure_boot_keys_to_default=20
-  - clean_priority_clear_secure_boot_keys=0
-  - clean_priority_reset_ilo_credential=30
+   [ilo]
+   clean_priority_reset_ilo=0
+   clean_priority_reset_bios_to_default=10
+   clean_priority_reset_secure_boot_keys_to_default=20
+   clean_priority_clear_secure_boot_keys=0
+   clean_priority_reset_ilo_credential=30
+
+   [deploy]
+   erase_devices_priority=0
 
 For more information on node automated cleaning, see :ref:`automated_cleaning`
 
@@ -1589,6 +1600,41 @@ use the ``proliant-tools`` element in DIB::
 
   disk-image-create -o proliant-agent-ramdisk ironic-agent fedora proliant-tools
 
+Disk Erase Support
+^^^^^^^^^^^^^^^^^^
+
+``erase_devices`` is an inband clean step supported by iLO drives. It
+performs erase on all the disks including the disks visible to OS as
+well as the raw disks visible to the Smart Storage Administrator (SSA).
+
+This inband clean step requires ``ssacli`` utility starting from version
+``2.60-19.0`` to perform the erase on physical disks. See the
+`ssacli documentation`_ for more information on ssacli utility and different
+erase methods supported by SSA.
+
+The disk erasure via ``shred`` is used to erase disks visible to the OS
+and its implementation is available in Ironic Python Agent. The raw disks
+connected to the Smart Storage Controller are erased using Sanitize erase
+which is a ssacli supported erase method. If Sanitize erase is not supported
+on the Smart Storage Controller the disks are erased using One-pass
+erase (overwrite with zeros).
+
+This clean step is supported when the agent ramdisk contains the
+``Proliant Hardware Manager`` from the proliantutils version 2.3.0 or higher.
+This clean step is performed as part of automated cleaning and it is disabled
+by default. See :ref:`InbandvsOutOfBandCleaning` for more information on
+enabling/disabling a clean step.
+
+To create an agent ramdisk with ``Proliant Hardware Manager``, use the
+``proliant-tools`` element in DIB::
+
+    disk-image-create -o proliant-agent-ramdisk ironic-agent fedora proliant-tools
+
+See the `proliant-tools`_ for more information on creating agent ramdisk with
+``proliant-tools`` element in DIB.
+
+.. _`ssacli documentation`: http://h20566.www2.hpe.com/hpsc/doc/public/display?docId=c03909334
+.. _`proliant-tools`: http://docs.openstack.org/developer/diskimage-builder/elements/proliant-tools/README.html
 .. _`Enabling HTTPS in Swift`: http://docs.openstack.org/project-install-guide/baremetal/draft/enabling-https.html#enabling-https-in-swift
 .. _`Enabling HTTPS in Image service`: http://docs.openstack.org/project-install-guide/baremetal/draft/enabling-https.html#enabling-https-in-image-service
 .. _`HPE iLO4 User Guide`: http://h20566.www2.hpe.com/hpsc/doc/public/display?docId=c03334051
