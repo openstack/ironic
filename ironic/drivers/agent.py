@@ -32,7 +32,6 @@ from ironic.drivers.modules.ucs import management as ucs_mgmt
 from ironic.drivers.modules.ucs import power as ucs_power
 from ironic.drivers.modules import virtualbox
 from ironic.drivers.modules import wol
-from ironic.drivers import utils
 
 
 class AgentAndIPMIToolDriver(base.BaseDriver):
@@ -52,15 +51,7 @@ class AgentAndIPMIToolDriver(base.BaseDriver):
         self.deploy = agent.AgentDeploy()
         self.management = ipmitool.IPMIManagement()
         self.console = ipmitool.IPMIShellinaboxConsole()
-        self.agent_vendor = agent.AgentVendorInterface()
-        self.ipmi_vendor = ipmitool.VendorPassthru()
-        self.mapping = {'send_raw': self.ipmi_vendor,
-                        'bmc_reset': self.ipmi_vendor,
-                        'heartbeat': self.agent_vendor}
-        self.driver_passthru_mapping = {'lookup': self.agent_vendor}
-        self.vendor = utils.MixinVendorInterface(
-            self.mapping,
-            driver_passthru_mapping=self.driver_passthru_mapping)
+        self.vendor = ipmitool.VendorPassthru()
         self.raid = agent.AgentRAID()
         self.inspect = inspector.Inspector.create_if_enabled(
             'AgentAndIPMIToolDriver')
@@ -105,16 +96,7 @@ class AgentAndIPMINativeDriver(base.BaseDriver):
         self.deploy = agent.AgentDeploy()
         self.management = ipminative.NativeIPMIManagement()
         self.console = ipminative.NativeIPMIShellinaboxConsole()
-        self.agent_vendor = agent.AgentVendorInterface()
-        self.ipminative_vendor = ipminative.VendorPassthru()
-        self.mapping = {
-            'send_raw': self.ipminative_vendor,
-            'bmc_reset': self.ipminative_vendor,
-            'heartbeat': self.agent_vendor,
-        }
-        self.driver_passthru_mapping = {'lookup': self.agent_vendor}
-        self.vendor = utils.MixinVendorInterface(self.mapping,
-                                                 self.driver_passthru_mapping)
+        self.vendor = ipminative.VendorPassthru()
         self.raid = agent.AgentRAID()
         self.inspect = inspector.Inspector.create_if_enabled(
             'AgentAndIPMINativeDriver')
@@ -140,7 +122,6 @@ class AgentAndSSHDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = agent.AgentDeploy()
         self.management = ssh.SSHManagement()
-        self.vendor = agent.AgentVendorInterface()
         self.raid = agent.AgentRAID()
         self.inspect = inspector.Inspector.create_if_enabled(
             'AgentAndSSHDriver')
@@ -171,7 +152,6 @@ class AgentAndVirtualBoxDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = agent.AgentDeploy()
         self.management = virtualbox.VirtualBoxManagement()
-        self.vendor = agent.AgentVendorInterface()
         self.raid = agent.AgentRAID()
 
 
@@ -219,7 +199,6 @@ class AgentAndUcsDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = agent.AgentDeploy()
         self.management = ucs_mgmt.UcsManagement()
-        self.vendor = agent.AgentVendorInterface()
         self.inspect = inspector.Inspector.create_if_enabled(
             'AgentAndUcsDriver')
 
@@ -244,7 +223,6 @@ class AgentAndCIMCDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = agent.AgentDeploy()
         self.management = cimc_mgmt.CIMCManagement()
-        self.vendor = agent.AgentVendorInterface()
         self.inspect = inspector.Inspector.create_if_enabled(
             'AgentAndCIMCDriver')
 

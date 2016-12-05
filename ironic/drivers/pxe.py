@@ -52,7 +52,6 @@ from ironic.drivers.modules.ucs import management as ucs_mgmt
 from ironic.drivers.modules.ucs import power as ucs_power
 from ironic.drivers.modules import virtualbox
 from ironic.drivers.modules import wol
-from ironic.drivers import utils
 
 
 class PXEAndIPMIToolDriver(base.BaseDriver):
@@ -73,15 +72,7 @@ class PXEAndIPMIToolDriver(base.BaseDriver):
         self.management = ipmitool.IPMIManagement()
         self.inspect = inspector.Inspector.create_if_enabled(
             'PXEAndIPMIToolDriver')
-        self.iscsi_vendor = iscsi_deploy.VendorPassthru()
-        self.ipmi_vendor = ipmitool.VendorPassthru()
-        self.mapping = {'send_raw': self.ipmi_vendor,
-                        'bmc_reset': self.ipmi_vendor,
-                        'heartbeat': self.iscsi_vendor}
-        self.driver_passthru_mapping = {'lookup': self.iscsi_vendor}
-        self.vendor = utils.MixinVendorInterface(
-            self.mapping,
-            driver_passthru_mapping=self.driver_passthru_mapping)
+        self.vendor = ipmitool.VendorPassthru()
         self.raid = agent.AgentRAID()
 
 
@@ -124,7 +115,6 @@ class PXEAndSSHDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = iscsi_deploy.ISCSIDeploy()
         self.management = ssh.SSHManagement()
-        self.vendor = iscsi_deploy.VendorPassthru()
         self.inspect = inspector.Inspector.create_if_enabled(
             'PXEAndSSHDriver')
         self.raid = agent.AgentRAID()
@@ -154,16 +144,7 @@ class PXEAndIPMINativeDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = iscsi_deploy.ISCSIDeploy()
         self.management = ipminative.NativeIPMIManagement()
-        self.iscsi_vendor = iscsi_deploy.VendorPassthru()
-        self.ipminative_vendor = ipminative.VendorPassthru()
-        self.mapping = {
-            'send_raw': self.ipminative_vendor,
-            'bmc_reset': self.ipminative_vendor,
-            'heartbeat': self.iscsi_vendor,
-        }
-        self.driver_passthru_mapping = {'lookup': self.iscsi_vendor}
-        self.vendor = utils.MixinVendorInterface(self.mapping,
-                                                 self.driver_passthru_mapping)
+        self.vendor = ipminative.VendorPassthru()
         self.inspect = inspector.Inspector.create_if_enabled(
             'PXEAndIPMINativeDriver')
         self.raid = agent.AgentRAID()
@@ -191,14 +172,7 @@ class PXEAndSeaMicroDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = iscsi_deploy.ISCSIDeploy()
         self.management = seamicro.Management()
-        self.seamicro_vendor = seamicro.VendorPassthru()
-        self.iscsi_vendor = iscsi_deploy.VendorPassthru()
-        self.mapping = {'heartbeat': self.iscsi_vendor,
-                        'attach_volume': self.seamicro_vendor,
-                        'set_node_vlan_id': self.seamicro_vendor}
-        self.driver_passthru_mapping = {'lookup': self.iscsi_vendor}
-        self.vendor = utils.MixinVendorInterface(self.mapping,
-                                                 self.driver_passthru_mapping)
+        self.vendor = seamicro.VendorPassthru()
         self.console = seamicro.ShellinaboxConsole()
 
 
@@ -271,7 +245,6 @@ class PXEAndSNMPDriver(base.BaseDriver):
         self.power = snmp.SNMPPower()
         self.boot = pxe.PXEBoot()
         self.deploy = iscsi_deploy.ISCSIDeploy()
-        self.vendor = iscsi_deploy.VendorPassthru()
 
         # PDUs have no boot device management capability.
         # Only PXE as a boot device is supported.
@@ -296,7 +269,6 @@ class PXEAndIRMCDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = iscsi_deploy.ISCSIDeploy()
         self.management = irmc_management.IRMCManagement()
-        self.vendor = iscsi_deploy.VendorPassthru()
         self.inspect = irmc_inspect.IRMCInspect()
 
 
@@ -324,7 +296,6 @@ class PXEAndVirtualBoxDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = iscsi_deploy.ISCSIDeploy()
         self.management = virtualbox.VirtualBoxManagement()
-        self.vendor = iscsi_deploy.VendorPassthru()
         self.raid = agent.AgentRAID()
 
 
@@ -369,7 +340,6 @@ class PXEAndMSFTOCSDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = iscsi_deploy.ISCSIDeploy()
         self.management = msftocs_management.MSFTOCSManagement()
-        self.vendor = iscsi_deploy.VendorPassthru()
 
 
 class PXEAndUcsDriver(base.BaseDriver):
@@ -391,7 +361,6 @@ class PXEAndUcsDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = iscsi_deploy.ISCSIDeploy()
         self.management = ucs_mgmt.UcsManagement()
-        self.vendor = iscsi_deploy.VendorPassthru()
         self.inspect = inspector.Inspector.create_if_enabled(
             'PXEAndUcsDriver')
 
@@ -415,7 +384,6 @@ class PXEAndCIMCDriver(base.BaseDriver):
         self.boot = pxe.PXEBoot()
         self.deploy = iscsi_deploy.ISCSIDeploy()
         self.management = cimc_mgmt.CIMCManagement()
-        self.vendor = iscsi_deploy.VendorPassthru()
         self.inspect = inspector.Inspector.create_if_enabled(
             'PXEAndCIMCDriver')
 

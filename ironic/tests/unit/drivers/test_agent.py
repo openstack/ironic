@@ -28,7 +28,6 @@ from ironic.drivers.modules import iboot
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import wol
-from ironic.drivers import utils
 from ironic.tests import base
 
 
@@ -42,10 +41,7 @@ class AgentAndIPMIToolDriverTestCase(base.TestCase):
         self.assertIsInstance(driver.boot, pxe.PXEBoot)
         self.assertIsInstance(driver.deploy, agent_module.AgentDeploy)
         self.assertIsInstance(driver.management, ipmitool.IPMIManagement)
-        self.assertIsInstance(driver.agent_vendor,
-                              agent_module.AgentVendorInterface)
-        self.assertIsInstance(driver.ipmi_vendor, ipmitool.VendorPassthru)
-        self.assertIsInstance(driver.vendor, utils.MixinVendorInterface)
+        self.assertIsInstance(driver.vendor, ipmitool.VendorPassthru)
         self.assertIsInstance(driver.raid, agent_module.AgentRAID)
 
 
@@ -59,10 +55,7 @@ class AgentAndIPMIToolAndSocatDriverTestCase(base.TestCase):
         self.assertIsInstance(driver.boot, pxe.PXEBoot)
         self.assertIsInstance(driver.deploy, agent_module.AgentDeploy)
         self.assertIsInstance(driver.management, ipmitool.IPMIManagement)
-        self.assertIsInstance(driver.agent_vendor,
-                              agent_module.AgentVendorInterface)
-        self.assertIsInstance(driver.ipmi_vendor, ipmitool.VendorPassthru)
-        self.assertIsInstance(driver.vendor, utils.MixinVendorInterface)
+        self.assertIsInstance(driver.vendor, ipmitool.VendorPassthru)
         self.assertIsInstance(driver.raid, agent_module.AgentRAID)
 
 
