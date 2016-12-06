@@ -1,0 +1,6 @@
+---
+fixes:
+  - Fixes an issue where the ironic-conductor service would not
+    run if a trailing comma or empty driver was specified in the
+    ``[DEFAULT]enabled_drivers`` configuration option. The service now
+    runs and logs a warning.

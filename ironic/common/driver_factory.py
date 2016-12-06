@@ -182,6 +182,13 @@ class BaseDriverFactory(object):
         duplicated_drivers = []
         cls._enabled_driver_list = []
         for item, cnt in counter:
+            if not item:
+                LOG.warning(
+                    _LW('An empty driver was specified in the "%s" '
+                        'configuration option and will be ignored. Please '
+                        'fix your ironic.conf file to avoid this warning '
+                        'message.'), cls._enabled_driver_list_config_option)
+                continue
             if cnt > 1:
                 duplicated_drivers.append(item)
             cls._enabled_driver_list.append(item)
