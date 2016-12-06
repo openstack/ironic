@@ -203,7 +203,7 @@
 
 # Log output to standard error. This option is ignored if
 # log_config_append is set. (boolean value)
-#use_stderr = true
+#use_stderr = false
 
 # Format string to use for log messages with context. (string
 # value)
@@ -241,6 +241,20 @@
 # message. (string value)
 #instance_uuid_format = "[instance: %(uuid)s] "
 
+# Interval, number of seconds, of log rate limiting. (integer
+# value)
+#rate_limit_interval = 0
+
+# Maximum number of logged messages per rate_limit_interval.
+# (integer value)
+#rate_limit_burst = 0
+
+# Log level name used by rate limiting: CRITICAL, ERROR, INFO,
+# WARNING, DEBUG or empty string. Logs with level greater or
+# equal to rate_limit_except_level are not filtered. An empty
+# string means that all levels are filtered. (string value)
+#rate_limit_except_level = CRITICAL
+
 # Enables or disables fatal status of deprecations. (boolean
 # value)
 #fatal_deprecations = false
@@ -268,7 +282,7 @@
 #rpc_zmq_bind_address = *
 
 # MatchMaker driver. (string value)
-# Allowed values: redis, dummy
+# Allowed values: redis, sentinel, dummy
 # Deprecated group/name - [DEFAULT]/rpc_zmq_matchmaker
 #rpc_zmq_matchmaker = redis
 
@@ -291,13 +305,15 @@
 # Deprecated group/name - [DEFAULT]/rpc_zmq_host
 #rpc_zmq_host = localhost
 
-# Seconds to wait before a cast expires (TTL). The default
-# value of -1 specifies an infinite linger period. The value
-# of 0 specifies no linger period. Pending messages shall be
-# discarded immediately when the socket is closed. Only
-# supported by impl_zmq. (integer value)
+# Number of seconds to wait before all pending messages will
+# be sent after closing a socket. The default value of -1
+# specifies an infinite linger period. The value of 0
+# specifies no linger period. Pending messages shall be
+# discarded immediately when the socket is closed. Positive
+# values specify an upper bound for the linger period.
+# (integer value)
 # Deprecated group/name - [DEFAULT]/rpc_cast_timeout
-#rpc_cast_timeout = -1
+#zmq_linger = -1
 
 # The default number of seconds that poll should wait. Poll
 # raises timeout exception when timeout expired. (integer
@@ -318,7 +334,7 @@
 # Use PUB/SUB pattern for fanout methods. PUB/SUB always uses
 # proxy. (boolean value)
 # Deprecated group/name - [DEFAULT]/use_pub_sub
-#use_pub_sub = true
+#use_pub_sub = false
 
 # Use ROUTER remote proxy. (boolean value)
 # Deprecated group/name - [DEFAULT]/use_router_proxy
@@ -353,7 +369,73 @@
 # False means to keep queue and messages even if server is
 # disconnected, when the server appears we send all
 # accumulated messages to it. (boolean value)
-#zmq_immediate = false
+#zmq_immediate = true
+
+# Enable/disable TCP keepalive (KA) mechanism. The default
+# value of -1 (or any other negative value) means to skip any
+# overrides and leave it to OS default; 0 and 1 (or any other
+# positive value) mean to disable and enable the option
+# respectively. (integer value)
+#zmq_tcp_keepalive = -1
+
+# The duration between two keepalive transmissions in idle
+# condition. The unit is platform dependent, for example,
+# seconds in Linux, milliseconds in Windows etc. The default
+# value of -1 (or any other negative value and 0) means to
+# skip any overrides and leave it to OS default. (integer
+# value)
+#zmq_tcp_keepalive_idle = -1
+
+# The number of retransmissions to be carried out before
+# declaring that remote end is not available. The default
+# value of -1 (or any other negative value and 0) means to
+# skip any overrides and leave it to OS default. (integer
+# value)
+#zmq_tcp_keepalive_cnt = -1
+
+# The duration between two successive keepalive
+# retransmissions, if acknowledgement to the previous
+# keepalive transmission is not received. The unit is platform
+# dependent, for example, seconds in Linux, milliseconds in
+# Windows etc. The default value of -1 (or any other negative
+# value and 0) means to skip any overrides and leave it to OS
+# default. (integer value)
+#zmq_tcp_keepalive_intvl = -1
+
+# Maximum number of (green) threads to work concurrently.
+# (integer value)
+#rpc_thread_pool_size = 100
+
+# Expiration timeout in seconds of a sent/received message
+# after which it is not tracked anymore by a client/server.
+# (integer value)
+#rpc_message_ttl = 300
+
+# Wait for message acknowledgements from receivers. This
+# mechanism works only via proxy without PUB/SUB. (boolean
+# value)
+#rpc_use_acks = false
+
+# Number of seconds to wait for an ack from a cast/call. After
+# each retry attempt this timeout is multiplied by some
+# specified multiplier. (integer value)
+#rpc_ack_timeout_base = 15
+
+# Number to multiply base ack timeout by after each retry
+# attempt. (integer value)
+#rpc_ack_timeout_multiplier = 2
+
+# Default number of message sending attempts in case of any
+# problems occurred: positive value N means at most N retries,
+# 0 means no retries, None or -1 (or any other negative
+# values) mean to retry forever. This option is used only if
+# acknowledgments are enabled. (integer value)
+#rpc_retry_attempts = 3
+
+# List of publisher hosts SubConsumer can subscribe on. This
+# option has higher priority then the default publishers list
+# taken from the matchmaker. (list value)
+#subscribe_on =
 
 # Size of executor thread pool. (integer value)
 # Deprecated group/name - [DEFAULT]/rpc_thread_pool_size
@@ -1655,8 +1737,12 @@
 # (string value)
 #region_name = <None>
 
-# Directory used to cache files related to PKI tokens. (string
-# value)
+# DEPRECATED: Directory used to cache files related to PKI
+# tokens. This option has been deprecated in the Ocata release
+# and will be removed in the P release. (string value)
+# This option is deprecated for removal since Ocata.
+# Its value may be silently ignored in the future.
+# Reason: PKI token format is no longer supported.
 #signing_dir = <None>
 
 # Optionally specify a list of memcached server(s) to use for
@@ -1671,11 +1757,16 @@
 # caching completely. (integer value)
 #token_cache_time = 300
 
-# Determines the frequency at which the list of revoked tokens
-# is retrieved from the Identity service (in seconds). A high
-# number of revocation events combined with a low cache
-# duration may significantly reduce performance. Only valid
-# for PKI tokens. (integer value)
+# DEPRECATED: Determines the frequency at which the list of
+# revoked tokens is retrieved from the Identity service (in
+# seconds). A high number of revocation events combined with a
+# low cache duration may significantly reduce performance.
+# Only valid for PKI tokens. This option has been deprecated
+# in the Ocata release and will be removed in the P release.
+# (integer value)
+# This option is deprecated for removal since Ocata.
+# Its value may be silently ignored in the future.
+# Reason: PKI token format is no longer supported.
 #revocation_cache_time = 10
 
 # (Optional) If defined, indicate whether token data should be
@@ -1735,21 +1826,27 @@
 # value)
 #enforce_token_bind = permissive
 
-# If true, the revocation list will be checked for cached
-# tokens. This requires that PKI tokens are configured on the
-# identity server. (boolean value)
+# DEPRECATED: If true, the revocation list will be checked for
+# cached tokens. This requires that PKI tokens are configured
+# on the identity server. (boolean value)
+# This option is deprecated for removal since Ocata.
+# Its value may be silently ignored in the future.
+# Reason: PKI token format is no longer supported.
 #check_revocations_for_cached = false
 
-# Hash algorithms to use for hashing PKI tokens. This may be a
-# single algorithm or multiple. The algorithms are those
-# supported by Python standard hashlib.new(). The hashes will
-# be tried in the order given, so put the preferred one first
-# for performance. The result of the first hash will be stored
-# in the cache. This will typically be set to multiple values
-# only while migrating from a less secure algorithm to a more
-# secure one. Once all the old tokens are expired this option
-# should be set to a single value for better performance.
-# (list value)
+# DEPRECATED: Hash algorithms to use for hashing PKI tokens.
+# This may be a single algorithm or multiple. The algorithms
+# are those supported by Python standard hashlib.new(). The
+# hashes will be tried in the order given, so put the
+# preferred one first for performance. The result of the first
+# hash will be stored in the cache. This will typically be set
+# to multiple values only while migrating from a less secure
+# algorithm to a more secure one. Once all the old tokens are
+# expired this option should be set to a single value for
+# better performance. (list value)
+# This option is deprecated for removal since Ocata.
+# Its value may be silently ignored in the future.
+# Reason: PKI token format is no longer supported.
 #hash_algorithms = md5
 
 # Authentication type to load (string value)
@@ -1790,8 +1887,7 @@
 #password =
 
 # DEPRECATED: List of Redis Sentinel hosts (fault tolerance
-# mode) e.g.                [host:port, host1:port ... ] (list
-# value)
+# mode), e.g., [host:port, host1:port ... ] (list value)
 # This option is deprecated for removal.
 # Its value may be silently ignored in the future.
 # Reason: Replaced by [DEFAULT]/transport_url
@@ -1808,7 +1904,7 @@
 # (integer value)
 #check_timeout = 20000
 
-# Timeout in ms on blocking socket operations (integer value)
+# Timeout in ms on blocking socket operations. (integer value)
 #socket_timeout = 10000
 
 
@@ -1988,8 +2084,8 @@
 # Deprecated group/name - [neutron]/tenant-name
 #project_name = <None>
 
-# Neutron network UUID for the ramdisk to be booted into for
-# provisioning nodes. Required for "neutron" network
+# Neutron network UUID or name for the ramdisk to be booted
+# into for provisioning nodes. Required for "neutron" network
 # interface. If a name is provided, it must be unique among
 # all networks or deploy will fail. (string value)
 # Deprecated group/name - [neutron]/provisioning_network_uuid
@@ -2282,6 +2378,19 @@
 # Minimum value: 1
 #notify_server_credit = 100
 
+# Send messages of this type pre-settled.
+# Pre-settled messages will not receive acknowledgement
+# from the peer. Note well: pre-settled messages may be
+# silently discarded if the delivery fails.
+# Permitted values:
+# 'rpc-call' - send RPC Calls pre-settled
+# 'rpc-reply'- send RPC Replies pre-settled
+# 'rpc-cast' - Send RPC Casts pre-settled
+# 'notify'   - Send Notifications pre-settled
+#  (multi valued)
+#pre_settled = rpc-cast
+#pre_settled = rpc-reply
+
 
 [oslo_messaging_notifications]
 
@@ -2409,6 +2518,7 @@
 #rabbit_password = guest
 
 # The RabbitMQ login method. (string value)
+# Allowed values: PLAIN, AMQPLAIN, RABBIT-CR-DEMO
 # Deprecated group/name - [DEFAULT]/rabbit_login_method
 #rabbit_login_method = AMQPLAIN
 
@@ -2443,7 +2553,7 @@
 # change this option, you must wipe the RabbitMQ database. In
 # RabbitMQ 3.0, queue mirroring is no longer controlled by the
 # x-ha-policy argument when declaring a queue. If you just
-# want to make sure that all queues (except  those with auto-
+# want to make sure that all queues (except those with auto-
 # generated names) are mirrored across all nodes, run:
 # "rabbitmqctl set_policy HA '^(?!amq\.).*' '{"ha-mode":
 # "all"}' " (boolean value)
@@ -2529,6 +2639,12 @@
 # connections are closed on acquire. (integer value)
 #pool_stale = 60
 
+# Default serialization mechanism for
+# serializing/deserializing outgoing/incoming messages (string
+# value)
+# Allowed values: json, msgpack
+#default_serializer_type = json
+
 # Persist notification messages. (boolean value)
 #notification_persistence = false
 
@@ -2578,7 +2694,7 @@
 # Reconnecting retry count in case of connectivity problem
 # during sending RPC message, -1 means infinite retry. If
 # actual retry attempts in not 0 the rpc request could be
-# processed more then one time (integer value)
+# processed more than one time (integer value)
 #default_rpc_retry_attempts = -1
 
 # Reconnecting retry delay in case of connectivity problem
@@ -2599,7 +2715,7 @@
 #rpc_zmq_bind_address = *
 
 # MatchMaker driver. (string value)
-# Allowed values: redis, dummy
+# Allowed values: redis, sentinel, dummy
 # Deprecated group/name - [DEFAULT]/rpc_zmq_matchmaker
 #rpc_zmq_matchmaker = redis
 
@@ -2622,13 +2738,15 @@
 # Deprecated group/name - [DEFAULT]/rpc_zmq_host
 #rpc_zmq_host = localhost
 
-# Seconds to wait before a cast expires (TTL). The default
-# value of -1 specifies an infinite linger period. The value
-# of 0 specifies no linger period. Pending messages shall be
-# discarded immediately when the socket is closed. Only
-# supported by impl_zmq. (integer value)
+# Number of seconds to wait before all pending messages will
+# be sent after closing a socket. The default value of -1
+# specifies an infinite linger period. The value of 0
+# specifies no linger period. Pending messages shall be
+# discarded immediately when the socket is closed. Positive
+# values specify an upper bound for the linger period.
+# (integer value)
 # Deprecated group/name - [DEFAULT]/rpc_cast_timeout
-#rpc_cast_timeout = -1
+#zmq_linger = -1
 
 # The default number of seconds that poll should wait. Poll
 # raises timeout exception when timeout expired. (integer
@@ -2649,7 +2767,7 @@
 # Use PUB/SUB pattern for fanout methods. PUB/SUB always uses
 # proxy. (boolean value)
 # Deprecated group/name - [DEFAULT]/use_pub_sub
-#use_pub_sub = true
+#use_pub_sub = false
 
 # Use ROUTER remote proxy. (boolean value)
 # Deprecated group/name - [DEFAULT]/use_router_proxy
@@ -2684,7 +2802,73 @@
 # False means to keep queue and messages even if server is
 # disconnected, when the server appears we send all
 # accumulated messages to it. (boolean value)
-#zmq_immediate = false
+#zmq_immediate = true
+
+# Enable/disable TCP keepalive (KA) mechanism. The default
+# value of -1 (or any other negative value) means to skip any
+# overrides and leave it to OS default; 0 and 1 (or any other
+# positive value) mean to disable and enable the option
+# respectively. (integer value)
+#zmq_tcp_keepalive = -1
+
+# The duration between two keepalive transmissions in idle
+# condition. The unit is platform dependent, for example,
+# seconds in Linux, milliseconds in Windows etc. The default
+# value of -1 (or any other negative value and 0) means to
+# skip any overrides and leave it to OS default. (integer
+# value)
+#zmq_tcp_keepalive_idle = -1
+
+# The number of retransmissions to be carried out before
+# declaring that remote end is not available. The default
+# value of -1 (or any other negative value and 0) means to
+# skip any overrides and leave it to OS default. (integer
+# value)
+#zmq_tcp_keepalive_cnt = -1
+
+# The duration between two successive keepalive
+# retransmissions, if acknowledgement to the previous
+# keepalive transmission is not received. The unit is platform
+# dependent, for example, seconds in Linux, milliseconds in
+# Windows etc. The default value of -1 (or any other negative
+# value and 0) means to skip any overrides and leave it to OS
+# default. (integer value)
+#zmq_tcp_keepalive_intvl = -1
+
+# Maximum number of (green) threads to work concurrently.
+# (integer value)
+#rpc_thread_pool_size = 100
+
+# Expiration timeout in seconds of a sent/received message
+# after which it is not tracked anymore by a client/server.
+# (integer value)
+#rpc_message_ttl = 300
+
+# Wait for message acknowledgements from receivers. This
+# mechanism works only via proxy without PUB/SUB. (boolean
+# value)
+#rpc_use_acks = false
+
+# Number of seconds to wait for an ack from a cast/call. After
+# each retry attempt this timeout is multiplied by some
+# specified multiplier. (integer value)
+#rpc_ack_timeout_base = 15
+
+# Number to multiply base ack timeout by after each retry
+# attempt. (integer value)
+#rpc_ack_timeout_multiplier = 2
+
+# Default number of message sending attempts in case of any
+# problems occurred: positive value N means at most N retries,
+# 0 means no retries, None or -1 (or any other negative
+# values) mean to retry forever. This option is used only if
+# acknowledgments are enabled. (integer value)
+#rpc_retry_attempts = 3
+
+# List of publisher hosts SubConsumer can subscribe on. This
+# option has higher priority then the default publishers list
+# taken from the matchmaker. (list value)
+#subscribe_on =
 
 
 [oslo_policy]
@@ -2693,7 +2877,7 @@
 # From oslo.policy
 #
 
-# The JSON file that defines policies. (string value)
+# The file that defines policies. (string value)
 # Deprecated group/name - [DEFAULT]/policy_file
 #policy_file = policy.json
 

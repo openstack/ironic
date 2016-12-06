@@ -53,10 +53,11 @@ opts = [
                       'unique among all networks or cleaning will fail.'),
                deprecated_name='cleaning_network_uuid'),
     cfg.StrOpt('provisioning_network',
-               help=_('Neutron network UUID for the ramdisk to be booted '
-                      'into for provisioning nodes. Required for "neutron" '
-                      'network interface. If a name is provided, it must be '
-                      'unique among all networks or deploy will fail.'),
+               help=_('Neutron network UUID or name for the ramdisk to be '
+                      'booted into for provisioning nodes. Required for '
+                      '"neutron" network interface. If a name is provided, '
+                      'it must be unique among all networks or deploy will '
+                      'fail.'),
                deprecated_name='provisioning_network_uuid'),
     cfg.ListOpt('provisioning_network_security_groups',
                 default=[],
