@@ -22,7 +22,8 @@ Bare Metal service comes with an example file for configuring the
         zypper install apache2
 
 
-#. Copy the ``etc/apache2/ironic`` file under the apache sites:
+#. Download the ``etc/apache2/ironic`` file from the Ironic project tree and
+   copy it to the apache sites:
 
    .. TODO(mmitchell): Split this based on operating system
    .. code-block:: console
