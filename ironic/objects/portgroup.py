@@ -45,12 +45,6 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         'standalone_ports_supported': object_fields.BooleanField(),
     }
 
-    @staticmethod
-    def _from_db_object_list(db_objects, cls, context):
-        """Converts a list of database entities to a list of formal objects."""
-        return [Portgroup._from_db_object(cls(context), obj) for obj in
-                db_objects]
-
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
     # Implications of calling new remote procedures should be thought through.
@@ -170,7 +164,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                      marker=marker,
                                                      sort_key=sort_key,
                                                      sort_dir=sort_dir)
-        return Portgroup._from_db_object_list(db_portgroups, cls, context)
+        return cls._from_db_object_list(context, db_portgroups)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -196,7 +190,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                             marker=marker,
                                                             sort_key=sort_key,
                                                             sort_dir=sort_dir)
-        return Portgroup._from_db_object_list(db_portgroups, cls, context)
+        return cls._from_db_object_list(context, db_portgroups)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.

@@ -111,8 +111,7 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                 marker=marker,
                                                 sort_key=sort_key,
                                                 sort_dir=sort_dir)
-        return [Chassis._from_db_object(cls(context), obj)
-                for obj in db_chassis]
+        return cls._from_db_object_list(context, db_chassis)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.

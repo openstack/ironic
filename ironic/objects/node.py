@@ -251,7 +251,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_nodes = cls.dbapi.get_node_list(filters=filters, limit=limit,
                                            marker=marker, sort_key=sort_key,
                                            sort_dir=sort_dir)
-        return [Node._from_db_object(cls(context), obj) for obj in db_nodes]
+        return cls._from_db_object_list(context, db_nodes)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
