@@ -28,6 +28,7 @@ from oslo_utils import uuidutils
 from oslo_versionedobjects import base as ovo_base
 from oslo_versionedobjects import fields
 import six
+from six.moves import queue
 
 from ironic.common import boot_devices
 from ironic.common import driver_factory
@@ -3225,70 +3226,34 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
         expected_result = {}
         self.assertEqual(expected_result, actual_result)
 
-    @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
-    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
     @mock.patch.object(task_manager, 'acquire')
-    def test___send_sensor_data(self, acquire_mock, get_nodeinfo_list_mock,
-                                _mapped_to_this_conductor_mock):
-        node = obj_utils.create_test_node(self.context,
-                                          driver='fake')
+    def test_send_sensor_task(self, acquire_mock):
+        nodes = queue.Queue()
+        for i in range(5):
+            nodes.put_nowait(('fake_uuid-%d' % i, 'fake', None))
         self._start_service()
         CONF.set_override('send_sensor_data', True, group='conductor')
+
         acquire_mock.return_value.__enter__.return_value.driver = self.driver
         with mock.patch.object(self.driver.management,
                                'get_sensors_data') as get_sensors_data_mock:
             with mock.patch.object(self.driver.management,
                                    'validate') as validate_mock:
                 get_sensors_data_mock.return_value = 'fake-sensor-data'
-                _mapped_to_this_conductor_mock.return_value = True
-                get_nodeinfo_list_mock.return_value = [(node.uuid, node.driver,
-                                                        node.instance_uuid)]
-                self.service._send_sensor_data(self.context)
-                self.assertTrue(get_nodeinfo_list_mock.called)
-                self.assertTrue(_mapped_to_this_conductor_mock.called)
-                self.assertTrue(acquire_mock.called)
-                self.assertTrue(get_sensors_data_mock.called)
-                self.assertTrue(validate_mock.called)
+                self.service._sensors_nodes_task(self.context, nodes)
+                self.assertEqual(5, acquire_mock.call_count)
+                self.assertEqual(5, validate_mock.call_count)
+                self.assertEqual(5, get_sensors_data_mock.call_count)
 
-    @mock.patch.object(manager.ConductorManager, '_fail_if_in_state',
-                       autospec=True)
-    @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
-    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
-    @mock.patch.object(task_manager, 'acquire')
-    def test___send_sensor_data_disabled(self, acquire_mock,
-                                         get_nodeinfo_list_mock,
-                                         _mapped_to_this_conductor_mock,
-                                         mock_fail_if_state):
-        node = obj_utils.create_test_node(self.context,
-                                          driver='fake')
-        self._start_service()
-        acquire_mock.return_value.__enter__.return_value.driver = self.driver
-        with mock.patch.object(self.driver.management,
-                               'get_sensors_data') as get_sensors_data_mock:
-            with mock.patch.object(self.driver.management,
-                                   'validate') as validate_mock:
-                get_sensors_data_mock.return_value = 'fake-sensor-data'
-                _mapped_to_this_conductor_mock.return_value = True
-                get_nodeinfo_list_mock.return_value = [(node.uuid, node.driver,
-                                                        node.instance_uuid)]
-                self.service._send_sensor_data(self.context)
-                self.assertFalse(get_nodeinfo_list_mock.called)
-                self.assertFalse(_mapped_to_this_conductor_mock.called)
-                self.assertFalse(acquire_mock.called)
-                self.assertFalse(get_sensors_data_mock.called)
-                self.assertFalse(validate_mock.called)
-                mock_fail_if_state.assert_called_once_with(
-                    mock.ANY, mock.ANY,
-                    {'provision_state': 'deploying', 'reserved': False},
-                    'deploying', 'provision_updated_at',
-                    last_error=mock.ANY)
-
-    @mock.patch.object(manager.ConductorManager, 'iter_nodes', autospec=True)
     @mock.patch.object(task_manager, 'acquire', autospec=True)
-    def test___send_sensor_data_no_management(self, acquire_mock,
-                                              iter_nodes_mock):
+    def test_send_sensor_task_no_management(self, acquire_mock):
+        nodes = queue.Queue()
+        nodes.put_nowait(('fake_uuid', 'fake', None))
+
         CONF.set_override('send_sensor_data', True, group='conductor')
-        iter_nodes_mock.return_value = [('fake_uuid1', 'fake', 'fake_uuid2')]
+
+        self._start_service()
+
         self.driver.management = None
         acquire_mock.return_value.__enter__.return_value.driver = self.driver
 
@@ -3296,12 +3261,67 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
                                autospec=True) as get_sensors_data_mock:
             with mock.patch.object(fake.FakeManagement, 'validate',
                                    autospec=True) as validate_mock:
-                self.service._send_sensor_data(self.context)
+                self.service._sensors_nodes_task(self.context, nodes)
 
-        self.assertTrue(iter_nodes_mock.called)
         self.assertTrue(acquire_mock.called)
         self.assertFalse(get_sensors_data_mock.called)
         self.assertFalse(validate_mock.called)
+
+    @mock.patch.object(manager.ConductorManager, '_spawn_worker')
+    @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
+    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
+    def test___send_sensor_data(self, get_nodeinfo_list_mock,
+                                _mapped_to_this_conductor_mock,
+                                mock_spawn):
+        self._start_service()
+
+        CONF.set_override('send_sensor_data', True, group='conductor')
+        # NOTE(galyna): do not wait for threads to be finished in unittests
+        CONF.set_override('send_sensor_data_wait_timeout', 0,
+                          group='conductor')
+        _mapped_to_this_conductor_mock.return_value = True
+        get_nodeinfo_list_mock.return_value = [('fake_uuid', 'fake', None)]
+        self.service._send_sensor_data(self.context)
+        mock_spawn.assert_called_with(self.service._sensors_nodes_task,
+                                      self.context,
+                                      mock.ANY)
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
+    @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
+    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
+    def test___send_sensor_data_multiple_workers(
+            self, get_nodeinfo_list_mock, _mapped_to_this_conductor_mock,
+            mock_spawn):
+        self._start_service()
+        mock_spawn.reset_mock()
+
+        number_of_workers = 8
+        CONF.set_override('send_sensor_data', True, group='conductor')
+        CONF.set_override('send_sensor_data_workers', number_of_workers,
+                          group='conductor')
+        # NOTE(galyna): do not wait for threads to be finished in unittests
+        CONF.set_override('send_sensor_data_wait_timeout', 0,
+                          group='conductor')
+
+        _mapped_to_this_conductor_mock.return_value = True
+        get_nodeinfo_list_mock.return_value = [('fake_uuid', 'fake',
+                                                None)] * 20
+        self.service._send_sensor_data(self.context)
+        self.assertEqual(number_of_workers,
+                         mock_spawn.call_count)
+
+    @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
+    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
+    def test___send_sensor_data_disabled(self, get_nodeinfo_list_mock,
+                                         _mapped_to_this_conductor_mock):
+        self._start_service()
+        get_nodeinfo_list_mock.reset_mock()
+        with mock.patch.object(manager.ConductorManager,
+                               '_spawn_worker') as _spawn_mock:
+            self.service._send_sensor_data(self.context)
+            self.assertFalse(get_nodeinfo_list_mock.called)
+            self.assertFalse(_mapped_to_this_conductor_mock.called)
+            self.assertFalse(_spawn_mock.called)
 
     def test_set_boot_device(self):
         node = obj_utils.create_test_node(self.context, driver='fake')

@@ -44,10 +44,12 @@ notifying Neutron of a change, etc.
 
 import collections
 import datetime
+from six.moves import queue
 import tempfile
 
 import eventlet
 from futurist import periodics
+from futurist import waiters
 from ironic_lib import metrics_utils
 from oslo_log import log
 import oslo_messaging as messaging
@@ -2021,19 +2023,14 @@ class ConductorManager(base_manager.BaseConductorManager):
         driver = driver_factory.get_driver(driver_name)
         return driver.get_properties()
 
-    @METRICS.timer('ConductorManager._send_sensor_data')
-    @periodics.periodic(spacing=CONF.conductor.send_sensor_data_interval)
-    def _send_sensor_data(self, context):
-        """Periodically sends sensor data to Ceilometer."""
-        # do nothing if send_sensor_data option is False
-        if not CONF.conductor.send_sensor_data:
-            return
-
-        filters = {'associated': True}
-        node_iter = self.iter_nodes(fields=['instance_uuid'],
-                                    filters=filters)
-
-        for (node_uuid, driver, instance_uuid) in node_iter:
+    @METRICS.timer('ConductorManager._sensors_nodes_task')
+    def _sensors_nodes_task(self, context, nodes):
+        """Sends sensors data for nodes from synchronized queue."""
+        while True:
+            try:
+                node_uuid, driver, instance_uuid = nodes.get_nowait()
+            except queue.Empty:
+                break
             # populate the message which will be sent to ceilometer
             message = {'message_id': uuidutils.generate_uuid(),
                        'instance_uuid': instance_uuid,
@@ -2085,6 +2082,42 @@ class ConductorManager(base_manager.BaseConductorManager):
             finally:
                 # Yield on every iteration
                 eventlet.sleep(0)
+
+    @METRICS.timer('ConductorManager._send_sensor_data')
+    @periodics.periodic(spacing=CONF.conductor.send_sensor_data_interval)
+    def _send_sensor_data(self, context):
+        """Periodically sends sensor data to Ceilometer."""
+
+        # do nothing if send_sensor_data option is False
+        if not CONF.conductor.send_sensor_data:
+            return
+
+        filters = {'associated': True}
+        nodes = queue.Queue()
+        for node_info in self.iter_nodes(fields=['instance_uuid'],
+                                         filters=filters):
+            nodes.put_nowait(node_info)
+
+        number_of_threads = min(CONF.conductor.send_sensor_data_workers,
+                                nodes.qsize())
+        futures = []
+        for thread_number in range(number_of_threads):
+            try:
+                futures.append(
+                    self._spawn_worker(self._sensors_nodes_task,
+                                       context, nodes))
+            except exception.NoFreeConductorWorker:
+                LOG.warning(_LW("There is no more conductor workers for "
+                                "task of sending sensors data. %(workers)d "
+                                "workers has been already spawned."),
+                            {'workers': thread_number})
+                break
+
+        done, not_done = waiters.wait_for_all(
+            futures, timeout=CONF.conductor.send_sensor_data_wait_timeout)
+        if not_done:
+            LOG.warning(_LW("%d workers for send sensors data did not "
+                            "complete"), len(not_done))
 
     def _filter_out_unsupported_types(self, sensors_data):
         """Filters out sensor data types that aren't specified in the config.
