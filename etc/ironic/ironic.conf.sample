@@ -354,6 +354,15 @@
 # value)
 #host = localhost
 
+# Used for rolling upgrades. Setting this option downgrades
+# the internal ironic RPC communication to the specified
+# version to enable communication with older services. When
+# doing a rolling upgrade from version X to version Y, set
+# this to X. Defaults to using the newest possible RPC
+# behavior. (string value)
+# Allowed values: ocata, 7.0
+#pin_release_version = <None>
+
 # Path to the rootwrap configuration file to use for running
 # commands as root. (string value)
 #rootwrap_config = /etc/ironic/rootwrap.conf

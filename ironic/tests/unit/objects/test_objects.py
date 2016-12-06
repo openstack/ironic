@@ -23,6 +23,8 @@ from oslo_versionedobjects import fixture as object_fixture
 import six
 
 from ironic.common import context
+from ironic.common import release_mappings
+from ironic.conf import CONF
 from ironic.objects import base
 from ironic.objects import fields
 from ironic.tests import base as test_base
@@ -36,6 +38,11 @@ class MyObj(base.IronicObject, object_base.VersionedObjectDictCompat):
               'bar': fields.StringField(),
               'missing': fields.StringField(),
               }
+
+    def obj_make_compatible(self, primitive, target_version):
+        super(MyObj, self).obj_make_compatible(primitive, target_version)
+        if target_version == '1.4' and 'missing' in primitive:
+            del primitive['missing']
 
     def obj_load_attr(self, attrname):
         setattr(self, attrname, 'loaded!')
@@ -517,6 +524,90 @@ class TestObjectSerializer(test_base.TestCase):
     def test_deserialize_entity_newer_version_passes_revision(self):
         "Test object with unsupported (newer) version and revision"
         self._test_deserialize_entity_newer('1.7', '1.6.1', my_version='1.6.1')
+
+    @mock.patch.object(MyObj, 'obj_make_compatible')
+    def test_serialize_entity_no_backport(self, make_compatible_mock):
+        """Test single element serializer with no backport."""
+        serializer = base.IronicObjectSerializer()
+        obj = MyObj(self.context)
+        obj.foo = 1
+        obj.bar = 'text'
+        obj.missing = 'textt'
+        primitive = serializer.serialize_entity(self.context, obj)
+        self.assertEqual('1.5', primitive['ironic_object.version'])
+        data = primitive['ironic_object.data']
+        self.assertEqual(1, data['foo'])
+        self.assertEqual('text', data['bar'])
+        self.assertEqual('textt', data['missing'])
+        changes = primitive['ironic_object.changes']
+        self.assertEqual(set(['foo', 'bar', 'missing']), set(changes))
+        make_compatible_mock.assert_not_called()
+
+    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING')
+    def test_serialize_entity_backport(self, mock_release_mapping):
+        """Test single element serializer with backport."""
+        CONF.set_override('pin_release_version',
+                          release_mappings.RELEASE_VERSIONS[-1],
+                          enforce_type=True)
+        mock_release_mapping.__getitem__.return_value = {
+            'objects': {
+                'MyObj': '1.4',
+            }
+        }
+        serializer = base.IronicObjectSerializer()
+        obj = MyObj(self.context)
+        obj.foo = 1
+        obj.bar = 'text'
+        obj.missing = 'textt'
+        primitive = serializer.serialize_entity(self.context, obj)
+        self.assertEqual('1.4', primitive['ironic_object.version'])
+        data = primitive['ironic_object.data']
+        self.assertEqual(1, data['foo'])
+        self.assertEqual('text', data['bar'])
+        self.assertNotIn('missing', data)
+        changes = primitive['ironic_object.changes']
+        self.assertEqual(set(['foo', 'bar']), set(changes))
+
+    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING')
+    def test_serialize_entity_invalid_pin(self, mock_release_mapping):
+        CONF.set_override('pin_release_version',
+                          release_mappings.RELEASE_VERSIONS[-1],
+                          enforce_type=True)
+        mock_release_mapping.__getitem__.return_value = {
+            'objects': {
+                'MyObj': '1.6',
+            }
+        }
+        serializer = base.IronicObjectSerializer()
+        obj = MyObj(self.context)
+        self.assertRaises(object_exception.InvalidTargetVersion,
+                          serializer.serialize_entity, self.context, obj)
+
+    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING')
+    def test_serialize_entity_no_pin(self, mock_release_mapping):
+        CONF.set_override('pin_release_version',
+                          release_mappings.RELEASE_VERSIONS[-1],
+                          enforce_type=True)
+        mock_release_mapping.__getitem__.return_value = {
+            'objects': {}
+        }
+        serializer = base.IronicObjectSerializer()
+        obj = MyObj(self.context)
+        primitive = serializer.serialize_entity(self.context, obj)
+        self.assertEqual('1.5', primitive['ironic_object.version'])
+
+    @mock.patch('ironic.objects.base.IronicObject._get_target_version')
+    @mock.patch('ironic.objects.base.LOG.warning')
+    def test_serialize_entity_unknown_entity(self, mock_warn, mock_version):
+        class Foo(object):
+            fields = {'foobar': fields.IntegerField()}
+
+        serializer = base.IronicObjectSerializer()
+        obj = Foo()
+        primitive = serializer.serialize_entity(self.context, obj)
+        self.assertEqual(obj, primitive)
+        self.assertTrue(mock_warn.called)
+        mock_version.assert_not_called()
 
 
 class TestRegistry(test_base.TestCase):
