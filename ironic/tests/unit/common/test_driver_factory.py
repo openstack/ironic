@@ -71,6 +71,14 @@ class DriverLoadTestCase(base.TestCase):
             ['fake'], driver_factory.DriverFactory._extension_manager.names())
         self.assertTrue(mock_log.called)
 
+    @mock.patch.object(driver_factory.LOG, 'warning', autospec=True)
+    def test_driver_empty_entry(self, mock_log):
+        self.config(enabled_drivers=['fake', ''])
+        driver_factory.DriverFactory._init_extension_manager()
+        self.assertEqual(
+            ['fake'], driver_factory.DriverFactory._extension_manager.names())
+        self.assertTrue(mock_log.called)
+
     @mock.patch.object(driver_factory, '_warn_if_unsupported')
     def test_driver_init_checks_unsupported(self, mock_warn):
         self.config(enabled_drivers=['fake'])
