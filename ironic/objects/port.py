@@ -52,11 +52,6 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         'internal_info': object_fields.FlexibleDictField(nullable=True),
     }
 
-    @staticmethod
-    def _from_db_object_list(db_objects, cls, context):
-        """Converts a list of database entities to a list of formal objects."""
-        return [Port._from_db_object(cls(context), obj) for obj in db_objects]
-
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
     # Implications of calling new remote procedures should be thought through.
@@ -157,7 +152,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
                                            marker=marker,
                                            sort_key=sort_key,
                                            sort_dir=sort_dir)
-        return Port._from_db_object_list(db_ports, cls, context)
+        return cls._from_db_object_list(context, db_ports)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -181,7 +176,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                   marker=marker,
                                                   sort_key=sort_key,
                                                   sort_dir=sort_dir)
-        return Port._from_db_object_list(db_ports, cls, context)
+        return cls._from_db_object_list(context, db_ports)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -206,7 +201,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                        marker=marker,
                                                        sort_key=sort_key,
                                                        sort_dir=sort_dir)
-        return Port._from_db_object_list(db_ports, cls, context)
+        return cls._from_db_object_list(context, db_ports)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.

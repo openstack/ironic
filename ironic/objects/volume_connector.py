@@ -39,12 +39,6 @@ class VolumeConnector(base.IronicObject,
         'extra': object_fields.FlexibleDictField(nullable=True),
     }
 
-    @staticmethod
-    def _from_db_object_list(db_objects, cls, context):
-        """Convert a list of database entities to a list of formal objects."""
-        return [VolumeConnector._from_db_object(cls(context), obj)
-                for obj in db_objects]
-
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
     # Implications of calling new remote procedures should be thought through.
@@ -126,8 +120,7 @@ class VolumeConnector(base.IronicObject,
                                                             marker=marker,
                                                             sort_key=sort_key,
                                                             sort_dir=sort_dir)
-        return VolumeConnector._from_db_object_list(db_connectors,
-                                                    cls, context)
+        return cls._from_db_object_list(context, db_connectors)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -153,8 +146,7 @@ class VolumeConnector(base.IronicObject,
             marker=marker,
             sort_key=sort_key,
             sort_dir=sort_dir)
-        return VolumeConnector._from_db_object_list(db_connectors,
-                                                    cls, context)
+        return cls._from_db_object_list(context, db_connectors)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
