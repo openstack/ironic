@@ -56,10 +56,6 @@ LOG = logging.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
-VALID_ROOT_DEVICE_HINTS = set(('size', 'model', 'wwn', 'serial', 'vendor',
-                               'wwn_with_extension', 'wwn_vendor_extension',
-                               'name', 'rotational'))
-
 SUPPORTED_CAPABILITIES = {
     'boot_option': ('local', 'netboot'),
     'boot_mode': ('bios', 'uefi'),
