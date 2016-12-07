@@ -25,6 +25,8 @@ deployment. The list of support hints is:
 * rotational (BOOLEAN): whether it's a rotational device or not. This
   hint makes it easier to distinguish HDDs (rotational) and SSDs (not
   rotational) when choosing which disk Ironic should deploy the image onto.
+* hctl (STRING): the SCSI address (Host, Channel, Target and Lun),
+  e.g '1:0:0:0'
 * name (STRING): the device name, e.g /dev/md0
 
 
