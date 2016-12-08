@@ -133,6 +133,11 @@ IRONIC_CLEAN_NET_NAME=${IRONIC_CLEAN_NET_NAME:-${IRONIC_PROVISION_NETWORK_NAME:-
 IRONIC_EXTRA_PXE_PARAMS=${IRONIC_EXTRA_PXE_PARAMS:-}
 IRONIC_TTY_DEV=${IRONIC_TTY_DEV:-ttyS0}
 
+IRONIC_TEMPEST_BUILD_TIMEOUT=${IRONIC_TEMPEST_BUILD_TIMEOUT:-${BUILD_TIMEOUT:-}}
+if [[ -n "$BUILD_TIMEOUT" ]]; then
+    echo "WARNING: BUILD_TIMEOUT variable is renamed to IRONIC_TEMPEST_BUILD_TIMEOUT and will be deprecated in Pike."
+fi
+
 # NOTE(vsaienko) nova already pick right libvirt type at
 # https://review.openstack.org/#/c/31177/4/lib/nova@240
 # pick hardware virtualization if possible while it is not set explicitly
@@ -1721,6 +1726,13 @@ function ironic_configure_tempest {
     image_uuid=$(openstack image show $IRONIC_IMAGE_NAME -f value -c id)
     iniset $TEMPEST_CONFIG compute image_ref $image_uuid
     iniset $TEMPEST_CONFIG compute image_ref_alt $image_uuid
+
+    if [[ -n "${IRONIC_TEMPEST_BUILD_TIMEOUT}" ]]; then
+        iniset $TEMPEST_CONFIG baremetal unprovision_timeout $IRONIC_TEMPEST_BUILD_TIMEOUT
+        iniset $TEMPEST_CONFIG baremetal active_timeout $IRONIC_TEMPEST_BUILD_TIMEOUT
+        iniset $TEMPEST_CONFIG baremetal deploywait_timeout $IRONIC_TEMPEST_BUILD_TIMEOUT
+        iniset $TEMPEST_CONFIG baremetal power_timeout $IRONIC_TEMPEST_BUILD_TIMEOUT
+    fi
 }
 
 function get_ironic_node_prefix {
