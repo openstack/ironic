@@ -130,49 +130,62 @@ def _get_deploy_image_info(node):
     return pxe_utils.get_deploy_kr_info(node.uuid, d_info)
 
 
-def _get_pxe_kernel_ramdisk(pxe_info):
-    pxe_opts = {}
-    pxe_opts['deployment_aki_path'] = pxe_info['deploy_kernel'][1]
-    pxe_opts['deployment_ari_path'] = pxe_info['deploy_ramdisk'][1]
-    # It is possible that we don't have kernel/ramdisk or even
-    # image_source to determine if it's a whole disk image or not.
-    # For example, when transitioning to 'available' state for first
-    # time from 'manage' state.
-    if 'kernel' in pxe_info:
-        pxe_opts['aki_path'] = pxe_info['kernel'][1]
-    if 'ramdisk' in pxe_info:
-        pxe_opts['ari_path'] = pxe_info['ramdisk'][1]
-    return pxe_opts
-
-
-def _get_ipxe_kernel_ramdisk(task, pxe_info):
+def _build_deploy_pxe_options(task, pxe_info):
     pxe_opts = {}
     node = task.node
 
     for label, option in (('deploy_kernel', 'deployment_aki_path'),
                           ('deploy_ramdisk', 'deployment_ari_path')):
-        image_href = pxe_info[label][0]
-        if (CONF.pxe.ipxe_use_swift and
-            service_utils.is_glance_image(image_href)):
-                pxe_opts[option] = images.get_temp_url_for_glance_image(
-                    task.context, image_href)
+        if CONF.pxe.ipxe_enabled:
+            image_href = pxe_info[label][0]
+            if (CONF.pxe.ipxe_use_swift and
+                service_utils.is_glance_image(image_href)):
+                    pxe_opts[option] = images.get_temp_url_for_glance_image(
+                        task.context, image_href)
+            else:
+                pxe_opts[option] = '/'.join([CONF.deploy.http_url, node.uuid,
+                                            label])
         else:
-            pxe_opts[option] = '/'.join([CONF.deploy.http_url, node.uuid,
-                                         label])
-    # NOTE(pas-ha) do not use Swift TempURLs for kernel and ramdisk
-    # of user image when boot_option is not local,
-    # as this will break instance reboot later when temp urls have timed out.
-    if 'kernel' in pxe_info:
-        pxe_opts['aki_path'] = '/'.join(
-            [CONF.deploy.http_url, node.uuid, 'kernel'])
-    if 'ramdisk' in pxe_info:
-        pxe_opts['ari_path'] = '/'.join(
-            [CONF.deploy.http_url, node.uuid, 'ramdisk'])
+            pxe_opts[option] = pxe_info[label][1]
+    return pxe_opts
+
+
+def _build_instance_pxe_options(task, pxe_info):
+    pxe_opts = {}
+    node = task.node
+
+    for label, option in (('kernel', 'aki_path'),
+                          ('ramdisk', 'ari_path')):
+        if label in pxe_info:
+            if CONF.pxe.ipxe_enabled:
+                # NOTE(pas-ha) do not use Swift TempURLs for kernel and
+                # ramdisk of user image when boot_option is not local,
+                # as this breaks instance reboot later when temp urls
+                # have timed out.
+                pxe_opts[option] = '/'.join(
+                    [CONF.deploy.http_url, node.uuid, label])
+            else:
+                # It is possible that we don't have kernel/ramdisk or even
+                # image_source to determine if it's a whole disk image or not.
+                # For example, when transitioning to 'available' state
+                # for first time from 'manage' state.
+                pxe_opts[option] = pxe_info[label][1]
+
+    # These are dummy values to satisfy elilo.
+    # image and initrd fields in elilo config cannot be blank.
+    pxe_opts.setdefault('aki_path', 'no_kernel')
+    pxe_opts.setdefault('ari_path', 'no_ramdisk')
 
     return pxe_opts
 
 
-def _build_pxe_config_options(task, pxe_info):
+def _build_extra_pxe_options():
+    return {'pxe_append_params': CONF.pxe.pxe_append_params,
+            'tftp_server': CONF.pxe.tftp_server,
+            'ipxe_timeout': CONF.pxe.ipxe_timeout * 1000}
+
+
+def _build_pxe_config_options(task, pxe_info, service=False):
     """Build the PXE config options for a node
 
     This method builds the PXE boot options for a node,
@@ -183,26 +196,49 @@ def _build_pxe_config_options(task, pxe_info):
 
     :param task: A TaskManager object
     :param pxe_info: a dict of values to set on the configuration file
+    :param service: if True, build "service mode" pxe config for netboot-ed
+        user image and skip adding deployment image kernel and ramdisk info
+        to PXE options.
     :returns: A dictionary of pxe options to be used in the pxe bootfile
         template.
     """
-    if CONF.pxe.ipxe_enabled:
-        pxe_options = _get_ipxe_kernel_ramdisk(task, pxe_info)
+    if service:
+        pxe_options = {}
     else:
-        pxe_options = _get_pxe_kernel_ramdisk(pxe_info)
+        pxe_options = _build_deploy_pxe_options(task, pxe_info)
 
-    # These are dummy values to satisfy elilo.
-    # image and initrd fields in elilo config cannot be blank.
-    pxe_options.setdefault('aki_path', 'no_kernel')
-    pxe_options.setdefault('ari_path', 'no_ramdisk')
-
-    pxe_options.update({
-        'pxe_append_params': CONF.pxe.pxe_append_params,
-        'tftp_server': CONF.pxe.tftp_server,
-        'ipxe_timeout': CONF.pxe.ipxe_timeout * 1000
-    })
+    # NOTE(pas-ha) we still must always add user image kernel and ramdisk info
+    # as later during switching PXE config to service mode the template
+    # will not be regenerated anew, but instead edited as-is.
+    # This can be changed later if/when switching PXE config will also use
+    # proper templating instead of editing existing files on disk.
+    pxe_options.update(_build_instance_pxe_options(task, pxe_info))
+    pxe_options.update(_build_extra_pxe_options())
 
     return pxe_options
+
+
+def _build_service_pxe_config(task, instance_image_info,
+                              root_uuid_or_disk_id):
+    node = task.node
+    pxe_config_path = pxe_utils.get_pxe_config_file_path(node.uuid)
+    # NOTE(pas-ha) if it is takeover of ACTIVE node,
+    # first ensure that basic PXE configs and links
+    # are in place before switching pxe config
+    if (node.provision_state == states.ACTIVE and
+            not os.path.isfile(pxe_config_path)):
+        pxe_options = _build_pxe_config_options(task, instance_image_info,
+                                                service=True)
+        if deploy_utils.get_boot_mode_for_deploy(node) == 'uefi':
+            pxe_config_template = CONF.pxe.uefi_pxe_config_template
+        else:
+            pxe_config_template = CONF.pxe.pxe_config_template
+        pxe_utils.create_pxe_config(task, pxe_options, pxe_config_template)
+    iwdi = node.driver_internal_info.get('is_whole_disk_image')
+    deploy_utils.switch_pxe_config(
+        pxe_config_path, root_uuid_or_disk_id,
+        deploy_utils.get_boot_mode_for_deploy(node),
+        iwdi, deploy_utils.is_trusted_boot_requested(node))
 
 
 @METRICS.timer('validate_boot_option_for_uefi')
@@ -449,6 +485,7 @@ class PXEBoot(base.BootInterface):
         """
         node = task.node
         boot_option = deploy_utils.get_boot_option(node)
+        boot_device = None
 
         if boot_option != "local":
             # Make sure that the instance kernel/ramdisk is cached.
@@ -482,23 +519,21 @@ class PXEBoot(base.BootInterface):
                             "for node %(node)s"),
                         {"node": task.node.uuid})
             else:
-                pxe_config_path = pxe_utils.get_pxe_config_file_path(
-                    task.node.uuid)
-                deploy_utils.switch_pxe_config(
-                    pxe_config_path, root_uuid_or_disk_id,
-                    deploy_utils.get_boot_mode_for_deploy(node),
-                    iwdi, deploy_utils.is_trusted_boot_requested(node))
-                # In case boot mode changes from bios to uefi, boot device
-                # order may get lost in some platforms. Better to re-apply
-                # boot device.
-                deploy_utils.try_set_boot_device(task, boot_devices.PXE)
+                _build_service_pxe_config(task, instance_image_info,
+                                          root_uuid_or_disk_id)
+                boot_device = boot_devices.PXE
         else:
             # If it's going to boot from the local disk, we don't need
             # PXE config files. They still need to be generated as part
             # of the prepare() because the deployment does PXE boot the
             # deploy ramdisk
             pxe_utils.clean_up_pxe_config(task)
-            deploy_utils.try_set_boot_device(task, boot_devices.DISK)
+            boot_device = boot_devices.DISK
+
+        # NOTE(pas-ha) do not re-set boot device on ACTIVE nodes
+        # during takeover
+        if boot_device and task.node.provision_state != states.ACTIVE:
+            deploy_utils.try_set_boot_device(task, boot_device)
 
     @METRICS.timer('PXEBoot.clean_up_instance')
     def clean_up_instance(self, task):
