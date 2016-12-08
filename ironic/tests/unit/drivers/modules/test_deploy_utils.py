@@ -20,7 +20,6 @@ import time
 import types
 
 from ironic_lib import disk_utils
-from ironic_lib import utils as ironic_utils
 import mock
 from oslo_config import cfg
 from oslo_utils import uuidutils
@@ -335,105 +334,94 @@ class PhysicalWorkTestCase(tests_base.TestCase):
             parent_mock.attach_mock(mocker, name)
         return parent_mock
 
-    # FIXME(jlvillal): This test should not be checking on the inner-workings
-    # of ironic-lib code, as it currently does. It should be re-written to just
-    # mock ironic_lib.disk_utils.work_on_disk(). Ensure that ironic-lib is
-    # correctly unit testing the function first.
-    def _test_deploy_partition_image(self, boot_option=None,
-                                     boot_mode=None, disk_label=None):
-        """Check loosely all functions are called with right args."""
+    @mock.patch.object(disk_utils, 'work_on_disk')
+    @mock.patch.object(disk_utils, 'is_block_device')
+    @mock.patch.object(disk_utils, 'get_image_mb')
+    @mock.patch.object(utils, 'logout_iscsi')
+    @mock.patch.object(utils, 'login_iscsi')
+    @mock.patch.object(utils, 'get_dev')
+    @mock.patch.object(utils, 'discovery')
+    @mock.patch.object(utils, 'delete_iscsi')
+    def _test_deploy_partition_image(self,
+                                     mock_delete_iscsi,
+                                     mock_discovery,
+                                     mock_get_dev,
+                                     mock_login_iscsi,
+                                     mock_logout_iscsi,
+                                     mock_get_image_mb,
+                                     mock_is_block_device,
+                                     mock_work_on_disk, **kwargs):
+        # Below are the only values we allow callers to modify for testing.
+        # Check that values other than this aren't passed in.
+        deploy_args = {
+            'boot_mode': None,
+            'boot_option': None,
+            'configdrive': None,
+            'disk_label': None,
+            'ephemeral_format': None,
+            'ephemeral_mb': None,
+            'image_mb': 1,
+            'preserve_ephemeral': False,
+            'root_mb': 128,
+            'swap_mb': 64
+        }
+        disallowed_values = set(kwargs) - set(deploy_args)
+        if disallowed_values:
+            raise ValueError("Only the following kwargs are allowed in "
+                             "_test_deploy_partition_image: %s"
+                             % deploy_args.keys().join(", "))
+        deploy_args.update(kwargs)
+
         address = '127.0.0.1'
         port = 3306
         iqn = 'iqn.xyz'
         lun = 1
         image_path = '/tmp/xyz/image'
-        root_mb = 128
-        swap_mb = 64
-        ephemeral_mb = 0
-        ephemeral_format = None
-        configdrive_mb = 0
         node_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
-
         dev = '/dev/fake'
-        swap_part = '/dev/fake-part1'
-        root_part = '/dev/fake-part2'
         root_uuid = '12345678-1234-1234-12345678-12345678abcdef'
 
-        utils_name_list = ['get_dev', 'discovery', 'login_iscsi',
-                           'logout_iscsi', 'delete_iscsi']
-
-        disk_utils_name_list = ['is_block_device', 'get_image_mb',
-                                'make_partitions', 'populate_image',
-                                'block_uuid', 'destroy_disk_metadata']
-
-        utils_mock = self._mock_calls(utils_name_list, utils)
-        utils_mock.get_dev.return_value = dev
-
-        disk_utils_mock = self._mock_calls(disk_utils_name_list, disk_utils)
-        disk_utils_mock.get_image_mb.return_value = 1
-        disk_utils_mock.is_block_device.return_value = True
-        disk_utils_mock.block_uuid.return_value = root_uuid
-        disk_utils_mock.make_partitions.return_value = {'root': root_part,
-                                                        'swap': swap_part}
-
-        ironic_lib_utils_name_list = ['mkfs']
-        ironic_lib_utils_mock = self._mock_calls(ironic_lib_utils_name_list,
-                                                 ironic_utils)
-
-        make_partitions_expected_args = [dev, root_mb, swap_mb, ephemeral_mb,
-                                         configdrive_mb, node_uuid]
-        make_partitions_expected_kwargs = {'commit': True,
-                                           'disk_label': disk_label}
-        deploy_kwargs = {}
-
-        if boot_option:
-            make_partitions_expected_kwargs['boot_option'] = boot_option
-            deploy_kwargs['boot_option'] = boot_option
-        else:
-            make_partitions_expected_kwargs['boot_option'] = 'netboot'
-
-        if boot_mode:
-            make_partitions_expected_kwargs['boot_mode'] = boot_mode
-            deploy_kwargs['boot_mode'] = boot_mode
-        else:
-            make_partitions_expected_kwargs['boot_mode'] = 'bios'
-
-        if disk_label:
-            deploy_kwargs['disk_label'] = disk_label
-
-        # If no boot_option, then it should default to netboot.
-        utils_calls_expected = [mock.call.get_dev(address, port, iqn, lun),
-                                mock.call.discovery(address, port),
-                                mock.call.login_iscsi(address, port, iqn),
-                                mock.call.logout_iscsi(address, port, iqn),
-                                mock.call.delete_iscsi(address, port, iqn)]
-        disk_utils_calls_expected = [mock.call.get_image_mb(image_path),
-                                     mock.call.is_block_device(dev),
-                                     mock.call.destroy_disk_metadata(
-                                         dev, node_uuid),
-                                     mock.call.make_partitions(
-                                         *make_partitions_expected_args,
-                                         **make_partitions_expected_kwargs),
-                                     mock.call.is_block_device(root_part),
-                                     mock.call.is_block_device(swap_part),
-                                     mock.call.populate_image(
-                                         image_path, root_part),
-                                     mock.call.block_uuid(root_part)]
-
-        uuids_dict_returned = utils.deploy_partition_image(
-            address, port, iqn, lun, image_path, root_mb, swap_mb,
-            ephemeral_mb, ephemeral_format, node_uuid, **deploy_kwargs)
-
-        self.assertEqual(utils_calls_expected, utils_mock.mock_calls)
-        self.assertEqual(disk_utils_calls_expected, disk_utils_mock.mock_calls)
-        ironic_lib_utils_calls_expected = [
-            mock.call.mkfs(fs='swap', label='swap1', path='/dev/fake-part1')]
-        self.assertEqual(ironic_lib_utils_calls_expected,
-                         ironic_lib_utils_mock.mock_calls)
-        expected_uuid_dict = {
+        mock_get_dev.return_value = dev
+        mock_is_block_device.return_value = True
+        mock_get_image_mb.return_value = deploy_args['image_mb']
+        mock_work_on_disk.return_value = {
             'root uuid': root_uuid,
-            'efi system partition uuid': None}
-        self.assertEqual(expected_uuid_dict, uuids_dict_returned)
+            'efi system partition uuid': None
+        }
+
+        deploy_kwargs = {
+            'boot_mode': deploy_args['boot_mode'],
+            'boot_option': deploy_args['boot_option'],
+            'configdrive': deploy_args['configdrive'],
+            'disk_label': deploy_args['disk_label'],
+            'preserve_ephemeral': deploy_args['preserve_ephemeral']
+        }
+        utils.deploy_partition_image(
+            address, port, iqn, lun, image_path, deploy_args['root_mb'],
+            deploy_args['swap_mb'], deploy_args['ephemeral_mb'],
+            deploy_args['ephemeral_format'], node_uuid, **deploy_kwargs)
+
+        mock_get_dev.assert_called_once_with(address, port, iqn, lun)
+        mock_discovery.assert_called_once_with(address, port)
+        mock_login_iscsi.assert_called_once_with(address, port, iqn)
+        mock_logout_iscsi.assert_called_once_with(address, port, iqn)
+        mock_delete_iscsi.assert_called_once_with(address, port, iqn)
+        mock_get_image_mb.assert_called_once_with(image_path)
+        mock_is_block_device.assert_called_once_with(dev)
+
+        work_on_disk_kwargs = {
+            'preserve_ephemeral': deploy_args['preserve_ephemeral'],
+            'configdrive': deploy_args['configdrive'],
+            # boot_option defaults to 'netboot' if
+            # not set
+            'boot_option': deploy_args['boot_option'] or 'netboot',
+            'boot_mode': deploy_args['boot_mode'],
+            'disk_label': deploy_args['disk_label']
+        }
+        mock_work_on_disk.assert_called_once_with(
+            dev, deploy_args['root_mb'], deploy_args['swap_mb'],
+            deploy_args['ephemeral_mb'], deploy_args['ephemeral_format'],
+            image_path, node_uuid, **work_on_disk_kwargs)
 
     def test_deploy_partition_image_without_boot_option(self):
         self._test_deploy_partition_image()
@@ -462,450 +450,29 @@ class PhysicalWorkTestCase(tests_base.TestCase):
     def test_deploy_partition_image_disk_label(self):
         self._test_deploy_partition_image(disk_label='gpt')
 
-    @mock.patch.object(disk_utils, 'get_image_mb', return_value=129,
-                       autospec=True)
-    def test_deploy_partition_image_image_exceeds_root_partition(self,
-                                                                 gim_mock):
-        address = '127.0.0.1'
-        port = 3306
-        iqn = 'iqn.xyz'
-        lun = 1
-        image_path = '/tmp/xyz/image'
-        root_mb = 128
-        swap_mb = 64
-        ephemeral_mb = 0
-        ephemeral_format = None
-        node_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
-
+    def test_deploy_partition_image_image_exceeds_root_partition(self):
         self.assertRaises(exception.InstanceDeployFailure,
-                          utils.deploy_partition_image, address, port, iqn,
-                          lun, image_path, root_mb, swap_mb, ephemeral_mb,
-                          ephemeral_format, node_uuid)
+                          self._test_deploy_partition_image, image_mb=129,
+                          root_mb=128)
 
-        gim_mock.assert_called_once_with(image_path)
-
-    # FIXME(jlvillal): This test should not be checking on the inner-workings
-    # of ironic-lib code, as it currently does. It should be re-written to just
-    # mock ironic_lib.disk_utils.work_on_disk(). Ensure that ironic-lib is
-    # correctly unit testing the function first.
-    # We mock utils.block_uuid separately here because we can't predict
-    # the order in which it will be called.
-    @mock.patch.object(disk_utils, 'block_uuid', autospec=True)
-    def test_deploy_partition_image_localboot_uefi(self, block_uuid_mock):
-        """Check loosely all functions are called with right args."""
-        address = '127.0.0.1'
-        port = 3306
-        iqn = 'iqn.xyz'
-        lun = 1
-        image_path = '/tmp/xyz/image'
-        root_mb = 128
-        swap_mb = 64
-        ephemeral_mb = 0
-        ephemeral_format = None
-        configdrive_mb = 0
-        node_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
-
-        dev = '/dev/fake'
-        swap_part = '/dev/fake-part2'
-        root_part = '/dev/fake-part3'
-        efi_system_part = '/dev/fake-part1'
-        root_uuid = '12345678-1234-1234-12345678-12345678abcdef'
-        efi_system_part_uuid = '9036-482'
-
-        utils_name_list = ['get_dev', 'discovery', 'login_iscsi',
-                           'logout_iscsi', 'delete_iscsi']
-
-        disk_utils_name_list = ['get_image_mb', 'make_partitions',
-                                'is_block_device', 'populate_image',
-                                'destroy_disk_metadata']
-
-        utils_mock = self._mock_calls(utils_name_list, utils)
-        utils_mock.get_dev.return_value = dev
-
-        disk_utils_mock = self._mock_calls(disk_utils_name_list, disk_utils)
-        disk_utils_mock.get_image_mb.return_value = 1
-        disk_utils_mock.is_block_device.return_value = True
-
-        ironic_lib_utils_name_list = ['mkfs']
-        ironic_lib_utils_mock = self._mock_calls(ironic_lib_utils_name_list,
-                                                 ironic_utils)
-
-        def block_uuid_side_effect(device):
-            if device == root_part:
-                return root_uuid
-            if device == efi_system_part:
-                return efi_system_part_uuid
-
-        block_uuid_mock.side_effect = block_uuid_side_effect
-        disk_utils_mock.make_partitions.return_value = {
-            'root': root_part, 'swap': swap_part,
-            'efi system partition': efi_system_part}
-
-        # If no boot_option, then it should default to netboot.
-        utils_calls_expected = [mock.call.get_dev(address, port, iqn, lun),
-                                mock.call.discovery(address, port),
-                                mock.call.login_iscsi(address, port, iqn),
-                                mock.call.logout_iscsi(address, port, iqn),
-                                mock.call.delete_iscsi(address, port, iqn)]
-
-        disk_utils_calls_expected = [mock.call.get_image_mb(image_path),
-                                     mock.call.is_block_device(dev),
-                                     mock.call.destroy_disk_metadata(
-                                         dev, node_uuid),
-                                     mock.call.make_partitions(
-                                         dev, root_mb, swap_mb,
-                                         ephemeral_mb,
-                                         configdrive_mb,
-                                         node_uuid,
-                                         commit=True,
-                                         boot_option="local",
-                                         boot_mode="uefi",
-                                         disk_label=None),
-                                     mock.call.is_block_device(root_part),
-                                     mock.call.is_block_device(swap_part),
-                                     mock.call.is_block_device(
-                                         efi_system_part),
-                                     mock.call.populate_image(
-                                         image_path, root_part)]
-
-        uuid_dict_returned = utils.deploy_partition_image(
-            address, port, iqn, lun, image_path, root_mb, swap_mb,
-            ephemeral_mb, ephemeral_format, node_uuid, boot_option="local",
-            boot_mode="uefi")
-
-        self.assertEqual(utils_calls_expected, utils_mock.mock_calls)
-        self.assertEqual(disk_utils_calls_expected, disk_utils_mock.mock_calls)
-        ironic_lib_utils_calls_expected = [
-            mock.call.mkfs(fs='vfat', label='efi-part',
-                           path='/dev/fake-part1'),
-            mock.call.mkfs(fs='swap', label='swap1', path='/dev/fake-part2')]
-        self.assertEqual(ironic_lib_utils_calls_expected,
-                         ironic_lib_utils_mock.mock_calls)
-
-        block_uuid_mock.assert_any_call('/dev/fake-part1')
-        block_uuid_mock.assert_any_call('/dev/fake-part3')
-        expected_uuid_dict = {
-            'root uuid': root_uuid,
-            'efi system partition uuid': efi_system_part_uuid}
-        self.assertEqual(expected_uuid_dict, uuid_dict_returned)
+    def test_deploy_partition_image_localboot_uefi(self):
+        self._test_deploy_partition_image(boot_option="local",
+                                          boot_mode="uefi")
 
     def test_deploy_partition_image_without_swap(self):
-        """Check loosely all functions are called with right args."""
-        address = '127.0.0.1'
-        port = 3306
-        iqn = 'iqn.xyz'
-        lun = 1
-        image_path = '/tmp/xyz/image'
-        root_mb = 128
-        swap_mb = 0
-        ephemeral_mb = 0
-        ephemeral_format = None
-        configdrive_mb = 0
-        node_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
+        self._test_deploy_partition_image(swap_mb=0)
 
-        dev = '/dev/fake'
-        root_part = '/dev/fake-part1'
-        root_uuid = '12345678-1234-1234-12345678-12345678abcdef'
-
-        utils_name_list = ['get_dev', 'discovery', 'login_iscsi',
-                           'logout_iscsi', 'delete_iscsi']
-
-        disk_utils_name_list = ['make_partitions', 'get_image_mb',
-                                'is_block_device', 'populate_image',
-                                'block_uuid', 'destroy_disk_metadata']
-
-        utils_mock = self._mock_calls(utils_name_list, utils)
-        utils_mock.get_dev.return_value = dev
-
-        disk_utils_mock = self._mock_calls(disk_utils_name_list, disk_utils)
-        disk_utils_mock.get_image_mb.return_value = 1
-        disk_utils_mock.is_block_device.return_value = True
-        disk_utils_mock.block_uuid.return_value = root_uuid
-        disk_utils_mock.make_partitions.return_value = {'root': root_part}
-        utils_calls_expected = [mock.call.get_dev(address, port, iqn, lun),
-                                mock.call.discovery(address, port),
-                                mock.call.login_iscsi(address, port, iqn),
-                                mock.call.logout_iscsi(address, port, iqn),
-                                mock.call.delete_iscsi(address, port, iqn)]
-        disk_utils_calls_expected = [mock.call.get_image_mb(image_path),
-                                     mock.call.is_block_device(dev),
-                                     mock.call.destroy_disk_metadata(
-                                         dev, node_uuid),
-                                     mock.call.make_partitions(
-                                         dev, root_mb, swap_mb,
-                                         ephemeral_mb,
-                                         configdrive_mb,
-                                         node_uuid,
-                                         commit=True,
-                                         boot_option="netboot",
-                                         boot_mode="bios",
-                                         disk_label=None),
-                                     mock.call.is_block_device(root_part),
-                                     mock.call.populate_image(
-                                         image_path, root_part),
-                                     mock.call.block_uuid(root_part)]
-
-        uuid_dict_returned = utils.deploy_partition_image(address, port, iqn,
-                                                          lun, image_path,
-                                                          root_mb, swap_mb,
-                                                          ephemeral_mb,
-                                                          ephemeral_format,
-                                                          node_uuid)
-
-        self.assertEqual(utils_calls_expected, utils_mock.mock_calls)
-        self.assertEqual(disk_utils_calls_expected, disk_utils_mock.mock_calls)
-        self.assertEqual(root_uuid, uuid_dict_returned['root uuid'])
-
-    # FIXME(jlvillal): This test should not be checking on the inner-workings
-    # of ironic-lib code, as it currently does. It should be re-written to just
-    # mock ironic_lib.disk_utils.work_on_disk(). Ensure that ironic-lib is
-    # correctly unit testing the function first.
     def test_deploy_partition_image_with_ephemeral(self):
-        """Check loosely all functions are called with right args."""
-        address = '127.0.0.1'
-        port = 3306
-        iqn = 'iqn.xyz'
-        lun = 1
-        image_path = '/tmp/xyz/image'
-        root_mb = 128
-        swap_mb = 64
-        ephemeral_mb = 256
-        configdrive_mb = 0
-        ephemeral_format = 'exttest'
-        node_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
+        self._test_deploy_partition_image(ephemeral_format='exttest',
+                                          ephemeral_mb=256)
 
-        dev = '/dev/fake'
-        ephemeral_part = '/dev/fake-part1'
-        swap_part = '/dev/fake-part2'
-        root_part = '/dev/fake-part3'
-        root_uuid = '12345678-1234-1234-12345678-12345678abcdef'
-
-        utils_name_list = ['get_dev', 'discovery', 'login_iscsi',
-                           'logout_iscsi', 'delete_iscsi']
-
-        disk_utils_name_list = ['get_image_mb', 'make_partitions',
-                                'is_block_device', 'populate_image',
-                                'block_uuid', 'destroy_disk_metadata']
-
-        utils_mock = self._mock_calls(utils_name_list, utils)
-        utils_mock.get_dev.return_value = dev
-
-        disk_utils_mock = self._mock_calls(disk_utils_name_list, disk_utils)
-        disk_utils_mock.get_image_mb.return_value = 1
-        disk_utils_mock.is_block_device.return_value = True
-        disk_utils_mock.block_uuid.return_value = root_uuid
-        disk_utils_mock.make_partitions.return_value = {
-            'swap': swap_part,
-            'ephemeral': ephemeral_part,
-            'root': root_part}
-
-        ironic_lib_utils_name_list = ['mkfs']
-        ironic_lib_utils_mock = self._mock_calls(ironic_lib_utils_name_list,
-                                                 ironic_utils)
-
-        utils_calls_expected = [mock.call.get_dev(address, port, iqn, lun),
-                                mock.call.discovery(address, port),
-                                mock.call.login_iscsi(address, port, iqn),
-                                mock.call.logout_iscsi(address, port, iqn),
-                                mock.call.delete_iscsi(address, port, iqn)]
-        disk_utils_calls_expected = [mock.call.get_image_mb(image_path),
-                                     mock.call.is_block_device(dev),
-                                     mock.call.destroy_disk_metadata(
-                                         dev, node_uuid),
-                                     mock.call.make_partitions(
-                                         dev, root_mb, swap_mb,
-                                         ephemeral_mb,
-                                         configdrive_mb,
-                                         node_uuid,
-                                         commit=True,
-                                         boot_option="netboot",
-                                         boot_mode="bios",
-                                         disk_label=None),
-                                     mock.call.is_block_device(root_part),
-                                     mock.call.is_block_device(swap_part),
-                                     mock.call.is_block_device(ephemeral_part),
-                                     mock.call.populate_image(
-                                         image_path, root_part),
-                                     mock.call.block_uuid(root_part)]
-
-        uuid_dict_returned = utils.deploy_partition_image(address, port, iqn,
-                                                          lun, image_path,
-                                                          root_mb, swap_mb,
-                                                          ephemeral_mb,
-                                                          ephemeral_format,
-                                                          node_uuid)
-
-        self.assertEqual(utils_calls_expected, utils_mock.mock_calls)
-        self.assertEqual(disk_utils_calls_expected, disk_utils_mock.mock_calls)
-        self.assertEqual(root_uuid, uuid_dict_returned['root uuid'])
-        ironic_lib_utils_calls_expected = [
-            mock.call.mkfs(fs='swap', label='swap1', path='/dev/fake-part2'),
-            mock.call.mkfs(fs='exttest', label='ephemeral0',
-                           path='/dev/fake-part1')]
-        self.assertEqual(ironic_lib_utils_calls_expected,
-                         ironic_lib_utils_mock.mock_calls)
-
-    # FIXME(jlvillal): This test should not be checking on the inner-workings
-    # of ironic-lib code, as it currently does. It should be re-written to just
-    # mock ironic_lib.disk_utils.work_on_disk(). Ensure that ironic-lib is
-    # correctly unit testing the function first.
     def test_deploy_partition_image_preserve_ephemeral(self):
-        """Check if all functions are called with right args."""
-        address = '127.0.0.1'
-        port = 3306
-        iqn = 'iqn.xyz'
-        lun = 1
-        image_path = '/tmp/xyz/image'
-        root_mb = 128
-        swap_mb = 64
-        ephemeral_mb = 256
-        ephemeral_format = 'exttest'
-        configdrive_mb = 0
-        node_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
+        self._test_deploy_partition_image(ephemeral_format='exttest',
+                                          ephemeral_mb=256,
+                                          preserve_ephemeral=True)
 
-        dev = '/dev/fake'
-        ephemeral_part = '/dev/fake-part1'
-        swap_part = '/dev/fake-part2'
-        root_part = '/dev/fake-part3'
-        root_uuid = '12345678-1234-1234-12345678-12345678abcdef'
-
-        utils_name_list = ['get_dev', 'discovery', 'login_iscsi',
-                           'delete_iscsi', 'logout_iscsi']
-        disk_utils_name_list = ['make_partitions', 'get_image_mb',
-                                'is_block_device', 'populate_image',
-                                'block_uuid', 'get_dev_block_size']
-
-        utils_mock = self._mock_calls(utils_name_list, utils)
-        utils_mock.get_dev.return_value = dev
-
-        disk_utils_mock = self._mock_calls(disk_utils_name_list, disk_utils)
-        disk_utils_mock.get_image_mb.return_value = 1
-        disk_utils_mock.is_block_device.return_value = True
-        disk_utils_mock.block_uuid.return_value = root_uuid
-        disk_utils_mock.make_partitions.return_value = {
-            'swap': swap_part,
-            'ephemeral': ephemeral_part,
-            'root': root_part}
-        disk_utils_mock.block_uuid.return_value = root_uuid
-
-        ironic_lib_utils_name_list = ['mkfs']
-        ironic_lib_utils_mock = self._mock_calls(ironic_lib_utils_name_list,
-                                                 ironic_utils)
-
-        utils_calls_expected = [mock.call.get_dev(address, port, iqn, lun),
-                                mock.call.discovery(address, port),
-                                mock.call.login_iscsi(address, port, iqn),
-                                mock.call.logout_iscsi(address, port, iqn),
-                                mock.call.delete_iscsi(address, port, iqn)]
-        disk_utils_calls_expected = [mock.call.get_image_mb(image_path),
-                                     mock.call.is_block_device(dev),
-                                     mock.call.make_partitions(
-                                         dev, root_mb, swap_mb,
-                                         ephemeral_mb,
-                                         configdrive_mb,
-                                         node_uuid,
-                                         commit=False,
-                                         boot_option="netboot",
-                                         boot_mode="bios",
-                                         disk_label=None),
-                                     mock.call.is_block_device(root_part),
-                                     mock.call.is_block_device(swap_part),
-                                     mock.call.is_block_device(ephemeral_part),
-                                     mock.call.populate_image(
-                                         image_path, root_part),
-                                     mock.call.block_uuid(root_part)]
-
-        uuid_dict_returned = utils.deploy_partition_image(
-            address, port, iqn, lun, image_path, root_mb, swap_mb,
-            ephemeral_mb, ephemeral_format, node_uuid,
-            preserve_ephemeral=True, boot_option="netboot")
-        self.assertEqual(utils_calls_expected, utils_mock.mock_calls)
-        self.assertEqual(disk_utils_calls_expected, disk_utils_mock.mock_calls)
-        self.assertFalse(disk_utils_mock.get_dev_block_size.called)
-        self.assertEqual(root_uuid, uuid_dict_returned['root uuid'])
-        ironic_lib_utils_calls_expected = [
-            mock.call.mkfs(fs='swap', label='swap1', path='/dev/fake-part2')]
-        self.assertEqual(ironic_lib_utils_calls_expected,
-                         ironic_lib_utils_mock.mock_calls)
-
-    @mock.patch.object(ironic_utils, 'unlink_without_raise', autospec=True)
-    def test_deploy_partition_image_with_configdrive(self, mock_unlink):
-        """Check loosely all functions are called with right args."""
-        address = '127.0.0.1'
-        port = 3306
-        iqn = 'iqn.xyz'
-        lun = 1
-        image_path = '/tmp/xyz/image'
-        root_mb = 128
-        swap_mb = 0
-        ephemeral_mb = 0
-        configdrive_mb = 10
-        ephemeral_format = None
-        node_uuid = "12345678-1234-1234-1234-1234567890abcxyz"
-        configdrive_url = 'http://1.2.3.4/cd'
-
-        dev = '/dev/fake'
-        configdrive_part = '/dev/fake-part1'
-        root_part = '/dev/fake-part2'
-        root_uuid = '12345678-1234-1234-12345678-12345678abcdef'
-
-        utils_name_list = ['get_dev', 'discovery', 'login_iscsi',
-                           'logout_iscsi', 'delete_iscsi']
-        disk_utils_name_list = ['is_block_device', 'populate_image',
-                                'get_image_mb', 'destroy_disk_metadata', 'dd',
-                                'block_uuid', 'make_partitions',
-                                '_get_configdrive']
-
-        utils_mock = self._mock_calls(utils_name_list, utils)
-        utils_mock.get_dev.return_value = dev
-
-        disk_utils_mock = self._mock_calls(disk_utils_name_list, disk_utils)
-        disk_utils_mock.get_image_mb.return_value = 1
-        disk_utils_mock.is_block_device.return_value = True
-        disk_utils_mock.block_uuid.return_value = root_uuid
-        disk_utils_mock.make_partitions.return_value = {
-            'root': root_part,
-            'configdrive': configdrive_part}
-        disk_utils_mock._get_configdrive.return_value = (10,
-                                                         'configdrive-path')
-        utils_calls_expected = [mock.call.get_dev(address, port, iqn, lun),
-                                mock.call.discovery(address, port),
-                                mock.call.login_iscsi(address, port, iqn),
-                                mock.call.logout_iscsi(address, port, iqn),
-                                mock.call.delete_iscsi(address, port, iqn)]
-        disk_utils_calls_expected = [mock.call.get_image_mb(image_path),
-                                     mock.call.is_block_device(dev),
-                                     mock.call.destroy_disk_metadata(
-                                         dev, node_uuid),
-                                     mock.call._get_configdrive(
-                                         configdrive_url, node_uuid,
-                                         tempdir=None),
-                                     mock.call.make_partitions(
-                                         dev, root_mb, swap_mb,
-                                         ephemeral_mb,
-                                         configdrive_mb,
-                                         node_uuid,
-                                         commit=True,
-                                         boot_option="netboot",
-                                         boot_mode="bios",
-                                         disk_label=None),
-                                     mock.call.is_block_device(root_part),
-                                     mock.call.is_block_device(
-                                         configdrive_part),
-                                     mock.call.dd(mock.ANY, configdrive_part),
-                                     mock.call.populate_image(
-                                         image_path, root_part),
-                                     mock.call.block_uuid(root_part)]
-
-        uuid_dict_returned = utils.deploy_partition_image(
-            address, port, iqn, lun, image_path, root_mb, swap_mb,
-            ephemeral_mb, ephemeral_format, node_uuid,
-            configdrive=configdrive_url)
-
-        self.assertEqual(utils_calls_expected, utils_mock.mock_calls)
-        self.assertEqual(disk_utils_calls_expected, disk_utils_mock.mock_calls)
-        self.assertEqual(root_uuid, uuid_dict_returned['root uuid'])
-        mock_unlink.assert_called_once_with('configdrive-path')
+    def test_deploy_partition_image_with_configdrive(self):
+        self._test_deploy_partition_image(configdrive='http://1.2.3.4/cd')
 
     @mock.patch.object(disk_utils, 'create_config_drive_partition',
                        autospec=True)
