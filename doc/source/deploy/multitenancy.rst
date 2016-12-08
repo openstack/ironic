@@ -104,6 +104,38 @@ interface as stated above):
       * if using iPXE, the egress port used for the HTTP server running
         on the ironic conductor nodes (typically 80).
 
+
+#. This step is optional and applicable only if you want to use security
+   groups during provisioning and/or cleaning of the nodes. If not specified,
+   default security groups are used.
+
+   First define security groups in neutron to be used for provisioning
+   and/or cleaning networks. Then add the list of these security group
+   UUIDs under the neutron section in ironic-conductor configuration file
+   as shown below::
+
+    [neutron]
+    ...
+    cleaning_network=$CLEAN_UUID_OR_NAME
+    cleaning_network_security_groups=[$LIST_OF_CLEAN_SEC_GROUPS]
+    provisioning_network=$PROVISION_UUID_OR_NAME
+    provisioning_network_security_groups=[$LIST_OF_PROVISION_SEC_GROUPS]
+
+   Multiple security groups may be applied to a given network, hence,
+   they are specified as a list.
+   The same security group(s) could be used for both provisioning and
+   cleaning networks.
+
+   .. warning::
+       If security groups are configured as described above, do not
+       set the "port_security_enabled" flag to False for the corresponding
+       neutron network or port. This will cause the deploy to fail.
+
+       For example: if provisioning_network_security_groups configuration
+       option is used, ensure that "port_security_enabled" flag for
+       provisioning network is set to True. This flag is set to True by
+       default; make sure not to override it by manually setting it to False.
+
 #. Install and configure a compatible ML2 mechanism driver which supports bare
    metal provisioning for your switch. See `ML2 plugin configuration manual
    <http://docs.openstack.org/networking-guide/config-ml2.html>`_
