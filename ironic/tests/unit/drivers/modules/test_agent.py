@@ -328,12 +328,14 @@ class TestAgentDeploy(db_base.DbTestCase):
 
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
                 'add_provisioning_network', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance')
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
     @mock.patch.object(deploy_utils, 'build_agent_options')
     @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
     def test_prepare_active(
             self, build_instance_info_mock, build_options_mock,
-            pxe_prepare_ramdisk_mock, add_provisioning_net_mock):
+            pxe_prepare_ramdisk_mock, pxe_prepare_instance_mock,
+            add_provisioning_net_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             task.node.provision_state = states.ACTIVE
@@ -343,6 +345,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertFalse(build_instance_info_mock.called)
             self.assertFalse(build_options_mock.called)
             self.assertFalse(pxe_prepare_ramdisk_mock.called)
+            self.assertTrue(pxe_prepare_instance_mock.called)
             self.assertFalse(add_provisioning_net_mock.called)
 
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'

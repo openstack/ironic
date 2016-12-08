@@ -420,16 +420,15 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
             Glance href and is not HTTP(S) URL.
         :raises: any boot interface's prepare_ramdisk exceptions.
         """
-        # Nodes deployed by AgentDeploy always boot from disk now. So there
-        # is nothing to be done in prepare() when it's called during
-        # take over.
         node = task.node
         if node.provision_state == states.DEPLOYING:
             # Adding the node to provisioning network so that the dhcp
             # options get added for the provisioning port.
             manager_utils.node_power_action(task, states.POWER_OFF)
             task.driver.network.add_provisioning_network(task)
-        if node.provision_state not in [states.ACTIVE, states.ADOPTING]:
+        if node.provision_state == states.ACTIVE:
+            task.driver.boot.prepare_instance(task)
+        elif node.provision_state != states.ADOPTING:
             node.instance_info = deploy_utils.build_instance_info_for_deploy(
                 task)
             node.save()
