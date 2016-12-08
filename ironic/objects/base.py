@@ -177,6 +177,7 @@ class IronicObject(object_base.VersionedObject):
         version_manifest = versions.RELEASE_MAPPING[pin]['objects']
         pinned_version = version_manifest.get(cls.obj_name())
         if pinned_version:
+            pinned_version = pinned_version[0]
             if not versionutils.is_compatible(pinned_version,
                                               cls.VERSION):
                 LOG.error(
@@ -255,7 +256,7 @@ class IronicObject(object_base.VersionedObject):
             # since the dbsync online migration populates all the versions
             # and it must be run to completion before upgrading to Queens.
             db_version = versions.RELEASE_MAPPING['ocata']['objects'].get(
-                objname, '1.0')
+                objname, ['1.0'])[0]
 
         if not versionutils.is_compatible(db_version, obj.__class__.VERSION):
             raise ovo_exception.IncompatibleObjectVersion(

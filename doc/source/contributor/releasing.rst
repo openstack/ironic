@@ -94,6 +94,21 @@ Additionally, changes need to be made on master to:
     and `pbr documentation
     <http://docs.openstack.org/developer/pbr/#version>`_ for details.
 
+  * to support rolling upgrades, since the release was a named release:
+
+    * In ironic/common/release_mappings.py, delete any entries from RELEASE_MAPPING
+      associated with the oldest named release. Since we support upgrades between
+      adjacent named releases, the master branch will only support upgrades from
+      the most recent named release to master.
+
+    * regenerate the sample config file, so that the choices for the
+      ``[DEFAULT]/pin_release_version`` configuration are accurate.
+
+    * remove any DB migration scripts from ironic.cmd.dbsync.ONLINE_MIGRATIONS
+      and remove the corresponding code from ironic. (These migration scripts
+      are used to migrate from an old release to this latest release; they
+      shouldn't be needed after that.)
+
 For all releases
 ----------------
 For all releases, whether or not it results in a stable branch:
@@ -102,13 +117,3 @@ For all releases, whether or not it results in a stable branch:
     implemented.
 
   * remove any -2s on patches that were blocked until after the release.
-
-  * to support rolling upgrades, make these changes in
-    ironic/common/release_mappings.py:
-
-    * if the release was a named release, delete any entries from
-      RELEASE_MAPPING associated with the oldest named release. Since we
-      support upgrades between adjacent named releases, the master branch will
-      only support upgrades from the most recent named release to master.
-    * regenerate the sample config file, so that the choices for the
-      ``[DEFAULT]/pin_release_version`` configuration are accurate.

@@ -12,10 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import mock
 from oslo_utils import versionutils
 import six
 
-from ironic.common.release_mappings import RELEASE_MAPPING
+from ironic.common import release_mappings
 from ironic.conductor import rpcapi
 from ironic.db.sqlalchemy import models
 from ironic.objects import base as obj_base
@@ -40,23 +41,27 @@ def _check_versions_compatibility(conf_version, actual_version):
 
 
 class ReleaseMappingsTestCase(base.TestCase):
-    """Tests whether the dict RELEASE_MAPPING is correct, valid and consistent.
+    """Tests the dict release_mappings.RELEASE_MAPPING.
 
+    Tests whether the dict release_mappings.RELEASE_MAPPING is correct,
+    valid and consistent.
     """
     def test_structure(self):
-        for value in RELEASE_MAPPING.values():
+        for value in release_mappings.RELEASE_MAPPING.values():
             self.assertIsInstance(value, dict)
             self.assertEqual({'rpc', 'objects'}, set(value))
             self.assertIsInstance(value['rpc'], six.string_types)
             self.assertIsInstance(value['objects'], dict)
             for obj_value in value['objects'].values():
-                self.assertIsInstance(obj_value, six.string_types)
-                tuple_ver = versionutils.convert_version_to_tuple(obj_value)
-                self.assertEqual(2, len(tuple_ver))
+                self.assertIsInstance(obj_value, list)
+                for ver in obj_value:
+                    self.assertIsInstance(ver, six.string_types)
+                    tuple_ver = versionutils.convert_version_to_tuple(ver)
+                    self.assertEqual(2, len(tuple_ver))
 
     def test_object_names_are_registered(self):
         registered_objects = set(obj_base.IronicObjectRegistry.obj_classes())
-        for mapping in RELEASE_MAPPING.values():
+        for mapping in release_mappings.RELEASE_MAPPING.values():
             objects = set(mapping['objects'])
             self.assertTrue(objects.issubset(registered_objects))
 
@@ -65,33 +70,120 @@ class ReleaseMappingsTestCase(base.TestCase):
         # NOTE(sborkows): We only need first two values from version (like 5.1)
         # and assume version_info is of the form 'x.y.z'.
         current_release = version_info[:version_info.rfind('.')]
-        self.assertIn(current_release, RELEASE_MAPPING)
+        self.assertIn(current_release, release_mappings.RELEASE_MAPPING)
 
     def test_current_rpc_version(self):
         self.assertEqual(rpcapi.ConductorAPI.RPC_API_VERSION,
-                         RELEASE_MAPPING['master']['rpc'])
+                         release_mappings.RELEASE_MAPPING['master']['rpc'])
 
     def test_current_object_versions(self):
         registered_objects = obj_base.IronicObjectRegistry.obj_classes()
-        for obj, objver in RELEASE_MAPPING['master']['objects'].items():
-            self.assertEqual(registered_objects[obj][0].VERSION, objver)
+        obj_versions = release_mappings.get_object_versions(
+            releases=['master'])
+        for obj, vers in obj_versions.items():
+            self.assertEqual(registered_objects[obj][0].VERSION, vers.pop())
 
     def test_contains_all_db_objects(self):
-        self.assertIn('master', RELEASE_MAPPING)
+        self.assertIn('master', release_mappings.RELEASE_MAPPING)
         model_names = set((s.__name__ for s in models.Base.__subclasses__()))
         exceptions = set(['NodeTag', 'ConductorHardwareInterfaces'])
         # NOTE(xek): As a rule, all models which can be changed between
         # releases or are sent through RPC should have their counterpart
         # versioned objects.
         model_names -= exceptions
-        object_names = set(RELEASE_MAPPING['master']['objects'])
+        object_names = set(
+            release_mappings.RELEASE_MAPPING['master']['objects'])
         self.assertEqual(model_names, object_names)
 
     def test_rpc_and_objects_versions_supported(self):
         registered_objects = obj_base.IronicObjectRegistry.obj_classes()
-        for versions in RELEASE_MAPPING.values():
+        for versions in release_mappings.RELEASE_MAPPING.values():
             self.assertTrue(_check_versions_compatibility(
                 versions['rpc'], rpcapi.ConductorAPI.RPC_API_VERSION))
-            for obj_name, obj_ver in versions['objects'].items():
-                self.assertTrue(_check_versions_compatibility(
-                    obj_ver, registered_objects[obj_name][0].VERSION))
+            for obj_name, obj_vers in versions['objects'].items():
+                for ver in obj_vers:
+                    self.assertTrue(_check_versions_compatibility(
+                        ver, registered_objects[obj_name][0].VERSION))
+
+
+class GetObjectVersionsTestCase(base.TestCase):
+
+    TEST_MAPPING = {
+        '7.0': {
+            'rpc': '1.40',
+            'objects': {
+                'Node': ['1.21'],
+                'Conductor': ['1.2'],
+                'Port': ['1.6'],
+                'Portgroup': ['1.3'],
+            }
+        },
+        '8.0': {
+            'rpc': '1.40',
+            'objects': {
+                'Node': ['1.22'],
+                'Conductor': ['1.2'],
+                'Chassis': ['1.3'],
+                'Port': ['1.6'],
+                'Portgroup': ['1.5', '1.4'],
+            }
+        },
+        'master': {
+            'rpc': '1.40',
+            'objects': {
+                'Node': ['1.23'],
+                'Conductor': ['1.2'],
+                'Chassis': ['1.3'],
+                'Port': ['1.7'],
+                'Portgroup': ['1.5'],
+            }
+        },
+    }
+    TEST_MAPPING['ocata'] = TEST_MAPPING['7.0']
+
+    def test_get_object_versions(self):
+        with mock.patch.dict(release_mappings.RELEASE_MAPPING,
+                             self.TEST_MAPPING, clear=True):
+            actual_versions = release_mappings.get_object_versions()
+            expected_versions = {
+                'Node': set(['1.21', '1.22', '1.23']),
+                'Conductor': set(['1.2']),
+                'Chassis': set(['1.3']),
+                'Port': set(['1.6', '1.7']),
+                'Portgroup': set(['1.3', '1.4', '1.5']),
+            }
+            self.assertEqual(expected_versions, actual_versions)
+
+    def test_get_object_versions_releases(self):
+        with mock.patch.dict(release_mappings.RELEASE_MAPPING,
+                             self.TEST_MAPPING, clear=True):
+            actual_versions = release_mappings.get_object_versions(
+                releases=['ocata'])
+            expected_versions = {
+                'Node': set(['1.21']),
+                'Conductor': set(['1.2']),
+                'Port': set(['1.6']),
+                'Portgroup': set(['1.3']),
+            }
+            self.assertEqual(expected_versions, actual_versions)
+
+    def test_get_object_versions_objects(self):
+        with mock.patch.dict(release_mappings.RELEASE_MAPPING,
+                             self.TEST_MAPPING, clear=True):
+            actual_versions = release_mappings.get_object_versions(
+                objects=['Portgroup', 'Chassis'])
+            expected_versions = {
+                'Portgroup': set(['1.3', '1.4', '1.5']),
+                'Chassis': set(['1.3']),
+            }
+            self.assertEqual(expected_versions, actual_versions)
+
+    def test_get_object_versions_releases_objects(self):
+        with mock.patch.dict(release_mappings.RELEASE_MAPPING,
+                             self.TEST_MAPPING, clear=True):
+            actual_versions = release_mappings.get_object_versions(
+                releases=['7.0'], objects=['Portgroup', 'Chassis'])
+            expected_versions = {
+                'Portgroup': set(['1.3']),
+            }
+            self.assertEqual(expected_versions, actual_versions)

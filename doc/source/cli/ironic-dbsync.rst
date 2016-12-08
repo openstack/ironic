@@ -40,7 +40,8 @@ run the following::
 
   Show the program's version number and exit.
 
-.. option:: upgrade, stamp, revision, version, create_schema
+.. option:: upgrade, stamp, revision, version, create_schema,
+            online_data_migrations
 
   The :ref:`command <dbsync_cmds>` to run.
 
@@ -95,6 +96,39 @@ It assumes that there are no existing tables.
 An example of creating database tables with the most recent version::
 
   ironic-dbsync --config-file=/etc/ironic/ironic.conf create_schema
+
+online_data_migrations
+----------------------
+
+.. program:: online_data_migrations
+
+.. option:: -h, --help
+
+  Show help for online_data_migrations and exit.
+
+.. option:: --max-count <NUMBER>
+
+  The maximum number of objects (a positive value) to migrate. Optional.
+  If not specified, all the objects will be migrated (in batches of 50 to
+  avoid locking the database for long periods of time).
+
+This command will migrate objects in the database to their most recent versions.
+This command must be successfully run (return code 0) before upgrading to a
+future release.
+
+It returns:
+
+* 1 (not completed) if there are still pending objects to be migrated.
+  Before upgrading to a newer release, this command must be run until
+  0 is returned.
+
+* 0 (success) after migrations are finished or there are no data to migrate
+
+* 127 (error) if max-count is not a positive value
+
+* 2 (error) if the database is not compatible with this release. This command
+  needs to be run using the previous release of ironic, before upgrading and
+  running it with this release.
 
 revision
 --------
@@ -153,6 +187,15 @@ upgrade
 
 This command will upgrade existing database tables to the most recent version,
 or to the version specified with the :option:`--revision` option.
+
+..
+  TODO(rloo): add this in Queens; doesn't make sense to add in Pike
+  Before this ``upgrade`` is invoked, the command
+  `ironic db-sync online_data_migrations` must have been successfully run using
+  the previous version of ironic (if you are doing an upgrade as opposed to a
+  new installation of ironic). If it wasn't run, the database will not be
+  compatible with this recent version of ironic, and this command will return
+  2 (error).
 
 If there are no existing tables, then new tables are created, beginning
 with the oldest known version, and successively upgraded using all of the

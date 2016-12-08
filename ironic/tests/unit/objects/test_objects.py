@@ -379,7 +379,7 @@ class _TestObject(object):
                           release_mappings.RELEASE_VERSIONS[-1])
         mock_release_mapping.__getitem__.return_value = {
             'objects': {
-                'MyObj': '1.4',
+                'MyObj': ['1.4'],
             }
         }
         self._test_get_changes(target_version='1.4')
@@ -479,7 +479,7 @@ class _TestObject(object):
     def _test__from_db_object(self, version, mock_release_mapping):
         mock_release_mapping.__getitem__.return_value = {
             'objects': {
-                'MyObj': '1.4',
+                'MyObj': ['1.4'],
             }
         }
         missing = ''
@@ -509,7 +509,7 @@ class _TestObject(object):
         # DB doesn't have version; get it from mapping
         mock_release_mapping.__getitem__.return_value = {
             'objects': {
-                'MyObj': '1.4',
+                'MyObj': ['1.4'],
             }
         }
         obj = MyObj(self.context)
@@ -530,7 +530,7 @@ class _TestObject(object):
         # DB doesn't have version; get it from mapping
         mock_release_mapping.__getitem__.return_value = {
             'objects': {
-                'MyObj': '1.5',
+                'MyObj': ['1.5'],
             }
         }
         obj = MyObj(self.context)
@@ -556,7 +556,7 @@ class _TestObject(object):
     def test__from_db_object_map_version_bad(self, mock_release_mapping):
         mock_release_mapping.__getitem__.return_value = {
             'objects': {
-                'MyObj': '1.6',
+                'MyObj': ['1.6'],
             }
         }
         obj = MyObj(self.context)
@@ -578,7 +578,7 @@ class _TestObject(object):
                           release_mappings.RELEASE_VERSIONS[-1])
         mock_release_mapping.__getitem__.return_value = {
             'objects': {
-                'MyObj': '1.4',
+                'MyObj': ['1.4'],
             }
         }
         obj = MyObj(self.context)
@@ -591,7 +591,7 @@ class _TestObject(object):
                           release_mappings.RELEASE_VERSIONS[-1])
         mock_release_mapping.__getitem__.return_value = {
             'objects': {
-                'NotMyObj': '1.4',
+                'NotMyObj': ['1.4'],
             }
         }
         obj = MyObj(self.context)
@@ -604,7 +604,7 @@ class _TestObject(object):
                           release_mappings.RELEASE_VERSIONS[-1])
         mock_release_mapping.__getitem__.return_value = {
             'objects': {
-                'MyObj': '1.6',
+                'MyObj': ['1.6'],
             }
         }
         obj = MyObj(self.context)
@@ -810,7 +810,7 @@ class TestObjectSerializer(test_base.TestCase):
                           release_mappings.RELEASE_VERSIONS[-1])
         mock_release_mapping.__getitem__.return_value = {
             'objects': {
-                'MyTestObj': '1.0',
+                'MyTestObj': ['1.0'],
             }
         }
         ser = base.IronicObjectSerializer()
