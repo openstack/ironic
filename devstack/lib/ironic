@@ -263,6 +263,9 @@ IRONIC_TERMINAL_CERT_DIR=${IRONIC_TERMINAL_CERT_DIR:-$IRONIC_DATA_DIR/terminal_c
 # IRONIC_{VM,HW}_NODES_FILE
 IRONIC_USE_LINK_LOCAL=$(trueorfalse False IRONIC_USE_LINK_LOCAL)
 
+# Allow selecting dhcp provider
+IRONIC_DHCP_PROVIDER=${IRONIC_DHCP_PROVIDER:-neutron}
+
 # This flag is used to specify enabled network drivers
 IRONIC_ENABLED_NETWORK_INTERFACES=${IRONIC_ENABLED_NETWORK_INTERFACES:-}
 
@@ -777,6 +780,8 @@ function configure_ironic_conductor {
     if [[ -n "$IRONIC_ENABLED_NETWORK_INTERFACES" ]]; then
         iniset $IRONIC_CONF_FILE DEFAULT enabled_network_interfaces $IRONIC_ENABLED_NETWORK_INTERFACES
     fi
+
+    iniset $IRONIC_CONF_FILE dhcp dhcp_provider $IRONIC_DHCP_PROVIDER
 }
 
 # create_ironic_cache_dir() - Part of the init_ironic() process
