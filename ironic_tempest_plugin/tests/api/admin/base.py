@@ -147,7 +147,7 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
 
     @classmethod
     @creates('chassis')
-    def create_chassis(cls, description=None):
+    def create_chassis(cls, description=None, **kwargs):
         """Wrapper utility for creating test chassis.
 
         :param description: A description of the chassis. If not supplied,
@@ -156,7 +156,8 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
 
         """
         description = description or data_utils.rand_name('test-chassis')
-        resp, body = cls.client.create_chassis(description=description)
+        resp, body = cls.client.create_chassis(description=description,
+                                               **kwargs)
         return resp, body
 
     @classmethod
