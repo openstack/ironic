@@ -26,6 +26,7 @@ opts = [
                       'Used only when API audit is enabled.')),
 
     cfg.StrOpt('ignore_req_list',
+               default='',
                help=_('Comma separated list of Ironic REST API HTTP methods '
                       'to be ignored during audit logging. For example: '
                       'auditing will not be done on any GET or POST '
