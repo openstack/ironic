@@ -334,14 +334,14 @@ class PhysicalWorkTestCase(tests_base.TestCase):
             parent_mock.attach_mock(mocker, name)
         return parent_mock
 
-    @mock.patch.object(disk_utils, 'work_on_disk')
-    @mock.patch.object(disk_utils, 'is_block_device')
-    @mock.patch.object(disk_utils, 'get_image_mb')
-    @mock.patch.object(utils, 'logout_iscsi')
-    @mock.patch.object(utils, 'login_iscsi')
-    @mock.patch.object(utils, 'get_dev')
-    @mock.patch.object(utils, 'discovery')
-    @mock.patch.object(utils, 'delete_iscsi')
+    @mock.patch.object(disk_utils, 'work_on_disk', autospec=True)
+    @mock.patch.object(disk_utils, 'is_block_device', autospec=True)
+    @mock.patch.object(disk_utils, 'get_image_mb', autospec=True)
+    @mock.patch.object(utils, 'logout_iscsi', autospec=True)
+    @mock.patch.object(utils, 'login_iscsi', autospec=True)
+    @mock.patch.object(utils, 'get_dev', autospec=True)
+    @mock.patch.object(utils, 'discovery', autospec=True)
+    @mock.patch.object(utils, 'delete_iscsi', autospec=True)
     def _test_deploy_partition_image(self,
                                      mock_delete_iscsi,
                                      mock_discovery,
@@ -368,8 +368,10 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         disallowed_values = set(kwargs) - set(deploy_args)
         if disallowed_values:
             raise ValueError("Only the following kwargs are allowed in "
-                             "_test_deploy_partition_image: %s"
-                             % deploy_args.keys().join(", "))
+                             "_test_deploy_partition_image: %(allowed)s. "
+                             "Disallowed values: %(disallowed)s."
+                             % {"allowed": ", ".join(deploy_args.keys()),
+                                "disallowed": ", ".join(disallowed_values)})
         deploy_args.update(kwargs)
 
         address = '127.0.0.1'
