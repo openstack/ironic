@@ -234,8 +234,6 @@ class PXEAndSNMPDriver(base.BaseDriver):
     class is merely the glue between them.
     """
 
-    supported = False
-
     def __init__(self):
         # Driver has a runtime dependency on PySNMP, abort load if it is absent
         if not importutils.try_import('pysnmp'):
