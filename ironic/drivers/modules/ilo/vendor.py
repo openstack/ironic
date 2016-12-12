@@ -24,39 +24,19 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
-from ironic.drivers.modules import agent
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
-from ironic.drivers.modules import iscsi_deploy
 
 LOG = logging.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
 
-class IloVirtualMediaAgentVendorInterface(agent.AgentVendorInterface):
-    """Interface for vendor passthru related actions."""
-
-    @METRICS.timer('IloVirtualMediaAgentVendorInterface.reboot_to_instance')
-    def reboot_to_instance(self, task):
-        node = task.node
-        LOG.debug('Preparing to reboot to instance for node %s',
-                  node.uuid)
-
-        error = self.check_deploy_success(node)
-        if error is None:
-            # Set boot mode
-            ilo_common.update_boot_mode(task)
-
-            # Need to enable secure boot, if being requested
-            ilo_common.update_secure_boot_mode(task, True)
-
-        super(IloVirtualMediaAgentVendorInterface,
-              self).reboot_to_instance(task)
-
-
-class VendorPassthru(iscsi_deploy.VendorPassthru):
+class VendorPassthru(base.VendorInterface):
     """Vendor-specific interfaces for iLO deploy drivers."""
+
+    def get_properties(self):
+        return {}
 
     @METRICS.timer('IloVendorPassthru.validate')
     def validate(self, task, method, **kwargs):
@@ -78,19 +58,6 @@ class VendorPassthru(iscsi_deploy.VendorPassthru):
             self._validate_boot_into_iso(task, kwargs)
             return
         super(VendorPassthru, self).validate(task, method, **kwargs)
-
-    @METRICS.timer('IloVendorPassthru.continue_deploy')
-    @task_manager.require_exclusive_lock
-    def continue_deploy(self, task, **kwargs):
-        """Method invoked when deployed with the IPA ramdisk.
-
-        This method is invoked during a heartbeat from an agent when
-        the node is in wait-call-back state.
-        This updates boot mode and secure boot settings, if required.
-        """
-        ilo_common.update_boot_mode(task)
-        ilo_common.update_secure_boot_mode(task, True)
-        super(VendorPassthru, self).continue_deploy(task, **kwargs)
 
     def _validate_boot_into_iso(self, task, kwargs):
         """Validates if attach_iso can be called and if inputs are proper."""

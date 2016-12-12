@@ -385,6 +385,24 @@ class IloVirtualMediaIscsiDeployTestCase(db_base.DbTestCase):
                                                            states.POWER_OFF)
             iscsi_prep_clean_mock.assert_called_once_with(mock.ANY, task)
 
+    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'continue_deploy',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode', autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
+    def test_continue_deploy(self,
+                             func_update_boot_mode,
+                             func_update_secure_boot_mode,
+                             pxe_vendorpassthru_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = states.DEPLOYWAIT
+            task.node.target_provision_state = states.ACTIVE
+            task.driver.deploy.continue_deploy(task)
+            func_update_boot_mode.assert_called_once_with(task)
+            func_update_secure_boot_mode.assert_called_once_with(task, True)
+            pxe_vendorpassthru_mock.assert_called_once_with(
+                mock.ANY, task)
+
 
 class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
 
@@ -561,6 +579,52 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
                                                            states.POWER_OFF)
             agent_prep_clean_mock.assert_called_once_with(mock.ANY, task)
 
+    @mock.patch.object(agent.AgentDeploy, 'reboot_to_instance',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(agent.AgentDeploy, 'check_deploy_success',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    def test_reboot_to_instance(self, func_update_secure_boot_mode,
+                                func_update_boot_mode,
+                                check_deploy_success_mock,
+                                agent_reboot_to_instance_mock):
+        check_deploy_success_mock.return_value = None
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.deploy.reboot_to_instance(task)
+            check_deploy_success_mock.assert_called_once_with(
+                mock.ANY, task.node)
+            func_update_boot_mode.assert_called_once_with(task)
+            func_update_secure_boot_mode.assert_called_once_with(task, True)
+            agent_reboot_to_instance_mock.assert_called_once_with(
+                mock.ANY, task)
+
+    @mock.patch.object(agent.AgentDeploy, 'reboot_to_instance',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(agent.AgentDeploy, 'check_deploy_success',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    def test_reboot_to_instance_deploy_fail(self, func_update_secure_boot_mode,
+                                            func_update_boot_mode,
+                                            check_deploy_success_mock,
+                                            agent_reboot_to_instance_mock):
+        check_deploy_success_mock.return_value = "Error"
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.deploy.reboot_to_instance(task)
+            check_deploy_success_mock.assert_called_once_with(
+                mock.ANY, task.node)
+            self.assertFalse(func_update_boot_mode.called)
+            self.assertFalse(func_update_secure_boot_mode.called)
+            agent_reboot_to_instance_mock.assert_called_once_with(
+                mock.ANY, task)
+
 
 class IloPXEDeployTestCase(db_base.DbTestCase):
 
@@ -705,3 +769,21 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
             node_power_action_mock.assert_called_once_with(task,
                                                            states.POWER_OFF)
             iscsi_prep_clean_mock.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'continue_deploy',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode', autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
+    def test_continue_deploy(self,
+                             func_update_boot_mode,
+                             func_update_secure_boot_mode,
+                             pxe_vendorpassthru_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = states.DEPLOYWAIT
+            task.node.target_provision_state = states.ACTIVE
+            task.driver.deploy.continue_deploy(task)
+            func_update_boot_mode.assert_called_once_with(task)
+            func_update_secure_boot_mode.assert_called_once_with(task, True)
+            pxe_vendorpassthru_mock.assert_called_once_with(
+                mock.ANY, task)

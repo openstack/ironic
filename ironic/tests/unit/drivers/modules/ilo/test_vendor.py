@@ -21,11 +21,9 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
-from ironic.drivers.modules import agent
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import vendor as ilo_vendor
-from ironic.drivers.modules import iscsi_deploy
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -108,76 +106,3 @@ class VendorPassthruTestCase(db_base.DbTestCase):
                 task, info)
             validate_image_prop_mock.assert_called_once_with(
                 task.context, {'image_source': 'foo'}, [])
-
-    @mock.patch.object(iscsi_deploy.VendorPassthru, 'continue_deploy',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', autospec=True)
-    @mock.patch.object(ilo_common, 'update_boot_mode', autospec=True)
-    def test_continue_deploy(self,
-                             func_update_boot_mode,
-                             func_update_secure_boot_mode,
-                             pxe_vendorpassthru_mock):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.node.provision_state = states.DEPLOYWAIT
-            task.node.target_provision_state = states.ACTIVE
-            task.driver.vendor.continue_deploy(task)
-            func_update_boot_mode.assert_called_once_with(task)
-            func_update_secure_boot_mode.assert_called_once_with(task, True)
-            pxe_vendorpassthru_mock.assert_called_once_with(
-                mock.ANY, task)
-
-
-class IloVirtualMediaAgentVendorInterfaceTestCase(db_base.DbTestCase):
-
-    def setUp(self):
-        super(IloVirtualMediaAgentVendorInterfaceTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="agent_ilo")
-        self.node = obj_utils.create_test_node(
-            self.context, driver='agent_ilo', driver_info=INFO_DICT)
-
-    @mock.patch.object(agent.AgentVendorInterface, 'reboot_to_instance',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(agent.AgentVendorInterface, 'check_deploy_success',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
-    def test_reboot_to_instance(self, func_update_secure_boot_mode,
-                                func_update_boot_mode,
-                                check_deploy_success_mock,
-                                agent_reboot_to_instance_mock):
-        check_deploy_success_mock.return_value = None
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.vendor.reboot_to_instance(task)
-            check_deploy_success_mock.assert_called_once_with(
-                mock.ANY, task.node)
-            func_update_boot_mode.assert_called_once_with(task)
-            func_update_secure_boot_mode.assert_called_once_with(task, True)
-            agent_reboot_to_instance_mock.assert_called_once_with(
-                mock.ANY, task)
-
-    @mock.patch.object(agent.AgentVendorInterface, 'reboot_to_instance',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(agent.AgentVendorInterface, 'check_deploy_success',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
-    def test_reboot_to_instance_deploy_fail(self, func_update_secure_boot_mode,
-                                            func_update_boot_mode,
-                                            check_deploy_success_mock,
-                                            agent_reboot_to_instance_mock):
-        check_deploy_success_mock.return_value = "Error"
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.vendor.reboot_to_instance(task)
-            check_deploy_success_mock.assert_called_once_with(
-                mock.ANY, task.node)
-            self.assertFalse(func_update_boot_mode.called)
-            self.assertFalse(func_update_secure_boot_mode.called)
-            agent_reboot_to_instance_mock.assert_called_once_with(
-                mock.ANY, task)
