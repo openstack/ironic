@@ -50,7 +50,7 @@
       <address type='pci' domain='0x0000' bus='0x00' slot='0x04' function='0x0'/>
     </interface>
     <input type='mouse' bus='ps2'/>
-    <graphics type='vnc' port='-1' autoport='yes'/>
+    <graphics type='vnc' port='-1' autoport='yes' listen='0.0.0.0'/>
     <video>
       <model type='cirrus' vram='9216' heads='1'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
@@ -61,4 +61,3 @@
     </memballoon>
   </devices>
 </domain>
-
