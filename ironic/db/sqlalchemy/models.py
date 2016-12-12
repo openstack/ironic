@@ -88,6 +88,25 @@ class Conductor(Base):
     online = Column(Boolean, default=True)
 
 
+class ConductorHardwareInterfaces(Base):
+    """Internal table used to track what is loaded on each conductor."""
+
+    __tablename__ = 'conductor_hardware_interfaces'
+    __table_args__ = (
+        schema.UniqueConstraint(
+            'conductor_id',
+            'hardware_type',
+            'interface_type',
+            'interface_name',
+            name='uniq_conductorhardwareinterfaces0'),
+        table_args())
+    id = Column(Integer, primary_key=True)
+    conductor_id = Column(Integer, ForeignKey('conductors.id'), nullable=False)
+    hardware_type = Column(String(255), nullable=False)
+    interface_type = Column(String(16), nullable=False)
+    interface_name = Column(String(255), nullable=False)
+
+
 class Node(Base):
     """Represents a bare metal node."""
 
