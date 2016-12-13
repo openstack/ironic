@@ -157,9 +157,8 @@ class TestNodes(base.BaseBaremetalTest):
     @test.idempotent_id('80504575-9b21-4670-92d1-143b948f9437')
     def test_set_console_mode(self):
         self.client.set_console_mode(self.node['uuid'], True)
-
-        _, body = self.client.get_console(self.node['uuid'])
-        self.assertEqual(True, body['console_enabled'])
+        waiters.wait_for_bm_node_status(self.client, self.node['uuid'],
+                                        'console_enabled', True)
 
     @test.idempotent_id('b02a4f38-5e8b-44b2-aed2-a69a36ecfd69')
     def test_get_node_by_instance_uuid(self):
