@@ -832,7 +832,7 @@ function configure_ironic_conductor {
     fi
 
     local pxe_params="nofb nomodeset vga=normal console=${IRONIC_TTY_DEV}"
-    pxe_params+=" systemd.journald.forward_to_console=yes ipa-debug=1"
+    pxe_params+=" systemd.journald.forward_to_console=yes"
 
     pxe_params+=" $IRONIC_EXTRA_PXE_PARAMS"
 
