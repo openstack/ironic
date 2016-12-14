@@ -19,22 +19,41 @@ from tempest.lib.common.utils import misc as misc_utils
 from tempest.lib import exceptions as lib_exc
 
 
-def wait_for_bm_node_status(client, node_id, attr, status):
+def wait_for_bm_node_status(client, node_id, attr, status, timeout=None,
+                            interval=None):
     """Waits for a baremetal node attribute to reach given status.
 
-    The client should have a show_node(node_uuid) method to get the node.
+    :param client: an instance of tempest plugin BaremetalClient.
+    :param node_id: identifier of the node.
+    :param attr: node's API-visible attribute to check status of.
+    :param status: desired status.
+    :param timeout: the timeout after which the check is considered as failed.
+        Defaults to client.build_timeout.
+    :param interval: an interval between show_node calls for status check.
+        Defaults to client.build_interval.
+
+    The client should have a show_node(node_id) method to get the node.
     """
-    _, node = client.show_node(node_id)
+    if timeout is None:
+        timeout = client.build_timeout
+    if interval is None:
+        interval = client.build_interval
+    if timeout < 0 or interval < 0:
+        raise lib_exc.InvalidConfiguration(
+            'timeout and interval should be >= 0 or None, current values are: '
+            '%(timeout)s, %(interval)s respectively.' % dict(timeout=timeout,
+                                                             interval=interval)
+        )
+
     start = int(time.time())
+    _, node = client.show_node(node_id)
 
     while node[attr] != status:
-        time.sleep(client.build_interval)
-        _, node = client.show_node(node_id)
         status_curr = node[attr]
         if status_curr == status:
             return
 
-        if int(time.time()) - start >= client.build_timeout:
+        if int(time.time()) - start >= timeout:
             message = ('Node %(node_id)s failed to reach %(attr)s=%(status)s '
                        'within the required time (%(timeout)s s).' %
                        {'node_id': node_id,
@@ -46,3 +65,6 @@ def wait_for_bm_node_status(client, node_id, attr, status):
             if caller:
                 message = '(%s) %s' % (caller, message)
             raise lib_exc.TimeoutException(message)
+
+        time.sleep(interval)
+        _, node = client.show_node(node_id)
