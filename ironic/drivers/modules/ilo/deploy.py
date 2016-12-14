@@ -32,7 +32,6 @@ from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import boot as ilo_boot
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules import iscsi_deploy
-from ironic.drivers.modules import pxe
 
 LOG = logging.getLogger(__name__)
 
@@ -365,16 +364,6 @@ class IloPXEDeploy(IloIscsiDeployMixin, iscsi_deploy.ISCSIDeploy):
         """
         if task.node.provision_state == states.DEPLOYING:
             _prepare_node_for_deploy(task)
-
-            # Check if 'boot_option' is compatible with 'boot_mode' and image.
-            # Whole disk image deploy is not supported in UEFI boot mode if
-            # 'boot_option' is not 'local'.
-            # If boot_mode is not set in the node properties/capabilities then
-            # PXEDeploy.validate() would pass.
-            # Boot mode gets updated in prepare stage. It is possible that the
-            # deploy boot mode is 'uefi' after call to update_boot_mode().
-            # Hence a re-check is required here.
-            pxe.validate_boot_option_for_uefi(task.node)
 
         super(IloPXEDeploy, self).prepare(task)
 
