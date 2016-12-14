@@ -232,7 +232,7 @@ class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
         self.oneview_client = common.get_oneview_client()
 
     def get_properties(self):
-        deploy_utils.get_properties()
+        return deploy_utils.get_properties()
 
     @METRICS.timer('OneViewIscsiDeploy.validate')
     def validate(self, task):
@@ -255,7 +255,7 @@ class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
         if (common.is_dynamic_allocation_enabled(task.node) and
            not CONF.conductor.automated_clean):
             deploy_utils.tear_down(self.oneview_client, task)
-        super(OneViewIscsiDeploy, self).tear_down(task)
+        return super(OneViewIscsiDeploy, self).tear_down(task)
 
     @METRICS.timer('OneViewIscsiDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
@@ -267,7 +267,7 @@ class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
     def tear_down_cleaning(self, task):
         if common.is_dynamic_allocation_enabled(task.node):
             deploy_utils.tear_down_cleaning(self.oneview_client, task)
-        return super(OneViewIscsiDeploy, self).tear_down_cleaning(task)
+        super(OneViewIscsiDeploy, self).tear_down_cleaning(task)
 
 
 # NOTE (thiagop): We overwrite this interface because we cannot change the boot
@@ -367,7 +367,7 @@ class OneViewAgentDeploy(OneViewAgentDeployMixin, agent.AgentDeploy,
         self.oneview_client = common.get_oneview_client()
 
     def get_properties(self):
-        deploy_utils.get_properties()
+        return deploy_utils.get_properties()
 
     @METRICS.timer('OneViewAgentDeploy.validate')
     def validate(self, task):
@@ -390,7 +390,7 @@ class OneViewAgentDeploy(OneViewAgentDeployMixin, agent.AgentDeploy,
         if (common.is_dynamic_allocation_enabled(task.node) and
            not CONF.conductor.automated_clean):
             deploy_utils.tear_down(self.oneview_client, task)
-        super(OneViewAgentDeploy, self).tear_down(task)
+        return super(OneViewAgentDeploy, self).tear_down(task)
 
     @METRICS.timer('OneViewAgentDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
@@ -402,4 +402,4 @@ class OneViewAgentDeploy(OneViewAgentDeployMixin, agent.AgentDeploy,
     def tear_down_cleaning(self, task):
         if common.is_dynamic_allocation_enabled(task.node):
             deploy_utils.tear_down_cleaning(self.oneview_client, task)
-        return super(OneViewAgentDeploy, self).tear_down_cleaning(task)
+        super(OneViewAgentDeploy, self).tear_down_cleaning(task)
