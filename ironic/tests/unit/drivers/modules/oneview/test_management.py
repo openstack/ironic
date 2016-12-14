@@ -57,15 +57,23 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
     @mock.patch.object(common, 'validate_oneview_resources_compatibility',
                        spect_set=True, autospec=True)
     def test_validate(self, mock_validate, mock_get_ov_client):
-        client = mock_get_ov_client.return_value
+        oneview_client = mock_get_ov_client()
+        self.driver.management.oneview_client = oneview_client
+
         fake_server_hardware = oneview_models.ServerHardware()
         fake_server_hardware.server_profile_uri = 'any/applied_sp_uri/'
-        client.get_server_hardware_by_uuid.return_value = fake_server_hardware
-        mock_get_ov_client.return_value = client
+
+        oneview_client.get_server_hardware_by_uuid.return_value = (
+            fake_server_hardware
+        )
+        mock_get_ov_client.return_value = oneview_client
+
         driver_info = self.node.driver_info
         driver_info['applied_server_profile_uri'] = 'any/applied_sp_uri/'
+
         self.node.driver_info = driver_info
         self.node.save()
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.management.validate(task)
             self.assertTrue(mock_validate.called)
@@ -75,15 +83,22 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
     def test_validate_for_node_not_in_use_by_ironic(self,
                                                     mock_validate,
                                                     mock_get_ov_client):
-        client = mock_get_ov_client.return_value
+        oneview_client = mock_get_ov_client()
+
         fake_server_hardware = oneview_models.ServerHardware()
         fake_server_hardware.server_profile_uri = 'any/applied_sp_uri/'
-        client.get_server_hardware_by_uuid.return_value = fake_server_hardware
-        mock_get_ov_client.return_value = client
+
+        oneview_client.get_server_hardware_by_uuid.return_value = (
+            fake_server_hardware
+        )
+        mock_get_ov_client.return_value = oneview_client
+
         driver_info = self.node.driver_info
         driver_info['applied_server_profile_uri'] = 'other/applied_sp_uri/'
+
         self.node.driver_info = driver_info
         self.node.save()
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.management.validate, task)
@@ -113,6 +128,8 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
 
     def test_set_boot_device(self, mock_get_ov_client):
         oneview_client = mock_get_ov_client()
+        self.driver.management.oneview_client = oneview_client
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.driver.management.set_boot_device(task, boot_devices.PXE)
         oneview_client.set_boot_device.assert_called_once_with(
@@ -122,6 +139,7 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
 
     def test_set_boot_device_invalid_device(self, mock_get_ov_client):
         oneview_client = mock_get_ov_client()
+        self.driver.management.oneview_client = oneview_client
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               self.driver.management.set_boot_device,
@@ -131,9 +149,10 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
     def test_set_boot_device_fail_to_get_server_profile(self,
                                                         mock_get_ov_client):
         oneview_client = mock_get_ov_client()
-
         oneview_client.get_server_profile_from_hardware.side_effect = \
             oneview_exceptions.OneViewException()
+        self.driver.management.oneview_client = oneview_client
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.OneViewError,
                               self.driver.management.set_boot_device,
@@ -143,6 +162,8 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
     def test_set_boot_device_without_server_profile(self, mock_get_ov_client):
         oneview_client = mock_get_ov_client()
         oneview_client.get_server_profile_from_hardware.return_value = False
+        self.driver.management.oneview_client = oneview_client
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
             expected_msg = (
                 'A Server Profile is not associated with node %s.'
@@ -168,6 +189,7 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
     def test_get_boot_device(self, mock_get_ov_client):
         device_mapping = management.BOOT_DEVICE_MAPPING_TO_OV
         oneview_client = mock_get_ov_client()
+        self.driver.management.oneview_client = oneview_client
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             # For each known device on OneView, Ironic should return its
@@ -186,6 +208,8 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
         oneview_client = mock_get_ov_client()
         oneview_client.get_boot_order.side_effect = \
             oneview_exceptions.OneViewException()
+        self.driver.management.oneview_client = oneview_client
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.OneViewError,
                               self.driver.management.get_boot_device,
@@ -196,6 +220,8 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
         oneview_client = mock_get_ov_client()
         oneview_client.get_boot_order.return_value = ["spam",
                                                       "bacon"]
+        self.driver.management.oneview_client = oneview_client
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(
                 exception.InvalidParameterValue,

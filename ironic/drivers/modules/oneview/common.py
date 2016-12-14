@@ -23,7 +23,6 @@ from ironic.common import states
 from ironic.conf import CONF
 from ironic.drivers import utils
 
-
 LOG = logging.getLogger(__name__)
 
 client = importutils.try_import('oneview_client.client')
@@ -147,7 +146,7 @@ def get_oneview_info(node):
     return oneview_info
 
 
-def validate_oneview_resources_compatibility(task):
+def validate_oneview_resources_compatibility(oneview_client, task):
     """Validates if the node configuration is consistent with OneView.
 
     This method calls python-oneviewclient functions to validate if the node
@@ -158,6 +157,7 @@ def validate_oneview_resources_compatibility(task):
     represents when in pre-allocation model. If any validation fails,
     python-oneviewclient will raise an appropriate OneViewException.
 
+    :param oneview_client: an instance of the OneView client
     :param: task: a TaskManager instance containing the node to act on.
     """
 
@@ -166,12 +166,9 @@ def validate_oneview_resources_compatibility(task):
     oneview_info = get_oneview_info(task.node)
 
     try:
-        oneview_client = get_oneview_client()
-
         oneview_client.validate_node_server_profile_template(oneview_info)
         oneview_client.validate_node_server_hardware_type(oneview_info)
         oneview_client.validate_node_enclosure_group(oneview_info)
-
         oneview_client.validate_node_server_hardware(
             oneview_info,
             task.node.properties.get('memory_mb'),
@@ -244,10 +241,10 @@ def node_has_server_profile(func):
     """Checks if the node's Server Hardware has a Server Profile associated.
 
     """
-    def inner(*args, **kwargs):
-        task = args[1]
+    def inner(self, *args, **kwargs):
+        oneview_client = self.oneview_client
+        task = args[0]
         oneview_info = get_oneview_info(task.node)
-        oneview_client = get_oneview_client()
         try:
             node_has_server_profile = (
                 oneview_client.get_server_profile_from_hardware(oneview_info)
@@ -264,7 +261,7 @@ def node_has_server_profile(func):
                 _("A Server Profile is not associated with node %s.") %
                 task.node.uuid
             )
-        return func(*args, **kwargs)
+        return func(self, *args, **kwargs)
     return inner
 
 

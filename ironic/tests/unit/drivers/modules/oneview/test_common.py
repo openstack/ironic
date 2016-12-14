@@ -236,7 +236,8 @@ class OneViewCommonTestCase(db_base.DbTestCase):
     ):
         oneview_client = mock_get_ov_client()
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            common.validate_oneview_resources_compatibility(task)
+            common.validate_oneview_resources_compatibility(oneview_client,
+                                                            task)
             self.assertTrue(
                 oneview_client.validate_node_server_hardware_type.called)
             self.assertTrue(
@@ -279,7 +280,8 @@ class OneViewCommonTestCase(db_base.DbTestCase):
             driver_info['dynamic_allocation'] = True
             task.node.driver_info = driver_info
 
-            common.validate_oneview_resources_compatibility(task)
+            common.validate_oneview_resources_compatibility(oneview_client,
+                                                            task)
             self.assertTrue(
                 oneview_client.validate_node_server_hardware_type.called)
             self.assertTrue(

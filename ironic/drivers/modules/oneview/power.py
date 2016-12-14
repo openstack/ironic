@@ -24,6 +24,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.oneview import common
+from ironic.drivers.modules.oneview import deploy_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -34,8 +35,12 @@ oneview_exceptions = importutils.try_import('oneview_client.exceptions')
 
 class OneViewPower(base.PowerInterface):
 
+    def __init__(self):
+        super(OneViewPower, self).__init__()
+        self.oneview_client = common.get_oneview_client()
+
     def get_properties(self):
-        return common.COMMON_PROPERTIES
+        return deploy_utils.get_properties()
 
     @METRICS.timer('OneViewPower.validate')
     def validate(self, task):
@@ -57,7 +62,8 @@ class OneViewPower(base.PowerInterface):
         common.verify_node_info(task.node)
 
         try:
-            common.validate_oneview_resources_compatibility(task)
+            common.validate_oneview_resources_compatibility(
+                self.oneview_client, task)
         except exception.OneViewError as oneview_exc:
             raise exception.InvalidParameterValue(oneview_exc)
 
@@ -74,9 +80,10 @@ class OneViewPower(base.PowerInterface):
         """
         oneview_info = common.get_oneview_info(task.node)
 
-        oneview_client = common.get_oneview_client()
         try:
-            power_state = oneview_client.get_node_power_state(oneview_info)
+            power_state = self.oneview_client.get_node_power_state(
+                oneview_info
+            )
         except oneview_exceptions.OneViewException as oneview_exc:
             LOG.error(
                 _LE("Error getting power state for node %(node)s. Error:"
@@ -101,20 +108,18 @@ class OneViewPower(base.PowerInterface):
         """
         oneview_info = common.get_oneview_info(task.node)
 
-        oneview_client = common.get_oneview_client()
-
         LOG.debug('Setting power state of node %(node_uuid)s to '
                   '%(power_state)s',
                   {'node_uuid': task.node.uuid, 'power_state': power_state})
 
         try:
             if power_state == states.POWER_ON:
-                oneview_client.power_on(oneview_info)
+                self.oneview_client.power_on(oneview_info)
             elif power_state == states.POWER_OFF:
-                oneview_client.power_off(oneview_info)
+                self.oneview_client.power_off(oneview_info)
             elif power_state == states.REBOOT:
-                oneview_client.power_off(oneview_info)
-                oneview_client.power_on(oneview_info)
+                self.oneview_client.power_off(oneview_info)
+                self.oneview_client.power_on(oneview_info)
             else:
                 raise exception.InvalidParameterValue(
                     _("set_power_state called with invalid power state %s.")

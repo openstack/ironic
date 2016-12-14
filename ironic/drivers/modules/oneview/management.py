@@ -46,8 +46,12 @@ oneview_exceptions = importutils.try_import('oneview_client.exceptions')
 
 class OneViewManagement(base.ManagementInterface):
 
+    def __init__(self):
+        super(OneViewManagement, self).__init__()
+        self.oneview_client = common.get_oneview_client()
+
     def get_properties(self):
-        return common.COMMON_PROPERTIES
+        return deploy_utils.get_properties()
 
     @METRICS.timer('OneViewManagement.validate')
     def validate(self, task):
@@ -69,9 +73,12 @@ class OneViewManagement(base.ManagementInterface):
         common.verify_node_info(task.node)
 
         try:
-            common.validate_oneview_resources_compatibility(task)
+            common.validate_oneview_resources_compatibility(
+                self.oneview_client, task)
 
-            if not deploy_utils.is_node_in_use_by_ironic(task.node):
+            if not deploy_utils.is_node_in_use_by_ironic(
+                self.oneview_client, task.node
+            ):
                 raise exception.InvalidParameterValue(
                     _("Node %s is not in use by ironic.") % task.node.uuid)
         except exception.OneViewError as oneview_exc:
@@ -117,9 +124,9 @@ class OneViewManagement(base.ManagementInterface):
         LOG.debug("Setting boot device to %(device)s for node %(node)s",
                   {"device": device, "node": task.node.uuid})
         try:
-            oneview_client = common.get_oneview_client()
             device_to_oneview = BOOT_DEVICE_MAPPING_TO_OV.get(device)
-            oneview_client.set_boot_device(oneview_info, device_to_oneview)
+            self.oneview_client.set_boot_device(oneview_info,
+                                                device_to_oneview)
         except oneview_exceptions.OneViewException as oneview_exc:
             msg = (_(
                 "Error setting boot device on OneView. Error: %s")
@@ -148,8 +155,7 @@ class OneViewManagement(base.ManagementInterface):
         oneview_info = common.get_oneview_info(task.node)
 
         try:
-            oneview_client = common.get_oneview_client()
-            boot_order = oneview_client.get_boot_order(oneview_info)
+            boot_order = self.oneview_client.get_boot_order(oneview_info)
         except oneview_exceptions.OneViewException as oneview_exc:
             msg = (_(
                 "Error getting boot device from OneView. Error: %s")
