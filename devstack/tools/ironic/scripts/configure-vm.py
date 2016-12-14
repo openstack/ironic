@@ -110,10 +110,15 @@ def main():
     if args.emulator:
         params['emulator'] = args.emulator
     else:
-        if os.path.exists("/usr/bin/kvm"):  # Debian
-            params['emulator'] = "/usr/bin/kvm"
-        elif os.path.exists("/usr/bin/qemu-kvm"):  # Redhat
-            params['emulator'] = "/usr/bin/qemu-kvm"
+        qemu_kvm_locations = ['/usr/bin/kvm',
+                              '/usr/bin/qemu-kvm',
+                              '/usr/libexec/qemu-kvm']
+        for location in qemu_kvm_locations:
+            if os.path.exists(location):
+                params['emulator'] = location
+                break
+        else:
+            raise RuntimeError("Unable to find location of kvm executable")
 
     if args.console_log:
         params['console'] = CONSOLE_LOG % {'console_log': args.console_log}
