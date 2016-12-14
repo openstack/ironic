@@ -177,11 +177,14 @@ IRONIC_DEPLOY_ISO=${IRONIC_DEPLOY_ISO:-}
 if [[ -z "$IRONIC_TEMPEST_WHOLE_DISK_IMAGE" && "$IRONIC_VM_EPHEMERAL_DISK" == 0 ]]; then
     IRONIC_TEMPEST_WHOLE_DISK_IMAGE=True
 fi
+
 IRONIC_TEMPEST_WHOLE_DISK_IMAGE=$(trueorfalse False IRONIC_TEMPEST_WHOLE_DISK_IMAGE)
-if [[ "$IRONIC_TEMPEST_WHOLE_DISK_IMAGE" == "True" ]]; then
-    IRONIC_IMAGE_NAME=${IRONIC_IMAGE_NAME:-cirros-${CIRROS_VERSION}-x86_64-disk}
-else
-    IRONIC_IMAGE_NAME=${IRONIC_IMAGE_NAME:-cirros-${CIRROS_VERSION}-x86_64-uec}
+if [[ -z "$IRONIC_IMAGE_NAME" ]]; then
+    if [[ "$IRONIC_TEMPEST_WHOLE_DISK_IMAGE" == "True" ]]; then
+        IRONIC_IMAGE_NAME=${DEFAULT_IMAGE_NAME/-uec/-disk}
+    else
+        IRONIC_IMAGE_NAME=${DEFAULT_IMAGE_NAME/-disk/-uec}
+    fi
 fi
 
 # NOTE(jroll) this needs to be updated when stable branches are cut
