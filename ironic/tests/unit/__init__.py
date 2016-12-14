@@ -34,3 +34,7 @@ eventlet.monkey_patch(os=False)
 # at module import time, because we may be using mock decorators in our
 # tests that run at import time.
 objects.register_all()
+
+# NOTE(dtantsur): this module creates mocks which may be used at random points
+# of time, so it must be imported as early as possible.
+from ironic.tests.unit.drivers import third_party_driver_mocks   # noqa

@@ -26,6 +26,42 @@ from oslo_utils import netutils
 
 from ironic.common.i18n import _
 
+
+# TODO(dtantsur): remove the variants with warnings as soon as we support
+# actually creating nodes with hardware types.
+
+_ENABLED_IFACE_HELP = _('Specify the list of {0} interfaces to load during '
+                        'service initialization. Missing {0} interfaces, '
+                        'or {0} interfaces which fail to initialize, will '
+                        'prevent the ironic-conductor service from starting. '
+                        'The default value is a recommended set of '
+                        'production-oriented {0} interfaces. A complete '
+                        'list of {0} interfaces present on your system may '
+                        'be found by enumerating the '
+                        '"ironic.hardware.interfaces.{0}" entrypoint. '
+                        'When setting this value, please make sure that '
+                        'every enabled hardware type will have the same '
+                        'set of enabled {0} interfaces on every '
+                        'ironic-conductor service.')
+
+_ENABLED_IFACE_HELP_WITH_WARNING = (
+    _('WARNING: This configuration option is part of the incomplete driver '
+      'composition work, changing it\'s setting has no effect. ') +
+    _ENABLED_IFACE_HELP
+)
+
+_DEFAULT_IFACE_HELP = _('Default {0} interface to be used for nodes that '
+                        'do not have {0}_interface field set. A complete '
+                        'list of {0} interfaces present on your system may '
+                        'be found by enumerating the '
+                        '"ironic.hardware.interfaces.{0}" entrypoint.')
+
+_DEFAULT_IFACE_HELP_WITH_WARNING = (
+    _('WARNING: This configuration option is part of the incomplete driver '
+      'composition work, changing it\'s setting has no effect. ') +
+    _DEFAULT_IFACE_HELP
+)
+
 api_opts = [
     cfg.StrOpt(
         'auth_strategy',
@@ -57,27 +93,67 @@ driver_opts = [
                        'be found by enumerating the "ironic.drivers" '
                        'entrypoint. An example may be found in the '
                        'developer documentation online.')),
+    cfg.ListOpt('enabled_hardware_types',
+                default=[],
+                help=_('WARNING: This configuration option is part of the '
+                       'incomplete driver composition work, changing it\'s '
+                       'setting has no effect. '
+                       'Specify the list of hardware types to load during '
+                       'service initialization. Missing hardware types, or '
+                       'hardware types which fail to initialize, will prevent '
+                       'the conductor service from starting. No hardware '
+                       'types are enabled by default now, but in the future '
+                       'this option will default to a recommended set of '
+                       'production-oriented hardware types. '
+                       'A complete list of hardware types present on your '
+                       'system may be found by enumerating the '
+                       '"ironic.hardware.types" entrypoint.')),
+    # TODO(dtantsur): populate with production-ready values
+    cfg.ListOpt('enabled_boot_interfaces',
+                default=[],
+                help=_ENABLED_IFACE_HELP_WITH_WARNING.format('boot')),
+    cfg.StrOpt('default_boot_interface',
+               help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('boot')),
+    cfg.ListOpt('enabled_console_interfaces',
+                default=['no-console'],
+                help=_ENABLED_IFACE_HELP_WITH_WARNING.format('console')),
+    cfg.StrOpt('default_console_interface',
+               help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('console')),
+    cfg.ListOpt('enabled_deploy_interfaces',
+                default=[],
+                help=_ENABLED_IFACE_HELP_WITH_WARNING.format('deploy')),
+    cfg.StrOpt('default_deploy_interface',
+               help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('deploy')),
+    cfg.ListOpt('enabled_inspect_interfaces',
+                default=['no-inspect'],
+                help=_ENABLED_IFACE_HELP_WITH_WARNING.format('inspect')),
+    cfg.StrOpt('default_inspect_interface',
+               help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('inspect')),
+    cfg.ListOpt('enabled_management_interfaces',
+                default=[],
+                help=_ENABLED_IFACE_HELP_WITH_WARNING.format('management')),
+    cfg.StrOpt('default_management_interface',
+               help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('management')),
     cfg.ListOpt('enabled_network_interfaces',
                 default=['flat', 'noop'],
-                help=_('Specify the list of network interfaces to load during '
-                       'service initialization. Missing network interfaces, '
-                       'or network interfaces which fail to initialize, will '
-                       'prevent the conductor service from starting. The '
-                       'option default is a recommended set of '
-                       'production-oriented network interfaces. A complete '
-                       'list of network interfaces present on your system may '
-                       'be found by enumerating the '
-                       '"ironic.hardware.interfaces.network" entrypoint. '
-                       'This value must be the same on all ironic-conductor '
-                       'and ironic-api services, because it is used by '
-                       'ironic-api service to validate a new or updated '
-                       'node\'s network_interface value.')),
+                help=_ENABLED_IFACE_HELP.format('network')),
     cfg.StrOpt('default_network_interface',
-               help=_('Default network interface to be used for nodes that '
-                      'do not have network_interface field set. A complete '
-                      'list of network interfaces present on your system may '
-                      'be found by enumerating the '
-                      '"ironic.hardware.interfaces.network" entrypoint.'))
+               help=_DEFAULT_IFACE_HELP.format('network')),
+    cfg.ListOpt('enabled_power_interfaces',
+                default=[],
+                help=_ENABLED_IFACE_HELP_WITH_WARNING.format('power')),
+    cfg.StrOpt('default_power_interface',
+               help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('power')),
+    cfg.ListOpt('enabled_raid_interfaces',
+                default=['no-raid'],
+                help=_ENABLED_IFACE_HELP_WITH_WARNING.format('raid')),
+    cfg.StrOpt('default_raid_interface',
+               help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('raid')),
+    cfg.ListOpt('enabled_vendor_interfaces',
+                default=['no-vendor'],
+                help=_ENABLED_IFACE_HELP_WITH_WARNING.format('vendor')),
+    cfg.StrOpt('default_vendor_interface',
+               help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('vendor')),
 ]
 
 exc_log_opts = [

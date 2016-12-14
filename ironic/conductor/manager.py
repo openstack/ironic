@@ -66,6 +66,7 @@ from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils
 from ironic.conf import CONF
+from ironic.drivers import base as drivers_base
 from ironic import objects
 from ironic.objects import base as objects_base
 
@@ -92,7 +93,10 @@ class ConductorManager(base_manager.BaseConductorManager):
 
     @METRICS.timer('ConductorManager.create_node')
     @messaging.expected_exceptions(exception.InvalidParameterValue,
-                                   exception.InterfaceNotFoundInEntrypoint)
+                                   exception.InterfaceNotFoundInEntrypoint,
+                                   exception.IncompatibleInterface,
+                                   exception.NoValidDefaultForInterface,
+                                   exception.DriverNotFound)
     def create_node(self, context, node_obj):
         """Create a node in database.
 
@@ -101,7 +105,12 @@ class ConductorManager(base_manager.BaseConductorManager):
         :returns: created node object.
         :raises: InterfaceNotFoundInEntrypoint if validation fails for any
                  dynamic interfaces (e.g. network_interface).
+        :raises: IncompatibleInterface if one or more of the requested
+                 interfaces are not compatible with the hardware type.
+        :raises: NoValidDefaultForInterface if no default can be calculated
+                 for some interfaces, and explicit values must be provided.
         :raises: InvalidParameterValue if some fields fail validation.
+        :raises: DriverNotFound if the driver or hardware type is not found.
         """
         LOG.debug("RPC create_node called for node %s.", node_obj.uuid)
         driver_factory.check_and_update_node_interfaces(node_obj)
@@ -112,7 +121,10 @@ class ConductorManager(base_manager.BaseConductorManager):
     @messaging.expected_exceptions(exception.InvalidParameterValue,
                                    exception.NodeLocked,
                                    exception.InvalidState,
-                                   exception.InterfaceNotFoundInEntrypoint)
+                                   exception.InterfaceNotFoundInEntrypoint,
+                                   exception.IncompatibleInterface,
+                                   exception.NoValidDefaultForInterface,
+                                   exception.DriverNotFound)
     def update_node(self, context, node_obj):
         """Update a node with the supplied data.
 
@@ -134,17 +146,24 @@ class ConductorManager(base_manager.BaseConductorManager):
         if 'maintenance' in delta and not node_obj.maintenance:
             node_obj.maintenance_reason = None
 
-        if 'network_interface' in delta:
-            allowed_update_states = [states.ENROLL, states.INSPECTING,
-                                     states.MANAGEABLE]
+        # TODO(dtantsur): reconsider allowing changing some (but not all)
+        # interfaces for active nodes in the future.
+        allowed_update_states = [states.ENROLL, states.INSPECTING,
+                                 states.MANAGEABLE]
+        for iface in drivers_base.ALL_INTERFACES:
+            interface_field = '%s_interface' % iface
+            if interface_field not in delta:
+                continue
+
             if not (node_obj.provision_state in allowed_update_states or
                     node_obj.maintenance):
-                action = _("Node %(node)s can not have network_interface "
+                action = _("Node %(node)s can not have %(iface)s "
                            "updated unless it is in one of allowed "
                            "(%(allowed)s) states or in maintenance mode.")
                 raise exception.InvalidState(
                     action % {'node': node_obj.uuid,
-                              'allowed': ', '.join(allowed_update_states)})
+                              'allowed': ', '.join(allowed_update_states),
+                              'iface': interface_field})
 
         driver_factory.check_and_update_node_interfaces(node_obj)
 
