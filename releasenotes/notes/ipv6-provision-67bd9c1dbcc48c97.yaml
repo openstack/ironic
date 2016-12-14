@@ -1,0 +1,4 @@
+---
+fixes:
+  - Can now deploy to a IPv6 iscsi portal if
+    instructed to do so.
