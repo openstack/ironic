@@ -400,8 +400,8 @@ class TestObject(_LocalTest, _TestObject):
     pass
 
 
-# The hashes are help developers to check if the change of objects need a
-# version bump. It is md5 hash of object fields and remotable methods.
+# The hashes are to help developers to check if a change in an object needs a
+# version bump. It is an MD5 hash of the object fields and remotable methods.
 # The fingerprint values should only be changed if there is a version bump.
 expected_object_fingerprints = {
     'Node': '1.20-b6a13eb50f9d64fa6c9d614c61dbec31',
