@@ -16,11 +16,11 @@
 
 from tempest.common import waiters
 from tempest import config
-from tempest.lib.common.utils import test_utils
-from tempest.lib import exceptions as lib_exc
 from tempest.scenario import manager  # noqa
 
 from ironic_tempest_plugin import clients
+from ironic_tempest_plugin.common import utils
+from ironic_tempest_plugin.common import waiters as ironic_waiters
 
 CONF = config.CONF
 
@@ -73,58 +73,23 @@ class BaremetalScenarioTest(manager.ScenarioTest):
         # allow any issues obtaining the node list to raise early
         cls.baremetal_client.list_nodes()
 
-    def _node_state_timeout(self, node_id, state_attr,
-                            target_states, timeout=10, interval=1):
-        if not isinstance(target_states, list):
-            target_states = [target_states]
-
-        def check_state():
-            node = self.get_node(node_id=node_id)
-            if node.get(state_attr) in target_states:
-                return True
-            return False
-
-        if not test_utils.call_until_true(check_state, timeout, interval):
-            msg = ("Timed out waiting for node %s to reach %s state(s) %s" %
-                   (node_id, state_attr, target_states))
-            raise lib_exc.TimeoutException(msg)
-
-    def wait_provisioning_state(self, node_id, state, timeout, interval=1):
-        self._node_state_timeout(
-            node_id=node_id, state_attr='provision_state',
-            target_states=state, timeout=timeout, interval=interval)
+    def wait_provisioning_state(self, node_id, state, timeout=10, interval=1):
+        ironic_waiters.wait_for_bm_node_status(
+            self.baremetal_client, node_id=node_id, attr='provision_state',
+            status=state, timeout=timeout, interval=interval)
 
     def wait_power_state(self, node_id, state):
-        self._node_state_timeout(
-            node_id=node_id, state_attr='power_state',
-            target_states=state, timeout=CONF.baremetal.power_timeout)
+        ironic_waiters.wait_for_bm_node_status(
+            self.baremetal_client, node_id=node_id, attr='power_state',
+            status=state, timeout=CONF.baremetal.power_timeout)
 
     def wait_node(self, instance_id):
         """Waits for a node to be associated with instance_id."""
-
-        def _get_node():
-            node = None
-            try:
-                node = self.get_node(instance_id=instance_id)
-            except lib_exc.NotFound:
-                pass
-            return node is not None
-
-        if (not test_utils.call_until_true(
-            _get_node, CONF.baremetal.association_timeout, 1)):
-            msg = ('Timed out waiting to get Ironic node by instance id %s'
-                   % instance_id)
-            raise lib_exc.TimeoutException(msg)
+        ironic_waiters.wait_node_instance_association(self.baremetal_client,
+                                                      instance_id)
 
     def get_node(self, node_id=None, instance_id=None):
-        if node_id:
-            _, body = self.baremetal_client.show_node(node_id)
-            return body
-        elif instance_id:
-            _, body = self.baremetal_client.show_node_by_instance_uuid(
-                instance_id)
-            if body['nodes']:
-                return body['nodes'][0]
+        return utils.get_node(self.baremetal_client, node_id, instance_id)
 
     def get_ports(self, node_uuid):
         ports = []
