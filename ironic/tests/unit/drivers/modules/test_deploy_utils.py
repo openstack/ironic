@@ -1588,19 +1588,19 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         self._test_tear_down_inband_cleaning(manage_boot=False)
 
     def test_build_agent_options_conf(self):
-        self.config(api_url='api-url', group='conductor')
+        self.config(api_url='https://api-url', group='conductor')
         options = utils.build_agent_options(self.node)
-        self.assertEqual('api-url', options['ipa-api-url'])
+        self.assertEqual('https://api-url', options['ipa-api-url'])
         self.assertEqual(0, options['coreos.configdrive'])
 
     @mock.patch.object(utils, '_get_ironic_session')
     def test_build_agent_options_keystone(self, session_mock):
         self.config(api_url=None, group='conductor')
         sess = mock.Mock()
-        sess.get_endpoint.return_value = 'api-url'
+        sess.get_endpoint.return_value = 'https://api-url'
         session_mock.return_value = sess
         options = utils.build_agent_options(self.node)
-        self.assertEqual('api-url', options['ipa-api-url'])
+        self.assertEqual('https://api-url', options['ipa-api-url'])
         self.assertEqual(0, options['coreos.configdrive'])
 
 

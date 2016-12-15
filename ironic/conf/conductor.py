@@ -29,9 +29,11 @@ opts = [
                default=10,
                help=_('Seconds between conductor heart beats.')),
     cfg.StrOpt('api_url',
+               regex='^http(s?):\/\/.+',
                help=_('URL of Ironic API service. If not set ironic can '
                       'get the current value from the keystone service '
-                      'catalog.')),
+                      'catalog. If set, the value must start with either '
+                      'http:// or https://.')),
     cfg.IntOpt('heartbeat_timeout',
                default=60,
                help=_('Maximum time (in seconds) since the last check-in '
