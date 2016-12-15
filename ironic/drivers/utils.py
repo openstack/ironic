@@ -12,12 +12,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import base64
 import os
 import tempfile
 
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_serialization import base64
 from oslo_utils import timeutils
 import six
 
@@ -292,7 +292,7 @@ def store_ramdisk_logs(node, logs):
 
     """
     logs_file_name = get_ramdisk_logs_file_name(node)
-    data = base64.b64decode(logs)
+    data = base64.decode_as_bytes(logs)
 
     if CONF.agent.deploy_logs_storage_backend == 'local':
         if not os.path.exists(CONF.agent.deploy_logs_local_path):
