@@ -3,7 +3,7 @@ Liberty Series Release Notes
 ============================
 
 .. release-notes::
-   :branch: liberty-eol
+   :branch: origin/stable/liberty
 
 .. _V4-2-1:
 
