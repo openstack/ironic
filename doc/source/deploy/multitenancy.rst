@@ -86,6 +86,20 @@ interface as stated above):
    Please refer to `Configure the Bare Metal service for cleaning`_ for more
    information about cleaning.
 
+   .. warning::
+      Please make sure ironic is exclusive to the provisioning and cleaning
+      network. Spawning instances by non-admin users in these networks and
+      getting access to ironic control plane is a security risk. For this
+      reason, the provisioning and cleaning network should be configured as
+      non-shared network in the admin tenant.
+
+   .. note::
+      Spawning a bare metal instance onto the provisioning network is
+      impossible, the deployment will fail. The node should be deployed onto a
+      different network than the provisioning network. When you boot a bare
+      metal instance from nova, you should choose a different network in
+      neutron for your instance.
+
    .. note::
       The "provisioning" and "cleaning" networks may be the same neutron
       provider network, or may be distinct networks. To ensure communication
