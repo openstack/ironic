@@ -468,7 +468,7 @@ class AgentDeployMixin(object):
                 return
             elif (node.provision_state == states.DEPLOYWAIT and
                   not self.deploy_has_started(task)):
-                msg = _('Node failed to get image for deploy.')
+                msg = _('Node failed to deploy.')
                 self.continue_deploy(task)
             elif (node.provision_state == states.DEPLOYWAIT and
                   self.deploy_is_done(task)):
