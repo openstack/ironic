@@ -113,6 +113,18 @@ def is_path_removed(patch, path):
             return True
 
 
+def is_path_updated(patch, path):
+    """Returns whether the patch includes operation on path (or its subpath).
+
+    :param patch: HTTP PATCH request body.
+    :param path: the path to check.
+    :returns: True if path or subpath being patched, False otherwise.
+    """
+    path = path.rstrip('/')
+    for p in patch:
+        return p['path'] == path or p['path'].startswith(path + '/')
+
+
 def allow_node_logical_names():
     # v1.5 added logical name aliases
     return pecan.request.version.minor >= versions.MINOR_5_NODE_NAME
@@ -276,6 +288,19 @@ def check_allowed_fields(fields):
         raise exception.NotAcceptable()
 
 
+def check_allowed_portgroup_fields(fields):
+    """Check if fetching a particular field of a portgroup is allowed.
+
+    This method checks if the required version is being requested for fields
+    that are only allowed to be fetched in a particular API version.
+    """
+    if fields is None:
+        return
+    if (('mode' in fields or 'properties' in fields) and
+            not allow_portgroup_mode_properties()):
+        raise exception.NotAcceptable()
+
+
 def check_allow_management_verbs(verb):
     min_version = MIN_VERB_VERSIONS.get(verb)
     if min_version is not None and pecan.request.version.minor < min_version:
@@ -425,6 +450,16 @@ def allow_remove_chassis_uuid():
     """
     return (pecan.request.version.minor >=
             versions.MINOR_25_UNSET_CHASSIS_UUID)
+
+
+def allow_portgroup_mode_properties():
+    """Check if mode and properties can be added to/queried from a portgroup.
+
+    Version 1.26 of the API added mode and properties fields to portgroup
+    object.
+    """
+    return (pecan.request.version.minor >=
+            versions.MINOR_26_PORTGROUP_MODE_PROPERTIES)
 
 
 def get_controller_reserved_names(cls):

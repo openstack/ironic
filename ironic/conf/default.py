@@ -253,6 +253,16 @@ path_opts = [
                help=_("Top-level directory for maintaining ironic's state.")),
 ]
 
+portgroup_opts = [
+    cfg.StrOpt(
+        'default_portgroup_mode', default='active-backup',
+        help=_(
+            'Default mode for portgroups. Allowed values can be found in the '
+            'linux kernel documentation on bonding: '
+            'https://www.kernel.org/doc/Documentation/networking/bonding.txt.')
+    ),
+]
+
 service_opts = [
     cfg.StrOpt('host',
                default=socket.getfqdn(),
@@ -287,5 +297,6 @@ def register_opts(conf):
     conf.register_opts(netconf_opts)
     conf.register_opts(notification_opts)
     conf.register_opts(path_opts)
+    conf.register_opts(portgroup_opts)
     conf.register_opts(service_opts)
     conf.register_opts(utils_opts)

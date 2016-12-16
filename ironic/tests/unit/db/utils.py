@@ -465,6 +465,8 @@ def get_test_portgroup(**kw):
         'internal_info': kw.get('internal_info', {"bar": "buzz"}),
         'standalone_ports_supported': kw.get('standalone_ports_supported',
                                              True),
+        'mode': kw.get('mode'),
+        'properties': kw.get('properties', {}),
     }
 
 

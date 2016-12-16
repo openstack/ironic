@@ -107,6 +107,25 @@ class TestApiUtils(base.TestCase):
         value = utils.is_path_removed(patch, path)
         self.assertFalse(value)
 
+    def test_is_path_updated_success(self):
+        patch = [{'path': '/name', 'op': 'remove'}]
+        path = '/name'
+        value = utils.is_path_updated(patch, path)
+        self.assertTrue(value)
+
+    def test_is_path_updated_subpath_success(self):
+        patch = [{'path': '/properties/switch_id', 'op': 'add', 'value': 'id'}]
+        path = '/properties'
+        value = utils.is_path_updated(patch, path)
+        self.assertTrue(value)
+
+    def test_is_path_updated_similar_subpath(self):
+        patch = [{'path': '/properties2/switch_id',
+                  'op': 'replace', 'value': 'spam'}]
+        path = '/properties'
+        value = utils.is_path_updated(patch, path)
+        self.assertFalse(value)
+
     def test_check_for_invalid_fields(self):
         requested = ['field_1', 'field_3']
         supported = ['field_1', 'field_2', 'field_3']
@@ -157,6 +176,28 @@ class TestApiUtils(base.TestCase):
             exception.NotAcceptable,
             utils.check_allowed_fields,
             ['resource_class'])
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allowed_portgroup_fields_mode_properties(self,
+                                                            mock_request):
+        mock_request.version.minor = 26
+        self.assertIsNone(
+            utils.check_allowed_portgroup_fields(['mode']))
+        self.assertIsNone(
+            utils.check_allowed_portgroup_fields(['properties']))
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allowed_portgroup_fields_mode_properties_fail(self,
+                                                                 mock_request):
+        mock_request.version.minor = 25
+        self.assertRaises(
+            exception.NotAcceptable,
+            utils.check_allowed_portgroup_fields,
+            ['mode'])
+        self.assertRaises(
+            exception.NotAcceptable,
+            utils.check_allowed_portgroup_fields,
+            ['properties'])
 
     @mock.patch.object(pecan, 'request', spec_set=['version'])
     def test_check_allow_specify_driver(self, mock_request):
@@ -312,6 +353,13 @@ class TestApiUtils(base.TestCase):
         self.assertTrue(utils.allow_remove_chassis_uuid())
         mock_request.version.minor = 24
         self.assertFalse(utils.allow_remove_chassis_uuid())
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_allow_portgroup_mode_properties(self, mock_request):
+        mock_request.version.minor = 26
+        self.assertTrue(utils.allow_portgroup_mode_properties())
+        mock_request.version.minor = 25
+        self.assertFalse(utils.allow_portgroup_mode_properties())
 
 
 class TestNodeIdent(base.TestCase):

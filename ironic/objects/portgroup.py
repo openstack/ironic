@@ -30,7 +30,8 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.0: Initial version
     # Version 1.1: Add internal_info field
     # Version 1.2: Add standalone_ports_supported field
-    VERSION = '1.2'
+    # Version 1.3: Add mode and properties fields
+    VERSION = '1.3'
 
     dbapi = dbapi.get_instance()
 
@@ -43,6 +44,8 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         'extra': object_fields.FlexibleDictField(nullable=True),
         'internal_info': object_fields.FlexibleDictField(nullable=True),
         'standalone_ports_supported': object_fields.BooleanField(),
+        'mode': object_fields.StringField(nullable=True),
+        'properties': object_fields.FlexibleDictField(nullable=True),
     }
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable

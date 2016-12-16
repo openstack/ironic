@@ -92,6 +92,17 @@ class TestListPortgroups(test_api_base.BaseApiTest):
         # We always append "links"
         self.assertItemsEqual(['address', 'extra', 'links'], data)
 
+    def test_get_one_mode_field_lower_api_version(self):
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=self.node.id)
+        headers = {api_base.Version.string: '1.25'}
+        fields = 'address,mode'
+        response = self.get_json(
+            '/portgroups/%s?fields=%s' % (portgroup.uuid, fields),
+            headers=headers, expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+
     def test_get_collection_custom_fields(self):
         fields = 'uuid,extra'
         for i in range(3):
@@ -110,6 +121,16 @@ class TestListPortgroups(test_api_base.BaseApiTest):
         for portgroup in data['portgroups']:
             # We always append "links"
             self.assertItemsEqual(['uuid', 'extra', 'links'], portgroup)
+
+    def test_get_collection_properties_field_lower_api_version(self):
+        obj_utils.create_test_portgroup(self.context, node_id=self.node.id)
+        headers = {api_base.Version.string: '1.25'}
+        fields = 'address,properties'
+        response = self.get_json(
+            '/portgroups/?fields=%s' % fields,
+            headers=headers, expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+        self.assertEqual('application/json', response.content_type)
 
     def test_get_custom_fields_invalid_fields(self):
         portgroup = obj_utils.create_test_portgroup(self.context,
@@ -358,7 +379,7 @@ class TestListPortgroups(test_api_base.BaseApiTest):
         self.assertEqual(sorted(portgroups), uuids)
 
     def test_sort_key_invalid(self):
-        invalid_keys_list = ['foo', 'extra']
+        invalid_keys_list = ['foo', 'extra', 'internal_info', 'properties']
         for invalid_key in invalid_keys_list:
             response = self.get_json('/portgroups?sort_key=%s' % invalid_key,
                                      expect_errors=True, headers=self.headers)
@@ -669,16 +690,17 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertTrue(response.json['error_message'])
         self.assertFalse(mock_upd.called)
 
-    def test_remove_mandatory_field(self, mock_upd):
+    def test_remove_address(self, mock_upd):
+        mock_upd.return_value = self.portgroup
+        mock_upd.return_value.address = None
         response = self.patch_json('/portgroups/%s' % self.portgroup.uuid,
                                    [{'path': '/address',
                                      'op': 'remove'}],
-                                   expect_errors=True,
                                    headers=self.headers)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
-        self.assertTrue(response.json['error_message'])
-        self.assertFalse(mock_upd.called)
+        self.assertEqual(http_client.OK, response.status_code)
+        self.assertIsNone(response.json['address'])
+        self.assertTrue(mock_upd.called)
 
     def test_add_root(self, mock_upd):
         address = 'aa:bb:cc:dd:ee:ff'
@@ -801,6 +823,39 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertTrue(response.json['error_message'])
         self.assertFalse(mock_upd.called)
 
+    def test_update_portgroup_mode_properties(self, mock_upd):
+        mock_upd.return_value = self.portgroup
+        mock_upd.return_value.mode = '802.3ad'
+        mock_upd.return_value.properties = {'bond_param': '100'}
+        response = self.patch_json('/portgroups/%s' % self.portgroup.uuid,
+                                   [{'path': '/mode',
+                                     'value': '802.3ad',
+                                     'op': 'add'},
+                                    {'path': '/properties/bond_param',
+                                     'value': '100',
+                                     'op': 'add'}],
+                                   headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+        self.assertEqual('802.3ad', response.json['mode'])
+        self.assertEqual({'bond_param': '100'}, response.json['properties'])
+
+    def _test_update_portgroup_mode_properties_bad_api_version(self, patch,
+                                                               mock_upd):
+        response = self.patch_json('/portgroups/%s' % self.portgroup.uuid,
+                                   patch, expect_errors=True,
+                                   headers={api_base.Version.string: '1.25'})
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+        self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_upd.called)
+
+    def test_update_portgroup_mode_properties_bad_api_version(self, mock_upd):
+        self._test_update_portgroup_mode_properties_bad_api_version(
+            [{'path': '/mode', 'op': 'remove'}], mock_upd)
+        self._test_update_portgroup_mode_properties_bad_api_version(
+            [{'path': '/properties/abc', 'op': 'add', 'value': 123}], mock_upd)
+
 
 class TestPost(test_api_base.BaseApiTest):
     headers = {api_base.Version.string: str(api_v1.MAX_VER)}
@@ -890,14 +945,13 @@ class TestPost(test_api_base.BaseApiTest):
                                headers=self.headers)
         self.assertEqual(pdict['extra'], result['extra'])
 
-    def test_create_portgroup_no_mandatory_field_address(self):
+    def test_create_portgroup_no_address(self):
         pdict = apiutils.post_get_test_portgroup()
         del pdict['address']
-        response = self.post_json('/portgroups', pdict, expect_errors=True,
-                                  headers=self.headers)
-        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
-        self.assertEqual('application/json', response.content_type)
-        self.assertTrue(response.json['error_message'])
+        self.post_json('/portgroups', pdict, headers=self.headers)
+        result = self.get_json('/portgroups/%s' % pdict['uuid'],
+                               headers=self.headers)
+        self.assertIsNone(result['address'])
 
     def test_create_portgroup_no_mandatory_field_node_uuid(self):
         pdict = apiutils.post_get_test_portgroup()
@@ -998,6 +1052,32 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
+
+    def test_create_portgroup_mode_old_api_version(self):
+        for kwarg in [{'mode': '802.3ad'}, {'properties': {'bond_prop': 123}}]:
+            pdict = apiutils.post_get_test_portgroup(**kwarg)
+            response = self.post_json(
+                '/portgroups', pdict, expect_errors=True,
+                headers={api_base.Version.string: '1.25'})
+            self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+            self.assertEqual('application/json', response.content_type)
+            self.assertTrue(response.json['error_message'])
+
+    def test_create_portgroup_mode_properties(self):
+        mode = '802.3ad'
+        props = {'bond_prop': 123}
+        pdict = apiutils.post_get_test_portgroup(mode=mode, properties=props)
+        self.post_json('/portgroups', pdict,
+                       headers={api_base.Version.string: '1.26'})
+        portgroup = self.dbapi.get_portgroup_by_uuid(pdict['uuid'])
+        self.assertEqual((mode, props), (portgroup.mode, portgroup.properties))
+
+    def test_create_portgroup_default_mode(self):
+        pdict = apiutils.post_get_test_portgroup()
+        self.post_json('/portgroups', pdict,
+                       headers={api_base.Version.string: '1.26'})
+        portgroup = self.dbapi.get_portgroup_by_uuid(pdict['uuid'])
+        self.assertEqual('active-backup', portgroup.mode)
 
 
 @mock.patch.object(rpcapi.ConductorAPI, 'destroy_portgroup')
