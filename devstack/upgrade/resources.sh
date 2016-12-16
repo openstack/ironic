@@ -112,12 +112,6 @@ function destroy {
     neutron router-interface-delete neutron_grenade neutron_grenade || /bin/true
     neutron router-delete neutron_grenade || /bin/true
     neutron net-delete neutron_grenade || /bin/true
-
-    # NOTE(vsaienko) fixed_network_name tempest config option setting logic was changed in
-    # https://review.openstack.org/374311/ and until it is not reverted or
-    # https://review.openstack.org/380006 is merged we need to set fixed_network_name explicitly.
-    TEMPEST_CONFIG="$TARGET_RELEASE_DIR/tempest/etc/tempest.conf"
-    iniset $TEMPEST_CONFIG compute fixed_network_name $PRIVATE_NETWORK_NAME
 }
 
 # Dispatcher
