@@ -164,7 +164,9 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch('ironic.common.utils.render_template', autospec=True)
     def _test_build_pxe_config_options_pxe(self, render_mock,
-                                           whle_dsk_img=False):
+                                           whle_dsk_img=False,
+                                           debug=False):
+        self.config(debug=debug)
         self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
         self.config(api_url='http://192.168.122.184:6385', group='conductor')
@@ -209,10 +211,14 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                          'ramdisk'))
             })
 
+        expected_pxe_params = 'test_param'
+        if debug:
+            expected_pxe_params += ' ipa-debug=1'
+
         expected_options = {
             'ari_path': ramdisk,
             'deployment_ari_path': deploy_ramdisk,
-            'pxe_append_params': 'test_param',
+            'pxe_append_params': expected_pxe_params,
             'aki_path': kernel,
             'deployment_aki_path': deploy_kernel,
             'tftp_server': tftp_server,
@@ -226,6 +232,9 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
     def test__build_pxe_config_options_pxe(self):
         self._test_build_pxe_config_options_pxe(whle_dsk_img=True)
+
+    def test__build_pxe_config_options_pxe_ipa_debug(self):
+        self._test_build_pxe_config_options_pxe(debug=True)
 
     def test__build_pxe_config_options_pxe_local_boot(self):
         del self.node.driver_internal_info['is_whole_disk_image']
@@ -243,8 +252,9 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
     def test__build_pxe_config_options_pxe_no_kernel_no_ramdisk(self):
         del self.node.driver_internal_info['is_whole_disk_image']
         self.node.save()
+        pxe_params = 'my-pxe-append-params ipa-debug=0'
         self.config(group='pxe', tftp_server='my-tftp-server')
-        self.config(group='pxe', pxe_append_params='my-pxe-append-params')
+        self.config(group='pxe', pxe_append_params=pxe_params)
         self.config(group='pxe', tftp_root='/tftp-path/')
         image_info = {
             'deploy_kernel': ('deploy_kernel',
@@ -261,7 +271,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         expected_options = {
             'deployment_aki_path': 'path-to-deploy_kernel',
             'deployment_ari_path': 'path-to-deploy_ramdisk',
-            'pxe_append_params': 'my-pxe-append-params',
+            'pxe_append_params': pxe_params,
             'tftp_server': 'my-tftp-server',
             'aki_path': 'no_kernel',
             'ari_path': 'no_ramdisk',
@@ -274,7 +284,9 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
     def _test_build_pxe_config_options_ipxe(self, render_mock, glance_mock,
                                             whle_dsk_img=False,
                                             ipxe_timeout=0,
-                                            ipxe_use_swift=False):
+                                            ipxe_use_swift=False,
+                                            debug=False):
+        self.config(debug=debug)
         self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
         self.config(api_url='http://192.168.122.184:6385', group='conductor')
@@ -344,10 +356,14 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
         ipxe_timeout_in_ms = ipxe_timeout * 1000
 
+        expected_pxe_params = 'test_param'
+        if debug:
+            expected_pxe_params += ' ipa-debug=1'
+
         expected_options = {
             'ari_path': ramdisk,
             'deployment_ari_path': deploy_ramdisk,
-            'pxe_append_params': 'test_param',
+            'pxe_append_params': expected_pxe_params,
             'aki_path': kernel,
             'deployment_aki_path': deploy_kernel,
             'tftp_server': tftp_server,
@@ -361,6 +377,9 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
     def test__build_pxe_config_options_ipxe(self):
         self._test_build_pxe_config_options_ipxe(whle_dsk_img=True)
+
+    def test__build_pxe_config_options_ipxe_ipa_debug(self):
+        self._test_build_pxe_config_options_ipxe(debug=True)
 
     def test__build_pxe_config_options_ipxe_local_boot(self):
         del self.node.driver_internal_info['is_whole_disk_image']

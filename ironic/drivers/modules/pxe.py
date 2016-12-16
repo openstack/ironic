@@ -200,8 +200,14 @@ def _build_pxe_config_options(task, pxe_info):
     pxe_options.setdefault('aki_path', 'no_kernel')
     pxe_options.setdefault('ari_path', 'no_ramdisk')
 
+    # Enable debug in IPA according to CONF.debug if it was not
+    # specified yet
+    pxe_append_params = CONF.pxe.pxe_append_params
+    if CONF.debug and 'ipa-debug' not in pxe_append_params:
+        pxe_append_params += ' ipa-debug=1'
+
     pxe_options.update({
-        'pxe_append_params': CONF.pxe.pxe_append_params,
+        'pxe_append_params': pxe_append_params,
         'tftp_server': CONF.pxe.tftp_server,
         'ipxe_timeout': CONF.pxe.ipxe_timeout * 1000
     })
