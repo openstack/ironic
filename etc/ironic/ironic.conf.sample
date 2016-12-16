@@ -778,34 +778,6 @@
 #deploy_logs_swift_days_to_expire = 30
 
 
-[amt]
-
-#
-# From ironic
-#
-
-# Protocol used for AMT endpoint (string value)
-# Allowed values: http, https
-#protocol = http
-
-# Time interval (in seconds) for successive awake call to AMT
-# interface, this depends on the IdleTimeout setting on AMT
-# interface. AMT Interface will go to sleep after 60 seconds
-# of inactivity by default. IdleTimeout=0 means AMT will not
-# go to sleep at all. Setting awake_interval=0 will disable
-# awake call. (integer value)
-# Minimum value: 0
-#awake_interval = 60
-
-# Maximum number of times to attempt an AMT operation, before
-# failing (integer value)
-#max_attempts = 3
-
-# Amount of time (in seconds) to wait, before retrying an AMT
-# operation (integer value)
-#action_wait = 10
-
-
 [api]
 
 #
@@ -1569,25 +1541,6 @@
 # Username (string value)
 # Deprecated group/name - [glance]/user-name
 #username = <None>
-
-
-[iboot]
-
-#
-# From ironic
-#
-
-# Maximum retries for iBoot operations (integer value)
-#max_retry = 3
-
-# Time (in seconds) between retry attempts for iBoot
-# operations (integer value)
-#retry_interval = 1
-
-# Time (in seconds) to sleep between when rebooting (powering
-# off and on again). (integer value)
-# Minimum value: 0
-#reboot_delay = 5
 
 
 [ilo]

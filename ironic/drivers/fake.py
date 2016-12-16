@@ -23,8 +23,6 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
 from ironic.drivers.modules import agent
-from ironic.drivers.modules.amt import management as amt_mgmt
-from ironic.drivers.modules.amt import power as amt_power
 from ironic.drivers.modules.cimc import management as cimc_mgmt
 from ironic.drivers.modules.cimc import power as cimc_power
 from ironic.drivers.modules.drac import deploy as drac_deploy
@@ -34,7 +32,6 @@ from ironic.drivers.modules.drac import power as drac_power
 from ironic.drivers.modules.drac import raid as drac_raid
 from ironic.drivers.modules.drac import vendor_passthru as drac_vendor
 from ironic.drivers.modules import fake
-from ironic.drivers.modules import iboot
 from ironic.drivers.modules.ilo import inspect as ilo_inspect
 from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules.ilo import power as ilo_power
@@ -57,7 +54,6 @@ from ironic.drivers.modules import ssh
 from ironic.drivers.modules.ucs import management as ucs_mgmt
 from ironic.drivers.modules.ucs import power as ucs_power
 from ironic.drivers.modules import virtualbox
-from ironic.drivers.modules import wol
 from ironic.drivers import utils
 
 
@@ -171,20 +167,6 @@ class FakeAgentDriver(base.BaseDriver):
         self.raid = agent.AgentRAID()
 
 
-class FakeIBootDriver(base.BaseDriver):
-    """Fake iBoot driver."""
-
-    supported = False
-
-    def __init__(self):
-        if not importutils.try_import('iboot'):
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to import iboot library"))
-        self.power = iboot.IBootPower()
-        self.deploy = fake.FakeDeploy()
-
-
 class FakeIloDriver(base.BaseDriver):
     """Fake iLO driver, used in testing."""
 
@@ -272,21 +254,6 @@ class FakeIPMIToolInspectorDriver(base.BaseDriver):
         self.inspect = inspector.Inspector()
 
 
-class FakeAMTDriver(base.BaseDriver):
-    """Fake AMT driver."""
-
-    supported = False
-
-    def __init__(self):
-        if not importutils.try_import('pywsman'):
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to import pywsman library"))
-        self.power = amt_power.AMTPower()
-        self.deploy = fake.FakeDeploy()
-        self.management = amt_mgmt.AMTManagement()
-
-
 class FakeMSFTOCSDriver(base.BaseDriver):
     """Fake MSFT OCS driver."""
 
@@ -322,16 +289,6 @@ class FakeCIMCDriver(base.BaseDriver):
         self.power = cimc_power.Power()
         self.deploy = fake.FakeDeploy()
         self.management = cimc_mgmt.CIMCManagement()
-
-
-class FakeWakeOnLanDriver(base.BaseDriver):
-    """Fake Wake-On-Lan driver."""
-
-    supported = False
-
-    def __init__(self):
-        self.power = wol.WakeOnLanPower()
-        self.deploy = fake.FakeDeploy()
 
 
 class FakeOneViewDriver(base.BaseDriver):

@@ -21,12 +21,8 @@ import testtools
 
 from ironic.common import exception
 from ironic.drivers.modules import agent
-from ironic.drivers.modules.amt import management as amt_management
-from ironic.drivers.modules.amt import power as amt_power
-from ironic.drivers.modules.amt import vendor as amt_vendor
 from ironic.drivers.modules.cimc import management as cimc_management
 from ironic.drivers.modules.cimc import power as cimc_power
-from ironic.drivers.modules import iboot
 from ironic.drivers.modules.ilo import console as ilo_console
 from ironic.drivers.modules.ilo import inspect as ilo_inspect
 from ironic.drivers.modules.ilo import management as ilo_management
@@ -46,7 +42,6 @@ from ironic.drivers.modules import ssh
 from ironic.drivers.modules.ucs import management as ucs_management
 from ironic.drivers.modules.ucs import power as ucs_power
 from ironic.drivers.modules import virtualbox
-from ironic.drivers.modules import wol
 from ironic.drivers import pxe
 
 
@@ -133,26 +128,6 @@ class PXEDriversTestCase(testtools.TestCase):
 
         self.assertRaises(exception.DriverLoadError,
                           pxe.PXEAndSeaMicroDriver)
-
-    @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test_pxe_iboot_driver(self, try_import_mock):
-        try_import_mock.return_value = True
-
-        driver = pxe.PXEAndIBootDriver()
-
-        self.assertIsInstance(driver.power, iboot.IBootPower)
-        self.assertIsInstance(driver.boot, pxe_module.PXEBoot)
-        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
-        self.assertIsInstance(driver.vendor, iscsi_deploy.VendorPassthru)
-
-    @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test_pxe_iboot_driver_import_error(self, try_import_mock):
-        try_import_mock.return_value = False
-
-        self.assertRaises(exception.DriverLoadError,
-                          pxe.PXEAndIBootDriver)
 
     @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
                        autospec=True)
@@ -246,28 +221,6 @@ class PXEDriversTestCase(testtools.TestCase):
 
     @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
                        autospec=True)
-    def test_pxe_amt_driver(self, try_import_mock):
-        try_import_mock.return_value = True
-
-        driver = pxe.PXEAndAMTDriver()
-
-        self.assertIsInstance(driver.power, amt_power.AMTPower)
-        self.assertIsInstance(driver.boot, pxe_module.PXEBoot)
-        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
-        self.assertIsInstance(driver.management,
-                              amt_management.AMTManagement)
-        self.assertIsInstance(driver.vendor, amt_vendor.AMTPXEVendorPassthru)
-
-    @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test_pxe_amt_driver_import_error(self, try_import_mock):
-        try_import_mock.return_value = False
-
-        self.assertRaises(exception.DriverLoadError,
-                          pxe.PXEAndAMTDriver)
-
-    @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
-                       autospec=True)
     def test_pxe_msftocs_driver(self, try_import_mock):
         try_import_mock.return_value = True
 
@@ -320,15 +273,3 @@ class PXEDriversTestCase(testtools.TestCase):
 
         self.assertRaises(exception.DriverLoadError,
                           pxe.PXEAndCIMCDriver)
-
-    @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test_pxe_wakeonlan_driver(self, try_import_mock):
-        try_import_mock.return_value = True
-
-        driver = pxe.PXEAndWakeOnLanDriver()
-
-        self.assertIsInstance(driver.power, wol.WakeOnLanPower)
-        self.assertIsInstance(driver.boot, pxe_module.PXEBoot)
-        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
-        self.assertIsInstance(driver.vendor, iscsi_deploy.VendorPassthru)

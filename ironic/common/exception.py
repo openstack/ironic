@@ -446,15 +446,6 @@ class IPMIFailure(IronicException):
     _msg_fmt = _("IPMI call failed: %(cmd)s.")
 
 
-class AMTConnectFailure(IronicException):
-    _msg_fmt = _("Failed to connect to AMT service. This could be caused "
-                 "by the wrong amt_address or bad network environment.")
-
-
-class AMTFailure(IronicException):
-    _msg_fmt = _("AMT call failed: %(cmd)s.")
-
-
 class MSFTOCSClientApiException(IronicException):
     _msg_fmt = _("MSFT OCS call failed.")
 
@@ -674,10 +665,6 @@ class UcsOperationError(IronicException):
 class UcsConnectionError(IronicException):
     _msg_fmt = _("Cisco UCS client: connection failed for node "
                  "%(node)s. Reason: %(error)s")
-
-
-class WolOperationError(IronicException):
-    pass
 
 
 class ImageUploadFailed(IronicException):

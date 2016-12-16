@@ -16,7 +16,6 @@
 from oslo_config import cfg
 
 from ironic.conf import agent
-from ironic.conf import amt
 from ironic.conf import api
 from ironic.conf import audit
 from ironic.conf import cisco
@@ -28,7 +27,6 @@ from ironic.conf import deploy
 from ironic.conf import dhcp
 from ironic.conf import drac
 from ironic.conf import glance
-from ironic.conf import iboot
 from ironic.conf import ilo
 from ironic.conf import inspector
 from ironic.conf import ipmi
@@ -50,7 +48,6 @@ from ironic.conf import virtualbox
 CONF = cfg.CONF
 
 agent.register_opts(CONF)
-amt.register_opts(CONF)
 api.register_opts(CONF)
 audit.register_opts(CONF)
 cisco.register_opts(CONF)
@@ -62,7 +59,6 @@ deploy.register_opts(CONF)
 drac.register_opts(CONF)
 dhcp.register_opts(CONF)
 glance.register_opts(CONF)
-iboot.register_opts(CONF)
 ilo.register_opts(CONF)
 inspector.register_opts(CONF)
 ipmi.register_opts(CONF)
