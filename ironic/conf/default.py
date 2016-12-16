@@ -108,9 +108,8 @@ driver_opts = [
                        'A complete list of hardware types present on your '
                        'system may be found by enumerating the '
                        '"ironic.hardware.types" entrypoint.')),
-    # TODO(dtantsur): populate with production-ready values
     cfg.ListOpt('enabled_boot_interfaces',
-                default=[],
+                default=['pxe'],
                 help=_ENABLED_IFACE_HELP_WITH_WARNING.format('boot')),
     cfg.StrOpt('default_boot_interface',
                help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('boot')),
@@ -120,7 +119,7 @@ driver_opts = [
     cfg.StrOpt('default_console_interface',
                help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('console')),
     cfg.ListOpt('enabled_deploy_interfaces',
-                default=[],
+                default=['iscsi', 'direct'],
                 help=_ENABLED_IFACE_HELP_WITH_WARNING.format('deploy')),
     cfg.StrOpt('default_deploy_interface',
                help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('deploy')),
@@ -145,7 +144,7 @@ driver_opts = [
     cfg.StrOpt('default_power_interface',
                help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('power')),
     cfg.ListOpt('enabled_raid_interfaces',
-                default=['no-raid'],
+                default=['agent', 'no-raid'],
                 help=_ENABLED_IFACE_HELP_WITH_WARNING.format('raid')),
     cfg.StrOpt('default_raid_interface',
                help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('raid')),
