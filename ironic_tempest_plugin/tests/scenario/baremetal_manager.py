@@ -56,6 +56,12 @@ class BaremetalScenarioTest(manager.ScenarioTest):
     credentials = ['primary', 'admin']
 
     @classmethod
+    def skip_checks(cls):
+        super(BaremetalScenarioTest, cls).skip_checks()
+        if not CONF.service_available.ironic:
+            raise cls.skipException('Ironic is not enabled.')
+
+    @classmethod
     def setup_clients(cls):
         super(BaremetalScenarioTest, cls).setup_clients()
 

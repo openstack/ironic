@@ -61,6 +61,8 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
     @classmethod
     def skip_checks(cls):
         super(BaseBaremetalTest, cls).skip_checks()
+        if not CONF.service_available.ironic:
+            raise cls.skipException('Ironic is not enabled.')
         if CONF.baremetal.driver not in SUPPORTED_DRIVERS:
             skip_msg = ('%s skipped as Ironic driver %s is not supported for '
                         'testing.' %

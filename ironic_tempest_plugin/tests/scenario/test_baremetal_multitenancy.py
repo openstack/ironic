@@ -80,7 +80,7 @@ class BaremetalMultitenancy(baremetal_manager.BaremetalScenarioTest,
             self.assertNotIn(success_substring, output)
 
     @test.idempotent_id('26e2f145-2a8e-4dc7-8457-7f2eb2c6749d')
-    @test.services('baremetal', 'compute', 'image', 'network')
+    @test.services('compute', 'image', 'network')
     def test_baremetal_multitenancy(self):
 
         tenant_cidr = '10.0.100.0/24'
