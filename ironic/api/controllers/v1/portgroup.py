@@ -336,7 +336,7 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:portgroup:get', cdict, cdict)
 
         if fields is None:
@@ -369,7 +369,7 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:portgroup:get', cdict, cdict)
 
         # NOTE: /detail should only work against collections
@@ -394,7 +394,7 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:portgroup:get', cdict, cdict)
 
         if self.parent_node_ident:
@@ -413,7 +413,7 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:portgroup:create', cdict, cdict)
 
         if self.parent_node_ident:
@@ -446,7 +446,7 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:portgroup:update', cdict, cdict)
 
         if self.parent_node_ident:
@@ -509,7 +509,7 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:portgroup:delete', cdict, cdict)
 
         if self.parent_node_ident:

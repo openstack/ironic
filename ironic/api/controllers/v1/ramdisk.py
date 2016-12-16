@@ -98,7 +98,7 @@ class LookupController(rest.RestController):
         if not api_utils.allow_ramdisk_endpoints():
             raise exception.NotFound()
 
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:driver:ipa_lookup', cdict, cdict)
 
         # Validate the list of MAC addresses
@@ -160,7 +160,7 @@ class HeartbeatController(rest.RestController):
         if not api_utils.allow_ramdisk_endpoints():
             raise exception.NotFound()
 
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:ipa_heartbeat', cdict, cdict)
 
         rpc_node = api_utils.get_rpc_node(node_ident)

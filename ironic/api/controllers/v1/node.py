@@ -196,7 +196,7 @@ class BootDeviceController(rest.RestController):
                            Default: False.
 
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:set_boot_device', cdict, cdict)
 
         rpc_node = api_utils.get_rpc_node(node_ident)
@@ -221,7 +221,7 @@ class BootDeviceController(rest.RestController):
                 future boots or not, None if it is unknown.
 
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:get_boot_device', cdict, cdict)
 
         return self._get_boot_device(node_ident)
@@ -236,7 +236,7 @@ class BootDeviceController(rest.RestController):
                   devices.
 
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:get_boot_device', cdict, cdict)
 
         boot_devices = self._get_boot_device(node_ident, supported=True)
@@ -274,7 +274,7 @@ class NodeConsoleController(rest.RestController):
 
         :param node_ident: UUID or logical name of a node.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:get_console', cdict, cdict)
 
         rpc_node = api_utils.get_rpc_node(node_ident)
@@ -299,7 +299,7 @@ class NodeConsoleController(rest.RestController):
         :param enabled: Boolean value; whether to enable or disable the
                 console.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:set_console_state', cdict, cdict)
 
         rpc_node = api_utils.get_rpc_node(node_ident)
@@ -390,7 +390,7 @@ class NodeStatesController(rest.RestController):
 
         :param node_ident: the UUID or logical_name of a node.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:get_states', cdict, cdict)
 
         # NOTE(lucasagomes): All these state values come from the
@@ -414,7 +414,7 @@ class NodeStatesController(rest.RestController):
         :raises: NotAcceptable, if requested version of the API is less than
             1.12.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:set_raid_state', cdict, cdict)
 
         if not api_utils.allow_raid_config():
@@ -445,7 +445,7 @@ class NodeStatesController(rest.RestController):
                  state is not valid or if the node is in CLEANING state.
 
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:set_power_state', cdict, cdict)
 
         # TODO(lucasagomes): Test if it's able to transition to the
@@ -525,7 +525,7 @@ class NodeStatesController(rest.RestController):
         :raises: NotAcceptable (HTTP 406) if the API version specified does
                  not allow the requested state transition.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:set_provision_state', cdict, cdict)
 
         api_utils.check_allow_management_verbs(target)
@@ -826,7 +826,7 @@ class Node(base.APIBase):
         if fields is not None:
             api_utils.check_for_invalid_fields(fields, node.as_dict())
 
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         # NOTE(deva): the 'show_password' policy setting name exists for legacy
         #             purposes and can not be changed. Changing it will cause
         #             upgrade problems for any operators who have customized
@@ -962,7 +962,7 @@ class NodeVendorPassthruController(rest.RestController):
                   entries.
         :raises: NodeNotFound if the node is not found.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:vendor_passthru', cdict, cdict)
 
         # Raise an exception if node is not found
@@ -986,7 +986,7 @@ class NodeVendorPassthruController(rest.RestController):
         :param method: name of the method in vendor driver.
         :param data: body of data to supply to the specified method.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         if method == 'heartbeat':
             policy.authorize('baremetal:node:ipa_heartbeat', cdict, cdict)
         else:
@@ -1024,7 +1024,7 @@ class NodeMaintenanceController(rest.RestController):
         :param reason: Optional, the reason why it's in maintenance.
 
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:set_maintenance', cdict, cdict)
 
         self._set_maintenance(node_ident, True, reason=reason)
@@ -1037,7 +1037,7 @@ class NodeMaintenanceController(rest.RestController):
         :param node_ident: the UUID or logical name of a node.
 
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:clear_maintenance', cdict, cdict)
 
         self._set_maintenance(node_ident, False)
@@ -1268,7 +1268,7 @@ class NodesController(rest.RestController):
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:get', cdict, cdict)
 
         api_utils.check_allow_specify_fields(fields)
@@ -1320,7 +1320,7 @@ class NodesController(rest.RestController):
         :param resource_class: Optional string value to get only nodes with
                                that resource_class.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:get', cdict, cdict)
 
         api_utils.check_for_invalid_state_and_allow_filter(provision_state)
@@ -1351,7 +1351,7 @@ class NodesController(rest.RestController):
         :param node: UUID or name of a node.
         :param node_uuid: UUID of a node.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:validate', cdict, cdict)
 
         if node is not None:
@@ -1376,7 +1376,7 @@ class NodesController(rest.RestController):
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:get', cdict, cdict)
 
         if self.from_chassis:
@@ -1395,7 +1395,7 @@ class NodesController(rest.RestController):
 
         :param node: a node within the request body.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:create', cdict, cdict)
 
         if self.from_chassis:
@@ -1448,7 +1448,7 @@ class NodesController(rest.RestController):
         :param node_ident: UUID or logical name of a node.
         :param patch: a json PATCH document to apply to this node.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:update', cdict, cdict)
 
         if self.from_chassis:
@@ -1521,7 +1521,7 @@ class NodesController(rest.RestController):
 
         :param node_ident: UUID or logical name of a node.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:node:delete', cdict, cdict)
 
         if self.from_chassis:
