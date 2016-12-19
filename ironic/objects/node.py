@@ -323,7 +323,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                         object, e.g.: Node(context)
         :raises: InvalidParameterValue if some property values are invalid.
         """
-        values = self.obj_get_changes()
+        values = self.do_version_changes_for_db()
         self._validate_property_values(values.get('properties'))
         db_node = self.dbapi.create_node(values)
         self._from_db_object(self._context, self, db_node)
@@ -365,12 +365,12 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                         object, e.g.: Node(context)
         :raises: InvalidParameterValue if some property values are invalid.
         """
-        updates = self.obj_get_changes()
+        updates = self.do_version_changes_for_db()
         self._validate_property_values(updates.get('properties'))
         if 'driver' in updates and 'driver_internal_info' not in updates:
             # Clean driver_internal_info when changes driver
             self.driver_internal_info = {}
-            updates = self.obj_get_changes()
+            updates = self.do_version_changes_for_db()
         db_node = self.dbapi.update_node(self.uuid, updates)
         self._from_db_object(self._context, self, db_node)
 

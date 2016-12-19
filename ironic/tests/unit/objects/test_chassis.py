@@ -58,6 +58,17 @@ class TestChassisObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
         self.assertRaises(exception.InvalidIdentity,
                           objects.Chassis.get, self.context, 'not-a-uuid')
 
+    def test_create(self):
+        chassis = objects.Chassis(self.context, **self.fake_chassis)
+        with mock.patch.object(self.dbapi, 'create_chassis',
+                               autospec=True) as mock_create_chassis:
+            mock_create_chassis.return_value = utils.get_test_chassis()
+
+            chassis.create()
+
+            args, _kwargs = mock_create_chassis.call_args
+            self.assertEqual(objects.Chassis.VERSION, args[0]['version'])
+
     def test_save(self):
         uuid = self.fake_chassis['uuid']
         extra = {"test": 123}
@@ -75,7 +86,8 @@ class TestChassisObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
 
                 mock_get_chassis.assert_called_once_with(uuid)
                 mock_update_chassis.assert_called_once_with(
-                    uuid, {'extra': {"test": 123}})
+                    uuid, {'version': objects.Chassis.VERSION,
+                           'extra': {"test": 123}})
                 self.assertEqual(self.context, c._context)
                 res_updated_at = (c.updated_at).replace(tzinfo=None)
                 self.assertEqual(test_time, res_updated_at)

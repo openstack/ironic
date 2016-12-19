@@ -227,7 +227,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         :raises: PortAlreadyExists if 'uuid' column is not unique
 
         """
-        values = self.obj_get_changes()
+        values = self.do_version_changes_for_db()
         db_port = self.dbapi.create_port(values)
         self._from_db_object(self._context, self, db_port)
 
@@ -270,7 +270,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         :raises: MACAlreadyExists if 'address' column is not unique
 
         """
-        updates = self.obj_get_changes()
+        updates = self.do_version_changes_for_db()
         updated_port = self.dbapi.update_port(self.uuid, updates)
         self._from_db_object(self._context, self, updated_port)
 

@@ -68,6 +68,17 @@ class TestPortObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
         self.assertRaises(exception.InvalidIdentity,
                           objects.Port.get, self.context, 'not-a-uuid')
 
+    def test_create(self):
+        port = objects.Port(self.context, **self.fake_port)
+        with mock.patch.object(self.dbapi, 'create_port',
+                               autospec=True) as mock_create_port:
+            mock_create_port.return_value = utils.get_test_port()
+
+            port.create()
+
+            args, _kwargs = mock_create_port.call_args
+            self.assertEqual(objects.Port.VERSION, args[0]['version'])
+
     def test_save(self):
         uuid = self.fake_port['uuid']
         address = "b2:54:00:cf:2d:40"
@@ -85,7 +96,8 @@ class TestPortObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
 
                 mock_get_port.assert_called_once_with(uuid)
                 mock_update_port.assert_called_once_with(
-                    uuid, {'address': "b2:54:00:cf:2d:40"})
+                    uuid, {'version': objects.Port.VERSION,
+                           'address': "b2:54:00:cf:2d:40"})
                 self.assertEqual(self.context, p._context)
                 res_updated_at = (p.updated_at).replace(tzinfo=None)
                 self.assertEqual(test_time, res_updated_at)

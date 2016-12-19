@@ -164,9 +164,10 @@ class TestVolumeTargetObject(base.DbTestCase):
                 target.save()
 
                 mock_get_volume_target.assert_called_once_with(uuid)
-                mock_update_target.assert_called_once_with(uuid,
-                                                           {'boot_index':
-                                                            boot_index})
+                mock_update_target.assert_called_once_with(
+                    uuid,
+                    {'version': objects.VolumeTarget.VERSION,
+                     'boot_index': boot_index})
                 self.assertEqual(self.context, target._context)
                 res_updated_at = (target.updated_at).replace(tzinfo=None)
                 self.assertEqual(test_time, res_updated_at)

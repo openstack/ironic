@@ -641,6 +641,16 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(ports.c.physical_network.type,
                               sqlalchemy.types.String)
 
+    def _check_868cb606a74a(self, engine, data):
+        for table in ['chassis', 'conductors', 'node_tags', 'nodes',
+                      'portgroups', 'ports', 'volume_connectors',
+                      'volume_targets', 'conductor_hardware_interfaces']:
+            table = db_utils.get_table(engine, table)
+            col_names = [column.name for column in table.c]
+            self.assertIn('version', col_names)
+            self.assertIsInstance(table.c.version.type,
+                                  sqlalchemy.types.String)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

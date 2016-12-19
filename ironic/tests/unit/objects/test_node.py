@@ -93,7 +93,8 @@ class TestNodeObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
                 mock_update_node.assert_called_once_with(
                     uuid, {'properties': {"fake": "property"},
                            'driver': 'fake-driver',
-                           'driver_internal_info': {}})
+                           'driver_internal_info': {},
+                           'version': objects.Node.VERSION})
                 self.assertEqual(self.context, n._context)
                 res_updated_at = (n.updated_at).replace(tzinfo=None)
                 self.assertEqual(test_time, res_updated_at)
@@ -124,7 +125,8 @@ class TestNodeObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
                     uuid, {'properties': {"fake": "property"},
                            'driver': 'fake-driver',
                            'driver_internal_info': {},
-                           'extra': {'test': 123}})
+                           'extra': {'test': 123},
+                           'version': objects.Node.VERSION})
                 self.assertEqual(self.context, n._context)
                 res_updated_at = n.updated_at.replace(tzinfo=None)
                 self.assertEqual(test_time, res_updated_at)
@@ -214,7 +216,14 @@ class TestNodeObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
 
     def test_create(self):
         node = objects.Node(self.context, **self.fake_node)
-        node.create()
+        with mock.patch.object(self.dbapi, 'create_node',
+                               autospec=True) as mock_create_node:
+            mock_create_node.return_value = utils.get_test_node()
+
+            node.create()
+
+            args, _kwargs = mock_create_node.call_args
+            self.assertEqual(objects.Node.VERSION, args[0]['version'])
 
     def test_create_with_invalid_properties(self):
         node = objects.Node(self.context, **self.fake_node)

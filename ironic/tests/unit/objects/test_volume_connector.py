@@ -154,7 +154,8 @@ class TestVolumeConnectorObject(base.DbTestCase):
                 mock_get_volume_connector.assert_called_once_with(uuid)
                 mock_update_connector.assert_called_once_with(
                     uuid,
-                    {'connector_id': connector_id})
+                    {'version': objects.VolumeConnector.VERSION,
+                     'connector_id': connector_id})
                 self.assertEqual(self.context, c._context)
                 res_updated_at = (c.updated_at).replace(tzinfo=None)
                 self.assertEqual(test_time, res_updated_at)

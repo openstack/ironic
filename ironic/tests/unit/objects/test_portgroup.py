@@ -77,6 +77,17 @@ class TestPortgroupObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
                           self.context,
                           'not:a_name_or_uuid')
 
+    def test_create(self):
+        portgroup = objects.Portgroup(self.context, **self.fake_portgroup)
+        with mock.patch.object(self.dbapi, 'create_portgroup',
+                               autospec=True) as mock_create_portgroup:
+            mock_create_portgroup.return_value = utils.get_test_portgroup()
+
+            portgroup.create()
+
+            args, _kwargs = mock_create_portgroup.call_args
+            self.assertEqual(objects.Portgroup.VERSION, args[0]['version'])
+
     def test_save(self):
         uuid = self.fake_portgroup['uuid']
         address = "b2:54:00:cf:2d:40"
@@ -95,7 +106,8 @@ class TestPortgroupObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
 
                 mock_get_portgroup.assert_called_once_with(uuid)
                 mock_update_portgroup.assert_called_once_with(
-                    uuid, {'address': "b2:54:00:cf:2d:40"})
+                    uuid, {'version': objects.Portgroup.VERSION,
+                           'address': "b2:54:00:cf:2d:40"})
                 self.assertEqual(self.context, p._context)
                 res_updated_at = (p.updated_at).replace(tzinfo=None)
                 self.assertEqual(test_time, res_updated_at)

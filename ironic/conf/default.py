@@ -266,8 +266,8 @@ service_opts = [
                choices=versions.RELEASE_VERSIONS,
                # TODO(xek): mutable=True,
                help=_('WARNING: This configuration option is part of the '
-                      'incomplete rolling upgrades work; changing this '
-                      'value has no effect. '
+                      'incomplete rolling upgrades work. Do not change this '
+                      'from the default value. '
                       'Used for rolling upgrades. Setting this option '
                       'downgrades (or pins) the internal ironic RPC '
                       'communication to the specified version to enable '

@@ -93,6 +93,7 @@ def remove_internal(values, internal):
 def node_post_data(**kw):
     node = utils.get_test_node(**kw)
     # These values are not part of the API object
+    node.pop('version')
     node.pop('conductor_affinity')
     node.pop('chassis_id')
     node.pop('tags')
@@ -113,9 +114,9 @@ def node_post_data(**kw):
 
 def port_post_data(**kw):
     port = utils.get_test_port(**kw)
-    # node_id is not part of the API object
+    # These values are not part of the API object
+    port.pop('version')
     port.pop('node_id')
-    # portgroup_id is not part of the API object
     port.pop('portgroup_id')
     # NOTE(mgoddard): Physical network is not yet supported by the REST API.
     port.pop('physical_network')
@@ -125,6 +126,8 @@ def port_post_data(**kw):
 
 def chassis_post_data(**kw):
     chassis = utils.get_test_chassis(**kw)
+    # version is not part of the API object
+    chassis.pop('version')
     internal = chassis_controller.ChassisPatchType.internal_attrs()
     return remove_internal(chassis, internal)
 
@@ -142,7 +145,8 @@ def portgroup_post_data(**kw):
     """Return a Portgroup object without internal attributes."""
     portgroup = utils.get_test_portgroup(**kw)
 
-    # node_id is not a part of the API object
+    # These values are not part of the API object
+    portgroup.pop('version')
     portgroup.pop('node_id')
 
     # NOTE(jroll): pop out fields that were introduced in later API versions,
