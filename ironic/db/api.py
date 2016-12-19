@@ -538,6 +538,38 @@ class Connection(object):
         """
 
     @abc.abstractmethod
+    def list_conductor_hardware_interfaces(self, conductor_id):
+        """List all registered hardware interfaces for a conductor.
+
+        :param conductor_id: Database ID of conductor.
+        :returns: List of ``ConductorHardwareInterfaces`` objects.
+        """
+
+    @abc.abstractmethod
+    def register_conductor_hardware_interfaces(self, conductor_id,
+                                               hardware_type, interface_type,
+                                               interfaces, default_interface):
+        """Registers hardware interfaces for a conductor.
+
+        :param conductor_id: Database ID of conductor to register for.
+        :param hardware_type: Name of hardware type for the interfaces.
+        :param interface_type: Type of interfaces, e.g. 'deploy' or 'boot'.
+        :param interfaces: List of interface names to register.
+        :param default_interface: String, the default interface for this
+                                  hardware type and interface type.
+        :raises: ConductorHardwareInterfacesAlreadyRegistered if at least one
+                 of the interfaces in the combination of all parameters is
+                 already registered.
+        """
+
+    @abc.abstractmethod
+    def unregister_conductor_hardware_interfaces(self, conductor_id):
+        """Unregisters all hardware interfaces for a conductor.
+
+        :param conductor_id: Database ID of conductor to unregister for.
+        """
+
+    @abc.abstractmethod
     def touch_node_provisioning(self, node_id):
         """Mark the node's provisioning as running.
 

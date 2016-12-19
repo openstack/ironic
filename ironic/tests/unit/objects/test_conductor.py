@@ -106,7 +106,8 @@ class TestConductorObject(base.DbTestCase):
     def test_register_update_existing_true(self):
         self._test_register(update_existing=True)
 
-    def test_unregister(self):
+    @mock.patch.object(objects.Conductor, 'unregister_all_hardware_interfaces')
+    def test_unregister(self, mock_unreg_ifaces):
         host = self.fake_conductor['hostname']
         with mock.patch.object(self.dbapi, 'get_conductor',
                                autospec=True) as mock_get_cdr:
@@ -116,3 +117,31 @@ class TestConductorObject(base.DbTestCase):
                 c = objects.Conductor.get_by_hostname(self.context, host)
                 c.unregister()
                 mock_unregister_cdr.assert_called_once_with(host)
+                mock_unreg_ifaces.assert_called_once_with()
+
+    def test_register_hardware_interfaces(self):
+        host = self.fake_conductor['hostname']
+        self.config(default_deploy_interface='iscsi')
+        with mock.patch.object(self.dbapi, 'get_conductor',
+                               autospec=True) as mock_get_cdr:
+            with mock.patch.object(self.dbapi,
+                                   'register_conductor_hardware_interfaces',
+                                   autospec=True) as mock_register:
+                mock_get_cdr.return_value = self.fake_conductor
+                c = objects.Conductor.get_by_hostname(self.context, host)
+                args = ('hardware-type', 'deploy', ['iscsi', 'direct'],
+                        'iscsi')
+                c.register_hardware_interfaces(*args)
+                mock_register.assert_called_once_with(c.id, *args)
+
+    def test_unregister_all_hardware_interfaces(self):
+        host = self.fake_conductor['hostname']
+        with mock.patch.object(self.dbapi, 'get_conductor',
+                               autospec=True) as mock_get_cdr:
+            with mock.patch.object(self.dbapi,
+                                   'unregister_conductor_hardware_interfaces',
+                                   autospec=True) as mock_unregister:
+                mock_get_cdr.return_value = self.fake_conductor
+                c = objects.Conductor.get_by_hostname(self.context, host)
+                c.unregister_all_hardware_interfaces()
+                mock_unregister.assert_called_once_with(c.id)

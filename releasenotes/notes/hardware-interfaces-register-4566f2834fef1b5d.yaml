@@ -1,0 +1,11 @@
+---
+features:
+  - Hardware interfaces are now loaded at conductor startup,
+    and registered in the database. ``[default]/enabled_*_interfaces``
+    and ``[default]/default_*_interfaces`` configuration options now have an
+    effect on this.
+upgrade:
+  - Hardware interfaces are now loaded at conductor startup,
+    and registered in the database. ``[default]/enabled_*_interfaces``
+    and ``[default]/default_*_interfaces`` configuration options now have an
+    effect on this.

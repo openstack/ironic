@@ -298,15 +298,64 @@ def get_driver(driver_name):
         raise exception.DriverNotFound(driver_name=driver_name)
 
 
-def drivers():
-    """Get all drivers as a dict name -> driver object."""
-    factory = DriverFactory()
+def _get_all_drivers(factory):
+    """Get all drivers for `factory` as a dict name -> driver object."""
     # NOTE(jroll) I don't think this needs to be ordered, but
     # ConductorManager.init_host seems to depend on this behavior (or at
     # least the unit tests for it do), and it can't hurt much to keep it
     # that way.
     return collections.OrderedDict((name, factory[name].obj)
                                    for name in factory.names)
+
+
+def drivers():
+    """Get all drivers.
+
+    :returns: Dictionary mapping driver name to driver object.
+    """
+    return _get_all_drivers(DriverFactory())
+
+
+def hardware_types():
+    """Get all hardware types.
+
+    :returns: Dictionary mapping hardware type name to hardware type object.
+    """
+    return _get_all_drivers(HardwareTypesFactory())
+
+
+def interfaces(interface_type):
+    """Get all interfaces for a given interface type.
+
+    :param interface_type: String, type of interface to fetch for.
+    :returns: Dictionary mapping interface name to interface object.
+    """
+    return _get_all_drivers(_INTERFACE_LOADERS[interface_type]())
+
+
+def enabled_supported_interfaces(hardware_type):
+    """Get usable interfaces for a given hardware type.
+
+    For a given hardware type, find the intersection of enabled and supported
+    interfaces for each interface type. This is the set of interfaces that are
+    usable for this hardware type.
+
+    :param hardware_type: The hardware type object to search.
+    :returns: a dict mapping interface types to a list of enabled and supported
+              interface names.
+    """
+    mapping = dict()
+    for interface_type in driver_base.ALL_INTERFACES:
+        supported = set()
+        enabled = set()
+        supported_ifaces = getattr(hardware_type,
+                                   'supported_%s_interfaces' % interface_type)
+        for name, iface in interfaces(interface_type).items():
+            enabled.add(name)
+            if iface.__class__ in supported_ifaces:
+                supported.add(name)
+        mapping[interface_type] = enabled.intersection(supported)
+    return mapping
 
 
 class BaseDriverFactory(object):

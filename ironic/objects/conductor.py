@@ -27,7 +27,9 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.0: Initial version
     # Version 1.1: Add register() and unregister(), make the context parameter
     #              to touch() optional.
-    VERSION = '1.1'
+    # Version 1.2: Add register_hardware_interfaces() and
+    #              unregister_all_hardware_interfaces()
+    VERSION = '1.2'
 
     dbapi = db_api.get_instance()
 
@@ -115,4 +117,25 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable
     def unregister(self, context=None):
         """Remove this conductor from the service registry."""
+        self.unregister_all_hardware_interfaces()
         self.dbapi.unregister_conductor(self.hostname)
+
+    def register_hardware_interfaces(self, hardware_type, interface_type,
+                                     interfaces, default_interface):
+        """Register hardware interfaces with the conductor.
+
+        :param hardware_type: Name of hardware type for the interfaces.
+        :param interface_type: Type of interfaces, e.g. 'deploy' or 'boot'.
+        :param interfaces: List of interface names to register.
+        :param default_interface: String, the default interface for this
+                                  hardware type and interface type.
+        """
+        self.dbapi.register_conductor_hardware_interfaces(self.id,
+                                                          hardware_type,
+                                                          interface_type,
+                                                          interfaces,
+                                                          default_interface)
+
+    def unregister_all_hardware_interfaces(self):
+        """Unregister all hardware interfaces for this conductor."""
+        self.dbapi.unregister_conductor_hardware_interfaces(self.id)

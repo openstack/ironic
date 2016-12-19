@@ -501,3 +501,30 @@ class HardwareTypeLoadTestCase(db_base.DbTestCase):
         self.assertRaises(exception.InterfaceNotFoundInEntrypoint,
                           driver_factory.check_and_update_node_interfaces,
                           node)
+
+    def _test_enabled_supported_interfaces(self, enable_storage):
+        ht = fake_hardware.FakeHardware()
+        expected = {
+            'boot': set(['fake']),
+            'console': set(['fake']),
+            'deploy': set(['fake']),
+            'inspect': set(['fake']),
+            'management': set(['fake']),
+            'network': set(['noop']),
+            'power': set(['fake']),
+            'raid': set(['fake']),
+            'storage': set([]),
+            'vendor': set(['fake'])
+        }
+        if enable_storage:
+            self.config(enabled_storage_interfaces=['fake'])
+            expected['storage'] = set(['fake'])
+
+        mapping = driver_factory.enabled_supported_interfaces(ht)
+        self.assertEqual(expected, mapping)
+
+    def test_enabled_supported_interfaces(self):
+        self._test_enabled_supported_interfaces(False)
+
+    def test_enabled_supported_interfaces_non_default(self):
+        self._test_enabled_supported_interfaces(True)
