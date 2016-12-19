@@ -533,7 +533,6 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
         super(ISCSIDeployTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         self.driver = driver_factory.get_driver("fake_pxe")
-        self.driver.vendor = iscsi_deploy.VendorPassthru()
         self.node = obj_utils.create_test_node(
             self.context, driver='fake_pxe',
             instance_info=INST_INFO_DICT,
@@ -541,11 +540,6 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
         self.node.driver_internal_info['agent_url'] = 'http://1.2.3.4:1234'
-        self.task = mock.MagicMock(spec=task_manager.TaskManager)
-        self.task.shared = False
-        self.task.node = self.node
-        self.task.driver = self.driver
-        self.task.context = self.context
         dhcp_factory.DHCPFactory._dhcp_provider = None
 
     def test_get_properties(self):
@@ -712,60 +706,30 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             self.driver.deploy.heartbeat(task, 'url')
             self.assertFalse(task.shared)
 
-
-class TestVendorPassthru(db_base.DbTestCase):
-
-    def setUp(self):
-        super(TestVendorPassthru, self).setUp()
-        mgr_utils.mock_the_extension_manager()
-        self.driver = driver_factory.get_driver("fake")
-        self.driver.vendor = iscsi_deploy.VendorPassthru()
-        self.node = obj_utils.create_test_node(
-            self.context, driver='fake',
-            instance_info=INST_INFO_DICT,
-            driver_info=DRV_INFO_DICT,
-            driver_internal_info=DRV_INTERNAL_INFO_DICT,
-        )
-        self.node.driver_internal_info['agent_url'] = 'http://1.2.3.4:1234'
-        self.task = mock.MagicMock(spec=task_manager.TaskManager)
-        self.task.shared = False
-        self.task.node = self.node
-        self.task.driver = self.driver
-        self.task.context = self.context
-
-    def test_vendor_routes(self):
-        expected = ['heartbeat']
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            vendor_routes = task.driver.vendor.vendor_routes
-            self.assertIsInstance(vendor_routes, dict)
-            self.assertEqual(sorted(expected), sorted(list(vendor_routes)))
-
-    def test_driver_routes(self):
-        expected = ['lookup']
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            driver_routes = task.driver.vendor.driver_routes
-            self.assertIsInstance(driver_routes, dict)
-            self.assertEqual(sorted(expected), sorted(list(driver_routes)))
-
-    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
                        'reboot_and_finish_deploy', autospec=True)
     @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
     def test_continue_deploy_netboot(self, do_agent_iscsi_deploy_mock,
                                      reboot_and_finish_deploy_mock):
 
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
         uuid_dict_returned = {'root uuid': 'some-root-uuid'}
         do_agent_iscsi_deploy_mock.return_value = uuid_dict_returned
-        self.driver.vendor.continue_deploy(self.task)
-        do_agent_iscsi_deploy_mock.assert_called_once_with(
-            self.task, self.driver.vendor._client)
-        reboot_and_finish_deploy_mock.assert_called_once_with(
-            mock.ANY, self.task)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            with mock.patch.object(
+                    task.driver.boot, 'prepare_instance') as m_prep_instance:
+                task.driver.deploy.continue_deploy(task)
+                do_agent_iscsi_deploy_mock.assert_called_once_with(
+                    task, task.driver.deploy._client)
+                reboot_and_finish_deploy_mock.assert_called_once_with(
+                    mock.ANY, task)
+                m_prep_instance.assert_called_once_with(task)
 
-    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
                        'reboot_and_finish_deploy', autospec=True)
-    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
                        'configure_local_boot', autospec=True)
     @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
     def test_continue_deploy_localboot(self, do_agent_iscsi_deploy_mock,
@@ -774,22 +738,25 @@ class TestVendorPassthru(db_base.DbTestCase):
 
         self.node.instance_info = {
             'capabilities': {'boot_option': 'local'}}
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
         self.node.save()
         uuid_dict_returned = {'root uuid': 'some-root-uuid'}
         do_agent_iscsi_deploy_mock.return_value = uuid_dict_returned
 
-        self.driver.vendor.continue_deploy(self.task)
-        do_agent_iscsi_deploy_mock.assert_called_once_with(
-            self.task, self.driver.vendor._client)
-        configure_local_boot_mock.assert_called_once_with(
-            self.task.driver.vendor, self.task, root_uuid='some-root-uuid',
-            efi_system_part_uuid=None)
-        reboot_and_finish_deploy_mock.assert_called_once_with(
-            self.task.driver.vendor, self.task)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.deploy.continue_deploy(task)
+            do_agent_iscsi_deploy_mock.assert_called_once_with(
+                task, task.driver.deploy._client)
+            configure_local_boot_mock.assert_called_once_with(
+                task.driver.deploy, task, root_uuid='some-root-uuid',
+                efi_system_part_uuid=None)
+            reboot_and_finish_deploy_mock.assert_called_once_with(
+                task.driver.deploy, task)
 
-    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
                        'reboot_and_finish_deploy', autospec=True)
-    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
                        'configure_local_boot', autospec=True)
     @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
     def test_continue_deploy_localboot_uefi(self, do_agent_iscsi_deploy_mock,
@@ -798,19 +765,22 @@ class TestVendorPassthru(db_base.DbTestCase):
 
         self.node.instance_info = {
             'capabilities': {'boot_option': 'local'}}
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
         self.node.save()
         uuid_dict_returned = {'root uuid': 'some-root-uuid',
                               'efi system partition uuid': 'efi-part-uuid'}
         do_agent_iscsi_deploy_mock.return_value = uuid_dict_returned
 
-        self.driver.vendor.continue_deploy(self.task)
-        do_agent_iscsi_deploy_mock.assert_called_once_with(
-            self.task, self.driver.vendor._client)
-        configure_local_boot_mock.assert_called_once_with(
-            self.task.driver.vendor, self.task, root_uuid='some-root-uuid',
-            efi_system_part_uuid='efi-part-uuid')
-        reboot_and_finish_deploy_mock.assert_called_once_with(
-            self.task.driver.vendor, self.task)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.deploy.continue_deploy(task)
+            do_agent_iscsi_deploy_mock.assert_called_once_with(
+                task, task.driver.deploy._client)
+            configure_local_boot_mock.assert_called_once_with(
+                task.driver.deploy, task, root_uuid='some-root-uuid',
+                efi_system_part_uuid='efi-part-uuid')
+            reboot_and_finish_deploy_mock.assert_called_once_with(
+                task.driver.deploy, task)
 
 
 # Cleanup of iscsi_deploy with pxe boot interface

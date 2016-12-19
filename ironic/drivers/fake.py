@@ -107,7 +107,6 @@ class FakePXEDriver(base.BaseDriver):
         self.power = fake.FakePower()
         self.boot = pxe.PXEBoot()
         self.deploy = iscsi_deploy.ISCSIDeploy()
-        self.vendor = iscsi_deploy.VendorPassthru()
 
 
 class FakeSSHDriver(base.BaseDriver):
@@ -163,7 +162,6 @@ class FakeAgentDriver(base.BaseDriver):
         self.power = fake.FakePower()
         self.boot = pxe.PXEBoot()
         self.deploy = agent.AgentDeploy()
-        self.vendor = agent.AgentVendorInterface()
         self.raid = agent.AgentRAID()
 
 

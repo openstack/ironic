@@ -466,21 +466,6 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.driver.heartbeat(task, 'url')
             self.assertFalse(task.shared)
 
-
-class TestAgentVendor(db_base.DbTestCase):
-
-    def setUp(self):
-        super(TestAgentVendor, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="fake_agent")
-        self.passthru = agent.AgentVendorInterface()
-        n = {
-            'driver': 'fake_agent',
-            'instance_info': INSTANCE_INFO,
-            'driver_info': DRIVER_INFO,
-            'driver_internal_info': DRIVER_INTERNAL_INFO,
-        }
-        self.node = object_utils.create_test_node(self.context, **n)
-
     def _test_continue_deploy(self, additional_driver_info=None,
                               additional_expected_image_info=None):
         self.node.provision_state = states.DEPLOYWAIT
@@ -502,11 +487,11 @@ class TestAgentVendor(db_base.DbTestCase):
         expected_image_info.update(additional_expected_image_info or {})
 
         client_mock = mock.MagicMock(spec_set=['prepare_image'])
-        self.passthru._client = client_mock
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            self.passthru.continue_deploy(task)
+            task.driver.deploy._client = client_mock
+            task.driver.deploy.continue_deploy(task)
 
             client_mock.prepare_image.assert_called_with(task.node,
                                                          expected_image_info)
@@ -590,11 +575,11 @@ class TestAgentVendor(db_base.DbTestCase):
         }
 
         client_mock = mock.MagicMock(spec_set=['prepare_image'])
-        self.passthru._client = client_mock
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            self.passthru.continue_deploy(task)
+            task.driver.deploy._client = client_mock
+            task.driver.deploy.continue_deploy(task)
 
             client_mock.prepare_image.assert_called_with(task.node,
                                                          expected_image_info)
@@ -602,7 +587,7 @@ class TestAgentVendor(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE,
                              task.node.target_provision_state)
 
-    @mock.patch.object(agent.AgentVendorInterface, '_get_uuid_from_result',
+    @mock.patch.object(agent.AgentDeployMixin, '_get_uuid_from_result',
                        autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state',
@@ -611,7 +596,7 @@ class TestAgentVendor(db_base.DbTestCase):
                        spec=types.FunctionType)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance',
                        autospec=True)
-    @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
+    @mock.patch('ironic.drivers.modules.agent.AgentDeployMixin'
                 '.check_deploy_success', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     def test_reboot_to_instance(self, clean_pxe_mock, check_deploy_mock,
@@ -628,7 +613,7 @@ class TestAgentVendor(db_base.DbTestCase):
             get_power_state_mock.return_value = states.POWER_OFF
             task.node.driver_internal_info['is_whole_disk_image'] = True
 
-            self.passthru.reboot_to_instance(task)
+            task.driver.deploy.reboot_to_instance(task)
 
             clean_pxe_mock.assert_called_once_with(task.driver.boot, task)
             check_deploy_mock.assert_called_once_with(mock.ANY, task.node)
@@ -644,7 +629,7 @@ class TestAgentVendor(db_base.DbTestCase):
             self.assertFalse(uuid_mock.called)
 
     @mock.patch.object(deploy_utils, 'get_boot_mode_for_deploy', autospec=True)
-    @mock.patch.object(agent.AgentVendorInterface, '_get_uuid_from_result',
+    @mock.patch.object(agent.AgentDeployMixin, '_get_uuid_from_result',
                        autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state',
@@ -653,7 +638,7 @@ class TestAgentVendor(db_base.DbTestCase):
                        spec=types.FunctionType)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance',
                        autospec=True)
-    @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
+    @mock.patch('ironic.drivers.modules.agent.AgentDeployMixin'
                 '.check_deploy_success', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     def test_reboot_to_instance_partition_image(self, clean_pxe_mock,
@@ -673,7 +658,7 @@ class TestAgentVendor(db_base.DbTestCase):
             get_power_state_mock.return_value = states.POWER_OFF
             task.node.driver_internal_info['is_whole_disk_image'] = False
 
-            self.passthru.reboot_to_instance(task)
+            task.driver.deploy.reboot_to_instance(task)
 
             self.assertFalse(clean_pxe_mock.called)
             check_deploy_mock.assert_called_once_with(mock.ANY, task.node)
@@ -687,10 +672,11 @@ class TestAgentVendor(db_base.DbTestCase):
             driver_int_info = task.node.driver_internal_info
             self.assertEqual('root_uuid',
                              driver_int_info['root_uuid_or_disk_id']),
-            uuid_mock.assert_called_once_with(self.passthru, task, 'root_uuid')
+            uuid_mock.assert_called_once_with(task.driver.deploy,
+                                              task, 'root_uuid')
             boot_mode_mock.assert_called_once_with(task.node)
 
-    @mock.patch.object(agent.AgentVendorInterface, '_get_uuid_from_result',
+    @mock.patch.object(agent.AgentDeployMixin, '_get_uuid_from_result',
                        autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state',
@@ -699,7 +685,7 @@ class TestAgentVendor(db_base.DbTestCase):
                        spec=types.FunctionType)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance',
                        autospec=True)
-    @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
+    @mock.patch('ironic.drivers.modules.agent.AgentDeployMixin'
                 '.check_deploy_success', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     def test_reboot_to_instance_boot_none(self, clean_pxe_mock,
@@ -718,7 +704,7 @@ class TestAgentVendor(db_base.DbTestCase):
             task.node.driver_internal_info['is_whole_disk_image'] = True
             task.driver.boot = None
 
-            self.passthru.reboot_to_instance(task)
+            task.driver.deploy.reboot_to_instance(task)
 
             self.assertFalse(clean_pxe_mock.called)
             self.assertFalse(prepare_mock.called)
@@ -735,7 +721,7 @@ class TestAgentVendor(db_base.DbTestCase):
             self.assertFalse(uuid_mock.called)
 
     @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
-    @mock.patch.object(agent.AgentVendorInterface, '_get_uuid_from_result',
+    @mock.patch.object(agent.AgentDeployMixin, '_get_uuid_from_result',
                        autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state',
@@ -744,7 +730,7 @@ class TestAgentVendor(db_base.DbTestCase):
                        spec=types.FunctionType)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance',
                        autospec=True)
-    @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
+    @mock.patch('ironic.drivers.modules.agent.AgentDeployMixin'
                 '.check_deploy_success', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     def test_reboot_to_instance_boot_error(
@@ -761,7 +747,7 @@ class TestAgentVendor(db_base.DbTestCase):
             get_power_state_mock.return_value = states.POWER_OFF
             task.node.driver_internal_info['is_whole_disk_image'] = True
             task.driver.boot = None
-            self.passthru.reboot_to_instance(task)
+            task.driver.deploy.reboot_to_instance(task)
 
             self.assertFalse(clean_pxe_mock.called)
             self.assertFalse(prepare_mock.called)
@@ -771,10 +757,10 @@ class TestAgentVendor(db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             collect_ramdisk_logs_mock.assert_called_once_with(task.node)
 
-    @mock.patch.object(agent_base_vendor.BaseAgentVendor,
+    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
                        'configure_local_boot', autospec=True)
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
-    @mock.patch.object(agent.AgentVendorInterface, '_get_uuid_from_result',
+    @mock.patch.object(agent.AgentDeployMixin, '_get_uuid_from_result',
                        autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state',
@@ -783,7 +769,7 @@ class TestAgentVendor(db_base.DbTestCase):
                        spec=types.FunctionType)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance',
                        autospec=True)
-    @mock.patch('ironic.drivers.modules.agent.AgentVendorInterface'
+    @mock.patch('ironic.drivers.modules.agent.AgentDeployMixin'
                 '.check_deploy_success', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     def test_reboot_to_instance_localboot(self, clean_pxe_mock,
@@ -806,7 +792,7 @@ class TestAgentVendor(db_base.DbTestCase):
             task.node.driver_internal_info['is_whole_disk_image'] = False
             boot_option = {'capabilities': '{"boot_option": "local"}'}
             task.node.instance_info = boot_option
-            self.passthru.reboot_to_instance(task)
+            task.driver.deploy.reboot_to_instance(task)
 
             self.assertFalse(clean_pxe_mock.called)
             check_deploy_mock.assert_called_once_with(mock.ANY, task.node)
@@ -823,7 +809,7 @@ class TestAgentVendor(db_base.DbTestCase):
     def test_deploy_has_started(self, mock_get_cmd):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             mock_get_cmd.return_value = []
-            self.assertFalse(self.passthru.deploy_has_started(task))
+            self.assertFalse(task.driver.deploy.deploy_has_started(task))
 
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -831,7 +817,7 @@ class TestAgentVendor(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             mock_get_cmd.return_value = [{'command_name': 'prepare_image',
                                           'command_status': 'SUCCESS'}]
-            self.assertTrue(self.passthru.deploy_has_started(task))
+            self.assertTrue(task.driver.deploy.deploy_has_started(task))
 
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -839,7 +825,7 @@ class TestAgentVendor(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             mock_get_cmd.return_value = [{'command_name': 'prepare_image',
                                           'command_status': 'RUNNING'}]
-            self.assertTrue(self.passthru.deploy_has_started(task))
+            self.assertTrue(task.driver.deploy.deploy_has_started(task))
 
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -849,7 +835,7 @@ class TestAgentVendor(db_base.DbTestCase):
                                           'command_status': 'SUCCESS'},
                                          {'command_name': 'prepare_image',
                                           'command_status': 'RUNNING'}]
-            self.assertTrue(self.passthru.deploy_has_started(task))
+            self.assertTrue(task.driver.deploy.deploy_has_started(task))
 
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -857,7 +843,7 @@ class TestAgentVendor(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             mock_get_cmd.return_value = [{'command_name': 'cache_image',
                                           'command_status': 'SUCCESS'}]
-            self.assertFalse(self.passthru.deploy_has_started(task))
+            self.assertFalse(task.driver.deploy.deploy_has_started(task))
 
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -865,14 +851,14 @@ class TestAgentVendor(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             mock_get_cmd.return_value = [{'command_name': 'prepare_image',
                                           'command_status': 'SUCCESS'}]
-            self.assertTrue(self.passthru.deploy_is_done(task))
+            self.assertTrue(task.driver.deploy.deploy_is_done(task))
 
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
     def test_deploy_is_done_empty_response(self, mock_get_cmd):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             mock_get_cmd.return_value = []
-            self.assertFalse(self.passthru.deploy_is_done(task))
+            self.assertFalse(task.driver.deploy.deploy_is_done(task))
 
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -880,7 +866,7 @@ class TestAgentVendor(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             mock_get_cmd.return_value = [{'command_name': 'some_other_command',
                                           'command_status': 'SUCCESS'}]
-            self.assertFalse(self.passthru.deploy_is_done(task))
+            self.assertFalse(task.driver.deploy.deploy_is_done(task))
 
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
@@ -888,7 +874,7 @@ class TestAgentVendor(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             mock_get_cmd.return_value = [{'command_name': 'prepare_image',
                                           'command_status': 'RUNNING'}]
-            self.assertFalse(self.passthru.deploy_is_done(task))
+            self.assertFalse(task.driver.deploy.deploy_is_done(task))
 
 
 class AgentRAIDTestCase(db_base.DbTestCase):
@@ -896,7 +882,6 @@ class AgentRAIDTestCase(db_base.DbTestCase):
     def setUp(self):
         super(AgentRAIDTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver="fake_agent")
-        self.passthru = agent.AgentVendorInterface()
         self.target_raid_config = {
             "logical_disks": [
                 {'size_gb': 200, 'raid_level': 0, 'is_root_volume': True},

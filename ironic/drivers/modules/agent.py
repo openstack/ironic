@@ -524,17 +524,6 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
             task, manage_boot=CONF.agent.manage_agent_boot)
 
 
-class AgentVendorInterface(agent_base_vendor.BaseAgentVendor,
-                           AgentDeployMixin):
-    """Implementation of agent vendor interface.
-
-    Contains old lookup and heartbeat endpoints currently pending deprecation.
-
-    WARNING: This class is deprecated and will be removed in the Ocata release.
-    Drivers should stop relying on it.
-    """
-
-
 class AgentRAID(base.RAIDInterface):
     """Implementation of RAIDInterface which uses agent ramdisk."""
 
