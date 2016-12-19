@@ -211,7 +211,7 @@ class ChassisController(rest.RestController):
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:chassis:get', cdict, cdict)
 
         api_utils.check_allow_specify_fields(fields)
@@ -234,7 +234,7 @@ class ChassisController(rest.RestController):
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:chassis:get', cdict, cdict)
 
         # /detail should only work against collections
@@ -255,7 +255,7 @@ class ChassisController(rest.RestController):
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:chassis:get', cdict, cdict)
 
         api_utils.check_allow_specify_fields(fields)
@@ -270,7 +270,7 @@ class ChassisController(rest.RestController):
 
         :param chassis: a chassis within the request body.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:chassis:create', cdict, cdict)
 
         new_chassis = objects.Chassis(pecan.request.context,
@@ -289,7 +289,7 @@ class ChassisController(rest.RestController):
         :param chassis_uuid: UUID of a chassis.
         :param patch: a json PATCH document to apply to this chassis.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:chassis:update', cdict, cdict)
 
         rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context,
@@ -323,7 +323,7 @@ class ChassisController(rest.RestController):
 
         :param chassis_uuid: UUID of a chassis.
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:chassis:delete', cdict, cdict)
 
         rpc_chassis = objects.Chassis.get_by_uuid(pecan.request.context,

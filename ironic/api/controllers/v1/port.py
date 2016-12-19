@@ -383,7 +383,7 @@ class PortsController(rest.RestController):
                                    for that portgroup.
         :raises: NotAcceptable, HTTPNotFound
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:port:get', cdict, cdict)
 
         api_utils.check_allow_specify_fields(fields)
@@ -441,7 +441,7 @@ class PortsController(rest.RestController):
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         :raises: NotAcceptable, HTTPNotFound
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:port:get', cdict, cdict)
 
         if portgroup and not api_utils.allow_portgroups_subcontrollers():
@@ -475,7 +475,7 @@ class PortsController(rest.RestController):
             of the resource to be returned.
         :raises: NotAcceptable, HTTPNotFound
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:port:get', cdict, cdict)
 
         if self.parent_node_ident or self.parent_portgroup_ident:
@@ -494,7 +494,7 @@ class PortsController(rest.RestController):
         :param port: a port within the request body.
         :raises: NotAcceptable, HTTPNotFound, Conflict
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:port:create', cdict, cdict)
 
         if self.parent_node_ident or self.parent_portgroup_ident:
@@ -540,7 +540,7 @@ class PortsController(rest.RestController):
         :param patch: a json PATCH document to apply to this port.
         :raises: NotAcceptable, HTTPNotFound
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:port:update', cdict, cdict)
 
         if self.parent_node_ident or self.parent_portgroup_ident:
@@ -608,7 +608,7 @@ class PortsController(rest.RestController):
         :param port_uuid: UUID of a port.
         :raises OperationNotPermitted, HTTPNotFound
         """
-        cdict = pecan.request.context.to_dict()
+        cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:port:delete', cdict, cdict)
 
         if self.parent_node_ident or self.parent_portgroup_ident:
