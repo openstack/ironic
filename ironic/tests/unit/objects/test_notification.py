@@ -25,8 +25,15 @@ class TestNotificationBase(test_base.TestCase):
     class TestObject(base.IronicObject):
         VERSION = '1.0'
         fields = {
-            'fake_field_1': fields.StringField(),
+            'fake_field_1': fields.StringField(nullable=True),
             'fake_field_2': fields.IntegerField(nullable=True)
+        }
+
+    @base.IronicObjectRegistry.register_if(False)
+    class TestObjectMissingField(base.IronicObject):
+        VERSION = '1.0'
+        fields = {
+            'fake_field_1': fields.StringField(nullable=True),
         }
 
     @base.IronicObjectRegistry.register_if(False)
@@ -39,8 +46,8 @@ class TestNotificationBase(test_base.TestCase):
         }
 
         fields = {
-            'fake_field_a': fields.StringField(),
-            'fake_field_b': fields.IntegerField(),
+            'fake_field_a': fields.StringField(nullable=True),
+            'fake_field_b': fields.IntegerField(nullable=False),
             'an_extra_field': fields.StringField(nullable=False),
             'an_optional_field': fields.IntegerField(nullable=True)
         }
@@ -228,9 +235,24 @@ class TestNotificationBase(test_base.TestCase):
         self.assertEqual(self.fake_obj.fake_field_1, payload.fake_field_a)
         self.assertEqual(self.fake_obj.fake_field_2, payload.fake_field_b)
 
-    def test_populate_schema_missing_obj_field(self):
+    def test_populate_schema_missing_required_obj_field(self):
         test_obj = self.TestObject(fake_field_1='populated')
+        # this payload requires missing fake_field_b
         payload = self.TestNotificationPayload(an_extra_field='too extra')
+        self.assertRaises(exception.NotificationSchemaKeyError,
+                          payload.populate_schema,
+                          test_obj=test_obj)
+
+    def test_populate_schema_nullable_field_auto_populates(self):
+        """Test that nullable fields always end up in the payload."""
+        test_obj = self.TestObject(fake_field_2=123)
+        payload = self.TestNotificationPayload()
+        payload.populate_schema(test_obj=test_obj)
+        self.assertIsNone(payload.fake_field_a)
+
+    def test_populate_schema_no_object_field(self):
+        test_obj = self.TestObjectMissingField(fake_field_1='foo')
+        payload = self.TestNotificationPayload()
         self.assertRaises(exception.NotificationSchemaKeyError,
                           payload.populate_schema,
                           test_obj=test_obj)

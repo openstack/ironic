@@ -153,6 +153,19 @@ class NotificationPayloadBase(base.IronicObject):
                                                               source=kwargs)
             try:
                 setattr(self, key, getattr(source, field))
+            except NotImplementedError:
+                # The object is missing (a value for) field. Oslo try to load
+                # value via obj_load_attr() method which is not implemented.
+                # If this field is nullable in this payload, set its payload
+                # value to None.
+                field_obj = self.fields.get(key)
+                if field_obj is not None and getattr(field_obj, 'nullable',
+                                                     False):
+                    setattr(self, key, None)
+                    continue
+                raise exception.NotificationSchemaKeyError(obj=obj,
+                                                           field=field,
+                                                           key=key)
             except Exception:
                 raise exception.NotificationSchemaKeyError(obj=obj,
                                                            field=field,
