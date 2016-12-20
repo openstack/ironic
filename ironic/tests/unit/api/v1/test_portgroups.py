@@ -852,9 +852,20 @@ class TestPatch(test_api_base.BaseApiTest):
 
     def test_update_portgroup_mode_properties_bad_api_version(self, mock_upd):
         self._test_update_portgroup_mode_properties_bad_api_version(
-            [{'path': '/mode', 'op': 'remove'}], mock_upd)
+            [{'path': '/mode', 'op': 'add', 'value': '802.3ad'}], mock_upd)
         self._test_update_portgroup_mode_properties_bad_api_version(
             [{'path': '/properties/abc', 'op': 'add', 'value': 123}], mock_upd)
+
+    def test_remove_mode_not_allowed(self, mock_upd):
+        response = self.patch_json('/portgroups/%s' % self.portgroup.uuid,
+                                   [{'path': '/mode',
+                                     'op': 'remove'}],
+                                   expect_errors=True,
+                                   headers=self.headers)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_upd.called)
 
 
 class TestPost(test_api_base.BaseApiTest):
