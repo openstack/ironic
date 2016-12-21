@@ -1,0 +1,8 @@
+---
+features:
+  - Adds support to generate Guru Meditation Reports(GMR) for both
+    ironic-api and ironic-conductor services. GMR provides useful
+    debugging information that can be used to obtain an accurate
+    view on the current live state of the system. For example, what
+    threads are running, what configuration parameters are in effect,
+    and more.

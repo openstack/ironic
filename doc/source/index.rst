@@ -141,6 +141,7 @@ the services.
   :maxdepth: 1
 
   Installation Guide <http://docs.openstack.org/project-install-guide/baremetal/draft/>
+  gmr
   Upgrade Guide <deploy/upgrade-guide>
   Release Notes <http://docs.openstack.org/releasenotes/ironic/>
   Troubleshooting FAQ <deploy/troubleshooting>
