@@ -15,6 +15,7 @@
 
 from oslo_config import cfg
 import oslo_messaging as messaging
+from oslo_messaging.rpc import dispatcher
 
 from ironic.common import context as ironic_context
 from ironic.common import exception
@@ -132,11 +133,13 @@ def get_client(target, version_cap=None, serializer=None):
 def get_server(target, endpoints, serializer=None):
     assert TRANSPORT is not None
     serializer = RequestContextSerializer(serializer)
+    access_policy = dispatcher.DefaultRPCAccessPolicy
     return messaging.get_rpc_server(TRANSPORT,
                                     target,
                                     endpoints,
                                     executor='eventlet',
-                                    serializer=serializer)
+                                    serializer=serializer,
+                                    access_policy=access_policy)
 
 
 def get_sensors_notifier(service=None, host=None, publisher_id=None):
