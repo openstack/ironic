@@ -99,6 +99,8 @@ Response
     - standalone_ports_supported: standalone_ports_supported
     - internal_info: portgroup_internal_info
     - extra: extra
+    - mode: portgroup_mode
+    - properties: portgroup_properties
     - created_at: created_at
     - updated_at: updated_at
     - links: links
@@ -146,6 +148,8 @@ Response
     - standalone_ports_supported: standalone_ports_supported
     - internal_info: portgroup_internal_info
     - extra: extra
+    - mode: portgroup_mode
+    - properties: portgroup_properties
     - created_at: created_at
     - updated_at: updated_at
     - links: links
@@ -188,6 +192,8 @@ Response
     - standalone_ports_supported: standalone_ports_supported
     - internal_info: portgroup_internal_info
     - extra: extra
+    - mode: portgroup_mode
+    - properties: portgroup_properties
     - created_at: created_at
     - updated_at: updated_at
     - links: links
@@ -237,6 +243,8 @@ Response
     - standalone_ports_supported: standalone_ports_supported
     - internal_info: portgroup_internal_info
     - extra: extra
+    - mode: portgroup_mode
+    - properties: portgroup_properties
     - created_at: created_at
     - updated_at: updated_at
     - links: links

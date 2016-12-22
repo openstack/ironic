@@ -583,6 +583,16 @@ portgroup_internal_info:
   in: body
   required: true
   type: JSON
+portgroup_mode:
+  description: |
+    Mode of the port group. For possible values, refer to
+    https://www.kernel.org/doc/Documentation/networking/bonding.txt. If not
+    specified in a request to create a port group, it will be set to the value
+    of the ``[DEFAULT]default_portgroup_mode`` configuration option. When set,
+    can not be removed from the port group. Added in API microversion 1.26.
+  in: body
+  required: true
+  type: string
 portgroup_name:
   description: |
     Human-readable identifier for the Portgroup resource. May be undefined.
@@ -590,6 +600,13 @@ portgroup_name:
   in: body
   required: false
   type: string
+portgroup_properties:
+  description: |
+    Key/value properties related to the port group's configuration.
+    Added in API microversion 1.26.
+  in: body
+  required: true
+  type: JSON
 portgroup_uuid:
   description: |
     UUID of the Portgroup this resource belongs to. Added in API microversion 1.23.
