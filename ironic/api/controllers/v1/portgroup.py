@@ -188,6 +188,7 @@ class Portgroup(base.APIBase):
 class PortgroupPatchType(types.JsonPatchType):
 
     _api_base = Portgroup
+    _extra_non_removable_attrs = {'/mode'}
 
     @staticmethod
     def internal_attrs():
