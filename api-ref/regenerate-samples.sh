@@ -11,7 +11,7 @@ fi
 OS_AUTH_TOKEN=$(openstack token issue | grep ' id ' | awk '{print $4}')
 IRONIC_URL="http://127.0.0.1:6385"
 
-IRONIC_API_VERSION="1.24"
+IRONIC_API_VERSION="1.28"
 
 export OS_AUTH_TOKEN IRONIC_URL
 
@@ -237,6 +237,12 @@ PATCH v1/nodes/$NID node-update-driver-info-request.json > node-update-driver-in
 GET v1/nodes/$NID/management/boot_device/supported > node-get-supported-boot-devices-response.json
 PUT v1/nodes/$NID/management/boot_device node-set-boot-device.json
 GET v1/nodes/$NID/management/boot_device > node-get-boot-device-response.json
+
+#############################
+# NODES VIF ATTACH/DETACH API
+
+POST v1/nodes/$NID/vifs node-vif-attach-request.json
+GET v1/nodes/$NID/vifs > node-vif-list-response.json
 
 
 #####################
