@@ -341,8 +341,8 @@ want to run a MySQL server on it all the time).
     # set a fake host name [useful if you want to test multiple services on the same host]
     sed -i "s/#host = .*/host = test-host/" etc/ironic/ironic.conf.local
 
-    # turn off the periodic sync_power_state task, to avoid getting NodeLocked exceptions
-    sed -i "s/#sync_power_state_interval = 60/sync_power_state_interval = -1/" etc/ironic/ironic.conf.local
+    # change the periodic sync_power_state_interval to a week, to avoid getting NodeLocked exceptions
+    sed -i "s/#sync_power_state_interval = 60/sync_power_state_interval = 604800/" etc/ironic/ironic.conf.local
 
     # if you opted to install mysql-server, switch the DB connection from sqlite to mysql
     sed -i "s/#connection = .*/connection = mysql\+pymysql:\/\/root:MYSQL_ROOT_PWD@localhost\/ironic/" etc/ironic/ironic.conf.local
