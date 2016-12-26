@@ -1,7 +1,8 @@
 {
+  "chassis_uuid": null,
   "clean_step": {},
   "console_enabled": false,
-  "created_at": "2016-08-18T22:28:48.643434+00:00",
+  "created_at": "2016-08-18T22:28:48.643434+11:11",
   "driver": "fake",
   "driver_info": {
     "ipmi_password": "******",
@@ -53,7 +54,7 @@
   "power_state": "power off",
   "properties": {},
   "provision_state": "available",
-  "provision_updated_at": "2016-08-18T22:28:49.382814+00:00",
+  "provision_updated_at": "2016-08-18T22:28:49.946416+00:00",
   "raid_config": {},
   "reservation": null,
   "resource_class": null,
