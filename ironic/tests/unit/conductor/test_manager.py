@@ -3601,7 +3601,9 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._start_service()
         CONF.set_override('send_sensor_data', True, group='conductor')
 
-        acquire_mock.return_value.__enter__.return_value.driver = self.driver
+        task = acquire_mock.return_value.__enter__.return_value
+        task.driver = self.driver
+        task.node.maintenance = False
         with mock.patch.object(self.driver.management,
                                'get_sensors_data') as get_sensors_data_mock:
             with mock.patch.object(self.driver.management,
@@ -3632,7 +3634,9 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._start_service()
 
         self.driver.management = None
-        acquire_mock.return_value.__enter__.return_value.driver = self.driver
+        task = acquire_mock.return_value.__enter__.return_value
+        task.driver = self.driver
+        task.node.maintenance = False
 
         with mock.patch.object(fake.FakeManagement, 'get_sensors_data',
                                autospec=True) as get_sensors_data_mock:
@@ -3643,6 +3647,27 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertTrue(acquire_mock.called)
         self.assertFalse(get_sensors_data_mock.called)
         self.assertFalse(validate_mock.called)
+
+    @mock.patch.object(manager.LOG, 'debug', autospec=True)
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
+    def test_send_sensor_task_maintenance(self, acquire_mock, debug_log):
+        nodes = queue.Queue()
+        nodes.put_nowait(('fake_uuid', 'fake', None))
+        self._start_service()
+        CONF.set_override('send_sensor_data', True, group='conductor')
+
+        task = acquire_mock.return_value.__enter__.return_value
+        task.driver = self.driver
+        task.node.maintenance = True
+        with mock.patch.object(self.driver.management,
+                               'get_sensors_data') as get_sensors_data_mock:
+            with mock.patch.object(self.driver.management,
+                                   'validate') as validate_mock:
+                self.service._sensors_nodes_task(self.context, nodes)
+                self.assertTrue(acquire_mock.called)
+                self.assertFalse(validate_mock.called)
+                self.assertFalse(get_sensors_data_mock.called)
+                self.assertTrue(debug_log.called)
 
     @mock.patch.object(manager.ConductorManager, '_spawn_worker')
     @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
