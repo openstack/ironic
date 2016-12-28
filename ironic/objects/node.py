@@ -614,3 +614,14 @@ class NodeCRUDPayload(NodePayload):
 
     def __init__(self, node, chassis_uuid):
         super(NodeCRUDPayload, self).__init__(node, chassis_uuid=chassis_uuid)
+
+
+@base.IronicObjectRegistry.register
+class NodeMaintenanceNotification(notification.NotificationBase):
+    """Notification emitted when maintenance state changed via API."""
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'payload': object_fields.ObjectField('NodePayload')
+    }

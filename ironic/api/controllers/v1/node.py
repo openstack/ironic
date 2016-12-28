@@ -1005,17 +1005,22 @@ class NodeVendorPassthruController(rest.RestController):
 class NodeMaintenanceController(rest.RestController):
 
     def _set_maintenance(self, node_ident, maintenance_mode, reason=None):
+        context = pecan.request.context
         rpc_node = api_utils.get_rpc_node(node_ident)
         rpc_node.maintenance = maintenance_mode
         rpc_node.maintenance_reason = reason
+        notify.emit_start_notification(context, rpc_node, 'maintenance_set')
+        with notify.handle_error_notification(context, rpc_node,
+                                              'maintenance_set'):
+            try:
+                topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+            except exception.NoValidHost as e:
+                e.code = http_client.BAD_REQUEST
+                raise
 
-        try:
-            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-        except exception.NoValidHost as e:
-            e.code = http_client.BAD_REQUEST
-            raise
-        pecan.request.rpcapi.update_node(pecan.request.context,
-                                         rpc_node, topic=topic)
+            new_node = pecan.request.rpcapi.update_node(context, rpc_node,
+                                                        topic=topic)
+        notify.emit_end_notification(context, new_node, 'maintenance_set')
 
     @METRICS.timer('NodeMaintenanceController.put')
     @expose.expose(None, types.uuid_or_name, wtypes.text,

@@ -23,10 +23,10 @@ from ironic.tests import base as tests_base
 from ironic.tests.unit.objects import utils as obj_utils
 
 
-class CRUDNotifyTestCase(tests_base.TestCase):
+class APINotifyTestCase(tests_base.TestCase):
 
     def setUp(self):
-        super(CRUDNotifyTestCase, self).setUp()
+        super(APINotifyTestCase, self).setUp()
         self.node_notify_mock = mock.Mock()
         self.port_notify_mock = mock.Mock()
         self.chassis_notify_mock = mock.Mock()
@@ -141,3 +141,32 @@ class CRUDNotifyTestCase(tests_base.TestCase):
         self.assertEqual({'a': 25}, payload.local_link_connection)
         self.assertEqual({'as': 34}, payload.extra)
         self.assertEqual(False, payload.pxe_enabled)
+
+    @mock.patch('ironic.objects.node.NodeMaintenanceNotification')
+    def test_node_maintenance_notification(self, maintenance_mock):
+        maintenance_mock.__name__ = 'NodeMaintenanceNotification'
+        node = obj_utils.get_test_node(self.context,
+                                       maintenance=True,
+                                       maintenance_reason='test reason')
+        test_level = fields.NotificationLevel.INFO
+        test_status = fields.NotificationStatus.START
+        notif_utils._emit_api_notification(self.context, node,
+                                           'maintenance_set',
+                                           test_level, test_status)
+        init_kwargs = maintenance_mock.call_args[1]
+        payload = init_kwargs['payload']
+        event_type = init_kwargs['event_type']
+        self.assertEqual('node', event_type.object)
+        self.assertEqual(node.uuid, payload.uuid)
+        self.assertEqual(True, payload.maintenance)
+        self.assertEqual('test reason', payload.maintenance_reason)
+
+    @mock.patch.object(notification.NotificationBase, 'emit')
+    def test_emit_maintenance_notification(self, emit_mock):
+        node = obj_utils.get_test_node(self.context)
+        test_level = fields.NotificationLevel.INFO
+        test_status = fields.NotificationStatus.START
+        notif_utils._emit_api_notification(self.context, node,
+                                           'maintenance_set',
+                                           test_level, test_status)
+        emit_mock.assert_called_once_with(self.context)

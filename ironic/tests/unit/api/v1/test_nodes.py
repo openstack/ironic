@@ -2985,11 +2985,21 @@ class TestPut(test_api_base.BaseApiTest):
         mock_update.assert_called_once_with(mock.ANY, mock.ANY,
                                             topic='test-topic')
 
+    @mock.patch.object(notification_utils, '_emit_api_notification')
     @mock.patch.object(objects.Node, 'get_by_uuid')
     @mock.patch.object(rpcapi.ConductorAPI, 'update_node')
-    def test_set_node_maintenance_mode(self, mock_update, mock_get):
+    def test_set_node_maintenance_mode(self, mock_update, mock_get,
+                                       mock_notify):
         self._test_set_node_maintenance_mode(mock_update, mock_get,
                                              'fake_reason', self.node.uuid)
+        mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY,
+                                                'maintenance_set',
+                                     obj_fields.NotificationLevel.INFO,
+                                     obj_fields.NotificationStatus.START),
+                                     mock.call(mock.ANY, mock.ANY,
+                                               'maintenance_set',
+                                     obj_fields.NotificationLevel.INFO,
+                                     obj_fields.NotificationStatus.END)])
 
     @mock.patch.object(objects.Node, 'get_by_uuid')
     @mock.patch.object(rpcapi.ConductorAPI, 'update_node')
@@ -3010,6 +3020,24 @@ class TestPut(test_api_base.BaseApiTest):
                                                          mock_get):
         self._test_set_node_maintenance_mode(mock_update, mock_get, None,
                                              self.node.name, is_by_name=True)
+
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(rpcapi.ConductorAPI, 'update_node')
+    def test_set_node_maintenance_mode_error(self, mock_update, mock_get,
+                                             mock_notify):
+        mock_get.return_value = self.node
+        mock_update.side_effect = Exception()
+        self.put_json('/nodes/%s/maintenance' % self.node.uuid,
+                      {'reason': 'fake'}, expect_errors=True)
+        mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY,
+                                                'maintenance_set',
+                                     obj_fields.NotificationLevel.INFO,
+                                     obj_fields.NotificationStatus.START),
+                                     mock.call(mock.ANY, mock.ANY,
+                                               'maintenance_set',
+                                     obj_fields.NotificationLevel.ERROR,
+                                     obj_fields.NotificationStatus.ERROR)])
 
 
 class TestCheckCleanSteps(base.TestCase):

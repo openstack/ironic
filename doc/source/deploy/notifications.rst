@@ -205,6 +205,59 @@ Example of port CRUD notification::
     "publisher_id":"ironic-api.hostname02"
    }
 
+Node maintenance notifications
+------------------------------
+
+These notifications are emitted from API service when maintenance mode is
+changed via API service. List of maintenance notifications for a node:
+
+* ``baremetal.node.maintenance_set.start``
+* ``baremetal.node.maintenance_set.end``
+* ``baremetal.node.maintenance_set.error``
+
+"start" and "end" notifications have INFO level, "error" has ERROR. Example of
+node maintenance notification::
+
+   {
+    "priority": "info",
+    "payload":{
+        "ironic_object.namespace":"ironic",
+        "ironic_object.name":"NodePayload",
+        "ironic_object.version":"1.0",
+        "ironic_object.data":{
+            "clean_step": None,
+            "console_enabled": False,
+            "created_at": "2016-01-26T20:41:03+00:00",
+            "driver": "fake",
+            "extra": {},
+            "inspection_finished_at": None,
+            "inspection_started_at": None,
+            "instance_info": {},
+            "instance_uuid": None,
+            "last_error": None,
+            "maintenance": True,
+            "maintenance_reason": "hw upgrade",
+            "network_interface": "flat",
+            "name": None,
+            "power_state": "power off",
+            "properties": {
+                "memory_mb":  4096,
+                "cpu_arch":  "x86_64",
+                "local_gb":  10,
+                "cpus":  8},
+            "provision_state": "available",
+            "provision_updated_at": "2016-01-27T20:41:03+00:00",
+            "resource_class": None,
+            "target_power_state": None,
+            "target_provision_state": None,
+            "updated_at": "2016-01-27T20:41:03+00:00",
+            "uuid": "1be26c0b-03f2-4d2e-ae87-c02d7f33c123",
+        }
+    },
+    "event_type":"baremetal.node.maintenance_set.start",
+    "publisher_id":"ironic-api.hostname02"
+   }
+
 ------------------------------
 ironic-conductor notifications
 ------------------------------

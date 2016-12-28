@@ -59,10 +59,15 @@ def _emit_api_notification(context, obj, action, level, status, **kwargs):
                   for k, v in kwargs.items()}
     try:
         try:
-            if resource not in CRUD_NOTIFY_OBJ:
+            if action == 'maintenance_set':
+                notification_method = node_objects.NodeMaintenanceNotification
+                payload_method = node_objects.NodePayload
+            elif resource not in CRUD_NOTIFY_OBJ:
                 notification_name = payload_name = _("is not defined")
                 raise KeyError(_("Unsupported resource: %s") % resource)
-            notification_method, payload_method = CRUD_NOTIFY_OBJ[resource]
+            else:
+                notification_method, payload_method = CRUD_NOTIFY_OBJ[resource]
+
             notification_name = notification_method.__name__
             payload_name = payload_method.__name__
         finally:
