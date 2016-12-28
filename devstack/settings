@@ -8,8 +8,3 @@ local_mtu=$(ip link show | sed -ne 's/.*mtu \([0-9]\+\).*/\1/p' | sort -n | head
 # 50 bytes is overhead for vxlan (which is greater than GRE
 # allowing us to use either overlay option with this MTU.
 PUBLIC_BRIDGE_MTU=$((local_mtu - 50))
-
-# NOTE(vsaienko) disable placement-api as it breaks ironic CI and permanent fix
-# in Nova stuck at the decision phase https://review.openstack.org/#/c/414214/
-# https://launchpad.net/bugs/1651678
-disable_service placement-api
