@@ -69,6 +69,142 @@ The notifications that ironic emits are described here. They are listed
 (alphabetically) by service first, then by event_type. All examples below
 show payloads before serialization to JSON.
 
+------------------------
+ironic-api notifications
+------------------------
+
+Resources CRUD notifications
+----------------------------
+
+These notifications are emitted from API service when ironic resources are
+modified as part of create, update, or delete (CRUD) [3]_ procedures. All
+CRUD notifications are emitted at INFO level, except for "error" status that
+is emitted at ERROR level.
+
+List of CRUD notifications for chassis:
+
+* ``baremetal.chassis.create.start``
+* ``baremetal.chassis.create.end``
+* ``baremetal.chassis.create.error``
+* ``baremetal.chassis.update.start``
+* ``baremetal.chassis.update.end``
+* ``baremetal.chassis.update.error``
+* ``baremetal.chassis.delete.start``
+* ``baremetal.chassis.delete.end``
+* ``baremetal.chassis.delete.error``
+
+Example of chassis CRUD notification::
+
+   {
+    "priority": "info",
+    "payload":{
+        "ironic_object.namespace":"ironic",
+        "ironic_object.name":"ChassisCRUDPayload",
+        "ironic_object.version":"1.0",
+        "ironic_object.data":{
+            "created_at": "2016-04-10T10:13:03+00:00",
+            "description": "bare 28",
+            "extra": {},
+            "updated_at": "2016-04-27T21:11:03+00:00",
+            "uuid": "1910f669-ce8b-43c2-b1d8-cf3d65be815e",
+        }
+    },
+    "event_type":"baremetal.chassis.update.end",
+    "publisher_id":"ironic-api.hostname02"
+   }
+
+List of CRUD notifications for node:
+
+* ``baremetal.node.create.start``
+* ``baremetal.node.create.end``
+* ``baremetal.node.create.error``
+* ``baremetal.node.update.start``
+* ``baremetal.node.update.end``
+* ``baremetal.node.update.error``
+* ``baremetal.node.delete.start``
+* ``baremetal.node.delete.end``
+* ``baremetal.node.delete.error``
+
+Example of node CRUD notification::
+
+   {
+    "priority": "info",
+    "payload":{
+        "ironic_object.namespace":"ironic",
+        "ironic_object.name":"NodeCRUDPayload",
+        "ironic_object.version":"1.0",
+        "ironic_object.data":{
+            "chassis_uuid": "db0eef9d-45b2-4dc0-94a8-fc283c01171f",
+            "clean_step": None,
+            "console_enabled": False,
+            "created_at": "2016-01-26T20:41:03+00:00",
+            "driver": "fake",
+            "driver_info": {
+                "host": "192.168.0.111"},
+            "extra": {},
+            "inspection_finished_at": None,
+            "inspection_started_at": None,
+            "instance_info": {},
+            "instance_uuid": None,
+            "last_error": None,
+            "maintenance": False,
+            "maintenance_reason": None,
+            "network_interface": "flat",
+            "name": None,
+            "power_state": "power off",
+            "properties": {
+                "memory_mb":  4096,
+                "cpu_arch":  "x86_64",
+                "local_gb":  10,
+                "cpus":  8},
+            "provision_state": "deploying",
+            "provision_updated_at": "2016-01-27T20:41:03+00:00",
+            "resource_class": None,
+            "target_power_state": None,
+            "target_provision_state": "active",
+            "updated_at": "2016-01-27T20:41:03+00:00",
+            "uuid": "1be26c0b-03f2-4d2e-ae87-c02d7f33c123",
+        }
+    },
+    "event_type":"baremetal.node.update.end",
+    "publisher_id":"ironic-api.hostname02"
+   }
+
+List of CRUD notifications for port:
+
+* ``baremetal.port.create.start``
+* ``baremetal.port.create.end``
+* ``baremetal.port.create.error``
+* ``baremetal.port.update.start``
+* ``baremetal.port.update.end``
+* ``baremetal.port.update.error``
+* ``baremetal.port.delete.start``
+* ``baremetal.port.delete.end``
+* ``baremetal.port.delete.error``
+
+Example of port CRUD notification::
+
+   {
+    "priority": "info",
+    "payload":{
+        "ironic_object.namespace":"ironic",
+        "ironic_object.name":"PortCRUDPayload",
+        "ironic_object.version":"1.0",
+        "ironic_object.data":{
+            "address": "77:66:23:34:11:b7",
+            "created_at": "2016-02-11T15:23:03+00:00",
+            "node_uuid": "5b236cab-ad4e-4220-b57c-e827e858745a",
+            "extra": {},
+            "local_link_connection": {},
+            "pxe_enabled": True,
+            "updated_at": "2016-03-27T20:41:03+00:00",
+            "uuid": "1be26c0b-03f2-4d2e-ae87-c02d7f33c123",
+        }
+    },
+    "event_type":"baremetal.port.update.end",
+    "publisher_id":"ironic-api.hostname02"
+   }
+
 ------------------------------
 ironic-conductor notifications
 ------------------------------
@@ -257,3 +393,4 @@ indicate a node's provision states before state change, "event" is the FSM
 
 .. [1] https://wiki.openstack.org/wiki/LoggingStandards#Log_level_definitions
 .. [2] https://www.rabbitmq.com/documentation.html
+.. [3] https://en.wikipedia.org/wiki/Create,_read,_update_and_delete

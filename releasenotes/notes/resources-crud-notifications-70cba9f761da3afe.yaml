@@ -1,0 +1,7 @@
+---
+features:
+  - Adds notifications for creation, updates, or deletions of ironic resources
+    (node, port and chassis). Event types are formatted as follows
+    "baremetal.<resource>.{create,update,delete}.{start,end,error}".
+    For more details, see the developer documentation
+    /http://docs.openstack.org/developer/ironic/deploy/notifications.html.

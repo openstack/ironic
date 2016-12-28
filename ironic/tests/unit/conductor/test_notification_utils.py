@@ -24,6 +24,7 @@ from ironic.conductor import notification_utils as notif_utils
 from ironic.conductor import task_manager
 from ironic.objects import fields
 from ironic.objects import node as node_objects
+from ironic.objects import notification
 from ironic.tests import base as tests_base
 from ironic.tests.unit.db import base
 from ironic.tests.unit.objects import utils as obj_utils
@@ -69,7 +70,7 @@ class TestNotificationUtils(base.DbTestCase):
             to_power=states.POWER_ON
         )
 
-    @mock.patch.object(notif_utils, 'mask_secrets')
+    @mock.patch.object(notification, 'mask_secrets')
     def test__emit_conductor_node_notification(self, mock_secrets):
         mock_notify_method = mock.Mock()
         # Required for exception handling
@@ -124,7 +125,7 @@ class TestNotificationUtils(base.DbTestCase):
 
         self.assertFalse(mock_notify_method.called)
 
-    @mock.patch.object(notif_utils, 'mask_secrets')
+    @mock.patch.object(notification, 'mask_secrets')
     def test__emit_conductor_node_notification_known_notify_exc(self,
                                                                 mock_secrets):
         """Test exception caught for a known notification exception."""
@@ -190,7 +191,7 @@ class ProvisionNotifyTestCase(tests_base.TestCase):
                      'some_value': 'fake-value'}
         node = obj_utils.get_test_node(self.context,
                                        instance_info=test_info)
-        notif_utils.mask_secrets(node)
+        notification.mask_secrets(node)
         self.assertEqual('******', node.instance_info['configdrive'])
         self.assertEqual('******', node.instance_info['image_url'])
         self.assertEqual('fake-value', node.instance_info['some_value'])

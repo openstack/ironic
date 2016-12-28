@@ -446,10 +446,11 @@ class NodePayload(notification.NotificationPayloadBase):
     # Version 1.0: Initial version, based off of Node version 1.18.
     # Version 1.1: Type of network_interface changed to just nullable string
     #              similar to version 1.20 of Node.
-    VERSION = '1.1'
+    # Version 1.2: Add nullable to console_enabled and maintenance.
+    VERSION = '1.2'
     fields = {
         'clean_step': object_fields.FlexibleDictField(nullable=True),
-        'console_enabled': object_fields.BooleanField(),
+        'console_enabled': object_fields.BooleanField(nullable=True),
         'created_at': object_fields.DateTimeField(nullable=True),
         'driver': object_fields.StringField(nullable=True),
         'extra': object_fields.FlexibleDictField(nullable=True),
@@ -457,7 +458,7 @@ class NodePayload(notification.NotificationPayloadBase):
         'inspection_started_at': object_fields.DateTimeField(nullable=True),
         'instance_uuid': object_fields.UUIDField(nullable=True),
         'last_error': object_fields.StringField(nullable=True),
-        'maintenance': object_fields.BooleanField(),
+        'maintenance': object_fields.BooleanField(nullable=True),
         'maintenance_reason': object_fields.StringField(nullable=True),
         'network_interface': object_fields.StringField(nullable=True),
         'name': object_fields.StringField(nullable=True),
@@ -493,7 +494,8 @@ class NodeSetPowerStatePayload(NodePayload):
     """Payload schema for when ironic changes a node's power state."""
     # Version 1.0: Initial version
     # Version 1.1: Parent NodePayload version 1.1
-    VERSION = '1.1'
+    # Version 1.2: Parent NodePayload version 1.2
+    VERSION = '1.2'
 
     fields = {
         # "to_power" indicates the future target_power_state of the node. A
@@ -535,7 +537,8 @@ class NodeCorrectedPowerStatePayload(NodePayload):
     """
     # Version 1.0: Initial version
     # Version 1.1: Parent NodePayload version 1.1
-    VERSION = '1.1'
+    # Version 1.2: Parent NodePayload version 1.2
+    VERSION = '1.2'
 
     fields = {
         'from_power': object_fields.StringField(nullable=True)
@@ -562,7 +565,8 @@ class NodeSetProvisionStatePayload(NodePayload):
     """Payload schema for when ironic changes a node provision state."""
     # Version 1.0: Initial version
     # Version 1.1: Parent NodePayload version 1.1
-    VERSION = '1.1'
+    # Version 1.2: Parent NodePayload version 1.2
+    VERSION = '1.2'
 
     SCHEMA = dict(NodePayload.SCHEMA,
                   **{'instance_info': ('node', 'instance_info')})
@@ -579,3 +583,34 @@ class NodeSetProvisionStatePayload(NodePayload):
         super(NodeSetProvisionStatePayload, self).__init__(
             node, event=event, previous_provision_state=prev_state,
             previous_target_provision_state=prev_target)
+
+
+@base.IronicObjectRegistry.register
+class NodeCRUDNotification(notification.NotificationBase):
+    """Notification emitted when ironic creates, updates or deletes a node."""
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'payload': object_fields.ObjectField('NodeCRUDPayload')
+    }
+
+
+@base.IronicObjectRegistry.register
+class NodeCRUDPayload(NodePayload):
+    """Payload schema for when ironic creates, updates or deletes a node."""
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    SCHEMA = dict(NodePayload.SCHEMA,
+                  **{'instance_info': ('node', 'instance_info'),
+                     'driver_info': ('node', 'driver_info')})
+
+    fields = {
+        'chassis_uuid': object_fields.UUIDField(nullable=True),
+        'instance_info': object_fields.FlexibleDictField(nullable=True),
+        'driver_info': object_fields.FlexibleDictField(nullable=True)
+    }
+
+    def __init__(self, node, chassis_uuid):
+        super(NodeCRUDPayload, self).__init__(node, chassis_uuid=chassis_uuid)

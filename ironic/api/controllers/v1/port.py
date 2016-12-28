@@ -26,6 +26,7 @@ from wsme import types as wtypes
 from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
+from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
@@ -494,7 +495,8 @@ class PortsController(rest.RestController):
         :param port: a port within the request body.
         :raises: NotAcceptable, HTTPNotFound, Conflict
         """
-        cdict = pecan.request.context.to_policy_values()
+        context = pecan.request.context
+        cdict = context.to_policy_values()
         policy.authorize('baremetal:port:create', cdict, cdict)
 
         if self.parent_node_ident or self.parent_portgroup_ident:
@@ -512,7 +514,7 @@ class PortsController(rest.RestController):
         vif = extra.get('vif_port_id') if extra else None
         if (pdict.get('portgroup_uuid') and
                 (pdict.get('pxe_enabled') or vif)):
-            rpc_pg = objects.Portgroup.get_by_uuid(pecan.request.context,
+            rpc_pg = objects.Portgroup.get_by_uuid(context,
                                                    pdict['portgroup_uuid'])
             if not rpc_pg.standalone_ports_supported:
                 msg = _("Port group %s doesn't support standalone ports. "
@@ -522,10 +524,19 @@ class PortsController(rest.RestController):
                 raise exception.Conflict(
                     msg % pdict['portgroup_uuid'])
 
-        new_port = objects.Port(pecan.request.context,
-                                **pdict)
+        # NOTE(yuriyz): UUID is mandatory for notifications payload
+        if not pdict.get('uuid'):
+            pdict['uuid'] = uuidutils.generate_uuid()
 
-        new_port.create()
+        new_port = objects.Port(context, **pdict)
+
+        notify.emit_start_notification(context, new_port, 'create',
+                                       node_uuid=port.node_uuid)
+        with notify.handle_error_notification(context, new_port, 'create',
+                                              node_uuid=port.node_uuid):
+            new_port.create()
+        notify.emit_end_notification(context, new_port, 'create',
+                                     node_uuid=port.node_uuid)
         # Set the HTTP Location Header
         pecan.response.location = link.build_url('ports', new_port.uuid)
         return Port.convert_with_links(new_port)
@@ -540,7 +551,8 @@ class PortsController(rest.RestController):
         :param patch: a json PATCH document to apply to this port.
         :raises: NotAcceptable, HTTPNotFound
         """
-        cdict = pecan.request.context.to_policy_values()
+        context = pecan.request.context
+        cdict = context.to_policy_values()
         policy.authorize('baremetal:port:update', cdict, cdict)
 
         if self.parent_node_ident or self.parent_portgroup_ident:
@@ -559,7 +571,7 @@ class PortsController(rest.RestController):
                 not api_utils.allow_portgroups_subcontrollers()):
             raise exception.NotAcceptable()
 
-        rpc_port = objects.Port.get_by_uuid(pecan.request.context, port_uuid)
+        rpc_port = objects.Port.get_by_uuid(context, port_uuid)
         try:
             port_dict = rpc_port.as_dict()
             # NOTE(lucasagomes):
@@ -591,14 +603,20 @@ class PortsController(rest.RestController):
             if rpc_port[field] != patch_val:
                 rpc_port[field] = patch_val
 
-        rpc_node = objects.Node.get_by_id(pecan.request.context,
-                                          rpc_port.node_id)
-        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        rpc_node = objects.Node.get_by_id(context, rpc_port.node_id)
+        notify.emit_start_notification(context, rpc_port, 'update',
+                                       node_uuid=rpc_node.uuid)
+        with notify.handle_error_notification(context, rpc_port, 'update',
+                                              node_uuid=rpc_node.uuid):
+            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+            new_port = pecan.request.rpcapi.update_port(context, rpc_port,
+                                                        topic)
 
-        new_port = pecan.request.rpcapi.update_port(
-            pecan.request.context, rpc_port, topic)
+        api_port = Port.convert_with_links(new_port)
+        notify.emit_end_notification(context, new_port, 'update',
+                                     node_uuid=api_port.node_uuid)
 
-        return Port.convert_with_links(new_port)
+        return api_port
 
     @METRICS.timer('PortsController.delete')
     @expose.expose(None, types.uuid, status_code=http_client.NO_CONTENT)
@@ -608,16 +626,20 @@ class PortsController(rest.RestController):
         :param port_uuid: UUID of a port.
         :raises OperationNotPermitted, HTTPNotFound
         """
-        cdict = pecan.request.context.to_policy_values()
+        context = pecan.request.context
+        cdict = context.to_policy_values()
         policy.authorize('baremetal:port:delete', cdict, cdict)
 
         if self.parent_node_ident or self.parent_portgroup_ident:
             raise exception.OperationNotPermitted()
 
-        rpc_port = objects.Port.get_by_uuid(pecan.request.context,
-                                            port_uuid)
-        rpc_node = objects.Node.get_by_id(pecan.request.context,
-                                          rpc_port.node_id)
-        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-        pecan.request.rpcapi.destroy_port(pecan.request.context,
-                                          rpc_port, topic)
+        rpc_port = objects.Port.get_by_uuid(context, port_uuid)
+        rpc_node = objects.Node.get_by_id(context, rpc_port.node_id)
+        notify.emit_start_notification(context, rpc_port, 'delete',
+                                       node_uuid=rpc_node.uuid)
+        with notify.handle_error_notification(context, rpc_port, 'delete',
+                                              node_uuid=rpc_node.uuid):
+            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+            pecan.request.rpcapi.destroy_port(context, rpc_port, topic)
+        notify.emit_end_notification(context, rpc_port, 'delete',
+                                     node_uuid=rpc_node.uuid)

@@ -29,6 +29,9 @@ from wsme import types as wtypes
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import chassis as api_chassis
+from ironic.api.controllers.v1 import notification_utils
+from ironic import objects
+from ironic.objects import fields as obj_fields
 from ironic.tests import base
 from ironic.tests.unit.api import base as test_api_base
 from ironic.tests.unit.api import utils as apiutils
@@ -252,8 +255,9 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
+    @mock.patch.object(notification_utils, '_emit_api_notification')
     @mock.patch.object(timeutils, 'utcnow')
-    def test_replace_singular(self, mock_utcnow):
+    def test_replace_singular(self, mock_utcnow, mock_notify):
         chassis = obj_utils.get_test_chassis(self.context)
         description = 'chassis-new-description'
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
@@ -269,6 +273,27 @@ class TestPatch(test_api_base.BaseApiTest):
         return_updated_at = timeutils.parse_isotime(
             result['updated_at']).replace(tzinfo=None)
         self.assertEqual(test_time, return_updated_at)
+        mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'update',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.START),
+                                      mock.call(mock.ANY, mock.ANY, 'update',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.END)])
+
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(objects.Chassis, 'save')
+    def test_update_error(self, mock_save, mock_notify):
+        mock_save.side_effect = Exception()
+        chassis = obj_utils.get_test_chassis(self.context)
+        self.patch_json('/chassis/%s' % chassis.uuid, [{'path': '/description',
+                        'value': 'new', 'op': 'replace'}],
+                        expect_errors=True)
+        mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'update',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.START),
+                                      mock.call(mock.ANY, mock.ANY, 'update',
+                                      obj_fields.NotificationLevel.ERROR,
+                                      obj_fields.NotificationStatus.ERROR)])
 
     def test_replace_multi(self):
         extra = {"foo1": "bar1", "foo2": "bar2", "foo3": "bar3"}
@@ -386,8 +411,9 @@ class TestPatch(test_api_base.BaseApiTest):
 
 class TestPost(test_api_base.BaseApiTest):
 
+    @mock.patch.object(notification_utils, '_emit_api_notification')
     @mock.patch.object(timeutils, 'utcnow')
-    def test_create_chassis(self, mock_utcnow):
+    def test_create_chassis(self, mock_utcnow, mock_notify):
         cdict = apiutils.chassis_post_data()
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = test_time
@@ -405,6 +431,25 @@ class TestPost(test_api_base.BaseApiTest):
         expected_location = '/v1/chassis/%s' % cdict['uuid']
         self.assertEqual(urlparse.urlparse(response.location).path,
                          expected_location)
+        mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'create',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.START),
+                                      mock.call(mock.ANY, mock.ANY, 'create',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.END)])
+
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(objects.Chassis, 'create')
+    def test_create_chassis_error(self, mock_save, mock_notify):
+        mock_save.side_effect = Exception()
+        cdict = apiutils.chassis_post_data()
+        self.post_json('/chassis', cdict, expect_errors=True)
+        mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'create',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.START),
+                                      mock.call(mock.ANY, mock.ANY, 'create',
+                                      obj_fields.NotificationLevel.ERROR,
+                                      obj_fields.NotificationStatus.ERROR)])
 
     def test_create_chassis_doesnt_contain_id(self):
         with mock.patch.object(self.dbapi, 'create_chassis',
@@ -417,7 +462,9 @@ class TestPost(test_api_base.BaseApiTest):
             # Check that 'id' is not in first arg of positional args
             self.assertNotIn('id', cc_mock.call_args[0][0])
 
-    def test_create_chassis_generate_uuid(self):
+    @mock.patch.object(notification_utils.LOG, 'exception', autospec=True)
+    @mock.patch.object(notification_utils.LOG, 'warning', autospec=True)
+    def test_create_chassis_generate_uuid(self, mock_warning, mock_exception):
         cdict = apiutils.chassis_post_data()
         del cdict['uuid']
         self.post_json('/chassis', cdict)
@@ -425,6 +472,8 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(cdict['description'],
                          result['chassis'][0]['description'])
         self.assertTrue(uuidutils.is_uuid_like(result['chassis'][0]['uuid']))
+        self.assertFalse(mock_warning.called)
+        self.assertFalse(mock_exception.called)
 
     def test_post_nodes_subresource(self):
         chassis = obj_utils.create_test_chassis(self.context)
@@ -472,7 +521,8 @@ class TestPost(test_api_base.BaseApiTest):
 
 class TestDelete(test_api_base.BaseApiTest):
 
-    def test_delete_chassis(self):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_delete_chassis(self, mock_notify):
         chassis = obj_utils.create_test_chassis(self.context)
         self.delete('/chassis/%s' % chassis.uuid)
         response = self.get_json('/chassis/%s' % chassis.uuid,
@@ -480,8 +530,15 @@ class TestDelete(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
+        mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'delete',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.START),
+                                      mock.call(mock.ANY, mock.ANY, 'delete',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.END)])
 
-    def test_delete_chassis_with_node(self):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_delete_chassis_with_node(self, mock_notify):
         chassis = obj_utils.create_test_chassis(self.context)
         obj_utils.create_test_node(self.context, chassis_id=chassis.id)
         response = self.delete('/chassis/%s' % chassis.uuid,
@@ -490,6 +547,12 @@ class TestDelete(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
         self.assertIn(chassis.uuid, response.json['error_message'])
+        mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'delete',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.START),
+                                      mock.call(mock.ANY, mock.ANY, 'delete',
+                                      obj_fields.NotificationLevel.ERROR,
+                                      obj_fields.NotificationStatus.ERROR)])
 
     def test_delete_chassis_not_found(self):
         uuid = uuidutils.generate_uuid()

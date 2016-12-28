@@ -13,7 +13,6 @@
 from oslo_config import cfg
 from oslo_log import log
 from oslo_messaging import exceptions as oslo_msg_exc
-from oslo_utils import strutils
 from oslo_versionedobjects import exception as oslo_vo_exc
 
 from ironic.common import exception
@@ -24,17 +23,6 @@ from ironic.objects import notification
 
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
-
-
-def mask_secrets(payload):
-    """Remove secrets from payload object."""
-    mask = '******'
-    if hasattr(payload, 'instance_info'):
-        payload.instance_info = strutils.mask_dict_password(
-            payload.instance_info, mask)
-        if 'image_url' in payload.instance_info:
-            payload.instance_info['image_url'] = mask
-    # TODO(yuriyz): add "driver_info" support
 
 
 def _emit_conductor_node_notification(task, notification_method,
@@ -70,7 +58,7 @@ def _emit_conductor_node_notification(task, notification_method,
                                "payload_method %(payload_method)s, error "
                                "%(error)s"))
         payload = payload_method(task.node, **kwargs)
-        mask_secrets(payload)
+        notification.mask_secrets(payload)
         notification_method(
             publisher=notification.NotificationPublisher(
                 service='ironic-conductor', host=CONF.host),
