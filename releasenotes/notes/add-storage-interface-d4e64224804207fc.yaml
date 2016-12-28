@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds the initial substrate to allow for the creation of storage
+    interfaces. The default storage interface for nodes is ``noop``,
+    which routes to a no-op driver that is included with the substrate.

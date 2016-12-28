@@ -233,6 +233,26 @@
 # entrypoint. (string value)
 #default_raid_interface = <None>
 
+# Specify the list of storage interfaces to load during
+# service initialization. Missing storage interfaces, or
+# storage interfaces which fail to initialize, will prevent
+# the ironic-conductor service from starting. The default
+# value is a recommended set of production-oriented storage
+# interfaces. A complete list of storage interfaces present on
+# your system may be found by enumerating the
+# "ironic.hardware.interfaces.storage" entrypoint. When
+# setting this value, please make sure that every enabled
+# hardware type will have the same set of enabled storage
+# interfaces on every ironic-conductor service. (list value)
+#enabled_storage_interfaces = noop
+
+# Default storage interface to be used for nodes that do not
+# have storage_interface field set. A complete list of storage
+# interfaces present on your system may be found by
+# enumerating the "ironic.hardware.interfaces.storage"
+# entrypoint. (list value)
+#default_storage_interface = <None>
+
 # WARNING: This configuration option is part of the incomplete
 # driver composition work, changing it's setting has no
 # effect. Specify the list of vendor interfaces to load during

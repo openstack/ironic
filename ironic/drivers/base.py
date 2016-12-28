@@ -170,6 +170,13 @@ class BareDriver(BaseDriver):
         """
         self.core_interfaces.append('network')
 
+        self.storage = None
+        """`Standard` attribute for (remote) storage interface.
+
+        A reference to an instance of :class:StorageInterface.
+        """
+        self.standard_interfaces.append('storage')
+
 
 ALL_INTERFACES = set(BareDriver().all_interfaces)
 """Constant holding all known interfaces.
@@ -985,6 +992,39 @@ class NetworkInterface(BaseInterface):
 
         :param task: A TaskManager instance.
         :raises: NetworkError
+        """
+
+
+@six.add_metaclass(abc.ABCMeta)
+class StorageInterface(BaseInterface):
+    """Base class for storage interfaces."""
+
+    interface_type = 'storage'
+
+    @abc.abstractmethod
+    def attach_volumes(self, task):
+        """Informs the storage subsystem to attach all volumes for the node.
+
+        :param task: a TaskManager instance.
+        :raises: UnsupportedDriverExtension
+        """
+
+    @abc.abstractmethod
+    def detach_volumes(self, task):
+        """Informs the storage subsystem to detach all volumes for the node.
+
+        :param task: a TaskManager instance.
+        :raises: UnsupportedDriverExtension
+        """
+
+    @abc.abstractmethod
+    def should_write_image(self, task):
+        """Determines if deploy should perform the image write-out.
+
+        :param task: a TaskManager instance.
+        :returns: Boolean value to indicate if the interface expects
+                  the image to be written by Ironic.
+        :raises: UnsupportedDriverExtension
         """
 
 

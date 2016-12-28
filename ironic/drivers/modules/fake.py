@@ -225,3 +225,22 @@ class FakeRAID(base.RAIDInterface):
 
     def delete_configuration(self, task):
         pass
+
+
+class FakeStorage(base.StorageInterface):
+    """Example implementation of simple storage Interface."""
+
+    def validate(self, task):
+        pass
+
+    def get_properties(self):
+        return {}
+
+    def attach_volumes(self, task):
+        pass
+
+    def detach_volumes(self, task):
+        pass
+
+    def should_write_image(self, task):
+        return True

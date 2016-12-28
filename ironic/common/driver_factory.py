@@ -67,8 +67,9 @@ def _attach_interfaces_to_driver(bare_driver, node, driver_or_hw_type):
     """Attach interface implementations to a bare driver object.
 
     For classic drivers, copies implementations from the singleton driver
-    object, then attaches the dynamic interfaces (network_interface for classic
-    drivers, all interfaces for dynamic drivers made of hardware types).
+    object, then attaches the dynamic interfaces (network and storage
+    interfaces for classic drivers, all interfaces for dynamic drivers
+    made of hardware types).
 
     For hardware types, load all interface implementations dynamically.
 
@@ -88,9 +89,9 @@ def _attach_interfaces_to_driver(bare_driver, node, driver_or_hw_type):
             impl = getattr(driver_or_hw_type, iface, None)
             setattr(bare_driver, iface, impl)
 
-        # NOTE(dtantsur): only network interface is dynamic for classic
-        # drivers, thus it requires separate treatment.
-        dynamic_interfaces = ['network']
+        # NOTE(TheJulia): This list of interfaces to be applied
+        # to classic drivers, thus requiring separate treatment.
+        dynamic_interfaces = ['network', 'storage']
 
     for iface in dynamic_interfaces:
         impl_name = getattr(node, '%s_interface' % iface)
@@ -190,16 +191,18 @@ def check_and_update_node_interfaces(node, driver_or_hw_type=None):
     is_hardware_type = isinstance(driver_or_hw_type,
                                   hardware_type.AbstractHardwareType)
 
-    # Legacy network interface defaults
+    # Explicit interface defaults
     additional_defaults = {
-        'network': 'flat' if CONF.dhcp.dhcp_provider == 'neutron' else 'noop'
+        'network': 'flat' if CONF.dhcp.dhcp_provider == 'neutron' else 'noop',
+        'storage': 'noop'
     }
 
     if is_hardware_type:
         factories = _INTERFACE_LOADERS
     else:
-        # Only network interface is dynamic for classic drivers
-        factories = {'network': _INTERFACE_LOADERS['network']}
+        # Only network and storage interfaces are dynamic for classic drivers
+        factories = {'network': _INTERFACE_LOADERS['network'],
+                     'storage': _INTERFACE_LOADERS['storage']}
 
     # Result - whether the node object was modified
     result = False
@@ -453,3 +456,4 @@ _INTERFACE_LOADERS = {
 # TODO(dtantsur): This factory is still used explicitly in many places,
 # refactor them later to use _INTERFACE_LOADERS.
 NetworkInterfaceFactory = _INTERFACE_LOADERS['network']
+StorageInterfaceFactory = _INTERFACE_LOADERS['storage']

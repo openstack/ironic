@@ -54,7 +54,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     #               deploy_interface, inspect_interface, management_interface,
     #               power_interface, raid_interface, vendor_interface
     # Version 1.20: Type of network_interface changed to just nullable string
-    VERSION = '1.20'
+    # Version 1.21: Add storage_interface field
+    VERSION = '1.21'
 
     dbapi = db_api.get_instance()
 
@@ -122,6 +123,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         'network_interface': object_fields.StringField(nullable=True),
         'power_interface': object_fields.StringField(nullable=True),
         'raid_interface': object_fields.StringField(nullable=True),
+        'storage_interface': object_fields.StringField(nullable=True),
         'vendor_interface': object_fields.StringField(nullable=True),
     }
 
@@ -436,6 +438,11 @@ class NodePayload(notification.NotificationPayloadBase):
         'updated_at': ('node', 'updated_at'),
         'uuid': ('node', 'uuid')
     }
+    # TODO(TheJulia): At a later point in time, once storage_interfaces
+    # are able to be leveraged, we need to add the sotrage_interface
+    # field to payload and increment the object versions for all objects
+    # that inherit the NodePayload object.
+
     # Version 1.0: Initial version, based off of Node version 1.18.
     # Version 1.1: Type of network_interface changed to just nullable string
     #              similar to version 1.20 of Node.
