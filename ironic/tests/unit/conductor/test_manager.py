@@ -42,6 +42,7 @@ from ironic.conductor import utils as conductor_utils
 from ironic.db import api as dbapi
 from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import fake
+from ironic.drivers.modules.network import flat as n_flat
 from ironic import objects
 from ironic.objects import base as obj_base
 from ironic.objects import fields as obj_fields
@@ -2943,7 +2944,10 @@ class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin,
 @mgr_utils.mock_record_keepalive
 class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
                          tests_db_base.DbTestCase):
-    def test_update_port(self):
+
+    @mock.patch.object(n_flat.FlatNetwork, 'port_changed', autospec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    def test_update_port(self, mock_val, mock_pc):
         node = obj_utils.create_test_node(self.context, driver='fake')
 
         port = obj_utils.create_test_port(self.context,
@@ -2953,6 +2957,8 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
         port.extra = new_extra
         res = self.service.update_port(self.context, port)
         self.assertEqual(new_extra, res.extra)
+        mock_val.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_pc.assert_called_once_with(mock.ANY, mock.ANY, port)
 
     def test_update_port_node_locked(self):
         node = obj_utils.create_test_node(self.context, driver='fake',
@@ -2966,56 +2972,28 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeLocked, exc.exc_info[0])
 
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
-    def test_update_port_address(self, mac_update_mock):
-        node = obj_utils.create_test_node(self.context, driver='fake',
-                                          instance_uuid=None,
-                                          provision_state='available')
-        port = obj_utils.create_test_port(self.context,
-                                          node_id=node.id,
-                                          extra={'vif_port_id': 'fake-id'})
-        new_address = '11:22:33:44:55:bb'
-        port.address = new_address
-        res = self.service.update_port(self.context, port)
-        self.assertEqual(new_address, res.address)
-        mac_update_mock.assert_called_once_with('fake-id', new_address,
-                                                token=self.context.auth_token)
+    @mock.patch.object(n_flat.FlatNetwork, 'port_changed', autospec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    def test_update_port_port_changed_failure(self, mock_val, mock_pc):
+        node = obj_utils.create_test_node(self.context, driver='fake')
 
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
-    def test_update_port_address_fail(self, mac_update_mock):
-        node = obj_utils.create_test_node(self.context, driver='fake',
-                                          instance_uuid=None,
-                                          provision_state='available')
         port = obj_utils.create_test_port(self.context,
-                                          node_id=node.id,
-                                          extra={'vif_port_id': 'fake-id'})
+                                          node_id=node.id)
         old_address = port.address
         port.address = '11:22:33:44:55:bb'
-        mac_update_mock.side_effect = (
-            exception.FailedToUpdateMacOnPort(port_id=port.uuid))
+        mock_pc.side_effect = (exception.FailedToUpdateMacOnPort('boom'))
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.update_port,
                                 self.context, port)
-        # Compare true exception hidden by @messaging.expected_exceptions
+        mock_pc.assert_called_once_with(mock.ANY, mock.ANY, port)
+        mock_val.assert_called_once_with(mock.ANY, mock.ANY)
         self.assertEqual(exception.FailedToUpdateMacOnPort, exc.exc_info[0])
         port.refresh()
         self.assertEqual(old_address, port.address)
 
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
-    def test_update_port_address_no_vif_id(self, mac_update_mock):
-        node = obj_utils.create_test_node(self.context, driver='fake',
-                                          instance_uuid=None,
-                                          provision_state='available')
-        port = obj_utils.create_test_port(self.context, node_id=node.id)
-
-        new_address = '11:22:33:44:55:bb'
-        port.address = new_address
-        res = self.service.update_port(self.context, port)
-        self.assertEqual(new_address, res.address)
-        self.assertFalse(mac_update_mock.called)
-
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
-    def test_update_port_address_active_node(self, mac_update_mock):
+    @mock.patch.object(n_flat.FlatNetwork, 'port_changed', autospec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    def test_update_port_address_active_node(self, mock_val, mock_pc):
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           instance_uuid=None,
                                           provision_state='active')
@@ -3032,28 +3010,12 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(exception.InvalidState, exc.exc_info[0])
         port.refresh()
         self.assertEqual(old_address, port.address)
+        self.assertFalse(mock_pc.called)
+        self.assertFalse(mock_val.called)
 
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
-    def test_update_port_address_instance_uuid(self, mac_update_mock):
-        node = obj_utils.create_test_node(self.context, driver='fake',
-                                          instance_uuid='uuid',
-                                          provision_state='error')
-        port = obj_utils.create_test_port(self.context,
-                                          node_id=node.id,
-                                          extra={'vif_port_id': 'fake-id'})
-        old_address = port.address
-        new_address = '11:22:33:44:55:bb'
-        port.address = new_address
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.update_port,
-                                self.context, port)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.InvalidState, exc.exc_info[0])
-        port.refresh()
-        self.assertEqual(old_address, port.address)
-
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
-    def test_update_port_address_maintenance(self, mac_update_mock):
+    @mock.patch.object(n_flat.FlatNetwork, 'port_changed', autospec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    def test_update_port_address_maintenance(self, mock_val, mock_pc):
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           instance_uuid='uuid',
                                           provision_state='active',
@@ -3065,11 +3027,12 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
         port.address = new_address
         res = self.service.update_port(self.context, port)
         self.assertEqual(new_address, res.address)
-        mac_update_mock.assert_called_once_with('fake-id', new_address,
-                                                token=self.context.auth_token)
+        mock_val.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_pc.assert_called_once_with(mock.ANY, mock.ANY, port)
 
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
-    def test_update_port_portgroup_active_node(self, mac_update_mock):
+    @mock.patch.object(n_flat.FlatNetwork, 'port_changed', autospec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    def test_update_port_portgroup_active_node(self, mock_val, mock_pc):
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           instance_uuid=None,
                                           provision_state='active')
@@ -3088,9 +3051,12 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(exception.InvalidState, exc.exc_info[0])
         port.refresh()
         self.assertEqual(pg1.id, port.portgroup_id)
+        self.assertFalse(mock_pc.called)
+        self.assertFalse(mock_val.called)
 
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
-    def test_update_port_portgroup_enroll_node(self, mac_update_mock):
+    @mock.patch.object(n_flat.FlatNetwork, 'port_changed', autospec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    def test_update_port_portgroup_enroll_node(self, mock_val, mock_pc):
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           instance_uuid=None,
                                           provision_state='enroll')
@@ -3105,65 +3071,8 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
         self.service.update_port(self.context, port)
         port.refresh()
         self.assertEqual(pg2.id, port.portgroup_id)
-
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
-    def test_update_port_client_id(self, dhcp_update_mock):
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        port = obj_utils.create_test_port(self.context,
-                                          node_id=node.id,
-                                          extra={'vif_port_id': 'fake-id',
-                                                 'client-id': 'fake1'})
-        expected_extra = {'vif_port_id': 'fake-id', 'client-id': 'fake2'}
-        expected_dhcp_opts = [{'opt_name': 'client-id', 'opt_value': 'fake2'}]
-        port.extra = expected_extra
-        res = self.service.update_port(self.context, port)
-        self.assertEqual(expected_extra, res.extra)
-        dhcp_update_mock.assert_called_once_with('fake-id', expected_dhcp_opts,
-                                                 token=self.context.auth_token)
-
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
-    def test_update_port_vif(self, dhcp_update_mock):
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        port = obj_utils.create_test_port(self.context,
-                                          node_id=node.id,
-                                          extra={'vif_port_id': 'fake-id',
-                                                 'client-id': 'fake1'})
-        expected_extra = {'vif_port_id': 'new_ake-id', 'client-id': 'fake1'}
-        port.extra = expected_extra
-        res = self.service.update_port(self.context, port)
-        self.assertEqual(expected_extra, res.extra)
-        self.assertFalse(dhcp_update_mock.called)
-
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
-    def test_update_port_client_id_fail(self, dhcp_update_mock):
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        expected_extra = {'vif_port_id': 'fake-id', 'client-id': 'fake1'}
-        port = obj_utils.create_test_port(self.context,
-                                          node_id=node.id,
-                                          extra=expected_extra)
-        extra = {'vif_port_id': 'fake-id', 'client-id': 'fake2'}
-        port.extra = extra
-        dhcp_update_mock.side_effect = (
-            exception.FailedToUpdateDHCPOptOnPort(port_id=port.uuid))
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.update_port,
-                                self.context, port)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(
-            exception.FailedToUpdateDHCPOptOnPort, exc.exc_info[0])
-        port.refresh()
-        self.assertEqual(expected_extra, port.extra)
-
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
-    def test_update_port_client_id_no_vif_id(self, dhcp_update_mock):
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        port = obj_utils.create_test_port(self.context, node_id=node.id)
-
-        expected_extra = {'client-id': 'fake2'}
-        port.extra = expected_extra
-        res = self.service.update_port(self.context, port)
-        self.assertEqual(expected_extra, res.extra)
-        self.assertFalse(dhcp_update_mock.called)
+        mock_pc.assert_called_once_with(mock.ANY, mock.ANY, port)
+        mock_val.assert_called_once_with(mock.ANY, mock.ANY)
 
     def test_update_port_node_deleting_state(self):
         node = obj_utils.create_test_node(self.context, driver='fake',
@@ -3180,7 +3089,10 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
         port.refresh()
         self.assertEqual(old_pxe, port.pxe_enabled)
 
-    def test_update_port_node_manageable_state(self):
+    @mock.patch.object(n_flat.FlatNetwork, 'port_changed', autospec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    def test_update_port_node_manageable_state(self, mock_val,
+                                               mock_pc):
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           provision_state=states.MANAGEABLE)
         port = obj_utils.create_test_port(self.context,
@@ -3190,8 +3102,13 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
         self.service.update_port(self.context, port)
         port.refresh()
         self.assertEqual(True, port.pxe_enabled)
+        mock_val.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_pc.assert_called_once_with(mock.ANY, mock.ANY, port)
 
-    def test_update_port_node_active_state_and_maintenance(self):
+    @mock.patch.object(n_flat.FlatNetwork, 'port_changed', autospec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    def test_update_port_node_active_state_and_maintenance(self, mock_val,
+                                                           mock_pc):
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           provision_state=states.ACTIVE,
                                           maintenance=True)
@@ -3202,143 +3119,8 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
         self.service.update_port(self.context, port)
         port.refresh()
         self.assertEqual(True, port.pxe_enabled)
-
-    def _test_update_port(self, has_vif=False, in_portgroup=False,
-                          pxe_enabled=True, standalone_ports=True,
-                          expect_errors=False):
-        node = obj_utils.create_test_node(self.context, driver='fake',
-                                          provision_state=states.ENROLL)
-
-        pg = obj_utils.create_test_portgroup(
-            self.context, node_id=node.id,
-            standalone_ports_supported=standalone_ports)
-
-        extra_vif = {'vif_port_id': uuidutils.generate_uuid()}
-        if has_vif:
-            extra = extra_vif
-            opposite_extra = {}
-        else:
-            extra = {}
-            opposite_extra = extra_vif
-        opposite_pxe_enabled = not pxe_enabled
-
-        pg_id = None
-        if in_portgroup:
-            pg_id = pg.id
-
-        ports = []
-
-        # Update only portgroup id on existed port with different
-        # combinations of pxe_enabled/vif_port_id
-        p1 = obj_utils.create_test_port(self.context, node_id=node.id,
-                                        uuid=uuidutils.generate_uuid(),
-                                        address="aa:bb:cc:dd:ee:01",
-                                        extra=extra,
-                                        pxe_enabled=pxe_enabled)
-        p1.portgroup_id = pg_id
-        ports.append(p1)
-
-        # Update portgroup_id/pxe_enabled/vif_port_id in one request
-        p2 = obj_utils.create_test_port(self.context, node_id=node.id,
-                                        uuid=uuidutils.generate_uuid(),
-                                        address="aa:bb:cc:dd:ee:02",
-                                        extra=opposite_extra,
-                                        pxe_enabled=opposite_pxe_enabled)
-        p2.extra = extra
-        p2.pxe_enabled = pxe_enabled
-        p2.portgroup_id = pg_id
-        ports.append(p2)
-
-        # Update portgroup_id and pxe_enabled
-        p3 = obj_utils.create_test_port(self.context, node_id=node.id,
-                                        uuid=uuidutils.generate_uuid(),
-                                        address="aa:bb:cc:dd:ee:03",
-                                        extra=extra,
-                                        pxe_enabled=opposite_pxe_enabled)
-        p3.pxe_enabled = pxe_enabled
-        p3.portgroup_id = pg_id
-        ports.append(p3)
-
-        # Update portgroup_id and vif_port_id
-        p4 = obj_utils.create_test_port(self.context, node_id=node.id,
-                                        uuid=uuidutils.generate_uuid(),
-                                        address="aa:bb:cc:dd:ee:04",
-                                        pxe_enabled=pxe_enabled,
-                                        extra=opposite_extra)
-        p4.extra = extra
-        p4.portgroup_id = pg_id
-        ports.append(p4)
-
-        for port in ports:
-            if not expect_errors:
-                res = self.service.update_port(self.context, port)
-                self.assertEqual(port.pxe_enabled, res.pxe_enabled)
-                self.assertEqual(port.portgroup_id, res.portgroup_id)
-                self.assertEqual(port.extra, res.extra)
-            else:
-                self.assertRaises(messaging.rpc.ExpectedException,
-                                  self.service.update_port,
-                                  self.context, port)
-
-    def test_update_port_novif_pxe_noportgroup(self):
-        self._test_update_port(has_vif=False, in_portgroup=False,
-                               pxe_enabled=True,
-                               expect_errors=False)
-
-    def test_update_port_novif_nopxe_noportgroup(self):
-        self._test_update_port(has_vif=False, in_portgroup=False,
-                               pxe_enabled=False,
-                               expect_errors=False)
-
-    def test_update_port_vif_pxe_noportgroup(self):
-        self._test_update_port(has_vif=True, in_portgroup=False,
-                               pxe_enabled=True,
-                               expect_errors=False)
-
-    def test_update_port_vif_nopxe_noportgroup(self):
-        self._test_update_port(has_vif=True, in_portgroup=False,
-                               pxe_enabled=False,
-                               expect_errors=False)
-
-    def test_update_port_novif_pxe_portgroup_standalone_ports(self):
-        self._test_update_port(has_vif=False, in_portgroup=True,
-                               pxe_enabled=True, standalone_ports=True,
-                               expect_errors=False)
-
-    def test_update_port_novif_pxe_portgroup_nostandalone_ports(self):
-        self._test_update_port(has_vif=False, in_portgroup=True,
-                               pxe_enabled=True, standalone_ports=False,
-                               expect_errors=True)
-
-    def test_update_port_novif_nopxe_portgroup_standalone_ports(self):
-        self._test_update_port(has_vif=False, in_portgroup=True,
-                               pxe_enabled=False, standalone_ports=True,
-                               expect_errors=False)
-
-    def test_update_port_novif_nopxe_portgroup_nostandalone_ports(self):
-        self._test_update_port(has_vif=False, in_portgroup=True,
-                               pxe_enabled=False, standalone_ports=False,
-                               expect_errors=False)
-
-    def test_update_port_vif_pxe_portgroup_standalone_ports(self):
-        self._test_update_port(has_vif=True, in_portgroup=True,
-                               pxe_enabled=True, standalone_ports=True,
-                               expect_errors=False)
-
-    def test_update_port_vif_pxe_portgroup_nostandalone_ports(self):
-        self._test_update_port(has_vif=True, in_portgroup=True,
-                               pxe_enabled=True, standalone_ports=False,
-                               expect_errors=True)
-
-    def test_update_port_vif_nopxe_portgroup_standalone_ports(self):
-        self._test_update_port(has_vif=True, in_portgroup=True,
-                               pxe_enabled=True, standalone_ports=True,
-                               expect_errors=False)
-
-    def test_update_port_vif_nopxe_portgroup_nostandalone_ports(self):
-        self._test_update_port(has_vif=True, in_portgroup=True,
-                               pxe_enabled=False, standalone_ports=False,
-                               expect_errors=True)
+        mock_val.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_pc.assert_called_once_with(mock.ANY, mock.ANY, port)
 
     def test__filter_out_unsupported_types_all(self):
         self._start_service()
@@ -3543,7 +3325,9 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
 @mgr_utils.mock_record_keepalive
 class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin,
                               tests_db_base.DbTestCase):
-    def test_update_portgroup(self):
+    @mock.patch.object(n_flat.FlatNetwork, 'portgroup_changed', autospec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    def test_update_portgroup(self, mock_val, mock_pc):
         node = obj_utils.create_test_node(self.context, driver='fake')
         portgroup = obj_utils.create_test_portgroup(self.context,
                                                     node_id=node.id,
@@ -3553,6 +3337,27 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin,
         self.service.update_portgroup(self.context, portgroup)
         portgroup.refresh()
         self.assertEqual(new_extra, portgroup.extra)
+        mock_val.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_pc.assert_called_once_with(mock.ANY, mock.ANY, portgroup)
+
+    @mock.patch.object(n_flat.FlatNetwork, 'portgroup_changed', autospec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    def test_update_portgroup_failure(self, mock_val, mock_pc):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=node.id,
+                                                    extra={'foo': 'bar'})
+        old_extra = portgroup.extra
+        new_extra = {'foo': 'baz'}
+        portgroup.extra = new_extra
+        mock_pc.side_effect = (exception.FailedToUpdateMacOnPort('boom'))
+        self.assertRaises(messaging.rpc.ExpectedException,
+                          self.service.update_portgroup,
+                          self.context, portgroup)
+        portgroup.refresh()
+        self.assertEqual(old_extra, portgroup.extra)
+        mock_val.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_pc.assert_called_once_with(mock.ANY, mock.ANY, portgroup)
 
     def test_update_portgroup_node_locked(self):
         node = obj_utils.create_test_node(self.context, driver='fake',
@@ -3589,7 +3394,10 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(old_node_id, portgroup.node_id)
 
     @mock.patch.object(dbapi.IMPL, 'get_ports_by_portgroup_id')
-    def test_update_portgroup_to_node_in_manageable_state(self,
+    @mock.patch.object(n_flat.FlatNetwork, 'portgroup_changed', autospec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    def test_update_portgroup_to_node_in_manageable_state(self, mock_val,
+                                                          mock_pgc,
                                                           mock_get_ports):
         node = obj_utils.create_test_node(self.context, driver='fake')
         portgroup = obj_utils.create_test_portgroup(self.context,
@@ -3608,10 +3416,14 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin,
         portgroup.refresh()
         self.assertEqual(update_node.id, portgroup.node_id)
         mock_get_ports.assert_called_once_with(portgroup.uuid)
+        mock_val.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_pgc.assert_called_once_with(mock.ANY, mock.ANY, portgroup)
 
     @mock.patch.object(dbapi.IMPL, 'get_ports_by_portgroup_id')
+    @mock.patch.object(n_flat.FlatNetwork, 'portgroup_changed', autospec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
     def test_update_portgroup_to_node_in_active_state_and_maintenance(
-            self, mock_get_ports):
+            self, mock_val, mock_pgc, mock_get_ports):
         node = obj_utils.create_test_node(self.context, driver='fake')
         portgroup = obj_utils.create_test_portgroup(self.context,
                                                     node_id=node.id,
@@ -3630,9 +3442,14 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin,
         portgroup.refresh()
         self.assertEqual(update_node.id, portgroup.node_id)
         mock_get_ports.assert_called_once_with(portgroup.uuid)
+        mock_val.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_pgc.assert_called_once_with(mock.ANY, mock.ANY, portgroup)
 
     @mock.patch.object(dbapi.IMPL, 'get_ports_by_portgroup_id')
-    def test_update_portgroup_association_with_ports(self, mock_get_ports):
+    @mock.patch.object(n_flat.FlatNetwork, 'portgroup_changed', autospec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    def test_update_portgroup_association_with_ports(self, mock_val,
+                                                     mock_pgc, mock_get_ports):
         node = obj_utils.create_test_node(self.context, driver='fake')
         portgroup = obj_utils.create_test_portgroup(self.context,
                                                     node_id=node.id,
@@ -3654,128 +3471,8 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin,
         portgroup.refresh()
         self.assertEqual(old_node_id, portgroup.node_id)
         mock_get_ports.assert_called_once_with(portgroup.uuid)
-
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
-    def test_update_portgroup_address(self, mac_update_mock):
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        pg = obj_utils.create_test_portgroup(
-            self.context, node_id=node.id,
-            extra={'vif_port_id': 'fake-id'})
-        new_address = '11:22:33:44:55:bb'
-        pg.address = new_address
-        self.service.update_portgroup(self.context, pg)
-        pg.refresh()
-        self.assertEqual(new_address, pg.address)
-        mac_update_mock.assert_called_once_with('fake-id', new_address,
-                                                token=self.context.auth_token)
-
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
-    def test_update_portgroup_address_fail(self, mac_update_mock):
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        pg = obj_utils.create_test_portgroup(
-            self.context, node_id=node.id,
-            extra={'vif_port_id': 'fake-id'})
-        old_address = pg.address
-        pg.address = '11:22:33:44:55:bb'
-        mac_update_mock.side_effect = (
-            exception.FailedToUpdateMacOnPort(port_id=pg.uuid))
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.update_portgroup,
-                                self.context, pg)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.FailedToUpdateMacOnPort, exc.exc_info[0])
-        pg.refresh()
-        self.assertEqual(old_address, pg.address)
-
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
-    def test_update_portgroup_address_no_vif_id(self, mac_update_mock):
-        node = obj_utils.create_test_node(self.context, driver='fake')
-        pg = obj_utils.create_test_portgroup(self.context, node_id=node.id)
-
-        new_address = '11:22:33:44:55:bb'
-        pg.address = new_address
-        self.service.update_portgroup(self.context, pg)
-        pg.refresh()
-        self.assertEqual(new_address, pg.address)
-        self.assertFalse(mac_update_mock.called)
-
-    def _test_update_portgroup(self, has_vif=False, with_ports=False,
-                               pxe_enabled=True, standalone_ports=True,
-                               expect_errors=False):
-        node = obj_utils.create_test_node(self.context, driver='fake',
-                                          provision_state=states.ENROLL)
-
-        # NOTE(vsaienko) make sure that old values are opposite to new,
-        # to guarantee that object.what_changes() returns true.
-        old_standalone_ports_supported = not standalone_ports
-
-        pg = obj_utils.create_test_portgroup(
-            self.context, node_id=node.id,
-            standalone_ports_supported=old_standalone_ports_supported)
-
-        if with_ports:
-            extra = {}
-            if has_vif:
-                extra = {'vif_port_id': uuidutils.generate_uuid()}
-
-            obj_utils.create_test_port(
-                self.context, node_id=node.id, extra=extra,
-                pxe_enabled=pxe_enabled, portgroup_id=pg.id)
-
-        pg.standalone_ports_supported = standalone_ports
-
-        if not expect_errors:
-            res = self.service.update_portgroup(self.context, pg)
-            self.assertEqual(pg.standalone_ports_supported,
-                             res.standalone_ports_supported)
-        else:
-            self.assertRaises(messaging.rpc.ExpectedException,
-                              self.service.update_portgroup,
-                              self.context, pg)
-
-    def test_update_portgroup_standalone_ports_noports(self):
-        self._test_update_portgroup(with_ports=False, standalone_ports=True,
-                                    expect_errors=False)
-
-    def test_update_portgroup_standalone_ports_novif_pxe_ports(self):
-        self._test_update_portgroup(with_ports=True, standalone_ports=True,
-                                    has_vif=False, pxe_enabled=True,
-                                    expect_errors=False)
-
-    def test_update_portgroup_nostandalone_ports_novif_pxe_ports(self):
-        self._test_update_portgroup(with_ports=True, standalone_ports=False,
-                                    has_vif=False, pxe_enabled=True,
-                                    expect_errors=True)
-
-    def test_update_portgroup_nostandalone_ports_novif_nopxe_ports(self):
-        self._test_update_portgroup(with_ports=True, standalone_ports=False,
-                                    has_vif=False, pxe_enabled=False,
-                                    expect_errors=False)
-
-    def test_update_portgroup_standalone_ports_novif_nopxe_ports(self):
-        self._test_update_portgroup(with_ports=True, standalone_ports=True,
-                                    has_vif=False, pxe_enabled=False,
-                                    expect_errors=False)
-
-    def test_update_portgroup_standalone_ports_vif_pxe_ports(self):
-        self._test_update_portgroup(with_ports=True, standalone_ports=True,
-                                    has_vif=True, pxe_enabled=True,
-                                    expect_errors=False)
-
-    def test_update_portgroup_nostandalone_ports_vif_pxe_ports(self):
-        self._test_update_portgroup(with_ports=True, standalone_ports=False,
-                                    has_vif=True, pxe_enabled=True,
-                                    expect_errors=True)
-
-    def test_update_portgroup_standalone_ports_vif_nopxe_ports(self):
-        self._test_update_portgroup(with_ports=True, standalone_ports=True,
-                                    has_vif=True, pxe_enabled=False,
-                                    expect_errors=False)
-
-    def test_update_portgroup_nostandalone_ports_vif_nopxe_ports(self):
-        self._test_update_portgroup(with_ports=True, standalone_ports=False,
-                                    has_vif=True, pxe_enabled=False,
-                                    expect_errors=True)
+        self.assertFalse(mock_val.called)
+        self.assertFalse(mock_pgc.called)
 
 
 @mgr_utils.mock_record_keepalive
@@ -4592,21 +4289,6 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
             target_state=None)
         self.assertEqual([process_event_call] * 2,
                          self.task.process_event.call_args_list)
-
-    @mock.patch.object(dbapi.IMPL, 'update_port')
-    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_address')
-    def test_update_port_duplicate_mac(self, get_nodeinfo_mock, mapped_mock,
-                                       acquire_mock, mac_update_mock, mock_up):
-        node = utils.create_test_node(driver='fake')
-        port = obj_utils.create_test_port(self.context, node_id=node.id)
-        mock_up.side_effect = exception.MACAlreadyExists(mac=port.address)
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.update_port,
-                                self.context, port)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.MACAlreadyExists, exc.exc_info[0])
-        # ensure Neutron wasn't updated
-        self.assertFalse(mac_update_mock.called)
 
 
 @mgr_utils.mock_record_keepalive

@@ -11,9 +11,11 @@
 #    under the License.
 
 import mock
+from neutronclient.common import exceptions as neutron_exceptions
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
+from ironic.common import exception
 from ironic.common import neutron
 from ironic.conductor import task_manager
 from ironic.drivers.modules.network import flat as flat_interface
@@ -22,6 +24,7 @@ from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils
 
 CONF = cfg.CONF
+VIFMIXINPATH = 'ironic.drivers.modules.network.common.VIFPortIDMixin'
 
 
 class TestFlatInterface(db_base.DbTestCase):
@@ -36,6 +39,33 @@ class TestFlatInterface(db_base.DbTestCase):
             self.context, node_id=self.node.id,
             internal_info={
                 'cleaning_vif_port_id': uuidutils.generate_uuid()})
+
+    @mock.patch('%s.vif_list' % VIFMIXINPATH)
+    def test_vif_list(self, mock_vif_list):
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.vif_list(task)
+            mock_vif_list.assert_called_once_with(task)
+
+    @mock.patch('%s.vif_attach' % VIFMIXINPATH)
+    def test_vif_attach(self, mock_vif_attach):
+        vif = mock.MagicMock()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.vif_attach(task, vif)
+            mock_vif_attach.assert_called_once_with(task, vif)
+
+    @mock.patch('%s.vif_detach' % VIFMIXINPATH)
+    def test_vif_detach(self, mock_vif_detach):
+        vif_id = "vif"
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.vif_detach(task, vif_id)
+            mock_vif_detach.assert_called_once_with(task, vif_id)
+
+    @mock.patch('%s.port_changed' % VIFMIXINPATH)
+    def test_vif_port_changed(self, mock_p_changed):
+        port = mock.MagicMock()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.port_changed(task, port)
+            mock_p_changed.assert_called_once_with(task, port)
 
     @mock.patch.object(flat_interface, 'LOG')
     def test_init_incorrect_cleaning_net(self, mock_log):
@@ -84,8 +114,55 @@ class TestFlatInterface(db_base.DbTestCase):
         self.port.refresh()
         self.assertNotIn('cleaning_vif_port_id', self.port.internal_info)
 
-    def test_unconfigure_tenant_networks(self):
+    @mock.patch.object(neutron, 'get_client')
+    def test_add_provisioning_network_set_binding_host_id(
+            self, client_mock):
+        upd_mock = mock.Mock()
+        client_mock.return_value.update_port = upd_mock
+        instance_info = self.node.instance_info
+        instance_info['nova_host_id'] = 'nova_host_id'
+        self.node.instance_info = instance_info
+        self.node.save()
+        extra = {'vif_port_id': 'foo'}
+        utils.create_test_port(self.context, node_id=self.node.id,
+                               address='52:54:00:cf:2d:33', extra=extra,
+                               uuid=uuidutils.generate_uuid())
+        exp_body = {'port': {'binding:host_id': 'nova_host_id'}}
         with task_manager.acquire(self.context, self.node.id) as task:
-            self.interface.unconfigure_tenant_networks(task)
-            self.port.refresh()
-            self.assertNotIn('vif_port_id', self.port.extra)
+            self.interface.add_provisioning_network(task)
+        upd_mock.assert_called_once_with('foo', exp_body)
+
+    @mock.patch.object(neutron, 'get_client')
+    def test_add_provisioning_network_no_binding_host_id(
+            self, client_mock):
+        upd_mock = mock.Mock()
+        client_mock.return_value.update_port = upd_mock
+        instance_info = self.node.instance_info
+        instance_info.pop('nova_host_id', None)
+        self.node.instance_info = instance_info
+        self.node.save()
+        extra = {'vif_port_id': 'foo'}
+        utils.create_test_port(self.context, node_id=self.node.id,
+                               address='52:54:00:cf:2d:33', extra=extra,
+                               uuid=uuidutils.generate_uuid())
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.add_provisioning_network(task)
+            self.assertFalse(upd_mock.called)
+
+    @mock.patch.object(neutron, 'get_client')
+    def test_add_provisioning_network_binding_host_id_raise(
+            self, client_mock):
+        client_mock.return_value.update_port.side_effect = \
+            (neutron_exceptions.ConnectionFailed())
+        instance_info = self.node.instance_info
+        instance_info['nova_host_id'] = 'nova_host_id'
+        self.node.instance_info = instance_info
+        self.node.save()
+        extra = {'vif_port_id': 'foo'}
+        utils.create_test_port(self.context, node_id=self.node.id,
+                               address='52:54:00:cf:2d:33', extra=extra,
+                               uuid=uuidutils.generate_uuid())
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.assertRaises(exception.NetworkError,
+                              self.interface.add_provisioning_network,
+                              task)

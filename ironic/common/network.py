@@ -32,20 +32,12 @@ def get_node_vif_ids(task):
     portgroup_vifs = {}
     port_vifs = {}
     for portgroup in task.portgroups:
-        # NOTE(vdrok): We are booting the node only in one network at a time,
-        # and presence of cleaning_vif_port_id means we're doing cleaning, of
-        # provisioning_vif_port_id - provisioning. Otherwise it's a tenant
-        # network
-        vif = (portgroup.internal_info.get('cleaning_vif_port_id') or
-               portgroup.internal_info.get('provisioning_vif_port_id') or
-               portgroup.extra.get('vif_port_id'))
+        vif = task.driver.network.get_current_vif(task, portgroup)
         if vif:
             portgroup_vifs[portgroup.uuid] = vif
     vifs['portgroups'] = portgroup_vifs
     for port in task.ports:
-        vif = (port.internal_info.get('cleaning_vif_port_id') or
-               port.internal_info.get('provisioning_vif_port_id') or
-               port.extra.get('vif_port_id'))
+        vif = task.driver.network.get_current_vif(task, port)
         if vif:
             port_vifs[port.uuid] = vif
     vifs['ports'] = port_vifs

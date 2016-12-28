@@ -98,74 +98,14 @@ class TestNeutron(db_base.DbTestCase):
             api.provider.update_port_dhcp_opts,
             port_id, opts)
 
-    @mock.patch.object(client.Client, 'show_port')
-    @mock.patch.object(client.Client, 'update_port')
-    @mock.patch.object(client.Client, '__init__')
-    def test_update_port_address(self, mock_client_init, mock_update_port,
-                                 mock_show_port):
+    @mock.patch('ironic.common.neutron.update_port_address')
+    def test_update_port_address(self, mock_update_port_addr):
         address = 'fe:54:00:77:07:d9'
         port_id = 'fake-port-id'
-        expected = {'port': {'mac_address': address}}
-        mock_client_init.return_value = None
-        mock_show_port.return_value = {}
 
         api = dhcp_factory.DHCPFactory()
         api.provider.update_port_address(port_id, address)
-        mock_update_port.assert_called_once_with(port_id, expected)
-
-    @mock.patch.object(client.Client, 'show_port')
-    @mock.patch.object(client.Client, 'update_port')
-    @mock.patch.object(client.Client, '__init__')
-    def test_update_port_address_with_binding(self, mock_client_init,
-                                              mock_update_port,
-                                              mock_show_port):
-        address = 'fe:54:00:77:07:d9'
-        port_id = 'fake-port-id'
-        expected = {'port': {'mac_address': address,
-                             'binding:host_id': 'host'}}
-        mock_client_init.return_value = None
-        mock_show_port.return_value = {'port': {'binding:host_id': 'host'}}
-
-        api = dhcp_factory.DHCPFactory()
-        api.provider.update_port_address(port_id, address)
-        mock_update_port.assert_any_call(port_id,
-                                         {'port': {'binding:host_id': ''}})
-        mock_update_port.assert_any_call(port_id, expected)
-
-    @mock.patch.object(client.Client, 'show_port')
-    @mock.patch.object(client.Client, 'update_port')
-    @mock.patch.object(client.Client, '__init__')
-    def test_update_port_address_show_failed(self, mock_client_init,
-                                             mock_update_port,
-                                             mock_show_port):
-        address = 'fe:54:00:77:07:d9'
-        port_id = 'fake-port-id'
-        mock_client_init.return_value = None
-        mock_show_port.side_effect = (
-            neutron_client_exc.NeutronClientException())
-
-        api = dhcp_factory.DHCPFactory()
-        self.assertRaises(exception.FailedToUpdateMacOnPort,
-                          api.provider.update_port_address, port_id, address)
-        self.assertFalse(mock_update_port.called)
-
-    @mock.patch.object(client.Client, 'show_port')
-    @mock.patch.object(client.Client, 'update_port')
-    @mock.patch.object(client.Client, '__init__')
-    def test_update_port_address_with_exception(self, mock_client_init,
-                                                mock_update_port,
-                                                mock_show_port):
-        address = 'fe:54:00:77:07:d9'
-        port_id = 'fake-port-id'
-        mock_client_init.return_value = None
-        mock_show_port.return_value = {}
-
-        api = dhcp_factory.DHCPFactory()
-        mock_update_port.side_effect = (
-            neutron_client_exc.NeutronClientException())
-        self.assertRaises(exception.FailedToUpdateMacOnPort,
-                          api.provider.update_port_address,
-                          port_id, address)
+        mock_update_port_addr.assert_called_once_with(port_id, address, None)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
     @mock.patch('ironic.common.network.get_node_vif_ids')
@@ -370,13 +310,14 @@ class TestNeutron(db_base.DbTestCase):
         port = object_utils.create_test_port(
             self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
             uuid=uuidutils.generate_uuid(),
-            extra={'vif_port_id': fake_vif} if network == 'tenant' else {},
             internal_info={
                 'cleaning_vif_port_id': (fake_vif if network == 'cleaning'
                                          else None),
                 'provisioning_vif_port_id': (fake_vif
                                              if network == 'provisioning'
                                              else None),
+                'tenant_vif_port_id': (fake_vif if network == 'tenant'
+                                       else None),
             }
         )
         mock_gfia.return_value = expected
@@ -400,12 +341,10 @@ class TestNeutron(db_base.DbTestCase):
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_fixed_ip_address')
     def test__get_port_ip_address_for_portgroup(self, mock_gfia):
         expected = "192.168.1.3"
-        pg = object_utils.create_test_portgroup(self.context,
-                                                node_id=self.node.id,
-                                                address='aa:bb:cc:dd:ee:ff',
-                                                uuid=uuidutils.generate_uuid(),
-                                                extra={'vif_port_id':
-                                                       'test-vif-A'})
+        pg = object_utils.create_test_portgroup(
+            self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
+            uuid=uuidutils.generate_uuid(),
+            internal_info={'tenant_vif_port_id': 'test-vif-A'})
         mock_gfia.return_value = expected
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
@@ -447,15 +386,18 @@ class TestNeutron(db_base.DbTestCase):
                               mock.sentinel.client)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_fixed_ip_address')
-    def test__get_ip_addresses_ports(self, mock_gfia):
+    def _test__get_ip_addresses_ports(self, key, mock_gfia):
+        if key == "extra":
+            kwargs1 = {key: {'vif_port_id': 'test-vif-A'}}
+        else:
+            kwargs1 = {key: {'tenant_vif_port_id': 'test-vif-A'}}
         ip_address = '10.10.0.1'
         expected = [ip_address]
         port = object_utils.create_test_port(self.context,
                                              node_id=self.node.id,
                                              address='aa:bb:cc:dd:ee:ff',
                                              uuid=uuidutils.generate_uuid(),
-                                             extra={'vif_port_id':
-                                                    'test-vif-A'})
+                                             **kwargs1)
         mock_gfia.return_value = ip_address
         with task_manager.acquire(self.context, self.node.uuid) as task:
             api = dhcp_factory.DHCPFactory().provider
@@ -463,21 +405,35 @@ class TestNeutron(db_base.DbTestCase):
                                            mock.sentinel.client)
         self.assertEqual(expected, result)
 
+    def test__get_ip_addresses_ports_extra(self):
+        self._test__get_ip_addresses_ports('extra')
+
+    def test__get_ip_addresses_ports_int_info(self):
+        self._test__get_ip_addresses_ports('internal_info')
+
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_fixed_ip_address')
-    def test__get_ip_addresses_portgroup(self, mock_gfia):
+    def _test__get_ip_addresses_portgroup(self, key, mock_gfia):
+        if key == "extra":
+            kwargs1 = {key: {'vif_port_id': 'test-vif-A'}}
+        else:
+            kwargs1 = {key: {'tenant_vif_port_id': 'test-vif-A'}}
         ip_address = '10.10.0.1'
         expected = [ip_address]
-        pg = object_utils.create_test_portgroup(self.context,
-                                                node_id=self.node.id,
-                                                address='aa:bb:cc:dd:ee:ff',
-                                                uuid=uuidutils.generate_uuid(),
-                                                extra={'vif_port_id':
-                                                       'test-vif-A'})
+        pg = object_utils.create_test_portgroup(
+            self.context, node_id=self.node.id,
+            address='aa:bb:cc:dd:ee:ff', uuid=uuidutils.generate_uuid(),
+            **kwargs1)
         mock_gfia.return_value = ip_address
         with task_manager.acquire(self.context, self.node.uuid) as task:
             api = dhcp_factory.DHCPFactory().provider
             result = api._get_ip_addresses(task, [pg], mock.sentinel.client)
         self.assertEqual(expected, result)
+
+    def test__get_ip_addresses_portgroup_extra(self):
+        self._test__get_ip_addresses_portgroup('extra')
+
+    def test__get_ip_addresses_portgroup_int_info(self):
+        self._test__get_ip_addresses_portgroup('internal_info')
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_port_ip_address')
     def test_get_ip_addresses(self, get_ip_mock):
@@ -495,12 +451,11 @@ class TestNeutron(db_base.DbTestCase):
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_port_ip_address')
     def test_get_ip_addresses_for_port_and_portgroup(self, get_ip_mock):
-        object_utils.create_test_portgroup(self.context,
-                                           node_id=self.node.id,
-                                           address='aa:bb:cc:dd:ee:ff',
-                                           uuid=uuidutils.generate_uuid(),
-                                           extra={'vif_port_id':
-                                                  'test-vif-A'})
+        object_utils.create_test_portgroup(
+            self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
+            uuid=uuidutils.generate_uuid(),
+            internal_info={'tenant_vif_port_id': 'test-vif-A'})
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
             api = dhcp_factory.DHCPFactory().provider
             api.get_ip_addresses(task)
