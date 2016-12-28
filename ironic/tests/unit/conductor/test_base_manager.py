@@ -24,8 +24,10 @@ from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.conductor import base_manager
 from ironic.conductor import manager
+from ironic.conductor import notification_utils
 from ironic.conductor import task_manager
 from ironic import objects
+from ironic.objects import fields
 from ironic.tests import base as tests_base
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as tests_db_base
@@ -224,7 +226,8 @@ class ManagerSpawnWorkerTestCase(tests_base.TestCase):
 
 class StartConsolesTestCase(mgr_utils.ServiceSetUpMixin,
                             tests_db_base.DbTestCase):
-    def test__start_consoles(self):
+    @mock.patch.object(notification_utils, 'emit_console_notification')
+    def test__start_consoles(self, mock_notify):
         obj_utils.create_test_node(self.context,
                                    driver='fake',
                                    console_enabled=True)
@@ -244,8 +247,14 @@ class StartConsolesTestCase(mgr_utils.ServiceSetUpMixin,
                                'start_console') as mock_start_console:
             self.service._start_consoles(self.context)
             self.assertEqual(2, mock_start_console.call_count)
+            mock_notify.assert_has_calls(
+                [mock.call(mock.ANY, 'console_restore',
+                           fields.NotificationStatus.START),
+                 mock.call(mock.ANY, 'console_restore',
+                           fields.NotificationStatus.END)])
 
-    def test__start_consoles_no_console_enabled(self):
+    @mock.patch.object(notification_utils, 'emit_console_notification')
+    def test__start_consoles_no_console_enabled(self, mock_notify):
         obj_utils.create_test_node(self.context,
                                    driver='fake',
                                    console_enabled=False)
@@ -254,8 +263,10 @@ class StartConsolesTestCase(mgr_utils.ServiceSetUpMixin,
                                'start_console') as mock_start_console:
             self.service._start_consoles(self.context)
             self.assertFalse(mock_start_console.called)
+            self.assertFalse(mock_notify.called)
 
-    def test__start_consoles_failed(self):
+    @mock.patch.object(notification_utils, 'emit_console_notification')
+    def test__start_consoles_failed(self, mock_notify):
         test_node = obj_utils.create_test_node(self.context,
                                                driver='fake',
                                                console_enabled=True)
@@ -268,9 +279,15 @@ class StartConsolesTestCase(mgr_utils.ServiceSetUpMixin,
             test_node.refresh()
             self.assertFalse(test_node.console_enabled)
             self.assertIsNotNone(test_node.last_error)
+            mock_notify.assert_has_calls(
+                [mock.call(mock.ANY, 'console_restore',
+                           fields.NotificationStatus.START),
+                 mock.call(mock.ANY, 'console_restore',
+                           fields.NotificationStatus.ERROR)])
 
+    @mock.patch.object(notification_utils, 'emit_console_notification')
     @mock.patch.object(base_manager, 'LOG')
-    def test__start_consoles_node_locked(self, log_mock):
+    def test__start_consoles_node_locked(self, log_mock, mock_notify):
         test_node = obj_utils.create_test_node(self.context,
                                                driver='fake',
                                                console_enabled=True,
@@ -284,9 +301,11 @@ class StartConsolesTestCase(mgr_utils.ServiceSetUpMixin,
             self.assertTrue(test_node.console_enabled)
             self.assertIsNone(test_node.last_error)
             self.assertTrue(log_mock.warning.called)
+            self.assertFalse(mock_notify.called)
 
+    @mock.patch.object(notification_utils, 'emit_console_notification')
     @mock.patch.object(base_manager, 'LOG')
-    def test__start_consoles_node_not_found(self, log_mock):
+    def test__start_consoles_node_not_found(self, log_mock, mock_notify):
         test_node = obj_utils.create_test_node(self.context,
                                                driver='fake',
                                                console_enabled=True)
@@ -301,3 +320,4 @@ class StartConsolesTestCase(mgr_utils.ServiceSetUpMixin,
                 self.assertTrue(test_node.console_enabled)
                 self.assertIsNone(test_node.last_error)
                 self.assertTrue(log_mock.warning.called)
+                self.assertFalse(mock_notify.called)

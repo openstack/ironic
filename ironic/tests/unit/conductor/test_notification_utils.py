@@ -70,6 +70,32 @@ class TestNotificationUtils(base.DbTestCase):
             to_power=states.POWER_ON
         )
 
+    @mock.patch.object(notif_utils, '_emit_conductor_node_notification')
+    def test_emit_console_notification(self, mock_cond_emit):
+        notif_utils.emit_console_notification(
+            self.task, 'console_set', fields.NotificationStatus.END)
+        mock_cond_emit.assert_called_once_with(
+            self.task,
+            node_objects.NodeConsoleNotification,
+            node_objects.NodePayload,
+            'console_set',
+            fields.NotificationLevel.INFO,
+            fields.NotificationStatus.END,
+        )
+
+    @mock.patch.object(notif_utils, '_emit_conductor_node_notification')
+    def test_emit_console_notification_error_status(self, mock_cond_emit):
+        notif_utils.emit_console_notification(
+            self.task, 'console_set', fields.NotificationStatus.ERROR)
+        mock_cond_emit.assert_called_once_with(
+            self.task,
+            node_objects.NodeConsoleNotification,
+            node_objects.NodePayload,
+            'console_set',
+            fields.NotificationLevel.ERROR,
+            fields.NotificationStatus.ERROR,
+        )
+
     @mock.patch.object(notification, 'mask_secrets')
     def test__emit_conductor_node_notification(self, mock_secrets):
         mock_notify_method = mock.Mock()
