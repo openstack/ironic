@@ -2614,6 +2614,24 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
             self.assertEqual(reason, ret['deploy']['reason'])
             mock_iwdi.assert_called_once_with(self.context, node.instance_info)
 
+    @mock.patch.object(images, 'is_whole_disk_image')
+    def test_validate_driver_interfaces_validation_fail_unexpected(
+            self, mock_iwdi):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        with mock.patch(
+                'ironic.drivers.modules.fake.FakeDeploy.validate'
+        ) as deploy:
+            deploy.side_effect = Exception('boom')
+            ret = self.service.validate_driver_interfaces(self.context,
+                                                          node.uuid)
+            reason = ('Unexpected exception, traceback saved '
+                      'into log by ironic conductor service '
+                      'that is running on test-host: boom')
+            self.assertFalse(ret['deploy']['result'])
+            self.assertEqual(reason, ret['deploy']['reason'])
+
+            mock_iwdi.assert_called_once_with(self.context, node.instance_info)
+
     @mock.patch.object(manager.ConductorManager, '_fail_if_in_state',
                        autospec=True)
     @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
