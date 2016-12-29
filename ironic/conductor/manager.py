@@ -83,7 +83,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.37'
+    RPC_API_VERSION = '1.38'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -1777,7 +1777,6 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, port_obj.node_id,
                                   purpose='port update') as task:
             node = task.node
-
             # Only allow updating MAC addresses for active nodes if maintenance
             # mode is on.
             if ((node.provision_state == states.ACTIVE or node.instance_uuid)
@@ -2323,6 +2322,86 @@ class ConductorManager(base_manager.BaseConductorManager):
                                   purpose='heartbeat') as task:
             task.spawn_after(self._spawn_worker, task.driver.deploy.heartbeat,
                              task, callback_url)
+
+    @METRICS.timer('ConductorManager.vif_list')
+    @messaging.expected_exceptions(exception.NetworkError,
+                                   exception.InvalidParameterValue)
+    def vif_list(self, context, node_id):
+        """List attached VIFs for a node
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :returns: List of VIF dictionaries, each dictionary will have an
+            'id' entry with the ID of the VIF.
+        :raises: NetworkError, if something goes wrong during list the VIFs.
+        :raises: InvalidParameterValue, if a parameter that's required for
+            VIF list is wrong/missing.
+        """
+        LOG.debug("RPC vif_list called for the node %s", node_id)
+        with task_manager.acquire(context, node_id,
+                                  purpose='list vifs',
+                                  shared=True) as task:
+            task.driver.network.validate(task)
+            return task.driver.network.vif_list(task)
+
+    @METRICS.timer('ConductorManager.vif_attach')
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.NetworkError,
+                                   exception.VifAlreadyAttached,
+                                   exception.NoFreePhysicalPorts,
+                                   exception.InvalidParameterValue)
+    def vif_attach(self, context, node_id, vif_info):
+        """Attach a VIF to a node
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param vif_info: a dictionary representing VIF object.
+             It must have an 'id' key, whose value is a unique
+             identifier for that VIF.
+        :raises: VifAlreadyAttached, if VIF is already attached to node
+        :raises: NoFreePhysicalPorts, if no free physical ports left to attach
+        :raises: NodeLocked, if node has an exclusive lock held on it
+        :raises: NetworkError, if an error occurs during attaching the VIF.
+        :raises: InvalidParameterValue, if a parameter that's required for
+            VIF attach is wrong/missing.
+        """
+        LOG.debug("RPC vif_attach called for the node %(node_id)s with "
+                  "vif_info %(vif_info)s", {'node_id': node_id,
+                                            'vif_info': vif_info})
+        with task_manager.acquire(context, node_id,
+                                  purpose='attach vif') as task:
+            task.driver.network.validate(task)
+            task.driver.network.vif_attach(task, vif_info)
+        LOG.info(_LI("VIF %(vif_id)s successfully attached to node "
+                     "%(node_id)s"), {'vif_id': vif_info['id'],
+                                      'node_id': node_id})
+
+    @METRICS.timer('ConductorManager.vif_detach')
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.NetworkError,
+                                   exception.VifNotAttached,
+                                   exception.InvalidParameterValue)
+    def vif_detach(self, context, node_id, vif_id):
+        """Detach a VIF from a node
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param vif_id: A VIF ID.
+        :raises: VifNotAttached, if VIF not attached to node
+        :raises: NodeLocked, if node has an exclusive lock held on it
+        :raises: NetworkError, if an error occurs during detaching the VIF.
+        :raises: InvalidParameterValue, if a parameter that's required for
+            VIF detach is wrong/missing.
+        """
+        LOG.debug("RPC vif_detach called for the node %(node_id)s with "
+                  "vif_id %(vif_id)s", {'node_id': node_id, 'vif_id': vif_id})
+        with task_manager.acquire(context, node_id,
+                                  purpose='detach vif') as task:
+            task.driver.network.validate(task)
+            task.driver.network.vif_detach(task, vif_id)
+        LOG.info(_LI("VIF %(vif_id)s successfully detached from node "
+                     "%(node_id)s"), {'vif_id': vif_id,
+                                      'node_id': node_id})
 
     def _object_dispatch(self, target, method, context, args, kwargs):
         """Dispatch a call to an object method.

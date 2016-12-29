@@ -84,11 +84,12 @@ class ConductorAPI(object):
     |    1.35 - Added destroy_volume_connector and update_volume_connector
     |    1.36 - Added create_node
     |    1.37 - Added destroy_volume_target and update_volume_target
+    |    1.38 - Added vif_attach, vif_detach, vif_list
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.37'
+    RPC_API_VERSION = '1.38'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -839,3 +840,52 @@ class ConductorAPI(object):
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.37')
         return cctxt.call(context, 'update_volume_target',
                           target=target)
+
+    def vif_attach(self, context, node_id, vif_info, topic=None):
+        """Attach VIF to a node
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param vif_info: a dictionary representing VIF object.
+            It must have an 'id' key, whose value is a unique
+            identifier for that VIF.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: NodeLocked, if node has an exclusive lock held on it
+        :raises: NetworkError, if an error occurs during attaching the VIF.
+        :raises: InvalidParameterValue, if a parameter that's required for
+            VIF attach is wrong/missing.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.38')
+        return cctxt.call(context, 'vif_attach', node_id=node_id,
+                          vif_info=vif_info)
+
+    def vif_detach(self, context, node_id, vif_id, topic=None):
+        """Detach VIF from a node
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param vif_id: an ID of a VIF.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: NodeLocked, if node has an exclusive lock held on it
+        :raises: NetworkError, if an error occurs during detaching the VIF.
+        :raises: InvalidParameterValue, if a parameter that's required for
+            VIF detach is wrong/missing.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.38')
+        return cctxt.call(context, 'vif_detach', node_id=node_id,
+                          vif_id=vif_id)
+
+    def vif_list(self, context, node_id, topic=None):
+        """List attached VIFs for a node
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param topic: RPC topic. Defaults to self.topic.
+        :returns: List of VIF dictionaries, each dictionary will have an
+            'id' entry with the ID of the VIF.
+        :raises: NetworkError, if an error occurs during listing the VIFs.
+        :raises: InvalidParameterValue, if a parameter that's required for
+            VIF list is wrong/missing.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.38')
+        return cctxt.call(context, 'vif_list', node_id=node_id)
