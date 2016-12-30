@@ -162,8 +162,7 @@ def _verify_security_groups(security_groups, client):
         raise exception.NetworkError(msg)
 
 
-def add_ports_to_network(task, network_uuid, is_flat=False,
-                         security_groups=None):
+def add_ports_to_network(task, network_uuid, security_groups=None):
     """Create neutron ports to boot the ramdisk.
 
     Create neutron ports for each pxe_enabled port on task.node to boot
@@ -172,7 +171,6 @@ def add_ports_to_network(task, network_uuid, is_flat=False,
     :param task: a TaskManager instance.
     :param network_uuid: UUID of a neutron network where ports will be
         created.
-    :param is_flat: Indicates whether it is a flat network or not.
     :param security_groups: List of Security Groups UUIDs to be used for
         network.
     :raises: NetworkError
@@ -199,7 +197,7 @@ def add_ports_to_network(task, network_uuid, is_flat=False,
     if security_groups:
         body['port']['security_groups'] = security_groups
 
-    if not is_flat:
+    if node.network_interface != 'flat':
         # NOTE(vdrok): It seems that change
         # I437290affd8eb87177d0626bf7935a165859cbdd to neutron broke the
         # possibility to always bind port. Set binding:host_id only in
@@ -216,6 +214,10 @@ def add_ports_to_network(task, network_uuid, is_flat=False,
     portmap = get_node_portmap(task)
     pxe_enabled_ports = [p for p in task.ports if p.pxe_enabled]
     for ironic_port in pxe_enabled_ports:
+        # Skip ports that are missing required information for deploy.
+        if not validate_port_info(node, ironic_port):
+            failures.append(ironic_port.uuid)
+            continue
         body['port']['mac_address'] = ironic_port.address
         binding_profile = {'local_link_information':
                            [portmap[ironic_port.uuid]]}
@@ -392,6 +394,27 @@ def validate_network(uuid_or_name, net_type=_('network')):
              'type': net_type})
 
     return networks[0]
+
+
+def validate_port_info(node, port):
+    """Check that port contains enough information for deploy.
+
+    Neutron network interface requires that local_link_information field is
+    filled before we can use this port.
+
+    :param node: Ironic node object.
+    :param port: Ironic port object.
+    :returns: True if port info is valid, False otherwise.
+    """
+    if (node.network_interface == 'neutron' and
+            not port.local_link_connection):
+        LOG.warning(_LW("The local_link_connection is required for"
+                        "'neutron' network interface and is not present "
+                        "in the nodes %(node)s port %(port)s"),
+                    {'node': node.uuid, 'port': port.uuid})
+        return False
+
+    return True
 
 
 class NeutronNetworkInterfaceMixin(object):

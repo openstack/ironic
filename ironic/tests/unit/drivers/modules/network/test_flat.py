@@ -92,7 +92,7 @@ class TestFlatInterface(db_base.DbTestCase):
             rollback_mock.assert_called_once_with(
                 task, CONF.neutron.cleaning_network)
             add_mock.assert_called_once_with(
-                task, CONF.neutron.cleaning_network, is_flat=True)
+                task, CONF.neutron.cleaning_network)
             validate_mock.assert_called_once_with(
                 CONF.neutron.cleaning_network,
                 'cleaning network')
