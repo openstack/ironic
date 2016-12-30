@@ -647,6 +647,32 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
         mock_check_dev.assert_called_once_with(address, port, iqn)
 
+    @mock.patch.object(common_utils, 'execute', autospec=True)
+    @mock.patch.object(utils, 'verify_iscsi_connection', autospec=True)
+    @mock.patch.object(utils, 'force_iscsi_lun_update', autospec=True)
+    @mock.patch.object(utils, 'check_file_system_for_iscsi_device',
+                       autospec=True)
+    def test_ipv6_address_wrapped(self,
+                                  mock_check_dev,
+                                  mock_update,
+                                  mock_verify,
+                                  mock_exec):
+        address = '2001:DB8::1111'
+        port = 3306
+        iqn = 'iqn.xyz'
+        mock_exec.return_value = ['iqn.xyz', '']
+        utils.login_iscsi(address, port, iqn)
+        mock_exec.assert_called_once_with(
+            'iscsiadm',
+            '-m', 'node',
+            '-p', '[%s]:%s' % (address, port),
+            '-T', iqn,
+            '--login',
+            run_as_root=True,
+            check_exit_code=[0],
+            attempts=5,
+            delay_on_retry=True)
+
     @mock.patch.object(disk_utils, 'is_block_device', lambda d: True)
     def test_always_logout_and_delete_iscsi(self):
         """Check if logout_iscsi() and delete_iscsi() are called.
