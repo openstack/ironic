@@ -28,7 +28,7 @@ For example, a Node in the ``available`` state can have an instance deployed to 
 by requesting the provision state of ``active``. During this transition, the Node's
 ``provision_state`` will temporarily be set to ``deploying``, and depending on the driver,
 it may also be ``wait call-back``. When the transitions are complete, ``target_provision_state``
-will be set to ``None`` and ``provision_state`` will be set to ``active```.
+will be set to ``None`` and ``provision_state`` will be set to ``active``.
 To destroy the instance, request the provision state of ``delete``. During this
 transition, the Node may or may not go through a ``cleaning`` state,
 depending on the service configuration.
