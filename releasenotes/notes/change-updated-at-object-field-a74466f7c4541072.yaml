@@ -1,0 +1,4 @@
+---
+fixes:
+  - Set correct node's "updated_at" field after
+    node has been updated.

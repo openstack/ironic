@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
 import mock
 from testtools import matchers
 
@@ -76,7 +77,7 @@ class TestNodeObject(base.DbTestCase):
             mock_get_node.return_value = self.fake_node
             with mock.patch.object(self.dbapi, 'update_node',
                                    autospec=True) as mock_update_node:
-
+                mock_update_node.return_value = utils.get_test_node()
                 n = objects.Node.get(self.context, uuid)
                 self.assertEqual({"private_state": "secret value"},
                                  n.driver_internal_info)
@@ -91,6 +92,36 @@ class TestNodeObject(base.DbTestCase):
                            'driver_internal_info': {}})
                 self.assertEqual(self.context, n._context)
                 self.assertEqual({}, n.driver_internal_info)
+
+    def test_save_updated_at_field(self):
+        uuid = self.fake_node['uuid']
+        extra = {"test": 123}
+        test_time = datetime.datetime(2000, 1, 1, 0, 0)
+        with mock.patch.object(self.dbapi, 'get_node_by_uuid',
+                               autospec=True) as mock_get_node:
+            mock_get_node.return_value = self.fake_node
+            with mock.patch.object(self.dbapi, 'update_node',
+                                   autospec=True) as mock_update_node:
+                mock_update_node.return_value = (
+                    utils.get_test_node(extra=extra, updated_at=test_time))
+                n = objects.Node.get(self.context, uuid)
+                self.assertEqual({"private_state": "secret value"},
+                                 n.driver_internal_info)
+                n.properties = {"fake": "property"}
+                n.extra = extra
+                n.driver = "fake-driver"
+                n.driver_internal_info = {}
+                n.save()
+
+                mock_get_node.assert_called_once_with(uuid)
+                mock_update_node.assert_called_once_with(
+                    uuid, {'properties': {"fake": "property"},
+                           'driver': 'fake-driver',
+                           'driver_internal_info': {},
+                           'extra': {'test': 123}})
+                self.assertEqual(self.context, n._context)
+                res_updated_at = n.updated_at.replace(tzinfo=None)
+                self.assertEqual(test_time, res_updated_at)
 
     def test_refresh(self):
         uuid = self.fake_node['uuid']
@@ -162,6 +193,10 @@ class TestNodeObject(base.DbTestCase):
                 node = objects.Node.get(self.context, self.fake_node['uuid'])
                 node.touch_provisioning()
                 mock_touch.assert_called_once_with(node.id)
+
+    def test_create(self):
+        node = objects.Node(self.context, **self.fake_node)
+        node.create()
 
     def test_create_with_invalid_properties(self):
         node = objects.Node(self.context, **self.fake_node)
