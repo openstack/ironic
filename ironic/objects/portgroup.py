@@ -88,7 +88,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
 
         """
         db_portgroup = cls.dbapi.get_portgroup_by_id(portgroup_id)
-        portgroup = Portgroup._from_db_object(cls(context), db_portgroup)
+        portgroup = cls._from_db_object(cls(context), db_portgroup)
         return portgroup
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -106,7 +106,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
 
         """
         db_portgroup = cls.dbapi.get_portgroup_by_uuid(uuid)
-        portgroup = Portgroup._from_db_object(cls(context), db_portgroup)
+        portgroup = cls._from_db_object(cls(context), db_portgroup)
         return portgroup
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -124,7 +124,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
 
         """
         db_portgroup = cls.dbapi.get_portgroup_by_address(address)
-        portgroup = Portgroup._from_db_object(cls(context), db_portgroup)
+        portgroup = cls._from_db_object(cls(context), db_portgroup)
         return portgroup
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -142,7 +142,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
 
         """
         db_portgroup = cls.dbapi.get_portgroup_by_name(name)
-        portgroup = Portgroup._from_db_object(cls(context), db_portgroup)
+        portgroup = cls._from_db_object(cls(context), db_portgroup)
         return portgroup
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -277,5 +277,5 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         :raises: PortgroupNotFound
 
         """
-        current = self.__class__.get_by_uuid(self._context, uuid=self.uuid)
+        current = self.get_by_uuid(self._context, uuid=self.uuid)
         self.obj_refresh(current)

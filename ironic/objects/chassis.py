@@ -72,7 +72,7 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
         :returns: a :class:`Chassis` object.
         """
         db_chassis = cls.dbapi.get_chassis_by_id(chassis_id)
-        chassis = Chassis._from_db_object(cls(context), db_chassis)
+        chassis = cls._from_db_object(cls(context), db_chassis)
         return chassis
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -88,7 +88,7 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
         :returns: a :class:`Chassis` object.
         """
         db_chassis = cls.dbapi.get_chassis_by_uuid(uuid)
-        chassis = Chassis._from_db_object(cls(context), db_chassis)
+        chassis = cls._from_db_object(cls(context), db_chassis)
         return chassis
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -194,7 +194,7 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
                         A context should be set when instantiating the
                         object, e.g.: Chassis(context)
         """
-        current = self.__class__.get_by_uuid(self._context, uuid=self.uuid)
+        current = self.get_by_uuid(self._context, uuid=self.uuid)
         self.obj_refresh(current)
 
 

@@ -49,7 +49,7 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         :returns: a :class:`Conductor` object.
         """
         db_obj = cls.dbapi.get_conductor(hostname)
-        conductor = Conductor._from_db_object(cls(context), db_obj)
+        conductor = cls._from_db_object(cls(context), db_obj)
         return conductor
 
     def save(self, context):
@@ -75,8 +75,7 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
                         A context should be set when instantiating the
                         object, e.g.: Conductor(context)
         """
-        current = self.__class__.get_by_hostname(self._context,
-                                                 hostname=self.hostname)
+        current = self.get_by_hostname(self._context, hostname=self.hostname)
         self.obj_refresh(current)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -108,7 +107,7 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_cond = cls.dbapi.register_conductor({'hostname': hostname,
                                                 'drivers': drivers},
                                                update_existing=update_existing)
-        return Conductor._from_db_object(cls(context), db_cond)
+        return cls._from_db_object(cls(context), db_cond)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.

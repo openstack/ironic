@@ -78,7 +78,7 @@ class VolumeTarget(base.IronicObject,
         :raises: VolumeTargetNotFound if no volume target with this ID exists
         """
         db_target = cls.dbapi.get_volume_target_by_id(db_id)
-        target = VolumeTarget._from_db_object(cls(context), db_target)
+        target = cls._from_db_object(cls(context), db_target)
         return target
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -95,7 +95,7 @@ class VolumeTarget(base.IronicObject,
         :raises: VolumeTargetNotFound if no volume target with this UUID exists
         """
         db_target = cls.dbapi.get_volume_target_by_uuid(uuid)
-        target = VolumeTarget._from_db_object(cls(context), db_target)
+        target = cls._from_db_object(cls(context), db_target)
         return target
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -119,7 +119,7 @@ class VolumeTarget(base.IronicObject,
                                                       marker=marker,
                                                       sort_key=sort_key,
                                                       sort_dir=sort_dir)
-        return VolumeTarget._from_db_object_list(context, db_targets)
+        return cls._from_db_object_list(context, db_targets)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -145,7 +145,7 @@ class VolumeTarget(base.IronicObject,
             marker=marker,
             sort_key=sort_key,
             sort_dir=sort_dir)
-        return VolumeTarget._from_db_object_list(context, db_targets)
+        return cls._from_db_object_list(context, db_targets)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -231,5 +231,5 @@ class VolumeTarget(base.IronicObject,
                         object, e.g.: VolumeTarget(context).
         :raises: VolumeTargetNotFound if the volume target cannot be found
         """
-        current = self.__class__.get_by_uuid(self._context, uuid=self.uuid)
+        current = self.get_by_uuid(self._context, uuid=self.uuid)
         self.obj_refresh(current)

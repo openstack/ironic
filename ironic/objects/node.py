@@ -184,7 +184,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         :returns: a :class:`Node` object.
         """
         db_node = cls.dbapi.get_node_by_id(node_id)
-        node = Node._from_db_object(cls(context), db_node)
+        node = cls._from_db_object(cls(context), db_node)
         return node
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -199,7 +199,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         :returns: a :class:`Node` object.
         """
         db_node = cls.dbapi.get_node_by_uuid(uuid)
-        node = Node._from_db_object(cls(context), db_node)
+        node = cls._from_db_object(cls(context), db_node)
         return node
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -214,7 +214,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         :returns: a :class:`Node` object.
         """
         db_node = cls.dbapi.get_node_by_name(name)
-        node = Node._from_db_object(cls(context), db_node)
+        node = cls._from_db_object(cls(context), db_node)
         return node
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -229,7 +229,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         :returns: a :class:`Node` object.
         """
         db_node = cls.dbapi.get_node_by_instance(instance_uuid)
-        node = Node._from_db_object(cls(context), db_node)
+        node = cls._from_db_object(cls(context), db_node)
         return node
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -274,7 +274,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
 
         """
         db_node = cls.dbapi.reserve_node(tag, node_id)
-        node = Node._from_db_object(cls(context), db_node)
+        node = cls._from_db_object(cls(context), db_node)
         return node
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -384,7 +384,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                         A context should be set when instantiating the
                         object, e.g.: Node(context)
         """
-        current = self.__class__.get_by_uuid(self._context, self.uuid)
+        current = self.get_by_uuid(self._context, self.uuid)
         self.obj_refresh(current)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -405,7 +405,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         :returns: a :class:`Node` object.
         """
         db_node = cls.dbapi.get_node_by_port_addresses(addresses)
-        node = Node._from_db_object(cls(context), db_node)
+        node = cls._from_db_object(cls(context), db_node)
         return node
 
 

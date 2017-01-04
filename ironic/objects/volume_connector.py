@@ -78,7 +78,7 @@ class VolumeConnector(base.IronicObject,
                  the specified ID.
         """
         db_connector = cls.dbapi.get_volume_connector_by_id(db_id)
-        connector = VolumeConnector._from_db_object(cls(context), db_connector)
+        connector = cls._from_db_object(cls(context), db_connector)
         return connector
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -96,7 +96,7 @@ class VolumeConnector(base.IronicObject,
                  the specified UUID
         """
         db_connector = cls.dbapi.get_volume_connector_by_uuid(uuid)
-        connector = VolumeConnector._from_db_object(cls(context), db_connector)
+        connector = cls._from_db_object(cls(context), db_connector)
         return connector
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -235,5 +235,5 @@ class VolumeConnector(base.IronicObject,
                         A context should be set when instantiating the
                         object, e.g.: VolumeConnector(context).
         """
-        current = self.__class__.get_by_uuid(self._context, uuid=self.uuid)
+        current = self.get_by_uuid(self._context, uuid=self.uuid)
         self.obj_refresh(current)

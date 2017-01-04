@@ -92,7 +92,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
 
         """
         db_port = cls.dbapi.get_port_by_id(port_id)
-        port = Port._from_db_object(cls(context), db_port)
+        port = cls._from_db_object(cls(context), db_port)
         return port
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -110,7 +110,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
 
         """
         db_port = cls.dbapi.get_port_by_uuid(uuid)
-        port = Port._from_db_object(cls(context), db_port)
+        port = cls._from_db_object(cls(context), db_port)
         return port
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -128,7 +128,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
 
         """
         db_port = cls.dbapi.get_port_by_address(address)
-        port = Port._from_db_object(cls(context), db_port)
+        port = cls._from_db_object(cls(context), db_port)
         return port
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -288,7 +288,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         :raises: PortNotFound
 
         """
-        current = self.__class__.get_by_uuid(self._context, uuid=self.uuid)
+        current = self.get_by_uuid(self._context, uuid=self.uuid)
         self.obj_refresh(current)
 
 
