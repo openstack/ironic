@@ -36,6 +36,8 @@ from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.irmc import common as irmc_common
+from ironic.drivers.modules.irmc import management as irmc_management
+from ironic.drivers.modules import pxe
 
 
 scci = importutils.try_import('scciclient.irmc.scci')
@@ -587,6 +589,11 @@ class IRMCVirtualMediaBoot(base.BootInterface):
                 task.node.provision_state != states.CLEANING):
             return
 
+        # NOTE(tiendc): Before deploying, we need to backup BIOS config
+        # as the data will be used later when cleaning.
+        if task.node.provision_state == states.DEPLOYING:
+            irmc_management.backup_bios_config(task)
+
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
         ramdisk_params['BOOTIF'] = deploy_nic_mac
 
@@ -654,3 +661,34 @@ class IRMCVirtualMediaBoot(base.BootInterface):
             task, node.driver_internal_info['irmc_boot_iso'])
         manager_utils.node_set_boot_device(task, boot_devices.CDROM,
                                            persistent=True)
+
+
+class IRMCPXEBoot(pxe.PXEBoot):
+    """iRMC PXE boot."""
+
+    @METRICS.timer('IRMCPXEBoot.prepare_ramdisk')
+    def prepare_ramdisk(self, task, ramdisk_params):
+        """Prepares the boot of Ironic ramdisk using PXE.
+
+        This method prepares the boot of the deploy kernel/ramdisk after
+        reading relevant information from the node's driver_info and
+        instance_info.
+
+        :param task: a task from TaskManager.
+        :param ramdisk_params: the parameters to be passed to the ramdisk.
+            pxe driver passes these parameters as kernel command-line
+            arguments.
+        :returns: None
+        :raises: MissingParameterValue, if some information is missing in
+            node's driver_info or instance_info.
+        :raises: InvalidParameterValue, if some information provided is
+            invalid.
+        :raises: IronicException, if some power or set boot device
+            operation failed on the node.
+        """
+        # NOTE(tiendc): Before deploying, we need to backup BIOS config
+        # as the data will be used later when cleaning.
+        if task.node.provision_state == states.DEPLOYING:
+            irmc_management.backup_bios_config(task)
+
+        super(IRMCPXEBoot, self).prepare_ramdisk(task, ramdisk_params)

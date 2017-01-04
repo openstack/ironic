@@ -34,6 +34,7 @@ from ironic.drivers.modules.ilo import power as ilo_power
 from ironic.drivers.modules.ilo import vendor as ilo_vendor
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipmitool
+from ironic.drivers.modules.irmc import boot as irmc_boot
 from ironic.drivers.modules.irmc import inspect as irmc_inspect
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules.irmc import power as irmc_power
@@ -142,7 +143,7 @@ class PXEAndIRMCDriver(base.BaseDriver):
                 reason=_("Unable to import python-scciclient library"))
         self.power = irmc_power.IRMCPower()
         self.console = ipmitool.IPMIShellinaboxConsole()
-        self.boot = pxe.PXEBoot()
+        self.boot = irmc_boot.IRMCPXEBoot()
         self.deploy = iscsi_deploy.ISCSIDeploy()
         self.management = irmc_management.IRMCManagement()
         self.inspect = irmc_inspect.IRMCInspect()

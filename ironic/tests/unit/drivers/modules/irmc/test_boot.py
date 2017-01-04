@@ -36,11 +36,12 @@ from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.irmc import boot as irmc_boot
 from ironic.drivers.modules.irmc import common as irmc_common
+from ironic.drivers.modules.irmc import management as irmc_management
+from ironic.drivers.modules import pxe
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
-
 
 if six.PY3:
     import io
@@ -896,13 +897,16 @@ class IRMCVirtualMediaBootTestCase(db_base.DbTestCase):
             validate_prop_mock.assert_called_once_with(
                 task.context, d_info, ['kernel', 'ramdisk'])
 
+    @mock.patch.object(irmc_management, 'backup_bios_config', spec_set=True,
+                       autospec=True)
     @mock.patch.object(irmc_boot, '_setup_deploy_iso',
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'get_single_nic_with_vif_port_id',
                        spec_set=True, autospec=True)
     def _test_prepare_ramdisk(self,
                               get_single_nic_with_vif_port_id_mock,
-                              _setup_deploy_iso_mock):
+                              _setup_deploy_iso_mock,
+                              mock_backup_bios):
         instance_info = self.node.instance_info
         instance_info['irmc_boot_iso'] = 'glance://abcdef'
         instance_info['image_source'] = '6b2f0c0c-79e8-4db6-842e-43c9764204af'
@@ -922,6 +926,9 @@ class IRMCVirtualMediaBootTestCase(db_base.DbTestCase):
                 task, expected_ramdisk_opts)
             self.assertEqual('glance://abcdef',
                              self.node.instance_info['irmc_boot_iso'])
+            provision_state = task.node.provision_state
+            self.assertEqual(1 if provision_state == states.DEPLOYING else 0,
+                             mock_backup_bios.call_count)
 
     def test_prepare_ramdisk_glance_image_deploying(self):
         self.node.provision_state = states.DEPLOYING
@@ -1051,3 +1058,42 @@ class IRMCVirtualMediaBootTestCase(db_base.DbTestCase):
         cfg.CONF.set_override('remote_image_share_type', 'nfs', 'irmc')
         self.assertRaises(ValueError, cfg.CONF.set_override,
                           'remote_image_share_type', 'fake', 'irmc')
+
+
+class IRMCPXEBootTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(IRMCPXEBootTestCase, self).setUp()
+        mgr_utils.mock_the_extension_manager(driver="pxe_irmc")
+        self.node = obj_utils.create_test_node(
+            self.context, driver='pxe_irmc', driver_info=INFO_DICT)
+
+    @mock.patch.object(irmc_management, 'backup_bios_config', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', spec_set=True,
+                       autospec=True)
+    def test_prepare_ramdisk_with_backup_bios(self, mock_parent_prepare,
+                                              mock_backup_bios):
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.boot.prepare_ramdisk(task, {})
+            mock_backup_bios.assert_called_once_with(task)
+            mock_parent_prepare.assert_called_once_with(
+                task.driver.boot, task, {})
+
+    @mock.patch.object(irmc_management, 'backup_bios_config', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', spec_set=True,
+                       autospec=True)
+    def test_prepare_ramdisk_without_backup_bios(self, mock_parent_prepare,
+                                                 mock_backup_bios):
+        self.node.provision_state = states.CLEANING
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.boot.prepare_ramdisk(task, {})
+            self.assertFalse(mock_backup_bios.called)
+            mock_parent_prepare.assert_called_once_with(
+                task.driver.boot, task, {})

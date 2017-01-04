@@ -91,7 +91,10 @@ class IRMCHardware(generic.GenericHardware):
     @property
     def supported_boot_interfaces(self):
         """List of supported boot interfaces."""
-        return [boot.IRMCVirtualMediaBoot, pxe.PXEBoot]
+        # NOTE: Support for pxe boot is deprecated, and will be
+        # removed from the list in the future.
+        return [boot.IRMCVirtualMediaBoot, boot.IRMCPXEBoot,
+                pxe.PXEBoot]
 
     @property
     def supported_console_interfaces(self):

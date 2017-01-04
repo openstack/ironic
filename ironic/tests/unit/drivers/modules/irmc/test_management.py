@@ -24,10 +24,13 @@ import mock
 from ironic.common import boot_devices
 from ironic.common import driver_factory
 from ironic.common import exception
+from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules.irmc import management as irmc_management
+from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.drivers import utils as driver_utils
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
@@ -37,6 +40,116 @@ from ironic.tests.unit.drivers import third_party_driver_mock_specs \
 from ironic.tests.unit.objects import utils as obj_utils
 
 INFO_DICT = db_utils.get_test_irmc_info()
+
+
+@mock.patch.object(irmc_management.irmc, 'elcm',
+                   spec_set=mock_specs.SCCICLIENT_IRMC_ELCM_SPEC)
+@mock.patch.object(manager_utils, 'node_power_action',
+                   specset=True, autospec=True)
+@mock.patch.object(irmc_power.IRMCPower, 'get_power_state',
+                   return_value=states.POWER_ON,
+                   specset=True, autospec=True)
+class IRMCManagementFunctionsTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(IRMCManagementFunctionsTestCase, self).setUp()
+        driver_info = INFO_DICT
+
+        mgr_utils.mock_the_extension_manager(driver="fake_irmc")
+        self.driver = driver_factory.get_driver("fake_irmc")
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake_irmc',
+                                               driver_info=driver_info)
+        self.info = irmc_common.parse_driver_info(self.node)
+
+        irmc_management.irmc.scci.SCCIError = Exception
+        irmc_management.irmc.scci.SCCIInvalidInputError = ValueError
+
+    def test_backup_bios_config(self, mock_get_power, mock_power_action,
+                                mock_elcm):
+        self.config(clean_priority_restore_irmc_bios_config=10, group='irmc')
+        bios_config = {'Server': {'System': {'BiosConfig': {'key1': 'val1'}}}}
+        mock_elcm.backup_bios_config.return_value = {
+            'bios_config': bios_config}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            irmc_management.backup_bios_config(task)
+
+            self.assertEqual(bios_config, task.node.driver_internal_info[
+                'irmc_bios_config'])
+            self.assertEqual(1, mock_elcm.backup_bios_config.call_count)
+
+    def test_backup_bios_config_skipped(self, mock_get_power,
+                                        mock_power_action, mock_elcm):
+        self.config(clean_priority_restore_irmc_bios_config=0, group='irmc')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            irmc_management.backup_bios_config(task)
+
+            self.assertNotIn('irmc_bios_config',
+                             task.node.driver_internal_info)
+            self.assertFalse(mock_elcm.backup_bios_config.called)
+
+    def test_backup_bios_config_failed(self, mock_get_power,
+                                       mock_power_action, mock_elcm):
+        self.config(clean_priority_restore_irmc_bios_config=10, group='irmc')
+        mock_elcm.backup_bios_config.side_effect = Exception
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.IRMCOperationError,
+                              irmc_management.backup_bios_config,
+                              task)
+            self.assertNotIn('irmc_bios_config',
+                             task.node.driver_internal_info)
+            self.assertEqual(1, mock_elcm.backup_bios_config.call_count)
+
+    def test__restore_bios_config(self, mock_get_power, mock_power_action,
+                                  mock_elcm):
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # Set bios data for the node info
+            task.node.driver_internal_info['irmc_bios_config'] = 'data'
+            irmc_management._restore_bios_config(task)
+
+            self.assertEqual(1, mock_elcm.restore_bios_config.call_count)
+
+    def test__restore_bios_config_failed(self, mock_get_power,
+                                         mock_power_action,
+                                         mock_elcm):
+        mock_elcm.restore_bios_config.side_effect = Exception
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # Set bios data for the node info
+            task.node.driver_internal_info['irmc_bios_config'] = 'data'
+
+            self.assertRaises(exception.IRMCOperationError,
+                              irmc_management._restore_bios_config,
+                              task)
+            # Backed up BIOS config is still in the node object
+            self.assertEqual('data', task.node.driver_internal_info[
+                'irmc_bios_config'])
+            self.assertTrue(mock_elcm.restore_bios_config.called)
+
+    def test__restore_bios_config_corrupted(self, mock_get_power,
+                                            mock_power_action,
+                                            mock_elcm):
+        mock_elcm.restore_bios_config.side_effect = \
+            irmc_management.irmc.scci.SCCIInvalidInputError
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # Set bios data for the node info
+            task.node.driver_internal_info['irmc_bios_config'] = 'data'
+
+            self.assertRaises(exception.IRMCOperationError,
+                              irmc_management._restore_bios_config,
+                              task)
+            # Backed up BIOS config is removed from the node object
+            self.assertNotIn('irmc_bios_config',
+                             task.node.driver_internal_info)
+            self.assertTrue(mock_elcm.restore_bios_config.called)
 
 
 class IRMCManagementTestCase(db_base.DbTestCase):
@@ -259,7 +372,7 @@ class IRMCManagementTestCase(db_base.DbTestCase):
                               task,
                               "unknown")
 
-    @mock.patch.object(irmc_management, 'scci',
+    @mock.patch.object(irmc_management.irmc, 'scci',
                        spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
     @mock.patch.object(irmc_common, 'get_irmc_report', spec_set=True,
                        autospec=True)
@@ -307,7 +420,7 @@ class IRMCManagementTestCase(db_base.DbTestCase):
         }
         self.assertEqual(expected, sensor_dict)
 
-    @mock.patch.object(irmc_management, 'scci',
+    @mock.patch.object(irmc_management.irmc, 'scci',
                        spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
     @mock.patch.object(irmc_common, 'get_irmc_report', spec_set=True,
                        autospec=True)
@@ -350,8 +463,8 @@ class IRMCManagementTestCase(db_base.DbTestCase):
 
         get_irmc_report_mock.side_effect = exception.InvalidParameterValue(
             "Fake Error")
-        irmc_management.scci.SCCIInvalidInputError = Exception
-        irmc_management.scci.SCCIClientError = Exception
+        irmc_management.irmc.scci.SCCIInvalidInputError = Exception
+        irmc_management.irmc.scci.SCCIClientError = Exception
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.driver_info['irmc_sensor_method'] = 'scci'
@@ -373,7 +486,7 @@ class IRMCManagementTestCase(db_base.DbTestCase):
             self.driver.management.inject_nmi(task)
 
             irmc_client.assert_called_once_with(
-                irmc_management.scci.POWER_RAISE_NMI)
+                irmc_management.irmc.scci.POWER_RAISE_NMI)
             self.assertFalse(mock_log.called)
 
     @mock.patch.object(irmc_management.LOG, 'error', spec_set=True,
@@ -384,7 +497,7 @@ class IRMCManagementTestCase(db_base.DbTestCase):
                                                   mock_log):
         irmc_client = mock_get_irmc_client.return_value
         irmc_client.side_effect = Exception()
-        irmc_management.scci.SCCIClientError = Exception
+        irmc_management.irmc.scci.SCCIClientError = Exception
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.IRMCOperationError,
@@ -392,5 +505,14 @@ class IRMCManagementTestCase(db_base.DbTestCase):
                               task)
 
             irmc_client.assert_called_once_with(
-                irmc_management.scci.POWER_RAISE_NMI)
+                irmc_management.irmc.scci.POWER_RAISE_NMI)
             self.assertTrue(mock_log.called)
+
+    @mock.patch.object(irmc_management, '_restore_bios_config',
+                       spec_set=True, autospec=True)
+    def test_management_interface_restore_irmc_bios_config(self,
+                                                           mock_restore_bios):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = task.driver.management.restore_irmc_bios_config(task)
+            self.assertIsNone(result)
+            mock_restore_bios.assert_called_once_with(task)

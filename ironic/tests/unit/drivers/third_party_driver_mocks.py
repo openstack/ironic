@@ -164,6 +164,8 @@ if not scciclient:
         UNMOUNT_CD=mock.sentinel.UNMOUNT_CD,
         MOUNT_FD=mock.sentinel.MOUNT_FD,
         UNMOUNT_FD=mock.sentinel.UNMOUNT_FD)
+    sys.modules['scciclient.irmc.elcm'] = mock.MagicMock(
+        spec_set=mock_specs.SCCICLIENT_IRMC_ELCM_SPEC)
 
 
 # if anything has loaded the iRMC driver yet, reload it now that the

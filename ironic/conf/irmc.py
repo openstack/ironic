@@ -69,6 +69,9 @@ opts = [
     cfg.IntOpt('snmp_polling_interval',
                default=10,
                help='SNMP polling interval in seconds'),
+    cfg.IntOpt('clean_priority_restore_irmc_bios_config',
+               default=0,
+               help=_('Priority for restore_irmc_bios_config clean step.')),
 ]
 
 

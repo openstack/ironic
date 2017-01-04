@@ -1,0 +1,16 @@
+---
+features:
+  - Adds new boot interface named ``irmc-pxe``.
+  - Adds clean step ``restore_irmc_bios_config`` to restore BIOS config
+    for a node during automatic cleaning.
+upgrade:
+  - Adds new configuration option
+    ``[irmc]clean_priority_restore_irmc_bios_config``, which
+    enables setting priority for the clean step. Default value for
+    this option is 0, which means the clean step is disabled.
+deprecations:
+  - Deprecates the boot interface ``pxe`` from using with hardware type
+    ``irmc``. It is recommended for operator to switch to use the boot
+    iterface ``irmc-pxe`` as soon as possible. Using the interface
+    ``pxe`` with ``irmc`` drivers will cause the reset bios feature
+    not to work even the priority option is set to enable.

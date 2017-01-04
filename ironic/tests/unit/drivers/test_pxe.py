@@ -29,6 +29,7 @@ from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules.ilo import power as ilo_power
 from ironic.drivers.modules.ilo import vendor as ilo_vendor
 from ironic.drivers.modules import ipmitool
+from ironic.drivers.modules.irmc import boot as irmc_boot
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.drivers.modules import iscsi_deploy
@@ -107,7 +108,7 @@ class PXEDriversTestCase(testtools.TestCase):
 
         self.assertIsInstance(driver.power, irmc_power.IRMCPower)
         self.assertIsInstance(driver.console, ipmitool.IPMIShellinaboxConsole)
-        self.assertIsInstance(driver.boot, pxe_module.PXEBoot)
+        self.assertIsInstance(driver.boot, irmc_boot.IRMCPXEBoot)
         self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
         self.assertIsInstance(driver.management,
                               irmc_management.IRMCManagement)
