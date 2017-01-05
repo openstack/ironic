@@ -27,15 +27,13 @@ ADMIN_CREDS = common_creds.get_configured_admin_credentials()
 
 class Manager(clients.Manager):
     def __init__(self,
-                 credentials=ADMIN_CREDS,
-                 service=None):
+                 credentials=ADMIN_CREDS):
         """Initialization of Manager class.
 
         Setup service client and make it available for test cases.
         :param credentials: type Credentials or TestResources
-        :param service: service name
         """
-        super(Manager, self).__init__(credentials, service)
+        super(Manager, self).__init__(credentials)
         default_params_with_timeout_values = {
             'build_interval': CONF.compute.build_interval,
             'build_timeout': CONF.compute.build_timeout
