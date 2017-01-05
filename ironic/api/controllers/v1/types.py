@@ -117,7 +117,7 @@ class BooleanType(wtypes.UserType):
             return strutils.bool_from_string(value, strict=True)
         except ValueError as e:
             # raise Invalid to return 400 (BadRequest) in the API
-            raise exception.Invalid(e)
+            raise exception.Invalid(six.text_type(e))
 
     @staticmethod
     def frombasetype(value):
