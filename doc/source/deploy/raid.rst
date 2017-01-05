@@ -269,12 +269,12 @@ Workflow
 
 
     [{
-      "interface": "raid"
-      "step": "delete_configuration",
+      "interface": "raid",
+      "step": "delete_configuration"
     },
     {
-      "interface": "raid"
-      "step": "create_configuration",
+      "interface": "raid",
+      "step": "create_configuration"
     }]
 
   .. note::
