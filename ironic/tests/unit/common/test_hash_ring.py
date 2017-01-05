@@ -259,5 +259,5 @@ class HashRingManagerTestCase(db_base.DbTestCase):
                           self.ring_manager.__getitem__,
                           'driver1')
         self.register_conductors()
-        self.ring_manager.updated_at = time.time() - 30
+        self.ring_manager.updated_at = time.time() - 31
         self.ring_manager.__getitem__('driver1')

@@ -69,6 +69,7 @@ IRONIC_BAREMETAL_BASIC_OPS=$(trueorfalse False IRONIC_BAREMETAL_BASIC_OPS)
 IRONIC_ENABLED_DRIVERS=${IRONIC_ENABLED_DRIVERS:-fake,pxe_ssh,pxe_ipmitool}
 IRONIC_SSH_USERNAME=${IRONIC_SSH_USERNAME:-`whoami`}
 IRONIC_SSH_TIMEOUT=${IRONIC_SSH_TIMEOUT:-15}
+IRONIC_SSH_ATTEMPTS=${IRONIC_SSH_ATTEMPTS:-5}
 IRONIC_SSH_KEY_DIR=${IRONIC_SSH_KEY_DIR:-$IRONIC_DATA_DIR/ssh_keys}
 IRONIC_SSH_KEY_FILENAME=${IRONIC_SSH_KEY_FILENAME:-ironic_key}
 IRONIC_KEY_FILE=${IRONIC_KEY_FILE:-$IRONIC_SSH_KEY_DIR/$IRONIC_SSH_KEY_FILENAME}
@@ -89,7 +90,7 @@ IRONIC_VM_MACS_CSV_FILE=${IRONIC_VM_MACS_CSV_FILE:-$IRONIC_DATA_DIR/ironic_macs.
 IRONIC_AUTHORIZED_KEYS_FILE=${IRONIC_AUTHORIZED_KEYS_FILE:-$HOME/.ssh/authorized_keys}
 
 # By default, baremetal VMs will console output to file.
-IRONIC_VM_LOG_CONSOLE=${IRONIC_VM_LOG_CONSOLE:-True}
+IRONIC_VM_LOG_CONSOLE=$(trueorfalse True IRONIC_VM_LOG_CONSOLE)
 IRONIC_VM_LOG_DIR=${IRONIC_VM_LOG_DIR:-$IRONIC_DATA_DIR/logs/}
 IRONIC_VM_LOG_ROTATE=$(trueorfalse True IRONIC_VM_LOG_ROTATE)
 
@@ -171,6 +172,10 @@ IRONIC_LIBVIRT_HOOKS_PATH=${IRONIC_LIBVIRT_HOOKS_PATH:-/etc/libvirt/hooks/}
 # The authentication strategy used by ironic-api. Valid values are:
 # keystone and noauth.
 IRONIC_AUTH_STRATEGY=${IRONIC_AUTH_STRATEGY:-keystone}
+
+# By default, terminal SSL certificate is disabled.
+IRONIC_TERMINAL_SSL=${IRONIC_TERMINAL_SSL:-False}
+IRONIC_TERMINAL_CERT_DIR=${IRONIC_TERMINAL_CERT_DIR:-$IRONIC_DATA_DIR/terminal_cert/}
 
 # get_pxe_boot_file() - Get the PXE/iPXE boot file path
 function get_pxe_boot_file {
@@ -399,6 +404,21 @@ function configure_ironic_conductor {
     iniset $IRONIC_CONF_FILE pxe tftp_server $IRONIC_TFTPSERVER_IP
     iniset $IRONIC_CONF_FILE pxe tftp_root $IRONIC_TFTPBOOT_DIR
     iniset $IRONIC_CONF_FILE pxe tftp_master_path $IRONIC_TFTPBOOT_DIR/master_images
+    if [[ "$IRONIC_TERMINAL_SSL" == "True" ]]; then
+        # Make sure the cert directory exist
+        sudo mkdir -p $IRONIC_TERMINAL_CERT_DIR
+        sudo chown $STACK_USER $IRONIC_TERMINAL_CERT_DIR
+        iniset $IRONIC_CONF_FILE console terminal_cert_dir $IRONIC_TERMINAL_CERT_DIR
+        # Generate the SSL certificate
+        openssl req \
+            -x509 \
+            -days 3650 \
+            -newkey rsa:1024 \
+            -nodes \
+            -keyout $IRONIC_TERMINAL_CERT_DIR/certificate.pem.key \
+            -out $IRONIC_TERMINAL_CERT_DIR/certificate.pem \
+            -subj '/O=OpenStack/OU=DevStack Servers'
+    fi
 
     local pxe_params="nofb nomodeset vga=normal console=ttyS0"
     if is_deployed_with_ipa_ramdisk; then
@@ -846,7 +866,13 @@ function configure_ironic_ssh_keypair {
         fi
         echo -e 'n\n' | ssh-keygen -q -t rsa -P '' -f $IRONIC_KEY_FILE
     fi
-    cat $IRONIC_KEY_FILE.pub | tee -a $IRONIC_AUTHORIZED_KEYS_FILE
+    if [[ ! -f $IRONIC_AUTHORIZED_KEYS_FILE ]]; then
+        cat $IRONIC_KEY_FILE.pub | tee -a $IRONIC_AUTHORIZED_KEYS_FILE
+    else
+        local key
+        key=$(cat $IRONIC_KEY_FILE.pub)
+        grep -q "$key" $IRONIC_AUTHORIZED_KEYS_FILE || (cat $IRONIC_KEY_FILE.pub | tee -a $IRONIC_AUTHORIZED_KEYS_FILE)
+    fi
 }
 
 function ironic_ssh_check {
@@ -854,15 +880,26 @@ function ironic_ssh_check {
     local floating_ip=$2
     local port=$3
     local default_instance_user=$4
-    local active_timeout=$5
-    if ! timeout $active_timeout sh -c "while ! ssh -p $port -o StrictHostKeyChecking=no -i $key_file ${default_instance_user}@$floating_ip echo success; do sleep 1; done"; then
+    local attempt=$5
+    local status=false
+    local ssh_options="-o BatchMode=yes -o ConnectTimeout=$IRONIC_SSH_TIMEOUT -o StrictHostKeyChecking=no"
+    while [[ $attempt -gt 0 ]]; do
+        ssh -p $port $ssh_options -i $key_file ${default_instance_user}@$floating_ip exit
+        if [[ "$?" == "0" ]]; then
+            status=true
+            break
+        fi
+        attempt=$((attempt - 1))
+        echo "SSH connection failed. $attempt attempts left."
+    done
+    if ! $status; then
         die $LINENO "server didn't become ssh-able!"
     fi
 }
 
 function configure_ironic_auxiliary {
     configure_ironic_ssh_keypair
-    ironic_ssh_check $IRONIC_KEY_FILE $IRONIC_VM_SSH_ADDRESS $IRONIC_VM_SSH_PORT $IRONIC_SSH_USERNAME $IRONIC_SSH_TIMEOUT
+    ironic_ssh_check $IRONIC_KEY_FILE $IRONIC_VM_SSH_ADDRESS $IRONIC_VM_SSH_PORT $IRONIC_SSH_USERNAME $IRONIC_SSH_ATTEMPTS
 }
 
 function build_ipa_coreos_ramdisk {
@@ -1005,8 +1042,10 @@ function cleanup_baremetal_basic_ops {
 
     local vm_name
     for vm_name in $(_ironic_bm_vm_names); do
-        sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/cleanup-node.sh $vm_name $IRONIC_VM_NETWORK_BRIDGE"
+        sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/cleanup-node.sh $vm_name"
     done
+
+    sudo ovs-vsctl --if-exists del-br $IRONIC_VM_NETWORK_BRIDGE
 
     sudo rm -rf /etc/xinetd.d/tftp /etc/init/tftpd-hpa.override
     restart_service xinetd

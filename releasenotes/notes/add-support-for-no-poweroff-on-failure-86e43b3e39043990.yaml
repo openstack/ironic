@@ -1,0 +1,12 @@
+---
+features:
+  - Operators can now set
+    deploy.power_off_after_deploy_failure to leave nodes
+    powered on when a deployment fails. This is useful
+    for troubleshooting deployment issues. As a note,
+    Nova will still attempt to delete a node after a failed
+    deployment, so deploy.power_off_after_deploy_failure
+    may not be very effective in non-standalone
+    deployments until a similar patch to ironic's driver in
+    nova is proposed.
+

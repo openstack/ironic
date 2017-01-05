@@ -11,7 +11,6 @@ LIBVIRT_STORAGE_POOL=${LIBVIRT_STORAGE_POOL:-"default"}
 LIBVIRT_CONNECT_URI=${LIBVIRT_CONNECT_URI:-"qemu:///system"}
 
 NAME=$1
-NETWORK_BRIDGE=$2
 
 export VIRSH_DEFAULT_CONNECT_URI=$LIBVIRT_CONNECT_URI
 
@@ -30,6 +29,5 @@ if virsh pool-list | grep -q $LIBVIRT_STORAGE_POOL ; then
 fi
 
 sudo brctl delif br-$NAME ovs-$NAME || true
-sudo ovs-vsctl del-port $NETWORK_BRIDGE ovs-$NAME || true
 sudo ip link set dev  br-$NAME down || true
 sudo brctl delbr br-$NAME || true

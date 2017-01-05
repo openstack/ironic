@@ -828,10 +828,10 @@ node(s) where ``ironic-conductor`` is running.
 #. Install tftp server and the syslinux package with the PXE boot images::
 
     Ubuntu: (Up to and including 14.04)
-        sudo apt-get install tftpd-hpa syslinux-common syslinux
+        sudo apt-get install xinetd tftpd-hpa syslinux-common syslinux
 
     Ubuntu: (14.10 and after)
-        sudo apt-get install tftpd-hpa syslinux-common pxelinux
+        sudo apt-get install xinetd tftpd-hpa syslinux-common pxelinux
 
     Fedora 21/RHEL7/CentOS7:
         sudo yum install tftp-server syslinux-tftpboot
@@ -839,7 +839,31 @@ node(s) where ``ironic-conductor`` is running.
     Fedora 22 or higher:
          sudo dnf install tftp-server syslinux-tftpboot
 
-#. Setup tftp server to serve ``/tftpboot``.
+#. Using xinetd to provide a tftp server setup to serve ``/tftpboot``.
+   Create or edit ``/etc/xinetd.d/tftp`` as below::
+
+    service tftp
+    {
+      protocol        = udp
+      port            = 69
+      socket_type     = dgram
+      wait            = yes
+      user            = root
+      server          = /usr/sbin/in.tftpd
+      server_args     = -v -v -v -v -v --map-file /tftpboot/map-file /tftpboot
+      disable         = no
+      # This is a workaround for Fedora, where TFTP will listen only on
+      # IPv6 endpoint, if IPv4 flag is not used.
+      flags           = IPv4
+    }
+
+   and restart xinetd service::
+
+    Ubuntu:
+        sudo service xinetd restart
+
+    Fedora:
+        sudo systemctl restart xinetd
 
 #. Copy the PXE image to ``/tftpboot``. The PXE image might be found at [1]_::
 
@@ -875,11 +899,6 @@ node(s) where ``ironic-conductor`` is running.
     echo 're ^/tftpboot/ /tftpboot/' >> /tftpboot/map-file
     echo 're ^(^/) /tftpboot/\1' >> /tftpboot/map-file
     echo 're ^([^/]) /tftpboot/\1' >> /tftpboot/map-file
-
-#. Enable tftp map file, modify ``/etc/xinetd.d/tftp`` as below and restart xinetd
-   service::
-
-    server_args = -v -v -v -v -v --map-file /tftpboot/map-file /tftpboot
 
 .. [1] On **Fedora/RHEL** the ``syslinux-tftpboot`` package already install
        the library modules and PXE image at ``/tftpboot``. If the TFTP server
@@ -2013,6 +2032,72 @@ of the following ways:
 * `Using native SSL support in swift
   <http://docs.openstack.org/developer/swift/deployment_guide.html>`_
   (recommended only for testing purpose by swift).
+
+.. _EnableHTTPSinGlance:
+
+Enabling HTTPS in Image service
+===============================
+
+Ironic drivers usually use Image service during node provisioning. By default,
+image service does not use HTTPS, but it is required for secure communication.
+It can be enabled by making the following changes to ``/etc/glance/glance-api.conf``:
+
+#. `Configuring SSL support
+   <http://docs.openstack.org/developer/glance/configuring.html#configuring-ssl-support>`_
+
+#. Restart the glance-api service::
+
+    Fedora/RHEL7/CentOS7:
+        sudo systemctl restart openstack-glance-api
+
+    Debian/Ubuntu:
+        sudo service glance-api restart
+
+See the `Glance <http://docs.openstack.org/developer/glance/>`_ documentation,
+for more details on the Image service.
+
+Enabling HTTPS communication between Image service and Object storage
+=====================================================================
+
+This section describes the steps needed to enable secure HTTPS communication between
+Image service and Object storage when Object storage is used as the Backend.
+
+To enable secure HTTPS communication between Image service and Object storage follow these steps:
+
+#. :ref:`EnableHTTPSinSwift`.
+
+#.  `Configure Swift Storage Backend
+    <http://docs.openstack.org/developer/glance/configuring.html#configuring-the-swift-storage-backend>`_
+
+#. :ref:`EnableHTTPSinGlance`
+
+Enabling HTTPS communication between Image service and Bare Metal service
+=========================================================================
+
+This section describes the steps needed to enable secure HTTPS communication between
+Image service and Bare Metal service.
+
+To enable secure HTTPS communication between Bare Metal service and Image service follow these steps:
+
+#. Edit ``/etc/ironic/ironic.conf``::
+
+    [glance]
+    ...
+    glance_cafile=/path/to/certfile
+    glance_protocol=https
+    glance_api_insecure=False
+
+   .. note::
+      'glance_cafile' is a optional path to a CA certificate bundle to be used to validate the SSL certificate
+      served by Image service.
+
+#. Restart ironic-conductor service::
+
+    Fedora/RHEL7/CentOS7:
+        sudo systemctl restart openstack-ironic-conductor
+
+    Debian/Ubuntu:
+        sudo service ironic-conductor restart
 
 Using Bare Metal service as a standalone service
 ================================================
