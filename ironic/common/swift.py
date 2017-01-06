@@ -62,12 +62,12 @@ class SwiftAPI(object):
 
         self.connection = swift_client.Connection(**params)
 
-    def create_object(self, container, object, filename,
+    def create_object(self, container, obj, filename,
                       object_headers=None):
         """Uploads a given file to Swift.
 
         :param container: The name of the container for the object.
-        :param object: The name of the object in Swift
+        :param obj: The name of the object in Swift
         :param filename: The file to upload, as the object data
         :param object_headers: the headers for the object to pass to Swift
         :returns: The Swift UUID of the object
@@ -83,7 +83,7 @@ class SwiftAPI(object):
 
             try:
                 obj_uuid = self.connection.put_object(container,
-                                                      object,
+                                                      obj,
                                                       fileobj,
                                                       headers=object_headers)
             except swift_exceptions.ClientException as e:
@@ -93,12 +93,12 @@ class SwiftAPI(object):
 
         return obj_uuid
 
-    def get_temp_url(self, container, object, timeout):
+    def get_temp_url(self, container, obj, timeout):
         """Returns the temp url for the given Swift object.
 
         :param container: The name of the container in which Swift object
             is placed.
-        :param object: The name of the Swift object.
+        :param obj: The name of the Swift object.
         :param timeout: The timeout in seconds after which the generated url
             should expire.
         :returns: The temp url for the object.
@@ -112,7 +112,7 @@ class SwiftAPI(object):
                                                 error=e)
 
         parse_result = parse.urlparse(self.connection.url)
-        swift_object_path = '/'.join((parse_result.path, container, object))
+        swift_object_path = '/'.join((parse_result.path, container, obj))
         temp_url_key = account_info['x-account-meta-temp-url-key']
         url_path = swift_utils.generate_temp_url(swift_object_path, timeout,
                                                  temp_url_key, 'GET')
@@ -123,53 +123,53 @@ class SwiftAPI(object):
                                  None,
                                  None))
 
-    def delete_object(self, container, object):
+    def delete_object(self, container, obj):
         """Deletes the given Swift object.
 
         :param container: The name of the container in which Swift object
             is placed.
-        :param object: The name of the object in Swift to be deleted.
+        :param obj: The name of the object in Swift to be deleted.
         :raises: SwiftObjectNotFoundError, if object is not found in Swift.
         :raises: SwiftOperationError, if operation with Swift fails.
         """
         try:
-            self.connection.delete_object(container, object)
+            self.connection.delete_object(container, obj)
         except swift_exceptions.ClientException as e:
             operation = _("delete object")
             if e.http_status == http_client.NOT_FOUND:
-                raise exception.SwiftObjectNotFoundError(object=object,
+                raise exception.SwiftObjectNotFoundError(obj=obj,
                                                          container=container,
                                                          operation=operation)
 
             raise exception.SwiftOperationError(operation=operation, error=e)
 
-    def head_object(self, container, object):
+    def head_object(self, container, obj):
         """Retrieves the information about the given Swift object.
 
         :param container: The name of the container in which Swift object
             is placed.
-        :param object: The name of the object in Swift
+        :param obj: The name of the object in Swift
         :returns: The information about the object as returned by
             Swift client's head_object call.
         :raises: SwiftOperationError, if operation with Swift fails.
         """
         try:
-            return self.connection.head_object(container, object)
+            return self.connection.head_object(container, obj)
         except swift_exceptions.ClientException as e:
             operation = _("head object")
             raise exception.SwiftOperationError(operation=operation, error=e)
 
-    def update_object_meta(self, container, object, object_headers):
+    def update_object_meta(self, container, obj, object_headers):
         """Update the metadata of a given Swift object.
 
         :param container: The name of the container in which Swift object
             is placed.
-        :param object: The name of the object in Swift
+        :param obj: The name of the object in Swift
         :param object_headers: the headers for the object to pass to Swift
         :raises: SwiftOperationError, if operation with Swift fails.
         """
         try:
-            self.connection.post_object(container, object, object_headers)
+            self.connection.post_object(container, obj, object_headers)
         except swift_exceptions.ClientException as e:
             operation = _("post object")
             raise exception.SwiftOperationError(operation=operation, error=e)

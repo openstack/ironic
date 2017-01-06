@@ -811,7 +811,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         swift_obj_mock = swift_api_mock.return_value
         object_name = 'object_name'
         raised_exc = exception.SwiftObjectNotFoundError(
-            operation='delete_object', object=object_name, container=container)
+            operation='delete_object', obj=object_name, container=container)
         swift_obj_mock.delete_object.side_effect = raised_exc
         # | WHEN |
         ilo_common.remove_image_from_swift(object_name)
