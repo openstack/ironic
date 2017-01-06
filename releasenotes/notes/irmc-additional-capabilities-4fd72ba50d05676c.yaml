@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds new capabilities ("server_model", "rom_firmware_version", "pci_gpu_devices",
+    "trusted_boot" and "irmc_firmware_version") to the iRMC out-of-band hardware inspection
+    for FUJITSU PRIMERGY bare metal nodes with firmware iRMC S4 and beyond.
+    Before inspecting, if a server is power-off, it will be turned on automatically.
+    System will wait for a few second before start inspecting. After inspection,
+    power status will be restored to the previous state.
