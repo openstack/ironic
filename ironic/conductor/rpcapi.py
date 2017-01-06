@@ -85,11 +85,12 @@ class ConductorAPI(object):
     |    1.36 - Added create_node
     |    1.37 - Added destroy_volume_target and update_volume_target
     |    1.38 - Added vif_attach, vif_detach, vif_list
+    |    1.39 - Added timeout optional parameter to change_node_power_state
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
-    RPC_API_VERSION = '1.38'
+    RPC_API_VERSION = '1.39'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -179,7 +180,8 @@ class ConductorAPI(object):
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.1')
         return cctxt.call(context, 'update_node', node_obj=node_obj)
 
-    def change_node_power_state(self, context, node_id, new_state, topic=None):
+    def change_node_power_state(self, context, node_id, new_state,
+                                topic=None, timeout=None):
         """Change a node's power state.
 
         Synchronously, acquire lock and start the conductor background task
@@ -188,14 +190,16 @@ class ConductorAPI(object):
         :param context: request context.
         :param node_id: node id or uuid.
         :param new_state: one of ironic.common.states power state values
+        :param timeout: timeout (in seconds) positive integer (> 0) for any
+           power state. ``None`` indicates to use default timeout.
         :param topic: RPC topic. Defaults to self.topic.
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
 
         """
-        cctxt = self.client.prepare(topic=topic or self.topic, version='1.6')
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.39')
         return cctxt.call(context, 'change_node_power_state', node_id=node_id,
-                          new_state=new_state)
+                          new_state=new_state, timeout=timeout)
 
     def vendor_passthru(self, context, node_id, driver_method, http_method,
                         info, topic=None):

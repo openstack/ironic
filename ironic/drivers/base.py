@@ -31,6 +31,7 @@ import six
 from ironic.common import exception
 from ironic.common.i18n import _, _LE, _LW
 from ironic.common import raid
+from ironic.common import states
 from ironic.drivers.modules.network import common as net_common
 
 LOG = logging.getLogger(__name__)
@@ -493,24 +494,37 @@ class PowerInterface(BaseInterface):
         """
 
     @abc.abstractmethod
-    def set_power_state(self, task, power_state):
+    def set_power_state(self, task, power_state, timeout=None):
         """Set the power state of the task's node.
 
         :param task: a TaskManager instance containing the node to act on.
         :param power_state: Any power state from :mod:`ironic.common.states`.
+        :param timeout: timeout (in seconds) positive integer (> 0) for any
+          power state. ``None`` indicates to use default timeout.
         :raises: MissingParameterValue if a required parameter is missing.
         """
 
     @abc.abstractmethod
-    def reboot(self, task):
+    def reboot(self, task, timeout=None):
         """Perform a hard reboot of the task's node.
 
         Drivers are expected to properly handle case when node is powered off
         by powering it on.
 
         :param task: a TaskManager instance containing the node to act on.
+        :param timeout: timeout (in seconds) positive integer (> 0) for any
+          power state. ``None`` indicates to use default timeout.
         :raises: MissingParameterValue if a required parameter is missing.
         """
+
+    def get_supported_power_states(self, task):
+        """Get a list of the supported power states.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :returns: A list with the supported power states defined
+                  in :mod:`ironic.common.states`.
+        """
+        return [states.POWER_ON, states.POWER_OFF, states.REBOOT]
 
 
 class ConsoleInterface(BaseInterface):

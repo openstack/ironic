@@ -212,6 +212,12 @@ POWER_OFF = 'power off'
 REBOOT = 'rebooting'
 """ Node is rebooting. """
 
+SOFT_REBOOT = 'soft rebooting'
+""" Node is rebooting gracefully. """
+
+SOFT_POWER_OFF = 'soft power off'
+""" Node is in the process of soft power off. """
+
 
 #####################
 # State machine model

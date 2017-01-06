@@ -1,0 +1,7 @@
+---
+features:
+  - Support ``soft rebooting`` and ``soft power off`` requests to
+    change node's power state with API version 1.27, and also
+    introduce ``timeout`` optional parameter and
+    ``[conductor]/soft_power_off_timeout`` configuration option.
+    Custom power drivers may be enhanced to support this feature.
