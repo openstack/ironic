@@ -22,6 +22,7 @@ from ironic.common import exception
 from ironic import objects
 from ironic.tests.unit.db import base
 from ironic.tests.unit.db import utils
+from ironic.tests.unit.objects import utils as obj_utils
 
 
 class TestChassisObject(base.DbTestCase):
@@ -102,3 +103,23 @@ class TestChassisObject(base.DbTestCase):
             self.assertThat(chassis, matchers.HasLength(1))
             self.assertIsInstance(chassis[0], objects.Chassis)
             self.assertEqual(self.context, chassis[0]._context)
+
+    def test_payload_schemas(self):
+        """Assert that the chassis' Payload SCHEMAs have the expected properties.
+
+           A payload's SCHEMA should:
+
+           1. Have each of its keys in the payload's fields
+           2. Have each member of the schema match with a corresponding field
+              in the Chassis object
+        """
+        payloads = obj_utils.get_payloads_with_schemas(objects.chassis)
+        for payload in payloads:
+            for schema_key in payload.SCHEMA:
+                self.assertIn(schema_key, payload.fields,
+                              "for %s, schema key %s is not in fields"
+                              % (payload, schema_key))
+                chassis_key = payload.SCHEMA[schema_key][1]
+                self.assertIn(chassis_key, objects.Chassis.fields,
+                              "for %s, schema key %s has invalid chassis "
+                              "field %s" % (payload, schema_key, chassis_key))
