@@ -230,3 +230,17 @@ class TestNodeObject(base.DbTestCase):
             }
             node._validate_property_values(values['properties'])
             self.assertEqual(expect, values['properties'])
+
+    def test_node_payload_schema(self):
+        """Assert that NodePayload.SCHEMA has expected properties.
+
+           NodePayload.SCHEMA should:
+
+           1. Have each of its keys in NodePayload.fields
+           2. Have each member of the schema match with a corresponding field
+           on the Node object
+        """
+        for schema_key in objects.node.NodePayload.SCHEMA:
+            self.assertIn(schema_key, objects.node.NodePayload.fields)
+            node_key = objects.node.NodePayload.SCHEMA[schema_key][1]
+            self.assertIn(node_key, objects.node.Node.fields)
