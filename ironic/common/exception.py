@@ -630,7 +630,7 @@ class SwiftOperationError(IronicException):
 
 
 class SwiftObjectNotFoundError(SwiftOperationError):
-    _msg_fmt = _("Swift object %(object)s from container %(container)s "
+    _msg_fmt = _("Swift object %(obj)s from container %(container)s "
                  "not found. Operation '%(operation)s' failed.")
 
 
