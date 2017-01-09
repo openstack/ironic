@@ -182,8 +182,8 @@ hash_opts = [
                       'exponent of the 2, there are 40 partitions in the ring.'
                       'A few thousand partitions should make rebalancing '
                       'smooth in most cases. The default is suitable for up '
-                      'to a few hundred conductors. Too many partitions has a '
-                      'CPU impact.')),
+                      'to a few hundred conductors. Configuring for too many '
+                      'partitions has a negative impact on CPU usage.')),
     cfg.IntOpt('hash_distribution_replicas',
                default=1,
                help=_('[Experimental Feature] '
