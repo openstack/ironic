@@ -1,6 +1,6 @@
 {
   "address": "22:22:22:22:22:22",
-  "created_at": "2016-08-18T22:28:49+00:00",
+  "created_at": "2016-08-18T22:28:48.643434+11:11",
   "extra": {},
   "internal_info": {},
   "links": [
@@ -21,6 +21,6 @@
   "node_uuid": "6d85703a-565d-469a-96ce-30b6de53079d",
   "portgroup_uuid": "e43c722c-248e-4c6e-8ce8-0d8ff129387a",
   "pxe_enabled": true,
-  "updated_at": "2016-08-18T22:28:50+00:00",
+  "updated_at": "2016-08-18T22:28:49.653974+00:00",
   "uuid": "d2b30520-907d-46c8-bfee-c5586e6fb3a1"
 }

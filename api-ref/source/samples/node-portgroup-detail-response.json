@@ -2,7 +2,7 @@
   "portgroups": [
     {
       "address": "22:22:22:22:22:22",
-      "created_at": "2016-08-18T22:28:48.165105+00:00",
+      "created_at": "2016-08-18T22:28:48.643434+11:11",
       "extra": {},
       "internal_info": {},
       "links": [
@@ -30,7 +30,7 @@
       ],
       "properties": {},
       "standalone_ports_supported": true,
-      "updated_at": "2016-11-04T17:46:09+00:00",
+      "updated_at": "2016-08-18T22:28:49.653974+00:00",
       "uuid": "e43c722c-248e-4c6e-8ce8-0d8ff129387a"
     }
   ]
