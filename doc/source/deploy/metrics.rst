@@ -75,7 +75,9 @@ named data points to be emitted from the Bare Metal service. This will
 increase if the metrics.preserve_host option is set to true or if multiple
 drivers are used in the Bare Metal deployment. This estimate may be used to
 determine if a deployer needs to scale their metrics backend to handle the
-additional load before enablng metrics.
+additional load before enablng metrics. To see which metrics have changed names
+or have been removed between releases, refer to the `ironic release notes
+<http://docs.openstack.org/releasenotes/ironic/>`_.
 
 .. note::
   With the default statsd configuration, each timing metric may create
@@ -95,8 +97,7 @@ Adding New Metrics
 ==================
 
 If you're a developer, and would like to add additional metrics to ironic,
-please see the ironic-lib developer documentation for details on how to use
-the metrics library.
-
-.. TODO::
-  Link to ironic-lib developer documentation once it's published.
+please see the `ironic-lib developer documentation
+<http://docs.openstack.org/developer/ironic-lib/>`_ for details on how to use
+the metrics library. A release note should also be created each time a metric
+is changed or removed to alert deployers of the change.
