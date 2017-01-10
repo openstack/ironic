@@ -259,6 +259,61 @@ class CheckAndUpdateNodeInterfacesTestCase(db_base.DbTestCase):
                           node)
 
 
+class DefaultInterfaceTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(DefaultInterfaceTestCase, self).setUp()
+        self.config(enabled_hardware_types=['manual-management'])
+        self.driver = driver_factory.get_hardware_type('manual-management')
+
+    def test_from_config(self):
+        self.config(default_deploy_interface='direct')
+        iface = driver_factory.default_interface(self.driver, 'deploy')
+        self.assertEqual('direct', iface)
+
+    def test_from_additional_defaults(self):
+        self.config(default_storage_interface=None)
+        iface = driver_factory.default_interface(self.driver, 'storage')
+        self.assertEqual('noop', iface)
+
+    def test_network_from_additional_defaults(self):
+        self.config(default_network_interface=None)
+        self.config(dhcp_provider='none', group='dhcp')
+        iface = driver_factory.default_interface(self.driver, 'network')
+        self.assertEqual('noop', iface)
+
+    def test_network_from_additional_defaults_neutron_dhcp(self):
+        self.config(default_network_interface=None)
+        self.config(dhcp_provider='neutron', group='dhcp')
+        iface = driver_factory.default_interface(self.driver, 'network')
+        self.assertEqual('flat', iface)
+
+    def test_calculated_with_one(self):
+        self.config(default_deploy_interface=None)
+        self.config(enabled_deploy_interfaces=['direct'])
+        iface = driver_factory.default_interface(self.driver, 'deploy')
+        self.assertEqual('direct', iface)
+
+    def test_calculated_with_two(self):
+        self.config(default_deploy_interface=None)
+        self.config(enabled_deploy_interfaces=['iscsi', 'direct'])
+        iface = driver_factory.default_interface(self.driver, 'deploy')
+        self.assertEqual('iscsi', iface)
+
+    def test_calculated_with_unsupported(self):
+        self.config(default_deploy_interface=None)
+        # manual-management doesn't support fake deploy
+        self.config(enabled_deploy_interfaces=['fake', 'direct'])
+        iface = driver_factory.default_interface(self.driver, 'deploy')
+        self.assertEqual('direct', iface)
+
+    def test_calculated_no_answer(self):
+        # manual-management supports no power interfaces
+        self.config(default_power_interface=None)
+        self.config(enabled_power_interfaces=[])
+        iface = driver_factory.default_interface(self.driver, 'power')
+        self.assertIsNone(iface)
+
+
 class TestFakeHardware(hardware_type.AbstractHardwareType):
     @property
     def supported_boot_interfaces(self):
