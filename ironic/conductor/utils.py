@@ -165,7 +165,7 @@ def node_power_action(task, new_state, timeout=None):
                 # After driver composition, we should print power interface
                 # name here instead of driver.
                 LOG.warning(
-                    _LW("The set_power_state method of %s(driver_name)s "
+                    _LW("The set_power_state method of %(driver_name)s "
                         "doesn't support 'timeout' parameter."),
                     {'driver_name': node.driver})
                 task.driver.power.set_power_state(task, new_state)
@@ -174,7 +174,7 @@ def node_power_action(task, new_state, timeout=None):
                     task.driver.power.reboot).parameters):
                 task.driver.power.reboot(task, timeout=timeout)
             else:
-                LOG.warning(_LW("The reboot method of %s(driver_name)s "
+                LOG.warning(_LW("The reboot method of %(driver_name)s "
                                 "doesn't support 'timeout' parameter."),
                             {'driver_name': node.driver})
                 task.driver.power.reboot(task)
