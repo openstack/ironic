@@ -115,10 +115,13 @@ class BaremetalClient(rest_client.RestClient):
 
         return patch
 
-    def _list_request(self, resource, permanent=False, **kwargs):
+    def _list_request(self, resource, permanent=False, headers=None,
+                      extra_headers=False, **kwargs):
         """Get the list of objects of the specified type.
 
         :param resource: The name of the REST resource, e.g., 'nodes'.
+        :param headers: List of headers to use in request.
+        :param extra_headers: Specify whether to use headers.
         :param **kwargs: Parameters for the request.
         :returns: A tuple with the server response and deserialized JSON list
                  of objects
@@ -128,7 +131,8 @@ class BaremetalClient(rest_client.RestClient):
         if kwargs:
             uri += "?%s" % urllib.urlencode(kwargs)
 
-        resp, body = self.get(uri)
+        resp, body = self.get(uri, headers=headers,
+                              extra_headers=extra_headers)
         self.expected_success(200, resp.status)
 
         return resp, self.deserialize(body)
@@ -166,6 +170,25 @@ class BaremetalClient(rest_client.RestClient):
         self.expected_success(201, resp.status)
 
         return resp, self.deserialize(body)
+
+    def _create_request_no_response_body(self, resource, object_dict):
+        """Create an object of the specified type.
+
+           Do not expect any body in the response.
+
+        :param resource: The name of the REST resource, e.g., 'nodes'.
+        :param object_dict: A Python dict that represents an object of the
+                            specified type.
+        :returns: The server response.
+        """
+
+        body = self.serialize(object_dict)
+        uri = self._get_uri(resource)
+
+        resp, body = self.post(uri, body=body)
+        self.expected_success(204, resp.status)
+
+        return resp
 
     def _delete_request(self, resource, uuid):
         """Delete specified object.

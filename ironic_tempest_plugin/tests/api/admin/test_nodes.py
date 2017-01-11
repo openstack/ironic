@@ -16,6 +16,7 @@ from tempest.lib import exceptions as lib_exc
 from tempest import test
 
 from ironic_tempest_plugin.common import waiters
+from ironic_tempest_plugin.tests.api.admin import api_microversion_fixture
 from ironic_tempest_plugin.tests.api.admin import base
 
 
@@ -166,3 +167,33 @@ class TestNodes(base.BaseBaremetalTest):
         _, body = self.client.show_node_by_instance_uuid(instance_uuid)
         self.assertEqual(1, len(body['nodes']))
         self.assertIn(self.node['uuid'], [n['uuid'] for n in body['nodes']])
+
+    @test.idempotent_id('a3d319d0-cacb-4e55-a3dc-3fa8b74880f1')
+    def test_vifs(self):
+        self.useFixture(
+            api_microversion_fixture.APIMicroversionFixture('1.28'))
+        _, self.port = self.create_port(self.node['uuid'],
+                                        data_utils.rand_mac_address())
+        self.client.vif_attach(self.node['uuid'], 'test-vif')
+        _, body = self.client.vif_list(self.node['uuid'])
+        self.assertEqual(body, {'vifs': [{'id': 'test-vif'}]})
+        self.client.vif_detach(self.node['uuid'], 'test-vif')
+
+    @test.idempotent_id('a3d319d0-cacb-4e55-a3dc-3fa8b74880f2')
+    def test_vif_already_set_on_extra(self):
+        self.useFixture(
+            api_microversion_fixture.APIMicroversionFixture('1.28'))
+        _, self.port = self.create_port(self.node['uuid'],
+                                        data_utils.rand_mac_address())
+        patch = [{'path': '/extra/vif_port_id',
+                  'op': 'add',
+                  'value': 'test-vif'}]
+        self.client.update_port(self.port['uuid'], patch)
+
+        _, body = self.client.vif_list(self.node['uuid'])
+        self.assertEqual(body, {'vifs': [{'id': 'test-vif'}]})
+
+        self.assertRaises(lib_exc.Conflict, self.client.vif_attach,
+                          self.node['uuid'], 'test-vif')
+
+        self.client.vif_detach(self.node['uuid'], 'test-vif')

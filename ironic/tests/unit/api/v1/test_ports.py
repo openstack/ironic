@@ -34,6 +34,7 @@ from ironic.api.controllers.v1 import port as api_port
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import versions
 from ironic.common import exception
+from ironic.common import utils as common_utils
 from ironic.conductor import rpcapi
 from ironic import objects
 from ironic.objects import fields as obj_fields
@@ -956,9 +957,11 @@ class TestPost(test_api_base.BaseApiTest):
         self.headers = {api_base.Version.string: str(
             versions.MAX_VERSION_STRING)}
 
+    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
+                       autospec=True)
     @mock.patch.object(notification_utils, '_emit_api_notification')
     @mock.patch.object(timeutils, 'utcnow')
-    def test_create_port(self, mock_utcnow, mock_notify):
+    def test_create_port(self, mock_utcnow, mock_notify, mock_warn):
         pdict = post_get_test_port()
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = test_time
@@ -984,6 +987,7 @@ class TestPost(test_api_base.BaseApiTest):
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.END,
                                       node_uuid=self.node.uuid)])
+        self.assertEqual(0, mock_warn.call_count)
 
     def test_create_port_min_api_version(self):
         pdict = post_get_test_port(
@@ -1255,6 +1259,16 @@ class TestPost(test_api_base.BaseApiTest):
                                   pdict, headers=headers, expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
+    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
+                       autospec=True)
+    def test_create_port_with_extra_vif_port_id_deprecated(self, mock_warn):
+        pdict = post_get_test_port(pxe_enabled=False,
+                                   extra={'vif_port_id': 'foo'})
+        response = self.post_json('/ports', pdict, headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        self.assertEqual(1, mock_warn.call_count)
 
     def _test_create_port(self, has_vif=False, in_portgroup=False,
                           pxe_enabled=True, standalone_ports=True,

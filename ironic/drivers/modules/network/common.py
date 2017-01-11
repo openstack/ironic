@@ -21,6 +21,7 @@ from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.i18n import _, _LW
 from ironic.common import neutron
+from ironic.common import utils
 from ironic import objects
 
 CONF = cfg.CONF
@@ -57,6 +58,10 @@ class VIFPortIDMixin(object):
         if 'extra' in port_obj.obj_what_changed():
             original_port = objects.Port.get_by_id(context, port_obj.id)
             updated_client_id = port_obj.extra.get('client-id')
+            if (port_obj.extra.get('vif_port_id') and
+                    (port_obj.extra['vif_port_id'] !=
+                     original_port.extra.get('vif_port_id'))):
+                utils.warn_about_deprecated_extra_vif_port_id()
             if (original_port.extra.get('client-id') !=
                 updated_client_id):
                 # DHCP Option with opt_value=None will remove it
