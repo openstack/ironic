@@ -12,6 +12,7 @@
 blkid: CommandFilter, blkid, root
 blockdev: CommandFilter, blockdev, root
 hexdump: CommandFilter, hexdump, root
+lsblk: CommandFilter, lsblk, root
 qemu-img: CommandFilter, qemu-img, root
 wipefs: CommandFilter, wipefs, root
 sgdisk: CommandFilter, sgdisk, root
