@@ -266,6 +266,8 @@ class ConductorAPI(object):
         :raises: DriverNotFound if the supplied driver is not loaded.
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
+        :raises: InterfaceNotFoundInEntrypoint if the default interface for a
+                 hardware type is invalid.
         :returns: A dictionary containing:
 
             :return: The response of the invoked vendor method
@@ -304,6 +306,11 @@ class ConductorAPI(object):
         :param context: an admin context.
         :param driver_name: name of the driver.
         :param topic: RPC topic. Defaults to self.topic.
+        :raises: UnsupportedDriverExtension if current driver does not have
+                 vendor interface.
+        :raises: DriverNotFound if the supplied driver is not loaded.
+        :raises: InterfaceNotFoundInEntrypoint if the default interface for a
+                 hardware type is invalid.
         :returns: dictionary of <method name>:<method metadata> entries.
 
         """
@@ -666,6 +673,8 @@ class ConductorAPI(object):
         :param topic: RPC topic. Defaults to self.topic.
         :raises: UnsupportedDriverExtension if the driver doesn't
             support RAID configuration.
+        :raises: InterfaceNotFoundInEntrypoint if the default interface for a
+                 hardware type is invalid.
         :returns: A dictionary containing the properties that can be mentioned
             for logical disks and a textual description for them.
         """

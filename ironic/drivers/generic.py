@@ -84,3 +84,8 @@ class ManualManagementHardware(GenericHardware):
     def supported_power_interfaces(self):
         """List of supported power interfaces."""
         return [fake.FakePower]
+
+    @property
+    def supported_vendor_interfaces(self):
+        """List of supported vendor interfaces."""
+        return [noop.NoVendor]

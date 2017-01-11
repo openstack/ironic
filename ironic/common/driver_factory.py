@@ -95,11 +95,11 @@ def _attach_interfaces_to_driver(bare_driver, node, driver_or_hw_type):
 
     for iface in dynamic_interfaces:
         impl_name = getattr(node, '%s_interface' % iface)
-        impl = _get_interface(driver_or_hw_type, iface, impl_name)
+        impl = get_interface(driver_or_hw_type, iface, impl_name)
         setattr(bare_driver, iface, impl)
 
 
-def _get_interface(driver_or_hw_type, interface_type, interface_name):
+def get_interface(driver_or_hw_type, interface_type, interface_name):
     """Get interface implementation instance.
 
     For hardware types also validates compatibility.
@@ -170,7 +170,7 @@ def default_interface(driver_or_hw_type, interface_type):
 
     if impl_name is not None:
         # Check that the default is correct for this type
-        _get_interface(driver_or_hw_type, interface_type, impl_name)
+        get_interface(driver_or_hw_type, interface_type, impl_name)
     elif is_hardware_type:
         supported = getattr(driver_or_hw_type,
                             'supported_%s_interfaces' % interface_type)
@@ -230,7 +230,7 @@ def check_and_update_node_interfaces(node, driver_or_hw_type=None):
             impl_name = getattr(node, field_name)
             if impl_name is not None:
                 # Check that the provided value is correct for this type
-                _get_interface(driver_or_hw_type, iface, impl_name)
+                get_interface(driver_or_hw_type, iface, impl_name)
                 # Not changing the result, proceeding with the next interface
                 continue
 

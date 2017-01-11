@@ -165,6 +165,18 @@ class ServiceSetUpMixin(object):
         self.config(enabled_drivers=['fake'])
         self.config(node_locked_retry_attempts=1, group='conductor')
         self.config(node_locked_retry_interval=0, group='conductor')
+
+        self.config(enabled_hardware_types=['fake-hardware',
+                                            'manual-management'])
+        self.config(enabled_boot_interfaces=['fake', 'pxe'])
+        self.config(enabled_console_interfaces=['fake', 'no-console'])
+        self.config(enabled_deploy_interfaces=['fake', 'iscsi'])
+        self.config(enabled_inspect_interfaces=['fake', 'no-inspect'])
+        self.config(enabled_management_interfaces=['fake'])
+        self.config(enabled_power_interfaces=['fake'])
+        self.config(enabled_raid_interfaces=['fake', 'no-raid'])
+        self.config(enabled_vendor_interfaces=['fake', 'no-vendor'])
+
         self.service = manager.ConductorManager(self.hostname, 'test-topic')
         mock_the_extension_manager()
         self.driver = driver_factory.get_driver("fake")

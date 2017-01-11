@@ -826,6 +826,14 @@ class Connection(api.Connection):
                  .filter_by(conductor_id=conductor_id))
         return query.all()
 
+    def list_hardware_type_interfaces(self, hardware_types):
+        query = (model_query(models.ConductorHardwareInterfaces)
+                 .filter(models.ConductorHardwareInterfaces.hardware_type
+                         .in_(hardware_types)))
+
+        query = _filter_active_conductors(query)
+        return query.all()
+
     def register_conductor_hardware_interfaces(self, conductor_id,
                                                hardware_type, interface_type,
                                                interfaces, default_interface):
