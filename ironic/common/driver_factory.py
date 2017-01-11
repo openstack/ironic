@@ -326,6 +326,8 @@ class BaseDriverFactory(object):
     # This field will contain the list of the enabled drivers/interfaces names
     # without duplicates
     _enabled_driver_list = None
+    # Template for logging loaded drivers
+    _logging_template = _LI("Loaded the following drivers: %s")
 
     def __init__(self):
         if not self.__class__._extension_manager:
@@ -414,8 +416,7 @@ class BaseDriverFactory(object):
         cls._extension_manager.map(cls._extension_manager.names(),
                                    _warn_if_unsupported)
 
-        LOG.info(_LI("Loaded the following drivers: %s"),
-                 cls._extension_manager.names())
+        LOG.info(cls._logging_template, cls._extension_manager.names())
 
     @property
     def names(self):
@@ -441,6 +442,7 @@ class DriverFactory(BaseDriverFactory):
 class HardwareTypesFactory(BaseDriverFactory):
     _entrypoint_name = 'ironic.hardware.types'
     _enabled_driver_list_config_option = 'enabled_hardware_types'
+    _logging_template = _LI("Loaded the following hardware types: %s")
 
 
 _INTERFACE_LOADERS = {
@@ -448,7 +450,9 @@ _INTERFACE_LOADERS = {
                (BaseDriverFactory,),
                {'_entrypoint_name': 'ironic.hardware.interfaces.%s' % name,
                 '_enabled_driver_list_config_option':
-                'enabled_%s_interfaces' % name})
+                'enabled_%s_interfaces' % name,
+                '_logging_template':
+                _LI("Loaded the following %s interfaces: %%s") % name})
     for name in driver_base.ALL_INTERFACES
 }
 
