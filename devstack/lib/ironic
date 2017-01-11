@@ -522,7 +522,7 @@ function _generate_pdu_ports {
     port_config=()
     for vm_name in $(_ironic_bm_vm_names); do
         port_config+=("${pdu_port_number}:${vm_name}")
-        (( pdu_port_number++ ))
+        pdu_port_number=$(( pdu_port_number + 1 ))
     done
     echo ${port_config[*]} | tr ' ' ','
 }
