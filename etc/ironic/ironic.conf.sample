@@ -1686,8 +1686,9 @@
 # Domain name to scope to (string value)
 #domain_name = <None>
 
-# whether to enable inspection using ironic-inspector (boolean
-# value)
+# whether to enable inspection using ironic-inspector. This
+# option does not affect new-style dynamic drivers and the
+# fake_inspector driver. (boolean value)
 #enabled = false
 
 # Verify HTTPS connections. (boolean value)

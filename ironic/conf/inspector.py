@@ -19,7 +19,9 @@ from ironic.conf import auth
 
 opts = [
     cfg.BoolOpt('enabled', default=False,
-                help=_('whether to enable inspection using ironic-inspector')),
+                help=_('whether to enable inspection using ironic-inspector. '
+                       'This option does not affect new-style dynamic drivers '
+                       'and the fake_inspector driver.')),
     cfg.StrOpt('service_url',
                help=_('ironic-inspector HTTP endpoint. If this is not set, '
                       'the service catalog will be used.')),

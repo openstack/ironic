@@ -75,10 +75,6 @@ class Inspector(base.InspectInterface):
                          "[inspector] enabled = True."), driver_name)
 
     def __init__(self):
-        if not CONF.inspector.enabled:
-            raise exception.DriverLoadError(
-                _('ironic-inspector support is disabled'))
-
         if not client:
             raise exception.DriverLoadError(
                 _('python-ironic-inspector-client Python module not found'))
