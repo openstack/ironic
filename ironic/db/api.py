@@ -531,6 +531,19 @@ class Connection(object):
         """
 
     @abc.abstractmethod
+    def get_active_hardware_type_dict(self):
+        """Retrieve hardware types for the registered and active conductors.
+
+        :returns: A dict which maps hardware type names to the set of hosts
+                  which support them. For example:
+
+                  ::
+
+                    {hardware-type-a: set([host1, host2]),
+                     hardware-type-b: set([host2, host3])}
+        """
+
+    @abc.abstractmethod
     def get_offline_conductors(self):
         """Get a list conductor hostnames that are offline (dead).
 

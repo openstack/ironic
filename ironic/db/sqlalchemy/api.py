@@ -177,6 +177,16 @@ def _paginate_query(model, limit=None, marker=None, sort_key=None,
     return query.all()
 
 
+def _filter_active_conductors(query, interval=None):
+    if interval is None:
+        interval = CONF.conductor.heartbeat_timeout
+    limit = timeutils.utcnow() - datetime.timedelta(seconds=interval)
+
+    query = (query.filter(models.Conductor.online.is_(True))
+             .filter(models.Conductor.updated_at >= limit))
+    return query
+
+
 class Connection(api.Connection):
     """SqlAlchemy connection."""
 
@@ -782,17 +792,25 @@ class Connection(api.Connection):
         if interval is None:
             interval = CONF.conductor.heartbeat_timeout
 
-        limit = timeutils.utcnow() - datetime.timedelta(seconds=interval)
-        result = (model_query(models.Conductor)
-                  .filter_by(online=True)
-                  .filter(models.Conductor.updated_at >= limit)
-                  .all())
+        query = model_query(models.Conductor)
+        result = _filter_active_conductors(query, interval=interval)
 
         # build mapping of drivers to the set of hosts which support them
         d2c = collections.defaultdict(set)
         for row in result:
             for driver in row['drivers']:
                 d2c[driver].add(row['hostname'])
+        return d2c
+
+    def get_active_hardware_type_dict(self):
+        query = (model_query(models.ConductorHardwareInterfaces,
+                             models.Conductor)
+                 .join(models.Conductor))
+        result = _filter_active_conductors(query)
+
+        d2c = collections.defaultdict(set)
+        for iface_row, cdr_row in result:
+            d2c[iface_row['hardware_type']].add(cdr_row['hostname'])
         return d2c
 
     def get_offline_conductors(self):

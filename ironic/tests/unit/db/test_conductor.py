@@ -40,9 +40,16 @@ class DbConductorTestCase(base.DbTestCase):
         self.dbapi.register_conductor(c)
         self.dbapi.register_conductor(c, update_existing=True)
 
-    def _create_test_cdr(self, **kwargs):
+    def _create_test_cdr(self, hardware_types=None, **kwargs):
+        hardware_types = hardware_types or []
         c = utils.get_test_conductor(**kwargs)
-        return self.dbapi.register_conductor(c)
+        cdr = self.dbapi.register_conductor(c)
+        for ht in hardware_types:
+            self.dbapi.register_conductor_hardware_interfaces(cdr.id, ht,
+                                                              'power',
+                                                              ['ipmi', 'fake'],
+                                                              'ipmi')
+        return cdr
 
     def test_register_conductor_hardware_interfaces(self):
         c = self._create_test_cdr()
@@ -187,7 +194,7 @@ class DbConductorTestCase(base.DbTestCase):
     def test_get_active_driver_dict_one_host_one_driver(self, mock_utcnow):
         h = 'fake-host'
         d = 'fake-driver'
-        expected = {d: set([h])}
+        expected = {d: {h}}
 
         mock_utcnow.return_value = datetime.datetime.utcnow()
         self._create_test_cdr(hostname=h, drivers=[d])
@@ -199,7 +206,7 @@ class DbConductorTestCase(base.DbTestCase):
         h = 'fake-host'
         d1 = 'driver-one'
         d2 = 'driver-two'
-        expected = {d1: set([h]), d2: set([h])}
+        expected = {d1: {h}, d2: {h}}
 
         mock_utcnow.return_value = datetime.datetime.utcnow()
         self._create_test_cdr(hostname=h, drivers=[d1, d2])
@@ -211,7 +218,7 @@ class DbConductorTestCase(base.DbTestCase):
         h1 = 'host-one'
         h2 = 'host-two'
         d = 'fake-driver'
-        expected = {d: set([h1, h2])}
+        expected = {d: {h1, h2}}
 
         mock_utcnow.return_value = datetime.datetime.utcnow()
         self._create_test_cdr(id=1, hostname=h1, drivers=[d])
@@ -226,7 +233,7 @@ class DbConductorTestCase(base.DbTestCase):
         h3 = 'host-three'
         d1 = 'driver-one'
         d2 = 'driver-two'
-        expected = {d1: set([h1, h2]), d2: set([h2, h3])}
+        expected = {d1: {h1, h2}, d2: {h2, h3}}
 
         mock_utcnow.return_value = datetime.datetime.utcnow()
         self._create_test_cdr(id=1, hostname=h1, drivers=[d1])
@@ -254,14 +261,112 @@ class DbConductorTestCase(base.DbTestCase):
 
         # verify that old-host does not show up in current list
         one_minute = 60
-        expected = {d: set([h2]), d2: set([h2])}
+        expected = {d: {h2}, d2: {h2}}
         result = self.dbapi.get_active_driver_dict(interval=one_minute)
         self.assertEqual(expected, result)
 
         # change the interval, and verify that old-host appears
         two_minute = one_minute * 2
-        expected = {d: set([h1, h2]), d1: set([h1]), d2: set([h2])}
+        expected = {d: {h1, h2}, d1: {h1}, d2: {h2}}
         result = self.dbapi.get_active_driver_dict(interval=two_minute)
+        self.assertEqual(expected, result)
+
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_get_active_hardware_type_dict_one_host_no_ht(self, mock_utcnow):
+        h = 'fake-host'
+        expected = {}
+
+        mock_utcnow.return_value = datetime.datetime.utcnow()
+        self._create_test_cdr(hostname=h, drivers=[], hardware_types=[])
+        result = self.dbapi.get_active_hardware_type_dict()
+        self.assertEqual(expected, result)
+
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_get_active_hardware_type_dict_one_host_one_ht(self, mock_utcnow):
+        h = 'fake-host'
+        ht = 'hardware-type'
+        expected = {ht: {h}}
+
+        mock_utcnow.return_value = datetime.datetime.utcnow()
+        self._create_test_cdr(hostname=h, drivers=[], hardware_types=[ht])
+        result = self.dbapi.get_active_hardware_type_dict()
+        self.assertEqual(expected, result)
+
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_get_active_hardware_type_dict_one_host_many_ht(self, mock_utcnow):
+        h = 'fake-host'
+        ht1 = 'hardware-type'
+        ht2 = 'another-hardware-type'
+        expected = {ht1: {h}, ht2: {h}}
+
+        mock_utcnow.return_value = datetime.datetime.utcnow()
+        self._create_test_cdr(hostname=h, drivers=[],
+                              hardware_types=[ht1, ht2])
+        result = self.dbapi.get_active_hardware_type_dict()
+        self.assertEqual(expected, result)
+
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_get_active_hardware_type_dict_many_host_one_ht(self, mock_utcnow):
+        h1 = 'host-one'
+        h2 = 'host-two'
+        ht = 'hardware-type'
+        expected = {ht: {h1, h2}}
+
+        mock_utcnow.return_value = datetime.datetime.utcnow()
+        self._create_test_cdr(id=1, hostname=h1, drivers=[],
+                              hardware_types=[ht])
+        self._create_test_cdr(id=2, hostname=h2, drivers=[],
+                              hardware_types=[ht])
+        result = self.dbapi.get_active_hardware_type_dict()
+        self.assertEqual(expected, result)
+
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_get_active_hardware_type_dict_many_host_many_ht(self,
+                                                             mock_utcnow):
+        h1 = 'host-one'
+        h2 = 'host-two'
+        ht1 = 'hardware-type'
+        ht2 = 'another-hardware-type'
+        expected = {ht1: {h1, h2}, ht2: {h1, h2}}
+
+        mock_utcnow.return_value = datetime.datetime.utcnow()
+        self._create_test_cdr(id=1, hostname=h1, drivers=[],
+                              hardware_types=[ht1, ht2])
+        self._create_test_cdr(id=2, hostname=h2, drivers=[],
+                              hardware_types=[ht1, ht2])
+        result = self.dbapi.get_active_hardware_type_dict()
+        self.assertEqual(expected, result)
+
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_get_active_hardware_type_dict_with_old_conductor(self,
+                                                              mock_utcnow):
+        past = datetime.datetime(2000, 1, 1, 0, 0)
+        present = past + datetime.timedelta(minutes=2)
+
+        ht = 'hardware-type'
+
+        h1 = 'old-host'
+        ht1 = 'old-hardware-type'
+        mock_utcnow.return_value = past
+        self._create_test_cdr(id=1, hostname=h1, drivers=[],
+                              hardware_types=[ht, ht1])
+
+        h2 = 'new-host'
+        ht2 = 'new-hardware-type'
+        mock_utcnow.return_value = present
+        self._create_test_cdr(id=2, hostname=h2, drivers=[],
+                              hardware_types=[ht, ht2])
+
+        # verify that old-host does not show up in current list
+        self.config(heartbeat_timeout=60, group='conductor')
+        expected = {ht: {h2}, ht2: {h2}}
+        result = self.dbapi.get_active_hardware_type_dict()
+        self.assertEqual(expected, result)
+
+        # change the heartbeat timeout, and verify that old-host appears
+        self.config(heartbeat_timeout=120, group='conductor')
+        expected = {ht: {h1, h2}, ht1: {h1}, ht2: {h2}}
+        result = self.dbapi.get_active_hardware_type_dict()
         self.assertEqual(expected, result)
 
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
