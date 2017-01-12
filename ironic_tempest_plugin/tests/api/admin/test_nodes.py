@@ -168,6 +168,17 @@ class TestNodes(base.BaseBaremetalTest):
         self.assertEqual(1, len(body['nodes']))
         self.assertIn(self.node['uuid'], [n['uuid'] for n in body['nodes']])
 
+
+class TestNodesVif(base.BaseBaremetalTest):
+
+    min_microversion = '1.28'
+
+    def setUp(self):
+        super(TestNodesVif, self).setUp()
+
+        _, self.chassis = self.create_chassis()
+        _, self.node = self.create_node(self.chassis['uuid'])
+
     @test.idempotent_id('a3d319d0-cacb-4e55-a3dc-3fa8b74880f1')
     def test_vifs(self):
         self.useFixture(
