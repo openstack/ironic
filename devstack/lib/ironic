@@ -309,6 +309,13 @@ IRONIC_DEPLOY_LOGS_STORAGE_BACKEND=${IRONIC_DEPLOY_LOGS_STORAGE_BACKEND:-local}
 # The path to the directory where Ironic should put the logs when IRONIC_DEPLOY_LOGS_STORAGE_BACKEND is set to "local"
 IRONIC_DEPLOY_LOGS_LOCAL_PATH=${IRONIC_DEPLOY_LOGS_LOCAL_PATH:-$IRONIC_VM_LOG_DIR/deploy_logs}
 
+
+# Define baremetal min_microversion in tempest config. Default value None is picked from tempest.
+TEMPEST_BAREMETAL_MIN_MICROVERSION=${TEMPEST_BAREMETAL_MIN_MICROVERSION:-}
+
+# Define baremetal max_microversion in tempest config. No default value means that it is picked from tempest.
+TEMPEST_BAREMETAL_MAX_MICROVERSION=${TEMPEST_BAREMETAL_MAX_MICROVERSION:-'1.22'}
+
 # get_pxe_boot_file() - Get the PXE/iPXE boot file path
 function get_pxe_boot_file {
     local relpath=syslinux/pxelinux.0
@@ -1499,6 +1506,13 @@ function cleanup_baremetal_basic_ops {
 
 function ironic_configure_tempest {
     iniset $TEMPEST_CONFIG service_available ironic True
+
+    if [[ -n "$TEMPEST_BAREMETAL_MIN_MICROVERSION" ]]; then
+        iniset $TEMPEST_CONFIG baremetal min_microversion $TEMPEST_BAREMETAL_MIN_MICROVERSION
+    fi
+    if [[ -n "$TEMPEST_BAREMETAL_MAX_MICROVERSION" ]]; then
+        iniset $TEMPEST_CONFIG baremetal max_microversion $TEMPEST_BAREMETAL_MAX_MICROVERSION
+    fi
 
     local bm_flavor_id
     bm_flavor_id=$(openstack flavor show baremetal -f value -c id)
