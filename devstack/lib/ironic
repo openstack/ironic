@@ -172,6 +172,12 @@ IRONIC_LIBVIRT_HOOKS_PATH=${IRONIC_LIBVIRT_HOOKS_PATH:-/etc/libvirt/hooks/}
 # keystone and noauth.
 IRONIC_AUTH_STRATEGY=${IRONIC_AUTH_STRATEGY:-keystone}
 
+# Define baremetal min_microversion in tempest config. Default value None is picked from tempest.
+TEMPEST_BAREMETAL_MIN_MICROVERSION=${TEMPEST_BAREMETAL_MIN_MICROVERSION:-}
+
+# Define baremetal max_microversion in tempest config. No default value means that it is picked from tempest.
+TEMPEST_BAREMETAL_MAX_MICROVERSION=${TEMPEST_BAREMETAL_MAX_MICROVERSION:-'1.16'}
+
 # get_pxe_boot_file() - Get the PXE/iPXE boot file path
 function get_pxe_boot_file {
     local relpath=syslinux/pxelinux.0
@@ -1022,6 +1028,13 @@ function cleanup_baremetal_basic_ops {
 
 function ironic_configure_tempest {
     iniset $TEMPEST_CONFIG service_available ironic True
+
+    if [[ -n "$TEMPEST_BAREMETAL_MIN_MICROVERSION" ]]; then
+        iniset $TEMPEST_CONFIG baremetal min_microversion $TEMPEST_BAREMETAL_MIN_MICROVERSION
+    fi
+    if [[ -n "$TEMPEST_BAREMETAL_MAX_MICROVERSION" ]]; then
+        iniset $TEMPEST_CONFIG baremetal max_microversion $TEMPEST_BAREMETAL_MAX_MICROVERSION
+    fi
 
     local bm_flavor_id
     bm_flavor_id=$(openstack flavor show baremetal -f value -c id)
