@@ -1070,14 +1070,14 @@ class NetworkInterface(BaseInterface):
         We are booting the node only in one network at a time, and presence of
         cleaning_vif_port_id means we're doing cleaning, of
         provisioning_vif_port_id - provisioning.
-        Otherwise it's a tenant network
+        Otherwise it's a tenant network.
 
         :param task: A TaskManager instance.
         :param p_obj: Ironic port or portgroup object.
         :returns: VIF ID associated with p_obj or None.
         """
         default_impl = net_common.VIFPortIDMixin()
-        if not self.__class__._deprecated_get_current_vif_shown:
+        if not self._deprecated_get_current_vif_shown:
             self.__class__._deprecated_get_current_vif_shown = True
             LOG.warning(_LW('The network interface %s should be updated to '
                             'implement the get_current_vif function. Falling '

@@ -49,7 +49,7 @@ class TestVifPortIDMixin(db_base.DbTestCase):
         self.port.save()
         with task_manager.acquire(self.context, self.node.id) as task:
             vifs = self.interface.vif_list(task)
-            self.assertEqual(vifs, [{'id': vif_id}])
+            self.assertEqual([{'id': vif_id}], vifs)
 
     def test_vif_list_internal(self):
         vif_id = uuidutils.generate_uuid()
@@ -57,7 +57,7 @@ class TestVifPortIDMixin(db_base.DbTestCase):
         self.port.save()
         with task_manager.acquire(self.context, self.node.id) as task:
             vifs = self.interface.vif_list(task)
-            self.assertEqual(vifs, [{'id': vif_id}])
+            self.assertEqual([{'id': vif_id}], vifs)
 
     def test_vif_list_extra_and_internal_priority(self):
         vif_id = uuidutils.generate_uuid()
@@ -67,7 +67,7 @@ class TestVifPortIDMixin(db_base.DbTestCase):
         self.port.save()
         with task_manager.acquire(self.context, self.node.id) as task:
             vifs = self.interface.vif_list(task)
-            self.assertEqual(vifs, [{'id': vif_id}])
+            self.assertEqual([{'id': vif_id}], vifs)
 
     @mock.patch.object(neutron_common, 'get_client')
     @mock.patch.object(neutron_common, 'update_port_address')
@@ -78,8 +78,8 @@ class TestVifPortIDMixin(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.vif_attach(task, vif)
             self.port.refresh()
-            self.assertEqual(self.port.internal_info.get(
-                common.TENANT_VIF_KEY), "fake_vif_id")
+            self.assertEqual("fake_vif_id", self.port.internal_info.get(
+                common.TENANT_VIF_KEY))
             mock_upa.assert_called_once_with("fake_vif_id", self.port.address)
 
     @mock.patch.object(neutron_common, 'get_client')
