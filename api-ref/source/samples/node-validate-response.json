@@ -23,6 +23,10 @@
   "raid": {
     "result": true
   },
+  "rescue": {
+    "reason": "not supported",
+    "result": null
+  },
   "storage": {
     "result": true
   }

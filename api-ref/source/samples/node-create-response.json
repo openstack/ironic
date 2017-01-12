@@ -61,6 +61,7 @@
   "provision_updated_at": null,
   "raid_config": {},
   "raid_interface": null,
+  "rescue_interface": null,
   "reservation": null,
   "resource_class": null,
   "states": [

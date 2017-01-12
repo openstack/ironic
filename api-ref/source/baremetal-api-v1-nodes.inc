@@ -82,6 +82,10 @@ supplied when the Node is created, or the resource may be updated later.
   Introduced the ``storage_interface`` field. If this field is not supplied
   when creating the Node, the default value will be used.
 
+.. versionadded:: 1.38
+  Introduced the ``rescue_interface`` field. If this field is not supplied
+  when creating the Node, the default value will be used.
+
 Normal response codes: 201
 
 .. TODO: add error codes
@@ -111,7 +115,7 @@ and any defaults added for non-specified fields. Most fields default to "null"
 or "".
 
 The list and example below are representative of the response as of API
-microversion 1.37.
+microversion 1.38.
 
 .. rest_parameters:: parameters.yaml
 
@@ -150,6 +154,7 @@ microversion 1.37.
     - network_interface: network_interface
     - power_interface: power_interface
     - raid_interface: raid_interface
+    - rescue_interface: rescue_interface
     - storage_interface: storage_interface
     - traits: n_traits
     - vendor_interface: vendor_interface
@@ -303,6 +308,7 @@ Response
     - network_interface: network_interface
     - power_interface: power_interface
     - raid_interface: raid_interface
+    - rescue_interface: rescue_interface
     - storage_interface: storage_interface
     - traits: n_traits
     - vendor_interface: vendor_interface
@@ -378,6 +384,7 @@ Response
     - network_interface: network_interface
     - power_interface: power_interface
     - raid_interface: raid_interface
+    - rescue_interface: rescue_interface
     - storage_interface: storage_interface
     - traits: n_traits
     - vendor_interface: vendor_interface
@@ -460,6 +467,7 @@ Response
     - network_interface: network_interface
     - power_interface: power_interface
     - raid_interface: raid_interface
+    - rescue_interface: rescue_interface
     - storage_interface: storage_interface
     - traits: n_traits
     - vendor_interface: vendor_interface

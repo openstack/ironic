@@ -74,6 +74,7 @@ the Node's driver does not support that interface.
   - network: v_network
   - power: v_power
   - raid: v_raid
+  - rescue: v_rescue
   - storage: v_storage
 
 **Example node validation response:**
@@ -347,6 +348,10 @@ detailed documentation of the Ironic State Machine is available
 .. versionadded:: 1.35
    A ``configdrive`` can be provided when setting the node's provision target state to ``rebuild``.
 
+.. versionadded:: 1.38
+  A node can be rescued or unrescued by setting the node's provision target state to
+  ``rescue`` or ``unrescue`` respectively.
+
 Normal response code: 202
 
 Error codes:
@@ -364,6 +369,7 @@ Request
     - target: requested_provision_state
     - configdrive: configdrive
     - clean_steps: clean_steps
+    - rescue_password: rescue_password
 
 **Example request to deploy a Node, using a configdrive served via local webserver:**
 
