@@ -295,11 +295,11 @@ class ImageConvertFailed(IronicException):
 # Cannot be templated as the error syntax varies.
 # msg needs to be constructed when raised.
 class InvalidParameterValue(Invalid):
-    _msg_fmt = _("%(err)s")
+    _msg_fmt = "%(err)s"
 
 
 class MissingParameterValue(InvalidParameterValue):
-    _msg_fmt = _("%(err)s")
+    _msg_fmt = "%(err)s"
 
 
 class Duplicate(IronicException):
