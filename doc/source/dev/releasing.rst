@@ -45,6 +45,10 @@ Things to do before releasing
   version history (doc/source/dev/webapi-version-history.rst) to
   indicate that they were part of the new release.
 
+* Set appropriate defaults for TEMPEST_BAREMETAL_MIN_MICROVERSION and
+  TEMPEST_BAREMETAL_MAX_MICROVERSION in devstack/lib/ironic to make sure that
+  unsupported API tempest tests are skipped on stable branches.
+
 .. _`standards`: http://docs.openstack.org/developer/ironic/dev/faq.html#know-if-a-release-note-is-needed-for-my-change
 
 Things to do after releasing
