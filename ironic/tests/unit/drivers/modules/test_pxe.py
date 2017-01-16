@@ -451,48 +451,6 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                                  True)
 
     @mock.patch.object(pxe.LOG, 'error', autospec=True)
-    def test_validate_boot_option_for_uefi_exc(self, mock_log):
-        properties = {'capabilities': 'boot_mode:uefi'}
-        instance_info = {"boot_option": "netboot"}
-        self.node.properties = properties
-        self.node.instance_info['capabilities'] = instance_info
-        self.node.driver_internal_info['is_whole_disk_image'] = True
-        self.assertRaises(exception.InvalidParameterValue,
-                          pxe.validate_boot_option_for_uefi,
-                          self.node)
-        self.assertTrue(mock_log.called)
-
-    @mock.patch.object(pxe.LOG, 'error', autospec=True)
-    def test_validate_boot_option_for_uefi_noexc_one(self, mock_log):
-        properties = {'capabilities': 'boot_mode:uefi'}
-        instance_info = {"boot_option": "local"}
-        self.node.properties = properties
-        self.node.instance_info['capabilities'] = instance_info
-        self.node.driver_internal_info['is_whole_disk_image'] = True
-        pxe.validate_boot_option_for_uefi(self.node)
-        self.assertFalse(mock_log.called)
-
-    @mock.patch.object(pxe.LOG, 'error', autospec=True)
-    def test_validate_boot_option_for_uefi_noexc_two(self, mock_log):
-        properties = {'capabilities': 'boot_mode:bios'}
-        instance_info = {"boot_option": "local"}
-        self.node.properties = properties
-        self.node.instance_info['capabilities'] = instance_info
-        self.node.driver_internal_info['is_whole_disk_image'] = True
-        pxe.validate_boot_option_for_uefi(self.node)
-        self.assertFalse(mock_log.called)
-
-    @mock.patch.object(pxe.LOG, 'error', autospec=True)
-    def test_validate_boot_option_for_uefi_noexc_three(self, mock_log):
-        properties = {'capabilities': 'boot_mode:uefi'}
-        instance_info = {"boot_option": "local"}
-        self.node.properties = properties
-        self.node.instance_info['capabilities'] = instance_info
-        self.node.driver_internal_info['is_whole_disk_image'] = False
-        pxe.validate_boot_option_for_uefi(self.node)
-        self.assertFalse(mock_log.called)
-
-    @mock.patch.object(pxe.LOG, 'error', autospec=True)
     def test_validate_boot_parameters_for_trusted_boot_one(self, mock_log):
         properties = {'capabilities': 'boot_mode:uefi'}
         instance_info = {"boot_option": "netboot"}
@@ -634,17 +592,6 @@ class PXEBootTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             task.node['instance_info'] = json.dumps(info)
             self.assertRaises(exception.MissingParameterValue,
-                              task.driver.boot.validate, task)
-
-    def test_validate_fail_invalid_config_uefi_whole_disk_image(self):
-        properties = {'capabilities': 'boot_mode:uefi,boot_option:netboot'}
-        instance_info = {"boot_option": "netboot"}
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            task.node.properties = properties
-            task.node.instance_info['capabilities'] = instance_info
-            task.node.driver_internal_info['is_whole_disk_image'] = True
-            self.assertRaises(exception.InvalidParameterValue,
                               task.driver.boot.validate, task)
 
     def test_validate_fail_no_port(self):

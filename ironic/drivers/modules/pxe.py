@@ -26,7 +26,7 @@ from ironic.common import boot_devices
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
-from ironic.common.i18n import _, _LE, _LW
+from ironic.common.i18n import _, _LW
 from ironic.common import image_service as service
 from ironic.common import images
 from ironic.common import pxe_utils
@@ -245,30 +245,6 @@ def _build_service_pxe_config(task, instance_image_info,
         iwdi, deploy_utils.is_trusted_boot_requested(node))
 
 
-@METRICS.timer('validate_boot_option_for_uefi')
-def validate_boot_option_for_uefi(node):
-    """In uefi boot mode, validate if the boot option is compatible.
-
-    This method raises exception if whole disk image being deployed
-    in UEFI boot mode without 'boot_option' being set to 'local'.
-
-    :param node: a single Node.
-    :raises: InvalidParameterValue
-    """
-    boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
-    boot_option = deploy_utils.get_boot_option(node)
-    if (boot_mode == 'uefi' and
-            node.driver_internal_info.get('is_whole_disk_image') and
-            boot_option != 'local'):
-        LOG.error(_LE("Whole disk image with netboot is not supported in UEFI "
-                      "boot mode."))
-        raise exception.InvalidParameterValue(_(
-            "Conflict: Whole disk image being used for deploy, but "
-            "cannot be used with node %(node_uuid)s configured to use "
-            "UEFI boot with netboot option") %
-            {'node_uuid': node.uuid})
-
-
 @METRICS.timer('validate_boot_option_for_trusted_boot')
 def validate_boot_parameters_for_trusted_boot(node):
     """Check if boot parameters are valid for trusted boot."""
@@ -363,18 +339,12 @@ class PXEBoot(base.BootInterface):
                 _("Node %s does not have any port associated with it.")
                 % node.uuid)
 
-        # Get the boot_mode capability value.
-        boot_mode = deploy_utils.get_boot_mode_for_deploy(node)
-
         if CONF.pxe.ipxe_enabled:
             if (not CONF.deploy.http_url or
                 not CONF.deploy.http_root):
                 raise exception.MissingParameterValue(_(
                     "iPXE boot is enabled but no HTTP URL or HTTP "
                     "root was specified."))
-
-        if boot_mode == 'uefi':
-            validate_boot_option_for_uefi(node)
 
         # Check the trusted_boot capabilities value.
         deploy_utils.validate_capabilities(node)

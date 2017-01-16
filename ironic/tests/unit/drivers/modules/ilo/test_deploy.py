@@ -25,6 +25,7 @@ from ironic.common import image_service
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.conf import CONF
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
@@ -686,19 +687,18 @@ class IloPXEDeployTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(ilo_deploy, '_prepare_node_for_deploy', spec_set=True,
                        autospec=True)
-    def test_prepare_uefi_whole_disk_image_fail(self,
-                                                prepare_node_for_deploy_mock,
-                                                pxe_prepare_mock):
+    def test_prepare_whole_disk_image_uefi(self, prepare_node_for_deploy_mock,
+                                           pxe_prepare_mock):
+        CONF.set_override('default_boot_option', 'netboot', 'deploy')
         self.node.provision_state = states.DEPLOYING
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.properties['capabilities'] = 'boot_mode:uefi'
             task.node.driver_internal_info['is_whole_disk_image'] = True
-            self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.deploy.prepare, task)
+            task.driver.deploy.prepare(task)
             prepare_node_for_deploy_mock.assert_called_once_with(task)
-            self.assertFalse(pxe_prepare_mock.called)
+            pxe_prepare_mock.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'deploy', spec_set=True,
                        autospec=True)
