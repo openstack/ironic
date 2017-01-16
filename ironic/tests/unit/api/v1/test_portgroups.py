@@ -30,6 +30,7 @@ from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import portgroup as api_portgroup
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import exception
+from ironic.common import utils as common_utils
 from ironic.conductor import rpcapi
 from ironic.tests import base
 from ironic.tests.unit.api import base as test_api_base
@@ -875,8 +876,10 @@ class TestPost(test_api_base.BaseApiTest):
         super(TestPost, self).setUp()
         self.node = obj_utils.create_test_node(self.context)
 
+    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
+                       autospec=True)
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
-    def test_create_portgroup(self, mock_utcnow):
+    def test_create_portgroup(self, mock_utcnow, mock_warn):
         pdict = apiutils.post_get_test_portgroup()
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = test_time
@@ -895,6 +898,7 @@ class TestPost(test_api_base.BaseApiTest):
         expected_location = '/v1/portgroups/%s' % pdict['uuid']
         self.assertEqual(urlparse.urlparse(response.location).path,
                          expected_location)
+        self.assertEqual(0, mock_warn.call_count)
 
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_create_portgroup_v123(self, mock_utcnow):
@@ -955,6 +959,26 @@ class TestPost(test_api_base.BaseApiTest):
         result = self.get_json('/portgroups/%s' % pdict['uuid'],
                                headers=self.headers)
         self.assertEqual(pdict['extra'], result['extra'])
+
+    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
+                       autospec=True)
+    def test_create_portgroup_with_extra_vif_port_id_deprecated(
+            self, mock_warn):
+        pgdict = apiutils.post_get_test_portgroup(extra={'vif_port_id': 'foo'})
+        response = self.post_json('/portgroups', pgdict, headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        self.assertEqual(1, mock_warn.call_count)
+
+    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
+                       autospec=True)
+    def test_create_portgroup_with_no_extra(self, mock_warn):
+        pgdict = apiutils.post_get_test_portgroup()
+        del pgdict['extra']
+        response = self.post_json('/portgroups', pgdict, headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        self.assertEqual(0, mock_warn.call_count)
 
     def test_create_portgroup_no_address(self):
         pdict = apiutils.post_get_test_portgroup()

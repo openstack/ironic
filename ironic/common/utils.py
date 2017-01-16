@@ -544,7 +544,7 @@ def warn_about_deprecated_extra_vif_port_id():
     global warn_deprecated_extra_vif_port_id
     if not warn_deprecated_extra_vif_port_id:
         warn_deprecated_extra_vif_port_id = True
-        LOG.warning(_LW("Attaching VIF to a port via "
+        LOG.warning(_LW("Attaching VIF to a port/portgroup via "
                         "extra['vif_port_id'] is deprecated and will not "
                         "be supported in Pike release. API endpoint "
                         "v1/nodes/<node>/vifs should be used instead."))

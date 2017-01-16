@@ -28,6 +28,7 @@ from ironic.api import expose
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
+from ironic.common import utils as common_utils
 from ironic import objects
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
@@ -446,8 +447,13 @@ class PortgroupsController(pecan.rest.RestController):
             raise wsme.exc.ClientSideError(
                 error_msg, status_code=http_client.BAD_REQUEST)
 
+        pg_dict = portgroup.as_dict()
+        vif = pg_dict.get('extra', {}).get('vif_port_id')
+        if vif:
+            common_utils.warn_about_deprecated_extra_vif_port_id()
+
         new_portgroup = objects.Portgroup(pecan.request.context,
-                                          **portgroup.as_dict())
+                                          **pg_dict)
         new_portgroup.create()
         # Set the HTTP Location Header
         pecan.response.location = link.build_url('portgroups',
