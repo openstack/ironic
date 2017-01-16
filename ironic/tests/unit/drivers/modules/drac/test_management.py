@@ -40,16 +40,23 @@ INFO_DICT = db_utils.get_test_drac_info()
                    autospec=True)
 class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
 
+    def boot_modes(self, *next_modes):
+        modes = [
+            {'id': 'IPL', 'name': 'BootSeq',
+             'is_current': True, 'is_next': False},
+            {'id': 'OneTime', 'name': 'OneTimeBootMode',
+             'is_current': False, 'is_next': False}]
+        for mode in modes:
+            if mode['id'] in next_modes:
+                mode['is_next'] = True
+        return [test_utils.dict_to_namedtuple(values=mode) for mode in modes]
+
     def setUp(self):
         super(DracManagementInternalMethodsTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver='fake_drac')
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake_drac',
                                                driver_info=INFO_DICT)
-        self.boot_mode_ipl = {'id': 'IPL', 'name': 'BootSeq',
-                              'is_current': True, 'is_next': True}
-        self.boot_mode_one_time = {'id': 'OneTime', 'name': 'OneTimeBootMode',
-                                   'is_current': False, 'is_next': False}
 
         self.boot_device_pxe = {
             'id': 'BIOS.Setup.1-1#BootSeq#NIC.Embedded.1-1-1',
@@ -63,17 +70,17 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
             'current_assigned_sequence': 1,
             'pending_assigned_sequence': 1,
             'bios_boot_string': 'Hard drive C: BootSeq'}
+        self.ipl_boot_devices = [
+            test_utils.dict_to_namedtuple(values=self.boot_device_pxe),
+            test_utils.dict_to_namedtuple(values=self.boot_device_disk)]
+        self.boot_devices = {'IPL': self.ipl_boot_devices,
+                             'OneTime': self.ipl_boot_devices}
 
     def test__get_boot_device(self, mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
-        mock_client.list_boot_modes.return_value = [
-            test_utils.dict_to_namedtuple(values=self.boot_mode_ipl),
-            test_utils.dict_to_namedtuple(values=self.boot_mode_one_time)]
-        mock_client.list_boot_devices.return_value = {
-            'IPL': [test_utils.dict_to_namedtuple(values=self.boot_device_pxe),
-                    test_utils.dict_to_namedtuple(
-                        values=self.boot_device_disk)]}
+        mock_client.list_boot_modes.return_value = self.boot_modes('IPL')
+        mock_client.list_boot_devices.return_value = self.boot_devices
 
         boot_device = drac_mgmt._get_boot_device(self.node)
 
@@ -85,14 +92,11 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
     def test__get_boot_device_not_persistent(self, mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
-        self.boot_mode_one_time['is_next'] = True
-        mock_client.list_boot_modes.return_value = [
-            test_utils.dict_to_namedtuple(values=self.boot_mode_ipl),
-            test_utils.dict_to_namedtuple(values=self.boot_mode_one_time)]
-        mock_client.list_boot_devices.return_value = {
-            'OneTime': [
-                test_utils.dict_to_namedtuple(values=self.boot_device_pxe),
-                test_utils.dict_to_namedtuple(values=self.boot_device_disk)]}
+        # if a non-persistent boot mode is marked as "next", it over-rides any
+        # persistent boot modes
+        mock_client.list_boot_modes.return_value = self.boot_modes('IPL',
+                                                                   'OneTime')
+        mock_client.list_boot_devices.return_value = self.boot_devices
 
         boot_device = drac_mgmt._get_boot_device(self.node)
 
@@ -118,13 +122,8 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
                              mock__get_boot_device, mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
-        mock_client.list_boot_modes.return_value = [
-            test_utils.dict_to_namedtuple(values=self.boot_mode_ipl),
-            test_utils.dict_to_namedtuple(values=self.boot_mode_one_time)]
-        mock_client.list_boot_devices.return_value = {
-            'IPL': [test_utils.dict_to_namedtuple(values=self.boot_device_pxe),
-                    test_utils.dict_to_namedtuple(
-                        values=self.boot_device_disk)]}
+        mock_client.list_boot_modes.return_value = self.boot_modes('IPL')
+        mock_client.list_boot_devices.return_value = self.boot_devices
         boot_device = {'boot_device': ironic.common.boot_devices.DISK,
                        'persistent': True}
         mock__get_boot_device.return_value = boot_device
@@ -146,13 +145,8 @@ class DracManagementInternalMethodsTestCase(db_base.DbTestCase):
             mock_get_drac_client):
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
-        mock_client.list_boot_modes.return_value = [
-            test_utils.dict_to_namedtuple(values=self.boot_mode_ipl),
-            test_utils.dict_to_namedtuple(values=self.boot_mode_one_time)]
-        mock_client.list_boot_devices.return_value = {
-            'IPL': [test_utils.dict_to_namedtuple(values=self.boot_device_pxe),
-                    test_utils.dict_to_namedtuple(
-                        values=self.boot_device_disk)]}
+        mock_client.list_boot_modes.return_value = self.boot_modes('IPL')
+        mock_client.list_boot_devices.return_value = self.boot_devices
         boot_device = {'boot_device': ironic.common.boot_devices.PXE,
                        'persistent': True}
         mock__get_boot_device.return_value = boot_device
