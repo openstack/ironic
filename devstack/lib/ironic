@@ -122,8 +122,8 @@ IRONIC_VM_SPECS_CPU_ARCH=${IRONIC_VM_SPECS_CPU_ARCH:-'x86_64'}
 IRONIC_VM_SPECS_DISK=${IRONIC_VM_SPECS_DISK:-10}
 IRONIC_VM_SPECS_DISK_FORMAT=${IRONIC_VM_SPECS_DISK_FORMAT:-qcow2}
 IRONIC_VM_EPHEMERAL_DISK=${IRONIC_VM_EPHEMERAL_DISK:-0}
-IRONIC_VM_EMULATOR=${IRONIC_VM_EMULATOR:-}
-IRONIC_VM_ENGINE=${IRONIC_VM_ENGINE:-}
+IRONIC_VM_EMULATOR=${IRONIC_VM_EMULATOR:-'/usr/bin/qemu-system-x86_64'}
+IRONIC_VM_ENGINE=${IRONIC_VM_ENGINE:-qemu}
 IRONIC_VM_NETWORK_BRIDGE=${IRONIC_VM_NETWORK_BRIDGE:-brbm}
 IRONIC_VM_NETWORK_RANGE=${IRONIC_VM_NETWORK_RANGE:-192.0.2.0/24}
 IRONIC_VM_MACS_CSV_FILE=${IRONIC_VM_MACS_CSV_FILE:-$IRONIC_DATA_DIR/ironic_macs.csv}
@@ -142,10 +142,12 @@ fi
 IRONIC_ENABLED_DRIVERS=${IRONIC_ENABLED_DRIVERS:-fake,pxe_ssh,pxe_ipmitool}
 IRONIC_ENABLED_HARDWARE_TYPES=${IRONIC_ENABLED_HARDWARE_TYPES:-manual-management}
 
-# NOTE(vsaienko) nova already pick right libvirt type at
-# https://review.openstack.org/#/c/31177/4/lib/nova@240
-# pick hardware virtualization if possible while it is not set explicitly
-if [[ -z "$IRONIC_VM_ENGINE" ]]; then
+# If IRONIC_VM_ENGING is explictly set to "auto" or "kvm",
+# devstack will attempt to use hardware virtualization
+# (aka nested kvm). We do not enable it in the infra gates
+# because it is not consistently supported/working across
+# all gate infrastructure providers.
+if [[ "$IRONIC_VM_ENGINE" == "auto" ]]; then
     sudo modprobe kvm || true
     if [ ! -e /dev/kvm ]; then
         echo "WARNING: Switching to QEMU"
@@ -156,6 +158,12 @@ if [[ -z "$IRONIC_VM_ENGINE" ]]; then
     else
         IRONIC_VM_ENGINE=kvm
     fi
+fi
+
+if [[ "$IRONIC_VM_ENGINE" == "kvm" ]]; then
+    # Set this to empty, so configure-vm.py can autodetect location
+    # of KVM binary
+    IRONIC_VM_EMULATOR=""
 fi
 
 # By default, baremetal VMs will console output to file.
