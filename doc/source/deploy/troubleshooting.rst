@@ -20,48 +20,98 @@ to find and resources that Ironic advertised to Nova.
 
 A few things should be checked in this case:
 
+#. Make sure that enough nodes are in ``available`` state, not in
+   maintenance mode and not already used by an existing instance.
+   Check with the following command::
+
+       ironic node-list --provision-state available --maintenance false --associated false
+
+   If this command does not show enough nodes, use generic ``ironic
+   node-list`` to check other nodes. For example, nodes in ``manageable`` state
+   should be made available::
+
+       ironic node-set-provision-state <IRONIC NODE> provide
+
+   The Bare metal service automatically puts a node in maintenance mode if
+   there are issues with accessing its management interface. Check the power
+   credentials (e.g. ``ipmi_address``, ``ipmi_username`` and ``ipmi_password``)
+   and then move the node out of maintenance mode::
+
+       ironic node-set-maintenance <IRONIC NODE> off
+
+   The ``node-validate`` command can be used to verify that all required fields
+   are present. The following command should not return anything::
+
+       ironic node-validate baremetal-0 | grep -E '(power|management)\W*False'
+
+   Maintenance mode will be also set on a node if automated cleaning has
+   failed for it previously.
+
 #. Inspection should have succeeded for you before, or you should have
    entered the required Ironic node properties manually. For each node with
-   available state in ``ironic node-list --provision-state available`` use
-   ::
+   ``available`` state make sure that the ``properties`` JSON field has valid
+   values for the keys ``cpus``, ``cpu_arch``, ``memory_mb`` and ``local_gb``.
+   Example of valid properties::
 
-    ironic node-show <IRONIC-NODE-UUID>
+        $ ironic node-show <IRONIC NODE> --fields properties
+        +------------+------------------------------------------------------------------------------------+
+        | Property   | Value                                                                              |
+        +------------+------------------------------------------------------------------------------------+
+        | properties | {u'memory_mb': u'8192', u'cpu_arch': u'x86_64', u'local_gb': u'41', u'cpus': u'4'} |
+        +------------+------------------------------------------------------------------------------------+
 
-   and make sure that ``properties`` JSON field has valid values for keys
-   ``cpus``, ``cpu_arch``, ``memory_mb`` and ``local_gb``.
+   .. warning::
+       If you're using exact match filters in the Nova Scheduler, make sure
+       the flavor and the node properties match exactly.
 
 #. The Nova flavor that you are using does not match any properties of the
    available Ironic nodes. Use
    ::
 
-    nova flavor-show <FLAVOR NAME>
+        openstack flavor show <FLAVOR NAME>
 
-   to compare. If you're using exact match filters in Nova Scheduler, please
-   make sure the flavor and the node properties match exactly. Regarding
-   the extra specs in flavor, you should make sure they map to
-   ``node.properties['capabilities']``.
+   to compare. The extra specs in your flavor starting with ``capability:``
+   should match ones in ``node.properties['capabilities']``.
 
-#. Make sure that enough nodes are in ``available`` state according to
-   ``ironic node-list --provision-state available``.
+   .. note::
+      The format of capabilities is different in Nova and Ironic.
+      E.g. in Nova flavor::
 
-#. Make sure nodes you're going to deploy to are not in maintenance mode.
-   Again, use ``ironic node-list`` to check. A node automatically going to
-   maintenance mode usually means wrong power credentials for this node. Check
-   them and then remove maintenance mode::
+        $ openstack flavor show <FLAVOR NAME> -c properties
+        +------------+----------------------------------+
+        | Field      | Value                            |
+        +------------+----------------------------------+
+        | properties | capabilities:boot_option='local' |
+        +------------+----------------------------------+
 
-    ironic node-set-maintenance <IRONIC-NODE-UUID> off
+      But in Ironic node::
+
+        $ ironic node-show <IRONIC NODE> --fields properties
+        +------------+-----------------------------------------+
+        | Property   | Value                                   |
+        +------------+-----------------------------------------+
+        | properties | {u'capabilities': u'boot_option:local'} |
+        +------------+-----------------------------------------+
 
 #. After making changes to nodes in Ironic, it takes time for those changes
-   to propagate from Ironic to Nova.
-   Check that
+   to propagate from Ironic to Nova. Check that
    ::
 
-    nova hypervisor-stats
+        openstack hypervisor stats show
 
    correctly shows total amount of resources in your system. You can also
-   check ``nova hypervisor-list`` to see the status of individual Ironic
-   nodes as reported to Nova. And you can correlate the Nova "hypervisor
-   hostname" to the Ironic node UUID.
+   check ``openstack hypervisor show <IRONIC NODE>`` to see the status of
+   individual Ironic nodes as reported to Nova.
+
+#. Figure out which Nova Scheduler filter ruled out your nodes. Check the
+   ``nova-scheduler`` logs for lines containing something like::
+
+        Filter ComputeCapabilitiesFilter returned 0 hosts
+
+   The name of the filter that removed the last hosts may give some hints on
+   what exactly was not matched. See `Nova filters documentation
+   <http://docs.openstack.org/developer/nova/filter_scheduler.html>`_ for more
+   details.
 
 #. If none of the above helped, check Ironic conductor log carefully to see
    if there are any conductor-related errors which are the root cause for
