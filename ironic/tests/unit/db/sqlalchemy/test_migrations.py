@@ -652,6 +652,14 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(ifaces.c.interface_name.type,
                               sqlalchemy.types.String)
 
+    def _check_dbefd6bdaa2c(self, engine, data):
+        ifaces = db_utils.get_table(engine, 'conductor_hardware_interfaces')
+        col_names = [column.name for column in ifaces.c]
+        self.assertIn('default', col_names)
+        self.assertIsInstance(ifaces.c.default.type,
+                              (sqlalchemy.types.Boolean,
+                               sqlalchemy.types.Integer))
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')
