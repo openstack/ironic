@@ -166,7 +166,7 @@ class NeutronNetwork(common.VIFPortIDMixin,
         pobj_without_vif = 0
         for port_like_obj in ports + portgroups:
             vif_port_id = (
-                port_like_obj.internal_info.get('tenant_vif_port_id') or
+                port_like_obj.internal_info.get(common.TENANT_VIF_KEY) or
                 port_like_obj.extra.get('vif_port_id'))
 
             if not vif_port_id:
@@ -240,7 +240,7 @@ class NeutronNetwork(common.VIFPortIDMixin,
         portgroups = task.portgroups
         for port_like_obj in ports + portgroups:
             vif_port_id = (
-                port_like_obj.internal_info.get('tenant_vif_port_id') or
+                port_like_obj.internal_info.get(common.TENANT_VIF_KEY) or
                 port_like_obj.extra.get('vif_port_id'))
             if not vif_port_id:
                 continue
