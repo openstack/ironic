@@ -34,11 +34,8 @@ class DisabledTestCase(db_base.DbTestCase):
         self.config(enabled=False, group='inspector')
         self._do_mock()
         self.assertIsNone(self.driver.inspect)
-        # NOTE(dtantsur): it's expected that fake_inspector fails to load
-        # in this case
-        self.assertRaises(exception.DriverLoadError,
-                          mgr_utils.mock_the_extension_manager,
-                          "fake_inspector")
+        # Direct loading of the class is still possible
+        inspector.Inspector()
 
     def test_enabled(self):
         self.config(enabled=True, group='inspector')

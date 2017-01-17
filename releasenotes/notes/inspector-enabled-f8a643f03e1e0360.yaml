@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    The "[inspector]enabled" configuration option no longer has effect on
+    the "fake_inspector" driver. It will also not have effect on new-style
+    dynamic drivers based on hardware types - it will be necessary to use
+    "enabled_inspect_interfaces" instead.
