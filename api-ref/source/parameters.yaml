@@ -489,6 +489,12 @@ n_states:
   in: body
   required: true
   type: array
+n_vifs:
+  description: |
+    VIFs attached to this node. Added in API microversion 1.28.
+  in: body
+  required: true
+  type: array
 name:
   description: |
     The name of the driver.
@@ -512,6 +518,12 @@ node_name:
 node_uuid:
   description: |
     UUID of the Node this resource belongs to.
+  in: body
+  required: true
+  type: string
+node_vif_ident:
+  description: |
+    The UUID or name of the VIF. Added in API microversion 1.28.
   in: body
   required: true
   type: string

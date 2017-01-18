@@ -10,6 +10,7 @@
 .. include:: baremetal-api-v1-nodes.inc
 .. include:: baremetal-api-v1-node-management.inc
 .. include:: baremetal-api-v1-node-passthru.inc
+.. include:: baremetal-api-v1-nodes-vifs.inc
 .. include:: baremetal-api-v1-portgroups.inc
 .. include:: baremetal-api-v1-nodes-portgroups.inc
 .. include:: baremetal-api-v1-ports.inc
