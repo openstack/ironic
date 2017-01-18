@@ -142,30 +142,50 @@ def _get_interface(driver_or_hw_type, interface_type, interface_name):
     return impl_instance
 
 
-def _default_interface(hardware_type, interface_type, factory):
+def default_interface(driver_or_hw_type, interface_type):
     """Calculate and return the default interface implementation.
 
     Finds the first implementation that is supported by the hardware type
     and is enabled in the configuration.
 
-    :param hardware_type: hardware type instance.
+    :param driver_or_hw_type: classic driver or hardware type instance object.
     :param interface_type: type of the interface (e.g. 'boot').
-    :param factory: interface factory class to use for loading implementations.
     :returns: an entrypoint name of the calculated default implementation
               or None if no default implementation can be found.
     :raises: InterfaceNotFoundInEntrypoint if the entry point was not found.
     """
-    supported = getattr(hardware_type,
-                        'supported_%s_interfaces' % interface_type)
-    # Mapping of classes to entry points
-    enabled = {obj.__class__: name for (name, obj) in factory().items()}
+    factory = _INTERFACE_LOADERS[interface_type]
+    is_hardware_type = isinstance(driver_or_hw_type,
+                                  hardware_type.AbstractHardwareType)
+    # Explicit interface defaults
+    additional_defaults = {
+        'network': 'flat' if CONF.dhcp.dhcp_provider == 'neutron' else 'noop',
+        'storage': 'noop'
+    }
 
-    # Order of the supported list matters
-    for impl_class in supported:
-        try:
-            return enabled[impl_class]
-        except KeyError:
-            pass
+    # The fallback default from the configuration
+    impl_name = getattr(CONF, 'default_%s_interface' % interface_type)
+    if impl_name is None:
+        impl_name = additional_defaults.get(interface_type)
+
+    if impl_name is not None:
+        # Check that the default is correct for this type
+        _get_interface(driver_or_hw_type, interface_type, impl_name)
+    elif is_hardware_type:
+        supported = getattr(driver_or_hw_type,
+                            'supported_%s_interfaces' % interface_type)
+        # Mapping of classes to entry points
+        enabled = {obj.__class__: name for (name, obj) in factory().items()}
+
+        # Order of the supported list matters
+        for impl_class in supported:
+            try:
+                impl_name = enabled[impl_class]
+                break
+            except KeyError:
+                continue
+
+    return impl_name
 
 
 def check_and_update_node_interfaces(node, driver_or_hw_type=None):
@@ -191,24 +211,17 @@ def check_and_update_node_interfaces(node, driver_or_hw_type=None):
     is_hardware_type = isinstance(driver_or_hw_type,
                                   hardware_type.AbstractHardwareType)
 
-    # Explicit interface defaults
-    additional_defaults = {
-        'network': 'flat' if CONF.dhcp.dhcp_provider == 'neutron' else 'noop',
-        'storage': 'noop'
-    }
-
     if is_hardware_type:
-        factories = _INTERFACE_LOADERS
+        factories = _INTERFACE_LOADERS.keys()
     else:
         # Only network and storage interfaces are dynamic for classic drivers
-        factories = {'network': _INTERFACE_LOADERS['network'],
-                     'storage': _INTERFACE_LOADERS['storage']}
+        factories = ['network', 'storage']
 
     # Result - whether the node object was modified
     result = False
 
     # Walk through all dynamic interfaces and check/update them
-    for iface, factory in factories.items():
+    for iface in factories:
         field_name = '%s_interface' % iface
         # NOTE(dtantsur): objects raise NotImplementedError on accessing fields
         # that are known, but missing from an object. Thus, we cannot just use
@@ -221,16 +234,7 @@ def check_and_update_node_interfaces(node, driver_or_hw_type=None):
                 # Not changing the result, proceeding with the next interface
                 continue
 
-        # The fallback default from the configuration
-        impl_name = getattr(CONF, 'default_%s_interface' % iface)
-        if impl_name is None:
-            impl_name = additional_defaults.get(iface)
-
-        if impl_name is not None:
-            # Check that the default is correct for this type
-            _get_interface(driver_or_hw_type, iface, impl_name)
-        elif is_hardware_type:
-            impl_name = _default_interface(driver_or_hw_type, iface, factory)
+        impl_name = default_interface(driver_or_hw_type, iface)
 
         if impl_name is None:
             raise exception.NoValidDefaultForInterface(
