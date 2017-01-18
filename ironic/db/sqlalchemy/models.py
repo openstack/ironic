@@ -105,6 +105,7 @@ class ConductorHardwareInterfaces(Base):
     hardware_type = Column(String(255), nullable=False)
     interface_type = Column(String(16), nullable=False)
     interface_name = Column(String(255), nullable=False)
+    default = Column(Boolean, default=False, nullable=False)
 
 
 class Node(Base):
