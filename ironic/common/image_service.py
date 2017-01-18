@@ -45,8 +45,11 @@ def _get_glance_session():
     return _GLANCE_SESSION
 
 
-def GlanceImageService(client=None, version=1, context=None):
+def GlanceImageService(client=None, version=None, context=None):
     module_str = 'ironic.common.glance_service'
+    if version is None:
+        version = CONF.glance.glance_api_version
+
     module = importutils.import_versioned_module(module_str, version,
                                                  'image_service')
     service_class = getattr(module, 'GlanceImageService')
@@ -258,7 +261,7 @@ protocol_mapping = {
 }
 
 
-def get_image_service(image_href, client=None, version=1, context=None):
+def get_image_service(image_href, client=None, version=None, context=None):
     """Get image service instance to download the image.
 
     :param image_href: String containing href to get image service for.
