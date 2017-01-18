@@ -263,10 +263,11 @@ def normalize_mac(mac):
     return mac.replace('-', '').replace(':', '').lower()
 
 
-def get_ramdisk_logs_file_name(node):
+def get_ramdisk_logs_file_name(node, label=None):
     """Construct the log file name.
 
     :param node: A node object.
+    :param label: A string to label the log file such as a clean step name.
     :returns: The log file name.
     """
     timestamp = timeutils.utcnow().strftime('%Y-%m-%d-%H-%M-%S')
@@ -274,11 +275,14 @@ def get_ramdisk_logs_file_name(node):
     if node.instance_uuid:
         file_name_fields.append(node.instance_uuid)
 
+    if label:
+        file_name_fields.append(label)
+
     file_name_fields.append(timestamp)
     return '_'.join(file_name_fields) + '.tar.gz'
 
 
-def store_ramdisk_logs(node, logs):
+def store_ramdisk_logs(node, logs, label=None):
     """Store the ramdisk logs.
 
     This method stores the ramdisk logs according to the configured
@@ -287,12 +291,13 @@ def store_ramdisk_logs(node, logs):
     :param node: A node object.
     :param logs: A gzipped and base64 encoded string containing the
                  logs archive.
+    :param label: A string to label the log file such as a clean step name.
     :raises: OSError if the directory to save the logs cannot be created.
     :raises: IOError when the logs can't be saved to the local file system.
     :raises: SwiftOperationError, if any operation with Swift fails.
 
     """
-    logs_file_name = get_ramdisk_logs_file_name(node)
+    logs_file_name = get_ramdisk_logs_file_name(node, label=label)
     data = base64.decode_as_bytes(logs)
 
     if CONF.agent.deploy_logs_storage_backend == 'local':

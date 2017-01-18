@@ -190,6 +190,8 @@ API Errors
 The `debug_tracebacks_in_api` config option may be set to return tracebacks
 in the API response for all 4xx and 5xx errors.
 
+.. _retrieve_deploy_ramdisk_logs:
+
 Retrieving logs from the deploy ramdisk
 =======================================
 
