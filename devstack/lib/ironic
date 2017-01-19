@@ -138,9 +138,9 @@ if [[ -n "$BUILD_TIMEOUT" ]]; then
 fi
 
 # driver / hardware type options
-# TODO(jroll) add enabled/default interfaces here
 IRONIC_ENABLED_DRIVERS=${IRONIC_ENABLED_DRIVERS:-fake,pxe_ipmitool,agent_ipmitool}
-IRONIC_ENABLED_HARDWARE_TYPES=${IRONIC_ENABLED_HARDWARE_TYPES:-manual-management}
+# TODO(jroll) add enabled/default interfaces here
+IRONIC_ENABLED_HARDWARE_TYPES=${IRONIC_ENABLED_HARDWARE_TYPES:-ipmi}
 
 # If IRONIC_VM_ENGING is explictly set to "auto" or "kvm",
 # devstack will attempt to use hardware virtualization

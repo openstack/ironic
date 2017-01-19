@@ -79,14 +79,13 @@ driver_opts = [
                        'entrypoint. An example may be found in the '
                        'developer documentation online.')),
     cfg.ListOpt('enabled_hardware_types',
-                default=[],
+                default=['ipmi'],
                 help=_('Specify the list of hardware types to load during '
                        'service initialization. Missing hardware types, or '
                        'hardware types which fail to initialize, will prevent '
-                       'the conductor service from starting. No hardware '
-                       'types are enabled by default now, but in the future '
-                       'this option will default to a recommended set of '
-                       'production-oriented hardware types. '
+                       'the conductor service from starting. This option '
+                       'defaults to a recommended set of production-oriented '
+                       'hardware types. '
                        'A complete list of hardware types present on your '
                        'system may be found by enumerating the '
                        '"ironic.hardware.types" entrypoint.')),
@@ -111,7 +110,7 @@ driver_opts = [
     cfg.StrOpt('default_inspect_interface',
                help=_DEFAULT_IFACE_HELP.format('inspect')),
     cfg.ListOpt('enabled_management_interfaces',
-                default=[],
+                default=['ipmitool'],
                 help=_ENABLED_IFACE_HELP.format('management')),
     cfg.StrOpt('default_management_interface',
                help=_DEFAULT_IFACE_HELP.format('management')),
@@ -121,7 +120,7 @@ driver_opts = [
     cfg.StrOpt('default_network_interface',
                help=_DEFAULT_IFACE_HELP.format('network')),
     cfg.ListOpt('enabled_power_interfaces',
-                default=[],
+                default=['ipmitool'],
                 help=_ENABLED_IFACE_HELP.format('power')),
     cfg.StrOpt('default_power_interface',
                help=_DEFAULT_IFACE_HELP.format('power')),

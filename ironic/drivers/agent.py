@@ -17,12 +17,12 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
+from ironic.drivers import ipmi
 from ironic.drivers.modules import agent
 from ironic.drivers.modules.cimc import management as cimc_mgmt
 from ironic.drivers.modules.cimc import power as cimc_power
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipminative
-from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import ssh
 from ironic.drivers.modules.ucs import management as ucs_mgmt
@@ -30,46 +30,9 @@ from ironic.drivers.modules.ucs import power as ucs_power
 from ironic.drivers.modules import virtualbox
 
 
-class AgentAndIPMIToolDriver(base.BaseDriver):
-    """Agent + IPMITool driver.
-
-    This driver implements the `core` functionality, combining
-    :class:`ironic.drivers.modules.ipmitool.IPMIPower` (for power on/off and
-    reboot) with :class:`ironic.drivers.modules.agent.AgentDeploy` (for
-    image deployment).
-    Implementations are in those respective classes; this class is merely the
-    glue between them.
-    """
-
-    def __init__(self):
-        self.power = ipmitool.IPMIPower()
-        self.boot = pxe.PXEBoot()
-        self.deploy = agent.AgentDeploy()
-        self.management = ipmitool.IPMIManagement()
-        self.console = ipmitool.IPMIShellinaboxConsole()
-        self.vendor = ipmitool.VendorPassthru()
-        self.raid = agent.AgentRAID()
-        self.inspect = inspector.Inspector.create_if_enabled(
-            'AgentAndIPMIToolDriver')
-
-
-class AgentAndIPMIToolAndSocatDriver(AgentAndIPMIToolDriver):
-    """Agent + IPMITool + socat driver.
-
-    This driver implements the `core` functionality, combining
-    :class:`ironic.drivers.modules.ipmitool.IPMIPower` (for power on/off and
-    reboot) with :class:`ironic.drivers.modules.agent.AgentDeploy` (for
-    image deployment) and with
-    :class:`ironic.drivers.modules.ipmitool.IPMISocatConsole`.
-    This driver uses the socat console interface instead of the shellinabox
-    one.
-    Implementations are in those respective classes; this class is merely the
-    glue between them.
-    """
-
-    def __init__(self):
-        AgentAndIPMIToolDriver.__init__(self)
-        self.console = ipmitool.IPMISocatConsole()
+# For backward compatibility
+AgentAndIPMIToolDriver = ipmi.AgentAndIPMIToolDriver
+AgentAndIPMIToolAndSocatDriver = ipmi.AgentAndIPMIToolAndSocatDriver
 
 
 class AgentAndIPMINativeDriver(base.BaseDriver):

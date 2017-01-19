@@ -47,30 +47,6 @@ from ironic.drivers import pxe
 
 class PXEDriversTestCase(testtools.TestCase):
 
-    def test_pxe_ipmitool_driver(self):
-        driver = pxe.PXEAndIPMIToolDriver()
-
-        self.assertIsInstance(driver.power, ipmitool.IPMIPower)
-        self.assertIsInstance(driver.console, ipmitool.IPMIShellinaboxConsole)
-        self.assertIsInstance(driver.boot, pxe_module.PXEBoot)
-        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
-        self.assertIsInstance(driver.management, ipmitool.IPMIManagement)
-        self.assertIsNone(driver.inspect)
-        self.assertIsInstance(driver.vendor, ipmitool.VendorPassthru)
-        self.assertIsInstance(driver.raid, agent.AgentRAID)
-
-    def test_pxe_ipmitool_socat_driver(self):
-        driver = pxe.PXEAndIPMIToolAndSocatDriver()
-
-        self.assertIsInstance(driver.power, ipmitool.IPMIPower)
-        self.assertIsInstance(driver.console, ipmitool.IPMISocatConsole)
-        self.assertIsInstance(driver.boot, pxe_module.PXEBoot)
-        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
-        self.assertIsInstance(driver.management, ipmitool.IPMIManagement)
-        self.assertIsNone(driver.inspect)
-        self.assertIsInstance(driver.vendor, ipmitool.VendorPassthru)
-        self.assertIsInstance(driver.raid, agent.AgentRAID)
-
     def test_pxe_ssh_driver(self):
         driver = pxe.PXEAndSSHDriver()
 

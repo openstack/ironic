@@ -22,6 +22,7 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
+from ironic.drivers import ipmi
 from ironic.drivers.modules import agent
 from ironic.drivers.modules.cimc import management as cimc_mgmt
 from ironic.drivers.modules.cimc import power as cimc_power
@@ -49,45 +50,9 @@ from ironic.drivers.modules.ucs import power as ucs_power
 from ironic.drivers.modules import virtualbox
 
 
-class PXEAndIPMIToolDriver(base.BaseDriver):
-    """PXE + IPMITool driver.
-
-    This driver implements the `core` functionality, combining
-    :class:`ironic.drivers.modules.ipmi.IPMI` for power on/off
-    and reboot with
-    :class:`ironic.drivers.modules.iscsi_deploy.ISCSIDeploy` for
-    image deployment. Implementations are in those respective
-    classes; this class is merely the glue between them.
-    """
-    def __init__(self):
-        self.power = ipmitool.IPMIPower()
-        self.console = ipmitool.IPMIShellinaboxConsole()
-        self.boot = pxe.PXEBoot()
-        self.deploy = iscsi_deploy.ISCSIDeploy()
-        self.management = ipmitool.IPMIManagement()
-        self.inspect = inspector.Inspector.create_if_enabled(
-            'PXEAndIPMIToolDriver')
-        self.vendor = ipmitool.VendorPassthru()
-        self.raid = agent.AgentRAID()
-
-
-class PXEAndIPMIToolAndSocatDriver(PXEAndIPMIToolDriver):
-    """PXE + IPMITool + socat driver.
-
-    This driver implements the `core` functionality, combining
-    :class:`ironic.drivers.modules.ipmi.IPMI` for power on/off
-    and reboot with
-    :class:`ironic.drivers.modules.iscsi_deploy.ISCSIDeploy` (for
-    image deployment) and with
-    :class:`ironic.drivers.modules.ipmitool.IPMISocatConsole`.
-    This driver uses the socat console interface instead of the shellinabox
-    one.
-    Implementations are in those respective
-    classes; this class is merely the glue between them.
-    """
-    def __init__(self):
-        PXEAndIPMIToolDriver.__init__(self)
-        self.console = ipmitool.IPMISocatConsole()
+# For backward compatibility
+PXEAndIPMIToolDriver = ipmi.PXEAndIPMIToolDriver
+PXEAndIPMIToolAndSocatDriver = ipmi.PXEAndIPMIToolAndSocatDriver
 
 
 class PXEAndSSHDriver(base.BaseDriver):
