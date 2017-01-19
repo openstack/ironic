@@ -1,0 +1,4 @@
+---
+fixes:
+  - Ironic now validates any swift temporary URL
+    when preparing for deployment of nodes.

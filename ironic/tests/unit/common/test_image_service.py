@@ -68,6 +68,17 @@ class HttpImageServiceTestCase(base.TestCase):
         head_mock.assert_called_once_with(self.href)
 
     @mock.patch.object(requests, 'head', autospec=True)
+    def test_validate_href_error_with_secret_parameter(self, head_mock):
+        head_mock.return_value.status_code = 204
+        e = self.assertRaises(exception.ImageRefValidationFailed,
+                              self.service.validate_href,
+                              self.href,
+                              True)
+        self.assertIn('secreturl', six.text_type(e))
+        self.assertNotIn(self.href, six.text_type(e))
+        head_mock.assert_called_once_with(self.href)
+
+    @mock.patch.object(requests, 'head', autospec=True)
     def _test_show(self, head_mock, mtime, mtime_date):
         head_mock.return_value.status_code = http_client.OK
         head_mock.return_value.headers = {
