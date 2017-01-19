@@ -122,5 +122,5 @@ driver actions such as take-over or clean-up.
 .. _Conductor service: ../api/ironic.conductor.manager.html
 .. _DB API: ../api/ironic.db.api.html
 .. _diskimage-builder: http://docs.openstack.org/developer/diskimage-builder/
-.. _consistent hashing algorithm: ../api/ironic.common.hash_ring.html
+.. _consistent hashing algorithm: http://docs.openstack.org/developer/tooz/tutorial/hashring.html
 .. _periodic: http://docs.openstack.org/developer/futurist/api.html#futurist.periodics.periodic

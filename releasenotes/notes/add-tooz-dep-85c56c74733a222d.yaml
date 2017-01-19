@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Adds a new dependency on the
+    `tooz library <https://pypi.python.org/pypi/tooz>`_, as the consistent
+    hash ring code was moved out of ironic and into tooz.

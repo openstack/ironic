@@ -26,7 +26,7 @@ from oslo_utils import excutils
 from ironic.common import context as ironic_context
 from ironic.common import driver_factory
 from ironic.common import exception
-from ironic.common import hash_ring as hash
+from ironic.common import hash_ring
 from ironic.common.i18n import _, _LC, _LE, _LI, _LW
 from ironic.common import rpc
 from ironic.common import states
@@ -78,7 +78,7 @@ class BaseConductorManager(object):
             check_and_reject=rejection_func)
         """Executor for performing tasks async."""
 
-        self.ring_manager = hash.HashRingManager()
+        self.ring_manager = hash_ring.HashRingManager()
         """Consistent hash ring which maps drivers to conductors."""
 
         # NOTE(deva): these calls may raise DriverLoadError or DriverNotFound
@@ -302,7 +302,9 @@ class BaseConductorManager(object):
         except exception.DriverNotFound:
             return False
 
-        return self.host in ring.get_hosts(node_uuid)
+        return self.host in ring.get_nodes(
+            node_uuid.encode('utf-8'),
+            replicas=CONF.hash_distribution_replicas)
 
     def _fail_if_in_state(self, context, filters, provision_state,
                           sort_key, callback_method=None,
