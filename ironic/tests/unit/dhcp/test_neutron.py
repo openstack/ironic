@@ -117,8 +117,7 @@ class TestNeutron(db_base.DbTestCase):
             opts = pxe_utils.dhcp_options_for_instance(task)
             api = dhcp_factory.DHCPFactory()
             api.update_dhcp(task, opts)
-        mock_updo.assert_called_once_with('vif-uuid', opts,
-                                          token=self.context.auth_token)
+        mock_updo.assert_called_once_with('vif-uuid', opts)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
     @mock.patch('ironic.common.network.get_node_vif_ids')
@@ -179,8 +178,7 @@ class TestNeutron(db_base.DbTestCase):
             api = dhcp_factory.DHCPFactory()
             api.update_dhcp(task, opts)
             mock_ts.assert_called_with(30)
-        mock_updo.assert_called_once_with(mock.ANY, 'vif-uuid', opts,
-                                          token=self.context.auth_token)
+        mock_updo.assert_called_once_with(mock.ANY, 'vif-uuid', opts)
 
     @mock.patch.object(neutron, 'LOG', autospec=True)
     @mock.patch('time.sleep', autospec=True)
@@ -201,8 +199,7 @@ class TestNeutron(db_base.DbTestCase):
             self.assertIn('Setting the port delay to 15 for SSH',
                           mock_log.warning.call_args[0][0])
             mock_ts.assert_called_with(15)
-        mock_updo.assert_called_once_with(mock.ANY, 'vif-uuid', opts,
-                                          token=self.context.auth_token)
+        mock_updo.assert_called_once_with(mock.ANY, 'vif-uuid', opts)
 
     @mock.patch.object(neutron, 'LOG', autospec=True)
     @mock.patch('time.sleep', autospec=True)
@@ -223,8 +220,7 @@ class TestNeutron(db_base.DbTestCase):
                 "Waiting %d seconds for Neutron.", 30)
             mock_log.warning.assert_not_called()
             mock_ts.assert_called_with(30)
-        mock_updo.assert_called_once_with(mock.ANY, 'vif-uuid', opts,
-                                          token=self.context.auth_token)
+        mock_updo.assert_called_once_with(mock.ANY, 'vif-uuid', opts)
 
     @mock.patch.object(neutron, 'LOG', autospec=True)
     @mock.patch.object(neutron.NeutronDHCPApi, 'update_port_dhcp_opts',
@@ -241,8 +237,7 @@ class TestNeutron(db_base.DbTestCase):
             api.update_dhcp(task, opts)
             mock_log.debug.assert_not_called()
             mock_log.warning.assert_not_called()
-        mock_updo.assert_called_once_with(mock.ANY, 'vif-uuid', opts,
-                                          token=self.context.auth_token)
+        mock_updo.assert_called_once_with(mock.ANY, 'vif-uuid', opts)
 
     def test__get_fixed_ip_address(self):
         port_id = 'fake-port-id'

@@ -609,20 +609,6 @@ class TestUnbindPort(base.TestCase):
         mock_client.return_value.update_port.assert_called_once_with(port_id,
                                                                      body)
 
-    def test_unbind_neutron_port_token_passed(self, mock_client):
-        port_id = 'fake-port-id'
-        token = 'token'
-        body = {
-            'port': {
-                'binding:host_id': '',
-                'binding:profile': {}
-            }
-        }
-        neutron.unbind_neutron_port(port_id, token=token)
-        mock_client.assert_called_once_with(token)
-        mock_client.return_value.update_port.assert_called_once_with(port_id,
-                                                                     body)
-
     @mock.patch.object(neutron, 'LOG')
     def test_unbind_neutron_port_failure(self, mock_log, mock_client):
         mock_client.return_value.update_port.side_effect = (
@@ -634,24 +620,22 @@ class TestUnbindPort(base.TestCase):
             }
         }
         port_id = 'fake-port-id'
-        token = 'token'
         self.assertRaises(exception.NetworkError, neutron.unbind_neutron_port,
-                          port_id, token=token)
-        mock_client.assert_called_once_with(token)
+                          port_id)
+        mock_client.assert_called_once_with()
         mock_client.return_value.update_port.assert_called_once_with(port_id,
                                                                      body)
         mock_log.exception.assert_called_once()
 
     def test_unbind_neutron_port(self, mock_client):
         port_id = 'fake-port-id'
-        token = 'token'
         body = {
             'port': {
                 'binding:host_id': '',
                 'binding:profile': {}
             }
         }
-        neutron.unbind_neutron_port(port_id, token=token)
-        mock_client.assert_called_once_with(token)
+        neutron.unbind_neutron_port(port_id)
+        mock_client.assert_called_once_with()
         mock_client.return_value.update_port.assert_called_once_with(port_id,
                                                                      body)

@@ -162,7 +162,7 @@ class NeutronNetwork(common.VIFPortIDMixin,
 
         portmap = neutron.get_node_portmap(task)
 
-        client = neutron.get_client(task.context.auth_token)
+        client = neutron.get_client()
         pobj_without_vif = 0
         for port_like_obj in ports + portgroups:
             vif_port_id = (
@@ -244,5 +244,4 @@ class NeutronNetwork(common.VIFPortIDMixin,
                 port_like_obj.extra.get('vif_port_id'))
             if not vif_port_id:
                 continue
-            neutron.unbind_neutron_port(vif_port_id,
-                                        token=task.context.auth_token)
+            neutron.unbind_neutron_port(vif_port_id)

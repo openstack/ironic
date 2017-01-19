@@ -1,0 +1,5 @@
+---
+fixes:
+  - An issue when baremetal admin user doesn't have enough rights (admin)
+    in Neutron by always picking neutron user from ironic config
+    and avoiding passing client token.

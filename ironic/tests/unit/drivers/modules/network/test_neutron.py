@@ -220,7 +220,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.unconfigure_tenant_networks(task)
             mock_unbind_port.assert_called_once_with(
-                self.port.extra['vif_port_id'], token=None)
+                self.port.extra['vif_port_id'])
 
     def test_configure_tenant_networks_no_ports_for_node(self):
         n = utils.create_test_node(self.context, network_interface='neutron',
@@ -243,7 +243,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                                    'associated with node',
                                    self.interface.configure_tenant_networks,
                                    task)
-        client_mock.assert_called_once_with(task.context.auth_token)
+        client_mock.assert_called_once_with()
         upd_mock.assert_not_called()
         self.assertIn('No neutron ports or portgroups are associated with',
                       log_mock.error.call_args[0][0])
@@ -270,7 +270,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         client_mock.return_value.update_port = upd_mock
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.configure_tenant_networks(task)
-        client_mock.assert_called_once_with(task.context.auth_token)
+        client_mock.assert_called_once_with()
         upd_mock.assert_called_once_with(self.port.extra['vif_port_id'],
                                          expected_body)
 
@@ -283,7 +283,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             self.assertRaisesRegexp(
                 exception.NetworkError, 'Could not add',
                 self.interface.configure_tenant_networks, task)
-            client_mock.assert_called_once_with(task.context.auth_token)
+            client_mock.assert_called_once_with()
 
     @mock.patch.object(neutron_common, 'get_client')
     def _test_configure_tenant_networks(self, client_mock, is_client_id=False,
@@ -339,7 +339,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                 [{'opt_name': 'client-id', 'opt_value': client_ids[1]}])
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.configure_tenant_networks(task)
-            client_mock.assert_called_once_with(task.context.auth_token)
+            client_mock.assert_called_once_with()
         if vif_int_info:
             portid1 = self.port.internal_info['tenant_vif_port_id']
             portid2 = second_port.internal_info['tenant_vif_port_id']
@@ -413,7 +413,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         }
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.configure_tenant_networks(task)
-            client_mock.assert_called_once_with(task.context.auth_token)
+            client_mock.assert_called_once_with()
         upd_mock.assert_has_calls(
             [mock.call(self.port.extra['vif_port_id'], call1_body),
              mock.call(pg.extra['vif_port_id'], call2_body)]

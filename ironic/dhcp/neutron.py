@@ -125,8 +125,7 @@ class NeutronDHCPApi(base.BaseDHCP):
         vif_list = [vif for pdict in vifs.values() for vif in pdict.values()]
         for vif in vif_list:
             try:
-                self.update_port_dhcp_opts(vif, options,
-                                           token=task.context.auth_token)
+                self.update_port_dhcp_opts(vif, options)
             except exception.FailedToUpdateDHCPOptOnPort:
                 failures.append(vif)
 
@@ -263,7 +262,7 @@ class NeutronDHCPApi(base.BaseDHCP):
         :returns: List of IP addresses associated with
                   task's ports/portgroups.
         """
-        client = neutron.get_client(task.context.auth_token)
+        client = neutron.get_client()
 
         port_ip_addresses = self._get_ip_addresses(task, task.ports, client)
         portgroup_ip_addresses = self._get_ip_addresses(
