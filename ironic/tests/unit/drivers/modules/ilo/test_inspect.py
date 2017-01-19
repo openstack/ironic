@@ -199,8 +199,8 @@ class IloInspectTestCase(db_base.DbTestCase):
         properties = {'memory_mb': '512', 'local_gb': '10',
                       'cpus': '1', 'cpu_arch': 'x86_64'}
         macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
-        capability_str = 'BootMode:uefi'
-        capabilities = {'BootMode': 'uefi'}
+        capability_str = 'sriov_enabled:true'
+        capabilities = {'sriov_enabled': 'true'}
         result = {'properties': properties, 'macs': macs}
         get_essential_mock.return_value = result
         get_capabilities_mock.return_value = capabilities
@@ -240,15 +240,15 @@ class IloInspectTestCase(db_base.DbTestCase):
                       'somekey': 'somevalue'}
         macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
         result = {'properties': properties, 'macs': macs}
-        capabilities = {'BootMode': 'uefi'}
+        capabilities = {'sriov_enabled': 'true'}
         get_essential_mock.return_value = result
         get_capabilities_mock.return_value = capabilities
         power_mock.return_value = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.node.properties = {'capabilities': 'foo:bar'}
-            expected_capabilities = ('BootMode:uefi,'
-                                     'foo:bar')
+            task.node.properties = {'capabilities': 'boot_mode:uefi'}
+            expected_capabilities = ('sriov_enabled:true,'
+                                     'boot_mode:uefi')
             set1 = set(expected_capabilities.split(','))
             task.driver.inspect.inspect_hardware(task)
             end_capabilities = task.node.properties['capabilities']
@@ -414,3 +414,22 @@ class TestInspectPrivateMethods(db_base.DbTestCase):
         data = {'properties': properties, 'macs': macs}
         self.assertRaises(exception.HardwareInspectionFailure,
                           ilo_inspect._validate, self.node, data)
+
+    def test___create_supported_capabilities_dict(self):
+        capabilities = {}
+        expected = {}
+        for key in ilo_inspect.CAPABILITIES_KEYS:
+            capabilities.update({key: 'true'})
+            expected.update({key: 'true'})
+        capabilities.update({'unknown_property': 'true'})
+        cap = ilo_inspect._create_supported_capabilities_dict(capabilities)
+        self.assertEqual(expected, cap)
+
+    def test___create_supported_capabilities_dict_excluded_capability(self):
+        capabilities = {}
+        expected = {}
+        for key in ilo_inspect.CAPABILITIES_KEYS - {'has_ssd'}:
+            capabilities.update({key: 'true'})
+            expected.update({key: 'true'})
+        cap = ilo_inspect._create_supported_capabilities_dict(capabilities)
+        self.assertEqual(expected, cap)
