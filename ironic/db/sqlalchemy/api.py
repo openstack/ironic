@@ -803,6 +803,38 @@ class Connection(api.Connection):
                   .all())
         return [row['hostname'] for row in result]
 
+    def list_conductor_hardware_interfaces(self, conductor_id):
+        query = (model_query(models.ConductorHardwareInterfaces)
+                 .filter_by(conductor_id=conductor_id))
+        return query.all()
+
+    def register_conductor_hardware_interfaces(self, conductor_id,
+                                               hardware_type, interface_type,
+                                               interfaces, default_interface):
+        with _session_for_write() as session:
+            try:
+                for iface in interfaces:
+                    conductor_hw_iface = models.ConductorHardwareInterfaces()
+                    conductor_hw_iface['conductor_id'] = conductor_id
+                    conductor_hw_iface['hardware_type'] = hardware_type
+                    conductor_hw_iface['interface_type'] = interface_type
+                    conductor_hw_iface['interface_name'] = iface
+                    is_default = (iface == default_interface)
+                    conductor_hw_iface['default'] = is_default
+                    session.add(conductor_hw_iface)
+                session.flush()
+            except db_exc.DBDuplicateEntry:
+                raise exception.ConductorHardwareInterfacesAlreadyRegistered(
+                    hardware_type=hardware_type,
+                    interface_type=interface_type,
+                    interfaces=interfaces)
+
+    def unregister_conductor_hardware_interfaces(self, conductor_id):
+        with _session_for_write():
+            query = (model_query(models.ConductorHardwareInterfaces)
+                     .filter_by(conductor_id=conductor_id))
+            query.delete()
+
     def touch_node_provisioning(self, node_id):
         with _session_for_write():
             query = model_query(models.Node)

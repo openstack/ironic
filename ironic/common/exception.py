@@ -429,6 +429,13 @@ class ConductorAlreadyRegistered(IronicException):
     _msg_fmt = _("Conductor %(conductor)s already registered.")
 
 
+class ConductorHardwareInterfacesAlreadyRegistered(IronicException):
+    _msg_fmt = _("At least one of these (hardware type %(hardware_type)s, "
+                 "interface type %(interface_type)s, interfaces "
+                 "%(interfaces)s) combinations are already registered for "
+                 "this conductor.")
+
+
 class PowerStateFailure(InvalidState):
     _msg_fmt = _("Failed to set node power state to %(pstate)s.")
 

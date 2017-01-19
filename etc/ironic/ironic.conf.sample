@@ -30,48 +30,39 @@
 # developer documentation online. (list value)
 #enabled_drivers = pxe_ipmitool
 
-# WARNING: This configuration option is part of the incomplete
-# driver composition work, changing it's setting has no
-# effect. Specify the list of hardware types to load during
-# service initialization. Missing hardware types, or hardware
-# types which fail to initialize, will prevent the conductor
-# service from starting. No hardware types are enabled by
-# default now, but in the future this option will default to a
-# recommended set of production-oriented hardware types. A
-# complete list of hardware types present on your system may
-# be found by enumerating the "ironic.hardware.types"
-# entrypoint. (list value)
+# Specify the list of hardware types to load during service
+# initialization. Missing hardware types, or hardware types
+# which fail to initialize, will prevent the conductor service
+# from starting. No hardware types are enabled by default now,
+# but in the future this option will default to a recommended
+# set of production-oriented hardware types. A complete list
+# of hardware types present on your system may be found by
+# enumerating the "ironic.hardware.types" entrypoint. (list
+# value)
 #enabled_hardware_types =
 
-# WARNING: This configuration option is part of the incomplete
-# driver composition work, changing it's setting has no
-# effect. Specify the list of boot interfaces to load during
-# service initialization. Missing boot interfaces, or boot
-# interfaces which fail to initialize, will prevent the
-# ironic-conductor service from starting. The default value is
-# a recommended set of production-oriented boot interfaces. A
-# complete list of boot interfaces present on your system may
-# be found by enumerating the
-# "ironic.hardware.interfaces.boot" entrypoint. When setting
-# this value, please make sure that every enabled hardware
-# type will have the same set of enabled boot interfaces on
-# every ironic-conductor service. (list value)
+# Specify the list of boot interfaces to load during service
+# initialization. Missing boot interfaces, or boot interfaces
+# which fail to initialize, will prevent the ironic-conductor
+# service from starting. The default value is a recommended
+# set of production-oriented boot interfaces. A complete list
+# of boot interfaces present on your system may be found by
+# enumerating the "ironic.hardware.interfaces.boot"
+# entrypoint. When setting this value, please make sure that
+# every enabled hardware type will have the same set of
+# enabled boot interfaces on every ironic-conductor service.
+# (list value)
 #enabled_boot_interfaces = pxe
 
-# WARNING: This configuration option is part of the incomplete
-# driver composition work, changing it's setting has no
-# effect. Default boot interface to be used for nodes that do
-# not have boot_interface field set. A complete list of boot
-# interfaces present on your system may be found by
-# enumerating the "ironic.hardware.interfaces.boot"
-# entrypoint. (string value)
+# Default boot interface to be used for nodes that do not have
+# boot_interface field set. A complete list of boot interfaces
+# present on your system may be found by enumerating the
+# "ironic.hardware.interfaces.boot" entrypoint. (string value)
 #default_boot_interface = <None>
 
-# WARNING: This configuration option is part of the incomplete
-# driver composition work, changing it's setting has no
-# effect. Specify the list of console interfaces to load
-# during service initialization. Missing console interfaces,
-# or console interfaces which fail to initialize, will prevent
+# Specify the list of console interfaces to load during
+# service initialization. Missing console interfaces, or
+# console interfaces which fail to initialize, will prevent
 # the ironic-conductor service from starting. The default
 # value is a recommended set of production-oriented console
 # interfaces. A complete list of console interfaces present on
@@ -82,19 +73,15 @@
 # interfaces on every ironic-conductor service. (list value)
 #enabled_console_interfaces = no-console
 
-# WARNING: This configuration option is part of the incomplete
-# driver composition work, changing it's setting has no
-# effect. Default console interface to be used for nodes that
-# do not have console_interface field set. A complete list of
-# console interfaces present on your system may be found by
+# Default console interface to be used for nodes that do not
+# have console_interface field set. A complete list of console
+# interfaces present on your system may be found by
 # enumerating the "ironic.hardware.interfaces.console"
 # entrypoint. (string value)
 #default_console_interface = <None>
 
-# WARNING: This configuration option is part of the incomplete
-# driver composition work, changing it's setting has no
-# effect. Specify the list of deploy interfaces to load during
-# service initialization. Missing deploy interfaces, or deploy
+# Specify the list of deploy interfaces to load during service
+# initialization. Missing deploy interfaces, or deploy
 # interfaces which fail to initialize, will prevent the
 # ironic-conductor service from starting. The default value is
 # a recommended set of production-oriented deploy interfaces.
@@ -106,20 +93,16 @@
 # every ironic-conductor service. (list value)
 #enabled_deploy_interfaces = iscsi,direct
 
-# WARNING: This configuration option is part of the incomplete
-# driver composition work, changing it's setting has no
-# effect. Default deploy interface to be used for nodes that
-# do not have deploy_interface field set. A complete list of
-# deploy interfaces present on your system may be found by
+# Default deploy interface to be used for nodes that do not
+# have deploy_interface field set. A complete list of deploy
+# interfaces present on your system may be found by
 # enumerating the "ironic.hardware.interfaces.deploy"
 # entrypoint. (string value)
 #default_deploy_interface = <None>
 
-# WARNING: This configuration option is part of the incomplete
-# driver composition work, changing it's setting has no
-# effect. Specify the list of inspect interfaces to load
-# during service initialization. Missing inspect interfaces,
-# or inspect interfaces which fail to initialize, will prevent
+# Specify the list of inspect interfaces to load during
+# service initialization. Missing inspect interfaces, or
+# inspect interfaces which fail to initialize, will prevent
 # the ironic-conductor service from starting. The default
 # value is a recommended set of production-oriented inspect
 # interfaces. A complete list of inspect interfaces present on
@@ -130,39 +113,31 @@
 # interfaces on every ironic-conductor service. (list value)
 #enabled_inspect_interfaces = no-inspect
 
-# WARNING: This configuration option is part of the incomplete
-# driver composition work, changing it's setting has no
-# effect. Default inspect interface to be used for nodes that
-# do not have inspect_interface field set. A complete list of
-# inspect interfaces present on your system may be found by
+# Default inspect interface to be used for nodes that do not
+# have inspect_interface field set. A complete list of inspect
+# interfaces present on your system may be found by
 # enumerating the "ironic.hardware.interfaces.inspect"
 # entrypoint. (string value)
 #default_inspect_interface = <None>
 
-# WARNING: This configuration option is part of the incomplete
-# driver composition work, changing it's setting has no
-# effect. Specify the list of management interfaces to load
-# during service initialization. Missing management
-# interfaces, or management interfaces which fail to
-# initialize, will prevent the ironic-conductor service from
-# starting. The default value is a recommended set of
-# production-oriented management interfaces. A complete list
-# of management interfaces present on your system may be found
-# by enumerating the "ironic.hardware.interfaces.management"
-# entrypoint. When setting this value, please make sure that
-# every enabled hardware type will have the same set of
-# enabled management interfaces on every ironic-conductor
-# service. (list value)
+# Specify the list of management interfaces to load during
+# service initialization. Missing management interfaces, or
+# management interfaces which fail to initialize, will prevent
+# the ironic-conductor service from starting. The default
+# value is a recommended set of production-oriented management
+# interfaces. A complete list of management interfaces present
+# on your system may be found by enumerating the
+# "ironic.hardware.interfaces.management" entrypoint. When
+# setting this value, please make sure that every enabled
+# hardware type will have the same set of enabled management
+# interfaces on every ironic-conductor service. (list value)
 #enabled_management_interfaces =
 
-# WARNING: This configuration option is part of the incomplete
-# driver composition work, changing it's setting has no
-# effect. Default management interface to be used for nodes
-# that do not have management_interface field set. A complete
-# list of management interfaces present on your system may be
-# found by enumerating the
-# "ironic.hardware.interfaces.management" entrypoint. (string
-# value)
+# Default management interface to be used for nodes that do
+# not have management_interface field set. A complete list of
+# management interfaces present on your system may be found by
+# enumerating the "ironic.hardware.interfaces.management"
+# entrypoint. (string value)
 #default_management_interface = <None>
 
 # Specify the list of network interfaces to load during
@@ -185,10 +160,8 @@
 # entrypoint. (string value)
 #default_network_interface = <None>
 
-# WARNING: This configuration option is part of the incomplete
-# driver composition work, changing it's setting has no
-# effect. Specify the list of power interfaces to load during
-# service initialization. Missing power interfaces, or power
+# Specify the list of power interfaces to load during service
+# initialization. Missing power interfaces, or power
 # interfaces which fail to initialize, will prevent the
 # ironic-conductor service from starting. The default value is
 # a recommended set of production-oriented power interfaces. A
@@ -200,37 +173,30 @@
 # every ironic-conductor service. (list value)
 #enabled_power_interfaces =
 
-# WARNING: This configuration option is part of the incomplete
-# driver composition work, changing it's setting has no
-# effect. Default power interface to be used for nodes that do
-# not have power_interface field set. A complete list of power
+# Default power interface to be used for nodes that do not
+# have power_interface field set. A complete list of power
 # interfaces present on your system may be found by
 # enumerating the "ironic.hardware.interfaces.power"
 # entrypoint. (string value)
 #default_power_interface = <None>
 
-# WARNING: This configuration option is part of the incomplete
-# driver composition work, changing it's setting has no
-# effect. Specify the list of raid interfaces to load during
-# service initialization. Missing raid interfaces, or raid
-# interfaces which fail to initialize, will prevent the
-# ironic-conductor service from starting. The default value is
-# a recommended set of production-oriented raid interfaces. A
-# complete list of raid interfaces present on your system may
-# be found by enumerating the
-# "ironic.hardware.interfaces.raid" entrypoint. When setting
-# this value, please make sure that every enabled hardware
-# type will have the same set of enabled raid interfaces on
-# every ironic-conductor service. (list value)
+# Specify the list of raid interfaces to load during service
+# initialization. Missing raid interfaces, or raid interfaces
+# which fail to initialize, will prevent the ironic-conductor
+# service from starting. The default value is a recommended
+# set of production-oriented raid interfaces. A complete list
+# of raid interfaces present on your system may be found by
+# enumerating the "ironic.hardware.interfaces.raid"
+# entrypoint. When setting this value, please make sure that
+# every enabled hardware type will have the same set of
+# enabled raid interfaces on every ironic-conductor service.
+# (list value)
 #enabled_raid_interfaces = agent,no-raid
 
-# WARNING: This configuration option is part of the incomplete
-# driver composition work, changing it's setting has no
-# effect. Default raid interface to be used for nodes that do
-# not have raid_interface field set. A complete list of raid
-# interfaces present on your system may be found by
-# enumerating the "ironic.hardware.interfaces.raid"
-# entrypoint. (string value)
+# Default raid interface to be used for nodes that do not have
+# raid_interface field set. A complete list of raid interfaces
+# present on your system may be found by enumerating the
+# "ironic.hardware.interfaces.raid" entrypoint. (string value)
 #default_raid_interface = <None>
 
 # Specify the list of storage interfaces to load during
@@ -253,10 +219,8 @@
 # entrypoint. (list value)
 #default_storage_interface = <None>
 
-# WARNING: This configuration option is part of the incomplete
-# driver composition work, changing it's setting has no
-# effect. Specify the list of vendor interfaces to load during
-# service initialization. Missing vendor interfaces, or vendor
+# Specify the list of vendor interfaces to load during service
+# initialization. Missing vendor interfaces, or vendor
 # interfaces which fail to initialize, will prevent the
 # ironic-conductor service from starting. The default value is
 # a recommended set of production-oriented vendor interfaces.
@@ -268,11 +232,9 @@
 # every ironic-conductor service. (list value)
 #enabled_vendor_interfaces = no-vendor
 
-# WARNING: This configuration option is part of the incomplete
-# driver composition work, changing it's setting has no
-# effect. Default vendor interface to be used for nodes that
-# do not have vendor_interface field set. A complete list of
-# vendor interfaces present on your system may be found by
+# Default vendor interface to be used for nodes that do not
+# have vendor_interface field set. A complete list of vendor
+# interfaces present on your system may be found by
 # enumerating the "ironic.hardware.interfaces.vendor"
 # entrypoint. (string value)
 #default_vendor_interface = <None>
@@ -292,8 +254,8 @@
 # hosts, and an exponent of the 2, there are 40 partitions in
 # the ring.A few thousand partitions should make rebalancing
 # smooth in most cases. The default is suitable for up to a
-# few hundred conductors. Too many partitions has a CPU
-# impact. (integer value)
+# few hundred conductors. Configuring for too many partitions
+# has a negative impact on CPU usage. (integer value)
 #hash_partition_exponent = 5
 
 # [Experimental Feature] Number of hosts to map onto each hash
@@ -2041,6 +2003,22 @@
 # Its value may be silently ignored in the future.
 # Reason: PKI token format is no longer supported.
 #hash_algorithms = md5
+
+# A choice of roles that must be present in a service token.
+# Service tokens are allowed to request that an expired token
+# can be used and so this check should tightly control that
+# only actual services should be sending this token. Roles
+# here are applied as an ANY check so any role in this list
+# must be present. For backwards compatibility reasons this
+# currently only affects the allow_expired check. (list value)
+#service_token_roles = service
+
+# For backwards compatibility reasons we must let valid
+# service tokens pass that don't pass the service_token_roles
+# check as valid. Setting this true will become the default in
+# a future release and should be enabled if possible. (boolean
+# value)
+#service_token_roles_required = false
 
 # Authentication type to load (string value)
 # Deprecated group/name - [keystone_authtoken]/auth_plugin

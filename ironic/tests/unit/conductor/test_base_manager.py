@@ -12,6 +12,8 @@
 
 """Test class for Ironic BaseConductorManager."""
 
+import collections
+
 import eventlet
 import futurist
 from futurist import periodics
@@ -26,6 +28,8 @@ from ironic.conductor import base_manager
 from ironic.conductor import manager
 from ironic.conductor import notification_utils
 from ironic.conductor import task_manager
+from ironic.drivers import fake_hardware
+from ironic.drivers import generic
 from ironic import objects
 from ironic.objects import fields
 from ironic.tests import base as tests_base
@@ -160,6 +164,17 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
                           self.service.init_host)
         self.assertTrue(log_mock.error.called)
 
+    @mock.patch.object(base_manager, 'LOG')
+    @mock.patch.object(base_manager.BaseConductorManager,
+                       '_register_and_validate_hardware_interfaces')
+    @mock.patch.object(base_manager.BaseConductorManager, 'del_host')
+    def test_start_fails_hw_type_register(self, del_mock, reg_mock, log_mock):
+        reg_mock.side_effect = exception.DriverNotFound('hw-type')
+        self.assertRaises(exception.DriverNotFound,
+                          self.service.init_host)
+        self.assertTrue(log_mock.error.called)
+        del_mock.assert_called_once_with()
+
     def test_prevent_double_start(self):
         self._start_service()
         self.assertRaisesRegex(RuntimeError, 'already running',
@@ -222,6 +237,61 @@ class ManagerSpawnWorkerTestCase(tests_base.TestCase):
 
         self.assertRaises(exception.NoFreeConductorWorker,
                           self.service._spawn_worker, 'fake')
+
+
+@mock.patch.object(objects.Conductor, 'unregister_all_hardware_interfaces',
+                   autospec=True)
+@mock.patch.object(objects.Conductor, 'register_hardware_interfaces',
+                   autospec=True)
+@mock.patch.object(driver_factory, 'default_interface', autospec=True)
+@mock.patch.object(driver_factory, 'hardware_types', autospec=True)
+@mock.patch.object(driver_factory, 'enabled_supported_interfaces',
+                   autospec=True)
+@mgr_utils.mock_record_keepalive
+class RegisterInterfacesTestCase(mgr_utils.ServiceSetUpMixin,
+                                 tests_db_base.DbTestCase):
+    def setUp(self):
+        super(RegisterInterfacesTestCase, self).setUp()
+        self._start_service()
+
+    def test__register_and_validate_hardware_interfaces(self,
+                                                        esi_mock,
+                                                        ht_mock,
+                                                        default_mock,
+                                                        reg_mock,
+                                                        unreg_mock):
+        # these must be same order as esi_mock side effect
+        ht_mock.return_value = collections.OrderedDict((
+            ('fake-hardware', fake_hardware.FakeHardware()),
+            ('manual-management', generic.ManualManagementHardware),
+        ))
+        esi_mock.side_effect = [
+            collections.OrderedDict((
+                ('management', ['fake', 'noop']),
+                ('deploy', ['agent', 'iscsi']),
+            )),
+            collections.OrderedDict((
+                ('management', ['fake']),
+                ('deploy', ['agent', 'fake']),
+            )),
+        ]
+        default_mock.side_effect = ('fake', 'agent', 'fake', 'agent')
+        expected_calls = [
+            mock.call(mock.ANY, 'fake-hardware', 'management',
+                      ['fake', 'noop'], 'fake'),
+            mock.call(mock.ANY, 'fake-hardware', 'deploy', ['agent', 'iscsi'],
+                      'agent'),
+            mock.call(mock.ANY, 'manual-management', 'management', ['fake'],
+                      'fake'),
+            mock.call(mock.ANY, 'manual-management', 'deploy',
+                      ['agent', 'fake'], 'agent'),
+        ]
+
+        self.service._register_and_validate_hardware_interfaces()
+
+        unreg_mock.assert_called_once_with(mock.ANY)
+        # we're iterating over dicts, don't worry about order
+        reg_mock.assert_has_calls(expected_calls)
 
 
 class StartConsolesTestCase(mgr_utils.ServiceSetUpMixin,

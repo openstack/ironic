@@ -27,9 +27,6 @@ from oslo_utils import netutils
 from ironic.common.i18n import _
 
 
-# TODO(dtantsur): remove the variants with warnings as soon as we support
-# actually creating nodes with hardware types.
-
 _ENABLED_IFACE_HELP = _('Specify the list of {0} interfaces to load during '
                         'service initialization. Missing {0} interfaces, '
                         'or {0} interfaces which fail to initialize, will '
@@ -44,23 +41,11 @@ _ENABLED_IFACE_HELP = _('Specify the list of {0} interfaces to load during '
                         'set of enabled {0} interfaces on every '
                         'ironic-conductor service.')
 
-_ENABLED_IFACE_HELP_WITH_WARNING = (
-    _('WARNING: This configuration option is part of the incomplete driver '
-      'composition work, changing it\'s setting has no effect. ') +
-    _ENABLED_IFACE_HELP
-)
-
 _DEFAULT_IFACE_HELP = _('Default {0} interface to be used for nodes that '
                         'do not have {0}_interface field set. A complete '
                         'list of {0} interfaces present on your system may '
                         'be found by enumerating the '
                         '"ironic.hardware.interfaces.{0}" entrypoint.')
-
-_DEFAULT_IFACE_HELP_WITH_WARNING = (
-    _('WARNING: This configuration option is part of the incomplete driver '
-      'composition work, changing it\'s setting has no effect. ') +
-    _DEFAULT_IFACE_HELP
-)
 
 api_opts = [
     cfg.StrOpt(
@@ -95,10 +80,7 @@ driver_opts = [
                        'developer documentation online.')),
     cfg.ListOpt('enabled_hardware_types',
                 default=[],
-                help=_('WARNING: This configuration option is part of the '
-                       'incomplete driver composition work, changing it\'s '
-                       'setting has no effect. '
-                       'Specify the list of hardware types to load during '
+                help=_('Specify the list of hardware types to load during '
                        'service initialization. Missing hardware types, or '
                        'hardware types which fail to initialize, will prevent '
                        'the conductor service from starting. No hardware '
@@ -110,29 +92,29 @@ driver_opts = [
                        '"ironic.hardware.types" entrypoint.')),
     cfg.ListOpt('enabled_boot_interfaces',
                 default=['pxe'],
-                help=_ENABLED_IFACE_HELP_WITH_WARNING.format('boot')),
+                help=_ENABLED_IFACE_HELP.format('boot')),
     cfg.StrOpt('default_boot_interface',
-               help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('boot')),
+               help=_DEFAULT_IFACE_HELP.format('boot')),
     cfg.ListOpt('enabled_console_interfaces',
                 default=['no-console'],
-                help=_ENABLED_IFACE_HELP_WITH_WARNING.format('console')),
+                help=_ENABLED_IFACE_HELP.format('console')),
     cfg.StrOpt('default_console_interface',
-               help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('console')),
+               help=_DEFAULT_IFACE_HELP.format('console')),
     cfg.ListOpt('enabled_deploy_interfaces',
                 default=['iscsi', 'direct'],
-                help=_ENABLED_IFACE_HELP_WITH_WARNING.format('deploy')),
+                help=_ENABLED_IFACE_HELP.format('deploy')),
     cfg.StrOpt('default_deploy_interface',
-               help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('deploy')),
+               help=_DEFAULT_IFACE_HELP.format('deploy')),
     cfg.ListOpt('enabled_inspect_interfaces',
                 default=['no-inspect'],
-                help=_ENABLED_IFACE_HELP_WITH_WARNING.format('inspect')),
+                help=_ENABLED_IFACE_HELP.format('inspect')),
     cfg.StrOpt('default_inspect_interface',
-               help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('inspect')),
+               help=_DEFAULT_IFACE_HELP.format('inspect')),
     cfg.ListOpt('enabled_management_interfaces',
                 default=[],
-                help=_ENABLED_IFACE_HELP_WITH_WARNING.format('management')),
+                help=_ENABLED_IFACE_HELP.format('management')),
     cfg.StrOpt('default_management_interface',
-               help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('management')),
+               help=_DEFAULT_IFACE_HELP.format('management')),
     cfg.ListOpt('enabled_network_interfaces',
                 default=['flat', 'noop'],
                 help=_ENABLED_IFACE_HELP.format('network')),
@@ -140,14 +122,14 @@ driver_opts = [
                help=_DEFAULT_IFACE_HELP.format('network')),
     cfg.ListOpt('enabled_power_interfaces',
                 default=[],
-                help=_ENABLED_IFACE_HELP_WITH_WARNING.format('power')),
+                help=_ENABLED_IFACE_HELP.format('power')),
     cfg.StrOpt('default_power_interface',
-               help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('power')),
+               help=_DEFAULT_IFACE_HELP.format('power')),
     cfg.ListOpt('enabled_raid_interfaces',
                 default=['agent', 'no-raid'],
-                help=_ENABLED_IFACE_HELP_WITH_WARNING.format('raid')),
+                help=_ENABLED_IFACE_HELP.format('raid')),
     cfg.StrOpt('default_raid_interface',
-               help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('raid')),
+               help=_DEFAULT_IFACE_HELP.format('raid')),
     cfg.ListOpt('enabled_storage_interfaces',
                 default=['noop'],
                 help=_ENABLED_IFACE_HELP.format('storage')),
@@ -155,9 +137,9 @@ driver_opts = [
                 help=_DEFAULT_IFACE_HELP.format('storage')),
     cfg.ListOpt('enabled_vendor_interfaces',
                 default=['no-vendor'],
-                help=_ENABLED_IFACE_HELP_WITH_WARNING.format('vendor')),
+                help=_ENABLED_IFACE_HELP.format('vendor')),
     cfg.StrOpt('default_vendor_interface',
-               help=_DEFAULT_IFACE_HELP_WITH_WARNING.format('vendor')),
+               help=_DEFAULT_IFACE_HELP.format('vendor')),
 ]
 
 exc_log_opts = [

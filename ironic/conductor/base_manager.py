@@ -148,6 +148,21 @@ class BaseConductorManager(object):
             self.conductor = objects.Conductor.register(
                 admin_context, self.host, driver_names, update_existing=True)
 
+        # register hardware types and interfaces supported by this conductor
+        # and validate them against other conductors
+        try:
+            self._register_and_validate_hardware_interfaces()
+        except (exception.DriverLoadError, exception.DriverNotFound,
+                exception.ConductorHardwareInterfacesAlreadyRegistered,
+                exception.InterfaceNotFoundInEntrypoint):
+            with excutils.save_and_reraise_exception():
+                LOG.error(_LE('Failed to register hardware types'))
+                self.del_host()
+
+        # TODO(jroll) validate here that at least one driver OR
+        # hardware type is loaded. If not, call del_host and raise
+        # NoDriversLoaded.
+
         # Start periodic tasks
         self._periodic_tasks_worker = self._executor.submit(
             self._periodic_tasks.start, allow_empty=True)
@@ -218,6 +233,28 @@ class BaseConductorManager(object):
         self._periodic_tasks.wait()
         self._executor.shutdown(wait=True)
         self._started = False
+
+    def _register_and_validate_hardware_interfaces(self):
+        # NOTE(jroll) may raise ConductorHardwareInterfacesAlreadyRegistered
+        # or InterfaceNotFoundInEntrypoint,
+        # we intentionally let this bubble up to the caller.
+
+        # first unregister, in case we have cruft laying around
+        self.conductor.unregister_all_hardware_interfaces()
+
+        hardware_types = driver_factory.hardware_types()
+        for ht_name, ht in hardware_types.items():
+            interface_map = driver_factory.enabled_supported_interfaces(ht)
+            for interface_type, interface_names in interface_map.items():
+                default_interface = driver_factory.default_interface(
+                    ht, interface_type)
+                self.conductor.register_hardware_interfaces(ht_name,
+                                                            interface_type,
+                                                            interface_names,
+                                                            default_interface)
+
+        # TODO(jroll) validate against other conductor, warn if different
+        # how do we do this performantly? :|
 
     def _collect_periodic_tasks(self, obj, args):
         """Collect periodic tasks from a given object.

@@ -409,7 +409,7 @@ expected_object_fingerprints = {
     'Chassis': '1.3-d656e039fd8ae9f34efc232ab3980905',
     'Port': '1.6-609504503d68982a10f495659990084b',
     'Portgroup': '1.3-71923a81a86743b313b190f5c675e258',
-    'Conductor': '1.1-5091f249719d4a465062a1b3dc7f860d',
+    'Conductor': '1.2-5091f249719d4a465062a1b3dc7f860d',
     'EventType': '1.1-aa2ba1afd38553e3880c267404e8d370',
     'NotificationPublisher': '1.0-51a09397d6c0687771fb5be9a999605d',
     'NodePayload': '1.2-f4e7a1def3b2a5784863eeed46e3a25f',
