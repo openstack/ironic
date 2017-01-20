@@ -31,18 +31,26 @@ class HashRingManagerTestCase(db_base.DbTestCase):
         self.ring_manager = hash_ring.HashRingManager()
 
     def register_conductors(self):
-        self.dbapi.register_conductor({
+        c1 = self.dbapi.register_conductor({
             'hostname': 'host1',
             'drivers': ['driver1', 'driver2'],
         })
-        self.dbapi.register_conductor({
+        c2 = self.dbapi.register_conductor({
             'hostname': 'host2',
             'drivers': ['driver1'],
         })
+        for c in (c1, c2):
+            self.dbapi.register_conductor_hardware_interfaces(
+                c.id, 'hardware-type', 'deploy', ['iscsi', 'direct'], 'iscsi')
 
     def test_hash_ring_manager_get_ring_success(self):
         self.register_conductors()
         ring = self.ring_manager['driver1']
+        self.assertEqual(sorted(['host1', 'host2']), sorted(ring.nodes))
+
+    def test_hash_ring_manager_hardware_type_success(self):
+        self.register_conductors()
+        ring = self.ring_manager['hardware-type']
         self.assertEqual(sorted(['host1', 'host2']), sorted(ring.nodes))
 
     def test_hash_ring_manager_driver_not_found(self):

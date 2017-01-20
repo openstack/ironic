@@ -50,6 +50,7 @@ class HashRingManager(object):
     def _load_hash_rings(self):
         rings = {}
         d2c = self.dbapi.get_active_driver_dict()
+        d2c.update(self.dbapi.get_active_hardware_type_dict())
 
         for driver_name, hosts in d2c.items():
             rings[driver_name] = hashring.HashRing(
