@@ -347,14 +347,12 @@ def enabled_supported_interfaces(hardware_type):
     mapping = dict()
     for interface_type in driver_base.ALL_INTERFACES:
         supported = set()
-        enabled = set()
         supported_ifaces = getattr(hardware_type,
                                    'supported_%s_interfaces' % interface_type)
         for name, iface in interfaces(interface_type).items():
-            enabled.add(name)
             if iface.__class__ in supported_ifaces:
                 supported.add(name)
-        mapping[interface_type] = enabled.intersection(supported)
+        mapping[interface_type] = supported
     return mapping
 
 
