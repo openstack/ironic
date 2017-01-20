@@ -27,6 +27,7 @@ Response
 
     - id: node_vif_ident
     - vifs: n_vifs
+    - node_ident: node_ident
 
 **Example list of VIFs that are attached to the node:**
 
@@ -51,6 +52,7 @@ Request
 .. rest_parameters:: parameters.yaml
 
     - id: node_vif_ident
+    - node_ident: node_ident
 
 **Example request to attach a VIF to a Node:**
 
@@ -59,6 +61,11 @@ Request
 
 Detach VIF from a node
 ======================
+
+.. rest_parameters:: parameters.yaml
+
+    - node_ident: node_ident
+    - node_vif_ident: node_vif_ident
 
 .. rest_method:: DELETE /v1/nodes/{node_ident}/vifs/{node_vif_ident}
 

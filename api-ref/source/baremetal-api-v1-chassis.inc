@@ -68,6 +68,7 @@ Request
 .. rest_parameters:: parameters.yaml
 
    - fields: fields
+   - chassis_id: chassis_ident
 
 Response Parameters
 -------------------
@@ -105,7 +106,7 @@ The BODY of the PATCH request must be a JSON PATCH document, adhering to
 
 .. rest_parameters:: parameters.yaml
 
-   - chassis: chassis
+   - chassis_id: chassis_ident
    - description: description
    - extra: extra
 
@@ -147,6 +148,10 @@ Deletes a chassis.
 
 Request
 -------
+
+.. rest_parameters:: parameters.yaml
+
+  - chassis_id: chassis_ident
 
 Create chassis
 ==============
