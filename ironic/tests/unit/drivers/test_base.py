@@ -498,3 +498,13 @@ class NetworkInterfaceTestCase(base.TestCase):
         network.get_current_vif(mock_task, port)
         mock_gcv.assert_called_once_with(mock_task, port)
         self.assertTrue(mock_warn.called)
+
+
+class TestManagementInterface(base.TestCase):
+
+    def test_inject_nmi_default_impl(self):
+        management = fake.FakeManagement()
+        task_mock = mock.MagicMock(spec_set=['node'])
+
+        self.assertRaises(exception.UnsupportedDriverExtension,
+                          management.inject_nmi, task_mock)

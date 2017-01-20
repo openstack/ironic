@@ -3063,6 +3063,39 @@ class TestPut(test_api_base.BaseApiTest):
         self.assertEqual('application/json', ret.content_type)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
 
+    @mock.patch.object(rpcapi.ConductorAPI, 'inject_nmi')
+    def test_inject_nmi(self, mock_inject_nmi):
+        ret = self.put_json('/nodes/%s/management/inject_nmi'
+                            % self.node.uuid, {},
+                            headers={api_base.Version.string: "1.29"})
+        self.assertEqual(http_client.NO_CONTENT, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        mock_inject_nmi.assert_called_once_with(mock.ANY, self.node.uuid,
+                                                topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'inject_nmi')
+    def test_inject_nmi_not_allowed(self, mock_inject_nmi):
+        ret = self.put_json('/nodes/%s/management/inject_nmi'
+                            % self.node.uuid, {},
+                            headers={api_base.Version.string: "1.28"},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
+        self.assertFalse(mock_inject_nmi.called)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'inject_nmi')
+    def test_inject_nmi_not_supported(self, mock_inject_nmi):
+        mock_inject_nmi.side_effect = exception.UnsupportedDriverExtension(
+            extension='management', driver='test-driver')
+        ret = self.put_json('/nodes/%s/management/inject_nmi'
+                            % self.node.uuid, {},
+                            headers={api_base.Version.string: "1.29"},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertTrue(ret.json['error_message'])
+        mock_inject_nmi.assert_called_once_with(mock.ANY, self.node.uuid,
+                                                topic='test-topic')
+
     def _test_set_node_maintenance_mode(self, mock_update, mock_get, reason,
                                         node_ident, is_by_name=False):
         request_body = {}

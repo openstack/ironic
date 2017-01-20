@@ -48,6 +48,8 @@
 "baremetal:node:vif:attach": "rule:is_admin"
 # Detach a VIF from a node
 "baremetal:node:vif:detach": "rule:is_admin"
+# Inject NMI for a node
+"baremetal:node:inject_nmi": "rule:is_admin"
 # Retrieve Port records
 "baremetal:port:get": "rule:is_admin or rule:is_observer"
 # Create Port records

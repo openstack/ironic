@@ -250,10 +250,48 @@ class BootDeviceController(rest.RestController):
         return {'supported_boot_devices': boot_devices}
 
 
+class InjectNmiController(rest.RestController):
+
+    @METRICS.timer('InjectNmiController.put')
+    @expose.expose(None, types.uuid_or_name,
+                   status_code=http_client.NO_CONTENT)
+    def put(self, node_ident):
+        """Inject NMI for a node.
+
+        Inject NMI (Non Maskable Interrupt) for a node immediately.
+
+        :param node_ident: the UUID or logical name of a node.
+        :raises: NotFound if requested version of the API doesn't support
+                 inject nmi.
+        :raises: HTTPForbidden if the policy is not authorized.
+        :raises: NodeNotFound if the node is not found.
+        :raises: NodeLocked if the node is locked by another conductor.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support management or management.inject_nmi.
+        :raises: InvalidParameterValue when the wrong driver info is
+                 specified or an invalid boot device is specified.
+        :raises: MissingParameterValue if missing supplied info.
+        """
+        if not api_utils.allow_inject_nmi():
+            raise exception.NotFound()
+
+        cdict = pecan.request.context.to_policy_values()
+        policy.authorize('baremetal:node:inject_nmi', cdict, cdict)
+
+        rpc_node = api_utils.get_rpc_node(node_ident)
+        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        pecan.request.rpcapi.inject_nmi(pecan.request.context,
+                                        rpc_node.uuid,
+                                        topic=topic)
+
+
 class NodeManagementController(rest.RestController):
 
     boot_device = BootDeviceController()
     """Expose boot_device as a sub-element of management"""
+
+    inject_nmi = InjectNmiController()
+    """Expose inject_nmi as a sub-element of management"""
 
 
 class ConsoleInfo(base.APIBase):

@@ -84,7 +84,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     """Ironic Conductor manager main class."""
 
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
-    RPC_API_VERSION = '1.39'
+    RPC_API_VERSION = '1.40'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -2171,6 +2171,36 @@ class ConductorManager(base_manager.BaseConductorManager):
                     driver=task.node.driver, extension='management')
             task.driver.management.validate(task)
             return task.driver.management.get_boot_device(task)
+
+    @METRICS.timer('ConductorManager.inject_nmi')
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.UnsupportedDriverExtension,
+                                   exception.InvalidParameterValue)
+    def inject_nmi(self, context, node_id):
+        """Inject NMI for a node.
+
+        Inject NMI (Non Maskable Interrupt) for a node immediately.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: UnsupportedDriverExtension if the node's driver doesn't
+                 support management or management.inject_nmi.
+        :raises: InvalidParameterValue when the wrong driver info is
+                 specified or an invalid boot device is specified.
+        :raises: MissingParameterValue if missing supplied info.
+        """
+        LOG.debug('RPC inject_nmi called for node %s', node_id)
+
+        with task_manager.acquire(context, node_id,
+                                  purpose='inject nmi') as task:
+            node = task.node
+            if not getattr(task.driver, 'management', None):
+                raise exception.UnsupportedDriverExtension(
+                    driver=node.driver, extension='management')
+            task.driver.management.validate(task)
+
+            task.driver.management.inject_nmi(task)
 
     @METRICS.timer('ConductorManager.get_supported_boot_devices')
     @messaging.expected_exceptions(exception.NodeLocked,
