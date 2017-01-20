@@ -17,6 +17,7 @@ iptables
 ipxe
 gnupg
 libguestfs0
+libguestfs-tools
 libvirt-bin
 open-iscsi
 openssh-client

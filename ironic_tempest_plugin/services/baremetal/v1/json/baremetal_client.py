@@ -215,10 +215,14 @@ class BaremetalClient(base.BaremetalClient):
         return self._delete_request('ports', uuid)
 
     @base.handle_errors
-    def update_node(self, uuid, **kwargs):
+    def update_node(self, uuid, patch=None, **kwargs):
         """Update the specified node.
 
         :param uuid: The unique identifier of the node.
+        :param patch: A JSON path that sets values of the specified attributes
+                      to the new ones.
+        :param **kwargs: Attributes and new values for them, used only when
+                         patch param is not set.
         :return: A tuple with the server response and the updated node.
 
         """
@@ -228,8 +232,8 @@ class BaremetalClient(base.BaremetalClient):
                            'properties/memory_mb',
                            'driver',
                            'instance_uuid')
-
-        patch = self._make_patch(node_attributes, **kwargs)
+        if not patch:
+            patch = self._make_patch(node_attributes, **kwargs)
 
         return self._patch_request('nodes', uuid, patch)
 
@@ -271,7 +275,8 @@ class BaremetalClient(base.BaremetalClient):
                                  target)
 
     @base.handle_errors
-    def set_node_provision_state(self, node_uuid, state, configdrive=None):
+    def set_node_provision_state(self, node_uuid, state, configdrive=None,
+                                 clean_steps=None):
         """Set provision state of the specified node.
 
         :param node_uuid: The unique identifier of the node.
@@ -279,8 +284,15 @@ class BaremetalClient(base.BaremetalClient):
                 (active/rebuild/deleted/inspect/manage/provide).
         :param configdrive: A gzipped, base64-encoded
             configuration drive string.
+        :param clean_steps: A list with clean steps to execute.
         """
-        data = {'target': state, 'configdrive': configdrive}
+        data = {'target': state}
+        # NOTE (vsaienk0): Add both here if specified, do not check anything.
+        # API will return an error in case of invalid parameters.
+        if configdrive is not None:
+            data['configdrive'] = configdrive
+        if clean_steps is not None:
+            data['clean_steps'] = clean_steps
         return self._put_request('nodes/%s/states/provision' % node_uuid,
                                  data)
 

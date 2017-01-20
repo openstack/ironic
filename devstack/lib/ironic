@@ -567,10 +567,14 @@ else
     add_image_link http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-x86_64-disk.img
 fi
 
+
+IRONIC_WHOLEDISK_IMAGE_NAME=${IRONIC_WHOLEDISK_IMAGE_NAME:-${IRONIC_IMAGE_NAME/-uec/-disk}}
+IRONIC_PARTITIONED_IMAGE_NAME=${IRONIC_PARTITIONED_IMAGE_NAME:-${IRONIC_IMAGE_NAME/-disk/-uec}}
+
 if [[ "$IRONIC_TEMPEST_WHOLE_DISK_IMAGE" == "True" ]]; then
-    IRONIC_IMAGE_NAME=${IRONIC_IMAGE_NAME/-uec/-disk}
+    IRONIC_IMAGE_NAME=$IRONIC_WHOLEDISK_IMAGE_NAME
 else
-    IRONIC_IMAGE_NAME=${IRONIC_IMAGE_NAME/-disk/-uec}
+    IRONIC_IMAGE_NAME=$IRONIC_PARTITIONED_IMAGE_NAME
 fi
 
 # NOTE(vsaienko) set DEFAULT_IMAGE_NAME here, as it is still used by grenade
@@ -656,7 +660,7 @@ function install_ironic {
     if [[ "$HOST_TOPOLOGY_ROLE" != "subnode" ]]; then
         # make sure all needed service were enabled
         local req_services="key"
-        if [[ "$VIRT_DRIVER" == "ironic" ]]; then
+        if is_service_enabled nova && [[ "$VIRT_DRIVER" == "ironic" ]]; then
             req_services+=" nova glance neutron"
         fi
         for srv in $req_services; do
@@ -1995,6 +1999,21 @@ function ironic_configure_tempest {
     image_uuid=$(openstack image show $IRONIC_IMAGE_NAME -f value -c id)
     iniset $TEMPEST_CONFIG compute image_ref $image_uuid
     iniset $TEMPEST_CONFIG compute image_ref_alt $image_uuid
+
+    image_uuid=$(openstack image show $IRONIC_WHOLEDISK_IMAGE_NAME -f value -c id)
+    iniset $TEMPEST_CONFIG baremetal whole_disk_image_ref $image_uuid
+    image_uuid=$(openstack image show $IRONIC_PARTITIONED_IMAGE_NAME -f value -c id)
+    iniset $TEMPEST_CONFIG baremetal partition_image_ref $image_uuid
+    iniset $TEMPEST_CONFIG baremetal enabled_drivers $IRONIC_ENABLED_DRIVERS
+    iniset $TEMPEST_CONFIG baremetal enabled_hardware_types $IRONIC_ENABLED_HARDWARE_TYPES
+
+    local adjusted_root_disk_size_gb
+    if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
+        adjusted_root_disk_size_gb=$(( ${IRONIC_VM_SPECS_DISK} - ${IRONIC_VM_EPHEMERAL_DISK} ))
+    else
+        adjusted_root_disk_size_gb=$(( ${IRONIC_HW_NODE_DISK} - ${IRONIC_HW_EPHEMERAL_DISK} ))
+    fi
+    iniset $TEMPEST_CONFIG baremetal adjusted_root_disk_size_gb $adjusted_root_disk_size_gb
 
     if [[ -n "${IRONIC_TEMPEST_BUILD_TIMEOUT}" ]]; then
         iniset $TEMPEST_CONFIG baremetal unprovision_timeout $IRONIC_TEMPEST_BUILD_TIMEOUT

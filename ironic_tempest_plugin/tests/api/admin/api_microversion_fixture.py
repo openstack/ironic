@@ -22,8 +22,5 @@ class APIMicroversionFixture(fixtures.Fixture):
 
     def _setUp(self):
         super(APIMicroversionFixture, self)._setUp()
-        base.BAREMETAL_MICROVERSION = self.baremetal_microversion
-        self.addCleanup(self._reset_compute_microversion)
-
-    def _reset_compute_microversion(self):
-        base.BAREMETAL_MICROVERSION = None
+        base.set_baremetal_api_microversion(self.baremetal_microversion)
+        self.addCleanup(base.reset_baremetal_api_microversion)
