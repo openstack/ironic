@@ -640,7 +640,8 @@ class NodeCleaningStepsTestCase(base.DbTestCase):
         self.deploy_update = {
             'step': 'update_firmware', 'priority': 10, 'interface': 'deploy'}
         self.deploy_erase = {
-            'step': 'erase_disks', 'priority': 20, 'interface': 'deploy'}
+            'step': 'erase_disks', 'priority': 20, 'interface': 'deploy',
+            'abortable': True}
         # Automated cleaning should be executed in this order
         self.clean_steps = [self.deploy_erase, self.power_update,
                             self.deploy_update]
@@ -740,6 +741,7 @@ class NodeCleaningStepsTestCase(base.DbTestCase):
                                             mock_validate_user_steps):
         clean_steps = [self.deploy_raid]
         mock_steps.return_value = self.clean_steps
+        mock_validate_user_steps.return_value = clean_steps
 
         node = obj_utils.create_test_node(
             self.context, driver='fake',
@@ -768,8 +770,15 @@ class NodeCleaningStepsTestCase(base.DbTestCase):
                       {'step': 'erase_disks', 'interface': 'deploy'}]
 
         with task_manager.acquire(self.context, node.uuid) as task:
-            conductor_utils._validate_user_clean_steps(task, user_steps)
+            result = conductor_utils._validate_user_clean_steps(task,
+                                                                user_steps)
             mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+        expected = [{'step': 'update_firmware', 'interface': 'power',
+                     'priority': 10, 'abortable': False},
+                    {'step': 'erase_disks', 'interface': 'deploy',
+                     'priority': 20, 'abortable': True}]
+        self.assertEqual(expected, result)
 
     @mock.patch.object(conductor_utils, '_get_cleaning_steps')
     def test__validate_user_clean_steps_no_steps(self, mock_steps):

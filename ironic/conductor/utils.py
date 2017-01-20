@@ -413,7 +413,8 @@ def set_node_cleaning_steps(task):
         # Now that we know what the driver's available clean steps are, we can
         # do further checks to validate the user's clean steps.
         steps = node.driver_internal_info['clean_steps']
-        _validate_user_clean_steps(task, steps)
+        driver_internal_info['clean_steps'] = (
+            _validate_user_clean_steps(task, steps))
 
     node.clean_step = {}
     driver_internal_info['clean_step_index'] = None
@@ -440,6 +441,7 @@ def _validate_user_clean_steps(task, user_steps):
     :raises: InvalidParameterValue if validation of clean steps fails.
     :raises: NodeCleaningFailure if there was a problem getting the
         clean steps from the driver.
+    :return: validated clean steps update with information from the driver
     """
 
     def step_id(step):
@@ -461,6 +463,7 @@ def _validate_user_clean_steps(task, user_steps):
     for s in _get_cleaning_steps(task, enabled=False, sort=False):
         driver_steps[step_id(s)] = s
 
+    result = []
     for user_step in user_steps:
         # Check if this user_specified clean step isn't supported by the driver
         try:
@@ -495,5 +498,11 @@ def _validate_user_clean_steps(task, user_steps):
                                                 'miss': ', '.join(missing)}
             errors.append(error)
 
+        # Copy fields that should not be provided by a user
+        user_step['abortable'] = driver_step.get('abortable', False)
+        user_step['priority'] = driver_step.get('priority', 0)
+        result.append(user_step)
+
     if errors:
         raise exception.InvalidParameterValue('; '.join(errors))
+    return result

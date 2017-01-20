@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fix bug in manual clean steps caching, which resulting in all clean steps
+    being not abortable. See https://bugs.launchpad.net/ironic/+bug/1658061.
