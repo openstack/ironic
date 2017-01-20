@@ -35,3 +35,4 @@ xinetd
 squashfs-tools
 libvirt-dev
 socat
+ipxe-qemu

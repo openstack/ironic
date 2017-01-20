@@ -411,9 +411,65 @@ IRONIC_PXE_BOOT_IMAGE=${IRONIC_PXE_BOOT_IMAGE:-$(get_pxe_boot_file)}
 
 IRONIC_AUTOMATED_CLEAN_ENABLED=$(trueorfalse True IRONIC_AUTOMATED_CLEAN_ENABLED)
 
+# Whether configure the nodes to boot in Legacy BIOS or UEFI mode. Accepted
+# values are: "bios" or "uefi", defaults to "bios".
+#
+# WARNING: UEFI is EXPERIMENTAL. The CirrOS images uploaded by DevStack by
+# default WILL NOT WORK with UEFI. You will need to download the UEFI capable
+# images manually from [0] and upload it to Glance before deploying.
+IRONIC_BOOT_MODE=${IRONIC_BOOT_MODE:-bios}
+IRONIC_UEFI_FILES_DIR=${IRONIC_UEFI_FILES_DIR:-/var/lib/libvirt/images}
+UEFI_LOADER_PATH=$IRONIC_UEFI_FILES_DIR/OVMF_CODE.fd
+UEFI_NVRAM_PATH=$IRONIC_UEFI_FILES_DIR/OVMF_VARS.fd
+
+# Sanity checks
+if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
+    if [[ "$IRONIC_IPXE_ENABLED" == "False" ]]; then
+        die $LINENO "Boot mode UEFI is only supported when used with iPXE for now."
+    fi
+
+    if ! is_fedora && ! is_ubuntu; then
+        die $LINENO "Boot mode UEFI only works in Ubuntu or Fedora for now."
+    fi
+fi
 
 # Functions
 # ---------
+
+# UEFI related functions
+function get_uefi_ipxe_boot_file {
+    if is_ubuntu; then
+        echo /usr/lib/ipxe/ipxe.efi
+    elif is_fedora; then
+        echo /usr/share/ipxe/ipxe-x86_64.efi
+    fi
+}
+
+function get_uefi_loader {
+    if is_ubuntu; then
+        echo /usr/share/OVMF/OVMF_CODE.fd
+    elif is_fedora; then
+        echo /usr/share/edk2/ovmf/OVMF_CODE.fd
+    fi
+}
+
+function get_uefi_nvram {
+    if is_ubuntu; then
+        echo /usr/share/OVMF/OVMF_VARS.fd
+    elif is_fedora; then
+        echo /usr/share/edk2/ovmf/OVMF_VARS.fd
+    fi
+}
+
+# Misc
+
+function restart_libvirt {
+    local libvirt_service_name="libvirtd"
+    if is_ubuntu && [ ! -f /etc/init.d/libvirtd ]; then
+        libvirt_service_name="libvirt-bin"
+    fi
+    restart_service $libvirt_service_name
+}
 
 # Test if any Ironic services are enabled
 # is_ironic_enabled
@@ -471,9 +527,12 @@ function is_deploy_iso_required {
     return 1
 }
 
-# TODO(lucasagomes): This logic was moved from DevStack and need some
-#                    refactor
-IRONIC_IMAGE_NAME=${DEFAULT_IMAGE_NAME:-cirros-${CIRROS_VERSION}-x86_64-uec}
+IRONIC_DEFAULT_IMAGE_NAME=cirros-${CIRROS_VERSION}-x86_64-uec
+if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
+    IRONIC_DEFAULT_IMAGE_NAME=cirros-d160722-x86_64-uec
+fi
+
+IRONIC_IMAGE_NAME=${DEFAULT_IMAGE_NAME:-$IRONIC_DEFAULT_IMAGE_NAME}
 
 if [[ "$IMAGE_URLS" != *"$IRONIC_IMAGE_NAME"* ]]; then
 
@@ -481,8 +540,13 @@ if [[ "$IMAGE_URLS" != *"$IRONIC_IMAGE_NAME"* ]]; then
         IMAGE_URLS+=","
     fi
 
-    IMAGE_URLS+="http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-x86_64-uec.tar.gz"
-    IMAGE_URLS+=",http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-x86_64-disk.img"
+    if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
+        IMAGE_URLS+="http://download.cirros-cloud.net/daily/20160722/cirros-d160722-x86_64-uec.tar.gz"
+        IMAGE_URLS+=",http://download.cirros-cloud.net/daily/20160722/cirros-d160722-x86_64-disk.img"
+    else
+        IMAGE_URLS+="http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-x86_64-uec.tar.gz"
+        IMAGE_URLS+=",http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-x86_64-disk.img"
+    fi
 fi
 
 if [[ "$IRONIC_TEMPEST_WHOLE_DISK_IMAGE" == "True" ]]; then
@@ -591,6 +655,35 @@ function install_ironic {
         install_apache_wsgi
     fi
 
+    if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
+
+        # Append the nvram configuration to libvirt if it's not present already
+        if ! sudo grep -q "^nvram" /etc/libvirt/qemu.conf; then
+            echo "nvram=[\"$UEFI_LOADER_PATH:$UEFI_NVRAM_PATH\"]" | sudo tee -a /etc/libvirt/qemu.conf
+        fi
+
+        # Replace the default virtio PXE ROM in QEMU with an EFI capable
+        # one. The EFI ROM should work on with both boot modes, Legacy
+        # BIOS and UEFI.
+        if is_ubuntu; then
+            # FIXME(lucasagomes): Enable the multiverse repository by
+            # default in the image running the gate tests. Also move the
+            # installation of the ovmf package to files/debs/ironic
+            sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu $(lsb_release -sc) multiverse"
+            sudo apt-get update
+            install_package ovmf
+
+            sudo rm /usr/share/qemu/pxe-virtio.rom
+            sudo ln -s /usr/lib/ipxe/qemu/efi-virtio.rom /usr/share/qemu/pxe-virtio.rom
+        elif is_fedora; then
+            sudo rm /usr/share/qemu/pxe-virtio.rom
+            sudo ln -s /usr/share/ipxe.efi/1af41000.rom /usr/share/qemu/pxe-virtio.rom
+        fi
+
+        # Restart libvirt to the changes to take effect
+        restart_libvirt
+    fi
+
     if is_deployed_by_ipmitool && [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
         setup_virtualbmc
     fi
@@ -670,6 +763,25 @@ function configure_ironic_dirs {
     # Copy PXE binary
     cp $IRONIC_PXE_BOOT_IMAGE $IRONIC_TFTPBOOT_DIR
     setup_syslinux_modules
+
+    if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
+        local uefi_ipxe_boot_file
+        local uefi_loader
+        local uefi_nvram
+
+        uefi_ipxe_boot_file=$(get_uefi_ipxe_boot_file)
+        if [ ! -f $uefi_ipxe_boot_file ]; then
+            die $LINENO "iPXE UEFI boot file $uefi_pxe_bootfile_name not found."
+        fi
+
+        cp $uefi_ipxe_boot_file $IRONIC_TFTPBOOT_DIR
+
+        # Copy the OVMF images to libvirt's path
+        uefi_loader=$(get_uefi_loader)
+        uefi_nvram=$(get_uefi_nvram)
+        sudo cp $uefi_loader $UEFI_LOADER_PATH
+        sudo cp $uefi_nvram $UEFI_NVRAM_PATH
+    fi
 
     # Create the logs directory when saving the deploy logs to the filesystem
     if [ "$IRONIC_DEPLOY_LOGS_STORAGE_BACKEND" = "local"] && [ "$IRONIC_DEPLOY_LOGS_COLLECT" != "never" ]; then
@@ -921,9 +1033,12 @@ function configure_ironic_conductor {
     if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
         local pxebin
         pxebin=`basename $IRONIC_PXE_BOOT_IMAGE`
+        uefipxebin=`basename $(get_uefi_ipxe_boot_file)`
         iniset $IRONIC_CONF_FILE pxe ipxe_enabled True
-        iniset $IRONIC_CONF_FILE pxe pxe_config_template '\$pybasedir/drivers/modules/ipxe_config.template'
+        iniset $IRONIC_CONF_FILE pxe pxe_config_template '$pybasedir/drivers/modules/ipxe_config.template'
         iniset $IRONIC_CONF_FILE pxe pxe_bootfile_name $pxebin
+        iniset $IRONIC_CONF_FILE pxe uefi_pxe_config_template '$pybasedir/drivers/modules/ipxe_config.template'
+        iniset $IRONIC_CONF_FILE pxe uefi_pxe_bootfile_name $uefipxebin
         iniset $IRONIC_CONF_FILE deploy http_root $IRONIC_HTTP_DIR
         iniset $IRONIC_CONF_FILE deploy http_url "http://$IRONIC_HTTP_SERVER:$IRONIC_HTTP_PORT"
         if [[ "$IRONIC_IPXE_USE_SWIFT" == "True" ]]; then
@@ -1116,8 +1231,6 @@ function create_ovs_taps {
 }
 
 function setup_qemu_log_hook {
-    local libvirt_service_name
-
     # Make sure the libvirt hooks directory exist
     sudo mkdir -p $IRONIC_LIBVIRT_HOOKS_PATH
 
@@ -1128,13 +1241,7 @@ function setup_qemu_log_hook {
         s|%LOG_DIR%|$IRONIC_VM_LOG_DIR|g;
     " -i $IRONIC_LIBVIRT_HOOKS_PATH/qemu
 
-    # Restart the libvirt daemon
-    libvirt_service_name="libvirt-bin"
-    if is_fedora; then
-        libvirt_service_name="libvirtd"
-    fi
-
-    restart_service $libvirt_service_name
+    restart_libvirt
 }
 
 function create_bridge_and_vms {
@@ -1158,6 +1265,10 @@ function create_bridge_and_vms {
         vm_opts+=" -e $IRONIC_VM_EMULATOR"
     fi
     vm_opts+=" -E $IRONIC_VM_ENGINE"
+
+    if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
+        vm_opts+=" -L $UEFI_LOADER_PATH -N $UEFI_NVRAM_PATH"
+    fi
 
     for vm_name in $(_ironic_bm_vm_names); do
         sudo -E su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/create-node.sh -n $vm_name \
@@ -1268,7 +1379,13 @@ function enroll_nodes {
 
     local total_nodes=0
     local total_cpus=0
+
     while read hardware_info; do
+        local node_capabilities=""
+        if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
+            node_capabilities+=" -p capabilities=boot_mode:uefi"
+        fi
+
         if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
             local mac_address
             mac_address=$(echo $hardware_info | awk '{print $1}')
@@ -1346,10 +1463,15 @@ function enroll_nodes {
                 if [[ "$dynamic_allocation" == "True" ]]; then
                     node_options+=" -i dynamic_allocation=$dynamic_allocation"
                 fi
-                node_options+=" -p capabilities="
-                node_options+="server_hardware_type_uri:$server_hardware_type_uri,"
-                node_options+="enclosure_group_uri:$enclosure_group_uri,"
-                node_options+="server_profile_template_uri:$server_profile_template_uri"
+
+                if [[ "$node_capabilities" ]]; then
+                    node_capabilities+=","
+                else
+                    node_capabilities+=" -p capabilities="
+                fi
+                node_capabilities+="server_hardware_type_uri:$server_hardware_type_uri,"
+                node_capabilities+="enclosure_group_uri:$enclosure_group_uri,"
+                node_capabilities+="server_profile_template_uri:$server_profile_template_uri"
             elif is_deployed_by_ilo; then
                 node_options+=" -i ilo_address=$bmc_address -i ilo_password=$bmc_passwd\
                     -i ilo_username=$bmc_username"
@@ -1378,6 +1500,7 @@ function enroll_nodes {
             -p memory_mb=$ironic_node_ram\
             -p local_gb=$ironic_node_disk\
             -p cpu_arch=$ironic_node_arch \
+            $node_capabilities \
             $node_options \
             | grep " uuid " | get_field 2)
 
@@ -1413,6 +1536,10 @@ function enroll_nodes {
             adjusted_disk=$(($ironic_node_disk - $ironic_ephemeral_disk))
             openstack flavor create --ephemeral $ironic_ephemeral_disk --ram $ironic_node_ram --disk $adjusted_disk --vcpus $ironic_node_cpu baremetal
             openstack flavor set baremetal --property "cpu_arch"="$ironic_node_arch"
+
+            if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
+                openstack flavor set baremetal --property "capabilities:boot_mode"="uefi"
+            fi
 
             # NOTE(dtantsur): sometimes nova compute fails to start with ironic due
             # to keystone restarting and not being able to authenticate us.

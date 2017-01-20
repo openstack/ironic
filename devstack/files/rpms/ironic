@@ -17,3 +17,5 @@ xinetd
 squashfs-tools
 libvirt-devel
 socat
+edk2-ovmf
+ipxe-roms-qemu
