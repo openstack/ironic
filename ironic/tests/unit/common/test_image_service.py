@@ -24,6 +24,7 @@ from six.moves import http_client
 
 from ironic.common import exception
 from ironic.common.glance_service.v1 import image_service as glance_v1_service
+from ironic.common.glance_service.v2 import image_service as glance_v2_service
 from ironic.common import image_service
 from ironic.tests import base
 
@@ -265,10 +266,23 @@ class FileImageServiceTestCase(base.TestCase):
 class ServiceGetterTestCase(base.TestCase):
 
     @mock.patch.object(image_service, '_get_glance_session')
-    @mock.patch.object(glance_v1_service.GlanceImageService, '__init__',
+    @mock.patch.object(glance_v2_service.GlanceImageService, '__init__',
                        return_value=None, autospec=True)
     def test_get_glance_image_service(self, glance_service_mock,
                                       session_mock):
+        image_href = 'image-uuid'
+        self.context.auth_token = 'fake'
+        image_service.get_image_service(image_href, context=self.context)
+        glance_service_mock.assert_called_once_with(mock.ANY, None, 2,
+                                                    self.context)
+        self.assertFalse(session_mock.called)
+
+    @mock.patch.object(image_service, '_get_glance_session')
+    @mock.patch.object(glance_v1_service.GlanceImageService, '__init__',
+                       return_value=None, autospec=True)
+    def test_get_glance_image_service_default_v1(self, glance_service_mock,
+                                                 session_mock):
+        self.config(glance_api_version=1, group='glance')
         image_href = 'image-uuid'
         self.context.auth_token = 'fake'
         image_service.get_image_service(image_href, context=self.context)
@@ -277,19 +291,19 @@ class ServiceGetterTestCase(base.TestCase):
         self.assertFalse(session_mock.called)
 
     @mock.patch.object(image_service, '_get_glance_session')
-    @mock.patch.object(glance_v1_service.GlanceImageService, '__init__',
+    @mock.patch.object(glance_v2_service.GlanceImageService, '__init__',
                        return_value=None, autospec=True)
     def test_get_glance_image_service_url(self, glance_service_mock,
                                           session_mock):
         image_href = 'glance://image-uuid'
         self.context.auth_token = 'fake'
         image_service.get_image_service(image_href, context=self.context)
-        glance_service_mock.assert_called_once_with(mock.ANY, None, 1,
+        glance_service_mock.assert_called_once_with(mock.ANY, None, 2,
                                                     self.context)
         self.assertFalse(session_mock.called)
 
     @mock.patch.object(image_service, '_get_glance_session')
-    @mock.patch.object(glance_v1_service.GlanceImageService, '__init__',
+    @mock.patch.object(glance_v2_service.GlanceImageService, '__init__',
                        return_value=None, autospec=True)
     def test_get_glance_image_service_no_token(self, glance_service_mock,
                                                session_mock):
@@ -299,13 +313,13 @@ class ServiceGetterTestCase(base.TestCase):
         sess.get_token.return_value = 'admin-token'
         session_mock.return_value = sess
         image_service.get_image_service(image_href, context=self.context)
-        glance_service_mock.assert_called_once_with(mock.ANY, None, 1,
+        glance_service_mock.assert_called_once_with(mock.ANY, None, 2,
                                                     self.context)
         sess.get_token.assert_called_once_with()
         self.assertEqual('admin-token', self.context.auth_token)
 
     @mock.patch.object(image_service, '_get_glance_session')
-    @mock.patch.object(glance_v1_service.GlanceImageService, '__init__',
+    @mock.patch.object(glance_v2_service.GlanceImageService, '__init__',
                        return_value=None, autospec=True)
     def test_get_glance_image_service_token_not_needed(self,
                                                        glance_service_mock,
@@ -314,7 +328,7 @@ class ServiceGetterTestCase(base.TestCase):
         self.context.auth_token = None
         self.config(auth_strategy='noauth', group='glance')
         image_service.get_image_service(image_href, context=self.context)
-        glance_service_mock.assert_called_once_with(mock.ANY, None, 1,
+        glance_service_mock.assert_called_once_with(mock.ANY, None, 2,
                                                     self.context)
         self.assertFalse(session_mock.called)
         self.assertIsNone(self.context.auth_token)

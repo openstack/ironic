@@ -1382,6 +1382,11 @@
 # [hostname|IP]:port. (list value)
 #glance_api_servers = <None>
 
+# Glance API version (1 or 2) to use. (integer value)
+# Minimum value: 1
+# Maximum value: 2
+#glance_api_version = 2
+
 # Optional path to a CA certificate bundle to be used to
 # validate the SSL certificate served by glance. It is used
 # when glance_api_insecure is set to False. (string value)
