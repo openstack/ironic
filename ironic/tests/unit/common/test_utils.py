@@ -56,8 +56,8 @@ class ExecuteTestCase(base.TestCase):
         fd, tmpfilename = tempfile.mkstemp()
         _, tmpfilename2 = tempfile.mkstemp()
         try:
-            fp = os.fdopen(fd, 'w+')
-            fp.write('''#!/bin/sh
+            with os.fdopen(fd, 'w+') as fp:
+                fp.write('''#!/bin/sh
 # If stdin fails to get passed during one of the runs, make a note.
 if ! grep -q foo
 then
@@ -77,7 +77,6 @@ runs=$(($runs + 1))
 echo $runs > "$1"
 exit 1
 ''')
-            fp.close()
             os.chmod(tmpfilename, 0o755)
             try:
                 self.assertRaises(processutils.ProcessExecutionError,
@@ -91,9 +90,8 @@ exit 1
                                   "Are you running with a noexec /tmp?")
                 else:
                     raise
-            fp = open(tmpfilename2, 'r')
-            runs = fp.read()
-            fp.close()
+            with open(tmpfilename2, 'r') as fp:
+                runs = fp.read()
             self.assertNotEqual(runs.strip(), 'failure', 'stdin did not '
                                 'always get passed '
                                 'correctly')
@@ -120,8 +118,8 @@ exit 1
         fd, tmpfilename = tempfile.mkstemp()
         _, tmpfilename2 = tempfile.mkstemp()
         try:
-            fp = os.fdopen(fd, 'w+')
-            fp.write('''#!/bin/sh
+            with os.fdopen(fd, 'w+') as fp:
+                fp.write('''#!/bin/sh
 # If we've already run, bail out.
 grep -q foo "$1" && exit 1
 # Mark that we've run before.
@@ -129,7 +127,6 @@ echo foo > "$1"
 # Check that stdin gets passed correctly.
 grep foo
 ''')
-            fp.close()
             os.chmod(tmpfilename, 0o755)
             try:
                 utils.execute(tmpfilename,
