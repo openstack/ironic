@@ -231,16 +231,22 @@ class TestNodeObject(base.DbTestCase):
             node._validate_property_values(values['properties'])
             self.assertEqual(expect, values['properties'])
 
-    def test_node_payload_schema(self):
-        """Assert that NodePayload.SCHEMA has expected properties.
+    def test_payload_schemas(self):
+        """Assert that the node's Payload SCHEMAs have the expected properties.
 
-           NodePayload.SCHEMA should:
+           A payload's SCHEMA should:
 
-           1. Have each of its keys in NodePayload.fields
+           1. Have each of its keys in the payload's fields
            2. Have each member of the schema match with a corresponding field
-           on the Node object
+              in the Node object
         """
-        for schema_key in objects.node.NodePayload.SCHEMA:
-            self.assertIn(schema_key, objects.node.NodePayload.fields)
-            node_key = objects.node.NodePayload.SCHEMA[schema_key][1]
-            self.assertIn(node_key, objects.node.Node.fields)
+        payloads = obj_utils.get_payloads_with_schemas(objects.node)
+        for payload in payloads:
+            for schema_key in payload.SCHEMA:
+                self.assertIn(schema_key, payload.fields,
+                              "for %s, schema key %s is not in fields"
+                              % (payload, schema_key))
+                node_key = payload.SCHEMA[schema_key][1]
+                self.assertIn(node_key, objects.Node.fields,
+                              "for %s, schema key %s has invalid node field %s"
+                              % (payload, schema_key, node_key))
