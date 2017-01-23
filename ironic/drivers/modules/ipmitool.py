@@ -1106,6 +1106,27 @@ class IPMIManagement(base.ManagementInterface):
 
         return _parse_ipmi_sensors_data(task.node, out)
 
+    @METRICS.timer('IPMIManagement.inject_nmi')
+    @task_manager.require_exclusive_lock
+    def inject_nmi(self, task):
+        """Inject NMI, Non Maskable Interrupt.
+
+        Inject NMI (Non Maskable Interrupt) for a node immediately.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :raises: IPMIFailure on an error from ipmitool.
+        :returns: None
+
+        """
+        driver_info = _parse_driver_info(task.node)
+        try:
+            _exec_ipmitool(driver_info, "power diag")
+        except (exception.PasswordFileFailedToCreate,
+                processutils.ProcessExecutionError) as err:
+            LOG.error(_LE('Inject NMI failed for node %(node)s: %(err)s.'),
+                      {'node': task.node.uuid, 'err': err})
+            raise exception.IPMIFailure(cmd="power diag")
+
 
 class VendorPassthru(base.VendorInterface):
 
