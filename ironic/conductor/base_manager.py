@@ -235,10 +235,20 @@ class BaseConductorManager(object):
         self._started = False
 
     def _register_and_validate_hardware_interfaces(self):
-        # NOTE(jroll) may raise ConductorHardwareInterfacesAlreadyRegistered
-        # or InterfaceNotFoundInEntrypoint,
-        # we intentionally let this bubble up to the caller.
+        """Register and validate hardware interfaces for this conductor.
 
+        Registers a row in the database for each combination of
+        (hardware type, interface type, interface) that is supported and
+        enabled.
+
+        TODO: Validates against other conductors to check if the
+        set of registered hardware interfaces for a given hardware type is the
+        same, and warns if not (we can't error out, otherwise all conductors
+        must be restarted at once to change configuration).
+
+        :raises: ConductorHardwareInterfacesAlreadyRegistered
+        :raises: InterfaceNotFoundInEntrypoint
+        """
         # first unregister, in case we have cruft laying around
         self.conductor.unregister_all_hardware_interfaces()
 
