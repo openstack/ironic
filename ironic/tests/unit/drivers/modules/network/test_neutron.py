@@ -254,8 +254,6 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             self, log_mock, client_mock):
         expected_body = {
             'port': {
-                'device_owner': 'baremetal:none',
-                'device_id': self.node.instance_uuid or self.node.uuid,
                 'admin_state_up': True,
                 'binding:vnic_type': 'baremetal',
                 'binding:host_id': self.node.uuid,
@@ -317,8 +315,6 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
 
         expected_body = {
             'port': {
-                'device_owner': 'baremetal:none',
-                'device_id': self.node.instance_uuid or self.node.uuid,
                 'admin_state_up': True,
                 'binding:vnic_type': 'baremetal',
                 'binding:host_id': self.node.uuid,
@@ -395,8 +391,6 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         client_mock.return_value.update_port = upd_mock
         expected_body = {
             'port': {
-                'device_owner': 'baremetal:none',
-                'device_id': self.node.uuid,
                 'admin_state_up': True,
                 'binding:vnic_type': 'baremetal',
                 'binding:host_id': self.node.uuid,
