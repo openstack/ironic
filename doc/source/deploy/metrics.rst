@@ -75,7 +75,7 @@ named data points to be emitted from the Bare Metal service. This will
 increase if the metrics.preserve_host option is set to true or if multiple
 drivers are used in the Bare Metal deployment. This estimate may be used to
 determine if a deployer needs to scale their metrics backend to handle the
-additional load before enablng metrics. To see which metrics have changed names
+additional load before enabling metrics. To see which metrics have changed names
 or have been removed between releases, refer to the `ironic release notes
 <http://docs.openstack.org/releasenotes/ironic/>`_.
 
