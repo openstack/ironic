@@ -14,7 +14,6 @@
 #    under the License.
 
 
-from neutronclient.common import exceptions as neutron_exceptions
 from oslo_config import cfg
 from oslo_log import log
 
@@ -23,7 +22,6 @@ from ironic.common.i18n import _, _LI
 from ironic.common import neutron
 from ironic.drivers import base
 from ironic.drivers.modules.network import common
-from ironic import objects
 
 LOG = log.getLogger(__name__)
 
@@ -160,63 +158,16 @@ class NeutronNetwork(common.VIFPortIDMixin,
         ports = [p for p in ports if not p.portgroup_id]
         portgroups = task.portgroups
 
-        portmap = neutron.get_node_portmap(task)
-
         client = neutron.get_client()
         pobj_without_vif = 0
         for port_like_obj in ports + portgroups:
-            vif_port_id = (
-                port_like_obj.internal_info.get(common.TENANT_VIF_KEY) or
-                port_like_obj.extra.get('vif_port_id'))
-
-            if not vif_port_id:
-                pobj_without_vif += 1
-                continue
-
-            LOG.debug('Mapping tenant port %(vif_port_id)s to node '
-                      '%(node_id)s',
-                      {'vif_port_id': vif_port_id, 'node_id': node.uuid})
-            local_link_info = []
-            client_id_opt = None
-            if isinstance(port_like_obj, objects.Portgroup):
-                pg_ports = [p for p in task.ports
-                            if p.portgroup_id == port_like_obj.id]
-                for port in pg_ports:
-                    local_link_info.append(portmap[port.uuid])
-            else:
-                # We iterate only on ports or portgroups, no need to check
-                # that it is a port
-                local_link_info.append(portmap[port_like_obj.uuid])
-                client_id = port_like_obj.extra.get('client-id')
-                if client_id:
-                    client_id_opt = (
-                        {'opt_name': 'client-id', 'opt_value': client_id})
-
-            # NOTE(sambetts) Only update required binding: attributes,
-            # because other port attributes may have been set by the user or
-            # nova.
-            body = {
-                'port': {
-                    'binding:vnic_type': 'baremetal',
-                    'binding:host_id': node.uuid,
-                    'binding:profile': {
-                        'local_link_information': local_link_info,
-                    },
-                }
-            }
-            if client_id_opt:
-                body['port']['extra_dhcp_opts'] = [client_id_opt]
 
             try:
-                client.update_port(vif_port_id, body)
-            except neutron_exceptions.ConnectionFailed as e:
-                msg = (_('Could not add public network VIF %(vif)s '
-                         'to node %(node)s, possible network issue. %(exc)s') %
-                       {'vif': vif_port_id,
-                        'node': node.uuid,
-                        'exc': e})
-                LOG.error(msg)
-                raise exception.NetworkError(msg)
+                common.plug_port_to_tenant_network(task, port_like_obj,
+                                                   client=client)
+            except exception.VifNotAttached:
+                pobj_without_vif += 1
+                continue
 
         if pobj_without_vif == len(ports + portgroups):
             msg = _("No neutron ports or portgroups are associated with "

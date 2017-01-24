@@ -23,6 +23,7 @@ from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.i18n import _, _LW
 from ironic.common import neutron
+from ironic.common import states
 from ironic.common import utils
 from ironic import objects
 
@@ -135,6 +136,78 @@ def get_free_port_like_object(task, vif_id):
     sorted_free_ports = sorted(free_ports, key=lambda p: p.pxe_enabled,
                                reverse=True)
     return sorted_free_ports[0]
+
+
+def plug_port_to_tenant_network(task, port_like_obj, client=None):
+    """Plug port like object to tenant network.
+
+    :param task: A TaskManager instance.
+    :param port_like_obj: port-like object to plug.
+    :param client: Neutron client instance.
+    :raises NetworkError: if failed to update Neutron port.
+    :raises VifNotAttached if tenant VIF is not associated with port_like_obj.
+    """
+
+    node = task.node
+    local_link_info = []
+    client_id_opt = None
+
+    vif_id = (
+        port_like_obj.internal_info.get(TENANT_VIF_KEY) or
+        port_like_obj.extra.get('vif_port_id'))
+
+    if not vif_id:
+        obj_name = port_like_obj.__class__.__name__.lower()
+        raise exception.VifNotAttached(
+            _("Tenant VIF is not associated with %(obj_name)s "
+              "%(obj_id)s") % {'obj_name': obj_name,
+                               'obj_id': port_like_obj.uuid})
+
+    LOG.debug('Mapping tenant port %(vif_id)s to node '
+              '%(node_id)s',
+              {'vif_id': vif_id, 'node_id': node.uuid})
+
+    if isinstance(port_like_obj, objects.Portgroup):
+        pg_ports = [p for p in task.ports
+                    if p.portgroup_id == port_like_obj.id]
+        for port in pg_ports:
+            local_link_info.append(port.local_link_connection)
+    else:
+        # We iterate only on ports or portgroups, no need to check
+        # that it is a port
+        local_link_info.append(port_like_obj.local_link_connection)
+        client_id = port_like_obj.extra.get('client-id')
+        if client_id:
+            client_id_opt = ({'opt_name': 'client-id', 'opt_value': client_id})
+
+    # NOTE(sambetts) Only update required binding: attributes,
+    # because other port attributes may have been set by the user or
+    # nova.
+    body = {
+        'port': {
+            'binding:vnic_type': 'baremetal',
+            'binding:host_id': node.uuid,
+            'binding:profile': {
+                'local_link_information': local_link_info,
+            },
+        }
+    }
+    if client_id_opt:
+        body['port']['extra_dhcp_opts'] = [client_id_opt]
+
+    if not client:
+        client = neutron.get_client()
+
+    try:
+        client.update_port(vif_id, body)
+    except neutron_exceptions.ConnectionFailed as e:
+        msg = (_('Could not add public network VIF %(vif)s '
+                 'to node %(node)s, possible network issue. %(exc)s') %
+               {'vif': vif_id,
+                'node': node.uuid,
+                'exc': e})
+        LOG.error(msg)
+        raise exception.NetworkError(msg)
 
 
 class VIFPortIDMixin(object):
@@ -288,12 +361,12 @@ class VIFPortIDMixin(object):
 
         port_like_obj = get_free_port_like_object(task, vif_id)
 
+        client = neutron.get_client()
         # Address is optional for portgroups
         if port_like_obj.address:
             # Check if the requested vif_id is a neutron port. If it is
             # then attempt to update the port's MAC address.
             try:
-                client = neutron.get_client()
                 client.show_port(vif_id)
             except neutron_exceptions.NeutronClientException:
                 # NOTE(sambetts): If a client error occurs this is because
@@ -318,13 +391,17 @@ class VIFPortIDMixin(object):
         int_info[TENANT_VIF_KEY] = vif_id
         port_like_obj.internal_info = int_info
         port_like_obj.save()
+        # NOTE(vsaienko) allow to attach VIF to active instance.
+        if task.node.provision_state == states.ACTIVE:
+            plug_port_to_tenant_network(task, port_like_obj, client=client)
 
     def vif_detach(self, task, vif_id):
         """Detach a virtual network interface from a node
 
         :param task: A TaskManager instance.
         :param vif_id: A VIF ID to detach
-        :raises: VifNotAttached
+        :raises: VifNotAttached if VIF not attached.
+        :raises: NetworkError: if unbind Neutron port failed.
         """
 
         ports = [p for p in task.ports if p.portgroup_id is None]
@@ -332,8 +409,9 @@ class VIFPortIDMixin(object):
         for port_like_obj in portgroups + ports:
             # FIXME(sambetts) Remove this when we no longer support a nova
             # driver that uses port.extra
-            if (port_like_obj.extra.get("vif_port_id") == vif_id or
-                    port_like_obj.internal_info.get(TENANT_VIF_KEY) == vif_id):
+            vif_port_id = port_like_obj.internal_info.get(
+                TENANT_VIF_KEY, port_like_obj.extra.get("vif_port_id"))
+            if vif_port_id == vif_id:
                 int_info = port_like_obj.internal_info
                 extra = port_like_obj.extra
                 int_info.pop(TENANT_VIF_KEY, None)
@@ -341,6 +419,9 @@ class VIFPortIDMixin(object):
                 port_like_obj.extra = extra
                 port_like_obj.internal_info = int_info
                 port_like_obj.save()
+                # NOTE(vsaienko) allow to unplug VIFs from ACTIVE instance.
+                if task.node.provision_state == states.ACTIVE:
+                    neutron.unbind_neutron_port(vif_port_id)
                 break
         else:
             raise exception.VifNotAttached(vif=vif_id, node=task.node.uuid)

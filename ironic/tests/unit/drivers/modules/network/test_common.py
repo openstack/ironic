@@ -16,6 +16,7 @@ from oslo_utils import uuidutils
 
 from ironic.common import exception
 from ironic.common import neutron as neutron_common
+from ironic.common import states
 from ironic.common import utils as common_utils
 from ironic.conductor import task_manager
 from ironic.drivers.modules.network import common
@@ -236,6 +237,36 @@ class TestCommonFunctions(db_base.DbTestCase):
                               common.get_free_port_like_object,
                               task, self.vif_id)
 
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    def test_plug_port_to_tenant_network_client(self, mock_gc):
+        self.port.internal_info = {common.TENANT_VIF_KEY: self.vif_id}
+        self.port.save()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            common.plug_port_to_tenant_network(task, self.port,
+                                               client=mock.MagicMock())
+        self.assertFalse(mock_gc.called)
+
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    def test_plug_port_to_tenant_network_no_client(self, mock_gc):
+        self.port.internal_info = {common.TENANT_VIF_KEY: self.vif_id}
+        self.port.save()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            common.plug_port_to_tenant_network(task, self.port)
+        self.assertTrue(mock_gc.called)
+
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    def test_plug_port_to_tenant_network_no_tenant_vif(self, mock_gc):
+        nclient = mock.MagicMock()
+        mock_gc.return_value = nclient
+        self.port.extra = {}
+        self.port.save()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.assertRaisesRegex(
+                exception.VifNotAttached,
+                "not associated with port %s" % self.port.uuid,
+                common.plug_port_to_tenant_network,
+                task, self.port)
+
 
 class TestVifPortIDMixin(db_base.DbTestCase):
 
@@ -330,7 +361,7 @@ class TestVifPortIDMixin(db_base.DbTestCase):
             self.assertEqual(vif['id'],
                              pg.internal_info[common.TENANT_VIF_KEY])
             self.assertFalse(mock_upa.called)
-            self.assertFalse(mock_client.called)
+            self.assertTrue(mock_client.called)
 
     @mock.patch.object(neutron_common, 'get_client')
     @mock.patch.object(neutron_common, 'update_port_address')
@@ -354,7 +385,8 @@ class TestVifPortIDMixin(db_base.DbTestCase):
             self.assertFalse('vif_port_id' in self.port.extra)
             self.assertFalse(common.TENANT_VIF_KEY in self.port.internal_info)
 
-    def test_vif_detach_in_internal_info(self):
+    @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
+    def test_vif_detach_in_internal_info(self, mock_unp):
         self.port.internal_info = {
             common.TENANT_VIF_KEY: self.port.extra['vif_port_id']}
         self.port.extra = {}
@@ -365,6 +397,7 @@ class TestVifPortIDMixin(db_base.DbTestCase):
             self.port.refresh()
             self.assertFalse('vif_port_id' in self.port.extra)
             self.assertFalse(common.TENANT_VIF_KEY in self.port.internal_info)
+        self.assertFalse(mock_unp.called)
 
     def test_vif_detach_in_extra_portgroup(self):
         vif_id = uuidutils.generate_uuid()
@@ -401,6 +434,21 @@ class TestVifPortIDMixin(db_base.DbTestCase):
             self.assertRaisesRegexp(
                 exception.VifNotAttached, "it is not attached to it.",
                 self.interface.vif_detach, task, 'aaa')
+
+    @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
+    def test_vif_detach_active_node(self, mock_unp):
+        vif_id = self.port.extra['vif_port_id']
+        self.port.internal_info = {
+            common.TENANT_VIF_KEY: vif_id}
+        self.port.extra = {}
+        self.port.save()
+        self.node.provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.vif_detach(
+                task, self.port.internal_info[common.TENANT_VIF_KEY])
+            self.port.refresh()
+            mock_unp.assert_called_once_with(vif_id)
 
     def test_get_current_vif_extra_vif_port_id(self):
         extra = {'vif_port_id': 'foo'}
