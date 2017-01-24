@@ -2,6 +2,20 @@
 REST API Version History
 ========================
 
+**1.31** (Ocata)
+
+    Added the following fields to the node object, to allow getting and
+    setting interfaces for a dynamic driver:
+
+    * boot_interface
+    * console_interface
+    * deploy_interface
+    * inspect_interface
+    * management_interface
+    * power_interface
+    * raid_interface
+    * vendor_interface
+
 **1.30** (Ocata)
 
     Added dynamic driver APIs.
