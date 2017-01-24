@@ -233,3 +233,26 @@ class IRMCManagement(ipmitool.IPMIManagement):
             return _get_sensors_data(task)
         elif sensor_method == 'ipmitool':
             return super(IRMCManagement, self).get_sensors_data(task)
+
+    @METRICS.timer('IRMCManagement.inject_nmi')
+    @task_manager.require_exclusive_lock
+    def inject_nmi(self, task):
+        """Inject NMI, Non Maskable Interrupt.
+
+        Inject NMI (Non Maskable Interrupt) for a node immediately.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :raises: IRMCOperationError on an error from SCCI
+        :returns: None
+
+        """
+        node = task.node
+        irmc_client = irmc_common.get_irmc_client(node)
+        try:
+            irmc_client(scci.POWER_RAISE_NMI)
+        except scci.SCCIClientError as err:
+            LOG.error(
+                _LE('iRMC Inject NMI failed for node %(node)s: %(err)s.'),
+                {'node': node.uuid, 'err': err})
+            raise exception.IRMCOperationError(
+                operation=scci.POWER_RAISE_NMI, error=err)
