@@ -342,7 +342,8 @@ class TestImageCacheCleanUp(base.TestCase):
         files = [os.path.join(self.master_dir, str(i))
                  for i in range(2)]
         for filename in files:
-            open(filename, 'wb').write(b'X')
+            with open(filename, 'wb') as f:
+                f.write(b'X')
         new_current_time = time.time() + 900
         with mock.patch.object(time, 'time', lambda: new_current_time):
             self.cache.clean_up(amount=1)

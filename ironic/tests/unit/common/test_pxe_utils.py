@@ -74,8 +74,8 @@ class TestPXEUtils(db_base.DbTestCase):
              'ROOT': '{{ ROOT }}',
              'DISK_IDENTIFIER': '{{ DISK_IDENTIFIER }}'})
 
-        expected_template = open(
-            'ironic/tests/unit/drivers/pxe_config.template').read().rstrip()
+        with open('ironic/tests/unit/drivers/pxe_config.template') as f:
+            expected_template = f.read().rstrip()
 
         self.assertEqual(six.text_type(expected_template), rendered_template)
 
@@ -84,8 +84,8 @@ class TestPXEUtils(db_base.DbTestCase):
             CONF.pxe.ipxe_boot_script,
             {'ipxe_for_mac_uri': 'pxelinux.cfg/'})
 
-        expected_template = open(
-            'ironic/tests/unit/drivers/boot.ipxe').read().rstrip()
+        with open('ironic/tests/unit/drivers/boot.ipxe') as f:
+            expected_template = f.read().rstrip()
 
         self.assertEqual(six.text_type(expected_template), rendered_template)
 
@@ -105,8 +105,9 @@ class TestPXEUtils(db_base.DbTestCase):
              'ROOT': '{{ ROOT }}',
              'DISK_IDENTIFIER': '{{ DISK_IDENTIFIER }}'})
 
-        expected_template = open(
-            'ironic/tests/unit/drivers/ipxe_config.template').read().rstrip()
+        templ_file = 'ironic/tests/unit/drivers/ipxe_config.template'
+        with open(templ_file) as f:
+            expected_template = f.read().rstrip()
 
         self.assertEqual(six.text_type(expected_template), rendered_template)
 
@@ -126,8 +127,9 @@ class TestPXEUtils(db_base.DbTestCase):
              'ROOT': '{{ ROOT }}',
              'DISK_IDENTIFIER': '{{ DISK_IDENTIFIER }}'})
 
-        tpl_file = 'ironic/tests/unit/drivers/ipxe_config_timeout.template'
-        expected_template = open(tpl_file).read().rstrip()
+        templ_file = 'ironic/tests/unit/drivers/ipxe_config_timeout.template'
+        with open(templ_file) as f:
+            expected_template = f.read().rstrip()
 
         self.assertEqual(six.text_type(expected_template), rendered_template)
 
@@ -145,9 +147,9 @@ class TestPXEUtils(db_base.DbTestCase):
              'ROOT': '{{ ROOT }}',
              'DISK_IDENTIFIER': '{{ DISK_IDENTIFIER }}'})
 
-        expected_template = open(
-            'ironic/tests/unit/drivers/elilo_efi_pxe_config.template'
-        ).read().rstrip()
+        templ_file = 'ironic/tests/unit/drivers/elilo_efi_pxe_config.template'
+        with open(templ_file) as f:
+            expected_template = f.read().rstrip()
 
         self.assertEqual(six.text_type(expected_template), rendered_template)
 
@@ -161,8 +163,9 @@ class TestPXEUtils(db_base.DbTestCase):
              'ROOT': '(( ROOT ))',
              'DISK_IDENTIFIER': '(( DISK_IDENTIFIER ))'})
 
-        template_file = 'ironic/tests/unit/drivers/pxe_grub_config.template'
-        expected_template = open(template_file).read().rstrip()
+        templ_file = 'ironic/tests/unit/drivers/pxe_grub_config.template'
+        with open(templ_file) as f:
+            expected_template = f.read().rstrip()
 
         self.assertEqual(six.text_type(expected_template), rendered_template)
 
