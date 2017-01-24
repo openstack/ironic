@@ -69,20 +69,19 @@ def get_client(token=None):
     return clientv20.Client(**params)
 
 
-def unbind_neutron_port(port_id, client=None, token=None):
+def unbind_neutron_port(port_id, client=None):
     """Unbind a neutron port
 
     Remove a neutron port's binding profile and host ID so that it returns to
     an unbound state.
 
     :param port_id: Neutron port ID.
-    :param token: Optional auth token.
     :param client: Optional a Neutron client object.
     :raises: NetworkError
     """
 
     if not client:
-        client = get_client(token)
+        client = get_client()
 
     body = {'port': {'binding:host_id': '',
                      'binding:profile': {}}}
@@ -97,15 +96,14 @@ def unbind_neutron_port(port_id, client=None, token=None):
         raise exception.NetworkError(msg)
 
 
-def update_port_address(port_id, address, token=None):
+def update_port_address(port_id, address):
     """Update a port's mac address.
 
     :param port_id: Neutron port id.
     :param address: new MAC address.
-    :param token: optional auth token.
     :raises: FailedToUpdateMacOnPort
     """
-    client = get_client(token)
+    client = get_client()
     port_req_body = {'port': {'mac_address': address}}
 
     try:
@@ -178,7 +176,7 @@ def add_ports_to_network(task, network_uuid, is_flat=False,
     :raises: NetworkError
     :returns: a dictionary in the form {port.uuid: neutron_port['id']}
     """
-    client = get_client(task.context.auth_token)
+    client = get_client()
     node = task.node
 
     # If Security Groups are specified, verify that they exist
@@ -283,7 +281,7 @@ def remove_neutron_ports(task, params):
     :param params: Dict of params to filter ports.
     :raises: NetworkError
     """
-    client = get_client(task.context.auth_token)
+    client = get_client()
     node_uuid = task.node.uuid
 
     try:

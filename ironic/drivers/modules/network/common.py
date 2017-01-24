@@ -155,9 +155,7 @@ class VIFPortIDMixin(object):
                port_obj.extra.get('vif_port_id'))
         if 'address' in port_obj.obj_what_changed():
             if vif:
-                neutron.update_port_address(vif,
-                                            port_obj.address,
-                                            token=context.auth_token)
+                neutron.update_port_address(vif, port_obj.address)
 
         if 'extra' in port_obj.obj_what_changed():
             original_port = objects.Port.get_by_id(context, port_obj.id)
@@ -176,7 +174,7 @@ class VIFPortIDMixin(object):
                                      'opt_value': updated_client_id}
 
                     api.provider.update_port_dhcp_opts(
-                        vif, [client_id_opt], token=context.auth_token)
+                        vif, [client_id_opt])
                 # Log warning if there is no VIF and an instance
                 # is associated with the node.
                 elif node.instance_uuid:
@@ -223,9 +221,7 @@ class VIFPortIDMixin(object):
             pg_vif = (portgroup_obj.internal_info.get(TENANT_VIF_KEY) or
                       portgroup_obj.extra.get('vif_port_id'))
             if pg_vif:
-                neutron.update_port_address(pg_vif,
-                                            portgroup_obj.address,
-                                            token=context.auth_token)
+                neutron.update_port_address(pg_vif, portgroup_obj.address)
 
         if 'extra' in portgroup_obj.obj_what_changed():
             original_portgroup = objects.Portgroup.get_by_id(context,
@@ -294,7 +290,7 @@ class VIFPortIDMixin(object):
             # Check if the requested vif_id is a neutron port. If it is
             # then attempt to update the port's MAC address.
             try:
-                client = neutron.get_client(task.context.auth_token)
+                client = neutron.get_client()
                 client.show_port(vif_id)
             except neutron_exceptions.NeutronClientException:
                 # NOTE(sambetts): If a client error occurs this is because

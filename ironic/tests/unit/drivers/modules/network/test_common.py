@@ -257,7 +257,7 @@ class TestVifPortIDMixin(db_base.DbTestCase):
             self.port.refresh()
             self.assertEqual("fake_vif_id", self.port.internal_info.get(
                 common.TENANT_VIF_KEY))
-            mock_client.assert_called_once_with(None)
+            mock_client.assert_called_once_with()
             mock_upa.assert_called_once_with("fake_vif_id", self.port.address)
 
     @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
@@ -292,7 +292,7 @@ class TestVifPortIDMixin(db_base.DbTestCase):
             self.assertRaisesRegexp(
                 exception.NetworkError, "can not update Neutron port",
                 self.interface.vif_attach, task, vif)
-            mock_client.assert_called_once_with(None)
+            mock_client.assert_called_once_with()
 
     def test_vif_detach_in_extra(self):
         with task_manager.acquire(self.context, self.node.id) as task:
@@ -402,8 +402,7 @@ class TestVifPortIDMixin(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.port_changed(task, self.port)
             mac_update_mock.assert_called_once_with(
-                self.port.extra['vif_port_id'],
-                new_address, token=task.context.auth_token)
+                self.port.extra['vif_port_id'], new_address)
             self.assertFalse(mock_warn.called)
 
     @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
@@ -417,8 +416,7 @@ class TestVifPortIDMixin(db_base.DbTestCase):
                               self.interface.port_changed,
                               task, self.port)
             mac_update_mock.assert_called_once_with(
-                self.port.extra['vif_port_id'],
-                new_address, token=task.context.auth_token)
+                self.port.extra['vif_port_id'], new_address)
 
     @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
     def test_port_changed_address_no_vif_id(self, mac_update_mock):
@@ -437,7 +435,7 @@ class TestVifPortIDMixin(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.port_changed(task, self.port)
             dhcp_update_mock.assert_called_once_with(
-                'fake-id', expected_dhcp_opts, token=self.context.auth_token)
+                'fake-id', expected_dhcp_opts)
 
     @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
                        autospec=True)
@@ -656,8 +654,7 @@ class TestVifPortIDMixin(db_base.DbTestCase):
         pg.address = new_address
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.portgroup_changed(task, pg)
-        mac_update_mock.assert_called_once_with('fake-id', new_address,
-                                                token=self.context.auth_token)
+        mac_update_mock.assert_called_once_with('fake-id', new_address)
 
     @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
     def test_update_portgroup_remove_address(self, mac_update_mock):
@@ -724,8 +721,7 @@ class TestVifPortIDMixin(db_base.DbTestCase):
             self.assertRaises(exception.FailedToUpdateMacOnPort,
                               self.interface.portgroup_changed,
                               task, pg)
-        mac_update_mock.assert_called_once_with('fake-id', new_address,
-                                                token=self.context.auth_token)
+        mac_update_mock.assert_called_once_with('fake-id', new_address)
 
     @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
                        autospec=True)

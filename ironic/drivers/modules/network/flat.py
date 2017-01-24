@@ -69,7 +69,7 @@ class FlatNetwork(common.VIFPortIDMixin, neutron.NeutronNetworkInterfaceMixin,
         if not host_id:
             return
 
-        client = neutron.get_client(task.context.auth_token)
+        client = neutron.get_client()
         for port_like_obj in task.ports + task.portgroups:
             vif_port_id = (
                 port_like_obj.internal_info.get(common.TENANT_VIF_KEY) or
