@@ -950,7 +950,7 @@ function setup_qemu_log_hook {
     sudo mkdir -p $IRONIC_LIBVIRT_HOOKS_PATH
 
     # Copy the qemu hook to the right directory
-    sudo cp $IRONIC_DEVSTACK_FILES_DIR/hooks/qemu $IRONIC_LIBVIRT_HOOKS_PATH/qemu
+    sudo cp $IRONIC_DEVSTACK_FILES_DIR/hooks/qemu.py $IRONIC_LIBVIRT_HOOKS_PATH/qemu
     sudo chmod -v +x $IRONIC_LIBVIRT_HOOKS_PATH/qemu
     sudo sed -e "
         s|%LOG_DIR%|$IRONIC_VM_LOG_DIR|g;
