@@ -527,6 +527,11 @@ function is_deployed_by_snmp {
     return 1
 }
 
+function is_drac_enabled {
+    [[ -z "${IRONIC_ENABLED_DRIVERS##*_drac}" ]] && return 0
+    return 1
+}
+
 function is_glance_configuration_required {
     is_deployed_by_agent || [[ "$IRONIC_CONFIGURE_GLANCE_WITH_SWIFT" == "True" ]] && return 0
     return 1
@@ -716,6 +721,10 @@ function install_ironic {
 
     if is_deployed_by_snmp && [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
         setup_virtualpdu
+    fi
+
+    if is_drac_enabled; then
+        pip_install python-dracclient
     fi
 }
 
