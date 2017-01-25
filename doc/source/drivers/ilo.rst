@@ -8,7 +8,7 @@ Overview
 ========
 iLO drivers enable to take advantage of features of iLO management engine in
 HPE ProLiant servers.  iLO drivers are targeted for HPE ProLiant Gen 8 systems
-and above which have `iLO 4 management engine <http://www8.hp.com/us/en/products/servers/ilo>`_.
+and above which have `iLO 4 management engine <https://www.hpe.com/us/en/servers/integrated-lights-out-ilo.html>`_.
 
 For more details, please refer the iLO driver document of Juno, Kilo and Liberty releases,
 and for up-to-date information (like tested platforms, known issues, etc), please check the
