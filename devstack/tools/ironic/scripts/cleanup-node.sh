@@ -19,7 +19,7 @@ export VIRSH_DEFAULT_CONNECT_URI=$LIBVIRT_CONNECT_URI
 
 VOL_NAME="$NAME.qcow2"
 virsh list | grep -q $NAME && virsh destroy $NAME
-virsh list --inactive | grep -q $NAME && virsh undefine $NAME
+virsh list --inactive | grep -q $NAME && virsh undefine $NAME --nvram
 
 # Delete the Virtual BMC
 if [[ $(type -P vbmc) != "" ]]; then
