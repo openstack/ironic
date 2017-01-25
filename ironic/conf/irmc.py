@@ -66,6 +66,9 @@ opts = [
                help=_('SNMP community. Required for versions "v1" and "v2c"')),
     cfg.StrOpt('snmp_security',
                help=_('SNMP security name. Required for version "v3"')),
+    cfg.IntOpt('snmp_polling_interval',
+               default=10,
+               help='SNMP polling interval in seconds'),
 ]
 
 
