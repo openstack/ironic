@@ -185,9 +185,9 @@ fi
 
 # If present, these files are used as deploy ramdisk/kernel.
 # (The value must be an absolute path)
-IRONIC_DEPLOY_RAMDISK=${IRONIC_DEPLOY_RAMDISK:-}
-IRONIC_DEPLOY_KERNEL=${IRONIC_DEPLOY_KERNEL:-}
-IRONIC_DEPLOY_ISO=${IRONIC_DEPLOY_ISO:-}
+IRONIC_DEPLOY_RAMDISK=${IRONIC_DEPLOY_RAMDISK:-$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.initramfs}
+IRONIC_DEPLOY_KERNEL=${IRONIC_DEPLOY_KERNEL:-$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.kernel}
+IRONIC_DEPLOY_ISO=${IRONIC_DEPLOY_ISO:-$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.iso}
 
 # These parameters describe which image will be used to provision a node in
 # tempest tests
@@ -1740,38 +1740,28 @@ function build_ipa_dib_ramdisk {
 function upload_baremetal_ironic_deploy {
     declare -g IRONIC_DEPLOY_KERNEL_ID IRONIC_DEPLOY_RAMDISK_ID
 
-    if [ -z "$IRONIC_DEPLOY_KERNEL" -o -z "$IRONIC_DEPLOY_RAMDISK" -o -z "$IRONIC_DEPLOY_ISO" ]; then
-        local IRONIC_DEPLOY_KERNEL_PATH=$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.kernel
-        local IRONIC_DEPLOY_RAMDISK_PATH=$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.initramfs
-        local IRONIC_DEPLOY_ISO_PATH=$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.iso
-    else
-        local IRONIC_DEPLOY_KERNEL_PATH=$IRONIC_DEPLOY_KERNEL
-        local IRONIC_DEPLOY_RAMDISK_PATH=$IRONIC_DEPLOY_RAMDISK
-        local IRONIC_DEPLOY_ISO_PATH=$IRONIC_DEPLOY_ISO
-    fi
-
     local ironic_deploy_kernel_name
     local ironic_deploy_ramdisk_name
-    ironic_deploy_kernel_name=$(basename $IRONIC_DEPLOY_KERNEL_PATH)
-    ironic_deploy_ramdisk_name=$(basename $IRONIC_DEPLOY_RAMDISK_PATH)
+    ironic_deploy_kernel_name=$(basename $IRONIC_DEPLOY_KERNEL)
+    ironic_deploy_ramdisk_name=$(basename $IRONIC_DEPLOY_RAMDISK)
     if [[ "$HOST_TOPOLOGY_ROLE" != 'subnode' ]]; then
         echo_summary "Creating and uploading baremetal images for ironic"
 
-        if [ ! -e "$IRONIC_DEPLOY_RAMDISK_PATH" ] || \
-                [ ! -e "$IRONIC_DEPLOY_KERNEL_PATH" ]  || \
-                ( is_deploy_iso_required && [ ! -e "$IRONIC_DEPLOY_ISO_PATH" ] ); then
+        if [ ! -e "$IRONIC_DEPLOY_RAMDISK" ] || \
+                [ ! -e "$IRONIC_DEPLOY_KERNEL" ]  || \
+                ( is_deploy_iso_required && [ ! -e "$IRONIC_DEPLOY_ISO" ] ); then
             # files don't exist, need to build them
             if [ "$IRONIC_BUILD_DEPLOY_RAMDISK" = "True" ]; then
                 # we can build them only if we're not offline
                 if [ "$OFFLINE" != "True" ]; then
-                    build_ipa_ramdisk $IRONIC_DEPLOY_KERNEL_PATH $IRONIC_DEPLOY_RAMDISK_PATH $IRONIC_DEPLOY_ISO_PATH
+                    build_ipa_ramdisk $IRONIC_DEPLOY_KERNEL $IRONIC_DEPLOY_RAMDISK $IRONIC_DEPLOY_ISO
                 else
                     die $LINENO "Deploy kernel+ramdisk or iso files don't exist and cannot be built in OFFLINE mode"
                 fi
             else
                 # download the agent image tarball
-                wget "$IRONIC_AGENT_KERNEL_URL" -O $IRONIC_DEPLOY_KERNEL_PATH
-                wget "$IRONIC_AGENT_RAMDISK_URL" -O $IRONIC_DEPLOY_RAMDISK_PATH
+                wget "$IRONIC_AGENT_KERNEL_URL" -O $IRONIC_DEPLOY_KERNEL
+                wget "$IRONIC_AGENT_RAMDISK_URL" -O $IRONIC_DEPLOY_RAMDISK
             fi
         fi
 
@@ -1781,7 +1771,7 @@ function upload_baremetal_ironic_deploy {
             $ironic_deploy_kernel_name \
             --public --disk-format=aki \
             --container-format=aki \
-            < $IRONIC_DEPLOY_KERNEL_PATH  | grep ' id ' | get_field 2)
+            < $IRONIC_DEPLOY_KERNEL  | grep ' id ' | get_field 2)
         die_if_not_set $LINENO IRONIC_DEPLOY_KERNEL_ID "Failed to load kernel image into glance"
 
         IRONIC_DEPLOY_RAMDISK_ID=$(openstack \
@@ -1789,16 +1779,16 @@ function upload_baremetal_ironic_deploy {
             $ironic_deploy_ramdisk_name \
             --public --disk-format=ari \
             --container-format=ari \
-            < $IRONIC_DEPLOY_RAMDISK_PATH  | grep ' id ' | get_field 2)
+            < $IRONIC_DEPLOY_RAMDISK  | grep ' id ' | get_field 2)
         die_if_not_set $LINENO IRONIC_DEPLOY_RAMDISK_ID "Failed to load ramdisk image into glance"
 
         if is_deploy_iso_required; then
             IRONIC_DEPLOY_ISO_ID=$(openstack \
                 image create \
-                $(basename $IRONIC_DEPLOY_ISO_PATH) \
+                $(basename $IRONIC_DEPLOY_ISO) \
                 --public --disk-format=iso \
                 --container-format=bare \
-                < $IRONIC_DEPLOY_ISO_PATH  -f value -c id)
+                < $IRONIC_DEPLOY_ISO  -f value -c id)
             die_if_not_set $LINENO IRONIC_DEPLOY_ISO_ID "Failed to load deploy iso into glance"
         fi
     else
