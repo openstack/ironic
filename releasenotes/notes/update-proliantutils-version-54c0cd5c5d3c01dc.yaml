@@ -1,0 +1,5 @@
+---
+upgrade:
+  - Updates required proliantutils version for iLO
+    drivers to 2.2.0. This version has support for
+    sanitize disk erase using SSA utility.
