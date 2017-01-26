@@ -555,6 +555,10 @@ else
     IRONIC_IMAGE_NAME=${IRONIC_IMAGE_NAME/-disk/-uec}
 fi
 
+# NOTE(vsaienko) set DEFAULT_IMAGE_NAME here, as it is still used by grenade
+# https://github.com/openstack-dev/grenade/blob/90c4ead2f2a7ed48c873c51cef415b83d655752e/projects/60_nova/resources.sh#L31
+DEFAULT_IMAGE_NAME=$IRONIC_IMAGE_NAME
+
 # Syslinux >= 5.00 pxelinux.0 binary is not "stand-alone" anymore,
 # it depends on some c32 modules to work correctly.
 # More info: http://www.syslinux.org/wiki/index.php/Library_modules
