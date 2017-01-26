@@ -139,7 +139,7 @@ fi
 
 # driver / hardware type options
 # TODO(jroll) add enabled/default interfaces here
-IRONIC_ENABLED_DRIVERS=${IRONIC_ENABLED_DRIVERS:-fake,pxe_ssh,pxe_ipmitool}
+IRONIC_ENABLED_DRIVERS=${IRONIC_ENABLED_DRIVERS:-fake,pxe_ipmitool,agent_ipmitool}
 IRONIC_ENABLED_HARDWARE_TYPES=${IRONIC_ENABLED_HARDWARE_TYPES:-manual-management}
 
 # If IRONIC_VM_ENGING is explictly set to "auto" or "kvm",
