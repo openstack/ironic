@@ -19,9 +19,10 @@ There are 3 iRMC drivers:
 Prerequisites
 =============
 
-* Install `python-scciclient package <https://pypi.python.org/pypi/python-scciclient>`_::
+* Install `python-scciclient <https://pypi.python.org/pypi/python-scciclient>`_
+  and `pysnmp <https://pypi.python.org/pypi/pysnmp>`_ packages::
 
-  $ pip install "python-scciclient>=0.4.0"
+  $ pip install "python-scciclient>=0.4.0" pysnmp
 
 Drivers
 =======
@@ -259,3 +260,7 @@ This driver supports FUJITSU PRIMERGY BX S4 or RX S8 servers and above.
 - PRIMERGY BX920 S4
 - PRIMERGY BX924 S4
 - PRIMERGY RX300 S8
+
+Soft Reboot (Graceful Reset) and Soft Power Off (Graceful Power Off)
+are only available if ServerView agents are installed. See iRMC S4
+Manual for more details.
