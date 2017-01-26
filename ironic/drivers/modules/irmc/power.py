@@ -90,8 +90,8 @@ def _wait_power_state(task, target_state, timeout=None):
     """Wait for having changed to the target power state.
 
     :param task: A TaskManager instance containing the node to act on.
-    :raises: IRMCOperationError if the target state acknowledge failure
-         or SNMP failure.
+    :raises: IRMCOperationError if the target state acknowledge failed.
+    :raises: SNMPFailure if SNMP request failed.
     """
     node = task.node
     d_info = irmc_common.parse_driver_info(node)
@@ -176,20 +176,10 @@ def _set_power_state(task, target_state, timeout=None):
     try:
         irmc_client(STATES_MAP[target_state])
 
-        if target_state in (states.SOFT_REBOOT, states.SOFT_POWER_OFF):
-            _wait_power_state(task, target_state, timeout=timeout)
-
     except KeyError:
         msg = _("_set_power_state called with invalid power state "
                 "'%s'") % target_state
         raise exception.InvalidParameterValue(msg)
-
-    except exception.SNMPFailure as snmp_exception:
-        LOG.error(_LE("iRMC failed to acknowledge the target state "
-                      "for node %(node_id)s. Error: %(error)s"),
-                  {'node_id': node.uuid, 'error': snmp_exception})
-        raise exception.IRMCOperationError(operation=target_state,
-                                           error=snmp_exception)
 
     except scci.SCCIClientError as irmc_exception:
         LOG.error(_LE("iRMC set_power_state failed to set state to %(tstate)s "
@@ -199,6 +189,22 @@ def _set_power_state(task, target_state, timeout=None):
         operation = _('iRMC set_power_state')
         raise exception.IRMCOperationError(operation=operation,
                                            error=irmc_exception)
+
+    try:
+        if target_state in (states.SOFT_REBOOT, states.SOFT_POWER_OFF):
+            # note (naohirot):
+            # The following call covers both cases since SOFT_REBOOT matches
+            # 'unknown' and SOFT_POWER_OFF matches 'off' or 'unknown'.
+            _wait_power_state(task, states.SOFT_POWER_OFF, timeout=timeout)
+        if target_state == states.SOFT_REBOOT:
+            _wait_power_state(task, states.SOFT_REBOOT, timeout=timeout)
+
+    except exception.SNMPFailure as snmp_exception:
+        LOG.error(_LE("iRMC failed to acknowledge the target state "
+                      "for node %(node_id)s. Error: %(error)s"),
+                  {'node_id': node.uuid, 'error': snmp_exception})
+        raise exception.IRMCOperationError(operation=target_state,
+                                           error=snmp_exception)
 
 
 class IRMCPower(base.PowerInterface):

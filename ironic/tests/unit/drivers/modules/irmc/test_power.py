@@ -199,8 +199,9 @@ class IRMCPowerInternalMethodsTestCase(db_base.DbTestCase):
             irmc_power._set_power_state(task, target_state)
             attach_boot_iso_if_needed_mock.assert_called_once_with(task)
         irmc_client.assert_called_once_with(irmc_power.scci.POWER_SOFT_CYCLE)
-        _wait_power_state_mock.assert_called_once_with(task, target_state,
-                                                       timeout=None)
+        _wait_power_state_mock.assert_has_calls(
+            [mock.call(task, states.SOFT_POWER_OFF, timeout=None),
+             mock.call(task, states.SOFT_REBOOT, timeout=None)])
 
     @mock.patch.object(irmc_power, '_wait_power_state', spec_set=True,
                        autospec=True)
@@ -279,7 +280,7 @@ class IRMCPowerInternalMethodsTestCase(db_base.DbTestCase):
             attach_boot_iso_if_needed_mock.assert_called_once_with(
                 task)
             _wait_power_state_mock.assert_called_once_with(
-                task, target_state, timeout=None)
+                task, states.SOFT_POWER_OFF, timeout=None)
 
 
 class IRMCPowerTestCase(db_base.DbTestCase):
