@@ -262,5 +262,6 @@ This driver supports FUJITSU PRIMERGY BX S4 or RX S8 servers and above.
 - PRIMERGY RX300 S8
 
 Soft Reboot (Graceful Reset) and Soft Power Off (Graceful Power Off)
-are only available if ServerView agents are installed. See iRMC S4
-Manual for more details.
+are only available if `ServerView agents <http://manuals.ts.fujitsu.com/index.php?id=5406-5873-5925-5945-16159>`_
+are installed. See `iRMC S4 Manual <http://manuals.ts.fujitsu.com/index.php?id=5406-5873-5925-5988>`_
+for more details.
