@@ -16,6 +16,7 @@
 from ironic_tempest_plugin.tests.scenario import baremetal_manager
 from tempest import config
 from tempest.lib.common.utils import data_utils
+from tempest.lib import decorators
 from tempest.scenario import manager
 from tempest import test
 
@@ -79,7 +80,7 @@ class BaremetalMultitenancy(baremetal_manager.BaremetalScenarioTest,
         else:
             self.assertNotIn(success_substring, output)
 
-    @test.idempotent_id('26e2f145-2a8e-4dc7-8457-7f2eb2c6749d')
+    @decorators.idempotent_id('26e2f145-2a8e-4dc7-8457-7f2eb2c6749d')
     @test.services('compute', 'image', 'network')
     def test_baremetal_multitenancy(self):
 

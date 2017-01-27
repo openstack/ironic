@@ -10,7 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from tempest import test
+from tempest.lib import decorators
 
 from ironic_tempest_plugin.tests.api.admin import base
 
@@ -18,7 +18,7 @@ from ironic_tempest_plugin.tests.api.admin import base
 class TestApiDiscovery(base.BaseBaremetalTest):
     """Tests for API discovery features."""
 
-    @test.idempotent_id('a3c27e94-f56c-42c4-8600-d6790650b9c5')
+    @decorators.idempotent_id('a3c27e94-f56c-42c4-8600-d6790650b9c5')
     def test_api_versions(self):
         _, descr = self.client.get_api_description()
         expected_versions = ('v1',)
@@ -27,13 +27,13 @@ class TestApiDiscovery(base.BaseBaremetalTest):
         for v in expected_versions:
             self.assertIn(v, versions)
 
-    @test.idempotent_id('896283a6-488e-4f31-af78-6614286cbe0d')
+    @decorators.idempotent_id('896283a6-488e-4f31-af78-6614286cbe0d')
     def test_default_version(self):
         _, descr = self.client.get_api_description()
         default_version = descr['default_version']
         self.assertEqual('v1', default_version['id'])
 
-    @test.idempotent_id('abc0b34d-e684-4546-9728-ab7a9ad9f174')
+    @decorators.idempotent_id('abc0b34d-e684-4546-9728-ab7a9ad9f174')
     def test_version_1_resources(self):
         _, descr = self.client.get_version_description(version='v1')
         expected_resources = ('nodes', 'chassis',
