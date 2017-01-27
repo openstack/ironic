@@ -159,13 +159,44 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
             self.assertFalse(mock_reg.called)
 
     @mock.patch.object(base_manager, 'LOG')
+    @mock.patch.object(driver_factory, 'HardwareTypesFactory')
     @mock.patch.object(driver_factory, 'DriverFactory')
-    def test_start_fails_on_no_driver(self, df_mock, log_mock):
+    def test_start_fails_on_no_driver_or_hw_types(self, df_mock, ht_mock,
+                                                  log_mock):
         driver_factory_mock = mock.MagicMock(names=[])
         df_mock.return_value = driver_factory_mock
+        ht_mock.return_value = driver_factory_mock
         self.assertRaises(exception.NoDriversLoaded,
                           self.service.init_host)
         self.assertTrue(log_mock.error.called)
+        df_mock.assert_called_once_with()
+        ht_mock.assert_called_once_with()
+
+    @mock.patch.object(base_manager, 'LOG')
+    @mock.patch.object(base_manager.BaseConductorManager, 'del_host')
+    @mock.patch.object(driver_factory, 'DriverFactory')
+    def test_starts_with_only_dynamic_drivers(self, df_mock, del_mock,
+                                              log_mock):
+        # don't load any classic drivers
+        driver_factory_mock = mock.MagicMock(names=[])
+        df_mock.return_value = driver_factory_mock
+        self.service.init_host()
+        self.assertFalse(log_mock.error.called)
+        df_mock.assert_called_once_with()
+        self.assertFalse(del_mock.called)
+
+    @mock.patch.object(base_manager, 'LOG')
+    @mock.patch.object(base_manager.BaseConductorManager, 'del_host')
+    @mock.patch.object(driver_factory, 'HardwareTypesFactory')
+    def test_starts_with_only_classic_drivers(self, ht_mock, del_mock,
+                                              log_mock):
+        # don't load any dynamic drivers
+        driver_factory_mock = mock.MagicMock(names=[])
+        ht_mock.return_value = driver_factory_mock
+        self.service.init_host()
+        self.assertFalse(log_mock.error.called)
+        ht_mock.assert_called_once_with()
+        self.assertFalse(del_mock.called)
 
     @mock.patch.object(base_manager, 'LOG')
     @mock.patch.object(base_manager.BaseConductorManager,
@@ -177,6 +208,19 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
                           self.service.init_host)
         self.assertTrue(log_mock.error.called)
         del_mock.assert_called_once_with()
+
+    @mock.patch.object(base_manager, 'LOG')
+    @mock.patch.object(driver_factory, 'HardwareTypesFactory')
+    @mock.patch.object(driver_factory, 'DriverFactory')
+    def test_start_fails_on_name_conflict(self, df_mock, ht_mock, log_mock):
+        driver_factory_mock = mock.MagicMock(names=['dupe-driver'])
+        df_mock.return_value = driver_factory_mock
+        ht_mock.return_value = driver_factory_mock
+        self.assertRaises(exception.DriverNameConflict,
+                          self.service.init_host)
+        self.assertTrue(log_mock.error.called)
+        df_mock.assert_called_once_with()
+        ht_mock.assert_called_once_with()
 
     def test_prevent_double_start(self):
         self._start_service()
@@ -247,7 +291,6 @@ class ManagerSpawnWorkerTestCase(tests_base.TestCase):
 @mock.patch.object(objects.Conductor, 'register_hardware_interfaces',
                    autospec=True)
 @mock.patch.object(driver_factory, 'default_interface', autospec=True)
-@mock.patch.object(driver_factory, 'hardware_types', autospec=True)
 @mock.patch.object(driver_factory, 'enabled_supported_interfaces',
                    autospec=True)
 @mgr_utils.mock_record_keepalive
@@ -259,12 +302,11 @@ class RegisterInterfacesTestCase(mgr_utils.ServiceSetUpMixin,
 
     def test__register_and_validate_hardware_interfaces(self,
                                                         esi_mock,
-                                                        ht_mock,
                                                         default_mock,
                                                         reg_mock,
                                                         unreg_mock):
         # these must be same order as esi_mock side effect
-        ht_mock.return_value = collections.OrderedDict((
+        hardware_types = collections.OrderedDict((
             ('fake-hardware', fake_hardware.FakeHardware()),
             ('manual-management', generic.ManualManagementHardware),
         ))
@@ -290,7 +332,7 @@ class RegisterInterfacesTestCase(mgr_utils.ServiceSetUpMixin,
                       ['agent', 'fake'], 'agent'),
         ]
 
-        self.service._register_and_validate_hardware_interfaces()
+        self.service._register_and_validate_hardware_interfaces(hardware_types)
 
         unreg_mock.assert_called_once_with(mock.ANY)
         # we're iterating over dicts, don't worry about order

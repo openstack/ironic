@@ -1,0 +1,8 @@
+---
+features:
+  - The conductor process no longer requires at least one classic driver
+    to start. Instead, it requires at least one classic driver *or* at least
+    one dynamic driver.
+upgrade:
+  - The conductor process will refuse to start if a dynamic driver and
+    a classic driver with the same name are both enabled.

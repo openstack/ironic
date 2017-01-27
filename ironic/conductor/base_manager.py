@@ -60,6 +60,8 @@ class BaseConductorManager(object):
         :raises: NoDriversLoaded when no drivers are enabled on the conductor.
         :raises: DriverNotFound if a driver is enabled that does not exist.
         :raises: DriverLoadError if an enabled driver cannot be loaded.
+        :raises: DriverNameConflict if a classic driver and a dynamic driver
+                 are both enabled and have the same name.
         """
         if self._started:
             raise RuntimeError(_('Attempt to start an already running '
@@ -86,18 +88,36 @@ class BaseConductorManager(object):
         # startup so that all the interfaces are loaded at the very
         # beginning, and failures prevent the conductor from starting.
         drivers = driver_factory.drivers()
+        hardware_types = driver_factory.hardware_types()
         driver_factory.NetworkInterfaceFactory()
         driver_factory.StorageInterfaceFactory()
-        if not drivers:
-            msg = _LE("Conductor %s cannot be started because no drivers "
-                      "were loaded.  This could be because no drivers were "
-                      "specified in 'enabled_drivers' config option.")
-            LOG.error(msg, self.host)
-            raise exception.NoDriversLoaded(conductor=self.host)
 
         # NOTE(jroll) this is passed to the dbapi, which requires a list, not
         # a generator (which keys() returns in py3)
         driver_names = list(drivers)
+        hardware_type_names = list(hardware_types)
+
+        # check that at least one driver is loaded, whether classic or dynamic
+        if not driver_names and not hardware_type_names:
+            msg = _LE("Conductor %s cannot be started because no drivers "
+                      "were loaded. This could be because no classic drivers "
+                      "were specified in the 'enabled_drivers' config option "
+                      "and no dynamic drivers were specified in the "
+                      "'enabled_hardware_types' config option.")
+            LOG.error(msg, self.host)
+            raise exception.NoDriversLoaded(conductor=self.host)
+
+        # check for name clashes between classic and dynamic drivers
+        name_clashes = set(driver_names).intersection(hardware_type_names)
+        if name_clashes:
+            name_clashes = ', '.join(name_clashes)
+            msg = _LE("Conductor %(host)s cannot be started because there is "
+                      "one or more name conflicts between classic drivers and "
+                      "dynamic drivers (%(names)s). Check any external driver "
+                      "plugins and the 'enabled_drivers' and "
+                      "'enabled_hardware_types' config options.")
+            LOG.error(msg, {'host': self.host, 'names': name_clashes})
+            raise exception.DriverNameConflict(names=name_clashes)
 
         # Collect driver-specific periodic tasks.
         # Conductor periodic tasks accept context argument, driver periodic
@@ -148,17 +168,13 @@ class BaseConductorManager(object):
         # register hardware types and interfaces supported by this conductor
         # and validate them against other conductors
         try:
-            self._register_and_validate_hardware_interfaces()
+            self._register_and_validate_hardware_interfaces(hardware_types)
         except (exception.DriverLoadError, exception.DriverNotFound,
                 exception.ConductorHardwareInterfacesAlreadyRegistered,
                 exception.InterfaceNotFoundInEntrypoint) as e:
             with excutils.save_and_reraise_exception():
                 LOG.error(_LE('Failed to register hardware types. %s'), e)
                 self.del_host()
-
-        # TODO(jroll) validate here that at least one driver OR
-        # hardware type is loaded. If not, call del_host and raise
-        # NoDriversLoaded.
 
         # Start periodic tasks
         self._periodic_tasks_worker = self._executor.submit(
@@ -231,7 +247,7 @@ class BaseConductorManager(object):
         self._executor.shutdown(wait=True)
         self._started = False
 
-    def _register_and_validate_hardware_interfaces(self):
+    def _register_and_validate_hardware_interfaces(self, hardware_types):
         """Register and validate hardware interfaces for this conductor.
 
         Registers a row in the database for each combination of
@@ -243,13 +259,14 @@ class BaseConductorManager(object):
         same, and warns if not (we can't error out, otherwise all conductors
         must be restarted at once to change configuration).
 
+        :param hardware_types: Dictionary mapping hardware type name to
+                               hardware type object.
         :raises: ConductorHardwareInterfacesAlreadyRegistered
         :raises: InterfaceNotFoundInEntrypoint
         """
         # first unregister, in case we have cruft laying around
         self.conductor.unregister_all_hardware_interfaces()
 
-        hardware_types = driver_factory.hardware_types()
         for ht_name, ht in hardware_types.items():
             interface_map = driver_factory.enabled_supported_interfaces(ht)
             for interface_type, interface_names in interface_map.items():
