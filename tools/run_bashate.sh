@@ -15,7 +15,6 @@
 find  "$@"  -not \( -type d -name .?\* -prune \)                    \
             -type f                                                 \
             \(                                                      \
-                -wholename \*/devstack/files/hooks/qemu -or         \
                 -wholename \*/devstack/lib/ironic -or               \
                 -name \*.sh                                         \
             \)                                                      \
