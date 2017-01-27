@@ -11,8 +11,8 @@
 #    under the License.
 
 from tempest.lib.common.utils import data_utils
+from tempest.lib import decorators
 from tempest.lib import exceptions as lib_exc
-from tempest import test
 
 from ironic_tempest_plugin.tests.api.admin import base
 
@@ -35,7 +35,7 @@ class TestPorts(base.BaseBaremetalTest):
                 self.assertIn(key, actual)
                 self.assertEqual(value, actual[key])
 
-    @test.idempotent_id('83975898-2e50-42ed-b5f0-e510e36a0b56')
+    @decorators.idempotent_id('83975898-2e50-42ed-b5f0-e510e36a0b56')
     def test_create_port(self):
         node_id = self.node['uuid']
         address = data_utils.rand_mac_address()
@@ -46,7 +46,7 @@ class TestPorts(base.BaseBaremetalTest):
 
         self._assertExpected(port, body)
 
-    @test.idempotent_id('d1f6b249-4cf6-4fe6-9ed6-a6e84b1bf67b')
+    @decorators.idempotent_id('d1f6b249-4cf6-4fe6-9ed6-a6e84b1bf67b')
     def test_create_port_specifying_uuid(self):
         node_id = self.node['uuid']
         address = data_utils.rand_mac_address()
@@ -58,7 +58,7 @@ class TestPorts(base.BaseBaremetalTest):
         _, body = self.client.show_port(uuid)
         self._assertExpected(port, body)
 
-    @test.idempotent_id('4a02c4b0-6573-42a4-a513-2e36ad485b62')
+    @decorators.idempotent_id('4a02c4b0-6573-42a4-a513-2e36ad485b62')
     def test_create_port_with_extra(self):
         node_id = self.node['uuid']
         address = data_utils.rand_mac_address()
@@ -71,7 +71,7 @@ class TestPorts(base.BaseBaremetalTest):
         _, body = self.client.show_port(port['uuid'])
         self._assertExpected(port, body)
 
-    @test.idempotent_id('1bf257a9-aea3-494e-89c0-63f657ab4fdd')
+    @decorators.idempotent_id('1bf257a9-aea3-494e-89c0-63f657ab4fdd')
     def test_delete_port(self):
         node_id = self.node['uuid']
         address = data_utils.rand_mac_address()
@@ -82,24 +82,24 @@ class TestPorts(base.BaseBaremetalTest):
         self.assertRaises(lib_exc.NotFound, self.client.show_port,
                           port['uuid'])
 
-    @test.idempotent_id('9fa77ab5-ce59-4f05-baac-148904ba1597')
+    @decorators.idempotent_id('9fa77ab5-ce59-4f05-baac-148904ba1597')
     def test_show_port(self):
         _, port = self.client.show_port(self.port['uuid'])
         self._assertExpected(self.port, port)
 
-    @test.idempotent_id('7c1114ff-fc3f-47bb-bc2f-68f61620ba8b')
+    @decorators.idempotent_id('7c1114ff-fc3f-47bb-bc2f-68f61620ba8b')
     def test_show_port_by_address(self):
         _, port = self.client.show_port_by_address(self.port['address'])
         self._assertExpected(self.port, port['ports'][0])
 
-    @test.idempotent_id('bd773405-aea5-465d-b576-0ab1780069e5')
+    @decorators.idempotent_id('bd773405-aea5-465d-b576-0ab1780069e5')
     def test_show_port_with_links(self):
         _, port = self.client.show_port(self.port['uuid'])
         self.assertIn('links', port.keys())
         self.assertEqual(2, len(port['links']))
         self.assertIn(port['uuid'], port['links'][0]['href'])
 
-    @test.idempotent_id('b5e91854-5cd7-4a8e-bb35-3e0a1314606d')
+    @decorators.idempotent_id('b5e91854-5cd7-4a8e-bb35-3e0a1314606d')
     def test_list_ports(self):
         _, body = self.client.list_ports()
         self.assertIn(self.port['uuid'],
@@ -109,14 +109,14 @@ class TestPorts(base.BaseBaremetalTest):
             self.validate_self_link('ports', port['uuid'],
                                     port['links'][0]['href'])
 
-    @test.idempotent_id('324a910e-2f80-4258-9087-062b5ae06240')
+    @decorators.idempotent_id('324a910e-2f80-4258-9087-062b5ae06240')
     def test_list_with_limit(self):
         _, body = self.client.list_ports(limit=3)
 
         next_marker = body['ports'][-1]['uuid']
         self.assertIn(next_marker, body['next'])
 
-    @test.idempotent_id('8a94b50f-9895-4a63-a574-7ecff86e5875')
+    @decorators.idempotent_id('8a94b50f-9895-4a63-a574-7ecff86e5875')
     def test_list_ports_details(self):
         node_id = self.node['uuid']
 
@@ -141,7 +141,7 @@ class TestPorts(base.BaseBaremetalTest):
             self.validate_self_link('ports', port['uuid'],
                                     port['links'][0]['href'])
 
-    @test.idempotent_id('8a03f688-7d75-4ecd-8cbc-e06b8f346738')
+    @decorators.idempotent_id('8a03f688-7d75-4ecd-8cbc-e06b8f346738')
     def test_list_ports_details_with_address(self):
         node_id = self.node['uuid']
         address = data_utils.rand_mac_address()
@@ -154,7 +154,7 @@ class TestPorts(base.BaseBaremetalTest):
         self.assertEqual(1, len(body['ports']))
         self.assertEqual(address, body['ports'][0]['address'])
 
-    @test.idempotent_id('9c26298b-1bcb-47b7-9b9e-8bdd6e3c4aba')
+    @decorators.idempotent_id('9c26298b-1bcb-47b7-9b9e-8bdd6e3c4aba')
     def test_update_port_replace(self):
         node_id = self.node['uuid']
         address = data_utils.rand_mac_address()
@@ -186,7 +186,7 @@ class TestPorts(base.BaseBaremetalTest):
         self.assertEqual(new_address, body['address'])
         self.assertEqual(new_extra, body['extra'])
 
-    @test.idempotent_id('d7e7fece-6ed9-460a-9ebe-9267217e8580')
+    @decorators.idempotent_id('d7e7fece-6ed9-460a-9ebe-9267217e8580')
     def test_update_port_remove(self):
         node_id = self.node['uuid']
         address = data_utils.rand_mac_address()
@@ -213,7 +213,7 @@ class TestPorts(base.BaseBaremetalTest):
         self.assertEqual(node_id, body['node_uuid'])
         self.assertEqual(address, body['address'])
 
-    @test.idempotent_id('241288b3-e98a-400f-a4d7-d1f716146361')
+    @decorators.idempotent_id('241288b3-e98a-400f-a4d7-d1f716146361')
     def test_update_port_add(self):
         node_id = self.node['uuid']
         address = data_utils.rand_mac_address()
@@ -234,7 +234,7 @@ class TestPorts(base.BaseBaremetalTest):
         _, body = self.client.show_port(port['uuid'])
         self.assertEqual(extra, body['extra'])
 
-    @test.idempotent_id('5309e897-0799-4649-a982-0179b04c3876')
+    @decorators.idempotent_id('5309e897-0799-4649-a982-0179b04c3876')
     def test_update_port_mixed_ops(self):
         node_id = self.node['uuid']
         address = data_utils.rand_mac_address()

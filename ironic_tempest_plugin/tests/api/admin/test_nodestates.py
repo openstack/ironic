@@ -13,8 +13,8 @@
 #    under the License.
 
 from oslo_utils import timeutils
+from tempest.lib import decorators
 from tempest.lib import exceptions
-from tempest import test
 
 from ironic_tempest_plugin.tests.api.admin import api_microversion_fixture
 from ironic_tempest_plugin.tests.api.admin import base
@@ -56,14 +56,14 @@ class TestNodeStatesMixin(object):
                     'timeout': self.unprovision_timeout})
         raise exceptions.TimeoutException(message)
 
-    @test.idempotent_id('cd8afa5e-3f57-4e43-8185-beb83d3c9015')
+    @decorators.idempotent_id('cd8afa5e-3f57-4e43-8185-beb83d3c9015')
     def test_list_nodestates(self):
         _, node = self.create_node(self.chassis['uuid'])
         _, nodestates = self.client.list_nodestates(node['uuid'])
         for key in nodestates:
             self.assertEqual(nodestates[key], node[key])
 
-    @test.idempotent_id('fc5b9320-0c98-4e5a-8848-877fe5a0322c')
+    @decorators.idempotent_id('fc5b9320-0c98-4e5a-8848-877fe5a0322c')
     def test_set_node_power_state(self):
         _, node = self.create_node(self.chassis['uuid'])
         states = ["power on", "rebooting", "power off"]
@@ -76,7 +76,7 @@ class TestNodeStatesMixin(object):
 
 class TestNodeStatesV1_1(TestNodeStatesMixin, base.BaseBaremetalTest):
 
-    @test.idempotent_id('ccb8fca9-2ba0-480c-a037-34c3bd09dc74')
+    @decorators.idempotent_id('ccb8fca9-2ba0-480c-a037-34c3bd09dc74')
     def test_set_node_provision_state(self):
         _, node = self.create_node(self.chassis['uuid'])
         # Nodes appear in NONE state by default until v1.1
@@ -95,7 +95,7 @@ class TestNodeStatesV1_2(TestNodeStatesMixin, base.BaseBaremetalTest):
         super(TestNodeStatesV1_2, self).setUp()
         self.useFixture(api_microversion_fixture.APIMicroversionFixture('1.2'))
 
-    @test.idempotent_id('9c414984-f3b6-4b3d-81da-93b60d4662fb')
+    @decorators.idempotent_id('9c414984-f3b6-4b3d-81da-93b60d4662fb')
     def test_set_node_provision_state(self):
         _, node = self.create_node(self.chassis['uuid'])
         # Nodes appear in AVAILABLE state by default from v1.2 to v1.10
@@ -114,7 +114,7 @@ class TestNodeStatesV1_4(TestNodeStatesMixin, base.BaseBaremetalTest):
         super(TestNodeStatesV1_4, self).setUp()
         self.useFixture(api_microversion_fixture.APIMicroversionFixture('1.4'))
 
-    @test.idempotent_id('3d606003-05ce-4b5a-964d-bdee382fafe9')
+    @decorators.idempotent_id('3d606003-05ce-4b5a-964d-bdee382fafe9')
     def test_set_node_provision_state(self):
         _, node = self.create_node(self.chassis['uuid'])
         # Nodes appear in AVAILABLE state by default from v1.2 to v1.10
@@ -136,7 +136,7 @@ class TestNodeStatesV1_6(TestNodeStatesMixin, base.BaseBaremetalTest):
         super(TestNodeStatesV1_6, self).setUp()
         self.useFixture(api_microversion_fixture.APIMicroversionFixture('1.6'))
 
-    @test.idempotent_id('6c9ce4a3-713b-4c76-91af-18c48d01f1bb')
+    @decorators.idempotent_id('6c9ce4a3-713b-4c76-91af-18c48d01f1bb')
     def test_set_node_provision_state(self):
         _, node = self.create_node(self.chassis['uuid'])
         # Nodes appear in AVAILABLE state by default from v1.2 to v1.10
@@ -160,7 +160,7 @@ class TestNodeStatesV1_11(TestNodeStatesMixin, base.BaseBaremetalTest):
             api_microversion_fixture.APIMicroversionFixture('1.11')
         )
 
-    @test.idempotent_id('31f53828-b83d-40c7-98e5-843e28a1b6b9')
+    @decorators.idempotent_id('31f53828-b83d-40c7-98e5-843e28a1b6b9')
     def test_set_node_provision_state(self):
         _, node = self.create_node(self.chassis['uuid'])
         # Nodes appear in ENROLL state by default from v1.11
@@ -183,7 +183,7 @@ class TestNodeStatesV1_12(TestNodeStatesMixin, base.BaseBaremetalTest):
             api_microversion_fixture.APIMicroversionFixture('1.12')
         )
 
-    @test.idempotent_id('4427b1ca-8e79-4139-83d6-77dfac03e61e')
+    @decorators.idempotent_id('4427b1ca-8e79-4139-83d6-77dfac03e61e')
     def test_set_node_raid_config(self):
         _, node = self.create_node(self.chassis['uuid'])
         target_raid_config = {'logical_disks': [{'size_gb': 100,
