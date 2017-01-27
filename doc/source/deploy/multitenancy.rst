@@ -32,7 +32,7 @@ Configuring the Bare Metal service
 ==================================
 
 Below is an example flow of how to set up the Bare Metal service so that node
-provisioning will happen in a multi-tenant environment (which means using
+provisioning will happen in a multi-tenant environment (which means using the
 ``neutron`` network interface as stated above):
 
 #. Network interfaces can be enabled on ironic-conductor by adding them to the
@@ -68,12 +68,12 @@ provisioning will happen in a multi-tenant environment (which means using
    default, otherwise ``noop`` is the default.
 
 #. Define a provider network in the Networking service, which we shall refer to
-   as the "provisioning" network, and add it in the ``neutron`` section of
-   the ironic-conductor configuration file. Using ``neutron`` network interface
+   as the "provisioning" network, and add it in the ``neutron`` section of the
+   ironic-conductor configuration file. Using the ``neutron`` network interface
    requires that ``provisioning_network`` and ``cleaning_network``
-   configuration options are set to valid Networking service's network
-   identifiers (UUID or name); otherwise cleaning or provisioning will fail to
-   start::
+   configuration options are set to valid identifiers (UUID or name) of
+   networks in the  Networking service. If these options are not set correctly,
+   cleaning or provisioning will fail to start::
 
     [neutron]
     ...
@@ -121,22 +121,23 @@ provisioning will happen in a multi-tenant environment (which means using
    groups during provisioning and/or cleaning of the nodes. If not specified,
    default security groups are used.
 
-   First define security groups in the Networking service, to be used for
-   provisioning and/or cleaning networks. Then add the list of these security
-   group UUIDs under the ``neutron`` section of ironic-conductor's
-   configuration file as shown below::
+   #. Define security groups in the Networking service, to be used for
+      provisioning and/or cleaning networks.
 
-    [neutron]
-    ...
-    cleaning_network=$CLEAN_UUID_OR_NAME
-    cleaning_network_security_groups=[$LIST_OF_CLEAN_SECURITY_GROUPS]
-    provisioning_network=$PROVISION_UUID_OR_NAME
-    provisioning_network_security_groups=[$LIST_OF_PROVISION_SECURITY_GROUPS]
+   #. Add the list of these security group UUIDs under the ``neutron`` section
+      of ironic-conductor's configuration file as shown below::
 
-   Multiple security groups may be applied to a given network, hence,
-   they are specified as a list.
-   The same security group(s) could be used for both provisioning and
-   cleaning networks.
+        [neutron]
+        ...
+        cleaning_network=$CLEAN_UUID_OR_NAME
+        cleaning_network_security_groups=[$LIST_OF_CLEAN_SECURITY_GROUPS]
+        provisioning_network=$PROVISION_UUID_OR_NAME
+        provisioning_network_security_groups=[$LIST_OF_PROVISION_SECURITY_GROUPS]
+
+      Multiple security groups may be applied to a given network, hence,
+      they are specified as a list.
+      The same security group(s) could be used for both provisioning and
+      cleaning networks.
 
    .. warning::
        If security groups are configured as described above, do not
