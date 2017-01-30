@@ -223,6 +223,36 @@ Response
 .. literalinclude:: samples/node-get-supported-boot-devices-response.json
 
 
+Inject NMI (Non-Masking Interrupts)
+===================================
+
+.. rest_method:: PUT /v1/nodes/{node_ident}/management/inject_nmi
+
+Inject NMI (Non-Masking Interrupts) for the given Node. This feature
+can be used for hardware diagnostics, and actual support depends on a
+driver.
+
+Normal response code: 204 (No content)
+
+Error codes:
+    - 400 (Invalid)
+    - 403 (Forbidden)
+    - 404 (NotFound)
+    - 406 (NotAcceptable)
+    - 409 (NodeLocked, ClientError)
+
+Request
+-------
+
+.. rest_parameters:: parameters.yaml
+
+    - node_ident: node_ident
+
+**Request to inject NMI to a node has to be empty dictionary:**
+
+.. literalinclude:: samples/node-inject-nmi.json
+
+
 Node State Summary
 ==================
 
