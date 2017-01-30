@@ -342,4 +342,4 @@ This process is used with agent_* family of drivers.
 (From a `talk`_  and `slides`_)
 
 .. _talk: https://www.openstack.org/summit/vancouver-2015/summit-videos/presentation/isn-and-039t-it-ironic-the-bare-metal-cloud
-.. _slides: http://devananda.github.io/talks/isnt-it-ironic.html
+.. _slides: http://www.slideshare.net/devananda1/isnt-it-ironic-managing-a-bare-metal-cloud-osl-tes-2015
