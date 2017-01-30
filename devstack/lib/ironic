@@ -912,6 +912,19 @@ function configure_ironic {
     if [[ "$IRONIC_IPXE_ENABLED" == "True" ]]; then
         _config_ironic_apache_wsgi
     fi
+
+    # NOTE(vsaienko) Add stack to libvirt group when installing without nova.
+    if ! is_service_enabled nova; then
+        if [[ "$os_VENDOR" =~ (Debian) ]]; then
+            LIBVIRT_GROUP=libvirt
+        else
+            LIBVIRT_GROUP=libvirtd
+        fi
+        if ! getent group $LIBVIRT_GROUP >/dev/null; then
+            sudo groupadd $LIBVIRT_GROUP
+        fi
+        add_user_to_group $STACK_USER $LIBVIRT_GROUP
+    fi
 }
 
 # configure_ironic_api() - Is used by configure_ironic(). Performs
