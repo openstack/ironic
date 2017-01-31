@@ -154,9 +154,9 @@ class BaseConductorManager(object):
             self._register_and_validate_hardware_interfaces()
         except (exception.DriverLoadError, exception.DriverNotFound,
                 exception.ConductorHardwareInterfacesAlreadyRegistered,
-                exception.InterfaceNotFoundInEntrypoint):
+                exception.InterfaceNotFoundInEntrypoint) as e:
             with excutils.save_and_reraise_exception():
-                LOG.error(_LE('Failed to register hardware types'))
+                LOG.error(_LE('Failed to register hardware types. %s'), e)
                 self.del_host()
 
         # TODO(jroll) validate here that at least one driver OR
