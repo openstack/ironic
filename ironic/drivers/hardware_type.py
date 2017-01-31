@@ -20,6 +20,7 @@ import abc
 
 import six
 
+from ironic.drivers import base as driver_base
 from ironic.drivers.modules.network import noop as noop_net
 from ironic.drivers.modules import noop
 from ironic.drivers.modules.storage import noop as noop_storage
@@ -90,3 +91,24 @@ class AbstractHardwareType(object):
     def supported_vendor_interfaces(self):
         """List of supported vendor interfaces."""
         return [noop.NoVendor]
+
+    def get_properties(self):
+        """Get the properties of the hardware type.
+
+        Note that this returns properties for the default interface of each
+        type, for this hardware type. Since this is not node-aware,
+        interface overrides can't be detected.
+
+        :returns: dictionary of <property name>:<property description> entries.
+        """
+        # NOTE(jroll) this avoids a circular import
+        from ironic.common import driver_factory
+
+        properties = {}
+        for iface_type in driver_base.ALL_INTERFACES:
+            default_iface = driver_factory.default_interface(self, iface_type)
+            if default_iface is not None:
+                iface = driver_factory.get_interface(self, iface_type,
+                                                     default_iface)
+                properties.update(iface.get_properties())
+        return properties

@@ -559,6 +559,15 @@ class Connection(object):
         """
 
     @abc.abstractmethod
+    def list_hardware_type_interfaces(self, hardware_types):
+        """List registered hardware interfaces for given hardware types.
+
+        This is restricted to only active conductors.
+        :param hardware_types: list of hardware types to filter by.
+        :returns: list of ``ConductorHardwareInterfaces`` objects.
+        """
+
+    @abc.abstractmethod
     def register_conductor_hardware_interfaces(self, conductor_id,
                                                hardware_type, interface_type,
                                                interfaces, default_interface):

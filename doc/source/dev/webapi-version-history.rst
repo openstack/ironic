@@ -2,6 +2,54 @@
 REST API Version History
 ========================
 
+**1.30** (Ocata)
+
+    Added dynamic driver APIs.
+
+    * GET /v1/drivers now accepts a ``type`` parameter (optional, one of
+      ``classic`` or ``dynamic``), to limit the result to only classic drivers
+      or dynamic drivers (hardware types). Without this parameter, both
+      classic and dynamic drivers are returned.
+
+    * GET /v1/drivers now accepts a ``detail`` parameter (optional, one of
+      ``True`` or ``False``), to show all fields for a driver. Defaults to
+      ``False``.
+
+    * GET /v1/drivers now returns an additional ``type`` field to show if the
+      driver is classic or dynamic.
+
+    * GET /v1/drivers/<name> now returns an additional ``type`` field to show
+      if the driver is classic or dynamic.
+
+    * GET /v1/drivers/<name> now returns additional fields that are null for
+      classic drivers, and set as following for dynamic drivers:
+
+        * The value of the default_<interface-type>_interface is the entrypoint
+          name of the calculated default interface for that type:
+
+            * default_boot_interface
+            * default_console_interface
+            * default_deploy_interface
+            * default_inspect_interface
+            * default_management_interface
+            * default_network_interface
+            * default_power_interface
+            * default_raid_interface
+            * default_vendor_interface
+
+        * The value of the enabled_<interface-type>_interfaces is a list of
+          entrypoint names of the enabled interfaces for that type:
+
+            * enabled_boot_interfaces
+            * enabled_console_interfaces
+            * enabled_deploy_interfaces
+            * enabled_inspect_interfaces
+            * enabled_management_interfaces
+            * enabled_network_interfaces
+            * enabled_power_interfaces
+            * enabled_raid_interfaces
+            * enabled_vendor_interfaces
+
 **1.29** (Ocata)
 
     Add a new management API to support inject NMI,

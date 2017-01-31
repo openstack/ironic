@@ -1,0 +1,20 @@
+---
+features:
+  - |
+    Provides support for dynamic drivers.
+
+    With REST API version 1.30, adds additional parameters and response
+    fields for GET /v1/drivers and GET /v1/drivers/<name>.
+
+    Also allows dynamic drivers to be used and returned in the following
+    API calls, in all versions of the REST API:
+
+        * GET /v1/drivers
+        * GET /v1/drivers/<name>
+        * GET /v1/drivers/<name>/properties
+        * GET /v1/drivers/<name>/vendor_passthru/methods
+        * GET/POST /v1/drivers/<name>/vendor_passthru
+        * GET/POST /v1/nodes/<id>/vendor_passthru
+
+    For more details, see the `REST API Version History documentation
+    <http://docs.openstack.org/developer/ironic/dev/webapi-version-history.html>`_.

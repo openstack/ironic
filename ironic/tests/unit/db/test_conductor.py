@@ -385,3 +385,59 @@ class DbConductorTestCase(base.DbTestCase):
         # 61 seconds passed since last heartbeat, it's dead
         mock_utcnow.return_value = time_ + datetime.timedelta(seconds=61)
         self.assertEqual([c.hostname], self.dbapi.get_offline_conductors())
+
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_list_hardware_type_interfaces(self, mock_utcnow):
+        self.config(heartbeat_timeout=60, group='conductor')
+        time_ = datetime.datetime(2000, 1, 1, 0, 0)
+        h = 'fake-host'
+        ht1 = 'hw-type-1'
+        ht2 = 'hw-type-2'
+
+        mock_utcnow.return_value = time_
+        self._create_test_cdr(hostname=h, hardware_types=[ht1, ht2])
+
+        expected = [
+            {
+                'hardware_type': ht1,
+                'interface_type': 'power',
+                'interface_name': 'ipmi',
+                'default': True,
+            },
+            {
+                'hardware_type': ht1,
+                'interface_type': 'power',
+                'interface_name': 'fake',
+                'default': False,
+            },
+            {
+                'hardware_type': ht2,
+                'interface_type': 'power',
+                'interface_name': 'ipmi',
+                'default': True,
+            },
+            {
+                'hardware_type': ht2,
+                'interface_type': 'power',
+                'interface_name': 'fake',
+                'default': False,
+            },
+        ]
+
+        def _verify(expected, result):
+            for expected_row, row in zip(expected, result):
+                for k, v in expected_row.items():
+                    self.assertEqual(v, getattr(row, k))
+
+        # with both hw types
+        result = self.dbapi.list_hardware_type_interfaces([ht1, ht2])
+        _verify(expected, result)
+
+        # with one hw type
+        result = self.dbapi.list_hardware_type_interfaces([ht1])
+        _verify(expected[:2], result)
+
+        # 61 seconds passed since last heartbeat, it's dead
+        mock_utcnow.return_value = time_ + datetime.timedelta(seconds=61)
+        result = self.dbapi.list_hardware_type_interfaces([ht1, ht2])
+        self.assertEqual([], result)

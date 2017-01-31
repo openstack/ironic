@@ -65,3 +65,6 @@ class NoInspect(FailMixin, base.InspectInterface):
 class NoRAID(FailMixin, base.RAIDInterface):
     """RAID interface implementation that raises errors on all requests."""
     create_configuration = delete_configuration = _fail
+
+    def validate_raid_config(self, task, raid_config):
+        _fail(self, task)

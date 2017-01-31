@@ -607,13 +607,15 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin,
 
     @mock.patch.object(task_manager.TaskManager, 'upgrade_lock')
     @mock.patch.object(task_manager.TaskManager, 'spawn_after')
-    def test_vendor_passthru_async(self, mock_spawn, mock_upgrade):
-        node = obj_utils.create_test_node(self.context, driver='fake')
+    def _test_vendor_passthru_async(self, driver, vendor_iface, mock_spawn,
+                                    mock_upgrade):
+        node = obj_utils.create_test_node(self.context, driver=driver,
+                                          vendor_interface=vendor_iface)
         info = {'bar': 'baz'}
         self._start_service()
 
         response = self.service.vendor_passthru(self.context, node.uuid,
-                                                'first_method', 'POST',
+                                                'second_method', 'POST',
                                                 info)
         # Waiting to make sure the below assertions are valid.
         self._stop_service()
@@ -630,6 +632,13 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
         self.assertIsNone(node.reservation)
+
+    def test_vendor_passthru_async(self):
+        self._test_vendor_passthru_async('fake', None)
+
+    def test_vendor_passthru_async_hw_type(self):
+        self.config(enabled_vendor_interfaces=['fake'])
+        self._test_vendor_passthru_async('fake-hardware', 'fake')
 
     @mock.patch.object(task_manager.TaskManager, 'upgrade_lock')
     @mock.patch.object(task_manager.TaskManager, 'spawn_after')
@@ -821,12 +830,20 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(exception.UnsupportedDriverExtension,
                          exc.exc_info[0])
 
+    @mock.patch.object(driver_factory, 'get_interface')
     @mock.patch.object(manager.ConductorManager, '_spawn_worker')
-    def test_driver_vendor_passthru_sync(self, mock_spawn):
+    def _test_driver_vendor_passthru_sync(self, is_hw_type, mock_spawn,
+                                          mock_get_if):
         expected = {'foo': 'bar'}
-        self.driver.vendor = mock.Mock(spec=drivers_base.VendorInterface)
+        vendor_mock = mock.Mock(spec=drivers_base.VendorInterface)
+        if is_hw_type:
+            mock_get_if.return_value = vendor_mock
+            driver_name = 'fake-hardware'
+        else:
+            self.driver.vendor = vendor_mock
+            driver_name = 'fake'
         test_method = mock.MagicMock(return_value=expected)
-        self.driver.vendor.driver_routes = {
+        vendor_mock.driver_routes = {
             'test_method': {'func': test_method,
                             'async': False,
                             'attach': False,
@@ -834,19 +851,29 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin,
         self.service.init_host()
         # init_host() called _spawn_worker because of the heartbeat
         mock_spawn.reset_mock()
+        # init_host() called get_interface during driver loading
+        mock_get_if.reset_mock()
 
         vendor_args = {'test': 'arg'}
         response = self.service.driver_vendor_passthru(
-            self.context, 'fake', 'test_method', 'POST', vendor_args)
+            self.context, driver_name, 'test_method', 'POST', vendor_args)
 
         # Assert that the vendor interface has no custom
         # driver_vendor_passthru()
-        self.assertFalse(hasattr(self.driver.vendor, 'driver_vendor_passthru'))
+        self.assertFalse(hasattr(vendor_mock, 'driver_vendor_passthru'))
         self.assertEqual(expected, response['return'])
         self.assertFalse(response['async'])
         test_method.assert_called_once_with(self.context, **vendor_args)
         # No worker was spawned
         self.assertFalse(mock_spawn.called)
+        if is_hw_type:
+            mock_get_if.assert_called_once_with(mock.ANY, 'vendor', 'fake')
+
+    def test_driver_vendor_passthru_sync(self):
+        self._test_driver_vendor_passthru_sync(False)
+
+    def test_driver_vendor_passthru_sync_hw_type(self):
+        self._test_driver_vendor_passthru_sync(True)
 
     @mock.patch.object(manager.ConductorManager, '_spawn_worker')
     def test_driver_vendor_passthru_async(self, mock_spawn):
@@ -920,20 +947,42 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin,
                           self.context, 'does_not_exist', 'test_method',
                           'POST', {})
 
-    def test_get_driver_vendor_passthru_methods(self):
-        self.driver.vendor = mock.Mock(spec=drivers_base.VendorInterface)
+    @mock.patch.object(driver_factory, 'get_interface')
+    def _test_get_driver_vendor_passthru_methods(self, is_hw_type,
+                                                 mock_get_if):
+        vendor_mock = mock.Mock(spec=drivers_base.VendorInterface)
+        if is_hw_type:
+            mock_get_if.return_value = vendor_mock
+            driver_name = 'fake-hardware'
+        else:
+            self.driver.vendor = vendor_mock
+            driver_name = 'fake'
         fake_routes = {'test_method': {'async': True,
                                        'description': 'foo',
                                        'http_methods': ['POST'],
                                        'func': None}}
-        self.driver.vendor.driver_routes = fake_routes
+        vendor_mock.driver_routes = fake_routes
         self.service.init_host()
 
+        # init_host() will call get_interface
+        mock_get_if.reset_mock()
+
         data = self.service.get_driver_vendor_passthru_methods(self.context,
-                                                               'fake')
+                                                               driver_name)
         # The function reference should not be returned
         del fake_routes['test_method']['func']
         self.assertEqual(fake_routes, data)
+
+        if is_hw_type:
+            mock_get_if.assert_called_once_with(mock.ANY, 'vendor', 'fake')
+        else:
+            mock_get_if.assert_not_called()
+
+    def test_get_driver_vendor_passthru_methods(self):
+        self._test_get_driver_vendor_passthru_methods(False)
+
+    def test_get_driver_vendor_passthru_methods_hw_type(self):
+        self._test_get_driver_vendor_passthru_methods(True)
 
     def test_get_driver_vendor_passthru_methods_not_supported(self):
         self.service.init_host()
@@ -3720,15 +3769,20 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin,
 @mgr_utils.mock_record_keepalive
 class RaidTestCases(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
 
+    driver_name = 'fake'
+    raid_interface = None
+
     def setUp(self):
         super(RaidTestCases, self).setUp()
         self.node = obj_utils.create_test_node(
-            self.context, driver='fake', provision_state=states.MANAGEABLE)
+            self.context, driver=self.driver_name,
+            raid_interface=self.raid_interface,
+            provision_state=states.MANAGEABLE)
 
     def test_get_raid_logical_disk_properties(self):
         self._start_service()
         properties = self.service.get_raid_logical_disk_properties(
-            self.context, 'fake')
+            self.context, self.driver_name)
         self.assertIn('raid_level', properties)
         self.assertIn('size_gb', properties)
 
@@ -3737,7 +3791,7 @@ class RaidTestCases(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
         self._start_service()
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.get_raid_logical_disk_properties,
-                                self.context, 'fake')
+                                self.context, self.driver_name)
         self.assertEqual(exception.UnsupportedDriverExtension, exc.exc_info[0])
 
     def test_set_target_raid_config(self):
@@ -3766,7 +3820,7 @@ class RaidTestCases(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.node.refresh()
         self.assertEqual({}, self.node.target_raid_config)
         self.assertEqual(exception.UnsupportedDriverExtension, exc.exc_info[0])
-        self.assertIn('fake', six.text_type(exc.exc_info[1]))
+        self.assertIn(self.driver_name, six.text_type(exc.exc_info[1]))
 
     def test_set_target_raid_config_invalid_parameter_value(self):
         # Missing raid_level in the below raid config.
@@ -3782,6 +3836,42 @@ class RaidTestCases(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
         self.node.refresh()
         self.assertEqual({'foo': 'bar'}, self.node.target_raid_config)
         self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+
+
+@mgr_utils.mock_record_keepalive
+class RaidHardwareTypeTestCases(RaidTestCases):
+
+    driver_name = 'fake-hardware'
+    raid_interface = 'fake'
+
+    def test_get_raid_logical_disk_properties_iface_not_supported(self):
+        self.config(enabled_raid_interfaces=[])
+        self._start_service()
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.get_raid_logical_disk_properties,
+                                self.context, self.driver_name)
+        self.assertEqual(exception.UnsupportedDriverExtension, exc.exc_info[0])
+
+    def test_set_target_raid_config_iface_not_supported(self):
+        # NOTE(jroll): it's impossible for a dynamic driver to have a null
+        # interface (e.g. node.driver.raid), so this instead tests that
+        # if validation fails, we blow up properly.
+        # need a different raid interface and a hardware type that supports it
+        self.node = obj_utils.create_test_node(
+            self.context, driver='manual-management',
+            raid_interface='no-raid',
+            uuid=uuidutils.generate_uuid(),
+            provision_state=states.MANAGEABLE)
+        raid_config = {'logical_disks': [{'size_gb': 100, 'raid_level': '1'}]}
+
+        exc = self.assertRaises(
+            messaging.rpc.ExpectedException,
+            self.service.set_target_raid_config,
+            self.context, self.node.uuid, raid_config)
+        self.node.refresh()
+        self.assertEqual({}, self.node.target_raid_config)
+        self.assertEqual(exception.UnsupportedDriverExtension, exc.exc_info[0])
+        self.assertIn('manual-management', six.text_type(exc.exc_info[1]))
 
 
 @mock.patch.object(conductor_utils, 'node_power_action')
@@ -4660,6 +4750,27 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
                                 self.context, "bad-driver")
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.DriverNotFound, exc.exc_info[0])
+
+
+@mgr_utils.mock_record_keepalive
+class ManagerTestHardwareTypeProperties(tests_db_base.DbTestCase):
+
+    def setUp(self):
+        super(ManagerTestHardwareTypeProperties, self).setUp()
+        self.service = manager.ConductorManager('test-host', 'test-topic')
+
+    def _check_hardware_type_properties(self, hardware_type, expected):
+        self.config(enabled_hardware_types=[hardware_type])
+        self.hardware_type = driver_factory.get_hardware_type(hardware_type)
+        self.service.init_host()
+        properties = self.service.get_driver_properties(self.context,
+                                                        hardware_type)
+        self.assertEqual(sorted(expected), sorted(properties.keys()))
+
+    def test_hardware_type_properties_manual_management(self):
+        expected = ['deploy_kernel', 'deploy_ramdisk',
+                    'deploy_forces_oob_reboot']
+        self._check_hardware_type_properties('manual-management', expected)
 
 
 @mock.patch.object(task_manager, 'acquire')

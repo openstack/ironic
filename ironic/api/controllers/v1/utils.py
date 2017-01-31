@@ -350,6 +350,32 @@ def check_allow_specify_resource_class(resource_class):
              'opr': versions.MINOR_21_RESOURCE_CLASS})
 
 
+def check_allow_filter_driver_type(driver_type):
+    """Check if filtering drivers by classic/dynamic is allowed.
+
+    Version 1.30 of the API allows this.
+    """
+    if driver_type is not None and not allow_dynamic_drivers():
+        raise exception.NotAcceptable(_(
+            "Request not acceptable. The minimal required API version "
+            "should be %(base)s.%(opr)s") %
+            {'base': versions.BASE_VERSION,
+             'opr': versions.MINOR_30_DYNAMIC_DRIVERS})
+
+
+def check_allow_driver_detail(detail):
+    """Check if getting detailed driver info is allowed.
+
+    Version 1.30 of the API allows this.
+    """
+    if detail is not None and not allow_dynamic_drivers():
+        raise exception.NotAcceptable(_(
+            "Request not acceptable. The minimal required API version "
+            "should be %(base)s.%(opr)s") %
+            {'base': versions.BASE_VERSION,
+             'opr': versions.MINOR_30_DYNAMIC_DRIVERS})
+
+
 def initial_node_provision_state():
     """Return node state to use by default when creating new nodes.
 
@@ -487,6 +513,16 @@ def allow_vifs_subcontroller():
     """
     return (pecan.request.version.minor >=
             versions.MINOR_28_VIFS_SUBCONTROLLER)
+
+
+def allow_dynamic_drivers():
+    """Check if dynamic driver API calls are allowed.
+
+    Version 1.30 of the API added support for all of the driver
+    composition related calls in the /v1/drivers API.
+    """
+    return (pecan.request.version.minor >=
+            versions.MINOR_30_DYNAMIC_DRIVERS)
 
 
 def get_controller_reserved_names(cls):
