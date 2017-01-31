@@ -142,9 +142,12 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
             self._start_service(start_periodic_tasks=True)
 
         tasks = {c[0] for c in self.service._periodic_task_callables}
-        for t in (obj.task, obj.iface.iface):
-            self.assertTrue(periodics.is_periodic(t))
-            self.assertIn(t, tasks)
+        self.assertTrue(periodics.is_periodic(obj.iface.iface))
+        self.assertIn(obj.iface.iface, tasks)
+
+        # no periodic tasks from the Driver object
+        self.assertTrue(periodics.is_periodic(obj.task))
+        self.assertNotIn(obj.task, tasks)
 
     @mock.patch.object(driver_factory.DriverFactory, '__init__')
     def test_start_fails_on_missing_driver(self, mock_df):
