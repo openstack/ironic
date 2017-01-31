@@ -531,7 +531,18 @@
 
 # Use ROUTER remote proxy. (boolean value)
 # Deprecated group/name - [DEFAULT]/use_router_proxy
-#use_router_proxy = true
+#use_router_proxy = false
+
+# This option makes direct connections dynamic or static. It
+# makes sense only with use_router_proxy=False which means to
+# use direct connections for direct message types (ignored
+# otherwise). (boolean value)
+#use_dynamic_connections = false
+
+# How many additional connections to a host will be made for
+# failover reasons. This option is actual only in dynamic
+# connections mode. (integer value)
+#zmq_failover_connections = 2
 
 # Minimal port number for random ports range. (port value)
 # Minimum value: 0
@@ -1230,7 +1241,6 @@
 # random data. This is only used if a device could not be ATA
 # Secure Erased. Defaults to 1. (integer value)
 # Minimum value: 0
-# Deprecated group/name - [deploy]/erase_devices_iterations
 #shred_random_overwrite_iterations = 1
 
 # Whether to write zeros to a node's block devices after
@@ -2393,18 +2403,18 @@
 # Deprecated group/name - [amqp1]/trace
 #trace = false
 
-# CA certificate PEM file to verify server certificate (string
-# value)
+# CA certificate PEM file used to verify the server's
+# certificate (string value)
 # Deprecated group/name - [amqp1]/ssl_ca_file
 #ssl_ca_file =
 
-# Identifying certificate PEM file to present to clients
-# (string value)
+# Self-identifying certificate PEM file for client
+# authentication (string value)
 # Deprecated group/name - [amqp1]/ssl_cert_file
 #ssl_cert_file =
 
-# Private key PEM file used to sign cert_file certificate
-# (string value)
+# Private key PEM file used to sign ssl_cert_file certificate
+# (optional) (string value)
 # Deprecated group/name - [amqp1]/ssl_key_file
 #ssl_key_file =
 
@@ -2413,8 +2423,12 @@
 # Deprecated group/name - [amqp1]/ssl_key_password
 #ssl_key_password = <None>
 
-# Accept clients using either SSL or plain TCP (boolean value)
+# DEPRECATED: Accept clients using either SSL or plain TCP
+# (boolean value)
 # Deprecated group/name - [amqp1]/allow_insecure_clients
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Not applicable - not a SSL server
 #allow_insecure_clients = false
 
 # Space separated list of acceptable SASL mechanisms (string
@@ -2460,8 +2474,12 @@
 # Minimum value: 1
 #link_retry_delay = 10
 
-# The deadline for an rpc reply message delivery. Only used
-# when caller does not provide a timeout expiry. (integer
+# The maximum number of attempts to re-send a reply message
+# which failed due to a recoverable error. (integer value)
+# Minimum value: -1
+#default_reply_retry = 0
+
+# The deadline for an rpc reply message delivery. (integer
 # value)
 # Minimum value: 5
 #default_reply_timeout = 30
@@ -2573,6 +2591,55 @@
 #  (multi valued)
 #pre_settled = rpc-cast
 #pre_settled = rpc-reply
+
+
+[oslo_messaging_kafka]
+
+#
+# From oslo.messaging
+#
+
+# DEPRECATED: Default Kafka broker Host (string value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Replaced by [DEFAULT]/transport_url
+#kafka_default_host = localhost
+
+# DEPRECATED: Default Kafka broker Port (port value)
+# Minimum value: 0
+# Maximum value: 65535
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Replaced by [DEFAULT]/transport_url
+#kafka_default_port = 9092
+
+# Max fetch bytes of Kafka consumer (integer value)
+#kafka_max_fetch_bytes = 1048576
+
+# Default timeout(s) for Kafka consumers (integer value)
+#kafka_consumer_timeout = 1.0
+
+# Pool Size for Kafka Consumers (integer value)
+#pool_size = 10
+
+# The pool size limit for connections expiration policy
+# (integer value)
+#conn_pool_min_size = 2
+
+# The time-to-live in sec of idle connections in the pool
+# (integer value)
+#conn_pool_ttl = 1200
+
+# Group id for Kafka consumer. Consumers in one group will
+# coordinate message consumption (string value)
+#consumer_group = oslo_messaging_consumer
+
+# Upper bound on the delay for KafkaProducer batching in
+# seconds (floating point value)
+#producer_batch_timeout = 0.0
+
+# Size of batch for the producer async send (integer value)
+#producer_batch_size = 16384
 
 
 [oslo_messaging_notifications]
@@ -2954,7 +3021,18 @@
 
 # Use ROUTER remote proxy. (boolean value)
 # Deprecated group/name - [DEFAULT]/use_router_proxy
-#use_router_proxy = true
+#use_router_proxy = false
+
+# This option makes direct connections dynamic or static. It
+# makes sense only with use_router_proxy=False which means to
+# use direct connections for direct message types (ignored
+# otherwise). (boolean value)
+#use_dynamic_connections = false
+
+# How many additional connections to a host will be made for
+# failover reasons. This option is actual only in dynamic
+# connections mode. (integer value)
+#zmq_failover_connections = 2
 
 # Minimal port number for random ports range. (port value)
 # Minimum value: 0
