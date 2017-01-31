@@ -644,6 +644,12 @@ power_state:
   in: body
   required: true
   type: string
+power_timeout:
+  description: |
+    Timeout for a power state transition. Added in API microversion 1.27.
+  in: body
+  required: false
+  type: integer
 properties:
   description: |
     A list of links to driver properties.
@@ -728,7 +734,9 @@ supported_boot_devices:
 target_power_state:
   description: |
     If a power state transition has been requested, this field represents the
-    requested (ie, "target") state.
+    requested (ie, "target") state either "power on", "power off", or "rebooting".
+    Added new target power states "soft power off" and "soft rebooting" in API
+    microversion 1.27.
   in: body
   required: true
   type: string
