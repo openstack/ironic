@@ -77,6 +77,17 @@ opts = [
                help=_('On ironic-conductor node, directory where master TFTP '
                       'images are stored on disk. '
                       'Setting to <None> disables image caching.')),
+    cfg.IntOpt('dir_permission',
+               help=_("The permission that will be applied to the TFTP "
+                      "folders upon creation. This should be set to the "
+                      "permission such that the tftpserver has access to "
+                      "read the contents of the configured TFTP folder. This "
+                      "setting is only required when the operating system's "
+                      "umask is restrictive such that ironic-conductor is "
+                      "creating files that cannot be read by the TFTP server. "
+                      "Setting to <None> will result in the operating "
+                      "system's umask to be utilized for the creation of new "
+                      "tftp folders.")),
     cfg.StrOpt('pxe_bootfile_name',
                default='pxelinux.0',
                help=_('Bootfile DHCP parameter.')),
