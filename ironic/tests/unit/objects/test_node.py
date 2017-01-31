@@ -25,7 +25,7 @@ from ironic.tests.unit.db import utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 
-class TestNodeObject(base.DbTestCase):
+class TestNodeObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
 
     def setUp(self):
         super(TestNodeObject, self).setUp()
@@ -244,21 +244,4 @@ class TestNodeObject(base.DbTestCase):
             self.assertEqual(expect, values['properties'])
 
     def test_payload_schemas(self):
-        """Assert that the node's Payload SCHEMAs have the expected properties.
-
-           A payload's SCHEMA should:
-
-           1. Have each of its keys in the payload's fields
-           2. Have each member of the schema match with a corresponding field
-              in the Node object
-        """
-        payloads = obj_utils.get_payloads_with_schemas(objects.node)
-        for payload in payloads:
-            for schema_key in payload.SCHEMA:
-                self.assertIn(schema_key, payload.fields,
-                              "for %s, schema key %s is not in fields"
-                              % (payload, schema_key))
-                node_key = payload.SCHEMA[schema_key][1]
-                self.assertIn(node_key, objects.Node.fields,
-                              "for %s, schema key %s has invalid node field %s"
-                              % (payload, schema_key, node_key))
+        self._check_payload_schemas(objects.node, objects.Node.fields)

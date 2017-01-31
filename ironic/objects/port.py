@@ -307,7 +307,8 @@ class PortCRUDNotification(notification.NotificationBase):
 @base.IronicObjectRegistry.register
 class PortCRUDPayload(notification.NotificationPayloadBase):
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Add "portgroup_uuid" field
+    VERSION = '1.1'
 
     SCHEMA = {
         'address': ('port', 'address'),
@@ -326,12 +327,13 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
             nullable=True),
         'pxe_enabled': object_fields.BooleanField(nullable=True),
         'node_uuid': object_fields.UUIDField(),
+        'portgroup_uuid': object_fields.UUIDField(nullable=True),
         'created_at': object_fields.DateTimeField(nullable=True),
         'updated_at': object_fields.DateTimeField(nullable=True),
         'uuid': object_fields.UUIDField()
-        # TODO(yuriyz): add "portgroup_uuid" field with portgroup notifications
     }
 
-    def __init__(self, port, node_uuid):
-        super(PortCRUDPayload, self).__init__(node_uuid=node_uuid)
+    def __init__(self, port, node_uuid, portgroup_uuid):
+        super(PortCRUDPayload, self).__init__(node_uuid=node_uuid,
+                                              portgroup_uuid=portgroup_uuid)
         self.populate_schema(port=port)

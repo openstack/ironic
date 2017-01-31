@@ -428,9 +428,11 @@ expected_object_fingerprints = {
     'NodeCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
     'NodeCRUDPayload': '1.1-35c16dd49d75812763e4e99bfebc3191',
     'PortCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
-    'PortCRUDPayload': '1.0-88acd98c9b08b4c8810e77793152057b',
+    'PortCRUDPayload': '1.1-1ecf2d63b68014c52cb52d0227f8b5b8',
     'NodeMaintenanceNotification': '1.0-59acc533c11d306f149846f922739c15',
-    'NodeConsoleNotification': '1.0-59acc533c11d306f149846f922739c15'
+    'NodeConsoleNotification': '1.0-59acc533c11d306f149846f922739c15',
+    'PortgroupCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
+    'PortgroupCRUDPayload': '1.0-b73c1fecf0cef3aa56bbe3c7e2275018',
 }
 
 

@@ -245,3 +245,27 @@ def get_payloads_with_schemas(from_module):
                 payloads.append(payload)
 
     return payloads
+
+
+class SchemasTestMixIn(object):
+    def _check_payload_schemas(self, from_module, fields):
+        """Assert that the Payload SCHEMAs have the expected properties.
+
+           A payload's SCHEMA should:
+
+           1. Have each of its keys in the payload's fields
+           2. Have each member of the schema match with a corresponding field
+           in the object
+        """
+        resource = from_module.__name__.split('.')[-1]
+        payloads = get_payloads_with_schemas(from_module)
+        for payload in payloads:
+            for schema_key in payload.SCHEMA:
+                self.assertIn(schema_key, payload.fields,
+                              "for %s, schema key %s is not in fields"
+                              % (payload, schema_key))
+                key = payload.SCHEMA[schema_key][1]
+                self.assertIn(key, fields,
+                              "for %s, schema key %s has invalid %s "
+                              "field %s" % (payload, schema_key, resource,
+                                            key))

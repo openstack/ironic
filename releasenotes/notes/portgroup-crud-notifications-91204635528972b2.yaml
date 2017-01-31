@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds notifications for creation, updates, or deletions of port groups.
+    Event types are formatted as follows:
+
+    * baremetal.portgroup.{create, update, delete}.{start,end,error}
+
+    Also adds portgroup_uuid field to port notifications, port payload version
+    bumped to 1.1.

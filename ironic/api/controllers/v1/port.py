@@ -533,13 +533,15 @@ class PortsController(rest.RestController):
 
         new_port = objects.Port(context, **pdict)
 
+        notify_extra = {'node_uuid': port.node_uuid,
+                        'portgroup_uuid': port.portgroup_uuid}
         notify.emit_start_notification(context, new_port, 'create',
-                                       node_uuid=port.node_uuid)
+                                       **notify_extra)
         with notify.handle_error_notification(context, new_port, 'create',
-                                              node_uuid=port.node_uuid):
+                                              **notify_extra):
             new_port.create()
         notify.emit_end_notification(context, new_port, 'create',
-                                     node_uuid=port.node_uuid)
+                                     **notify_extra)
         # Set the HTTP Location Header
         pecan.response.location = link.build_url('ports', new_port.uuid)
         return Port.convert_with_links(new_port)
@@ -607,17 +609,19 @@ class PortsController(rest.RestController):
                 rpc_port[field] = patch_val
 
         rpc_node = objects.Node.get_by_id(context, rpc_port.node_id)
+        notify_extra = {'node_uuid': rpc_node.uuid,
+                        'portgroup_uuid': port.portgroup_uuid}
         notify.emit_start_notification(context, rpc_port, 'update',
-                                       node_uuid=rpc_node.uuid)
+                                       **notify_extra)
         with notify.handle_error_notification(context, rpc_port, 'update',
-                                              node_uuid=rpc_node.uuid):
+                                              **notify_extra):
             topic = pecan.request.rpcapi.get_topic_for(rpc_node)
             new_port = pecan.request.rpcapi.update_port(context, rpc_port,
                                                         topic)
 
         api_port = Port.convert_with_links(new_port)
         notify.emit_end_notification(context, new_port, 'update',
-                                     node_uuid=api_port.node_uuid)
+                                     **notify_extra)
 
         return api_port
 
@@ -638,11 +642,20 @@ class PortsController(rest.RestController):
 
         rpc_port = objects.Port.get_by_uuid(context, port_uuid)
         rpc_node = objects.Node.get_by_id(context, rpc_port.node_id)
+
+        portgroup_uuid = None
+        if rpc_port.portgroup_id:
+            portgroup = objects.Portgroup.get_by_id(context,
+                                                    rpc_port.portgroup_id)
+            portgroup_uuid = portgroup.uuid
+
+        notify_extra = {'node_uuid': rpc_node.uuid,
+                        'portgroup_uuid': portgroup_uuid}
         notify.emit_start_notification(context, rpc_port, 'delete',
-                                       node_uuid=rpc_node.uuid)
+                                       **notify_extra)
         with notify.handle_error_notification(context, rpc_port, 'delete',
-                                              node_uuid=rpc_node.uuid):
+                                              **notify_extra):
             topic = pecan.request.rpcapi.get_topic_for(rpc_node)
             pecan.request.rpcapi.destroy_port(context, rpc_port, topic)
         notify.emit_end_notification(context, rpc_port, 'delete',
-                                     node_uuid=rpc_node.uuid)
+                                     **notify_extra)

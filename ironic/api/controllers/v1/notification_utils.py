@@ -26,6 +26,7 @@ from ironic.objects import fields
 from ironic.objects import node as node_objects
 from ironic.objects import notification
 from ironic.objects import port as port_objects
+from ironic.objects import portgroup as portgroup_objects
 
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
@@ -37,7 +38,9 @@ CRUD_NOTIFY_OBJ = {
     'node': (node_objects.NodeCRUDNotification,
              node_objects.NodeCRUDPayload),
     'port': (port_objects.PortCRUDNotification,
-             port_objects.PortCRUDPayload)
+             port_objects.PortCRUDPayload),
+    'portgroup': (portgroup_objects.PortgroupCRUDNotification,
+                  portgroup_objects.PortgroupCRUDPayload)
 }
 
 
