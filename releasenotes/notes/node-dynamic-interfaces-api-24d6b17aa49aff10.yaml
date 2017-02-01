@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Adds version 1.31 of the REST API, which exposes the following fields on
+    the node resource, to allow getting and setting interfaces for a dynamic
+    driver:
+
+    * boot_interface
+    * console_interface
+    * deploy_interface
+    * inspect_interface
+    * management_interface
+    * power_interface
+    * raid_interface
+    * vendor_interface

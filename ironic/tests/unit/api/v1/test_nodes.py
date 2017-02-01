@@ -116,6 +116,8 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn('target_raid_config', data['nodes'][0])
         self.assertNotIn('network_interface', data['nodes'][0])
         self.assertNotIn('resource_class', data['nodes'][0])
+        for field in api_utils.V31_FIELDS:
+            self.assertNotIn(field, data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -147,6 +149,8 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('states', data)
         self.assertIn('network_interface', data)
         self.assertIn('resource_class', data)
+        for field in api_utils.V31_FIELDS:
+            self.assertIn(field, data)
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data)
 
@@ -157,6 +161,14 @@ class TestListNodes(test_api_base.BaseApiTest):
             '/nodes/%s' % node.uuid,
             headers={api_base.Version.string: '1.8'})
         self.assertNotIn('states', data)
+
+    def test_node_interface_fields_hidden_in_lower_version(self):
+        node = obj_utils.create_test_node(self.context)
+        data = self.get_json(
+            '/nodes/%s' % node.uuid,
+            headers={api_base.Version.string: '1.30'})
+        for field in api_utils.V31_FIELDS:
+            self.assertNotIn(field, data)
 
     def test_get_one_custom_fields(self):
         node = obj_utils.create_test_node(self.context,
@@ -237,6 +249,26 @@ class TestListNodes(test_api_base.BaseApiTest):
             headers={api_base.Version.string: str(api_v1.MAX_VER)})
         self.assertIn('network_interface', response)
 
+    def test_get_all_interface_fields_invalid_api_version(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        fields_arg = ','.join(api_utils.V31_FIELDS)
+        response = self.get_json(
+            '/nodes/%s?fields=%s' % (node.uuid, fields_arg),
+            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+    def test_get_all_interface_fields(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        fields_arg = ','.join(api_utils.V31_FIELDS)
+        response = self.get_json(
+            '/nodes/%s?fields=%s' % (node.uuid, fields_arg),
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        for field in api_utils.V31_FIELDS:
+            self.assertIn(field, response)
+
     def test_detail(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
@@ -261,6 +293,9 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('raid_config', data['nodes'][0])
         self.assertIn('target_raid_config', data['nodes'][0])
         self.assertIn('network_interface', data['nodes'][0])
+        self.assertIn('resource_class', data['nodes'][0])
+        for field in api_utils.V31_FIELDS:
+            self.assertIn(field, data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -356,6 +391,18 @@ class TestListNodes(test_api_base.BaseApiTest):
             '/nodes/detail', headers={api_base.Version.string: '1.21'})
         self.assertEqual(node.resource_class,
                          new_data['nodes'][0]["resource_class"])
+
+    def test_hide_fields_in_newer_versions_interface_fields(self):
+        node = obj_utils.create_test_node(self.context)
+        data = self.get_json(
+            '/nodes/detail', headers={api_base.Version.string: '1.30'})
+        for field in api_utils.V31_FIELDS:
+            self.assertNotIn(field, data['nodes'][0])
+        new_data = self.get_json(
+            '/nodes/detail', headers={api_base.Version.string: '1.31'})
+        for field in api_utils.V31_FIELDS:
+            self.assertEqual(getattr(node, field),
+                             new_data['nodes'][0][field])
 
     def test_many(self):
         nodes = []
@@ -1739,6 +1786,35 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
 
+    def test_update_interface_fields(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+        for field in api_utils.V31_FIELDS:
+            response = self.patch_json('/nodes/%s' % node.uuid,
+                                       [{'path': '/%s' % field,
+                                         'value': 'fake',
+                                         'op': 'add'}],
+                                       headers=headers)
+            self.assertEqual('application/json', response.content_type)
+            self.assertEqual(http_client.OK, response.status_code)
+
+    def test_update_interface_fields_bad_version(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.30'}
+        for field in api_utils.V31_FIELDS:
+            response = self.patch_json('/nodes/%s' % node.uuid,
+                                       [{'path': '/%s' % field,
+                                         'value': 'fake',
+                                         'op': 'add'}],
+                                       headers=headers,
+                                       expect_errors=True)
+            self.assertEqual('application/json', response.content_type)
+            self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+
 
 def _create_node_locally(node):
     driver_factory.check_and_update_node_interfaces(node)
@@ -1811,6 +1887,24 @@ class TestPost(test_api_base.BaseApiTest):
         result = self._test_create_node(headers=headers,
                                         network_interface='neutron')
         self.assertEqual('neutron', result['network_interface'])
+
+    def test_create_node_specify_interfaces(self):
+        headers = {api_base.Version.string: '1.31'}
+        for field in api_utils.V31_FIELDS:
+            node = {
+                'uuid': uuidutils.generate_uuid(),
+                field: 'fake'
+            }
+            result = self._test_create_node(headers=headers, **node)
+            self.assertEqual('fake', result[field])
+
+    def test_create_node_specify_interfaces_bad_version(self):
+        headers = {api_base.Version.string: '1.30'}
+        for field in api_utils.V31_FIELDS:
+            ndict = test_api_utils.post_get_test_node(**{field: 'fake'})
+            response = self.post_json('/nodes', ndict, headers=headers,
+                                      expect_errors=True)
+            self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
     def test_create_node_name_empty_invalid(self):
         ndict = test_api_utils.post_get_test_node(name='')

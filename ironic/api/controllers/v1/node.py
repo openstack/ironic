@@ -148,6 +148,10 @@ def hide_fields_in_newer_versions(obj):
     if not api_utils.allow_resource_class():
         obj.resource_class = wsme.Unset
 
+    if not api_utils.allow_dynamic_interfaces():
+        for field in api_utils.V31_FIELDS:
+            setattr(obj, field, wsme.Unset)
+
 
 def update_state_in_older_versions(obj):
     """Change provision state names for API backwards compatibility.
@@ -812,8 +816,32 @@ class Node(base.APIBase):
     states = wsme.wsattr([link.Link], readonly=True)
     """Links to endpoint for retrieving and setting node states"""
 
+    boot_interface = wsme.wsattr(wtypes.text)
+    """The boot interface to be used for this node"""
+
+    console_interface = wsme.wsattr(wtypes.text)
+    """The console interface to be used for this node"""
+
+    deploy_interface = wsme.wsattr(wtypes.text)
+    """The deploy interface to be used for this node"""
+
+    inspect_interface = wsme.wsattr(wtypes.text)
+    """The inspect interface to be used for this node"""
+
+    management_interface = wsme.wsattr(wtypes.text)
+    """The management interface to be used for this node"""
+
     network_interface = wsme.wsattr(wtypes.text)
     """The network interface to be used for this node"""
+
+    power_interface = wsme.wsattr(wtypes.text)
+    """The power interface to be used for this node"""
+
+    raid_interface = wsme.wsattr(wtypes.text)
+    """The raid interface to be used for this node"""
+
+    vendor_interface = wsme.wsattr(wtypes.text)
+    """The vendor interface to be used for this node"""
 
     # NOTE(deva): "conductor_affinity" shouldn't be presented on the
     #             API because it's an internal value. Don't add it here.
@@ -949,7 +977,11 @@ class Node(base.APIBase):
                      inspection_finished_at=None, inspection_started_at=time,
                      console_enabled=False, clean_step={},
                      raid_config=None, target_raid_config=None,
-                     network_interface='flat', resource_class='baremetal-gold')
+                     network_interface='flat', resource_class='baremetal-gold',
+                     boot_interface=None, console_interface=None,
+                     deploy_interface=None, inspect_interface=None,
+                     management_interface=None, power_interface=None,
+                     raid_interface=None, vendor_interface=None)
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
@@ -1551,6 +1583,11 @@ class NodesController(rest.RestController):
                 n_interface is not wtypes.Unset):
             raise exception.NotAcceptable()
 
+        if not api_utils.allow_dynamic_interfaces():
+            for field in api_utils.V31_FIELDS:
+                if getattr(node, field) is not wsme.Unset:
+                    raise exception.NotAcceptable()
+
         # NOTE(deva): get_topic_for checks if node.driver is in the hash ring
         #             and raises NoValidHost if it is not.
         #             We need to ensure that node has a UUID before it can
@@ -1609,6 +1646,11 @@ class NodesController(rest.RestController):
         n_interfaces = api_utils.get_patch_values(patch, '/network_interface')
         if n_interfaces and not api_utils.allow_network_interface():
             raise exception.NotAcceptable()
+
+        if not api_utils.allow_dynamic_interfaces():
+            for field in api_utils.V31_FIELDS:
+                if api_utils.get_patch_values(patch, '/%s' % field):
+                    raise exception.NotAcceptable()
 
         rpc_node = api_utils.get_rpc_node(node_ident)
 

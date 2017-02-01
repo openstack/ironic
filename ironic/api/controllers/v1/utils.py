@@ -54,6 +54,17 @@ MIN_VERB_VERSIONS = {
     states.VERBS['adopt']: versions.MINOR_17_ADOPT_VERB,
 }
 
+V31_FIELDS = [
+    'boot_interface',
+    'console_interface',
+    'deploy_interface',
+    'inspect_interface',
+    'management_interface',
+    'power_interface',
+    'raid_interface',
+    'vendor_interface',
+]
+
 
 def validate_limit(limit):
     if limit is None:
@@ -286,6 +297,9 @@ def check_allowed_fields(fields):
         raise exception.NotAcceptable()
     if 'resource_class' in fields and not allow_resource_class():
         raise exception.NotAcceptable()
+    if not allow_dynamic_interfaces():
+        if set(V31_FIELDS).intersection(set(fields)):
+            raise exception.NotAcceptable()
 
 
 def check_allowed_portgroup_fields(fields):
@@ -523,6 +537,16 @@ def allow_dynamic_drivers():
     """
     return (pecan.request.version.minor >=
             versions.MINOR_30_DYNAMIC_DRIVERS)
+
+
+def allow_dynamic_interfaces():
+    """Check if dynamic interface fields are allowed.
+
+    Version 1.31 of the API added support for viewing and setting the fields
+    in ``V31_FIELDS`` on the node object.
+    """
+    return (pecan.request.version.minor >=
+            versions.MINOR_31_DYNAMIC_INTERFACES)
 
 
 def get_controller_reserved_names(cls):
