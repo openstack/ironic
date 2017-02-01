@@ -191,10 +191,12 @@ class NeutronNetwork(common.VIFPortIDMixin,
                 if client_id:
                     client_id_opt = (
                         {'opt_name': 'client-id', 'opt_value': client_id})
+
+            # NOTE(sambetts) Only update required binding: attributes and
+            # admin state, because other port attributes may have been set by
+            # the user or nova.
             body = {
                 'port': {
-                    'device_owner': 'baremetal:none',
-                    'device_id': node.instance_uuid or node.uuid,
                     'admin_state_up': True,
                     'binding:vnic_type': 'baremetal',
                     'binding:host_id': node.uuid,
