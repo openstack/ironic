@@ -1080,10 +1080,7 @@ class NodeVendorPassthruController(rest.RestController):
         :param data: body of data to supply to the specified method.
         """
         cdict = pecan.request.context.to_policy_values()
-        if method == 'heartbeat':
-            policy.authorize('baremetal:node:ipa_heartbeat', cdict, cdict)
-        else:
-            policy.authorize('baremetal:node:vendor_passthru', cdict, cdict)
+        policy.authorize('baremetal:node:vendor_passthru', cdict, cdict)
 
         # Raise an exception if node is not found
         rpc_node = api_utils.get_rpc_node(node_ident)
