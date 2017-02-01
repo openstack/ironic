@@ -789,9 +789,6 @@ class Connection(api.Connection):
                     '%(nodes)s'), {'nodes': nodes})
 
     def get_active_driver_dict(self, interval=None):
-        if interval is None:
-            interval = CONF.conductor.heartbeat_timeout
-
         query = model_query(models.Conductor)
         result = _filter_active_conductors(query, interval=interval)
 
