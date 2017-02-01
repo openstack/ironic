@@ -627,7 +627,7 @@ class PortsController(rest.RestController):
         """Delete a port.
 
         :param port_uuid: UUID of a port.
-        :raises OperationNotPermitted, HTTPNotFound
+        :raises: OperationNotPermitted, HTTPNotFound
         """
         context = pecan.request.context
         cdict = context.to_policy_values()

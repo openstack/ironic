@@ -100,8 +100,8 @@ class NotificationBase(base.IronicObject):
     def emit(self, context):
         """Send the notification.
 
-           :raises NotificationPayloadError
-           :raises oslo_versionedobjects.exceptions.MessageDeliveryFailure
+           :raises: NotificationPayloadError
+           :raises: oslo_versionedobjects.exceptions.MessageDeliveryFailure
         """
         if not self._should_notify():
             return
@@ -143,8 +143,8 @@ class NotificationPayloadBase(base.IronicObject):
 
         :param kwargs: A dict contains the source object and the keys defined
                        in the SCHEMA
-        :raises NotificationSchemaObjectError
-        :raises NotificationSchemaKeyError
+        :raises: NotificationSchemaObjectError
+        :raises: NotificationSchemaKeyError
         """
         for key, (obj, field) in self.SCHEMA.items():
             try:

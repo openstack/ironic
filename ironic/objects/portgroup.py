@@ -81,7 +81,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     def get_by_id(cls, context, portgroup_id):
         """Find a portgroup based on its integer id and return a Portgroup object.
 
-        :param portgroup id: The id of a portgroup.
+        :param portgroup_id: The id of a portgroup.
         :param context: Security context
         :returns: A :class:`Portgroup` object.
         :raises: PortgroupNotFound
