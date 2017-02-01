@@ -26,7 +26,6 @@ from ironic.common import network
 from ironic.common import neutron
 from ironic.conf import CONF
 from ironic.dhcp import base
-from ironic.drivers.modules import ssh
 from ironic import objects
 
 LOG = logging.getLogger(__name__)
@@ -146,14 +145,6 @@ class NeutronDHCPApi(base.BaseDHCP):
         # sufficient DHCP config for netboot. It may occur when we are using
         # VMs or hardware server with fast boot enabled.
         port_delay = CONF.neutron.port_setup_delay
-        # TODO(vsaienko) remove hardcoded value for SSHPower driver
-        # after Newton release.
-        if isinstance(task.driver.power, ssh.SSHPower) and port_delay == 0:
-            LOG.warning(_LW("Setting the port delay to 15 for SSH power "
-                            "driver by default, this will be removed in "
-                            "Ocata release. Please set configuration "
-                            "parameter port_setup_delay to 15."))
-            port_delay = 15
         if port_delay != 0:
             LOG.debug("Waiting %d seconds for Neutron.", port_delay)
             time.sleep(port_delay)

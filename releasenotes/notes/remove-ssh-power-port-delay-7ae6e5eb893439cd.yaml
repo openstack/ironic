@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    For SSH power drivers, if the configuration option
+    ``[neutron]/port_setup_delay`` had been set to 0,
+    a delay of 15 seconds was used. This is no longer
+    the case. Please set the configuration option to
+    the desired value; otherwise the service will not
+    wait for Neutron agents to set up a port.
