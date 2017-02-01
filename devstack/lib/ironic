@@ -171,6 +171,9 @@ IRONIC_VM_LOG_CONSOLE=$(trueorfalse True IRONIC_VM_LOG_CONSOLE)
 IRONIC_VM_LOG_DIR=${IRONIC_VM_LOG_DIR:-$IRONIC_DATA_DIR/logs/}
 IRONIC_VM_LOG_ROTATE=$(trueorfalse True IRONIC_VM_LOG_ROTATE)
 
+# Set resource_classes for nodes to use Nova's placement engine
+IRONIC_USE_RESOURCE_CLASSES=$(trueorfalse False IRONIC_USE_RESOURCE_CLASSES)
+
 # Whether to build the ramdisk or download a prebuilt one.
 IRONIC_BUILD_DEPLOY_RAMDISK=$(trueorfalse True IRONIC_BUILD_DEPLOY_RAMDISK)
 
@@ -1326,6 +1329,8 @@ function create_bridge_and_vms {
 }
 
 function wait_for_nova_resources {
+    # TODO(jroll) if IRONIC_USE_RESOURCE_CLASSES, use the placement engine instead
+
     # After nodes have been enrolled, we need to wait for both ironic and
     # nova's periodic tasks to populate the resource tracker with available
     # nodes and resources. Wait up to 2 minutes for a given resource before
@@ -1517,7 +1522,8 @@ function enroll_nodes {
         fi
 
         local node_id
-        node_id=$(ironic node-create $standalone_node_uuid\
+        node_id=$(ironic \
+            node-create $standalone_node_uuid \
             --chassis_uuid $chassis_id \
             --driver $IRONIC_DEPLOY_DRIVER \
             --name $node_prefix-$total_nodes \
@@ -1551,6 +1557,15 @@ function enroll_nodes {
             ironic node-set-maintenance $node_id false
         fi
 
+        local resource_class
+        if [[ "$IRONIC_USE_RESOURCE_CLASSES" == "True" ]]; then
+            # TODO(jroll) consider making this configurable, for now just make it unique per hardware combo
+            # this will look like baremetal_1cpu_256mbram_10gbdisk
+            resource_class="baremetal_${ironic_node_cpu}cpu_${ironic_node_ram}mbram_${ironic_node_disk}gbdisk"
+            openstack --os-baremetal-api-version 1.21 baremetal node set \
+                --resource-class $resource_class $node_id
+        fi
+
         total_nodes=$((total_nodes+1))
         total_cpus=$((total_cpus+$ironic_node_cpu))
     done < $ironic_hwinfo_file
@@ -1559,6 +1574,8 @@ function enroll_nodes {
         if [ "$VIRT_DRIVER" == "ironic" ]; then
             local adjusted_disk
             adjusted_disk=$(($ironic_node_disk - $ironic_ephemeral_disk))
+            # TODO(jroll) use (yet to be defined) new-style flavor here,
+            # if IRONIC_USE_RESOURCE_CLASSES == True
             openstack flavor create --ephemeral $ironic_ephemeral_disk --ram $ironic_node_ram --disk $adjusted_disk --vcpus $ironic_node_cpu baremetal
             openstack flavor set baremetal --property "cpu_arch"="$ironic_node_arch"
 
