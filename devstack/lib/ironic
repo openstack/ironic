@@ -1525,20 +1525,26 @@ function ironic_configure_tempest {
     iniset $TEMPEST_CONFIG compute flavor_ref $bm_flavor_id
     iniset $TEMPEST_CONFIG compute flavor_ref_alt $bm_flavor_id
     iniset $TEMPEST_CONFIG compute-feature-enabled disk_config False
+    # NOTE(jlvillal): If IRONIC_PROVISION_NETWORK_NAME is set it means that
+    # nodes are using the neutron network driver / multi-tenant networking.
+    # Otherwise we are using a flat-network.
     if [[ -n "${IRONIC_PROVISION_NETWORK_NAME}" ]]; then
+        # multi-tenant networking
         iniset $TEMPEST_CONFIG baremetal use_provision_network True
+    else
+        # flat-network
+        iniset $TEMPEST_CONFIG compute fixed_network_name $PRIVATE_NETWORK_NAME
+        # NOTE(jroll) this disables multitenant network tests from tempest's
+        # tree, but not from our tree. This is a bit inconsistent, we should
+        # fix it.
+        iniset $TEMPEST_CONFIG auth create_isolated_networks False
+        iniset $TEMPEST_CONFIG network shared_physical_network True
     fi
 
     local image_uuid
     image_uuid=$(openstack image show $IRONIC_IMAGE_NAME -f value -c id)
     iniset $TEMPEST_CONFIG compute image_ref $image_uuid
     iniset $TEMPEST_CONFIG compute image_ref_alt $image_uuid
-
-    iniset $TEMPEST_CONFIG auth create_isolated_networks False
-    # NOTE(jroll) this disables multitenant network tests from tempest's
-    # tree, but not from our tree. This is a bit inconsistent, we should
-    # fix it.
-    iniset $TEMPEST_CONFIG network shared_physical_network True
 }
 
 # Restore xtrace + pipefail
