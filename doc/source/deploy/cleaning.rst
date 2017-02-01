@@ -167,10 +167,13 @@ Its value is one of:
 Keep in mind that manual cleaning is only supported in API version 1.15 and
 higher.
 
-An example of doing this with a JSON string::
+Examples of doing this with a JSON string::
 
     ironic --ironic-api-version 1.15 node-set-provision-state \
-    clean --clean-steps '[...]'
+    clean --clean-steps '[{"interface": "deploy", "step": "erase_devices_metadata"}]'
+
+    ironic --ironic-api-version 1.15 node-set-provision-state \
+    clean --clean-steps '[{"interface": "deploy", "step": "erase_devices"}]'
 
 Or with a file::
 
