@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The configuration option ``[deploy]/erase_devices_iterations`` was
+    deprecated in the Newton cycle (6.0.0). It is no longer supported. Please
+    use the option ``[deploy]/shred_random_overwrite_iterations`` instead.

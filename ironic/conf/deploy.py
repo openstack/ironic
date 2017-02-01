@@ -39,10 +39,7 @@ opts = [
                       'ramdisk (defaults to 99 for the '
                       'GenericHardwareManager). If set to 0, will not run '
                       'during cleaning.')),
-    # TODO(mmitchell): Remove the deprecated name/group during Ocata cycle.
     cfg.IntOpt('shred_random_overwrite_iterations',
-               deprecated_name='erase_devices_iterations',
-               deprecated_group='deploy',
                default=1,
                min=0,
                help=_('During shred, overwrite all block devices N times with '
