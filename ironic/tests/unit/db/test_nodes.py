@@ -429,16 +429,6 @@ class DbNodeTestCase(base.DbTestCase):
         res = self.dbapi.update_node(node.id, {'instance_uuid': None})
         self.assertIsNone(res.instance_uuid)
 
-    def test_update_node_already_associated(self):
-        node = utils.create_test_node()
-        new_i_uuid_one = uuidutils.generate_uuid()
-        self.dbapi.update_node(node.id, {'instance_uuid': new_i_uuid_one})
-        new_i_uuid_two = uuidutils.generate_uuid()
-        self.assertRaises(exception.NodeAssociated,
-                          self.dbapi.update_node,
-                          node.id,
-                          {'instance_uuid': new_i_uuid_two})
-
     def test_update_node_instance_already_associated(self):
         node1 = utils.create_test_node(uuid=uuidutils.generate_uuid())
         new_i_uuid = uuidutils.generate_uuid()

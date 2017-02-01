@@ -431,11 +431,6 @@ class Connection(api.Connection):
             except NoResultFound:
                 raise exception.NodeNotFound(node=node_id)
 
-            # Prevent instance_uuid overwriting
-            if values.get("instance_uuid") and ref.instance_uuid:
-                raise exception.NodeAssociated(
-                    node=ref.uuid, instance=ref.instance_uuid)
-
             if 'provision_state' in values:
                 values['provision_updated_at'] = timeutils.utcnow()
                 if values['provision_state'] == states.INSPECTING:
