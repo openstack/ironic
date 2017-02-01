@@ -354,53 +354,53 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
       sudo service ironic-conductor restart
 
 
-PXE Multi-Arch setup
---------------------
+PXE multi-architecture setup
+----------------------------
 
 It is possible to deploy servers of different architecture by one conductor.
+To use this feature, architecture-specific boot and template files must
+be configured using the configuration options
+``[pxe]pxe_bootfile_name_by_arch`` and ``[pxe]pxe_config_template_by_arch``
+respectively, in the Bare Metal service's configuration file
+(/etc/ironic/ironic.conf).
 
-To support this feature, architecture specific boot and template files must
-be configured correctly in the options listed below:
+These two options are dictionary values; the key is the architecture and the
+value is the boot (or config template) file. A node's ``cpu_arch`` property is
+used as the key to get the appropriate boot file and template file. If the
+node's ``cpu_arch`` is not in the dictionary, the configuration options (in
+[pxe] group) ``pxe_bootfile_name``, ``pxe_config_template``,
+``uefi_pxe_bootfile_name`` and ``uefi_pxe_config_template`` will be used
+instead.
 
-* ``pxe_bootfile_name_by_arch``
-* ``pxe_config_template_by_arch``
-
-These two options are dictionary values. Node's ``cpu_arch`` property is used
-as the key to find according boot file and template. If according ``cpu_arch``
-is not found in the dictionary, ``pxe_bootfile_name``, ``pxe_config_template``,
-``uefi_pxe_bootfile_name`` and ``uefi_pxe_config_template`` are referenced as
-usual.
-
-In below example, x86 and x86_64 nodes will be deployed by bootf1 or bootf2
-based on ``boot_mode`` capability('bios' or 'uefi') as there's no 'x86' or
-'x86_64' keys available in ``pxe_bootfile_name_by_arch``. While aarch64 nodes
-will be deployed by bootf3, and ppc64 nodes by bootf4::
-
-    pxe_bootfile_name = bootf1
-    uefi_pxe_bootfile_name = bootf2
-    pxe_bootfile_name_by_arch = aarch64:bootf3,ppc64:bootf4
-
-Following example assumes you are provisioning x86_64 and aarch64 servers, both
-in UEFI boot mode.
-
-Update bootfile and template file configuration parameters in the Bare Metal
-Service's configuration file (/etc/ironic/ironic.conf)::
+In the following example, since 'x86' and 'x86_64' keys are not in the
+``pxe_bootfile_name_by_arch`` or ``pxe_config_template_by_arch`` options, x86
+and x86_64 nodes will be deployed by 'pxelinux.0' or 'bootx64.efi', depending
+on the node's ``boot_mode`` capability ('bios' or 'uefi'). However, aarch64
+nodes will be deployed by 'grubaa64.efi', and ppc64 nodes by 'bootppc64'::
 
     [pxe]
+
+    # Bootfile DHCP parameter. (string value)
+    pxe_bootfile_name=pxelinux.0
+
+    # On ironic-conductor node, template file for PXE
+    # configuration. (string value)
+    pxe_config_template = $pybasedir/drivers/modules/pxe_config.template
 
     # Bootfile DHCP parameter for UEFI boot mode. (string value)
     uefi_pxe_bootfile_name=bootx64.efi
 
-    # Template file for PXE configuration for UEFI boot loader.
-    # (string value)
+    # On ironic-conductor node, template file for PXE
+    # configuration for UEFI boot loader. (string value)
     uefi_pxe_config_template=$pybasedir/drivers/modules/pxe_grub_config.template
 
-    # Bootfile DHCP parameter per node architecture. (dictionary value)
-    pxe_bootfile_name_by_arch=aarch64:grubaa64.efi
+    # Bootfile DHCP parameter per node architecture. (dict value)
+    pxe_bootfile_name_by_arch=aarch64:grubaa64.efi,ppc64:bootppc64
 
-    # Template file for PXE configuration per node architecture.
-    # (dictionary value)
-    pxe_config_template_by_arch=aarch64:pxe_grubaa64_config.template
+    # On ironic-conductor node, template file for PXE
+    # configuration per node architecture. For example:
+    # aarch64:/opt/share/grubaa64_pxe_config.template (dict value)
+    pxe_config_template_by_arch=aarch64:pxe_grubaa64_config.template,ppc64:pxe_ppc64_config.template
 
 
 Networking service configuration
