@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    There is no longer any support for doing an iSCSI deploy on ironic
+    python agent (IPA) ramdisks with versions < 1.3 (Mitaka or earlier).
+    Please upgrade ironic python agent to a newer version.
