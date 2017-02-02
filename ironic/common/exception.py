@@ -343,8 +343,11 @@ class IncompatibleInterface(InvalidParameterValue):
 
 
 class NoValidDefaultForInterface(InvalidParameterValue):
-    _msg_fmt = _("No default value found for %(interface_type)s interface "
-                 "for node %(node)s with driver or hardware type %(driver)s.")
+    # NOTE(rloo): in the line below, there is no blank space after 'For'
+    #             because node_info could be an empty string. If node_info
+    #             is not empty, it should start with a space.
+    _msg_fmt = _("For%(node_info)s %(driver_type)s '%(driver)s', no default "
+                 "value found for %(interface_type)s interface.")
 
 
 class ImageNotFound(NotFound):

@@ -353,13 +353,16 @@ class RegisterInterfacesTestCase(mgr_utils.ServiceSetUpMixin,
                 ('deploy', ['agent', 'iscsi']),
             )),
         ]
-        default_mock.return_value = None
+        default_mock.side_effect = exception.NoValidDefaultForInterface("boo")
 
         self.assertRaises(
             exception.NoValidDefaultForInterface,
             self.service._register_and_validate_hardware_interfaces,
             hardware_types)
 
+        default_mock.assert_called_once_with(
+            hardware_types['fake-hardware'],
+            mock.ANY, driver_name='fake-hardware')
         unreg_mock.assert_called_once_with(mock.ANY)
         self.assertFalse(reg_mock.called)
 

@@ -136,6 +136,8 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         :param context: an admin context
         :param node_obj: a changed (but not saved) node object.
+        :raises: NoValidDefaultForInterface if no default can be calculated
+                 for some interfaces, and explicit values must be provided.
 
         """
         node_id = node_obj.uuid
@@ -334,6 +336,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                                    exception.InvalidParameterValue,
                                    exception.UnsupportedDriverExtension,
                                    exception.DriverNotFound,
+                                   exception.NoValidDefaultForInterface,
                                    exception.InterfaceNotFoundInEntrypoint)
     def driver_vendor_passthru(self, context, driver_name, driver_method,
                                http_method, info):
@@ -362,6 +365,9 @@ class ConductorManager(base_manager.BaseConductorManager):
         :raises: DriverNotFound if the supplied driver is not loaded.
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
+        :raises: NoValidDefaultForInterface if no default interface
+                 implementation can be found for this driver's vendor
+                 interface.
         :raises: InterfaceNotFoundInEntrypoint if the default interface for a
                  hardware type is invalid.
         :returns: A dictionary containing:
@@ -381,17 +387,16 @@ class ConductorManager(base_manager.BaseConductorManager):
         driver = driver_factory.get_driver_or_hardware_type(driver_name)
         vendor = None
         if isinstance(driver, hardware_type.AbstractHardwareType):
-            vendor_name = driver_factory.default_interface(driver, 'vendor')
-            if vendor_name is not None:
-                vendor = driver_factory.get_interface(driver, 'vendor',
-                                                      vendor_name)
+            vendor_name = driver_factory.default_interface(
+                driver, 'vendor', driver_name=driver_name)
+            vendor = driver_factory.get_interface(driver, 'vendor',
+                                                  vendor_name)
         else:
             vendor = getattr(driver, 'vendor', None)
-
-        if not vendor:
-            raise exception.UnsupportedDriverExtension(
-                driver=driver_name,
-                extension='vendor interface')
+            if not vendor:
+                raise exception.UnsupportedDriverExtension(
+                    driver=driver_name,
+                    extension='vendor interface')
 
         try:
             vendor_opts = vendor.driver_routes[driver_method]
@@ -449,6 +454,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     @METRICS.timer('ConductorManager.get_driver_vendor_passthru_methods')
     @messaging.expected_exceptions(exception.UnsupportedDriverExtension,
                                    exception.DriverNotFound,
+                                   exception.NoValidDefaultForInterface,
                                    exception.InterfaceNotFoundInEntrypoint)
     def get_driver_vendor_passthru_methods(self, context, driver_name):
         """Retrieve information about vendor methods of the given driver.
@@ -460,6 +466,9 @@ class ConductorManager(base_manager.BaseConductorManager):
         :raises: UnsupportedDriverExtension if current driver does not have
                  vendor interface.
         :raises: DriverNotFound if the supplied driver is not loaded.
+        :raises: NoValidDefaultForInterface if no default interface
+                 implementation can be found for this driver's vendor
+                 interface.
         :raises: InterfaceNotFoundInEntrypoint if the default interface for a
                  hardware type is invalid.
         :returns: dictionary of <method name>:<method metadata> entries.
@@ -472,17 +481,16 @@ class ConductorManager(base_manager.BaseConductorManager):
         driver = driver_factory.get_driver_or_hardware_type(driver_name)
         vendor = None
         if isinstance(driver, hardware_type.AbstractHardwareType):
-            vendor_name = driver_factory.default_interface(driver, 'vendor')
-            if vendor_name is not None:
-                vendor = driver_factory.get_interface(driver, 'vendor',
-                                                      vendor_name)
+            vendor_name = driver_factory.default_interface(
+                driver, 'vendor', driver_name=driver_name)
+            vendor = driver_factory.get_interface(driver, 'vendor',
+                                                  vendor_name)
         else:
             vendor = getattr(driver, 'vendor', None)
-
-        if not vendor:
-            raise exception.UnsupportedDriverExtension(
-                driver=driver_name,
-                extension='vendor interface')
+            if not vendor:
+                raise exception.UnsupportedDriverExtension(
+                    driver=driver_name,
+                    extension='vendor interface')
 
         return get_vendor_passthru_metadata(vendor.driver_routes)
 
@@ -2380,6 +2388,7 @@ class ConductorManager(base_manager.BaseConductorManager):
 
     @METRICS.timer('ConductorManager.get_raid_logical_disk_properties')
     @messaging.expected_exceptions(exception.UnsupportedDriverExtension,
+                                   exception.NoValidDefaultForInterface,
                                    exception.InterfaceNotFoundInEntrypoint)
     def get_raid_logical_disk_properties(self, context, driver_name):
         """Get the logical disk properties for RAID configuration.
@@ -2392,6 +2401,9 @@ class ConductorManager(base_manager.BaseConductorManager):
         :param driver_name: name of the driver
         :raises: UnsupportedDriverExtension, if the driver doesn't
             support RAID configuration.
+        :raises: NoValidDefaultForInterface if no default interface
+                 implementation can be found for this driver's RAID
+                 interface.
         :raises: InterfaceNotFoundInEntrypoint if the default interface for a
                  hardware type is invalid.
         :returns: A dictionary containing the properties and a textual
@@ -2403,16 +2415,15 @@ class ConductorManager(base_manager.BaseConductorManager):
         driver = driver_factory.get_driver_or_hardware_type(driver_name)
         raid_iface = None
         if isinstance(driver, hardware_type.AbstractHardwareType):
-            raid_iface_name = driver_factory.default_interface(driver, 'raid')
-            if raid_iface_name is not None:
-                raid_iface = driver_factory.get_interface(driver, 'raid',
-                                                          raid_iface_name)
+            raid_iface_name = driver_factory.default_interface(
+                driver, 'raid', driver_name=driver_name)
+            raid_iface = driver_factory.get_interface(driver, 'raid',
+                                                      raid_iface_name)
         else:
             raid_iface = getattr(driver, 'raid', None)
-
-        if not raid_iface:
-            raise exception.UnsupportedDriverExtension(
-                driver=driver_name, extension='raid')
+            if not raid_iface:
+                raise exception.UnsupportedDriverExtension(
+                    driver=driver_name, extension='raid')
 
         return raid_iface.get_logical_disk_properties()
 

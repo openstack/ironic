@@ -20,6 +20,7 @@ import abc
 
 import six
 
+from ironic.common import exception
 from ironic.drivers import base as driver_base
 from ironic.drivers.modules.network import noop as noop_net
 from ironic.drivers.modules import noop
@@ -106,9 +107,14 @@ class AbstractHardwareType(object):
 
         properties = {}
         for iface_type in driver_base.ALL_INTERFACES:
-            default_iface = driver_factory.default_interface(self, iface_type)
-            if default_iface is not None:
-                iface = driver_factory.get_interface(self, iface_type,
-                                                     default_iface)
-                properties.update(iface.get_properties())
+            try:
+                default_iface = driver_factory.default_interface(self,
+                                                                 iface_type)
+            except (exception.InterfaceNotFoundInEntrypoint,
+                    exception.NoValidDefaultForInterface):
+                continue
+
+            iface = driver_factory.get_interface(self, iface_type,
+                                                 default_iface)
+            properties.update(iface.get_properties())
         return properties

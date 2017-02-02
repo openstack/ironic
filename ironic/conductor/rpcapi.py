@@ -158,6 +158,8 @@ class ConductorAPI(object):
         :returns: created node object.
         :raises: InterfaceNotFoundInEntrypoint if validation fails for any
                  dynamic interfaces (e.g. network_interface).
+        :raises: NoValidDefaultForInterface if no default can be calculated
+                 for some interfaces, and explicit values must be provided.
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.36')
         return cctxt.call(context, 'create_node', node_obj=node_obj)
@@ -178,6 +180,8 @@ class ConductorAPI(object):
         :param node_obj: a changed (but not saved) node object.
         :param topic: RPC topic. Defaults to self.topic.
         :returns: updated node object, including all fields.
+        :raises: NoValidDefaultForInterface if no default can be calculated
+                 for some interfaces, and explicit values must be provided.
 
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.1')
@@ -268,6 +272,9 @@ class ConductorAPI(object):
                  async task.
         :raises: InterfaceNotFoundInEntrypoint if the default interface for a
                  hardware type is invalid.
+        :raises: NoValidDefaultForInterface if no default interface
+                 implementation can be found for this driver's vendor
+                 interface.
         :returns: A dictionary containing:
 
             :return: The response of the invoked vendor method
@@ -311,6 +318,9 @@ class ConductorAPI(object):
         :raises: DriverNotFound if the supplied driver is not loaded.
         :raises: InterfaceNotFoundInEntrypoint if the default interface for a
                  hardware type is invalid.
+        :raises: NoValidDefaultForInterface if no default interface
+                 implementation can be found for this driver's vendor
+                 interface.
         :returns: dictionary of <method name>:<method metadata> entries.
 
         """
@@ -675,6 +685,9 @@ class ConductorAPI(object):
             support RAID configuration.
         :raises: InterfaceNotFoundInEntrypoint if the default interface for a
                  hardware type is invalid.
+        :raises: NoValidDefaultForInterface if no default interface
+                 implementation can be found for this driver's RAID
+                 interface.
         :returns: A dictionary containing the properties that can be mentioned
             for logical disks and a textual description for them.
         """

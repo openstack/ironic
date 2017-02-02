@@ -274,10 +274,7 @@ class BaseConductorManager(object):
             interface_map = driver_factory.enabled_supported_interfaces(ht)
             for interface_type, interface_names in interface_map.items():
                 default_interface = driver_factory.default_interface(
-                    ht, interface_type)
-                if default_interface is None:
-                    raise exception.NoValidDefaultForInterface(
-                        interface_type=interface_type, node=None, driver=ht)
+                    ht, interface_type, driver_name=ht_name)
                 self.conductor.register_hardware_interfaces(ht_name,
                                                             interface_type,
                                                             interface_names,
