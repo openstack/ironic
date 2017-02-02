@@ -21,13 +21,17 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
+from ironic.drivers import generic
 from ironic.drivers.modules import agent
+from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import boot
 from ironic.drivers.modules.irmc import inspect
 from ironic.drivers.modules.irmc import management
 from ironic.drivers.modules.irmc import power
 from ironic.drivers.modules import iscsi_deploy
+from ironic.drivers.modules import noop
+from ironic.drivers.modules import pxe
 
 
 class IRMCVirtualMediaIscsiDriver(base.BaseDriver):
@@ -75,3 +79,38 @@ class IRMCVirtualMediaAgentDriver(base.BaseDriver):
         self.console = ipmitool.IPMIShellinaboxConsole()
         self.management = management.IRMCManagement()
         self.inspect = inspect.IRMCInspect()
+
+
+class IRMCHardware(generic.GenericHardware):
+    """iRMC hardware type.
+
+    iRMC hardware type is targeted for FUJITSU PRIMERGY servers which
+    have iRMC S4 management system.
+    """
+
+    @property
+    def supported_boot_interfaces(self):
+        """List of supported boot interfaces."""
+        return [boot.IRMCVirtualMediaBoot, pxe.PXEBoot]
+
+    @property
+    def supported_console_interfaces(self):
+        """List of supported console interfaces."""
+        return [ipmitool.IPMISocatConsole, ipmitool.IPMIShellinaboxConsole,
+                noop.NoConsole]
+
+    @property
+    def supported_inspect_interfaces(self):
+        """List of supported inspect interfaces."""
+        return [inspect.IRMCInspect, inspector.Inspector,
+                noop.NoInspect]
+
+    @property
+    def supported_management_interfaces(self):
+        """List of supported management interfaces."""
+        return [management.IRMCManagement]
+
+    @property
+    def supported_power_interfaces(self):
+        """List of supported power interfaces."""
+        return [power.IRMCPower]
