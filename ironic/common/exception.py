@@ -416,6 +416,11 @@ class VolumeTargetNotFound(NotFound):
     _msg_fmt = _("Volume target %(target)s could not be found.")
 
 
+class DriverNameConflict(IronicException):
+    _msg_fmt = _("Classic and dynamic drivers cannot have the "
+                 "same names '%(names)s'.")
+
+
 class NoDriversLoaded(IronicException):
     _msg_fmt = _("Conductor %(conductor)s cannot be started "
                  "because no drivers were loaded.")
