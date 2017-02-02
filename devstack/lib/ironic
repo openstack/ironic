@@ -92,12 +92,7 @@ IRONIC_HW_ARCH=${IRONIC_HW_ARCH:-x86_64}
 # *_drac:
 #   <BMC address> <MAC address> <BMC username> <BMC password>
 #
-# IRONIC_IPMIINFO_FILE is deprecated, please use IRONIC_HWINFO_FILE. IRONIC_IPMIINFO_FILE will be removed in Ocata.
-IRONIC_IPMIINFO_FILE=${IRONIC_IPMIINFO_FILE:-""}
-if [ ! -z "$IRONIC_IPMIINFO_FILE" ]; then
-    deprecated "IRONIC_IPMIINFO_FILE is deprecated, please switch to IRONIC_HWINFO_FILE. IRONIC_IPMIINFO_FILE will be removed in Ocata."
-fi
-IRONIC_HWINFO_FILE=${IRONIC_HWINFO_FILE:-${IRONIC_IPMIINFO_FILE:-$IRONIC_DATA_DIR/hardware_info}}
+IRONIC_HWINFO_FILE=${IRONIC_HWINFO_FILE:-$IRONIC_DATA_DIR/hardware_info}
 
 # Set up defaults for functional / integration testing
 IRONIC_NODE_UUID=${IRONIC_NODE_UUID:-`uuidgen`}
