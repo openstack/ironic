@@ -158,6 +158,17 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
             self.assertTrue(mock_df.called)
             self.assertFalse(mock_reg.called)
 
+    def test_start_fails_on_no_enabled_interfaces(self):
+        self.config(enabled_boot_interfaces=[])
+        self.assertRaisesRegex(exception.ConfigInvalid,
+                               'options enabled_boot_interfaces',
+                               self.service.init_host)
+
+    def test_starts_without_enabled_hardware_types(self):
+        self.config(enabled_hardware_types=[])
+        self.config(enabled_boot_interfaces=[])
+        self._start_service()
+
     @mock.patch.object(base_manager, 'LOG')
     @mock.patch.object(driver_factory, 'HardwareTypesFactory')
     @mock.patch.object(driver_factory, 'DriverFactory')
@@ -238,6 +249,23 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
         self._start_service()
         self.service.del_host()
         self.assertTrue(wait_mock.called)
+
+
+class CheckInterfacesTestCase(mgr_utils.ServiceSetUpMixin,
+                              tests_db_base.DbTestCase):
+    def test__check_enabled_interfaces_success(self):
+        base_manager._check_enabled_interfaces()
+
+    def test__check_enabled_interfaces_failure(self):
+        self.config(enabled_boot_interfaces=[])
+        self.assertRaisesRegex(exception.ConfigInvalid,
+                               'options enabled_boot_interfaces',
+                               base_manager._check_enabled_interfaces)
+
+    def test__check_enabled_interfaces_skip_if_no_hw_types(self):
+        self.config(enabled_hardware_types=[])
+        self.config(enabled_boot_interfaces=[])
+        base_manager._check_enabled_interfaces()
 
 
 class KeepAliveTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):

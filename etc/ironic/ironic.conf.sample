@@ -43,9 +43,12 @@
 # Specify the list of boot interfaces to load during service
 # initialization. Missing boot interfaces, or boot interfaces
 # which fail to initialize, will prevent the ironic-conductor
-# service from starting. The default value is a recommended
-# set of production-oriented boot interfaces. A complete list
-# of boot interfaces present on your system may be found by
+# service from starting. At least one boot interface that is
+# supported by each enabled hardware type must be enabled
+# here, or the ironic-conductor service will not start. Must
+# not be an empty list. The default value is a recommended set
+# of production-oriented boot interfaces. A complete list of
+# boot interfaces present on your system may be found by
 # enumerating the "ironic.hardware.interfaces.boot"
 # entrypoint. When setting this value, please make sure that
 # every enabled hardware type will have the same set of
@@ -62,8 +65,11 @@
 # Specify the list of console interfaces to load during
 # service initialization. Missing console interfaces, or
 # console interfaces which fail to initialize, will prevent
-# the ironic-conductor service from starting. The default
-# value is a recommended set of production-oriented console
+# the ironic-conductor service from starting. At least one
+# console interface that is supported by each enabled hardware
+# type must be enabled here, or the ironic-conductor service
+# will not start. Must not be an empty list. The default value
+# is a recommended set of production-oriented console
 # interfaces. A complete list of console interfaces present on
 # your system may be found by enumerating the
 # "ironic.hardware.interfaces.console" entrypoint. When
@@ -82,9 +88,12 @@
 # Specify the list of deploy interfaces to load during service
 # initialization. Missing deploy interfaces, or deploy
 # interfaces which fail to initialize, will prevent the
-# ironic-conductor service from starting. The default value is
-# a recommended set of production-oriented deploy interfaces.
-# A complete list of deploy interfaces present on your system
+# ironic-conductor service from starting. At least one deploy
+# interface that is supported by each enabled hardware type
+# must be enabled here, or the ironic-conductor service will
+# not start. Must not be an empty list. The default value is a
+# recommended set of production-oriented deploy interfaces. A
+# complete list of deploy interfaces present on your system
 # may be found by enumerating the
 # "ironic.hardware.interfaces.deploy" entrypoint. When setting
 # this value, please make sure that every enabled hardware
@@ -102,8 +111,11 @@
 # Specify the list of inspect interfaces to load during
 # service initialization. Missing inspect interfaces, or
 # inspect interfaces which fail to initialize, will prevent
-# the ironic-conductor service from starting. The default
-# value is a recommended set of production-oriented inspect
+# the ironic-conductor service from starting. At least one
+# inspect interface that is supported by each enabled hardware
+# type must be enabled here, or the ironic-conductor service
+# will not start. Must not be an empty list. The default value
+# is a recommended set of production-oriented inspect
 # interfaces. A complete list of inspect interfaces present on
 # your system may be found by enumerating the
 # "ironic.hardware.interfaces.inspect" entrypoint. When
@@ -122,14 +134,18 @@
 # Specify the list of management interfaces to load during
 # service initialization. Missing management interfaces, or
 # management interfaces which fail to initialize, will prevent
-# the ironic-conductor service from starting. The default
-# value is a recommended set of production-oriented management
-# interfaces. A complete list of management interfaces present
-# on your system may be found by enumerating the
-# "ironic.hardware.interfaces.management" entrypoint. When
-# setting this value, please make sure that every enabled
-# hardware type will have the same set of enabled management
-# interfaces on every ironic-conductor service. (list value)
+# the ironic-conductor service from starting. At least one
+# management interface that is supported by each enabled
+# hardware type must be enabled here, or the ironic-conductor
+# service will not start. Must not be an empty list. The
+# default value is a recommended set of production-oriented
+# management interfaces. A complete list of management
+# interfaces present on your system may be found by
+# enumerating the "ironic.hardware.interfaces.management"
+# entrypoint. When setting this value, please make sure that
+# every enabled hardware type will have the same set of
+# enabled management interfaces on every ironic-conductor
+# service. (list value)
 #enabled_management_interfaces = ipmitool
 
 # Default management interface to be used for nodes that do
@@ -142,8 +158,11 @@
 # Specify the list of network interfaces to load during
 # service initialization. Missing network interfaces, or
 # network interfaces which fail to initialize, will prevent
-# the ironic-conductor service from starting. The default
-# value is a recommended set of production-oriented network
+# the ironic-conductor service from starting. At least one
+# network interface that is supported by each enabled hardware
+# type must be enabled here, or the ironic-conductor service
+# will not start. Must not be an empty list. The default value
+# is a recommended set of production-oriented network
 # interfaces. A complete list of network interfaces present on
 # your system may be found by enumerating the
 # "ironic.hardware.interfaces.network" entrypoint. When
@@ -162,8 +181,11 @@
 # Specify the list of power interfaces to load during service
 # initialization. Missing power interfaces, or power
 # interfaces which fail to initialize, will prevent the
-# ironic-conductor service from starting. The default value is
-# a recommended set of production-oriented power interfaces. A
+# ironic-conductor service from starting. At least one power
+# interface that is supported by each enabled hardware type
+# must be enabled here, or the ironic-conductor service will
+# not start. Must not be an empty list. The default value is a
+# recommended set of production-oriented power interfaces. A
 # complete list of power interfaces present on your system may
 # be found by enumerating the
 # "ironic.hardware.interfaces.power" entrypoint. When setting
@@ -182,9 +204,12 @@
 # Specify the list of raid interfaces to load during service
 # initialization. Missing raid interfaces, or raid interfaces
 # which fail to initialize, will prevent the ironic-conductor
-# service from starting. The default value is a recommended
-# set of production-oriented raid interfaces. A complete list
-# of raid interfaces present on your system may be found by
+# service from starting. At least one raid interface that is
+# supported by each enabled hardware type must be enabled
+# here, or the ironic-conductor service will not start. Must
+# not be an empty list. The default value is a recommended set
+# of production-oriented raid interfaces. A complete list of
+# raid interfaces present on your system may be found by
 # enumerating the "ironic.hardware.interfaces.raid"
 # entrypoint. When setting this value, please make sure that
 # every enabled hardware type will have the same set of
@@ -201,8 +226,11 @@
 # Specify the list of storage interfaces to load during
 # service initialization. Missing storage interfaces, or
 # storage interfaces which fail to initialize, will prevent
-# the ironic-conductor service from starting. The default
-# value is a recommended set of production-oriented storage
+# the ironic-conductor service from starting. At least one
+# storage interface that is supported by each enabled hardware
+# type must be enabled here, or the ironic-conductor service
+# will not start. Must not be an empty list. The default value
+# is a recommended set of production-oriented storage
 # interfaces. A complete list of storage interfaces present on
 # your system may be found by enumerating the
 # "ironic.hardware.interfaces.storage" entrypoint. When
@@ -221,9 +249,12 @@
 # Specify the list of vendor interfaces to load during service
 # initialization. Missing vendor interfaces, or vendor
 # interfaces which fail to initialize, will prevent the
-# ironic-conductor service from starting. The default value is
-# a recommended set of production-oriented vendor interfaces.
-# A complete list of vendor interfaces present on your system
+# ironic-conductor service from starting. At least one vendor
+# interface that is supported by each enabled hardware type
+# must be enabled here, or the ironic-conductor service will
+# not start. Must not be an empty list. The default value is a
+# recommended set of production-oriented vendor interfaces. A
+# complete list of vendor interfaces present on your system
 # may be found by enumerating the
 # "ironic.hardware.interfaces.vendor" entrypoint. When setting
 # this value, please make sure that every enabled hardware
