@@ -1,5 +1,5 @@
 {
-    "name": "test_node",
+    "name": "test_node_classic",
     "driver": "agent_ipmitool",
     "driver_info": {
         "ipmi_username": "ADMIN",

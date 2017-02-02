@@ -9,7 +9,7 @@
     ],
     "min_version": "1.1",
     "status": "CURRENT",
-    "version": "1.29"
+    "version": "1.31"
   },
   "description": "Ironic is an OpenStack project which aims to provision baremetal machines.",
   "name": "OpenStack Ironic API",
@@ -24,7 +24,7 @@
       ],
       "min_version": "1.1",
       "status": "CURRENT",
-      "version": "1.29"
+      "version": "1.31"
     }
   ]
 }

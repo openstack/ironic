@@ -1,8 +1,11 @@
 {
+  "boot_interface": null,
   "chassis_uuid": null,
   "clean_step": {},
   "console_enabled": false,
+  "console_interface": null,
   "created_at": "2016-08-18T22:28:48.643434+11:11",
+  "deploy_interface": null,
   "driver": "fake",
   "driver_info": {
     "ipmi_password": "******",
@@ -12,6 +15,7 @@
     "clean_steps": null
   },
   "extra": {},
+  "inspect_interface": null,
   "inspection_finished_at": null,
   "inspection_started_at": null,
   "instance_info": {},
@@ -29,7 +33,8 @@
   ],
   "maintenance": false,
   "maintenance_reason": null,
-  "name": "test_node",
+  "management_interface": null,
+  "name": "test_node_classic",
   "network_interface": "flat",
   "portgroups": [
     {
@@ -51,11 +56,13 @@
       "rel": "bookmark"
     }
   ],
+  "power_interface": null,
   "power_state": "power off",
   "properties": {},
   "provision_state": "available",
   "provision_updated_at": "2016-08-18T22:28:49.946416+00:00",
   "raid_config": {},
+  "raid_interface": null,
   "reservation": null,
   "resource_class": null,
   "states": [
@@ -72,5 +79,6 @@
   "target_provision_state": null,
   "target_raid_config": {},
   "updated_at": "2016-08-18T22:28:49.653974+00:00",
-  "uuid": "6d85703a-565d-469a-96ce-30b6de53079d"
+  "uuid": "6d85703a-565d-469a-96ce-30b6de53079d",
+  "vendor_interface": null
 }
