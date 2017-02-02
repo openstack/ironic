@@ -171,7 +171,8 @@ class BaseConductorManager(object):
             self._register_and_validate_hardware_interfaces(hardware_types)
         except (exception.DriverLoadError, exception.DriverNotFound,
                 exception.ConductorHardwareInterfacesAlreadyRegistered,
-                exception.InterfaceNotFoundInEntrypoint) as e:
+                exception.InterfaceNotFoundInEntrypoint,
+                exception.NoValidDefaultForInterface) as e:
             with excutils.save_and_reraise_exception():
                 LOG.error(_LE('Failed to register hardware types. %s'), e)
                 self.del_host()
@@ -263,6 +264,8 @@ class BaseConductorManager(object):
                                hardware type object.
         :raises: ConductorHardwareInterfacesAlreadyRegistered
         :raises: InterfaceNotFoundInEntrypoint
+        :raises: NoValidDefaultForInterface if the default value cannot be
+                 calculated and is not provided in the configuration
         """
         # first unregister, in case we have cruft laying around
         self.conductor.unregister_all_hardware_interfaces()
@@ -272,6 +275,9 @@ class BaseConductorManager(object):
             for interface_type, interface_names in interface_map.items():
                 default_interface = driver_factory.default_interface(
                     ht, interface_type)
+                if default_interface is None:
+                    raise exception.NoValidDefaultForInterface(
+                        interface_type=interface_type, node=None, driver=ht)
                 self.conductor.register_hardware_interfaces(ht_name,
                                                             interface_type,
                                                             interface_names,

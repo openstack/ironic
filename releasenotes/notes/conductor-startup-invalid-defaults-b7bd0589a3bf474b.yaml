@@ -1,0 +1,5 @@
+---
+upgrade:
+  - The conductor will now fail to start up if invalid configuration is
+    provided, such that a default interface implementation for any enabled
+    hardware type cannot be found.

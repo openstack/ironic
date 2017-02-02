@@ -637,7 +637,6 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin,
         self._test_vendor_passthru_async('fake', None)
 
     def test_vendor_passthru_async_hw_type(self):
-        self.config(enabled_vendor_interfaces=['fake'])
         self._test_vendor_passthru_async('fake-hardware', 'fake')
 
     @mock.patch.object(task_manager.TaskManager, 'upgrade_lock')
@@ -3845,12 +3844,10 @@ class RaidHardwareTypeTestCases(RaidTestCases):
     raid_interface = 'fake'
 
     def test_get_raid_logical_disk_properties_iface_not_supported(self):
-        self.config(enabled_raid_interfaces=[])
-        self._start_service()
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.get_raid_logical_disk_properties,
-                                self.context, self.driver_name)
-        self.assertEqual(exception.UnsupportedDriverExtension, exc.exc_info[0])
+        # NOTE(jroll) we don't run this test as get_logical_disk_properties
+        # is supported on all RAID implementations, and we cannot have a
+        # null interface for a hardware type
+        pass
 
     def test_set_target_raid_config_iface_not_supported(self):
         # NOTE(jroll): it's impossible for a dynamic driver to have a null
@@ -4624,7 +4621,8 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
 
 
 @mgr_utils.mock_record_keepalive
-class ManagerTestProperties(tests_db_base.DbTestCase):
+class ManagerTestProperties(mgr_utils.ServiceSetUpMixin,
+                            tests_db_base.DbTestCase):
 
     def setUp(self):
         super(ManagerTestProperties, self).setUp()
@@ -4633,7 +4631,7 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
     def _check_driver_properties(self, driver, expected):
         mgr_utils.mock_the_extension_manager(driver=driver)
         self.driver = driver_factory.get_driver(driver)
-        self.service.init_host()
+        self._start_service()
         properties = self.service.get_driver_properties(self.context, driver)
         self.assertEqual(sorted(expected), sorted(properties.keys()))
 
@@ -4753,16 +4751,13 @@ class ManagerTestProperties(tests_db_base.DbTestCase):
 
 
 @mgr_utils.mock_record_keepalive
-class ManagerTestHardwareTypeProperties(tests_db_base.DbTestCase):
-
-    def setUp(self):
-        super(ManagerTestHardwareTypeProperties, self).setUp()
-        self.service = manager.ConductorManager('test-host', 'test-topic')
+class ManagerTestHardwareTypeProperties(mgr_utils.ServiceSetUpMixin,
+                                        tests_db_base.DbTestCase):
 
     def _check_hardware_type_properties(self, hardware_type, expected):
         self.config(enabled_hardware_types=[hardware_type])
         self.hardware_type = driver_factory.get_hardware_type(hardware_type)
-        self.service.init_host()
+        self._start_service()
         properties = self.service.get_driver_properties(self.context,
                                                         hardware_type)
         self.assertEqual(sorted(expected), sorted(properties.keys()))

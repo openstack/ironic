@@ -338,6 +338,31 @@ class RegisterInterfacesTestCase(mgr_utils.ServiceSetUpMixin,
         # we're iterating over dicts, don't worry about order
         reg_mock.assert_has_calls(expected_calls)
 
+    def test__register_and_validate_no_valid_default(self,
+                                                     esi_mock,
+                                                     default_mock,
+                                                     reg_mock,
+                                                     unreg_mock):
+        # these must be same order as esi_mock side effect
+        hardware_types = collections.OrderedDict((
+            ('fake-hardware', fake_hardware.FakeHardware()),
+        ))
+        esi_mock.side_effect = [
+            collections.OrderedDict((
+                ('management', ['fake', 'noop']),
+                ('deploy', ['agent', 'iscsi']),
+            )),
+        ]
+        default_mock.return_value = None
+
+        self.assertRaises(
+            exception.NoValidDefaultForInterface,
+            self.service._register_and_validate_hardware_interfaces,
+            hardware_types)
+
+        unreg_mock.assert_called_once_with(mock.ANY)
+        self.assertFalse(reg_mock.called)
+
 
 class StartConsolesTestCase(mgr_utils.ServiceSetUpMixin,
                             tests_db_base.DbTestCase):
