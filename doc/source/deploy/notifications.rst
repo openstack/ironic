@@ -106,7 +106,7 @@ Example of chassis CRUD notification::
             "description": "bare 28",
             "extra": {},
             "updated_at": "2016-04-27T21:11:03+00:00",
-            "uuid": "1910f669-ce8b-43c2-b1d8-cf3d65be815e",
+            "uuid": "1910f669-ce8b-43c2-b1d8-cf3d65be815e"
         }
     },
     "event_type":"baremetal.chassis.update.end",
@@ -132,7 +132,7 @@ Example of node CRUD notification::
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodeCRUDPayload",
-        "ironic_object.version":"1.0",
+        "ironic_object.version":"1.1",
         "ironic_object.data":{
             "chassis_uuid": "db0eef9d-45b2-4dc0-94a8-fc283c01171f",
             "clean_step": None,
@@ -149,7 +149,15 @@ Example of node CRUD notification::
             "last_error": None,
             "maintenance": False,
             "maintenance_reason": None,
+            "boot_interface": None,
+            "console_interface": None,
+            "deploy_interface": None,
+            "inspect_interface": None,
+            "management_interface": None,
             "network_interface": "flat",
+            "power_interface": None,
+            "raid_interface": None,
+            "vendor_interface": None,
             "name": None,
             "power_state": "power off",
             "properties": {
@@ -163,7 +171,7 @@ Example of node CRUD notification::
             "target_power_state": None,
             "target_provision_state": "active",
             "updated_at": "2016-01-27T20:41:03+00:00",
-            "uuid": "1be26c0b-03f2-4d2e-ae87-c02d7f33c123",
+            "uuid": "1be26c0b-03f2-4d2e-ae87-c02d7f33c123"
         }
     },
     "event_type":"baremetal.node.update.end",
@@ -198,7 +206,7 @@ Example of port CRUD notification::
             "local_link_connection": {},
             "pxe_enabled": True,
             "updated_at": "2016-03-27T20:41:03+00:00",
-            "uuid": "1be26c0b-03f2-4d2e-ae87-c02d7f33c123",
+            "uuid": "1be26c0b-03f2-4d2e-ae87-c02d7f33c123"
         }
     },
     "event_type":"baremetal.port.update.end",
@@ -223,7 +231,7 @@ node maintenance notification::
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodePayload",
-        "ironic_object.version":"1.0",
+        "ironic_object.version":"1.3",
         "ironic_object.data":{
             "clean_step": None,
             "console_enabled": False,
@@ -237,7 +245,15 @@ node maintenance notification::
             "last_error": None,
             "maintenance": True,
             "maintenance_reason": "hw upgrade",
+            "boot_interface": None,
+            "console_interface": None,
+            "deploy_interface": None,
+            "inspect_interface": None,
+            "management_interface": None,
             "network_interface": "flat",
+            "power_interface": None,
+            "raid_interface": None,
+            "vendor_interface": None,
             "name": None,
             "power_state": "power off",
             "properties": {
@@ -251,7 +267,7 @@ node maintenance notification::
             "target_power_state": None,
             "target_provision_state": None,
             "updated_at": "2016-01-27T20:41:03+00:00",
-            "uuid": "1be26c0b-03f2-4d2e-ae87-c02d7f33c123",
+            "uuid": "1be26c0b-03f2-4d2e-ae87-c02d7f33c123"
         }
     },
     "event_type":"baremetal.node.maintenance_set.start",
@@ -290,7 +306,7 @@ notification::
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodePayload",
-        "ironic_object.version":"1.0",
+        "ironic_object.version":"1.3",
         "ironic_object.data":{
             "clean_step": None,
             "console_enabled": True,
@@ -304,7 +320,15 @@ notification::
             "last_error": None,
             "maintenance": False,
             "maintenance_reason": None,
+            "boot_interface": None,
+            "console_interface": None,
+            "deploy_interface": None,
+            "inspect_interface": None,
+            "management_interface": None,
             "network_interface": "flat",
+            "power_interface": None,
+            "raid_interface": None,
+            "vendor_interface": None,
             "name": None,
             "power_state": "power off",
             "properties": {
@@ -318,7 +342,7 @@ notification::
             "target_power_state": None,
             "target_provision_state": None,
             "updated_at": "2016-01-27T20:41:03+00:00",
-            "uuid": "1be26c0b-03f2-4d2e-ae87-c02d7f33c123",
+            "uuid": "1be26c0b-03f2-4d2e-ae87-c02d7f33c123"
         }
     },
     "event_type":"baremetal.node.console_set.end",
@@ -350,7 +374,7 @@ ironic-conductor is attempting to change the node::
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodeSetPowerStatePayload",
-        "ironic_object.version":"1.0",
+        "ironic_object.version":"1.3",
         "ironic_object.data":{
             "clean_step": None,
             "console_enabled": False,
@@ -363,7 +387,15 @@ ironic-conductor is attempting to change the node::
             "last_error": None,
             "maintenance": False,
             "maintenance_reason": None,
+            "boot_interface": None,
+            "console_interface": None,
+            "deploy_interface": None,
+            "inspect_interface": None,
+            "management_interface": None,
             "network_interface": "flat",
+            "power_interface": None,
+            "raid_interface": None,
+            "vendor_interface": None,
             "name": None,
             "power_state": "power off",
             "properties": {
@@ -404,7 +436,7 @@ prior to the correction::
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodeCorrectedPowerStatePayload",
-        "ironic_object.version":"1.0",
+        "ironic_object.version":"1.3",
         "ironic_object.data":{
             "clean_step": None,
             "console_enabled": False,
@@ -417,7 +449,15 @@ prior to the correction::
             "last_error": None,
             "maintenance": False,
             "maintenance_reason": None,
+            "boot_interface": None,
+            "console_interface": None,
+            "deploy_interface": None,
+            "inspect_interface": None,
+            "management_interface": None,
             "network_interface": "flat",
+            "power_interface": None,
+            "raid_interface": None,
+            "vendor_interface": None,
             "name": None,
             "power_state": "power off",
             "properties": {
@@ -469,7 +509,7 @@ indicate a node's provision states before state change, "event" is the FSM
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"NodeSetProvisionStatePayload",
-        "ironic_object.version":"1.0",
+        "ironic_object.version":"1.3",
         "ironic_object.data":{
             "clean_step": None,
             "console_enabled": False,
@@ -483,7 +523,15 @@ indicate a node's provision states before state change, "event" is the FSM
             "last_error": None,
             "maintenance": False,
             "maintenance_reason": None,
+            "boot_interface": None,
+            "console_interface": None,
+            "deploy_interface": None,
+            "inspect_interface": None,
+            "management_interface": None,
             "network_interface": "flat",
+            "power_interface": None,
+            "raid_interface": None,
+            "vendor_interface": None,
             "name": None,
             "power_state": "power off",
             "properties": {

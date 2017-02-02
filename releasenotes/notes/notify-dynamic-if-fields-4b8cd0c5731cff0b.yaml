@@ -1,0 +1,25 @@
+---
+features:
+  - |
+    Adds dynamic interface fields to node-related notifications:
+
+    * boot_interface
+    * console_interface
+    * deploy_interface
+    * inspect_interface
+    * management_interface
+    * power_interface
+    * raid_interface
+    * vendor_interface
+
+    Affected notifications are:
+
+    * baremetal.node.create.*, new payload version 1.1
+    * baremetal.node.update.*, new payload version 1.1
+    * baremetal.node.delete.*, new payload version 1.1
+    * baremetal.node.maintenance.*, new payload version 1.3
+    * baremetal.node.console.*, new payload version 1.3
+    * baremetal.node.power_set.*, new payload version 1.3
+    * baremetal.node.power_state_corrected.*, new payload version 1.3
+    * baremetal.node.provision_set.*, new payload version 1.3
+
