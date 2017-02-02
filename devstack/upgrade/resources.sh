@@ -33,6 +33,11 @@ set -o xtrace
 
 
 function early_create {
+    # We need these steps only in case of flat-network
+    if [[ -n "${IRONIC_PROVISION_NETWORK_NAME}" ]]; then
+        return
+    fi
+
     # Ironic needs to have network access to the instance during deployment
     # from the control plane (ironic-conductor). This 'early_create' function
     # creates a new network with a unique CIDR, adds a route to this network
@@ -98,6 +103,11 @@ function verify_noapi {
 }
 
 function destroy {
+    # We need these steps only in case of flat-network
+    if [[ -n "${IRONIC_PROVISION_NETWORK_NAME}" ]]; then
+        return
+    fi
+
     # NOTE(vsaienko) move ironic VMs back to private network.
     local net_id
     net_id=$(openstack network show private -f value -c id)
