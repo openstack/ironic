@@ -76,6 +76,14 @@ Additionally, changes need to be made to the stable branch to:
   * update links in the install guide to point to the branched version of
     the developer documentation.
 
+Additionally, changes need to be made on master to:
+
+  * create an empty commit with a ``Sem-Ver`` tag to bump the generated minor
+    version. See `example
+    <https://git.openstack.org/cgit/openstack/ironic/commit/?id=4b28af4645c2f3b6d7864671e15904ed8f40414d>`_
+    and `pbr documentation
+    <http://docs.openstack.org/developer/pbr/#version>`_ for details.
+
 For all releases, whether or not it results in a stable branch:
 
   * update the specs repo to mark any specs completed in the release as
