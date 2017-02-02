@@ -940,6 +940,18 @@
 # ceilometer via the notification bus. (integer value)
 #send_sensor_data_interval = 600
 
+# The maximum number of workers that can be started
+# simultaneously for send data from sensors periodic task.
+# (integer value)
+# Minimum value: 1
+#send_sensor_data_workers = 4
+
+# The time in seconds to wait for send sensors data periodic
+# task to be finished before allowing periodic call to happen
+# again. Should be less than send_sensor_data_interval value.
+# (integer value)
+#send_sensor_data_wait_timeout = 300
+
 # List of comma separated meter types which need to be sent to
 # Ceilometer. The default value, "ALL", is a special value
 # meaning send all the sensor data. (list value)
