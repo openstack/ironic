@@ -77,6 +77,8 @@ class TestCommonFunctions(db_base.DbTestCase):
         return pg1, pg1_ports, pg2, pg2_ports, pg3, pg3_ports
 
     def test__get_free_portgroups_and_ports(self):
+        self.node.network_interface = 'flat'
+        self.node.save()
         pg1, pg1_ports, pg2, pg2_ports, pg3, pg3_ports = self._objects_setup()
         with task_manager.acquire(self.context, self.node.id) as task:
             free_portgroups, free_ports = (
@@ -86,12 +88,42 @@ class TestCommonFunctions(db_base.DbTestCase):
             [p.uuid for p in free_ports])
         self.assertItemsEqual([pg1.uuid], [p.uuid for p in free_portgroups])
 
-    def test_get_free_port_like_object_ports(self):
+    @mock.patch.object(neutron_common, 'validate_port_info', autospec=True)
+    def test__get_free_portgroups_and_ports_neutron_missed(self, vpi_mock):
+        vpi_mock.return_value = False
+        with task_manager.acquire(self.context, self.node.id) as task:
+            free_portgroups, free_ports = (
+                common._get_free_portgroups_and_ports(task, self.vif_id))
+        self.assertItemsEqual([], free_ports)
+
+    @mock.patch.object(neutron_common, 'validate_port_info', autospec=True)
+    def test__get_free_portgroups_and_ports_neutron(self, vpi_mock):
+        vpi_mock.return_value = True
+        with task_manager.acquire(self.context, self.node.id) as task:
+            free_portgroups, free_ports = (
+                common._get_free_portgroups_and_ports(task, self.vif_id))
+        self.assertItemsEqual(
+            [self.port.uuid], [p.uuid for p in free_ports])
+
+    @mock.patch.object(neutron_common, 'validate_port_info', autospec=True)
+    def test__get_free_portgroups_and_ports_flat(self, vpi_mock):
+        self.node.network_interface = 'flat'
+        self.node.save()
+        vpi_mock.return_value = True
+        with task_manager.acquire(self.context, self.node.id) as task:
+            free_portgroups, free_ports = (
+                common._get_free_portgroups_and_ports(task, self.vif_id))
+
+    @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
+                       return_value=True)
+    def test_get_free_port_like_object_ports(self, vpi_mock):
         with task_manager.acquire(self.context, self.node.id) as task:
             res = common.get_free_port_like_object(task, self.vif_id)
             self.assertEqual(self.port.uuid, res.uuid)
 
-    def test_get_free_port_like_object_ports_pxe_enabled_first(self):
+    @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
+                       return_value=True)
+    def test_get_free_port_like_object_ports_pxe_enabled_first(self, vpi_mock):
         self.port.pxe_enabled = False
         self.port.save()
         other_port = obj_utils.create_test_port(
@@ -101,7 +133,9 @@ class TestCommonFunctions(db_base.DbTestCase):
             res = common.get_free_port_like_object(task, self.vif_id)
             self.assertEqual(other_port.uuid, res.uuid)
 
-    def test_get_free_port_like_object_portgroup_first(self):
+    @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
+                       return_value=True)
+    def test_get_free_port_like_object_portgroup_first(self, vpi_mock):
         pg = obj_utils.create_test_portgroup(
             self.context, node_id=self.node.id)
         obj_utils.create_test_port(
@@ -111,13 +145,18 @@ class TestCommonFunctions(db_base.DbTestCase):
             res = common.get_free_port_like_object(task, self.vif_id)
             self.assertEqual(pg.uuid, res.uuid)
 
-    def test_get_free_port_like_object_ignores_empty_portgroup(self):
+    @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
+                       return_value=True)
+    def test_get_free_port_like_object_ignores_empty_portgroup(self, vpi_mock):
         obj_utils.create_test_portgroup(self.context, node_id=self.node.id)
         with task_manager.acquire(self.context, self.node.id) as task:
             res = common.get_free_port_like_object(task, self.vif_id)
             self.assertEqual(self.port.uuid, res.uuid)
 
-    def test_get_free_port_like_object_ignores_standalone_portgroup(self):
+    @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
+                       return_value=True)
+    def test_get_free_port_like_object_ignores_standalone_portgroup(
+            self, vpi_mock):
         self.port.destroy()
         pg = obj_utils.create_test_portgroup(
             self.context, node_id=self.node.id)
@@ -132,7 +171,10 @@ class TestCommonFunctions(db_base.DbTestCase):
             res = common.get_free_port_like_object(task, self.vif_id)
             self.assertEqual(free_port.uuid, res.uuid)
 
-    def test_get_free_port_like_object_vif_attached_to_portgroup(self):
+    @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
+                       return_value=True)
+    def test_get_free_port_like_object_vif_attached_to_portgroup(
+            self, vpi_mock):
         pg = obj_utils.create_test_portgroup(
             self.context, node_id=self.node.id,
             internal_info={common.TENANT_VIF_KEY: self.vif_id})
@@ -145,7 +187,10 @@ class TestCommonFunctions(db_base.DbTestCase):
                 r"already attached to Ironic Portgroup",
                 common.get_free_port_like_object, task, self.vif_id)
 
-    def test_get_free_port_like_object_vif_attached_to_portgroup_extra(self):
+    @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
+                       return_value=True)
+    def test_get_free_port_like_object_vif_attached_to_portgroup_extra(
+            self, vpi_mock):
         pg = obj_utils.create_test_portgroup(
             self.context, node_id=self.node.id,
             extra={'vif_port_id': self.vif_id})
@@ -158,7 +203,9 @@ class TestCommonFunctions(db_base.DbTestCase):
                 r"already attached to Ironic Portgroup",
                 common.get_free_port_like_object, task, self.vif_id)
 
-    def test_get_free_port_like_object_vif_attached_to_port(self):
+    @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
+                       return_value=True)
+    def test_get_free_port_like_object_vif_attached_to_port(self, vpi_mock):
         self.port.internal_info = {common.TENANT_VIF_KEY: self.vif_id}
         self.port.save()
         with task_manager.acquire(self.context, self.node.id) as task:
@@ -167,7 +214,10 @@ class TestCommonFunctions(db_base.DbTestCase):
                 r"already attached to Ironic Port\b",
                 common.get_free_port_like_object, task, self.vif_id)
 
-    def test_get_free_port_like_object_vif_attached_to_port_extra(self):
+    @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
+                       return_value=True)
+    def test_get_free_port_like_object_vif_attached_to_port_extra(
+            self, vpi_mock):
         self.port.extra = {'vif_port_id': self.vif_id}
         self.port.save()
         with task_manager.acquire(self.context, self.node.id) as task:
@@ -176,7 +226,9 @@ class TestCommonFunctions(db_base.DbTestCase):
                 r"already attached to Ironic Port\b",
                 common.get_free_port_like_object, task, self.vif_id)
 
-    def test_get_free_port_like_object_nothing_free(self):
+    @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
+                       return_value=True)
+    def test_get_free_port_like_object_nothing_free(self, vpi_mock):
         self.port.extra = {'vif_port_id': 'another-vif'}
         self.port.save()
         with task_manager.acquire(self.context, self.node.id) as task:

@@ -1,0 +1,5 @@
+---
+fixes:
+  - Fixes an issue when attaching VIF to a port with missed
+    ``local_link_connection`` field was allowed when node network
+    interface was ``neutron``.

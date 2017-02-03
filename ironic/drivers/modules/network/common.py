@@ -75,6 +75,9 @@ def _get_free_portgroups_and_ports(task, vif_id):
     non_usable_portgroups = set()
 
     for p in task.ports:
+        # Validate that port has needed information
+        if not neutron.validate_port_info(task.node, p):
+            continue
         if _vif_attached(p, vif_id):
             # Consider such portgroup unusable. The fact that we can have None
             # added in this set is not a problem

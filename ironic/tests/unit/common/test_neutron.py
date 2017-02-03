@@ -139,6 +139,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
     def _test_add_ports_to_vlan_network(self, is_client_id,
                                         security_groups=None):
         # Ports will be created only if pxe_enabled is True
+        self.node.network_interface = 'neutron'
+        self.node.save()
         object_utils.create_test_port(
             self.context, node_id=self.node.id,
             uuid=uuidutils.generate_uuid(),
@@ -272,6 +274,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         self._test_add_ports_to_vlan_network(is_client_id=True)
 
     def _test_add_ports_to_flat_network(self, is_client_id):
+        self.node.network_interface = 'flat'
+        self.node.save()
         port = self.ports[0]
         if is_client_id:
             extra = port.extra
@@ -299,20 +303,26 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             'port': self.neutron_port}
         expected = {port.uuid: self.neutron_port['id']}
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            ports = neutron.add_ports_to_network(task, self.network_uuid,
-                                                 is_flat=True)
+            ports = neutron.add_ports_to_network(task, self.network_uuid)
             self.assertEqual(expected, ports)
             self.client_mock.create_port.assert_called_once_with(
                 expected_body)
 
-    def test_add_ports_to_flat_network(self):
+    @mock.patch.object(neutron, 'validate_port_info', autospec=True,
+                       return_value=True)
+    def test_add_ports_to_flat_network(self, vpi_mock):
         self._test_add_ports_to_flat_network(is_client_id=False)
+        self.assertTrue(vpi_mock.called)
 
-    def test_add_ports_with_client_id_to_flat_network(self):
+    @mock.patch.object(neutron, 'validate_port_info', autospec=True,
+                       return_value=True)
+    def test_add_ports_with_client_id_to_flat_network(self, vpi_mock):
         self._test_add_ports_to_flat_network(is_client_id=True)
 
-    def test_add_ports_to_vlan_network_instance_uuid(self):
+    @mock.patch.object(neutron, 'validate_port_info', autospec=True)
+    def test_add_ports_to_vlan_network_instance_uuid(self, vpi_mock):
         self.node.instance_uuid = uuidutils.generate_uuid()
+        self.node.network_interface = 'neutron'
         self.node.save()
         port = self.ports[0]
         expected_body = {
@@ -329,6 +339,7 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                 }
             }
         }
+        vpi_mock.return_value = True
         # Ensure we can create ports
         self.client_mock.create_port.return_value = {'port': self.neutron_port}
         expected = {port.uuid: self.neutron_port['id']}
@@ -336,6 +347,7 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             ports = neutron.add_ports_to_network(task, self.network_uuid)
             self.assertEqual(expected, ports)
             self.client_mock.create_port.assert_called_once_with(expected_body)
+        self.assertTrue(vpi_mock.called)
 
     @mock.patch.object(neutron, 'rollback_ports')
     def test_add_network_all_ports_fail(self, rollback_mock):
@@ -447,6 +459,41 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             neutron.rollback_ports(task, self.network_uuid)
             self.assertTrue(log_mock.exception.called)
+
+    @mock.patch.object(neutron, 'LOG')
+    def test_validate_port_info_neutron_interface(self, log_mock):
+        self.node.network_interface = 'neutron'
+        self.node.save()
+        port = object_utils.create_test_port(
+            self.context, node_id=self.node.id, uuid=uuidutils.generate_uuid(),
+            address='52:54:00:cf:2d:33')
+        res = neutron.validate_port_info(self.node, port)
+        self.assertTrue(res)
+        self.assertFalse(log_mock.warning.called)
+
+    @mock.patch.object(neutron, 'LOG')
+    def test_validate_port_info_neutron_interface_missed_info(self, log_mock):
+        self.node.network_interface = 'neutron'
+        self.node.save()
+        llc = {}
+        port = object_utils.create_test_port(
+            self.context, node_id=self.node.id, uuid=uuidutils.generate_uuid(),
+            address='52:54:00:cf:2d:33', local_link_connection=llc)
+        res = neutron.validate_port_info(self.node, port)
+        self.assertFalse(res)
+        self.assertTrue(log_mock.warning.called)
+
+    @mock.patch.object(neutron, 'LOG')
+    def test_validate_port_info_flat_interface(self, log_mock):
+        self.node.network_interface = 'flat'
+        self.node.save()
+        llc = {}
+        port = object_utils.create_test_port(
+            self.context, node_id=self.node.id, uuid=uuidutils.generate_uuid(),
+            address='52:54:00:cf:2d:33', local_link_connection=llc)
+        res = neutron.validate_port_info(self.node, port)
+        self.assertTrue(res)
+        self.assertFalse(log_mock.warning.called)
 
 
 @mock.patch.object(neutron, 'get_client', autospec=True)

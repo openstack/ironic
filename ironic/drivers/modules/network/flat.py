@@ -123,7 +123,7 @@ class FlatNetwork(common.VIFPortIDMixin, neutron.NeutronNetworkInterfaceMixin,
         neutron.rollback_ports(task, self.get_cleaning_network_uuid())
         LOG.info(_LI('Adding cleaning network to node %s'), task.node.uuid)
         vifs = neutron.add_ports_to_network(
-            task, self.get_cleaning_network_uuid(), is_flat=True)
+            task, self.get_cleaning_network_uuid())
         for port in task.ports:
             if port.uuid in vifs:
                 internal_info = port.internal_info
