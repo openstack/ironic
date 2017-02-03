@@ -116,6 +116,13 @@ To run only the pep8/flake8 syntax and style checks::
 
     tox -epep8
 
+Database Setup
+--------------
+
+The unit tests need a local database setup, you can use
+``tools/test-setup.sh`` to set up the database the same way as setup
+in the OpenStack test systems.
+
 ===============================
 Exercising the Services Locally
 ===============================
