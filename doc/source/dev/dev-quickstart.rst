@@ -196,6 +196,13 @@ Then run ``tox`` with the debug environment as one of the following::
 For more information see the `oslotest documentation
 <http://docs.openstack.org/developer/oslotest/features.html#debugging-with-oslo-debug-helper>`_.
 
+Database Setup
+--------------
+
+The unit tests need a local database setup, you can use
+``tools/test-setup.sh`` to set up the database the same way as setup
+in the OpenStack test systems.
+
 Additional Tox Targets
 ----------------------
 
