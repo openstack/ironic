@@ -1565,8 +1565,8 @@ function enroll_nodes {
         total_cpus=$((total_cpus+$ironic_node_cpu))
     done < $ironic_hwinfo_file
 
-    if [[ "$HOST_TOPOLOGY_ROLE" != 'subnode' ]]; then
-        if [ "$VIRT_DRIVER" == "ironic" ]; then
+    if is_service_enabled nova && [[ "$VIRT_DRIVER" == "ironic" ]]; then
+        if [[ "$HOST_TOPOLOGY_ROLE" != 'subnode' ]]; then
             local adjusted_disk
             adjusted_disk=$(($ironic_node_disk - $ironic_ephemeral_disk))
             # TODO(jroll) use (yet to be defined) new-style flavor here,
@@ -1586,9 +1586,14 @@ function enroll_nodes {
             # that was created will fail the service_check in the end of the deployment
             _clean_ncpu_failure
             start_nova_compute
-            wait_for_nova_resources "count" $total_nodes
-            wait_for_nova_resources "vcpus" $total_cpus
+        else
+            # NOTE(vsaienko) we enrolling IRONIC_VM_COUNT on each node. So on subnode
+            # we expect to have 2 x total_cpus
+            total_nodes=$(( total_nodes * 2 ))
+            total_cpus=$(( total_cpus * 2 ))
         fi
+        wait_for_nova_resources "count" $total_nodes
+        wait_for_nova_resources "vcpus" $total_cpus
     fi
 }
 
