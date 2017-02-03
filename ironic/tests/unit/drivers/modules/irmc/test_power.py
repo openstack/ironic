@@ -16,8 +16,6 @@
 Test class for iRMC Power Driver
 """
 
-import time
-
 import mock
 
 from oslo_utils import uuidutils
@@ -68,7 +66,7 @@ class IRMCPowerInternalMethodsTestCase(db_base.DbTestCase):
         self.assertFalse(irmc_power._is_expected_power_state(
             target_state, boot_status_value))
 
-    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch('eventlet.greenthread.sleep', lambda n: None)
     @mock.patch('ironic.drivers.modules.irmc.power.snmp.SNMPClient',
                 spec_set=True, autospec=True)
     def test__wait_power_state_soft_power_off(self, snmpclient_mock):
@@ -87,7 +85,7 @@ class IRMCPowerInternalMethodsTestCase(db_base.DbTestCase):
             self.assertEqual(states.POWER_OFF, task.node.power_state)
             self.assertEqual(states.NOSTATE, task.node.target_power_state)
 
-    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch('eventlet.greenthread.sleep', lambda n: None)
     @mock.patch('ironic.drivers.modules.irmc.power.snmp.SNMPClient',
                 spec_set=True, autospec=True)
     def test__wait_power_state_soft_reboot(self, snmpclient_mock):
@@ -106,7 +104,7 @@ class IRMCPowerInternalMethodsTestCase(db_base.DbTestCase):
             self.assertEqual(states.POWER_ON, task.node.power_state)
             self.assertEqual(states.NOSTATE, task.node.target_power_state)
 
-    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch('eventlet.greenthread.sleep', lambda n: None)
     @mock.patch('ironic.drivers.modules.irmc.power.snmp.SNMPClient',
                 spec_set=True, autospec=True)
     def test__wait_power_state_timeout(self, snmpclient_mock):
