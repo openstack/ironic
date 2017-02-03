@@ -514,6 +514,22 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin,
         res = objects.Node.get_by_uuid(self.context, node['uuid'])
         self.assertEqual({'test': 'one'}, res['extra'])
 
+    def test_update_node_already_associated(self):
+        old_instance = uuidutils.generate_uuid()
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          instance_uuid=old_instance)
+        node.instance_uuid = uuidutils.generate_uuid()
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_node,
+                                self.context,
+                                node)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeAssociated, exc.exc_info[0])
+
+        # verify change did not happen
+        res = objects.Node.get_by_uuid(self.context, node['uuid'])
+        self.assertEqual(old_instance, res['instance_uuid'])
+
     @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state')
     def _test_associate_node(self, power_state, mock_get_power_state):
         mock_get_power_state.return_value = power_state

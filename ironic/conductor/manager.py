@@ -174,7 +174,13 @@ class ConductorManager(base_manager.BaseConductorManager):
         driver_name = node_obj.driver if 'driver' in delta else None
         with task_manager.acquire(context, node_id, shared=False,
                                   driver_name=driver_name,
-                                  purpose='node update'):
+                                  purpose='node update') as task:
+            # Prevent instance_uuid overwriting
+            if ('instance_uuid' in delta and node_obj.instance_uuid and
+                task.node.instance_uuid):
+                raise exception.NodeAssociated(
+                    node=node_id, instance=task.node.instance_uuid)
+
             node_obj.save()
 
         return node_obj
