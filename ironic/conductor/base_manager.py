@@ -34,11 +34,34 @@ from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import task_manager
 from ironic.conf import CONF
 from ironic.db import api as dbapi
+from ironic.drivers import base as driver_base
 from ironic import objects
 from ironic.objects import fields as obj_fields
 
 
 LOG = log.getLogger(__name__)
+
+
+def _check_enabled_interfaces():
+    """Sanity-check enabled_*_interfaces configs.
+
+    We do this before we even bother to try to load up drivers. If we have any
+    dynamic drivers enabled, then we need interfaces enabled as well.
+
+    :raises: ConfigInvalid if an enabled interfaces config option is empty.
+    """
+    if CONF.enabled_hardware_types:
+        empty_confs = []
+        iface_types = ['enabled_%s_interfaces' % i
+                       for i in driver_base.ALL_INTERFACES]
+        for iface_type in iface_types:
+            conf_value = getattr(CONF, iface_type)
+            if not conf_value:
+                empty_confs.append(iface_type)
+        if empty_confs:
+            msg = (_('Configuration options %s cannot be an empty list.') %
+                   ', '.join(empty_confs))
+            raise exception.ConfigInvalid(error_msg=msg)
 
 
 class BaseConductorManager(object):
@@ -82,6 +105,8 @@ class BaseConductorManager(object):
 
         self.ring_manager = hash_ring.HashRingManager()
         """Consistent hash ring which maps drivers to conductors."""
+
+        _check_enabled_interfaces()
 
         # NOTE(deva): these calls may raise DriverLoadError or DriverNotFound
         # NOTE(vdrok): Instantiate network and storage interface factory on
