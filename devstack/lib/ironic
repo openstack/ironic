@@ -77,7 +77,7 @@ IRONIC_HW_ARCH=${IRONIC_HW_ARCH:-x86_64}
 # 192.168.110.107 00:1e:67:57:50:4c root otc123
 #
 # Supported IRONIC_DEPLOY_DRIVERs:
-# *_ipmitool:
+# *_ipmitool or ipmi:
 #   <BMC address> <MAC address> <BMC username> <BMC password>
 #
 # *_cimc:
@@ -240,7 +240,8 @@ if [[ "$IRONIC_DEPLOY_ISO_REQUIRED" = "True" \
         or set IRONIC_BUILD_DEPLOY_RAMDISK=True to use ISOs"
 fi
 # Which deploy driver to use - valid choices right now
-# are ``pxe_ssh``, ``pxe_ipmitool``, ``agent_ssh``, ``agent_ipmitool`` and ``pxe_snmp``.
+# are ``pxe_ssh``, ``pxe_ipmitool``, ``agent_ssh``, ``agent_ipmitool``,
+# ``pxe_snmp`` and ``ipmi``.
 #
 # Additional valid choices if IRONIC_IS_HARDWARE == true are:
 # ``pxe_iscsi_cimc``, ``pxe_agent_cimc``, ``pxe_ucs``, ``pxe_cimc``,
@@ -248,8 +249,9 @@ fi
 IRONIC_DEPLOY_DRIVER=${IRONIC_DEPLOY_DRIVER:-pxe_ssh}
 
 # If the requested driver is not yet enable, enable it, if it is not it will fail anyway
-if [[ -z "$(echo ${IRONIC_ENABLED_DRIVERS} | grep -w ${IRONIC_DEPLOY_DRIVER})" ]]; then
-    IRONIC_ENABLED_DRIVERS=${IRONIC_ENABLED_DRIVERS},${IRONIC_DEPLOY_DRIVER}
+if [[ -z "$(echo ${IRONIC_ENABLED_DRIVERS},${IRONIC_ENABLED_HARDWARE_TYPES} | grep -w ${IRONIC_DEPLOY_DRIVER})" ]]; then
+    die "The deploy driver $IRONIC_DEPLOY_DRIVER is not in the list of enabled \
+        drivers $IRONIC_ENABLED_DRIVERS or hardware types $IRONIC_ENABLED_HARDWARE_TYPES"
 fi
 
 # Support entry points installation of console scripts
@@ -482,7 +484,7 @@ function is_deployed_by_agent {
 }
 
 function is_deployed_by_ipmitool {
-    [[ -z "${IRONIC_DEPLOY_DRIVER##*_ipmitool}" ]] && return 0
+    [[ "$IRONIC_DEPLOY_DRIVER" == ipmi || -z "${IRONIC_DEPLOY_DRIVER##*_ipmitool}" ]] && return 0
     return 1
 }
 
