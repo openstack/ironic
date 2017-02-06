@@ -158,8 +158,10 @@ class UtilsTestCase(db_base.DbTestCase):
             ret = driver_utils.force_persistent_boot(task, 'pxe', True)
             self.assertIsNone(ret)
             task.node.refresh()
-            self.assertIn('persistent_boot_device',
-                          task.node.driver_internal_info)
+            self.assertIn(('persistent_boot_device', 'pxe'),
+                          task.node.driver_internal_info.items())
+            self.assertNotIn('is_next_boot_persistent',
+                             task.node.driver_internal_info)
 
     def test_force_persistent_boot_false(self):
         with task_manager.acquire(self.context, self.node.uuid,
