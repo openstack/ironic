@@ -12,7 +12,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import mock
+
+from ironic.common import driver_factory
+from ironic.common import exception
 from ironic.conductor import task_manager
+from ironic.drivers import base as driver_base
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import inspector
@@ -57,3 +62,20 @@ class ManualManagementHardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(task.driver.deploy, agent.AgentDeploy)
             self.assertIsInstance(task.driver.inspect, inspector.Inspector)
             self.assertIsInstance(task.driver.raid, agent.AgentRAID)
+
+    def test_get_properties(self):
+        # These properties are from vendor (agent) and boot (pxe) interfaces
+        expected_prop_keys = [
+            'deploy_forces_oob_reboot', 'deploy_kernel', 'deploy_ramdisk']
+        hardware_type = driver_factory.get_hardware_type("manual-management")
+        properties = hardware_type.get_properties()
+        self.assertEqual(sorted(expected_prop_keys), sorted(properties.keys()))
+
+    @mock.patch.object(driver_factory, 'default_interface', autospec=True)
+    def test_get_properties_none(self, mock_def_iface):
+        hardware_type = driver_factory.get_hardware_type("manual-management")
+        mock_def_iface.side_effect = exception.NoValidDefaultForInterface("no")
+        properties = hardware_type.get_properties()
+        self.assertEqual({}, properties)
+        self.assertEqual(len(driver_base.ALL_INTERFACES),
+                         mock_def_iface.call_count)

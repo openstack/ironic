@@ -142,7 +142,8 @@ def get_interface(driver_or_hw_type, interface_type, interface_name):
     return impl_instance
 
 
-def default_interface(driver_or_hw_type, interface_type):
+def default_interface(driver_or_hw_type, interface_type,
+                      driver_name=None, node=None):
     """Calculate and return the default interface implementation.
 
     Finds the first implementation that is supported by the hardware type
@@ -150,9 +151,13 @@ def default_interface(driver_or_hw_type, interface_type):
 
     :param driver_or_hw_type: classic driver or hardware type instance object.
     :param interface_type: type of the interface (e.g. 'boot').
-    :returns: an entrypoint name of the calculated default implementation
-              or None if no default implementation can be found.
+    :param driver_name: entrypoint name of the driver_or_hw_type object. Is
+                        used for exception message.
+    :param node: the identifier of a node. If specified, is used for exception
+                 message.
+    :returns: an entrypoint name of the calculated default implementation.
     :raises: InterfaceNotFoundInEntrypoint if the entry point was not found.
+    :raises: NoValidDefaultForInterface if no default interface can be found.
     """
     factory = _INTERFACE_LOADERS[interface_type]
     is_hardware_type = isinstance(driver_or_hw_type,
@@ -184,6 +189,21 @@ def default_interface(driver_or_hw_type, interface_type):
                 break
             except KeyError:
                 continue
+
+    if impl_name is None:
+        # NOTE(rloo). No i18n on driver_type_str because translating substrings
+        #             on their own may cause the final string to look odd.
+        if is_hardware_type:
+            driver_type_str = 'hardware type'
+        else:
+            driver_type_str = 'driver'
+        driver_name = driver_name or driver_or_hw_type.__class__.__name__
+        node_info = ""
+        if node is not None:
+            node_info = _(' node %s with') % node
+        raise exception.NoValidDefaultForInterface(
+            interface_type=interface_type, driver_type=driver_type_str,
+            driver=driver_name, node_info=node_info)
 
     return impl_name
 
@@ -234,11 +254,8 @@ def check_and_update_node_interfaces(node, driver_or_hw_type=None):
                 # Not changing the result, proceeding with the next interface
                 continue
 
-        impl_name = default_interface(driver_or_hw_type, iface)
-
-        if impl_name is None:
-            raise exception.NoValidDefaultForInterface(
-                interface_type=iface, node=node.uuid, driver=node.driver)
+        impl_name = default_interface(driver_or_hw_type, iface,
+                                      driver_name=node.driver, node=node.uuid)
 
         # Set the calculated default and set result to True
         setattr(node, field_name, impl_name)

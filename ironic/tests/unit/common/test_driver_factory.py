@@ -310,8 +310,35 @@ class DefaultInterfaceTestCase(db_base.DbTestCase):
         # manual-management supports no power interfaces
         self.config(default_power_interface=None)
         self.config(enabled_power_interfaces=[])
-        iface = driver_factory.default_interface(self.driver, 'power')
-        self.assertIsNone(iface)
+        self.assertRaisesRegex(
+            exception.NoValidDefaultForInterface,
+            "For hardware type 'ManualManagementHardware', no default "
+            "value found for power interface.",
+            driver_factory.default_interface, self.driver, 'power')
+
+    def test_calculated_no_answer_drivername(self):
+        # manual-management instance (of entry-point driver named 'foo')
+        # supports no power interfaces
+        self.config(default_power_interface=None)
+        self.config(enabled_power_interfaces=[])
+        self.assertRaisesRegex(
+            exception.NoValidDefaultForInterface,
+            "For hardware type 'foo', no default value found for power "
+            "interface.",
+            driver_factory.default_interface, self.driver, 'power',
+            driver_name='foo')
+
+    def test_calculated_no_answer_drivername_node(self):
+        # for a node with manual-management instance (of entry-point driver
+        # named 'foo'), no default power interface is supported
+        self.config(default_power_interface=None)
+        self.config(enabled_power_interfaces=[])
+        self.assertRaisesRegex(
+            exception.NoValidDefaultForInterface,
+            "For node bar with hardware type 'foo', no default "
+            "value found for power interface.",
+            driver_factory.default_interface, self.driver, 'power',
+            driver_name='foo', node='bar')
 
 
 class TestFakeHardware(hardware_type.AbstractHardwareType):
@@ -501,6 +528,16 @@ class HardwareTypeLoadTestCase(db_base.DbTestCase):
         self.assertRaises(exception.InterfaceNotFoundInEntrypoint,
                           driver_factory.check_and_update_node_interfaces,
                           node)
+
+    def test_no_raid_interface_no_default(self):
+        # NOTE(rloo): It doesn't seem possible to not have a default interface
+        #             for storage, so we'll test this case with raid.
+        self.config(enabled_raid_interfaces=[])
+        node = obj_utils.get_test_node(self.context, driver='fake-hardware')
+        self.assertRaisesRegex(
+            exception.NoValidDefaultForInterface,
+            "raid interface",
+            driver_factory.check_and_update_node_interfaces, node)
 
     def _test_enabled_supported_interfaces(self, enable_storage):
         ht = fake_hardware.FakeHardware()

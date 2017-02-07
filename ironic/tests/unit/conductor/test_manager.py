@@ -963,6 +963,25 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin,
                           self.context, 'does_not_exist', 'test_method',
                           'POST', {})
 
+    @mock.patch.object(driver_factory, 'default_interface', autospec=True)
+    def test_driver_vendor_passthru_no_default_interface(self,
+                                                         mock_def_iface):
+        self.service.init_host()
+        # NOTE(rloo): service.init_host() will call
+        #             driver_factory.default_interface() and we want these to
+        #             succeed, so we set the side effect *after* that call.
+        mock_def_iface.reset_mock()
+        mock_def_iface.side_effect = exception.NoValidDefaultForInterface('no')
+        exc = self.assertRaises(messaging.ExpectedException,
+                                self.service.driver_vendor_passthru,
+                                self.context, 'fake-hardware', 'test_method',
+                                'POST', {})
+        mock_def_iface.assert_called_once_with(mock.ANY, 'vendor',
+                                               driver_name='fake-hardware')
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NoValidDefaultForInterface,
+                         exc.exc_info[0])
+
     @mock.patch.object(driver_factory, 'get_interface')
     def _test_get_driver_vendor_passthru_methods(self, is_hw_type,
                                                  mock_get_if):
@@ -1009,6 +1028,25 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin,
             self.context, 'fake')
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.UnsupportedDriverExtension,
+                         exc.exc_info[0])
+
+    @mock.patch.object(driver_factory, 'default_interface', autospec=True)
+    def test_get_driver_vendor_passthru_methods_no_default_interface(
+            self, mock_def_iface):
+        self.service.init_host()
+        # NOTE(rloo): service.init_host() will call
+        #             driver_factory.default_interface() and we want these to
+        #             succeed, so we set the side effect *after* that call.
+        mock_def_iface.reset_mock()
+        mock_def_iface.side_effect = exception.NoValidDefaultForInterface('no')
+        exc = self.assertRaises(
+            messaging.rpc.ExpectedException,
+            self.service.get_driver_vendor_passthru_methods,
+            self.context, 'fake-hardware')
+        mock_def_iface.assert_called_once_with(mock.ANY, 'vendor',
+                                               driver_name='fake-hardware')
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NoValidDefaultForInterface,
                          exc.exc_info[0])
 
     @mock.patch.object(drivers_base.VendorInterface, 'driver_validate')
