@@ -228,7 +228,7 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
     def validate_self_link(self, resource, uuid, link):
         """Check whether the given self link formatted correctly."""
         expected_link = "{base}/{pref}/{res}/{uuid}".format(
-                        base=self.client.base_url,
+                        base=self.client.base_url.rstrip('/'),
                         pref=self.client.uri_prefix,
                         res=resource,
                         uuid=uuid)
