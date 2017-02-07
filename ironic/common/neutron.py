@@ -406,7 +406,7 @@ def validate_port_info(node, port):
     """
     if (node.network_interface == 'neutron' and
             not port.local_link_connection):
-        LOG.warning(_LW("The local_link_connection is required for"
+        LOG.warning(_LW("The local_link_connection is required for "
                         "'neutron' network interface and is not present "
                         "in the nodes %(node)s port %(port)s"),
                     {'node': node.uuid, 'port': port.uuid})
