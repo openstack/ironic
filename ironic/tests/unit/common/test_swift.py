@@ -39,18 +39,9 @@ class SwiftTestCase(base.TestCase):
         self.swift_exception = swift_exception.ClientException('', '')
 
     def test___init__(self, connection_mock, keystone_mock):
-        sess = mock.Mock()
-        sess.get_endpoint.return_value = 'http://swift:8080'
-        sess.get_token.return_value = 'fake_token'
-        sess.verify = '/path/to/ca/file'
-        keystone_mock.return_value = sess
         swift.SwiftAPI()
-        params = {'retries': 2,
-                  'preauthurl': 'http://swift:8080',
-                  'preauthtoken': 'fake_token',
-                  'insecure': False,
-                  'cacert': '/path/to/ca/file'}
-        connection_mock.assert_called_once_with(**params)
+        connection_mock.assert_called_once_with(
+            session=keystone_mock.return_value)
 
     @mock.patch.object(__builtin__, 'open', autospec=True)
     def test_create_object(self, open_mock, connection_mock, keystone_mock):
