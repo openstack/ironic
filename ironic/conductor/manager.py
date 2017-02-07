@@ -754,16 +754,17 @@ class ConductorManager(base_manager.BaseConductorManager):
                 raise exception.NodeInMaintenance(op=_('cleaning'),
                                                   node=node.uuid)
 
-            # NOTE(rloo): _do_node_clean() will also make a similar call
-            # to validate the power, but we are doing it again here so that
+            # NOTE(rloo): _do_node_clean() will also make similar calls to
+            # validate power & network, but we are doing it again here so that
             # the user gets immediate feedback of any issues. This behaviour
             # (of validating) is consistent with other methods like
             # self.do_node_deploy().
             try:
                 task.driver.power.validate(task)
+                task.driver.network.validate(task)
             except exception.InvalidParameterValue as e:
-                msg = (_('Failed to validate power info. '
-                         'Cannot clean node %(node)s. Error: %(msg)s') %
+                msg = (_('Validation failed. Cannot clean node %(node)s. '
+                         'Error: %(msg)s') %
                        {'node': node.uuid, 'msg': e})
                 raise exception.InvalidParameterValue(msg)
 
@@ -890,12 +891,13 @@ class ConductorManager(base_manager.BaseConductorManager):
             return
 
         try:
-            # NOTE(ghe): Valid power driver values are needed to perform
+            # NOTE(ghe): Valid power and network values are needed to perform
             # a cleaning.
             task.driver.power.validate(task)
+            task.driver.network.validate(task)
         except exception.InvalidParameterValue as e:
-            msg = (_('Failed to validate power driver interface. '
-                     'Can not clean node %(node)s. Error: %(msg)s') %
+            msg = (_('Validation failed. Cannot clean node %(node)s. '
+                     'Error: %(msg)s') %
                    {'node': node.uuid, 'msg': e})
             return utils.cleaning_error_handler(task, msg)
 
