@@ -36,16 +36,12 @@ class FlatNetwork(common.VIFPortIDMixin, neutron.NeutronNetworkInterfaceMixin,
 
     def __init__(self):
         cleaning_net = CONF.neutron.cleaning_network
-        # TODO(vdrok): Switch to DriverLoadError in Ocata
         if not cleaning_net:
             LOG.warning(_LW(
                 'Please specify a valid UUID or name for '
                 '[neutron]/cleaning_network configuration option so that '
-                'this interface is able to perform cleaning. It will be '
-                'required starting with the Ocata release, and if not '
-                'specified then, the conductor service will fail to start if '
-                '"flat" is in the list of values for '
-                '[DEFAULT]enabled_network_interfaces configuration option.'))
+                'this interface is able to perform cleaning. Otherwise, '
+                'cleaning operations will fail to start.'))
 
     def validate(self, task):
         """Validates the network interface.

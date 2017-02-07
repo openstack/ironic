@@ -68,7 +68,7 @@ class TestFlatInterface(db_base.DbTestCase):
             mock_p_changed.assert_called_once_with(task, port)
 
     @mock.patch.object(flat_interface, 'LOG')
-    def test_init_incorrect_cleaning_net(self, mock_log):
+    def test_init_no_cleaning_network(self, mock_log):
         self.config(cleaning_network=None, group='neutron')
         flat_interface.FlatNetwork()
         self.assertTrue(mock_log.warning.called)
