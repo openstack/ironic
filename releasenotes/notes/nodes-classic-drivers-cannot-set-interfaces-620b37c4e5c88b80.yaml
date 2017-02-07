@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Nodes with classic drivers cannot have any interfaces (except for network
+    and storage) specified. HTTP status 400 is returned in these cases.

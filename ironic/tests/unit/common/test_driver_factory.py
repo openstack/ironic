@@ -13,6 +13,7 @@
 #    under the License.
 
 import mock
+from oslo_utils import uuidutils
 from stevedore import dispatch
 
 from ironic.common import driver_factory
@@ -32,7 +33,7 @@ class FakeEp(object):
     name = 'fake'
 
 
-class DriverLoadTestCase(base.TestCase):
+class DriverLoadTestCase(db_base.DbTestCase):
 
     def _fake_init_name_err(self, *args, **kwargs):
         kwargs['on_load_failure_callback'](None, FakeEp, NameError('aaa'))
@@ -90,6 +91,33 @@ class DriverLoadTestCase(base.TestCase):
         self.assertEqual(
             ['fake'], driver_factory.DriverFactory._extension_manager.names())
         self.assertTrue(mock_warn.called)
+
+    def test_build_driver_for_task(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        with task_manager.acquire(self.context, node.id) as task:
+            for iface in drivers_base.ALL_INTERFACES:
+                impl = getattr(task.driver, iface)
+                self.assertIsNotNone(impl)
+
+    @mock.patch.object(driver_factory, '_attach_interfaces_to_driver',
+                       autospec=True)
+    @mock.patch.object(driver_factory.LOG, 'warning', autospec=True)
+    def test_build_driver_for_task_incorrect(self, mock_warn, mock_attach):
+        # Cannot set these node interfaces for classic driver
+        no_set_interfaces = (drivers_base.ALL_INTERFACES -
+                             set(['network', 'storage']))
+        for iface in no_set_interfaces:
+            iface_name = '%s_interface' % iface
+            node_kwargs = {'uuid': uuidutils.generate_uuid(),
+                           iface_name: 'fake'}
+            node = obj_utils.create_test_node(self.context, driver='fake',
+                                              **node_kwargs)
+            with task_manager.acquire(self.context, node.id) as task:
+                mock_warn.assert_called_once_with(mock.ANY, mock.ANY)
+                mock_warn.reset_mock()
+                mock_attach.assert_called_once_with(mock.ANY, task.node,
+                                                    mock.ANY)
+                mock_attach.reset_mock()
 
 
 class WarnUnsupportedDriversTestCase(base.TestCase):
@@ -257,6 +285,21 @@ class CheckAndUpdateNodeInterfacesTestCase(db_base.DbTestCase):
         self.assertRaises(exception.InterfaceNotFoundInEntrypoint,
                           driver_factory.check_and_update_node_interfaces,
                           node)
+
+    def test_classic_setting_interfaces(self):
+        # Cannot set these node interfaces for classic driver
+        no_set_interfaces = (drivers_base.ALL_INTERFACES -
+                             set(['network', 'storage']))
+        for iface in no_set_interfaces:
+            iface_name = '%s_interface' % iface
+            node_kwargs = {'uuid': uuidutils.generate_uuid(),
+                           iface_name: 'fake'}
+            node = obj_utils.create_test_node(self.context, driver='fake',
+                                              **node_kwargs)
+            self.assertRaisesRegex(
+                exception.InvalidParameterValue,
+                'driver fake.*%s' % iface_name,
+                driver_factory.check_and_update_node_interfaces, node)
 
 
 class DefaultInterfaceTestCase(db_base.DbTestCase):

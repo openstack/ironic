@@ -1815,6 +1815,22 @@ class TestPatch(test_api_base.BaseApiTest):
             self.assertEqual('application/json', response.content_type)
             self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
 
+    def test_update_classic_driver_interface_fields(self):
+        headers = {api_base.Version.string: '1.31'}
+        self.mock_update_node.side_effect = (
+            exception.MustBeNone('error'))
+        for field in api_utils.V31_FIELDS:
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid())
+            response = self.patch_json('/nodes/%s' % node.uuid,
+                                       [{'path': '/%s' % field,
+                                         'value': 'fake',
+                                         'op': 'add'}],
+                                       headers=headers,
+                                       expect_errors=True)
+            self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+            self.assertEqual('application/json', response.content_type)
+
 
 def _create_node_locally(node):
     driver_factory.check_and_update_node_interfaces(node)
@@ -1891,9 +1907,12 @@ class TestPost(test_api_base.BaseApiTest):
     def test_create_node_specify_interfaces(self):
         headers = {api_base.Version.string: '1.31'}
         for field in api_utils.V31_FIELDS:
+            cfg.CONF.set_override('enabled_%ss' % field, ['fake'])
+        for field in api_utils.V31_FIELDS:
             node = {
                 'uuid': uuidutils.generate_uuid(),
-                field: 'fake'
+                field: 'fake',
+                'driver': 'fake-hardware'
             }
             result = self._test_create_node(headers=headers, **node)
             self.assertEqual('fake', result[field])
@@ -1905,6 +1924,21 @@ class TestPost(test_api_base.BaseApiTest):
             response = self.post_json('/nodes', ndict, headers=headers,
                                       expect_errors=True)
             self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+    def test_create_node_classic_driver_specify_interface(self):
+        headers = {api_base.Version.string: '1.31'}
+        for field in api_utils.V31_FIELDS:
+            node = {
+                'uuid': uuidutils.generate_uuid(),
+                field: 'fake',
+            }
+            ndict = test_api_utils.post_get_test_node(**node)
+            response = self.post_json('/nodes', ndict,
+                                      headers=headers,
+                                      expect_errors=True)
+            self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+            self.assertEqual('application/json', response.content_type)
+            self.assertTrue(response.json['error_message'])
 
     def test_create_node_name_empty_invalid(self):
         ndict = test_api_utils.post_get_test_node(name='')
