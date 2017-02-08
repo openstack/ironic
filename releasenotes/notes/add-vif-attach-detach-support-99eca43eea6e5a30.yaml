@@ -1,8 +1,15 @@
 ---
 features:
-  - Adds support of attaching/detaching network VIFs
-    to ironic ports by using ``v1/nodes/<node>/vifs``
+  - Adds support for attaching and detaching network VIFs
+    to ironic ports and port groups by using the ``/v1/nodes/<node>/vifs``
     API endpoint that was added in API version 1.28.
+    When attaching a VIF to a node, it is attached to the first free port
+    group. A port group is considered free if it has no VIFs attached to any of
+    its ports. Otherwise, only the unattached ports of this port group are
+    available for attachment. If there are no free port groups, the first
+    available port is used instead, where ports with ``pxe_enabled`` set to
+    ``True`` have higher priority.
 deprecations:
-  - Using port.extra['vif_port_id'] for attaching/detaching
-    VIFs to ports is deprecated and will be removed in Pike release.
+  - Using ``port.extra['vif_port_id']`` for attaching and detaching
+    VIFs to ports or port groups is deprecated and will be removed in Pike
+    release.

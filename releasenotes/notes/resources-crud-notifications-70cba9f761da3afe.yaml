@@ -1,7 +1,23 @@
 ---
 features:
-  - Adds notifications for creation, updates, or deletions of ironic resources
-    (node, port and chassis). Event types are formatted as follows
-    "baremetal.<resource>.{create,update,delete}.{start,end,error}".
-    For more details, see the developer documentation
-    /http://docs.openstack.org/developer/ironic/deploy/notifications.html.
+  - |
+    Adds the following notifications:
+
+    - Creation, updates, or deletions of ironic resources
+      (node, port and chassis). Event types are
+      ``baremetal.<resource>.{create,update,delete}.{start,end,error}``.
+    - Start and stop console on a node. Event types are
+      ``baremetal.node.console_{set,restore}.{start,end,error}``.
+    - Changes in node maintenance status. Event types are
+      ``baremetal.node.maintenance_set.{start,end,error}``.
+    - When ironic attempts to set the power state on the node. Event types are
+      ``baremetal.node.power_set.{start,end,error}``.
+    - When ironic detects the power state on baremetal hardware has changed
+      and updates the node in the database appropriately. Event types are
+      ``baremetal.node.power_state_corrected.success``.
+    - Node provision state changes. Event types are
+      ``baremetal.node.provision_set.{start,end,success,error}``.
+
+    These are only emitted when notifications are enabled.
+    For more details, see the developer documentation:
+    http://docs.openstack.org/developer/ironic/deploy/notifications.html.

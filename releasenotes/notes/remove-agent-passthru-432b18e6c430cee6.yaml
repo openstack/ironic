@@ -26,12 +26,11 @@ features:
     * pxe_drac
     * pxe_drac_inspector
     * iscsi_irmc
+    * agent_ilo
+    * iscsi_ilo
+    * pxe_ilo
+    * agent_pxe_oneview
+    * iscsi_pxe_oneview
 
     All the other vendor passthru methods are left in place if the
     driver had them.
-upgrade:
-  - Agent lookup/heartbeat as vendor passthru is removed from ironic.
-    That means that most in-tree drivers relying on Ironic Python Agent (IPA)
-    lookup/heartbeat functionality become incompatible with IPA < 1.5.0.
-    Operators are required to update their IPA-based deploy ramdisks to
-    contain IPA >= 1.5.0.

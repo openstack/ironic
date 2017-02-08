@@ -1,6 +1,6 @@
 ---
 fixes:
-  - Fixes an issue with neutron network interface, that could lead
-    to inability to retry the deployment in case of failure on
-    boot interface's prepare_ramdisk stage.
+  - Fixes an issue with the ``neutron`` network interface that could lead to an
+    inability to retry the deployment in case of failure on boot interface's
+    ``prepare_ramdisk`` stage.
 

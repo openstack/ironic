@@ -1,6 +1,0 @@
----
-features:
-  - Add notifications for start and stop console on the node.
-    Event types are
-    "baremetal.node.console_{set, restore}.{start, end, error}"
-    For more details, see the developer documentation.

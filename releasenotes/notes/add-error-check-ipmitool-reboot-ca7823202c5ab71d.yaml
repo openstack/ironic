@@ -1,4 +1,4 @@
 ---
 fixes:
-  - adds a missing error check into ipmitool power driver's reboot so
-    that the reboot can fail properly if power off failed.
+  - Adds a missing error check into ``ipmitool`` power driver's reboot method
+    so that the reboot can fail properly if power off failed.

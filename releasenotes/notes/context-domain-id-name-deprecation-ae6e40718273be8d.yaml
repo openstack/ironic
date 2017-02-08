@@ -3,8 +3,8 @@ deprecations:
   - |
     Usage of the following values was deprecated in the policy files:
 
-    - domain_id and domain_name - user_domain_id should be used
-      instead of those (note - user_domain is an ID of the domain,
-      not its name);
-    - tenant - project_name should be used instead;
-    - user - user_id should be used instead.
+    - ``domain_id`` and ``domain_name`` - ``user_domain_id`` should be used
+      instead of those (note - ``user_domain_id`` is an ID of the domain,
+      not its name).
+    - ``tenant`` - ``project_name`` should be used instead.
+    - ``user`` - ``user_id`` should be used instead.

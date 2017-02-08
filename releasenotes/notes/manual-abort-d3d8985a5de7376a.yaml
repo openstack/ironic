@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    Fix bug in manual clean steps caching, which resulting in all clean steps
-    being not abortable. See https://bugs.launchpad.net/ironic/+bug/1658061.
+    Fixes a bug in manual clean step caching, which resulted in all clean steps
+    not being abortable. See https://bugs.launchpad.net/ironic/+bug/1658061.

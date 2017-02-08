@@ -1,6 +1,6 @@
 ---
 fixes:
-  - Remove a check that was preventing whole disk images to be deployed
-    in UEFI mode without explicitly setting the boot_option capability to
-    "local". For whole disk images Ironic already assumes booting from
-    the hard-drive by default.
+  - Removes a check that was preventing whole disk images from being deployed
+    in UEFI mode without explicitly setting the ``boot_option`` capability to
+    ``local``. For whole disk images, ironic already assumes booting from
+    local storage by default.

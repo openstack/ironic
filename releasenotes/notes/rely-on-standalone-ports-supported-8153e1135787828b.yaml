@@ -15,7 +15,7 @@ other:
       a port group with portgroup.standalone_ports_supported already
       set to False.
     * ``portgroup.standalone_ports_supported`` cannot be set to False on a
-      portgroup if at least one port in that port group has
+      port group if at least one port in that port group has
       ``port.pxe_enabled=True``
     * ``port.extra.vif_port_id`` cannot be set on a port that is a member of
       a port group with ``portgroup.standalone_ports_supported=False`` as

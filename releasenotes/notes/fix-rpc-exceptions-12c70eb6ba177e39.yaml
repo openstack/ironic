@@ -1,9 +1,9 @@
 ---
 fixes:
-  - Ironic exceptions that contained arbitrary objects in kwargs and were sent
-    via RPC were causing oslo_messaging serializer to fail. This was leading
-    to 500 errors from ironic API, timing out waiting for response from the
-    conductor. Starting with this release, all non-serializable objects
-    contained in an exception's kwargs are dropped. If the error is going to
-    be returned by the service will depend on the configuration option
-    ``[DEFAULT]fatal_exception_format_errors``.
+  - Ironic exceptions that contained arbitrary objects in ``kwargs`` and were
+    sent via RPC were causing ``oslo_messaging`` serializer to fail. This was
+    leading to 500 errors from ironic API, timing out waiting for response from
+    the conductor. Starting with this release, all non-serializable objects
+    contained in an exception's kwargs are dropped. Whether the error is going
+    to be returned by the service will depend on the configuration option
+    ``[DEFAULT]/fatal_exception_format_errors``.

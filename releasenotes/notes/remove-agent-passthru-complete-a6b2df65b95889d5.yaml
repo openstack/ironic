@@ -1,13 +1,14 @@
 ---
 upgrade:
-  - Ironic no longer supports agent lookup/heartbeats as vendor passthru.
-    All out-of-tree drivers must be updated to use AgentDeployMixin classes
-    directly without relying on BaseAgentVendor class and other classes
-    that were inheriting from it
-    (agent.AgentVendorInterface and iscsi_deploy.VendorPassthru).
-    This means that Ironic is incompatible with deploy ramdisks based on
-    Ironic Python Agent (IPA) < 1.5.0.
-    Operators should update their IPA-based deploy ramdisks in this case.
-    Operators using non-IPA based deploy ramdisks which use ironic
-    lookup/heartbeats functionality must update those to use top-level
-    ironic lookup/heartbeats REST API (available since ironic API v1.22).
+  - Ironic no longer supports agent lookup/heartbeats as vendor passthru
+    methods. All out-of-tree drivers must be updated to use
+    ``AgentDeployMixin`` classes directly without relying on
+    ``BaseAgentVendor`` class and other classes that were inheriting from it
+    (e.g. ``agent.AgentVendorInterface`` and ``iscsi_deploy.VendorPassthru``).
+
+    This means that ironic is incompatible with deploy ramdisks based on Ironic
+    Python Agent (IPA) < 1.5.0. Operators must update their IPA-based deploy
+    ramdisks in this case. Operators using non-IPA based deploy ramdisks which
+    use ironic lookup/heartbeats functionality must update their ramdisks to
+    use the top level ironic lookup/heartbeats REST API, available since ironic
+    API v1.22.

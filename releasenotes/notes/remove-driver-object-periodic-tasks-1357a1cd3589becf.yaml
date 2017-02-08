@@ -1,6 +1,5 @@
 ---
 upgrade:
   - |
-    Attaching periodic tasks on a driver object (rather than an interface)
-    was deprecated during the Newton cycle (6.1.0). Support has been
-    removed so it is no longer possible to do this.
+    Removes support for attaching periodic tasks on a driver object, rather
+    than an interface.

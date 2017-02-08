@@ -1,4 +1,0 @@
----
-features:
-  - Using a dynamic driver in a node's driver field is now possible, though
-    customizing the interfaces is not yet exposed in the REST API.

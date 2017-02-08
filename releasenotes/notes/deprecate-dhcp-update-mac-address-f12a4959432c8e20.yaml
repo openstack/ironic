@@ -1,25 +1,25 @@
 ---
 features:
   - |
-    Adds new methods to network interfaces, they will become
+    Adds new methods to network interfaces, which will become
     mandatory in Pike release:
 
-    * ``vif_list`` - List attached VIF IDs for a node
-    * ``vif_attach`` - Attach a virtual network interface to a node
-    * ``vif_detach`` - Detach a virtual network interface from a node
-    * ``port_changed`` - Handle any actions required when a port
-       changes
-    * ``portgroup_changed`` - Handle any actions required when a
-      portgroup changes
-    * ``get_current_vif`` - Return VIF ID attached to port or portgroup
+    * ``vif_list``: List attached VIF IDs for a node.
+    * ``vif_attach``: Attach a virtual network interface to a node.
+    * ``vif_detach``: Detach a virtual network interface from a node.
+    * ``port_changed``: Handle any actions required when a port
+       changes.
+    * ``portgroup_changed``: Handle any actions required when a
+      port group changes.
+    * ``get_current_vif``: Return VIF ID attached to port or port group
       object.
 deprecations:
   - |
-    ``update_mac_address`` method in DHCP providers is
+    ``update_mac_address`` method in the DHCP provider interface is
     deprecated and will be removed in the Pike release.
     The logic should be moved to a custom network
-    interface's ``port_changed`` and ``portgroup_changed``.
+    interface's ``port_changed`` and ``portgroup_changed`` methods.
 fixes:
   - |
-    An issue when pre-created tenant port was automatically
-    deleted by Ironic on instance delete.
+    Fixes an issue where a pre-created tenant port was automatically
+    deleted by ironic on instance delete.

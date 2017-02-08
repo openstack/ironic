@@ -1,13 +1,20 @@
 ---
 features:
-  - Support multi architecture deployment. E.g., to
-    deploy x86_64, aarch64 servers by one ironic conductor.
-    Two new config options, ``pxe_config_template_by_arch``
-    and ``pxe_bootfile_name_by_arch``, are introduced to
-    support multi architecture deployment. They are
-    dictionary values to hold pxe config templates and
-    boot files for multiple architectures, with cpu_arch
-    property per node as the key. If cpu_arch is not found
-    in dictionary, options ``pxe_config_template``,
+  - |
+    Adds support to deploy to nodes with different CPU architectures
+    from a single conductor. This depends on
+    two new configuration options, ``[pxe]/pxe_config_template_by_arch``
+    and ``[pxe]/pxe_bootfile_name_by_arch``. Each is a
+    dictionary mapping CPU architecture to PXE config template or
+    PXE boot file name, respectively.
+
+    As an example, the syntax might look like::
+
+      pxe_config_template_by_arch=aarch64:pxe_grubaa64_config.template,ppc64:pxe_ppc64_config.template
+
+    Ironic attempts to map the CPU architecture in this mapping to
+    the ``properties/cpu_arch`` field for a node. If the node's CPU
+    architecture is not found in the mapping, ironic will fall back to
+    the standard options ``pxe_config_template``,
     ``pxe_bootfile_name``, ``uefi_pxe_config_template``,
-    ``uefi_pxe_bootfile_name`` will be used as usual.
+    and ``uefi_pxe_bootfile_name``.

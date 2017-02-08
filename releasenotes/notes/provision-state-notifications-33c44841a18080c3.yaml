@@ -1,6 +1,0 @@
----
-features:
-  - Adds notifications for node's provision state changes, event types are
-    "baremetal.node.provision_set.{start, end, success, error}".
-    For more details, see
-    http://docs.openstack.org/developer/ironic/dev/notifications.html.

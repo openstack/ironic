@@ -1,4 +1,4 @@
 ---
 fixes:
-  - Fixes the issue that API service does not start if audit is enabled with
-    default value of "ignore_req_list" config option.
+  - Fixes an issue where the API service does not start if audit is enabled
+    with the default value of ``[audit]/ignore_req_list`` configuration option.

@@ -1,7 +1,4 @@
 ---
 fixes:
-  - Previously (python-oneviewclient < 2.4.0), due to limitations of
-    python-oneviewclient, boot device was always set persistenly with
-    OneView drivers. Now that one-time boot is implemented in python-oneviewclient,
-    changing the oneview driver to exhibit the expected behavior when
-    set_boot_device is called with persistent=False.
+  - Fixes the OneView driver to make the ``set_boot_device`` method work as
+    expected with the ``persistent`` option set to ``False``.

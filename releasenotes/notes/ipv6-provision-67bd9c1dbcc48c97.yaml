@@ -1,4 +1,3 @@
 ---
 fixes:
-  - Can now deploy to a IPv6 iscsi portal if
-    instructed to do so.
+  - Adds support for deploying to IPv6 iSCSI portals.

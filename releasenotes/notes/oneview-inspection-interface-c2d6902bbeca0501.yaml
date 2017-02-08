@@ -1,5 +1,3 @@
 ---
-upgrade:
-  - Minimum required version of python-oneviewclient bumped to 2.5.1
 features:
   - Adds in-band inspection interface usable by OneView drivers.

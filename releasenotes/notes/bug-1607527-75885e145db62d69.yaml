@@ -1,4 +1,4 @@
 ---
 fixes:
-  - Fixes bug where the user tries to configure the ssh power driver using a
-    private key protected by a passphrase.
+  - Fixes SSH driver validation when using a private key with a passphrase for
+    authentication.

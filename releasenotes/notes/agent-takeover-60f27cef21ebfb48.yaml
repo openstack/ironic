@@ -1,3 +1,4 @@
 ---
 fixes:
-  - AgentDeploy now correctly supports take-over for ACTIVE netboot-ed nodes.
+  - Drivers using the ``AgentDeploy`` interface now correctly support take-over
+    for ``ACTIVE`` netboot-ed nodes.
