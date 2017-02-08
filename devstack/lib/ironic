@@ -60,6 +60,12 @@ IRONIC_CONF_DIR=${IRONIC_CONF_DIR:-/etc/ironic}
 IRONIC_CONF_FILE=$IRONIC_CONF_DIR/ironic.conf
 IRONIC_ROOTWRAP_CONF=$IRONIC_CONF_DIR/rootwrap.conf
 IRONIC_POLICY_JSON=$IRONIC_CONF_DIR/policy.json
+if is_suse; then
+    IRONIC_WSGI_DIR=${IRONIC_WSGI_DIR:-/srv/www/htdocs/ironic}
+else
+    IRONIC_WSGI_DIR=${IRONIC_WSGI_DIR:-/var/www/ironic}
+fi
+IRONIC_USE_MOD_WSGI=$(trueorfalse False IRONIC_USE_MOD_WSGI)
 
 # Deploy callback timeout can be changed from its default (1800), if required.
 IRONIC_CALLBACK_TIMEOUT=${IRONIC_CALLBACK_TIMEOUT:-}
@@ -667,7 +673,7 @@ function install_ironic {
 
     setup_develop $IRONIC_DIR
 
-    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
+    if [[ "$IRONIC_USE_MOD_WSGI" == "True" || "$IRONIC_IPXE_ENABLED" == "True" ]]; then
         install_apache_wsgi
     fi
 
@@ -724,21 +730,43 @@ function install_ironicclient {
 # _cleanup_ironic_apache_wsgi() - Remove wsgi files, disable and remove apache vhost file
 function _cleanup_ironic_apache_wsgi {
     sudo rm -rf $IRONIC_HTTP_DIR
-    disable_apache_site ironic
-    sudo rm -f $(apache_site_config_for ironic)
+    sudo rm -rf $IRONIC_WSGI_DIR
+    disable_apache_site ironic-api
+    disable_apache_site ipxe-ironic
+    sudo rm -f $(apache_site_config_for ironic-api)
+    sudo rm -f $(apache_site_config_for ipxe-ironic)
     restart_apache_server
 }
 
 # _config_ironic_apache_wsgi() - Set WSGI config files of Ironic
 function _config_ironic_apache_wsgi {
     local ironic_apache_conf
-    ironic_apache_conf=$(apache_site_config_for ironic)
-    sudo cp $IRONIC_DEVSTACK_FILES_DIR/apache-ironic.template $ironic_apache_conf
-    sudo sed -e "
-        s|%PUBLICPORT%|$IRONIC_HTTP_PORT|g;
-        s|%HTTPROOT%|$IRONIC_HTTP_DIR|g;
-    " -i $ironic_apache_conf
-    enable_apache_site ironic
+    local ipxe_apache_conf
+    if [[ "$IRONIC_USE_MOD_WSGI" == "True" ]]; then
+        sudo mkdir -p $IRONIC_WSGI_DIR
+        sudo cp $IRONIC_DIR/ironic/api/app.wsgi $IRONIC_WSGI_DIR/app.wsgi
+        ironic_apache_conf=$(apache_site_config_for ironic-api)
+        sudo cp $IRONIC_DEVSTACK_FILES_DIR/apache-ironic-api.template $ironic_apache_conf
+        sudo sed -e "
+            s|%IRONIC_SERVICE_PORT%|$IRONIC_SERVICE_PORT|g;
+            s|%IRONIC_WSGI_DIR%|$IRONIC_WSGI_DIR|g;
+            s|%USER%|$STACK_USER|g;
+            s|%APIWORKERS%|$API_WORKERS|g;
+            s|%APACHE_NAME%|$APACHE_NAME|g;
+        " -i $ironic_apache_conf
+        enable_apache_site ironic-api
+        tail_log ir-access /var/log/$APACHE_NAME/ironic-api-access.log
+        tail_log ir-api /var/log/$APACHE_NAME/ironic-api.log
+    fi
+    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]]; then
+        ipxe_apache_conf=$(apache_site_config_for ipxe-ironic)
+        sudo cp $IRONIC_DEVSTACK_FILES_DIR/apache-ipxe-ironic.template $ipxe_apache_conf
+        sudo sed -e "
+            s|%PUBLICPORT%|$IRONIC_HTTP_PORT|g;
+            s|%HTTPROOT%|$IRONIC_HTTP_DIR|g;
+        " -i $ipxe_apache_conf
+        enable_apache_site ipxe-ironic
+    fi
 }
 
 # cleanup_ironic_config_files() - Remove residual cache/config/log files,
@@ -753,9 +781,7 @@ function cleanup_ironic {
     cleanup_ironic_config_files
 
     # Cleanup the WSGI files
-    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
-        _cleanup_ironic_apache_wsgi
-    fi
+    _cleanup_ironic_apache_wsgi
 
     # Remove the hook to disable log rotate
     sudo rm -rf $IRONIC_LIBVIRT_HOOKS_PATH/qemu
@@ -768,7 +794,7 @@ function configure_ironic_dirs {
         $IRONIC_STATE_PATH $IRONIC_TFTPBOOT_DIR $IRONIC_TFTPBOOT_DIR/pxelinux.cfg
     sudo chown -R $STACK_USER:$LIBVIRT_GROUP $IRONIC_TFTPBOOT_DIR
 
-    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
+    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]]; then
         sudo install -d -o $STACK_USER -g $LIBVIRT_GROUP $IRONIC_HTTP_DIR
     fi
 
@@ -913,7 +939,8 @@ function configure_ironic {
         setup_colorized_logging $IRONIC_CONF_FILE DEFAULT tenant user
     fi
 
-    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]]; then
+    # Adds WSGI for Ironic API
+    if [[ "$IRONIC_USE_MOD_WSGI" == "True" || "$IRONIC_IPXE_ENABLED" == "True" ]]; then
         _config_ironic_apache_wsgi
     fi
 
@@ -1180,7 +1207,11 @@ function start_ironic {
 # start_ironic_api() - Used by start_ironic().
 # Starts Ironic API server.
 function start_ironic_api {
-    run_process ir-api "$IRONIC_BIN_DIR/ironic-api --config-file=$IRONIC_CONF_FILE"
+    if [[ "$IRONIC_USE_MOD_WSGI" == "True" ]]; then
+        restart_apache_server
+    else
+        run_process ir-api "$IRONIC_BIN_DIR/ironic-api --config-file=$IRONIC_CONF_FILE"
+    fi
     echo "Waiting for ir-api ($IRONIC_HOSTPORT) to start..."
     if ! timeout $SERVICE_TIMEOUT sh -c "while ! wget --no-proxy -q -O- $IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT; do sleep 1; done"; then
         die $LINENO "ir-api did not start"
@@ -1202,7 +1233,11 @@ function start_virtualpdu {
 
 # stop_ironic() - Stop running processes
 function stop_ironic {
-    stop_process ir-api
+    if [[ "$IRONIC_USE_MOD_WSGI" == "True" ]]; then
+        disable_apache_site ironic-api
+    else
+        stop_process ir-api
+    fi
     stop_process ir-cond
 }
 
