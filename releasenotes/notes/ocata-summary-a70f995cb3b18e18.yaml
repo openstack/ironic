@@ -1,0 +1,24 @@
+---
+prelude: |
+    The 7.0.0 release includes many new features and bug fixes. Please review
+    the upgrade section which describes the required actions to upgrade your
+    ironic installation from 6.2.2 (Newton) to 7.0.0 (Ocata).
+
+    A few major changes are worth mentioning. This is not an
+    exhaustive list:
+
+    - "Port group" support allows users to take advantage of bonded
+      network interfaces.
+    - State change and CRUD notifications can now be emitted.
+    - Soft power off, soft reboot, and sending non-maskable interrupts (NMI)
+      are now supported in the REST API.
+    - The AMT, iBoot, msftocs, seamicro, VirtualBox, and Wake-On-Lan drivers
+      have been removed from ironic. Please see the upgrade notes for
+      additional details and options.
+    - "Dynamic drivers" is a revamp of how drivers are composed. Rather than a
+      huge matrix of hardware drivers supporting different things, now users
+      select a "hardware type" for a machine, and can independently change the
+      deploy method, console manager, RAID management, power control interface,
+      etc. This is experimental, as not all "classic" drivers have a dynamic
+      equivalent yet, but we encourage users to try this feature out and
+      submit feedback.
