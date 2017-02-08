@@ -476,10 +476,6 @@ class IPMIFailure(IronicException):
     _msg_fmt = _("IPMI call failed: %(cmd)s.")
 
 
-class MSFTOCSClientApiException(IronicException):
-    _msg_fmt = _("MSFT OCS call failed.")
-
-
 class SSHConnectFailed(IronicException):
     _msg_fmt = _("Failed to establish SSH connection to host %(host)s.")
 
@@ -664,11 +660,6 @@ class IRMCOperationError(IronicException):
 
 class IRMCSharedFileSystemNotMounted(IronicException):
     _msg_fmt = _("iRMC shared file system '%(share)s' is not mounted.")
-
-
-class VirtualBoxOperationFailed(IronicException):
-    _msg_fmt = _("VirtualBox operation '%(operation)s' failed. "
-                 "Error: %(error)s")
 
 
 class HardwareInspectionFailure(IronicException):

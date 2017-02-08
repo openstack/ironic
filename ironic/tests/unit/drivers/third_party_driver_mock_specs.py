@@ -73,19 +73,6 @@ PYGHMI_IPMICMD_SPEC = (
     'Command',
 )
 
-# pyremotevbox
-PYREMOTEVBOX_SPEC = (
-    'exception',
-    'vbox',
-)
-PYREMOTEVBOX_EXC_SPEC = (
-    'PyRemoteVBoxException',
-    'VmInWrongPowerState',
-)
-PYREMOTEVBOX_VBOX_SPEC = (
-    'VirtualBoxHost',
-)
-
 # pywsman
 PYWSMAN_SPEC = (
     'Client',
@@ -149,18 +136,4 @@ ONEVIEWCLIENT_STATES_SPEC = (
     'ONEVIEW_POWERING_ON',
     'ONEVIEW_RESETTING',
     'ONEVIEW_ERROR',
-)
-
-# seamicro
-SEAMICRO_SPEC = (
-    'client',
-    'exceptions',
-)
-# seamicro.client module
-SEAMICRO_CLIENT_MOD_SPEC = (
-    'Client',
-)
-SEAMICRO_EXC_SPEC = (
-    'ClientException',
-    'UnsupportedVersion',
 )

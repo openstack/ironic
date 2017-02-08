@@ -3291,20 +3291,6 @@
 #ipxe_use_swift = false
 
 
-[seamicro]
-
-#
-# From ironic
-#
-
-# Maximum retries for SeaMicro operations (integer value)
-#max_retry = 3
-
-# Seconds to wait for power action to be completed (integer
-# value)
-#action_timeout = 10
-
-
 [service_catalog]
 
 #
@@ -3543,16 +3529,3 @@
 # Username (string value)
 # Deprecated group/name - [swift]/user-name
 #username = <None>
-
-
-[virtualbox]
-
-#
-# From ironic
-#
-
-# Port on which VirtualBox web service is listening. (port
-# value)
-# Minimum value: 0
-# Maximum value: 65535
-#port = 18083

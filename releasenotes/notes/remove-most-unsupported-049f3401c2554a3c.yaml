@@ -1,0 +1,32 @@
+---
+upgrade:
+  - |
+    A number of drivers that were declared as unsupported in Newton release
+    have been removed from ironic tree. This includes drivers with
+    power and/or management driver interfaces based on:
+
+    - MSFT OCS
+    - SeaMicro client
+    - Virtualbox over pyremotevbox client
+
+    As a result, the following ironic drivers will no longer be available:
+
+    - agent_vbox
+    - fake_msftocs
+    - fake_seamicro
+    - fake_vbox
+    - pxe_msftocs
+    - pxe_seamicro
+    - pxe_vbox
+
+    After upgrading, if one or more of these drivers are in the
+    'enabled_drivers' configuration option,
+    the ironic-conductor service will fail to start.
+    Any existing ironic nodes with these drivers assigned will become
+    inoperational via ironic after ironic upgrade,
+    as it will be not possible to change any node state/properties
+    except changing the node driver.
+    Operators having one of the drivers listed above enabled are required to
+    either disable those drivers and assign another existing driver
+    to affected nodes as appropriate,
+    or install these drivers from elsewhere separately.

@@ -33,15 +33,11 @@ from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.drivers.modules import iscsi_deploy
-from ironic.drivers.modules.msftocs import management as msftocs_management
-from ironic.drivers.modules.msftocs import power as msftocs_power
 from ironic.drivers.modules import pxe as pxe_module
-from ironic.drivers.modules import seamicro
 from ironic.drivers.modules import snmp
 from ironic.drivers.modules import ssh
 from ironic.drivers.modules.ucs import management as ucs_management
 from ironic.drivers.modules.ucs import power as ucs_power
-from ironic.drivers.modules import virtualbox
 from ironic.drivers import pxe
 
 
@@ -82,28 +78,6 @@ class PXEDriversTestCase(testtools.TestCase):
 
         self.assertRaises(exception.DriverLoadError,
                           pxe.PXEAndIPMINativeDriver)
-
-    @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test_pxe_seamicro_driver(self, try_import_mock):
-        try_import_mock.return_value = True
-
-        driver = pxe.PXEAndSeaMicroDriver()
-
-        self.assertIsInstance(driver.power, seamicro.Power)
-        self.assertIsInstance(driver.boot, pxe_module.PXEBoot)
-        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
-        self.assertIsInstance(driver.management, seamicro.Management)
-        self.assertIsInstance(driver.vendor, seamicro.VendorPassthru)
-        self.assertIsInstance(driver.console, seamicro.ShellinaboxConsole)
-
-    @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test_pxe_seamicro_driver_import_error(self, try_import_mock):
-        try_import_mock.return_value = False
-
-        self.assertRaises(exception.DriverLoadError,
-                          pxe.PXEAndSeaMicroDriver)
 
     @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
                        autospec=True)
@@ -172,41 +146,6 @@ class PXEDriversTestCase(testtools.TestCase):
 
         self.assertRaises(exception.DriverLoadError,
                           pxe.PXEAndIRMCDriver)
-
-    @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test_pxe_vbox_driver(self, try_import_mock):
-        try_import_mock.return_value = True
-
-        driver = pxe.PXEAndVirtualBoxDriver()
-
-        self.assertIsInstance(driver.power, virtualbox.VirtualBoxPower)
-        self.assertIsInstance(driver.boot, pxe_module.PXEBoot)
-        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
-        self.assertIsInstance(driver.management,
-                              virtualbox.VirtualBoxManagement)
-        self.assertIsInstance(driver.raid, agent.AgentRAID)
-
-    @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test_pxe_vbox_driver_import_error(self, try_import_mock):
-        try_import_mock.return_value = False
-
-        self.assertRaises(exception.DriverLoadError,
-                          pxe.PXEAndVirtualBoxDriver)
-
-    @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test_pxe_msftocs_driver(self, try_import_mock):
-        try_import_mock.return_value = True
-
-        driver = pxe.PXEAndMSFTOCSDriver()
-
-        self.assertIsInstance(driver.power, msftocs_power.MSFTOCSPower)
-        self.assertIsInstance(driver.boot, pxe_module.PXEBoot)
-        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
-        self.assertIsInstance(driver.management,
-                              msftocs_management.MSFTOCSManagement)
 
     @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
                        autospec=True)

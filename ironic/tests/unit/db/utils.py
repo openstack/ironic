@@ -89,15 +89,6 @@ def get_test_pxe_instance_info():
     }
 
 
-def get_test_seamicro_info():
-    return {
-        "seamicro_api_endpoint": "http://1.2.3.4",
-        "seamicro_username": "admin",
-        "seamicro_password": "fake",
-        "seamicro_server_id": "0/0",
-    }
-
-
 def get_test_ilo_info():
     return {
         "ilo_address": "1.2.3.4",
@@ -124,15 +115,6 @@ def get_test_irmc_info():
         "irmc_password": "fake0",
         "irmc_port": 80,
         "irmc_auth_method": "digest",
-    }
-
-
-def get_test_msftocs_info():
-    return {
-        "msftocs_base_url": "http://fakehost:8000",
-        "msftocs_username": "admin",
-        "msftocs_password": "fake",
-        "msftocs_blade_id": 1,
     }
 
 

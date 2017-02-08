@@ -10,14 +10,8 @@ pysnmp
 python-ironic-inspector-client>=1.5.0
 python-oneviewclient<3.0.0,>=2.5.2
 python-scciclient>=0.4.0
-python-seamicroclient>=0.4.0
 UcsSdk==0.8.2.2
 python-dracclient>=0.1.0
-
-# 'pxe_vbox' and 'agent_vbox' drivers require pyremotevbox library.
-# Refer documentation on how to install and configure this:
-# http://docs.openstack.org/developer/ironic/drivers/vbox.html
-pyremotevbox>=0.5.0
 
 # The CIMC drivers use the Cisco IMC SDK version 0.7.2 or greater
 ImcSdk>=0.7.2
