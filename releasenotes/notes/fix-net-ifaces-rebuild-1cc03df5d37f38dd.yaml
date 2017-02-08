@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes an issue with node rebuild, when tenant network ports were not
+    unbound prior to moving the node to provisioning network.

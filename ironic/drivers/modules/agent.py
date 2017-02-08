@@ -425,6 +425,9 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
             # Adding the node to provisioning network so that the dhcp
             # options get added for the provisioning port.
             manager_utils.node_power_action(task, states.POWER_OFF)
+            # NOTE(vdrok): in case of rebuild, we have tenant network already
+            # configured, unbind tenant ports if present
+            task.driver.network.unconfigure_tenant_networks(task)
             task.driver.network.add_provisioning_network(task)
         if node.provision_state == states.ACTIVE:
             task.driver.boot.prepare_instance(task)
