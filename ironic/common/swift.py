@@ -14,7 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import six
 from six.moves import http_client
 from six.moves.urllib import parse
 from swiftclient import client as swift_client
@@ -24,7 +23,6 @@ from swiftclient import utils as swift_utils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import keystone
-from ironic.conf import CONF
 
 
 _SWIFT_SESSION = None
@@ -41,26 +39,8 @@ class SwiftAPI(object):
     """API for communicating with Swift."""
 
     def __init__(self):
-        # TODO(pas-ha): swiftclient does not support keystone sessions ATM.
-        # Must be reworked when LP bug #1518938 is fixed.
         session = _get_swift_session()
-        params = {
-            'retries': CONF.swift.swift_max_retries,
-            'preauthurl': keystone.get_service_url(
-                session,
-                service_type='object-store'),
-            'preauthtoken': keystone.get_admin_auth_token(session)
-        }
-        # NOTE(pas-ha):session.verify is for HTTPS urls and can be
-        # - False (do not verify)
-        # - True (verify but try to locate system CA certificates)
-        # - Path (verify using specific CA certificate)
-        verify = session.verify
-        params['insecure'] = not verify
-        if verify and isinstance(verify, six.string_types):
-            params['cacert'] = verify
-
-        self.connection = swift_client.Connection(**params)
+        self.connection = swift_client.Connection(session=session)
 
     def create_object(self, container, obj, filename,
                       object_headers=None):
