@@ -594,9 +594,11 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
                 'add_provisioning_network', spec_set=True, autospec=True)
-    def test_prepare_node_deploying(self, add_provisioning_net_mock,
-                                    mock_prepare_ramdisk,
-                                    mock_agent_options):
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
+                'unconfigure_tenant_networks', spec_set=True, autospec=True)
+    def test_prepare_node_deploying(
+            self, unconfigure_tenant_net_mock, add_provisioning_net_mock,
+            mock_prepare_ramdisk, mock_agent_options):
         mock_agent_options.return_value = {'c': 'd'}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.provision_state = states.DEPLOYING
@@ -607,6 +609,7 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             mock_prepare_ramdisk.assert_called_once_with(
                 task.driver.boot, task, {'c': 'd'})
             add_provisioning_net_mock.assert_called_once_with(mock.ANY, task)
+            unconfigure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(iscsi_deploy, 'check_image_size', autospec=True)
