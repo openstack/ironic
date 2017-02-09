@@ -16,9 +16,9 @@
 
 from tempest.common import waiters
 from tempest import config
+from tempest.lib.common.utils import test_utils
 from tempest.lib import exceptions as lib_exc
 from tempest.scenario import manager  # noqa
-import tempest.test
 
 from ironic_tempest_plugin import clients
 
@@ -84,7 +84,7 @@ class BaremetalScenarioTest(manager.ScenarioTest):
                 return True
             return False
 
-        if not tempest.test.call_until_true(check_state, timeout, interval):
+        if not test_utils.call_until_true(check_state, timeout, interval):
             msg = ("Timed out waiting for node %s to reach %s state(s) %s" %
                    (node_id, state_attr, target_states))
             raise lib_exc.TimeoutException(msg)
@@ -110,7 +110,7 @@ class BaremetalScenarioTest(manager.ScenarioTest):
                 pass
             return node is not None
 
-        if (not tempest.test.call_until_true(
+        if (not test_utils.call_until_true(
             _get_node, CONF.baremetal.association_timeout, 1)):
             msg = ('Timed out waiting to get Ironic node by instance id %s'
                    % instance_id)
