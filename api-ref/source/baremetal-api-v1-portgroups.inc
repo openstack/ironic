@@ -28,6 +28,10 @@ some parameters with the request.
 
 By default, this query will return the UUID, name and address for each Portgroup.
 
+.. versionadded:: 1.43
+  Added the ``detail`` boolean request parameter. When specified ``True`` this
+  causes the response to include complete details about each portgroup.
+
 Normal response code: 200
 
 Error codes: 400,401,403,404
@@ -44,6 +48,7 @@ Request
     - marker: marker
     - sort_dir: sort_dir
     - sort_key: sort_key
+    - detail: detail
 
 Response
 --------

@@ -850,3 +850,46 @@ def handle_patch_port_like_extra_vif(rpc_object, api_object, patch):
         int_info = rpc_object.internal_info.get('tenant_vif_port_id')
         if (int_info and int_info == rpc_object.extra.get('vif_port_id')):
             api_object.internal_info.pop('tenant_vif_port_id')
+
+
+def allow_detail_query():
+    """Check if passing a detail=True query string is allowed.
+
+    Version 1.43 allows a user to pass the detail query string to
+    list the resource with all the fields.
+    """
+    return (pecan.request.version.minor >=
+            versions.MINOR_43_ENABLE_DETAIL_QUERY)
+
+
+def get_request_return_fields(fields, detail, default_fields):
+    """Calculate fields to return from an API request
+
+    The fields query and detail=True query can not be passed into a request at
+    the same time. To use the detail query we need to be on a version of the
+    API greater than 1.43. This function raises an InvalidParameterValue
+    exception if either of these conditions are not met.
+
+    If these checks pass then this function will return either the fields
+    passed in or the default fields provided.
+
+    :param fields: The fields query passed into the API request.
+    :param detail: The detail query passed into the API request.
+    :param default_fields: The default fields to return if fields=None and
+        detail=None.
+    :raises: InvalidParameterValue if there is an invalid combination of query
+        strings or API version.
+    :returns: 'fields' passed in value or 'default_fields'
+    """
+
+    if detail is not None and not allow_detail_query():
+        raise exception.InvalidParameterValue(
+            "Invalid query parameter ?detail=%s received." % detail)
+
+    if fields is not None and detail:
+        raise exception.InvalidParameterValue(
+            "Can not specify ?detail=True and fields in the same request.")
+
+    if fields is None and not detail:
+        return default_fields
+    return fields

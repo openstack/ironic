@@ -201,6 +201,55 @@ class TestListPortgroups(test_api_base.BaseApiTest):
         # never expose the node_id
         self.assertNotIn('node_id', data['portgroups'][0])
 
+    def test_detail_query(self):
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=self.node.id)
+        data = self.get_json('/portgroups?detail=True', headers=self.headers)
+        self.assertEqual(portgroup.uuid, data['portgroups'][0]["uuid"])
+        self.assertIn('extra', data['portgroups'][0])
+        self.assertIn('node_uuid', data['portgroups'][0])
+        self.assertIn('standalone_ports_supported', data['portgroups'][0])
+        # never expose the node_id
+        self.assertNotIn('node_id', data['portgroups'][0])
+
+    def test_detail_query_false(self):
+        obj_utils.create_test_portgroup(self.context,
+                                        node_id=self.node.id)
+        data1 = self.get_json(
+            '/portgroups',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        data2 = self.get_json(
+            '/portgroups?detail=False',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(data1['portgroups'], data2['portgroups'])
+
+    def test_detail_using_query_false_and_fields(self):
+        obj_utils.create_test_portgroup(self.context,
+                                        node_id=self.node.id)
+        data = self.get_json(
+            '/portgroups?detail=False&fields=internal_info',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertIn('internal_info', data['portgroups'][0])
+        self.assertNotIn('uuid', data['portgroups'][0])
+
+    def test_detail_using_query_and_fields(self):
+        obj_utils.create_test_portgroup(self.context,
+                                        node_id=self.node.id)
+        response = self.get_json(
+            '/portgroups?detail=True&fields=name',
+            headers={api_base.Version.string: str(api_v1.max_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    def test_detail_using_query_old_version(self):
+        obj_utils.create_test_portgroup(self.context,
+                                        node_id=self.node.id)
+        response = self.get_json(
+            '/portgroups?detail=True',
+            headers={api_base.Version.string: '1.42'},
+            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
     def test_detail_invalid_api_version(self):
         response = self.get_json(
             '/portgroups/detail',

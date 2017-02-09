@@ -1524,7 +1524,7 @@ class NodesController(rest.RestController):
                               maintenance, provision_state, marker, limit,
                               sort_key, sort_dir, driver=None,
                               resource_class=None, resource_url=None,
-                              fields=None, fault=None):
+                              fields=None, fault=None, detail=None):
         if self.from_chassis and not chassis_uuid:
             raise exception.MissingParameterValue(
                 _("Chassis id not specified."))
@@ -1582,6 +1582,9 @@ class NodesController(rest.RestController):
                 parameters['associated'] = associated
             if maintenance:
                 parameters['maintenance'] = maintenance
+
+        if detail is not None:
+            parameters['detail'] = detail
 
         return NodeCollection.convert_with_links(nodes, limit,
                                                  url=resource_url,
@@ -1676,11 +1679,11 @@ class NodesController(rest.RestController):
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,
                    types.boolean, wtypes.text, types.uuid, int, wtypes.text,
                    wtypes.text, wtypes.text, types.listtype, wtypes.text,
-                   wtypes.text)
+                   wtypes.text, types.boolean)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
                 maintenance=None, provision_state=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc', driver=None,
-                fields=None, resource_class=None, fault=None):
+                fields=None, resource_class=None, fault=None, detail=None):
         """Retrieve a list of nodes.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -1720,15 +1723,18 @@ class NodesController(rest.RestController):
         api_utils.check_allow_specify_driver(driver)
         api_utils.check_allow_specify_resource_class(resource_class)
         api_utils.check_allow_filter_by_fault(fault)
-        if fields is None:
-            fields = _DEFAULT_RETURN_FIELDS
+
+        fields = api_utils.get_request_return_fields(fields, detail,
+                                                     _DEFAULT_RETURN_FIELDS)
+
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
                                           associated, maintenance,
                                           provision_state, marker,
                                           limit, sort_key, sort_dir,
                                           driver=driver,
                                           resource_class=resource_class,
-                                          fields=fields, fault=fault)
+                                          fields=fields, fault=fault,
+                                          detail=detail)
 
     @METRICS.timer('NodesController.detail')
     @expose.expose(NodeCollection, types.uuid, types.uuid, types.boolean,

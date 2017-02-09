@@ -2,6 +2,12 @@
 REST API Version History
 ========================
 
+1.43 (Rocky, master)
+---------------------
+
+Added ``?detail=`` boolean query to the API list endpoints to provide a more
+RESTful alternative to the existing ``/nodes/detail`` and similar endpoints.
+
 1.42 (Rocky, master)
 --------------------
 

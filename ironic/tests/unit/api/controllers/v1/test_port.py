@@ -442,6 +442,74 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertNotIn('node_id', data['ports'][0])
         self.assertNotIn('portgroup_id', data['ports'][0])
 
+    def test_detail_query(self):
+        llc = {'switch_info': 'switch', 'switch_id': 'aa:bb:cc:dd:ee:ff',
+               'port_id': 'Gig0/1'}
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=self.node.id)
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          portgroup_id=portgroup.id,
+                                          pxe_enabled=False,
+                                          local_link_connection=llc,
+                                          physical_network='physnet1')
+        data = self.get_json(
+            '/ports?detail=True',
+            headers={api_base.Version.string: str(api_v1.max_version())}
+        )
+        self.assertEqual(port.uuid, data['ports'][0]["uuid"])
+        self.assertIn('extra', data['ports'][0])
+        self.assertIn('internal_info', data['ports'][0])
+        self.assertIn('node_uuid', data['ports'][0])
+        self.assertIn('pxe_enabled', data['ports'][0])
+        self.assertIn('local_link_connection', data['ports'][0])
+        self.assertIn('portgroup_uuid', data['ports'][0])
+        self.assertIn('physical_network', data['ports'][0])
+        # never expose the node_id and portgroup_id
+        self.assertNotIn('node_id', data['ports'][0])
+        self.assertNotIn('portgroup_id', data['ports'][0])
+
+    def test_detail_query_false(self):
+        obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                   pxe_enabled=False,
+                                   physical_network='physnet1')
+        data1 = self.get_json(
+            '/ports',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        data2 = self.get_json(
+            '/ports?detail=False',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(data1['ports'], data2['ports'])
+
+    def test_detail_using_query_false_and_fields(self):
+        obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                   pxe_enabled=False,
+                                   physical_network='physnet1')
+        data = self.get_json(
+            '/ports?detail=False&fields=internal_info',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertIn('internal_info', data['ports'][0])
+        self.assertNotIn('uuid', data['ports'][0])
+
+    def test_detail_using_query_and_fields(self):
+        obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                   pxe_enabled=False,
+                                   physical_network='physnet1')
+        response = self.get_json(
+            '/ports?detail=True&fields=name',
+            headers={api_base.Version.string: str(api_v1.max_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    def test_detail_using_query_old_version(self):
+        obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                   pxe_enabled=False,
+                                   physical_network='physnet1')
+        response = self.get_json(
+            '/ports?detail=True',
+            headers={api_base.Version.string: str(api_v1.min_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
     def test_detail_against_single(self):
         port = obj_utils.create_test_port(self.context, node_id=self.node.id)
         response = self.get_json('/ports/%s/detail' % port.uuid,
