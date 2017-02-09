@@ -15,3 +15,16 @@ devstack_localrc base enable_service ir-api ir-cond ironic
 
 devstack_localrc target enable_plugin ironic https://git.openstack.org/openstack/ironic
 devstack_localrc target enable_service ir-api ir-cond ironic
+
+# Duplicate some setup bits from target DevStack. Use old devstack as we install base environment from it.
+BASE_TOP_DIR=$TOP_DIR/../../old/devstack/
+source $BASE_TOP_DIR/stackrc
+source $BASE_TOP_DIR/lib/tls
+source $BASE_TOP_DIR/lib/nova
+source $BASE_TOP_DIR/lib/neutron-legacy
+source $BASE_TOP_DIR/lib/apache
+source $BASE_TOP_DIR/lib/keystone
+
+# Update global variables like DEFAULT_IMAGE_NAME that are set in ironic devstack plugin
+IRONIC_BASE_DEVSTACK_DIR=$BASE_TOP_DIR/../ironic/devstack
+source $IRONIC_BASE_DEVSTACK_DIR/lib/ironic
