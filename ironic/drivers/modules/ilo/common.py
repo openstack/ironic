@@ -287,16 +287,20 @@ def _parse_snmp_driver_info(info):
                 "node's driver_info: %s") % missing_info)
 
         for param in SNMP_OPTIONAL_PROPERTIES:
+            value = None
             try:
                 value = six.text_type(info[param]).upper()
+            except KeyError:
+                pass
+            if value:
                 if value not in valid_values[param]:
                     raise exception.InvalidParameterValue(_(
                         "Invalid value %(value)s given for driver_info "
                         "parameter %(param)s") % {'param': param,
                                                   'value': info[param]})
                 snmp_info[param] = value
-            except KeyError:
-                pass
+    else:
+        snmp_info = None
     return snmp_info
 
 
@@ -324,9 +328,11 @@ def get_ilo_object(node):
         info['auth_prot_pp'] = snmp_info['snmp_auth_prot_password']
         info['auth_priv_pp'] = snmp_info['snmp_auth_priv_password']
         if snmp_info.get('snmp_auth_protocol'):
-            info['auth_protocol'] = snmp_info['snmp_auth_protocol']
-        if snmp_info.get('snmp_priv_protocol'):
-            info['priv_protocol'] = snmp_info['snmp_auth_priv_protocol']
+            info['auth_protocol'] = str(snmp_info['snmp_auth_protocol'])
+        if snmp_info.get('snmp_auth_priv_protocol'):
+            info['priv_protocol'] = str(snmp_info['snmp_auth_priv_protocol'])
+    else:
+        info = None
     ilo_object = ilo_client.IloClient(driver_info['ilo_address'],
                                       driver_info['ilo_username'],
                                       driver_info['ilo_password'],
