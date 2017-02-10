@@ -161,6 +161,7 @@ of ironic that may or may not be suitable to every situation.
   Security considerations for your Bare Metal installation <deploy/security>
   Adopting Nodes in an ACTIVE state <deploy/adoption>
   Configuring for Multi-tenant Networking <deploy/multitenancy>
+  Configuring for port groups <deploy/portgroups>
   Configuring node web or serial console <deploy/console>
   Emitting software metrics <deploy/metrics>
   Auditing API Traffic <deploy/api-audit-support>

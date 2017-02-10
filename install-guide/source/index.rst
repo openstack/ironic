@@ -17,6 +17,7 @@ It contains the following sections:
    configure-integration.rst
    configure-cleaning.rst
    configure-tenant-networks.rst
+   configure-port-groups.rst
    enrollment.rst
    enabling-https.rst
    standalone.rst
