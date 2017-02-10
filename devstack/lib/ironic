@@ -20,6 +20,10 @@
 # - stop_ironic
 # - cleanup_ironic
 
+# ensure we don't re-source this in the same environment
+[[ -z "$_IRONIC_DEVSTACK_LIB" ]] || return 0
+declare -r _IRONIC_DEVSTACK_LIB=1
+
 # Save xtrace and pipefail settings
 _XTRACE_IRONIC=$(set +o | grep xtrace)
 _PIPEFAIL_IRONIC=$(set +o | grep pipefail)
@@ -246,7 +250,7 @@ fi
 # Additional valid choices if IRONIC_IS_HARDWARE == true are:
 # ``pxe_iscsi_cimc``, ``pxe_agent_cimc``, ``pxe_ucs``, ``pxe_cimc``,
 # ``*_pxe_oneview`` and ``pxe_drac``
-IRONIC_DEPLOY_DRIVER=${IRONIC_DEPLOY_DRIVER:-pxe_ssh}
+IRONIC_DEPLOY_DRIVER=${IRONIC_DEPLOY_DRIVER:-pxe_ipmitool}
 
 # If the requested driver is not yet enable, enable it, if it is not it will fail anyway
 if [[ -z "$(echo ${IRONIC_ENABLED_DRIVERS},${IRONIC_ENABLED_HARDWARE_TYPES} | grep -w ${IRONIC_DEPLOY_DRIVER})" ]]; then
@@ -565,7 +569,7 @@ fi
 
 # NOTE(vsaienko) set DEFAULT_IMAGE_NAME here, as it is still used by grenade
 # https://github.com/openstack-dev/grenade/blob/90c4ead2f2a7ed48c873c51cef415b83d655752e/projects/60_nova/resources.sh#L31
-DEFAULT_IMAGE_NAME=$IRONIC_IMAGE_NAME
+export DEFAULT_IMAGE_NAME=$IRONIC_IMAGE_NAME
 
 # Syslinux >= 5.00 pxelinux.0 binary is not "stand-alone" anymore,
 # it depends on some c32 modules to work correctly.
