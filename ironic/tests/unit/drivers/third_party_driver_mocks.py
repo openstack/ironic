@@ -94,9 +94,6 @@ if not oneview_client:
     oneview_client = mock.MagicMock(spec_set=mock_specs.ONEVIEWCLIENT_SPEC)
     sys.modules['oneview_client'] = oneview_client
     sys.modules['oneview_client.client'] = oneview_client.client
-    sys.modules['oneview_client.client.Client'] = mock.MagicMock(
-        spec_set=mock_specs.ONEVIEWCLIENT_CLIENT_CLS_SPEC
-    )
     states = mock.MagicMock(
         spec_set=mock_specs.ONEVIEWCLIENT_STATES_SPEC,
         ONEVIEW_POWER_OFF='Off',
@@ -111,8 +108,16 @@ if not oneview_client:
     oneview_client.exceptions.OneViewException = type('OneViewException',
                                                       (Exception,), {})
     sys.modules['oneview_client.models'] = oneview_client.models
-    if 'ironic.drivers.oneview' in sys.modules:
-        six.moves.reload_module(sys.modules['ironic.drivers.modules.oneview'])
+
+oneview_client_module = importutils.try_import('oneview_client.client')
+# NOTE(vdrok): Always mock the oneview client, as it tries to establish
+# connection to oneview right in __init__, and stevedore does not seem to care
+# about mocks when it loads a module in mock_the_extension_manager
+sys.modules['oneview_client.client'].Client = mock.MagicMock(
+    spec_set=mock_specs.ONEVIEWCLIENT_CLIENT_CLS_SPEC
+)
+if 'ironic.drivers.oneview' in sys.modules:
+    six.moves.reload_module(sys.modules['ironic.drivers.modules.oneview'])
 
 
 # attempt to load the external 'python-dracclient' library, which is required

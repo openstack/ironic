@@ -260,9 +260,12 @@ class IRMCPowerInternalMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(irmc_power, '_wait_power_state', spec_set=True,
                        autospec=True)
+    @mock.patch.object(irmc_common, 'get_irmc_client', spec_set=True,
+                       autospec=True)
     @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed')
     def test__set_power_state_snmp_exception(self,
                                              attach_boot_iso_if_needed_mock,
+                                             get_irmc_client_mock,
                                              _wait_power_state_mock):
         target_state = states.SOFT_REBOOT
         _wait_power_state_mock.side_effect = exception.SNMPFailure(
@@ -276,6 +279,8 @@ class IRMCPowerInternalMethodsTestCase(db_base.DbTestCase):
                               target_state)
             attach_boot_iso_if_needed_mock.assert_called_once_with(
                 task)
+            get_irmc_client_mock.return_value.assert_called_once_with(
+                irmc_power.STATES_MAP[target_state])
             _wait_power_state_mock.assert_called_once_with(
                 task, target_state, timeout=None)
 
