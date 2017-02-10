@@ -96,10 +96,12 @@ class ConductorManager(base_manager.BaseConductorManager):
         self.power_state_sync_count = collections.defaultdict(int)
 
     @METRICS.timer('ConductorManager.create_node')
+    # No need to add these since they are subclasses of InvalidParameterValue:
+    #     InterfaceNotFoundInEntrypoint
+    #     IncompatibleInterface,
+    #     NoValidDefaultForInterface
+    #     MustBeNone
     @messaging.expected_exceptions(exception.InvalidParameterValue,
-                                   exception.InterfaceNotFoundInEntrypoint,
-                                   exception.IncompatibleInterface,
-                                   exception.NoValidDefaultForInterface,
                                    exception.DriverNotFound)
     def create_node(self, context, node_obj):
         """Create a node in database.
@@ -114,6 +116,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         :raises: NoValidDefaultForInterface if no default can be calculated
                  for some interfaces, and explicit values must be provided.
         :raises: InvalidParameterValue if some fields fail validation.
+        :raises: MustBeNone if one or more of the node's interface
+                 fields were specified when they should not be.
         :raises: DriverNotFound if the driver or hardware type is not found.
         """
         LOG.debug("RPC create_node called for node %s.", node_obj.uuid)
@@ -122,12 +126,14 @@ class ConductorManager(base_manager.BaseConductorManager):
         return node_obj
 
     @METRICS.timer('ConductorManager.update_node')
+    # No need to add these since they are subclasses of InvalidParameterValue:
+    #     InterfaceNotFoundInEntrypoint
+    #     IncompatibleInterface,
+    #     NoValidDefaultForInterface
+    #     MustBeNone
     @messaging.expected_exceptions(exception.InvalidParameterValue,
                                    exception.NodeLocked,
                                    exception.InvalidState,
-                                   exception.InterfaceNotFoundInEntrypoint,
-                                   exception.IncompatibleInterface,
-                                   exception.NoValidDefaultForInterface,
                                    exception.DriverNotFound)
     def update_node(self, context, node_obj):
         """Update a node with the supplied data.
@@ -140,7 +146,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         :param node_obj: a changed (but not saved) node object.
         :raises: NoValidDefaultForInterface if no default can be calculated
                  for some interfaces, and explicit values must be provided.
-
+        :raises: MustBeNone if one or more of the node's interface
+                 fields were specified when they should not be.
         """
         node_id = node_obj.uuid
         LOG.debug("RPC update_node called for node %s.", node_id)

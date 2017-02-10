@@ -55,7 +55,17 @@ def build_driver_for_task(task, driver_name=None):
     driver_name = driver_name or node.driver
 
     driver_or_hw_type = get_driver_or_hardware_type(driver_name)
-    check_and_update_node_interfaces(node, driver_or_hw_type=driver_or_hw_type)
+    try:
+        check_and_update_node_interfaces(
+            node, driver_or_hw_type=driver_or_hw_type)
+    except exception.MustBeNone as e:
+        # NOTE(rloo). This was raised because nodes with classic drivers
+        #             cannot have any interfaces (except for network and
+        #             storage) set. However, there was a small window
+        #             where this was possible so instead of breaking those
+        #             users totally, we'll spam them with warnings instead.
+        LOG.warning(_LW('%s They will be ignored. To avoid this warning, '
+                        'please set them to None.'), e)
 
     bare_driver = driver_base.BareDriver()
     _attach_interfaces_to_driver(bare_driver, node, driver_or_hw_type)
@@ -225,6 +235,8 @@ def check_and_update_node_interfaces(node, driver_or_hw_type=None):
     :raises: NoValidDefaultForInterface if the default value cannot be
              calculated and is not provided in the configuration
     :raises: DriverNotFound if the node's driver or hardware type is not found
+    :raises: MustBeNone if one or more of the node's interface
+             fields were specified when they should not be.
     """
     if driver_or_hw_type is None:
         driver_or_hw_type = get_driver_or_hardware_type(node.driver)
@@ -236,6 +248,25 @@ def check_and_update_node_interfaces(node, driver_or_hw_type=None):
     else:
         # Only network and storage interfaces are dynamic for classic drivers
         factories = ['network', 'storage']
+
+    # These are interfaces that cannot be specified via the node. E.g.,
+    # for classic drivers, none are allowed except for network & storage.
+    not_allowed_ifaces = driver_base.ALL_INTERFACES - set(factories)
+
+    bad_interface_fields = []
+    for iface in not_allowed_ifaces:
+        field_name = '%s_interface' % iface
+        # NOTE(dtantsur): objects raise NotImplementedError on accessing fields
+        # that are known, but missing from an object. Thus, we cannot just use
+        # getattr(node, field_name, None) here.
+        if field_name in node:
+            impl_name = getattr(node, field_name)
+            if impl_name is not None:
+                bad_interface_fields.append(field_name)
+
+    if bad_interface_fields:
+        raise exception.MustBeNone(node=node.uuid, driver=node.driver,
+                                   node_fields=','.join(bad_interface_fields))
 
     # Result - whether the node object was modified
     result = False

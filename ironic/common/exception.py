@@ -350,6 +350,11 @@ class NoValidDefaultForInterface(InvalidParameterValue):
                  "value found for %(interface_type)s interface.")
 
 
+class MustBeNone(InvalidParameterValue):
+    _msg_fmt = _("For node %(node)s with driver %(driver)s, these node "
+                 "fields must be set to None: %(node_fields)s.")
+
+
 class ImageNotFound(NotFound):
     _msg_fmt = _("Image %(image_id)s could not be found.")
 
