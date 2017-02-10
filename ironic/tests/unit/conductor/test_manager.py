@@ -4776,12 +4776,6 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin,
                     'deploy_forces_oob_reboot']
         self._check_driver_properties("fake_pxe", expected)
 
-    def test_driver_properties_fake_seamicro(self):
-        expected = ['seamicro_api_endpoint', 'seamicro_password',
-                    'seamicro_server_id', 'seamicro_username',
-                    'seamicro_api_version', 'seamicro_terminal_port']
-        self._check_driver_properties("fake_seamicro", expected)
-
     def test_driver_properties_fake_snmp(self):
         expected = ['snmp_driver', 'snmp_address', 'snmp_port', 'snmp_version',
                     'snmp_community', 'snmp_security', 'snmp_outlet']
@@ -4812,14 +4806,6 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin,
                     'ssh_password', 'ssh_port', 'ssh_terminal_port',
                     'deploy_forces_oob_reboot']
         self._check_driver_properties("pxe_ssh", expected)
-
-    def test_driver_properties_pxe_seamicro(self):
-        expected = ['deploy_kernel', 'deploy_ramdisk',
-                    'seamicro_api_endpoint', 'seamicro_password',
-                    'seamicro_server_id', 'seamicro_username',
-                    'seamicro_api_version', 'seamicro_terminal_port',
-                    'deploy_forces_oob_reboot']
-        self._check_driver_properties("pxe_seamicro", expected)
 
     def test_driver_properties_pxe_snmp(self):
         expected = ['deploy_kernel', 'deploy_ramdisk',

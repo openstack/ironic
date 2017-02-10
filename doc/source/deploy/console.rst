@@ -125,9 +125,8 @@ The web console can be configured in Bare Metal service in the following way:
    ironic driver-properties <driver>
 
   For ``*_ipmitool`` and ``*_ipminative`` drivers, this option is ``ipmi_terminal_port``.
-  For ``seamicro`` driver, this option is ``seamicro_terminal_port``. Give a customized port
-  number to ``<customized_port>``, for example ``8023``, this customized port is used in
-  web console url.
+  Give a customized port number to ``<customized_port>``,
+  for example ``8023``, this customized port is used in web console url.
 
   Get web console information for a node as follows::
 

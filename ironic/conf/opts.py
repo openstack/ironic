@@ -54,12 +54,10 @@ _opts = [
     ('neutron', ironic.conf.neutron.list_opts()),
     ('oneview', ironic.conf.oneview.opts),
     ('pxe', ironic.conf.pxe.opts),
-    ('seamicro', ironic.conf.seamicro.opts),
     ('service_catalog', ironic.conf.service_catalog.list_opts()),
     ('snmp', ironic.conf.snmp.opts),
     ('ssh', ironic.conf.ssh.opts),
     ('swift', ironic.conf.swift.list_opts()),
-    ('virtualbox', ironic.conf.virtualbox.opts),
 ]
 
 

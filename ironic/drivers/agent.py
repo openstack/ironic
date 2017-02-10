@@ -27,7 +27,6 @@ from ironic.drivers.modules import pxe
 from ironic.drivers.modules import ssh
 from ironic.drivers.modules.ucs import management as ucs_mgmt
 from ironic.drivers.modules.ucs import power as ucs_power
-from ironic.drivers.modules import virtualbox
 
 
 # For backward compatibility
@@ -85,33 +84,6 @@ class AgentAndSSHDriver(base.BaseDriver):
         self.inspect = inspector.Inspector.create_if_enabled(
             'AgentAndSSHDriver')
         self.console = ssh.ShellinaboxConsole()
-
-
-class AgentAndVirtualBoxDriver(base.BaseDriver):
-    """Agent + VirtualBox driver.
-
-    NOTE: This driver is meant only for testing environments.
-
-    This driver implements the `core` functionality, combining
-    :class:`ironic.drivers.modules.virtualbox.VirtualBoxPower` (for power
-    on/off and reboot of VirtualBox virtual machines), with
-    :class:`ironic.drivers.modules.agent.AgentDeploy` (for image
-    deployment). Implementations are in those respective classes; this class
-    is merely the glue between them.
-    """
-
-    supported = False
-
-    def __init__(self):
-        if not importutils.try_import('pyremotevbox'):
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to import pyremotevbox library"))
-        self.power = virtualbox.VirtualBoxPower()
-        self.boot = pxe.PXEBoot()
-        self.deploy = agent.AgentDeploy()
-        self.management = virtualbox.VirtualBoxManagement()
-        self.raid = agent.AgentRAID()
 
 
 class AgentAndUcsDriver(base.BaseDriver):

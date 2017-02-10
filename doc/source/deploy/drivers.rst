@@ -48,14 +48,6 @@ iLO driver
 
   ../drivers/ilo
 
-SeaMicro driver
----------------
-
-.. toctree::
-  :maxdepth: 1
-
-  ../drivers/seamicro
-
 iRMC driver
 -----------
 
@@ -63,15 +55,6 @@ iRMC driver
   :maxdepth: 1
 
   ../drivers/irmc
-
-VirtualBox driver
------------------
-
-.. toctree::
-  :maxdepth: 1
-
-  ../drivers/vbox
-
 
 Cisco UCS driver
 ----------------
@@ -118,5 +101,8 @@ and as of Ocata release they are removed form ironic:
 - AMT driver - available as part of ironic-staging-drivers_
 - iBoot driver - available as part of ironic-staging-drivers_
 - Wake-On-Lan driver - available as part of ironic-staging-drivers_
+- Virtualbox drivers
+- SeaMicro drivers
+- MSFT OCS drivers
 
 .. _ironic-staging-drivers: http://ironic-staging-drivers.readthedocs.io

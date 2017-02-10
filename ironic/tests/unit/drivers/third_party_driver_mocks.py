@@ -22,7 +22,6 @@ respective external libraries' actually being present.
 Any external library required by a third-party driver should be mocked here.
 Current list of mocked libraries:
 
-- seamicroclient
 - ipminative
 - proliantutils
 - pysnmp
@@ -42,24 +41,6 @@ from ironic.drivers.modules import ipmitool
 from ironic.tests.unit.drivers import third_party_driver_mock_specs \
     as mock_specs
 
-
-# attempt to load the external 'seamicroclient' library, which is
-# required by the optional drivers.modules.seamicro module
-seamicroclient = importutils.try_import("seamicroclient")
-if not seamicroclient:
-    smc = mock.MagicMock(spec_set=mock_specs.SEAMICRO_SPEC)
-    smc.client = mock.MagicMock(spec_set=mock_specs.SEAMICRO_CLIENT_MOD_SPEC)
-    smc.exceptions = mock.MagicMock(spec_set=mock_specs.SEAMICRO_EXC_SPEC)
-    smc.exceptions.ClientException = Exception
-    smc.exceptions.UnsupportedVersion = Exception
-    sys.modules['seamicroclient'] = smc
-    sys.modules['seamicroclient.client'] = smc.client
-    sys.modules['seamicroclient.exceptions'] = smc.exceptions
-
-# if anything has loaded the seamicro driver yet, reload it now that
-# the external library has been mocked
-if 'ironic.drivers.modules.seamicro' in sys.modules:
-    six.moves.reload_module(sys.modules['ironic.drivers.modules.seamicro'])
 
 # IPMITool driver checks the system for presence of 'ipmitool' binary during
 # __init__. We bypass that check in order to run the unit tests, which do not
@@ -215,21 +196,6 @@ irmc_boot.check_share_fs_mounted_orig = irmc_boot.check_share_fs_mounted
 irmc_boot.check_share_fs_mounted_patcher = mock.patch(
     'ironic.drivers.modules.irmc.boot.check_share_fs_mounted')
 irmc_boot.check_share_fs_mounted_patcher.return_value = None
-
-
-pyremotevbox = importutils.try_import('pyremotevbox')
-if not pyremotevbox:
-    pyremotevbox = mock.MagicMock(spec_set=mock_specs.PYREMOTEVBOX_SPEC)
-    pyremotevbox.exception = mock.MagicMock(
-        spec_set=mock_specs.PYREMOTEVBOX_EXC_SPEC)
-    pyremotevbox.exception.PyRemoteVBoxException = Exception
-    pyremotevbox.exception.VmInWrongPowerState = Exception
-    pyremotevbox.vbox = mock.MagicMock(
-        spec_set=mock_specs.PYREMOTEVBOX_VBOX_SPEC)
-    sys.modules['pyremotevbox'] = pyremotevbox
-    if 'ironic.drivers.modules.virtualbox' in sys.modules:
-        six.moves.reload_module(
-            sys.modules['ironic.drivers.modules.virtualbox'])
 
 
 ironic_inspector_client = importutils.try_import('ironic_inspector_client')
