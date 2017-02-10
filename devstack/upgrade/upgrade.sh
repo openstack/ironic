@@ -86,11 +86,14 @@ start_nova_compute
 ensure_services_started ironic-api ironic-conductor
 ensure_logs_exist ir-cond ir-api
 
+# We need these steps only in case of flat-network
 # NOTE(vsaienko) starting from Ocata when Neutron is restarted there is no guarantee that
 # internal tag, that was assigned to network will be the same. As result we need to update
 # tag on link between br-int and brbm to new value after restart.
-net_id=$(openstack network show ironic_grenade -f value -c id)
-create_ovs_taps $net_id
+if [[ -z "${IRONIC_PROVISION_NETWORK_NAME}" ]]; then
+    net_id=$(openstack network show ironic_grenade -f value -c id)
+    create_ovs_taps $net_id
+fi
 
 set +o xtrace
 echo "*********************************************************************"
