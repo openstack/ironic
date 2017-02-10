@@ -15,7 +15,7 @@
 
 import time
 
-from tempest.lib.common.utils import misc as misc_utils
+from tempest.lib.common.utils import test_utils
 from tempest.lib import exceptions as lib_exc
 
 
@@ -61,7 +61,7 @@ def wait_for_bm_node_status(client, node_id, attr, status, timeout=None,
                         'status': status,
                         'timeout': client.build_timeout})
             message += ' Current state of %s: %s.' % (attr, status_curr)
-            caller = misc_utils.find_test_caller()
+            caller = test_utils.find_test_caller()
             if caller:
                 message = '(%s) %s' % (caller, message)
             raise lib_exc.TimeoutException(message)
