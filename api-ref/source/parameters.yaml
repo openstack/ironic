@@ -84,6 +84,22 @@ callback_url:
   required: true
   type: string
 
+# variables in driver query string
+driver_detail:
+  description: |
+    Whether to show detailed information about the drivers (e.g. the
+    "boot_interface" field). Added in API microversion 1.30.
+  in: query
+  required: false
+  type: boolean
+driver_type:
+  description: |
+    Only list drivers of this type. Options are "classic" or "dynamic". Added
+    in API microversion 1.30.
+  in: query
+  required: false
+  type: string
+
 # variables common to all query strings
 fields:
   description: |
@@ -279,6 +295,12 @@ boot_device:
   in: body
   required: true
   type: string
+boot_interface:
+  description: |
+    The boot interface for a Node, e.g. "pxe". Added in API microversion 1.31.
+  in: body
+  required: true
+  type: string
 chassis:
   description: |
     A ``chassis`` object.
@@ -320,10 +342,95 @@ console_enabled:
   in: body
   required: true
   type: boolean
+console_interface:
+  description: |
+    The console interface for a node, e.g. "no-console". Added in API
+    microversion 1.31.
+  in: body
+  required: true
+  type: string
 created_at:
   description: |
     The UTC date and time when the resource was created,
     `ISO 8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ format.
+  in: body
+  required: true
+  type: string
+default_boot_interface:
+  description: |
+    The default boot interface used for a node with a dynamic driver, if no
+    boot interface is specified for the node. Added in API microversion 1.30.
+  in: body
+  required: true
+  type: string
+default_console_interface:
+  description: |
+    The default console interface used for a node with a dynamic driver, if no
+    console interface is specified for the node. Added in API microversion
+    1.30.
+  in: body
+  required: true
+  type: string
+default_deploy_interface:
+  description: |
+    The default deploy interface used for a node with a dynamic driver, if no
+    deploy interface is specified for the node. Added in API microversion
+    1.30.
+  in: body
+  required: true
+  type: string
+default_inspect_interface:
+  description: |
+    The default inspection interface used for a node with a dynamic driver, if
+    no inspection interface is specified for the node. Added in API
+    microversion 1.30.
+  in: body
+  required: true
+  type: string
+default_management_interface:
+  description: |
+    The default management interface used for a node with a dynamic driver, if
+    no management interface is specified for the node. Added in API
+    microversion 1.30.
+  in: body
+  required: true
+  type: string
+default_network_interface:
+  description: |
+    The default network interface used for a node with a dynamic driver, if
+    no network interface is specified for the node. Added in API
+    microversion 1.30.
+  in: body
+  required: true
+  type: string
+default_power_interface:
+  description: |
+    The default power interface used for a node with a dynamic driver, if
+    no power interface is specified for the node. Added in API
+    microversion 1.30.
+  in: body
+  required: true
+  type: string
+default_raid_interface:
+  description: |
+    The default RAID interface used for a node with a dynamic driver, if
+    no RAID interface is specified for the node. Added in API
+    microversion 1.30.
+  in: body
+  required: true
+  type: string
+default_vendor_interface:
+  description: |
+    The default vendor interface used for a node with a dynamic driver, if
+    no vendor interface is specified for the node. Added in API
+    microversion 1.30.
+  in: body
+  required: true
+  type: string
+deploy_interface:
+  description: |
+    The deploy interface for a node, e.g. "iscsi". Added in API microversion
+    1.31.
   in: body
   required: true
   type: string
@@ -364,6 +471,69 @@ drivers:
   in: body
   required: true
   type: array
+enabled_boot_interfaces:
+  description: |
+    The enabled boot interfaces for this driver. Added in API microversion
+    1.30.
+  in: body
+  required: true
+  type: list
+enabled_console_interfaces:
+  description: |
+    The enabled console interfaces for this driver. Added in API microversion
+    1.30.
+  in: body
+  required: true
+  type: list
+enabled_deploy_interfaces:
+  description: |
+    The enabled deploy interfaces for this driver. Added in API microversion
+    1.30.
+  in: body
+  required: true
+  type: list
+enabled_inspect_interfaces:
+  description: |
+    The enabled inspection interfaces for this driver. Added in API
+    microversion 1.30.
+  in: body
+  required: true
+  type: list
+enabled_management_interfaces:
+  description: |
+    The enabled management interfaces for this driver. Added in API
+    microversion 1.30.
+  in: body
+  required: true
+  type: list
+enabled_network_interfaces:
+  description: |
+    The enabled network interfaces for this driver. Added in API microversion
+    1.30.
+  in: body
+  required: true
+  type: list
+enabled_power_interfaces:
+  description: |
+    The enabled power interfaces for this driver. Added in API microversion
+    1.30.
+  in: body
+  required: true
+  type: list
+enabled_raid_interfaces:
+  description: |
+    The enabled RAID interfaces for this driver. Added in API microversion
+    1.30.
+  in: body
+  required: true
+  type: list
+enabled_vendor_interfaces:
+  description: |
+    The enabled vendor interfaces for this driver. Added in API microversion
+    1.30.
+  in: body
+  required: true
+  type: list
 extra:
   description: |
     A set of one or more arbitrary metadata key and
@@ -380,6 +550,13 @@ hosts:
 id:
   description: |
     Major API version, eg, "v1"
+  in: body
+  required: true
+  type: string
+inspect_interface:
+  description: |
+    The interface used for node inspection, e.g. "no-inspect". Added in API
+    microversion 1.31.
   in: body
   required: true
   type: string
@@ -461,6 +638,13 @@ maintenance_reason:
     maintenance mode
   in: body
   required: false
+  type: string
+management_interface:
+  description: |
+    Interface for out-of-band node management, e.g. "ipmitool". Added in API
+    microversion 1.31.
+  in: body
+  required: true
   type: string
 n_portgroups:
   description: |
@@ -637,6 +821,13 @@ ports:
   in: body
   required: true
   type: array
+power_interface:
+  description: |
+    Interface used for performing power actions on the node, e.g. "ipmitool".
+    Added in API microversion 1.31.
+  in: body
+  required: true
+  type: string
 power_state:
   description: |
     The current power state of this Node. Usually, "power on" or "power off", but may be "None"
@@ -690,6 +881,13 @@ raid_config:
   in: body
   required: false
   type: JSON
+raid_interface:
+  description: |
+    Interface used for configuring RAID on this node, e.g. "no-raid". Added in
+    API microversion 1.31.
+  in: body
+  required: true
+  type: string
 reason:
   description: |
     Specify the reason for setting the Node into maintenance mode.
@@ -715,6 +913,12 @@ resource_class:
     A string which can be used by external schedulers to identify this Node as
     a unit of a specific type of resource. This will be used by the openstack
     Placement Engine in a future release. Added in API microversion 1.21.
+  in: body
+  required: true
+  type: string
+response_driver_type:
+  description: |
+    Type of this driver ("classic" or "dynamic").
   in: body
   required: true
   type: string
@@ -816,7 +1020,13 @@ v_raid:
   in: body
   required: true
   type: object
-
+vendor_interface:
+  description: |
+    Interface for vendor-specific functionality on this node, e.g. "no-vendor".
+    Added in API microversion 1.31.
+  in: body
+  required: true
+  type: string
 version:
   description: |
     Versioning of this API response, eg. "1.22".

@@ -1,26 +1,66 @@
 {
+  "default_boot_interface": "pxe",
+  "default_console_interface": "no-console",
+  "default_deploy_interface": "iscsi",
+  "default_inspect_interface": "no-inspect",
+  "default_management_interface": "ipmitool",
+  "default_network_interface": "flat",
+  "default_power_interface": "ipmitool",
+  "default_raid_interface": "no-raid",
+  "default_vendor_interface": "no-vendor",
+  "enabled_boot_interfaces": [
+    "pxe"
+  ],
+  "enabled_console_interfaces": [
+    "no-console"
+  ],
+  "enabled_deploy_interfaces": [
+    "iscsi",
+    "direct"
+  ],
+  "enabled_inspect_interfaces": [
+    "no-inspect"
+  ],
+  "enabled_management_interfaces": [
+    "ipmitool"
+  ],
+  "enabled_network_interfaces": [
+    "flat",
+    "noop"
+  ],
+  "enabled_power_interfaces": [
+    "ipmitool"
+  ],
+  "enabled_raid_interfaces": [
+    "no-raid",
+    "agent"
+  ],
+  "enabled_vendor_interfaces": [
+    "no-vendor"
+  ],
   "hosts": [
     "897ab1dad809"
   ],
   "links": [
     {
-      "href": "http://127.0.0.1:6385/v1/drivers/agent_ipmitool",
+      "href": "http://127.0.0.1:6385/v1/drivers/ipmi",
       "rel": "self"
     },
     {
-      "href": "http://127.0.0.1:6385/drivers/agent_ipmitool",
+      "href": "http://127.0.0.1:6385/drivers/ipmi",
       "rel": "bookmark"
     }
   ],
-  "name": "agent_ipmitool",
+  "name": "ipmi",
   "properties": [
     {
-      "href": "http://127.0.0.1:6385/v1/drivers/agent_ipmitool/properties",
+      "href": "http://127.0.0.1:6385/v1/drivers/ipmi/properties",
       "rel": "self"
     },
     {
-      "href": "http://127.0.0.1:6385/drivers/agent_ipmitool/properties",
+      "href": "http://127.0.0.1:6385/drivers/ipmi/properties",
       "rel": "bookmark"
     }
-  ]
+  ],
+  "type": "dynamic"
 }

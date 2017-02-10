@@ -4,18 +4,31 @@
 Drivers (drivers)
 =================
 
-A driver is a Python object containing all the logic to manage the bare metal
-nodes enrolled within Ironic. A driver may be loaded within one or more
-``ironic-conductor`` services. Each driver contains a pre-determined set of
-instantiated interfaces. Each type of interface (eg, ``power`` or ``boot``)
+Ironic has two types of drivers: *classic* drivers and *dynamic* drivers.
+
+A *classic* driver is a Python object containing all the logic to manage the
+bare metal nodes enrolled within Ironic. A driver may be loaded within one or
+more ``ironic-conductor`` services. Each driver contains a pre-determined set
+of instantiated interfaces. Each type of interface (eg, ``power`` or ``boot``)
 performs a specific hardware function.
+
+As of API version 1.30, the REST API also exposes information about *dynamic*
+drivers. *Dynamic* drivers are supported via hardware types, which are Python
+classes enabled via entry points. Unlike *classic* drivers, which have
+pre-determined interfaces, a hardware type may support multiple types of
+interfaces. For example, the ``ipmi`` hardware type may support multiple
+methods for enabling node console. Which interface a node of a particular
+hardware type uses is determined at runtime. This collection of interfaces is
+called a *dynamic* driver. For more information about this, see the node API
+documentation.
 
 The REST API exposes the list of drivers and which ``ironic-conductor``
 processes have loaded that driver via the Driver resource (``/v1/drivers``
 endpoint). This can be useful for operators to validate their configuration in
 a heterogeneous hardware environment. Each ``ironic-conductor`` process may
 load one or more drivers, and does not necessarily need to load the same
-drivers as another ``ironic-conductor``.
+*classic* drivers as another ``ironic-conductor``. Each ``ironic-conductor``
+with the same hardware types must have the same hardware interfaces enabled.
 
 The REST API also exposes details about each driver, such as what properties
 must be supplied to a node's ``driver_info`` for that driver to manage
@@ -40,6 +53,11 @@ Normal response codes: 200
 Request
 -------
 
+.. rest_parameters:: parameters.yaml
+
+    - type: driver_type
+    - detail: driver_detail
+
 Response Parameters
 -------------------
 
@@ -51,15 +69,46 @@ drivers supported by this Ironic service.
    - drivers: drivers
    - name: driver_name
    - hosts: hosts
+   - type: response_driver_type
    - links: links
    - properties: driver_property_links
+
+Additionally, if the request has the "detail" URL parameter set to true, each
+driver will also include the following fields.
+
+.. rest_parameters:: parameters.yaml
+
+   - default_boot_interface: default_boot_interface
+   - default_console_interface: default_console_interface
+   - default_deploy_interface: default_deploy_interface
+   - default_inspect_interface: default_inspect_interface
+   - default_management_interface: default_management_interface
+   - default_network_interface: default_network_interface
+   - default_power_interface: default_power_interface
+   - default_raid_interface: default_raid_interface
+   - default_vendor_interface: default_vendor_interface
+   - enabled_boot_interfaces: enabled_boot_interfaces
+   - enabled_console_interfaces: enabled_console_interfaces
+   - enabled_deploy_interfaces: enabled_deploy_interfaces
+   - enabled_inspect_interfaces: enabled_inspect_interfaces
+   - enabled_management_interfaces: enabled_management_interfaces
+   - enabled_network_interfaces: enabled_network_interfaces
+   - enabled_power_interfaces: enabled_power_interfaces
+   - enabled_raid_interfaces: enabled_raid_interfaces
+   - enabled_vendor_interfaces: enabled_vendor_interfaces
 
 Response Example
 ----------------
 
+Example for a request with detail=false (the default):
+
 .. literalinclude:: samples/drivers-list-response.json
    :language: javascript
 
+Example for a request with detail=true:
+
+.. literalinclude:: samples/drivers-list-detail-response.json
+   :language: javascript
 
 Show driver details
 ===================
@@ -84,6 +133,25 @@ Response Parameters
 
    - name: driver_name
    - hosts: hosts
+   - type: response_driver_type
+   - default_boot_interface: default_boot_interface
+   - default_console_interface: default_console_interface
+   - default_deploy_interface: default_deploy_interface
+   - default_inspect_interface: default_inspect_interface
+   - default_management_interface: default_management_interface
+   - default_network_interface: default_network_interface
+   - default_power_interface: default_power_interface
+   - default_raid_interface: default_raid_interface
+   - default_vendor_interface: default_vendor_interface
+   - enabled_boot_interfaces: enabled_boot_interfaces
+   - enabled_console_interfaces: enabled_console_interfaces
+   - enabled_deploy_interfaces: enabled_deploy_interfaces
+   - enabled_inspect_interfaces: enabled_inspect_interfaces
+   - enabled_management_interfaces: enabled_management_interfaces
+   - enabled_network_interfaces: enabled_network_interfaces
+   - enabled_power_interfaces: enabled_power_interfaces
+   - enabled_raid_interfaces: enabled_raid_interfaces
+   - enabled_vendor_interfaces: enabled_vendor_interfaces
    - links: links
    - properties: driver_property_links
 

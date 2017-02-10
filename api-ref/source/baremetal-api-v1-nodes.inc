@@ -34,6 +34,11 @@ This method requires that a ``driver`` be supplied in the request body.  Most
 subresources of a Node (eg, ``properties``, ``driver_info``, etc) may be
 supplied when the Node is created, or the resource may be updated later.
 
+If the specified driver is a dynamic driver (available from API microversion
+1.31), then all the interfaces (boot_interface, deploy_interface, etc.)
+will be set to the default interface for that driver unless another enabled
+interface is specified in the creation request.
+
 API microversion 1.2 introduced the new ``available`` state name, which replaced
 ``None`` as the status of an unprovisioned Node. All clients should be updated to
 use the new ``available`` state name.
@@ -57,9 +62,14 @@ Request
 
    - driver: r_driver_name
 
-**Example Node creation request:**
+**Example Node creation request with a dynamic driver:**
 
-.. literalinclude:: samples/node-create-request.json
+.. literalinclude:: samples/node-create-request-dynamic.json
+   :language: javascript
+
+**Example Node creation request with a classic driver:**
+
+.. literalinclude:: samples/node-create-request-classic.json
    :language: javascript
 
 Response
@@ -86,8 +96,13 @@ Engine. This field has no effect within Ironic.
 API microversion 1.24 introduced the ``/nodes/{node_ident}/portgroups``
 endpoint.
 
+API microversion 1.31 introduced all of the ``*_interface`` fields
+(boot_interface, deploy_interface, etc.), with the exception of the
+network_interface field, which was introduced in API microversion 1.20. If this
+field is not supplied when creating the Node, the default value will be used.
+
 The list and example below are representative of the response as of API
-microversion 1.24.
+microversion 1.31.
 
 .. rest_parameters:: parameters.yaml
 
@@ -117,8 +132,16 @@ microversion 1.24.
     - ports: n_ports
     - portgroups: n_portgroups
     - states: n_states
-    - network_interface: network_interface
     - resource_class: resource_class
+    - boot_interface: boot_interface
+    - console_interface: console_interface
+    - deploy_interface: deploy_interface
+    - inspect_interface: inspect_interface
+    - management_interface: management_interface
+    - network_interface: network_interface
+    - power_interface: power_interface
+    - raid_interface: raid_interface
+    - vendor_interface: vendor_interface
 
 **Example JSON representation of a Node:**
 
@@ -252,8 +275,16 @@ Response
     - ports: n_ports
     - portgroups: n_portgroups
     - states: n_states
-    - network_interface: network_interface
     - resource_class: resource_class
+    - boot_interface: boot_interface
+    - console_interface: console_interface
+    - deploy_interface: deploy_interface
+    - inspect_interface: inspect_interface
+    - management_interface: management_interface
+    - network_interface: network_interface
+    - power_interface: power_interface
+    - raid_interface: raid_interface
+    - vendor_interface: vendor_interface
 
 **Example detailed list of Nodes:**
 
@@ -313,8 +344,16 @@ Response
     - ports: n_ports
     - portgroups: n_portgroups
     - states: n_states
-    - network_interface: network_interface
     - resource_class: resource_class
+    - boot_interface: boot_interface
+    - console_interface: console_interface
+    - deploy_interface: deploy_interface
+    - inspect_interface: inspect_interface
+    - management_interface: management_interface
+    - network_interface: network_interface
+    - power_interface: power_interface
+    - raid_interface: raid_interface
+    - vendor_interface: vendor_interface
 
 **Example JSON representation of a Node:**
 
@@ -383,8 +422,16 @@ Response
     - ports: n_ports
     - portgroups: n_portgroups
     - states: n_states
-    - network_interface: network_interface
     - resource_class: resource_class
+    - boot_interface: boot_interface
+    - console_interface: console_interface
+    - deploy_interface: deploy_interface
+    - inspect_interface: inspect_interface
+    - management_interface: management_interface
+    - network_interface: network_interface
+    - power_interface: power_interface
+    - raid_interface: raid_interface
+    - vendor_interface: vendor_interface
 
 **Example JSON representation of a Node:**
 

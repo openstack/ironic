@@ -1,0 +1,9 @@
+{
+    "name": "test_node_dynamic",
+    "driver": "ipmi",
+    "driver_info": {
+        "ipmi_username": "ADMIN",
+        "ipmi_password": "password"
+    },
+    "power_interface": "ipmitool"
+}
