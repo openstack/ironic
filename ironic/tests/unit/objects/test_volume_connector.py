@@ -177,3 +177,18 @@ class TestVolumeConnectorObject(base.DbTestCase):
             self.assertEqual(expected,
                              mock_get_volume_connector.call_args_list)
             self.assertEqual(self.context, c._context)
+
+    def test_save_after_refresh(self):
+        # Ensure that it's possible to do object.save() after object.refresh()
+        db_volume_connector = utils.create_test_volume_connector()
+
+        vc = objects.VolumeConnector.get_by_uuid(self.context,
+                                                 db_volume_connector.uuid)
+        vc_copy = objects.VolumeConnector.get_by_uuid(self.context,
+                                                      db_volume_connector.uuid)
+        vc.name = 'b240'
+        vc.save()
+        vc_copy.refresh()
+        vc_copy.name = 'aaff'
+        # Ensure this passes and an exception is not generated
+        vc_copy.save()

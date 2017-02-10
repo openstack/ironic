@@ -237,3 +237,4 @@ class VolumeConnector(base.IronicObject,
         """
         current = self.get_by_uuid(self._context, uuid=self.uuid)
         self.obj_refresh(current)
+        self.obj_reset_changes()

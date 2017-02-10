@@ -386,6 +386,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         """
         current = self.get_by_uuid(self._context, self.uuid)
         self.obj_refresh(current)
+        self.obj_reset_changes()
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
