@@ -48,6 +48,8 @@ class IloInspectTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             properties = ilo_common.REQUIRED_PROPERTIES.copy()
+            properties.update(ilo_common.SNMP_PROPERTIES)
+            properties.update(ilo_common.SNMP_OPTIONAL_PROPERTIES)
             self.assertEqual(properties,
                              task.driver.inspect.get_properties())
 

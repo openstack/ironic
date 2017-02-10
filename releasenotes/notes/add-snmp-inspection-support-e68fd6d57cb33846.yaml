@@ -1,0 +1,14 @@
+---
+feature:
+  - Fixes disk size detection for out-of-band
+    inspection in iLO drivers, by optionally using SNMPv3 to
+    get the disk size for certain types of storage.
+
+    To enable this, the the following parameters must be
+    set in the node's ``driver_info``.
+
+    * ``snmp_auth_user``
+    * ``snmp_auth_prot_password``
+    * ``snmp_auth_priv_password``
+    * ``snmp_auth_protocol`` (optional, defaults to ``MD5``)
+    * ``snmp_auth_priv_protocol`` (optional, defaults to ``DES``)

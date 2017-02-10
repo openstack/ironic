@@ -903,8 +903,34 @@ The following iLO drivers support hardware inspection:
 
 .. note::
 
-   * The RAID needs to be pre-configured prior to inspection otherwise
-     proliantutils returns 0 for disk size.
+   * The disk size is returned by RIBCL/RIS only when RAID is preconfigured
+     on the storage. If the storage is Direct Attached Storage, then
+     RIBCL/RIS fails to get the disk size.
+   * The SNMPv3 inspection gets disk size for all types of storages.
+     If RIBCL/RIS is unable to get disk size and SNMPv3 inspection is
+     requested, the proliantutils does SNMPv3 inspection to get the
+     disk size. If proliantutils is unable to get the disk size, it raises
+     an error. This feature is available in proliantutils release
+     version >= 2.2.0.
+   * The iLO must be updated with SNMPv3 authentication details.
+     Refer to the section `SNMPv3 Authentication` in `HPE iLO4 User Guide`_
+     for setting up authentication details on iLO.
+     The  following parameters are mandatory to be given in driver_info
+     for SNMPv3 inspection:
+
+     * ``snmp_auth_user`` : The SNMPv3 user.
+
+     * ``snmp_auth_prot_password`` : The auth protocol pass phrase.
+
+     * ``snmp_auth_priv_password`` : The privacy protocol pass phrase.
+
+     The  following parameters are optional for SNMPv3 inspection:
+
+     * ``snmp_auth_protocol`` : The Auth Protocol. The valid values
+       are "MD5" and "SHA". The default value is "MD5".
+
+     * ``snmp_auth_priv_protocol`` : The Privacy protocol. The valid
+       values are "AES" and "DES". The default value is "DES".
 
 The inspection process will discover the following essential properties
 (properties required for scheduling deployment):
@@ -1565,3 +1591,4 @@ use the ``proliant-tools`` element in DIB::
 
 .. _`Enabling HTTPS in Swift`: http://docs.openstack.org/project-install-guide/baremetal/draft/enabling-https.html#enabling-https-in-swift
 .. _`Enabling HTTPS in Image service`: http://docs.openstack.org/project-install-guide/baremetal/draft/enabling-https.html#enabling-https-in-image-service
+.. _`HPE iLO4 User Guide`: http://h20566.www2.hpe.com/hpsc/doc/public/display?docId=c03334051

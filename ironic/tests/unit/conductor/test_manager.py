@@ -4817,21 +4817,27 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin,
     def test_driver_properties_fake_ilo(self):
         expected = ['ilo_address', 'ilo_username', 'ilo_password',
                     'client_port', 'client_timeout', 'ilo_change_password',
-                    'ca_file']
+                    'ca_file', 'snmp_auth_user', 'snmp_auth_prot_password',
+                    'snmp_auth_priv_password', 'snmp_auth_protocol',
+                    'snmp_auth_priv_protocol']
         self._check_driver_properties("fake_ilo", expected)
 
     def test_driver_properties_ilo_iscsi(self):
         expected = ['ilo_address', 'ilo_username', 'ilo_password',
                     'client_port', 'client_timeout', 'ilo_deploy_iso',
                     'console_port', 'ilo_change_password',
-                    'deploy_forces_oob_reboot', 'ca_file']
+                    'deploy_forces_oob_reboot', 'ca_file', 'snmp_auth_user',
+                    'snmp_auth_prot_password', 'snmp_auth_priv_password',
+                    'snmp_auth_protocol', 'snmp_auth_priv_protocol']
         self._check_driver_properties("iscsi_ilo", expected)
 
     def test_driver_properties_agent_ilo(self):
         expected = ['ilo_address', 'ilo_username', 'ilo_password',
                     'client_port', 'client_timeout', 'ilo_deploy_iso',
                     'console_port', 'ilo_change_password',
-                    'ca_file']
+                    'ca_file', 'snmp_auth_user', 'snmp_auth_prot_password',
+                    'snmp_auth_priv_password', 'snmp_auth_protocol',
+                    'snmp_auth_priv_protocol']
         self._check_driver_properties("agent_ilo", expected)
 
     def test_driver_properties_fail(self):
