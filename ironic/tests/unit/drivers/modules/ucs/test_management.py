@@ -90,7 +90,6 @@ class UcsManagementTestCase(db_base.DbTestCase):
         side_effect = ucs_error.UcsOperationError(
             operation='getting boot device',
             error='failed',
-            node=self.node.uuid
         )
         mock_mgmt.get_boot_device.side_effect = side_effect
         with task_manager.acquire(self.context, self.node.uuid,
