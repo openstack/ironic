@@ -93,8 +93,7 @@ class IloValidateParametersTestCase(db_base.DbTestCase):
         d_info = {'ca_file': '/home/user/cafile.pem',
                   'snmp_auth_prot_password': '1234',
                   'snmp_auth_user': 'user',
-                  'snmp_auth_priv_password': '4321',
-                  'auth_priv_pp': '4321'}
+                  'snmp_auth_priv_password': '4321'}
         self.node.driver_info.update(d_info)
         info = ilo_common.parse_driver_info(self.node)
         self.assertEqual(INFO_DICT['ilo_address'], info['ilo_address'])
@@ -223,8 +222,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
     @mock.patch.object(os.path, 'isfile', return_value=True, autospec=True)
     @mock.patch.object(ilo_client, 'IloClient', spec_set=True,
                        autospec=True)
-    def _test_get_ilo_object(self, ilo_client_mock, isFile_mock, ca_file=None,
-                             snmp_credentials=None):
+    def _test_get_ilo_object(self, ilo_client_mock, isFile_mock, ca_file=None):
         self.info['client_timeout'] = 600
         self.info['client_port'] = 4433
         self.info['ca_file'] = ca_file
@@ -238,7 +236,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             self.info['client_timeout'],
             self.info['client_port'],
             cacert=self.info['ca_file'],
-            snmp_credentials=snmp_credentials)
+            snmp_credentials=None)
         self.assertEqual('ilo_object', returned_ilo_object)
 
     @mock.patch.object(os.path, 'isfile', return_value=True, autospec=True)
@@ -247,9 +245,10 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
     def test_get_ilo_object_snmp(self, ilo_client_mock, isFile_mock):
         info = {'auth_user': 'user',
                 'auth_prot_pp': '1234',
-                'priv_prot_pp': '4321',
+                'auth_priv_pp': '4321',
                 'auth_protocol': 'SHA',
-                'priv_protocol': 'AES'}
+                'priv_protocol': 'AES',
+                'snmp_inspection': True}
         d_info = {'client_timeout': 600,
                   'client_port': 4433,
                   'ca_file': 'ca_file',
@@ -262,11 +261,6 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         self.node.driver_info = self.info
         ilo_client_mock.return_value = 'ilo_object'
         returned_ilo_object = ilo_common.get_ilo_object(self.node)
-        info = {'auth_user': 'user',
-                'auth_prot_pp': '1234',
-                'priv_prot_pp': '4321',
-                'auth_protocol': 'SHA',
-                'priv_protocol': 'AES'}
         ilo_client_mock.assert_called_with(
             self.info['ilo_address'],
             self.info['ilo_username'],

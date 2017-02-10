@@ -927,10 +927,10 @@ The following iLO drivers support hardware inspection:
      The  following parameters are optional for SNMPv3 inspection:
 
      * ``snmp_auth_protocol`` : The Auth Protocol. The valid values
-       are "MD5" and "SHA". The default value is "MD5".
+       are "MD5" and "SHA". The iLO default value is "MD5".
 
      * ``snmp_auth_priv_protocol`` : The Privacy protocol. The valid
-       values are "AES" and "DES". The default value is "DES".
+       values are "AES" and "DES". The iLO default value is "DES".
 
 The inspection process will discover the following essential properties
 (properties required for scheduling deployment):
