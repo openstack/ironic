@@ -1,0 +1,5 @@
+---
+fixes:
+  - An issue when it was impossible to detach manually attached VIF
+    to port (port.extra) when port is in portgroup by using DELETE
+    ``v1/nodes/<node_ident>/vifs`` API.

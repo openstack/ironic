@@ -381,6 +381,22 @@ class TestVifPortIDMixin(db_base.DbTestCase):
             self.assertFalse('vif_port_id' in pg.extra)
             self.assertFalse(common.TENANT_VIF_KEY in pg.internal_info)
 
+    def test_vif_detach_in_extra_portgroup_manually_attached_to_port(self):
+        vif_id = uuidutils.generate_uuid()
+        pg = obj_utils.create_test_portgroup(
+            self.context, node_id=self.node.id)
+        port = obj_utils.create_test_port(
+            self.context, node_id=self.node.id, address='52:54:00:cf:2d:01',
+            portgroup_id=pg.id, uuid=uuidutils.generate_uuid(),
+            extra={'vif_port_id': vif_id}
+        )
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.vif_detach(task, vif_id)
+            port.refresh()
+            pg.refresh()
+            self.assertFalse('vif_port_id' in port.extra)
+            self.assertFalse(common.TENANT_VIF_KEY in pg.internal_info)
+
     def test_vif_detach_in_internal_info_portgroup(self):
         vif_id = uuidutils.generate_uuid()
         pg = obj_utils.create_test_portgroup(
