@@ -327,9 +327,10 @@ class VIFPortIDMixin(object):
         :raises: VifNotAttached
         """
 
-        ports = [p for p in task.ports if p.portgroup_id is None]
-        portgroups = task.portgroups
-        for port_like_obj in portgroups + ports:
+        # NOTE(vsaienko) We picking object to attach on vif-attach side.
+        # Here we should only detach VIF and shouldn't duplicate/follow
+        # attach rules, just walk over all objects and detach VIF.
+        for port_like_obj in task.portgroups + task.ports:
             # FIXME(sambetts) Remove this when we no longer support a nova
             # driver that uses port.extra
             if (port_like_obj.extra.get("vif_port_id") == vif_id or
