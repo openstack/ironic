@@ -1,8 +1,0 @@
----
-features:
-  - |
-    Introduces new hardware type ``ipmi`` for IPMI-compatible hardware.
-    This type is enabled by default. Uses ``ipmitool`` utility under the hood,
-    similar to existing classic drivers ``pxe_ipmitool`` and
-    ``agent_ipmitool``. Supports both types of serial console: via
-    ``shellinabox`` and via ``socat``, both are disabled by default.

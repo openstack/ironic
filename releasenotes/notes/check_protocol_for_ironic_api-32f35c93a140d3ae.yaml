@@ -1,8 +1,8 @@
 ---
 fixes:
-  - Accepting ``[conductor]/api_url`` value specified in the configuration
-    file that does not start with either ``https://`` or ``http://``.
-    Such value leads to deployment failure on ironic-python-agent side.
-    This misconfiguration will be detected during ironic-conductor
-    and ironic-api start. An exception will be raised and an error about
-    the invalid value will be logged.
+  - A ``[conductor]/api_url`` value specified in the configuration file that
+    does not start with either ``https://`` or ``http://`` is no longer
+    allowed. An incorrect value led to deployment failure on
+    ironic-python-agent side. This misconfiguration will now be detected during
+    ironic-conductor and ironic-api startup. An exception will be raised and an
+    error about the invalid value will be logged.

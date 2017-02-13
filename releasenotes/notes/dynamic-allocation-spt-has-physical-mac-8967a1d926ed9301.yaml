@@ -1,6 +1,6 @@
 ---
 upgrade:
-  - Minimum required version of python-oneviewclient bumped to 2.5.2
+  - The minimum version of python-oneviewclient is now 2.5.2.
 fixes:
   - A validation step is added to verify that the Server Profile
     Template's MAC type is set to Physical when dynamic allocation

@@ -1,6 +1,6 @@
 ---
 features:
   - Add the field `standalone_ports_supported` to the
-    portgroup object. This field indicates whether
-    ports that are members of this portgroup can be
-    used as stand-alone ports. The default is True.
+    port group object. This field indicates whether
+    ports that are members of this port group can be
+    used as stand-alone ports. The default is ``True``.

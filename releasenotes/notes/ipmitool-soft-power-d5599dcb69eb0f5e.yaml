@@ -1,4 +1,0 @@
----
-features:
-  - Adds support for ``soft reboot`` and ``soft power off`` to
-    ipmitool driver.

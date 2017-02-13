@@ -1,8 +1,7 @@
 ---
 upgrade:
   - |
-    Ironic now uses only Image (glance) V2 API by default. Usage of deprecated
-    V1 API for certain basic tasks can still be enabled by setting
-    "[glance]glance_api_version" to "1". This option, however, does not affect
-    temporary URL generation, as it always required V2 API and cannot work
-    with V1.
+    Ironic now uses only the Image Service (glance) v2 API by default. Use of
+    the deprecated v1 API for certain basic tasks can still be enabled by setting
+    ``[glance]/glance_api_version`` to ``1``. This option, however, does not
+    affect temporary URL generation, as it always requires the v2 API.

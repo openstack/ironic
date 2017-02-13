@@ -1,5 +1,6 @@
 ---
 features:
   - Add support for the injection of Non-Masking Interrupts (NMI) for
-    a node in Ironic API 1.29. This feature can be used for hardware
-    diagnostics, and actual support depends on a driver.
+    a node in REST API version 1.29. This feature can be used for hardware
+    diagnostics, and actual support depends on the driver. In 7.0.0, this is
+    available in the ipmitool and iRMC drivers.

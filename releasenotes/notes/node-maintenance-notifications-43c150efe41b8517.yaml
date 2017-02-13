@@ -1,5 +1,0 @@
----
-features:
-  - Add notifications for node maintenance. Event types are
-    "baremetal.node.maintenance_set.{start, end, error}"
-    For more details, see the developer documentation.

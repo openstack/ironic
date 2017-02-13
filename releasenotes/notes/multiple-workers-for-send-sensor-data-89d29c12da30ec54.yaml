@@ -1,11 +1,11 @@
 ---
 features:
-  - Adds new option ``[conductor]/send_sensor_data_workers``
-    to allow concurrently sending sensor data using the specified
+  - Adds new configuration option ``[conductor]/send_sensor_data_workers``
+    to allow concurrent sending of sensor data using the specified
     number of green threads.
-    ``[conductor]/wait_timeout_for_send_sensor_data`` option allows
-    to specify the time to wait for all spawned green threads before
-    running the periodic task again.
+    The ``[conductor]/wait_timeout_for_send_sensor_data`` configuration option
+    is the time to wait for all spawned green threads before running the
+    periodic task again.
 upgrade:
-  - Increases number of workers from 1 to 4 for the ``send_sensor_data``
-    periodic task.
+  - Increases the default number of workers for the ``send_sensor_data``
+    periodic task from 1 to 4.

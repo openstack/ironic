@@ -1,7 +1,8 @@
 ---
 features:
-  - Support ``soft rebooting`` and ``soft power off`` requests to
-    change node's power state with API version 1.27, and also
-    introduce ``timeout`` optional parameter and
-    ``[conductor]/soft_power_off_timeout`` configuration option.
-    Custom power drivers may be enhanced to support this feature.
+  - Adds support for soft reboot and soft power off requests in REST API
+    version 1.27. Also adds an optional ``timeout`` parameter to the node
+    power state API. Adds a new configuration option
+    ``[conductor]/soft_power_off_timeout`` to define the default timeout
+    for soft power actions. In 7.0.0, this is supported for ipmitool and
+    iRMC drivers.

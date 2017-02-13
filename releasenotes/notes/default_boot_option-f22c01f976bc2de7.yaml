@@ -1,8 +1,9 @@
 ---
 features:
-  - Adds new option "[deploy]/default_boot_option" for setting the default
+  - Adds new option ``[deploy]/default_boot_option`` for setting the default
     boot option when no explicit boot option is requested via capabilities.
 upgrade:
-  - We are going to change the default value of "[deploy]/default_boot_option"
-    from "netboot" to "local" eventually. To avoid disruptions, it is
-    recommended to an explicit value to this option.
+  - A future release will change the default value of
+    ``[deploy]/default_boot_option`` from "netboot" to "local". To
+    avoid disruptions, it is recommended to set an explicit value for this
+    option.

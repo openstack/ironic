@@ -1,17 +1,19 @@
 ---
 upgrade:
   - |
-    Removes these deprecated methods from the neutron provider built into ironic:
+    Removes these deprecated methods from the neutron DHCP provider built into
+    ironic:
 
     * create_cleaning_ports
     * delete_cleaning_ports
 
-    Removes these related methods from ironic.drivers.modules.deploy_utils:
+    Removes these related methods from ``ironic.drivers.modules.deploy_utils``:
 
     * prepare_cleaning_ports
     * tear_down_cleaning_ports
 
     If you have your own custom ironic DHCP provider that implements
     cleaning methods, you may need to update your code to use the
-    add_cleaning_network() and remove_cleaning_network() network
-    interface methods.
+    ``add_cleaning_network()`` and ``remove_cleaning_network()`` network
+    interface methods. See the modules in ``ironic/drivers/modules/network/``
+    for more information.

@@ -1,6 +1,21 @@
 ---
 features:
   - |
-    Adds support for portgroups with a new endpoint `/v1/portgroups/`
-    in the REST API version 1.23. Ports can be combined into
-    portgroups to support static LAG and MLAG configurations.
+    Adds support for port groups with a new endpoint ``/v1/portgroups/``.
+    Ports can be combined into port groups to support static Link Aggregation
+    Group (LAG) and Multi-Chassis LAG (MLAG) configurations.
+
+    Note that if the optional ``mode`` field for a port group is not specified,
+    its value will be set to the value of the configuration option
+    ``[DEFAULT]default_portgroup_mode``, which defaults to ``active-backup``.
+
+    Additionally, adds the following API changes:
+
+    * a new endpoint ``/v1/nodes/<node>/portgroups``.
+    * a new endpoint ``/v1/portgroups/<portgroup>/ports``.
+    * a new field ``portgroup_uuid`` on the port object. This is the UUID
+      of a port group that this port belongs to, or None if it does not
+      belong to any port group.
+
+    All port group API functions are available starting with version 1.26 of
+    the REST API.

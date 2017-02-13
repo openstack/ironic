@@ -1,6 +1,6 @@
 ---
 deprecations:
-  - The function build_instance_info_for_deploy() is deprecated from
-    ironic.drivers.modules.agent and will be removed in the Pike cycle.
-    Its new home is ironic.drivers.modules.deploy_utils. Out-of-tree
+  - The function ``build_instance_info_for_deploy`` is deprecated from
+    ``ironic.drivers.modules.agent`` and will be removed in the Pike cycle.
+    Its new home is ``ironic.drivers.modules.deploy_utils``. Out-of-tree
     drivers that use this function should be updated accordingly.

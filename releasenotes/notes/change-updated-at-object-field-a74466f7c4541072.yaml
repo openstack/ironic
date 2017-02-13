@@ -1,4 +1,4 @@
 ---
 fixes:
-  - Set correct node's "updated_at" field after
-    node has been updated.
+  - Now sets node's ``updated_at`` field correctly after a node has been
+    updated.

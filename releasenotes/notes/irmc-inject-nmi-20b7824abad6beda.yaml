@@ -1,4 +1,0 @@
----
-features:
-  - Adds support for the injection of Non-Masking Interrupts (NMI) to
-    iRMC driver.

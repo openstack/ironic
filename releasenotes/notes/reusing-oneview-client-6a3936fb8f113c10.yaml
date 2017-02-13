@@ -1,4 +1,4 @@
 ---
 fixes:
-  - Fixes a bug where OneView drivers creates a new instance of the
-    oneview_client for each request made.
+  - Fixes a bug where OneView drivers create a new instance of the OneView
+    client for each request made.

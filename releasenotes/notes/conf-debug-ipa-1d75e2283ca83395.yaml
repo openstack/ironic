@@ -3,4 +3,4 @@ upgrade:
   - The ``[DEFAULT]/debug`` configuration option now also enables debug
     logs for the ``ironic-python-agent`` ramdisk. If the ``ipa-debug``
     kernel option is already present in the ``[pxe]/pxe_append_params``
-    configuration option Ironic will not overwrite it.
+    configuration option, ironic will not overwrite it.

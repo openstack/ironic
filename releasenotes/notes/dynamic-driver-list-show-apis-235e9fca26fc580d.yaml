@@ -1,20 +1,88 @@
 ---
 features:
   - |
-    Provides support for dynamic drivers.
+    Adds support for dynamic drivers. Using a dynamic driver in a node's
+    ``driver`` field is now possible. Dynamic drivers are composed of a
+    ``hardware type`` and a number of ``hardware interfaces``.
 
-    With REST API version 1.30, adds additional parameters and response
-    fields for GET /v1/drivers and GET /v1/drivers/<name>.
+    NOTE: this feature is considered somewhat experimental, as not all classic
+    drivers have a corresponding dynamic driver, and there is minimal CI
+    for dynamic drivers at the time of this writing.
 
-    Also allows dynamic drivers to be used and returned in the following
-    API calls, in all versions of the REST API:
+    Hardware types are enabled via the ``[DEFAULT]/enabled_hardware_types``
+    configuration option, and hardware interfaces are enabled via the
+    ``[DEFAULT]/enabled_*_interfaces`` configuration option. A default
+    interface to use when creating or updating nodes can be specified with the
+    ``[DEFAULT]/default_*_interface`` configuration option.
 
-        * GET /v1/drivers
-        * GET /v1/drivers/<name>
-        * GET /v1/drivers/<name>/properties
-        * GET /v1/drivers/<name>/vendor_passthru/methods
-        * GET/POST /v1/drivers/<name>/vendor_passthru
-        * GET/POST /v1/nodes/<id>/vendor_passthru
+    The ironic-conductor process will now fail to start if:
 
-    For more details, see the `REST API Version History documentation
+    - a default interface implementation for any enabled hardware type cannot
+      be found.
+    - a dynamic driver and a classic driver with the same name are both
+      enabled.
+    - at least one classic driver *or* one dynamic driver is not enabled.
+
+    Hardware types available in this release are:
+
+    - ``ipmi`` for IPMI-compatible hardware.  This type is enabled by default.
+      Uses the ``ipmitool`` utility under the hood, similar to existing classic
+      drivers ``pxe_ipmitool`` and ``agent_ipmitool``. Supports both types of
+      serial console: via ``shellinabox`` and via ``socat``, both are disabled
+      by default.
+
+    - ``irmc`` for FUJITSU PRIMERGY servers, disabled by default.
+
+    This feature has a number of REST API changes, all of which are available
+    in API version 1.31.
+
+    - Adds additional parameters and response fields for GET /v1/drivers and
+      GET /v1/drivers/<name>.
+
+    - Exposes the following fields on the node resource, to allow getting and
+      setting interfaces for a dynamic driver:
+
+      * boot_interface
+      * console_interface
+      * deploy_interface
+      * inspect_interface
+      * management_interface
+      * power_interface
+      * raid_interface
+      * vendor_interface
+
+    - Allows dynamic drivers to be used and returned in the following
+      API calls, in all versions of the REST API:
+
+      * GET /v1/drivers
+      * GET /v1/drivers/<name>
+      * GET /v1/drivers/<name>/properties
+      * GET /v1/drivers/<name>/vendor_passthru/methods
+      * GET/POST /v1/drivers/<name>/vendor_passthru
+      * GET/POST /v1/nodes/<id>/vendor_passthru
+
+    For more details on the REST API changes, see the `REST API Version History
+    documentation
     <http://docs.openstack.org/developer/ironic/dev/webapi-version-history.html>`_.
+
+    This also adds dynamic interface fields to node-related notifications:
+
+    * boot_interface
+    * console_interface
+    * deploy_interface
+    * inspect_interface
+    * management_interface
+    * power_interface
+    * raid_interface
+    * vendor_interface
+
+    The affected notifications are:
+
+    * baremetal.node.create.*, new payload version 1.1
+    * baremetal.node.update.*, new payload version 1.1
+    * baremetal.node.delete.*, new payload version 1.1
+    * baremetal.node.maintenance.*, new payload version 1.3
+    * baremetal.node.console.*, new payload version 1.3
+    * baremetal.node.power_set.*, new payload version 1.3
+    * baremetal.node.power_state_corrected.*, new payload version 1.3
+    * baremetal.node.provision_set.*, new payload version 1.3

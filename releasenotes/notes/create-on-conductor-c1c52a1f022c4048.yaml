@@ -1,11 +1,11 @@
 ---
 upgrade:
-  - In this release node creation logic was moved from the API service to
-    the conductor service. This is more consistent with other node operations
-    and opens opportunities for conductor-side validations on nodes.
-    However, with this change, node creation may take longer, and this may
-    limit the number of nodes that can be enrolled in parallel.
-  - The "[DEFAULT]default_network_interface" and "[dhcp]dhcp_provider"
+  - Moves node creation logic from the API service to the conductor service.
+    This is more consistent with other node operations and opens opportunities
+    for conductor-side validations on nodes.  However, with this change, node
+    creation may take longer, and this may limit the number of nodes that can
+    be enrolled in parallel.
+  - The ``[DEFAULT]/default_network_interface`` and ``[dhcp]/dhcp_provider``
     configuration options were previously required for the ironic-api service
     to calculate the correct "network_interface" default. Now these options
-    are only read by the ironic-conductor service.
+    are only required by the ironic-conductor service.
