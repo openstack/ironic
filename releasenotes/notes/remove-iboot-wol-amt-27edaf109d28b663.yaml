@@ -1,5 +1,5 @@
 ---
-upgrades:
+upgrade:
   - |
     iBoot, Wake-On-LAN and AMT drivers are removed from ironic as they
     neither have nor are planning to have a third-party CI.
