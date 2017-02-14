@@ -121,4 +121,4 @@ Additional references:
   - `trusted boot with partition image`_
   - :ref:`iLO UEFI Secure Boot Support`
 
-.. _trusted boot with partition image: http://docs.openstack.org/project-install-guide/baremetal/draft/advanced.html#trusted-boot-with-partition-image
+.. _trusted boot with partition image: http://docs.openstack.org/project-install-guide/baremetal/ocata/advanced.html#trusted-boot-with-partition-image

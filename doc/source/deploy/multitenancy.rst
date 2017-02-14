@@ -273,4 +273,4 @@ After these steps, the provisioning of the created node will happen in the
 provisioning network, and then the node will be moved to the tenant network
 that was requested.
 
-.. _`Configure the Bare Metal service for cleaning`: http://docs.openstack.org/project-install-guide/baremetal/draft/configure-cleaning.html
+.. _`Configure the Bare Metal service for cleaning`: http://docs.openstack.org/project-install-guide/baremetal/ocata/configure-cleaning.html

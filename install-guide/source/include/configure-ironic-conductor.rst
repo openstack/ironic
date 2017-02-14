@@ -81,7 +81,7 @@ Configuring ironic-conductor service
       Swift backend for the Image service should be installed and configured
       for ``agent_*`` drivers. Starting with Mitaka the Bare Metal service also
       supports Ceph Object Gateway (RADOS Gateway) as the Image service's backend
-      (`radosgw support <http://docs.openstack.org/developer/ironic/deploy/radosgw.html#radosgw-support>`_).
+      (`radosgw support <http://docs.openstack.org/developer/ironic/ocata/deploy/radosgw.html#radosgw-support>`_).
 
 #. Set the URL (replace ``NEUTRON_IP``) for connecting to the Networking
    service, to be the Networking service endpoint:
@@ -94,7 +94,7 @@ Configuring ironic-conductor service
       url=http://NEUTRON_IP:9696
 
    To configure the network for ironic-conductor service to perform node
-   cleaning, see `CleaningNetworkSetup <http://docs.openstack.org/developer/ironic/deploy/cleaning.html>`_
+   cleaning, see `CleaningNetworkSetup <http://docs.openstack.org/developer/ironic/ocata/deploy/cleaning.html>`_
    from the Ironic deploy guide.
 
 #. Configure credentials for accessing other OpenStack services.
@@ -173,7 +173,7 @@ Configuring ironic-conductor service
 
 #. Make sure that ``qemu-img`` and ``iscsiadm`` (in the case of using iscsi-deploy driver)
    binaries are installed and prepare the host system as described at
-   `Setup the drivers for the Bare Metal service <http://docs.openstack.org/developer/ironic/deploy/install-guide.html#setup-the-drivers-for-the-bare-metal-service>`_
+   `Setup the drivers for the Bare Metal service <http://docs.openstack.org/developer/ironic/ocata/deploy/install-guide.html#setup-the-drivers-for-the-bare-metal-service>`_
 
 #. Restart the ironic-conductor service:
 

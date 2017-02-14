@@ -1589,6 +1589,6 @@ use the ``proliant-tools`` element in DIB::
 
   disk-image-create -o proliant-agent-ramdisk ironic-agent fedora proliant-tools
 
-.. _`Enabling HTTPS in Swift`: http://docs.openstack.org/project-install-guide/baremetal/draft/enabling-https.html#enabling-https-in-swift
-.. _`Enabling HTTPS in Image service`: http://docs.openstack.org/project-install-guide/baremetal/draft/enabling-https.html#enabling-https-in-image-service
+.. _`Enabling HTTPS in Swift`: http://docs.openstack.org/project-install-guide/baremetal/ocata/enabling-https.html#enabling-https-in-swift
+.. _`Enabling HTTPS in Image service`: http://docs.openstack.org/project-install-guide/baremetal/ocata/enabling-https.html#enabling-https-in-image-service
 .. _`HPE iLO4 User Guide`: http://h20566.www2.hpe.com/hpsc/doc/public/display?docId=c03334051

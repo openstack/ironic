@@ -22,7 +22,7 @@ the disk, instead of the conductor.
 
 The CIMC drivers can use the Ironic Inspector service for in-band inspection of
 equipment. For more information see the `Ironic Inspector documentation
-<http://docs.openstack.org/developer/ironic-inspector/>`_.
+<http://docs.openstack.org/developer/ironic-inspector/ocata/>`_.
 
 Prerequisites
 =============
@@ -91,4 +91,4 @@ The following sequence of commands can be used to enroll a UCS Standalone node.
 
 For more information about enrolling nodes see `Enrolling a node`_ in the install guide.
 
-.. _`Enrolling a node`: http://docs.openstack.org/project-install-guide/baremetal/draft/enrollment.html#enrolling-a-node
+.. _`Enrolling a node`: http://docs.openstack.org/project-install-guide/baremetal/ocata/enrollment.html#enrolling-a-node
