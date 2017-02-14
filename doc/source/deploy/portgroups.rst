@@ -40,7 +40,7 @@ CLI commands below specify it for completeness.
     openstack --os-baremetal-api-version 1.26 baremetal port group create \
     --node $NODE_UUID --name test --address fa:ab:25:48:fd:ba --mode 802.3ad \
     --property miimon=100 --property xmit_hash_policy="layer2+3" \
-    --support-standalone-ports True
+    --support-standalone-ports
 
    A port group can also be updated with ``openstack baremetal port group set``
    command, see its help for more details.
