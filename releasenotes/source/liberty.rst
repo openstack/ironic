@@ -1,6 +1,6 @@
-============================
-Liberty Series Release Notes
-============================
+============================================
+Liberty Series (4.0.0 - 4.2.x) Release Notes
+============================================
 
 .. release-notes::
    :branch: origin/stable/liberty

@@ -1,1 +1,5 @@
-.. include:: current-series.rst
+============================
+Current Series Release Notes
+============================
+
+.. release-notes::
