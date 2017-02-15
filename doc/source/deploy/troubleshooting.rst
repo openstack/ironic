@@ -292,3 +292,20 @@ distribution that uses ``systemd``:
    journal
    ip_addr
    iptables
+
+DHCP during PXE or iPXE is inconsistent or unreliable
+=====================================================
+
+This can be caused by the spanning tree protocol delay on some switches. The
+delay prevents the switch port moving to forwarding mode during the nodes
+attempts to PXE, so the packets never make it to the DHCP server. To resolve
+this issue you should set the switch port that connects to your baremetal nodes
+as an edge or PortFast type port. Configured in this way the switch port will
+move to forwarding mode as soon as the link is established. An example on how to
+do that for a Cisco Nexus switch is:
+
+.. code-block:: bash
+
+    $ config terminal
+    $ (config) interface eth1/11
+    $ (config-if) spanning-tree port type edge
