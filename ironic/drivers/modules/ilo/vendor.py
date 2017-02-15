@@ -16,7 +16,6 @@ Vendor Interface for iLO drivers and its supporting methods.
 """
 
 from ironic_lib import metrics_utils
-from oslo_log import log as logging
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -26,8 +25,6 @@ from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
-
-LOG = logging.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
