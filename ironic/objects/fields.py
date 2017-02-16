@@ -16,9 +16,9 @@
 import ast
 import hashlib
 import inspect
-import six
 
 from oslo_versionedobjects import fields as object_fields
+import six
 
 from ironic.common import utils
 

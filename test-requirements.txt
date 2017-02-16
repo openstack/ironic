@@ -19,6 +19,7 @@ testresources>=0.2.4 # Apache-2.0/BSD
 testscenarios>=0.4 # Apache-2.0/BSD
 WebTest>=2.0 # MIT
 bashate>=0.2 # Apache-2.0
+flake8-import-order==0.11 # LGPLv3
 
 # Doc requirements
 sphinx>=1.5.1 # BSD

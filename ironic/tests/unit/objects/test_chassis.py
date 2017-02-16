@@ -14,6 +14,7 @@
 #    under the License.
 
 import datetime
+
 import mock
 from oslo_utils import uuidutils
 from testtools import matchers

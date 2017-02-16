@@ -15,8 +15,8 @@
 import contextlib
 import datetime
 import gettext
-import iso8601
 
+import iso8601
 import mock
 from oslo_versionedobjects import base as object_base
 from oslo_versionedobjects import exception as object_exception
