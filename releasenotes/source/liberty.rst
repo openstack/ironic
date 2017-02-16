@@ -1,5 +1,5 @@
 ============================================
-Liberty Series (4.0.0 - 4.2.x) Release Notes
+Liberty Series (4.0.0 - 4.2.5) Release Notes
 ============================================
 
 .. release-notes::
