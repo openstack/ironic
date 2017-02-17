@@ -21,8 +21,6 @@ from ironic.common import config
 from ironic.conf import CONF
 from ironic import objects
 
-LOG = log.getLogger(__name__)
-
 
 def prepare_service(argv=None):
     argv = [] if argv is None else argv

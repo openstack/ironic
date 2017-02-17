@@ -13,9 +13,6 @@
 # under the License.
 
 from oslo_context import context
-from oslo_log import log
-
-LOG = log.getLogger(__name__)
 
 
 class RequestContext(context.RequestContext):

@@ -11,7 +11,6 @@
 # under the License.
 
 from oslo_concurrency import processutils
-from oslo_log import log
 from oslo_service import service
 from oslo_service import wsgi
 
@@ -19,8 +18,6 @@ from ironic.api import app
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.conf import CONF
-
-LOG = log.getLogger(__name__)
 
 
 class WSGIService(service.ServiceBase):
