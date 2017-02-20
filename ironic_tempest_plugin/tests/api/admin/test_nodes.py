@@ -173,15 +173,75 @@ class TestNodesVif(base.BaseBaremetalTest):
         _, self.node = self.create_node(self.chassis['uuid'])
 
     @decorators.idempotent_id('a3d319d0-cacb-4e55-a3dc-3fa8b74880f1')
-    def test_vifs(self):
+    def test_vif_on_port(self):
+        """Test attachment and detachment of VIFs on the node with port.
+
+        Test steps:
+        1) Create chassis and node in setUp.
+        2) Create port for the node.
+        3) Attach VIF to the node.
+        4) Check VIF info in VIFs list and port internal_info.
+        5) Detach VIF from the node.
+        6) Check that no more VIF info in VIFs list and port internal_info.
+        """
         self.useFixture(
             api_microversion_fixture.APIMicroversionFixture('1.28'))
         _, self.port = self.create_port(self.node['uuid'],
                                         data_utils.rand_mac_address())
         self.client.vif_attach(self.node['uuid'], 'test-vif')
         _, body = self.client.vif_list(self.node['uuid'])
-        self.assertEqual(body, {'vifs': [{'id': 'test-vif'}]})
+        self.assertEqual({'vifs': [{'id': 'test-vif'}]}, body)
+        _, port = self.client.show_port(self.port['uuid'])
+        self.assertEqual('test-vif',
+                         port['internal_info']['tenant_vif_port_id'])
         self.client.vif_detach(self.node['uuid'], 'test-vif')
+        _, body = self.client.vif_list(self.node['uuid'])
+        self.assertEqual({'vifs': []}, body)
+        _, port = self.client.show_port(self.port['uuid'])
+        self.assertNotIn('tenant_vif_port_id', port['internal_info'])
+
+    @decorators.idempotent_id('95279515-7d0a-4f5f-987f-93e36aae5585')
+    def test_vif_on_portgroup(self):
+        """Test attachment and detachment of VIFs on the node with port group.
+
+        Test steps:
+        1) Create chassis and node in setUp.
+        2) Create port for the node.
+        3) Create port group for the node.
+        4) Plug port into port group.
+        5) Attach VIF to the node.
+        6) Check VIF info in VIFs list and port group internal_info, but
+           not in port internal_info.
+        7) Detach VIF from the node.
+        8) Check that no VIF info in VIFs list and port group internal_info.
+        """
+        self.useFixture(
+            api_microversion_fixture.APIMicroversionFixture('1.28'))
+        _, self.port = self.create_port(self.node['uuid'],
+                                        data_utils.rand_mac_address())
+        _, self.portgroup = self.create_portgroup(
+            self.node['uuid'], address=data_utils.rand_mac_address())
+
+        patch = [{'path': '/portgroup_uuid',
+                  'op': 'add',
+                  'value': self.portgroup['uuid']}]
+        self.client.update_port(self.port['uuid'], patch)
+
+        self.client.vif_attach(self.node['uuid'], 'test-vif')
+        _, body = self.client.vif_list(self.node['uuid'])
+        self.assertEqual({'vifs': [{'id': 'test-vif'}]}, body)
+
+        _, port = self.client.show_port(self.port['uuid'])
+        self.assertNotIn('tenant_vif_port_id', port['internal_info'])
+        _, portgroup = self.client.show_portgroup(self.portgroup['uuid'])
+        self.assertEqual('test-vif',
+                         portgroup['internal_info']['tenant_vif_port_id'])
+
+        self.client.vif_detach(self.node['uuid'], 'test-vif')
+        _, body = self.client.vif_list(self.node['uuid'])
+        self.assertEqual({'vifs': []}, body)
+        _, portgroup = self.client.show_portgroup(self.portgroup['uuid'])
+        self.assertNotIn('tenant_vif_port_id', portgroup['internal_info'])
 
     @decorators.idempotent_id('a3d319d0-cacb-4e55-a3dc-3fa8b74880f2')
     def test_vif_already_set_on_extra(self):
@@ -195,7 +255,7 @@ class TestNodesVif(base.BaseBaremetalTest):
         self.client.update_port(self.port['uuid'], patch)
 
         _, body = self.client.vif_list(self.node['uuid'])
-        self.assertEqual(body, {'vifs': [{'id': 'test-vif'}]})
+        self.assertEqual({'vifs': [{'id': 'test-vif'}]}, body)
 
         self.assertRaises(lib_exc.Conflict, self.client.vif_attach,
                           self.node['uuid'], 'test-vif')
