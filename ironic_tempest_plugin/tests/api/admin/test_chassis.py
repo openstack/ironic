@@ -26,13 +26,6 @@ class TestChassis(base.BaseBaremetalTest):
         super(TestChassis, cls).resource_setup()
         _, cls.chassis = cls.create_chassis()
 
-    def _assertExpected(self, expected, actual):
-        # Check if not expected keys/values exists in actual response body
-        for key, value in expected.items():
-            if key not in ('created_at', 'updated_at'):
-                self.assertIn(key, actual)
-                self.assertEqual(value, actual[key])
-
     @decorators.idempotent_id('7c5a2e09-699c-44be-89ed-2bc189992d42')
     def test_create_chassis(self):
         descr = data_utils.rand_name('test-chassis')

@@ -28,13 +28,6 @@ class TestPorts(base.BaseBaremetalTest):
         _, self.port = self.create_port(self.node['uuid'],
                                         data_utils.rand_mac_address())
 
-    def _assertExpected(self, expected, actual):
-        # Check if not expected keys/values exists in actual response body
-        for key, value in expected.items():
-            if key not in ('created_at', 'updated_at'):
-                self.assertIn(key, actual)
-                self.assertEqual(value, actual[key])
-
     @decorators.idempotent_id('83975898-2e50-42ed-b5f0-e510e36a0b56')
     def test_create_port(self):
         node_id = self.node['uuid']
