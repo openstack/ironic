@@ -33,7 +33,7 @@ SUPPORTED_DRIVERS = ['fake']
 
 # NOTE(jroll): resources must be deleted in a specific order, this list
 # defines the resource types to clean up, and the correct order.
-RESOURCE_TYPES = ['port', 'node', 'chassis']
+RESOURCE_TYPES = ['port', 'node', 'chassis', 'portgroup']
 
 
 def creates(resource):
@@ -201,6 +201,18 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
         return resp, body
 
     @classmethod
+    @creates('portgroup')
+    def create_portgroup(cls, node_uuid, **kwargs):
+        """Wrapper utility for creating test port groups.
+
+        :param node_uuid: The unique identifier of the node.
+        :return: Created port group.
+        """
+        resp, body = cls.client.create_portgroup(node_uuid=node_uuid, **kwargs)
+
+        return resp, body
+
+    @classmethod
     def delete_chassis(cls, chassis_id):
         """Deletes a chassis having the specified UUID.
 
@@ -245,6 +257,20 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
 
         if port_id in cls.created_objects['port']:
             cls.created_objects['port'].remove(port_id)
+
+        return resp
+
+    @classmethod
+    def delete_portgroup(cls, portgroup_ident):
+        """Deletes a port group having the specified UUID or name.
+
+        :param portgroup_ident: The name or UUID of the port group.
+        :return: Server response.
+        """
+        resp, body = cls.client.delete_portgroup(portgroup_ident)
+
+        if portgroup_ident in cls.created_objects['portgroup']:
+            cls.created_objects['portgroup'].remove(portgroup_ident)
 
         return resp
 
