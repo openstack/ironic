@@ -42,9 +42,9 @@ from alembic import script
 import mock
 from oslo_db import exception as db_exc
 from oslo_db.sqlalchemy import enginefacade
-from oslo_db.sqlalchemy import test_base
 from oslo_db.sqlalchemy import test_migrations
 from oslo_db.sqlalchemy import utils as db_utils
+from oslo_db.tests.sqlalchemy import base as test_base
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 import sqlalchemy
@@ -79,21 +79,6 @@ def _get_connect_string(backend, user, passwd, database):
     return ("%(backend)s://%(user)s:%(passwd)s@localhost/%(database)s"
             % {'backend': backend, 'user': user, 'passwd': passwd,
                'database': database})
-
-
-def _is_backend_avail(backend, user, passwd, database):
-    try:
-        connect_uri = _get_connect_string(backend, user, passwd, database)
-        engine = sqlalchemy.create_engine(connect_uri)
-        connection = engine.connect()
-    except Exception:
-        # intentionally catch all to handle exceptions even if we don't
-        # have any backend code loaded.
-        return False
-    else:
-        connection.close()
-        engine.dispose()
-        return True
 
 
 @contextlib.contextmanager
@@ -223,16 +208,6 @@ class MigrationCheckersMixin(object):
 
     def test_walk_versions(self):
         self._walk_versions(self.engine, self.config)
-
-    def test_connect_fail(self):
-        """Test that we can trigger a database connection failure
-
-        Test that we can fail gracefully to ensure we don't break people
-        without specific database backend
-        """
-        if _is_backend_avail(self.FIXTURE.DRIVER, "openstack_cifail",
-                             self.FIXTURE.USERNAME, self.FIXTURE.DBNAME):
-            self.fail("Shouldn't have connected")
 
     def _check_21b331f883ef(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')
