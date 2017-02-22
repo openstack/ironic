@@ -118,6 +118,13 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
         finally:
             super(BaseBaremetalTest, cls).resource_cleanup()
 
+    def _assertExpected(self, expected, actual):
+        """Check if not expected keys/values exist in actual response body."""
+        for key, value in expected.items():
+            if key not in ('created_at', 'updated_at'):
+                self.assertIn(key, actual)
+                self.assertEqual(value, actual[key])
+
     def setUp(self):
         super(BaseBaremetalTest, self).setUp()
         self.useFixture(api_microversion_fixture.APIMicroversionFixture(

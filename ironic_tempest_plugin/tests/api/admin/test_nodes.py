@@ -29,13 +29,6 @@ class TestNodes(base.BaseBaremetalTest):
         _, self.chassis = self.create_chassis()
         _, self.node = self.create_node(self.chassis['uuid'])
 
-    def _assertExpected(self, expected, actual):
-        # Check if not expected keys/values exists in actual response body
-        for key, value in expected.items():
-            if key not in ('created_at', 'updated_at'):
-                self.assertIn(key, actual)
-                self.assertEqual(value, actual[key])
-
     def _associate_node_with_instance(self):
         self.client.set_node_power_state(self.node['uuid'], 'power off')
         waiters.wait_for_bm_node_status(self.client, self.node['uuid'],
