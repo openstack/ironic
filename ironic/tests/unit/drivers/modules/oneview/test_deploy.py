@@ -14,10 +14,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
 import time
 import types
 
+import mock
 from oslo_utils import importutils
 
 from ironic.common import driver_factory

@@ -19,7 +19,6 @@
 
 import errno
 import os
-import psutil
 import random
 import signal
 import string
@@ -30,6 +29,7 @@ from ironic_lib import utils as ironic_utils
 import mock
 from oslo_config import cfg
 from oslo_utils import netutils
+import psutil
 
 from ironic.common import exception
 from ironic.drivers.modules import console_utils

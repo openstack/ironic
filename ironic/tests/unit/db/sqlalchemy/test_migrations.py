@@ -36,9 +36,9 @@ For postgres on Ubuntu this can be done with the following commands:
 
 import collections
 import contextlib
-import fixtures
 
 from alembic import script
+import fixtures
 import mock
 from oslo_db import exception as db_exc
 from oslo_db.sqlalchemy import enginefacade
