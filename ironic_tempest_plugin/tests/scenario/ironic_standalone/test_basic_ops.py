@@ -34,6 +34,27 @@ class BaremetalAgentIpmitoolWholedisk(bsm.BaremetalStandaloneScenarioTest):
         self.ping_ip_address(self.node_ip, should_succeed=True)
 
 
+class BaremetalAgentIpmitoolWholediskHttpLink(
+        bsm.BaremetalStandaloneScenarioTest):
+
+    driver = 'agent_ipmitool'
+    image_ref = CONF.baremetal.whole_disk_image_url
+    image_checksum = CONF.baremetal.whole_disk_image_checksum
+    wholedisk_image = True
+
+    @classmethod
+    def skip_checks(cls):
+        super(BaremetalAgentIpmitoolWholediskHttpLink, cls).skip_checks()
+        if not CONF.baremetal_feature_enabled.ipxe_enabled:
+            skip_msg = ("HTTP server is not available when ipxe is disabled.")
+            raise cls.skipException(skip_msg)
+
+    @test.idempotent_id('d926c683-1a32-44df-afd0-e60134346fd0')
+    @test.services('network')
+    def test_ip_access_to_server(self):
+        self.ping_ip_address(self.node_ip, should_succeed=True)
+
+
 class BaremetalAgentIpmitoolPartitioned(bsm.BaremetalStandaloneScenarioTest):
 
     driver = 'agent_ipmitool'
@@ -54,6 +75,27 @@ class BaremetalPxeIpmitoolWholedisk(bsm.BaremetalStandaloneScenarioTest):
 
     @test.idempotent_id('d8c5badd-45db-4d05-bbe8-35babbed6e86')
     @test.services('image', 'network')
+    def test_ip_access_to_server(self):
+        self.ping_ip_address(self.node_ip, should_succeed=True)
+
+
+class BaremetalPxeIpmitoolWholediskHttpLink(
+        bsm.BaremetalStandaloneScenarioTest):
+
+    driver = 'pxe_ipmitool'
+    image_ref = CONF.baremetal.whole_disk_image_url
+    image_checksum = CONF.baremetal.whole_disk_image_checksum
+    wholedisk_image = True
+
+    @classmethod
+    def skip_checks(cls):
+        super(BaremetalPxeIpmitoolWholediskHttpLink, cls).skip_checks()
+        if not CONF.baremetal_feature_enabled.ipxe_enabled:
+            skip_msg = ("HTTP server is not available when ipxe is disabled.")
+            raise cls.skipException(skip_msg)
+
+    @test.idempotent_id('71ccf06f-6765-40fd-8252-1b1bfa423b9b')
+    @test.services('network')
     def test_ip_access_to_server(self):
         self.ping_ip_address(self.node_ip, should_succeed=True)
 
