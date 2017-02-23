@@ -64,37 +64,6 @@ well.
   `<https://software.opensuse.org/download.html?project=graphics&package=graphviz-plugins>`_.
 
 
-(Optional) Installing Py34 requirements
----------------------------------------
-
-If you need Python 3.4, follow the instructions above to install prerequisites
-and *additionally* install the following packages:
-
-- On Ubuntu 14.x/Debian::
-
-    sudo apt-get install python3-dev
-
-- On Ubuntu 16.04::
-
-    wget https://www.python.org/ftp/python/3.4.4/Python-3.4.4.tgz
-    sudo tar xzf Python-3.4.4.tgz
-    cd Python-3.4.4
-    sudo ./configure
-    sudo make altinstall
-
-    # This will install Python 3.4 without replacing 3.5. To check if 3.4 was installed properly
-    run this command:
-
-    python3.4 -V
-
-- On Fedora 21/RHEL7/CentOS7::
-
-    sudo yum install python3-devel
-
-- On Fedora 22 and higher::
-
-    sudo dnf install python3-devel
-
 (Optional) Installing Py35 requirements
 ---------------------------------------
 
