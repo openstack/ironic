@@ -10,6 +10,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from six.moves import http_client
+
 from ironic_tempest_plugin.services.baremetal import base
 
 
@@ -318,7 +320,7 @@ class BaremetalClient(base.BaremetalClient):
         request = {'boot_device': boot_device, 'persistent': persistent}
         resp, body = self._put_request('nodes/%s/management/boot_device' %
                                        node_uuid, request)
-        self.expected_success(204, resp.status)
+        self.expected_success(http_client.NO_CONTENT, resp.status)
         return body
 
     @base.handle_errors
@@ -330,7 +332,7 @@ class BaremetalClient(base.BaremetalClient):
         """
         path = 'nodes/%s/management/boot_device' % node_uuid
         resp, body = self._list_request(path)
-        self.expected_success(200, resp.status)
+        self.expected_success(http_client.OK, resp.status)
         return body
 
     @base.handle_errors
@@ -342,7 +344,7 @@ class BaremetalClient(base.BaremetalClient):
         """
         path = 'nodes/%s/management/boot_device/supported' % node_uuid
         resp, body = self._list_request(path)
-        self.expected_success(200, resp.status)
+        self.expected_success(http_client.OK, resp.status)
         return body
 
     @base.handle_errors
@@ -354,7 +356,7 @@ class BaremetalClient(base.BaremetalClient):
         """
 
         resp, body = self._show_request('nodes/states/console', node_uuid)
-        self.expected_success(200, resp.status)
+        self.expected_success(http_client.OK, resp.status)
         return resp, body
 
     @base.handle_errors
@@ -370,7 +372,7 @@ class BaremetalClient(base.BaremetalClient):
         enabled = {'enabled': enabled}
         resp, body = self._put_request('nodes/%s/states/console' % node_uuid,
                                        enabled)
-        self.expected_success(202, resp.status)
+        self.expected_success(http_client.ACCEPTED, resp.status)
         return resp, body
 
     @base.handle_errors
@@ -410,5 +412,5 @@ class BaremetalClient(base.BaremetalClient):
         :param vif_id: An ID representing the VIF
         """
         resp, body = self._delete_request('nodes/%s/vifs' % node_uuid, vif_id)
-        self.expected_success(204, resp.status)
+        self.expected_success(http_client.NO_CONTENT, resp.status)
         return resp, body
