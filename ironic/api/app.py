@@ -52,8 +52,8 @@ def setup_app(pecan_config=None, extra_hooks=None):
 
     app = pecan.make_app(
         pecan_config.app.root,
-        static_root=pecan_config.app.static_root,
         debug=CONF.pecan_debug,
+        static_root=pecan_config.app.static_root if CONF.pecan_debug else None,
         force_canonical=getattr(pecan_config.app, 'force_canonical', True),
         hooks=app_hooks,
         wrap_app=middleware.ParsableErrorMiddleware,
@@ -81,7 +81,7 @@ def setup_app(pecan_config=None, extra_hooks=None):
     # Create a CORS wrapper, and attach ironic-specific defaults that must be
     # included in all CORS responses.
     app = cors_middleware.CORS(app, CONF)
-    app.set_latent(
+    cors_middleware.set_defaults(
         allow_headers=[base.Version.max_string, base.Version.min_string,
                        base.Version.string],
         allow_methods=['GET', 'PUT', 'POST', 'DELETE', 'PATCH'],
