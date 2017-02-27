@@ -119,7 +119,22 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
             super(BaseBaremetalTest, cls).resource_cleanup()
 
     def _assertExpected(self, expected, actual):
-        """Check if not expected keys/values exist in actual response body."""
+        """Check if expected keys/values exist in actual response body.
+
+        Check if the expected keys and values are in the actual response body.
+        It will not check the keys 'created_at' and 'updated_at', since they
+        will always have different values. Asserts if any expected key (or
+        corresponding value) is not in the actual response.
+
+        Note: this method has an underscore even though it is used outside of
+        this class, in order to distinguish this method from the more standard
+        assertXYZ methods.
+
+        :param expected: dict of key-value pairs that are expected to be in
+                         'actual' dict.
+        :param actual: dict of key-value pairs.
+
+        """
         for key, value in expected.items():
             if key not in ('created_at', 'updated_at'):
                 self.assertIn(key, actual)
