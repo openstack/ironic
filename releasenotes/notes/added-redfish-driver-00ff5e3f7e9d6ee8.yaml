@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Adds support for Redfish with:
+
+    * ``redfish`` hardware type
+    * ``redfish`` power interface that provides hard power
+      [on, off, reboot] and soft power [off, reboot]
+    * ``redfish`` management interface to set the boot device (PXE, disk,
+      cd-rom and bios) and its frequency (persistent or not); and NMI
+      injection SSL authentication
+
