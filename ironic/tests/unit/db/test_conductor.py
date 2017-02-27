@@ -18,6 +18,8 @@
 import datetime
 
 import mock
+from oslo_db import exception as db_exc
+from oslo_db import sqlalchemy
 from oslo_utils import timeutils
 
 from ironic.common import exception
@@ -128,6 +130,13 @@ class DbConductorTestCase(base.DbTestCase):
         self.dbapi.touch_conductor(c.hostname)
         c = self.dbapi.get_conductor(c.hostname)
         self.assertEqual(test_time, timeutils.normalize_time(c.updated_at))
+
+    @mock.patch.object(sqlalchemy.orm.Query, 'update', autospec=True)
+    def test_touch_conductor_deadlock(self, mock_update):
+        mock_update.side_effect = [db_exc.DBDeadlock(), None]
+        c = self._create_test_cdr()
+        self.dbapi.touch_conductor(c.hostname)
+        self.assertEqual(2, mock_update.call_count)
 
     def test_touch_conductor_not_found(self):
         # A conductor's heartbeat will not create a new record,

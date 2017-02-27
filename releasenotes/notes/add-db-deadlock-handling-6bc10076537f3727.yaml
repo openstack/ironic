@@ -1,0 +1,12 @@
+---
+fixes:
+  - Fixes an issue which caused conductor's periodic tasks to stop executing.
+    See https://bugs.launchpad.net/ironic/+bug/1637210
+features:
+  - Adds DBDeadlock handling which may improve stability when using Galera.
+    See https://bugs.launchpad.net/ironic/+bug/1639338
+upgrade:
+  - All DB API methods doing database writes now retry on deadlock. The
+    ``[database]db_max_retries`` configuration option specifies the maximum
+    number of times to retry, and can be customised if necessary. It is 5 by
+    default.
