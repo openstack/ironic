@@ -93,7 +93,10 @@ class LookupController(rest.RestController):
         :param node_uuid: UUID of a node.
         :raises: NotFound if requested API version does not allow this
             endpoint.
-        :raises: NotFound if suitable node was not found.
+        :raises: NotFound if suitable node was not found or node's provision
+            state is not allowed for the lookup.
+        :raises: IncompleteLookup if neither node UUID nor any valid MAC
+            address was provided.
         """
         if not api_utils.allow_ramdisk_endpoints():
             raise exception.NotFound()
@@ -156,6 +159,11 @@ class HeartbeatController(rest.RestController):
 
         :param node_ident: the UUID or logical name of a node.
         :param callback_url: the URL to reach back to the ramdisk.
+        :raises: NodeNotFound if node with provided UUID or name was not found.
+        :raises: InvalidUuidOrName if node_ident is not valid name or UUID.
+        :raises: NoValidHost if RPC topic for node could not be retrieved.
+        :raises: NotFound if requested API version does not allow this
+            endpoint.
         """
         if not api_utils.allow_ramdisk_endpoints():
             raise exception.NotFound()
