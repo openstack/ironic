@@ -23,7 +23,7 @@ import retrying
 import six
 
 from ironic.common import exception
-from ironic.common.i18n import _LE, _LI, _LW
+from ironic.common.i18n import _, _LE, _LI, _LW
 from ironic.common import states
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF

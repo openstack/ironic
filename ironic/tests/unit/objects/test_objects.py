@@ -14,7 +14,6 @@
 
 import contextlib
 import datetime
-import gettext
 
 import iso8601
 import mock
@@ -27,8 +26,6 @@ from ironic.common import context
 from ironic.objects import base
 from ironic.objects import fields
 from ironic.tests import base as test_base
-
-gettext.install('ironic')
 
 
 @base.IronicObjectRegistry.register
