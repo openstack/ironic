@@ -30,16 +30,20 @@ class APINotifyTestCase(tests_base.TestCase):
         self.node_notify_mock = mock.Mock()
         self.port_notify_mock = mock.Mock()
         self.chassis_notify_mock = mock.Mock()
+        self.portgroup_notify_mock = mock.Mock()
         self.node_notify_mock.__name__ = 'NodeCRUDNotification'
         self.port_notify_mock.__name__ = 'PortCRUDNotification'
         self.chassis_notify_mock.__name__ = 'ChassisCRUDNotification'
+        self.portgroup_notify_mock.__name__ = 'PortgroupCRUDNotification'
         _notification_mocks = {
             'chassis': (self.chassis_notify_mock,
                         notif_utils.CRUD_NOTIFY_OBJ['chassis'][1]),
             'node': (self.node_notify_mock,
                      notif_utils.CRUD_NOTIFY_OBJ['node'][1]),
             'port': (self.port_notify_mock,
-                     notif_utils.CRUD_NOTIFY_OBJ['port'][1])
+                     notif_utils.CRUD_NOTIFY_OBJ['port'][1]),
+            'portgroup': (self.portgroup_notify_mock,
+                          notif_utils.CRUD_NOTIFY_OBJ['portgroup'][1])
         }
         self.addCleanup(self._restore, notif_utils.CRUD_NOTIFY_OBJ.copy())
         notif_utils.CRUD_NOTIFY_OBJ = _notification_mocks
@@ -121,6 +125,7 @@ class APINotifyTestCase(tests_base.TestCase):
 
     def test_port_notification(self):
         node_uuid = uuidutils.generate_uuid()
+        portgroup_uuid = uuidutils.generate_uuid()
         port = obj_utils.get_test_port(self.context,
                                        address='11:22:33:77:88:99',
                                        local_link_connection={'a': 25},
@@ -130,17 +135,44 @@ class APINotifyTestCase(tests_base.TestCase):
         test_status = fields.NotificationStatus.SUCCESS
         notif_utils._emit_api_notification(self.context, port, 'create',
                                            test_level, test_status,
-                                           node_uuid=node_uuid)
+                                           node_uuid=node_uuid,
+                                           portgroup_uuid=portgroup_uuid)
         init_kwargs = self.port_notify_mock.call_args[1]
         payload = init_kwargs['payload']
         event_type = init_kwargs['event_type']
         self.assertEqual('port', event_type.object)
         self.assertEqual(port.uuid, payload.uuid)
         self.assertEqual(node_uuid, payload.node_uuid)
+        self.assertEqual(portgroup_uuid, payload.portgroup_uuid)
         self.assertEqual('11:22:33:77:88:99', payload.address)
         self.assertEqual({'a': 25}, payload.local_link_connection)
         self.assertEqual({'as': 34}, payload.extra)
         self.assertEqual(False, payload.pxe_enabled)
+
+    def test_portgroup_notification(self):
+        node_uuid = uuidutils.generate_uuid()
+        portgroup = obj_utils.get_test_portgroup(self.context,
+                                                 address='22:55:88:AA:BB:99',
+                                                 name='new01',
+                                                 mode='mode2',
+                                                 extra={'bs': 11})
+        test_level = fields.NotificationLevel.INFO
+        test_status = fields.NotificationStatus.SUCCESS
+        notif_utils._emit_api_notification(self.context, portgroup, 'create',
+                                           test_level, test_status,
+                                           node_uuid=node_uuid)
+        init_kwargs = self.portgroup_notify_mock.call_args[1]
+        payload = init_kwargs['payload']
+        event_type = init_kwargs['event_type']
+        self.assertEqual('portgroup', event_type.object)
+        self.assertEqual(portgroup.uuid, payload.uuid)
+        self.assertEqual(node_uuid, payload.node_uuid)
+        self.assertEqual(portgroup.address, payload.address)
+        self.assertEqual(portgroup.name, payload.name)
+        self.assertEqual(portgroup.mode, payload.mode)
+        self.assertEqual(portgroup.extra, payload.extra)
+        self.assertEqual(portgroup.standalone_ports_supported,
+                         payload.standalone_ports_supported)
 
     @mock.patch('ironic.objects.node.NodeMaintenanceNotification')
     def test_node_maintenance_notification(self, maintenance_mock):

@@ -23,6 +23,7 @@ from ironic.common import utils
 from ironic.db import api as dbapi
 from ironic.objects import base
 from ironic.objects import fields as object_fields
+from ironic.objects import notification
 
 
 @base.IronicObjectRegistry.register
@@ -280,3 +281,51 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         current = self.get_by_uuid(self._context, uuid=self.uuid)
         self.obj_refresh(current)
         self.obj_reset_changes()
+
+
+@base.IronicObjectRegistry.register
+class PortgroupCRUDNotification(notification.NotificationBase):
+    """Notification when ironic creates, updates or deletes a portgroup."""
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'payload': object_fields.ObjectField('PortgroupCRUDPayload')
+    }
+
+
+@base.IronicObjectRegistry.register
+class PortgroupCRUDPayload(notification.NotificationPayloadBase):
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    SCHEMA = {
+        'address': ('portgroup', 'address'),
+        'extra': ('portgroup', 'extra'),
+        'mode': ('portgroup', 'mode'),
+        'name': ('portgroup', 'name'),
+        'properties': ('portgroup', 'properties'),
+        'standalone_ports_supported': ('portgroup',
+                                       'standalone_ports_supported'),
+        'created_at': ('portgroup', 'created_at'),
+        'updated_at': ('portgroup', 'updated_at'),
+        'uuid': ('portgroup', 'uuid')
+    }
+
+    fields = {
+        'address': object_fields.MACAddressField(nullable=True),
+        'extra': object_fields.FlexibleDictField(nullable=True),
+        'mode': object_fields.StringField(nullable=True),
+        'name': object_fields.StringField(nullable=True),
+        'node_uuid': object_fields.UUIDField(),
+        'properties': object_fields.FlexibleDictField(nullable=True),
+        'standalone_ports_supported': object_fields.BooleanField(
+            nullable=True),
+        'created_at': object_fields.DateTimeField(nullable=True),
+        'updated_at': object_fields.DateTimeField(nullable=True),
+        'uuid': object_fields.UUIDField()
+    }
+
+    def __init__(self, portgroup, node_uuid):
+        super(PortgroupCRUDPayload, self).__init__(node_uuid=node_uuid)
+        self.populate_schema(portgroup=portgroup)

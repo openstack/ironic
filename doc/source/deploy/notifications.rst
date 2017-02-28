@@ -197,19 +197,57 @@ Example of port CRUD notification::
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"PortCRUDPayload",
-        "ironic_object.version":"1.0",
+        "ironic_object.version":"1.1",
         "ironic_object.data":{
             "address": "77:66:23:34:11:b7",
             "created_at": "2016-02-11T15:23:03+00:00",
             "node_uuid": "5b236cab-ad4e-4220-b57c-e827e858745a",
             "extra": {},
             "local_link_connection": {},
+            "portgroup_uuid": "bd2f385e-c51c-4752-82d1-7a9ec2c25f24",
             "pxe_enabled": True,
             "updated_at": "2016-03-27T20:41:03+00:00",
             "uuid": "1be26c0b-03f2-4d2e-ae87-c02d7f33c123"
         }
     },
     "event_type":"baremetal.port.update.end",
+    "publisher_id":"ironic-api.hostname02"
+   }
+
+List of CRUD notifications for port group:
+
+* ``baremetal.portgroup.create.start``
+* ``baremetal.portgroup.create.end``
+* ``baremetal.portgroup.create.error``
+* ``baremetal.portgroup.update.start``
+* ``baremetal.portgroup.update.end``
+* ``baremetal.portgroup.update.error``
+* ``baremetal.portgroup.delete.start``
+* ``baremetal.portgroup.delete.end``
+* ``baremetal.portgroup.delete.error``
+
+Example of portgroup CRUD notification::
+
+   {
+    "priority": "info",
+    "payload":{
+        "ironic_object.namespace":"ironic",
+        "ironic_object.name":"PortgroupCRUDPayload",
+        "ironic_object.version":"1.0",
+        "ironic_object.data":{
+            "address": "11:44:32:87:61:e5",
+            "created_at": "2017-01-11T11:33:03+00:00",
+            "node_uuid": "5b236cab-ad4e-4220-b57c-e827e858745a",
+            "extra": {},
+            "mode": "7",
+            "name": "portgroup-node-18",
+            "properties": {},
+            "standalone_ports_supported": True,
+            "updated_at": "2017-01-31T11:41:07+00:00",
+            "uuid": "db033a40-bfed-4c84-815a-3db26bb268bb",
+        }
+    },
+    "event_type":"baremetal.portgroup.update.end",
     "publisher_id":"ironic-api.hostname02"
    }
 
