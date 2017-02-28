@@ -1,0 +1,4 @@
+---
+fixes:
+  - Fixes failure to update a node's driver from a hardware type to
+    a classic driver.

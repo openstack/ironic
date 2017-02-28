@@ -273,20 +273,22 @@ class CheckAndUpdateNodeInterfacesTestCase(db_base.DbTestCase):
         # "none" dhcp provider corresponds to "noop" network_interface
         self.assertEqual('noop', node.network_interface)
 
-    def test_valid_interfaces(self):
+    def test_create_node_classic_driver_valid_interfaces(self):
         node = obj_utils.get_test_node(self.context, driver='fake',
                                        network_interface='noop',
                                        storage_interface='noop')
         self.assertFalse(driver_factory.check_and_update_node_interfaces(node))
+        self.assertEqual('noop', node.network_interface)
+        self.assertEqual('noop', node.storage_interface)
 
-    def test_invalid_network_interface(self):
+    def test_create_node_classic_driver_invalid_network_interface(self):
         node = obj_utils.get_test_node(self.context, driver='fake',
                                        network_interface='banana')
         self.assertRaises(exception.InterfaceNotFoundInEntrypoint,
                           driver_factory.check_and_update_node_interfaces,
                           node)
 
-    def test_classic_setting_interfaces(self):
+    def test_create_node_classic_driver_not_allowed_interfaces_set(self):
         # Cannot set these node interfaces for classic driver
         no_set_interfaces = (drivers_base.ALL_INTERFACES -
                              set(['network', 'storage']))
@@ -294,12 +296,170 @@ class CheckAndUpdateNodeInterfacesTestCase(db_base.DbTestCase):
             iface_name = '%s_interface' % iface
             node_kwargs = {'uuid': uuidutils.generate_uuid(),
                            iface_name: 'fake'}
-            node = obj_utils.create_test_node(self.context, driver='fake',
-                                              **node_kwargs)
+            node = obj_utils.get_test_node(self.context, driver='fake',
+                                           **node_kwargs)
             self.assertRaisesRegex(
                 exception.InvalidParameterValue,
                 'driver fake.*%s' % iface_name,
                 driver_factory.check_and_update_node_interfaces, node)
+
+    def test_create_node_classic_driver_no_interfaces_set(self):
+        no_set_interfaces = (drivers_base.ALL_INTERFACES -
+                             set(['network', 'storage']))
+        node_kwargs = {'uuid': uuidutils.generate_uuid()}
+        node = obj_utils.get_test_node(self.context, driver='fake',
+                                       **node_kwargs)
+        driver_factory.check_and_update_node_interfaces(node)
+
+        for iface in no_set_interfaces:
+            iface_name = '%s_interface' % iface
+            self.assertIsNone(getattr(node, iface_name))
+
+    def _get_valid_default_interface_name(self, iface):
+        i_name = 'fake'
+        # there is no 'fake' network interface
+        if iface == 'network':
+            i_name = 'noop'
+        return i_name
+
+    def _set_config_interface_options_hardware_type(self):
+        for iface in drivers_base.ALL_INTERFACES:
+            i_name = self._get_valid_default_interface_name(iface)
+            config_kwarg = {'enabled_%s_interfaces' % iface: [i_name],
+                            'default_%s_interface' % iface: i_name}
+            self.config(**config_kwarg)
+
+    def test_create_node_dynamic_driver_invalid_network_interface(self):
+        self._set_config_interface_options_hardware_type()
+
+        node = obj_utils.get_test_node(self.context, driver='fake-hardware',
+                                       network_interface='banana')
+        self.assertRaises(exception.InterfaceNotFoundInEntrypoint,
+                          driver_factory.check_and_update_node_interfaces,
+                          node)
+
+    def test_create_node_dynamic_driver_interfaces_set(self):
+        self._set_config_interface_options_hardware_type()
+
+        for iface in drivers_base.ALL_INTERFACES:
+            iface_name = '%s_interface' % iface
+            i_name = self._get_valid_default_interface_name(iface)
+            node_kwargs = {'uuid': uuidutils.generate_uuid(),
+                           iface_name: i_name}
+            node = obj_utils.get_test_node(
+                self.context, driver='fake-hardware', **node_kwargs)
+            driver_factory.check_and_update_node_interfaces(node)
+            self.assertEqual(i_name, getattr(node, iface_name))
+
+    def test_update_node_set_classic_driver_and_not_allowed_interfaces(self):
+        """Update driver to classic and interfaces specified"""
+        not_allowed_interfaces = (drivers_base.ALL_INTERFACES -
+                                  set(['network', 'storage']))
+        self.config(enabled_drivers=['fake', 'fake_agent'])
+        for iface in not_allowed_interfaces:
+            iface_name = '%s_interface' % iface
+            node_kwargs = {'uuid': uuidutils.generate_uuid()}
+            node = obj_utils.create_test_node(self.context, driver='fake',
+                                              **node_kwargs)
+            setattr(node, iface_name, 'fake')
+            node.driver = 'fake_agent'
+            self.assertRaisesRegex(
+                exception.InvalidParameterValue,
+                'driver fake.*%s' % iface_name,
+                driver_factory.check_and_update_node_interfaces, node)
+
+    def test_update_node_set_classic_driver_and_allowed_interfaces(self):
+        """Update driver to classic and interfaces specified"""
+        self._set_config_interface_options_hardware_type()
+        self.config(enabled_drivers=['fake', 'fake_agent'])
+        for iface in ['network', 'storage']:
+            iface_name = '%s_interface' % iface
+            node_kwargs = {'uuid': uuidutils.generate_uuid()}
+            node = obj_utils.create_test_node(self.context, driver='fake',
+                                              **node_kwargs)
+            i_name = self._get_valid_default_interface_name(iface)
+            setattr(node, iface_name, i_name)
+            node.driver = 'fake_agent'
+            driver_factory.check_and_update_node_interfaces(node)
+            self.assertEqual(i_name, getattr(node, iface_name))
+
+    def test_update_node_set_classic_driver_unset_interfaces(self):
+        """Update driver to classic and set interfaces to None"""
+        no_set_interfaces = (drivers_base.ALL_INTERFACES -
+                             set(['network', 'storage']))
+        self.config(enabled_drivers=['fake', 'fake_agent'])
+        for iface in no_set_interfaces:
+            iface_name = '%s_interface' % iface
+            node_kwargs = {'uuid': uuidutils.generate_uuid()}
+            node = obj_utils.create_test_node(self.context, driver='fake',
+                                              **node_kwargs)
+            setattr(node, iface_name, None)
+            node.driver = 'fake_agent'
+            driver_factory.check_and_update_node_interfaces(node)
+            self.assertEqual('fake_agent', node.driver)
+            self.assertIsNone(getattr(node, iface_name))
+
+    def test_update_node_classic_driver_unset_interfaces(self):
+        """Update interfaces to None for node with classic driver"""
+        no_set_interfaces = (drivers_base.ALL_INTERFACES -
+                             set(['network', 'storage']))
+        self.config(enabled_drivers=['fake', 'fake_agent'])
+        for iface in no_set_interfaces:
+            iface_name = '%s_interface' % iface
+            node_kwargs = {'uuid': uuidutils.generate_uuid()}
+            node = obj_utils.create_test_node(self.context, driver='fake',
+                                              **node_kwargs)
+            setattr(node, iface_name, None)
+            driver_factory.check_and_update_node_interfaces(node)
+            self.assertIsNone(getattr(node, iface_name))
+
+    def test_update_node_set_classic_driver_no_interfaces(self):
+        """Update driver to classic no interfaces specified"""
+        self._set_config_interface_options_hardware_type()
+        no_set_interfaces = (drivers_base.ALL_INTERFACES -
+                             set(['network', 'storage']))
+        for iface in no_set_interfaces:
+            iface_name = '%s_interface' % iface
+            node_kwargs = {'uuid': uuidutils.generate_uuid()}
+            node_kwargs[iface_name] = 'fake'
+            node = obj_utils.create_test_node(self.context,
+                                              driver='fake-hardware',
+                                              **node_kwargs)
+            node.driver = 'fake'
+            driver_factory.check_and_update_node_interfaces(node)
+            self.assertEqual('fake', node.driver)
+            self.assertIsNone(getattr(node, iface_name))
+            self.assertEqual('noop', node.network_interface)
+
+    def test_update_node_set_dynamic_driver_and_interfaces(self):
+        """Update driver to dynamic and interfaces specified"""
+        self._set_config_interface_options_hardware_type()
+
+        for iface in drivers_base.ALL_INTERFACES:
+            iface_name = '%s_interface' % iface
+            node_kwargs = {'uuid': uuidutils.generate_uuid()}
+            node = obj_utils.create_test_node(self.context, driver='fake',
+                                              **node_kwargs)
+            i_name = self._get_valid_default_interface_name(iface)
+            setattr(node, iface_name, i_name)
+            node.driver = 'fake-hardware'
+            driver_factory.check_and_update_node_interfaces(node)
+            self.assertEqual(i_name, getattr(node, iface_name))
+
+    def test_node_update_dynamic_driver_set_interfaces(self):
+        """Update interfaces for node with dynamic driver"""
+        self._set_config_interface_options_hardware_type()
+        for iface in drivers_base.ALL_INTERFACES:
+            iface_name = '%s_interface' % iface
+            node_kwargs = {'uuid': uuidutils.generate_uuid()}
+            node = obj_utils.create_test_node(self.context,
+                                              driver='fake-hardware',
+                                              **node_kwargs)
+
+            i_name = self._get_valid_default_interface_name(iface)
+            setattr(node, iface_name, i_name)
+            driver_factory.check_and_update_node_interfaces(node)
+            self.assertEqual(i_name, getattr(node, iface_name))
 
 
 class DefaultInterfaceTestCase(db_base.DbTestCase):
