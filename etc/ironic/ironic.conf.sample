@@ -1251,7 +1251,7 @@
 # Maximum retries in case of connection error or deadlock
 # error before error is raised. Set to -1 to specify an
 # infinite retry count. (integer value)
-#db_max_retries = 20
+#db_max_retries = 5
 
 
 [deploy]

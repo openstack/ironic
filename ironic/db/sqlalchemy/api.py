@@ -20,6 +20,7 @@ import collections
 import datetime
 import threading
 
+from oslo_db import api as oslo_db_api
 from oslo_db import exception as db_exc
 from oslo_db.sqlalchemy import enginefacade
 from oslo_db.sqlalchemy import utils as db_utils
@@ -55,6 +56,9 @@ def _session_for_read():
     return enginefacade.reader.using(_CONTEXT)
 
 
+# Please add @oslo_db_api.retry_on_deadlock decorator to all methods using
+# _session_for_write (as deadlocks happen on write), so that oslo_db is able
+# to retry in case of deadlocks.
 def _session_for_write():
     return enginefacade.writer.using(_CONTEXT)
 
@@ -258,6 +262,7 @@ class Connection(api.Connection):
         return _paginate_query(models.Node, limit, marker,
                                sort_key, sort_dir, query)
 
+    @oslo_db_api.retry_on_deadlock
     def reserve_node(self, tag, node_id):
         with _session_for_write():
             query = _get_node_query_with_tags()
@@ -276,6 +281,7 @@ class Connection(api.Connection):
             except NoResultFound:
                 raise exception.NodeNotFound(node_id)
 
+    @oslo_db_api.retry_on_deadlock
     def release_node(self, tag, node_id):
         with _session_for_write():
             query = model_query(models.Node)
@@ -294,6 +300,7 @@ class Connection(api.Connection):
             except NoResultFound:
                 raise exception.NodeNotFound(node_id)
 
+    @oslo_db_api.retry_on_deadlock
     def create_node(self, values):
         # ensure defaults are present for new nodes
         if 'uuid' not in values:
@@ -364,6 +371,7 @@ class Connection(api.Connection):
 
         return result
 
+    @oslo_db_api.retry_on_deadlock
     def destroy_node(self, node_id):
         with _session_for_write():
             query = model_query(models.Node)
@@ -422,6 +430,7 @@ class Connection(api.Connection):
             else:
                 raise
 
+    @oslo_db_api.retry_on_deadlock
     def _do_update_node(self, node_id, values):
         with _session_for_write():
             query = model_query(models.Node)
@@ -487,6 +496,7 @@ class Connection(api.Connection):
         return _paginate_query(models.Port, limit, marker,
                                sort_key, sort_dir, query)
 
+    @oslo_db_api.retry_on_deadlock
     def create_port(self, values):
         if not values.get('uuid'):
             values['uuid'] = uuidutils.generate_uuid()
@@ -503,6 +513,7 @@ class Connection(api.Connection):
                 raise exception.PortAlreadyExists(uuid=values['uuid'])
             return port
 
+    @oslo_db_api.retry_on_deadlock
     def update_port(self, port_id, values):
         # NOTE(dtantsur): this can lead to very strange errors
         if 'uuid' in values:
@@ -522,6 +533,7 @@ class Connection(api.Connection):
             raise exception.MACAlreadyExists(mac=values['address'])
         return ref
 
+    @oslo_db_api.retry_on_deadlock
     def destroy_port(self, port_id):
         with _session_for_write():
             query = model_query(models.Port)
@@ -570,6 +582,7 @@ class Connection(api.Connection):
         return _paginate_query(models.Portgroup, limit, marker,
                                sort_key, sort_dir, query)
 
+    @oslo_db_api.retry_on_deadlock
     def create_portgroup(self, values):
         if not values.get('uuid'):
             values['uuid'] = uuidutils.generate_uuid()
@@ -591,6 +604,7 @@ class Connection(api.Connection):
                 raise exception.PortgroupAlreadyExists(uuid=values['uuid'])
             return portgroup
 
+    @oslo_db_api.retry_on_deadlock
     def update_portgroup(self, portgroup_id, values):
         if 'uuid' in values:
             msg = _("Cannot overwrite UUID for an existing portgroup.")
@@ -615,6 +629,7 @@ class Connection(api.Connection):
                     raise
             return ref
 
+    @oslo_db_api.retry_on_deadlock
     def destroy_portgroup(self, portgroup_id):
         def portgroup_not_empty(session):
             """Checks whether the portgroup does not have ports."""
@@ -654,6 +669,7 @@ class Connection(api.Connection):
         return _paginate_query(models.Chassis, limit, marker,
                                sort_key, sort_dir)
 
+    @oslo_db_api.retry_on_deadlock
     def create_chassis(self, values):
         if not values.get('uuid'):
             values['uuid'] = uuidutils.generate_uuid()
@@ -668,6 +684,7 @@ class Connection(api.Connection):
                 raise exception.ChassisAlreadyExists(uuid=values['uuid'])
             return chassis
 
+    @oslo_db_api.retry_on_deadlock
     def update_chassis(self, chassis_id, values):
         # NOTE(dtantsur): this can lead to very strange errors
         if 'uuid' in values:
@@ -684,6 +701,7 @@ class Connection(api.Connection):
             ref = query.one()
         return ref
 
+    @oslo_db_api.retry_on_deadlock
     def destroy_chassis(self, chassis_id):
         def chassis_not_empty():
             """Checks whether the chassis does not have nodes."""
@@ -704,6 +722,7 @@ class Connection(api.Connection):
             if count != 1:
                 raise exception.ChassisNotFound(chassis=chassis_id)
 
+    @oslo_db_api.retry_on_deadlock
     def register_conductor(self, values, update_existing=False):
         with _session_for_write() as session:
             query = (model_query(models.Conductor)
@@ -731,6 +750,7 @@ class Connection(api.Connection):
         except NoResultFound:
             raise exception.ConductorNotFound(conductor=hostname)
 
+    @oslo_db_api.retry_on_deadlock
     def unregister_conductor(self, hostname):
         with _session_for_write():
             query = (model_query(models.Conductor)
@@ -739,6 +759,7 @@ class Connection(api.Connection):
             if count == 0:
                 raise exception.ConductorNotFound(conductor=hostname)
 
+    @oslo_db_api.retry_on_deadlock
     def touch_conductor(self, hostname):
         with _session_for_write():
             query = (model_query(models.Conductor)
@@ -750,6 +771,7 @@ class Connection(api.Connection):
             if count == 0:
                 raise exception.ConductorNotFound(conductor=hostname)
 
+    @oslo_db_api.retry_on_deadlock
     def clear_node_reservations_for_conductor(self, hostname):
         nodes = []
         with _session_for_write():
@@ -764,6 +786,7 @@ class Connection(api.Connection):
                 _LW('Cleared reservations held by %(hostname)s: '
                     '%(nodes)s'), {'hostname': hostname, 'nodes': nodes})
 
+    @oslo_db_api.retry_on_deadlock
     def clear_node_target_power_state(self, hostname):
         nodes = []
         with _session_for_write():
@@ -826,6 +849,7 @@ class Connection(api.Connection):
         query = _filter_active_conductors(query)
         return query.all()
 
+    @oslo_db_api.retry_on_deadlock
     def register_conductor_hardware_interfaces(self, conductor_id,
                                                hardware_type, interface_type,
                                                interfaces, default_interface):
@@ -847,12 +871,14 @@ class Connection(api.Connection):
                     interface_type=interface_type,
                     interfaces=interfaces)
 
+    @oslo_db_api.retry_on_deadlock
     def unregister_conductor_hardware_interfaces(self, conductor_id):
         with _session_for_write():
             query = (model_query(models.ConductorHardwareInterfaces)
                      .filter_by(conductor_id=conductor_id))
             query.delete()
 
+    @oslo_db_api.retry_on_deadlock
     def touch_node_provisioning(self, node_id):
         with _session_for_write():
             query = model_query(models.Node)
@@ -865,6 +891,7 @@ class Connection(api.Connection):
         if not model_query(models.Node).filter_by(id=node_id).scalar():
             raise exception.NodeNotFound(node=node_id)
 
+    @oslo_db_api.retry_on_deadlock
     def set_node_tags(self, node_id, tags):
         # remove duplicate tags
         tags = set(tags)
@@ -878,6 +905,7 @@ class Connection(api.Connection):
 
         return node_tags
 
+    @oslo_db_api.retry_on_deadlock
     def unset_node_tags(self, node_id):
         self._check_node_exists(node_id)
         with _session_for_write():
@@ -890,6 +918,7 @@ class Connection(api.Connection):
                   .all())
         return result
 
+    @oslo_db_api.retry_on_deadlock
     def add_node_tag(self, node_id, tag):
         node_tag = models.NodeTag(tag=tag, node_id=node_id)
 
@@ -904,6 +933,7 @@ class Connection(api.Connection):
 
         return node_tag
 
+    @oslo_db_api.retry_on_deadlock
     def delete_node_tag(self, node_id, tag):
         self._check_node_exists(node_id)
         with _session_for_write():
@@ -959,6 +989,7 @@ class Connection(api.Connection):
         return _paginate_query(models.VolumeConnector, limit, marker,
                                sort_key, sort_dir, query)
 
+    @oslo_db_api.retry_on_deadlock
     def create_volume_connector(self, connector_info):
         if 'uuid' not in connector_info:
             connector_info['uuid'] = uuidutils.generate_uuid()
@@ -978,6 +1009,7 @@ class Connection(api.Connection):
                     uuid=connector_info['uuid'])
             return connector
 
+    @oslo_db_api.retry_on_deadlock
     def update_volume_connector(self, ident, connector_info):
         if 'uuid' in connector_info:
             msg = _("Cannot overwrite UUID for an existing Volume Connector.")
@@ -1001,6 +1033,7 @@ class Connection(api.Connection):
             raise exception.VolumeConnectorNotFound(connector=ident)
         return ref
 
+    @oslo_db_api.retry_on_deadlock
     def destroy_volume_connector(self, ident):
         with _session_for_write():
             query = model_query(models.VolumeConnector)
@@ -1034,6 +1067,7 @@ class Connection(api.Connection):
         return _paginate_query(models.VolumeTarget, limit, marker, sort_key,
                                sort_dir, query)
 
+    @oslo_db_api.retry_on_deadlock
     def create_volume_target(self, target_info):
         if 'uuid' not in target_info:
             target_info['uuid'] = uuidutils.generate_uuid()
@@ -1052,6 +1086,7 @@ class Connection(api.Connection):
                     uuid=target_info['uuid'])
             return target
 
+    @oslo_db_api.retry_on_deadlock
     def update_volume_target(self, ident, target_info):
         if 'uuid' in target_info:
             msg = _("Cannot overwrite UUID for an existing Volume Target.")
@@ -1072,6 +1107,7 @@ class Connection(api.Connection):
             raise exception.VolumeTargetNotFound(target=ident)
         return ref
 
+    @oslo_db_api.retry_on_deadlock
     def destroy_volume_target(self, ident):
         with _session_for_write():
             query = model_query(models.VolumeTarget)
