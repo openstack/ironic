@@ -20,7 +20,7 @@ management operations on the baremetal node (instead of using IPMI).
 
 The UCS drivers can use the Ironic Inspector service for in-band inspection of
 equipment. For more information see the `Ironic Inspector documentation
-<http://docs.openstack.org/developer/ironic-inspector/>`_.
+<http://docs.openstack.org/developer/ironic-inspector/ocata/>`_.
 
 Prerequisites
 =============

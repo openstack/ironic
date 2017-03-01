@@ -13,4 +13,4 @@ resources from the Bare Metal service.
 
 Notifications are disabled by default.  For a complete list of available
 notifications and instructions for how to enable them, see the `deploy
-guide <http://docs.openstack.org/developer/ironic/deploy/notifications.html>`_.
+guide <http://docs.openstack.org/developer/ironic/ocata/deploy/notifications.html>`_.

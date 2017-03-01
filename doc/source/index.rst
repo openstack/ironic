@@ -140,7 +140,7 @@ the services.
 .. toctree::
   :maxdepth: 1
 
-  Installation Guide <http://docs.openstack.org/project-install-guide/baremetal/draft/>
+  Installation Guide <http://docs.openstack.org/project-install-guide/baremetal/ocata/>
   Upgrade Guide <deploy/upgrade-guide>
   Release Notes <http://docs.openstack.org/releasenotes/ironic/>
   Troubleshooting FAQ <deploy/troubleshooting>
@@ -166,8 +166,8 @@ of ironic that may or may not be suitable to every situation.
   Emitting software metrics <deploy/metrics>
   Auditing API Traffic <deploy/api-audit-support>
   Notifications <deploy/notifications>
-  Configuration Reference <http://docs.openstack.org/draft/config-reference/bare-metal.html>
-  Sample configuration file <https://git.openstack.org/cgit/openstack/ironic/tree/etc/ironic/ironic.conf.sample>
+  Configuration Reference <http://docs.openstack.org/ocata/config-reference/bare-metal.html>
+  Sample configuration file <https://git.openstack.org/cgit/openstack/ironic/tree/etc/ironic/ironic.conf.sample?stable%2Focata>
 
 
 Dashboard Integration
@@ -179,7 +179,7 @@ Documentation for that can be found within the ironic-ui project.
 .. toctree::
   :maxdepth: 1
 
-  Dashboard (horizon) plugin <http://docs.openstack.org/developer/ironic-ui/>
+  Dashboard (horizon) plugin <http://docs.openstack.org/developer/ironic-ui/ocata/>
 
 
 Driver References

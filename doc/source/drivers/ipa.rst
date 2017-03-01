@@ -14,7 +14,7 @@ IPA is distributed over nodes and runs, inside of a ramdisk, the
 process of booting this ramdisk on the node.
 
 For more information see the `ironic-python-agent documentation
-<http://docs.openstack.org/developer/ironic-python-agent/>`_.
+<http://docs.openstack.org/developer/ironic-python-agent/ocata/>`_.
 
 Drivers
 =======
@@ -125,4 +125,4 @@ example, the below command sets this configuration in a specific node::
 
   ironic node-update <UUID or name> add driver_info/deploy_forces_oob_reboot=True
 
-.. _`Building or downloading a deploy ramdisk image`: http://docs.openstack.org/project-install-guide/baremetal/draft/deploy-ramdisk.html
+.. _`Building or downloading a deploy ramdisk image`: http://docs.openstack.org/project-install-guide/baremetal/ocata/deploy-ramdisk.html

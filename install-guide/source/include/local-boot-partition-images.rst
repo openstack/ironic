@@ -21,7 +21,7 @@ The following sections will describe both methods.
    in the kilo-era.
 
 .. _diskimage-builder: http://docs.openstack.org/developer/diskimage-builder/
-.. _ironic-python-agent: http://docs.openstack.org/developer/ironic-python-agent/
+.. _ironic-python-agent: http://docs.openstack.org/developer/ironic-python-agent/ocata/
 
 
 Enabling local boot with Compute service

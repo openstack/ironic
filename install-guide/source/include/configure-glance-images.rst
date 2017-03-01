@@ -105,7 +105,7 @@ them to the Image service:
    one kernel disk ``coreos_production_pxe.vmlinuz`` and one ram disk
    ``coreos_production_pxe_image-oem.cpio.gz``.
 
-   .. note:: If you want to customize your deploy images, please read `Image Builders <http://docs.openstack.org/developer/ironic-python-agent/index.html#image-builders>`_.
+   .. note:: If you want to customize your deploy images, please read `Image Builders <http://docs.openstack.org/developer/ironic-python-agent/ocata/index.html#image-builders>`_.
 
 #. Add the deploy images to the Image service
 

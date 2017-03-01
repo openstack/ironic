@@ -332,4 +332,4 @@ to allow it to be scheduled by nova.
 The node will begin automated cleaning from the start, and move to
 ``available`` state when complete.
 
-.. _`Configure the Bare Metal service for cleaning`: http://docs.openstack.org/project-install-guide/baremetal/draft/configure-cleaning.html
+.. _`Configure the Bare Metal service for cleaning`: http://docs.openstack.org/project-install-guide/baremetal/ocata/configure-cleaning.html
