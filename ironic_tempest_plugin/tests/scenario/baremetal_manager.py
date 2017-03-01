@@ -20,11 +20,11 @@ from tempest.common import waiters
 from tempest import config
 from tempest.lib.common import api_version_utils
 from tempest.lib import exceptions as lib_exc
-from tempest.scenario import manager  # noqa
 
 from ironic_tempest_plugin import clients
 from ironic_tempest_plugin.common import utils
 from ironic_tempest_plugin.common import waiters as ironic_waiters
+from ironic_tempest_plugin import manager
 
 CONF = config.CONF
 
