@@ -37,10 +37,6 @@ whether to add a release note for your change or not, keep in mind that it is
 intended to contain information for deployers, so changes to unit tests or
 documentation are unlikely to require one.
 
-Note that we prefer to use present tense in release notes. For example, a
-release note should say "Adds support for feature foo", not "Added support
-for feature foo".
-
 ...create a new release note?
 -----------------------------
 
@@ -63,7 +59,15 @@ By running ``reno`` command via tox, e.g::
 
       releasenotes/notes/version-foo-ecb3875dc1cbf6d9.yaml
 
-Then edit the result file.
+Then edit the result file. Note that:
+
+- we prefer to use present tense in release notes. For example, a
+  release note should say "Adds support for feature foo", not "Added support
+  for feature foo". (We use 'adds' instead of 'add' because grammatically,
+  it is "ironic adds support", not "ironic add support".)
+- any variant of English spelling (American, British, Canadian, Australian...)
+  is acceptable. The release note itself should be consistent and not have
+  different spelling variants of the same word.
 
 For more information see the `reno documentation`_.
 
