@@ -249,7 +249,10 @@ function install_ironic {
     fi
 
     if is_deployed_by_ipmitool && [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
-        pip_install "virtualbmc"
+        # NOTE(pas-ha) as virtualbmc is not in the global requiremets
+        # and upper constraints, but depends on pyghmi which is in gr and uc,
+        # we better pin the version for now
+        pip_install "virtualbmc==0.0.4"
 
         if [[ ! -d $(dirname $IRONIC_VBMC_CONFIG_FILE) ]]; then
             mkdir -p $(dirname $IRONIC_VBMC_CONFIG_FILE)
