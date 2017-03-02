@@ -13,6 +13,16 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+# NOTE(yuriyz): Do eventlet monkey patching here, not in ironic/__init__.py
+# This allows API service runs under Apache.
+import os
+
+os.environ['EVENTLET_NO_GREENDNS'] = 'yes'
+
+import eventlet
+
+eventlet.monkey_patch(os=False)
+
 import oslo_i18n as i18n
 
 i18n.install('ironic')
