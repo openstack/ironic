@@ -1,7 +1,7 @@
 # The order of packages is significant, because pip processes them in the order
 # of appearance. Changing the order has an impact on the overall integration
 # process, which may cause wedges in the gate later.
-pbr>=1.8 # Apache-2.0
+pbr>=2.0.0 # Apache-2.0
 SQLAlchemy<1.1.0,>=1.0.10 # MIT
 alembic>=0.8.10 # MIT
 automaton>=0.5.0 # Apache-2.0
@@ -14,7 +14,7 @@ keystoneauth1>=2.18.0 # Apache-2.0
 ironic-lib>=2.5.0 # Apache-2.0
 python-swiftclient>=3.2.0 # Apache-2.0
 pytz>=2013.6 # MIT
-stevedore>=1.17.1 # Apache-2.0
+stevedore>=1.20.0 # Apache-2.0
 pysendfile>=2.0.0 # MIT
 oslo.concurrency>=3.8.0 # Apache-2.0
 oslo.config!=3.18.0,>=3.14.0 # Apache-2.0
