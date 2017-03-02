@@ -44,11 +44,14 @@
     <controller type='ide' index='0'>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x1'/>
     </controller>
-    <interface type='bridge'>
-      <source bridge='{{ bridge }}'/>
+    {% for n in range(1, interface_count+1) %}
+    <interface type='ethernet'>
+      <target dev='{{ "tap-" + name + "i" + n|string }}'/>
       <model type='{{ nicdriver }}'/>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x04' function='0x0'/>
+      <script path='no'/>
+      <address type='pci' domain='0x0000' bus='0x01' slot='{{ "0x0" + n|string }}' function='0x0'/>
     </interface>
+    {% endfor %}
     <input type='mouse' bus='ps2'/>
     <graphics type='vnc' port='-1' autoport='yes' listen='0.0.0.0'/>
     <video>
