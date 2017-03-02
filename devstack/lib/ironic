@@ -408,7 +408,7 @@ function setup_virtualbmc {
         git_clone_by_name "virtualbmc"
         setup_dev_lib "virtualbmc"
     else
-        pip_install "virtualbmc"
+        pip_install_gr "virtualbmc"
     fi
 
     if [[ ! -d $(dirname $IRONIC_VBMC_CONFIG_FILE) ]]; then
