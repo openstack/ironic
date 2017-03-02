@@ -2,7 +2,6 @@
     name: openstack/ironic
     check:
       jobs:
-        - ironic-grenade-dsvm
         - ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa
         - ironic-tempest-dsvm-ipa-partition-bios-pxe_ipmitool-tinyipa
         - ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
@@ -10,6 +9,8 @@
         - ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_ipmitool-tinyipa
         - ironic-tempest-dsvm-multitenant-network
         # Non-voting jobs
+        - ironic-grenade-dsvm:
+            voting: false
         - ironic-tempest-dsvm-ipa-wholedisk-agent_ipmitool-tinyipa-multinode:
             voting: false
         - ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_snmp-tinyipa:
@@ -21,7 +22,6 @@
     gate:
       queue: ironic
       jobs:
-        - ironic-grenade-dsvm
         - ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa
         - ironic-tempest-dsvm-ipa-partition-bios-pxe_ipmitool-tinyipa
         - ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
