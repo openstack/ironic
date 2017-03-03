@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    Support for the Image service v1 API has been deprecated along with the
+    ``[glance]/glance_api_version`` configuration option and will be removed in
+    the `Queens` release.
