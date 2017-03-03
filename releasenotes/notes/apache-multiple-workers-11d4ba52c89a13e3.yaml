@@ -1,0 +1,3 @@
+---
+fixes:
+  - Fix issue with multiple threads when ironic API service runs under Apache.
