@@ -13,8 +13,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# NOTE(yuriyz): Do eventlet monkey patching here, not in ironic/__init__.py
-# This allows API service runs under Apache.
+# NOTE(yuriyz): Do eventlet monkey patching here, instead of in
+# ironic/__init__.py.  This allows the API service to run without monkey
+# patching under Apache (which uses its own concurrency model). Mixing
+# concurrency models can cause undefined behavior and potentially API timeouts.
 import os
 
 os.environ['EVENTLET_NO_GREENDNS'] = 'yes'

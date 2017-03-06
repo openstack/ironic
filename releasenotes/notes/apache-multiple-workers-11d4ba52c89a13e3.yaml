@@ -1,3 +1,5 @@
 ---
 fixes:
-  - Fix issue with multiple threads when ironic API service runs under Apache.
+  - Fixes an issue with requests to the ironic API service sometimes timing
+    out when running under Apache. This was due to mixing two concurrency
+    models (for handling multiple threads).
