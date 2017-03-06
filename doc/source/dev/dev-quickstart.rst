@@ -8,9 +8,9 @@ This is a quick walkthrough to get you started developing code for Ironic.
 This assumes you are already familiar with submitting code reviews to
 an OpenStack project.
 
-The gate currently runs the unit tests under Python 2.7, Python 3.4
-and Python 3.5. It is strongly encouraged to run the unit tests locally prior
-to submitting a patch.
+The gate currently runs the unit tests under Python 2.7 and Python 3.5. It
+is strongly encouraged to run the unit tests locally prior to submitting a
+patch.
 
 .. note::
     Do not run unit tests on the same environment as devstack due to
@@ -77,11 +77,11 @@ it, follow the instructions for installing prerequisites above and
     sudo tar xzf Python-3.5.2.tgz
     cd Python-3.5.2
     sudo ./configure
+
+    # Install Python 3.5 without replacing the system-wide Python version:
     sudo make altinstall
 
-    # This will install Python 3.5 without replacing 3.4. To check if 3.5 was installed properly
-    run this command:
-
+    # Check if Python 3.5 was installed properly:
     python3.5 -V
 
 - On Fedora 23::
@@ -120,7 +120,7 @@ Running Unit and Style Tests
 
 All unit tests should be run using tox. To run Ironic's entire test suite::
 
-    # to run the py27, py34, py35 unit tests, and the style tests
+    # to run the py27, py35 unit tests, and the style tests
     tox
 
 To run a specific test or tests, use the "-e" option followed by the tox target
@@ -130,13 +130,13 @@ name. For example::
     tox -epy27 -epep8
 
 .. note::
-    If tests are run under py27 and then run under py34 or py35 the following error may occur::
+    If tests are run under py27 and then run under py35 the following error may occur::
 
       db type could not be determined
       ERROR: InvocationError: '/home/ubuntu/ironic/.tox/py35/bin/ostestr'
 
     To overcome this error remove the file `.testrepository/times.dbm`
-    and then run the py34 or py35 test.
+    and then run the py35 test.
 
 You may pass options to the test programs using positional arguments.
 To run a specific unit test, this passes the -r option and desired test
