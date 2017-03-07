@@ -22,7 +22,7 @@
 
 # ensure we don't re-source this in the same environment
 [[ -z "$_IRONIC_DEVSTACK_LIB" ]] || return 0
-declare -r _IRONIC_DEVSTACK_LIB=1
+declare -r -g _IRONIC_DEVSTACK_LIB=1
 
 # Save xtrace and pipefail settings
 _XTRACE_IRONIC=$(set +o | grep xtrace)
