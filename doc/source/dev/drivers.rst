@@ -1,4 +1,4 @@
-.. _drivers:
+.. _pluggable_drivers:
 
 =================
 Pluggable Drivers

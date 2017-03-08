@@ -79,6 +79,11 @@ for module in MOCK_MODULES:
 # source directory, using slashes as directory separators on all platforms.
 exclude_patterns = ['api/ironic_tempest_plugin.*']
 
+# Ignore the following warning: WARNING: while setting up extension
+# wsmeext.sphinxext: directive 'autoattribute' is already registered,
+# it will be overridden.
+suppress_warnings = [ 'app.add_directive']
+
 # -- Options for HTML output --------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with

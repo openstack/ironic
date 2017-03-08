@@ -1,4 +1,4 @@
-.. _drivers:
+.. _enabling_drivers:
 
 ================
 Enabling drivers
