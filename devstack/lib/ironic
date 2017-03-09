@@ -800,8 +800,8 @@ function configure_ironic_dirs {
     fi
 
     # Create the logs directory when saving the deploy logs to the filesystem
-    if [ "$IRONIC_DEPLOY_LOGS_STORAGE_BACKEND" = "local"] && [ "$IRONIC_DEPLOY_LOGS_COLLECT" != "never" ]; then
-        sudo install -d -o $STACK_USER $IRONIC_DEPLOY_LOGS_LOCAL_PATH
+    if [[ "$IRONIC_DEPLOY_LOGS_STORAGE_BACKEND" == "local" && "$IRONIC_DEPLOY_LOGS_COLLECT" != "never" ]]; then
+        install -d -o $STACK_USER $IRONIC_DEPLOY_LOGS_LOCAL_PATH
     fi
 }
 
