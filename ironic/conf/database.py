@@ -26,6 +26,3 @@ opts = [
 
 def register_opts(conf):
     conf.register_opts(opts, group='database')
-    # Change the oslo_db side default to 5
-    conf.import_opt('db_max_retries', 'ironic.db.api', group='database')
-    conf.set_default('db_max_retries', 5, group='database')
