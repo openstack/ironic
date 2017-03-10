@@ -22,8 +22,8 @@ Currently there are 3 iLO drivers:
 
 The ``iscsi_ilo`` and ``agent_ilo`` drivers provide security enhanced
 PXE-less deployment by using iLO virtual media to boot up the bare metal node.
-These drivers send management info through management channel and separates
-it from data channel which is used for deployment.
+These drivers send management info through the management channel and separate
+it from the data channel which is used for deployment.
 
 ``iscsi_ilo`` and ``agent_ilo`` drivers use deployment ramdisk
 built from ``diskimage-builder``. The ``iscsi_ilo`` driver deploys from
@@ -40,7 +40,7 @@ Prerequisites
 =============
 
 * `proliantutils <https://pypi.python.org/pypi/proliantutils>`_ is a python package
-  which contains set of modules for managing HPE ProLiant hardware.
+  which contains a set of modules for managing HPE ProLiant hardware.
 
   Install ``proliantutils`` module on the ironic conductor node. Minimum
   version required is 2.2.0::
@@ -148,7 +148,7 @@ Web server configuration on conductor
 ``use_web_server_for_images``: If the variable is set to ``false``, ``iscsi_ilo``
 and ``agent_ilo`` uses swift containers to host the intermediate floppy
 image and the boot ISO. If the variable is set to ``true``, these drivers
-uses the local web server for hosting the intermediate files. The default value
+use the local web server for hosting the intermediate files. The default value
 for ``use_web_server_for_images`` is False.
 
 ``http_url``: The value for this variable is prefixed with the generated
@@ -201,7 +201,7 @@ PXE or iPXE.
 Target Users
 ~~~~~~~~~~~~
 
-* Users who do not want to use PXE/TFTP protocol on their data centres.
+* Users who do not want to use PXE/TFTP protocol in their data centers.
 
 * Users who have concerns with PXE protocol's security issues and want to have a
   security enhanced PXE-less deployment mechanism.

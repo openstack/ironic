@@ -88,7 +88,7 @@ Steps to enable proxies
    download. You can think of it as roughly the time needed for IPA ramdisk to
    startup and begin download. This value is used to check if the swift
    temporary URL duration is large enough to let the image download begin. Also
-   if temporary URL caching is enabled this will determine if a cached entry
+   if temporary URL caching is enabled, this will determine if a cached entry
    will still be valid when the download starts. It is used only if
    ``[glance]swift_temp_url_cache_enabled`` is ``True``.
 
@@ -108,10 +108,10 @@ Steps to enable proxies
 Advanced configuration
 ======================
 
-Out-of-band Vs. in-band power off on deploy
+Out-of-band vs. in-band power off on deploy
 -------------------------------------------
 
-After deploying an image onto the node's hard disk Ironic will reboot
+After deploying an image onto the node's hard disk, Ironic will reboot
 the machine into the new image. By default this power action happens
 ``in-band``, meaning that the ironic-conductor will instruct the IPA
 ramdisk to power itself off.
@@ -119,7 +119,7 @@ ramdisk to power itself off.
 Some hardware may have a problem with the default approach and
 would require Ironic to talk directly to the management controller
 to switch the power off and on again. In order to tell Ironic to do
-that you have to update the node's ``driver_info`` field and set the
+that, you have to update the node's ``driver_info`` field and set the
 ``deploy_forces_oob_reboot`` parameter with the value of **True**. For
 example, the below command sets this configuration in a specific node::
 

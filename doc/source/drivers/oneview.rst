@@ -347,9 +347,9 @@ result, there are different steps to perform if the node has an instance
 provisioned, in other words, when the `provisioning_state` is set to `active`.
 
 .. note::
-   Verify if the node has not already been migrated checking if there is
-   a `dynamic_allocation` field set to ``True`` in the `driver_info` namespace
-   doing::
+   Verify if the node has not already been migrated by checking if there is
+   a `dynamic_allocation` field set to ``True`` in the `driver_info`
+   namespace by doing::
 
      $ ironic node-show  --fields driver_info
 
@@ -437,7 +437,7 @@ ironic-oneviewd
 ^^^^^^^^^^^^^^^
 
 The ``ironic-oneviewd`` daemon monitors the ironic inventory of resources and
-providing facilities to operators managing OneView driver deployments. The
+provides facilities to operators managing OneView driver deployments. The
 daemon supports both allocation models (dynamic and pre-allocation) as of
 version 0.1.0.
 
