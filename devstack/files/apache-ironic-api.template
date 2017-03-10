@@ -38,3 +38,12 @@ Listen %IRONIC_SERVICE_PORT%
         </IfVersion>
     </Directory>
 </VirtualHost>
+
+Alias /baremetal %IRONIC_WSGI_DIR%/app.wsgi
+<Location /baremetal>
+    SetHandler wsgi-script
+    Options +ExecCGI
+    WSGIProcessGroup ironic-api
+    WSGIApplicationGroup %{GLOBAL}
+    WSGIPassAuthorization On
+</Location>
