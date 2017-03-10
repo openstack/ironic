@@ -253,13 +253,23 @@ def check_and_update_node_interfaces(node, driver_or_hw_type=None):
     # for classic drivers, none are allowed except for network & storage.
     not_allowed_ifaces = driver_base.ALL_INTERFACES - set(factories)
 
+    updates = node.obj_what_changed()
+    # Result - whether the node object was modified
+    result = False
+
     bad_interface_fields = []
     for iface in not_allowed_ifaces:
         field_name = '%s_interface' % iface
+        # NOTE(vsaienko): reset *_interface fields that shouldn't exist for
+        # classic driver, only when driver was changed and field not set
+        # explicitly
+        if 'driver' in updates and field_name not in updates:
+            setattr(node, field_name, None)
+            result = True
         # NOTE(dtantsur): objects raise NotImplementedError on accessing fields
         # that are known, but missing from an object. Thus, we cannot just use
         # getattr(node, field_name, None) here.
-        if field_name in node:
+        elif field_name in node:
             impl_name = getattr(node, field_name)
             if impl_name is not None:
                 bad_interface_fields.append(field_name)
@@ -267,9 +277,6 @@ def check_and_update_node_interfaces(node, driver_or_hw_type=None):
     if bad_interface_fields:
         raise exception.MustBeNone(node=node.uuid, driver=node.driver,
                                    node_fields=','.join(bad_interface_fields))
-
-    # Result - whether the node object was modified
-    result = False
 
     # Walk through all dynamic interfaces and check/update them
     for iface in factories:
