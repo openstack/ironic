@@ -18,6 +18,7 @@
 import datetime
 
 import mock
+import oslo_db
 from oslo_db import exception as db_exc
 from oslo_db import sqlalchemy
 from oslo_utils import timeutils
@@ -131,12 +132,15 @@ class DbConductorTestCase(base.DbTestCase):
         c = self.dbapi.get_conductor(c.hostname)
         self.assertEqual(test_time, timeutils.normalize_time(c.updated_at))
 
+    @mock.patch.object(oslo_db.api.time, 'sleep', autospec=True)
     @mock.patch.object(sqlalchemy.orm.Query, 'update', autospec=True)
-    def test_touch_conductor_deadlock(self, mock_update):
+    def test_touch_conductor_deadlock(self, mock_update, mock_sleep):
+        mock_sleep.return_value = None
         mock_update.side_effect = [db_exc.DBDeadlock(), None]
         c = self._create_test_cdr()
         self.dbapi.touch_conductor(c.hostname)
         self.assertEqual(2, mock_update.call_count)
+        self.assertEqual(2, mock_sleep.call_count)
 
     def test_touch_conductor_not_found(self):
         # A conductor's heartbeat will not create a new record,
