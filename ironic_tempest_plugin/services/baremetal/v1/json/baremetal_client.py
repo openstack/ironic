@@ -157,6 +157,9 @@ class BaremetalClient(base.BaremetalClient):
         """
         chassis = {'description': kwargs.get('description', 'test-chassis')}
 
+        if 'uuid' in kwargs:
+            chassis.update({'uuid': kwargs.get('uuid')})
+
         return self._create_request('chassis', chassis)
 
     @base.handle_errors

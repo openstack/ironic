@@ -75,3 +75,9 @@ class TestChassis(base.BaseBaremetalTest):
         _, node = self.create_node(self.chassis['uuid'])
         _, body = self.client.list_chassis_nodes(self.chassis['uuid'])
         self.assertIn(node['uuid'], [n['uuid'] for n in body['nodes']])
+
+    @decorators.idempotent_id('dd52bd5d-610c-4f2c-8fa3-d5e59269325f')
+    def test_create_chassis_uuid(self):
+        uuid = data_utils.rand_uuid()
+        _, chassis = self.create_chassis(uuid=uuid)
+        self.assertEqual(uuid, chassis['uuid'])
