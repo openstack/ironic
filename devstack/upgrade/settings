@@ -10,11 +10,27 @@
 register_project_for_upgrade ironic
 register_db_to_save ironic
 
-devstack_localrc base enable_plugin ironic https://git.openstack.org/openstack/ironic
-devstack_localrc base enable_service ir-api ir-cond ironic
 
-devstack_localrc target enable_plugin ironic https://git.openstack.org/openstack/ironic
-devstack_localrc target enable_service ir-api ir-cond ironic
+# NOTE(jlvillal): This file is sourced by the 'load_settings' function in
+# grenade/inc/plugin. So usage of local will work.
+local ir_gren_conf
+local ir_gren_stage
+
+for ir_gren_stage in base target; do
+    # TODO(jlvillal): Remove this logic for checking if the ironic devstack
+    # plugin is enabled, once the enabling of the ironic devstack plugin is
+    # being done in project-config.
+    ir_gren_conf=$(localrc_path ${ir_gren_stage})
+    # Only 'enable_plugin ironic' if it isn't in the file already.
+    if ! grep -q '^enable_plugin ironic ' ${ir_gren_conf} ; then
+        echo "Enabling ironic devstack plugin via grenade for ${ir_gren_stage}"
+        devstack_localrc ${ir_gren_stage} enable_plugin ironic https://git.openstack.org/openstack/ironic
+    else
+        echo "ironic devstack plugin already enabled for ${ir_gren_stage}"
+    fi
+
+    devstack_localrc ${ir_gren_stage} enable_service ir-api ir-cond ironic
+done
 
 # Duplicate some setup bits from target DevStack. Use old devstack as we install base environment from it.
 BASE_TOP_DIR=$TOP_DIR/../../old/devstack/
