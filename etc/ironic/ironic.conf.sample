@@ -1251,7 +1251,7 @@
 # Maximum retries in case of connection error or deadlock
 # error before error is raised. Set to -1 to specify an
 # infinite retry count. (integer value)
-#db_max_retries = 5
+#db_max_retries = 20
 
 
 [deploy]
@@ -2659,7 +2659,8 @@
 # Max fetch bytes of Kafka consumer (integer value)
 #kafka_max_fetch_bytes = 1048576
 
-# Default timeout(s) for Kafka consumers (integer value)
+# Default timeout(s) for Kafka consumers (floating point
+# value)
 #kafka_consumer_timeout = 1.0
 
 # Pool Size for Kafka Consumers (integer value)
@@ -2724,24 +2725,27 @@
 # Deprecated group/name - [DEFAULT]/amqp_auto_delete
 #amqp_auto_delete = false
 
+# Enable SSL (boolean value)
+#ssl = <None>
+
 # SSL version to use (valid only if SSL enabled). Valid values
 # are TLSv1 and SSLv23. SSLv2, SSLv3, TLSv1_1, and TLSv1_2 may
 # be available on some distributions. (string value)
-# Deprecated group/name - [DEFAULT]/kombu_ssl_version
-#kombu_ssl_version =
+# Deprecated group/name - [oslo_messaging_rabbit]/kombu_ssl_version
+#ssl_version =
 
 # SSL key file (valid only if SSL enabled). (string value)
-# Deprecated group/name - [DEFAULT]/kombu_ssl_keyfile
-#kombu_ssl_keyfile =
+# Deprecated group/name - [oslo_messaging_rabbit]/kombu_ssl_keyfile
+#ssl_key_file =
 
 # SSL cert file (valid only if SSL enabled). (string value)
-# Deprecated group/name - [DEFAULT]/kombu_ssl_certfile
-#kombu_ssl_certfile =
+# Deprecated group/name - [oslo_messaging_rabbit]/kombu_ssl_certfile
+#ssl_cert_file =
 
 # SSL certification authority file (valid only if SSL
 # enabled). (string value)
-# Deprecated group/name - [DEFAULT]/kombu_ssl_ca_certs
-#kombu_ssl_ca_certs =
+# Deprecated group/name - [oslo_messaging_rabbit]/kombu_ssl_ca_certs
+#ssl_ca_file =
 
 # How long to wait before reconnecting in response to an AMQP
 # consumer cancel notification. (floating point value)
@@ -2791,10 +2795,6 @@
 # Its value may be silently ignored in the future.
 # Reason: Replaced by [DEFAULT]/transport_url
 #rabbit_hosts = $rabbit_host:$rabbit_port
-
-# Connect over SSL for RabbitMQ. (boolean value)
-# Deprecated group/name - [DEFAULT]/rabbit_use_ssl
-#rabbit_use_ssl = false
 
 # DEPRECATED: The RabbitMQ userid. (string value)
 # Deprecated group/name - [DEFAULT]/rabbit_userid
@@ -2887,9 +2887,6 @@
 # How often to send heartbeats for consumer's connections
 # (integer value)
 #heartbeat_interval = 3
-
-# Enable SSL (boolean value)
-#ssl = <None>
 
 # Arguments passed to ssl.wrap_socket (dict value)
 #ssl_options = <None>
