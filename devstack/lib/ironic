@@ -49,6 +49,10 @@ GITREPO["virtualpdu"]=${VIRTUALPDU_REPO:-${GIT_BASE}/openstack/virtualpdu.git}
 GITBRANCH["virtualpdu"]=${VIRTUALPDU_BRANCH:-master}
 GITDIR["virtualpdu"]=$DEST/virtualpdu
 
+GITREPO["sushy"]=${SUSHY_REPO:-${GIT_BASE}/openstack/sushy.git}
+GITBRANCH["sushy"]=${SUSHY_BRANCH:-master}
+GITDIR["sushy"]=$DEST/sushy
+
 IRONIC_DIR=$DEST/ironic
 IRONIC_DEVSTACK_DIR=$IRONIC_DIR/devstack
 IRONIC_DEVSTACK_FILES_DIR=$IRONIC_DEVSTACK_DIR/files
@@ -302,6 +306,9 @@ IRONIC_VPDU_LISTEN_PORT=${IRONIC_VPDU_LISTEN_PORT:-1161}
 IRONIC_VPDU_COMMUNITY=${IRONIC_VPDU_COMMUNITY:-private}
 IRONIC_VPDU_SNMPDRIVER=${IRONIC_VPDU_SNMPDRIVER:-apc_rackpdu}
 
+# Redfish configs
+IRONIC_REDFISH_EMULATOR_PORT=${IRONIC_REDFISH_EMULATOR_PORT:-9132}
+IRONIC_REDFISH_EMULATOR_PID_FILE=${IRONIC_REDFISH_EMULATOR_PID_FILE:-/var/run/redfish-emulator.pid}
 
 # To explicitly enable configuration of Glance with Swift
 # (which is required by some vendor drivers), set this
@@ -532,6 +539,11 @@ function is_deployed_by_snmp {
     return 1
 }
 
+function is_deployed_by_redfish {
+    [[ "$IRONIC_DEPLOY_DRIVER" == redfish ]] && return 0
+    return 1
+}
+
 function is_drac_enabled {
     [[ -z "${IRONIC_ENABLED_DRIVERS##*_drac}" ]] && return 0
     return 1
@@ -553,6 +565,15 @@ if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
 fi
 
 IRONIC_IMAGE_NAME=${DEFAULT_IMAGE_NAME:-$IRONIC_DEFAULT_IMAGE_NAME}
+
+# Assert that the redfish hardware type is enabled in case we are using
+# the redfish driver
+if is_deployed_by_redfish && [[ "$IRONIC_ENABLED_HARDWARE_TYPES" != *"redfish"* ]]; then
+    die $LINENO "Please make sure that the redfish hardware" \
+        "type, is enabled. Take a look at the " \
+        "IRONIC_ENABLED_HARDWARE_TYPES configuration option" \
+        "for DevStack"
+fi
 
 # Add link to download queue, ignore if already exist.
 # TODO(vsaienko) Move to devstack https://review.openstack.org/420656
@@ -664,6 +685,38 @@ function _generate_pdu_ports {
     echo ${port_config[*]} | tr ' ' ','
 }
 
+function start_redfish_emulator {
+    # TODO(lucasagomes): Use Apache WSGI instead of gunicorn
+    if is_ubuntu; then
+        install_package gunicorn
+    else
+        pip_install "gunicorn"
+    fi
+
+    sudo gunicorn sushy_tools.emulator.main:app --bind "${HOST_IP}:${IRONIC_REDFISH_EMULATOR_PORT}" \
+        --pid "$IRONIC_REDFISH_EMULATOR_PID_FILE" --daemon
+}
+
+function stop_redfish_emulator {
+    if [ -f $IRONIC_REDFISH_EMULATOR_PID_FILE ]; then
+        sudo kill `cat $IRONIC_REDFISH_EMULATOR_PID_FILE` || true
+    fi
+}
+
+function setup_redfish {
+    if use_library_from_git "sushy"; then
+        git_clone_by_name "sushy"
+        setup_dev_lib "sushy"
+    else
+        # TODO(lucasagomes): use pip_install_gr once sushy is added to
+        # the global requirements
+        pip_install "sushy"
+    fi
+
+    pip_install "sushy-tools"
+    start_redfish_emulator
+}
+
 # install_ironic() - Install the things!
 function install_ironic {
     # NOTE(vsaienko) do not check required_services on subnode
@@ -726,6 +779,10 @@ function install_ironic {
 
     if is_deployed_by_snmp && [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
         setup_virtualpdu
+    fi
+
+    if is_deployed_by_redfish && [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
+        setup_redfish
     fi
 
     if is_drac_enabled; then
@@ -800,6 +857,9 @@ function cleanup_ironic {
 
     # Cleanup the WSGI files
     _cleanup_ironic_apache_wsgi
+
+    # It's noop if no emulator is running
+    stop_redfish_emulator
 
     # Remove the hook to disable log rotate
     sudo rm -rf $IRONIC_LIBVIRT_HOOKS_PATH/qemu
@@ -1045,6 +1105,13 @@ function configure_ironic_conductor {
     # set up drivers / hardware types
     iniset $IRONIC_CONF_FILE DEFAULT enabled_drivers $IRONIC_ENABLED_DRIVERS
     iniset $IRONIC_CONF_FILE DEFAULT enabled_hardware_types $IRONIC_ENABLED_HARDWARE_TYPES
+
+    if is_deployed_by_redfish; then
+        # TODO(lucasagomes): We need to make it easier to configure
+        # specific driver interfaces in DevStack
+        iniset $IRONIC_CONF_FILE DEFAULT enabled_power_interfaces "redfish"
+        iniset $IRONIC_CONF_FILE DEFAULT enabled_management_interfaces "redfish"
+    fi
 
     iniset $IRONIC_CONF_FILE DEFAULT rootwrap_config $IRONIC_ROOTWRAP_CONF
     iniset $IRONIC_CONF_FILE conductor api_url $IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT
@@ -1472,6 +1539,11 @@ function enroll_nodes {
                 -i snmp_port=${IRONIC_VPDU_LISTEN_PORT} \
                 -i snmp_protocol=2c \
                 -i snmp_community=${IRONIC_VPDU_COMMUNITY}"
+        elif is_deployed_by_redfish; then
+            local node_options="\
+                -i redfish_address=http://${HOST_IP}:${IRONIC_REDFISH_EMULATOR_PORT} \
+                -i redfish_username=admin \
+                -i redfish_password=password"
         else
             local node_options="\
                 -i ssh_virt_type=$IRONIC_SSH_VIRT_TYPE \
@@ -1498,6 +1570,9 @@ function enroll_nodes {
     local total_cpus=0
 
     while read hardware_info; do
+        local node_name
+        node_name=$node_prefix-$total_nodes
+
         local node_capabilities=""
         if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
             node_capabilities+=" -p capabilities=boot_mode:uefi"
@@ -1515,6 +1590,8 @@ function enroll_nodes {
                 local pdu_outlet
                 pdu_outlet=$(echo $hardware_info | awk '{print $3}')
                 node_options+=" -i snmp_outlet=$pdu_outlet"
+            elif is_deployed_by_redfish; then
+                node_options+=" -i redfish_system_id=/redfish/v1/Systems/$node_name"
             fi
             # Local-link-connection options
             if [[ "${IRONIC_USE_LINK_LOCAL}" == "True" ]]; then
@@ -1607,7 +1684,7 @@ function enroll_nodes {
             node-create $standalone_node_uuid \
             --chassis_uuid $chassis_id \
             --driver $IRONIC_DEPLOY_DRIVER \
-            --name $node_prefix-$total_nodes \
+            --name $node_name \
             -p cpus=$ironic_node_cpu\
             -p memory_mb=$ironic_node_ram\
             -p local_gb=$ironic_node_disk\
