@@ -106,7 +106,7 @@ def wait_node_instance_association(client, instance_uuid, timeout=None,
 
     if not test_utils.call_until_true(is_some_node_associated, timeout,
                                       interval):
-        msg = ('Timed out waiting to get Ironic node by instance ID '
-               '%(instance_id)s within the required time (%(timeout)s s).'
-               % {'instance_id': instance_uuid, 'timeout': timeout})
+        msg = ('Timed out waiting to get Ironic node by instance UUID '
+               '%(instance_uuid)s within the required time (%(timeout)s s).'
+               % {'instance_uuid': instance_uuid, 'timeout': timeout})
         raise lib_exc.TimeoutException(msg)
