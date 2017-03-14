@@ -208,7 +208,7 @@ else
     echo "Port created. UUID: $PID"
 fi
 
-GET v1/ports > port-list-respone.json
+GET v1/ports > port-list-response.json
 GET v1/ports/detail > port-list-detail-response.json
 PATCH v1/ports/$PID port-update-request.json > port-update-response.json
 
