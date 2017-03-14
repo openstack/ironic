@@ -155,14 +155,31 @@ def login_iscsi(portal_address, portal_port, target_iqn):
                   check_exit_code=[0],
                   attempts=5,
                   delay_on_retry=True)
-    # Ensure the login complete
-    verify_iscsi_connection(target_iqn)
-    # force iSCSI initiator to re-read luns
-    force_iscsi_lun_update(target_iqn)
-    # ensure file system sees the block device
-    check_file_system_for_iscsi_device(portal_address,
-                                       portal_port,
-                                       target_iqn)
+
+    error_occurred = False
+    try:
+        # Ensure the login complete
+        verify_iscsi_connection(target_iqn)
+        # force iSCSI initiator to re-read luns
+        force_iscsi_lun_update(target_iqn)
+        # ensure file system sees the block device
+        check_file_system_for_iscsi_device(portal_address,
+                                           portal_port,
+                                           target_iqn)
+    except (exception.InstanceDeployFailure,
+            processutils.ProcessExecutionError) as e:
+        with excutils.save_and_reraise_exception():
+            error_occurred = True
+            LOG.error(_LE("Failed to login to an iSCSI target due to %s"),
+                      e)
+    finally:
+        if error_occurred:
+            try:
+                logout_iscsi(portal_address, portal_port, target_iqn)
+                delete_iscsi(portal_address, portal_port, target_iqn)
+            except processutils.ProcessExecutionError as e:
+                LOG.warning(_LW("An error occurred when trying to cleanup "
+                                "failed ISCSI session error %s"), e)
 
 
 def check_file_system_for_iscsi_device(portal_address,
@@ -219,7 +236,6 @@ def verify_iscsi_connection(target_iqn):
 def force_iscsi_lun_update(target_iqn):
     """force iSCSI initiator to re-read luns."""
     LOG.debug("Re-reading iSCSI luns.")
-
     utils.execute('iscsiadm',
                   '-m', 'node',
                   '-T', target_iqn,

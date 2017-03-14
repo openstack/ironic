@@ -1,0 +1,3 @@
+---
+fixes:
+  - An issue with hung iscsi sessions not being cleaned up in case of deploy failure.
