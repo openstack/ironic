@@ -206,8 +206,8 @@ def log_and_raise_deployment_error(task, msg):
     raise exception.InstanceDeployFailure(msg)
 
 
-class AgentDeployMixin(object):
-    """Mixin with deploy methods."""
+class HeartbeatMixin(object):
+    """Mixin class implementing heartbeat processing."""
 
     def __init__(self):
         self._client = _get_client()
@@ -240,8 +240,104 @@ class AgentDeployMixin(object):
 
         """
 
-    @METRICS.timer('AgentDeployMixin._refresh_clean_steps')
-    def _refresh_clean_steps(self, task):
+    def refresh_clean_steps(self, task):
+        """Refresh the node's cached clean steps
+
+        :param task: a TaskManager instance
+
+        """
+
+    def continue_cleaning(self, task):
+        """Start the next cleaning step if the previous one is complete.
+
+        :param task: a TaskManager instance
+
+        """
+
+    @METRICS.timer('HeartbeatMixin.heartbeat')
+    def heartbeat(self, task, callback_url):
+        """Process a heartbeat.
+
+        :param task: task to work with.
+        :param callback_url: agent HTTP API URL.
+        """
+        # TODO(dtantsur): upgrade lock only if we actually take action other
+        # than updating the last timestamp.
+        task.upgrade_lock()
+
+        node = task.node
+        LOG.debug('Heartbeat from node %s', node.uuid)
+
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info['agent_url'] = callback_url
+
+        # TODO(rloo): 'agent_last_heartbeat' was deprecated since it wasn't
+        # being used so remove that entry if it exists.
+        # Hopefully all nodes will have been updated by Pike, so
+        # we can delete this code then.
+        driver_internal_info.pop('agent_last_heartbeat', None)
+
+        node.driver_internal_info = driver_internal_info
+        node.save()
+
+        # Async call backs don't set error state on their own
+        # TODO(jimrollenhagen) improve error messages here
+        msg = _('Failed checking if deploy is done.')
+        try:
+            if node.maintenance:
+                # this shouldn't happen often, but skip the rest if it does.
+                LOG.debug('Heartbeat from node %(node)s in maintenance mode; '
+                          'not taking any action.', {'node': node.uuid})
+                return
+            elif (node.provision_state == states.DEPLOYWAIT and
+                  not self.deploy_has_started(task)):
+                msg = _('Node failed to deploy.')
+                self.continue_deploy(task)
+            elif (node.provision_state == states.DEPLOYWAIT and
+                  self.deploy_is_done(task)):
+                msg = _('Node failed to move to active state.')
+                self.reboot_to_instance(task)
+            elif (node.provision_state == states.DEPLOYWAIT and
+                  self.deploy_has_started(task)):
+                node.touch_provisioning()
+            elif node.provision_state == states.CLEANWAIT:
+                node.touch_provisioning()
+                try:
+                    if not node.clean_step:
+                        LOG.debug('Node %s just booted to start cleaning.',
+                                  node.uuid)
+                        msg = _('Node failed to start the first cleaning '
+                                'step.')
+                        # First, cache the clean steps
+                        self.refresh_clean_steps(task)
+                        # Then set/verify node clean steps and start cleaning
+                        manager_utils.set_node_cleaning_steps(task)
+                        _notify_conductor_resume_clean(task)
+                    else:
+                        msg = _('Node failed to check cleaning progress.')
+                        self.continue_cleaning(task)
+                except exception.NoFreeConductorWorker:
+                    # waiting for the next heartbeat, node.last_error and
+                    # logging message is filled already via conductor's hook
+                    pass
+
+        except Exception as e:
+            err_info = {'node': node.uuid, 'msg': msg, 'e': e}
+            last_error = _('Asynchronous exception for node %(node)s: '
+                           '%(msg)s Exception: %(e)s') % err_info
+            LOG.exception(last_error)
+            if node.provision_state in (states.CLEANING, states.CLEANWAIT):
+                manager_utils.cleaning_error_handler(task, last_error)
+            elif node.provision_state in (states.DEPLOYING, states.DEPLOYWAIT):
+                deploy_utils.set_failed_state(
+                    task, last_error, collect_logs=bool(self._client))
+
+
+class AgentDeployMixin(HeartbeatMixin):
+    """Mixin with deploy methods."""
+
+    @METRICS.timer('AgentDeployMixin.refresh_clean_steps')
+    def refresh_clean_steps(self, task):
         """Refresh the node's cached clean steps from the booted agent.
 
         Gets the node's clean steps from the booted agent and caches them.
@@ -353,7 +449,7 @@ class AgentDeployMixin(object):
         elif command.get('command_status') == 'CLEAN_VERSION_MISMATCH':
             # Cache the new clean steps (and 'hardware_manager_version')
             try:
-                self._refresh_clean_steps(task)
+                self.refresh_clean_steps(task)
             except exception.NodeCleaningFailure as e:
                 msg = (_('Could not continue cleaning on node '
                          '%(node)s: %(err)s.') %
@@ -430,83 +526,6 @@ class AgentDeployMixin(object):
                     'step': node.clean_step})
             LOG.error(msg)
             return manager_utils.cleaning_error_handler(task, msg)
-
-    @METRICS.timer('AgentDeployMixin.heartbeat')
-    def heartbeat(self, task, callback_url):
-        """Process a heartbeat.
-
-        :param task: task to work with.
-        :param callback_url: agent HTTP API URL.
-        """
-        # TODO(dtantsur): upgrade lock only if we actually take action other
-        # than updating the last timestamp.
-        task.upgrade_lock()
-
-        node = task.node
-        LOG.debug('Heartbeat from node %s', node.uuid)
-
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info['agent_url'] = callback_url
-
-        # TODO(rloo): 'agent_last_heartbeat' was deprecated since it wasn't
-        # being used so remove that entry if it exists.
-        # Hopefully all nodes will have been updated by Pike, so
-        # we can delete this code then.
-        driver_internal_info.pop('agent_last_heartbeat', None)
-
-        node.driver_internal_info = driver_internal_info
-        node.save()
-
-        # Async call backs don't set error state on their own
-        # TODO(jimrollenhagen) improve error messages here
-        msg = _('Failed checking if deploy is done.')
-        try:
-            if node.maintenance:
-                # this shouldn't happen often, but skip the rest if it does.
-                LOG.debug('Heartbeat from node %(node)s in maintenance mode; '
-                          'not taking any action.', {'node': node.uuid})
-                return
-            elif (node.provision_state == states.DEPLOYWAIT and
-                  not self.deploy_has_started(task)):
-                msg = _('Node failed to deploy.')
-                self.continue_deploy(task)
-            elif (node.provision_state == states.DEPLOYWAIT and
-                  self.deploy_is_done(task)):
-                msg = _('Node failed to move to active state.')
-                self.reboot_to_instance(task)
-            elif (node.provision_state == states.DEPLOYWAIT and
-                  self.deploy_has_started(task)):
-                node.touch_provisioning()
-            elif node.provision_state == states.CLEANWAIT:
-                node.touch_provisioning()
-                try:
-                    if not node.clean_step:
-                        LOG.debug('Node %s just booted to start cleaning.',
-                                  node.uuid)
-                        msg = _('Node failed to start the first cleaning '
-                                'step.')
-                        # First, cache the clean steps
-                        self._refresh_clean_steps(task)
-                        # Then set/verify node clean steps and start cleaning
-                        manager_utils.set_node_cleaning_steps(task)
-                        _notify_conductor_resume_clean(task)
-                    else:
-                        msg = _('Node failed to check cleaning progress.')
-                        self.continue_cleaning(task)
-                except exception.NoFreeConductorWorker:
-                    # waiting for the next heartbeat, node.last_error and
-                    # logging message is filled already via conductor's hook
-                    pass
-
-        except Exception as e:
-            err_info = {'node': node.uuid, 'msg': msg, 'e': e}
-            last_error = _('Asynchronous exception for node %(node)s: '
-                           '%(msg)s Exception: %(e)s') % err_info
-            LOG.exception(last_error)
-            if node.provision_state in (states.CLEANING, states.CLEANWAIT):
-                manager_utils.cleaning_error_handler(task, last_error)
-            elif node.provision_state in (states.DEPLOYING, states.DEPLOYWAIT):
-                deploy_utils.set_failed_state(task, last_error)
 
     @METRICS.timer('AgentDeployMixin.reboot_and_finish_deploy')
     def reboot_and_finish_deploy(self, task):

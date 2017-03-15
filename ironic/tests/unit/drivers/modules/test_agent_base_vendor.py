@@ -58,12 +58,16 @@ class AgentDeployMixinBaseTest(db_base.DbTestCase):
         self.node = object_utils.create_test_node(self.context, **n)
 
 
-class TestHeartbeat(AgentDeployMixinBaseTest):
+class HeartbeatMixinTest(AgentDeployMixinBaseTest):
 
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+    def setUp(self):
+        super(HeartbeatMixinTest, self).setUp()
+        self.deploy = agent_base_vendor.HeartbeatMixin()
+
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'deploy_has_started', autospec=True)
     @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin, 'deploy_is_done',
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'deploy_is_done',
                        autospec=True)
     @mock.patch.object(agent_base_vendor.LOG, 'exception', autospec=True)
     def test_heartbeat_deploy_done_fails(self, log_mock, done_mock,
@@ -75,16 +79,17 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
             task.node.provision_state = states.DEPLOYWAIT
             task.node.target_provision_state = states.ACTIVE
             self.deploy.heartbeat(task, 'http://127.0.0.1:8080')
-            failed_mock.assert_called_once_with(task, mock.ANY)
+            failed_mock.assert_called_once_with(
+                task, mock.ANY, collect_logs=True)
         log_mock.assert_called_once_with(
             'Asynchronous exception for node '
             '1be26c0b-03f2-4d2e-ae87-c02d7f33c123: Failed checking if deploy '
             'is done. Exception: LlamaException')
 
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'deploy_has_started', autospec=True)
     @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin, 'deploy_is_done',
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'deploy_is_done',
                        autospec=True)
     @mock.patch.object(agent_base_vendor.LOG, 'exception', autospec=True)
     def test_heartbeat_deploy_done_raises_with_event(self, log_mock, done_mock,
@@ -114,8 +119,8 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
             'is done. Exception: LlamaException')
 
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
-                       '_refresh_clean_steps', autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'refresh_clean_steps', autospec=True)
     @mock.patch.object(manager_utils, 'set_node_cleaning_steps', autospec=True)
     @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
                        autospec=True)
@@ -135,8 +140,8 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
 
     @mock.patch.object(manager_utils, 'cleaning_error_handler')
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
-                       '_refresh_clean_steps', autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'refresh_clean_steps', autospec=True)
     @mock.patch.object(manager_utils, 'set_node_cleaning_steps', autospec=True)
     @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
                        autospec=True)
@@ -169,7 +174,7 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
             failed_mock.side_effect = None
 
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'continue_cleaning', autospec=True)
     def test_heartbeat_continue_cleaning(self, mock_continue, mock_touch):
         self.node.clean_step = {
@@ -188,7 +193,7 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
         mock_continue.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(manager_utils, 'cleaning_error_handler')
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'continue_cleaning', autospec=True)
     def test_heartbeat_continue_cleaning_fails(self, mock_continue,
                                                mock_handler):
@@ -211,7 +216,7 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
         mock_handler.assert_called_once_with(task, mock.ANY)
 
     @mock.patch.object(manager_utils, 'cleaning_error_handler')
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'continue_cleaning', autospec=True)
     def test_heartbeat_continue_cleaning_no_worker(self, mock_continue,
                                                    mock_handler):
@@ -233,9 +238,9 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
         mock_continue.assert_called_once_with(mock.ANY, task)
         self.assertFalse(mock_handler.called)
 
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin, 'continue_deploy',
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
                        autospec=True)
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'reboot_to_instance', autospec=True)
     @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
                        autospec=True)
@@ -258,9 +263,9 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
         node.refresh()
         self.assertNotIn('agent_last_heartbeat', node.driver_internal_info)
 
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin, 'continue_deploy',
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
                        autospec=True)
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'reboot_to_instance', autospec=True)
     @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
                        autospec=True)
@@ -281,7 +286,7 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
         self.assertEqual(0, cd_mock.call_count)
 
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
-    @mock.patch.object(agent_base_vendor.AgentDeployMixin,
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'deploy_has_started', autospec=True)
     def test_heartbeat_touch_provisioning(self, mock_deploy_started,
                                           mock_touch):
@@ -294,6 +299,9 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
             self.deploy.heartbeat(task, 'http://127.0.0.1:8080')
 
         mock_touch.assert_called_once_with(mock.ANY)
+
+
+class AgentDeployMixinTest(AgentDeployMixinBaseTest):
 
     @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(time, 'sleep', lambda seconds: None)
@@ -966,7 +974,7 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
     @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
                        autospec=True)
     @mock.patch.object(agent_base_vendor.AgentDeployMixin,
-                       '_refresh_clean_steps', autospec=True)
+                       'refresh_clean_steps', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
     def _test_continue_cleaning_clean_version_mismatch(
@@ -1005,7 +1013,7 @@ class TestHeartbeat(AgentDeployMixinBaseTest):
     @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
                        autospec=True)
     @mock.patch.object(agent_base_vendor.AgentDeployMixin,
-                       '_refresh_clean_steps', autospec=True)
+                       'refresh_clean_steps', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
     def test_continue_cleaning_clean_version_mismatch_fail(
@@ -1155,13 +1163,13 @@ class TestRefreshCleanSteps(AgentDeployMixinBaseTest):
 
     @mock.patch.object(agent_client.AgentClient, 'get_clean_steps',
                        autospec=True)
-    def test__refresh_clean_steps(self, client_mock):
+    def test_refresh_clean_steps(self, client_mock):
         client_mock.return_value = {
             'command_result': self.clean_steps}
 
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-            self.deploy._refresh_clean_steps(task)
+            self.deploy.refresh_clean_steps(task)
 
             client_mock.assert_called_once_with(mock.ANY, task.node,
                                                 task.ports)
@@ -1182,7 +1190,7 @@ class TestRefreshCleanSteps(AgentDeployMixinBaseTest):
 
     @mock.patch.object(agent_client.AgentClient, 'get_clean_steps',
                        autospec=True)
-    def test__refresh_clean_steps_missing_steps(self, client_mock):
+    def test_refresh_clean_steps_missing_steps(self, client_mock):
         del self.clean_steps['clean_steps']
         client_mock.return_value = {
             'command_result': self.clean_steps}
@@ -1191,14 +1199,14 @@ class TestRefreshCleanSteps(AgentDeployMixinBaseTest):
                 self.context, self.node.uuid, shared=False) as task:
             self.assertRaisesRegex(exception.NodeCleaningFailure,
                                    'invalid result',
-                                   self.deploy._refresh_clean_steps,
+                                   self.deploy.refresh_clean_steps,
                                    task)
             client_mock.assert_called_once_with(mock.ANY, task.node,
                                                 task.ports)
 
     @mock.patch.object(agent_client.AgentClient, 'get_clean_steps',
                        autospec=True)
-    def test__refresh_clean_steps_missing_interface(self, client_mock):
+    def test_refresh_clean_steps_missing_interface(self, client_mock):
         step = self.clean_steps['clean_steps']['SpecificHardwareManager'][1]
         del step['interface']
         client_mock.return_value = {
@@ -1208,7 +1216,7 @@ class TestRefreshCleanSteps(AgentDeployMixinBaseTest):
                 self.context, self.node.uuid, shared=False) as task:
             self.assertRaisesRegex(exception.NodeCleaningFailure,
                                    'invalid clean step',
-                                   self.deploy._refresh_clean_steps,
+                                   self.deploy.refresh_clean_steps,
                                    task)
             client_mock.assert_called_once_with(mock.ANY, task.node,
                                                 task.ports)
