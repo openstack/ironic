@@ -1662,10 +1662,21 @@ function enroll_nodes {
     fi
 }
 
+function die_if_module_not_loaded {
+    if ! grep -q $1 /proc/modules; then
+        die $LINENO "$1 kernel module is not loaded"
+    fi
+}
+
 function configure_iptables {
     # enable tftp natting for allowing connections to HOST_IP's tftp server
-    sudo modprobe nf_conntrack_tftp
-    sudo modprobe nf_nat_tftp
+    if ! running_in_container; then
+        sudo modprobe nf_conntrack_tftp
+        sudo modprobe nf_nat_tftp
+    else
+        die_if_module_not_loaded nf_conntrack_tftp
+        die_if_module_not_loaded nf_nat_tftp
+    fi
     # explicitly allow DHCP - packets are occasionally being dropped here
     sudo iptables -I INPUT -p udp --dport 67:68 --sport 67:68 -j ACCEPT || true
     # nodes boot from TFTP and callback to the API server listening on $HOST_IP
