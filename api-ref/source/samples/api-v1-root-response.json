@@ -36,7 +36,7 @@
       "rel": "self"
     },
     {
-      "href": "http://docs.openstack.org/developer/ironic/dev/api-spec-v1.html",
+      "href": "https://docs.openstack.org/developer/ironic/dev/webapi.html",
       "rel": "describedby",
       "type": "text/html"
     }
