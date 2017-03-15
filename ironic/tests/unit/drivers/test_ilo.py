@@ -48,6 +48,7 @@ class IloHardwareTestCase(db_base.DbTestCase):
                     enabled_management_interfaces=['ilo'],
                     enabled_power_interfaces=['ilo'],
                     enabled_raid_interfaces=['no-raid', 'agent'],
+                    enabled_rescue_interfaces=['no-rescue', 'agent'],
                     enabled_vendor_interfaces=['ilo', 'no-vendor'])
 
     def test_default_interfaces(self):
@@ -70,6 +71,8 @@ class IloHardwareTestCase(db_base.DbTestCase):
                                   noop.NoRAID)
             self.assertIsInstance(task.driver.vendor,
                                   ilo.vendor.VendorPassthru)
+            self.assertIsInstance(task.driver.rescue,
+                                  noop.NoRescue)
 
     def test_override_with_inspector(self):
         self.config(enabled_inspect_interfaces=['inspector', 'ilo'])
@@ -94,6 +97,8 @@ class IloHardwareTestCase(db_base.DbTestCase):
                                   ilo.power.IloPower)
             self.assertIsInstance(task.driver.raid,
                                   agent.AgentRAID)
+            self.assertIsInstance(task.driver.rescue,
+                                  noop.NoRescue)
             self.assertIsInstance(task.driver.vendor,
                                   noop.NoVendor)
 
@@ -117,6 +122,35 @@ class IloHardwareTestCase(db_base.DbTestCase):
                                   ilo.power.IloPower)
             self.assertIsInstance(task.driver.raid,
                                   agent.AgentRAID)
+            self.assertIsInstance(task.driver.rescue,
+                                  noop.NoRescue)
+            self.assertIsInstance(task.driver.vendor,
+                                  ilo.vendor.VendorPassthru)
+
+    def test_override_with_agent_rescue(self):
+        self.config(enabled_inspect_interfaces=['inspector', 'ilo'])
+        node = obj_utils.create_test_node(
+            self.context, driver='ilo',
+            deploy_interface='direct',
+            rescue_interface='agent',
+            raid_interface='agent')
+        with task_manager.acquire(self.context, node.id) as task:
+            self.assertIsInstance(task.driver.boot,
+                                  ilo.boot.IloVirtualMediaBoot)
+            self.assertIsInstance(task.driver.console,
+                                  ilo.console.IloConsoleInterface)
+            self.assertIsInstance(task.driver.deploy,
+                                  agent.AgentDeploy)
+            self.assertIsInstance(task.driver.inspect,
+                                  ilo.inspect.IloInspect)
+            self.assertIsInstance(task.driver.management,
+                                  ilo.management.IloManagement)
+            self.assertIsInstance(task.driver.power,
+                                  ilo.power.IloPower)
+            self.assertIsInstance(task.driver.raid,
+                                  agent.AgentRAID)
+            self.assertIsInstance(task.driver.rescue,
+                                  agent.AgentRescue)
             self.assertIsInstance(task.driver.vendor,
                                   ilo.vendor.VendorPassthru)
 

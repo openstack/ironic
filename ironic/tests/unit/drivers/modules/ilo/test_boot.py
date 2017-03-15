@@ -672,9 +672,19 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IloVirtualMediaBootTestCase, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="iscsi_ilo")
+        self.config(enabled_hardware_types=['ilo'],
+                    enabled_boot_interfaces=['ilo-virtual-media'],
+                    enabled_console_interfaces=['ilo'],
+                    enabled_deploy_interfaces=['iscsi'],
+                    enabled_inspect_interfaces=['ilo'],
+                    enabled_management_interfaces=['ilo'],
+                    enabled_power_interfaces=['ilo'],
+                    enabled_raid_interfaces=['no-raid'],
+                    enabled_rescue_interfaces=['agent'],
+                    enabled_vendor_interfaces=['no-vendor'])
+        self.config(enabled_hardware_types=['ilo'])
         self.node = obj_utils.create_test_node(
-            self.context, driver='iscsi_ilo', driver_info=INFO_DICT)
+            self.context, driver='ilo', driver_info=INFO_DICT)
 
     @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
                        autospec=True)
@@ -728,35 +738,39 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
                               eject_mock, node_power_mock,
                               prepare_node_for_deploy_mock,
                               ilo_boot_iso, image_source,
-                              ramdisk_params={'a': 'b'}):
+                              ramdisk_params={'a': 'b'},
+                              mode='deploy'):
         instance_info = self.node.instance_info
         instance_info['ilo_boot_iso'] = ilo_boot_iso
         instance_info['image_source'] = image_source
         self.node.instance_info = instance_info
         self.node.save()
+        iso = 'provisioning-iso'
 
         get_nic_mock.return_value = '12:34:56:78:90:ab'
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
 
             driver_info = task.node.driver_info
-            driver_info['ilo_deploy_iso'] = 'deploy-iso'
+            driver_info['ilo_%s_iso' % mode] = iso
             task.node.driver_info = driver_info
 
             task.driver.boot.prepare_ramdisk(task, ramdisk_params)
 
             node_power_mock.assert_called_once_with(task, states.POWER_OFF)
-            if task.node.provision_state == states.DEPLOYING:
+            if task.node.provision_state in (states.DEPLOYING,
+                                             states.RESCUING):
                 prepare_node_for_deploy_mock.assert_called_once_with(task)
+
             eject_mock.assert_called_once_with(task)
             expected_ramdisk_opts = {'a': 'b', 'BOOTIF': '12:34:56:78:90:ab'}
             get_nic_mock.assert_called_once_with(task)
-            setup_vmedia_mock.assert_called_once_with(task, 'deploy-iso',
+            setup_vmedia_mock.assert_called_once_with(task, iso,
                                                       expected_ramdisk_opts)
 
     @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
                        autospec=True)
-    def test_prepare_ramdisk_not_deploying_not_cleaning(self, mock_is_image):
+    def test_prepare_ramdisk_in_takeover(self, mock_is_image):
         """Ensure deploy ops are blocked when not deploying and not cleaning"""
 
         for state in states.STABLE_STATES:
@@ -768,6 +782,27 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
                 self.assertIsNone(
                     task.driver.boot.prepare_ramdisk(task, None))
                 self.assertFalse(mock_is_image.called)
+
+    def test_prepare_ramdisk_rescue_glance_image(self):
+        self.node.provision_state = states.RESCUING
+        self.node.save()
+        self._test_prepare_ramdisk(
+            ilo_boot_iso='swift:abcdef',
+            image_source='6b2f0c0c-79e8-4db6-842e-43c9764204af',
+            mode='rescue')
+        self.node.refresh()
+        self.assertNotIn('ilo_boot_iso', self.node.instance_info)
+
+    def test_prepare_ramdisk_rescue_not_a_glance_image(self):
+        self.node.provision_state = states.RESCUING
+        self.node.save()
+        self._test_prepare_ramdisk(
+            ilo_boot_iso='http://mybootiso',
+            image_source='http://myimage',
+            mode='rescue')
+        self.node.refresh()
+        self.assertEqual('http://mybootiso',
+                         self.node.instance_info['ilo_boot_iso'])
 
     def test_prepare_ramdisk_glance_image(self):
         self.node.provision_state = states.DEPLOYING
@@ -865,16 +900,16 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(ilo_boot, '_clean_up_boot_iso_for_instance',
                        spec_set=True, autospec=True)
-    def test_clean_up_instance(self, cleanup_iso_mock,
-                               cleanup_vmedia_mock, node_power_mock,
-                               update_secure_boot_mode_mock,
-                               is_iscsi_boot_mock):
+    def _test_clean_up_instance(self, cleanup_iso_mock,
+                                cleanup_vmedia_mock, node_power_mock,
+                                update_secure_boot_mode_mock,
+                                is_iscsi_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+            root_uuid = "12312642-09d3-467f-8e09-12385826a123"
             driver_internal_info = task.node.driver_internal_info
             driver_internal_info['boot_iso_created_in_web_server'] = False
-            driver_internal_info['root_uuid_or_disk_id'] = (
-                "12312642-09d3-467f-8e09-12385826a123")
+            driver_internal_info['root_uuid_or_disk_id'] = root_uuid
             task.node.driver_internal_info = driver_internal_info
             task.node.save()
             is_iscsi_boot_mock.return_value = False
@@ -884,10 +919,22 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
             driver_internal_info = task.node.driver_internal_info
             self.assertNotIn('boot_iso_created_in_web_server',
                              driver_internal_info)
-            self.assertNotIn('root_uuid_or_disk_id', driver_internal_info)
+            if task.node.provision_state != states.RESCUING:
+                self.assertNotIn('root_uuid_or_disk_id', driver_internal_info)
+            else:
+                self.assertEqual(root_uuid,
+                                 driver_internal_info['root_uuid_or_disk_id'])
             node_power_mock.assert_called_once_with(task,
                                                     states.POWER_OFF)
             update_secure_boot_mode_mock.assert_called_once_with(task, False)
+
+    def test_clean_up_instance_deleting(self):
+        self.node.provisioning_state = states.DELETING
+        self._test_clean_up_instance()
+
+    def test_clean_up_instance_rescuing(self):
+        self.node.provisioning_state = states.RESCUING
+        self._test_clean_up_instance()
 
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
@@ -1077,6 +1124,20 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
             cleanup_vmedia_boot_mock.assert_called_once_with(task)
             self.assertIsNone(task.node.driver_internal_info.get(
                               'ilo_uefi_iscsi_boot'))
+
+    def test_validate_rescue(self):
+        driver_info = self.node.driver_info
+        driver_info['ilo_rescue_iso'] = 'rescue.iso'
+        self.node.driver_info = driver_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.boot.validate_rescue(task)
+
+    def test_validate_rescue_no_rescue_ramdisk(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaisesRegex(exception.MissingParameterValue,
+                                   'Missing.*ilo_rescue_iso',
+                                   task.driver.boot.validate_rescue, task)
 
 
 class IloPXEBootTestCase(db_base.DbTestCase):
