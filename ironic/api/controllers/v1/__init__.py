@@ -97,9 +97,9 @@ class V1(base.APIBase):
         v1.links = [link.Link.make_link('self', pecan.request.public_url,
                                         'v1', '', bookmark=True),
                     link.Link.make_link('describedby',
-                                        'http://docs.openstack.org',
+                                        'https://docs.openstack.org',
                                         'developer/ironic/dev',
-                                        'api-spec-v1.html',
+                                        'webapi.html',
                                         bookmark=True, type='text/html')
                     ]
         v1.media_types = [MediaType('application/json',
