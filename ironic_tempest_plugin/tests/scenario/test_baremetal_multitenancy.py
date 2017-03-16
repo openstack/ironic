@@ -13,12 +13,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from ironic_tempest_plugin.tests.scenario import baremetal_manager
 from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
-from tempest.scenario import manager
 from tempest import test
+
+from ironic_tempest_plugin import manager
+from ironic_tempest_plugin.tests.scenario import baremetal_manager
 
 CONF = config.CONF
 
