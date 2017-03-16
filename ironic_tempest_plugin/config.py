@@ -83,5 +83,19 @@ BaremetalGroup = [
                     "require a microversion."),
     cfg.BoolOpt('use_provision_network',
                 default=False,
-                help="Whether the Ironic/Neutron tenant isolation is enabled")
+                help="Whether the Ironic/Neutron tenant isolation is enabled"),
+    cfg.StrOpt('whole_disk_image_ref',
+               help="UUID of the wholedisk image to use in the tests."),
+    cfg.StrOpt('partition_image_ref',
+               help="UUID of the partitioned image to use in the tests."),
+    cfg.ListOpt('enabled_drivers',
+                default=['fake', 'pxe_ipmitool', 'agent_ipmitool'],
+                help="List of Ironic enabled drivers."),
+    cfg.ListOpt('enabled_hardware_types',
+                default=['ipmi'],
+                help="List of Ironic enabled hardware types."),
+    cfg.IntOpt('adjusted_root_disk_size_gb',
+               min=0,
+               help="Ironic adjusted disk size to use in the standalone tests "
+                    "as instance_info/root_gb value."),
 ]

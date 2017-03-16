@@ -18,7 +18,19 @@ from six.moves.urllib import parse as urllib
 from tempest.lib.common import api_version_utils
 from tempest.lib.common import rest_client
 
+# NOTE(vsaienko): concurrent tests work because they are launched in
+# separate processes so global variables are not shared among them.
 BAREMETAL_MICROVERSION = None
+
+
+def set_baremetal_api_microversion(baremetal_microversion):
+    global BAREMETAL_MICROVERSION
+    BAREMETAL_MICROVERSION = baremetal_microversion
+
+
+def reset_baremetal_api_microversion():
+    global BAREMETAL_MICROVERSION
+    BAREMETAL_MICROVERSION = None
 
 
 def handle_errors(f):

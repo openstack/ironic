@@ -4,6 +4,7 @@ iptables
 ipxe-bootimgs
 gnupg
 libguestfs
+libguestfs-tools
 libvirt
 libvirt-python
 net-tools
