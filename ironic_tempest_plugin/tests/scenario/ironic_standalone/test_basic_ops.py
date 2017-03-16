@@ -68,3 +68,27 @@ class BaremetalPxeIpmitoolPartitioned(bsm.BaremetalStandaloneScenarioTest):
     @test.services('image', 'network')
     def test_ip_access_to_server(self):
         self.ping_ip_address(self.node_ip, should_succeed=True)
+
+
+class BaremetalIpmiWholedisk(bsm.BaremetalStandaloneScenarioTest):
+
+    driver = 'ipmi'
+    image_ref = CONF.baremetal.whole_disk_image_ref
+    wholedisk_image = True
+
+    @test.idempotent_id('c2db24e7-07dc-4a20-8f93-d4efae2bfd4e')
+    @test.services('image', 'network')
+    def test_ip_access_to_server(self):
+        self.ping_ip_address(self.node_ip, should_succeed=True)
+
+
+class BaremetalIpmiPartitioned(bsm.BaremetalStandaloneScenarioTest):
+
+    driver = 'ipmi'
+    image_ref = CONF.baremetal.partition_image_ref
+    wholedisk_image = False
+
+    @test.idempotent_id('7d0b205e-edbc-4e2d-9f6d-95cd74eefecb')
+    @test.services('image', 'network')
+    def test_ip_access_to_server(self):
+        self.ping_ip_address(self.node_ip, should_succeed=True)
