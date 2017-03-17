@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Updates required proliantutils version for iLO drivers to 2.2.1. This
+    version has support for HPSUM firmware update and matches requirements
+    to meet global-requirements.
