@@ -250,15 +250,17 @@ class GenericUtilsTestCase(base.TestCase):
         data = b'Mary had a little lamb, its fleece as white as snow'
         ref = data
         with mock.patch('ironic.common.utils.open',
-                        mock.mock_open(read_data=data)):
+                        mock.mock_open(read_data=data)) as mopen:
             self.assertTrue(utils.file_has_content('foo', ref))
+            mopen.assert_called_once_with('foo', 'rb')
 
     def test_file_has_content_differ(self):
         data = b'Mary had a little lamb, its fleece as white as snow'
         ref = data + b'!'
         with mock.patch('ironic.common.utils.open',
-                        mock.mock_open(read_data=data)):
+                        mock.mock_open(read_data=data)) as mopen:
             self.assertFalse(utils.file_has_content('foo', ref))
+            mopen.assert_called_once_with('foo', 'rb')
 
     def test_is_valid_datapath_id(self):
         self.assertTrue(utils.is_valid_datapath_id("525400cf2d319fdf"))
