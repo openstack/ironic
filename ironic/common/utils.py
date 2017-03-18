@@ -295,7 +295,7 @@ def file_has_content(path, content, hash_algo='md5'):
     :returns: True if the hash of reference content is the same as
         the hash of file's content, False otherwise
     """
-    with open(path) as existing:
+    with open(path, 'rb') as existing:
         file_hash_hex = hash_file(existing, hash_algo=hash_algo)
     ref_hash = _get_hash_object(hash_algo)
     ref_hash.update(content)
