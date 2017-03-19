@@ -33,24 +33,16 @@ ALLOWED_EXMODS = [
 ]
 EXTRA_EXMODS = []
 
-TRANSPORT_ALIASES = {
-    'ironic.rpc.impl_kombu': 'rabbit',
-    'ironic.rpc.impl_qpid': 'qpid',
-    'ironic.rpc.impl_zmq': 'zmq',
-}
-
 
 def init(conf):
     global TRANSPORT, NOTIFICATION_TRANSPORT
     global SENSORS_NOTIFIER, VERSIONED_NOTIFIER
     exmods = get_allowed_exmods()
     TRANSPORT = messaging.get_transport(conf,
-                                        allowed_remote_exmods=exmods,
-                                        aliases=TRANSPORT_ALIASES)
+                                        allowed_remote_exmods=exmods)
     NOTIFICATION_TRANSPORT = messaging.get_notification_transport(
         conf,
-        allowed_remote_exmods=exmods,
-        aliases=TRANSPORT_ALIASES)
+        allowed_remote_exmods=exmods)
 
     serializer = RequestContextSerializer(messaging.JsonPayloadSerializer())
     SENSORS_NOTIFIER = messaging.Notifier(NOTIFICATION_TRANSPORT,
@@ -118,7 +110,7 @@ class RequestContextSerializer(messaging.Serializer):
 
 
 def get_transport_url(url_str=None):
-    return messaging.TransportURL.parse(CONF, url_str, TRANSPORT_ALIASES)
+    return messaging.TransportURL.parse(CONF, url_str)
 
 
 def get_client(target, version_cap=None, serializer=None):
