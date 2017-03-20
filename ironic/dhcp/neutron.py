@@ -21,7 +21,7 @@ from oslo_log import log as logging
 from oslo_utils import netutils
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LW
+from ironic.common.i18n import _
 from ironic.common import network
 from ironic.common import neutron
 from ironic.conf import CONF
@@ -63,7 +63,7 @@ class NeutronDHCPApi(base.BaseDHCP):
         try:
             neutron.get_client(token).update_port(port_id, port_req_body)
         except neutron_client_exc.NeutronClientException:
-            LOG.exception(_LE("Failed to update Neutron port %s."), port_id)
+            LOG.exception("Failed to update Neutron port %s.", port_id)
             raise exception.FailedToUpdateDHCPOptOnPort(port_id=port_id)
 
     # TODO(vsaienko) Remove this method when deprecation period is passed
@@ -78,9 +78,9 @@ class NeutronDHCPApi(base.BaseDHCP):
         """
         global update_port_address_deprecation
         if not update_port_address_deprecation:
-            LOG.warning(_LW('update_port_address via DHCP provider is '
-                            'deprecated. The node.network_interface '
-                            'port_changed() should be used instead.'))
+            LOG.warning('update_port_address via DHCP provider is '
+                        'deprecated. The node.network_interface '
+                        'port_changed() should be used instead.')
             update_port_address_deprecation = True
 
         neutron.update_port_address(port_id, address, token)
@@ -134,9 +134,9 @@ class NeutronDHCPApi(base.BaseDHCP):
                     "Failed to set DHCP BOOT options for any port on node %s.")
                     % task.node.uuid)
             else:
-                LOG.warning(_LW("Some errors were encountered when updating "
-                                "the DHCP BOOT options for node %(node)s on "
-                                "the following Neutron ports: %(ports)s."),
+                LOG.warning("Some errors were encountered when updating "
+                            "the DHCP BOOT options for node %(node)s on "
+                            "the following Neutron ports: %(ports)s.",
                             {'node': task.node.uuid, 'ports': failures})
 
         # TODO(adam_g): Hack to workaround bug 1334447 until we have a
@@ -162,7 +162,7 @@ class NeutronDHCPApi(base.BaseDHCP):
         try:
             neutron_port = client.show_port(port_uuid).get('port')
         except neutron_client_exc.NeutronClientException:
-            LOG.exception(_LE("Failed to Get IP address on Neutron port %s."),
+            LOG.exception("Failed to Get IP address on Neutron port %s.",
                           port_uuid)
             raise exception.FailedToGetIPAddressOnPort(port_id=port_uuid)
 
@@ -178,11 +178,11 @@ class NeutronDHCPApi(base.BaseDHCP):
             if netutils.is_valid_ipv4(ip_address):
                 return ip_address
             else:
-                LOG.error(_LE("Neutron returned invalid IPv4 address %s."),
+                LOG.error("Neutron returned invalid IPv4 address %s.",
                           ip_address)
                 raise exception.InvalidIPv4Address(ip_address=ip_address)
         else:
-            LOG.error(_LE("No IP address assigned to Neutron port %s."),
+            LOG.error("No IP address assigned to Neutron port %s.",
                       port_uuid)
             raise exception.FailedToGetIPAddressOnPort(port_id=port_uuid)
 
@@ -203,10 +203,10 @@ class NeutronDHCPApi(base.BaseDHCP):
             obj_name = 'portgroup'
             if isinstance(p_obj, objects.Port):
                 obj_name = 'port'
-            LOG.warning(_LW("No VIFs found for node %(node)s when attempting "
-                            "to get IP address for %(obj_name)s: %(obj_id)."),
+            LOG.warning("No VIFs found for node %(node)s when attempting "
+                        "to get IP address for %(obj_name)s: %(obj_id).",
                         {'node': task.node.uuid, 'obj_name': obj_name,
-                        'obj_id': p_obj.uuid})
+                         'obj_id': p_obj.uuid})
             raise exception.FailedToGetIPAddressOnPort(port_id=p_obj.uuid)
 
         vif_ip_address = self._get_fixed_ip_address(vif, client)
@@ -237,10 +237,10 @@ class NeutronDHCPApi(base.BaseDHCP):
             if isinstance(pobj_list[0], objects.Port):
                 obj_name = 'ports'
 
-            LOG.warning(_LW(
+            LOG.warning(
                 "Some errors were encountered on node %(node)s "
                 "while retrieving IP addresses on the following "
-                "%(obj_name)s: %(failures)s."),
+                "%(obj_name)s: %(failures)s.",
                 {'node': task.node.uuid, 'obj_name': obj_name,
                  'failures': failures})
 
