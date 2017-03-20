@@ -27,7 +27,7 @@ from ironic.common import context as ironic_context
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import hash_ring
-from ironic.common.i18n import _, _LC, _LE, _LI, _LW
+from ironic.common.i18n import _
 from ironic.common import rpc
 from ironic.common import states
 from ironic.conductor import notification_utils as notify_utils
@@ -124,11 +124,11 @@ class BaseConductorManager(object):
 
         # check that at least one driver is loaded, whether classic or dynamic
         if not driver_names and not hardware_type_names:
-            msg = _LE("Conductor %s cannot be started because no drivers "
-                      "were loaded. This could be because no classic drivers "
-                      "were specified in the 'enabled_drivers' config option "
-                      "and no dynamic drivers were specified in the "
-                      "'enabled_hardware_types' config option.")
+            msg = ("Conductor %s cannot be started because no drivers "
+                   "were loaded. This could be because no classic drivers "
+                   "were specified in the 'enabled_drivers' config option "
+                   "and no dynamic drivers were specified in the "
+                   "'enabled_hardware_types' config option.")
             LOG.error(msg, self.host)
             raise exception.NoDriversLoaded(conductor=self.host)
 
@@ -136,11 +136,11 @@ class BaseConductorManager(object):
         name_clashes = set(driver_names).intersection(hardware_type_names)
         if name_clashes:
             name_clashes = ', '.join(name_clashes)
-            msg = _LE("Conductor %(host)s cannot be started because there is "
-                      "one or more name conflicts between classic drivers and "
-                      "dynamic drivers (%(names)s). Check any external driver "
-                      "plugins and the 'enabled_drivers' and "
-                      "'enabled_hardware_types' config options.")
+            msg = ("Conductor %(host)s cannot be started because there is "
+                   "one or more name conflicts between classic drivers and "
+                   "dynamic drivers (%(names)s). Check any external driver "
+                   "plugins and the 'enabled_drivers' and "
+                   "'enabled_hardware_types' config options.")
             LOG.error(msg, {'host': self.host, 'names': name_clashes})
             raise exception.DriverNameConflict(names=name_clashes)
 
@@ -162,9 +162,9 @@ class BaseConductorManager(object):
 
         if (len(self._periodic_task_callables) >
                 CONF.conductor.workers_pool_size):
-            LOG.warning(_LW('This conductor has %(tasks)d periodic tasks '
-                            'enabled, but only %(workers)d task workers '
-                            'allowed by [conductor]workers_pool_size option'),
+            LOG.warning('This conductor has %(tasks)d periodic tasks '
+                        'enabled, but only %(workers)d task workers '
+                        'allowed by [conductor]workers_pool_size option',
                         {'tasks': len(self._periodic_task_callables),
                          'workers': CONF.conductor.workers_pool_size})
 
@@ -183,10 +183,9 @@ class BaseConductorManager(object):
         except exception.ConductorAlreadyRegistered:
             # This conductor was already registered and did not shut down
             # properly, so log a warning and update the record.
-            LOG.warning(
-                _LW("A conductor with hostname %(hostname)s "
-                    "was previously registered. Updating registration"),
-                {'hostname': self.host})
+            LOG.warning("A conductor with hostname %(hostname)s was "
+                        "previously registered. Updating registration",
+                        {'hostname': self.host})
             self.conductor = objects.Conductor.register(
                 admin_context, self.host, driver_names, update_existing=True)
 
@@ -199,7 +198,7 @@ class BaseConductorManager(object):
                 exception.InterfaceNotFoundInEntrypoint,
                 exception.NoValidDefaultForInterface) as e:
             with excutils.save_and_reraise_exception():
-                LOG.error(_LE('Failed to register hardware types. %s'), e)
+                LOG.error('Failed to register hardware types. %s', e)
                 self.del_host()
 
         # Start periodic tasks
@@ -229,17 +228,17 @@ class BaseConductorManager(object):
             self._spawn_worker(self._start_consoles,
                                ironic_context.get_admin_context())
         except exception.NoFreeConductorWorker:
-            LOG.warning(_LW('Failed to start worker for restarting consoles.'))
+            LOG.warning('Failed to start worker for restarting consoles.')
 
         # Spawn a dedicated greenthread for the keepalive
         try:
             self._spawn_worker(self._conductor_service_record_keepalive)
-            LOG.info(_LI('Successfully started conductor with hostname '
-                         '%(hostname)s.'),
+            LOG.info('Successfully started conductor with hostname '
+                     '%(hostname)s.',
                      {'hostname': self.host})
         except exception.NoFreeConductorWorker:
             with excutils.save_and_reraise_exception():
-                LOG.critical(_LC('Failed to start keepalive'))
+                LOG.critical('Failed to start keepalive')
                 self.del_host()
 
         self._started = True
@@ -256,14 +255,13 @@ class BaseConductorManager(object):
                 # Note that rebalancing will not occur immediately, but when
                 # the periodic sync takes place.
                 self.conductor.unregister()
-                LOG.info(_LI('Successfully stopped conductor with hostname '
-                             '%(hostname)s.'),
+                LOG.info('Successfully stopped conductor with hostname '
+                         '%(hostname)s.',
                          {'hostname': self.host})
             except exception.ConductorNotFound:
                 pass
         else:
-            LOG.info(_LI('Not deregistering conductor with hostname '
-                         '%(hostname)s.'),
+            LOG.info('Not deregistering conductor with hostname %(hostname)s.',
                      {'hostname': self.host})
         # Waiting here to give workers the chance to finish. This has the
         # benefit of releasing locks workers placed on nodes, as well as
@@ -328,9 +326,9 @@ class BaseConductorManager(object):
         try:
             fut.result()
         except Exception as exc:
-            LOG.critical(_LC('Periodic tasks worker has failed: %s'), exc)
+            LOG.critical('Periodic tasks worker has failed: %s', exc)
         else:
-            LOG.info(_LI('Successfully shut down periodic tasks'))
+            LOG.info('Successfully shut down periodic tasks')
 
     def iter_nodes(self, fields=None, **kwargs):
         """Iterate over nodes mapped to this conductor.
@@ -374,8 +372,8 @@ class BaseConductorManager(object):
             try:
                 self.conductor.touch()
             except db_exception.DBConnectionError:
-                LOG.warning(_LW('Conductor could not connect to database '
-                                'while heartbeating.'))
+                LOG.warning('Conductor could not connect to database '
+                            'while heartbeating.')
             self._keepalive_evt.wait(CONF.conductor.heartbeat_interval)
 
     def _mapped_to_this_conductor(self, node_uuid, driver):
@@ -484,8 +482,8 @@ class BaseConductorManager(object):
                         LOG.debug('Trying to start console of node %(node)s',
                                   {'node': node_uuid})
                         task.driver.console.start_console(task)
-                        LOG.info(_LI('Successfully started console of node '
-                                     '%(node)s'), {'node': node_uuid})
+                        LOG.info('Successfully started console of node '
+                                 '%(node)s', {'node': node_uuid})
                         notify_utils.emit_console_notification(
                             task, 'console_restore',
                             obj_fields.NotificationStatus.END)
@@ -505,13 +503,13 @@ class BaseConductorManager(object):
                             task, 'console_restore',
                             obj_fields.NotificationStatus.ERROR)
             except exception.NodeLocked:
-                LOG.warning(_LW('Node %(node)s is locked while trying to '
-                                'start console on conductor startup'),
+                LOG.warning('Node %(node)s is locked while trying to '
+                            'start console on conductor startup',
                             {'node': node_uuid})
                 continue
             except exception.NodeNotFound:
-                LOG.warning(_LW("During starting console on conductor "
-                                "startup, node %(node)s was not found"),
+                LOG.warning("During starting console on conductor "
+                            "startup, node %(node)s was not found",
                             {'node': node_uuid})
                 continue
             finally:

@@ -18,7 +18,7 @@ from oslo_utils import excutils
 from oslo_utils import reflection
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LI, _LW
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import task_manager
@@ -113,9 +113,8 @@ def node_power_action(task, new_state, timeout=None):
         notify_utils.emit_power_set_notification(
             task, fields.NotificationLevel.INFO,
             fields.NotificationStatus.END, new_state)
-        LOG.warning(_LW("Not going to change node %(node)s power "
-                        "state because current state = requested state "
-                        "= '%(state)s'."),
+        LOG.warning("Not going to change node %(node)s power state because "
+                    "current state = requested state = '%(state)s'.",
                     {'node': node.uuid, 'state': curr_state})
 
     try:
@@ -142,7 +141,7 @@ def node_power_action(task, new_state, timeout=None):
     else:
         # if curr_state == states.ERROR:
         # be optimistic and continue action
-        LOG.warning(_LW("Driver returns ERROR power state for node %s."),
+        LOG.warning("Driver returns ERROR power state for node %s.",
                     node.uuid)
 
     # Set the target_power_state and clear any last_error, if we're
@@ -165,8 +164,8 @@ def node_power_action(task, new_state, timeout=None):
                 # After driver composition, we should print power interface
                 # name here instead of driver.
                 LOG.warning(
-                    _LW("The set_power_state method of %(driver_name)s "
-                        "doesn't support 'timeout' parameter."),
+                    "The set_power_state method of %(driver_name)s "
+                    "doesn't support 'timeout' parameter.",
                     {'driver_name': node.driver})
                 task.driver.power.set_power_state(task, new_state)
         else:
@@ -174,8 +173,8 @@ def node_power_action(task, new_state, timeout=None):
                     task.driver.power.reboot).parameters):
                 task.driver.power.reboot(task, timeout=timeout)
             else:
-                LOG.warning(_LW("The reboot method of %(driver_name)s "
-                                "doesn't support 'timeout' parameter."),
+                LOG.warning("The reboot method of %(driver_name)s "
+                            "doesn't support 'timeout' parameter.",
                             {'driver_name': node.driver})
                 task.driver.power.reboot(task)
     except Exception as e:
@@ -199,8 +198,8 @@ def node_power_action(task, new_state, timeout=None):
         notify_utils.emit_power_set_notification(
             task, fields.NotificationLevel.INFO, fields.NotificationStatus.END,
             new_state)
-        LOG.info(_LI('Successfully set node %(node)s power state to '
-                     '%(target_state)s by %(new_state)s.'),
+        LOG.info('Successfully set node %(node)s power state to '
+                 '%(target_state)s by %(new_state)s.',
                  {'node': node.uuid,
                   'target_state': target_state,
                   'new_state': new_state})
@@ -258,10 +257,10 @@ def provisioning_error_handler(e, node, provision_state,
         node.target_provision_state = target_provision_state
         node.last_error = (_("No free conductor workers available"))
         node.save()
-        LOG.warning(_LW("No free conductor workers available to perform "
-                        "an action on node %(node)s, setting node's "
-                        "provision_state back to %(prov_state)s and "
-                        "target_provision_state to %(tgt_prov_state)s."),
+        LOG.warning("No free conductor workers available to perform "
+                    "an action on node %(node)s, setting node's "
+                    "provision_state back to %(prov_state)s and "
+                    "target_provision_state to %(tgt_prov_state)s.",
                     {'node': node.uuid, 'prov_state': provision_state,
                      'tgt_prov_state': target_provision_state})
 
@@ -305,8 +304,8 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
         try:
             task.driver.deploy.tear_down_cleaning(task)
         except Exception as e:
-            msg = (_LE('Failed to tear down cleaning on node %(uuid)s, '
-                       'reason: %(err)s'), {'err': e, 'uuid': node.uuid})
+            msg = ('Failed to tear down cleaning on node %(uuid)s, '
+                   'reason: %(err)s' % {'err': e, 'uuid': node.uuid})
             LOG.exception(msg)
 
     if set_fail_state:
@@ -319,8 +318,8 @@ def spawn_cleaning_error_handler(e, node):
     if isinstance(e, exception.NoFreeConductorWorker):
         node.last_error = (_("No free conductor workers available"))
         node.save()
-        LOG.warning(_LW("No free conductor workers available to perform "
-                        "cleaning on node %(node)s"), {'node': node.uuid})
+        LOG.warning("No free conductor workers available to perform "
+                    "cleaning on node %(node)s", {'node': node.uuid})
 
 
 def power_state_error_handler(e, node, power_state):
@@ -342,9 +341,9 @@ def power_state_error_handler(e, node, power_state):
         node.target_power_state = states.NOSTATE
         node.last_error = (_("No free conductor workers available"))
         node.save()
-        LOG.warning(_LW("No free conductor workers available to perform "
-                        "an action on node %(node)s, setting node's "
-                        "power state back to %(power_state)s."),
+        LOG.warning("No free conductor workers available to perform "
+                    "an action on node %(node)s, setting node's "
+                    "power state back to %(power_state)s.",
                     {'node': node.uuid, 'power_state': power_state})
 
 
