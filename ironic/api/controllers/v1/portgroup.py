@@ -239,19 +239,21 @@ class PortgroupsController(pecan.rest.RestController):
     }
 
     @pecan.expose()
-    def _lookup(self, ident, subres, *remainder):
+    def _lookup(self, ident, *remainder):
         if not api_utils.allow_portgroups():
             pecan.abort(http_client.NOT_FOUND)
         try:
             ident = types.uuid_or_name.validate(ident)
         except exception.InvalidUuidOrName as e:
             pecan.abort(http_client.BAD_REQUEST, e.args[0])
-        subcontroller = self._subcontroller_map.get(subres)
+        if not remainder:
+            return
+        subcontroller = self._subcontroller_map.get(remainder[0])
         if subcontroller:
             if api_utils.allow_portgroups_subcontrollers():
                 return subcontroller(
                     portgroup_ident=ident,
-                    node_ident=self.parent_node_ident), remainder
+                    node_ident=self.parent_node_ident), remainder[1:]
             pecan.abort(http_client.NOT_FOUND)
 
     def __init__(self, node_ident=None):

@@ -3230,10 +3230,9 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
     @mock.patch.object(n_flat.FlatNetwork, 'port_changed', autospec=True)
     @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
     def test_update_port_address_maintenance(self, mock_val, mock_pc):
-        node = obj_utils.create_test_node(self.context, driver='fake',
-                                          instance_uuid='uuid',
-                                          provision_state='active',
-                                          maintenance=True)
+        node = obj_utils.create_test_node(
+            self.context, driver='fake', maintenance=True,
+            instance_uuid=uuidutils.generate_uuid(), provision_state='active')
         port = obj_utils.create_test_port(self.context,
                                           node_id=node.id,
                                           extra={'vif_port_id': 'fake-id'})

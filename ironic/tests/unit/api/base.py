@@ -70,6 +70,7 @@ class BaseApiTest(base.DbTestCase):
                 'root': 'ironic.api.controllers.root.RootController',
                 'modules': ['ironic.api'],
                 'static_root': '%s/public' % root_dir,
+                'debug': True,
                 'template_path': '%s/api/templates' % root_dir,
                 'acl_public_routes': ['/', '/v1'],
             },
