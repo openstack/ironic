@@ -215,29 +215,6 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         mock_continue.assert_called_once_with(mock.ANY, task)
         mock_handler.assert_called_once_with(task, mock.ANY)
 
-    @mock.patch.object(manager_utils, 'cleaning_error_handler')
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
-                       'continue_cleaning', autospec=True)
-    def test_heartbeat_continue_cleaning_no_worker(self, mock_continue,
-                                                   mock_handler):
-        self.node.clean_step = {
-            'priority': 10,
-            'interface': 'deploy',
-            'step': 'foo',
-            'reboot_requested': False
-        }
-
-        mock_continue.side_effect = exception.NoFreeConductorWorker()
-
-        self.node.provision_state = states.CLEANWAIT
-        self.node.save()
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-            self.deploy.heartbeat(task, 'http://127.0.0.1:8080')
-
-        mock_continue.assert_called_once_with(mock.ANY, task)
-        self.assertFalse(mock_handler.called)
-
     @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
                        autospec=True)
     @mock.patch.object(agent_base_vendor.HeartbeatMixin,

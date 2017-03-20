@@ -302,24 +302,20 @@ class HeartbeatMixin(object):
                 node.touch_provisioning()
             elif node.provision_state == states.CLEANWAIT:
                 node.touch_provisioning()
-                try:
-                    if not node.clean_step:
-                        LOG.debug('Node %s just booted to start cleaning.',
-                                  node.uuid)
-                        msg = _('Node failed to start the first cleaning '
-                                'step.')
-                        # First, cache the clean steps
-                        self.refresh_clean_steps(task)
-                        # Then set/verify node clean steps and start cleaning
-                        manager_utils.set_node_cleaning_steps(task)
-                        _notify_conductor_resume_clean(task)
-                    else:
-                        msg = _('Node failed to check cleaning progress.')
-                        self.continue_cleaning(task)
-                except exception.NoFreeConductorWorker:
-                    # waiting for the next heartbeat, node.last_error and
-                    # logging message is filled already via conductor's hook
-                    pass
+                if not node.clean_step:
+                    LOG.debug('Node %s just booted to start cleaning.',
+                              node.uuid)
+                    msg = _('Node failed to start the first cleaning step.')
+                    # First, cache the clean steps
+                    self.refresh_clean_steps(task)
+                    # Then set/verify node clean steps and start cleaning
+                    manager_utils.set_node_cleaning_steps(task)
+                    # The exceptions from RPC are not possible as we using cast
+                    # here
+                    _notify_conductor_resume_clean(task)
+                else:
+                    msg = _('Node failed to check cleaning progress.')
+                    self.continue_cleaning(task)
 
         except Exception as e:
             err_info = {'node': node.uuid, 'msg': msg, 'e': e}
