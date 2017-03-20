@@ -152,7 +152,7 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
 
         :param description: A description of the chassis. If not supplied,
             a random value will be generated.
-        :return: Created chassis.
+        :return: A tuple with the server response and the created chassis.
 
         """
         description = description or data_utils.rand_name('test-chassis')
@@ -171,7 +171,7 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
         :param cpus: Number of CPUs. Default: 8.
         :param local_gb: Disk size. Default: 10.
         :param memory_mb: Available RAM. Default: 4096.
-        :return: Created node.
+        :return: A tuple with the server response and the created node.
 
         """
         resp, body = cls.client.create_node(chassis_id, cpu_arch=cpu_arch,
@@ -191,7 +191,7 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
         :param extra: Meta data of the port. If not supplied, an empty
             dictionary will be created.
         :param uuid: UUID of the port.
-        :return: Created port.
+        :return: A tuple with the server response and the created port.
 
         """
         extra = extra or {}
@@ -206,7 +206,7 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
         """Wrapper utility for creating test port groups.
 
         :param node_uuid: The unique identifier of the node.
-        :return: Created port group.
+        :return: A tuple with the server response and the created port group.
         """
         resp, body = cls.client.create_portgroup(node_uuid=node_uuid, **kwargs)
 
