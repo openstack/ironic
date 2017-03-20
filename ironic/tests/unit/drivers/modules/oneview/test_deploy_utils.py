@@ -98,7 +98,12 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
         """`tear_down` behavior when node already has Profile applied
 
         """
-        oneview_client = mock_get_ov_client()
+        sp_uri = '/rest/server-profiles/1234556789'
+        ov_client = mock_get_ov_client()
+        fake_sh = oneview_models.ServerHardware()
+        fake_sh.server_profile_uri = sp_uri
+        ov_client = mock_get_ov_client.return_value
+        ov_client.get_server_hardware_by_uuid.return_value = fake_sh
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             driver_info = task.node.driver_info
@@ -109,12 +114,12 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
             self.assertTrue(
                 'applied_server_profile_uri' in task.node.driver_info
             )
-            deploy_utils.tear_down(oneview_client, task)
+            deploy_utils.tear_down(ov_client, task)
             self.assertFalse(
                 'applied_server_profile_uri' in task.node.driver_info
             )
         self.assertTrue(
-            oneview_client.delete_server_profile.called
+            ov_client.delete_server_profile.called
         )
 
     # Tests for prepare_cleaning
@@ -184,7 +189,12 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
         """Checks if Server Profile was deleted and its uri removed
 
         """
-        oneview_client = mock_get_ov_client()
+        sp_uri = '/rest/server-profiles/1234556789'
+        ov_client = mock_get_ov_client()
+        fake_sh = oneview_models.ServerHardware()
+        fake_sh.server_profile_uri = sp_uri
+        ov_client = mock_get_ov_client.return_value
+        ov_client.get_server_hardware_by_uuid.return_value = fake_sh
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             driver_info = task.node.driver_info
@@ -193,10 +203,10 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
             task.node.driver_info = driver_info
 
             self.assertIn('applied_server_profile_uri', task.node.driver_info)
-            deploy_utils.tear_down_cleaning(oneview_client, task)
+            deploy_utils.tear_down_cleaning(ov_client, task)
             self.assertNotIn('applied_server_profile_uri',
                              task.node.driver_info)
-            self.assertTrue(oneview_client.delete_server_profile.called)
+            self.assertTrue(ov_client.delete_server_profile.called)
 
     # Tests for is_node_in_use_by_oneview
     def test_is_node_in_use_by_oneview(self, mock_get_ov_client):
@@ -399,4 +409,40 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
             self.assertTrue(oneview_client.delete_server_profile.called)
             self.assertTrue(
                 'applied_server_profile_uri' not in task.node.driver_info
+            )
+
+    @mock.patch.object(objects.Node, 'save')
+    def test_deallocate_server_hardware_from_ironic_missing_profile_uuid(
+        self, mock_node_save, mock_get_ov_client
+    ):
+        """Test for case when server profile application fails.
+
+        Due to an error when applying Server Profile in OneView,
+        the node will have no Server Profile uuid in the
+        'applied_server_profile_uri' namespace. When the method
+        tested is called without Server Profile uuid, the client
+        will raise a ValueError when trying to delete the profile,
+        this error is converted to an OneViewError.
+        """
+
+        ov_client = mock_get_ov_client.return_value
+        fake_sh = oneview_models.ServerHardware()
+        fake_sh.server_profile_uri = 'any/applied_sp_uri/'
+        ov_client.get_server_hardware_by_uuid.return_value = fake_sh
+        ov_client.delete_server_profile.side_effect = ValueError
+        mock_get_ov_client.return_value = ov_client
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_info = task.node.driver_info
+            driver_info['applied_server_profile_uri'] = 'any/applied_sp_uri/'
+            task.node.driver_info = driver_info
+            self.assertRaises(
+                exception.OneViewError,
+                deploy_utils.deallocate_server_hardware_from_ironic,
+                ov_client,
+                task.node
+            )
+            self.assertTrue(ov_client.delete_server_profile.called)
+            self.assertTrue(
+                'applied_server_profile_uri' in task.node.driver_info
             )

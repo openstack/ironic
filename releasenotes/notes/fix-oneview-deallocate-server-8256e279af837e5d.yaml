@@ -1,0 +1,7 @@
+---
+fixes:
+  -
+    Fixes an issue with oneview driver trying to deallocate a node when
+    an error is encountered while performing server profile application.
+    Also ensures only those nodes that are managed by ironic can be
+    deallocated.
