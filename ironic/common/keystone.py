@@ -21,7 +21,7 @@ import six
 from six.moves.urllib import parse  # for legacy options loading only
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE
+from ironic.common.i18n import _
 from ironic.conf import auth as ironic_auth
 from ironic.conf import CONF
 
@@ -63,7 +63,7 @@ def ks_exceptions(f):
                 kaexception.MissingRequiredOptions) as e:
             raise exception.ConfigInvalid(six.text_type(e))
         except Exception as e:
-            LOG.exception(_LE('Keystone request failed: %(msg)s'),
+            LOG.exception('Keystone request failed: %(msg)s',
                           {'msg': six.text_type(e)})
             raise exception.KeystoneFailure(six.text_type(e))
     return wrapper

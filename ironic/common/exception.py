@@ -27,7 +27,7 @@ from oslo_serialization import jsonutils
 import six
 from six.moves import http_client
 
-from ironic.common.i18n import _, _LE
+from ironic.common.i18n import _
 from ironic.conf import CONF
 
 LOG = logging.getLogger(__name__)
@@ -62,16 +62,16 @@ def _ensure_exception_kwargs_serializable(exc_class_name, kwargs):
                     {'serializer_type': msg, 'e_contents': e,
                      'e_type': e.__class__.__name__})
     if exceptions:
-        LOG.error(
-            _LE("One or more arguments passed to the %(exc_class)s "
-                "constructor as kwargs can not be serialized. The serialized "
-                "arguments: %(serialized)s. These unserialized kwargs were "
-                "dropped because of the exceptions encountered during their "
-                "serialization:\n%(errors)s"),
-            dict(errors=';\n'.join("%s: %s" % (k, '; '.join(v))
-                                   for k, v in exceptions.items()),
-                 exc_class=exc_class_name, serialized=serializable_kwargs)
-        )
+        LOG.error("One or more arguments passed to the %(exc_class)s "
+                  "constructor as kwargs can not be serialized. The "
+                  "serialized arguments: %(serialized)s. These "
+                  "unserialized kwargs were dropped because of the "
+                  "exceptions encountered during their "
+                  "serialization:\n%(errors)s",
+                  dict(errors=';\n'.join("%s: %s" % (k, '; '.join(v))
+                                         for k, v in exceptions.items()),
+                       exc_class=exc_class_name,
+                       serialized=serializable_kwargs))
         # We might be able to actually put the following keys' values into
         # format string, but there is no guarantee, drop it just in case.
         for k in exceptions:
@@ -114,8 +114,8 @@ class IronicException(Exception):
                 # kwargs doesn't match a variable in self._msg_fmt
                 # log the issue and the kwargs
                 prs = ', '.join('%s: %s' % pair for pair in kwargs.items())
-                LOG.exception(_LE('Exception in string format operation '
-                                  '(arguments %s)'), prs)
+                LOG.exception('Exception in string format operation '
+                              '(arguments %s)', prs)
                 if CONF.fatal_exception_format_errors:
                     raise e
                 else:

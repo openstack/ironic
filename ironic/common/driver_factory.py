@@ -20,7 +20,7 @@ from oslo_log import log
 from stevedore import dispatch
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LI, _LW
+from ironic.common.i18n import _
 from ironic.conf import CONF
 from ironic.drivers import base as driver_base
 from ironic.drivers import fake_hardware
@@ -64,8 +64,8 @@ def build_driver_for_task(task, driver_name=None):
         #             storage) set. However, there was a small window
         #             where this was possible so instead of breaking those
         #             users totally, we'll spam them with warnings instead.
-        LOG.warning(_LW('%s They will be ignored. To avoid this warning, '
-                        'please set them to None.'), e)
+        LOG.warning('%s They will be ignored. To avoid this warning, '
+                    'please set them to None.', e)
 
     bare_driver = driver_base.BareDriver()
     _attach_interfaces_to_driver(bare_driver, node, driver_or_hw_type)
@@ -433,7 +433,7 @@ class BaseDriverFactory(object):
     # without duplicates
     _enabled_driver_list = None
     # Template for logging loaded drivers
-    _logging_template = _LI("Loaded the following drivers: %s")
+    _logging_template = "Loaded the following drivers: %s"
 
     def __init__(self):
         if not self.__class__._extension_manager:
@@ -465,19 +465,18 @@ class BaseDriverFactory(object):
         cls._enabled_driver_list = []
         for item, cnt in counter:
             if not item:
-                LOG.warning(
-                    _LW('An empty driver was specified in the "%s" '
-                        'configuration option and will be ignored. Please '
-                        'fix your ironic.conf file to avoid this warning '
-                        'message.'), cls._enabled_driver_list_config_option)
+                LOG.warning('An empty driver was specified in the "%s" '
+                            'configuration option and will be ignored. Please '
+                            'fix your ironic.conf file to avoid this warning '
+                            'message.', cls._enabled_driver_list_config_option)
                 continue
             if cnt > 1:
                 duplicated_drivers.append(item)
             cls._enabled_driver_list.append(item)
         if duplicated_drivers:
-            LOG.warning(_LW('The driver(s) "%s" is/are duplicated in the '
-                            'list of enabled_drivers. Please check your '
-                            'configuration file.'),
+            LOG.warning('The driver(s) "%s" is/are duplicated in the '
+                        'list of enabled_drivers. Please check your '
+                        'configuration file.',
                         ', '.join(duplicated_drivers))
 
         # NOTE(deva): Drivers raise "DriverLoadError" if they are unable to be
@@ -536,8 +535,8 @@ class BaseDriverFactory(object):
 
 def _warn_if_unsupported(ext):
     if not ext.obj.supported:
-        LOG.warning(_LW('Driver "%s" is UNSUPPORTED. It has been deprecated '
-                        'and may be removed in a future release.'), ext.name)
+        LOG.warning('Driver "%s" is UNSUPPORTED. It has been deprecated '
+                    'and may be removed in a future release.', ext.name)
 
 
 class DriverFactory(BaseDriverFactory):
@@ -548,7 +547,7 @@ class DriverFactory(BaseDriverFactory):
 class HardwareTypesFactory(BaseDriverFactory):
     _entrypoint_name = 'ironic.hardware.types'
     _enabled_driver_list_config_option = 'enabled_hardware_types'
-    _logging_template = _LI("Loaded the following hardware types: %s")
+    _logging_template = "Loaded the following hardware types: %s"
 
 
 _INTERFACE_LOADERS = {
@@ -558,7 +557,7 @@ _INTERFACE_LOADERS = {
                 '_enabled_driver_list_config_option':
                 'enabled_%s_interfaces' % name,
                 '_logging_template':
-                _LI("Loaded the following %s interfaces: %%s") % name})
+                "Loaded the following %s interfaces: %%s" % name})
     for name in driver_base.ALL_INTERFACES
 }
 

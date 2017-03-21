@@ -37,7 +37,7 @@ import pytz
 import six
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LW
+from ironic.common.i18n import _
 from ironic.conf import CONF
 
 LOG = logging.getLogger(__name__)
@@ -312,7 +312,7 @@ def tempdir(**kwargs):
         try:
             shutil.rmtree(tmpdir)
         except OSError as e:
-            LOG.error(_LE('Could not remove tmpdir: %s'), e)
+            LOG.error('Could not remove tmpdir: %s', e)
 
 
 def rmtree_without_raise(path):
@@ -320,7 +320,7 @@ def rmtree_without_raise(path):
         if os.path.isdir(path):
             shutil.rmtree(path)
     except OSError as e:
-        LOG.warning(_LW("Failed to remove dir %(path)s, error: %(e)s"),
+        LOG.warning("Failed to remove dir %(path)s, error: %(e)s",
                     {'path': path, 'e': e})
 
 
@@ -336,10 +336,9 @@ def create_link_without_raise(source, link):
         if e.errno == errno.EEXIST:
             return
         else:
-            LOG.warning(
-                _LW("Failed to create symlink from %(source)s to %(link)s"
-                    ", error: %(e)s"),
-                {'source': source, 'link': link, 'e': e})
+            LOG.warning("Failed to create symlink from "
+                        "%(source)s to %(link)s, error: %(e)s",
+                        {'source': source, 'link': link, 'e': e})
 
 
 def safe_rstrip(value, chars=None):
@@ -351,9 +350,9 @@ def safe_rstrip(value, chars=None):
 
     """
     if not isinstance(value, six.string_types):
-        LOG.warning(_LW("Failed to remove trailing character. Returning "
-                        "original object. Supplied object is not a string: "
-                        "%s,"), value)
+        LOG.warning("Failed to remove trailing character. Returning "
+                    "original object. Supplied object is not a string: "
+                    "%s,", value)
         return value
 
     return value.rstrip(chars) or value
@@ -544,7 +543,7 @@ def warn_about_deprecated_extra_vif_port_id():
     global warn_deprecated_extra_vif_port_id
     if not warn_deprecated_extra_vif_port_id:
         warn_deprecated_extra_vif_port_id = True
-        LOG.warning(_LW("Attaching VIF to a port/portgroup via "
-                        "extra['vif_port_id'] is deprecated and will not "
-                        "be supported in Pike release. API endpoint "
-                        "v1/nodes/<node>/vifs should be used instead."))
+        LOG.warning("Attaching VIF to a port/portgroup via "
+                    "extra['vif_port_id'] is deprecated and will not "
+                    "be supported in Pike release. API endpoint "
+                    "v1/nodes/<node>/vifs should be used instead.")

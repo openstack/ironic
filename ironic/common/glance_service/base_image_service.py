@@ -29,7 +29,6 @@ import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
-from ironic.common.i18n import _LE
 
 
 LOG = log.getLogger(__name__)
@@ -128,9 +127,9 @@ class BaseImageService(object):
             except retry_excs as e:
                 host = self.glance_host
                 port = self.glance_port
-                error_msg = _LE("Error contacting glance server "
-                                "'%(host)s:%(port)s' for '%(method)s', attempt"
-                                " %(attempt)s of %(num_attempts)s failed.")
+                error_msg = ("Error contacting glance server "
+                             "'%(host)s:%(port)s' for '%(method)s', attempt"
+                             " %(attempt)s of %(num_attempts)s failed.")
                 LOG.exception(error_msg, {'host': host,
                                           'port': port,
                                           'num_attempts': num_attempts,
