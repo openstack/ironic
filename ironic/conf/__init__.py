@@ -14,7 +14,6 @@
 #    under the License.
 
 from oslo_config import cfg
-from oslo_log import log
 
 from ironic.conf import agent
 from ironic.conf import api
@@ -45,26 +44,6 @@ from ironic.conf import ssh
 from ironic.conf import swift
 
 CONF = cfg.CONF
-
-log.register_options(CONF)
-log.set_defaults(default_log_levels=[
-    'amqp=WARNING',
-    'amqplib=WARNING',
-    'qpid.messaging=INFO',
-    'oslo_messaging=INFO',
-    'sqlalchemy=WARNING',
-    'stevedore=INFO',
-    'eventlet.wsgi.server=INFO',
-    'iso8601=WARNING',
-    'paramiko=WARNING',
-    'requests=WARNING',
-    'neutronclient=WARNING',
-    'glanceclient=WARNING',
-    'urllib3.connectionpool=WARNING',
-    'keystonemiddleware.auth_token=INFO',
-    'keystoneauth.session=INFO',
-])
-log.setup(CONF, 'ironic')
 
 agent.register_opts(CONF)
 api.register_opts(CONF)
