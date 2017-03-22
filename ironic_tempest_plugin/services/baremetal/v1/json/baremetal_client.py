@@ -41,6 +41,11 @@ class BaremetalClient(base.BaremetalClient):
         return self._list_request('ports', **kwargs)
 
     @base.handle_errors
+    def list_portgroups(self, **kwargs):
+        """List all existing port groups."""
+        return self._list_request('portgroups', **kwargs)
+
+    @base.handle_errors
     def list_node_ports(self, uuid):
         """List all ports associated with the node."""
         return self._list_request('/nodes/%s/ports' % uuid)
@@ -103,6 +108,15 @@ class BaremetalClient(base.BaremetalClient):
 
         """
         return self._show_request('ports', uuid)
+
+    @base.handle_errors
+    def show_portgroup(self, portgroup_ident):
+        """Gets a specific port group.
+
+        :param portgroup_ident: Name or UUID of the port group.
+        :return: Serialized port group as a dictionary.
+        """
+        return self._show_request('portgroups', portgroup_ident)
 
     @base.handle_errors
     def show_port_by_address(self, address):
@@ -185,6 +199,30 @@ class BaremetalClient(base.BaremetalClient):
         return self._create_request('ports', port)
 
     @base.handle_errors
+    def create_portgroup(self, node_uuid, **kwargs):
+        """Create a port group with the specified parameters.
+
+        :param node_uuid: The UUID of the node which owns the port group.
+        :param kwargs:
+            address: MAC address of the port group. Optional.
+            extra: Meta data of the port group. Default: {'foo': 'bar'}.
+            name: Name of the port group. Optional.
+            uuid: UUID of the port group. Optional.
+        :return: A tuple with the server response and the created port group.
+        """
+        portgroup = {'extra': kwargs.get('extra', {'foo': 'bar'})}
+
+        portgroup['node_uuid'] = node_uuid
+
+        if kwargs.get('address'):
+            portgroup['address'] = kwargs['address']
+
+        if kwargs.get('name'):
+            portgroup['name'] = kwargs['name']
+
+        return self._create_request('portgroups', portgroup)
+
+    @base.handle_errors
     def delete_node(self, uuid):
         """Deletes a node having the specified UUID.
 
@@ -213,6 +251,15 @@ class BaremetalClient(base.BaremetalClient):
 
         """
         return self._delete_request('ports', uuid)
+
+    @base.handle_errors
+    def delete_portgroup(self, portgroup_ident):
+        """Deletes a port group having the specified UUID or name.
+
+        :param portgroup_ident: Name or UUID of the port group.
+        :return: A tuple with the server response and the response body.
+        """
+        return self._delete_request('portgroups', portgroup_ident)
 
     @base.handle_errors
     def update_node(self, uuid, patch=None, **kwargs):
