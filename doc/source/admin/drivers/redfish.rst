@@ -21,7 +21,8 @@ Enabling the Redfish driver
 ===========================
 
 #. Add ``redfish`` to the list of ``enabled_hardware_types``,
-   ``enabled_power_interfaces`` and ``enabled_management_interfaces``
+   ``enabled_power_interfaces``, ``enabled_management_interfaces`` and
+   ``enabled_inspect_interfaces``
    in ``/etc/ironic/ironic.conf``. For example::
 
     [DEFAULT]
@@ -29,6 +30,7 @@ Enabling the Redfish driver
     enabled_hardware_types = ipmi,redfish
     enabled_power_interfaces = ipmitool,redfish
     enabled_management_interfaces = ipmitool,redfish
+    enabled_inspect_interfaces = inspector,redfish
 
 #. Restart the ironic conductor service::
 
@@ -103,6 +105,21 @@ bare metal node as well as set it to either Legacy BIOS or UEFI.
    Not all Redfish-compliant BMCs might implement it. In that case
    it remains the responsibility of the operator to configure proper
    boot mode to their bare metal nodes.
+
+Out-Of-Band inspection
+^^^^^^^^^^^^^^^^^^^^^^
+
+The ``redfish`` hardware type can inspect the bare metal node by querying
+Redfish BMC. This process if quick and reliable compared to the way
+how the ``inspector`` hardware type works e.g. booting bare metal node into
+the introspection ramdisk.
+
+.. note::
+
+   The ``redfish`` inspect interface largely relies on the optional parts
+   of the Redfish specification. Not all Redfish-compliant BMCs might serve
+   the required information, in which case bare metal node inspection would
+   fail.
 
 .. _Redfish: http://redfish.dmtf.org/
 .. _Sushy: https://git.openstack.org/cgit/openstack/sushy
