@@ -34,6 +34,10 @@ baremetal_group = cfg.OptGroup(name='baremetal',
                                     'live_migration, pause, rescue, resize, '
                                     'shelve, snapshot, and suspend')
 
+baremetal_features_group = cfg.OptGroup(
+    name='baremetal_feature_enabled',
+    title="Enabled Baremetal Service Features")
+
 BaremetalGroup = [
     cfg.StrOpt('catalog_type',
                default='baremetal',
@@ -86,6 +90,11 @@ BaremetalGroup = [
                 help="Whether the Ironic/Neutron tenant isolation is enabled"),
     cfg.StrOpt('whole_disk_image_ref',
                help="UUID of the wholedisk image to use in the tests."),
+    cfg.StrOpt('whole_disk_image_url',
+               help="An http link to the wholedisk image to use in the "
+                    "tests."),
+    cfg.StrOpt('whole_disk_image_checksum',
+               help="An MD5 checksum of the image."),
     cfg.StrOpt('partition_image_ref',
                help="UUID of the partitioned image to use in the tests."),
     cfg.ListOpt('enabled_drivers',
@@ -98,4 +107,10 @@ BaremetalGroup = [
                min=0,
                help="Ironic adjusted disk size to use in the standalone tests "
                     "as instance_info/root_gb value."),
+]
+
+BaremetalFeaturesGroup = [
+    cfg.BoolOpt('ipxe_enabled',
+                default=True,
+                help="Defines if IPXE is enabled"),
 ]

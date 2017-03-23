@@ -21,6 +21,12 @@ from tempest.test_discover import plugins
 
 from ironic_tempest_plugin import config as project_config
 
+_opts = [
+    (project_config.baremetal_group, project_config.BaremetalGroup),
+    (project_config.baremetal_features_group,
+     project_config.BaremetalFeaturesGroup)
+]
+
 
 class IronicTempestPlugin(plugins.TempestPlugin):
     def load_tests(self):
@@ -33,9 +39,8 @@ class IronicTempestPlugin(plugins.TempestPlugin):
     def register_opts(self, conf):
         conf.register_opt(project_config.service_option,
                           group='service_available')
-        config.register_opt_group(conf, project_config.baremetal_group,
-                                  project_config.BaremetalGroup)
+        for group, option in _opts:
+            config.register_opt_group(conf, group, option)
 
     def get_opt_lists(self):
-        return [(project_config.baremetal_group.name,
-                 project_config.BaremetalGroup)]
+        return [(group.name, option) for group, option in _opts]

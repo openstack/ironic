@@ -1927,6 +1927,11 @@ function prepare_baremetal_basic_ops {
     if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
         configure_ironic_auxiliary
     fi
+
+    if ! is_service_enabled nova && [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
+        sudo install -g $LIBVIRT_GROUP -o $STACK_USER -m 644 $FILES/${IRONIC_WHOLEDISK_IMAGE_NAME}.img $IRONIC_HTTP_DIR
+    fi
+
     upload_baremetal_ironic_deploy
     enroll_nodes
     configure_tftpd
@@ -2015,6 +2020,12 @@ function ironic_configure_tempest {
     iniset $TEMPEST_CONFIG baremetal whole_disk_image_ref $image_uuid
     image_uuid=$(openstack image show $IRONIC_PARTITIONED_IMAGE_NAME -f value -c id)
     iniset $TEMPEST_CONFIG baremetal partition_image_ref $image_uuid
+
+    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
+        iniset $TEMPEST_CONFIG baremetal whole_disk_image_url "http://$IRONIC_HTTP_SERVER:$IRONIC_HTTP_PORT/${IRONIC_WHOLEDISK_IMAGE_NAME}.img"
+        iniset $TEMPEST_CONFIG baremetal whole_disk_image_checksum $(md5sum $FILES/${IRONIC_WHOLEDISK_IMAGE_NAME}.img)
+    fi
+
     iniset $TEMPEST_CONFIG baremetal enabled_drivers $IRONIC_ENABLED_DRIVERS
     iniset $TEMPEST_CONFIG baremetal enabled_hardware_types $IRONIC_ENABLED_HARDWARE_TYPES
 
@@ -2032,6 +2043,9 @@ function ironic_configure_tempest {
         iniset $TEMPEST_CONFIG baremetal deploywait_timeout $IRONIC_TEMPEST_BUILD_TIMEOUT
         iniset $TEMPEST_CONFIG baremetal power_timeout $IRONIC_TEMPEST_BUILD_TIMEOUT
     fi
+
+    # Enabled features
+    iniset $TEMPEST_CONFIG baremetal_feature_enabled ipxe_enabled $IRONIC_IPXE_ENABLED
 }
 
 function get_ironic_node_prefix {

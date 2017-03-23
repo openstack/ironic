@@ -206,7 +206,7 @@ class BaremetalStandaloneManager(bm.BaremetalScenarioTest,
         return nodes[0]
 
     @classmethod
-    def boot_node(cls, driver, image_ref):
+    def boot_node(cls, driver, image_ref, image_checksum=None):
         """Boot ironic node.
 
         The following actions are executed:
@@ -220,6 +220,8 @@ class BaremetalStandaloneManager(bm.BaremetalScenarioTest,
 
         :param driver: Node driver to use.
         :param image_ref: Reference to user image to boot node with.
+        :param image_checksum: md5sum of image specified in image_ref.
+                               Needed only when direct HTTP link is provided.
         :returns: Ironic node.
         """
         node = cls.get_and_reserve_node()
@@ -230,6 +232,10 @@ class BaremetalStandaloneManager(bm.BaremetalScenarioTest,
         patch = [{'path': '/instance_info/image_source',
                   'op': 'add',
                   'value': image_ref}]
+        if image_checksum is not None:
+            patch.append({'path': '/instance_info/image_checksum',
+                          'op': 'add',
+                          'value': image_checksum})
         patch.append({'path': '/instance_info/root_gb',
                       'op': 'add',
                       'value': CONF.baremetal.adjusted_root_disk_size_gb})
@@ -280,6 +286,9 @@ class BaremetalStandaloneScenarioTest(BaremetalStandaloneManager):
     # Boolean value specify if image is wholedisk or not.
     wholedisk_image = None
 
+    # Image checksum, required when image is stored on HTTP server.
+    image_checksum = None
+
     mandatory_attr = ['driver', 'image_ref', 'wholedisk_image']
 
     node = None
@@ -310,7 +319,11 @@ class BaremetalStandaloneScenarioTest(BaremetalStandaloneManager):
             if getattr(cls, v) is None:
                 raise lib_exc.InvalidConfiguration(
                     "Mandatory attribute %s not set." % v)
-        cls.node = cls.boot_node(cls.driver, cls.image_ref)
+        image_checksum = None
+        if not uuidutils.is_uuid_like(cls.image_ref):
+            image_checksum = cls.image_checksum
+        cls.node = cls.boot_node(cls.driver, cls.image_ref,
+                                 image_checksum=image_checksum)
         cls.node_ip = cls.add_floatingip_to_node(cls.node['uuid'])
 
     @classmethod
