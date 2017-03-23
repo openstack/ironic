@@ -34,7 +34,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy import sql
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LW
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.conf import CONF
 from ironic.db import api
@@ -783,8 +783,8 @@ class Connection(api.Connection):
         if nodes:
             nodes = ', '.join(nodes)
             LOG.warning(
-                _LW('Cleared reservations held by %(hostname)s: '
-                    '%(nodes)s'), {'hostname': hostname, 'nodes': nodes})
+                'Cleared reservations held by %(hostname)s: '
+                '%(nodes)s', {'hostname': hostname, 'nodes': nodes})
 
     @oslo_db_api.retry_on_deadlock
     def clear_node_target_power_state(self, hostname):
@@ -802,9 +802,9 @@ class Connection(api.Connection):
         if nodes:
             nodes = ', '.join(nodes)
             LOG.warning(
-                _LW('Cleared target_power_state of the locked nodes in '
-                    'powering process, their power state can be incorrect: '
-                    '%(nodes)s'), {'nodes': nodes})
+                'Cleared target_power_state of the locked nodes in '
+                'powering process, their power state can be incorrect: '
+                '%(nodes)s', {'nodes': nodes})
 
     def get_active_driver_dict(self, interval=None):
         query = model_query(models.Conductor)
