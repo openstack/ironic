@@ -73,6 +73,9 @@ it, follow the instructions for installing prerequisites above and
 
 - On Ubuntu 14.04::
 
+    #Install SQLite development headers
+    sudo apt-get install libsqlite3-dev
+
     wget https://www.python.org/ftp/python/3.5.2/Python-3.5.2.tgz
     sudo tar xzf Python-3.5.2.tgz
     cd Python-3.5.2
