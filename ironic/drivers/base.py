@@ -129,7 +129,6 @@ class BaseDriver(object):
     """
     standard_interfaces.append('raid')
 
-    @abc.abstractmethod
     def __init__(self):
         pass
 
@@ -162,13 +161,12 @@ class BareDriver(BaseDriver):
     class, as well as appended to core_interfaces or standard_interfaces here.
     """
 
-    def __init__(self):
-        self.network = None
-        """`Core` attribute for network connectivity.
+    network = None
+    """`Core` attribute for network connectivity.
 
-        A reference to an instance of :class:NetworkInterface.
-        """
-        self.core_interfaces.append('network')
+    A reference to an instance of :class:NetworkInterface.
+    """
+    core_interfaces = BaseDriver.core_interfaces + ['network']
 
 
 class BaseInterface(object):
