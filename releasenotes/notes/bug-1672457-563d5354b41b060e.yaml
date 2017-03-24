@@ -1,0 +1,3 @@
+---
+fixes:
+  - Fixed a bug that was causing an increase in CPU usage over time.
