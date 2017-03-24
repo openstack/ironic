@@ -21,10 +21,13 @@ from ironic_tempest_plugin.tests.api.admin import base
 class TestPortGroups(base.BaseBaremetalTest):
     """Basic positive test cases for port groups."""
 
+    min_microversion = '1.23'
+
     def setUp(self):
         super(TestPortGroups, self).setUp()
         self.useFixture(
-            api_microversion_fixture.APIMicroversionFixture('1.25'))
+            api_microversion_fixture.APIMicroversionFixture(
+                self.min_microversion))
         _, self.chassis = self.create_chassis()
         _, self.node = self.create_node(self.chassis['uuid'])
         _, self.portgroup = self.create_portgroup(
