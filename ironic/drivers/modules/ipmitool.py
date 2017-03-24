@@ -40,7 +40,6 @@ from ironic_lib import metrics_utils
 from ironic_lib import utils as ironic_utils
 from oslo_concurrency import processutils
 from oslo_log import log as logging
-from oslo_service import loopingcall
 from oslo_utils import excutils
 from oslo_utils import strutils
 import six
@@ -51,6 +50,7 @@ from ironic.common.i18n import _
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
+from ironic.conductor import utils as cond_utils
 from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import console_utils
@@ -396,9 +396,11 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None):
             args.append(option)
             args.append(driver_info[name])
 
+    # TODO(sambetts) Remove useage of ipmi.retry_timeout in Queens
+    timeout = CONF.ipmi.retry_timeout or CONF.ipmi.command_retry_timeout
+
     # specify retry timing more precisely, if supported
-    num_tries = max(
-        (CONF.ipmi.retry_timeout // CONF.ipmi.min_command_interval), 1)
+    num_tries = max((timeout // CONF.ipmi.min_command_interval), 1)
 
     if _is_option_supported('timing'):
         args.append('-R')
@@ -407,7 +409,7 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None):
         args.append('-N')
         args.append(str(CONF.ipmi.min_command_interval))
 
-    end_time = (time.time() + CONF.ipmi.retry_timeout)
+    end_time = (time.time() + timeout)
 
     while True:
         num_tries = num_tries - 1
@@ -455,26 +457,8 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None):
                 LAST_CMD_TIME[driver_info['address']] = time.time()
 
 
-def _sleep_time(iter):
-    """Return the time-to-sleep for the n'th iteration of a retry loop.
-
-    This implementation increases exponentially.
-
-    :param iter: iteration number
-    :returns: number of seconds to sleep
-
-    """
-    if iter <= 1:
-        return 1
-    return iter ** 2
-
-
-def _set_and_wait(power_action, driver_info, timeout=None):
-    """Helper function for DynamicLoopingCall.
-
-    This method changes the power state and polls the BMC until the desired
-    power state is reached, or CONF.ipmi.retry_timeout would be exceeded by the
-    next iteration.
+def _set_and_wait(task, power_action, driver_info, timeout=None):
+    """Helper function for performing an IPMI power action
 
     This method assumes the caller knows the current power state and does not
     check it prior to changing the power state. Most BMCs should be fine, but
@@ -489,7 +473,8 @@ def _set_and_wait(power_action, driver_info, timeout=None):
     :returns: one of ironic.common.states
 
     """
-    retry_timeout = timeout or CONF.ipmi.retry_timeout
+    # TODO(sambetts) Remove useage of ipmi.retry_timeout in Queens
+    default_timeout = CONF.ipmi.retry_timeout
 
     if power_action == states.POWER_ON:
         cmd_name = "on"
@@ -500,50 +485,27 @@ def _set_and_wait(power_action, driver_info, timeout=None):
     elif power_action == states.SOFT_POWER_OFF:
         cmd_name = "soft"
         target_state = states.POWER_OFF
-        retry_timeout = timeout or CONF.conductor.soft_power_off_timeout
+        default_timeout = CONF.conductor.soft_power_off_timeout
 
-    def _wait(mutable):
-        try:
-            # Only issue power change command once
-            if mutable['iter'] < 0:
-                _exec_ipmitool(driver_info, "power %s" % cmd_name)
-            else:
-                mutable['power'] = _power_status(driver_info)
-        except (exception.PasswordFileFailedToCreate,
-                processutils.ProcessExecutionError,
-                exception.IPMIFailure):
-            # Log failures but keep trying
-            LOG.warning("IPMI power %(state)s failed for node %(node)s.",
-                        {'state': cmd_name, 'node': driver_info['uuid']})
-        finally:
-            mutable['iter'] += 1
+    timeout = timeout or default_timeout
 
-        if mutable['power'] == target_state:
-            raise loopingcall.LoopingCallDone()
-
-        sleep_time = _sleep_time(mutable['iter'])
-        if (sleep_time + mutable['total_time']) > retry_timeout:
-            # Stop if the next loop would exceed maximum retry_timeout
-            LOG.error('IPMI power %(state)s timed out after '
-                      '%(tries)s retries on node %(node_id)s.',
-                      {'state': cmd_name, 'tries': mutable['iter'],
-                       'node_id': driver_info['uuid']})
-            mutable['power'] = states.ERROR
-            raise loopingcall.LoopingCallDone()
-        else:
-            mutable['total_time'] += sleep_time
-            return sleep_time
-
-    # Use mutable objects so the looped method can change them.
-    # Start 'iter' from -1 so that the first two checks are one second apart.
-    status = {'power': None, 'iter': -1, 'total_time': 0}
-
-    timer = loopingcall.DynamicLoopingCall(_wait, status)
-    timer.start().wait()
-    return status['power']
+    # NOTE(sambetts): Retries for ipmi power action failure will be handled by
+    # the _exec_ipmitool function, so no need to wrap this call in its own
+    # retries.
+    cmd = "power %s" % cmd_name
+    try:
+        _exec_ipmitool(driver_info, cmd)
+    except (exception.PasswordFileFailedToCreate,
+            processutils.ProcessExecutionError) as e:
+        LOG.warning("IPMI power action %(cmd)s failed for node %(node_id)s "
+                    "with error: %(error)s.",
+                    {'node_id': driver_info['uuid'], 'cmd': cmd, 'error': e})
+        raise exception.IPMIFailure(cmd=cmd)
+    return cond_utils.node_wait_for_power_state(task, target_state,
+                                                timeout=timeout)
 
 
-def _power_on(driver_info, timeout=None):
+def _power_on(task, driver_info, timeout=None):
     """Turn the power ON for this node.
 
     :param driver_info: the ipmitool parameters for accessing a node.
@@ -553,10 +515,10 @@ def _power_on(driver_info, timeout=None):
     :raises: IPMIFailure on an error from ipmitool (from _power_status call).
 
     """
-    return _set_and_wait(states.POWER_ON, driver_info, timeout=timeout)
+    return _set_and_wait(task, states.POWER_ON, driver_info, timeout=timeout)
 
 
-def _power_off(driver_info, timeout=None):
+def _power_off(task, driver_info, timeout=None):
     """Turn the power OFF for this node.
 
     :param driver_info: the ipmitool parameters for accessing a node.
@@ -566,10 +528,10 @@ def _power_off(driver_info, timeout=None):
     :raises: IPMIFailure on an error from ipmitool (from _power_status call).
 
     """
-    return _set_and_wait(states.POWER_OFF, driver_info, timeout=timeout)
+    return _set_and_wait(task, states.POWER_OFF, driver_info, timeout=timeout)
 
 
-def _soft_power_off(driver_info, timeout=None):
+def _soft_power_off(task, driver_info, timeout=None):
     """Turn the power SOFT OFF for this node.
 
     :param driver_info: the ipmitool parameters for accessing a node.
@@ -579,7 +541,8 @@ def _soft_power_off(driver_info, timeout=None):
     :raises: IPMIFailure on an error from ipmitool (from _power_status call).
 
     """
-    return _set_and_wait(states.SOFT_POWER_OFF, driver_info, timeout=timeout)
+    return _set_and_wait(task, states.SOFT_POWER_OFF, driver_info,
+                         timeout=timeout)
 
 
 def _power_status(driver_info):
@@ -839,33 +802,19 @@ class IPMIPower(base.PowerInterface):
 
         if power_state == states.POWER_ON:
             driver_utils.ensure_next_boot_device(task, driver_info)
-            target_state = states.POWER_ON
-            state = _power_on(driver_info, timeout=timeout)
+            _power_on(task, driver_info, timeout=timeout)
         elif power_state == states.POWER_OFF:
-            target_state = states.POWER_OFF
-            state = _power_off(driver_info, timeout=timeout)
+            _power_off(task, driver_info, timeout=timeout)
         elif power_state == states.SOFT_POWER_OFF:
-            target_state = states.POWER_OFF
-            state = _soft_power_off(driver_info, timeout=timeout)
+            _soft_power_off(task, driver_info, timeout=timeout)
         elif power_state == states.SOFT_REBOOT:
-            intermediate_state = _soft_power_off(driver_info, timeout=timeout)
-            intermediate_target_state = states.POWER_OFF
-            if intermediate_state != intermediate_target_state:
-                raise exception.PowerStateFailure(
-                    pstate=(_(
-                        "%(intermediate)s while on %(power_state)s") %
-                        {'intermediate': intermediate_target_state,
-                         'power_state': power_state}))
+            _soft_power_off(task, driver_info, timeout=timeout)
             driver_utils.ensure_next_boot_device(task, driver_info)
-            target_state = states.POWER_ON
-            state = _power_on(driver_info, timeout=timeout)
+            _power_on(task, driver_info, timeout=timeout)
         else:
             raise exception.InvalidParameterValue(
                 _("set_power_state called "
                   "with invalid power state %s.") % power_state)
-
-        if state != target_state:
-            raise exception.PowerStateFailure(pstate=target_state)
 
     @METRICS.timer('IPMIPower.reboot')
     @task_manager.require_exclusive_lock
@@ -884,18 +833,9 @@ class IPMIPower(base.PowerInterface):
 
         """
         driver_info = _parse_driver_info(task.node)
-        intermediate_state = _power_off(driver_info, timeout=timeout)
-        if intermediate_state != states.POWER_OFF:
-            raise exception.PowerStateFailure(
-                pstate=(_(
-                    "%(power_off)s while on %(reboot)s") %
-                    {'power_off': states.POWER_OFF,
-                     'reboot': states.REBOOT}))
+        _power_off(task, driver_info, timeout=timeout)
         driver_utils.ensure_next_boot_device(task, driver_info)
-        state = _power_on(driver_info, timeout=timeout)
-
-        if state != states.POWER_ON:
-            raise exception.PowerStateFailure(pstate=states.POWER_ON)
+        _power_on(task, driver_info, timeout=timeout)
 
     def get_supported_power_states(self, task):
         """Get a list of the supported power states.

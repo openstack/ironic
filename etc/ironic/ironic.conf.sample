@@ -237,7 +237,7 @@
 # setting this value, please make sure that every enabled
 # hardware type will have the same set of enabled storage
 # interfaces on every ironic-conductor service. (list value)
-#enabled_storage_interfaces = noop
+#enabled_storage_interfaces = cinder,noop
 
 # Default storage interface to be used for nodes that do not
 # have storage_interface field set. A complete list of storage
@@ -1134,6 +1134,12 @@
 # Minimum value: 1
 #soft_power_off_timeout = 600
 
+# Number of seconds to wait for power operations to complete
+# on the baremetal node before declaring the power operation
+# has failed (integer value)
+# Minimum value: 2
+#power_state_change_timeout = 30
+
 
 [console]
 
@@ -1872,13 +1878,28 @@
 # From ironic
 #
 
-# Maximum time in seconds to retry IPMI operations. There is a
-# tradeoff when setting this value. Setting this too low may
-# cause older BMCs to crash and require a hard reset. However,
-# setting too high can cause the sync power state periodic
-# task to hang when there are slow or unresponsive BMCs.
-# (integer value)
-#retry_timeout = 60
+# Maximum time in seconds to retry, retryable IPMI operations.
+# For example if the requested action fails because the BMC is
+# busy. There is a tradeoff when setting this value. Setting
+# this too low may cause older BMCs to crash and require a
+# hard reset. However, setting too high can cause the sync
+# power state periodic task to hang when there are slow or
+# unresponsive BMCs. (integer value)
+#command_retry_timeout = 60
+
+# DEPRECATED: Maximum time in seconds to retry IPMI
+# operations. There is a tradeoff when setting this value.
+# Setting this too low may cause older BMCs to crash and
+# require a hard reset. However, setting too high can cause
+# the sync power state periodic task to hang when there are
+# slow or unresponsive BMCs. (integer value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Option ipmi.command_retry_timeout should be used to
+# define IPMI command retries and option
+# conductor.power_state_change_timeout should be use to define
+# timeout value for waiting for power operations to complete
+#retry_timeout = <None>
 
 # Minimum time, in seconds, between IPMI operations sent to a
 # server. There is a risk with some hardware that setting this

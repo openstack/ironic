@@ -14,6 +14,7 @@
 
 from oslo_config import cfg
 from oslo_log import log
+from oslo_service import loopingcall
 from oslo_utils import excutils
 from oslo_utils import reflection
 
@@ -66,6 +67,27 @@ def node_set_boot_device(task, device, persistent=False):
             task.driver.management.set_boot_device(task,
                                                    device=device,
                                                    persistent=persistent)
+
+
+def node_wait_for_power_state(task, new_state, timeout=None):
+    retry_timeout = (timeout or CONF.conductor.power_state_change_timeout)
+
+    def _wait():
+        status = task.driver.power.get_power_state(task)
+        if status == new_state:
+            raise loopingcall.LoopingCallDone(retvalue=status)
+        # NOTE(sambetts): Return False to trigger BackOffLoopingCall to start
+        # backing off.
+        return False
+
+    try:
+        timer = loopingcall.BackOffLoopingCall(_wait)
+        return timer.start(initial_delay=1, timeout=retry_timeout).wait()
+    except loopingcall.LoopingCallTimeOut:
+        LOG.error('Timed out after %(retry_timeout) secs waiting for power '
+                  '%(state)s on node %(node_id)s.',
+                  {'state': new_state, 'node_id': task.node.uuid})
+        raise exception.PowerStateFailure(pstate=new_state)
 
 
 @task_manager.require_exclusive_lock

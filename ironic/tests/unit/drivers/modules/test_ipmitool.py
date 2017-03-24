@@ -341,7 +341,10 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(IPMIToolPrivateMethodTestCase, self).setUp()
-        self.node = obj_utils.get_test_node(
+        self.driver_name = "fake_ipmitool"
+        mgr_utils.mock_the_extension_manager(driver=self.driver_name)
+        self.driver = driver_factory.get_driver(self.driver_name)
+        self.node = obj_utils.create_test_node(
             self.context,
             driver='fake_ipmitool',
             driver_info=INFO_DICT)
@@ -1252,10 +1255,11 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
                     mock.call(self.info, "power status"),
                     mock.call(self.info, "power status")]
 
-        state = ipmi._power_on(self.info)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.PowerStateFailure,
+                              ipmi._power_on, task, self.info, timeout=2)
 
         self.assertEqual(mock_exec.call_args_list, expected)
-        self.assertEqual(states.ERROR, state)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     @mock.patch('eventlet.greenthread.sleep', autospec=True)
@@ -1272,10 +1276,11 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         expected = [mock.call(self.info, "power soft"),
                     mock.call(self.info, "power status")]
 
-        state = ipmi._soft_power_off(self.info, timeout=None)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            state = ipmi._soft_power_off(task, self.info)
 
         self.assertEqual(mock_exec.call_args_list, expected)
-        self.assertEqual(states.POWER_OFF, state)
+        self.assertEqual(state, states.POWER_OFF)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     @mock.patch('eventlet.greenthread.sleep', autospec=True)
@@ -1293,10 +1298,27 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
                     mock.call(self.info, "power status"),
                     mock.call(self.info, "power status")]
 
-        state = ipmi._soft_power_off(self.info, timeout=2)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.PowerStateFailure,
+                              ipmi._soft_power_off, task, self.info, timeout=2)
 
         self.assertEqual(mock_exec.call_args_list, expected)
-        self.assertEqual(states.ERROR, state)
+
+    @mock.patch.object(ipmi, '_power_status', autospec=True)
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    @mock.patch('eventlet.greenthread.sleep', autospec=True)
+    def test___set_and_wait_no_needless_status_polling(
+            self, sleep_mock, mock_exec, mock_status, mock_sleep):
+        # Check that if the call to power state change fails, it doesn't
+        # call power_status().
+        self.config(retry_timeout=2, group='ipmi')
+
+        mock_exec.side_effect = exception.IPMIFailure(cmd='power on')
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.IPMIFailure, ipmi._power_on, task,
+                              self.info)
+        self.assertFalse(mock_status.called)
 
 
 class IPMIToolDriverTestCase(db_base.DbTestCase):
@@ -1378,7 +1400,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             self.driver.power.set_power_state(task,
                                               states.POWER_ON)
 
-        mock_on.assert_called_once_with(self.info, timeout=None)
+            mock_on.assert_called_once_with(task, self.info, timeout=None)
         self.assertFalse(mock_off.called)
 
     @mock.patch.object(ipmi, '_power_on', autospec=True)
@@ -1393,7 +1415,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                               states.POWER_ON,
                                               timeout=2)
 
-        mock_on.assert_called_once_with(self.info, timeout=2)
+            mock_on.assert_called_once_with(task, self.info, timeout=2)
         self.assertFalse(mock_off.called)
 
     @mock.patch.object(driver_utils, 'ensure_next_boot_device', autospec=True)
@@ -1410,7 +1432,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                               states.POWER_ON)
             mock_next_boot.assert_called_once_with(task, self.info)
 
-        mock_on.assert_called_once_with(self.info, timeout=None)
+            mock_on.assert_called_once_with(task, self.info, timeout=None)
         self.assertFalse(mock_off.called)
 
     @mock.patch.object(driver_utils, 'ensure_next_boot_device', autospec=True)
@@ -1428,7 +1450,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                               timeout=2)
             mock_next_boot.assert_called_once_with(task, self.info)
 
-        mock_on.assert_called_once_with(self.info, timeout=2)
+            mock_on.assert_called_once_with(task, self.info, timeout=2)
         self.assertFalse(mock_off.called)
 
     @mock.patch.object(ipmi, '_power_on', autospec=True)
@@ -1443,7 +1465,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             self.driver.power.set_power_state(task,
                                               states.POWER_OFF)
 
-        mock_off.assert_called_once_with(self.info, timeout=None)
+            mock_off.assert_called_once_with(task, self.info, timeout=None)
         self.assertFalse(mock_on.called)
 
     @mock.patch.object(ipmi, '_power_on', autospec=True)
@@ -1459,7 +1481,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                               states.POWER_OFF,
                                               timeout=2)
 
-        mock_off.assert_called_once_with(self.info, timeout=2)
+            mock_off.assert_called_once_with(task, self.info, timeout=2)
         self.assertFalse(mock_on.called)
 
     @mock.patch.object(ipmi, '_power_on', autospec=True)
@@ -1474,7 +1496,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             self.driver.power.set_power_state(task,
                                               states.SOFT_POWER_OFF)
 
-        mock_off.assert_called_once_with(self.info, timeout=None)
+            mock_off.assert_called_once_with(task, self.info, timeout=None)
         self.assertFalse(mock_on.called)
 
     @mock.patch.object(ipmi, '_power_on', autospec=True)
@@ -1490,7 +1512,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                               states.SOFT_POWER_OFF,
                                               timeout=2)
 
-        mock_off.assert_called_once_with(self.info, timeout=2)
+            mock_off.assert_called_once_with(task, self.info, timeout=2)
         self.assertFalse(mock_on.called)
 
     @mock.patch.object(driver_utils, 'ensure_next_boot_device', autospec=True)
@@ -1507,9 +1529,8 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             self.driver.power.set_power_state(task,
                                               states.SOFT_REBOOT)
             mock_next_boot.assert_called_once_with(task, self.info)
-
-        mock_off.assert_called_once_with(self.info, timeout=None)
-        mock_on.assert_called_once_with(self.info, timeout=None)
+            mock_off.assert_called_once_with(task, self.info, timeout=None)
+            mock_on.assert_called_once_with(task, self.info, timeout=None)
 
     @mock.patch.object(driver_utils, 'ensure_next_boot_device', autospec=True)
     @mock.patch.object(ipmi, '_power_on', autospec=True)
@@ -1527,9 +1548,8 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                               states.SOFT_REBOOT,
                                               timeout=2)
             mock_next_boot.assert_called_once_with(task, self.info)
-
-        mock_off.assert_called_once_with(self.info, timeout=2)
-        mock_on.assert_called_once_with(self.info, timeout=2)
+            mock_off.assert_called_once_with(task, self.info, timeout=2)
+            mock_on.assert_called_once_with(task, self.info, timeout=2)
 
     @mock.patch.object(driver_utils, 'ensure_next_boot_device', autospec=True)
     @mock.patch.object(ipmi, '_power_on', autospec=True)
@@ -1538,7 +1558,8 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                                           mock_next_boot):
         self.config(retry_timeout=0, group='ipmi')
 
-        mock_off.return_value = states.POWER_ON
+        mock_off.side_effect = exception.PowerStateFailure(
+            pstate=states.POWER_ON)
 
         with task_manager.acquire(self.context,
                                   self.node['uuid']) as task:
@@ -1548,7 +1569,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                               states.SOFT_REBOOT,
                               timeout=2)
 
-        mock_off.assert_called_once_with(self.info, timeout=2)
+            mock_off.assert_called_once_with(task, self.info, timeout=2)
         self.assertFalse(mock_next_boot.called)
         self.assertFalse(mock_on.called)
 
@@ -1557,7 +1578,8 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
     def test_set_power_on_fail(self, mock_off, mock_on):
         self.config(retry_timeout=0, group='ipmi')
 
-        mock_on.return_value = states.ERROR
+        mock_on.side_effect = exception.PowerStateFailure(
+            pstate=states.POWER_ON)
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             self.assertRaises(exception.PowerStateFailure,
@@ -1565,7 +1587,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                               task,
                               states.POWER_ON)
 
-        mock_on.assert_called_once_with(self.info, timeout=None)
+            mock_on.assert_called_once_with(task, self.info, timeout=None)
         self.assertFalse(mock_off.called)
 
     @mock.patch.object(ipmi, '_power_on', autospec=True)
@@ -1573,7 +1595,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
     def test_set_power_on_timeout_fail(self, mock_off, mock_on):
         self.config(retry_timeout=0, group='ipmi')
 
-        mock_on.return_value = states.ERROR
+        mock_on.side_effect = exception.PowerStateFailure(pstate=states.ERROR)
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             self.assertRaises(exception.PowerStateFailure,
@@ -1582,7 +1604,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
                               states.POWER_ON,
                               timeout=2)
 
-        mock_on.assert_called_once_with(self.info, timeout=2)
+            mock_on.assert_called_once_with(task, self.info, timeout=2)
         self.assertFalse(mock_off.called)
 
     def test_set_power_invalid_state(self):
@@ -1655,11 +1677,11 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_on.return_value = states.POWER_ON
         manager.attach_mock(mock_off, 'power_off')
         manager.attach_mock(mock_on, 'power_on')
-        expected = [mock.call.power_off(self.info, timeout=None),
-                    mock.call.power_on(self.info, timeout=None)]
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
+            expected = [mock.call.power_off(task, self.info, timeout=None),
+                        mock.call.power_on(task, self.info, timeout=None)]
             self.driver.power.reboot(task)
             mock_next_boot.assert_called_once_with(task, self.info)
 
@@ -1671,32 +1693,32 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
     def test_reboot_timeout_ok(self, mock_on, mock_off, mock_next_boot):
         manager = mock.MagicMock()
         # NOTE(rloo): if autospec is True, then manager.mock_calls is empty
-        mock_off.return_value = states.POWER_OFF
-        mock_on.return_value = states.POWER_ON
         manager.attach_mock(mock_off, 'power_off')
         manager.attach_mock(mock_on, 'power_on')
-        expected = [mock.call.power_off(self.info, timeout=2),
-                    mock.call.power_on(self.info, timeout=2)]
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
+            expected = [mock.call.power_off(task, self.info, timeout=2),
+                        mock.call.power_on(task, self.info, timeout=2)]
+
             self.driver.power.reboot(task, timeout=2)
             mock_next_boot.assert_called_once_with(task, self.info)
 
-        self.assertEqual(manager.mock_calls, expected)
+            self.assertEqual(manager.mock_calls, expected)
 
     @mock.patch.object(ipmi, '_power_off', spec_set=types.FunctionType)
     @mock.patch.object(ipmi, '_power_on', spec_set=types.FunctionType)
     def test_reboot_fail_power_off(self, mock_on, mock_off):
         manager = mock.MagicMock()
         # NOTE(rloo): if autospec is True, then manager.mock_calls is empty
-        mock_off.return_value = states.ERROR
+        mock_off.side_effect = exception.PowerStateFailure(
+            pstate=states.POWER_OFF)
         manager.attach_mock(mock_off, 'power_off')
         manager.attach_mock(mock_on, 'power_on')
-        expected = [mock.call.power_off(self.info, timeout=None)]
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
+            expected = [mock.call.power_off(task, self.info, timeout=None)]
             self.assertRaises(exception.PowerStateFailure,
                               self.driver.power.reboot,
                               task)
@@ -1709,14 +1731,15 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         manager = mock.MagicMock()
         # NOTE(rloo): if autospec is True, then manager.mock_calls is empty
         mock_off.return_value = states.POWER_OFF
-        mock_on.return_value = states.ERROR
+        mock_on.side_effect = exception.PowerStateFailure(
+            pstate=states.POWER_ON)
         manager.attach_mock(mock_off, 'power_off')
         manager.attach_mock(mock_on, 'power_on')
-        expected = [mock.call.power_off(self.info, timeout=None),
-                    mock.call.power_on(self.info, timeout=None)]
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
+            expected = [mock.call.power_off(task, self.info, timeout=None),
+                        mock.call.power_on(task, self.info, timeout=None)]
             self.assertRaises(exception.PowerStateFailure,
                               self.driver.power.reboot,
                               task)
@@ -1728,15 +1751,15 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
     def test_reboot_timeout_fail(self, mock_on, mock_off):
         manager = mock.MagicMock()
         # NOTE(rloo): if autospec is True, then manager.mock_calls is empty
-        mock_off.return_value = states.POWER_OFF
-        mock_on.return_value = states.ERROR
+        mock_on.side_effect = exception.PowerStateFailure(
+            pstate=states.POWER_ON)
         manager.attach_mock(mock_off, 'power_off')
         manager.attach_mock(mock_on, 'power_on')
-        expected = [mock.call.power_off(self.info, timeout=2),
-                    mock.call.power_on(self.info, timeout=2)]
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
+            expected = [mock.call.power_off(task, self.info, timeout=2),
+                        mock.call.power_on(task, self.info, timeout=2)]
             self.assertRaises(exception.PowerStateFailure,
                               self.driver.power.reboot,
                               task, timeout=2)

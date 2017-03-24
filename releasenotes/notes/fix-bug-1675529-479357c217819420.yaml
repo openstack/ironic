@@ -1,0 +1,14 @@
+---
+deprecations:
+  - |
+    Configuration option IPMI.retry_timeout is deprecated in favor of new
+    options IPMI.command_retry_timeout, and
+    CONDUCTOR.power_state_change_timeout
+fixes:
+  - |
+    Prevents the IPMI driver from needlessly checking status if the power
+    change action fails. Additionally stop retrying power actions and power
+    status polls if we receive a non-retryable error from ipmitool.
+    https//bugs.launchpad.net/ironic/+bug/1675529. New configuration option
+    `power_state_change_timeout` added to define how many seconds to wait for a
+    server to change power state when a power action is requested.
