@@ -22,7 +22,6 @@ from ironic.common import boot_devices
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
-from ironic.drivers.modules import agent
 from ironic.drivers.modules.ilo import boot as ilo_boot
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules import iscsi_deploy
@@ -46,7 +45,6 @@ class IloIscsiDeployMixin(object):
         :returns: deploy state DELETED.
         :raises: IloOperationError, if some operation on iLO failed.
         """
-
         manager_utils.node_power_action(task, states.POWER_OFF)
         ilo_boot.disable_secure_boot_if_supported(task)
         return super(IloIscsiDeployMixin, self).tear_down(task)
@@ -78,120 +76,6 @@ class IloIscsiDeployMixin(object):
         ilo_common.update_boot_mode(task)
         ilo_common.update_secure_boot_mode(task, True)
         super(IloIscsiDeployMixin, self).continue_deploy(task, **kwargs)
-
-
-class IloVirtualMediaIscsiDeploy(IloIscsiDeployMixin,
-                                 iscsi_deploy.ISCSIDeploy):
-
-    @METRICS.timer('IloVirtualMediaIscsiDeploy.validate')
-    def validate(self, task):
-        """Validate the prerequisites for virtual media based deploy.
-
-        This method validates whether the 'driver_info' property of the
-        supplied node contains the required information for this driver.
-
-        :param task: a TaskManager instance containing the node to act on.
-        :raises: InvalidParameterValue if any parameters are incorrect
-        :raises: MissingParameterValue if some mandatory information
-            is missing on the node
-        """
-        ilo_boot.validate_driver_info(task)
-        super(IloVirtualMediaIscsiDeploy, self).validate(task)
-
-    @METRICS.timer('IloVirtualMediaIscsiDeploy.prepare')
-    def prepare(self, task):
-        """Prepare the deployment environment for this task's node.
-
-        :param task: a TaskManager instance containing the node to act on.
-        :raises: IloOperationError, if some operation on iLO failed.
-        """
-        if task.node.provision_state == states.DEPLOYING:
-            ilo_boot.prepare_node_for_deploy(task)
-
-        super(IloVirtualMediaIscsiDeploy, self).prepare(task)
-
-
-class IloVirtualMediaAgentDeploy(agent.AgentDeploy):
-    """Interface for deploy-related actions."""
-
-    def get_properties(self):
-        """Return the properties of the interface.
-
-        :returns: dictionary of <property name>:<property description> entries.
-        """
-        return ilo_boot.COMMON_PROPERTIES
-
-    @METRICS.timer('IloVirtualMediaAgentDeploy.validate')
-    def validate(self, task):
-        """Validate the prerequisites for virtual media based deploy.
-
-        This method validates whether the 'driver_info' property of the
-        supplied node contains the required information for this driver.
-
-        :param task: a TaskManager instance containing the node to act on.
-        :raises: InvalidParameterValue if any parameters are incorrect
-        :raises: MissingParameterValue if some mandatory information
-            is missing on the node
-        """
-        ilo_boot.validate_driver_info(task)
-        super(IloVirtualMediaAgentDeploy, self).validate(task)
-
-    @METRICS.timer('IloVirtualMediaAgentDeploy.tear_down')
-    @task_manager.require_exclusive_lock
-    def tear_down(self, task):
-        """Tear down a previous deployment on the task's node.
-
-        :param task: a TaskManager instance.
-        :returns: states.DELETED
-        :raises: IloOperationError, if some operation on iLO failed.
-        """
-        manager_utils.node_power_action(task, states.POWER_OFF)
-        ilo_boot.disable_secure_boot_if_supported(task)
-        return super(IloVirtualMediaAgentDeploy, self).tear_down(task)
-
-    @METRICS.timer('IloVirtualMediaAgentDeploy.prepare')
-    def prepare(self, task):
-        """Prepare the deployment environment for this node.
-
-        :param task: a TaskManager instance.
-        :raises: IloOperationError, if some operation on iLO failed.
-        """
-        if task.node.provision_state == states.DEPLOYING:
-            ilo_boot.prepare_node_for_deploy(task)
-
-        super(IloVirtualMediaAgentDeploy, self).prepare(task)
-
-    @METRICS.timer('IloVirtualMediaAgentDeploy.prepare_cleaning')
-    def prepare_cleaning(self, task):
-        """Boot into the agent to prepare for cleaning.
-
-        :param task: a TaskManager object containing the node
-        :returns: states.CLEANWAIT to signify an asynchronous prepare.
-        :raises: NodeCleaningFailure, NetworkError if the previous cleaning
-            ports cannot be removed or if new cleaning ports cannot be created
-        :raises: IloOperationError, if some operation on iLO failed.
-        """
-        # Powering off the Node before initiating boot for node cleaning.
-        # If node is in system POST, setting boot device fails.
-        manager_utils.node_power_action(task, states.POWER_OFF)
-        return super(IloVirtualMediaAgentDeploy, self).prepare_cleaning(task)
-
-    @METRICS.timer('IloVirtualMediaAgentDeploy.reboot_to_instance')
-    def reboot_to_instance(self, task):
-        node = task.node
-        LOG.debug('Preparing to reboot to instance for node %s',
-                  node.uuid)
-
-        error = self.check_deploy_success(node)
-        if error is None:
-            # Set boot mode
-            ilo_common.update_boot_mode(task)
-
-            # Need to enable secure boot, if being requested
-            ilo_common.update_secure_boot_mode(task, True)
-
-        super(IloVirtualMediaAgentDeploy,
-              self).reboot_to_instance(task)
 
 
 class IloPXEDeploy(IloIscsiDeployMixin, iscsi_deploy.ISCSIDeploy):

@@ -429,26 +429,26 @@ class IloBootPrivateMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ilo_common, 'parse_driver_info', spec_set=True,
                        autospec=True)
-    def test_validate_driver_info_MissingParam(self, mock_parse_driver_info):
+    def test__validate_driver_info_MissingParam(self, mock_parse_driver_info):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             self.assertRaisesRegex(exception.MissingParameterValue,
                                    "Missing 'ilo_deploy_iso'",
-                                   ilo_boot.validate_driver_info, task)
+                                   ilo_boot._validate_driver_info, task)
             mock_parse_driver_info.assert_called_once_with(task.node)
 
     @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_common, 'parse_driver_info', spec_set=True,
                        autospec=True)
-    def test_validate_driver_info_valid_uuid(self, mock_parse_driver_info,
-                                             mock_is_glance_image):
+    def test__validate_driver_info_valid_uuid(self, mock_parse_driver_info,
+                                              mock_is_glance_image):
         mock_is_glance_image.return_value = True
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             deploy_iso = '8a81759a-f29b-454b-8ab3-161c6ca1882c'
             task.node.driver_info['ilo_deploy_iso'] = deploy_iso
-            ilo_boot.validate_driver_info(task)
+            ilo_boot._validate_driver_info(task)
             mock_parse_driver_info.assert_called_once_with(task.node)
             mock_is_glance_image.assert_called_once_with(deploy_iso)
 
@@ -458,9 +458,9 @@ class IloBootPrivateMethodsTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(ilo_common, 'parse_driver_info', spec_set=True,
                        autospec=True)
-    def test_validate_driver_info_InvalidParam(self, mock_parse_driver_info,
-                                               mock_is_glance_image,
-                                               mock_validate_href):
+    def test__validate_driver_info_InvalidParam(self, mock_parse_driver_info,
+                                                mock_is_glance_image,
+                                                mock_validate_href):
         deploy_iso = 'http://abc.org/image/qcow2'
         mock_validate_href.side_effect = exception.ImageRefValidationFailed(
             image_href='http://abc.org/image/qcow2', reason='fail')
@@ -470,7 +470,7 @@ class IloBootPrivateMethodsTestCase(db_base.DbTestCase):
             task.node.driver_info['ilo_deploy_iso'] = deploy_iso
             self.assertRaisesRegex(exception.InvalidParameterValue,
                                    "Virtual media boot accepts",
-                                   ilo_boot.validate_driver_info, task)
+                                   ilo_boot._validate_driver_info, task)
             mock_parse_driver_info.assert_called_once_with(task.node)
             mock_validate_href.assert_called_once_with(mock.ANY, deploy_iso)
 
@@ -480,15 +480,15 @@ class IloBootPrivateMethodsTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(ilo_common, 'parse_driver_info', spec_set=True,
                        autospec=True)
-    def test_validate_driver_info_valid_url(self, mock_parse_driver_info,
-                                            mock_is_glance_image,
-                                            mock_validate_href):
+    def test__validate_driver_info_valid_url(self, mock_parse_driver_info,
+                                             mock_is_glance_image,
+                                             mock_validate_href):
         deploy_iso = 'http://abc.org/image/deploy.iso'
         mock_is_glance_image.return_value = False
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.driver_info['ilo_deploy_iso'] = deploy_iso
-            ilo_boot.validate_driver_info(task)
+            ilo_boot._validate_driver_info(task)
             mock_parse_driver_info.assert_called_once_with(task.node)
             mock_validate_href.assert_called_once_with(mock.ANY, deploy_iso)
 
@@ -676,9 +676,12 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(
             self.context, driver='iscsi_ilo', driver_info=INFO_DICT)
 
+    @mock.patch.object(ilo_boot, '_validate_driver_info',
+                       spec_set=True, autospec=True)
     @mock.patch.object(ilo_boot, '_validate_instance_image_info',
                        spec_set=True, autospec=True)
-    def test_validate(self, mock_val_instance_image_info):
+    def test_validate(self, mock_val_instance_image_info,
+                      mock_val_driver_info):
         instance_info = self.node.instance_info
         instance_info['ilo_boot_iso'] = 'deploy-iso'
         instance_info['image_source'] = '6b2f0c0c-79e8-4db6-842e-43c9764204af'
@@ -690,7 +693,12 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
             task.node.driver_info['ilo_deploy_iso'] = 'deploy-iso'
             task.driver.boot.validate(task)
             mock_val_instance_image_info.assert_called_once_with(task)
+            mock_val_driver_info.assert_called_once_with(task)
 
+    @mock.patch.object(ilo_boot, 'prepare_node_for_deploy',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action',
+                       spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'eject_vmedia_devices',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'setup_vmedia', spec_set=True,
@@ -698,7 +706,9 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
     @mock.patch.object(deploy_utils, 'get_single_nic_with_vif_port_id',
                        spec_set=True, autospec=True)
     def _test_prepare_ramdisk(self, get_nic_mock, setup_vmedia_mock,
-                              eject_mock, ilo_boot_iso, image_source,
+                              eject_mock, node_power_mock,
+                              prepare_node_for_deploy_mock,
+                              ilo_boot_iso, image_source,
                               ramdisk_params={'a': 'b'}):
         instance_info = self.node.instance_info
         instance_info['ilo_boot_iso'] = ilo_boot_iso
@@ -714,6 +724,9 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
 
             task.driver.boot.prepare_ramdisk(task, ramdisk_params)
 
+            node_power_mock.assert_called_once_with(task, states.POWER_OFF)
+            if task.node.provision_state == states.DEPLOYING:
+                prepare_node_for_deploy_mock.assert_called_once_with(task)
             eject_mock.assert_called_once_with(task)
             expected_ramdisk_opts = {'a': 'b', 'BOOTIF': '12:34:56:78:90:ab'}
             get_nic_mock.assert_called_once_with(task)
@@ -821,12 +834,17 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
             self.assertFalse(setup_vmedia_mock.called)
             self.assertFalse(set_boot_device_mock.called)
 
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_boot, '_clean_up_boot_iso_for_instance',
                        spec_set=True, autospec=True)
     def test_clean_up_instance(self, cleanup_iso_mock,
-                               cleanup_vmedia_mock):
+                               cleanup_vmedia_mock, node_power_mock,
+                               update_secure_boot_mode_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             driver_internal_info = task.node.driver_internal_info
@@ -842,6 +860,9 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
             self.assertNotIn('boot_iso_created_in_web_server',
                              driver_internal_info)
             self.assertNotIn('root_uuid_or_disk_id', driver_internal_info)
+            node_power_mock.assert_called_once_with(task,
+                                                    states.POWER_OFF)
+            update_secure_boot_mode_mock.assert_called_once_with(task, False)
 
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
@@ -851,12 +872,17 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
             task.driver.boot.clean_up_ramdisk(task)
             cleanup_vmedia_mock.assert_called_once_with(task)
 
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
     def _test_prepare_instance_whole_disk_image(
-            self, cleanup_vmedia_boot_mock, set_boot_device_mock):
+            self, cleanup_vmedia_boot_mock, set_boot_device_mock,
+            update_boot_mode_mock, update_secure_boot_mode_mock):
         self.node.driver_internal_info = {'is_whole_disk_image': True}
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
@@ -867,6 +893,8 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.DISK,
                                                          persistent=True)
+            update_boot_mode_mock.assert_called_once_with(task)
+            update_secure_boot_mode_mock.assert_called_once_with(task, True)
 
     def test_prepare_instance_whole_disk_image_local(self):
         self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
@@ -876,14 +904,18 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
     def test_prepare_instance_whole_disk_image(self):
         self._test_prepare_instance_whole_disk_image()
 
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
     @mock.patch.object(ilo_boot.IloVirtualMediaBoot,
                        '_configure_vmedia_boot', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
     def test_prepare_instance_partition_image(
-            self, cleanup_vmedia_boot_mock,
-            configure_vmedia_mock):
+            self, cleanup_vmedia_boot_mock, configure_vmedia_mock,
+            update_boot_mode_mock, update_secure_boot_mode_mock):
         self.node.driver_internal_info = {'root_uuid_or_disk_id': (
             "12312642-09d3-467f-8e09-12385826a123")}
         self.node.save()
@@ -894,3 +926,5 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
             cleanup_vmedia_boot_mock.assert_called_once_with(task)
             configure_vmedia_mock.assert_called_once_with(
                 mock.ANY, task, "12312642-09d3-467f-8e09-12385826a123")
+            update_boot_mode_mock.assert_called_once_with(task)
+            update_secure_boot_mode_mock.assert_called_once_with(task, True)

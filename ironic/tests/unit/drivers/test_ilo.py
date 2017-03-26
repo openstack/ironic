@@ -24,11 +24,11 @@ from ironic.drivers import ilo
 from ironic.drivers.modules import agent
 from ironic.drivers.modules.ilo import boot
 from ironic.drivers.modules.ilo import console
-from ironic.drivers.modules.ilo import deploy
 from ironic.drivers.modules.ilo import inspect
 from ironic.drivers.modules.ilo import management
 from ironic.drivers.modules.ilo import power
 from ironic.drivers.modules.ilo import vendor
+from ironic.drivers.modules import iscsi_deploy
 
 
 @mock.patch.object(ilo.importutils, 'try_import', spec_set=True,
@@ -42,7 +42,7 @@ class IloVirtualMediaIscsiDriversTestCase(testtools.TestCase):
 
         self.assertIsInstance(driver.power, power.IloPower)
         self.assertIsInstance(driver.boot, boot.IloVirtualMediaBoot)
-        self.assertIsInstance(driver.deploy, deploy.IloVirtualMediaIscsiDeploy)
+        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
         self.assertIsInstance(driver.console, console.IloConsoleInterface)
         self.assertIsInstance(driver.management, management.IloManagement)
         self.assertIsInstance(driver.vendor, vendor.VendorPassthru)
@@ -67,7 +67,7 @@ class IloVirtualMediaAgentDriversTestCase(testtools.TestCase):
 
         self.assertIsInstance(driver.power, power.IloPower)
         self.assertIsInstance(driver.boot, boot.IloVirtualMediaBoot)
-        self.assertIsInstance(driver.deploy, deploy.IloVirtualMediaAgentDeploy)
+        self.assertIsInstance(driver.deploy, agent.AgentDeploy)
         self.assertIsInstance(driver.console, console.IloConsoleInterface)
         self.assertIsInstance(driver.management, management.IloManagement)
         self.assertIsInstance(driver.inspect, inspect.IloInspect)

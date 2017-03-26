@@ -248,7 +248,7 @@ def _parse_deploy_info(node):
     return info
 
 
-def validate_driver_info(task):
+def _validate_driver_info(task):
     """Validate the prerequisites for virtual media based boot.
 
     This method validates whether the 'driver_info' property of the
@@ -397,6 +397,7 @@ class IloVirtualMediaBoot(base.BootInterface):
         """
 
         _validate_instance_image_info(task)
+        _validate_driver_info(task)
 
     @METRICS.timer('IloVirtualMediaBoot.prepare_ramdisk')
     def prepare_ramdisk(self, task, ramdisk_params):
@@ -426,6 +427,13 @@ class IloVirtualMediaBoot(base.BootInterface):
         if (node.provision_state != states.DEPLOYING and
                 node.provision_state != states.CLEANING):
             return
+
+        # Powering off the Node before initiating boot for node cleaning.
+        # If node is in system POST, setting boot device fails.
+        manager_utils.node_power_action(task, states.POWER_OFF)
+
+        if task.node.provision_state == states.DEPLOYING:
+            prepare_node_for_deploy(task)
 
         # Clear ilo_boot_iso if it's a glance image to force recreate
         # another one again (or use existing one in glance).
@@ -483,6 +491,10 @@ class IloVirtualMediaBoot(base.BootInterface):
             else:
                 LOG.warning(_LW("The UUID for the root partition could not "
                                 "be found for node %s"), node.uuid)
+        # Set boot mode
+        ilo_common.update_boot_mode(task)
+        # Need to enable secure boot, if being requested
+        ilo_common.update_secure_boot_mode(task, True)
 
     @METRICS.timer('IloVirtualMediaBoot.clean_up_instance')
     def clean_up_instance(self, task):
@@ -495,6 +507,10 @@ class IloVirtualMediaBoot(base.BootInterface):
         :returns: None
         :raises: IloOperationError, if some operation on iLO failed.
         """
+
+        LOG.debug("Cleaning up the instance.")
+        manager_utils.node_power_action(task, states.POWER_OFF)
+        disable_secure_boot_if_supported(task)
 
         _clean_up_boot_iso_for_instance(task.node)
 
@@ -518,6 +534,7 @@ class IloVirtualMediaBoot(base.BootInterface):
         :raises: IloOperationError, if some operation on iLO failed.
         """
 
+        LOG.debug("Cleaning up the ironic ramdisk.")
         ilo_common.cleanup_vmedia_boot(task)
 
     def _configure_vmedia_boot(self, task, root_uuid):
