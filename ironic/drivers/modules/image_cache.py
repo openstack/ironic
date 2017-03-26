@@ -30,7 +30,6 @@ import six
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
-from ironic.common.i18n import _LI, _LW
 from ironic.common import image_service
 from ironic.common import images
 from ironic.common import utils
@@ -129,9 +128,8 @@ class ImageCache(object):
                           {'href': href})
                 return
 
-            LOG.info(_LI("Master cache miss for image %(href)s, "
-                         "starting download"),
-                     {'href': href})
+            LOG.info("Master cache miss for image %(href)s, "
+                     "starting download", {'href': href})
             self._download_image(
                 href, master_path, dest_path, ctx=ctx, force_raw=force_raw)
 
@@ -190,11 +188,10 @@ class ImageCache(object):
             return
         amount = self._clean_up_ensure_cache_size(survived, amount)
         if amount is not None and amount > 0:
-            LOG.warning(
-                _LW("Cache clean up was unable to reclaim %(required)d "
-                    "MiB of disk space, still %(left)d MiB required"),
-                {'required': amount_copy / 1024 / 1024,
-                 'left': amount / 1024 / 1024})
+            LOG.warning("Cache clean up was unable to reclaim %(required)d "
+                        "MiB of disk space, still %(left)d MiB required",
+                        {'required': amount_copy / 1024 / 1024,
+                         'left': amount / 1024 / 1024})
 
     def _clean_up_too_old(self, listing, amount):
         """Clean up stage 1: drop images that are older than TTL.
@@ -218,8 +215,8 @@ class ImageCache(object):
                 try:
                     os.unlink(file_name)
                 except EnvironmentError as exc:
-                    LOG.warning(_LW("Unable to delete file %(name)s from "
-                                    "master image cache: %(exc)s"),
+                    LOG.warning("Unable to delete file %(name)s from "
+                                "master image cache: %(exc)s",
                                 {'name': file_name, 'exc': exc})
                 else:
                     if amount is not None:
@@ -257,8 +254,8 @@ class ImageCache(object):
             try:
                 os.unlink(file_name)
             except EnvironmentError as exc:
-                LOG.warning(_LW("Unable to delete file %(name)s from "
-                                "master image cache: %(exc)s"),
+                LOG.warning("Unable to delete file %(name)s from "
+                            "master image cache: %(exc)s",
                             {'name': file_name, 'exc': exc})
             else:
                 total_size -= stat.st_size
@@ -266,9 +263,9 @@ class ImageCache(object):
                     amount -= stat.st_size
 
         if total_size > self._cache_size:
-            LOG.info(_LI("After cleaning up cache dir %(dir)s "
-                         "cache size %(actual)d is still larger than "
-                         "threshold %(expected)d"),
+            LOG.info("After cleaning up cache dir %(dir)s "
+                     "cache size %(actual)d is still larger than "
+                     "threshold %(expected)d",
                      {'dir': self.master_dir, 'actual': total_size,
                       'expected': self._cache_size})
         return max(amount, 0) if amount is not None else 0
@@ -392,17 +389,17 @@ def _delete_master_path_if_stale(master_path, href, ctx):
         if not img_mtime:
             # This means that href is not a glance image and doesn't have an
             # updated_at attribute
-            LOG.warning(_LW("Image service couldn't determine last "
-                            "modification time of %(href)s, considering "
-                            "cached image up to date."), {'href': href})
+            LOG.warning("Image service couldn't determine last "
+                        "modification time of %(href)s, considering "
+                        "cached image up to date.", {'href': href})
             return True
         master_mtime = utils.unix_file_modification_datetime(master_path)
         if img_mtime <= master_mtime:
             return True
         # Delete image from cache as it is outdated
-        LOG.info(_LI('Image %(href)s was last modified at %(remote_time)s. '
-                     'Deleting the cached copy "%(cached_file)s since it was '
-                     'last modified at %(local_time)s and may be outdated.'),
+        LOG.info('Image %(href)s was last modified at %(remote_time)s. '
+                 'Deleting the cached copy "%(cached_file)s since it was '
+                 'last modified at %(local_time)s and may be outdated.',
                  {'href': href, 'remote_time': img_mtime,
                   'local_time': master_mtime, 'cached_file': master_path})
 

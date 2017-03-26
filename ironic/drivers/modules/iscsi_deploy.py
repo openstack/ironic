@@ -25,7 +25,7 @@ from six.moves.urllib import parse
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
-from ironic.common.i18n import _, _LE
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
@@ -250,14 +250,13 @@ def continue_deploy(task, **kwargs):
             uuid_dict_returned = deploy_utils.deploy_partition_image(**params)
     except exception.IronicException as e:
         with excutils.save_and_reraise_exception():
-            LOG.error(_LE('Deploy of instance %(instance)s on node %(node)s '
-                          'failed: %(error)s'),
-                      {'instance': node.instance_uuid, 'node': node.uuid,
-                       'error': e})
+            LOG.error('Deploy of instance %(instance)s on node %(node)s '
+                      'failed: %(error)s', {'instance': node.instance_uuid,
+                                            'node': node.uuid, 'error': e})
             _fail_deploy(task, e, raise_exception=False)
     except Exception as e:
-        LOG.exception(_LE('Deploy of instance %(instance)s on node %(node)s '
-                          'failed with exception'),
+        LOG.exception('Deploy of instance %(instance)s on node %(node)s '
+                      'failed with exception',
                       {'instance': node.instance_uuid, 'node': node.uuid})
         _fail_deploy(task, e)
 

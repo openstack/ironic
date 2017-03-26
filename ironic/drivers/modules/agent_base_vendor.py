@@ -26,7 +26,7 @@ import retrying
 
 from ironic.common import boot_devices
 from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LI, _LW
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.conductor import rpcapi
 from ironic.conductor import utils as manager_utils
@@ -458,9 +458,9 @@ class AgentDeployMixin(HeartbeatMixin):
                 # version. Both are operator actions, unlike automated
                 # cleaning. Manual clean steps are not necessarily idempotent
                 # like automated clean steps and can be even longer running.
-                LOG.info(_LI('During manual cleaning, node %(node)s detected '
-                             'a clean version mismatch. Re-executing and '
-                             'continuing from current step %(step)s.'),
+                LOG.info('During manual cleaning, node %(node)s detected '
+                         'a clean version mismatch. Re-executing and '
+                         'continuing from current step %(step)s.',
                          {'node': node.uuid, 'step': node.clean_step})
 
                 driver_internal_info = node.driver_internal_info
@@ -469,10 +469,9 @@ class AgentDeployMixin(HeartbeatMixin):
                 node.save()
             else:
                 # Restart cleaning, agent must have rebooted to new version
-                LOG.info(_LI('During automated cleaning, node %s detected a '
-                             'clean version mismatch. Resetting clean steps '
-                             'and rebooting the node.'),
-                         node.uuid)
+                LOG.info('During automated cleaning, node %s detected a '
+                         'clean version mismatch. Resetting clean steps '
+                         'and rebooting the node.', node.uuid)
                 try:
                     manager_utils.set_node_cleaning_steps(task)
                 except exception.NodeCleaningFailure:
@@ -511,8 +510,8 @@ class AgentDeployMixin(HeartbeatMixin):
                 _cleaning_reboot(task)
                 return
 
-            LOG.info(_LI('Agent on node %s returned cleaning command success, '
-                         'moving to next clean step'), node.uuid)
+            LOG.info('Agent on node %s returned cleaning command success, '
+                     'moving to next clean step', node.uuid)
             _notify_conductor_resume_clean(task)
         else:
             msg = (_('Agent returned unknown status for clean step %(step)s '
@@ -561,13 +560,12 @@ class AgentDeployMixin(HeartbeatMixin):
                     self._client.power_off(node)
                     _wait_until_powered_off(task)
                 except Exception as e:
-                    LOG.warning(
-                        _LW('Failed to soft power off node %(node_uuid)s '
-                            'in at least %(timeout)d seconds. '
-                            'Error: %(error)s'),
-                        {'node_uuid': node.uuid,
-                         'timeout': (wait * (attempts - 1)) / 1000,
-                         'error': e})
+                    LOG.warning('Failed to soft power off node %(node_uuid)s '
+                                'in at least %(timeout)d seconds. '
+                                'Error: %(error)s',
+                                {'node_uuid': node.uuid,
+                                 'timeout': (wait * (attempts - 1)) / 1000,
+                                 'error': e})
                     manager_utils.node_power_action(task, states.POWER_OFF)
             else:
                 # Flush the file system prior to hard rebooting the node
@@ -578,9 +576,9 @@ class AgentDeployMixin(HeartbeatMixin):
                         error = _('The version of the IPA ramdisk used in '
                                   'the deployment do not support the '
                                   'command "sync"')
-                    LOG.warning(_LW(
+                    LOG.warning(
                         'Failed to flush the file system prior to hard '
-                        'rebooting the node %(node)s. Error: %(error)s'),
+                        'rebooting the node %(node)s. Error: %(error)s',
                         {'node': node.uuid, 'error': error})
 
                 manager_utils.node_power_action(task, states.POWER_OFF)
@@ -596,7 +594,7 @@ class AgentDeployMixin(HeartbeatMixin):
             log_and_raise_deployment_error(task, msg)
 
         task.process_event('done')
-        LOG.info(_LI('Deployment to node %s done'), task.node.uuid)
+        LOG.info('Deployment to node %s done', task.node.uuid)
 
     @METRICS.timer('AgentDeployMixin.prepare_instance_to_boot')
     def prepare_instance_to_boot(self, task, root_uuid, efi_sys_uuid):
@@ -617,8 +615,8 @@ class AgentDeployMixin(HeartbeatMixin):
         try:
             task.driver.boot.prepare_instance(task)
         except Exception as e:
-            LOG.error(_LE('Deploy failed for instance %(instance)s. '
-                          'Error: %(error)s'),
+            LOG.error('Deploy failed for instance %(instance)s. '
+                      'Error: %(error)s',
                       {'instance': node.instance_uuid, 'error': e})
             msg = _('Failed to continue agent deployment.')
             log_and_raise_deployment_error(task, msg)
@@ -669,5 +667,4 @@ class AgentDeployMixin(HeartbeatMixin):
                     'error': e})
             log_and_raise_deployment_error(task, msg)
 
-        LOG.info(_LI('Local boot successfully configured for node %s'),
-                 node.uuid)
+        LOG.info('Local boot successfully configured for node %s', node.uuid)

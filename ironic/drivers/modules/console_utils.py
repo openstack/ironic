@@ -33,7 +33,7 @@ from oslo_utils import netutils
 import psutil
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LW
+from ironic.common.i18n import _
 from ironic.conf import CONF
 
 
@@ -107,8 +107,8 @@ def _stop_console(node_uuid):
                      "Reason: %(err)s.") % {'node': node_uuid, 'err': exc})
             raise exception.ConsoleError(message=msg)
         else:
-            LOG.warning(_LW("Console process for node %s is not running "
-                            "but pid file exists."), node_uuid)
+            LOG.warning("Console process for node %s is not running "
+                        "but pid file exists.", node_uuid)
     finally:
         ironic_utils.unlink_without_raise(_get_console_pid_file(node_uuid))
 
@@ -241,8 +241,8 @@ def stop_shellinabox_console(node_uuid):
     try:
         _stop_console(node_uuid)
     except exception.NoConsolePid:
-        LOG.warning(_LW("No console pid found for node %s while trying to "
-                        "stop shellinabox console."), node_uuid)
+        LOG.warning("No console pid found for node %s while trying to "
+                    "stop shellinabox console.", node_uuid)
 
 
 def get_socat_console_url(port):
@@ -310,7 +310,7 @@ def start_socat_console(node_uuid, port, console_cmd):
         error = _("%(exec_error)s\n"
                   "Command: %(command)s") % {'exec_error': str(e),
                                              'command': ' '.join(args)}
-        LOG.exception(_LE('Unable to start socat console'))
+        LOG.exception('Unable to start socat console')
         raise exception.ConsoleSubprocessFailed(error=error)
 
     # NOTE: we need to check if socat fails to start here.
@@ -366,5 +366,5 @@ def stop_socat_console(node_uuid):
     try:
         _stop_console(node_uuid)
     except exception.NoConsolePid:
-        LOG.warning(_LW("No console pid found for node %s while trying to "
-                        "stop socat console."), node_uuid)
+        LOG.warning("No console pid found for node %s while trying to "
+                    "stop socat console.", node_uuid)

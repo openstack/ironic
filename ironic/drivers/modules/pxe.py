@@ -26,7 +26,7 @@ from ironic.common import boot_devices
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
-from ironic.common.i18n import _, _LW
+from ironic.common.i18n import _
 from ironic.common import image_service as service
 from ironic.common import images
 from ironic.common import pxe_utils
@@ -444,8 +444,8 @@ class PXEBoot(base.BootInterface):
         try:
             images_info = _get_deploy_image_info(node)
         except exception.MissingParameterValue as e:
-            LOG.warning(_LW('Could not get deploy image info '
-                            'to clean up images for node %(node)s: %(err)s'),
+            LOG.warning('Could not get deploy image info '
+                        'to clean up images for node %(node)s: %(err)s',
                         {'node': node.uuid, 'err': e})
         else:
             _clean_up_pxe_env(task, images_info)
@@ -485,18 +485,15 @@ class PXEBoot(base.BootInterface):
                 ]
             except KeyError:
                 if not iwdi:
-                    LOG.warning(
-                        _LW("The UUID for the root partition can't be "
-                            "found, unable to switch the pxe config from "
-                            "deployment mode to service (boot) mode for "
-                            "node %(node)s"), {"node": task.node.uuid})
+                    LOG.warning("The UUID for the root partition can't be "
+                                "found, unable to switch the pxe config from "
+                                "deployment mode to service (boot) mode for "
+                                "node %(node)s", {"node": task.node.uuid})
                 else:
-                    LOG.warning(
-                        _LW("The disk id for the whole disk image can't "
-                            "be found, unable to switch the pxe config "
-                            "from deployment mode to service (boot) mode "
-                            "for node %(node)s"),
-                        {"node": task.node.uuid})
+                    LOG.warning("The disk id for the whole disk image can't "
+                                "be found, unable to switch the pxe config "
+                                "from deployment mode to service (boot) mode "
+                                "for node %(node)s", {"node": task.node.uuid})
             else:
                 _build_service_pxe_config(task, instance_image_info,
                                           root_uuid_or_disk_id)
@@ -529,8 +526,8 @@ class PXEBoot(base.BootInterface):
         try:
             images_info = _get_instance_image_info(node, task.context)
         except exception.MissingParameterValue as e:
-            LOG.warning(_LW('Could not get instance image info '
-                            'to clean up images for node %(node)s: %(err)s'),
+            LOG.warning('Could not get instance image info '
+                        'to clean up images for node %(node)s: %(err)s',
                         {'node': node.uuid, 'err': e})
         else:
             _clean_up_pxe_env(task, images_info)

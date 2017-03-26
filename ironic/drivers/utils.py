@@ -22,7 +22,7 @@ from oslo_utils import timeutils
 import six
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LW
+from ironic.common.i18n import _
 from ironic.common import swift
 from ironic.conductor import utils
 from ironic.drivers import base
@@ -152,8 +152,8 @@ def get_node_capability(node, capability):
             if parts[0].strip() == capability:
                 return parts[1].strip()
         else:
-            LOG.warning(_LW("Ignoring malformed capability '%s'. "
-                            "Format should be 'key:val'."), node_capability)
+            LOG.warning("Ignoring malformed capability '%s'. "
+                        "Format should be 'key:val'.", node_capability)
 
 
 def add_node_capability(task, capability, value):
@@ -332,30 +332,29 @@ def collect_ramdisk_logs(node):
     try:
         result = client.collect_system_logs(node)
     except exception.IronicException as e:
-        LOG.error(_LE('Failed to invoke collect_system_logs agent command '
-                      'for node %(node)s. Error: %(error)s'),
+        LOG.error('Failed to invoke collect_system_logs agent command '
+                  'for node %(node)s. Error: %(error)s',
                   {'node': node.uuid, 'error': e})
         return
 
     error = result.get('faultstring')
     if error is not None:
-        LOG.error(_LE('Failed to collect logs from the node %(node)s '
-                      'deployment. Error: %(error)s'),
+        LOG.error('Failed to collect logs from the node %(node)s '
+                  'deployment. Error: %(error)s',
                   {'node': node.uuid, 'error': error})
         return
 
     try:
         store_ramdisk_logs(node, result['command_result']['system_logs'])
     except exception.SwiftOperationError as e:
-        LOG.error(_LE('Failed to store the logs from the node %(node)s '
-                      'deployment in Swift. Error: %(error)s'),
+        LOG.error('Failed to store the logs from the node %(node)s '
+                  'deployment in Swift. Error: %(error)s',
                   {'node': node.uuid, 'error': e})
     except EnvironmentError as e:
-        LOG.exception(_LE('Failed to store the logs from the node %(node)s '
-                          'deployment due a file-system related error. '
-                          'Error: %(error)s'),
-                      {'node': node.uuid, 'error': e})
+        LOG.exception('Failed to store the logs from the node %(node)s '
+                      'deployment due a file-system related error. '
+                      'Error: %(error)s', {'node': node.uuid, 'error': e})
     except Exception as e:
-        LOG.exception(_LE('Unknown error when storing logs from the node '
-                          '%(node)s deployment. Error: %(error)s'),
+        LOG.exception('Unknown error when storing logs from the node '
+                      '%(node)s deployment. Error: %(error)s',
                       {'node': node.uuid, 'error': e})

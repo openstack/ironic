@@ -32,7 +32,7 @@ import six
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
-from ironic.common.i18n import _, _LE, _LW
+from ironic.common.i18n import _
 from ironic.common import image_service
 from ironic.common import keystone
 from ironic.common import states
@@ -72,19 +72,18 @@ def warn_about_unsafe_shred_parameters():
     iterations = CONF.deploy.shred_random_overwrite_iterations
     overwrite_with_zeros = CONF.deploy.shred_final_overwrite_with_zeros
     if iterations == 0 and overwrite_with_zeros is False:
-        LOG.warning(_LW('With shred_random_overwrite_iterations set to 0 and '
-                        'shred_final_overwrite_with_zeros set to False, disks '
-                        'may NOT be shredded at all, unless they support ATA '
-                        'Secure Erase. This is a possible SECURITY ISSUE!'))
+        LOG.warning('With shred_random_overwrite_iterations set to 0 and '
+                    'shred_final_overwrite_with_zeros set to False, disks '
+                    'may NOT be shredded at all, unless they support ATA '
+                    'Secure Erase. This is a possible SECURITY ISSUE!')
 
 
 def warn_about_missing_default_boot_option():
     if not CONF.deploy.default_boot_option:
-        LOG.warning(_LW('The default value of default_boot_option '
-                        'configuration will change eventually from '
-                        '"netboot" to "local". It is recommended to set '
-                        'an explicit value for it during the transition '
-                        'period'))
+        LOG.warning('The default value of default_boot_option '
+                    'configuration will change eventually from '
+                    '"netboot" to "local". It is recommended to set '
+                    'an explicit value for it during the transition period')
 
 
 warn_about_unsafe_shred_parameters()
@@ -170,16 +169,15 @@ def login_iscsi(portal_address, portal_port, target_iqn):
             processutils.ProcessExecutionError) as e:
         with excutils.save_and_reraise_exception():
             error_occurred = True
-            LOG.error(_LE("Failed to login to an iSCSI target due to %s"),
-                      e)
+            LOG.error("Failed to login to an iSCSI target due to %s", e)
     finally:
         if error_occurred:
             try:
                 logout_iscsi(portal_address, portal_port, target_iqn)
                 delete_iscsi(portal_address, portal_port, target_iqn)
             except processutils.ProcessExecutionError as e:
-                LOG.warning(_LW("An error occurred when trying to cleanup "
-                                "failed ISCSI session error %s"), e)
+                LOG.warning("An error occurred when trying to cleanup "
+                            "failed ISCSI session error %s", e)
 
 
 def check_file_system_for_iscsi_device(portal_address,
@@ -445,13 +443,13 @@ def _iscsi_setup_and_handle_errors(address, port, iqn, lun):
         yield dev
     except processutils.ProcessExecutionError as err:
         with excutils.save_and_reraise_exception():
-            LOG.error(_LE("Deploy to address %s failed."), address)
-            LOG.error(_LE("Command: %s"), err.cmd)
-            LOG.error(_LE("StdOut: %r"), err.stdout)
-            LOG.error(_LE("StdErr: %r"), err.stderr)
+            LOG.error("Deploy to address %s failed.", address)
+            LOG.error("Command: %s", err.cmd)
+            LOG.error("StdOut: %r", err.stdout)
+            LOG.error("StdErr: %r", err.stderr)
     except exception.InstanceDeployFailure as e:
         with excutils.save_and_reraise_exception():
-            LOG.error(_LE("Deploy to address %s failed."), address)
+            LOG.error("Deploy to address %s failed.", address)
             LOG.error(e)
     finally:
         logout_iscsi(address, port, iqn)
@@ -526,8 +524,8 @@ def set_failed_state(task, msg, collect_logs=True):
     try:
         task.process_event('fail')
     except exception.InvalidState:
-        msg2 = (_LE('Internal error. Node %(node)s in provision state '
-                    '"%(state)s" could not transition to a failed state.')
+        msg2 = ('Internal error. Node %(node)s in provision state '
+                '"%(state)s" could not transition to a failed state.'
                 % {'node': node.uuid, 'state': node.provision_state})
         LOG.exception(msg2)
 
@@ -535,10 +533,10 @@ def set_failed_state(task, msg, collect_logs=True):
         try:
             manager_utils.node_power_action(task, states.POWER_OFF)
         except Exception:
-            msg2 = (_LE('Node %s failed to power off while handling deploy '
-                        'failure. This may be a serious condition. Node '
-                        'should be removed from Ironic or put in maintenance '
-                        'mode until the problem is resolved.') % node.uuid)
+            msg2 = ('Node %s failed to power off while handling deploy '
+                    'failure. This may be a serious condition. Node '
+                    'should be removed from Ironic or put in maintenance '
+                    'mode until the problem is resolved.' % node.uuid)
             LOG.exception(msg2)
     # NOTE(deva): node_power_action() erases node.last_error
     #             so we need to set it here.
@@ -709,9 +707,9 @@ def try_set_boot_device(task, device, persistent=True):
         with excutils.save_and_reraise_exception() as ctxt:
             if get_boot_mode_for_deploy(task.node) == 'uefi':
                 ctxt.reraise = False
-                LOG.warning(_LW("ipmitool is unable to set boot device while "
-                                "the node %s is in UEFI boot mode. Please set "
-                                "the boot device manually."), task.node.uuid)
+                LOG.warning("ipmitool is unable to set boot device while "
+                            "the node %s is in UEFI boot mode. Please set "
+                            "the boot device manually.", task.node.uuid)
 
 
 def is_secure_boot_requested(node):
@@ -1187,11 +1185,11 @@ def build_instance_info_for_deploy(task):
             image_service.HttpImageService().validate_href(url, secret)
         except exception.ImageRefValidationFailed as e:
             with excutils.save_and_reraise_exception():
-                LOG.error(_LE("Agent deploy supports only HTTP(S) URLs as "
-                              "instance_info['image_source'] or swift "
-                              "temporary URL. Either the specified URL is not "
-                              "a valid HTTP(S) URL or is not reachable "
-                              "for node %(node)s. Error: %(msg)s"),
+                LOG.error("Agent deploy supports only HTTP(S) URLs as "
+                          "instance_info['image_source'] or swift "
+                          "temporary URL. Either the specified URL is not "
+                          "a valid HTTP(S) URL or is not reachable "
+                          "for node %(node)s. Error: %(msg)s",
                           {'node': node.uuid, 'msg': e})
     node = task.node
     instance_info = node.instance_info

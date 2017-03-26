@@ -39,7 +39,7 @@ import retrying
 
 from ironic.common import boot_devices
 from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LW
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
@@ -343,7 +343,7 @@ def _ssh_execute(ssh_obj, cmd_to_exec):
         output_list = processutils.ssh_execute(ssh_obj,
                                                cmd_to_exec)[0].split('\n')
     except Exception as e:
-        LOG.error(_LE("Cannot execute SSH cmd %(cmd)s. Reason: %(err)s."),
+        LOG.error("Cannot execute SSH cmd %(cmd)s. Reason: %(err)s.",
                   {'cmd': cmd_to_exec, 'err': e})
         raise exception.SSHCommandFailed(cmd=cmd_to_exec)
 
@@ -773,11 +773,10 @@ class SSHManagement(base.ManagementInterface):
             _set_boot_device(ssh_obj, driver_info, boot_device_map[device])
         except NotImplementedError:
             with excutils.save_and_reraise_exception():
-                LOG.error(_LE("Failed to set boot device for node %(node)s, "
-                              "virt_type %(vtype)s does not support this "
-                              "operation"),
-                          {'node': node.uuid,
-                           'vtype': driver_info['virt_type']})
+                LOG.error("Failed to set boot device for node %(node)s, "
+                          "virt_type %(vtype)s does not support this "
+                          "operation", {'node': node.uuid,
+                                        'vtype': driver_info['virt_type']})
 
     def get_boot_device(self, task):
         """Get the current boot device for the task's node.
@@ -809,9 +808,9 @@ class SSHManagement(base.ManagementInterface):
         try:
             response['boot_device'] = _get_boot_device(ssh_obj, driver_info)
         except NotImplementedError:
-            LOG.warning(_LW("Failed to get boot device for node %(node)s, "
-                            "virt_type %(vtype)s does not support this "
-                            "operation"),
+            LOG.warning("Failed to get boot device for node %(node)s, "
+                        "virt_type %(vtype)s does not support this "
+                        "operation",
                         {'node': node.uuid, 'vtype': driver_info['virt_type']})
         return response
 

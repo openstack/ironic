@@ -29,7 +29,7 @@ from oslo_utils import excutils
 import six
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LW
+from ironic.common.i18n import _
 from ironic.common import raid
 from ironic.common import states
 
@@ -409,8 +409,8 @@ class DeployInterface(BaseInterface):
         :param callback_url: a URL to use to call to the ramdisk.
         :return: None
         """
-        LOG.warning(_LW('Got heartbeat message from node %(node)s, but '
-                        'the driver %(driver)s does not support heartbeating'),
+        LOG.warning('Got heartbeat message from node %(node)s, but '
+                    'the driver %(driver)s does not support heartbeating',
                     {'node': task.node.uuid, 'driver': task.node.driver})
 
 
@@ -627,7 +627,7 @@ def _passthru(http_methods, method=None, async=True, driver_passthru=False,
             metadata[1]['require_exclusive_lock'] = require_exclusive_lock
             func._vendor_metadata = metadata
 
-        passthru_logmessage = _LE('vendor_passthru failed with method %s')
+        passthru_logmessage = 'vendor_passthru failed with method %s'
 
         @six.wraps(func)
         def passthru_handler(*args, **kwargs):
