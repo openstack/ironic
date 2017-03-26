@@ -37,6 +37,7 @@ from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
+from ironic.drivers.modules import pxe
 
 LOG = logging.getLogger(__name__)
 
@@ -564,3 +565,71 @@ class IloVirtualMediaBoot(base.BootInterface):
         i_info['ilo_boot_iso'] = boot_iso
         node.instance_info = i_info
         node.save()
+
+
+class IloPXEBoot(pxe.PXEBoot):
+
+    @METRICS.timer('IloPXEBoot.prepare_ramdisk')
+    def prepare_ramdisk(self, task, ramdisk_params):
+        """Prepares the boot of Ironic ramdisk using PXE.
+
+        This method prepares the boot of the deploy ramdisk after
+        reading relevant information from the node's driver_info and
+        instance_info.
+
+        :param task: a task from TaskManager.
+        :param ramdisk_params: the parameters to be passed to the ramdisk.
+        :returns: None
+        :raises: MissingParameterValue, if some information is missing in
+            node's driver_info or instance_info.
+        :raises: InvalidParameterValue, if some information provided is
+            invalid.
+        :raises: IronicException, if some power or set boot boot device
+            operation failed on the node.
+        :raises: IloOperationError, if some operation on iLO failed.
+        """
+
+        if task.node.provision_state == states.DEPLOYING:
+            prepare_node_for_deploy(task)
+
+        super(IloPXEBoot, self).prepare_ramdisk(task, ramdisk_params)
+
+    @METRICS.timer('IloPXEBoot.prepare_instance')
+    def prepare_instance(self, task):
+        """Prepares the boot of instance.
+
+        This method prepares the boot of the instance after reading
+        relevant information from the node's instance_info. In case of netboot,
+        it updates the dhcp entries and switches the PXE config. In case of
+        localboot, it cleans up the PXE config.
+
+        :param task: a task from TaskManager.
+        :returns: None
+        :raises: IloOperationError, if some operation on iLO failed.
+        """
+
+        # Set boot mode
+        ilo_common.update_boot_mode(task)
+        # Need to enable secure boot, if being requested
+        ilo_common.update_secure_boot_mode(task, True)
+
+        super(IloPXEBoot, self).prepare_instance(task)
+
+    @METRICS.timer('IloPXEBoot.clean_up_instance')
+    def clean_up_instance(self, task):
+        """Cleans up the boot of instance.
+
+        This method cleans up the PXE environment that was setup for booting
+        the instance. It unlinks the instance kernel/ramdisk in the node's
+        directory in tftproot and removes it's PXE config.
+
+        :param task: a task from TaskManager.
+        :returns: None
+        :raises: IloOperationError, if some operation on iLO failed.
+        """
+
+        LOG.debug("Cleaning up the instance.")
+        manager_utils.node_power_action(task, states.POWER_OFF)
+        disable_secure_boot_if_supported(task)
+
+        super(IloPXEBoot, self).clean_up_instance(task)
