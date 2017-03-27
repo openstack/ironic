@@ -459,6 +459,7 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
         """
         if CONF.agent.manage_agent_boot:
             task.driver.boot.clean_up_ramdisk(task)
+        task.driver.boot.clean_up_instance(task)
         provider = dhcp_factory.DHCPFactory()
         provider.clean_dhcp(task)
 
