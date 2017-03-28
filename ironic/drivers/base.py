@@ -57,25 +57,24 @@ class BaseDriver(object):
     third-party CI, or in the process of being deprecated.
     """
 
-    core_interfaces = []
-    standard_interfaces = []
+    # NOTE(jlvillal): These should be tuples to help prevent child classes from
+    # accidentally modifying the base class values.
+    core_interfaces = ('deploy', 'power')
+    standard_interfaces = ('boot', 'console', 'inspect', 'management', 'raid')
 
     power = None
-    core_interfaces.append('power')
     """`Core` attribute for managing power state.
 
     A reference to an instance of :class:PowerInterface.
     """
 
     deploy = None
-    core_interfaces.append('deploy')
     """`Core` attribute for managing deployments.
 
     A reference to an instance of :class:DeployInterface.
     """
 
     console = None
-    standard_interfaces.append('console')
     """`Standard` attribute for managing console access.
 
     A reference to an instance of :class:ConsoleInterface.
@@ -98,7 +97,6 @@ class BaseDriver(object):
     A reference to an instance of :class:ManagementInterface.
     May be None, if unsupported by a driver.
     """
-    standard_interfaces.append('management')
 
     boot = None
     """`Standard` attribute for boot related features.
@@ -106,7 +104,6 @@ class BaseDriver(object):
     A reference to an instance of :class:BootInterface.
     May be None, if unsupported by a driver.
     """
-    standard_interfaces.append('boot')
 
     vendor = None
     """Attribute for accessing any vendor-specific extensions.
@@ -121,7 +118,6 @@ class BaseDriver(object):
     A reference to an instance of :class:InspectInterface.
     May be None, if unsupported by a driver.
     """
-    standard_interfaces.append('inspect')
 
     raid = None
     """`Standard` attribute for RAID related features.
@@ -129,18 +125,18 @@ class BaseDriver(object):
     A reference to an instance of :class:RaidInterface.
     May be None, if unsupported by a driver.
     """
-    standard_interfaces.append('raid')
 
     def __init__(self):
         pass
 
     @property
     def all_interfaces(self):
-        return self.core_interfaces + self.standard_interfaces + ['vendor']
+        return (list(self.core_interfaces + self.standard_interfaces) +
+                ['vendor'])
 
     @property
     def non_vendor_interfaces(self):
-        return self.core_interfaces + self.standard_interfaces
+        return list(self.core_interfaces + self.standard_interfaces)
 
     def get_properties(self):
         """Get the properties of the driver.
@@ -168,14 +164,14 @@ class BareDriver(BaseDriver):
 
     A reference to an instance of :class:NetworkInterface.
     """
-    core_interfaces = BaseDriver.core_interfaces + ['network']
+    core_interfaces = BaseDriver.core_interfaces + ('network',)
 
     storage = None
     """`Standard` attribute for (remote) storage interface.
 
     A reference to an instance of :class:StorageInterface.
     """
-    standard_interfaces = BaseDriver.standard_interfaces + ['storage']
+    standard_interfaces = BaseDriver.standard_interfaces + ('storage',)
 
 
 ALL_INTERFACES = set(BareDriver().all_interfaces)
