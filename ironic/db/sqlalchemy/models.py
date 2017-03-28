@@ -34,7 +34,7 @@ from ironic.conf import CONF
 _DEFAULT_SQL_CONNECTION = 'sqlite:///' + paths.state_path_def('ironic.sqlite')
 
 
-db_options.set_defaults(CONF, _DEFAULT_SQL_CONNECTION, 'ironic.sqlite')
+db_options.set_defaults(CONF, connection=_DEFAULT_SQL_CONNECTION)
 
 
 def table_args():
