@@ -619,25 +619,29 @@ Source credentials, create a key, and spawn an instance as the ``demo`` user::
 
 You should now see a Nova instance building::
 
-    openstack server list
-    +--------------------------------------+---------+--------+------------+-------------+----------+
-    | ID                                   | Name    | Status | Task State | Power State | Networks |
-    +--------------------------------------+---------+--------+------------+-------------+----------+
-    | a2c7f812-e386-4a22-b393-fe1802abd56e | testing | BUILD  | spawning   | NOSTATE     |          |
-    +--------------------------------------+---------+--------+------------+-------------+----------+
+    openstack server list --long
+    +----------+---------+--------+------------+-------------+----------+------------+----------+-------------------+------+------------+
+    | ID       | Name    | Status | Task State | Power State | Networks | Image Name | Image ID | Availability Zone | Host | Properties |
+    +----------+---------+--------+------------+-------------+----------+------------+----------+-------------------+------+------------+
+    | a2c7f812 | testing | BUILD  | spawning   | NOSTATE     |          | cirros-0.3 | 44d4092a | nova              |      |            |
+    | -e386-4a |         |        |            |             |          | .5-x86_64- | -51ac-47 |                   |      |            |
+    | 22-b393- |         |        |            |             |          | disk       | 51-9c50- |                   |      |            |
+    | fe1802ab |         |        |            |             |          |            | fd6e2050 |                   |      |            |
+    | d56e     |         |        |            |             |          |            | faa1     |                   |      |            |
+    +----------+---------+--------+------------+-------------+----------+------------+----------+-------------------+------+------------+
 
 Nova will be interfacing with Ironic conductor to spawn the node.  On the
 Ironic side, you should see an Ironic node associated with this Nova instance.
 It should be powered on and in a 'wait call-back' provisioning state::
 
     openstack baremetal node list
-    +--------------------------------------+--------------------------------------+-------------+--------------------+
-    | UUID                                 | Instance UUID                        | Power State | Provisioning State |
-    +--------------------------------------+--------------------------------------+-------------+--------------------+
-    | 9e592cbe-e492-4e4f-bf8f-4c9e0ad1868f | None                                 | power off   | None               |
-    | ec0c6384-cc3a-4edf-b7db-abde1998be96 | None                                 | power off   | None               |
-    | 4099e31c-576c-48f8-b460-75e1b14e497f | a2c7f812-e386-4a22-b393-fe1802abd56e | power on    | wait call-back     |
-    +--------------------------------------+--------------------------------------+-------------+--------------------+
+    +--------------------------------------+--------+--------------------------------------+-------------+--------------------+-------------+
+    | UUID                                 | Name   | Instance UUID                        | Power State | Provisioning State | Maintenance |
+    +--------------------------------------+--------+--------------------------------------+-------------+--------------------+-------------+
+    | 9e592cbe-e492-4e4f-bf8f-4c9e0ad1868f | node-0 | None                                 | power off   | None               | False       |
+    | ec0c6384-cc3a-4edf-b7db-abde1998be96 | node-1 | None                                 | power off   | None               | False       |
+    | 4099e31c-576c-48f8-b460-75e1b14e497f | node-2 | a2c7f812-e386-4a22-b393-fe1802abd56e | power on    | wait call-back     | False       |
+    +--------------------------------------+--------+--------------------------------------+-------------+--------------------+-------------+
 
 At this point, Ironic conductor has called to libvirt via SSH to power on a
 virtual machine, which will PXE + TFTP boot from the conductor node and
@@ -647,32 +651,36 @@ be active now::
     sudo virsh list --all
      Id    Name                           State
     ----------------------------------------------------
-     2     baremetalbrbm_2                running
-     -     baremetalbrbm_0                shut off
-     -     baremetalbrbm_1                shut off
+     2     node-2                         running
+     -     node-0                         shut off
+     -     node-1                         shut off
 
 This provisioning process may take some time depending on the performance of
 the host system, but Ironic should eventually show the node as having an
 'active' provisioning state::
 
     openstack baremetal node list
-    +--------------------------------------+--------------------------------------+-------------+--------------------+
-    | UUID                                 | Instance UUID                        | Power State | Provisioning State |
-    +--------------------------------------+--------------------------------------+-------------+--------------------+
-    | 9e592cbe-e492-4e4f-bf8f-4c9e0ad1868f | None                                 | power off   | None               |
-    | ec0c6384-cc3a-4edf-b7db-abde1998be96 | None                                 | power off   | None               |
-    | 4099e31c-576c-48f8-b460-75e1b14e497f | a2c7f812-e386-4a22-b393-fe1802abd56e | power on    | active             |
-    +--------------------------------------+--------------------------------------+-------------+--------------------+
+    +--------------------------------------+--------+--------------------------------------+-------------+--------------------+-------------+
+    | UUID                                 | Name   | Instance UUID                        | Power State | Provisioning State | Maintenance |
+    +--------------------------------------+--------+--------------------------------------+-------------+--------------------+-------------+
+    | 9e592cbe-e492-4e4f-bf8f-4c9e0ad1868f | node-0 | None                                 | power off   | None               | False       |
+    | ec0c6384-cc3a-4edf-b7db-abde1998be96 | node-1 | None                                 | power off   | None               | False       |
+    | 4099e31c-576c-48f8-b460-75e1b14e497f | node-2 | a2c7f812-e386-4a22-b393-fe1802abd56e | power on    | active             | False       |
+    +--------------------------------------+--------+--------------------------------------+-------------+--------------------+-------------+
 
 This should also be reflected in the Nova instance state, which at this point
 should be ACTIVE, Running and an associated private IP::
 
-    openstack server list
-    +--------------------------------------+---------+--------+------------+-------------+------------------+
-    | ID                                   | Name    | Status | Task State | Power State | Networks         |
-    +--------------------------------------+---------+--------+------------+-------------+------------------+
-    | a2c7f812-e386-4a22-b393-fe1802abd56e | testing | ACTIVE | -          | Running     | private=10.1.0.4 |
-    +--------------------------------------+---------+--------+------------+-------------+------------------+
+    openstack server list --long
+    +----------+---------+--------+------------+-------------+---------------+------------+----------+-------------------+------+------------+
+    | ID       | Name    | Status | Task State | Power State | Networks      | Image Name | Image ID | Availability Zone | Host | Properties |
+    +----------+---------+--------+------------+-------------+---------------+------------+----------+-------------------+------+------------+
+    | a2c7f812 | testing | ACTIVE | none       | Running     | private=10.1. | cirros-0.3 | 44d4092a | nova              |      |            |
+    | -e386-4a |         |        |            |             | 0.4, fd7d:1f3 | .5-x86_64- | -51ac-47 |                   |      |            |
+    | 22-b393- |         |        |            |             | c:4bf1:0:f816 | disk       | 51-9c50- |                   |      |            |
+    | fe1802ab |         |        |            |             | :3eff:f39d:6d |            | fd6e2050 |                   |      |            |
+    | d56e     |         |        |            |             | 94            |            | faa1     |                   |      |            |
+    +----------+---------+--------+------------+-------------+---------------+------------+----------+-------------------+------+------------+
 
 The server should now be accessible via SSH::
 
