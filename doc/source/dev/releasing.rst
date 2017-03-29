@@ -47,11 +47,24 @@ Things to do before releasing
   TEMPEST_BAREMETAL_MAX_MICROVERSION in devstack/lib/ironic to make sure that
   unsupported API tempest tests are skipped on stable branches.
 
+* To support rolling upgrades, add this new release version (and release name
+  if it is a named release) into ironic/common/release_mappings.py:
+
+  * in RELEASE_MAPPING, make a copy of the 'master' entry, and rename the first
+    'master' entry to the new semver release version.
+  * If this is a named release, add a RELEASE_MAPPING entry for the named
+    release. Its value should be the same as that of the latest semver one
+    (that you just added above).
+  * Regenerate the sample config file, so that the choices for the
+    ``[DEFAULT]/pin_release_version`` configuration are accurate.
+
 .. _`standards`: http://docs.openstack.org/developer/ironic/dev/faq.html#know-if-a-release-note-is-needed-for-my-change
 
 Things to do after releasing
 ============================
 
+When a release is done that results in a stable branch
+------------------------------------------------------
 When a release is done that results in a stable branch for the project, the
 release automation will push a number of changes that need to be approved.
 
@@ -82,8 +95,21 @@ Additionally, changes need to be made on master to:
     and `pbr documentation
     <http://docs.openstack.org/developer/pbr/#version>`_ for details.
 
+For all releases
+----------------
 For all releases, whether or not it results in a stable branch:
 
   * update the specs repo to mark any specs completed in the release as
     implemented.
+
   * remove any -2s on patches that were blocked until after the release.
+
+  * to support rolling upgrades, make these changes in
+    ironic/common/release_mappings.py:
+
+    * if the release was a named release, delete any entries from
+      RELEASE_MAPPING associated with the oldest named release. Since we
+      support upgrades between adjacent named releases, the master branch will
+      only support upgrades from the most recent named release to master.
+    * regenerate the sample config file, so that the choices for the
+      ``[DEFAULT]/pin_release_version`` configuration are accurate.

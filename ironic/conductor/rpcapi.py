@@ -25,6 +25,7 @@ import oslo_messaging as messaging
 from ironic.common import exception
 from ironic.common import hash_ring
 from ironic.common.i18n import _
+from ironic.common import release_mappings as versions
 from ironic.common import rpc
 from ironic.conductor import manager
 from ironic.conf import CONF
@@ -103,8 +104,10 @@ class ConductorAPI(object):
         target = messaging.Target(topic=self.topic,
                                   version='1.0')
         serializer = objects_base.IronicObjectSerializer()
-        self.client = rpc.get_client(target,
-                                     version_cap=self.RPC_API_VERSION,
+        release_ver = versions.RELEASE_MAPPING.get(CONF.pin_release_version)
+        version_cap = (release_ver['rpc'] if release_ver
+                       else self.RPC_API_VERSION)
+        self.client = rpc.get_client(target, version_cap=version_cap,
                                      serializer=serializer)
         # NOTE(deva): this is going to be buggy
         self.ring_manager = hash_ring.HashRingManager()

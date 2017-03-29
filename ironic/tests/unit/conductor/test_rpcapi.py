@@ -27,6 +27,7 @@ from oslo_messaging import _utils as messaging_utils
 
 from ironic.common import boot_devices
 from ironic.common import exception
+from ironic.common import release_mappings
 from ironic.common import states
 from ironic.conductor import manager as conductor_manager
 from ironic.conductor import rpcapi as conductor_rpcapi
@@ -44,6 +45,22 @@ class ConductorRPCAPITestCase(tests_base.TestCase):
         self.assertEqual(
             conductor_manager.ConductorManager.RPC_API_VERSION,
             conductor_rpcapi.ConductorAPI.RPC_API_VERSION)
+
+    @mock.patch('ironic.common.rpc.get_client')
+    def test_version_cap(self, mock_get_client):
+        conductor_rpcapi.ConductorAPI()
+        self.assertEqual(conductor_rpcapi.ConductorAPI.RPC_API_VERSION,
+                         mock_get_client.call_args[1]['version_cap'])
+
+    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING')
+    @mock.patch('ironic.common.rpc.get_client')
+    def test_version_capped(self, mock_get_client, mock_release_mapping):
+        CONF.set_override('pin_release_version',
+                          release_mappings.RELEASE_VERSIONS[0],
+                          enforce_type=True)
+        mock_release_mapping.get.return_value = {'rpc': '3'}
+        conductor_rpcapi.ConductorAPI()
+        self.assertEqual('3', mock_get_client.call_args[1]['version_cap'])
 
 
 class RPCAPITestCase(base.DbTestCase):

@@ -25,6 +25,7 @@ from oslo_config import cfg
 from oslo_utils import netutils
 
 from ironic.common.i18n import _
+from ironic.common import release_mappings as versions
 
 
 _ENABLED_IFACE_HELP = _('Specify the list of {0} interfaces to load during '
@@ -261,6 +262,15 @@ service_opts = [
                       'However, the node name must be valid within '
                       'an AMQP key, and if using ZeroMQ, a valid '
                       'hostname, FQDN, or IP address.')),
+    cfg.StrOpt('pin_release_version',
+               choices=versions.RELEASE_VERSIONS,
+               # TODO(xek): mutable=True,
+               help=_('Used for rolling upgrades. Setting this option '
+                      'downgrades the internal ironic RPC communication to '
+                      'the specified version to enable communication with '
+                      'older services. When doing a rolling upgrade from '
+                      'version X to version Y, set this to X. Defaults to '
+                      'using the newest possible RPC behavior.')),
 ]
 
 utils_opts = [
