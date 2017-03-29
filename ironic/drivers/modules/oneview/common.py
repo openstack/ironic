@@ -118,7 +118,7 @@ def get_oneview_info(node):
         :enclosure_group_uri: the uri of the enclosure group in OneView
         :server_profile_template_uri: the uri of the server profile template in
             OneView
-    :raises OneViewInvalidNodeParameter if node capabilities are malformed
+    :raises OneViewInvalidNodeParameter: if node capabilities are malformed
     """
 
     try:

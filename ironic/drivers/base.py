@@ -1192,7 +1192,7 @@ def _validate_argsinfo(argsinfo):
             ‘required’: Boolean. Optional; default is False. True if this
                         argument is required.  If so, it must be specified in
                         the clean request; false if it is optional.
-    :raises InvalidParameterValue if any of the arguments are invalid
+    :raises InvalidParameterValue: if any of the arguments are invalid
     """
     if not argsinfo:
         return
@@ -1286,7 +1286,7 @@ def clean_step(priority, abortable=False, argsinfo=None):
             ‘required’: Boolean. Optional; default is False. True if this
                         argument is required.  If so, it must be specified in
                         the clean request; false if it is optional.
-    :raises InvalidParameterValue if any of the arguments are invalid
+    :raises InvalidParameterValue: if any of the arguments are invalid
     """
     def decorator(func):
         func._is_clean_step = True

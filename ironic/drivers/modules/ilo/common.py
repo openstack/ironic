@@ -266,9 +266,9 @@ def _parse_snmp_driver_info(info):
 
     :param info: driver_info dictionary.
     :returns: a dictionary containing SNMP information.
-    :raises exception.MissingParameterValue if any of the mandatory
+    :raises exception.MissingParameterValue: if any of the mandatory
         parameter values are not provided.
-    :raises exception.InvalidParameterValue if the value provided
+    :raises exception.InvalidParameterValue: if the value provided
         for SNMP_OPTIONAL_PROPERTIES has an invalid value.
     """
     snmp_info = {}
