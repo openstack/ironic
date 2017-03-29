@@ -110,7 +110,7 @@ import six
 
 from ironic.common import driver_factory
 from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LI, _LW
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.conductor import notification_utils as notify
 from ironic import objects
@@ -365,9 +365,9 @@ class TaskManager(object):
             try:
                 exc = future.exception()
             except futurist.CancelledError:
-                LOG.exception(_LE("Execution of %(method)s for node %(node)s "
-                                  "was canceled."), {'method': method,
-                                                     'node': node.uuid})
+                LOG.exception("Execution of %(method)s for node %(node)s "
+                              "was canceled.", {'method': method,
+                                                'node': node.uuid})
             else:
                 if exc is not None:
                     msg = _("Async execution of %(method)s failed with error: "
@@ -480,9 +480,9 @@ class TaskManager(object):
 
         # publish the state transition by saving the Node
         self.node.save()
-        LOG.info(_LI('Node %(node)s moved to provision state "%(state)s" from '
-                     'state "%(previous)s"; target provision state is '
-                     '"%(target)s"'),
+        LOG.info('Node %(node)s moved to provision state "%(state)s" from '
+                 'state "%(previous)s"; target provision state is '
+                 '"%(target)s"',
                  {'node': self.node.uuid, 'state': self.node.provision_state,
                   'target': self.node.target_provision_state,
                   'previous': self._prev_provision_state})
@@ -536,10 +536,10 @@ class TaskManager(object):
                             self._on_error_method(e, *self._on_error_args,
                                                   **self._on_error_kwargs)
                     except Exception:
-                        LOG.warning(_LW("Task's on_error hook failed to "
-                                        "call %(method)s on node %(node)s"),
+                        LOG.warning("Task's on_error hook failed to "
+                                    "call %(method)s on node %(node)s",
                                     {'method': self._on_error_method.__name__,
-                                    'node': self.node.uuid})
+                                     'node': self.node.uuid})
 
                     if fut is not None:
                         # This means the add_done_callback() failed for some

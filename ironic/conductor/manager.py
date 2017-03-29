@@ -59,7 +59,7 @@ from six.moves import queue
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
-from ironic.common.i18n import _, _LE, _LI, _LW
+from ironic.common.i18n import _
 from ironic.common import images
 from ironic.common import states
 from ironic.common import swift
@@ -655,16 +655,15 @@ class ConductorManager(base_manager.BaseConductorManager):
             task.driver.deploy.tear_down(task)
         except Exception as e:
             with excutils.save_and_reraise_exception():
-                LOG.exception(_LE('Error in tear_down of node %(node)s: '
-                                  '%(err)s'),
+                LOG.exception('Error in tear_down of node %(node)s: %(err)s',
                               {'node': node.uuid, 'err': e})
                 node.last_error = _("Failed to tear down. Error: %s") % e
                 task.process_event('error')
         else:
             # NOTE(deva): When tear_down finishes, the deletion is done,
             # cleaning will start next
-            LOG.info(_LI('Successfully unprovisioned node %(node)s with '
-                         'instance %(instance)s.'),
+            LOG.info('Successfully unprovisioned node %(node)s with '
+                     'instance %(instance)s.',
                      {'node': node.uuid, 'instance': node.instance_uuid})
         finally:
             # NOTE(deva): there is no need to unset conductor_affinity
@@ -901,8 +900,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             node.save()
 
             task.process_event('done')
-            LOG.info(_LI('Automated cleaning is disabled, node %s has been '
-                         'successfully moved to AVAILABLE state.'), node.uuid)
+            LOG.info('Automated cleaning is disabled, node %s has been '
+                     'successfully moved to AVAILABLE state.', node.uuid)
             return
 
         try:
@@ -977,9 +976,9 @@ class ConductorManager(base_manager.BaseConductorManager):
         else:
             steps = driver_internal_info['clean_steps'][step_index:]
 
-        LOG.info(_LI('Executing %(state)s on node %(node)s, remaining steps: '
-                     '%(steps)s'), {'node': node.uuid, 'steps': steps,
-                                    'state': node.provision_state})
+        LOG.info('Executing %(state)s on node %(node)s, remaining steps: '
+                 '%(steps)s', {'node': node.uuid, 'steps': steps,
+                               'state': node.provision_state})
 
         # Execute each step until we hit an async step or run out of steps
         for ind, step in enumerate(steps):
@@ -990,7 +989,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             node.driver_internal_info = driver_internal_info
             node.save()
             interface = getattr(task.driver, step.get('interface'))
-            LOG.info(_LI('Executing %(step)s on node %(node)s'),
+            LOG.info('Executing %(step)s on node %(node)s',
                      {'step': step, 'node': node.uuid})
             try:
                 result = interface.execute_clean_step(task, step)
@@ -1009,8 +1008,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             if result == states.CLEANWAIT:
                 # Kill this worker, the async step will make an RPC call to
                 # continue_node_clean to continue cleaning
-                LOG.info(_LI('Clean step %(step)s on node %(node)s being '
-                             'executed asynchronously, waiting for driver.'),
+                LOG.info('Clean step %(step)s on node %(node)s being '
+                         'executed asynchronously, waiting for driver.',
                          {'node': node.uuid, 'step': step})
                 target_state = states.MANAGEABLE if manual_clean else None
                 task.process_event('wait', target_state=target_state)
@@ -1021,7 +1020,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                        % {'step': step, 'node': node.uuid, 'val': result})
                 LOG.error(msg)
                 return utils.cleaning_error_handler(task, msg)
-            LOG.info(_LI('Node %(node)s finished clean step %(step)s'),
+            LOG.info('Node %(node)s finished clean step %(step)s',
                      {'node': node.uuid, 'step': step})
 
         # Clear clean_step
@@ -1040,7 +1039,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             return utils.cleaning_error_handler(task, msg,
                                                 tear_down_cleaning=False)
 
-        LOG.info(_LI('Node %s cleaning complete'), node.uuid)
+        LOG.info('Node %s cleaning complete', node.uuid)
         event = 'manage' if manual_clean else 'done'
         # NOTE(rloo): No need to specify target prov. state; we're done
         task.process_event(event)
@@ -1092,8 +1091,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         try:
             task.driver.deploy.tear_down_cleaning(task)
         except Exception as e:
-            LOG.exception(_LE('Failed to tear down cleaning for node %(node)s '
-                              'after aborting the operation. Error: %(err)s'),
+            LOG.exception('Failed to tear down cleaning for node %(node)s '
+                          'after aborting the operation. Error: %(err)s',
                           {'node': node.uuid, 'err': e})
             error_msg = _('Failed to tear down cleaning after aborting '
                           'the operation')
@@ -1173,10 +1172,10 @@ class ConductorManager(base_manager.BaseConductorManager):
                 # should be aborted after that step is done.
                 if (node.clean_step and not
                     node.clean_step.get('abortable')):
-                    LOG.info(_LI('The current clean step "%(clean_step)s" for '
-                                 'node %(node)s is not abortable. Adding a '
-                                 'flag to abort the cleaning after the clean '
-                                 'step is completed.'),
+                    LOG.info('The current clean step "%(clean_step)s" for '
+                             'node %(node)s is not abortable. Adding a '
+                             'flag to abort the cleaning after the clean '
+                             'step is completed.',
                              {'clean_step': node.clean_step['step'],
                               'node': node.uuid})
                     clean_step = node.clean_step
@@ -1269,12 +1268,12 @@ class ConductorManager(base_manager.BaseConductorManager):
                         # don't bloat the dict with non-failing nodes
                         del self.power_state_sync_count[node_uuid]
             except exception.NodeNotFound:
-                LOG.info(_LI("During sync_power_state, node %(node)s was not "
-                             "found and presumed deleted by another process."),
+                LOG.info("During sync_power_state, node %(node)s was not "
+                         "found and presumed deleted by another process.",
                          {'node': node_uuid})
             except exception.NodeLocked:
-                LOG.info(_LI("During sync_power_state, node %(node)s was "
-                             "already locked by another process. Skip."),
+                LOG.info("During sync_power_state, node %(node)s was "
+                         "already locked by another process. Skip.",
                          {'node': node_uuid})
             finally:
                 # Yield on every iteration
@@ -1332,20 +1331,20 @@ class ConductorManager(base_manager.BaseConductorManager):
             try:
                 objects.Node.release(context, conductor_hostname, node_id)
             except exception.NodeNotFound:
-                LOG.warning(_LW("During checking for deploying state, node "
-                                "%s was not found and presumed deleted by "
-                                "another process. Skipping."), node_uuid)
+                LOG.warning("During checking for deploying state, node "
+                            "%s was not found and presumed deleted by "
+                            "another process. Skipping.", node_uuid)
                 continue
             except exception.NodeLocked:
-                LOG.warning(_LW("During checking for deploying state, when "
-                                "releasing the lock of the node %s, it was "
-                                "locked by another process. Skipping."),
+                LOG.warning("During checking for deploying state, when "
+                            "releasing the lock of the node %s, it was "
+                            "locked by another process. Skipping.",
                             node_uuid)
                 continue
             except exception.NodeNotLocked:
-                LOG.warning(_LW("During checking for deploying state, when "
-                                "releasing the lock of the node %s, it was "
-                                "already unlocked."), node_uuid)
+                LOG.warning("During checking for deploying state, when "
+                            "releasing the lock of the node %s, it was "
+                            "already unlocked.", node_uuid)
 
             self._fail_if_in_state(
                 context, {'id': node_id}, states.DEPLOYING,
@@ -1392,7 +1391,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             # is called as part of the transition from ENROLL to MANAGEABLE
             # states. As such it is redundant to call here.
             self._do_takeover(task)
-            LOG.info(_LI("Successfully adopted node %(node)s"),
+            LOG.info("Successfully adopted node %(node)s",
                      {'node': node.uuid})
             task.process_event('done')
         except Exception as err:
@@ -1412,7 +1411,7 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         :param task: a TaskManager instance
         """
-        LOG.debug(('Conductor %(cdr)s taking over node %(node)s'),
+        LOG.debug('Conductor %(cdr)s taking over node %(node)s',
                   {'cdr': self.host, 'node': task.node.uuid})
         task.driver.deploy.prepare(task)
         task.driver.deploy.take_over(task)
@@ -1556,10 +1555,10 @@ class ConductorManager(base_manager.BaseConductorManager):
                                     'into log by ironic conductor service '
                                     'that is running on %(host)s: %(error)s')
                                   % {'host': self.host, 'error': e})
-                        LOG.exception(_LE(
+                        LOG.exception(
                             'Unexpected exception occurred while validating '
                             '%(iface)s driver interface for driver '
-                            '%(driver)s: %(err)s on node %(node)s.'),
+                            '%(driver)s: %(err)s on node %(node)s.',
                             {'iface': iface_name, 'driver': task.node.driver,
                              'err': e, 'node': task.node.uuid})
                 else:
@@ -1620,8 +1619,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                 try:
                     task.driver.console.stop_console(task)
                 except Exception as err:
-                    LOG.error(_LE('Failed to stop console while deleting '
-                                  'the node %(node)s: %(err)s.'),
+                    LOG.error('Failed to stop console while deleting '
+                              'the node %(node)s: %(err)s.',
                               {'node': node.uuid, 'err': err})
                     notify_utils.emit_console_notification(
                         task, 'console_set', fields.NotificationStatus.ERROR)
@@ -1630,7 +1629,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                     notify_utils.emit_console_notification(
                         task, 'console_set', fields.NotificationStatus.END)
             node.destroy()
-            LOG.info(_LI('Successfully deleted node %(node)s.'),
+            LOG.info('Successfully deleted node %(node)s.',
                      {'node': node.uuid})
 
     @METRICS.timer('ConductorManager.destroy_port')
@@ -1651,9 +1650,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, port.node_id,
                                   purpose='port deletion') as task:
             port.destroy()
-            LOG.info(_LI('Successfully deleted port %(port)s. '
-                         'The node associated with the port was '
-                         '%(node)s'),
+            LOG.info('Successfully deleted port %(port)s. '
+                     'The node associated with the port was %(node)s',
                      {'port': port.uuid, 'node': task.node.uuid})
 
     @METRICS.timer('ConductorManager.destroy_portgroup')
@@ -1676,9 +1674,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, portgroup.node_id,
                                   purpose='portgroup deletion') as task:
             portgroup.destroy()
-            LOG.info(_LI('Successfully deleted portgroup %(portgroup)s. '
-                         'The node associated with the portgroup was '
-                         '%(node)s'),
+            LOG.info('Successfully deleted portgroup %(portgroup)s. '
+                     'The node associated with the portgroup was %(node)s',
                      {'portgroup': portgroup.uuid, 'node': task.node.uuid})
 
     @METRICS.timer('ConductorManager.destroy_volume_connector')
@@ -1702,10 +1699,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, connector.node_id,
                                   purpose='volume connector deletion') as task:
             connector.destroy()
-            LOG.info(_LI('Successfully deleted volume connector '
-                         '%(connector)s. '
-                         'The node associated with the connector was '
-                         '%(node)s'),
+            LOG.info('Successfully deleted volume connector %(connector)s. '
+                     'The node associated with the connector was %(node)s',
                      {'connector': connector.uuid, 'node': task.node.uuid})
 
     @METRICS.timer('ConductorManager.destroy_volume_target')
@@ -1728,8 +1723,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, target.node_id,
                                   purpose='volume target deletion') as task:
             target.destroy()
-            LOG.info(_LI('Successfully deleted volume target %(target)s. '
-                         'The node associated with the target was %(node)s'),
+            LOG.info('Successfully deleted volume target %(target)s. '
+                     'The node associated with the target was %(node)s',
                      {'target': target.uuid, 'node': task.node.uuid})
 
     @METRICS.timer('ConductorManager.get_console_information')
@@ -1799,9 +1794,9 @@ class ConductorManager(base_manager.BaseConductorManager):
             task.driver.console.validate(task)
 
             if enabled == node.console_enabled:
-                op = _('enabled') if enabled else _('disabled')
-                LOG.info(_LI("No console action was triggered because the "
-                             "console is already %s"), op)
+                op = 'enabled' if enabled else 'disabled'
+                LOG.info("No console action was triggered because the "
+                         "console is already %s", op)
             else:
                 node.last_error = None
                 node.save()
@@ -2025,8 +2020,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, connector.node_id,
                                   purpose='volume connector update'):
             connector.save()
-            LOG.info(_LI("Successfully updated volume connector "
-                         "%(connector)s."),
+            LOG.info("Successfully updated volume connector %(connector)s.",
                      {'connector': connector.uuid})
             return connector
 
@@ -2058,7 +2052,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, target.node_id,
                                   purpose='volume target update'):
             target.save()
-            LOG.info(_LI("Successfully updated volume target %(target)s."),
+            LOG.info("Successfully updated volume target %(target)s.",
                      {'target': target.uuid})
             return target
 
@@ -2106,29 +2100,29 @@ class ConductorManager(base_manager.BaseConductorManager):
                     sensors_data = task.driver.management.get_sensors_data(
                         task)
             except NotImplementedError:
-                LOG.warning(_LW(
+                LOG.warning(
                     'get_sensors_data is not implemented for driver'
-                    ' %(driver)s, node_uuid is %(node)s'),
+                    ' %(driver)s, node_uuid is %(node)s',
                     {'node': node_uuid, 'driver': driver})
             except exception.FailedToParseSensorData as fps:
-                LOG.warning(_LW(
+                LOG.warning(
                     "During get_sensors_data, could not parse "
-                    "sensor data for node %(node)s. Error: %(err)s."),
+                    "sensor data for node %(node)s. Error: %(err)s.",
                     {'node': node_uuid, 'err': str(fps)})
             except exception.FailedToGetSensorData as fgs:
-                LOG.warning(_LW(
+                LOG.warning(
                     "During get_sensors_data, could not get "
-                    "sensor data for node %(node)s. Error: %(err)s."),
+                    "sensor data for node %(node)s. Error: %(err)s.",
                     {'node': node_uuid, 'err': str(fgs)})
             except exception.NodeNotFound:
-                LOG.warning(_LW(
+                LOG.warning(
                     "During send_sensor_data, node %(node)s was not "
-                    "found and presumed deleted by another process."),
+                    "found and presumed deleted by another process.",
                     {'node': node_uuid})
             except Exception as e:
-                LOG.warning(_LW(
+                LOG.warning(
                     "Failed to get sensor data for node %(node)s. "
-                    "Error: %(error)s"), {'node': node_uuid, 'error': str(e)})
+                    "Error: %(error)s", {'node': node_uuid, 'error': e})
             else:
                 message['payload'] = (
                     self._filter_out_unsupported_types(sensors_data))
@@ -2163,17 +2157,17 @@ class ConductorManager(base_manager.BaseConductorManager):
                     self._spawn_worker(self._sensors_nodes_task,
                                        context, nodes))
             except exception.NoFreeConductorWorker:
-                LOG.warning(_LW("There is no more conductor workers for "
-                                "task of sending sensors data. %(workers)d "
-                                "workers has been already spawned."),
+                LOG.warning("There is no more conductor workers for "
+                            "task of sending sensors data. %(workers)d "
+                            "workers has been already spawned.",
                             {'workers': thread_number})
                 break
 
         done, not_done = waiters.wait_for_all(
             futures, timeout=CONF.conductor.send_sensor_data_wait_timeout)
         if not_done:
-            LOG.warning(_LW("%d workers for send sensors data did not "
-                            "complete"), len(not_done))
+            LOG.warning("%d workers for send sensors data did not complete",
+                        len(not_done))
 
     def _filter_out_unsupported_types(self, sensors_data):
         """Filters out sensor data types that aren't specified in the config.
@@ -2544,9 +2538,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                   purpose='attach vif') as task:
             task.driver.network.validate(task)
             task.driver.network.vif_attach(task, vif_info)
-        LOG.info(_LI("VIF %(vif_id)s successfully attached to node "
-                     "%(node_id)s"), {'vif_id': vif_info['id'],
-                                      'node_id': node_id})
+        LOG.info("VIF %(vif_id)s successfully attached to node %(node_id)s",
+                 {'vif_id': vif_info['id'], 'node_id': node_id})
 
     @METRICS.timer('ConductorManager.vif_detach')
     @messaging.expected_exceptions(exception.NodeLocked,
@@ -2571,9 +2564,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                   purpose='detach vif') as task:
             task.driver.network.validate(task)
             task.driver.network.vif_detach(task, vif_id)
-        LOG.info(_LI("VIF %(vif_id)s successfully detached from node "
-                     "%(node_id)s"), {'vif_id': vif_id,
-                                      'node_id': node_id})
+        LOG.info("VIF %(vif_id)s successfully detached from node %(node_id)s",
+                 {'vif_id': vif_id, 'node_id': node_id})
 
     def _object_dispatch(self, target, method, context, args, kwargs):
         """Dispatch a call to an object method.
@@ -2753,8 +2745,8 @@ def do_node_deploy(task, conductor_id, configdrive=None):
             with excutils.save_and_reraise_exception():
                 handle_failure(
                     e, task,
-                    _LE('Error while uploading the configdrive for '
-                        '%(node)s to Swift'),
+                    ('Error while uploading the configdrive for '
+                     '%(node)s to Swift'),
                     _('Failed to upload the configdrive to Swift. '
                       'Error: %s'))
 
@@ -2764,8 +2756,8 @@ def do_node_deploy(task, conductor_id, configdrive=None):
             with excutils.save_and_reraise_exception():
                 handle_failure(
                     e, task,
-                    _LE('Error while preparing to deploy to node %(node)s: '
-                        '%(err)s'),
+                    ('Error while preparing to deploy to node %(node)s: '
+                     '%(err)s'),
                     _("Failed to prepare to deploy. Error: %s"))
 
         try:
@@ -2774,7 +2766,7 @@ def do_node_deploy(task, conductor_id, configdrive=None):
             with excutils.save_and_reraise_exception():
                 handle_failure(
                     e, task,
-                    _LE('Error in deploy of node %(node)s: %(err)s'),
+                    'Error in deploy of node %(node)s: %(err)s',
                     _("Failed to deploy. Error: %s"))
 
         # Update conductor_affinity to reference this conductor's ID
@@ -2785,14 +2777,14 @@ def do_node_deploy(task, conductor_id, configdrive=None):
         #             eg. if they are waiting for a callback
         if new_state == states.DEPLOYDONE:
             task.process_event('done')
-            LOG.info(_LI('Successfully deployed node %(node)s with '
-                         'instance %(instance)s.'),
+            LOG.info('Successfully deployed node %(node)s with '
+                     'instance %(instance)s.',
                      {'node': node.uuid, 'instance': node.instance_uuid})
         elif new_state == states.DEPLOYWAIT:
             task.process_event('wait')
         else:
-            LOG.error(_LE('Unexpected state %(state)s returned while '
-                          'deploying node %(node)s.'),
+            LOG.error('Unexpected state %(state)s returned while '
+                      'deploying node %(node)s.',
                       {'state': new_state, 'node': node.uuid})
     finally:
         node.save()
@@ -2880,9 +2872,9 @@ def do_sync_power_state(task, count):
             handle_sync_power_state_max_retries_exceeded(task, power_state,
                                                          exception=e)
         else:
-            LOG.warning(_LW("During sync_power_state, could not get power "
-                            "state for node %(node)s, attempt %(attempt)s of "
-                            "%(retries)s. Error: %(err)s."),
+            LOG.warning("During sync_power_state, could not get power "
+                        "state for node %(node)s, attempt %(attempt)s of "
+                        "%(retries)s. Error: %(err)s.",
                         {'node': node.uuid, 'attempt': count,
                          'retries': max_retries, 'err': e})
         return count
@@ -2906,9 +2898,8 @@ def do_sync_power_state(task, count):
     elif node.power_state is None:
         # If node has no prior state AND we successfully got a state,
         # simply record that and send a notification.
-        LOG.info(_LI("During sync_power_state, node %(node)s has no "
-                     "previous known state. Recording current state "
-                     "'%(state)s'."),
+        LOG.info("During sync_power_state, node %(node)s has no "
+                 "previous known state. Recording current state '%(state)s'.",
                  {'node': node.uuid, 'state': power_state})
         node.power_state = power_state
         node.save()
@@ -2921,9 +2912,9 @@ def do_sync_power_state(task, count):
         return count
 
     if CONF.conductor.force_power_state_during_sync:
-        LOG.warning(_LW("During sync_power_state, node %(node)s state "
-                        "'%(actual)s' does not match expected state. "
-                        "Changing hardware state to '%(state)s'."),
+        LOG.warning("During sync_power_state, node %(node)s state "
+                    "'%(actual)s' does not match expected state. "
+                    "Changing hardware state to '%(state)s'.",
                     {'node': node.uuid, 'actual': power_state,
                      'state': node.power_state})
         try:
@@ -2931,17 +2922,17 @@ def do_sync_power_state(task, count):
             # so don't do that again here.
             utils.node_power_action(task, node.power_state)
         except Exception as e:
-            LOG.error(_LE(
+            LOG.error(
                 "Failed to change power state of node %(node)s "
-                "to '%(state)s', attempt %(attempt)s of %(retries)s."),
+                "to '%(state)s', attempt %(attempt)s of %(retries)s.",
                 {'node': node.uuid,
                  'state': node.power_state,
                  'attempt': count,
                  'retries': max_retries})
     else:
-        LOG.warning(_LW("During sync_power_state, node %(node)s state "
-                        "does not match expected state '%(state)s'. "
-                        "Updating recorded state to '%(actual)s'."),
+        LOG.warning("During sync_power_state, node %(node)s state "
+                    "does not match expected state '%(state)s'. "
+                    "Updating recorded state to '%(actual)s'.",
                     {'node': node.uuid, 'actual': power_state,
                      'state': node.power_state})
         node.power_state = power_state
@@ -2968,7 +2959,7 @@ def _do_inspect_hardware(task):
     def handle_failure(e, log_func=LOG.error):
         node.last_error = e
         task.process_event('fail')
-        log_func(_LE("Failed to inspect node %(node)s: %(err)s"),
+        log_func("Failed to inspect node %(node)s: %(err)s",
                  {'node': node.uuid, 'err': e})
 
     try:
@@ -2985,7 +2976,7 @@ def _do_inspect_hardware(task):
 
     if new_state == states.MANAGEABLE:
         task.process_event('done')
-        LOG.info(_LI('Successfully inspected node %(node)s'),
+        LOG.info('Successfully inspected node %(node)s',
                  {'node': node.uuid})
     elif new_state != states.INSPECTING:
         error = (_("During inspection, driver returned unexpected "
