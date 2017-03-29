@@ -475,11 +475,11 @@ controller in your bare metal server by using ``ipmitool``::
    default is fairly conservative, as setting this timeout too low can cause
    older BMCs to crash and require a hard-reset.
 
-Bare Metal service supports sending IPMI sensor data to Telemetry with pxe_ipmitool,
-pxe_ipminative, agent_ipmitool, agent_pyghmi, agent_ilo, iscsi_ilo, pxe_ilo,
-and with pxe_irmc driver starting from Kilo release. By default, support for
-sending IPMI sensor data to Telemetry is disabled. If you want to enable it,
-you should make the following two changes in ``ironic.conf``:
+Bare Metal service supports sending IPMI sensor data to Telemetry with
+pxe_ipmitool, agent_ipmitool, agent_ilo, iscsi_ilo, pxe_ilo, and with pxe_irmc
+driver. By default, support for sending IPMI sensor data to Telemetry is
+disabled. If you want to enable it, you should make the following two changes
+in ``ironic.conf``:
 
 * ``notification_driver = messaging`` in the ``DEFAULT`` section
 * ``send_sensor_data = true`` in the ``conductor`` section

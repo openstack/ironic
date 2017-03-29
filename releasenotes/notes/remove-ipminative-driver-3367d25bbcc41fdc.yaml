@@ -1,0 +1,5 @@
+upgrade:
+  - |
+    The agent_pyghmi, pxe_ipminative, and fake_ipminative drivers have all
+    been removed from ironic due to lack of testing. Nodes using these
+    drivers should be changed to the agent_ipmitool or pxe_ipmitool driver.

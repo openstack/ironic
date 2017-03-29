@@ -36,7 +36,6 @@ from ironic.drivers.modules.ilo import inspect as ilo_inspect
 from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules.ilo import power as ilo_power
 from ironic.drivers.modules import inspector
-from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import inspect as irmc_inspect
 from ironic.drivers.modules.irmc import management as irmc_management
@@ -123,23 +122,6 @@ class FakeSSHDriver(base.BaseDriver):
         self.deploy = fake.FakeDeploy()
         self.management = ssh.SSHManagement()
         self.console = ssh.ShellinaboxConsole()
-
-
-class FakeIPMINativeDriver(base.BaseDriver):
-    """Fake IPMINative driver."""
-
-    supported = False
-
-    def __init__(self):
-        if not importutils.try_import('pyghmi'):
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to import pyghmi IPMI library"))
-        self.power = ipminative.NativeIPMIPower()
-        self.console = ipminative.NativeIPMIShellinaboxConsole()
-        self.deploy = fake.FakeDeploy()
-        self.vendor = ipminative.VendorPassthru()
-        self.management = ipminative.NativeIPMIManagement()
 
 
 class FakeAgentDriver(base.BaseDriver):

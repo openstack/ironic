@@ -28,7 +28,6 @@ from ironic.drivers.modules.ilo import inspect as ilo_inspect
 from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules.ilo import power as ilo_power
 from ironic.drivers.modules.ilo import vendor as ilo_vendor
-from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules.irmc import power as irmc_power
@@ -52,32 +51,6 @@ class PXEDriversTestCase(testtools.TestCase):
         self.assertIsInstance(driver.management, ssh.SSHManagement)
         self.assertIsNone(driver.inspect)
         self.assertIsInstance(driver.raid, agent.AgentRAID)
-
-    @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test_pxe_ipminative_driver(self, try_import_mock):
-        try_import_mock.return_value = True
-
-        driver = pxe.PXEAndIPMINativeDriver()
-
-        self.assertIsInstance(driver.power, ipminative.NativeIPMIPower)
-        self.assertIsInstance(driver.console,
-                              ipminative.NativeIPMIShellinaboxConsole)
-        self.assertIsInstance(driver.boot, pxe_module.PXEBoot)
-        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
-        self.assertIsInstance(driver.management,
-                              ipminative.NativeIPMIManagement)
-        self.assertIsInstance(driver.vendor, ipminative.VendorPassthru)
-        self.assertIsNone(driver.inspect)
-        self.assertIsInstance(driver.raid, agent.AgentRAID)
-
-    @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
-                       autospec=True)
-    def test_pxe_ipminative_driver_import_error(self, try_import_mock):
-        try_import_mock.return_value = False
-
-        self.assertRaises(exception.DriverLoadError,
-                          pxe.PXEAndIPMINativeDriver)
 
     @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
                        autospec=True)

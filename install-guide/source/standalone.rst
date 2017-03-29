@@ -43,7 +43,7 @@ service via hrefs.
 There are however some limitations for different drivers:
 
 * If you're using one of the drivers that use agent deploy method (namely,
-  ``agent_ilo``, ``agent_ipmitool``, ``agent_pyghmi`` or ``agent_ssh``)
+  ``agent_ilo``, ``agent_ipmitool``, or ``agent_ssh``)
   you have to know MD5 checksum for your instance image. To
   compute it, you can use the following command::
 
