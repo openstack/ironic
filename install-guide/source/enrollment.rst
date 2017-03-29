@@ -180,6 +180,23 @@ and may be combined if desired.
     | power      | False  | Missing the following IPMI credentials in node's driver_info: ['ipmi_address'].                                                     |
     +------------+--------+-------------------------------------------------------------------------------------------------------------------------------------+
 
+   When using the Compute Service with the Bare Metal service, it is safe to
+   ignore the deploy interface's validation error due to lack of image
+   information. You may continue the enrollment process. This information will
+   be set by the Compute Service just before deploying, when an instance is
+   requested::
+
+    ironic node-validate $NODE_UUID
+
+    +------------+--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | Interface  | Result | Reason                                                                                                                                                           |
+    +------------+--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | console    | True   |                                                                                                                                                                  |
+    | deploy     | False  | Cannot validate image information for node because one or more parameters are missing from its instance_info. Missing are: ['ramdisk', 'kernel', 'image_source'] |
+    | management | True   |                                                                                                                                                                  |
+    | power      | True   |                                                                                                                                                                  |
+    +------------+--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
 #. If using API version 1.11 or above, the node was created in the ``enroll``
    provision state. In order for the node to be available for deploying a
    workload (for example, by the Compute service), it needs to be in the
