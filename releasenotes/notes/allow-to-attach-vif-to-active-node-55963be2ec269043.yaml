@@ -1,0 +1,3 @@
+---
+features:
+  - Adds possibility to attach/detach VIFs to/from active nodes.
