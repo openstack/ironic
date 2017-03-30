@@ -32,9 +32,6 @@ class TestAuditMiddleware(base.BaseApiTest):
     the test suite in keystone audit_middleware.
     """
 
-    def setUp(self):
-        super(TestAuditMiddleware, self).setUp()
-
     @mock.patch.object(audit, 'AuditMiddleware')
     def test_enable_audit_request(self, mock_audit):
         CONF.audit.enabled = True
