@@ -11,6 +11,8 @@
 #    under the License.
 
 import six
+
+from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
 from tempest.lib import exceptions as lib_exc
@@ -18,6 +20,8 @@ from tempest.lib import exceptions as lib_exc
 from ironic_tempest_plugin.common import waiters
 from ironic_tempest_plugin.tests.api.admin import api_microversion_fixture
 from ironic_tempest_plugin.tests.api.admin import base
+
+CONF = config.CONF
 
 
 class TestNodes(base.BaseBaremetalTest):
@@ -165,6 +169,12 @@ class TestNodes(base.BaseBaremetalTest):
 class TestNodesVif(base.BaseBaremetalTest):
 
     min_microversion = '1.28'
+
+    @classmethod
+    def skip_checks(cls):
+        super(TestNodesVif, cls).skip_checks()
+        if not CONF.service_available.neutron:
+            raise cls.skipException('Neutron is not enabled.')
 
     def setUp(self):
         super(TestNodesVif, self).setUp()
