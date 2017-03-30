@@ -686,3 +686,21 @@ class TestUnbindPort(base.TestCase):
         mock_client.assert_called_once_with()
         mock_client.return_value.update_port.assert_called_once_with(port_id,
                                                                      body)
+
+    @mock.patch.object(neutron, 'LOG')
+    def test_unbind_neutron_port_not_found(self, mock_log, mock_client):
+        port_id = 'fake-port-id'
+        mock_client.return_value.update_port.side_effect = (
+            neutron_client_exc.PortNotFoundClient())
+        body = {
+            'port': {
+                'binding:host_id': '',
+                'binding:profile': {}
+            }
+        }
+        neutron.unbind_neutron_port(port_id)
+        mock_client.assert_called_once_with()
+        mock_client.return_value.update_port.assert_called_once_with(port_id,
+                                                                     body)
+        mock_log.info.assert_called_once_with('Port %s was not found while '
+                                              'unbinding.', port_id)

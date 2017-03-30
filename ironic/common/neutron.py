@@ -88,6 +88,9 @@ def unbind_neutron_port(port_id, client=None):
 
     try:
         client.update_port(port_id, body)
+    # NOTE(vsaienko): Ignore if port was deleted before calling vif detach.
+    except neutron_exceptions.PortNotFoundClient:
+        LOG.info('Port %s was not found while unbinding.', port_id)
     except neutron_exceptions.NeutronClientException as e:
         msg = (_('Unable to clear binding profile for '
                  'neutron port %(port_id)s. Error: '
