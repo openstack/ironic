@@ -330,6 +330,8 @@ class BaremetalStandaloneScenarioTest(BaremetalStandaloneManager):
     def resource_cleanup(cls):
         cls.cleanup_floating_ip(cls.node_ip)
         vifs = cls.get_node_vifs(cls.node['uuid'])
+        # Remove ports before deleting node, to catch regression for cases
+        # when user did this prior unprovision node.
         for vif in vifs:
             cls.ports_client.delete_port(vif)
         cls.terminate_node(cls.node['uuid'])
