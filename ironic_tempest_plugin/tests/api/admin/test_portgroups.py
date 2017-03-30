@@ -31,7 +31,8 @@ class TestPortGroups(base.BaseBaremetalTest):
         _, self.chassis = self.create_chassis()
         _, self.node = self.create_node(self.chassis['uuid'])
         _, self.portgroup = self.create_portgroup(
-            self.node['uuid'], address=data_utils.rand_mac_address())
+            self.node['uuid'], address=data_utils.rand_mac_address(),
+            name=data_utils.rand_name('portgroup'))
 
     @decorators.idempotent_id('110cd302-256b-4ddc-be10-fc6c9ad8e649')
     def test_create_portgroup_with_address(self):
@@ -69,3 +70,5 @@ class TestPortGroups(base.BaseBaremetalTest):
                       [i['uuid'] for i in body['portgroups']])
         self.assertIn(self.portgroup['address'],
                       [i['address'] for i in body['portgroups']])
+        self.assertIn(self.portgroup['name'],
+                      [i['name'] for i in body['portgroups']])
