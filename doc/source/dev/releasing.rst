@@ -43,10 +43,6 @@ Things to do before releasing
   version history (doc/source/dev/webapi-version-history.rst) to
   indicate that they were part of the new release.
 
-* Set appropriate defaults for TEMPEST_BAREMETAL_MIN_MICROVERSION and
-  TEMPEST_BAREMETAL_MAX_MICROVERSION in devstack/lib/ironic to make sure that
-  unsupported API tempest tests are skipped on stable branches.
-
 * To support rolling upgrades, add this new release version (and release name
   if it is a named release) into ironic/common/release_mappings.py:
 
@@ -86,6 +82,9 @@ Additionally, changes need to be made to the stable branch to:
     of the install guide.
   * update links in the install guide to point to the branched version of
     the developer documentation.
+  * set appropriate defaults for TEMPEST_BAREMETAL_MIN_MICROVERSION and
+    TEMPEST_BAREMETAL_MAX_MICROVERSION in devstack/lib/ironic to make sure that
+    unsupported API tempest tests are skipped on stable branches.
 
 Additionally, changes need to be made on master to:
 
