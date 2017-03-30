@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The configuration option ``[ilo]/clean_priority_erase_devices`` was
+    deprecated in the Newton cycle (6.1.0). It is no longer supported. Please
+    use the option ``[deploy]/erase_devices_priority`` instead.

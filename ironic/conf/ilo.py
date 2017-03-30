@@ -40,14 +40,6 @@ opts = [
                        'is set to False, then Ironic will use Swift '
                        'to host the floppy images and generated '
                        'boot_iso.')),
-    cfg.IntOpt('clean_priority_erase_devices',
-               deprecated_for_removal=True,
-               deprecated_reason=_('This configuration option is duplicated '
-                                   'by [deploy] erase_devices_priority, '
-                                   'please use that instead.'),
-               help=_('Priority for erase devices clean step. If unset, '
-                      'it defaults to 10. If set to 0, the step will be '
-                      'disabled and will not run during cleaning.')),
     cfg.IntOpt('clean_priority_reset_ilo',
                default=0,
                help=_('Priority for reset_ilo clean step.')),

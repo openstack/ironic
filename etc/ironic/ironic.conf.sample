@@ -380,13 +380,6 @@
 # Note: This option can be changed without restarting.
 #debug = false
 
-# DEPRECATED: If set to false, the logging level will be set
-# to WARNING instead of the default INFO level. (boolean
-# value)
-# This option is deprecated for removal.
-# Its value may be silently ignored in the future.
-#verbose = true
-
 # The name of a logging configuration file. This file is
 # appended to any existing logging configuration files. For
 # details about logging configuration files, see the Python
@@ -1151,14 +1144,6 @@
 # From oslo.db
 #
 
-# DEPRECATED: The file name to use with SQLite. (string value)
-# Deprecated group/name - [DEFAULT]/sqlite_db
-# This option is deprecated for removal.
-# Its value may be silently ignored in the future.
-# Reason: Should use config option connection or
-# slave_connection to connect the database.
-#sqlite_db = oslo.sqlite
-
 # If True, SQLite uses synchronous mode. (boolean value)
 # Deprecated group/name - [DEFAULT]/sqlite_synchronous
 #sqlite_synchronous = true
@@ -1630,15 +1615,6 @@
 # Swift to host the floppy images and generated boot_iso.
 # (boolean value)
 #use_web_server_for_images = false
-
-# DEPRECATED: Priority for erase devices clean step. If unset,
-# it defaults to 10. If set to 0, the step will be disabled
-# and will not run during cleaning. (integer value)
-# This option is deprecated for removal.
-# Its value may be silently ignored in the future.
-# Reason: This configuration option is duplicated by [deploy]
-# erase_devices_priority, please use that instead.
-#clean_priority_erase_devices = <None>
 
 # Priority for reset_ilo clean step. (integer value)
 #clean_priority_reset_ilo = 0
