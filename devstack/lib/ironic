@@ -1939,7 +1939,13 @@ function prepare_baremetal_basic_ops {
     fi
 
     if ! is_service_enabled nova && [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
-        sudo install -g $LIBVIRT_GROUP -o $STACK_USER -m 644 $FILES/${IRONIC_WHOLEDISK_IMAGE_NAME}.img $IRONIC_HTTP_DIR
+        local image_file_path
+        if [[ ${IRONIC_WHOLEDISK_IMAGE_NAME} =~ \.img$ ]]; then
+            image_file_path=$FILES/${IRONIC_WHOLEDISK_IMAGE_NAME}
+        else
+            image_file_path=$FILES/${IRONIC_WHOLEDISK_IMAGE_NAME}.img
+        fi
+        sudo install -g $LIBVIRT_GROUP -o $STACK_USER -m 644 $image_file_path $IRONIC_HTTP_DIR
     fi
 
     upload_baremetal_ironic_deploy
