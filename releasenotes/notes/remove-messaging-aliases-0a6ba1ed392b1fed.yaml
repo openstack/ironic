@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    Removes old messaging transport aliases. These are listed below with the
+    new value that should be used.
+
+    * ``ironic.rpc.impl_kombu`` -> ``rabbit``
+    * ``ironic.rpc.impl_qpid`` -> ``qpid``
+    * ``ironic.rpc.impl_zmq`` -> ``zmq``
