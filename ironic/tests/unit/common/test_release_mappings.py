@@ -29,8 +29,10 @@ def _check_versions_compatibility(conf_version, actual_version):
     Returns True if the configured version is <= the actual version;
     otherwise returns False.
 
-    param conf_version: configured version, a string with dots
-    param actual_version: actual version, a string with dots
+    :param conf_version: configured version, a string with dots
+    :param actual_version: actual version, a string with dots
+    :returns: True if the configured version is <= the actual version;
+              False otherwise.
     """
     conf_cap = versionutils.convert_version_to_tuple(conf_version)
     actual_cap = versionutils.convert_version_to_tuple(actual_version)
@@ -80,7 +82,7 @@ class ReleaseMappingsTestCase(base.TestCase):
         exceptions = set(['NodeTag', 'ConductorHardwareInterfaces'])
         # NOTE(xek): As a rule, all models which can be changed between
         # releases or are sent through RPC should have their counterpart
-        # versioned objects. This means all, but very simple models.
+        # versioned objects.
         model_names -= exceptions
         object_names = set(RELEASE_MAPPING['master']['objects'])
         self.assertEqual(model_names, object_names)
