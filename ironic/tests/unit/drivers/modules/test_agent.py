@@ -664,7 +664,9 @@ class TestAgentDeploy(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             get_power_state_mock.return_value = states.POWER_OFF
-            task.node.driver_internal_info['is_whole_disk_image'] = False
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['is_whole_disk_image'] = False
+            task.node.driver_internal_info = driver_internal_info
 
             task.driver.deploy.reboot_to_instance(task)
 
@@ -709,7 +711,9 @@ class TestAgentDeploy(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             get_power_state_mock.return_value = states.POWER_OFF
-            task.node.driver_internal_info['is_whole_disk_image'] = True
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['is_whole_disk_image'] = True
+            task.node.driver_internal_info = driver_internal_info
             task.driver.boot = None
 
             task.driver.deploy.reboot_to_instance(task)
@@ -797,7 +801,9 @@ class TestAgentDeploy(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             get_power_state_mock.return_value = states.POWER_OFF
-            task.node.driver_internal_info['is_whole_disk_image'] = False
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['is_whole_disk_image'] = False
+            task.node.driver_internal_info = driver_internal_info
             boot_option = {'capabilities': '{"boot_option": "local"}'}
             task.node.instance_info = boot_option
             task.driver.deploy.reboot_to_instance(task)

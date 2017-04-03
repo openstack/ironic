@@ -489,7 +489,9 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
 
-            task.node.driver_info['ilo_deploy_iso'] = 'deploy-iso'
+            driver_info = task.node.driver_info
+            driver_info['ilo_deploy_iso'] = 'deploy-iso'
+            task.node.driver_info = driver_info
 
             task.driver.boot.prepare_ramdisk(task, ramdisk_params)
 

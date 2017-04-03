@@ -125,7 +125,9 @@ class IloInspectTestCase(db_base.DbTestCase):
         power_mock.return_value = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.node.properties['local_gb'] = 10
+            properties = task.node.properties
+            properties['local_gb'] = 10
+            task.node.properties = properties
             task.node.save()
             expected_properties = {'memory_mb': '512', 'local_gb': 10,
                                    'cpus': '1', 'cpu_arch': 'x86_64'}

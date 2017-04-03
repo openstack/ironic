@@ -2014,7 +2014,9 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_exec.return_value = [None, None]
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.node.driver_info['ipmi_force_boot_device'] = True
+            driver_info = task.node.driver_info
+            driver_info['ipmi_force_boot_device'] = True
+            task.node.driver_info = driver_info
             self.info['force_boot_device'] = True
             self.driver.management.set_boot_device(task, boot_devices.PXE)
             task.node.refresh()
@@ -2032,7 +2034,9 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
         mock_exec.return_value = [None, None]
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.node.driver_info['ipmi_force_boot_device'] = True
+            driver_info = task.node.driver_info
+            driver_info['ipmi_force_boot_device'] = True
+            task.node.driver_info = driver_info
             self.info['force_boot_device'] = True
             self.driver.management.set_boot_device(task,
                                                    boot_devices.PXE,
