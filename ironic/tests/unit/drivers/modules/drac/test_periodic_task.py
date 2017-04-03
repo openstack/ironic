@@ -139,7 +139,7 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         self.assertEqual(['42'],
                          self.node.driver_internal_info['raid_config_job_ids'])
         self.assertEqual({}, self.node.raid_config)
-        self.assertEqual(False, self.node.maintenance)
+        self.assertIs(False, self.node.maintenance)
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)

@@ -240,7 +240,7 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
         self.assertTrue(self.node.maintenance)
         self.assertEqual(common.NODE_IN_USE_BY_ONEVIEW,
                          self.node.maintenance_reason)
-        self.assertFalse('oneview_error' in self.node.driver_internal_info)
+        self.assertNotIn('oneview_error', self.node.driver_internal_info)
 
     def test_node_stay_clean_failed_when_no_oneview_error(
         self, mock_is_node_in_use_by_oneview, mock_node_get
@@ -256,7 +256,7 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
         self.assertFalse(self.node.maintenance)
         self.assertNotEqual(common.NODE_IN_USE_BY_ONEVIEW,
                             self.node.maintenance_reason)
-        self.assertFalse('oneview_error' in self.node.driver_internal_info)
+        self.assertNotIn('oneview_error', self.node.driver_internal_info)
 
 
 @mock.patch.object(common, 'get_oneview_client', spec_set=True, autospec=True)

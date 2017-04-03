@@ -390,7 +390,7 @@ class IloManagementTestCase(db_base.DbTestCase):
                                'fw_location_for_another_filepath', 'chassis'),
                      ]
             clean_step_mock.assert_has_calls(calls)
-            self.assertTrue(clean_step_mock.call_count == 5)
+            self.assertEqual(5, clean_step_mock.call_count)
 
     def test_update_firmware_throws_if_invalid_update_mode_provided(self):
         with task_manager.acquire(self.context, self.node.uuid,

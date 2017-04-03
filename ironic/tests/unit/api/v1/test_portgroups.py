@@ -855,7 +855,7 @@ class TestPatch(test_api_base.BaseApiTest):
                                    headers=self.headers)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
-        self.assertEqual(False, response.json['standalone_ports_supported'])
+        self.assertIs(False, response.json['standalone_ports_supported'])
 
     def test_update_portgroup_standalone_ports_supported_bad_api_version(
             self, mock_upd):

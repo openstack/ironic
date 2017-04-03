@@ -110,12 +110,12 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
                 '/rest/server-profiles/1234556789'
             task.node.driver_info = driver_info
 
-            self.assertTrue(
-                'applied_server_profile_uri' in task.node.driver_info
+            self.assertIn(
+                'applied_server_profile_uri', task.node.driver_info
             )
             deploy_utils.tear_down(ov_client, task)
-            self.assertFalse(
-                'applied_server_profile_uri' in task.node.driver_info
+            self.assertNotIn(
+                'applied_server_profile_uri', task.node.driver_info
             )
         self.assertTrue(
             ov_client.delete_server_profile.called
@@ -403,8 +403,8 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
                 oneview_client, task.node
             )
             self.assertTrue(oneview_client.delete_server_profile.called)
-            self.assertTrue(
-                'applied_server_profile_uri' not in task.node.driver_info
+            self.assertNotIn(
+                'applied_server_profile_uri', task.node.driver_info
             )
 
     @mock.patch.object(objects.Node, 'save')
@@ -439,6 +439,6 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
                 task.node
             )
             self.assertTrue(ov_client.delete_server_profile.called)
-            self.assertTrue(
-                'applied_server_profile_uri' in task.node.driver_info
+            self.assertIn(
+                'applied_server_profile_uri', task.node.driver_info
             )
