@@ -71,9 +71,8 @@ def main():
                         help="What boot device to use (hd/network).")
     parser.add_argument('--libvirt-nic-driver', default='virtio',
                         help='The libvirt network driver to use')
-    parser.add_argument('--bridge', default="br-seed",
-                        help='The linux bridge name to use for seeding \
-                                the baremetal pseudo-node\'s OS image')
+    parser.add_argument('--interface-count', default=1, type=int,
+                        help='The number of interfaces to add to VM.'),
     parser.add_argument('--console-log',
                         help='File to log console')
     parser.add_argument('--emulator', default=None,
@@ -99,7 +98,7 @@ def main():
         'memory': args.memory,
         'cpus': args.cpus,
         'bootdev': args.bootdev,
-        'bridge': args.bridge,
+        'interface_count': args.interface_count,
         'nicdriver': args.libvirt_nic_driver,
         'emulator': args.emulator,
         'disk_format': args.disk_format,
