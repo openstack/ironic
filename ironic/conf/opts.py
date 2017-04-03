@@ -35,6 +35,7 @@ _opts = [
     ('api', ironic.conf.api.opts),
     ('audit', ironic.conf.audit.opts),
     ('cimc', ironic.conf.cisco.cimc_opts),
+    ('cinder', ironic.conf.cinder.list_opts()),
     ('cisco_ucs', ironic.conf.cisco.ucsm_opts),
     ('conductor', ironic.conf.conductor.opts),
     ('console', ironic.conf.console.opts),

@@ -738,3 +738,7 @@ class NotificationSchemaKeyError(IronicException):
 class NotificationPayloadError(IronicException):
     _msg_fmt = _("Payload not populated when trying to send notification "
                  "\"%(class_name)s\"")
+
+
+class StorageError(IronicException):
+    _msg_fmt = _("Storage operation failure.")
