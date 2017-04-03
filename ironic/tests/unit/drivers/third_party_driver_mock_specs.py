@@ -57,22 +57,6 @@ PROLIANTUTILS_SPEC = (
     'utils',
 )
 
-# pyghmi
-PYGHMI_SPEC = (
-    'exceptions',
-    'ipmi',
-)
-PYGHMI_EXC_SPEC = (
-    'IpmiException',
-)
-PYGHMI_IPMI_SPEC = (
-    'command',
-)
-PYGHMI_IPMICMD_SPEC = (
-    'boot_devices',
-    'Command',
-)
-
 # pywsman
 PYWSMAN_SPEC = (
     'Client',

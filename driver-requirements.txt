@@ -5,7 +5,6 @@
 
 # These are available on pypi
 proliantutils>=2.2.1
-pyghmi>=0.8.0
 pysnmp
 python-ironic-inspector-client>=1.5.0
 python-oneviewclient<3.0.0,>=2.5.2

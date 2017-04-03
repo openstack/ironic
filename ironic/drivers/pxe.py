@@ -33,7 +33,6 @@ from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules.ilo import power as ilo_power
 from ironic.drivers.modules.ilo import vendor as ilo_vendor
 from ironic.drivers.modules import inspector
-from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import inspect as irmc_inspect
 from ironic.drivers.modules.irmc import management as irmc_management
@@ -75,35 +74,6 @@ class PXEAndSSHDriver(base.BaseDriver):
             'PXEAndSSHDriver')
         self.raid = agent.AgentRAID()
         self.console = ssh.ShellinaboxConsole()
-
-
-class PXEAndIPMINativeDriver(base.BaseDriver):
-    """PXE + Native IPMI driver.
-
-    This driver implements the `core` functionality, combining
-    :class:`ironic.drivers.modules.ipminative.NativeIPMIPower`
-    for power on/off and reboot with
-    :class:`ironic.drivers.modules.iscsi_deploy.ISCSIDeploy`
-    for image deployment.  Implementations are in those respective
-    classes; this class is merely the glue between them.
-    """
-
-    supported = False
-
-    def __init__(self):
-        if not importutils.try_import('pyghmi'):
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=_("Unable to import pyghmi library"))
-        self.power = ipminative.NativeIPMIPower()
-        self.console = ipminative.NativeIPMIShellinaboxConsole()
-        self.boot = pxe.PXEBoot()
-        self.deploy = iscsi_deploy.ISCSIDeploy()
-        self.management = ipminative.NativeIPMIManagement()
-        self.vendor = ipminative.VendorPassthru()
-        self.inspect = inspector.Inspector.create_if_enabled(
-            'PXEAndIPMINativeDriver')
-        self.raid = agent.AgentRAID()
 
 
 class PXEAndIloDriver(base.BaseDriver):

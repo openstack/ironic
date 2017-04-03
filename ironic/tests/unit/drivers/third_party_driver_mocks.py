@@ -22,7 +22,6 @@ respective external libraries' actually being present.
 Any external library required by a third-party driver should be mocked here.
 Current list of mocked libraries:
 
-- ipminative
 - proliantutils
 - pysnmp
 - scciclient
@@ -48,26 +47,6 @@ from ironic.tests.unit.drivers import third_party_driver_mock_specs \
 ipmitool.TIMING_SUPPORT = False
 ipmitool.DUAL_BRIDGE_SUPPORT = False
 ipmitool.SINGLE_BRIDGE_SUPPORT = False
-
-pyghmi = importutils.try_import("pyghmi")
-if not pyghmi:
-    p = mock.MagicMock(spec_set=mock_specs.PYGHMI_SPEC)
-    p.exceptions = mock.MagicMock(spec_set=mock_specs.PYGHMI_EXC_SPEC)
-    p.exceptions.IpmiException = Exception
-    p.ipmi = mock.MagicMock(spec_set=mock_specs.PYGHMI_IPMI_SPEC)
-    p.ipmi.command = mock.MagicMock(spec_set=mock_specs.PYGHMI_IPMICMD_SPEC)
-    p.ipmi.command.Command = mock.MagicMock(spec_set=[])
-    sys.modules['pyghmi'] = p
-    sys.modules['pyghmi.exceptions'] = p.exceptions
-    sys.modules['pyghmi.ipmi'] = p.ipmi
-    sys.modules['pyghmi.ipmi.command'] = p.ipmi.command
-    # FIXME(deva): the next line is a hack, because several unit tests
-    #              actually depend on this particular string being present
-    #              in pyghmi.ipmi.command.boot_devices
-    p.ipmi.command.boot_devices = {'pxe': 4}
-
-if 'ironic.drivers.modules.ipminative' in sys.modules:
-    six.moves.reload_module(sys.modules['ironic.drivers.modules.ipminative'])
 
 proliantutils = importutils.try_import('proliantutils')
 if not proliantutils:

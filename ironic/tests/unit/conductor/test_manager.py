@@ -4758,11 +4758,6 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin,
                     ]
         self._check_driver_properties("fake_ipmitool", expected)
 
-    def test_driver_properties_fake_ipminative(self):
-        expected = ['ipmi_address', 'ipmi_password', 'ipmi_username',
-                    'ipmi_terminal_port', 'ipmi_force_boot_device']
-        self._check_driver_properties("fake_ipminative", expected)
-
     def test_driver_properties_fake_ssh(self):
         expected = ['ssh_address', 'ssh_username',
                     'vbox_use_headless', 'ssh_virt_type',
@@ -4789,13 +4784,6 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin,
                     'deploy_kernel', 'deploy_ramdisk', 'ipmi_protocol_version',
                     'ipmi_force_boot_device', 'deploy_forces_oob_reboot']
         self._check_driver_properties("pxe_ipmitool", expected)
-
-    def test_driver_properties_pxe_ipminative(self):
-        expected = ['ipmi_address', 'ipmi_password', 'ipmi_username',
-                    'deploy_kernel', 'deploy_ramdisk',
-                    'ipmi_terminal_port', 'ipmi_force_boot_device',
-                    'deploy_forces_oob_reboot']
-        self._check_driver_properties("pxe_ipminative", expected)
 
     def test_driver_properties_pxe_ssh(self):
         expected = ['deploy_kernel', 'deploy_ramdisk',

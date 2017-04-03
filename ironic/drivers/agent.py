@@ -22,7 +22,6 @@ from ironic.drivers.modules import agent
 from ironic.drivers.modules.cimc import management as cimc_mgmt
 from ironic.drivers.modules.cimc import power as cimc_power
 from ironic.drivers.modules import inspector
-from ironic.drivers.modules import ipminative
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import ssh
 from ironic.drivers.modules.ucs import management as ucs_mgmt
@@ -32,32 +31,6 @@ from ironic.drivers.modules.ucs import power as ucs_power
 # For backward compatibility
 AgentAndIPMIToolDriver = ipmi.AgentAndIPMIToolDriver
 AgentAndIPMIToolAndSocatDriver = ipmi.AgentAndIPMIToolAndSocatDriver
-
-
-class AgentAndIPMINativeDriver(base.BaseDriver):
-    """Agent + IPMINative driver.
-
-    This driver implements the `core` functionality, combining
-    :class:`ironic.drivers.modules.ipminative.NativeIPMIPower` (for power
-    on/off and reboot) with
-    :class:`ironic.drivers.modules.agent.AgentDeploy` (for image
-    deployment).
-    Implementations are in those respective classes; this class is merely the
-    glue between them.
-    """
-
-    supported = False
-
-    def __init__(self):
-        self.power = ipminative.NativeIPMIPower()
-        self.boot = pxe.PXEBoot()
-        self.deploy = agent.AgentDeploy()
-        self.management = ipminative.NativeIPMIManagement()
-        self.console = ipminative.NativeIPMIShellinaboxConsole()
-        self.vendor = ipminative.VendorPassthru()
-        self.raid = agent.AgentRAID()
-        self.inspect = inspector.Inspector.create_if_enabled(
-            'AgentAndIPMINativeDriver')
 
 
 class AgentAndSSHDriver(base.BaseDriver):
