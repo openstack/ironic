@@ -12,12 +12,10 @@ export PS4='+ ${BASH_SOURCE:-}:${FUNCNAME[0]:-}:L${LINENO:-}:   '
 # Keep track of the DevStack directory
 TOP_DIR=$(cd $(dirname "$0")/.. && pwd)
 
-while getopts "n:c:i:m:M:d:a:b:e:E:p:o:f:l:L:N:" arg; do
+while getopts "n:c:m:d:a:b:e:E:p:o:f:l:L:N:" arg; do
     case $arg in
         n) NAME=$OPTARG;;
         c) CPU=$OPTARG;;
-        i) INTERFACE_COUNT=$OPTARG;;
-        M) INTERFACE_MTU=$OPTARG;;
         m) MEM=$(( 1024 * OPTARG ));;
         # Extra G to allow fuzz for partition table : flavor size and registered
         # size need to be different to actual size.
@@ -90,15 +88,12 @@ fi
 # it will be plugged to OVS.
 # This is needed in order to have interface in OVS even
 # when VM is in shutdown state
-INTERFACE_COUNT=${INTERFACE_COUNT:-1}
 
-for int in $(seq 1 $INTERFACE_COUNT); do
-    tapif=tap-${NAME}i${int}
-    sudo ip tuntap add dev $tapif mode tap
-    sudo ip link set $tapif mtu $INTERFACE_MTU
-    sudo ip link set $tapif up
-    sudo ovs-vsctl add-port $BRIDGE $tapif
-done
+sudo brctl addbr br-$NAME
+sudo ip link set br-$NAME up
+sudo ovs-vsctl add-port $BRIDGE ovs-$NAME -- set Interface ovs-$NAME type=internal
+sudo ip link set ovs-$NAME up
+sudo brctl addif br-$NAME ovs-$NAME
 
 if ! virsh list --all | grep -q $NAME; then
     virsh vol-list --pool $LIBVIRT_STORAGE_POOL | grep -q $VOL_NAME &&
@@ -115,8 +110,7 @@ if ! virsh list --all | grep -q $NAME; then
     $TOP_DIR/scripts/configure-vm.py \
         --bootdev network --name $NAME --image "$volume_path" \
         --arch $ARCH --cpus $CPU --memory $MEM --libvirt-nic-driver $LIBVIRT_NIC_DRIVER \
-        --disk-format $DISK_FORMAT $VM_LOGGING --engine $ENGINE $UEFI_OPTS $vm_opts \
-        --interface-count $INTERFACE_COUNT >&2
+        --bridge br-$NAME --disk-format $DISK_FORMAT $VM_LOGGING --engine $ENGINE $UEFI_OPTS $vm_opts >&2
 
     # Createa Virtual BMC for the node if IPMI is used
     if [[ $(type -P vbmc) != "" ]]; then
@@ -125,6 +119,7 @@ if ! virsh list --all | grep -q $NAME; then
     fi
 fi
 
-# echo mac in format mac1,ovs-node-0i1;mac2,ovs-node-0i2;...;macN,ovs-node0iN
-VM_MAC=$(echo -n $(virsh domiflist $NAME |awk '/tap-/{print $5","$1}')|tr ' ' ';')
-echo -n "$VM_MAC $VBMC_PORT $PDU_OUTLET"
+# echo mac
+VM_MAC=$(virsh dumpxml $NAME | grep "mac address" | head -1 | cut -d\' -f2)
+switch_id=$(ip link show dev $BRIDGE | egrep -o "ether [A-Za-z0-9:]+"|sed "s/ether\ //")
+echo $VM_MAC $VBMC_PORT $PDU_OUTLET $BRIDGE $switch_id ovs-$NAME
