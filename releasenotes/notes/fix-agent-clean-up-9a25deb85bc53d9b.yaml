@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue wherein agent based deploy do not call
+    clean up the instance related configurations done on
+    the Ironic node.
