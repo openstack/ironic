@@ -75,14 +75,6 @@ def set_defaults(control_exchange):
     messaging.set_transport_defaults(control_exchange)
 
 
-def add_extra_exmods(*args):
-    EXTRA_EXMODS.extend(args)
-
-
-def clear_extra_exmods():
-    del EXTRA_EXMODS[:]
-
-
 def get_allowed_exmods():
     return ALLOWED_EXMODS + EXTRA_EXMODS
 
