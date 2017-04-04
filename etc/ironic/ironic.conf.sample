@@ -354,13 +354,16 @@
 # value)
 #host = localhost
 
+# WARNING: This configuration option is part of the incomplete
+# rolling upgrades work; changing this value has no effect.
 # Used for rolling upgrades. Setting this option downgrades
-# the internal ironic RPC communication to the specified
-# version to enable communication with older services. When
-# doing a rolling upgrade from version X to version Y, set
-# this to X. Defaults to using the newest possible RPC
-# behavior. (string value)
-# Allowed values: ocata, 7.0
+# (or pins) the internal ironic RPC communication to the
+# specified version to enable communication with older
+# services. When doing a rolling upgrade from version X to
+# version Y, set (pin) this to X. To unpin, leave it unset.
+# Defaults to using the newest possible RPC behavior. (string
+# value)
+# Allowed values: ocata, 8.0, 7.0
 #pin_release_version = <None>
 
 # Path to the rootwrap configuration file to use for running
