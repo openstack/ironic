@@ -17,6 +17,7 @@
 from oslo_log import log
 from oslo_utils import versionutils
 from oslo_versionedobjects import base as object_base
+import six
 
 from ironic.common import release_mappings as versions
 from ironic.conf import CONF
@@ -137,6 +138,7 @@ class IronicObjectSerializer(object_base.VersionedObjectSerializer):
             # object version and entity's obj_make_compatible method is called
             # to backport the object before serialization.
             entity = entity.obj_to_primitive(target_version=target_version)
-        elif not isinstance(entity, (int, str, bool, float, type)) and entity:
+        elif not isinstance(entity, (bool, float, type, six.integer_types,
+                                     six.string_types)) and entity:
             LOG.warning("Entity %s was not serialized.", str(entity))
         return entity
