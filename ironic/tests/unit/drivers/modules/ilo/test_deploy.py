@@ -27,7 +27,6 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers.modules import agent
-from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import deploy as ilo_deploy
 from ironic.drivers.modules import iscsi_deploy
@@ -509,61 +508,6 @@ class IloVirtualMediaAgentDeployTestCase(db_base.DbTestCase):
                 task.driver.deploy.prepare(task)
                 self.assertFalse(func_prepare_node_for_deploy.called)
                 agent_prepare_mock.assert_called_once_with(mock.ANY, task)
-
-    @mock.patch.object(deploy_utils, 'agent_get_clean_steps', spec_set=True,
-                       autospec=True)
-    def test_get_clean_steps_with_conf_option(self, get_clean_step_mock):
-        self.config(clean_priority_erase_devices=20, group='ilo')
-        self.config(erase_devices_metadata_priority=10, group='deploy')
-        get_clean_step_mock.return_value = [{
-            'step': 'erase_devices',
-            'priority': 10,
-            'interface': 'deploy',
-            'reboot_requested': False
-        }]
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.deploy.get_clean_steps(task)
-            get_clean_step_mock.assert_called_once_with(
-                task, interface='deploy',
-                override_priorities={'erase_devices': 20,
-                                     'erase_devices_metadata': 10})
-
-    @mock.patch.object(deploy_utils, 'agent_get_clean_steps', spec_set=True,
-                       autospec=True)
-    def test_get_clean_steps_erase_devices_disable(self, get_clean_step_mock):
-        self.config(clean_priority_erase_devices=0, group='ilo')
-        self.config(erase_devices_metadata_priority=0, group='deploy')
-        get_clean_step_mock.return_value = [{
-            'step': 'erase_devices',
-            'priority': 10,
-            'interface': 'deploy',
-            'reboot_requested': False
-        }]
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.deploy.get_clean_steps(task)
-            get_clean_step_mock.assert_called_once_with(
-                task, interface='deploy',
-                override_priorities={'erase_devices': 0,
-                                     'erase_devices_metadata': 0})
-
-    @mock.patch.object(deploy_utils, 'agent_get_clean_steps', spec_set=True,
-                       autospec=True)
-    def test_get_clean_steps_without_conf_option(self, get_clean_step_mock):
-        get_clean_step_mock.return_value = [{
-            'step': 'erase_devices',
-            'priority': 10,
-            'interface': 'deploy',
-            'reboot_requested': False
-        }]
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.deploy.get_clean_steps(task)
-            get_clean_step_mock.assert_called_once_with(
-                task, interface='deploy',
-                override_priorities={'erase_devices': None,
-                                     'erase_devices_metadata': None})
 
     @mock.patch.object(agent.AgentDeploy, 'prepare_cleaning', spec_set=True,
                        autospec=True)

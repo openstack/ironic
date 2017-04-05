@@ -26,7 +26,6 @@ from ironic.common import image_service
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
-from ironic.conf import CONF
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import boot as ilo_boot
@@ -302,30 +301,6 @@ class IloVirtualMediaAgentDeploy(agent.AgentDeploy):
         # If node is in system POST, setting boot device fails.
         manager_utils.node_power_action(task, states.POWER_OFF)
         return super(IloVirtualMediaAgentDeploy, self).prepare_cleaning(task)
-
-    @METRICS.timer('IloVirtualMediaAgentDeploy.get_clean_steps')
-    def get_clean_steps(self, task):
-        """Get the list of clean steps from the agent.
-
-        :param task: a TaskManager object containing the node
-        :raises NodeCleaningFailure: if the clean steps are not yet
-            available (cached), for example, when a node has just been
-            enrolled and has not been cleaned yet.
-        :returns: A list of clean step dictionaries
-        """
-
-        priority = CONF.ilo.clean_priority_erase_devices
-        if priority is None:
-            priority = CONF.deploy.erase_devices_priority
-
-        new_priorities = {
-            'erase_devices': priority,
-            'erase_devices_metadata':
-                CONF.deploy.erase_devices_metadata_priority,
-        }
-        return deploy_utils.agent_get_clean_steps(
-            task, interface='deploy',
-            override_priorities=new_priorities)
 
     @METRICS.timer('IloVirtualMediaAgentDeploy.reboot_to_instance')
     def reboot_to_instance(self, task):
