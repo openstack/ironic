@@ -68,17 +68,6 @@ PARTITION_IMAGE_LABELS = ('kernel', 'ramdisk', 'root_gb', 'root_mb', 'swap_mb',
                           'deploy_boot_mode')
 
 
-def build_instance_info_for_deploy(task):
-    # TODO(pas-ha) remove this in Pike cycle
-    LOG.warning(_LW("This function has moved to "
-                    "'ironic.drivers.modules.deploy_utils' module. "
-                    "Using it from 'ironic.drivers.modules.agent' module "
-                    "is deprecated and will be removed in the Pike release. "
-                    "Please update your driver to use this function "
-                    "from its new location."))
-    return deploy_utils.build_instance_info_for_deploy(task)
-
-
 @METRICS.timer('check_image_size')
 def check_image_size(task, image_source):
     """Check if the requested image is larger than the ram size.

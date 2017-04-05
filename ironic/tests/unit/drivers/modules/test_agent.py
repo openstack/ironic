@@ -51,17 +51,6 @@ class TestAgentMethods(db_base.DbTestCase):
                                                   driver='fake_agent')
         dhcp_factory.DHCPFactory._dhcp_provider = None
 
-    @mock.patch.object(agent.LOG, 'warning', autospec=True)
-    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
-                       autospec=True)
-    def test_build_instance_info_for_deploy_warn(self, build_mock, warn_mock):
-        mgr_utils.mock_the_extension_manager(driver='fake_agent')
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
-            agent.build_instance_info_for_deploy(task)
-            build_mock.assert_called_once_with(task)
-        self.assertTrue(warn_mock.called)
-
     @mock.patch.object(images, 'image_show', autospec=True)
     def test_check_image_size(self, show_mock):
         show_mock.return_value = {
