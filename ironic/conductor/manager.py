@@ -1381,7 +1381,9 @@ class ConductorManager(base_manager.BaseConductorManager):
             # supplied.
             iwdi = images.is_whole_disk_image(task.context,
                                               task.node.instance_info)
-            node.driver_internal_info['is_whole_disk_image'] = iwdi
+            driver_internal_info = node.driver_internal_info
+            driver_internal_info['is_whole_disk_image'] = iwdi
+            node.driver_internal_info = driver_internal_info
             # Calling boot validate to ensure that sufficient information
             # is supplied to allow the node to be able to boot if takeover
             # writes items such as kernel/ramdisk data to disk.

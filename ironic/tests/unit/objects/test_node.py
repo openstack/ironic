@@ -73,12 +73,15 @@ class TestNodeObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
 
     def test_save(self):
         uuid = self.fake_node['uuid']
+        test_time = datetime.datetime(2000, 1, 1, 0, 0)
         with mock.patch.object(self.dbapi, 'get_node_by_uuid',
                                autospec=True) as mock_get_node:
             mock_get_node.return_value = self.fake_node
             with mock.patch.object(self.dbapi, 'update_node',
                                    autospec=True) as mock_update_node:
-                mock_update_node.return_value = utils.get_test_node()
+                mock_update_node.return_value = utils.get_test_node(
+                    properties={"fake": "property"}, driver='fake-driver',
+                    driver_internal_info={}, updated_at=test_time)
                 n = objects.Node.get(self.context, uuid)
                 self.assertEqual({"private_state": "secret value"},
                                  n.driver_internal_info)
@@ -92,6 +95,8 @@ class TestNodeObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
                            'driver': 'fake-driver',
                            'driver_internal_info': {}})
                 self.assertEqual(self.context, n._context)
+                res_updated_at = (n.updated_at).replace(tzinfo=None)
+                self.assertEqual(test_time, res_updated_at)
                 self.assertEqual({}, n.driver_internal_info)
 
     def test_save_updated_at_field(self):

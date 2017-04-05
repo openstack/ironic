@@ -291,7 +291,9 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
                                                'efi_system_partition_uuid'))
             else:
                 efi_sys_uuid = None
-            task.node.driver_internal_info['root_uuid_or_disk_id'] = root_uuid
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['root_uuid_or_disk_id'] = root_uuid
+            task.node.driver_internal_info = driver_internal_info
             task.node.save()
             self.prepare_instance_to_boot(task, root_uuid, efi_sys_uuid)
         LOG.info(_LI('Image successfully written to node %s'), node.uuid)
