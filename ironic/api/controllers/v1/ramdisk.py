@@ -25,7 +25,6 @@ from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import expose
 from ironic.common import exception
-from ironic.common.i18n import _LW
 from ironic.common import policy
 from ironic.common import states
 from ironic.common import utils
@@ -119,10 +118,10 @@ class LookupController(rest.RestController):
 
         if invalid_addresses:
             node_log = ('' if not node_uuid
-                        else _LW('(Node UUID: %s)') % node_uuid)
-            LOG.warning(_LW('The following MAC addresses "%(addrs)s" are '
-                            'invalid and will be ignored by the lookup '
-                            'request %(node)s'),
+                        else '(Node UUID: %s)' % node_uuid)
+            LOG.warning('The following MAC addresses "%(addrs)s" are '
+                        'invalid and will be ignored by the lookup '
+                        'request %(node)s',
                         {'addrs': ', '.join(invalid_addresses),
                          'node': node_log})
 

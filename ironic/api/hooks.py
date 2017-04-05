@@ -23,7 +23,6 @@ import six
 from six.moves import http_client
 
 from ironic.common import context
-from ironic.common.i18n import _LW
 from ironic.common import policy
 from ironic.conductor import rpcapi
 from ironic.db import api as dbapi
@@ -48,19 +47,19 @@ def policy_deprecation_check():
             str_rule = six.text_type(rule)
             for deprecated, replacement in substitution_dict.items():
                 if re.search(r'\b%s\b' % deprecated, str_rule):
-                    LOG.warning(_LW(
+                    LOG.warning(
                         "Deprecated argument %(deprecated)s is used in policy "
                         "file rule (%(rule)s), please use %(replacement)s "
                         "argument instead. The possibility to use deprecated "
-                        "arguments will be removed in the Pike release."),
+                        "arguments will be removed in the Pike release.",
                         {'deprecated': deprecated, 'replacement': replacement,
                          'rule': str_rule})
                     if deprecated == 'domain_name':
-                        LOG.warning(_LW(
+                        LOG.warning(
                             "Please note that user_domain_id is an ID of the "
                             "user domain, while the deprecated domain_name is "
                             "its name. The policy rule has to be updated "
-                            "accordingly."))
+                            "accordingly.")
         CHECKED_DEPRECATED_POLICY_ARGS = True
 
 

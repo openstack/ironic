@@ -27,7 +27,7 @@ from oslo_log import log
 import six
 import webob
 
-from ironic.common.i18n import _, _LE
+from ironic.common.i18n import _
 
 LOG = log.getLogger(__name__)
 
@@ -76,7 +76,7 @@ class ParsableErrorMiddleware(object):
                                                       + '\n'.join(app_iter)
                                                       + '</error_message>'))]
                 except et.ElementTree.ParseError as err:
-                    LOG.error(_LE('Error parsing HTTP response: %s'), err)
+                    LOG.error('Error parsing HTTP response: %s', err)
                     body = ['<error_message>%s' % state['status_code']
                             + '</error_message>']
                 state['headers'].append(('Content-Type', 'application/xml'))
