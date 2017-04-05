@@ -279,7 +279,7 @@ def dhcp_options_for_instance(task):
     if CONF.pxe.ipxe_enabled:
         script_name = os.path.basename(CONF.pxe.ipxe_boot_script)
         ipxe_script_url = '/'.join([CONF.deploy.http_url, script_name])
-        dhcp_provider_name = dhcp_factory.CONF.dhcp.dhcp_provider
+        dhcp_provider_name = CONF.dhcp.dhcp_provider
         # if the request comes from dumb firmware send them the iPXE
         # boot image.
         if dhcp_provider_name == 'neutron':
