@@ -47,19 +47,6 @@ class BaseDHCP(object):
         :raises: FailedToUpdateDHCPOptOnPort
         """
 
-    # TODO(vsaienko) Remove this method when deprecation period is passed
-    # in Pike.
-    def update_port_address(self, port_id, address, token=None):
-        """Update a port's MAC address.
-
-        :param port_id: port id.
-        :param address: new MAC address.
-        :param token: An optional authentication token.
-
-        :raises: FailedToUpdateMacOnPort
-        """
-        pass
-
     @abc.abstractmethod
     def update_dhcp_opts(self, task, options, vifs=None):
         """Send or update the DHCP BOOT options for this node.

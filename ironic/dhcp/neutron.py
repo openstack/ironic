@@ -30,8 +30,6 @@ from ironic import objects
 
 LOG = logging.getLogger(__name__)
 
-update_port_address_deprecation = False
-
 
 class NeutronDHCPApi(base.BaseDHCP):
     """API for communicating to neutron 2.x API."""
@@ -65,25 +63,6 @@ class NeutronDHCPApi(base.BaseDHCP):
         except neutron_client_exc.NeutronClientException:
             LOG.exception("Failed to update Neutron port %s.", port_id)
             raise exception.FailedToUpdateDHCPOptOnPort(port_id=port_id)
-
-    # TODO(vsaienko) Remove this method when deprecation period is passed
-    # in Pike.
-    def update_port_address(self, port_id, address, token=None):
-        """Update a port's mac address.
-
-        :param port_id: Neutron port id.
-        :param address: new MAC address.
-        :param token: optional auth token.
-        :raises: FailedToUpdateMacOnPort
-        """
-        global update_port_address_deprecation
-        if not update_port_address_deprecation:
-            LOG.warning('update_port_address via DHCP provider is '
-                        'deprecated. The node.network_interface '
-                        'port_changed() should be used instead.')
-            update_port_address_deprecation = True
-
-        neutron.update_port_address(port_id, address, token)
 
     def update_dhcp_opts(self, task, options, vifs=None):
         """Send or update the DHCP BOOT options for this node.

@@ -21,7 +21,6 @@ from ironic.common import exception
 from ironic.common import raid
 from ironic.drivers import base as driver_base
 from ironic.drivers.modules import fake
-from ironic.drivers.modules.network import common as net_common
 from ironic.tests import base
 
 
@@ -409,95 +408,6 @@ class TestDeployInterface(base.TestCase):
                                                   driver='driver')),
                          'url')
         self.assertTrue(mock_log.called)
-
-
-class TestNetwork(driver_base.NetworkInterface):
-
-    def add_provisioning_network(self, task):
-        pass
-
-    def remove_provisioning_network(self, task):
-        pass
-
-    def add_cleaning_network(self, task):
-        pass
-
-    def remove_cleaning_network(self, task):
-        pass
-
-    def configure_tenant_networks(self, task):
-        pass
-
-    def unconfigure_tenant_networks(self, task):
-        pass
-
-
-class NetworkInterfaceTestCase(base.TestCase):
-
-    @mock.patch.object(driver_base.LOG, 'warning', autospec=True)
-    @mock.patch.object(net_common.VIFPortIDMixin, 'vif_list')
-    def test_vif_list(self, mock_vif, mock_warn):
-        mock_task = mock.MagicMock()
-        network = TestNetwork()
-        network.vif_list(mock_task)
-        mock_vif.assert_called_once_with(mock_task)
-        mock_warn.assert_called_once_with(mock.ANY, 'TestNetwork')
-        # Test if the log is only called once even if we recreate a new
-        # NetworkInterface and call it again.
-        # NOTE(sambetts): This must be done inside this test instead of a
-        # separate test because otherwise we end up race conditions between the
-        # test cases regarding the class variables that are set.
-        network = TestNetwork()
-        network.vif_list(mock_task)
-        mock_warn.assert_called_once_with(mock.ANY, 'TestNetwork')
-
-    @mock.patch.object(driver_base.LOG, 'warning', autospec=True)
-    @mock.patch.object(net_common.VIFPortIDMixin, 'vif_attach')
-    def test_vif_attach(self, mock_attach, mock_warn):
-        mock_task = mock.MagicMock()
-        network = TestNetwork()
-        network.vif_attach(mock_task, {'id': 'fake'})
-        mock_attach.assert_called_once_with(mock_task, {'id': 'fake'})
-        self.assertTrue(mock_warn.called)
-
-    @mock.patch.object(driver_base.LOG, 'warning', autospec=True)
-    @mock.patch.object(net_common.VIFPortIDMixin, 'vif_detach')
-    def test_vif_detach(self, mock_detach, mock_warn):
-        mock_task = mock.MagicMock()
-        network = TestNetwork()
-        network.vif_detach(mock_task, 'fake-vif-id')
-        mock_detach.assert_called_once_with(mock_task, 'fake-vif-id')
-        self.assertTrue(mock_warn.called)
-
-    @mock.patch.object(driver_base.LOG, 'warning', autospec=True)
-    @mock.patch.object(net_common.VIFPortIDMixin, 'port_changed')
-    def test_port_changed(self, mock_pc, mock_warn):
-        port = mock.MagicMock()
-        mock_task = mock.MagicMock()
-        network = TestNetwork()
-        network.port_changed(mock_task, port)
-        mock_pc.assert_called_once_with(mock_task, port)
-        self.assertTrue(mock_warn.called)
-
-    @mock.patch.object(driver_base.LOG, 'warning', autospec=True)
-    @mock.patch.object(net_common.VIFPortIDMixin, 'portgroup_changed')
-    def test_portgroup_changed(self, mock_pgc, mock_warn):
-        port = mock.MagicMock()
-        mock_task = mock.MagicMock()
-        network = TestNetwork()
-        network.portgroup_changed(mock_task, port)
-        mock_pgc.assert_called_once_with(mock_task, port)
-        self.assertTrue(mock_warn.called)
-
-    @mock.patch.object(driver_base.LOG, 'warning', autospec=True)
-    @mock.patch.object(net_common.VIFPortIDMixin, 'get_current_vif')
-    def test_get_current_vif(self, mock_gcv, mock_warn):
-        port = mock.MagicMock()
-        mock_task = mock.MagicMock()
-        network = TestNetwork()
-        network.get_current_vif(mock_task, port)
-        mock_gcv.assert_called_once_with(mock_task, port)
-        self.assertTrue(mock_warn.called)
 
 
 class TestManagementInterface(base.TestCase):
