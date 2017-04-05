@@ -35,7 +35,7 @@ CONF = cfg.CONF
 LOG = log.getLogger(__name__)
 
 SECTIONS_WITH_AUTH = (
-    'service_catalog', 'neutron', 'glance', 'swift', 'inspector')
+    'service_catalog', 'neutron', 'glance', 'swift', 'cinder', 'inspector')
 
 
 # TODO(pas-ha) remove this check after deprecation period
