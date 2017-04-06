@@ -256,13 +256,47 @@ class TestAgentDeploy(db_base.DbTestCase):
                 task.driver.boot, task)
             show_mock.assert_called_once_with(self.context, 'fake-image')
 
+    @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
+    @mock.patch.object(deploy_utils, 'check_for_missing_params',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'validate_capabilities', autospec=True)
+    @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
+                       autospec=True)
+    def test_validate_storage_should_write_image_false(self, mock_write,
+                                                       mock_capabilities,
+                                                       mock_params,
+                                                       mock_pxe_validate):
+        mock_write.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+
+            self.driver.validate(task)
+            mock_capabilities.assert_called_once_with(task.node)
+            self.assertFalse(mock_params.called)
+
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
-    def test_deploy(self, power_mock):
+    def test_deploy(self, power_mock, mock_pxe_instance):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             driver_return = self.driver.deploy(task)
             self.assertEqual(driver_return, states.DEPLOYWAIT)
             power_mock.assert_called_once_with(task, states.REBOOT)
+            self.assertFalse(mock_pxe_instance.called)
+
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
+    @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
+                       autospec=True)
+    def test_deploy_storage_should_write_image_false(self, mock_write,
+                                                     mock_pxe_instance):
+        mock_write.return_value = False
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            driver_return = self.driver.deploy(task)
+            self.assertEqual(driver_return, states.DEPLOYDONE)
+            self.assertTrue(mock_pxe_instance.called)
 
     @mock.patch.object(noop_storage.NoopStorage, 'detach_volumes',
                        autospec=True)

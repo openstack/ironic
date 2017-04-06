@@ -35,6 +35,7 @@ from ironic.conductor import task_manager
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import pxe
+from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -697,6 +698,18 @@ class PXEBootTestCase(db_base.DbTestCase):
             task.node.driver_internal_info['is_whole_disk_image'] = True
             task.driver.boot.validate(task)
 
+    @mock.patch.object(base_image_service.BaseImageService, '_show',
+                       autospec=True)
+    @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
+                       autospec=True)
+    def test_validate_skip_check_write_image_false(self, mock_write,
+                                                   mock_glance):
+        mock_write.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.boot.validate(task)
+        self.assertFalse(mock_glance.called)
+
     def test_validate_fail_missing_deploy_kernel(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -1076,6 +1089,54 @@ class PXEBootTestCase(db_base.DbTestCase):
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             self.assertFalse(switch_pxe_config_mock.called)
             self.assertFalse(set_boot_device_mock.called)
+
+    @mock.patch('os.path.isfile', return_value=False, autospec=True)
+    @mock.patch.object(pxe_utils, 'create_pxe_config', autospec=True)
+    @mock.patch.object(deploy_utils, 'is_iscsi_boot', autospec=True)
+    @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
+    @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
+    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
+    @mock.patch.object(pxe, '_cache_ramdisk_kernel', autospec=True)
+    @mock.patch.object(pxe, '_get_instance_image_info', autospec=True)
+    def test_prepare_instance_netboot_iscsi(
+            self, get_image_info_mock, cache_mock,
+            dhcp_factory_mock, switch_pxe_config_mock,
+            set_boot_device_mock, should_write_image_mock,
+            is_iscsi_boot_mock, create_pxe_config_mock, isfile_mock):
+        http_url = 'http://192.1.2.3:1234'
+        self.config(ipxe_enabled=True, group='pxe')
+        self.config(http_url=http_url, group='deploy')
+        is_iscsi_boot_mock.return_value = True
+        should_write_image_mock.return_valule = False
+        provider_mock = mock.MagicMock()
+        dhcp_factory_mock.return_value = provider_mock
+        vol_id = uuidutils.generate_uuid()
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=0, volume_id='1234', uuid=vol_id,
+            properties={'target_lun': 0,
+                        'target_portal': 'fake_host:3260',
+                        'target_iqn': 'fake_iqn',
+                        'auth_username': 'fake_username',
+                        'auth_password': 'fake_password'})
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.driver_internal_info = {
+                'boot_from_volume': vol_id}
+            dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
+            pxe_config_path = pxe_utils.get_pxe_config_file_path(
+                task.node.uuid)
+            task.driver.boot.prepare_instance(task)
+            self.assertFalse(get_image_info_mock.called)
+            self.assertFalse(cache_mock.called)
+            provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
+            create_pxe_config_mock.assert_called_once_with(
+                task, mock.ANY, CONF.pxe.pxe_config_template)
+            switch_pxe_config_mock.assert_called_once_with(
+                pxe_config_path, None, None, False, iscsi_boot=True)
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.PXE)
 
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
     @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)

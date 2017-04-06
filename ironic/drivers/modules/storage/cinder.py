@@ -352,15 +352,20 @@ class CinderStorage(base.StorageInterface):
     def should_write_image(self, task):
         """Determines if deploy should perform the image write-out.
 
-        NOTE: This method will be written as part of the changes to the
-        boot logic, and for now should always return false to indicate
-        that the deployment image write-out process should be skipped.
-
         :param task: The task object.
         :returns: True if the deployment write-out process should be
                   executed.
         """
-        return False
+        # NOTE(TheJulia): There is no reason to check if a root volume
+        # exists here because if the validation has already been passed
+        # then we know that there should be a volume. If there is an
+        # image_source, then we should expect to write it out.
+        instance_info = task.node.instance_info
+        if 'image_source' not in instance_info:
+            for volume in task.volume_targets:
+                if volume['boot_index'] == 0:
+                    return False
+        return True
 
     def _generate_connector(self, task):
         """Generate cinder connector value based upon the node.

@@ -419,6 +419,11 @@ class PXEBoot(base.BootInterface):
             validate_boot_parameters_for_trusted_boot(node)
 
         _parse_driver_info(node)
+        # NOTE(TheJulia): If we're not writing an image, we can skip
+        # the remainder of this method.
+        if not task.driver.storage.should_write_image(task):
+            return
+
         d_info = deploy_utils.get_image_instance_info(node)
         if (node.driver_internal_info.get('is_whole_disk_image') or
                 deploy_utils.get_boot_option(node) == 'local'):
@@ -530,12 +535,34 @@ class PXEBoot(base.BootInterface):
         boot_option = deploy_utils.get_boot_option(node)
         boot_device = None
 
-        if boot_option != "local":
-            # Make sure that the instance kernel/ramdisk is cached.
-            # This is for the takeover scenario for active nodes.
-            instance_image_info = _get_instance_image_info(
-                task.node, task.context)
-            _cache_ramdisk_kernel(task.context, task.node, instance_image_info)
+        if deploy_utils.is_iscsi_boot(task):
+            dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
+            provider = dhcp_factory.DHCPFactory()
+            provider.update_dhcp(task, dhcp_opts)
+
+            # configure iPXE for iscsi boot
+            pxe_config_path = pxe_utils.get_pxe_config_file_path(
+                task.node.uuid)
+            if not os.path.isfile(pxe_config_path):
+                pxe_options = _build_pxe_config_options(task, {})
+                pxe_config_template = (
+                    deploy_utils.get_pxe_config_template(node))
+                pxe_utils.create_pxe_config(
+                    task, pxe_options, pxe_config_template)
+            deploy_utils.switch_pxe_config(
+                pxe_config_path, None,
+                deploy_utils.get_boot_mode_for_deploy(node), False,
+                iscsi_boot=True)
+            boot_device = boot_devices.PXE
+
+        elif boot_option != "local":
+            if task.driver.storage.should_write_image(task):
+                # Make sure that the instance kernel/ramdisk is cached.
+                # This is for the takeover scenario for active nodes.
+                instance_image_info = _get_instance_image_info(
+                    task.node, task.context)
+                _cache_ramdisk_kernel(task.context, task.node,
+                                      instance_image_info)
 
             # If it's going to PXE boot we need to update the DHCP server
             dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
@@ -548,7 +575,9 @@ class PXEBoot(base.BootInterface):
                     'root_uuid_or_disk_id'
                 ]
             except KeyError:
-                if not iwdi:
+                if not task.driver.storage.should_write_image(task):
+                    pass
+                elif not iwdi:
                     LOG.warning("The UUID for the root partition can't be "
                                 "found, unable to switch the pxe config from "
                                 "deployment mode to service (boot) mode for "

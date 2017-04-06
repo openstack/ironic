@@ -330,10 +330,17 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
             task.driver.boot.validate(task)
 
         node = task.node
+
+        # Validate node capabilities
+        deploy_utils.validate_capabilities(node)
+
+        if not task.driver.storage.should_write_image(task):
+            # NOTE(TheJulia): There is no reason to validate
+            # image properties if we will not be writing an image
+            # in a boot from volume case. As such, return to the caller.
+            return
+
         params = {}
-        # TODO(jtaryma): Skip validation of image_source if
-        #                task.driver.storage.should_write_image()
-        #                returns False.
         image_source = node.instance_info.get('image_source')
         params['instance_info.image_source'] = image_source
         error_msg = _('Node %s failed to validate deploy image info. Some '
@@ -358,9 +365,6 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
                   '%(node)s. Error: %(error)s') % {'node': node.uuid,
                                                    'error': e})
 
-        # Validate node capabilities
-        deploy_utils.validate_capabilities(node)
-
         validate_image_proxies(node)
 
     @METRICS.timer('AgentDeploy.deploy')
@@ -376,8 +380,21 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
         :param task: a TaskManager instance.
         :returns: status of the deploy. One of ironic.common.states.
         """
-        manager_utils.node_power_action(task, states.REBOOT)
-        return states.DEPLOYWAIT
+        if task.driver.storage.should_write_image(task):
+            manager_utils.node_power_action(task, states.REBOOT)
+            return states.DEPLOYWAIT
+        else:
+            # TODO(TheJulia): At some point, we should de-dupe this code
+            # as it is nearly identical to the iscsi deploy interface.
+            # This is not being done now as it is expected to be
+            # refactored in the near future.
+            manager_utils.node_power_action(task, states.POWER_OFF)
+            task.driver.network.remove_provisioning_network(task)
+            task.driver.network.configure_tenant_networks(task)
+            task.driver.boot.prepare_instance(task)
+            manager_utils.node_power_action(task, states.POWER_ON)
+            LOG.info('Deployment to node %s done', task.node.uuid)
+            return states.DEPLOYDONE
 
     @METRICS.timer('AgentDeploy.tear_down')
     @task_manager.require_exclusive_lock
@@ -425,14 +442,20 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
             # Adding the node to provisioning network so that the dhcp
             # options get added for the provisioning port.
             manager_utils.node_power_action(task, states.POWER_OFF)
-            # NOTE(vdrok): in case of rebuild, we have tenant network already
-            # configured, unbind tenant ports if present
-            task.driver.network.unconfigure_tenant_networks(task)
-            task.driver.network.add_provisioning_network(task)
+            if task.driver.storage.should_write_image(task):
+                # NOTE(vdrok): in case of rebuild, we have tenant network
+                # already configured, unbind tenant ports if present
+                task.driver.network.unconfigure_tenant_networks(task)
+                task.driver.network.add_provisioning_network(task)
             # Signal to storage driver to attach volumes
             task.driver.storage.attach_volumes(task)
         if node.provision_state == states.ACTIVE:
+            # Call is due to conductor takeover
             task.driver.boot.prepare_instance(task)
+        elif not task.driver.storage.should_write_image(task):
+            # We have nothing else to do as this is handled in the
+            # backend storage system.
+            return
         elif node.provision_state != states.ADOPTING:
             node.instance_info = deploy_utils.build_instance_info_for_deploy(
                 task)
