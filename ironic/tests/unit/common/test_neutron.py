@@ -19,7 +19,6 @@ from oslo_utils import uuidutils
 from ironic.common import exception
 from ironic.common import neutron
 from ironic.conductor import task_manager
-# from ironic.conf import auth as ironic_auth
 from ironic.tests import base
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
