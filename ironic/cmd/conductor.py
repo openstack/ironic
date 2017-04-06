@@ -25,7 +25,6 @@ from oslo_config import cfg
 from oslo_log import log
 from oslo_service import service
 
-from ironic.common.i18n import _LW
 from ironic.common import rpc_service
 from ironic.common import service as ironic_service
 from ironic.conf import auth
@@ -46,13 +45,13 @@ def _check_auth_options(conf):
             missing.append('[%s]' % section)
     if missing:
         link = "http://docs.openstack.org/releasenotes/ironic/newton.html"
-        LOG.warning(_LW("Failed to load authentification credentials from "
-                        "%(missing)s config sections. "
-                        "The corresponding service users' credentials "
-                        "will be loaded from [%(old)s] config section, "
-                        "which is deprecated for this purpose. "
-                        "Please update the config file. "
-                        "For more info see %(link)s."),
+        LOG.warning("Failed to load authentification credentials from "
+                    "%(missing)s config sections. "
+                    "The corresponding service users' credentials "
+                    "will be loaded from [%(old)s] config section, "
+                    "which is deprecated for this purpose. "
+                    "Please update the config file. "
+                    "For more info see %(link)s.",
                     dict(missing=", ".join(missing),
                          old=auth.LEGACY_SECTION,
                          link=link))
