@@ -1897,23 +1897,24 @@ function upload_baremetal_ironic_deploy {
         fi
 
         # load them into glance
-        IRONIC_DEPLOY_KERNEL_ID=$(openstack \
-            image create \
-            $ironic_deploy_kernel_name \
-            --public --disk-format=aki \
-            --container-format=aki \
-            < $IRONIC_DEPLOY_KERNEL  | grep ' id ' | get_field 2)
-        die_if_not_set $LINENO IRONIC_DEPLOY_KERNEL_ID "Failed to load kernel image into glance"
+        if ! is_deploy_iso_required; then
+            IRONIC_DEPLOY_KERNEL_ID=$(openstack \
+                image create \
+                $ironic_deploy_kernel_name \
+                --public --disk-format=aki \
+                --container-format=aki \
+                < $IRONIC_DEPLOY_KERNEL  | grep ' id ' | get_field 2)
+            die_if_not_set $LINENO IRONIC_DEPLOY_KERNEL_ID "Failed to load kernel image into glance"
 
-        IRONIC_DEPLOY_RAMDISK_ID=$(openstack \
-            image create \
-            $ironic_deploy_ramdisk_name \
-            --public --disk-format=ari \
-            --container-format=ari \
-            < $IRONIC_DEPLOY_RAMDISK  | grep ' id ' | get_field 2)
-        die_if_not_set $LINENO IRONIC_DEPLOY_RAMDISK_ID "Failed to load ramdisk image into glance"
+            IRONIC_DEPLOY_RAMDISK_ID=$(openstack \
+                image create \
+                $ironic_deploy_ramdisk_name \
+                --public --disk-format=ari \
+                --container-format=ari \
+                < $IRONIC_DEPLOY_RAMDISK  | grep ' id ' | get_field 2)
+            die_if_not_set $LINENO IRONIC_DEPLOY_RAMDISK_ID "Failed to load ramdisk image into glance"
 
-        if is_deploy_iso_required; then
+        else
             IRONIC_DEPLOY_ISO_ID=$(openstack \
                 image create \
                 $(basename $IRONIC_DEPLOY_ISO) \
