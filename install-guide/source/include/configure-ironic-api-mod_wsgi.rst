@@ -18,6 +18,9 @@ Bare Metal service comes with an example file for configuring the
       Debian/Ubuntu:
         apt-get install apache2
 
+      SUSE:
+        zypper install apache2
+
 
 #. Copy the ``etc/apache2/ironic`` file under the apache sites:
 
@@ -29,6 +32,9 @@ Bare Metal service comes with an example file for configuring the
 
       Debian/Ubuntu:
         sudo cp etc/apache2/ironic /etc/apache2/sites-available/ironic.conf
+
+      SUSE
+        sudo cp etc/apache2/ironic /etc/apache2/vhosts.d/ironic.conf
 
 
 #. Edit the recently copied ``<apache-configuration-dir>/ironic.conf``:
@@ -57,6 +63,9 @@ Bare Metal service comes with an example file for configuring the
       Debian/Ubuntu:
         sudo a2ensite ironic
         sudo service apache2 reload
+
+      SUSE:
+        sudo systemctl reload apache2
 
 .. note::
    The file ``ironic/api/app.wsgi`` is installed with the rest of the Bare Metal

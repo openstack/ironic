@@ -28,6 +28,9 @@ node(s) where ``ironic-conductor`` is running.
     Fedora 22 or higher:
          sudo dnf install tftp-server syslinux-tftpboot xinetd
 
+    SUSE:
+        sudo zypper install tftp syslinux xinetd
+
 #. Using xinetd to provide a tftp server setup to serve ``/tftpboot``.
    Create or edit ``/etc/xinetd.d/tftp`` as below::
 
@@ -51,7 +54,7 @@ node(s) where ``ironic-conductor`` is running.
     Ubuntu:
         sudo service xinetd restart
 
-    Fedora:
+    Fedora/SUSE:
         sudo systemctl restart xinetd
 
 #. Copy the PXE image to ``/tftpboot``. The PXE image might be found at [1]_::
@@ -61,6 +64,9 @@ node(s) where ``ironic-conductor`` is running.
 
     Ubuntu (14.10 and after):
         sudo cp /usr/lib/PXELINUX/pxelinux.0 /tftpboot
+
+    SUSE:
+        sudo cp /usr/share/syslinux/pxelinux.0 /tftpboot
 
 #. If whole disk images need to be deployed via PXE-netboot, copy the
    chain.c32 image to ``/tftpboot`` to support it. The chain.c32 image
@@ -74,6 +80,9 @@ node(s) where ``ironic-conductor`` is running.
 
     Fedora/RHEL7/CentOS7:
         sudo cp /boot/extlinux/chain.c32 /tftpboot
+
+    SUSE:
+        sudo cp /usr/share/syslinux/chain.c32 /tftpboot/
 
 #. If the version of syslinux is **greater than** 4 we also need to make sure
    that we copy the library modules into the ``/tftpboot`` directory [2]_
@@ -113,6 +122,9 @@ steps on the ironic conductor node to configure the PXE UEFI environment.
     Fedora 22 or higher:
         sudo dnf install grub2-efi shim
 
+    SUSE:
+        sudo zypper install grub2-x86_64-efi shim
+
 #. Copy grub and shim boot loader images to ``/tftpboot`` directory::
 
     Ubuntu: (14.04LTS and later)
@@ -128,6 +140,10 @@ steps on the ironic conductor node to configure the PXE UEFI environment.
         sudo cp /boot/efi/EFI/centos/shim.efi /tftpboot/bootx64.efi
         sudo cp /boot/efi/EFI/centos/grubx64.efi /tftpboot/grubx64.efi
 
+    SUSE:
+        sudo cp /usr/lib64/efi/shim.efi /tftpboot/bootx64.efi
+        sudo cp /usr/lib/grub2/x86_64-efi/grub.efi /tftpboot/grubx64.efi
+
 #. Create master grub.cfg::
 
     Ubuntu: Create grub.cfg under ``/tftpboot/grub`` directory.
@@ -138,6 +154,9 @@ steps on the ironic conductor node to configure the PXE UEFI environment.
 
     CentOS: Create grub.cfg under ``/tftpboot/EFI/centos`` directory.
         GRUB_DIR=/tftpboot/EFI/centos
+
+    SUSE: Create grub.cfg under ``/tftpboot/boot/grub`` directory.
+        GRUB_DIR=/tftpboot/boot/grub
 
     Create directory GRUB_DIR
       sudo mkdir -p $GRUB_DIR
@@ -265,6 +284,12 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
     Fedora 22 or higher:
         dnf install ipxe-bootimgs
 
+   .. note::
+      SUSE does not provide a package containing iPXE boot images. If you are
+      using SUSE or if the packaged version of the iPXE boot image doesn't
+      work, you can download a prebuilt one from http://boot.ipxe.org or build
+      one image from source, see http://ipxe.org/download for more information.
+
 #. Copy the iPXE boot image (``undionly.kpxe`` for **BIOS** and
    ``ipxe.efi`` for **UEFI**) to ``/tftpboot``. The binary might
    be found at::
@@ -274,11 +299,6 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
     Fedora/RHEL7/CentOS7:
         cp /usr/share/ipxe/{undionly.kpxe,ipxe.efi} /tftpboot
-
-   .. note::
-      If the packaged version of the iPXE boot image doesn't work, you can
-      download a prebuilt one from http://boot.ipxe.org or build one image
-      from source, see http://ipxe.org/download for more information.
 
 #. Enable/Configure iPXE in the Bare Metal Service's configuration file
    (/etc/ironic/ironic.conf):
@@ -347,7 +367,7 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
 #. Restart the ``ironic-conductor`` process::
 
-    Fedora/RHEL7/CentOS7:
+    Fedora/RHEL7/CentOS7/SUSE:
       sudo systemctl restart openstack-ironic-conductor
 
     Ubuntu:
