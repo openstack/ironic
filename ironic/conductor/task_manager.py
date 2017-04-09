@@ -50,6 +50,8 @@ attributes that you may access:
         The Node object
     task.ports
         Ports belonging to the Node
+    task.portgroups
+        Portgroups belonging to the Node
     task.volume_connectors
         Storage connectors belonging to the Node
     task.volume_targets
