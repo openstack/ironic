@@ -206,6 +206,29 @@ append mbr:0x12345678
 boot
 """
 
+_IPXECONF_BOOT_ISCSI_NO_CONFIG = """
+#!ipxe
+
+dhcp
+
+goto boot_iscsi
+
+:deploy
+kernel deploy_kernel
+initrd deploy_ramdisk
+boot
+
+:boot_partition
+kernel kernel
+append initrd=ramdisk root=UUID=0x12345678
+boot
+
+:boot_whole_disk
+kernel chain.c32
+append mbr:{{ DISK_IDENTIFIER }}
+boot
+"""
+
 _UEFI_PXECONF_DEPLOY = b"""
 default=deploy
 
@@ -935,6 +958,18 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
         with open(fname, 'r') as f:
             pxeconf = f.read()
         self.assertEqual(_IPXECONF_BOOT_WHOLE_DISK, pxeconf)
+
+    def test_switch_ipxe_iscsi_boot(self):
+        boot_mode = 'iscsi'
+        cfg.CONF.set_override('ipxe_enabled', True, 'pxe')
+        fname = self._create_config(boot_mode=boot_mode, ipxe=True)
+        utils.switch_pxe_config(fname,
+                                '0x12345678',
+                                boot_mode,
+                                False, False, True)
+        with open(fname, 'r') as f:
+            pxeconf = f.read()
+        self.assertEqual(_IPXECONF_BOOT_ISCSI_NO_CONFIG, pxeconf)
 
 
 class GetPxeBootConfigTestCase(db_base.DbTestCase):
@@ -2500,3 +2535,37 @@ class TestStorageInterfaceUtils(db_base.DbTestCase):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             self.assertEqual(0, len(task.volume_targets))
+
+    def test_is_iscsi_boot(self):
+        vol_id = uuidutils.generate_uuid()
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=0, volume_id='1234', uuid=vol_id)
+        self.node.driver_internal_info = {'boot_from_volume': vol_id}
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertTrue(utils.is_iscsi_boot(task))
+
+    def test_is_iscsi_boot_exception(self):
+        self.node.driver_internal_info = {
+            'boot_from_volume': uuidutils.generate_uuid()}
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertFalse(utils.is_iscsi_boot(task))
+
+    def test_is_iscsi_boot_false(self):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertFalse(utils.is_iscsi_boot(task))
+
+    def test_is_iscsi_boot_false_fc_target(self):
+        vol_id = uuidutils.generate_uuid()
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='fibre_channel',
+            boot_index=0, volume_id='3214', uuid=vol_id)
+        self.node.driver_internal_info.update({'boot_from_volume': vol_id})
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertFalse(utils.is_iscsi_boot(task))

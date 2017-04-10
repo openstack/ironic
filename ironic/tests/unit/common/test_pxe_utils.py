@@ -64,6 +64,16 @@ class TestPXEUtils(db_base.DbTestCase):
             'ipxe_timeout': 120
         })
 
+        self.ipxe_options_boot_from_volume = self.ipxe_options.copy()
+        self.ipxe_options_boot_from_volume.update({
+            'boot_from_volume': True,
+            'iscsi_boot_url': 'iscsi:fake_host::3260:0:fake_iqn',
+            'iscsi_initiator_iqn': 'fake_iqn',
+            'iscsi_volumes': ['iscsi:fake_host::3260:1:fake_iqn'],
+            'username': 'fake_username',
+            'password': 'fake_password'
+        })
+
         self.node = object_utils.create_test_node(self.context)
 
     def test_default_pxe_config(self):
@@ -131,6 +141,47 @@ class TestPXEUtils(db_base.DbTestCase):
         with open(templ_file) as f:
             expected_template = f.read().rstrip()
 
+        self.assertEqual(six.text_type(expected_template), rendered_template)
+
+    def test_default_ipxe_boot_from_volume_config(self):
+        self.config(
+            pxe_config_template='ironic/drivers/modules/ipxe_config.template',
+            group='pxe'
+        )
+        self.config(http_url='http://1.2.3.4:1234', group='deploy')
+        rendered_template = utils.render_template(
+            CONF.pxe.pxe_config_template,
+            {'pxe_options': self.ipxe_options_boot_from_volume,
+             'ROOT': '{{ ROOT }}',
+             'DISK_IDENTIFIER': '{{ DISK_IDENTIFIER }}'})
+
+        templ_file = 'ironic/tests/unit/drivers/' \
+                     'ipxe_config_boot_from_volume.template'
+        with open(templ_file) as f:
+            expected_template = f.read().rstrip()
+
+        self.assertEqual(six.text_type(expected_template), rendered_template)
+
+    def test_default_ipxe_boot_from_volume_config_no_volumes(self):
+        self.config(
+            pxe_config_template='ironic/drivers/modules/ipxe_config.template',
+            group='pxe'
+        )
+        self.config(http_url='http://1.2.3.4:1234', group='deploy')
+
+        pxe_options = self.ipxe_options_boot_from_volume
+        pxe_options['iscsi_volumes'] = []
+
+        rendered_template = utils.render_template(
+            CONF.pxe.pxe_config_template,
+            {'pxe_options': pxe_options,
+             'ROOT': '{{ ROOT }}',
+             'DISK_IDENTIFIER': '{{ DISK_IDENTIFIER }}'})
+
+        templ_file = 'ironic/tests/unit/drivers/' \
+                     'ipxe_config_boot_from_volume_no_volumes.template'
+        with open(templ_file) as f:
+            expected_template = f.read().rstrip()
         self.assertEqual(six.text_type(expected_template), rendered_template)
 
     # NOTE(TheJulia): Remove elilo support after the deprecation period,

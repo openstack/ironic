@@ -285,7 +285,8 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                             whle_dsk_img=False,
                                             ipxe_timeout=0,
                                             ipxe_use_swift=False,
-                                            debug=False):
+                                            debug=False,
+                                            boot_from_volume=False):
         self.config(debug=debug)
         self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
@@ -370,6 +371,17 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             'ipxe_timeout': ipxe_timeout_in_ms,
         }
 
+        if boot_from_volume:
+            expected_options.update({
+                'boot_from_volume': True,
+                'iscsi_boot_url': 'iscsi:fake_host::3260:0:fake_iqn',
+                'iscsi_initiator_iqn': 'fake_iqn',
+                'iscsi_volumes': ['iscsi:fake_host::3260:1:fake_iqn'],
+                'username': 'fake_username',
+                'password': 'fake_password'})
+            expected_options.pop('deployment_aki_path')
+            expected_options.pop('deployment_ari_path')
+
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             options = pxe._build_pxe_config_options(task, image_info)
@@ -400,6 +412,121 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
     def test__build_pxe_config_options_ipxe_and_ipxe_timeout(self):
         self._test_build_pxe_config_options_ipxe(whle_dsk_img=True,
                                                  ipxe_timeout=120)
+
+    def test__build_pxe_config_options_ipxe_and_iscsi_boot(self):
+        vol_id = uuidutils.generate_uuid()
+        vol_id2 = uuidutils.generate_uuid()
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=0, volume_id='1234', uuid=vol_id,
+            properties={'target_lun': 0,
+                        'target_portal': 'fake_host:3260',
+                        'target_iqn': 'fake_iqn',
+                        'auth_username': 'fake_username',
+                        'auth_password': 'fake_password'})
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=1, volume_id='1235', uuid=vol_id2,
+            properties={'target_lun': 1,
+                        'target_portal': 'fake_host:3260',
+                        'target_iqn': 'fake_iqn'})
+        self.node.driver_internal_info.update({'boot_from_volume': vol_id})
+        self._test_build_pxe_config_options_ipxe(boot_from_volume=True)
+
+    def test__build_pxe_config_options_ipxe_and_iscsi_boot_from_lists(self):
+        vol_id = uuidutils.generate_uuid()
+        vol_id2 = uuidutils.generate_uuid()
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=0, volume_id='1234', uuid=vol_id,
+            properties={'target_luns': [0, 2],
+                        'target_portals': ['fake_host:3260',
+                                           'faker_host:3261'],
+                        'target_iqns': ['fake_iqn', 'faker_iqn'],
+                        'auth_username': 'fake_username',
+                        'auth_password': 'fake_password'})
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=1, volume_id='1235', uuid=vol_id2,
+            properties={'target_lun': [1, 3],
+                        'target_portal': ['fake_host:3260', 'faker_host:3261'],
+                        'target_iqn': ['fake_iqn', 'faker_iqn']})
+        self.node.driver_internal_info.update({'boot_from_volume': vol_id})
+        self._test_build_pxe_config_options_ipxe(boot_from_volume=True)
+
+    def test__get_volume_pxe_options(self):
+        vol_id = uuidutils.generate_uuid()
+        vol_id2 = uuidutils.generate_uuid()
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=0, volume_id='1234', uuid=vol_id,
+            properties={'target_lun': [0, 1, 3],
+                        'target_portal': 'fake_host:3260',
+                        'target_iqns': 'fake_iqn',
+                        'auth_username': 'fake_username',
+                        'auth_password': 'fake_password'})
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=1, volume_id='1235', uuid=vol_id2,
+            properties={'target_lun': 1,
+                        'target_portal': 'fake_host:3260',
+                        'target_iqn': 'fake_iqn'})
+        self.node.driver_internal_info.update({'boot_from_volume': vol_id})
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['boot_from_volume'] = vol_id
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        expected = {'boot_from_volume': True,
+                    'username': 'fake_username', 'password': 'fake_password',
+                    'iscsi_boot_url': 'iscsi:fake_host::3260:0:fake_iqn',
+                    'iscsi_initiator_iqn': 'fake_iqn',
+                    'iscsi_volumes': ['iscsi:fake_host::3260:1:fake_iqn']}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            options = pxe._get_volume_pxe_options(task)
+        self.assertEqual(expected, options)
+
+    def test__get_volume_pxe_options_unsupported_volume_type(self):
+        vol_id = uuidutils.generate_uuid()
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='fake_type',
+            boot_index=0, volume_id='1234', uuid=vol_id,
+            properties={'foo': 'bar'})
+
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['boot_from_volume'] = vol_id
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            options = pxe._get_volume_pxe_options(task)
+        self.assertEqual({}, options)
+
+    def test__get_volume_pxe_options_unsupported_additional_volume_type(self):
+        vol_id = uuidutils.generate_uuid()
+        vol_id2 = uuidutils.generate_uuid()
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=0, volume_id='1234', uuid=vol_id,
+            properties={'target_lun': 0,
+                        'target_portal': 'fake_host:3260',
+                        'target_iqn': 'fake_iqn',
+                        'auth_username': 'fake_username',
+                        'auth_password': 'fake_password'})
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='fake_type',
+            boot_index=1, volume_id='1234', uuid=vol_id2,
+            properties={'foo': 'bar'})
+
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['boot_from_volume'] = vol_id
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            options = pxe._get_volume_pxe_options(task)
+        self.assertEqual([], options['iscsi_volumes'])
 
     @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
     def test__cache_tftp_images_master_path(self, mock_fetch_image):
@@ -876,7 +1003,7 @@ class PXEBootTestCase(db_base.DbTestCase):
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
-                'bios', False, False)
+                'bios', False, False, False)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE)
 
@@ -918,7 +1045,7 @@ class PXEBootTestCase(db_base.DbTestCase):
                 task, mock.ANY, CONF.pxe.pxe_config_template)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
-                'bios', False, False)
+                'bios', False, False, False)
             self.assertFalse(set_boot_device_mock.called)
 
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)

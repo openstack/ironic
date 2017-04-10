@@ -267,11 +267,13 @@ def _replace_root_uuid(path, root_uuid):
 
 
 def _replace_boot_line(path, boot_mode, is_whole_disk_image,
-                       trusted_boot=False):
+                       trusted_boot=False, iscsi_boot=False):
     if is_whole_disk_image:
         boot_disk_type = 'boot_whole_disk'
     elif trusted_boot:
         boot_disk_type = 'trusted_boot'
+    elif iscsi_boot:
+        boot_disk_type = 'boot_iscsi'
     else:
         boot_disk_type = 'boot_partition'
 
@@ -292,7 +294,8 @@ def _replace_disk_identifier(path, disk_identifier):
 
 
 def switch_pxe_config(path, root_uuid_or_disk_id, boot_mode,
-                      is_whole_disk_image, trusted_boot=False):
+                      is_whole_disk_image, trusted_boot=False,
+                      iscsi_boot=False):
     """Switch a pxe config from deployment mode to service mode.
 
     :param path: path to the pxe config file in tftpboot.
@@ -303,13 +306,15 @@ def switch_pxe_config(path, root_uuid_or_disk_id, boot_mode,
     :param trusted_boot: if boot with trusted_boot or not. The usage of
         is_whole_disk_image and trusted_boot are mutually exclusive. You can
         have one or neither, but not both.
+    :param iscsi_boot: if boot is from an iSCSI volume or not.
     """
     if not is_whole_disk_image:
         _replace_root_uuid(path, root_uuid_or_disk_id)
     else:
         _replace_disk_identifier(path, root_uuid_or_disk_id)
 
-    _replace_boot_line(path, boot_mode, is_whole_disk_image, trusted_boot)
+    _replace_boot_line(path, boot_mode, is_whole_disk_image, trusted_boot,
+                       iscsi_boot)
 
 
 def get_dev(address, port, iqn, lun):
@@ -1297,3 +1302,18 @@ def tear_down_storage_configuration(task):
     driver_internal_info.pop('boot_from_volume_deploy', None)
     node.driver_internal_info = driver_internal_info
     node.save()
+
+
+def is_iscsi_boot(task):
+    """Return true if booting from an iscsi volume."""
+    node = task.node
+    volume = node.driver_internal_info.get('boot_from_volume')
+    if volume:
+        try:
+            boot_volume = objects.VolumeTarget.get_by_uuid(
+                task.context, volume)
+            if boot_volume.volume_type == 'iscsi':
+                return True
+        except exception.VolumeTargetNotFound:
+            return False
+    return False
