@@ -30,6 +30,7 @@ from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import pxe
+from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.drivers import utils as driver_utils
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
@@ -144,11 +145,16 @@ class TestAgentDeploy(db_base.DbTestCase):
         super(TestAgentDeploy, self).setUp()
         mgr_utils.mock_the_extension_manager(driver='fake_agent')
         self.driver = agent.AgentDeploy()
+        # NOTE(TheJulia): We explicitly set the noop storage interface as the
+        # default below for deployment tests in order to raise any change
+        # in the default which could be a breaking behavior change
+        # as the storage interface is explicitly an "opt-in" interface.
         n = {
             'driver': 'fake_agent',
             'instance_info': INSTANCE_INFO,
             'driver_info': DRIVER_INFO,
             'driver_internal_info': DRIVER_INTERNAL_INFO,
+            'storage_interface': 'noop',
         }
         self.node = object_utils.create_test_node(self.context, **n)
         self.ports = [
@@ -258,10 +264,16 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertEqual(driver_return, states.DEPLOYWAIT)
             power_mock.assert_called_once_with(task, states.REBOOT)
 
+    @mock.patch.object(noop_storage.NoopStorage, 'detach_volumes',
+                       autospec=True)
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
                 'unconfigure_tenant_networks', autospec=True)
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
-    def test_tear_down(self, power_mock, unconfigure_tenant_nets_mock):
+    def test_tear_down(self, power_mock,
+                       unconfigure_tenant_nets_mock,
+                       storage_detach_volumes_mock):
+        object_utils.create_test_volume_target(
+            self.context, node_id=self.node.id)
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             driver_return = self.driver.tear_down(task)
@@ -269,7 +281,16 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertEqual(driver_return, states.DELETED)
             unconfigure_tenant_nets_mock.assert_called_once_with(mock.ANY,
                                                                  task)
+            storage_detach_volumes_mock.assert_called_once_with(
+                task.driver.storage, task)
+        # Verify no volumes exist for new task instances.
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            self.assertEqual(0, len(task.volume_targets))
 
+    @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info')
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
     @mock.patch.object(deploy_utils, 'build_agent_options')
     @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
@@ -280,7 +301,8 @@ class TestAgentDeploy(db_base.DbTestCase):
     def test_prepare(
             self, unconfigure_tenant_net_mock, add_provisioning_net_mock,
             build_instance_info_mock, build_options_mock,
-            pxe_prepare_ramdisk_mock):
+            pxe_prepare_ramdisk_mock, storage_driver_info_mock,
+            storage_attach_volumes_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             task.node.provision_state = states.DEPLOYING
@@ -295,6 +317,9 @@ class TestAgentDeploy(db_base.DbTestCase):
                 task, {'a': 'b'})
             add_provisioning_net_mock.assert_called_once_with(mock.ANY, task)
             unconfigure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
+            storage_driver_info_mock.assert_called_once_with(task)
+            storage_attach_volumes_mock.assert_called_once_with(
+                task.driver.storage, task)
 
         self.node.refresh()
         self.assertEqual('bar', self.node.instance_info['foo'])
@@ -320,6 +345,9 @@ class TestAgentDeploy(db_base.DbTestCase):
         self.node.refresh()
         self.assertEqual('bar', self.node.instance_info['foo'])
 
+    @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info')
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
                 'add_provisioning_network', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance')
@@ -329,7 +357,8 @@ class TestAgentDeploy(db_base.DbTestCase):
     def test_prepare_active(
             self, build_instance_info_mock, build_options_mock,
             pxe_prepare_ramdisk_mock, pxe_prepare_instance_mock,
-            add_provisioning_net_mock):
+            add_provisioning_net_mock, storage_driver_info_mock,
+            storage_attach_volumes_mock):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
             task.node.provision_state = states.ACTIVE
@@ -341,6 +370,8 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertFalse(pxe_prepare_ramdisk_mock.called)
             self.assertTrue(pxe_prepare_instance_mock.called)
             self.assertFalse(add_provisioning_net_mock.called)
+            self.assertTrue(storage_driver_info_mock.called)
+            self.assertFalse(storage_attach_volumes_mock.called)
 
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
                 'add_provisioning_network', autospec=True)

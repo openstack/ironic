@@ -37,6 +37,7 @@ from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
+from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.drivers import utils as driver_utils
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
@@ -533,11 +534,16 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
         super(ISCSIDeployTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         self.driver = driver_factory.get_driver("fake_pxe")
+        # NOTE(TheJulia): We explicitly set the noop storage interface as the
+        # default below for deployment tests in order to raise any change
+        # in the default which could be a breaking behavior change
+        # as the storage interface is explicitly an "opt-in" interface.
         self.node = obj_utils.create_test_node(
             self.context, driver='fake_pxe',
             instance_info=INST_INFO_DICT,
             driver_info=DRV_INFO_DICT,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
+            storage_interface='noop',
         )
         self.node.driver_internal_info['agent_url'] = 'http://1.2.3.4:1234'
         dhcp_factory.DHCPFactory._dhcp_provider = None
@@ -562,11 +568,17 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             validate_capabilities_mock.assert_called_once_with(task.node)
             validate_mock.assert_called_once_with(task)
 
+    @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
+                       autospec=True)
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
                 'add_provisioning_network', spec_set=True, autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
     def test_prepare_node_active(self, prepare_instance_mock,
-                                 add_provisioning_net_mock):
+                                 add_provisioning_net_mock,
+                                 storage_driver_info_mock,
+                                 storage_attach_volumes_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.provision_state = states.ACTIVE
 
@@ -575,6 +587,8 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             prepare_instance_mock.assert_called_once_with(
                 task.driver.boot, task)
             self.assertEqual(0, add_provisioning_net_mock.call_count)
+            storage_driver_info_mock.assert_called_once_with(task)
+        self.assertFalse(storage_attach_volumes_mock.called)
 
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
                 'add_provisioning_network', spec_set=True, autospec=True)
@@ -590,6 +604,10 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                 task.driver.boot, task)
             self.assertEqual(0, add_provisioning_net_mock.call_count)
 
+    @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
+                       autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
@@ -598,7 +616,8 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                 'unconfigure_tenant_networks', spec_set=True, autospec=True)
     def test_prepare_node_deploying(
             self, unconfigure_tenant_net_mock, add_provisioning_net_mock,
-            mock_prepare_ramdisk, mock_agent_options):
+            mock_prepare_ramdisk, mock_agent_options,
+            storage_driver_info_mock, storage_attach_volumes_mock):
         mock_agent_options.return_value = {'c': 'd'}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.provision_state = states.DEPLOYING
@@ -610,6 +629,9 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                 task.driver.boot, task, {'c': 'd'})
             add_provisioning_net_mock.assert_called_once_with(mock.ANY, task)
             unconfigure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
+            storage_driver_info_mock.assert_called_once_with(task)
+            storage_attach_volumes_mock.assert_called_once_with(
+                task.driver.storage, task)
 
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(iscsi_deploy, 'check_image_size', autospec=True)
@@ -625,11 +647,16 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             mock_check_image_size.assert_called_once_with(task)
             mock_node_power_action.assert_called_once_with(task, states.REBOOT)
 
+    @mock.patch.object(noop_storage.NoopStorage, 'detach_volumes',
+                       autospec=True)
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
                 'unconfigure_tenant_networks', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     def test_tear_down(self, node_power_action_mock,
-                       unconfigure_tenant_nets_mock):
+                       unconfigure_tenant_nets_mock,
+                       storage_detach_volumes_mock):
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id)
         with task_manager.acquire(self.context,
                                   self.node.uuid, shared=False) as task:
             state = task.driver.deploy.tear_down(task)
@@ -638,6 +665,12 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                                                            states.POWER_OFF)
             unconfigure_tenant_nets_mock.assert_called_once_with(mock.ANY,
                                                                  task)
+            storage_detach_volumes_mock.assert_called_once_with(
+                task.driver.storage, task)
+        # Verify no volumes exist for new task instances.
+        with task_manager.acquire(self.context,
+                                  self.node.uuid, shared=False) as task:
+            self.assertEqual(0, len(task.volume_targets))
 
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory._set_dhcp_provider')
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory.clean_dhcp')

@@ -463,10 +463,13 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
         :raises: NetworkError if the cleaning ports cannot be removed.
         :raises: InvalidParameterValue when the wrong state is specified
              or the wrong driver info is specified.
+        :raises: StorageError when volume detachment fails.
         :raises: other exceptions by the node's power driver if something
              wrong occurred during the power action.
         """
         manager_utils.node_power_action(task, states.POWER_OFF)
+        task.driver.storage.detach_volumes(task)
+        deploy_utils.tear_down_storage_configuration(task)
         task.driver.network.unconfigure_tenant_networks(task)
         return states.DELETED
 
@@ -483,12 +486,15 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
         :raises: NetworkError: if the previous cleaning ports cannot be removed
             or if new cleaning ports cannot be created.
         :raises: InvalidParameterValue when the wrong power state is specified
-             or the wrong driver info is specified for power management.
+            or the wrong driver info is specified for power management.
+        :raises: StorageError If the storage driver is unable to attach the
+            configured volumes.
         :raises: other exceptions by the node's power driver if something
-             wrong occurred during the power action.
+            wrong occurred during the power action.
         :raises: any boot interface's prepare_ramdisk exceptions.
         """
         node = task.node
+        deploy_utils.populate_storage_driver_internal_info(task)
         if node.provision_state in [states.ACTIVE, states.ADOPTING]:
             task.driver.boot.prepare_instance(task)
         else:
@@ -500,6 +506,7 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
                 # already configured, unbind tenant ports if present
                 task.driver.network.unconfigure_tenant_networks(task)
                 task.driver.network.add_provisioning_network(task)
+                task.driver.storage.attach_volumes(task)
 
             deploy_opts = deploy_utils.build_agent_options(node)
             task.driver.boot.prepare_ramdisk(task, deploy_opts)

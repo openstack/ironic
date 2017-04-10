@@ -135,7 +135,7 @@ driver_opts = [
     cfg.StrOpt('default_raid_interface',
                help=_DEFAULT_IFACE_HELP.format('raid')),
     cfg.ListOpt('enabled_storage_interfaces',
-                default=['noop'],
+                default=['cinder', 'noop'],
                 help=_ENABLED_IFACE_HELP.format('storage')),
     cfg.StrOpt('default_storage_interface',
                help=_DEFAULT_IFACE_HELP.format('storage')),

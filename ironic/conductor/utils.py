@@ -79,6 +79,8 @@ def node_power_action(task, new_state, timeout=None):
       power state. ``None`` indicates to use default timeout.
     :raises: InvalidParameterValue when the wrong state is specified
              or the wrong driver info is specified.
+    :raises: StorageError when a failure occurs updating the node's
+             storage interface upon setting power on.
     :raises: other exceptions by the node's power driver if something
              wrong occurred during the power action.
 
@@ -154,6 +156,10 @@ def node_power_action(task, new_state, timeout=None):
 
     # take power action
     try:
+        if (target_state == states.POWER_ON and
+                node.provision_state == states.ACTIVE):
+            task.driver.storage.attach_volumes(task)
+
         if new_state != states.REBOOT:
             if ('timeout' in reflection.get_signature(
                     task.driver.power.set_power_state).parameters):
@@ -168,7 +174,11 @@ def node_power_action(task, new_state, timeout=None):
                     "doesn't support 'timeout' parameter.",
                     {'driver_name': node.driver})
                 task.driver.power.set_power_state(task, new_state)
+
         else:
+            # TODO(TheJulia): We likely ought to consider toggling
+            # volume attachments, although we have no mechanism to
+            # really verify what cinder has connector wise.
             if ('timeout' in reflection.get_signature(
                     task.driver.power.reboot).parameters):
                 task.driver.power.reboot(task, timeout=timeout)
@@ -203,6 +213,16 @@ def node_power_action(task, new_state, timeout=None):
                  {'node': node.uuid,
                   'target_state': target_state,
                   'new_state': new_state})
+        # NOTE(TheJulia): Similarly to power-on, when we power-off
+        # a node, we should detach any volume attachments.
+        if (target_state == states.POWER_OFF and
+                node.provision_state == states.ACTIVE):
+            try:
+                task.driver.storage.detach_volumes(task)
+            except exception.StorageError as e:
+                LOG.warning("Volume detachment for node %(node)s "
+                            "failed. Error: %(error)s",
+                            {'node': node.uuid, 'error': e})
 
 
 @task_manager.require_exclusive_lock

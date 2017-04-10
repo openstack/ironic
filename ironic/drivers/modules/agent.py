@@ -331,6 +331,9 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
 
         node = task.node
         params = {}
+        # TODO(jtaryma): Skip validation of image_source if
+        #                task.driver.storage.should_write_image()
+        #                returns False.
         image_source = node.instance_info.get('image_source')
         params['instance_info.image_source'] = image_source
         error_msg = _('Node %s failed to validate deploy image info. Some '
@@ -386,11 +389,14 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
         :raises: NetworkError if the cleaning ports cannot be removed.
         :raises: InvalidParameterValue when the wrong power state is specified
              or the wrong driver info is specified for power management.
+        :raises: StorageError when the storage interface attached volumes fail
+             to detach.
         :raises: other exceptions by the node's power driver if something
              wrong occurred during the power action.
         """
         manager_utils.node_power_action(task, states.POWER_OFF)
-
+        task.driver.storage.detach_volumes(task)
+        deploy_utils.tear_down_storage_configuration(task)
         task.driver.network.unconfigure_tenant_networks(task)
 
         return states.DELETED
@@ -404,14 +410,17 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
         :raises: NetworkError: if the previous cleaning ports cannot be removed
             or if new cleaning ports cannot be created.
         :raises: InvalidParameterValue when the wrong power state is specified
-             or the wrong driver info is specified for power management.
+            or the wrong driver info is specified for power management.
+        :raises: StorageError If the storage driver is unable to attach the
+            configured volumes.
         :raises: other exceptions by the node's power driver if something
-             wrong occurred during the power action.
+            wrong occurred during the power action.
         :raises: exception.ImageRefValidationFailed if image_source is not
             Glance href and is not HTTP(S) URL.
         :raises: any boot interface's prepare_ramdisk exceptions.
         """
         node = task.node
+        deploy_utils.populate_storage_driver_internal_info(task)
         if node.provision_state == states.DEPLOYING:
             # Adding the node to provisioning network so that the dhcp
             # options get added for the provisioning port.
@@ -420,6 +429,8 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
             # configured, unbind tenant ports if present
             task.driver.network.unconfigure_tenant_networks(task)
             task.driver.network.add_provisioning_network(task)
+            # Signal to storage driver to attach volumes
+            task.driver.storage.attach_volumes(task)
         if node.provision_state == states.ACTIVE:
             task.driver.boot.prepare_instance(task)
         elif node.provision_state != states.ADOPTING:

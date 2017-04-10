@@ -36,8 +36,10 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils as utils
+from ironic.drivers.modules import fake
 from ironic.drivers.modules import image_cache
 from ironic.drivers.modules import pxe
+from ironic.drivers.modules.storage import cinder
 from ironic.drivers import utils as driver_utils
 from ironic.tests import base as tests_base
 from ironic.tests.unit.conductor import mgr_utils
@@ -2335,3 +2337,166 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
 
             self.assertRaises(exception.ImageRefValidationFailed,
                               utils.build_instance_info_for_deploy, task)
+
+
+class TestStorageInterfaceUtils(db_base.DbTestCase):
+    def setUp(self):
+        super(TestStorageInterfaceUtils, self).setUp()
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake')
+
+    def test_check_interface_capability(self):
+        class fake_driver(object):
+            capabilities = ['foo', 'bar']
+
+        self.assertTrue(utils.check_interface_capability(fake_driver, 'foo'))
+        self.assertFalse(utils.check_interface_capability(fake_driver, 'baz'))
+
+    def test_get_remote_boot_volume(self):
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=1, volume_id='4321')
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=0, volume_id='1234', uuid=uuidutils.generate_uuid())
+        self.node.storage_interface = 'cinder'
+        self.node.save()
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            volume = utils.get_remote_boot_volume(task)
+            self.assertEqual('1234', volume['volume_id'])
+
+    def test_get_remote_boot_volume_none(self):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertIsNone(utils.get_remote_boot_volume(task))
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=1, volume_id='4321')
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertIsNone(utils.get_remote_boot_volume(task))
+
+    @mock.patch.object(fake, 'FakeBoot', autospec=True)
+    @mock.patch.object(fake, 'FakeDeploy', autospec=True)
+    @mock.patch.object(cinder.CinderStorage, 'should_write_image',
+                       autospec=True)
+    def test_populate_storage_driver_internal_info_iscsi(self,
+                                                         mock_should_write,
+                                                         mock_deploy,
+                                                         mock_boot):
+        mock_deploy.return_value = mock.Mock(
+            capabilities=['iscsi_volume_deploy'])
+        mock_boot.return_value = mock.Mock(
+            capabilities=['iscsi_volume_boot'])
+        mock_should_write.return_value = True
+        vol_uuid = uuidutils.generate_uuid()
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=0, volume_id='1234', uuid=vol_uuid)
+        # NOTE(TheJulia): Since the default for the storage_interface
+        # is a noop interface, we need to define another driver that
+        # can be loaded by driver_manager in order to create the task
+        # to test this method.
+        self.node.storage_interface = "cinder"
+        self.node.save()
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            driver_utils.add_node_capability(task,
+                                             'iscsi_boot',
+                                             'True')
+            utils.populate_storage_driver_internal_info(task)
+            self.assertEqual(
+                vol_uuid,
+                task.node.driver_internal_info.get('boot_from_volume', None))
+            self.assertEqual(
+                vol_uuid,
+                task.node.driver_internal_info.get('boot_from_volume_deploy',
+                                                   None))
+
+    @mock.patch.object(fake, 'FakeBoot', autospec=True)
+    @mock.patch.object(fake, 'FakeDeploy', autospec=True)
+    @mock.patch.object(cinder.CinderStorage, 'should_write_image',
+                       autospec=True)
+    def test_populate_storage_driver_internal_info_fc(self,
+                                                      mock_should_write,
+                                                      mock_deploy,
+                                                      mock_boot):
+        mock_deploy.return_value = mock.Mock(
+            capabilities=['fibre_channel_volume_deploy'])
+        mock_boot.return_value = mock.Mock(
+            capabilities=['fibre_channel_volume_boot'])
+        mock_should_write.return_value = True
+        self.node.storage_interface = "cinder"
+        self.node.save()
+
+        vol_uuid = uuidutils.generate_uuid()
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='fibre_channel',
+            boot_index=0, volume_id='1234', uuid=vol_uuid)
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            driver_utils.add_node_capability(task,
+                                             'fibre_channel_boot',
+                                             'True')
+            utils.populate_storage_driver_internal_info(task)
+            self.assertEqual(
+                vol_uuid,
+                task.node.driver_internal_info.get('boot_from_volume', None))
+            self.assertEqual(
+                vol_uuid,
+                task.node.driver_internal_info.get('boot_from_volume_deploy',
+                                                   None))
+
+    @mock.patch.object(fake, 'FakeBoot', autospec=True)
+    @mock.patch.object(fake, 'FakeDeploy', autospec=True)
+    def test_populate_storage_driver_internal_info_error(
+            self, mock_deploy, mock_boot):
+        mock_deploy.return_value = mock.Mock(capabilities=['fc_volume_deploy'])
+        mock_boot.return_value = mock.Mock(capabilities=['fc_volume_boot'])
+
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=0, volume_id='1234')
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertRaises(exception.StorageError,
+                              utils.populate_storage_driver_internal_info,
+                              task)
+
+    def test_tear_down_storage_configuration(self):
+        vol_uuid = uuidutils.generate_uuid()
+        obj_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=0, volume_id='1234', uuid=vol_uuid)
+        d_i_info = self.node.driver_internal_info
+        d_i_info['boot_from_volume'] = vol_uuid
+        d_i_info['boot_from_volume_deploy'] = vol_uuid
+        self.node.driver_internal_info = d_i_info
+        self.node.save()
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            node = task.node
+
+            self.assertEqual(1, len(task.volume_targets))
+            self.assertEqual(
+                vol_uuid,
+                node.driver_internal_info.get('boot_from_volume'))
+            self.assertEqual(
+                vol_uuid,
+                node.driver_internal_info.get('boot_from_volume_deploy'))
+
+            utils.tear_down_storage_configuration(task)
+
+            node.refresh()
+            self.assertIsNone(
+                node.driver_internal_info.get('boot_from_volume'))
+            self.assertIsNone(
+                node.driver_internal_info.get('boot_from_volume_deploy'))
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertEqual(0, len(task.volume_targets))

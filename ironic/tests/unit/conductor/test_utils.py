@@ -494,6 +494,69 @@ class NodePowerActionTestCase(base.DbTestCase):
                     'baremetal.node.power_set.error',
                     obj_fields.NotificationLevel.ERROR)
 
+    def test_node_power_action_power_on_storage_attach(self):
+        """Test node_power_action to turn node power on and attach storage."""
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='fake',
+                                          power_state=states.POWER_OFF,
+                                          storage_interface="cinder",
+                                          provision_state=states.ACTIVE)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        with mock.patch.object(task.driver.storage,
+                               'attach_volumes',
+                               autospec=True) as attach_mock:
+            conductor_utils.node_power_action(task, states.POWER_ON)
+
+            node.refresh()
+            attach_mock.assert_called_once_with(task)
+            self.assertEqual(states.POWER_ON, node['power_state'])
+            self.assertIsNone(node['target_power_state'])
+            self.assertIsNone(node['last_error'])
+
+    def test_node_power_action_reboot_storage_attach(self):
+        """Test node_power_action to reboot the node and attach storage."""
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='fake',
+                                          power_state=states.POWER_ON,
+                                          storage_interface="cinder",
+                                          provision_state=states.ACTIVE)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        with mock.patch.object(task.driver.storage,
+                               'attach_volumes',
+                               autospec=True) as attach_mock:
+            conductor_utils.node_power_action(task, states.REBOOT)
+
+            node.refresh()
+            attach_mock.assert_called_once_with(task)
+            self.assertEqual(states.POWER_ON, node['power_state'])
+            self.assertIsNone(node['target_power_state'])
+            self.assertIsNone(node['last_error'])
+
+    def test_node_power_action_power_off_storage_detach(self):
+        """Test node_power_action to turn node power off and detach storage."""
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='fake',
+                                          power_state=states.POWER_ON,
+                                          storage_interface="cinder",
+                                          provision_state=states.ACTIVE)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        with mock.patch.object(task.driver.storage,
+                               'detach_volumes',
+                               autospec=True) as detach_mock:
+            conductor_utils.node_power_action(task, states.POWER_OFF)
+
+            node.refresh()
+            detach_mock.assert_called_once_with(task)
+            self.assertEqual(states.POWER_OFF, node['power_state'])
+            self.assertIsNone(node['target_power_state'])
+            self.assertIsNone(node['last_error'])
+
 
 class NodeSoftPowerActionTestCase(base.DbTestCase):
 
@@ -580,6 +643,27 @@ class NodeSoftPowerActionTestCase(base.DbTestCase):
 
             node.refresh()
             get_power_mock.assert_called_once_with(mock.ANY)
+            self.assertEqual(states.POWER_OFF, node['power_state'])
+            self.assertIsNone(node['target_power_state'])
+            self.assertIsNone(node['last_error'])
+
+    def test_node_power_action_soft_power_off_storage_detach(self):
+        """Test node_power_action to soft power off node and detach storage."""
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='fake_soft_power',
+                                          power_state=states.POWER_ON,
+                                          storage_interface="cinder",
+                                          provision_state=states.ACTIVE)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        with mock.patch.object(task.driver.storage,
+                               'detach_volumes',
+                               autospec=True) as detach_mock:
+            conductor_utils.node_power_action(task, states.SOFT_POWER_OFF)
+
+            node.refresh()
+            detach_mock.assert_called_once_with(task)
             self.assertEqual(states.POWER_OFF, node['power_state'])
             self.assertIsNone(node['target_power_state'])
             self.assertIsNone(node['last_error'])
