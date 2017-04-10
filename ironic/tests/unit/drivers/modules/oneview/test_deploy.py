@@ -599,13 +599,16 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare',
                        spec_set=True, autospec=True)
-    def test_prepare(self, iscsi_deploy_prepare_mock, mock_get_ov_client):
+    @mock.patch.object(deploy_utils, 'allocate_server_hardware_to_ironic')
+    def test_prepare(self, allocate_server_hardware_mock,
+                     iscsi_deploy_prepare_mock, mock_get_ov_client):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.prepare(task)
             iscsi_deploy_prepare_mock.assert_called_once_with(mock.ANY, task)
+            self.assertTrue(allocate_server_hardware_mock.called)
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare',
                        spec_set=True, autospec=True)
@@ -625,25 +628,6 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
                 task.driver.deploy.prepare(task)
                 iscsi_deploy_prepare_mock.assert_called_once_with(
                     mock.ANY, task)
-
-    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(deploy_utils, 'allocate_server_hardware_to_ironic')
-    def test_prepare_with_dynamic_allocation_enabled(
-        self, allocate_server_hardware_mock,
-        iscsi_deploy_prepare_mock, mock_get_ov_client
-    ):
-        driver_info = self.node.driver_info
-        driver_info['dynamic_allocation'] = True
-        self.node.driver_info = driver_info
-        self.node.provision_state = states.DEPLOYING
-        self.node.save()
-
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.deploy.prepare(task)
-            iscsi_deploy_prepare_mock.assert_called_once_with(mock.ANY, task)
-            self.assertTrue(allocate_server_hardware_mock.called)
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'deploy',
                        spec_set=True, autospec=True)
@@ -666,14 +650,10 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'tear_down', spec_set=True,
                        autospec=True)
     @mock.patch.object(deploy_utils, 'deallocate_server_hardware_from_ironic')
-    def test_tear_down_with_dynamic_allocation_enabled(
+    def test_tear_down_with_automated_clean_disabled(
         self, deallocate_server_hardware_mock,
         iscsi_tear_down_mock, mock_get_ov_client
     ):
-        driver_info = self.node.driver_info
-        driver_info['dynamic_allocation'] = True
-        self.node.driver_info = driver_info
-        self.node.save()
         CONF.conductor.automated_clean = False
         iscsi_tear_down_mock.return_value = states.DELETED
 
@@ -686,27 +666,10 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare_cleaning',
                        spec_set=True, autospec=True)
-    def test_prepare_cleaning(self, iscsi_prep_clean_mock, mock_get_ov_client):
-        iscsi_prep_clean_mock.return_value = states.CLEANWAIT
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            ret = task.driver.deploy.prepare_cleaning(task)
-            self.assertEqual(states.CLEANWAIT, ret)
-            iscsi_prep_clean_mock.assert_called_once_with(mock.ANY, task)
-
-    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare_cleaning',
-                       spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'allocate_server_hardware_to_ironic')
-    def test_prepare_cleaning_with_dynamic_allocation_enabled(
-        self, allocate_server_hardware_mock,
-        iscsi_prep_clean_mock, mock_get_ov_client
-    ):
-        driver_info = self.node.driver_info
-        driver_info['dynamic_allocation'] = True
-        self.node.driver_info = driver_info
-        self.node.save()
+    def test_prepare_cleaning(self, allocate_server_hardware_mock,
+                              iscsi_prep_clean_mock, mock_get_ov_client):
         iscsi_prep_clean_mock.return_value = states.CLEANWAIT
-
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             ret = task.driver.deploy.prepare_cleaning(task)
@@ -716,25 +679,11 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'tear_down_cleaning',
                        spec_set=True, autospec=True)
-    def test_tear_down_cleaning(self, iscsi_tear_down_clean_mock,
-                                mock_get_ov_client):
-        iscsi_tear_down_clean_mock.return_value = states.CLEANWAIT
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.deploy.tear_down_cleaning(task)
-            iscsi_tear_down_clean_mock.assert_called_once_with(mock.ANY, task)
-
-    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'tear_down_cleaning',
-                       spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'deallocate_server_hardware_from_ironic')
-    def test_tear_down_cleaning_with_dynamic_allocation_enabled(
-        self, deallocate_server_hardware_mock,
-        iscsi_tear_down_clean_mock, mock_get_ov_client
+    def test_tear_down_cleaning(
+        self, deallocate_server_hardware_mock, iscsi_tear_down_clean_mock,
+        mock_get_ov_client
     ):
-        driver_info = self.node.driver_info
-        driver_info['dynamic_allocation'] = True
-        self.node.driver_info = driver_info
-        self.node.save()
         iscsi_tear_down_clean_mock.return_value = states.CLEANWAIT
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -781,13 +730,16 @@ class OneViewAgentDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(agent.AgentDeploy, 'prepare',
                        spec_set=True, autospec=True)
-    def test_prepare(self, agent_deploy_prepare_mock, mock_get_ov_client):
+    @mock.patch.object(deploy_utils, 'allocate_server_hardware_to_ironic')
+    def test_prepare(self, allocate_server_hardware_mock,
+                     agent_deploy_prepare_mock, mock_get_ov_client):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.prepare(task)
             agent_deploy_prepare_mock.assert_called_once_with(mock.ANY, task)
+            self.assertTrue(allocate_server_hardware_mock.called)
 
     @mock.patch.object(agent.AgentDeploy, 'prepare',
                        spec_set=True, autospec=True)
@@ -808,25 +760,6 @@ class OneViewAgentDeployTestCase(db_base.DbTestCase):
                 agent_deploy_prepare_mock.assert_called_once_with(
                     mock.ANY, task)
 
-    @mock.patch.object(agent.AgentDeploy, 'prepare',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(deploy_utils, 'allocate_server_hardware_to_ironic')
-    def test_prepare_with_dynamic_allocation_enabled(
-        self, allocate_server_hardware_mock,
-        agent_deploy_prepare_mock, mock_get_ov_client
-    ):
-        driver_info = self.node.driver_info
-        driver_info['dynamic_allocation'] = True
-        self.node.driver_info = driver_info
-        self.node.provision_state = states.DEPLOYING
-        self.node.save()
-
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.deploy.prepare(task)
-            agent_deploy_prepare_mock.assert_called_once_with(mock.ANY, task)
-            self.assertTrue(allocate_server_hardware_mock.called)
-
     @mock.patch.object(agent.AgentDeploy, 'deploy',
                        spec_set=True, autospec=True)
     def test_deploy(self, agent_deploy_mock, mock_get_ov_client):
@@ -837,28 +770,13 @@ class OneViewAgentDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(agent.AgentDeploy, 'tear_down', spec_set=True,
                        autospec=True)
-    def test_tear_down(self, agent_tear_down_mock, mock_get_ov_client):
-        agent_tear_down_mock.return_value = states.DELETED
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            returned_state = task.driver.deploy.tear_down(task)
-            agent_tear_down_mock.assert_called_once_with(mock.ANY, task)
-            self.assertEqual(states.DELETED, returned_state)
-
-    @mock.patch.object(agent.AgentDeploy, 'tear_down', spec_set=True,
-                       autospec=True)
     @mock.patch.object(deploy_utils, 'deallocate_server_hardware_from_ironic')
-    def test_tear_down_with_dynamic_allocation_enabled(
+    def test_tear_down_with_automated_clean_disabled(
         self, deallocate_server_hardware_mock,
         agent_tear_down_mock, mock_get_ov_client
     ):
-        driver_info = self.node.driver_info
-        driver_info['dynamic_allocation'] = True
-        self.node.driver_info = driver_info
-        self.node.save()
         CONF.conductor.automated_clean = False
         agent_tear_down_mock.return_value = states.DELETED
-
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             returned_state = task.driver.deploy.tear_down(task)
@@ -868,27 +786,10 @@ class OneViewAgentDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(agent.AgentDeploy, 'prepare_cleaning',
                        spec_set=True, autospec=True)
-    def test_prepare_cleaning(self, agent_prep_clean_mock, mock_get_ov_client):
-        agent_prep_clean_mock.return_value = states.CLEANWAIT
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            ret = task.driver.deploy.prepare_cleaning(task)
-            self.assertEqual(states.CLEANWAIT, ret)
-            agent_prep_clean_mock.assert_called_once_with(mock.ANY, task)
-
-    @mock.patch.object(agent.AgentDeploy, 'prepare_cleaning',
-                       spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'allocate_server_hardware_to_ironic')
-    def test_prepare_cleaning_with_dynamic_allocation_enabled(
-        self, allocate_server_hardware_mock,
-        agent_prep_clean_mock, mock_get_ov_client
-    ):
-        driver_info = self.node.driver_info
-        driver_info['dynamic_allocation'] = True
-        self.node.driver_info = driver_info
-        self.node.save()
+    def test_prepare_cleaning(self, allocate_server_hardware_mock,
+                              agent_prep_clean_mock, mock_get_ov_client):
         agent_prep_clean_mock.return_value = states.CLEANWAIT
-
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             ret = task.driver.deploy.prepare_cleaning(task)
@@ -898,27 +799,12 @@ class OneViewAgentDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(agent.AgentDeploy, 'tear_down_cleaning',
                        spec_set=True, autospec=True)
-    def test_tear_down_cleaning(self, agent_tear_down_clean_mock,
-                                mock_get_ov_client):
-        agent_tear_down_clean_mock.return_value = states.CLEANWAIT
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.deploy.tear_down_cleaning(task)
-            agent_tear_down_clean_mock.assert_called_once_with(mock.ANY, task)
-
-    @mock.patch.object(agent.AgentDeploy, 'tear_down_cleaning',
-                       spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'deallocate_server_hardware_from_ironic')
-    def test_tear_down_cleaning_with_dynamic_allocation_enabled(
-        self, deallocate_server_hardware_mock,
-        agent_tear_down_clean_mock, mock_get_ov_client
+    def test_tear_down_cleaning(
+        self, deallocate_server_hardware_mock, agent_tear_down_clean_mock,
+        mock_get_ov_client
     ):
-        driver_info = self.node.driver_info
-        driver_info['dynamic_allocation'] = True
-        self.node.driver_info = driver_info
-        self.node.save()
         agent_tear_down_clean_mock.return_value = states.CLEANWAIT
-
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy.tear_down_cleaning(task)

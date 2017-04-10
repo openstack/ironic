@@ -246,27 +246,23 @@ class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
 
     @METRICS.timer('OneViewIscsiDeploy.prepare')
     def prepare(self, task):
-        if common.is_dynamic_allocation_enabled(task.node):
-            deploy_utils.prepare(self.oneview_client, task)
+        deploy_utils.prepare(self.oneview_client, task)
         super(OneViewIscsiDeploy, self).prepare(task)
 
     @METRICS.timer('OneViewIscsiDeploy.tear_down')
     def tear_down(self, task):
-        if (common.is_dynamic_allocation_enabled(task.node) and
-           not CONF.conductor.automated_clean):
+        if not CONF.conductor.automated_clean:
             deploy_utils.tear_down(self.oneview_client, task)
         return super(OneViewIscsiDeploy, self).tear_down(task)
 
     @METRICS.timer('OneViewIscsiDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
-        if common.is_dynamic_allocation_enabled(task.node):
-            deploy_utils.prepare_cleaning(self.oneview_client, task)
+        deploy_utils.prepare_cleaning(self.oneview_client, task)
         return super(OneViewIscsiDeploy, self).prepare_cleaning(task)
 
     @METRICS.timer('OneViewIscsiDeploy.tear_down_cleaning')
     def tear_down_cleaning(self, task):
-        if common.is_dynamic_allocation_enabled(task.node):
-            deploy_utils.tear_down_cleaning(self.oneview_client, task)
+        deploy_utils.tear_down_cleaning(self.oneview_client, task)
         super(OneViewIscsiDeploy, self).tear_down_cleaning(task)
 
 
@@ -381,25 +377,21 @@ class OneViewAgentDeploy(OneViewAgentDeployMixin, agent.AgentDeploy,
 
     @METRICS.timer('OneViewAgentDeploy.prepare')
     def prepare(self, task):
-        if common.is_dynamic_allocation_enabled(task.node):
-            deploy_utils.prepare(self.oneview_client, task)
+        deploy_utils.prepare(self.oneview_client, task)
         super(OneViewAgentDeploy, self).prepare(task)
 
     @METRICS.timer('OneViewAgentDeploy.tear_down')
     def tear_down(self, task):
-        if (common.is_dynamic_allocation_enabled(task.node) and
-           not CONF.conductor.automated_clean):
+        if not CONF.conductor.automated_clean:
             deploy_utils.tear_down(self.oneview_client, task)
         return super(OneViewAgentDeploy, self).tear_down(task)
 
     @METRICS.timer('OneViewAgentDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
-        if common.is_dynamic_allocation_enabled(task.node):
-            deploy_utils.prepare_cleaning(self.oneview_client, task)
+        deploy_utils.prepare_cleaning(self.oneview_client, task)
         return super(OneViewAgentDeploy, self).prepare_cleaning(task)
 
     @METRICS.timer('OneViewAgentDeploy.tear_down_cleaning')
     def tear_down_cleaning(self, task):
-        if common.is_dynamic_allocation_enabled(task.node):
-            deploy_utils.tear_down_cleaning(self.oneview_client, task)
+        deploy_utils.tear_down_cleaning(self.oneview_client, task)
         super(OneViewAgentDeploy, self).tear_down_cleaning(task)
