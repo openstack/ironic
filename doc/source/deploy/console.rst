@@ -91,17 +91,8 @@ The web console can be configured in Bare Metal service in the following way:
    #subprocess_timeout=10
 
 * Append console parameters for bare metal PXE boot in the Bare Metal service
-  configuration file (/etc/ironic/ironic.conf), including right serial port
-  terminal and serial speed, serial speed should be same serial configuration
-  with BIOS settings, so that os boot process can be seen in web console,
-  for example::
-
-   pxe_* driver:
-
-        [pxe]
-
-        #Additional append parameters for bare metal PXE boot. (string value)
-        pxe_append_params = nofb nomodeset vga=normal console=tty0 console=ttyS0,115200n8
+  configuration file (/etc/ironic/ironic.conf). See the reference for
+  configuration in `console kernel parameters`_.
 
 * Configure node web console.
 
@@ -173,21 +164,9 @@ Serial consoles can be configured in the Bare Metal service as follows:
     Fedora 22 or higher:
         sudo dnf install socat
 
-* Append ``console`` parameters for bare metal PXE boot in the Bare Metal
-  service configuration file
-  (``[pxe]`` section in ``/etc/ironic/ironic.conf``),
-  including the serial port terminal and serial speed. Serial speed must be
-  the same as the serial configuration in the BIOS settings, so that the
-  operating system boot process can be seen in the serial console.
-  In the following example, the console parameter 'console=ttyS0,115200n8'
-  uses ttyS0 for console output at 115200bps, 8bit, non-parity::
-
-   pxe_* driver:
-
-        [pxe]
-
-        #Additional append parameters for bare metal PXE boot. (string value)
-        pxe_append_params = nofb nomodeset vga=normal console=ttyS0,115200n8
+* Append console parameters for bare metal PXE boot in the Bare Metal
+  service configuration file. See the reference on how to configure them in
+  `console kernel parameters`_.
 
 * Configure node console.
 
@@ -221,3 +200,4 @@ the serial console is disabled. If you want to launch serial console, see the
 ``Configure node console``.
 
 .. _`socat`: http://www.dest-unreach.org/socat
+.. _`console kernel parameters`: https://docs.openstack.org/project-install-guide/baremetal/draft/advanced.html#appending-kernel-parameters-to-boot-instances
