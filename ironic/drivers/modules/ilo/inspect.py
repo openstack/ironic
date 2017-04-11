@@ -145,7 +145,7 @@ def _get_capabilities(node, ilo_object):
 
     :param node: Node object.
     :param ilo_object: an instance of ilo drivers.
-    :returns : a string of capabilities like
+    :returns: a string of capabilities like
                'key1:value1,key2:value2,key3:value3'
                or None.
 

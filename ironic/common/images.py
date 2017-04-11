@@ -461,7 +461,7 @@ def is_whole_disk_image(ctx, instance_info):
     :param ctx: an admin context
     :param instance_info: a node's instance info dict
 
-    :returns True for whole disk images and False for partition images
+    :returns: True for whole disk images and False for partition images
         and None on no image_source or Error.
     """
     image_source = instance_info.get('image_source')

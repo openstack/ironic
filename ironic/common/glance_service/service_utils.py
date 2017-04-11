@@ -163,7 +163,7 @@ def parse_image_ref(image_href):
     :param image_href: href of an image
     :returns: a tuple of the form (image_id, host, port, use_ssl)
 
-    :raises ValueError
+    :raises ValueError: when input image href is invalid
     """
     if '/' not in six.text_type(image_href):
         image_id = image_href
