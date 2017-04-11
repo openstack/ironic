@@ -93,6 +93,8 @@ class ConductorAPI(object):
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
+    # NOTE(pas-ha): This also must be in sync with
+    #               ironic.common.release_mappings.RELEASE_MAPPING['master']
     RPC_API_VERSION = '1.40'
 
     def __init__(self, topic=None):
