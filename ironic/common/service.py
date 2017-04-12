@@ -19,29 +19,14 @@ from oslo_service import service
 
 from ironic.common import config
 from ironic.conf import CONF
+from ironic.conf import opts
 from ironic import objects
 
 
 def prepare_service(argv=None):
     argv = [] if argv is None else argv
     log.register_options(CONF)
-    log.set_defaults(default_log_levels=[
-        'amqp=WARNING',
-        'amqplib=WARNING',
-        'qpid.messaging=INFO',
-        'oslo_messaging=INFO',
-        'sqlalchemy=WARNING',
-        'stevedore=INFO',
-        'eventlet.wsgi.server=INFO',
-        'iso8601=WARNING',
-        'paramiko=WARNING',
-        'requests=WARNING',
-        'neutronclient=WARNING',
-        'glanceclient=WARNING',
-        'urllib3.connectionpool=WARNING',
-        'keystonemiddleware.auth_token=INFO',
-        'keystoneauth.session=INFO',
-    ])
+    opts.update_opt_defaults()
     config.parse_args(argv)
     # NOTE(vdrok): We need to setup logging after argv was parsed, otherwise
     # it does not properly parse the options from config file and uses defaults

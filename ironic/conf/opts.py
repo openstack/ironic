@@ -12,6 +12,8 @@
 
 import itertools
 
+from oslo_log import log
+
 import ironic.conf
 
 _default_opt_lists = [
@@ -78,3 +80,25 @@ def list_opts():
     :returns: a list of (group, options) tuples
     """
     return _opts
+
+
+def update_opt_defaults():
+    log.set_defaults(
+        default_log_levels=[
+            'amqp=WARNING',
+            'amqplib=WARNING',
+            'qpid.messaging=INFO',
+            'oslo_messaging=INFO',
+            'sqlalchemy=WARNING',
+            'stevedore=INFO',
+            'eventlet.wsgi.server=INFO',
+            'iso8601=WARNING',
+            'paramiko=WARNING',
+            'requests=WARNING',
+            'neutronclient=WARNING',
+            'glanceclient=WARNING',
+            'urllib3.connectionpool=WARNING',
+            'keystonemiddleware.auth_token=INFO',
+            'keystoneauth.session=INFO',
+        ]
+    )
