@@ -104,14 +104,15 @@ def _get_attachment_id(node, volume):
     # attachment for each node that represents all possible attachment
     # information as multiple types can be submitted in a single request.
     attachments = volume.attachments
-    if attachments is not None:
-        for attachment in attachments:
-            if attachment.get('server_id') in (node.instance_uuid, node.uuid):
-                return attachment.get('attachment_id')
+    if attachments is None:
+        return
+    for attachment in attachments:
+        if attachment.get('server_id') in (node.instance_uuid, node.uuid):
+            return attachment.get('attachment_id')
 
 
 def _create_metadata_dictionary(node, action):
-    """Create a volume metadata dictionary utilizing the node UUID.
+    """Create a volume metadata dictionary.
 
     :param node: Object representing a node.
     :param action: String value representing the last action.
@@ -121,12 +122,12 @@ def _create_metadata_dictionary(node, action):
     label = "ironic_node_%s" % node.uuid
     return {
         label: {
-            'instance_uuid': node.instance_uuid,
+            'instance_uuid': node.instance_uuid or node.uuid,
             'last_seen': datetime.datetime.utcnow().isoformat(),
             'last_action': action}}
 
 
-def _init_client_for_operations(task):
+def _init_client(task):
     """Obtain cinder client and return it for use.
 
     :param task: TaskManager instance representing the operation.
@@ -138,8 +139,8 @@ def _init_client_for_operations(task):
     try:
         return get_client()
     except Exception as e:
-        msg = (_('Failed to initialize cinder client for node %(uuid)s: %('
-                 'err)s') % {'uuid': node.uuid, 'err': e})
+        msg = (_('Failed to initialize cinder client for operations on node '
+                 '%(uuid)s: %(err)s') % {'uuid': node.uuid, 'err': e})
         LOG.error(msg)
         raise exception.StorageError(msg)
 
@@ -181,7 +182,6 @@ def attach_volumes(task, volume_list, connector):
                              }
 
        :raises: StorageError If storage subsystem exception is raised.
-       :raises: TypeError If the supplied volume_list is not a list.
        :returns: List of connected volumes, including volumes that were
                  already connected to desired nodes. The returned list
                  can be relatively consistent depending on the end storage
@@ -232,7 +232,7 @@ def attach_volumes(task, volume_list, connector):
                  }]
        """
     node = task.node
-    client = _init_client_for_operations(task)
+    client = _init_client(task)
 
     connected = []
     for volume_id in volume_list:
@@ -271,16 +271,17 @@ def attach_volumes(task, volume_list, connector):
             # Provide connector information to cinder
             connection = client.volumes.initialize_connection(volume_id,
                                                               connector)
-            if 'volume_id' not in connection['data']:
-                connection['data']['volume_id'] = volume_id
-            connection['data']['ironic_volume_uuid'] = volume.uuid
-            connected.append(connection)
         except cinder_exceptions.ClientException as e:
             msg = (_('Failed to initialize connection for volume '
                      '%(vol_id)s to node %(node)s: %(err)s') %
                    {'vol_id': volume_id, 'node': node.uuid, 'err': e})
             LOG.error(msg)
             raise exception.StorageError(msg)
+
+        if 'volume_id' not in connection['data']:
+            connection['data']['volume_id'] = volume_id
+        connection['data']['ironic_volume_uuid'] = volume.uuid
+        connected.append(connection)
 
         LOG.info('Successfully initialized volume %(vol_id)s for '
                  'node %(node)s.', {'vol_id': volume_id, 'node': node.uuid})
@@ -351,7 +352,6 @@ def detach_volumes(task, volume_list, connector, allow_errors=False):
        :param allow_errors: Boolean value governing if errors that are returned
                             are treated as warnings instead of exceptions.
                             Default False.
-       :raises: TypeError If the supplied volume_list is not a sequence.
        :raises: StorageError
     """
     def _handle_errors(msg):
@@ -361,7 +361,7 @@ def detach_volumes(task, volume_list, connector, allow_errors=False):
             LOG.error(msg)
             raise exception.StorageError(msg)
 
-    client = _init_client_for_operations(task)
+    client = _init_client(task)
     node = task.node
 
     for volume_id in volume_list:
