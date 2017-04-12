@@ -71,8 +71,34 @@ stack_install_service ironic
 # calls upgrade-ironic for specific release
 upgrade_project ironic $RUN_DIR $BASE_DEVSTACK_BRANCH $TARGET_DEVSTACK_BRANCH
 
-
 $IRONIC_BIN_DIR/ironic-dbsync --config-file=$IRONIC_CONF_FILE
+
+iniset $IRONIC_CONF_FILE DEFAULT pin_release_version ${BASE_DEVSTACK_BRANCH#*/}
+
+ensure_started='ironic-conductor nova-compute '
+ensure_stopped=''
+# Don't succeed unless the services come up
+logs_exist="ir-cond"
+# Multinode grenade is designed to upgrade services only on primary node. And there is no way to manipulate
+# subnode during grenade phases. With this after upgrade we can have upgraded (new) services on primary
+# node and not upgraded (old) services on subnode.
+# According to Ironic upgrade procedure, we shouldn't have upgraded (new) ironic-api and not upgraded (old)
+# ironic-conductor. By setting redirect of API requests from primary node to subnode during upgrade
+# allow to satisfy ironic upgrade requirements.
+if [[ "$HOST_TOPOLOGY_ROLE" == 'primary' ]]; then
+    disable_service ir-api
+    ensure_stopped+='ironic-api'
+    ironic_apache_conf=$(apache_site_config_for ironic-api-redirect)
+    sudo cp $IRONIC_DEVSTACK_FILES_DIR/apache-ironic-api-redirect.template $ironic_apache_conf
+    sudo sed -e "
+        s|%IRONIC_SERVICE_PORT%|$IRONIC_SERVICE_PORT|g;
+        s|%IRONIC_SERVICE_PROTOCOL%|$IRONIC_SERVICE_PROTOCOL|g;
+        s|%IRONIC_SERVICE_HOST%|$IRONIC_PROVISION_SUBNET_SUBNODE_IP|g;
+    " -i $ironic_apache_conf
+    enable_apache_site ironic-api-redirect
+else
+    ensure_started+='ironic-api '
+fi
 
 start_ironic
 
@@ -82,14 +108,11 @@ stop_nova_compute || true
 wait_for_keystone
 start_nova_compute
 
-# Don't succeed unless the services come up
-logs_exist="ir-cond"
-
-if [[ "$IRONIC_USE_MOD_WSGI" != "True" ]]; then
-    logs_exist+=" ir-api"
+if [[ -n "$ensure_stopped" ]]; then
+    ensure_services_stopped $ensure_stopped
 fi
 
-ensure_services_started ironic-api ironic-conductor
+ensure_services_started $ensure_started
 ensure_logs_exist $logs_exist
 
 # We need these steps only in case of flat-network
