@@ -1613,7 +1613,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                     node.provision_state not in states.DELETE_ALLOWED_STATES):
                 msg = (_('Can not delete node "%(node)s" while it is in '
                          'provision state "%(state)s". Valid provision states '
-                         'to perform deletion are: "%(valid_states)s"') %
+                         'to perform deletion are: "%(valid_states)s", '
+                         'or set the node into maintenance mode') %
                        {'node': node.uuid, 'state': node.provision_state,
                         'valid_states': states.DELETE_ALLOWED_STATES})
                 raise exception.InvalidState(msg)
