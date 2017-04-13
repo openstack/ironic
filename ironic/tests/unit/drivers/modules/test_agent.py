@@ -552,12 +552,6 @@ class TestAgentDeploy(db_base.DbTestCase):
             tear_down_cleaning_mock.assert_called_once_with(
                 task, manage_boot=False)
 
-    def test_heartbeat(self):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            self.driver.heartbeat(task, 'url')
-            self.assertFalse(task.shared)
-
     def _test_continue_deploy(self, additional_driver_info=None,
                               additional_expected_image_info=None):
         self.node.provision_state = states.DEPLOYWAIT

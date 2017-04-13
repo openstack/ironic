@@ -786,12 +786,6 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             agent_execute_clean_step_mock.assert_called_once_with(
                 task, {'some-step': 'step-info'})
 
-    def test_heartbeat(self):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            self.driver.deploy.heartbeat(task, 'url')
-            self.assertFalse(task.shared)
-
     @mock.patch.object(agent_base_vendor.AgentDeployMixin,
                        'reboot_and_finish_deploy', autospec=True)
     @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)

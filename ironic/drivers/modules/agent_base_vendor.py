@@ -258,6 +258,11 @@ class HeartbeatMixin(object):
 
         """
 
+    @property
+    def heartbeat_allowed_states(self):
+        """Define node states where heartbeating is allowed"""
+        return (states.DEPLOYWAIT, states.CLEANWAIT)
+
     @METRICS.timer('HeartbeatMixin.heartbeat')
     def heartbeat(self, task, callback_url):
         """Process a heartbeat.
@@ -265,8 +270,14 @@ class HeartbeatMixin(object):
         :param task: task to work with.
         :param callback_url: agent HTTP API URL.
         """
-        # TODO(dtantsur): upgrade lock only if we actually take action other
-        # than updating the last timestamp.
+        # NOTE(pas-ha) immediately skip the rest if nothing to do
+        if task.node.provision_state not in self.heartbeat_allowed_states:
+            LOG.debug('Heartbeat from node %(node)s in unsupported '
+                      'provision state %(state), not taking any action.',
+                      {'node': task.node.uuid,
+                       'state': task.node.provision_state})
+            return
+
         task.upgrade_lock()
 
         node = task.node
@@ -274,13 +285,6 @@ class HeartbeatMixin(object):
 
         driver_internal_info = node.driver_internal_info
         driver_internal_info['agent_url'] = callback_url
-
-        # TODO(rloo): 'agent_last_heartbeat' was deprecated since it wasn't
-        # being used so remove that entry if it exists.
-        # Hopefully all nodes will have been updated by Pike, so
-        # we can delete this code then.
-        driver_internal_info.pop('agent_last_heartbeat', None)
-
         node.driver_internal_info = driver_internal_info
         node.save()
 
