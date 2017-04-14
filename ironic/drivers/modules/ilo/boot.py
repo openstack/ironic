@@ -248,6 +248,138 @@ def _parse_deploy_info(node):
     return info
 
 
+def validate_driver_info(task):
+    """Validate the prerequisites for virtual media based boot.
+
+    This method validates whether the 'driver_info' property of the
+    supplied node contains the required information for this driver.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :raises: InvalidParameterValue if any parameters are incorrect
+    :raises: MissingParameterValue if some mandatory information
+        is missing on the node
+    """
+    node = task.node
+    ilo_common.parse_driver_info(node)
+    if 'ilo_deploy_iso' not in node.driver_info:
+        raise exception.MissingParameterValue(_(
+            "Missing 'ilo_deploy_iso' parameter in node's 'driver_info'."))
+    deploy_iso = node.driver_info['ilo_deploy_iso']
+    if not service_utils.is_glance_image(deploy_iso):
+        try:
+            image_service.HttpImageService().validate_href(deploy_iso)
+        except exception.ImageRefValidationFailed:
+            raise exception.InvalidParameterValue(_(
+                "Virtual media boot accepts only Glance images or "
+                "HTTP(S) as driver_info['ilo_deploy_iso']. Either '%s' "
+                "is not a glance UUID or not a valid HTTP(S) URL or "
+                "the given URL is not reachable.") % deploy_iso)
+
+
+def _validate_instance_image_info(task):
+    """Validate instance image information for the task's node.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :raises: InvalidParameterValue, if some information is invalid.
+    :raises: MissingParameterValue if 'kernel_id' and 'ramdisk_id' are
+        missing in the Glance image or 'kernel' and 'ramdisk' not provided
+        in instance_info for non-Glance image.
+    """
+
+    node = task.node
+
+    d_info = _parse_deploy_info(node)
+
+    if node.driver_internal_info.get('is_whole_disk_image'):
+        props = []
+    elif service_utils.is_glance_image(d_info['image_source']):
+        props = ['kernel_id', 'ramdisk_id']
+    else:
+        props = ['kernel', 'ramdisk']
+    deploy_utils.validate_image_properties(task.context, d_info, props)
+
+
+def _disable_secure_boot(task):
+    """Disables secure boot on node, if secure boot is enabled on node.
+
+    This method checks if secure boot is enabled on node. If enabled, it
+    disables same and returns True.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :returns: It returns True, if secure boot was successfully disabled on
+              the node.
+              It returns False, if secure boot on node is in disabled state
+              or if secure boot feature is not supported by the node.
+    :raises: IloOperationError, if some operation on iLO failed.
+    """
+    cur_sec_state = False
+    try:
+        cur_sec_state = ilo_common.get_secure_boot_mode(task)
+    except exception.IloOperationNotSupported:
+        LOG.debug('Secure boot mode is not supported for node %s',
+                  task.node.uuid)
+        return False
+
+    if cur_sec_state:
+        LOG.debug('Disabling secure boot for node %s', task.node.uuid)
+        ilo_common.set_secure_boot_mode(task, False)
+        return True
+    return False
+
+
+def prepare_node_for_deploy(task):
+    """Common preparatory steps for all iLO drivers.
+
+    This method performs common preparatory steps required for all drivers.
+    1. Power off node
+    2. Disables secure boot, if it is in enabled state.
+    3. Updates boot_mode capability to 'uefi' if secure boot is requested.
+    4. Changes boot mode of the node if secure boot is disabled currently.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :raises: IloOperationError, if some operation on iLO failed.
+    """
+    manager_utils.node_power_action(task, states.POWER_OFF)
+
+    # Boot mode can be changed only if secure boot is in disabled state.
+    # secure boot and boot mode cannot be changed together.
+    change_boot_mode = True
+
+    # Disable secure boot on the node if it is in enabled state.
+    if _disable_secure_boot(task):
+        change_boot_mode = False
+
+    if change_boot_mode:
+        ilo_common.update_boot_mode(task)
+    else:
+        # Need to update boot mode that will be used during deploy, if one is
+        # not provided.
+        # Since secure boot was disabled, we are in 'uefi' boot mode.
+        if deploy_utils.get_boot_mode_for_deploy(task.node) is None:
+            instance_info = task.node.instance_info
+            instance_info['deploy_boot_mode'] = 'uefi'
+            task.node.instance_info = instance_info
+            task.node.save()
+
+
+def disable_secure_boot_if_supported(task):
+    """Disables secure boot on node, does not throw if its not supported.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :raises: IloOperationError, if some operation on iLO failed.
+    """
+    try:
+        ilo_common.update_secure_boot_mode(task, False)
+    # We need to handle IloOperationNotSupported exception so that if
+    # the user has incorrectly specified the Node capability
+    # 'secure_boot' to a node that does not have that capability and
+    # attempted deploy. Handling this exception here, will help the
+    # user to tear down such a Node.
+    except exception.IloOperationNotSupported:
+        LOG.warning('Secure boot mode is not supported for node %s',
+                    task.node.uuid)
+
+
 class IloVirtualMediaBoot(base.BootInterface):
 
     def get_properties(self):
@@ -264,17 +396,7 @@ class IloVirtualMediaBoot(base.BootInterface):
             in instance_info for non-Glance image.
         """
 
-        node = task.node
-
-        d_info = _parse_deploy_info(node)
-
-        if node.driver_internal_info.get('is_whole_disk_image'):
-            props = []
-        elif service_utils.is_glance_image(d_info['image_source']):
-            props = ['kernel_id', 'ramdisk_id']
-        else:
-            props = ['kernel', 'ramdisk']
-        deploy_utils.validate_image_properties(task.context, d_info, props)
+        _validate_instance_image_info(task)
 
     @METRICS.timer('IloVirtualMediaBoot.prepare_ramdisk')
     def prepare_ramdisk(self, task, ramdisk_params):
@@ -316,7 +438,7 @@ class IloVirtualMediaBoot(base.BootInterface):
             node.save()
 
         # Eject all virtual media devices, as we are going to use them
-        # during deploy.
+        # during boot.
         ilo_common.eject_vmedia_devices(task)
 
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)

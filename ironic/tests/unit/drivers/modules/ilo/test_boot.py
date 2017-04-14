@@ -427,6 +427,246 @@ class IloBootPrivateMethodsTestCase(db_base.DbTestCase):
         actual_info = ilo_boot._parse_deploy_info(self.node)
         self.assertEqual(expected_info, actual_info)
 
+    @mock.patch.object(ilo_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
+    def test_validate_driver_info_MissingParam(self, mock_parse_driver_info):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaisesRegex(exception.MissingParameterValue,
+                                   "Missing 'ilo_deploy_iso'",
+                                   ilo_boot.validate_driver_info, task)
+            mock_parse_driver_info.assert_called_once_with(task.node)
+
+    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
+    def test_validate_driver_info_valid_uuid(self, mock_parse_driver_info,
+                                             mock_is_glance_image):
+        mock_is_glance_image.return_value = True
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            deploy_iso = '8a81759a-f29b-454b-8ab3-161c6ca1882c'
+            task.node.driver_info['ilo_deploy_iso'] = deploy_iso
+            ilo_boot.validate_driver_info(task)
+            mock_parse_driver_info.assert_called_once_with(task.node)
+            mock_is_glance_image.assert_called_once_with(deploy_iso)
+
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
+    def test_validate_driver_info_InvalidParam(self, mock_parse_driver_info,
+                                               mock_is_glance_image,
+                                               mock_validate_href):
+        deploy_iso = 'http://abc.org/image/qcow2'
+        mock_validate_href.side_effect = exception.ImageRefValidationFailed(
+            image_href='http://abc.org/image/qcow2', reason='fail')
+        mock_is_glance_image.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info['ilo_deploy_iso'] = deploy_iso
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   "Virtual media boot accepts",
+                                   ilo_boot.validate_driver_info, task)
+            mock_parse_driver_info.assert_called_once_with(task.node)
+            mock_validate_href.assert_called_once_with(mock.ANY, deploy_iso)
+
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
+    def test_validate_driver_info_valid_url(self, mock_parse_driver_info,
+                                            mock_is_glance_image,
+                                            mock_validate_href):
+        deploy_iso = 'http://abc.org/image/deploy.iso'
+        mock_is_glance_image.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info['ilo_deploy_iso'] = deploy_iso
+            ilo_boot.validate_driver_info(task)
+            mock_parse_driver_info.assert_called_once_with(task.node)
+            mock_validate_href.assert_called_once_with(mock.ANY, deploy_iso)
+
+    @mock.patch.object(deploy_utils, 'validate_image_properties',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_boot, '_parse_deploy_info', spec_set=True,
+                       autospec=True)
+    def _test__validate_instance_image_info(self,
+                                            deploy_info_mock,
+                                            validate_prop_mock,
+                                            props_expected):
+        d_info = {'image_source': 'uuid'}
+        deploy_info_mock.return_value = d_info
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_boot._validate_instance_image_info(task)
+            deploy_info_mock.assert_called_once_with(task.node)
+            validate_prop_mock.assert_called_once_with(
+                task.context, d_info, props_expected)
+
+    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
+                       autospec=True)
+    def test__validate_glance_partition_image(self,
+                                              is_glance_image_mock):
+        is_glance_image_mock.return_value = True
+        self._test__validate_instance_image_info(props_expected=['kernel_id',
+                                                                 'ramdisk_id'])
+
+    def test__validate_whole_disk_image(self):
+        self.node.driver_internal_info = {'is_whole_disk_image': True}
+        self.node.save()
+        self._test__validate_instance_image_info(props_expected=[])
+
+    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
+                       autospec=True)
+    def test__validate_non_glance_partition_image(self, is_glance_image_mock):
+        is_glance_image_mock.return_value = False
+        self._test__validate_instance_image_info(props_expected=['kernel',
+                                                                 'ramdisk'])
+
+    @mock.patch.object(ilo_common, 'set_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'get_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    def test__disable_secure_boot_false(self,
+                                        func_get_secure_boot_mode,
+                                        func_set_secure_boot_mode):
+        func_get_secure_boot_mode.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            returned_state = ilo_boot._disable_secure_boot(task)
+            func_get_secure_boot_mode.assert_called_once_with(task)
+            self.assertFalse(func_set_secure_boot_mode.called)
+        self.assertFalse(returned_state)
+
+    @mock.patch.object(ilo_common, 'set_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'get_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    def test__disable_secure_boot_true(self,
+                                       func_get_secure_boot_mode,
+                                       func_set_secure_boot_mode):
+        func_get_secure_boot_mode.return_value = True
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            returned_state = ilo_boot._disable_secure_boot(task)
+            func_get_secure_boot_mode.assert_called_once_with(task)
+            func_set_secure_boot_mode.assert_called_once_with(task, False)
+        self.assertTrue(returned_state)
+
+    @mock.patch.object(ilo_boot.LOG, 'debug', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_boot, 'exception', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'get_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    def test__disable_secure_boot_exception(self,
+                                            func_get_secure_boot_mode,
+                                            exception_mock,
+                                            mock_log):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            exception_mock.IloOperationNotSupported = Exception
+            func_get_secure_boot_mode.side_effect = Exception
+            returned_state = ilo_boot._disable_secure_boot(task)
+            func_get_secure_boot_mode.assert_called_once_with(task)
+            self.assertTrue(mock_log.called)
+        self.assertFalse(returned_state)
+
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_boot, '_disable_secure_boot', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
+    def test_prepare_node_for_deploy(self,
+                                     func_node_power_action,
+                                     func_disable_secure_boot,
+                                     func_update_boot_mode):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            func_disable_secure_boot.return_value = False
+            ilo_boot.prepare_node_for_deploy(task)
+            func_node_power_action.assert_called_once_with(task,
+                                                           states.POWER_OFF)
+            func_disable_secure_boot.assert_called_once_with(task)
+            func_update_boot_mode.assert_called_once_with(task)
+            bootmode = driver_utils.get_node_capability(task.node, "boot_mode")
+            self.assertIsNone(bootmode)
+
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_boot, '_disable_secure_boot', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
+    def test_prepare_node_for_deploy_sec_boot_on(self,
+                                                 func_node_power_action,
+                                                 func_disable_secure_boot,
+                                                 func_update_boot_mode):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            func_disable_secure_boot.return_value = True
+            ilo_boot.prepare_node_for_deploy(task)
+            func_node_power_action.assert_called_once_with(task,
+                                                           states.POWER_OFF)
+            func_disable_secure_boot.assert_called_once_with(task)
+            self.assertFalse(func_update_boot_mode.called)
+            ret_boot_mode = task.node.instance_info['deploy_boot_mode']
+            self.assertEqual('uefi', ret_boot_mode)
+            bootmode = driver_utils.get_node_capability(task.node, "boot_mode")
+            self.assertIsNone(bootmode)
+
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_boot, '_disable_secure_boot', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
+    def test_prepare_node_for_deploy_inst_info(self,
+                                               func_node_power_action,
+                                               func_disable_secure_boot,
+                                               func_update_boot_mode):
+        instance_info = {'capabilities': '{"secure_boot": "true"}'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            func_disable_secure_boot.return_value = False
+            task.node.instance_info = instance_info
+            ilo_boot.prepare_node_for_deploy(task)
+            func_node_power_action.assert_called_once_with(task,
+                                                           states.POWER_OFF)
+            func_disable_secure_boot.assert_called_once_with(task)
+            func_update_boot_mode.assert_called_once_with(task)
+            bootmode = driver_utils.get_node_capability(task.node, "boot_mode")
+            self.assertIsNone(bootmode)
+            self.assertNotIn('deploy_boot_mode', task.node.instance_info)
+
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_boot, '_disable_secure_boot', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
+    def test_prepare_node_for_deploy_sec_boot_on_inst_info(
+            self, func_node_power_action, func_disable_secure_boot,
+            func_update_boot_mode):
+        instance_info = {'capabilities': '{"secure_boot": "true"}'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            func_disable_secure_boot.return_value = True
+            task.node.instance_info = instance_info
+            ilo_boot.prepare_node_for_deploy(task)
+            func_node_power_action.assert_called_once_with(task,
+                                                           states.POWER_OFF)
+            func_disable_secure_boot.assert_called_once_with(task)
+            self.assertFalse(func_update_boot_mode.called)
+            bootmode = driver_utils.get_node_capability(task.node, "boot_mode")
+            self.assertIsNone(bootmode)
+            self.assertNotIn('deploy_boot_mode', task.node.instance_info)
+
 
 class IloVirtualMediaBootTestCase(db_base.DbTestCase):
 
@@ -436,39 +676,20 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(
             self.context, driver='iscsi_ilo', driver_info=INFO_DICT)
 
-    @mock.patch.object(deploy_utils, 'validate_image_properties',
+    @mock.patch.object(ilo_boot, '_validate_instance_image_info',
                        spec_set=True, autospec=True)
-    @mock.patch.object(ilo_boot, '_parse_deploy_info', spec_set=True,
-                       autospec=True)
-    def _test_validate(self,
-                       deploy_info_mock,
-                       validate_prop_mock,
-                       props_expected):
-        d_info = {'image_source': 'uuid'}
-        deploy_info_mock.return_value = d_info
+    def test_validate(self, mock_val_instance_image_info):
+        instance_info = self.node.instance_info
+        instance_info['ilo_boot_iso'] = 'deploy-iso'
+        instance_info['image_source'] = '6b2f0c0c-79e8-4db6-842e-43c9764204af'
+        self.node.instance_info = instance_info
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
+
+            task.node.driver_info['ilo_deploy_iso'] = 'deploy-iso'
             task.driver.boot.validate(task)
-            deploy_info_mock.assert_called_once_with(task.node)
-            validate_prop_mock.assert_called_once_with(
-                task.context, d_info, props_expected)
-
-    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
-                       autospec=True)
-    def test_validate_glance_partition_image(self, is_glance_image_mock):
-        is_glance_image_mock.return_value = True
-        self._test_validate(props_expected=['kernel_id', 'ramdisk_id'])
-
-    def test_validate_whole_disk_image(self):
-        self.node.driver_internal_info = {'is_whole_disk_image': True}
-        self.node.save()
-        self._test_validate(props_expected=[])
-
-    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
-                       autospec=True)
-    def test_validate_non_glance_partition_image(self, is_glance_image_mock):
-        is_glance_image_mock.return_value = False
-        self._test_validate(props_expected=['kernel', 'ramdisk'])
+            mock_val_instance_image_info.assert_called_once_with(task)
 
     @mock.patch.object(ilo_common, 'eject_vmedia_devices',
                        spec_set=True, autospec=True)
