@@ -1,0 +1,4 @@
+---
+other:
+  - Adds a configuration section ``cinder`` and a requirement of
+    cinder client (python-cinderclient).

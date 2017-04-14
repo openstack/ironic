@@ -20,11 +20,14 @@ opts = [
     cfg.StrOpt('url',
                regex='^http(s?):\/\/.+',
                help=_('URL for connecting to cinder. If set, the value must '
-                      'start with either http:// or https://.')),
+                      'start with either http:// or https://. This option is '
+                      'part of boot-from-volume work, which is not currently '
+                      'exposed to users.')),
     cfg.IntOpt('retries',
                default=3,
                help=_('Client retries in the case of a failed request '
-                      'connection.')),
+                      'connection. This option is part of boot-from-volume '
+                      'work, which is not currently exposed to users.')),
 ]
 
 

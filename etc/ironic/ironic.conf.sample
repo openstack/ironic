@@ -426,6 +426,13 @@
 # ignored if log_config_append is set. (boolean value)
 #use_syslog = false
 
+# Enable journald for logging. If running in a systemd
+# environment you may wish to enable journal support. Doing so
+# will use the journal native protocol which includes
+# structured metadata in addition to log messages.This option
+# is ignored if log_config_append is set. (boolean value)
+#use_journal = false
+
 # Syslog facility to receive log lines. This option is ignored
 # if log_config_append is set. (string value)
 #syslog_log_facility = LOG_USER
@@ -493,7 +500,6 @@
 #
 
 # Size of RPC connection pool. (integer value)
-# Deprecated group/name - [DEFAULT]/rpc_conn_pool_size
 #rpc_conn_pool_size = 30
 
 # The pool size limit for connections expiration policy
@@ -507,31 +513,25 @@
 # ZeroMQ bind address. Should be a wildcard (*), an ethernet
 # interface, or IP. The "host" option should point or resolve
 # to this address. (string value)
-# Deprecated group/name - [DEFAULT]/rpc_zmq_bind_address
 #rpc_zmq_bind_address = *
 
 # MatchMaker driver. (string value)
 # Allowed values: redis, sentinel, dummy
-# Deprecated group/name - [DEFAULT]/rpc_zmq_matchmaker
 #rpc_zmq_matchmaker = redis
 
 # Number of ZeroMQ contexts, defaults to 1. (integer value)
-# Deprecated group/name - [DEFAULT]/rpc_zmq_contexts
 #rpc_zmq_contexts = 1
 
 # Maximum number of ingress messages to locally buffer per
 # topic. Default is unlimited. (integer value)
-# Deprecated group/name - [DEFAULT]/rpc_zmq_topic_backlog
 #rpc_zmq_topic_backlog = <None>
 
 # Directory for holding IPC sockets. (string value)
-# Deprecated group/name - [DEFAULT]/rpc_zmq_ipc_dir
 #rpc_zmq_ipc_dir = /var/run/openstack
 
 # Name of this node. Must be a valid hostname, FQDN, or IP
 # address. Must match "host" option, if running Nova. (string
 # value)
-# Deprecated group/name - [DEFAULT]/rpc_zmq_host
 #rpc_zmq_host = localhost
 
 # Number of seconds to wait before all pending messages will
@@ -547,26 +547,21 @@
 # The default number of seconds that poll should wait. Poll
 # raises timeout exception when timeout expired. (integer
 # value)
-# Deprecated group/name - [DEFAULT]/rpc_poll_timeout
 #rpc_poll_timeout = 1
 
 # Expiration timeout in seconds of a name service record about
 # existing target ( < 0 means no timeout). (integer value)
-# Deprecated group/name - [DEFAULT]/zmq_target_expire
 #zmq_target_expire = 300
 
 # Update period in seconds of a name service record about
 # existing target. (integer value)
-# Deprecated group/name - [DEFAULT]/zmq_target_update
 #zmq_target_update = 180
 
 # Use PUB/SUB pattern for fanout methods. PUB/SUB always uses
 # proxy. (boolean value)
-# Deprecated group/name - [DEFAULT]/use_pub_sub
 #use_pub_sub = false
 
 # Use ROUTER remote proxy. (boolean value)
-# Deprecated group/name - [DEFAULT]/use_router_proxy
 #use_router_proxy = false
 
 # This option makes direct connections dynamic or static. It
@@ -583,25 +578,21 @@
 # Minimal port number for random ports range. (port value)
 # Minimum value: 0
 # Maximum value: 65535
-# Deprecated group/name - [DEFAULT]/rpc_zmq_min_port
 #rpc_zmq_min_port = 49153
 
 # Maximal port number for random ports range. (integer value)
 # Minimum value: 1
 # Maximum value: 65536
-# Deprecated group/name - [DEFAULT]/rpc_zmq_max_port
 #rpc_zmq_max_port = 65536
 
 # Number of retries to find free port number before fail with
 # ZMQBindError. (integer value)
-# Deprecated group/name - [DEFAULT]/rpc_zmq_bind_port_retries
 #rpc_zmq_bind_port_retries = 100
 
 # Default serialization mechanism for
 # serializing/deserializing outgoing/incoming messages (string
 # value)
 # Allowed values: json, msgpack
-# Deprecated group/name - [DEFAULT]/rpc_zmq_serialization
 #rpc_zmq_serialization = json
 
 # This option configures round-robin mode in zmq socket. True
@@ -677,7 +668,8 @@
 # taken from the matchmaker. (list value)
 #subscribe_on =
 
-# Size of executor thread pool. (integer value)
+# Size of executor thread pool when executor is threading or
+# eventlet. (integer value)
 # Deprecated group/name - [DEFAULT]/rpc_thread_pool_size
 #executor_thread_pool_size = 64
 
@@ -945,15 +937,16 @@
 #project_domain_name = <None>
 
 # Project ID to scope to (string value)
-# Deprecated group/name - [cinder]/tenant-id
+# Deprecated group/name - [cinder]/tenant_id
 #project_id = <None>
 
 # Project name to scope to (string value)
-# Deprecated group/name - [cinder]/tenant-name
+# Deprecated group/name - [cinder]/tenant_name
 #project_name = <None>
 
 # Client retries in the case of a failed request connection.
-# (integer value)
+# This option is part of boot-from-volume work, which is not
+# currently exposed to users. (integer value)
 #retries = 3
 
 # Tenant ID (string value)
@@ -969,12 +962,10 @@
 #trust_id = <None>
 
 # URL for connecting to cinder. If set, the value must start
-# with either http:// or https://. (string value)
+# with either http:// or https://. This option is part of
+# boot-from-volume work, which is not currently exposed to
+# users. (string value)
 #url = <None>
-
-# Timeout value for connecting to cinder in seconds. (integer
-# value)
-#url_timeout = 30
 
 # User's domain id (string value)
 #user_domain_id = <None>
@@ -986,7 +977,7 @@
 #user_id = <None>
 
 # Username (string value)
-# Deprecated group/name - [cinder]/user-name
+# Deprecated group/name - [cinder]/user_name
 #username = <None>
 
 
@@ -1245,7 +1236,6 @@
 #
 
 # If True, SQLite uses synchronous mode. (boolean value)
-# Deprecated group/name - [DEFAULT]/sqlite_synchronous
 #sqlite_synchronous = true
 
 # The back end to use for the database. (string value)
@@ -1576,11 +1566,11 @@
 #project_domain_name = <None>
 
 # Project ID to scope to (string value)
-# Deprecated group/name - [glance]/tenant-id
+# Deprecated group/name - [glance]/tenant_id
 #project_id = <None>
 
 # Project name to scope to (string value)
-# Deprecated group/name - [glance]/tenant-name
+# Deprecated group/name - [glance]/tenant_name
 #project_name = <None>
 
 # The account that Glance uses to communicate with Swift. The
@@ -1683,7 +1673,7 @@
 #user_id = <None>
 
 # Username (string value)
-# Deprecated group/name - [glance]/user-name
+# Deprecated group/name - [glance]/user_name
 #username = <None>
 
 
@@ -1816,11 +1806,11 @@
 #project_domain_name = <None>
 
 # Project ID to scope to (string value)
-# Deprecated group/name - [inspector]/tenant-id
+# Deprecated group/name - [inspector]/tenant_id
 #project_id = <None>
 
 # Project name to scope to (string value)
-# Deprecated group/name - [inspector]/tenant-name
+# Deprecated group/name - [inspector]/tenant_name
 #project_name = <None>
 
 # ironic-inspector HTTP endpoint. If this is not set, the
@@ -1853,7 +1843,7 @@
 #user_id = <None>
 
 # Username (string value)
-# Deprecated group/name - [inspector]/user-name
+# Deprecated group/name - [inspector]/user_name
 #username = <None>
 
 
@@ -2154,6 +2144,22 @@
 # Reason: PKI token format is no longer supported.
 #hash_algorithms = md5
 
+# A choice of roles that must be present in a service token.
+# Service tokens are allowed to request that an expired token
+# can be used and so this check should tightly control that
+# only actual services should be sending this token. Roles
+# here are applied as an ANY check so any role in this list
+# must be present. For backwards compatibility reasons this
+# currently only affects the allow_expired check. (list value)
+#service_token_roles = service
+
+# For backwards compatibility reasons we must let valid
+# service tokens pass that don't pass the service_token_roles
+# check as valid. Setting this true will become the default in
+# a future release and should be enabled if possible. (boolean
+# value)
+#service_token_roles_required = false
+
 # Authentication type to load (string value)
 # Deprecated group/name - [keystone_authtoken]/auth_plugin
 #auth_type = <None>
@@ -2382,11 +2388,11 @@
 #project_domain_name = <None>
 
 # Project ID to scope to (string value)
-# Deprecated group/name - [neutron]/tenant-id
+# Deprecated group/name - [neutron]/tenant_id
 #project_id = <None>
 
 # Project name to scope to (string value)
-# Deprecated group/name - [neutron]/tenant-name
+# Deprecated group/name - [neutron]/tenant_name
 #project_name = <None>
 
 # Neutron network UUID or name for the ramdisk to be booted
@@ -2439,7 +2445,7 @@
 #user_id = <None>
 
 # Username (string value)
-# Deprecated group/name - [neutron]/user-name
+# Deprecated group/name - [neutron]/user_name
 #username = <None>
 
 
@@ -2488,7 +2494,6 @@
 #
 
 # Enables or disables inter-process locks. (boolean value)
-# Deprecated group/name - [DEFAULT]/disable_process_locking
 #disable_process_locking = false
 
 # Directory to use for lock files.  For security, the
@@ -2496,7 +2501,6 @@
 # running the processes that need locking. Defaults to
 # environment variable OSLO_LOCK_PATH. If external locks are
 # used, a lock path must be set. (string value)
-# Deprecated group/name - [DEFAULT]/lock_path
 #lock_path = <None>
 
 
@@ -2508,41 +2512,38 @@
 
 # Name for the AMQP container. must be globally unique.
 # Defaults to a generated UUID (string value)
-# Deprecated group/name - [amqp1]/container_name
 #container_name = <None>
 
 # Timeout for inactive connections (in seconds) (integer
 # value)
-# Deprecated group/name - [amqp1]/idle_timeout
 #idle_timeout = 0
 
 # Debug: dump AMQP frames to stdout (boolean value)
-# Deprecated group/name - [amqp1]/trace
 #trace = false
+
+# Attempt to connect via SSL. If no other ssl-related
+# parameters are given, it will use the system's CA-bundle to
+# verify the server's certificate. (boolean value)
+#ssl = false
 
 # CA certificate PEM file used to verify the server's
 # certificate (string value)
-# Deprecated group/name - [amqp1]/ssl_ca_file
 #ssl_ca_file =
 
 # Self-identifying certificate PEM file for client
 # authentication (string value)
-# Deprecated group/name - [amqp1]/ssl_cert_file
 #ssl_cert_file =
 
 # Private key PEM file used to sign ssl_cert_file certificate
 # (optional) (string value)
-# Deprecated group/name - [amqp1]/ssl_key_file
 #ssl_key_file =
 
 # Password for decrypting ssl_key_file (if encrypted) (string
 # value)
-# Deprecated group/name - [amqp1]/ssl_key_password
 #ssl_key_password = <None>
 
 # DEPRECATED: Accept clients using either SSL or plain TCP
 # (boolean value)
-# Deprecated group/name - [amqp1]/allow_insecure_clients
 # This option is deprecated for removal.
 # Its value may be silently ignored in the future.
 # Reason: Not applicable - not a SSL server
@@ -2550,25 +2551,20 @@
 
 # Space separated list of acceptable SASL mechanisms (string
 # value)
-# Deprecated group/name - [amqp1]/sasl_mechanisms
 #sasl_mechanisms =
 
 # Path to directory that contains the SASL configuration
 # (string value)
-# Deprecated group/name - [amqp1]/sasl_config_dir
 #sasl_config_dir =
 
 # Name of configuration file (without .conf suffix) (string
 # value)
-# Deprecated group/name - [amqp1]/sasl_config_name
 #sasl_config_name =
 
 # User name for message broker authentication (string value)
-# Deprecated group/name - [amqp1]/username
 #username =
 
 # Password for message broker authentication (string value)
-# Deprecated group/name - [amqp1]/password
 #password =
 
 # Seconds to pause before attempting to re-connect. (integer
@@ -2629,17 +2625,14 @@
 
 # address prefix used when sending to a specific server
 # (string value)
-# Deprecated group/name - [amqp1]/server_request_prefix
 #server_request_prefix = exclusive
 
 # address prefix used when broadcasting to all servers (string
 # value)
-# Deprecated group/name - [amqp1]/broadcast_prefix
 #broadcast_prefix = broadcast
 
 # address prefix when sending to any server in group (string
 # value)
-# Deprecated group/name - [amqp1]/group_request_prefix
 #group_request_prefix = unicast
 
 # Address prefix for all generated RPC addresses (string
@@ -2796,7 +2789,6 @@
 #amqp_durable_queues = false
 
 # Auto-delete queues in AMQP. (boolean value)
-# Deprecated group/name - [DEFAULT]/amqp_auto_delete
 #amqp_auto_delete = false
 
 # Enable SSL (boolean value)
@@ -2823,7 +2815,6 @@
 
 # How long to wait before reconnecting in response to an AMQP
 # consumer cancel notification. (floating point value)
-# Deprecated group/name - [DEFAULT]/kombu_reconnect_delay
 #kombu_reconnect_delay = 1.0
 
 # EXPERIMENTAL: Possible values are: gzip, bz2. If not set
@@ -2846,7 +2837,6 @@
 
 # DEPRECATED: The RabbitMQ broker address where a single node
 # is used. (string value)
-# Deprecated group/name - [DEFAULT]/rabbit_host
 # This option is deprecated for removal.
 # Its value may be silently ignored in the future.
 # Reason: Replaced by [DEFAULT]/transport_url
@@ -2856,7 +2846,6 @@
 # used. (port value)
 # Minimum value: 0
 # Maximum value: 65535
-# Deprecated group/name - [DEFAULT]/rabbit_port
 # This option is deprecated for removal.
 # Its value may be silently ignored in the future.
 # Reason: Replaced by [DEFAULT]/transport_url
@@ -2864,21 +2853,18 @@
 
 # DEPRECATED: RabbitMQ HA cluster host:port pairs. (list
 # value)
-# Deprecated group/name - [DEFAULT]/rabbit_hosts
 # This option is deprecated for removal.
 # Its value may be silently ignored in the future.
 # Reason: Replaced by [DEFAULT]/transport_url
 #rabbit_hosts = $rabbit_host:$rabbit_port
 
 # DEPRECATED: The RabbitMQ userid. (string value)
-# Deprecated group/name - [DEFAULT]/rabbit_userid
 # This option is deprecated for removal.
 # Its value may be silently ignored in the future.
 # Reason: Replaced by [DEFAULT]/transport_url
 #rabbit_userid = guest
 
 # DEPRECATED: The RabbitMQ password. (string value)
-# Deprecated group/name - [DEFAULT]/rabbit_password
 # This option is deprecated for removal.
 # Its value may be silently ignored in the future.
 # Reason: Replaced by [DEFAULT]/transport_url
@@ -2886,11 +2872,9 @@
 
 # The RabbitMQ login method. (string value)
 # Allowed values: PLAIN, AMQPLAIN, RABBIT-CR-DEMO
-# Deprecated group/name - [DEFAULT]/rabbit_login_method
 #rabbit_login_method = AMQPLAIN
 
 # DEPRECATED: The RabbitMQ virtual host. (string value)
-# Deprecated group/name - [DEFAULT]/rabbit_virtual_host
 # This option is deprecated for removal.
 # Its value may be silently ignored in the future.
 # Reason: Replaced by [DEFAULT]/transport_url
@@ -2902,7 +2886,6 @@
 
 # How long to backoff for between retries when connecting to
 # RabbitMQ. (integer value)
-# Deprecated group/name - [DEFAULT]/rabbit_retry_backoff
 #rabbit_retry_backoff = 2
 
 # Maximum interval of RabbitMQ connection retries. Default is
@@ -2911,7 +2894,6 @@
 
 # DEPRECATED: Maximum number of RabbitMQ connection retries.
 # Default is 0 (infinite retry count). (integer value)
-# Deprecated group/name - [DEFAULT]/rabbit_max_retries
 # This option is deprecated for removal.
 # Its value may be silently ignored in the future.
 #rabbit_max_retries = 0
@@ -2924,7 +2906,6 @@
 # generated names) are mirrored across all nodes, run:
 # "rabbitmqctl set_policy HA '^(?!amq\.).*' '{"ha-mode":
 # "all"}' " (boolean value)
-# Deprecated group/name - [DEFAULT]/rabbit_ha_queues
 #rabbit_ha_queues = false
 
 # Positive integer representing duration in seconds for queue
@@ -2949,7 +2930,6 @@
 
 # Deprecated, use rpc_backend=kombu+memory or rpc_backend=fake
 # (boolean value)
-# Deprecated group/name - [DEFAULT]/fake_rabbit
 #fake_rabbit = false
 
 # Maximum number of channels to allow (integer value)
@@ -3075,31 +3055,25 @@
 # ZeroMQ bind address. Should be a wildcard (*), an ethernet
 # interface, or IP. The "host" option should point or resolve
 # to this address. (string value)
-# Deprecated group/name - [DEFAULT]/rpc_zmq_bind_address
 #rpc_zmq_bind_address = *
 
 # MatchMaker driver. (string value)
 # Allowed values: redis, sentinel, dummy
-# Deprecated group/name - [DEFAULT]/rpc_zmq_matchmaker
 #rpc_zmq_matchmaker = redis
 
 # Number of ZeroMQ contexts, defaults to 1. (integer value)
-# Deprecated group/name - [DEFAULT]/rpc_zmq_contexts
 #rpc_zmq_contexts = 1
 
 # Maximum number of ingress messages to locally buffer per
 # topic. Default is unlimited. (integer value)
-# Deprecated group/name - [DEFAULT]/rpc_zmq_topic_backlog
 #rpc_zmq_topic_backlog = <None>
 
 # Directory for holding IPC sockets. (string value)
-# Deprecated group/name - [DEFAULT]/rpc_zmq_ipc_dir
 #rpc_zmq_ipc_dir = /var/run/openstack
 
 # Name of this node. Must be a valid hostname, FQDN, or IP
 # address. Must match "host" option, if running Nova. (string
 # value)
-# Deprecated group/name - [DEFAULT]/rpc_zmq_host
 #rpc_zmq_host = localhost
 
 # Number of seconds to wait before all pending messages will
@@ -3115,26 +3089,21 @@
 # The default number of seconds that poll should wait. Poll
 # raises timeout exception when timeout expired. (integer
 # value)
-# Deprecated group/name - [DEFAULT]/rpc_poll_timeout
 #rpc_poll_timeout = 1
 
 # Expiration timeout in seconds of a name service record about
 # existing target ( < 0 means no timeout). (integer value)
-# Deprecated group/name - [DEFAULT]/zmq_target_expire
 #zmq_target_expire = 300
 
 # Update period in seconds of a name service record about
 # existing target. (integer value)
-# Deprecated group/name - [DEFAULT]/zmq_target_update
 #zmq_target_update = 180
 
 # Use PUB/SUB pattern for fanout methods. PUB/SUB always uses
 # proxy. (boolean value)
-# Deprecated group/name - [DEFAULT]/use_pub_sub
 #use_pub_sub = false
 
 # Use ROUTER remote proxy. (boolean value)
-# Deprecated group/name - [DEFAULT]/use_router_proxy
 #use_router_proxy = false
 
 # This option makes direct connections dynamic or static. It
@@ -3151,25 +3120,21 @@
 # Minimal port number for random ports range. (port value)
 # Minimum value: 0
 # Maximum value: 65535
-# Deprecated group/name - [DEFAULT]/rpc_zmq_min_port
 #rpc_zmq_min_port = 49153
 
 # Maximal port number for random ports range. (integer value)
 # Minimum value: 1
 # Maximum value: 65536
-# Deprecated group/name - [DEFAULT]/rpc_zmq_max_port
 #rpc_zmq_max_port = 65536
 
 # Number of retries to find free port number before fail with
 # ZMQBindError. (integer value)
-# Deprecated group/name - [DEFAULT]/rpc_zmq_bind_port_retries
 #rpc_zmq_bind_port_retries = 100
 
 # Default serialization mechanism for
 # serializing/deserializing outgoing/incoming messages (string
 # value)
 # Allowed values: json, msgpack
-# Deprecated group/name - [DEFAULT]/rpc_zmq_serialization
 #rpc_zmq_serialization = json
 
 # This option configures round-robin mode in zmq socket. True
@@ -3253,12 +3218,10 @@
 #
 
 # The file that defines policies. (string value)
-# Deprecated group/name - [DEFAULT]/policy_file
 #policy_file = policy.json
 
 # Default rule. Enforced when a requested rule is not found.
 # (string value)
-# Deprecated group/name - [DEFAULT]/policy_default_rule
 #policy_default_rule = default
 
 # Directories where policy configuration files are stored.
@@ -3267,7 +3230,6 @@
 # file defined by policy_file must exist for these directories
 # to be searched.  Missing or empty directories are ignored.
 # (multi valued)
-# Deprecated group/name - [DEFAULT]/policy_dirs
 #policy_dirs = policy.d
 
 
@@ -3414,11 +3376,11 @@
 #project_domain_name = <None>
 
 # Project ID to scope to (string value)
-# Deprecated group/name - [service_catalog]/tenant-id
+# Deprecated group/name - [service_catalog]/tenant_id
 #project_id = <None>
 
 # Project name to scope to (string value)
-# Deprecated group/name - [service_catalog]/tenant-name
+# Deprecated group/name - [service_catalog]/tenant_name
 #project_name = <None>
 
 # Tenant ID (string value)
@@ -3443,7 +3405,7 @@
 #user_id = <None>
 
 # Username (string value)
-# Deprecated group/name - [service_catalog]/user-name
+# Deprecated group/name - [service_catalog]/user_name
 #username = <None>
 
 
@@ -3565,11 +3527,11 @@
 #project_domain_name = <None>
 
 # Project ID to scope to (string value)
-# Deprecated group/name - [swift]/tenant-id
+# Deprecated group/name - [swift]/tenant_id
 #project_id = <None>
 
 # Project name to scope to (string value)
-# Deprecated group/name - [swift]/tenant-name
+# Deprecated group/name - [swift]/tenant_name
 #project_name = <None>
 
 # Maximum number of times to retry a Swift request, before
@@ -3598,5 +3560,5 @@
 #user_id = <None>
 
 # Username (string value)
-# Deprecated group/name - [swift]/user-name
+# Deprecated group/name - [swift]/user_name
 #username = <None>
