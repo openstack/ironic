@@ -97,15 +97,6 @@ class TestNeutron(db_base.DbTestCase):
             api.provider.update_port_dhcp_opts,
             port_id, opts)
 
-    @mock.patch('ironic.common.neutron.update_port_address')
-    def test_update_port_address(self, mock_update_port_addr):
-        address = 'fe:54:00:77:07:d9'
-        port_id = 'fake-port-id'
-
-        api = dhcp_factory.DHCPFactory()
-        api.provider.update_port_address(port_id, address)
-        mock_update_port_addr.assert_called_once_with(port_id, address, None)
-
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
     @mock.patch('ironic.common.network.get_node_vif_ids')
     def test_update_dhcp(self, mock_gnvi, mock_updo):

@@ -25,10 +25,5 @@ class NoneDHCPApi(base.BaseDHCP):
     def update_dhcp_opts(self, task, options, vifs=None):
         pass
 
-    # TODO(vsaienko) Remove this method when deprecation period is passed
-    # in Pike.
-    def update_port_address(self, port_id, address, token=None):
-        pass
-
     def get_ip_addresses(self, task):
         return []

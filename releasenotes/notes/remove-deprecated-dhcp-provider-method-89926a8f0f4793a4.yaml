@@ -1,0 +1,18 @@
+---
+upgrade:
+  - |
+    Removes the deprecated DHCP provider method ``update_port_address``.
+    For users who created their own network interfaces or DHCP providers
+    the logic should be moved to a custom network interface's
+    ``port_changed`` and ``portgroup_changed`` methods. The following
+    methods should be implemented by custom network interfaces:
+
+    * ``vif_list``: List attached VIF IDs for a node.
+    * ``vif_attach``: Attach a virtual network interface to a node.
+    * ``vif_detach``: Detach a virtual network interface from a node.
+    * ``port_changed``: Handle any actions required when a port
+       changes.
+    * ``portgroup_changed``: Handle any actions required when a
+      port group changes.
+    * ``get_current_vif``: Return VIF ID attached to port or port group
+      object.
