@@ -193,17 +193,11 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
             'admin_state_up': True,
             'binding:vnic_type': 'baremetal',
             'device_owner': 'baremetal:none',
+            'binding:host_id': node.uuid,
         }
     }
     if security_groups:
         body['port']['security_groups'] = security_groups
-
-    if node.network_interface != 'flat':
-        # NOTE(vdrok): It seems that change
-        # I437290affd8eb87177d0626bf7935a165859cbdd to neutron broke the
-        # possibility to always bind port. Set binding:host_id only in
-        # case of non flat network.
-        body['port']['binding:host_id'] = node.uuid
 
     # Since instance_uuid will not be available during cleaning
     # operations, we need to check that and populate them only when
