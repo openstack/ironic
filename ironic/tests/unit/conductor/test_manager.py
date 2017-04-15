@@ -4824,7 +4824,9 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin,
                     'console_port', 'ilo_change_password',
                     'ca_file', 'snmp_auth_user', 'snmp_auth_prot_password',
                     'snmp_auth_priv_password', 'snmp_auth_protocol',
-                    'snmp_auth_priv_protocol']
+                    'snmp_auth_priv_protocol', 'deploy_forces_oob_reboot',
+                    'deploy_kernel', 'deploy_ramdisk', 'image_http_proxy',
+                    'image_https_proxy', 'image_no_proxy']
         self._check_driver_properties("agent_ilo", expected)
 
     def test_driver_properties_fail(self):
