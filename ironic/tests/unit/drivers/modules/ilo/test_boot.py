@@ -34,6 +34,7 @@ from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import boot as ilo_boot
 from ironic.drivers.modules.ilo import common as ilo_common
+from ironic.drivers.modules import pxe
 from ironic.drivers import utils as driver_utils
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
@@ -930,3 +931,77 @@ class IloVirtualMediaBootTestCase(db_base.DbTestCase):
                 mock.ANY, task, "12312642-09d3-467f-8e09-12385826a123")
             update_boot_mode_mock.assert_called_once_with(task)
             update_secure_boot_mode_mock.assert_called_once_with(task, True)
+
+
+class IloPXEBootTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(IloPXEBootTestCase, self).setUp()
+        mgr_utils.mock_the_extension_manager(driver="pxe_ilo")
+        self.node = obj_utils.create_test_node(
+            self.context, driver='pxe_ilo', driver_info=INFO_DICT)
+
+    @mock.patch.object(ilo_boot, 'prepare_node_for_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', spec_set=True,
+                       autospec=True)
+    def test_prepare_ramdisk_not_deploying_not_cleaning(
+            self, pxe_boot_mock, prepare_node_mock):
+        self.node.provision_state = states.CLEANING
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertIsNone(
+                task.driver.boot.prepare_ramdisk(task, None))
+
+            self.assertFalse(prepare_node_mock.called)
+            pxe_boot_mock.assert_called_once_with(mock.ANY, task, None)
+
+    @mock.patch.object(ilo_boot, 'prepare_node_for_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', spec_set=True,
+                       autospec=True)
+    def test_prepare_ramdisk_in_deploying(self, pxe_boot_mock,
+                                          prepare_node_mock):
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertIsNone(
+                task.driver.boot.prepare_ramdisk(task, None))
+
+            prepare_node_mock.assert_called_once_with(task)
+            pxe_boot_mock.assert_called_once_with(mock.ANY, task, None)
+
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_instance', spec_set=True,
+                       autospec=True)
+    def test_clean_up_instance(self, pxe_cleanup_mock, node_power_mock,
+                               update_secure_boot_mode_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.boot.clean_up_instance(task)
+
+            node_power_mock.assert_called_once_with(task, states.POWER_OFF)
+            update_secure_boot_mode_mock.assert_called_once_with(task, False)
+            pxe_cleanup_mock.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', spec_set=True,
+                       autospec=True)
+    def test_prepare_instance(self, pxe_prepare_instance_mock,
+                              update_boot_mode_mock,
+                              update_secure_boot_mode_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.boot.prepare_instance(task)
+
+            update_boot_mode_mock.assert_called_once_with(task)
+            update_secure_boot_mode_mock.assert_called_once_with(task, True)
+            pxe_prepare_instance_mock.assert_called_once_with(mock.ANY, task)

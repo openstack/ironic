@@ -26,8 +26,8 @@ from ironic.drivers import ipmi
 from ironic.drivers.modules import agent
 from ironic.drivers.modules.cimc import management as cimc_mgmt
 from ironic.drivers.modules.cimc import power as cimc_power
+from ironic.drivers.modules.ilo import boot as ilo_boot
 from ironic.drivers.modules.ilo import console as ilo_console
-from ironic.drivers.modules.ilo import deploy as ilo_deploy
 from ironic.drivers.modules.ilo import inspect as ilo_inspect
 from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules.ilo import power as ilo_power
@@ -91,8 +91,8 @@ class PXEAndIloDriver(base.BaseDriver):
                 driver=self.__class__.__name__,
                 reason=_("Unable to import proliantutils library"))
         self.power = ilo_power.IloPower()
-        self.boot = pxe.PXEBoot()
-        self.deploy = ilo_deploy.IloPXEDeploy()
+        self.boot = ilo_boot.IloPXEBoot()
+        self.deploy = iscsi_deploy.ISCSIDeploy()
         self.vendor = ilo_vendor.VendorPassthru()
         self.console = ilo_console.IloConsoleInterface()
         self.management = ilo_management.IloManagement()
