@@ -535,7 +535,6 @@ class IloVirtualMediaBoot(base.BootInterface):
         :raises: IloOperationError, if some operation on iLO failed.
         """
 
-        LOG.debug("Cleaning up the ironic ramdisk.")
         ilo_common.cleanup_vmedia_boot(task)
 
     def _configure_vmedia_boot(self, task, root_uuid):
@@ -628,7 +627,6 @@ class IloPXEBoot(pxe.PXEBoot):
         :raises: IloOperationError, if some operation on iLO failed.
         """
 
-        LOG.debug("Cleaning up the instance.")
         manager_utils.node_power_action(task, states.POWER_OFF)
         disable_secure_boot_if_supported(task)
 
