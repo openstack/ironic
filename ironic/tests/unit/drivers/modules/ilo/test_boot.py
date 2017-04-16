@@ -946,7 +946,7 @@ class IloPXEBootTestCase(db_base.DbTestCase):
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', spec_set=True,
                        autospec=True)
     def test_prepare_ramdisk_not_deploying_not_cleaning(
-            self, pxe_boot_mock, prepare_node_mock):
+            self, pxe_prepare_instance_mock, prepare_node_mock):
         self.node.provision_state = states.CLEANING
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
@@ -955,13 +955,14 @@ class IloPXEBootTestCase(db_base.DbTestCase):
                 task.driver.boot.prepare_ramdisk(task, None))
 
             self.assertFalse(prepare_node_mock.called)
-            pxe_boot_mock.assert_called_once_with(mock.ANY, task, None)
+            pxe_prepare_instance_mock.assert_called_once_with(mock.ANY,
+                                                              task, None)
 
     @mock.patch.object(ilo_boot, 'prepare_node_for_deploy', spec_set=True,
                        autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', spec_set=True,
                        autospec=True)
-    def test_prepare_ramdisk_in_deploying(self, pxe_boot_mock,
+    def test_prepare_ramdisk_in_deploying(self, pxe_prepare_instance_mock,
                                           prepare_node_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
@@ -971,7 +972,8 @@ class IloPXEBootTestCase(db_base.DbTestCase):
                 task.driver.boot.prepare_ramdisk(task, None))
 
             prepare_node_mock.assert_called_once_with(task)
-            pxe_boot_mock.assert_called_once_with(mock.ANY, task, None)
+            pxe_prepare_instance_mock.assert_called_once_with(mock.ANY,
+                                                              task, None)
 
     @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
                        autospec=True)
