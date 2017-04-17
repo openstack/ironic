@@ -103,12 +103,6 @@ opts = [
                       'value between 1 and 32, a single-tenant store will use '
                       'multiple containers to store images, and this value '
                       'will determine how many containers are created.')),
-    cfg.StrOpt('temp_url_endpoint_type',
-               default='swift',
-               choices=['swift', 'radosgw'],
-               help=_('Type of endpoint to use for temporary URLs. If the '
-                      'Glance backend is Swift, use "swift"; if it is CEPH '
-                      'with RADOS gateway, use "radosgw".')),
     cfg.StrOpt('glance_host',
                default='$my_ip',
                help=_('Default glance hostname or IP address.')),

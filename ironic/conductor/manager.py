@@ -2695,17 +2695,20 @@ def _get_configdrive_obj_name(node):
 def _store_configdrive(node, configdrive):
     """Handle the storage of the config drive.
 
-    If configured, the config drive data are uploaded to Swift. The Node's
-    instance_info is updated to include either the temporary Swift URL
-    from the upload, or if no upload, the actual config drive data.
+    If configured, the config drive data are uploaded to swift or radosgw.
+    The Node's instance_info is updated to include either the temporary
+    Swift URL from the upload, or if no upload, the actual config drive data.
 
     :param node: an Ironic node object.
     :param configdrive: A gzipped and base64 encoded configdrive.
     :raises: SwiftOperationError if an error occur when uploading the
-             config drive to Swift.
+             config drive to swift or radosgw.
+    :raises: ConfigInvalid if required keystone authorization credentials
+             with swift are missing.
+
 
     """
-    if CONF.conductor.configdrive_use_swift:
+    if CONF.deploy.configdrive_use_object_store:
         # NOTE(lucasagomes): No reason to use a different timeout than
         # the one used for deploying the node
         timeout = CONF.conductor.deploy_callback_timeout

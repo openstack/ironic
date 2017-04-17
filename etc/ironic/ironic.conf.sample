@@ -1089,11 +1089,8 @@
 # the check entirely. (integer value)
 #sync_local_state_interval = 180
 
-# Whether to upload the config drive to Swift. (boolean value)
-#configdrive_use_swift = false
-
 # Name of the Swift container to store config drive data. Used
-# when configdrive_use_swift is True. (string value)
+# when configdrive_use_object_store is True. (string value)
 #configdrive_swift_container = ironic_configdrive_container
 
 # Timeout (seconds) for waiting for node inspection. 0 -
@@ -1396,6 +1393,18 @@
 # Allowed values: netboot, local
 #default_boot_option = <None>
 
+# Whether to upload the config drive to object store. Set this
+# option to True to store config drive in swift or radosgw.
+# (boolean value)
+# Deprecated group/name - [conductor]/configdrive_use_swift
+#configdrive_use_object_store = false
+
+# Type of object store endpoint type to be used as a backend
+# (string value)
+# Allowed values: swift, radosgw
+# Deprecated group/name - [glance]/temp_url_endpoint_type
+#object_store_endpoint_type = swift
+
 
 [dhcp]
 
@@ -1644,12 +1653,6 @@
 # The secret token given to Swift to allow temporary URL
 # downloads. Required for temporary URLs. (string value)
 #swift_temp_url_key = <None>
-
-# Type of endpoint to use for temporary URLs. If the Glance
-# backend is Swift, use "swift"; if it is CEPH with RADOS
-# gateway, use "radosgw". (string value)
-# Allowed values: swift, radosgw
-#temp_url_endpoint_type = swift
 
 # Tenant ID (string value)
 #tenant_id = <None>

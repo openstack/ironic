@@ -23,7 +23,7 @@ from swiftclient import utils as swift_utils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import keystone
-
+from ironic.conf import CONF
 
 _SWIFT_SESSION = None
 
@@ -39,8 +39,22 @@ class SwiftAPI(object):
     """API for communicating with Swift."""
 
     def __init__(self):
-        session = _get_swift_session()
-        self.connection = swift_client.Connection(session=session)
+        """Initialize the connection with swift or radosgw
+
+        :raises: ConfigInvalid if required keystone authorization credentials
+         with swift are missing.
+        """
+        params = {}
+        if CONF.deploy.object_store_endpoint_type == 'radosgw':
+            params = {'authurl': CONF.swift.auth_url,
+                      'user': CONF.swift.username,
+                      'key': CONF.swift.password}
+        else:
+            # NOTE(aNuposic): Session will be initiated only when connection
+            # with swift is initialized. Since v3.2.0 swiftclient supports
+            # instantiating the API client from keystoneauth session.
+            params = {'session': _get_swift_session()}
+        self.connection = swift_client.Connection(**params)
 
     def create_object(self, container, obj, filename,
                       object_headers=None):

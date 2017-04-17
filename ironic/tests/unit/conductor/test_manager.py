@@ -1433,7 +1433,8 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     def test__do_node_deploy_configdrive_swift_error(self, mock_deploy,
                                                      mock_swift):
-        CONF.set_override('configdrive_use_swift', True, group='conductor')
+        CONF.set_override('configdrive_use_object_store', True,
+                          group='deploy')
         self._start_service()
         # test when driver.deploy.deploy returns DEPLOYDONE
         mock_deploy.return_value = states.DEPLOYDONE
@@ -5042,7 +5043,8 @@ class StoreConfigDriveTestCase(tests_base.TestCase):
         expected_instance_info = {'configdrive': 'http://1.2.3.4'}
 
         # set configs and mocks
-        CONF.set_override('configdrive_use_swift', True, group='conductor')
+        CONF.set_override('configdrive_use_object_store', True,
+                          group='deploy')
         CONF.set_override('configdrive_swift_container', container_name,
                           group='conductor')
         CONF.set_override('deploy_callback_timeout', timeout,

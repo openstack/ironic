@@ -147,7 +147,7 @@ class GlanceImageService(base_image_service.BaseImageService,
         }
 
         endpoint_url = CONF.glance.swift_endpoint_url
-        if CONF.glance.temp_url_endpoint_type == 'radosgw':
+        if CONF.deploy.object_store_endpoint_type == 'radosgw':
             chunks = urlparse.urlsplit(CONF.glance.swift_endpoint_url)
             if not chunks.path:
                 endpoint_url = urlparse.urljoin(
@@ -184,7 +184,7 @@ class GlanceImageService(base_image_service.BaseImageService,
                 'Swift temporary URLs require a Swift endpoint URL. '
                 'You must provide "swift_endpoint_url" as a config option.'))
         if (not CONF.glance.swift_account and
-                CONF.glance.temp_url_endpoint_type == 'swift'):
+                CONF.deploy.object_store_endpoint_type == 'swift'):
             raise exc.MissingParameterValue(_(
                 'Swift temporary URLs require a Swift account string. '
                 'You must provide "swift_account" as a config option.'))
