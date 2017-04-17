@@ -30,7 +30,7 @@ from six.moves.urllib.parse import urljoin
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
-from ironic.common.i18n import _, _LE, _LI, _LW
+from ironic.common.i18n import _
 from ironic.common import images
 from ironic.common import swift
 from ironic.common import utils
@@ -183,18 +183,19 @@ def remove_image_from_swift(object_name, associated_with=None):
         swift_api = swift.SwiftAPI()
         swift_api.delete_object(container, object_name)
     except exception.SwiftObjectNotFoundError as e:
-        LOG.warning(
-            _LW("Temporary object %(associated_with_msg)s"
-                "was already deleted from Swift. Error: %(err)s"),
-            {'associated_with_msg': ("associated with %s " % associated_with
-                                     if associated_with else ""), 'err': e})
+        LOG.warning("Temporary object %(associated_with_msg)s"
+                    "was already deleted from Swift. Error: %(err)s",
+                    {'associated_with_msg':
+                        ("associated with %s " % associated_with
+                            if associated_with else ""), 'err': e})
     except exception.SwiftOperationError as e:
-        LOG.exception(
-            _LE("Error while deleting temporary swift object %(object_name)s "
-                "%(associated_with_msg)s from %(container)s. Error: %(err)s"),
-            {'object_name': object_name, 'container': container,
-             'associated_with_msg': ("associated with %s" % associated_with
-                                     if associated_with else ""), 'err': e})
+        LOG.exception("Error while deleting temporary swift object "
+                      "%(object_name)s %(associated_with_msg)s from "
+                      "%(container)s. Error: %(err)s",
+                      {'object_name': object_name, 'container': container,
+                       'associated_with_msg':
+                           ("associated with %s" % associated_with
+                               if associated_with else ""), 'err': e})
 
 
 def parse_driver_info(node):
@@ -436,7 +437,7 @@ def attach_vmedia(node, device, url):
         raise exception.IloOperationError(
             operation=operation, error=ilo_exception)
 
-    LOG.info(_LI("Attached virtual media %s successfully."), device)
+    LOG.info("Attached virtual media %s successfully.", device)
 
 
 def set_boot_mode(node, boot_mode):
@@ -454,7 +455,7 @@ def set_boot_mode(node, boot_mode):
         p_boot_mode = DEFAULT_BOOT_MODE
 
     if BOOT_MODE_ILO_TO_GENERIC[p_boot_mode.lower()] == boot_mode:
-        LOG.info(_LI("Node %(uuid)s pending boot mode is %(boot_mode)s."),
+        LOG.info("Node %(uuid)s pending boot mode is %(boot_mode)s.",
                  {'uuid': node.uuid, 'boot_mode': boot_mode})
         return
 
@@ -466,7 +467,7 @@ def set_boot_mode(node, boot_mode):
         raise exception.IloOperationError(
             operation=operation, error=ilo_exception)
 
-    LOG.info(_LI("Node %(uuid)s boot mode is set to %(boot_mode)s."),
+    LOG.info("Node %(uuid)s boot mode is set to %(boot_mode)s.",
              {'uuid': node.uuid, 'boot_mode': boot_mode})
 
 
@@ -587,7 +588,7 @@ def setup_vmedia_for_boot(task, boot_iso, parameters=None):
     :raises: SwiftOperationError, if any operation with Swift fails.
     :raises: IloOperationError, if attaching virtual media failed.
     """
-    LOG.info(_LI("Setting up node %s to boot from virtual media"),
+    LOG.info("Setting up node %s to boot from virtual media",
              task.node.uuid)
     if parameters:
         floppy_image_temp_url = _prepare_floppy_image(task, parameters)
@@ -623,8 +624,8 @@ def eject_vmedia_devices(task):
         try:
             ilo_object.eject_virtual_media(device)
         except ilo_error.IloError as ilo_exception:
-            LOG.error(_LE("Error while ejecting virtual media %(device)s "
-                          "from node %(uuid)s. Error: %(error)s"),
+            LOG.error("Error while ejecting virtual media %(device)s "
+                      "from node %(uuid)s. Error: %(error)s",
                       {'device': device, 'uuid': task.node.uuid,
                        'error': ilo_exception})
             operation = _("Eject virtual media %s") % device.lower()
@@ -732,7 +733,7 @@ def update_secure_boot_mode(task, mode):
     """
     if deploy_utils.is_secure_boot_requested(task.node):
         set_secure_boot_mode(task, mode)
-        LOG.info(_LI('Changed secure boot to %(mode)s for node %(node)s'),
+        LOG.info('Changed secure boot to %(mode)s for node %(node)s',
                  {'mode': mode, 'node': task.node.uuid})
 
 
@@ -770,8 +771,7 @@ def verify_image_checksum(image_location, expected_checksum):
         with open(image_location, 'rb') as fd:
             actual_checksum = utils.hash_file(fd)
     except IOError as e:
-        LOG.error(_LE("Error opening file: %(file)s"),
-                  {'file': image_location})
+        LOG.error("Error opening file: %(file)s", {'file': image_location})
         raise exception.ImageRefValidationFailed(image_href=image_location,
                                                  reason=e)
 

@@ -28,7 +28,7 @@ import six.moves.urllib.parse as urlparse
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
-from ironic.common.i18n import _, _LE, _LW
+from ironic.common.i18n import _
 from ironic.common import image_service
 from ironic.common import images
 from ironic.common import states
@@ -130,11 +130,11 @@ def _get_boot_iso(task, root_uuid):
                 image_service.HttpImageService().validate_href(boot_iso)
             except exception.ImageRefValidationFailed:
                 with excutils.save_and_reraise_exception():
-                    LOG.error(_LE("Virtual media deploy accepts only Glance "
-                                  "images or HTTP(S) URLs as "
-                                  "instance_info['ilo_boot_iso']. Either %s "
-                                  "is not a valid HTTP(S) URL or is "
-                                  "not reachable."), boot_iso)
+                    LOG.error("Virtual media deploy accepts only Glance "
+                              "images or HTTP(S) URLs as "
+                              "instance_info['ilo_boot_iso']. Either %s "
+                              "is not a valid HTTP(S) URL or is "
+                              "not reachable.", boot_iso)
 
         return task.node.instance_info['ilo_boot_iso']
 
@@ -158,8 +158,8 @@ def _get_boot_iso(task, root_uuid):
         return boot_iso_uuid
 
     if not kernel_href or not ramdisk_href:
-        LOG.error(_LE("Unable to find kernel or ramdisk for "
-                      "image %(image)s to generate boot ISO for %(node)s"),
+        LOG.error("Unable to find kernel or ramdisk for "
+                  "image %(image)s to generate boot ISO for %(node)s",
                   {'image': image_href, 'node': task.node.uuid})
         return
 
@@ -218,8 +218,8 @@ def _clean_up_boot_iso_for_instance(node):
         try:
             swift_api.delete_object(container, boot_iso_object_name)
         except exception.SwiftOperationError as e:
-            LOG.exception(_LE("Failed to clean up boot ISO for node "
-                              "%(node)s. Error: %(error)s."),
+            LOG.exception("Failed to clean up boot ISO for node "
+                          "%(node)s. Error: %(error)s.",
                           {'node': node.uuid, 'error': e})
     elif CONF.ilo.use_web_server_for_images:
         result = urlparse.urlparse(ilo_boot_iso)
@@ -490,8 +490,8 @@ class IloVirtualMediaBoot(base.BootInterface):
             if root_uuid_or_disk_id:
                 self._configure_vmedia_boot(task, root_uuid_or_disk_id)
             else:
-                LOG.warning(_LW("The UUID for the root partition could not "
-                                "be found for node %s"), node.uuid)
+                LOG.warning("The UUID for the root partition could not "
+                            "be found for node %s", node.uuid)
         # Set boot mode
         ilo_common.update_boot_mode(task)
         # Need to enable secure boot, if being requested
@@ -550,7 +550,7 @@ class IloVirtualMediaBoot(base.BootInterface):
         node = task.node
         boot_iso = _get_boot_iso(task, root_uuid)
         if not boot_iso:
-            LOG.error(_LE("Cannot get boot ISO for node %s"), node.uuid)
+            LOG.error("Cannot get boot ISO for node %s", node.uuid)
             return
 
         # Upon deploy complete, some distros cloud images reboot the system as

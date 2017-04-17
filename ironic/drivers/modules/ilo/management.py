@@ -23,7 +23,7 @@ import six
 
 from ironic.common import boot_devices
 from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LI, _LW
+from ironic.common.i18n import _
 from ironic.conductor import task_manager
 from ironic.conf import CONF
 from ironic.drivers import base
@@ -74,8 +74,8 @@ def _execute_ilo_clean_step(node, step, *args, **kwargs):
     except ilo_error.IloCommandNotSupportedError:
         # This clean step is not supported on Gen8 and below servers.
         # Log the failure and continue with cleaning.
-        LOG.warning(_LW("'%(step)s' clean step is not supported on node "
-                        "%(uuid)s. Skipping the clean step."),
+        LOG.warning("'%(step)s' clean step is not supported on node "
+                    "%(uuid)s. Skipping the clean step.",
                     {'step': step, 'uuid': node.uuid})
     except ilo_error.IloError as ilo_exception:
         raise exception.NodeCleaningFailure(_(
@@ -237,9 +237,9 @@ class IloManagement(base.ManagementInterface):
         password = info.pop('ilo_change_password', None)
 
         if not password:
-            LOG.info(_LI("Missing 'ilo_change_password' parameter in "
-                         "driver_info. Clean step 'reset_ilo_credential' is "
-                         "not performed on node %s."), task.node.uuid)
+            LOG.info("Missing 'ilo_change_password' parameter in "
+                     "driver_info. Clean step 'reset_ilo_credential' is "
+                     "not performed on node %s.", task.node.uuid)
             return
 
         _execute_ilo_clean_step(task.node, 'reset_ilo_credential', password)
@@ -319,8 +319,7 @@ class IloManagement(base.ManagementInterface):
         LOG.debug("Activating iLO license for node %(node)s ...",
                   {'node': node.uuid})
         _execute_ilo_clean_step(node, 'activate_license', ilo_license_key)
-        LOG.info(_LI("iLO license activated for node %(node)s."),
-                 {'node': node.uuid})
+        LOG.info("iLO license activated for node %s.", node.uuid)
 
     @METRICS.timer('IloManagement.update_firmware')
     @base.clean_step(priority=0, abortable=False, argsinfo={
@@ -390,8 +389,8 @@ class IloManagement(base.ManagementInterface):
             # and re-raise the exception
             for fw_loc_obj_n_comp_tup in fw_location_objs_n_components:
                 fw_loc_obj_n_comp_tup[0].remove()
-            LOG.error(_LE("Processing of firmware image: %(firmware_image)s "
-                          "on node: %(node)s ... failed"),
+            LOG.error("Processing of firmware image: %(firmware_image)s "
+                      "on node: %(node)s ... failed",
                       {'firmware_image': firmware_image_info,
                        'node': node.uuid})
             raise exception.NodeCleaningFailure(node=node.uuid, reason=ilo_exc)
@@ -412,12 +411,12 @@ class IloManagement(base.ManagementInterface):
                           {'firmware_file': fw_location, 'node': node.uuid})
         except exception.NodeCleaningFailure:
             with excutils.save_and_reraise_exception():
-                LOG.error(_LE("Firmware update for %(firmware_file)s on "
-                              "node: %(node)s failed."),
+                LOG.error("Firmware update for %(firmware_file)s on "
+                          "node: %(node)s failed.",
                           {'firmware_file': fw_location, 'node': node.uuid})
         finally:
             for fw_loc_obj_n_comp_tup in fw_location_objs_n_components:
                 fw_loc_obj_n_comp_tup[0].remove()
 
-        LOG.info(_LI("All Firmware update operations completed successfully "
-                     "for node: %s."), node.uuid)
+        LOG.info("All Firmware update operations completed successfully "
+                 "for node: %s.", node.uuid)
