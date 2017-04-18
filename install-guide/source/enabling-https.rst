@@ -36,7 +36,7 @@ It can be enabled by making the following changes to ``/etc/glance/glance-api.co
 
 #. Restart the glance-api service::
 
-    Fedora/RHEL7/CentOS7:
+    Fedora/RHEL7/CentOS7/SUSE:
         sudo systemctl restart openstack-glance-api
 
     Debian/Ubuntu:
@@ -82,7 +82,7 @@ To enable secure HTTPS communication between Bare Metal service and Image servic
 
 #. Restart ironic-conductor service::
 
-    Fedora/RHEL7/CentOS7:
+    Fedora/RHEL7/CentOS7/SUSE:
         sudo systemctl restart openstack-ironic-conductor
 
     Debian/Ubuntu:

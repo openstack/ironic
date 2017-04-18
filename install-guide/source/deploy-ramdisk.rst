@@ -40,13 +40,16 @@ CoreOS tools
     Ubuntu 14.04 (trusty) or higher:
         sudo apt-get install docker.io gzip uuid-runtime cpio findutils grep gnupg
 
+    SUSE:
+        sudo zypper install docker gzip util-linux cpio findutils grep gpg2
+
 #. Change directory to ``imagebuild/coreos``::
 
     cd ironic-python-agent/imagebuild/coreos
 
 #. Start the docker daemon::
 
-    Fedora/RHEL7/CentOS7:
+    Fedora/RHEL7/CentOS7/SUSE:
         sudo systemctl start docker
 
     Ubuntu:

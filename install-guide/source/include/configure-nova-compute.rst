@@ -102,7 +102,7 @@ driver.  The configuration file for the Compute service is typically located at
 
     .. code-block:: console
 
-      Fedora/RHEL7/CentOS7:
+      Fedora/RHEL7/CentOS7/SUSE:
         sudo systemctl restart openstack-nova-scheduler
 
       Ubuntu:
@@ -113,7 +113,7 @@ driver.  The configuration file for the Compute service is typically located at
 
     .. code-block:: console
 
-      Fedora/RHEL7/CentOS7:
+      Fedora/RHEL7/CentOS7/SUSE:
         sudo systemctl restart openstack-nova-compute
 
       Ubuntu:
