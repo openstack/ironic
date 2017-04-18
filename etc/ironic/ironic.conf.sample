@@ -243,7 +243,7 @@
 # have storage_interface field set. A complete list of storage
 # interfaces present on your system may be found by
 # enumerating the "ironic.hardware.interfaces.storage"
-# entrypoint. (list value)
+# entrypoint. (string value)
 #default_storage_interface = <None>
 
 # Specify the list of vendor interfaces to load during service
@@ -2564,10 +2564,20 @@
 # value)
 #sasl_config_name =
 
-# User name for message broker authentication (string value)
+# DEPRECATED: User name for message broker authentication
+# (string value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Should use configuration option transport_url to
+# provide the username.
 #username =
 
-# Password for message broker authentication (string value)
+# DEPRECATED: Password for message broker authentication
+# (string value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Should use configuration option transport_url to
+# provide the password.
 #password =
 
 # Seconds to pause before attempting to re-connect. (integer

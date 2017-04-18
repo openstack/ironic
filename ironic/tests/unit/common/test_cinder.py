@@ -72,10 +72,10 @@ class TestCinderClient(base.TestCase):
 
     def test_get_client_with_endpoint_override(
             self, mock_client_init, mock_session):
-        self.config(url='test-url', group='cinder')
+        self.config(url='http://test-url', group='cinder')
         mock_session_obj = mock.Mock()
         expected = {'connect_retries': 2,
-                    'endpoint_override': 'test-url',
+                    'endpoint_override': 'http://test-url',
                     'session': mock_session_obj}
         mock_session.return_value = mock_session_obj
         mock_client_init.return_value = None
