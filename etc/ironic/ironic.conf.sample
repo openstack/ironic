@@ -463,7 +463,7 @@
 
 # List of package logging levels in logger=LEVEL pairs. This
 # option is ignored if log_config_append is set. (list value)
-#default_log_levels = amqp=WARN,amqplib=WARN,boto=WARN,qpid=WARN,sqlalchemy=WARN,suds=INFO,oslo.messaging=INFO,iso8601=WARN,requests.packages.urllib3.connectionpool=WARN,urllib3.connectionpool=WARN,websocket=WARN,requests.packages.urllib3.util.retry=WARN,urllib3.util.retry=WARN,keystonemiddleware=WARN,routes.middleware=WARN,stevedore=WARN,taskflow=WARN,keystoneauth=WARN,oslo.cache=INFO,dogpile.core.dogpile=INFO
+#default_log_levels = amqp=WARNING,amqplib=WARNING,qpid.messaging=INFO,oslo_messaging=INFO,sqlalchemy=WARNING,stevedore=INFO,eventlet.wsgi.server=INFO,iso8601=WARNING,paramiko=WARNING,requests=WARNING,neutronclient=WARNING,glanceclient=WARNING,urllib3.connectionpool=WARNING,keystonemiddleware.auth_token=INFO,keystoneauth.session=INFO
 
 # Enables or disables publication of error events. (boolean
 # value)
