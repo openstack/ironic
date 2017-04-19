@@ -891,6 +891,16 @@
 # From ironic
 #
 
+# Number of retries in the case of a failed action (only
+# specific actions are retried). This option is part of boot-
+# from-volume work, which is not currently exposed to users.
+# (integer value)
+#action_retries = 3
+
+# Retry interval in seconds in the case of a failed action
+# (only specific actions are retried). (integer value)
+#action_retry_interval = 5
+
 # Authentication URL (string value)
 #auth_url = <None>
 

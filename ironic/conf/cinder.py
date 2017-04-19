@@ -28,6 +28,16 @@ opts = [
                help=_('Client retries in the case of a failed request '
                       'connection. This option is part of boot-from-volume '
                       'work, which is not currently exposed to users.')),
+    cfg.IntOpt('action_retries',
+               default=3,
+               help=_('Number of retries in the case of a failed '
+                      'action (currently only used when deatching'
+                      'volumes). This option is part of boot-from-volume '
+                      'work, which is not currently exposed to users.')),
+    cfg.IntOpt('action_retry_interval',
+               default=5,
+               help=_('Retry interval in seconds in the case of a failed '
+                      'action (only specific actions are retried).')),
 ]
 
 
