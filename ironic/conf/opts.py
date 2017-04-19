@@ -88,7 +88,10 @@ def update_opt_defaults():
             'amqp=WARNING',
             'amqplib=WARNING',
             'qpid.messaging=INFO',
+            # TODO(therve): when bug #1685148 is fixed in oslo.messaging, we
+            # should be able to remove one of those 2 lines.
             'oslo_messaging=INFO',
+            'oslo.messaging=INFO',
             'sqlalchemy=WARNING',
             'stevedore=INFO',
             'eventlet.wsgi.server=INFO',

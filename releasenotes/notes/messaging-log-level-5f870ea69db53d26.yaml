@@ -1,0 +1,4 @@
+---
+fixes:
+  - Fixes an issue where oslo.messaging DEBUG logs were being logged when, by
+    default, they shouldn't have been.
