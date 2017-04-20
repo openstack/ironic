@@ -26,8 +26,6 @@ RUN_DIR=$(cd $(dirname "$0") && pwd)
 # Source params
 source $GRENADE_DIR/grenaderc
 
-source $TOP_DIR/openrc admin admin
-
 # Import common functions
 source $GRENADE_DIR/functions
 
@@ -45,6 +43,8 @@ source $TARGET_DEVSTACK_DIR/lib/nova
 source $TARGET_DEVSTACK_DIR/lib/neutron-legacy
 source $TARGET_DEVSTACK_DIR/lib/apache
 source $TARGET_DEVSTACK_DIR/lib/keystone
+
+source $TOP_DIR/openrc admin admin
 
 # Keep track of the DevStack directory
 IRONIC_DEVSTACK_DIR=$(dirname "$0")/..
