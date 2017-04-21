@@ -145,7 +145,6 @@ Serial consoles for nodes are implemented using `socat`_.
 In Newton, the following drivers support socat consoles for nodes:
 
 * agent_ipmitool_socat
-* fake_ipmitool_socat
 * pxe_ipmitool_socat
 
 Serial consoles can be configured in the Bare Metal service as follows:
