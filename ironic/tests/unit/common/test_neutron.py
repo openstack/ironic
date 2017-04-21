@@ -135,8 +135,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
-    def _test_add_ports_to_vlan_network(self, is_client_id,
-                                        security_groups=None):
+    def _test_add_ports_to_network(self, is_client_id,
+                                   security_groups=None):
         # Ports will be created only if pxe_enabled is True
         self.node.network_interface = 'neutron'
         self.node.save()
@@ -183,17 +183,17 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             self.client_mock.create_port.assert_called_once_with(
                 expected_body)
 
-    def test_add_ports_to_vlan_network(self):
-        self._test_add_ports_to_vlan_network(is_client_id=False,
-                                             security_groups=None)
+    def test_add_ports_to_network(self):
+        self._test_add_ports_to_network(is_client_id=False,
+                                        security_groups=None)
 
     @mock.patch.object(neutron, '_verify_security_groups')
-    def test_add_ports_to_vlan_network_with_sg(self, verify_mock):
+    def test_add_ports_to_network_with_sg(self, verify_mock):
         sg_ids = []
         for i in range(2):
             sg_ids.append(uuidutils.generate_uuid())
-        self._test_add_ports_to_vlan_network(is_client_id=False,
-                                             security_groups=sg_ids)
+        self._test_add_ports_to_network(is_client_id=False,
+                                        security_groups=sg_ids)
 
     def test_verify_sec_groups(self):
         sg_ids = []
@@ -269,57 +269,11 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             neutron._verify_security_groups, sg_ids, client)
         client.list_security_groups.assert_called_once_with()
 
-    def test_add_ports_with_client_id_to_vlan_network(self):
-        self._test_add_ports_to_vlan_network(is_client_id=True)
-
-    def _test_add_ports_to_flat_network(self, is_client_id):
-        self.node.network_interface = 'flat'
-        self.node.save()
-        port = self.ports[0]
-        if is_client_id:
-            extra = port.extra
-            extra['client-id'] = self._CLIENT_ID
-            port.extra = extra
-            port.save()
-        expected_body = {
-            'port': {
-                'network_id': self.network_uuid,
-                'admin_state_up': True,
-                'binding:vnic_type': 'baremetal',
-                'device_owner': 'baremetal:none',
-                'device_id': self.node.uuid,
-                'mac_address': port.address,
-                'binding:profile': {
-                    'local_link_information': [port.local_link_connection]
-                }
-            }
-        }
-        if is_client_id:
-            expected_body['port']['extra_dhcp_opts'] = (
-                [{'opt_name': 'client-id', 'opt_value': self._CLIENT_ID}])
-        # Ensure we can create ports
-        self.client_mock.create_port.return_value = {
-            'port': self.neutron_port}
-        expected = {port.uuid: self.neutron_port['id']}
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            ports = neutron.add_ports_to_network(task, self.network_uuid)
-            self.assertEqual(expected, ports)
-            self.client_mock.create_port.assert_called_once_with(
-                expected_body)
-
-    @mock.patch.object(neutron, 'validate_port_info', autospec=True,
-                       return_value=True)
-    def test_add_ports_to_flat_network(self, vpi_mock):
-        self._test_add_ports_to_flat_network(is_client_id=False)
-        self.assertTrue(vpi_mock.called)
-
-    @mock.patch.object(neutron, 'validate_port_info', autospec=True,
-                       return_value=True)
-    def test_add_ports_with_client_id_to_flat_network(self, vpi_mock):
-        self._test_add_ports_to_flat_network(is_client_id=True)
+    def test_add_ports_with_client_id_to_network(self):
+        self._test_add_ports_to_network(is_client_id=True)
 
     @mock.patch.object(neutron, 'validate_port_info', autospec=True)
-    def test_add_ports_to_vlan_network_instance_uuid(self, vpi_mock):
+    def test_add_ports_to_network_instance_uuid(self, vpi_mock):
         self.node.instance_uuid = uuidutils.generate_uuid()
         self.node.network_interface = 'neutron'
         self.node.save()
