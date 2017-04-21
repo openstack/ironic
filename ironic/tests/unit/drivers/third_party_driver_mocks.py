@@ -223,3 +223,31 @@ if not imcsdk:
     if 'ironic.drivers.modules.cimc' in sys.modules:
         six.moves.reload_module(
             sys.modules['ironic.drivers.modules.cimc'])
+
+
+sushy = importutils.try_import('sushy')
+if not sushy:
+    sushy = mock.MagicMock(
+        spec_set=mock_specs.SUSHY_CONSTANTS_SPEC,
+        BOOT_SOURCE_TARGET_PXE='Pxe',
+        BOOT_SOURCE_TARGET_HDD='Hdd',
+        BOOT_SOURCE_TARGET_CD='Cd',
+        BOOT_SOURCE_TARGET_BIOS_SETUP='BiosSetup',
+        SYSTEM_POWER_STATE_ON='on',
+        SYSTEM_POWER_STATE_POWERING_ON='powering on',
+        SYSTEM_POWER_STATE_OFF='off',
+        SYSTEM_POWER_STATE_POWERING_OFF='powering off',
+        RESET_ON='on',
+        RESET_FORCE_OFF='force off',
+        RESET_GRACEFUL_SHUTDOWN='graceful shutdown',
+        RESET_GRACEFUL_RESTART='graceful restart',
+        RESET_FORCE_RESTART='force restart',
+        RESET_NMI='nmi',
+        BOOT_SOURCE_ENABLED_CONTINUOUS='continuous',
+        BOOT_SOURCE_ENABLED_ONCE='once'
+    )
+
+    sys.modules['sushy'] = sushy
+    if 'ironic.drivers.modules.redfish' in sys.modules:
+        six.moves.reload_module(
+            sys.modules['ironic.drivers.modules.redfish'])

@@ -14,3 +14,6 @@ python-dracclient>=0.1.0
 
 # The CIMC drivers use the Cisco IMC SDK version 0.7.2 or greater
 ImcSdk>=0.7.2
+
+# The Redfish hardware type uses the Sushy library
+sushy

@@ -39,6 +39,7 @@ from ironic.conf import metrics_statsd
 from ironic.conf import neutron
 from ironic.conf import oneview
 from ironic.conf import pxe
+from ironic.conf import redfish
 from ironic.conf import service_catalog
 from ironic.conf import snmp
 from ironic.conf import ssh
@@ -70,6 +71,7 @@ metrics_statsd.register_opts(CONF)
 neutron.register_opts(CONF)
 oneview.register_opts(CONF)
 pxe.register_opts(CONF)
+redfish.register_opts(CONF)
 service_catalog.register_opts(CONF)
 snmp.register_opts(CONF)
 ssh.register_opts(CONF)

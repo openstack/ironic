@@ -742,3 +742,11 @@ class NotificationPayloadError(IronicException):
 
 class StorageError(IronicException):
     _msg_fmt = _("Storage operation failure.")
+
+
+class RedfishError(IronicException):
+    _msg_fmt = _("Redfish exception occurred. Error: %(error)s")
+
+
+class RedfishConnectionError(RedfishError):
+    _msg_fmt = _("Redfish connection failed for node %(node)s: %(error)s")
