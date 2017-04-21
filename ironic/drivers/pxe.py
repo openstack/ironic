@@ -82,8 +82,10 @@ class PXEAndIloDriver(base.BaseDriver):
     This driver implements the `core` functionality using
     :class:`ironic.drivers.modules.ilo.power.IloPower` for
     power management
-    :class:`ironic.drivers.modules.ilo.deploy.IloPXEDeploy` for image
-    deployment.
+    :class:`ironic.drivers.modules.iscsi_deploy.ISCSIDeploy` for
+    image deployment.
+    :class:`ironic.drivers.modules.ilo.boot.IloPXEBoot` for boot
+    related actions.
     """
     def __init__(self):
         if not importutils.try_import('proliantutils'):
