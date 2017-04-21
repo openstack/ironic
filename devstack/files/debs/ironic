@@ -18,7 +18,7 @@ ipxe
 gnupg
 libguestfs0
 libguestfs-tools
-libvirt-bin
+libvirt-bin # dist:xenial NOPRIME
 open-iscsi
 openssh-client
 pxelinux # dist:jessie,xenial
