@@ -47,7 +47,6 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
                     enabled_management_interfaces=['redfish'])
         # Redfish specific configurations
         self.config(connection_attempts=1, group='redfish')
-        self.config(connection_retry_interval=0, group='redfish')
         self.node = obj_utils.create_test_node(
             self.context, driver='redfish', driver_info=INFO_DICT)
         self.parsed_driver_info = {
@@ -126,11 +125,12 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         fake_conn.get_system.assert_called_once_with(
             '/redfish/v1/Systems/FAKESYSTEM')
 
+    @mock.patch('time.sleep', autospec=True)
     @mock.patch('ironic.drivers.modules.redfish.utils.sushy')
-    def test_get_system_resource_connection_error_retry(self, mock_sushy):
+    def test_get_system_resource_connection_error_retry(self, mock_sushy,
+                                                        mock_sleep):
         # Redfish specific configurations
         self.config(connection_attempts=3, group='redfish')
-        self.config(connection_retry_interval=0, group='redfish')
 
         fake_conn = mock_sushy.Sushy.return_value
         mock_sushy.exceptions.ResourceNotFoundError = (
@@ -147,3 +147,5 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
             mock.call(self.parsed_driver_info['system_id']),
         ]
         fake_conn.get_system.assert_has_calls(expected_get_system_calls)
+        mock_sleep.assert_called_with(
+            redfish_utils.CONF.redfish.connection_retry_interval)

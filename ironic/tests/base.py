@@ -151,6 +151,7 @@ class TestCase(testtools.TestCase):
 
     def config(self, **kw):
         """Override config options for a test."""
+        kw.setdefault('enforce_type', True)
         self.cfg_fixture.config(**kw)
 
     def set_defaults(self, **kw):
