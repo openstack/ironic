@@ -23,7 +23,7 @@ from oslo_utils import importutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
-from ironic.common.i18n import _, _LE
+from ironic.common.i18n import _
 from ironic.drivers import base
 from ironic.drivers.modules.ucs import helper as ucs_helper
 
@@ -92,8 +92,8 @@ class UcsManagement(base.ManagementInterface):
             mgmt_handle = ucs_mgmt.BootDeviceHelper(helper)
             mgmt_handle.set_boot_device(device, persistent)
         except ucs_error.UcsOperationError as ucs_exception:
-            LOG.error(_LE("%(driver)s: client failed to set boot device "
-                          "%(device)s for node %(uuid)s."),
+            LOG.error("%(driver)s: client failed to set boot device "
+                      "%(device)s for node %(uuid)s.",
                       {'driver': task.node.driver, 'device': device,
                           'uuid': task.node.uuid})
             operation = _('setting boot device')
@@ -127,8 +127,8 @@ class UcsManagement(base.ManagementInterface):
             mgmt_handle = ucs_mgmt.BootDeviceHelper(helper)
             boot_device = mgmt_handle.get_boot_device()
         except ucs_error.UcsOperationError as ucs_exception:
-            LOG.error(_LE("%(driver)s: client failed to get boot device for "
-                          "node %(uuid)s."),
+            LOG.error("%(driver)s: client failed to get boot device for "
+                      "node %(uuid)s.",
                       {'driver': task.node.driver, 'uuid': task.node.uuid})
             operation = _('getting boot device')
             raise exception.UcsOperationError(operation=operation,

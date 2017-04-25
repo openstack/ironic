@@ -22,7 +22,7 @@ from oslo_service import loopingcall
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conf import CONF
@@ -108,8 +108,8 @@ class Power(base.PowerInterface):
             power_handle = ucs_power.UcsPower(helper)
             power_status = power_handle.get_power_state()
         except ucs_error.UcsOperationError as ucs_exception:
-            LOG.error(_LE("%(driver)s: get_power_state operation failed for "
-                          "node %(uuid)s with error: %(msg)s."),
+            LOG.error("%(driver)s: get_power_state operation failed for "
+                      "node %(uuid)s with error: %(msg)s.",
                       {'driver': task.node.driver, 'uuid': task.node.uuid,
                        'msg': ucs_exception})
             operation = _('getting power status')
@@ -150,8 +150,8 @@ class Power(base.PowerInterface):
             else:
                 return
         except ucs_error.UcsOperationError as ucs_exception:
-            LOG.error(_LE("%(driver)s: set_power_state operation failed for "
-                          "node %(uuid)s with error: %(msg)s."),
+            LOG.error("%(driver)s: set_power_state operation failed for "
+                      "node %(uuid)s with error: %(msg)s.",
                       {'driver': task.node.driver, 'uuid': task.node.uuid,
                        'msg': ucs_exception})
             operation = _("setting power status")
@@ -161,9 +161,9 @@ class Power(base.PowerInterface):
         state = _wait_for_state_change(pstate, ucs_power_handle)
         if state != pstate:
             timeout = CONF.cisco_ucs.action_interval * CONF.cisco_ucs.max_retry
-            LOG.error(_LE("%(driver)s: driver failed to change node %(uuid)s "
-                          "power state to %(state)s within %(timeout)s "
-                          "seconds."),
+            LOG.error("%(driver)s: driver failed to change node %(uuid)s "
+                      "power state to %(state)s within %(timeout)s "
+                      "seconds.",
                       {'driver': task.node.driver, 'uuid': task.node.uuid,
                           'state': pstate, 'timeout': timeout})
             raise exception.PowerStateFailure(pstate=pstate)
@@ -183,8 +183,8 @@ class Power(base.PowerInterface):
             ucs_power_handle = ucs_power.UcsPower(helper)
             ucs_power_handle.reboot()
         except ucs_error.UcsOperationError as ucs_exception:
-            LOG.error(_LE("%(driver)s: driver failed to reset node %(uuid)s "
-                          "power state."),
+            LOG.error("%(driver)s: driver failed to reset node %(uuid)s "
+                      "power state.",
                       {'driver': task.node.driver, 'uuid': task.node.uuid})
             operation = _("rebooting")
             raise exception.UcsOperationError(operation=operation,
@@ -194,8 +194,8 @@ class Power(base.PowerInterface):
         state = _wait_for_state_change(states.POWER_ON, ucs_power_handle)
         if state != states.POWER_ON:
             timeout = CONF.cisco_ucs.action_interval * CONF.cisco_ucs.max_retry
-            LOG.error(_LE("%(driver)s: driver failed to reboot node %(uuid)s "
-                          "within %(timeout)s seconds."),
+            LOG.error("%(driver)s: driver failed to reboot node %(uuid)s "
+                      "within %(timeout)s seconds.",
                       {'driver': task.node.driver,
                        'uuid': task.node.uuid, 'timeout': timeout})
             raise exception.PowerStateFailure(pstate=states.POWER_ON)
