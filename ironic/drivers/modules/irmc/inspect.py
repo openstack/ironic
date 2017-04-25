@@ -19,7 +19,7 @@ from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LI, _LW
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.drivers import base
 from ironic.drivers.modules.irmc import common as irmc_common
@@ -179,14 +179,14 @@ class IRMCInspect(base.InspectInterface):
                 new_port = objects.Port(task.context,
                                         address=mac, node_id=node.id)
                 new_port.create()
-                LOG.info(_LI("Port created for MAC address %(address)s "
-                             "for node %(node_uuid)s during inspection"),
+                LOG.info("Port created for MAC address %(address)s "
+                         "for node %(node_uuid)s during inspection",
                          {'address': mac, 'node_uuid': node.uuid})
             except exception.MACAlreadyExists:
-                LOG.warning(_LW("Port already existed for MAC address "
-                                "%(address)s for node %(node_uuid)s "
-                                "during inspection"),
+                LOG.warning("Port already existed for MAC address "
+                            "%(address)s for node %(node_uuid)s "
+                            "during inspection",
                             {'address': mac, 'node_uuid': node.uuid})
 
-        LOG.info(_LI("Node %s inspected"), node.uuid)
+        LOG.info("Node %s inspected", node.uuid)
         return states.MANAGEABLE
