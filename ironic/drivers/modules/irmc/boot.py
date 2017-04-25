@@ -28,7 +28,7 @@ from oslo_utils import importutils
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
-from ironic.common.i18n import _, _LE, _LI
+from ironic.common.i18n import _
 from ironic.common import images
 from ironic.common import states
 from ironic.conductor import utils as manager_utils
@@ -350,7 +350,7 @@ def _setup_vmedia_for_boot(task, bootable_iso_filename, parameters=None):
     :raises: ImageCreationFailed, if it failed while creating a floppy image.
     :raises: IRMCOperationError, if attaching a virtual media failed.
     """
-    LOG.info(_LI("Setting up node %s to boot from virtual media"),
+    LOG.info("Setting up node %s to boot from virtual media",
              task.node.uuid)
 
     _detach_virtual_cd(task.node)
@@ -417,15 +417,15 @@ def _attach_virtual_cd(node, bootable_iso_filename):
         irmc_client(scci.MOUNT_CD, async=False)
 
     except scci.SCCIClientError as irmc_exception:
-        LOG.exception(_LE("Error while inserting virtual cdrom "
-                          "into node %(uuid)s. Error: %(error)s"),
+        LOG.exception("Error while inserting virtual cdrom "
+                      "into node %(uuid)s. Error: %(error)s",
                       {'uuid': node.uuid, 'error': irmc_exception})
         operation = _("Inserting virtual cdrom")
         raise exception.IRMCOperationError(operation=operation,
                                            error=irmc_exception)
 
-    LOG.info(_LI("Attached virtual cdrom successfully"
-                 " for node %s"), node.uuid)
+    LOG.info("Attached virtual cdrom successfully"
+             " for node %s", node.uuid)
 
 
 def _detach_virtual_cd(node):
@@ -440,15 +440,15 @@ def _detach_virtual_cd(node):
         irmc_client(scci.UNMOUNT_CD)
 
     except scci.SCCIClientError as irmc_exception:
-        LOG.exception(_LE("Error while ejecting virtual cdrom "
-                          "from node %(uuid)s. Error: %(error)s"),
+        LOG.exception("Error while ejecting virtual cdrom "
+                      "from node %(uuid)s. Error: %(error)s",
                       {'uuid': node.uuid, 'error': irmc_exception})
         operation = _("Ejecting virtual cdrom")
         raise exception.IRMCOperationError(operation=operation,
                                            error=irmc_exception)
 
-    LOG.info(_LI("Detached virtual cdrom successfully"
-                 " for node %s"), node.uuid)
+    LOG.info("Detached virtual cdrom successfully"
+             " for node %s", node.uuid)
 
 
 def _attach_virtual_fd(node, floppy_image_filename):
@@ -473,15 +473,15 @@ def _attach_virtual_fd(node, floppy_image_filename):
         irmc_client(scci.MOUNT_FD, async=False)
 
     except scci.SCCIClientError as irmc_exception:
-        LOG.exception(_LE("Error while inserting virtual floppy "
-                          "into node %(uuid)s. Error: %(error)s"),
+        LOG.exception("Error while inserting virtual floppy "
+                      "into node %(uuid)s. Error: %(error)s",
                       {'uuid': node.uuid, 'error': irmc_exception})
         operation = _("Inserting virtual floppy")
         raise exception.IRMCOperationError(operation=operation,
                                            error=irmc_exception)
 
-    LOG.info(_LI("Attached virtual floppy successfully"
-                 " for node %s"), node.uuid)
+    LOG.info("Attached virtual floppy successfully"
+             " for node %s", node.uuid)
 
 
 def _detach_virtual_fd(node):
@@ -496,15 +496,15 @@ def _detach_virtual_fd(node):
         irmc_client(scci.UNMOUNT_FD)
 
     except scci.SCCIClientError as irmc_exception:
-        LOG.exception(_LE("Error while ejecting virtual floppy "
-                          "from node %(uuid)s. Error: %(error)s"),
+        LOG.exception("Error while ejecting virtual floppy "
+                      "from node %(uuid)s. Error: %(error)s",
                       {'uuid': node.uuid, 'error': irmc_exception})
         operation = _("Ejecting virtual floppy")
         raise exception.IRMCOperationError(operation=operation,
                                            error=irmc_exception)
 
-    LOG.info(_LI("Detached virtual floppy successfully"
-                 " for node %s"), node.uuid)
+    LOG.info("Detached virtual floppy successfully"
+             " for node %s", node.uuid)
 
 
 def check_share_fs_mounted():

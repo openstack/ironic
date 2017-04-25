@@ -20,7 +20,7 @@ from oslo_utils import importutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
-from ironic.common.i18n import _, _LE
+from ironic.common.i18n import _
 from ironic.conductor import task_manager
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import common as irmc_common
@@ -67,8 +67,8 @@ def _get_sensors_data(task):
             exception.MissingParameterValue,
             scci.SCCIInvalidInputError,
             scci.SCCIClientError) as e:
-        LOG.error(_LE("SCCI get sensor data failed for node %(node_id)s "
-                  "with the following error: %(error)s"),
+        LOG.error("SCCI get sensor data failed for node %(node_id)s "
+                  "with the following error: %(error)s",
                   {'node_id': task.node.uuid, 'error': e})
         raise exception.FailedToGetSensorData(
             node=task.node.uuid, error=e)
@@ -251,8 +251,7 @@ class IRMCManagement(ipmitool.IPMIManagement):
         try:
             irmc_client(scci.POWER_RAISE_NMI)
         except scci.SCCIClientError as err:
-            LOG.error(
-                _LE('iRMC Inject NMI failed for node %(node)s: %(err)s.'),
-                {'node': node.uuid, 'err': err})
+            LOG.error('iRMC Inject NMI failed for node %(node)s: %(err)s.',
+                      {'node': node.uuid, 'err': err})
             raise exception.IRMCOperationError(
                 operation=scci.POWER_RAISE_NMI, error=err)

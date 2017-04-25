@@ -22,8 +22,6 @@ from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common.i18n import _LE
-from ironic.common.i18n import _LI
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conf import CONF
@@ -135,8 +133,8 @@ def _wait_power_state(task, target_state, timeout=None):
                             else states.POWER_ON)
         node.target_power_state = states.NOSTATE
         node.save()
-        LOG.info(_LI('iRMC successfully set node %(node_id)s '
-                     'power state to %(bootstatus)s.'),
+        LOG.info('iRMC successfully set node %(node_id)s '
+                 'power state to %(bootstatus)s.',
                  {'node_id': node.uuid,
                   'bootstatus': BOOT_STATUS[store['boot_status_value']]})
     else:
@@ -147,8 +145,8 @@ def _wait_power_state(task, target_state, timeout=None):
         node.power_state = states.ERROR
         node.target_power_state = states.NOSTATE
         node.save()
-        LOG.error(_LE('iRMC failed to acknowledge the target state for node '
-                      '%(node_id)s. Error: %(last_error)s'),
+        LOG.error('iRMC failed to acknowledge the target state for node '
+                  '%(node_id)s. Error: %(last_error)s',
                   {'node_id': node.uuid, 'last_error': last_error})
         error = _('unexpected boot status value')
         raise exception.IRMCOperationError(operation=target_state,
@@ -182,8 +180,8 @@ def _set_power_state(task, target_state, timeout=None):
         raise exception.InvalidParameterValue(msg)
 
     except scci.SCCIClientError as irmc_exception:
-        LOG.error(_LE("iRMC set_power_state failed to set state to %(tstate)s "
-                      " for node %(node_id)s with error: %(error)s"),
+        LOG.error("iRMC set_power_state failed to set state to %(tstate)s "
+                  " for node %(node_id)s with error: %(error)s",
                   {'tstate': target_state, 'node_id': node.uuid,
                    'error': irmc_exception})
         operation = _('iRMC set_power_state')
@@ -200,8 +198,8 @@ def _set_power_state(task, target_state, timeout=None):
             _wait_power_state(task, states.SOFT_REBOOT, timeout=timeout)
 
     except exception.SNMPFailure as snmp_exception:
-        LOG.error(_LE("iRMC failed to acknowledge the target state "
-                      "for node %(node_id)s. Error: %(error)s"),
+        LOG.error("iRMC failed to acknowledge the target state "
+                  "for node %(node_id)s. Error: %(error)s",
                   {'node_id': node.uuid, 'error': snmp_exception})
         raise exception.IRMCOperationError(operation=target_state,
                                            error=snmp_exception)
