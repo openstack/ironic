@@ -31,6 +31,12 @@ opts = [
                help=_('Directory for holding terminal pid files. '
                       'If not specified, the temporary directory '
                       'will be used.')),
+    cfg.IntOpt('terminal_timeout',
+               default=600,
+               min=0,
+               help=_('Timeout (in seconds) for the terminal session to be '
+                      'closed on inactivity. Set to 0 to disable timeout. '
+                      'Used only by Socat console.')),
     cfg.IntOpt('subprocess_checking_interval',
                default=1,
                help=_('Time interval (in seconds) for checking the status of '

@@ -28,6 +28,7 @@ import tempfile
 from ironic_lib import utils as ironic_utils
 import mock
 from oslo_config import cfg
+from oslo_service import loopingcall
 from oslo_utils import netutils
 import psutil
 
@@ -400,6 +401,44 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         self.config(my_ip='::1')
         url = console_utils.get_socat_console_url(self.info['port'])
         self.assertEqual("tcp://[::1]:%s" % self.info['port'], url)
+
+    @mock.patch.object(subprocess, 'Popen', autospec=True)
+    @mock.patch.object(console_utils, '_get_console_pid_file', autospec=True)
+    @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',
+                       autospec=True)
+    @mock.patch.object(console_utils, '_stop_console', autospec=True)
+    @mock.patch.object(loopingcall.FixedIntervalLoopingCall, 'start',
+                       autospec=True)
+    def _test_start_socat_console_check_arg(self, mock_timer_start,
+                                            mock_stop, mock_dir_exists,
+                                            mock_get_pid, mock_popen):
+        mock_timer_start.return_value = mock.Mock()
+        mock_get_pid.return_value = '/tmp/%s.pid' % self.info['uuid']
+
+        console_utils.start_socat_console(self.info['uuid'],
+                                          self.info['port'],
+                                          'ls&')
+
+        mock_stop.assert_called_once_with(self.info['uuid'])
+        mock_dir_exists.assert_called_once_with()
+        mock_get_pid.assert_called_once_with(self.info['uuid'])
+        mock_timer_start.assert_called_once_with(mock.ANY, interval=mock.ANY)
+        mock_popen.assert_called_once_with(mock.ANY, stderr=subprocess.PIPE)
+        return mock_popen.call_args[0][0]
+
+    def test_start_socat_console_check_arg_default_timeout(self):
+        args = self._test_start_socat_console_check_arg()
+        self.assertIn('-T600', args)
+
+    def test_start_socat_console_check_arg_timeout(self):
+        self.config(terminal_timeout=1, group='console')
+        args = self._test_start_socat_console_check_arg()
+        self.assertIn('-T1', args)
+
+    def test_start_socat_console_check_arg_timeout_disabled(self):
+        self.config(terminal_timeout=0, group='console')
+        args = self._test_start_socat_console_check_arg()
+        self.assertNotIn('-T0', args)
 
     @mock.patch.object(os.path, 'exists', autospec=True)
     @mock.patch.object(subprocess, 'Popen', autospec=True)

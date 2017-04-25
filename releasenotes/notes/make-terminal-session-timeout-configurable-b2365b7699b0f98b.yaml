@@ -1,0 +1,7 @@
+---
+other:
+  - |
+    Adds configuration parameter ``terminal_timeout`` to section [console]
+    to allow operators to set the timeout value for the Socat console session.
+    It is time of client inactivity, in seconds, after which the connection
+    will be closed.
