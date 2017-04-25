@@ -21,7 +21,7 @@ from oslo_utils import importutils
 import six
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE
+from ironic.common.i18n import _
 from ironic.drivers.modules import deploy_utils
 
 ucs_helper = importutils.try_import('UcsSdk.utils.helper')
@@ -114,8 +114,8 @@ class CiscoUcsHelper(object):
                 self.username,
                 self.password)
         except ucs_error.UcsConnectionError as ucs_exception:
-            LOG.error(_LE("Cisco client: service unavailable for node "
-                          "%(uuid)s."), {'uuid': self.uuid})
+            LOG.error("Cisco client: service unavailable for node "
+                      "%(uuid)s.", {'uuid': self.uuid})
             raise exception.UcsConnectionError(error=ucs_exception,
                                                node=self.uuid)
 
