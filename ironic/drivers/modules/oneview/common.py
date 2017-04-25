@@ -15,7 +15,6 @@
 
 from oslo_log import log as logging
 from oslo_utils import importutils
-from oslo_utils import strutils
 
 from ironic.common import exception
 from ironic.common.i18n import _, _LE
@@ -179,22 +178,10 @@ def validate_oneview_resources_compatibility(oneview_client, task):
             task.node.properties.get('memory_mb'),
             task.node.properties.get('cpus')
         )
-
-        # NOTE(thiagop): Support to pre-allocation will be dropped in the Pike
-        # release.
-        # NOTE(mrtenio): The Server Profile Template needs to have a physical
-        # MAC when using dynamic_allocation. This will be the default behavior
-        # in the Pike Release.
-        if is_dynamic_allocation_enabled(task.node):
-            oneview_client.is_node_port_mac_compatible_with_server_hardware(
-                oneview_info, node_ports
-            )
-            oneview_client.validate_server_profile_template_mac_type(spt_uuid)
-        else:
-            oneview_client.check_server_profile_is_applied(oneview_info)
-            oneview_client.is_node_port_mac_compatible_with_server_profile(
-                oneview_info, node_ports
-            )
+        oneview_client.is_node_port_mac_compatible_with_server_hardware(
+            oneview_info, node_ports
+        )
+        oneview_client.validate_server_profile_template_mac_type(spt_uuid)
 
     except oneview_exceptions.OneViewException as oneview_exc:
         msg = (_("Error validating node resources with OneView: %s") %
@@ -272,15 +259,3 @@ def node_has_server_profile(func):
             )
         return func(self, *args, **kwargs)
     return inner
-
-
-def is_dynamic_allocation_enabled(node):
-    flag = node.driver_info.get('dynamic_allocation')
-    if flag:
-        try:
-            return strutils.bool_from_string(flag, strict=True)
-        except ValueError:
-            msg = (_LE("Invalid dynamic_allocation parameter value "
-                       "'%(flag)s' in node's %(node_uuid)s driver_info.") %
-                   {"flag": flag, "node_uuid": node.uuid})
-            raise exception.InvalidParameterValue(msg)

@@ -234,58 +234,18 @@ class OneViewCommonTestCase(db_base.DbTestCase):
     def test_validate_oneview_resources_compatibility(
         self, mock_get_ov_client
     ):
-        oneview_client = mock_get_ov_client()
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            common.validate_oneview_resources_compatibility(oneview_client,
-                                                            task)
-            self.assertTrue(
-                oneview_client.validate_node_server_hardware.called)
-            self.assertTrue(
-                oneview_client.validate_node_server_hardware_type.called)
-            self.assertTrue(
-                oneview_client.validate_node_enclosure_group.called)
-            self.assertTrue(
-                oneview_client.validate_node_server_profile_template.called)
-            self.assertTrue(
-                oneview_client.check_server_profile_is_applied.called)
-            self.assertTrue(
-                oneview_client.
-                is_node_port_mac_compatible_with_server_profile.called)
-            self.assertFalse(
-                oneview_client.
-                is_node_port_mac_compatible_with_server_hardware.called)
-            self.assertFalse(
-                oneview_client.validate_spt_primary_boot_connection.called)
-            self.assertFalse(
-                oneview_client.
-                validate_server_profile_template_mac_type.called)
+        """Validate compatibility of resources.
 
-    @mock.patch.object(common, 'get_oneview_client', spec_set=True,
-                       autospec=True)
-    def test_validate_oneview_resources_compatibility_dynamic_allocation(
-        self, mock_get_ov_client
-    ):
-        """Validate compatibility of resources for Dynamic Allocation model.
-
-        1) Set 'dynamic_allocation' flag as True on node's driver_info
-        2) Check validate_node_server_profile_template method is called
-        3) Check validate_node_server_hardware_type method is called
-        4) Check validate_node_enclosure_group method is called
-        5) Check validate_node_server_hardware method is called
-        6) Check is_node_port_mac_compatible_with_server_hardware method
+        1) Check validate_node_server_profile_template method is called
+        2) Check validate_node_server_hardware_type method is called
+        3) Check validate_node_enclosure_group method is called
+        4) Check validate_node_server_hardware method is called
+        5) Check is_node_port_mac_compatible_with_server_hardware method
            is called
-        7) Check validate_server_profile_template_mac_type method is called
-        8) Check check_server_profile_is_applied method is not called
-        9) Check is_node_port_mac_compatible_with_server_profile method is
-           not called
-
+        6) Check validate_server_profile_template_mac_type method is called
         """
         oneview_client = mock_get_ov_client()
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            driver_info = task.node.driver_info
-            driver_info['dynamic_allocation'] = True
-            task.node.driver_info = driver_info
-
             common.validate_oneview_resources_compatibility(oneview_client,
                                                             task)
             self.assertTrue(
@@ -302,118 +262,3 @@ class OneViewCommonTestCase(db_base.DbTestCase):
             self.assertTrue(
                 oneview_client.
                 validate_server_profile_template_mac_type.called)
-            self.assertFalse(
-                oneview_client.check_server_profile_is_applied.called)
-            self.assertFalse(
-                oneview_client.
-                is_node_port_mac_compatible_with_server_profile.called)
-
-    def test_is_dynamic_allocation_enabled_boolean(self):
-        """Ensure Dynamic Allocation is enabled when flag is True.
-
-        1) Set 'dynamic_allocation' flag as True on node's driver_info
-        2) Check Dynamic Allocation is enabled for the given node
-
-        """
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            driver_info = task.node.driver_info
-            driver_info['dynamic_allocation'] = True
-            task.node.driver_info = driver_info
-
-            self.assertTrue(
-                common.is_dynamic_allocation_enabled(task.node)
-            )
-
-    def test_is_dynamic_allocation_enabled_string(self):
-        """Ensure Dynamic Allocation is enabled when flag is 'True'.
-
-        1) Set 'dynamic_allocation' flag as True on node's driver_info
-        2) Check Dynamic Allocation is enabled for the given node
-
-        """
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            driver_info = task.node.driver_info
-            driver_info['dynamic_allocation'] = 'True'
-            task.node.driver_info = driver_info
-
-            self.assertTrue(
-                common.is_dynamic_allocation_enabled(task.node)
-            )
-
-    def test_is_dynamic_allocation_enabled_false_boolean(self):
-        """Ensure Dynamic Allocation is disabled when flag is False.
-
-        1) Set 'dynamic_allocation' flag as False on node's driver_info
-        2) Check Dynamic Allocation is disabled for the given node
-
-        """
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            driver_info = task.node.driver_info
-            driver_info['dynamic_allocation'] = False
-            task.node.driver_info = driver_info
-
-            self.assertFalse(
-                common.is_dynamic_allocation_enabled(task.node)
-            )
-
-    def test_is_dynamic_allocation_enabled_false_string(self):
-        """Ensure Dynamic Allocation is disabled when flag is 'False'.
-
-        1) Set 'dynamic_allocation' flag as False on node's driver_info
-        2) Check Dynamic Allocation is disabled for the given node
-
-        """
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            driver_info = task.node.driver_info
-            driver_info['dynamic_allocation'] = 'False'
-            task.node.driver_info = driver_info
-
-            self.assertFalse(
-                common.is_dynamic_allocation_enabled(task.node)
-            )
-
-    def test_is_dynamic_allocation_enabled_none_object(self):
-        """Ensure Dynamic Allocation is disabled when flag is None.
-
-        1) Set 'dynamic_allocation' flag as None on node's driver_info
-        2) Check Dynamic Allocation is disabled for the given node
-
-        """
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            driver_info = task.node.driver_info
-            driver_info['dynamic_allocation'] = None
-            task.node.driver_info = driver_info
-
-            self.assertFalse(
-                common.is_dynamic_allocation_enabled(task.node)
-            )
-
-    def test_is_dynamic_allocation_enabled_without_flag(self):
-        """Ensure Dynamic Allocation is disabled when node doesn't have flag.
-
-        1) Create a node without 'dynamic_allocation' flag
-        2) Check Dynamic Allocation is disabled for the given node
-
-        """
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertFalse(
-                common.is_dynamic_allocation_enabled(task.node)
-            )
-
-    def test_is_dynamic_allocation_enabled_with_invalid_value_for_flag(self):
-        """Ensure raises an InvalidParameterValue when flag is invalid.
-
-        1) Create a node with an invalid value for 'dynamic_allocation' flag
-        2) Check if method raises an InvalidParameterValue for the given node
-
-        """
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            driver_info = task.node.driver_info
-            driver_info['dynamic_allocation'] = 'invalid flag'
-            task.node.driver_info = driver_info
-
-            self.assertRaises(
-                exception.InvalidParameterValue,
-                common.is_dynamic_allocation_enabled,
-                task.node
-            )

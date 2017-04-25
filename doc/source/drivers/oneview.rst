@@ -42,14 +42,11 @@ works together with the ironic OneView driver to access a machine in OneView,
 the ``python-oneviewclient`` being responsible for the communication with the
 OneView appliance.
 
-The Mitaka version of the ironic OneView drivers only supported what we call
-**pre-allocation** of nodes, meaning that resources in OneView are allocated
-prior to the node being made available in ironic. This model is deprecated and
-will be supported until OpenStack's Pike release. From the Newton release on,
-OneView drivers enables a new feature called **dynamic allocation** of nodes
-[6]_. In this model, the driver allocates resources in OneView only at boot
-time, allowing idle resources in ironic to be used by OneView users, enabling
-actual resource sharing among ironic and OneView users.
+From the Newton release on, OneView drivers enables a new feature called
+**dynamic allocation** of nodes [6]_. In this model, the driver allocates
+resources in OneView only at boot time, allowing idle resources in ironic
+to be used by OneView users, enabling actual resource sharing among ironic
+and OneView users.
 
 Since OneView can claim nodes in ``available`` state at any time, a set of
 tasks runs periodically to detect nodes in use by OneView. A node in use by
@@ -122,12 +119,6 @@ Configuring and enabling the driver
    OneView credentials and CA certificate files information.
 
 .. note::
-   If you are using the deprecated ``pre-allocation`` feature (i.e.:
-   ``dynamic_allocation`` is set to False on all nodes), you can disable the
-   driver periodic tasks by setting ``enable_periodic_tasks=false`` on the
-   [oneview] section of ``ironic.conf``
-
-.. note::
    An operator can set the ``periodic_check_interval`` option in the [oneview]
    section to set the interval between running the periodic check. The default
    value is 300 seconds (5 minutes). A lower value will reduce the likelihood
@@ -178,12 +169,6 @@ Configuring and enabling the driver
    OneView credentials and CA certificate files information.
 
 .. note::
-   If you are using the deprecated ``pre-allocation`` feature (i.e.:
-   ``dynamic_allocation`` is set to False on all nodes), you can disable the
-   driver periodic tasks by setting ``enable_periodic_tasks=false`` on the
-   [oneview] section of ``ironic.conf``
-
-.. note::
    An operator can set the ``periodic_check_interval`` option in the [oneview]
    section to set the interval between running the periodic check. The default
    value is 300 seconds (5 minutes). A lower value will reduce the likelihood
@@ -224,9 +209,9 @@ memory size, CPU cores, processor architecture and disk size, of a given
 hardware. OneView drivers do in-band inspection, that involves booting a
 ramdisk on the hardware and fetching information directly from it. For that,
 your cloud controller needs to have the ``ironic-inspector`` component
-[10]_ running and properly enabled in ironic's configuration file.
+[9]_ running and properly enabled in ironic's configuration file.
 
-See [11]_ for more information on how to install and configure
+See [10]_ for more information on how to install and configure
 ``ironic-inspector``.
 
 Registering a OneView node in ironic
@@ -242,12 +227,6 @@ etc. In this case, to be enrolled, the node must have the following parameters:
 * In ``driver_info``
 
   - ``server_hardware_uri``: URI of the ``Server Hardware`` on OneView.
-
-  - ``dynamic_allocation``: Boolean value to enable or disable (True/False)
-    ``dynamic allocation`` for the given node. If this parameter is not set,
-    the driver will consider the ``pre-allocation`` model to maintain
-    compatibility on ironic upgrade. The support for this key will be dropped
-    in the Pike release, where only dynamic allocation will be used.
 
 * In ``properties/capabilities``
 
@@ -294,13 +273,6 @@ from them MUST comply with the following requirements:
 Node ports should be created considering the **MAC address of the first
 Interface** of the given ``Server Hardware``.
 
-.. note::
-   Old versions of ironic using ``pre-allocation`` model (before Newton
-   release) and nodes with `dynamic_allocation` flag disabled shall have their
-   ``Server Profiles`` applied during node enrollment and can have their ports
-   created using the `Virtual` MAC addresses provided on ``Server Profile``
-   application.
-
 To tell ironic which NIC should be connected to the provisioning network, do::
 
   $ ironic port-create -n $NODE_UUID -a $MAC_ADDRESS
@@ -319,102 +291,6 @@ Profile``, ``Server Profile Template`` and other OneView entities, refer to
    power state change. Ironic will NOT change the power state of machines
    which the Server Profile was applied by another OneView user.
 
-Migrating from pre-allocation to dynamic allocation
-===================================================
-
-The migration of a node from an ironic deployment using ``pre-allocation``
-model to the new ``dynamic allocation`` model can be done by using
-``ironic-oneview-cli`` facilities to migrate nodes (further details on [8]_).
-However, the same results can be achieved using the ironic CLI as explained
-below.
-
-Checking if a node can be migrated
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-It is recommended to migrate nodes which are in a stable `provision state`. That
-means the conductor is not performing an operation with the node, what can
-impact in the execution of a migration. The possible stable `provision_state`
-values [9_] are: `enroll`, `manageable`, `available`, `active`, `error`,
-`clean failed` and `inspect failed`.
-
-Dynamic allocation mode changes the way a ``Server Profile`` is associated with
-a node. In ``pre-allocation`` mode, when a node is registered in ironic, there
-must be a ``Server Profile`` applied to the ``Server Hardware`` represented by
-the given node what means, from the OneView point of view, the hardware is in
-use. In the ``dynamic allocation`` mode a ``Server Hardware`` is associated only
-when the node is in use by the Compute service or the OneView itself. As a
-result, there are different steps to perform if the node has an instance
-provisioned, in other words, when the `provisioning_state` is set to `active`.
-
-.. note::
-   Verify if the node has not already been migrated by checking if there is
-   a `dynamic_allocation` field set to ``True`` in the `driver_info`
-   namespace by doing::
-
-     $ ironic node-show  --fields driver_info
-
-Migrating nodes in `active` state
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-List nodes that are in `active` state doing::
-
-  $ ironic node-list --provision-state active --fields uuid driver_info
-
-Execute the following steps for each node:
-
-1. Identify the ``Server Hardware`` UUID looking at ``server_hardware_uri``
-   property (formatted as ``/rest/server-hardware/<server-hardware-uuid>``) in
-   the node's ``driver_info`` namespace doing::
-
-   $ ironic node-show <node-uuid> --fields driver_info
-
-2. Log into OneView and find the ``Server Hardware`` searching for the
-   ``Server Hardware`` UUID identified in step 1. On the overview section,
-   find the applied ``Server Profile`` entry, click on it and copy the
-   ``Server Profile`` URI. The copied excerpt should look like
-   ``/rest/server-profiles/<server-profile-uuid>``.
-
-3. Then, set the copied excerpt from the ``Server Profile`` URI to the property
-   ``applied_server_profile_uri`` in the ``driver_info`` namespace doing::
-
-   $ ironic node-update <node-uuid> add driver_info/applied_server_profile_uri=<server_profile_uri>
-
-4. Finally, set the `dynamic_allocation` flag in the ``driver_info`` namespace
-   to ``True`` in order to finish the migration of the node doing::
-
-   $ ironic node-update <node-uuid> add driver_info/dynamic_allocation=True
-
-Other cases for migration
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Remember these steps are valid for nodes in the following states: `enroll`,
-`manageable`, `available`, `error`, `clean failed` and `inspect failed`. So,
-list the nodes in a given state, then execute the migration following steps for
-each node:
-
-1. Place the node in maintenance mode to prevent ironic from working on the node
-   during the migration doing::
-
-   $ ironic node-set-maintenance --reason "Migrating node to dynamic allocation" <node_uuid> true
-
-   .. note::
-      It's recommended to check if the node's state has not changed as there is no way
-      of locking the node between these commands.
-
-2. Identify which ``Server Profile`` is associated by checking the property
-   ``server_hardware_uri`` in the ``driver_info`` namespace. Using the
-   ``server_hardware_uri``, log into OneView and remove the ``Server Profile``.
-
-3. Set the `dynamic_allocation` to ``True`` in the flag ``driver_info``
-   namespace doing::
-
-   $ ironic node-update $NODE_UUID add driver_info/dynamic_allocation=True
-
-4. Finally, in order to put the node back into the resource pool, remove the
-   node from maintenance mode doing::
-
-   $ ironic node-set-maintenance <node_uuid> false
-
 3rd Party Tools
 ===============
 
@@ -427,8 +303,7 @@ ironic-oneview-cli
 The ``ironic-oneView`` CLI is a command line interface for management tasks
 involving OneView nodes. Its features include a facility to create of ironic
 nodes with all required parameters for OneView nodes, creation of Nova flavors
-for OneView nodes and, starting from version 0.3.0, the migration of nodes from
-``pre-allocation`` to the ``dynamic allocation`` model.
+for OneView nodes.
 
 For more details on how Ironic-OneView CLI works and how to set it up, see
 [8]_.
@@ -437,9 +312,7 @@ ironic-oneviewd
 ^^^^^^^^^^^^^^^
 
 The ``ironic-oneviewd`` daemon monitors the ironic inventory of resources and
-provides facilities to operators managing OneView driver deployments. The
-daemon supports both allocation models (dynamic and pre-allocation) as of
-version 0.1.0.
+provides facilities to operators managing OneView driver deployments.
 
 For more details on how Ironic-OneViewd works and how to set it up, see [7]_.
 
@@ -453,6 +326,5 @@ References
 .. [6] Dynamic Allocation in OneView drivers - http://specs.openstack.org/openstack/ironic-specs/specs/not-implemented/oneview-drivers-dynamic-allocation.html
 .. [7] ironic-oneviewd - https://pypi.python.org/pypi/ironic-oneviewd/
 .. [8] ironic-oneview-cli - https://pypi.python.org/pypi/ironic-oneview-cli/
-.. [9] :ref:`states`
-.. [10] ironic-inspector - http://docs.openstack.org/developer/ironic-inspector/
-.. [11] ironic-inspector install - http://docs.openstack.org/developer/ironic-inspector/install.html
+.. [9] ironic-inspector - http://docs.openstack.org/developer/ironic-inspector/
+.. [10] ironic-inspector install - http://docs.openstack.org/developer/ironic-inspector/install.html

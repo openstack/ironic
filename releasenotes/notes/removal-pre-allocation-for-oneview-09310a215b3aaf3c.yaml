@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    The pre-allocation model for OneView drivers was deprecated in Newton
+    cycle (Ironic 6.1.0) and all pertaining code was marked for removal
+    during Pike cycle. From now on, OneView drivers works only with dynamic
+    allocation model.

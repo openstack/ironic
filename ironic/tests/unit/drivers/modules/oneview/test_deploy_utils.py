@@ -65,7 +65,6 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             driver_info = task.node.driver_info
-            driver_info['dynamic_allocation'] = True
             task.node.driver_info = driver_info
             task.node.provision_state = states.DEPLOYING
             self.assertRaises(
@@ -174,7 +173,6 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             driver_info = task.node.driver_info
-            driver_info['dynamic_allocation'] = True
             task.node.driver_info = driver_info
             task.node.provision_state = states.DEPLOYING
             self.assertRaises(
@@ -220,7 +218,6 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             driver_info = task.node.driver_info
-            driver_info['dynamic_allocation'] = True
             task.node.driver_info = driver_info
             self.assertTrue(
                 deploy_utils.is_node_in_use_by_oneview(oneview_client,
@@ -278,7 +275,6 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             driver_info = task.node.driver_info
-            driver_info['dynamic_allocation'] = True
             driver_info['applied_server_profile_uri'] = 'same/applied_sp_uri/'
             task.node.driver_info = driver_info
             self.assertTrue(
