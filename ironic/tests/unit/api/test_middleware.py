@@ -50,12 +50,16 @@ class TestCORSMiddleware(base.BaseApiTest):
         return '{} {}'.format(status_code, http_client.responses[status_code])
 
     def test_valid_cors_options_request(self):
-        response = self.app \
-            .options('/',
-                     headers={
-                         'Origin': 'http://valid.example.com',
-                         'Access-Control-Request-Method': 'GET'
-                     })
+        req_headers = ['content-type',
+                       'x-auth-token',
+                       'x-openstack-ironic-api-version']
+        headers = {
+            'Origin': 'http://valid.example.com',
+            'Access-Control-Request-Method': 'GET',
+            'Access-Control-Request-Headers': ','.join(req_headers),
+            'X-OpenStack-Ironic-API-Version': '1.14'
+        }
+        response = self.app.options('/', headers=headers, xhr=True)
 
         # Assert response status.
         self.assertEqual(
@@ -65,12 +69,16 @@ class TestCORSMiddleware(base.BaseApiTest):
                          response.headers['Access-Control-Allow-Origin'])
 
     def test_invalid_cors_options_request(self):
-        response = self.app \
-            .options('/',
-                     headers={
-                         'Origin': 'http://invalid.example.com',
-                         'Access-Control-Request-Method': 'GET'
-                     })
+        req_headers = ['content-type',
+                       'x-auth-token',
+                       'x-openstack-ironic-api-version']
+        headers = {
+            'Origin': 'http://invalid.example.com',
+            'Access-Control-Request-Method': 'GET',
+            'Access-Control-Request-Headers': ','.join(req_headers),
+            'X-OpenStack-Ironic-API-Version': '1.14'
+        }
+        response = self.app.options('/', headers=headers, xhr=True)
 
         # Assert response status.
         self.assertEqual(
@@ -79,7 +87,7 @@ class TestCORSMiddleware(base.BaseApiTest):
 
     def test_valid_cors_get_request(self):
         response = self.app \
-            .get('/',
+            .get('/nodes/detail',
                  headers={
                      'Origin': 'http://valid.example.com'
                  })
@@ -88,6 +96,7 @@ class TestCORSMiddleware(base.BaseApiTest):
         self.assertEqual(
             self._response_string(http_client.OK), response.status)
         self.assertIn('Access-Control-Allow-Origin', response.headers)
+        self.assertIn('X-OpenStack-Ironic-API-Version', response.headers)
         self.assertEqual('http://valid.example.com',
                          response.headers['Access-Control-Allow-Origin'])
 
