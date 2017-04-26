@@ -169,20 +169,20 @@ higher.
 
 Examples of doing this with a JSON string::
 
-    ironic --ironic-api-version 1.15 node-set-provision-state \
+    ironic --ironic-api-version 1.15 node-set-provision-state <node> \
     clean --clean-steps '[{"interface": "deploy", "step": "erase_devices_metadata"}]'
 
-    ironic --ironic-api-version 1.15 node-set-provision-state \
+    ironic --ironic-api-version 1.15 node-set-provision-state <node> \
     clean --clean-steps '[{"interface": "deploy", "step": "erase_devices"}]'
 
 Or with a file::
 
-    ironic --ironic-api-version 1.15 node-set-provision-state \
+    ironic --ironic-api-version 1.15 node-set-provision-state <node> \
     clean --clean-steps my-clean-steps.txt
 
 Or with stdin::
 
-    cat my-clean-steps.txt | ironic --ironic-api-version 1.15 \
+    cat my-clean-steps.txt | ironic --ironic-api-version 1.15 <node> \
     node-set-provision-state clean --clean-steps -
 
 Cleaning Network
