@@ -407,8 +407,7 @@ def deploy_disk_image(address, port, iqn, lun,
     :param iqn: The iSCSI qualified name.
     :param lun: The iSCSI logical unit number.
     :param image_path: Path for the instance's disk image.
-    :param node_uuid: node's uuid. Used for logging. Currently not in use
-        by this function but could be used in the future.
+    :param node_uuid: node's uuid.
     :param configdrive: Optional. Base64 encoded Gzipped configdrive content
                         or configdrive HTTP URL.
     :returns: a dictionary containing the key 'disk identifier' to identify
