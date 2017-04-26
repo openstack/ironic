@@ -152,6 +152,33 @@ class VolumeTarget(base.IronicObject,
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
     # Implications of calling new remote procedures should be thought through.
+    # @object_base.remotable_classmethod
+    @classmethod
+    def list_by_volume_id(cls, context, volume_id, limit=None, marker=None,
+                          sort_key=None, sort_dir=None):
+        """Return a list of VolumeTarget objects related to a given volume ID.
+
+        :param context: security context
+        :param volume_id: the UUID of the volume
+        :param limit: maximum number of volume targets to return in a
+                      single result
+        :param marker: pagination marker for large data sets
+        :param sort_key: column to sort results by
+        :param sort_dir: direction to sort. "asc" or "desc".
+        :returns: a list of :class:`VolumeTarget` objects
+        :raises: InvalidParameterValue if sort_key does not exist
+        """
+        db_targets = cls.dbapi.get_volume_targets_by_volume_id(
+            volume_id,
+            limit=limit,
+            marker=marker,
+            sort_key=sort_key,
+            sort_dir=sort_dir)
+        return cls._from_db_object_list(context, db_targets)
+
+    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
+    # methods can be used in the future to replace current explicit RPC calls.
+    # Implications of calling new remote procedures should be thought through.
     # @object_base.remotable
     def create(self, context=None):
         """Create a VolumeTarget record in the DB.

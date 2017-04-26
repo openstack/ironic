@@ -824,6 +824,23 @@ class Connection(object):
         """
 
     @abc.abstractmethod
+    def get_volume_targets_by_volume_id(self, volume_id, limit=None,
+                                        marker=None, sort_key=None,
+                                        sort_dir=None):
+        """List all the volume targets for a given volume id.
+
+        :param volume_id: The UUID of the volume.
+        :param limit: Maximum number of volume targets to return.
+        :param marker: the last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted
+        :param sort_dir: direction in which results should be sorted
+                         (asc, desc)
+        :returns: A list of volume targets.
+        :raises: InvalidParameterValue if sort_key does not exist.
+        """
+
+    @abc.abstractmethod
     def create_volume_target(self, target_info):
         """Create a new volume target.
 

@@ -110,6 +110,21 @@ class TestVolumeTargetObject(base.DbTestCase):
             self.assertIsInstance(volume_targets[0], objects.VolumeTarget)
             self.assertEqual(self.context, volume_targets[0]._context)
 
+    def test_list_by_volume_id(self):
+        with mock.patch.object(self.dbapi, 'get_volume_targets_by_volume_id',
+                               autospec=True) as mock_get_list_by_volume_id:
+            mock_get_list_by_volume_id.return_value = [self.volume_target_dict]
+            volume_id = self.volume_target_dict['volume_id']
+            volume_targets = objects.VolumeTarget.list_by_volume_id(
+                self.context, volume_id, limit=10, sort_dir='desc')
+
+            mock_get_list_by_volume_id.assert_called_once_with(
+                volume_id, limit=10, marker=None,
+                sort_key=None, sort_dir='desc')
+            self.assertThat(volume_targets, HasLength(1))
+            self.assertIsInstance(volume_targets[0], objects.VolumeTarget)
+            self.assertEqual(self.context, volume_targets[0]._context)
+
     def test_create(self):
         with mock.patch.object(self.dbapi, 'create_volume_target',
                                autospec=True) as mock_db_create:
