@@ -1254,7 +1254,7 @@ function start_ironic_conductor {
 
 # Starts VirtualPDU
 function start_virtualpdu {
-    run_process ir-vpdu "virtualpdu $IRONIC_VPDU_CONFIG_FILE" libvirtd
+    run_process ir-vpdu "virtualpdu $IRONIC_VPDU_CONFIG_FILE" libvirt
 }
 
 
