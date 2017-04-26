@@ -15,13 +15,10 @@
 import re
 
 from keystonemiddleware import auth_token
-from oslo_log import log
 
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import utils
-
-LOG = log.getLogger(__name__)
 
 
 class AuthTokenMiddleware(auth_token.AuthProtocol):
