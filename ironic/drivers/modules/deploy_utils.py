@@ -417,11 +417,12 @@ def deploy_disk_image(address, port, iqn, lun,
     with _iscsi_setup_and_handle_errors(address, port, iqn,
                                         lun) as dev:
         disk_utils.populate_image(image_path, dev)
-        disk_identifier = disk_utils.get_disk_identifier(dev)
 
         if configdrive:
             disk_utils.create_config_drive_partition(node_uuid, dev,
                                                      configdrive)
+
+        disk_identifier = disk_utils.get_disk_identifier(dev)
 
     return {'disk identifier': disk_identifier}
 
