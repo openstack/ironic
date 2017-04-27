@@ -23,7 +23,7 @@ from oslo_utils import importutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
-from ironic.common.i18n import _, _LE
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
@@ -79,8 +79,8 @@ def _get_power_state(node):
         power_status = ilo_object.get_host_power_status()
 
     except ilo_error.IloError as ilo_exception:
-        LOG.error(_LE("iLO get_power_state failed for node %(node_id)s with "
-                      "error: %(error)s."),
+        LOG.error("iLO get_power_state failed for node %(node_id)s with "
+                  "error: %(error)s.",
                   {'node_id': node.uuid, 'error': ilo_exception})
         operation = _('iLO get_power_status')
         raise exception.IloOperationError(operation=operation,
@@ -151,8 +151,8 @@ def _set_power_state(task, target_state):
             raise exception.InvalidParameterValue(msg)
 
     except ilo_error.IloError as ilo_exception:
-        LOG.error(_LE("iLO set_power_state failed to set state to %(tstate)s "
-                      " for node %(node_id)s with error: %(error)s"),
+        LOG.error("iLO set_power_state failed to set state to %(tstate)s "
+                  " for node %(node_id)s with error: %(error)s",
                   {'tstate': target_state, 'node_id': node.uuid,
                    'error': ilo_exception})
         operation = _('iLO set_power_state')
@@ -164,8 +164,8 @@ def _set_power_state(task, target_state):
 
     if state != target_state:
         timeout = (CONF.ilo.power_wait) * (CONF.ilo.power_retry)
-        LOG.error(_LE("iLO failed to change state to %(tstate)s "
-                      "within %(timeout)s sec"),
+        LOG.error("iLO failed to change state to %(tstate)s "
+                  "within %(timeout)s sec",
                   {'tstate': target_state, 'timeout': timeout})
         raise exception.PowerStateFailure(pstate=target_state)
 

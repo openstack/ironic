@@ -28,7 +28,7 @@ import six
 import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LI
+from ironic.common.i18n import _
 from ironic.common import image_service
 from ironic.common import swift
 from ironic.drivers.modules.ilo import common as ilo_common
@@ -213,7 +213,7 @@ class FirmwareProcessor(object):
             # delete the entire downloaded content along with temp dir.
             shutil.rmtree(temp_dir, ignore_errors=True)
 
-        LOG.info(_LI("Final processed firmware location: %s"),
+        LOG.info("Final processed firmware location: %s",
                  fw_image_location_obj.fw_image_location)
         return fw_image_location_obj
 

@@ -17,7 +17,7 @@ from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LI, _LW
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import utils as conductor_utils
@@ -54,11 +54,11 @@ def _create_ports_if_not_exist(task, macs):
 
         try:
             port.create()
-            LOG.info(_LI("Port created for MAC address %(address)s for node "
-                         "%(node)s"), {'address': mac, 'node': node.uuid})
+            LOG.info("Port created for MAC address %(address)s for node "
+                     "%(node)s", {'address': mac, 'node': node.uuid})
         except exception.MACAlreadyExists:
-            LOG.warning(_LW("Port already exists for MAC address %(address)s "
-                            "for node %(node)s"),
+            LOG.warning("Port already exists for MAC address %(address)s "
+                        "for node %(node)s",
                         {'address': mac, 'node': node.uuid})
 
 
@@ -154,7 +154,7 @@ def _get_capabilities(node, ilo_object):
     try:
         capabilities = ilo_object.get_server_capabilities()
     except ilo_error.IloError:
-        LOG.debug(("Node %s did not return any additional capabilities."),
+        LOG.debug("Node %s did not return any additional capabilities.",
                   node.uuid)
 
     return capabilities
@@ -210,8 +210,8 @@ class IloInspect(base.InspectInterface):
             raise exception.IloOperationError(operation=operation,
                                               error=ilo_exception)
         if state != states.POWER_ON:
-            LOG.info(_LI("The node %s is not powered on. Powering on the "
-                         "node for inspection."), task.node.uuid)
+            LOG.info("The node %s is not powered on. Powering on the "
+                     "node for inspection.", task.node.uuid)
             conductor_utils.node_power_action(task, states.POWER_ON)
             power_turned_on = True
 
@@ -232,9 +232,9 @@ class IloInspect(base.InspectInterface):
         if current_local_gb:
             if properties['local_gb'] == 0 and current_local_gb > 0:
                 properties['local_gb'] = current_local_gb
-                LOG.warning(_LW('Could not discover size of disk on the node '
-                                '%s. Value of `properties/local_gb` of the '
-                                'node is not overwritten.'), task.node.uuid)
+                LOG.warning('Could not discover size of disk on the node '
+                            '%s. Value of `properties/local_gb` of the '
+                            'node is not overwritten.', task.node.uuid)
 
         for known_property in self.ESSENTIAL_PROPERTIES:
             inspected_properties[known_property] = properties[known_property]
@@ -260,15 +260,15 @@ class IloInspect(base.InspectInterface):
         # Create ports for the nics detected.
         _create_ports_if_not_exist(task, result['macs'])
 
-        LOG.debug(("Node properties for %(node)s are updated as "
-                   "%(properties)s"),
+        LOG.debug("Node properties for %(node)s are updated as "
+                  "%(properties)s",
                   {'properties': inspected_properties,
                    'node': task.node.uuid})
 
-        LOG.info(_LI("Node %s inspected."), task.node.uuid)
+        LOG.info("Node %s inspected.", task.node.uuid)
         if power_turned_on:
             conductor_utils.node_power_action(task, states.POWER_OFF)
-            LOG.info(_LI("The node %s was powered on for inspection. "
-                         "Powered off the node as inspection completed."),
+            LOG.info("The node %s was powered on for inspection. "
+                     "Powered off the node as inspection completed.",
                      task.node.uuid)
         return states.MANAGEABLE
