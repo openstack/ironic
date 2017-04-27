@@ -20,7 +20,6 @@ from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common.i18n import _LE
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
@@ -58,8 +57,8 @@ def _get_power_state(node):
     try:
         drac_power_state = client.get_power_state()
     except drac_exceptions.BaseClientException as exc:
-        LOG.error(_LE('DRAC driver failed to get power state for node '
-                      '%(node_uuid)s. Reason: %(error)s.'),
+        LOG.error('DRAC driver failed to get power state for node '
+                  '%(node_uuid)s. Reason: %(error)s.',
                   {'node_uuid': node.uuid, 'error': exc})
         raise exception.DracOperationError(error=exc)
 
@@ -106,9 +105,9 @@ def _set_power_state(node, power_state):
     try:
         client.set_power_state(target_power_state)
     except drac_exceptions.BaseClientException as exc:
-        LOG.error(_LE('DRAC driver failed to set power state for node '
-                      '%(node_uuid)s to %(power_state)s. '
-                      'Reason: %(error)s.'),
+        LOG.error('DRAC driver failed to set power state for node '
+                  '%(node_uuid)s to %(power_state)s. '
+                  'Reason: %(error)s.',
                   {'node_uuid': node.uuid,
                    'power_state': power_state,
                    'error': exc})

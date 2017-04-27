@@ -20,7 +20,7 @@ from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LI, _LW
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.drivers.modules.oneview import common
 
@@ -303,10 +303,10 @@ def allocate_server_hardware_to_ironic(oneview_client, node,
                 applied_sp_uri is not (None, '')):
 
             _del_applied_server_profile_uri_field(node)
-            LOG.info(_LI(
+            LOG.info(
                 "Inconsistent 'applied_server_profile_uri' parameter "
                 "value in driver_info. There is no Server Profile "
-                "applied to node %(node_uuid)s. Value deleted."),
+                "applied to node %(node_uuid)s. Value deleted.",
                 {"node_uuid": node.uuid}
             )
 
@@ -314,9 +314,9 @@ def allocate_server_hardware_to_ironic(oneview_client, node,
         # applied on Hardware. Do not apply again.
         if (applied_sp_uri and server_hardware.server_profile_uri and
             server_hardware.server_profile_uri == applied_sp_uri):
-            LOG.info(_LI(
+            LOG.info(
                 "The Server Profile %(applied_sp_uri)s was already applied "
-                "by ironic on node %(node_uuid)s. Reusing."),
+                "by ironic on node %(node_uuid)s. Reusing.",
                 {"node_uuid": node.uuid, "applied_sp_uri": applied_sp_uri}
             )
             return
@@ -328,15 +328,15 @@ def allocate_server_hardware_to_ironic(oneview_client, node,
             _add_applied_server_profile_uri_field(node, applied_profile)
 
             LOG.info(
-                _LI("Server Profile %(server_profile_uuid)s was successfully"
-                    " applied to node %(node_uuid)s."),
+                "Server Profile %(server_profile_uuid)s was successfully"
+                " applied to node %(node_uuid)s.",
                 {"node_uuid": node.uuid,
                  "server_profile_uuid": applied_profile.uri}
             )
 
         except oneview_exception.OneViewServerProfileAssignmentError as e:
-            LOG.error(_LE("An error occurred during allocating server "
-                          "hardware to ironic during prepare: %s"), e)
+            LOG.error("An error occurred during allocating server "
+                      "hardware to ironic during prepare: %s", e)
             raise exception.OneViewError(error=e)
     else:
         msg = (_("Node %s is already in use by OneView.") %
@@ -367,8 +367,8 @@ def deallocate_server_hardware_from_ironic(oneview_client, node):
             oneview_client.delete_server_profile(server_profile_uuid)
             _del_applied_server_profile_uri_field(node)
 
-            LOG.info(_LI("Server Profile %(server_profile_uuid)s was deleted "
-                         "from node %(node_uuid)s in OneView."),
+            LOG.info("Server Profile %(server_profile_uuid)s was deleted "
+                     "from node %(node_uuid)s in OneView.",
                      {'server_profile_uuid': server_profile_uuid,
                       'node_uuid': node.uuid})
         except (ValueError, oneview_exception.OneViewException) as e:
@@ -378,6 +378,6 @@ def deallocate_server_hardware_from_ironic(oneview_client, node):
             raise exception.OneViewError(error=msg)
 
     else:
-        LOG.warning(_LW("Cannot deallocate node %(node_uuid)s "
-                        "in OneView because it is not in use by "
-                        "ironic."), {'node_uuid': node.uuid})
+        LOG.warning("Cannot deallocate node %(node_uuid)s "
+                    "in OneView because it is not in use by "
+                    "ironic.", {'node_uuid': node.uuid})

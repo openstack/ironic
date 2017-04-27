@@ -21,7 +21,7 @@ from oslo_utils import importutils
 from oslo_utils import units
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LI, _LW
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.drivers import base
 from ironic.drivers.modules.drac import common as drac_common
@@ -94,8 +94,8 @@ class DracInspect(base.InspectInterface):
                     properties['local_gb'] = int(
                         root_disk.size_mb / units.Ki)
         except drac_exceptions.BaseClientException as exc:
-            LOG.error(_LE('DRAC driver failed to introspect node '
-                          '%(node_uuid)s. Reason: %(error)s.'),
+            LOG.error('DRAC driver failed to introspect node '
+                      '%(node_uuid)s. Reason: %(error)s.',
                       {'node_uuid': node.uuid, 'error': exc})
             raise exception.HardwareInspectionFailure(error=exc)
 
@@ -113,8 +113,8 @@ class DracInspect(base.InspectInterface):
         try:
             nics = client.list_nics()
         except drac_exceptions.BaseClientException as exc:
-            LOG.error(_LE('DRAC driver failed to introspect node '
-                          '%(node_uuid)s. Reason: %(error)s.'),
+            LOG.error('DRAC driver failed to introspect node '
+                      '%(node_uuid)s. Reason: %(error)s.',
                       {'node_uuid': node.uuid, 'error': exc})
             raise exception.HardwareInspectionFailure(error=exc)
 
@@ -123,17 +123,17 @@ class DracInspect(base.InspectInterface):
                 port = objects.Port(task.context, address=nic.mac,
                                     node_id=node.id)
                 port.create()
-                LOG.info(_LI('Port created with MAC address %(mac)s '
-                             'for node %(node_uuid)s during inspection'),
+                LOG.info('Port created with MAC address %(mac)s '
+                         'for node %(node_uuid)s during inspection',
                          {'mac': nic.mac, 'node_uuid': node.uuid})
             except exception.MACAlreadyExists:
-                LOG.warning(_LW('Failed to create a port with MAC address '
-                                '%(mac)s when inspecting the node '
-                                '%(node_uuid)s because the address is already '
-                                'registered'),
+                LOG.warning('Failed to create a port with MAC address '
+                            '%(mac)s when inspecting the node '
+                            '%(node_uuid)s because the address is already '
+                            'registered',
                             {'mac': nic.mac, 'node_uuid': node.uuid})
 
-        LOG.info(_LI('Node %s successfully inspected.'), node.uuid)
+        LOG.info('Node %s successfully inspected.', node.uuid)
         return states.MANAGEABLE
 
     def _guess_root_disk(self, disks, min_size_required_mb=4 * units.Ki):

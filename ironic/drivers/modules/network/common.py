@@ -21,7 +21,7 @@ from oslo_log import log
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
-from ironic.common.i18n import _, _LW
+from ironic.common.i18n import _
 from ironic.common import neutron
 from ironic.common import states
 from ironic.common import utils
@@ -254,10 +254,10 @@ class VIFPortIDMixin(object):
                 # Log warning if there is no VIF and an instance
                 # is associated with the node.
                 elif node.instance_uuid:
-                    LOG.warning(_LW(
+                    LOG.warning(
                         "No VIF found for instance %(instance)s "
                         "port %(port)s when attempting to update port "
-                        "client-id."),
+                        "client-id.",
                         {'port': port_uuid,
                          'instance': node.instance_uuid})
 
