@@ -47,10 +47,6 @@ The query string should include either or both a ``node_uuid`` or an
 that Node shall be returned, including instance-specific information such as
 the configdrive.
 
-This deprecates the ``agent``-driver specific ``vendor_passthru`` method of the
-same name, previously accessible at
-``/v1/drivers/agent_*/vendor_passthru?method=lookup``.
-
 Normal response codes: 200
 
 Error response codes: 400 404
@@ -90,10 +86,6 @@ Beginning with the v1.22 API, a ``/heartbeat`` method is exposed at the root of
 the REST API. This is used as a callback from within the ``ironic-python-agent``
 ramdisk, so that an active ramdisk may periodically contact the Bare Metal
 service and provide the current URL at which to contact the agent.
-
-This deprecates the ``agent``-driver specific ``vendor_passthru`` method of the
-same name, previously accessible at
-``/v1/nodes/{node_ident}/vendor_passthru?method=heartbeat``.
 
 Normal response codes: 202
 
