@@ -43,36 +43,35 @@ Registering a node with the Redfish driver
 Nodes configured to use the driver should have the ``driver`` property
 set to ``redfish``.
 
-The following properties are required and must be specified in the node's
-``driver_info`` field:
+The following properties are specified in the node's ``driver_info``
+field:
 
 - ``redfish_address``: The URL address to the Redfish controller. It should
                        include scheme and authority portion of the URL.
-                       For example: https://mgmt.vendor.com
+                       For example: https://mgmt.vendor.com. This is required.
 
 - ``redfish_system_id``: The canonical path to the System resource that
                          the driver will interact with. It should include
                          the root service, version and the unique
                          resource path to the System. For example:
-                         /redfish/v1/Systems/1
+                         /redfish/v1/Systems/1. This is required.
 
 - ``redfish_username``: User account with admin/server-profile access
-                        privilege
+                        privilege. Although not required, it is highly
+                        recommended.
 
-- ``redfish_password``: User account password
+- ``redfish_password``: User account password. Although not required, it is
+                        highly recommended.
 
-By default, if the ``redfish_address`` is using **https** the driver
-will use a secure (TLS_) connection when talking to the Redfish
-controller and for that it will try to verify the certificates present
-on the ironic conductor node. This behavior can be changed or disabled
-(**not recommended**) by setting the ``redfish_verify_ca`` property as:
-
-- ``redfish_verify_ca``: Path to a certificate file or directory with
-  trusted certificates
-
-or
-
-- ``redfish_verify_ca``: False (Disable verifying TLS_)
+- ``redfish_verify_ca``: If redfish_address has the **https** scheme, the
+                         driver will use a secure (TLS_) connection when
+                         talking to the Redfish controller. By default
+                         (if this is not set or set to True), the driver
+                         will try to verify the host certificates. This
+                         can be set to the path of a certificate file or
+                         directory with trusted certificates that the
+                         driver will use for verification. To disable
+                         verifying TLS_, set this to False. This is optional.
 
 The ``openstack baremetal node create`` command can be used to enroll
 a node with the ``redfish`` driver. For example:
