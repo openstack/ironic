@@ -68,10 +68,11 @@ fi
 
 stack_install_service ironic
 
-$IRONIC_BIN_DIR/ironic-dbsync --config-file=$IRONIC_CONF_FILE
-
 # calls upgrade-ironic for specific release
 upgrade_project ironic $RUN_DIR $BASE_DEVSTACK_BRANCH $TARGET_DEVSTACK_BRANCH
+
+
+$IRONIC_BIN_DIR/ironic-dbsync --config-file=$IRONIC_CONF_FILE
 
 start_ironic
 
