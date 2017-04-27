@@ -92,6 +92,15 @@ XenServer ssh driver
   ../drivers/xenserver
 
 
+Redfish driver
+--------------
+
+.. toctree::
+  :maxdepth: 1
+
+  ../drivers/redfish
+
+
 Unsupported drivers
 -------------------
 
