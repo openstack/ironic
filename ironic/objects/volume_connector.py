@@ -70,6 +70,7 @@ class VolumeConnector(base.IronicObject,
     def get_by_id(cls, context, db_id):
         """Find a volume connector based on its integer ID.
 
+        :param cls: the :class:`VolumeConnector`
         :param context: Security context.
         :param db_id: The integer (database primary key) ID of a
                       volume connector.
@@ -78,7 +79,7 @@ class VolumeConnector(base.IronicObject,
                  the specified ID.
         """
         db_connector = cls.dbapi.get_volume_connector_by_id(db_id)
-        connector = cls._from_db_object(cls(context), db_connector)
+        connector = cls._from_db_object(context, cls(), db_connector)
         return connector
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -89,6 +90,7 @@ class VolumeConnector(base.IronicObject,
     def get_by_uuid(cls, context, uuid):
         """Find a volume connector based on its UUID.
 
+        :param cls: the :class:`VolumeConnector`
         :param context: security context
         :param uuid: the UUID of a volume connector
         :returns: a :class:`VolumeConnector` object
@@ -96,7 +98,7 @@ class VolumeConnector(base.IronicObject,
                  the specified UUID
         """
         db_connector = cls.dbapi.get_volume_connector_by_uuid(uuid)
-        connector = cls._from_db_object(cls(context), db_connector)
+        connector = cls._from_db_object(context, cls(), db_connector)
         return connector
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -168,7 +170,7 @@ class VolumeConnector(base.IronicObject,
         """
         values = self.obj_get_changes()
         db_connector = self.dbapi.create_volume_connector(values)
-        self._from_db_object(self, db_connector)
+        self._from_db_object(self._context, self, db_connector)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -215,7 +217,7 @@ class VolumeConnector(base.IronicObject,
         updates = self.obj_get_changes()
         updated_connector = self.dbapi.update_volume_connector(self.uuid,
                                                                updates)
-        self._from_db_object(self, updated_connector)
+        self._from_db_object(self._context, self, updated_connector)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.

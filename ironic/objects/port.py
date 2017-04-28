@@ -84,15 +84,17 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def get_by_id(cls, context, port_id):
-        """Find a port based on its integer id and return a Port object.
+        """Find a port based on its integer ID and return a Port object.
 
-        :param port_id: the id of a port.
+        :param cls: the :class:`Port`
+        :param context: Security context
+        :param port_id: the ID of a port.
         :returns: a :class:`Port` object.
         :raises: PortNotFound
 
         """
         db_port = cls.dbapi.get_port_by_id(port_id)
-        port = cls._from_db_object(cls(context), db_port)
+        port = cls._from_db_object(context, cls(), db_port)
         return port
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -101,16 +103,17 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def get_by_uuid(cls, context, uuid):
-        """Find a port based on uuid and return a :class:`Port` object.
+        """Find a port based on UUID and return a :class:`Port` object.
 
-        :param uuid: the uuid of a port.
+        :param cls: the :class:`Port`
         :param context: Security context
+        :param uuid: the UUID of a port.
         :returns: a :class:`Port` object.
         :raises: PortNotFound
 
         """
         db_port = cls.dbapi.get_port_by_uuid(uuid)
-        port = cls._from_db_object(cls(context), db_port)
+        port = cls._from_db_object(context, cls(), db_port)
         return port
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -121,14 +124,15 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     def get_by_address(cls, context, address):
         """Find a port based on address and return a :class:`Port` object.
 
-        :param address: the address of a port.
+        :param cls: the :class:`Port`
         :param context: Security context
+        :param address: the address of a port.
         :returns: a :class:`Port` object.
         :raises: PortNotFound
 
         """
         db_port = cls.dbapi.get_port_by_address(address)
-        port = cls._from_db_object(cls(context), db_port)
+        port = cls._from_db_object(context, cls(), db_port)
         return port
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -223,7 +227,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         """
         values = self.obj_get_changes()
         db_port = self.dbapi.create_port(values)
-        self._from_db_object(self, db_port)
+        self._from_db_object(self._context, self, db_port)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -266,7 +270,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         """
         updates = self.obj_get_changes()
         updated_port = self.dbapi.update_port(self.uuid, updates)
-        self._from_db_object(self, updated_port)
+        self._from_db_object(self._context, self, updated_port)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.

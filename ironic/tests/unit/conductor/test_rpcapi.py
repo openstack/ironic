@@ -69,7 +69,7 @@ class RPCAPITestCase(base.DbTestCase):
         super(RPCAPITestCase, self).setUp()
         self.fake_node = dbutils.get_test_node(driver='fake-driver')
         self.fake_node_obj = objects.Node._from_db_object(
-            objects.Node(self.context), self.fake_node)
+            self.context, objects.Node(), self.fake_node)
         self.fake_portgroup = dbutils.get_test_portgroup()
 
     def test_serialized_instance_has_uuid(self):

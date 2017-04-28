@@ -47,11 +47,13 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
     def get_by_hostname(cls, context, hostname):
         """Get a Conductor record by its hostname.
 
+        :param cls: the :class:`Conductor`
+        :param context: Security context
         :param hostname: the hostname on which a Conductor is running
         :returns: a :class:`Conductor` object.
         """
         db_obj = cls.dbapi.get_conductor(hostname)
-        conductor = cls._from_db_object(cls(context), db_obj)
+        conductor = cls._from_db_object(context, cls(), db_obj)
         return conductor
 
     def save(self, context):
@@ -96,6 +98,8 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
     def register(cls, context, hostname, drivers, update_existing=False):
         """Register an active conductor with the cluster.
 
+        :param cls: the :class:`Conductor`
+        :param context: Security context
         :param hostname: the hostname on which the conductor will run
         :param drivers: the list of drivers enabled in the conductor
         :param update_existing: When false, registration will raise an
@@ -109,7 +113,7 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_cond = cls.dbapi.register_conductor({'hostname': hostname,
                                                 'drivers': drivers},
                                                update_existing=update_existing)
-        return cls._from_db_object(cls(context), db_cond)
+        return cls._from_db_object(context, cls(), db_cond)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.

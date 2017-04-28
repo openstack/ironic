@@ -80,16 +80,17 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def get_by_id(cls, context, portgroup_id):
-        """Find a portgroup based on its integer id and return a Portgroup object.
+        """Find a portgroup based on its integer ID and return a Portgroup object.
 
-        :param portgroup_id: The id of a portgroup.
+        :param cls: the :class:`Portgroup`
         :param context: Security context
+        :param portgroup_id: The ID of a portgroup.
         :returns: A :class:`Portgroup` object.
         :raises: PortgroupNotFound
 
         """
         db_portgroup = cls.dbapi.get_portgroup_by_id(portgroup_id)
-        portgroup = cls._from_db_object(cls(context), db_portgroup)
+        portgroup = cls._from_db_object(context, cls(), db_portgroup)
         return portgroup
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -98,16 +99,17 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def get_by_uuid(cls, context, uuid):
-        """Find a portgroup based on uuid and return a :class:`Portgroup` object.
+        """Find a portgroup based on UUID and return a :class:`Portgroup` object.
 
-        :param uuid: The uuid of a portgroup.
+        :param cls: the :class:`Portgroup`
         :param context: Security context
+        :param uuid: The UUID of a portgroup.
         :returns: A :class:`Portgroup` object.
         :raises: PortgroupNotFound
 
         """
         db_portgroup = cls.dbapi.get_portgroup_by_uuid(uuid)
-        portgroup = cls._from_db_object(cls(context), db_portgroup)
+        portgroup = cls._from_db_object(context, cls(), db_portgroup)
         return portgroup
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -118,14 +120,15 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     def get_by_address(cls, context, address):
         """Find a portgroup based on address and return a :class:`Portgroup` object.
 
-        :param address: The MAC address of a portgroup.
+        :param cls: the :class:`Portgroup`
         :param context: Security context
+        :param address: The MAC address of a portgroup.
         :returns: A :class:`Portgroup` object.
         :raises: PortgroupNotFound
 
         """
         db_portgroup = cls.dbapi.get_portgroup_by_address(address)
-        portgroup = cls._from_db_object(cls(context), db_portgroup)
+        portgroup = cls._from_db_object(context, cls(), db_portgroup)
         return portgroup
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -136,14 +139,15 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     def get_by_name(cls, context, name):
         """Find a portgroup based on name and return a :class:`Portgroup` object.
 
-        :param name: The name of a portgroup.
+        :param cls: the :class:`Portgroup`
         :param context: Security context
+        :param name: The name of a portgroup.
         :returns: A :class:`Portgroup` object.
         :raises: PortgroupNotFound
 
         """
         db_portgroup = cls.dbapi.get_portgroup_by_name(name)
-        portgroup = cls._from_db_object(cls(context), db_portgroup)
+        portgroup = cls._from_db_object(context, cls(), db_portgroup)
         return portgroup
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -155,6 +159,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
              sort_key=None, sort_dir=None):
         """Return a list of Portgroup objects.
 
+        :param cls: the :class:`Portgroup`
         :param context: Security context.
         :param limit: Maximum number of resources to return in a single result.
         :param marker: Pagination marker for large data sets.
@@ -179,6 +184,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
                         sort_key=None, sort_dir=None):
         """Return a list of Portgroup objects associated with a given node ID.
 
+        :param cls: the :class:`Portgroup`
         :param context: Security context.
         :param node_id: The ID of the node.
         :param limit: Maximum number of resources to return in a single result.
@@ -214,7 +220,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         """
         values = self.obj_get_changes()
         db_portgroup = self.dbapi.create_portgroup(values)
-        self._from_db_object(self, db_portgroup)
+        self._from_db_object(self._context, self, db_portgroup)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -256,7 +262,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         """
         updates = self.obj_get_changes()
         updated_portgroup = self.dbapi.update_portgroup(self.uuid, updates)
-        self._from_db_object(self, updated_portgroup)
+        self._from_db_object(self._context, self, updated_portgroup)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.

@@ -72,13 +72,14 @@ class VolumeTarget(base.IronicObject,
     def get_by_id(cls, context, db_id):
         """Find a volume target based on its database ID.
 
+        :param cls: the :class:`VolumeTarget`
         :param context: security context
         :param db_id: the database primary key (integer) ID of a volume target
         :returns: a :class:`VolumeTarget` object
         :raises: VolumeTargetNotFound if no volume target with this ID exists
         """
         db_target = cls.dbapi.get_volume_target_by_id(db_id)
-        target = cls._from_db_object(cls(context), db_target)
+        target = cls._from_db_object(context, cls(), db_target)
         return target
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -89,13 +90,14 @@ class VolumeTarget(base.IronicObject,
     def get_by_uuid(cls, context, uuid):
         """Find a volume target based on its UUID.
 
+        :param cls: the :class:`VolumeTarget`
         :param context: security context
         :param uuid: the UUID of a volume target
         :returns: a :class:`VolumeTarget` object
         :raises: VolumeTargetNotFound if no volume target with this UUID exists
         """
         db_target = cls.dbapi.get_volume_target_by_uuid(uuid)
-        target = cls._from_db_object(cls(context), db_target)
+        target = cls._from_db_object(context, cls(), db_target)
         return target
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -167,7 +169,7 @@ class VolumeTarget(base.IronicObject,
         """
         values = self.obj_get_changes()
         db_target = self.dbapi.create_volume_target(values)
-        self._from_db_object(self, db_target)
+        self._from_db_object(self._context, self, db_target)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -210,7 +212,7 @@ class VolumeTarget(base.IronicObject,
         """
         updates = self.obj_get_changes()
         updated_target = self.dbapi.update_volume_target(self.uuid, updates)
-        self._from_db_object(self, updated_target)
+        self._from_db_object(self._context, self, updated_target)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
