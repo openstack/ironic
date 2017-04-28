@@ -50,7 +50,7 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(
             self.context, driver='redfish', driver_info=INFO_DICT)
         self.parsed_driver_info = {
-            'address': 'http://example.com',
+            'address': 'https://example.com',
             'system_id': '/redfish/v1/Systems/FAKESYSTEM',
             'username': 'username',
             'password': 'password',
@@ -62,6 +62,17 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         response = redfish_utils.parse_driver_info(self.node)
         self.assertEqual(self.parsed_driver_info, response)
 
+    def test_parse_driver_info_default_scheme(self):
+        self.node.driver_info['redfish_address'] = 'example.com'
+        response = redfish_utils.parse_driver_info(self.node)
+        self.assertEqual(self.parsed_driver_info, response)
+
+    def test_parse_driver_info_default_scheme_with_port(self):
+        self.node.driver_info['redfish_address'] = 'example.com:42'
+        self.parsed_driver_info['address'] = 'https://example.com:42'
+        response = redfish_utils.parse_driver_info(self.node)
+        self.assertEqual(self.parsed_driver_info, response)
+
     def test_parse_driver_info_missing_info(self):
         for prop in redfish_utils.REQUIRED_PROPERTIES:
             self.node.driver_info = INFO_DICT.copy()
@@ -70,10 +81,11 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
                               redfish_utils.parse_driver_info, self.node)
 
     def test_parse_driver_info_invalid_address(self):
-        self.node.driver_info['redfish_address'] = 'this-is-a-bad-address'
-        self.assertRaisesRegex(exception.InvalidParameterValue,
-                               'Invalid Redfish address',
-                               redfish_utils.parse_driver_info, self.node)
+        for value in ['/banana!', 42]:
+            self.node.driver_info['redfish_address'] = value
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   'Invalid Redfish address',
+                                   redfish_utils.parse_driver_info, self.node)
 
     @mock.patch.object(os.path, 'exists', autospec=True)
     def test_parse_driver_info_path_verify_ca(self, mock_path_exists):

@@ -46,8 +46,10 @@ set to ``redfish``.
 The following properties are specified in the node's ``driver_info``
 field:
 
-- ``redfish_address``: The URL address to the Redfish controller. It should
-                       include scheme and authority portion of the URL.
+- ``redfish_address``: The URL address to the Redfish controller. It must
+                       include the authority portion of the URL, and can
+                       optionally include the scheme. If the scheme is
+                       missing, https is assumed.
                        For example: https://mgmt.vendor.com. This is required.
 
 - ``redfish_system_id``: The canonical path to the System resource that

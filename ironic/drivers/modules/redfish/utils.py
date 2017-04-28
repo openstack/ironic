@@ -32,9 +32,9 @@ LOG = log.getLogger(__name__)
 
 REQUIRED_PROPERTIES = {
     'redfish_address': _('The URL address to the Redfish controller. It '
-                         'should include scheme and authority portion of '
-                         'the URL. For example: https://mgmt.vendor.com. '
-                         'Required'),
+                         'must include the authority portion of the URL. '
+                         'If the scheme is missing, https is assumed. '
+                         'For example: https://mgmt.vendor.com. Required'),
     'redfish_system_id': _('The canonical path to the ComputerSystem '
                            'resource that the driver will interact with. '
                            'It should include the root service, version and '
@@ -85,8 +85,18 @@ def parse_driver_info(node):
 
     # Validate the Redfish address
     address = driver_info['redfish_address']
-    if not rfc3986.is_valid_uri(address, require_scheme=True,
-                                require_authority=True):
+    try:
+        parsed = rfc3986.uri_reference(address)
+    except TypeError:
+        raise exception.InvalidParameterValue(
+            _('Invalid Redfish address %(address)s set in '
+              'driver_info/redfish_address on node %(node)s') %
+            {'address': address, 'node': node.uuid})
+
+    if not parsed.scheme or not parsed.authority:
+        address = 'https://%s' % address
+        parsed = rfc3986.uri_reference(address)
+    if not parsed.is_valid(require_scheme=True, require_authority=True):
         raise exception.InvalidParameterValue(
             _('Invalid Redfish address %(address)s set in '
               'driver_info/redfish_address on node %(node)s') %

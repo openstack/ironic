@@ -419,7 +419,7 @@ def get_test_oneview_driver_info():
 
 def get_test_redfish_info():
     return {
-        "redfish_address": "http://example.com",
+        "redfish_address": "https://example.com",
         "redfish_system_id": "/redfish/v1/Systems/FAKESYSTEM",
         "redfish_username": "username",
         "redfish_password": "password"
