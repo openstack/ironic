@@ -1,0 +1,4 @@
+---
+fixes:
+  - Raise HTTP 400 Bad request on failure to validate
+    power or inspect interface parameters before inspecting.

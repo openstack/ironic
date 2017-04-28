@@ -2323,7 +2323,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     @METRICS.timer('ConductorManager.inspect_hardware')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
-                                   exception.HardwareInspectionFailure,
+                                   exception.InvalidParameterValue,
                                    exception.InvalidStateRequested,
                                    exception.UnsupportedDriverExtension)
     def inspect_hardware(self, context, node_id):
@@ -2340,8 +2340,10 @@ class ConductorManager(base_manager.BaseConductorManager):
                  support inspect.
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task
-        :raises: HardwareInspectionFailure when unable to get
+        :raises: InvalidParameterValue when unable to get
                  essential scheduling properties from hardware.
+        :raises: MissingParameterValue when required
+                 information is not found.
         :raises: InvalidStateRequested if 'inspect' is not a
                  valid action to do in the current state.
 
@@ -2353,14 +2355,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                 raise exception.UnsupportedDriverExtension(
                     driver=task.node.driver, extension='inspect')
 
-            try:
-                task.driver.power.validate(task)
-                task.driver.inspect.validate(task)
-            except exception.InvalidParameterValue as e:
-                error = (_("Failed to validate inspection or power info. "
-                           "Error: %(msg)s")
-                         % {'msg': e})
-                raise exception.HardwareInspectionFailure(error=error)
+            task.driver.power.validate(task)
+            task.driver.inspect.validate(task)
 
             try:
                 task.process_event(

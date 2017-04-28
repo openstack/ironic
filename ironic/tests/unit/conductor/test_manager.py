@@ -5155,13 +5155,22 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin,
         self.assertIsNone(node.reservation)
 
     def _test_inspect_hardware_validate_fail(self, mock_validate):
-        mock_validate.side_effect = exception.InvalidParameterValue('error')
+        mock_validate.side_effect = exception.InvalidParameterValue(
+            'Fake error message')
         node = obj_utils.create_test_node(self.context, driver='fake')
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.inspect_hardware,
                                 self.context, node.uuid)
         # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.HardwareInspectionFailure, exc.exc_info[0])
+        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+
+        mock_validate.side_effect = exception.MissingParameterValue(
+            'Fake error message')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.inspect_hardware,
+                                self.context, node.uuid)
+        self.assertEqual(exception.MissingParameterValue, exc.exc_info[0])
+
         # This is a sync operation last_error should be None.
         self.assertIsNone(node.last_error)
         # Verify reservation has been cleared.
