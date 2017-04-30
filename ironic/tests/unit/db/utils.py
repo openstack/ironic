@@ -260,6 +260,7 @@ def get_test_port(**kw):
         'portgroup_id': kw.get('portgroup_id'),
         'pxe_enabled': kw.get('pxe_enabled', True),
         'internal_info': kw.get('internal_info', {"bar": "buzz"}),
+        'physical_network': kw.get('physical_network'),
     }
 
 

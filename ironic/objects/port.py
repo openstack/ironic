@@ -36,7 +36,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.5: Add list_by_portgroup_id() and new fields
     #              local_link_connection, portgroup_id and pxe_enabled
     # Version 1.6: Add internal_info field
-    VERSION = '1.6'
+    # Version 1.7: Add physical_network field
+    VERSION = '1.7'
 
     dbapi = dbapi.get_instance()
 
@@ -51,6 +52,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         'portgroup_id': object_fields.IntegerField(nullable=True),
         'pxe_enabled': object_fields.BooleanField(),
         'internal_info': object_fields.FlexibleDictField(nullable=True),
+        'physical_network': object_fields.StringField(nullable=True),
     }
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable

@@ -117,6 +117,8 @@ def port_post_data(**kw):
     port.pop('node_id')
     # portgroup_id is not part of the API object
     port.pop('portgroup_id')
+    # NOTE(mgoddard): Physical network is not yet supported by the REST API.
+    port.pop('physical_network')
     internal = port_controller.PortPatchType.internal_attrs()
     return remove_internal(port, internal)
 
