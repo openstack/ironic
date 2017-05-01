@@ -365,7 +365,7 @@ class SNMPDriverSimple(SNMPDriverBase):
 
         :returns: Power state object OID as a tuple of integers.
         """
-        outlet = int(self.snmp_info['outlet'])
+        outlet = self.snmp_info['outlet']
         return self.oid_enterprise + self.oid_device + (outlet,)
 
     def _snmp_power_state(self):
@@ -411,7 +411,7 @@ class SNMPDriverAten(SNMPDriverSimple):
 
         :returns: Power state object OID as a tuple of integers.
         """
-        outlet = int(self.snmp_info['outlet'])
+        outlet = self.snmp_info['outlet']
         return self.oid_enterprise + self.oid_device + (outlet, 0,)
 
 
@@ -530,7 +530,7 @@ class SNMPDriverEatonPower(SNMPDriverBase):
             integers.
         :returns: The full OID as a tuple of integers.
         """
-        outlet = int(self.snmp_info['outlet'])
+        outlet = self.snmp_info['outlet']
         return self.oid_base + oid + (outlet,)
 
     def _snmp_power_state(self):
@@ -597,7 +597,7 @@ def _parse_driver_info(node):
     snmp_info = {}
 
     # Validate PDU driver type
-    snmp_info['driver'] = info.get('snmp_driver')
+    snmp_info['driver'] = info['snmp_driver']
     if snmp_info['driver'] not in DRIVER_CLASSES:
         raise exception.InvalidParameterValue(_(
             "SNMPPowerDriver: unknown driver: '%s'") % snmp_info['driver'])
@@ -633,8 +633,14 @@ def _parse_driver_info(node):
         snmp_info['security'] = info.get('snmp_security')
 
     # Target PDU IP address and power outlet identification
-    snmp_info['address'] = info.get('snmp_address')
-    snmp_info['outlet'] = info.get('snmp_outlet')
+    snmp_info['address'] = info['snmp_address']
+    outlet = info['snmp_outlet']
+    try:
+        snmp_info['outlet'] = int(outlet)
+    except ValueError:
+        raise exception.InvalidParameterValue(_(
+            "SNMPPowerDriver: PDU power outlet index is not an integer: %s")
+            % outlet)
 
     return snmp_info
 

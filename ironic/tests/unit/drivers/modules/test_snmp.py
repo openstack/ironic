@@ -211,7 +211,7 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
         self.assertEqual(INFO_DICT['snmp_driver'], info['driver'])
         self.assertEqual(INFO_DICT['snmp_address'], info['address'])
         self.assertEqual(INFO_DICT['snmp_port'], str(info['port']))
-        self.assertEqual(INFO_DICT['snmp_outlet'], info['outlet'])
+        self.assertEqual(INFO_DICT['snmp_outlet'], str(info['outlet']))
         self.assertEqual(INFO_DICT['snmp_version'], info['version'])
         self.assertEqual(INFO_DICT['snmp_community'], info['community'])
         self.assertNotIn('security', info)
@@ -346,6 +346,15 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
         del info['snmp_outlet']
         node = self._get_test_node(info)
         self.assertRaises(exception.MissingParameterValue,
+                          snmp._parse_driver_info,
+                          node)
+
+    def test__parse_driver_info_invalid_outlet(self):
+        # Make sure exception is raised when the outlet is not integer.
+        info = dict(INFO_DICT)
+        info['snmp_outlet'] = 'nn'
+        node = self._get_test_node(info)
+        self.assertRaises(exception.InvalidParameterValue,
                           snmp._parse_driver_info,
                           node)
 
