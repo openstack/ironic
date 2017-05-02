@@ -1,5 +1,3 @@
-# -*- encoding: utf-8 -*-
-#
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -66,6 +64,72 @@ class TestPortObject(base.TestCase):
         del port_dict['extra']
         port = api_port.Port(**port_dict)
         self.assertEqual(wtypes.Unset, port.extra)
+
+
+@mock.patch.object(api_utils, 'allow_portgroups_subcontrollers', autospec=True)
+@mock.patch.object(api_utils, 'allow_port_advanced_net_fields', autospec=True)
+class TestPortsController__CheckAllowedPortFields(base.TestCase):
+
+    def setUp(self):
+        super(TestPortsController__CheckAllowedPortFields, self).setUp()
+        self.controller = api_port.PortsController()
+
+    def test__check_allowed_port_fields_none(self, mock_allow_port,
+                                             mock_allow_portgroup):
+        self.assertIsNone(
+            self.controller._check_allowed_port_fields(None))
+        self.assertFalse(mock_allow_port.called)
+        self.assertFalse(mock_allow_portgroup.called)
+
+    def test__check_allowed_port_fields_empty(self, mock_allow_port,
+                                              mock_allow_portgroup):
+        for v in (True, False):
+            mock_allow_port.return_value = v
+            self.assertIsNone(
+                self.controller._check_allowed_port_fields([]))
+            mock_allow_port.assert_called_once_with()
+            mock_allow_port.reset_mock()
+            self.assertFalse(mock_allow_portgroup.called)
+
+    def test__check_allowed_port_fields_not_allow(self, mock_allow_port,
+                                                  mock_allow_portgroup):
+        mock_allow_port.return_value = False
+        for field in api_port.PortsController.advanced_net_fields:
+            self.assertRaises(exception.NotAcceptable,
+                              self.controller._check_allowed_port_fields,
+                              [field])
+            mock_allow_port.assert_called_once_with()
+            mock_allow_port.reset_mock()
+            self.assertFalse(mock_allow_portgroup.called)
+
+    def test__check_allowed_port_fields_allow(self, mock_allow_port,
+                                              mock_allow_portgroup):
+        mock_allow_port.return_value = True
+        for field in api_port.PortsController.advanced_net_fields:
+            self.assertIsNone(
+                self.controller._check_allowed_port_fields([field]))
+            mock_allow_port.assert_called_once_with()
+            mock_allow_port.reset_mock()
+            self.assertFalse(mock_allow_portgroup.called)
+
+    def test__check_allowed_port_fields_portgroup_not_allow(
+            self, mock_allow_port, mock_allow_portgroup):
+        mock_allow_port.return_value = True
+        mock_allow_portgroup.return_value = False
+        self.assertRaises(exception.NotAcceptable,
+                          self.controller._check_allowed_port_fields,
+                          ['portgroup_uuid'])
+        mock_allow_port.assert_called_once_with()
+        mock_allow_portgroup.assert_called_once_with()
+
+    def test__check_allowed_port_fields_portgroup_allow(
+            self, mock_allow_port, mock_allow_portgroup):
+        mock_allow_port.return_value = True
+        mock_allow_portgroup.return_value = True
+        self.assertIsNone(
+            self.controller._check_allowed_port_fields(['portgroup_uuid']))
+        mock_allow_port.assert_called_once_with()
+        mock_allow_portgroup.assert_called_once_with()
 
 
 class TestListPorts(test_api_base.BaseApiTest):
@@ -324,6 +388,43 @@ class TestListPorts(test_api_base.BaseApiTest):
             self.assertEqual(http_client.BAD_REQUEST, response.status_int)
             self.assertEqual('application/json', response.content_type)
             self.assertIn(invalid_key, response.json['error_message'])
+
+    def _test_sort_key_allowed(self, detail=False):
+        port_uuids = []
+        for id_ in range(2):
+            port = obj_utils.create_test_port(
+                self.context,
+                node_id=self.node.id,
+                uuid=uuidutils.generate_uuid(),
+                address='52:54:00:cf:2d:3%s' % id_,
+                pxe_enabled=id_ % 2)
+            port_uuids.append(port.uuid)
+        headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+        detail_str = '/detail' if detail else ''
+        data = self.get_json('/ports%s?sort_key=pxe_enabled' % detail_str,
+                             headers=headers)
+        data_uuids = [p['uuid'] for p in data['ports']]
+        self.assertEqual(port_uuids, data_uuids)
+
+    def test_sort_key_allowed(self):
+        self._test_sort_key_allowed()
+
+    def test_detail_sort_key_allowed(self):
+        self._test_sort_key_allowed(detail=True)
+
+    def _test_sort_key_not_allowed(self, detail=False):
+        headers = {api_base.Version.string: '1.18'}
+        detail_str = '/detail' if detail else ''
+        resp = self.get_json('/ports%s?sort_key=pxe_enabled' % detail_str,
+                             headers=headers, expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, resp.status_int)
+        self.assertEqual('application/json', resp.content_type)
+
+    def test_sort_key_not_allowed(self):
+        self._test_sort_key_not_allowed()
+
+    def test_detail_sort_key_not_allowed(self):
+        self._test_sort_key_not_allowed(detail=True)
 
     @mock.patch.object(api_utils, 'get_rpc_node')
     def test_get_all_by_node_name_ok(self, mock_get_rpc_node):

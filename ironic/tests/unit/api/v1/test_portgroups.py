@@ -391,6 +391,44 @@ class TestListPortgroups(test_api_base.BaseApiTest):
             self.assertEqual('application/json', response.content_type)
             self.assertIn(invalid_key, response.json['error_message'])
 
+    def _test_sort_key_allowed(self, detail=False):
+        portgroup_uuids = []
+        for id_ in range(3, 0, -1):
+            portgroup = obj_utils.create_test_portgroup(
+                self.context,
+                node_id=self.node.id,
+                uuid=uuidutils.generate_uuid(),
+                name='portgroup%s' % id_,
+                address='52:54:00:cf:2d:3%s' % id_,
+                mode='mode_%s' % id_)
+            portgroup_uuids.append(portgroup.uuid)
+        portgroup_uuids.reverse()
+        detail_str = '/detail' if detail else ''
+        data = self.get_json('/portgroups%s?sort_key=mode' % detail_str,
+                             headers=self.headers)
+        data_uuids = [p['uuid'] for p in data['portgroups']]
+        self.assertEqual(portgroup_uuids, data_uuids)
+
+    def test_sort_key_allowed(self):
+        self._test_sort_key_allowed()
+
+    def test_detail_sort_key_allowed(self):
+        self._test_sort_key_allowed(detail=True)
+
+    def _test_sort_key_not_allowed(self, detail=False):
+        headers = {api_base.Version.string: '1.25'}
+        detail_str = '/detail' if detail else ''
+        response = self.get_json('/portgroups%s?sort_key=mode' % detail_str,
+                                 headers=headers, expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+
+    def test_sort_key_not_allowed(self):
+        self._test_sort_key_not_allowed()
+
+    def test_detail_sort_key_not_allowed(self):
+        self._test_sort_key_not_allowed(detail=True)
+
     @mock.patch.object(api_utils, 'get_rpc_node')
     def test_get_all_by_node_name_ok(self, mock_get_rpc_node):
         # GET /v1/portgroups specifying node_name - success

@@ -356,6 +356,7 @@ class PortgroupsController(pecan.rest.RestController):
         policy.authorize('baremetal:portgroup:get', cdict, cdict)
 
         api_utils.check_allowed_portgroup_fields(fields)
+        api_utils.check_allowed_portgroup_fields([sort_key])
 
         if fields is None:
             fields = _DEFAULT_RETURN_FIELDS
@@ -389,6 +390,7 @@ class PortgroupsController(pecan.rest.RestController):
 
         cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:portgroup:get', cdict, cdict)
+        api_utils.check_allowed_portgroup_fields([sort_key])
 
         # NOTE: /detail should only work against collections
         parent = pecan.request.path.split('/')[:-1][-1]

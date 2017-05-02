@@ -1,5 +1,3 @@
-# -*- encoding: utf-8 -*-
-#
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -503,6 +501,41 @@ class TestListNodes(test_api_base.BaseApiTest):
             self.assertEqual(http_client.BAD_REQUEST, response.status_int)
             self.assertEqual('application/json', response.content_type)
             self.assertIn(invalid_key, response.json['error_message'])
+
+    def _test_sort_key_allowed(self, detail=False):
+        node_uuids = []
+        for id in range(3, 0, -1):
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid(),
+                                              resource_class='rc_%s' % id)
+            node_uuids.append(node.uuid)
+        node_uuids.reverse()
+        headers = {'X-OpenStack-Ironic-API-Version': '1.21'}
+        detail_str = '/detail' if detail else ''
+        data = self.get_json('/nodes%s?sort_key=resource_class' % detail_str,
+                             headers=headers)
+        data_uuids = [n['uuid'] for n in data['nodes']]
+        self.assertEqual(node_uuids, data_uuids)
+
+    def test_sort_key_allowed(self):
+        self._test_sort_key_allowed()
+
+    def test_detail_sort_key_allowed(self):
+        self._test_sort_key_allowed(detail=True)
+
+    def _test_sort_key_not_allowed(self, detail=False):
+        headers = {'X-OpenStack-Ironic-API-Version': '1.20'}
+        detail_str = '/detail' if detail else ''
+        resp = self.get_json('/nodes%s?sort_key=resource_class' % detail_str,
+                             headers=headers, expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, resp.status_int)
+        self.assertEqual('application/json', resp.content_type)
+
+    def test_sort_key_not_allowed(self):
+        self._test_sort_key_not_allowed()
+
+    def test_detail_sort_key_not_allowed(self):
+        self._test_sort_key_not_allowed(detail=True)
 
     def test_ports_subresource_link(self):
         node = obj_utils.create_test_node(self.context)
