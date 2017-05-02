@@ -15,14 +15,10 @@ It contains the following sections:
    get_started.rst
    install.rst
    configure-integration.rst
-   configure-cleaning.rst
-   configure-tenant-networks.rst
-   configure-port-groups.rst
+   deploy-ramdisk.rst
    enrollment.rst
-   enabling-https.rst
    standalone.rst
    configdrive.rst
-   deploy-ramdisk.rst
    setup-drivers.rst
    advanced.rst
    troubleshooting.rst

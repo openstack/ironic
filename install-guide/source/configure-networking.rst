@@ -1,7 +1,7 @@
 .. _configure-networking:
 
-Configure Networking to communicate with the bare metal server
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Configure the Networking service for bare metal provisioning
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You need to configure Networking so that the bare metal server can communicate
 with the Networking service for DHCP, PXE boot and other requirements.

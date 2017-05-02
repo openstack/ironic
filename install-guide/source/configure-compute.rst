@@ -1,5 +1,5 @@
-Configure Compute to use the Bare Metal service
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Configure the Compute service to use the Bare Metal service
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The Compute service needs to be configured to use the Bare Metal service's
 driver.  The configuration file for the Compute service is typically located at
