@@ -20,6 +20,7 @@ import mock
 import testtools
 
 from ironic.common import exception
+from ironic.conductor import task_manager
 from ironic.drivers import ilo
 from ironic.drivers.modules import agent
 from ironic.drivers.modules.ilo import boot
@@ -28,7 +29,96 @@ from ironic.drivers.modules.ilo import inspect
 from ironic.drivers.modules.ilo import management
 from ironic.drivers.modules.ilo import power
 from ironic.drivers.modules.ilo import vendor
+from ironic.drivers.modules import inspector
 from ironic.drivers.modules import iscsi_deploy
+from ironic.drivers.modules import noop
+from ironic.tests.unit.db import base as db_base
+from ironic.tests.unit.objects import utils as obj_utils
+
+
+class IloHardwareTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(IloHardwareTestCase, self).setUp()
+        self.config(enabled_hardware_types=['ilo'],
+                    enabled_boot_interfaces=['ilo-virtual-media', 'ilo-pxe'],
+                    enabled_console_interfaces=['ilo'],
+                    enabled_deploy_interfaces=['direct'],
+                    enabled_inspect_interfaces=['ilo'],
+                    enabled_management_interfaces=['ilo'],
+                    enabled_power_interfaces=['ilo'],
+                    enabled_raid_interfaces=['no-raid', 'agent'],
+                    enabled_vendor_interfaces=['no-vendor'])
+
+    def test_default_interfaces(self):
+        node = obj_utils.create_test_node(self.context,
+                                          driver='ilo')
+        with task_manager.acquire(self.context, node.id) as task:
+            self.assertIsInstance(task.driver.boot,
+                                  ilo.boot.IloVirtualMediaBoot)
+            self.assertIsInstance(task.driver.console,
+                                  ilo.console.IloConsoleInterface)
+            self.assertIsInstance(task.driver.deploy,
+                                  agent.AgentDeploy)
+            self.assertIsInstance(task.driver.inspect,
+                                  ilo.inspect.IloInspect)
+            self.assertIsInstance(task.driver.management,
+                                  ilo.management.IloManagement)
+            self.assertIsInstance(task.driver.power,
+                                  ilo.power.IloPower)
+            self.assertIsInstance(task.driver.raid,
+                                  noop.NoRAID)
+            self.assertIsInstance(task.driver.vendor,
+                                  noop.NoVendor)
+
+    def test_override_with_inspector(self):
+        self.config(enabled_inspect_interfaces=['inspector', 'ilo'])
+        node = obj_utils.create_test_node(
+            self.context, driver='ilo',
+            deploy_interface='direct',
+            inspect_interface='inspector',
+            raid_interface='agent')
+        with task_manager.acquire(self.context, node.id) as task:
+            self.assertIsInstance(task.driver.boot,
+                                  ilo.boot.IloVirtualMediaBoot)
+            self.assertIsInstance(task.driver.console,
+                                  ilo.console.IloConsoleInterface)
+            self.assertIsInstance(task.driver.deploy,
+                                  agent.AgentDeploy)
+            self.assertIsInstance(task.driver.inspect,
+                                  inspector.Inspector)
+            self.assertIsInstance(task.driver.management,
+                                  ilo.management.IloManagement)
+            self.assertIsInstance(task.driver.power,
+                                  ilo.power.IloPower)
+            self.assertIsInstance(task.driver.raid,
+                                  agent.AgentRAID)
+            self.assertIsInstance(task.driver.vendor,
+                                  noop.NoVendor)
+
+    def test_override_with_pxe(self):
+        node = obj_utils.create_test_node(
+            self.context, driver='ilo',
+            deploy_interface='direct',
+            boot_interface='ilo-pxe',
+            raid_interface='agent')
+        with task_manager.acquire(self.context, node.id) as task:
+            self.assertIsInstance(task.driver.boot,
+                                  ilo.boot.IloPXEBoot)
+            self.assertIsInstance(task.driver.console,
+                                  ilo.console.IloConsoleInterface)
+            self.assertIsInstance(task.driver.deploy,
+                                  agent.AgentDeploy)
+            self.assertIsInstance(task.driver.inspect,
+                                  ilo.inspect.IloInspect)
+            self.assertIsInstance(task.driver.management,
+                                  ilo.management.IloManagement)
+            self.assertIsInstance(task.driver.power,
+                                  ilo.power.IloPower)
+            self.assertIsInstance(task.driver.raid,
+                                  agent.AgentRAID)
+            self.assertIsInstance(task.driver.vendor,
+                                  noop.NoVendor)
 
 
 @mock.patch.object(ilo.importutils, 'try_import', spec_set=True,

@@ -20,6 +20,7 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
+from ironic.drivers import generic
 from ironic.drivers.modules import agent
 from ironic.drivers.modules.ilo import boot
 from ironic.drivers.modules.ilo import console
@@ -27,7 +28,60 @@ from ironic.drivers.modules.ilo import inspect
 from ironic.drivers.modules.ilo import management
 from ironic.drivers.modules.ilo import power
 from ironic.drivers.modules.ilo import vendor
+from ironic.drivers.modules import inspector
 from ironic.drivers.modules import iscsi_deploy
+from ironic.drivers.modules import noop
+
+
+class IloHardware(generic.GenericHardware):
+    """iLO hardware type.
+
+    iLO hardware type is targeted for iLO 4 based Proliant Gen8
+    and Gen9 servers.
+    """
+
+    @property
+    def supported_boot_interfaces(self):
+        """List of supported boot interfaces."""
+        return [boot.IloVirtualMediaBoot, boot.IloPXEBoot]
+
+    @property
+    def supported_deploy_interfaces(self):
+        """List of supported deploy interfaces."""
+
+        # Note(stendulker) It does not support ISCSI based deploy
+        # (iscsi.ISCSIDeploy) mechanism.
+        # The reason being all the Ironic features supported by ISCSIDeploy
+        # are supported with agentDeploy as well. There is no additional
+        # advantage of having iscsi based deploy except for the cases wherein
+        # instance images(qcow2) are larger than RAM size of the bare metal.
+        # That also could be overcome by using 'raw' images.
+        # To avoid the additional driver supportability and reduce test matrix,
+        # ISCSI based deploy is not supported. However, if any user insists
+        # for ISCSI based deploy, we would surely enable the same.
+
+        return [agent.AgentDeploy]
+
+    @property
+    def supported_console_interfaces(self):
+        """List of supported console interfaces."""
+        return [console.IloConsoleInterface, noop.NoConsole]
+
+    @property
+    def supported_inspect_interfaces(self):
+        """List of supported inspect interfaces."""
+        return [inspect.IloInspect, inspector.Inspector,
+                noop.NoInspect]
+
+    @property
+    def supported_management_interfaces(self):
+        """List of supported management interfaces."""
+        return [management.IloManagement]
+
+    @property
+    def supported_power_interfaces(self):
+        """List of supported power interfaces."""
+        return [power.IloPower]
 
 
 class IloVirtualMediaIscsiDriver(base.BaseDriver):
