@@ -1705,6 +1705,10 @@ function configure_iptables {
     # To use named /baremetal endpoint we should open default apache port
     if [[ "$IRONIC_USE_MOD_WSGI" == "False" ]]; then
         sudo iptables -I INPUT -d $HOST_IP -p tcp --dport $IRONIC_SERVICE_PORT -j ACCEPT || true
+        # open ironic API on baremetal network
+        sudo iptables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport $IRONIC_SERVICE_PORT -j ACCEPT || true
+        # allow IPA to connect to ironic API on subnode
+        sudo iptables -I FORWARD -p tcp --dport $IRONIC_SERVICE_PORT -j ACCEPT || true
     else
         sudo iptables -I INPUT -d $HOST_IP -p tcp --dport 80 -j ACCEPT || true
     fi
