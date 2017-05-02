@@ -74,15 +74,13 @@ and may be combined if desired.
     | ...                    | ...                                  |
     +------------------------+--------------------------------------+
 
-   Beginning with the Kilo release a node may also be referred to by a logical
-   name as well as its UUID. To utilize this new feature a name must be
-   assigned to the node. This can be done when the node is created by
-   adding the ``-n`` option to the ``node-create`` command or by updating an
-   existing node with the ``node-update`` command. See `Logical Names`_ for
-   examples.
+   A node may also be referred to by a logical name as well as its UUID.
+   A name can be assigned to the node during creating by adding the ``-n``
+   option to the ``node-create`` command or by updating an existing node with
+   the ``node-update`` command. See `Logical Names`_ for examples.
 
-   Beginning with the Liberty release, with API version 1.11 and above, a newly
-   created node will have an initial provision state of ``enroll`` as opposed to
+   Beginning with the API version 1.11 and above, a newly created node will
+   have an initial provision state of ``enroll`` as opposed to
    ``available``. See `Enrolling a node`_ for more details.
 
 #. Update the node ``driver_info`` so that Bare Metal service can manage the
@@ -137,9 +135,8 @@ and may be combined if desired.
     ironic node-update $NODE_UUID add \
     properties/capabilities=key1:val1,key2:val2
 
-#. As mentioned in the :ref:`flavor-creation` section, if using the Kilo or later
-   release of Bare Metal service, you should specify a deploy kernel and
-   ramdisk which correspond to the node's driver, for example::
+#. As mentioned in the :ref:`flavor-creation` section, you should specify
+   a deploy kernel and ramdisk compatible with the node's driver, for example::
 
     ironic node-update $NODE_UUID add \
     driver_info/deploy_kernel=$DEPLOY_VMLINUZ_UUID \
@@ -209,8 +206,8 @@ and may be combined if desired.
 
 Enrolling a node
 ----------------
-In the Liberty cycle, starting with API version 1.11, the Bare Metal service
-added a new initial provision state of ``enroll`` to its state machine.
+Starting with API version 1.11, the Bare Metal service added a new initial
+provision state of ``enroll`` to its state machine.
 
 Existing automation tooling that use an API version lower than 1.11 are not
 affected, since the initial provision state is still ``available``.
@@ -348,10 +345,10 @@ documentation.
 
 Logical names
 -------------
-Beginning with the Kilo release a Node may also be referred to by a
-logical name as well as its UUID. Names can be assigned either when
-creating the node by adding the ``-n`` option to the ``node-create`` command or
-by updating an existing node with the ``node-update`` command.
+A Node may also be referred to by a logical name as well as its UUID.
+Names can be assigned either when creating the node by adding the ``-n``
+option to the ``node-create`` command or by updating an existing node with
+the ``node-update`` command.
 
 Node names must be unique, and conform to:
 
@@ -409,7 +406,7 @@ UUID interchangeably.
 Hardware Inspection
 -------------------
 
-Starting with the Kilo release, Bare Metal service supports hardware inspection
-that simplifies enrolling nodes - please see `inspection`_ for details.
+The Bare Metal service supports hardware inspection that simplifies enrolling
+nodes - please see `inspection`_ for details.
 
 .. _`inspection`: http://docs.openstack.org/developer/ironic/deploy/inspection.html

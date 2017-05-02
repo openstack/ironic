@@ -3,8 +3,8 @@
 Trusted boot with partition image
 ---------------------------------
 
-Starting with the Liberty release, Ironic supports trusted boot with partition
-image. This means at the end of the deployment process, when the node is
+The Bare metal service supports trusted boot with partition images.
+This means at the end of the deployment process, when the node is
 rebooted with the new user image, ``trusted boot`` will be performed. It will
 measure the node's BIOS, boot loader, Option ROM and the Kernel/Ramdisk, to
 determine whether a bare metal node deployed by Ironic should be trusted.

@@ -79,9 +79,9 @@ Configuring ironic-conductor service
 
    .. note::
       Swift backend for the Image service should be installed and configured
-      for ``agent_*`` drivers. Starting with Mitaka the Bare Metal service also
-      supports Ceph Object Gateway (RADOS Gateway) as the Image service's backend
-      (`radosgw support <http://docs.openstack.org/developer/ironic/deploy/radosgw.html#radosgw-support>`_).
+      for ``agent_*`` drivers. Ceph Object Gateway (RADOS Gateway) is also
+      supported as the Image service's backend (`radosgw support
+      <http://docs.openstack.org/developer/ironic/deploy/radosgw.html#radosgw-support>`_).
 
 #. Set the URL (replace ``NEUTRON_IP``) for connecting to the Networking
    service, to be the Networking service endpoint:

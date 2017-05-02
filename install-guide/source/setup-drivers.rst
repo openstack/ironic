@@ -219,9 +219,6 @@ isn't recommended since it is not being supported.
 iPXE setup
 ----------
 
-An alternative to PXE boot, iPXE was introduced in the Juno release
-(2014.2.0) of Bare Metal service.
-
 If you will be using iPXE to boot instead of PXE, iPXE needs to be set up
 on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
