@@ -953,9 +953,7 @@ function configure_ironic {
     fi
 
     # Format logging
-    if [ "$LOG_COLOR" == "True" ] && [ "$SYSLOG" == "False" ]; then
-        setup_colorized_logging $IRONIC_CONF_FILE DEFAULT tenant user
-    fi
+    setup_logging $IRONIC_CONF_FILE
 
     # Adds WSGI for Ironic API
     if [[ "$IRONIC_USE_MOD_WSGI" == "True" || "$IRONIC_IPXE_ENABLED" == "True" ]]; then
