@@ -16,10 +16,10 @@ It contains the following sections:
    install.rst
    configure-integration.rst
    deploy-ramdisk.rst
+   setup-drivers.rst
    enrollment.rst
    standalone.rst
    configdrive.rst
-   setup-drivers.rst
    advanced.rst
    troubleshooting.rst
    next-steps.rst

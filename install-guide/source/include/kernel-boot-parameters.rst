@@ -8,7 +8,7 @@ users' requirements. The way to append the kernel parameters is depending on how
 
 
 Network boot
-============
+~~~~~~~~~~~~
 
 Currently, the Bare Metal service supports assigning unified kernel parameters to PXE
 booted instances by:
@@ -28,7 +28,7 @@ booted instances by:
 
 
 Local boot
-==========
+~~~~~~~~~~
 
 For local boot instances, users can make use of configuration drive
 (see :ref:`configdrive`) to pass a custom
@@ -70,7 +70,7 @@ to fit their use case:
 
 
 Console
-=======
+~~~~~~~
 
 In order to change default console configuration in the Bare Metal
 service configuration file (``[pxe]`` section in ``/etc/ironic/ironic.conf``),

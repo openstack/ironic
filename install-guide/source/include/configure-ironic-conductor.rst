@@ -1,9 +1,7 @@
 Configuring ironic-conductor service
 ------------------------------------
 
-#. Replace ``HOST_IP`` with IP of the conductor host, and replace ``DRIVERS``
-   with a comma-separated list of drivers you chose for the conductor service
-   as follows:
+#. Replace ``HOST_IP`` with IP of the conductor host.
 
    .. code-block:: ini
 
@@ -13,16 +11,6 @@ Configuring ironic-conductor service
       # programmatically. If unable to do so, will use "127.0.0.1".
       # (string value)
       my_ip=HOST_IP
-
-      # Specify the list of drivers to load during service
-      # initialization. Missing drivers, or drivers which fail to
-      # initialize, will prevent the conductor service from
-      # starting. The option default is a recommended set of
-      # production-oriented drivers. A complete list of drivers
-      # present on your system may be found by enumerating the
-      # "ironic.drivers" entrypoint. An example may be found in the
-      # developer documentation online. (list value)
-      enabled_drivers=DRIVERS
 
    .. note::
       If a conductor host has multiple IPs, ``my_ip`` should
@@ -171,9 +159,8 @@ Configuring ironic-conductor service
       # HTTPs connections. (string value)
       cafile=/opt/stack/data/ca-bundle.pem
 
-#. Make sure that ``qemu-img`` and ``iscsiadm`` (in the case of using iscsi-deploy driver)
-   binaries are installed and prepare the host system as described at
-   `Setup the drivers for the Bare Metal service <http://docs.openstack.org/developer/ironic/deploy/install-guide.html#setup-the-drivers-for-the-bare-metal-service>`_
+#. Configure enabled drivers and hardware types as described in
+   :doc:`enabling-drivers`.
 
 #. Restart the ironic-conductor service:
 
@@ -185,6 +172,5 @@ Configuring ironic-conductor service
 
       Ubuntu:
         sudo service ironic-conductor restart
-
 
 .. _Keystoneauth documentation: http://docs.openstack.org/developer/keystoneauth/
