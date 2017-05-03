@@ -128,7 +128,7 @@ def get_service_url(session, service_type='baremetal',
     """
     return session.get_endpoint(service_type=service_type,
                                 interface=endpoint_type,
-                                region=CONF.keystone.region_name)
+                                region_name=CONF.keystone.region_name)
 
 
 @ks_exceptions
