@@ -2,9 +2,7 @@
 Using Bare Metal service as a standalone service
 ================================================
 
-Starting with the Kilo release, it's possible to use Bare Metal service without
-other OpenStack services.
-
+It's possible to use the Bare Metal service without other OpenStack services.
 You should make the following changes to ``/etc/ironic/ironic.conf``:
 
 #. To disable usage of Identity service tokens::
@@ -153,10 +151,9 @@ For iLO drivers, fields that should be provided are:
 * ``ilo_boot_iso``, ``image_source``, ``root_gb`` under ``instance_info``.
 
 .. note::
-   Before Liberty release Ironic was not able to track non-Glance images'
-   content changes. Starting with Liberty, it is possible to do so using image
-   modification date. For example, for HTTP image, if 'Last-Modified' header
-   value from response to a HEAD request to
+   The Bare metal service tracks content changes for non-Glance images by
+   checking their modification date and time. For example, for HTTP image,
+   if 'Last-Modified' header value from response to a HEAD request to
    "http://my.server.net/images/deploy.ramdisk" is greater than cached image
    modification time, Ironic will re-download the content. For "file://"
    images, the file system modification time is used.

@@ -94,9 +94,10 @@ with the following command.
 
     $ ironic node-set-maintenance $NODE_UUID on
 
-As of the Kilo release, a maintenance reason may be included with the optional
-``--reason`` command line option. This is a free form text field that will be
-displayed in the ``maintenance_reason`` section of the ``node-show`` command.
+A maintenance reason may be included with the optional ``--reason`` command
+line option. This is a free form text field that will be displayed in the
+``maintenance_reason`` section of the ``node-show`` command.
+
 ::
 
     $ ironic node-set-maintenance $UUID on --reason "Need to add ram."

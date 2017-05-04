@@ -3,9 +3,8 @@
 Specifying the disk for deployment (root device hints)
 ------------------------------------------------------
 
-Starting with the Kilo release, Bare Metal service supports passing
-hints to the deploy ramdisk about which disk it should pick for the
-deployment. The list of support hints is:
+The Bare Metal service supports passing hints to the deploy ramdisk about
+which disk it should pick for the deployment. The list of supported hints is:
 
 * model (STRING): device identifier
 * vendor (STRING): device vendor

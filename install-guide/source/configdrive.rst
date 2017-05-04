@@ -3,8 +3,8 @@
 Enabling the configuration drive (configdrive)
 ==============================================
 
-Starting with the Kilo release, the Bare Metal service supports exposing
-a configuration drive image to the instances.
+The Bare Metal service supports exposing a configuration drive image to
+the instances.
 
 The configuration drive is used to store instance-specific metadata and is present to
 the instance as a disk partition labeled ``config-2``. The configuration drive has

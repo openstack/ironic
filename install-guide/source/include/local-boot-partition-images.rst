@@ -3,10 +3,10 @@
 Local boot with partition images
 --------------------------------
 
-Starting with the Kilo release, Bare Metal service supports local boot with
-partition images, meaning that after the deployment the node's subsequent
-reboots won't happen via PXE or Virtual Media. Instead, it will boot from a
-local boot loader installed on the disk.
+The Bare Metal service supports local boot with partition images, meaning that
+after the deployment the node's subsequent reboots won't happen via PXE or
+Virtual Media. Instead, it will boot from a local boot loader installed on
+the disk.
 
 It's important to note that in order for this to work the image being
 deployed with Bare Metal service **must** contain ``grub2`` installed within it.
@@ -15,12 +15,6 @@ Enabling the local boot is different when Bare Metal service is used with
 Compute service and without it.
 The following sections will describe both methods.
 
-.. note::
-   The local boot feature is dependent upon a updated deploy ramdisk built
-   with diskimage-builder_ **version >= 0.1.42** or ironic-python-agent_
-   in the kilo-era.
-
-.. _diskimage-builder: http://docs.openstack.org/developer/diskimage-builder/
 .. _ironic-python-agent: http://docs.openstack.org/developer/ironic-python-agent/
 
 
