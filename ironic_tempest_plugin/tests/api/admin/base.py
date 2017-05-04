@@ -163,7 +163,7 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
     @classmethod
     @creates('node')
     def create_node(cls, chassis_id, cpu_arch='x86', cpus=8, local_gb=10,
-                    memory_mb=4096):
+                    memory_mb=4096, resource_class=None):
         """Wrapper utility for creating test baremetal nodes.
 
         :param chassis_id: The unique identifier of the chassis.
@@ -171,13 +171,15 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
         :param cpus: Number of CPUs. Default: 8.
         :param local_gb: Disk size. Default: 10.
         :param memory_mb: Available RAM. Default: 4096.
+        :param resource_class: Node resource class.
         :return: A tuple with the server response and the created node.
 
         """
         resp, body = cls.client.create_node(chassis_id, cpu_arch=cpu_arch,
                                             cpus=cpus, local_gb=local_gb,
                                             memory_mb=memory_mb,
-                                            driver=cls.driver)
+                                            driver=cls.driver,
+                                            resource_class=resource_class)
 
         return resp, body
 

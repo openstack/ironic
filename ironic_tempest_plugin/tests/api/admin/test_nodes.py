@@ -16,6 +16,7 @@ from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
 from tempest.lib import exceptions as lib_exc
+from tempest import test
 
 from ironic_tempest_plugin.common import waiters
 from ironic_tempest_plugin.tests.api.admin import api_microversion_fixture
@@ -164,6 +165,130 @@ class TestNodes(base.BaseBaremetalTest):
         _, body = self.client.show_node_by_instance_uuid(instance_uuid)
         self.assertEqual(1, len(body['nodes']))
         self.assertIn(self.node['uuid'], [n['uuid'] for n in body['nodes']])
+
+
+class TestNodesResourceClass(base.BaseBaremetalTest):
+
+    min_microversion = '1.21'
+
+    def setUp(self):
+        super(TestNodesResourceClass, self).setUp()
+        self.useFixture(
+            api_microversion_fixture.APIMicroversionFixture(
+                TestNodesResourceClass.min_microversion)
+        )
+        _, self.chassis = self.create_chassis()
+        self.resource_class = data_utils.rand_name(name='Resource_Class')
+        _, self.node = self.create_node(
+            self.chassis['uuid'], resource_class=self.resource_class)
+
+    @decorators.idempotent_id('2a00340c-8152-4a61-9fc5-0b3cdefec258')
+    def test_create_node_resource_class_long(self):
+        """Create new node with specified longest name of resource class."""
+        res_class_long_name = data_utils.arbitrary_string(80)
+        _, body = self.create_node(
+            self.chassis['uuid'],
+            resource_class=res_class_long_name)
+        self.assertEqual(res_class_long_name, body['resource_class'])
+
+    @decorators.idempotent_id('142db00d-ac0f-415b-8da8-9095fbb561f7')
+    def test_update_node_resource_class(self):
+        """Update existing node with specified resource class."""
+        new_res_class_name = data_utils.rand_name(name='Resource_Class')
+        _, body = self.client.update_node(
+            self.node['uuid'], resource_class=new_res_class_name)
+        _, body = self.client.show_node(self.node['uuid'])
+        self.assertEqual(new_res_class_name, body['resource_class'])
+
+    @decorators.idempotent_id('73e6f7b5-3e51-49ea-af5b-146cd49f40ee')
+    def test_show_node_resource_class(self):
+        """Show resource class field of specified node."""
+        _, body = self.client.show_node(self.node['uuid'])
+        self.assertEqual(self.resource_class, body['resource_class'])
+
+    @decorators.idempotent_id('f2bf4465-280c-4fdc-bbf7-fcf5188befa4')
+    def test_list_nodes_resource_class(self):
+        """List nodes of specified resource class only."""
+        res_class = 'ResClass-{0}'.format(data_utils.rand_uuid())
+        for node in range(3):
+            _, body = self.create_node(
+                self.chassis['uuid'], resource_class=res_class)
+
+        _, body = self.client.list_nodes(resource_class=res_class)
+        self.assertEqual(3, len([i['uuid'] for i in body['nodes']]))
+
+    @decorators.idempotent_id('40733bad-bb79-445e-a094-530a44042995')
+    def test_list_nodes_detail_resource_class(self):
+        """Get detailed nodes list of specified resource class only."""
+        res_class = 'ResClass-{0}'.format(data_utils.rand_uuid())
+        for node in range(3):
+            _, body = self.create_node(
+                self.chassis['uuid'], resource_class=res_class)
+
+        _, body = self.client.list_nodes_detail(resource_class=res_class)
+        self.assertEqual(3, len([i['uuid'] for i in body['nodes']]))
+
+        for node in body['nodes']:
+            self.assertEqual(res_class, node['resource_class'])
+
+    @test.attr(type='negative')
+    @decorators.idempotent_id('e75136d4-0690-48a5-aef3-75040aee73ad')
+    def test_create_node_resource_class_too_long(self):
+        """Try to create a node with too long resource class name."""
+        resource_class = data_utils.arbitrary_string(81)
+        self.assertRaises(lib_exc.BadRequest, self.create_node,
+                          self.chassis['uuid'], resource_class=resource_class)
+
+    @test.attr(type='negative')
+    @decorators.idempotent_id('f0aeece4-8671-44ea-a482-b4047fc4cf74')
+    def test_update_node_resource_class_too_long(self):
+        """Try to update a node with too long resource class name."""
+        resource_class = data_utils.arbitrary_string(81)
+        self.assertRaises(lib_exc.BadRequest, self.client.update_node,
+                          self.node['uuid'], resource_class=resource_class)
+
+
+class TestNodesResourceClassOldApi(base.BaseBaremetalTest):
+
+    old_microversion = '1.20'
+
+    def setUp(self):
+        super(TestNodesResourceClassOldApi, self).setUp()
+        self.useFixture(
+            api_microversion_fixture.APIMicroversionFixture(
+                TestNodesResourceClassOldApi.old_microversion)
+        )
+        _, self.chassis = self.create_chassis()
+        _, self.node = self.create_node(self.chassis['uuid'])
+
+    @test.attr(type='negative')
+    @decorators.idempotent_id('2c364408-4746-4b3c-9821-20d47b57bdec')
+    def test_create_node_resource_class_old_api(self):
+        """Try to create a node with resource class using older api version."""
+        resource_class = data_utils.arbitrary_string()
+        self.assertRaises(lib_exc.UnexpectedResponseCode, self.create_node,
+                          self.chassis['uuid'], resource_class=resource_class)
+
+    @test.attr(type='negative')
+    @decorators.idempotent_id('666f3c1a-4922-4a3d-b6d9-dea7c74d30bc')
+    def test_update_node_resource_class_old_api(self):
+        """Try to update a node with resource class using older api version."""
+        resource_class = data_utils.arbitrary_string()
+        self.assertRaises(lib_exc.UnexpectedResponseCode,
+                          self.client.update_node,
+                          self.node['uuid'], resource_class=resource_class)
+
+    @test.attr(type='negative')
+    @decorators.idempotent_id('95903480-f16d-4774-8775-6c7f87b27c59')
+    def test_list_nodes_by_resource_class_old_api(self):
+        """Try to list nodes with resource class using older api version."""
+        resource_class = data_utils.arbitrary_string()
+        self.assertRaises(
+            lib_exc.UnexpectedResponseCode,
+            self.client.list_nodes, resource_class=resource_class)
+        self.assertRaises(
+            lib_exc.UnexpectedResponseCode,
+            self.client.list_nodes_detail, resource_class=resource_class)
 
 
 class TestNodesVif(base.BaseBaremetalTest):

@@ -26,6 +26,11 @@ class BaremetalClient(base.BaremetalClient):
         return self._list_request('nodes', **kwargs)
 
     @base.handle_errors
+    def list_nodes_detail(self, **kwargs):
+        """Detailed list of all existing nodes."""
+        return self._list_request('/nodes/detail', **kwargs)
+
+    @base.handle_errors
     def list_chassis(self):
         """List all existing chassis."""
         return self._list_request('chassis')
@@ -151,12 +156,18 @@ class BaremetalClient(base.BaremetalClient):
         :return: A tuple with the server response and the created node.
 
         """
-        node = {'chassis_uuid': chassis_id,
-                'properties': {'cpu_arch': kwargs.get('cpu_arch', 'x86_64'),
-                               'cpus': kwargs.get('cpus', 8),
-                               'local_gb': kwargs.get('local_gb', 1024),
-                               'memory_mb': kwargs.get('memory_mb', 4096)},
-                'driver': kwargs.get('driver', 'fake')}
+        node = {}
+        if kwargs.get('resource_class'):
+            node['resource_class'] = kwargs['resource_class']
+
+        node.update(
+            {'chassis_uuid': chassis_id,
+             'properties': {'cpu_arch': kwargs.get('cpu_arch', 'x86_64'),
+                            'cpus': kwargs.get('cpus', 8),
+                            'local_gb': kwargs.get('local_gb', 1024),
+                            'memory_mb': kwargs.get('memory_mb', 4096)},
+             'driver': kwargs.get('driver', 'fake')}
+        )
 
         return self._create_request('nodes', node)
 
@@ -278,7 +289,8 @@ class BaremetalClient(base.BaremetalClient):
                            'properties/local_gb',
                            'properties/memory_mb',
                            'driver',
-                           'instance_uuid')
+                           'instance_uuid',
+                           'resource_class')
         if not patch:
             patch = self._make_patch(node_attributes, **kwargs)
 
