@@ -570,7 +570,7 @@ IRONIC_IMAGE_NAME=${DEFAULT_IMAGE_NAME:-$IRONIC_DEFAULT_IMAGE_NAME}
 # the redfish driver
 if is_deployed_by_redfish && [[ "$IRONIC_ENABLED_HARDWARE_TYPES" != *"redfish"* ]]; then
     die $LINENO "Please make sure that the redfish hardware" \
-        "type, is enabled. Take a look at the " \
+        "type is enabled. Take a look at the " \
         "IRONIC_ENABLED_HARDWARE_TYPES configuration option" \
         "for DevStack"
 fi
@@ -690,7 +690,7 @@ function start_redfish_emulator {
     if is_ubuntu; then
         install_package gunicorn
     else
-        pip_install "gunicorn"
+        pip_install_gr "gunicorn"
     fi
 
     sudo gunicorn sushy_tools.emulator.main:app --bind "${HOST_IP}:${IRONIC_REDFISH_EMULATOR_PORT}" \
@@ -708,9 +708,7 @@ function setup_redfish {
         git_clone_by_name "sushy"
         setup_dev_lib "sushy"
     else
-        # TODO(lucasagomes): use pip_install_gr once sushy is added to
-        # the global requirements
-        pip_install "sushy"
+        pip_install_gr "sushy"
     fi
 
     pip_install "sushy-tools"
