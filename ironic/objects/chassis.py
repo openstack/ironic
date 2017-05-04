@@ -66,13 +66,15 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def get_by_id(cls, context, chassis_id):
-        """Find a chassis based on its integer id and return a Chassis object.
+        """Find a chassis based on its integer ID and return a Chassis object.
 
-        :param chassis_id: the id of a chassis.
+        :param cls: the :class:`Chassis`
+        :param context: Security context
+        :param chassis_id: the ID of a chassis.
         :returns: a :class:`Chassis` object.
         """
         db_chassis = cls.dbapi.get_chassis_by_id(chassis_id)
-        chassis = cls._from_db_object(cls(context), db_chassis)
+        chassis = cls._from_db_object(context, cls(), db_chassis)
         return chassis
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -81,14 +83,15 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def get_by_uuid(cls, context, uuid):
-        """Find a chassis based on uuid and return a :class:`Chassis` object.
+        """Find a chassis based on UUID and return a :class:`Chassis` object.
 
-        :param uuid: the uuid of a chassis.
+        :param cls: the :class:`Chassis`
         :param context: Security context
+        :param uuid: the UUID of a chassis.
         :returns: a :class:`Chassis` object.
         """
         db_chassis = cls.dbapi.get_chassis_by_uuid(uuid)
-        chassis = cls._from_db_object(cls(context), db_chassis)
+        chassis = cls._from_db_object(context, cls(), db_chassis)
         return chassis
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -100,6 +103,7 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
              sort_key=None, sort_dir=None):
         """Return a list of Chassis objects.
 
+        :param cls: the :class:`Chassis`
         :param context: Security context.
         :param limit: maximum number of resources to return in a single result.
         :param marker: pagination marker for large data sets.
@@ -136,7 +140,7 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
         """
         values = self.obj_get_changes()
         db_chassis = self.dbapi.create_chassis(values)
-        self._from_db_object(self, db_chassis)
+        self._from_db_object(self._context, self, db_chassis)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -174,7 +178,7 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
         """
         updates = self.obj_get_changes()
         updated_chassis = self.dbapi.update_chassis(self.uuid, updates)
-        self._from_db_object(self, updated_chassis)
+        self._from_db_object(self._context, self, updated_chassis)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.

@@ -81,17 +81,18 @@ class IronicObject(object_base.VersionedObject):
                 self[field] = loaded_object[field]
 
     @staticmethod
-    def _from_db_object(obj, db_object):
+    def _from_db_object(context, obj, db_object):
         """Converts a database entity to a formal object.
 
+        :param context: security context
         :param obj: An object of the class.
         :param db_object: A DB model of the object
         :return: The object of the class with the database entity added
         """
-
         for field in obj.fields:
             obj[field] = db_object[field]
 
+        obj._context = context
         obj.obj_reset_changes()
         return obj
 
@@ -102,11 +103,12 @@ class IronicObject(object_base.VersionedObject):
         Returns a list of formal objects of this class that correspond to
         the list of database entities.
 
+        :param cls: the VersionedObject class of the desired object
         :param context: security context
         :param db_objects: A  list of DB models of the object
         :returns: A list of objects corresponding to the database entities
         """
-        return [cls._from_db_object(cls(context), db_obj)
+        return [cls._from_db_object(context, cls(), db_obj)
                 for db_obj in db_objects]
 
     def _get_target_version(self):

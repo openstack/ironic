@@ -178,13 +178,15 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def get_by_id(cls, context, node_id):
-        """Find a node based on its integer id and return a Node object.
+        """Find a node based on its integer ID and return a Node object.
 
-        :param node_id: the id of a node.
+        :param cls: the :class:`Node`
+        :param context: Security context
+        :param node_id: the ID of a node.
         :returns: a :class:`Node` object.
         """
         db_node = cls.dbapi.get_node_by_id(node_id)
-        node = cls._from_db_object(cls(context), db_node)
+        node = cls._from_db_object(context, cls(), db_node)
         return node
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -193,13 +195,15 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def get_by_uuid(cls, context, uuid):
-        """Find a node based on uuid and return a Node object.
+        """Find a node based on UUID and return a Node object.
 
-        :param uuid: the uuid of a node.
+        :param cls: the :class:`Node`
+        :param context: Security context
+        :param uuid: the UUID of a node.
         :returns: a :class:`Node` object.
         """
         db_node = cls.dbapi.get_node_by_uuid(uuid)
-        node = cls._from_db_object(cls(context), db_node)
+        node = cls._from_db_object(context, cls(), db_node)
         return node
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -210,11 +214,13 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     def get_by_name(cls, context, name):
         """Find a node based on name and return a Node object.
 
+        :param cls: the :class:`Node`
+        :param context: Security context
         :param name: the logical name of a node.
         :returns: a :class:`Node` object.
         """
         db_node = cls.dbapi.get_node_by_name(name)
-        node = cls._from_db_object(cls(context), db_node)
+        node = cls._from_db_object(context, cls(), db_node)
         return node
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -223,13 +229,15 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def get_by_instance_uuid(cls, context, instance_uuid):
-        """Find a node based on the instance uuid and return a Node object.
+        """Find a node based on the instance UUID and return a Node object.
 
-        :param uuid: the uuid of the instance.
+        :param cls: the :class:`Node`
+        :param context: Security context
+        :param uuid: the UUID of the instance.
         :returns: a :class:`Node` object.
         """
         db_node = cls.dbapi.get_node_by_instance(instance_uuid)
-        node = cls._from_db_object(cls(context), db_node)
+        node = cls._from_db_object(context, cls(), db_node)
         return node
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -241,6 +249,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
              sort_dir=None, filters=None):
         """Return a list of Node objects.
 
+        :param cls: the :class:`Node`
         :param context: Security context.
         :param limit: maximum number of resources to return in a single result.
         :param marker: pagination marker for large data sets.
@@ -266,15 +275,16 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         To prevent other ManagerServices from manipulating the given
         Node while a Task is performed, mark it reserved by this host.
 
+        :param cls: the :class:`Node`
         :param context: Security context.
         :param tag: A string uniquely identifying the reservation holder.
-        :param node_id: A node id or uuid.
+        :param node_id: A node ID or UUID.
         :raises: NodeNotFound if the node is not found.
         :returns: a :class:`Node` object.
 
         """
         db_node = cls.dbapi.reserve_node(tag, node_id)
-        node = cls._from_db_object(cls(context), db_node)
+        node = cls._from_db_object(context, cls(), db_node)
         return node
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -316,7 +326,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         values = self.obj_get_changes()
         self._validate_property_values(values.get('properties'))
         db_node = self.dbapi.create_node(values)
-        self._from_db_object(self, db_node)
+        self._from_db_object(self._context, self, db_node)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -362,7 +372,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             self.driver_internal_info = {}
             updates = self.obj_get_changes()
         db_node = self.dbapi.update_node(self.uuid, updates)
-        self._from_db_object(self, db_node)
+        self._from_db_object(self._context, self, db_node)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -394,13 +404,14 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     def get_by_port_addresses(cls, context, addresses):
         """Get a node by associated port addresses.
 
+        :param cls: the :class:`Node`
         :param context: Security context.
         :param addresses: A list of port addresses.
         :raises: NodeNotFound if the node is not found.
         :returns: a :class:`Node` object.
         """
         db_node = cls.dbapi.get_node_by_port_addresses(addresses)
-        node = cls._from_db_object(cls(context), db_node)
+        node = cls._from_db_object(context, cls(), db_node)
         return node
 
 
