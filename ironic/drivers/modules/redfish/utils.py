@@ -21,6 +21,7 @@ from oslo_utils import importutils
 import retrying
 import rfc3986
 import six
+from six.moves import urllib
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -102,7 +103,16 @@ def parse_driver_info(node):
               'driver_info/redfish_address on node %(node)s') %
             {'address': address, 'node': node.uuid})
 
-    system_id = driver_info['redfish_system_id']
+    try:
+        system_id = urllib.parse.quote(driver_info['redfish_system_id'])
+    except (TypeError, AttributeError):
+        raise exception.InvalidParameterValue(
+            _('Invalid value "%(value)s" set in '
+              'driver_info/redfish_system_id on node %(node)s. '
+              'The value should be a path (string) to the resource '
+              'that the driver will interact with. For example: '
+              '/redfish/v1/Systems/1') %
+            {'value': driver_info['redfish_system_id'], 'node': node.uuid})
 
     # Check if verify_ca is a Boolean or a file/directory in the file-system
     verify_ca = driver_info.get('redfish_verify_ca', True)
