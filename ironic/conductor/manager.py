@@ -706,8 +706,6 @@ class ConductorManager(base_manager.BaseConductorManager):
         :param task: A TaskManager object
         :param skip_current_step: True to skip the current clean step; False to
                                   include it.
-        :raises: NodeCleaningFailure if an internal error occurred when
-                 getting the next clean steps
         :returns: index of the next clean step; None if there are no clean
                   steps to execute.
 
@@ -811,8 +809,6 @@ class ConductorManager(base_manager.BaseConductorManager):
                  async task
         :raises: NodeLocked if node is locked by another conductor.
         :raises: NodeNotFound if the node no longer appears in the database
-        :raises: NodeCleaningFailure if an internal error occurred when
-                 getting the next clean steps
 
         """
         LOG.debug("RPC continue_node_clean called for node %s.", node_id)
