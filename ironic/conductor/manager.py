@@ -2147,7 +2147,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     @METRICS.timer('ConductorManager._sensors_nodes_task')
     def _sensors_nodes_task(self, context, nodes):
         """Sends sensors data for nodes from synchronized queue."""
-        while True:
+        while not self._shutdown:
             try:
                 node_uuid, driver, instance_uuid = nodes.get_nowait()
             except queue.Empty:

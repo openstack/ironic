@@ -2848,6 +2848,19 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
             'deploying', 'provision_updated_at',
             last_error=mock.ANY)
 
+    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
+    def test_iter_nodes_shutdown(self, mock_nodeinfo_list):
+        self._start_service()
+        self.columns = ['uuid', 'driver', 'id']
+        nodes = [self._create_node(driver='fake')]
+        mock_nodeinfo_list.return_value = self._get_nodeinfo_list_response(
+            nodes)
+        self.service._shutdown = True
+
+        result = list(self.service.iter_nodes(fields=['id'],
+                                              filters=mock.sentinel.filters))
+        self.assertEqual([], result)
+
 
 @mgr_utils.mock_record_keepalive
 class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
@@ -3510,6 +3523,16 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 self.assertEqual(5, acquire_mock.call_count)
                 self.assertEqual(5, validate_mock.call_count)
                 self.assertEqual(5, get_sensors_data_mock.call_count)
+
+    @mock.patch.object(task_manager, 'acquire')
+    def test_send_sensor_task_shutdown(self, acquire_mock):
+        nodes = queue.Queue()
+        nodes.put_nowait(('fake_uuid', 'fake', None))
+        self._start_service()
+        self.service._shutdown = True
+        CONF.set_override('send_sensor_data', True, group='conductor')
+        self.service._sensors_nodes_task(self.context, nodes)
+        acquire_mock.__enter__.assert_not_called()
 
     @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test_send_sensor_task_no_management(self, acquire_mock):
