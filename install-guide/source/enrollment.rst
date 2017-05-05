@@ -410,3 +410,12 @@ The Bare Metal service supports hardware inspection that simplifies enrolling
 nodes - please see `inspection`_ for details.
 
 .. _`inspection`: http://docs.openstack.org/developer/ironic/deploy/inspection.html
+
+Tenant Networks and Port Groups
+-------------------------------
+
+See `Multitenancy in Bare Metal service`_ and
+`Port groups configuration in Bare Metal service`_.
+
+.. _`Multitenancy in Bare Metal service`: http://docs.openstack.org/developer/ironic/deploy/multitenancy.html
+.. _`Port groups configuration in Bare Metal service`: http://docs.openstack.org/developer/ironic/deploy/portgroups.html

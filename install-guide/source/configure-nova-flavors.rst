@@ -1,7 +1,7 @@
 .. _flavor-creation:
 
-Create Compute flavors for use with the Bare Metal service
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Create flavors for use with the Bare Metal service
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You'll need to create a special bare metal flavor in the Compute service.
 The flavor is mapped to the bare metal node through the hardware specifications.

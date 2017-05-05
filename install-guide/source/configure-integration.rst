@@ -2,12 +2,14 @@
 Integration with other OpenStack services
 =========================================
 
-.. include:: include/configure-identity.rst
+.. toctree::
+   :maxdepth: 1
 
-.. include:: include/configure-nova-compute.rst
-
-.. include:: include/configure-nova-flavors.rst
-
-.. include:: include/configure-neutron-networks.rst
-
-.. include:: include/configure-glance-images.rst
+   configure-identity
+   configure-compute
+   configure-networking
+   enabling-https
+   configure-cleaning
+   configure-tenant-networks.rst
+   configure-glance-images
+   configure-nova-flavors
