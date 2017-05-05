@@ -135,6 +135,8 @@ IRONIC_VM_EMULATOR=${IRONIC_VM_EMULATOR:-'/usr/bin/qemu-system-x86_64'}
 IRONIC_VM_ENGINE=${IRONIC_VM_ENGINE:-qemu}
 IRONIC_VM_NETWORK_BRIDGE=${IRONIC_VM_NETWORK_BRIDGE:-brbm}
 IRONIC_VM_NETWORK_RANGE=${IRONIC_VM_NETWORK_RANGE:-192.0.2.0/24}
+# Number of NICs to create Ironic node with. Take affect only for neutron network interface.
+IRONIC_VM_INTERFACE_COUNT=${IRONIC_VM_INTERFACE_COUNT:-1}
 IRONIC_VM_MACS_CSV_FILE=${IRONIC_VM_MACS_CSV_FILE:-$IRONIC_DATA_DIR/ironic_macs.csv}
 IRONIC_AUTHORIZED_KEYS_FILE=${IRONIC_AUTHORIZED_KEYS_FILE:-$HOME/.ssh/authorized_keys}
 IRONIC_CLEAN_NET_NAME=${IRONIC_CLEAN_NET_NAME:-${IRONIC_PROVISION_NETWORK_NAME:-${PRIVATE_NETWORK_NAME}}}
@@ -1035,6 +1037,22 @@ function configure_ironic {
     # NOTE(vsaienko) Add stack to libvirt group when installing without nova.
     if ! is_service_enabled nova; then
         add_user_to_group $STACK_USER $LIBVIRT_GROUP
+
+        # This is the basic set of devices allowed / required by all virtual machines.
+        # Add /dev/net/tun to cgroup_device_acl, needed for type=ethernet interfaces
+        if ! sudo grep -q '^cgroup_device_acl' /etc/libvirt/qemu.conf; then
+            cat <<EOF | sudo tee -a /etc/libvirt/qemu.conf
+cgroup_device_acl = [
+    "/dev/null", "/dev/full", "/dev/zero",
+    "/dev/random", "/dev/urandom",
+    "/dev/ptmx", "/dev/kvm", "/dev/kqemu",
+    "/dev/rtc", "/dev/hpet","/dev/net/tun",
+    "/dev/vfio/vfio",
+]
+EOF
+            restart_libvirt
+        fi
+
     fi
 }
 
@@ -1450,11 +1468,16 @@ function create_bridge_and_vms {
         vm_opts+=" -L $UEFI_LOADER_PATH -N $UEFI_NVRAM_PATH"
     fi
 
+    local bridge_mac
+    bridge_mac=$(ip link show dev $IRONIC_VM_NETWORK_BRIDGE | grep -Eo "ether [A-Za-z0-9:]+"|sed "s/ether\ //")
+
     for vm_name in $(_ironic_bm_vm_names); do
         sudo -E su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/create-node.sh -n $vm_name \
             -c $IRONIC_VM_SPECS_CPU -m $IRONIC_VM_SPECS_RAM -d $IRONIC_VM_SPECS_DISK \
-            -a $IRONIC_VM_SPECS_CPU_ARCH -b $IRONIC_VM_NETWORK_BRIDGE $vm_opts \
-            -p $vbmc_port -o $pdu_outlet -f $IRONIC_VM_SPECS_DISK_FORMAT $log_arg" >> $IRONIC_VM_MACS_CSV_FILE
+            -a $IRONIC_VM_SPECS_CPU_ARCH -b $IRONIC_VM_NETWORK_BRIDGE $vm_opts -p $vbmc_port -o $pdu_outlet \
+            -i $IRONIC_VM_INTERFACE_COUNT -f $IRONIC_VM_SPECS_DISK_FORMAT  -M $PUBLIC_BRIDGE_MTU $log_arg" >> $IRONIC_VM_MACS_CSV_FILE
+        echo " ${bridge_mac} $IRONIC_VM_NETWORK_BRIDGE" >> $IRONIC_VM_MACS_CSV_FILE
+
         vbmc_port=$((vbmc_port+1))
         pdu_outlet=$((pdu_outlet+1))
     done
@@ -1517,6 +1540,8 @@ function enroll_nodes {
     local node_prefix
     node_prefix=$(get_ironic_node_prefix)
 
+    local interface_info
+
     if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
         local ironic_node_cpu=$IRONIC_VM_SPECS_CPU
         local ironic_node_ram=$IRONIC_VM_SPECS_RAM
@@ -1577,8 +1602,7 @@ function enroll_nodes {
         fi
 
         if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
-            local mac_address
-            mac_address=$(echo $hardware_info | awk '{print $1}')
+            interface_info=$(echo $hardware_info | awk '{print $1}')
 
             if is_deployed_by_ipmitool; then
                 local vbmc_port
@@ -1592,17 +1616,16 @@ function enroll_nodes {
                 node_options+=" -i redfish_system_id=/redfish/v1/Systems/$node_name"
             fi
             # Local-link-connection options
+            local llc_opts=""
             if [[ "${IRONIC_USE_LINK_LOCAL}" == "True" ]]; then
-                local llc_opts=""
                 local switch_info
                 local switch_id
-                local port_id
 
-                switch_info=$(echo $hardware_info |awk '{print $4}')
-                switch_id=$(echo $hardware_info |awk '{print $5}')
-                port_id=$(echo $hardware_info |awk '{print $6}')
+                switch_id=$(echo $hardware_info |awk '{print $4}')
+                switch_info=$(echo $hardware_info |awk '{print $5}')
 
-                llc_opts="-l switch_id=${switch_id} -l switch_info=${switch_info} -l port_id=${port_id}"
+                # NOTE(vsaienko) we will add port_id later in the code.
+                llc_opts="-l switch_id=${switch_id} -l switch_info=${switch_info} "
 
                 local ironic_api_version='--ironic-api-version latest'
             fi
@@ -1668,6 +1691,8 @@ function enroll_nodes {
                 node_options+=" -i drac_host=$bmc_address -i drac_password=$bmc_passwd\
                     -i drac_username=$bmc_username"
             fi
+
+            interface_info="${mac_address}"
         fi
 
         # First node created will be used for testing in ironic w/o glance
@@ -1700,7 +1725,19 @@ function enroll_nodes {
 
         # In case we using portgroups, we should API version that support them.
         # Othervise API will return 406 ERROR
-        ironic $ironic_api_version port-create --address $mac_address --node $node_id $llc_opts
+        # NOTE(vsaienko) interface_info is in the following format here:
+        # mac1,tap-node0i1;mac2,tap-node0i2;...;macN,tap-node0iN
+        for info in ${interface_info//;/ }; do
+            local mac_address=""
+            local port_id=""
+            local llc_port_opt=""
+            mac_address=$(echo $info| awk -F ',' '{print $1}')
+            port_id=$(echo $info| awk -F ',' '{print $2}')
+            if [[ "${IRONIC_USE_LINK_LOCAL}" == "True" ]]; then
+                llc_port_opt+=" -l port_id=${port_id} "
+            fi
+            ironic $ironic_api_version port-create --address $mac_address --node $node_id $llc_opts $llc_port_opt
+        done
 
         # NOTE(vsaienko) use node-update instead of specifying network_interface
         # during node creation. If node is added with latest version of API it
@@ -2057,12 +2094,11 @@ function cleanup_baremetal_basic_ops {
     local vm_name
     for vm_name in $(_ironic_bm_vm_names); do
         sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/cleanup-node.sh $vm_name"
+
         # Cleanup node bridge/interfaces
-        sudo ip link set ovs-$vm_name down
-        sudo ip link set br-$vm_name down
-        sudo ovs-vsctl del-port ovs-$vm_name
-        sudo ip link del dev ovs-$vm_name
-        sudo ip link del dev br-$vm_name
+        for i in $(seq 1 $IRONIC_VM_INTERFACE_COUNT); do
+            sudo ip tuntap del dev tap-${vm_name}i${i} mode tap
+        done
     done
 
     sudo ovs-vsctl --if-exists del-br $IRONIC_VM_NETWORK_BRIDGE
