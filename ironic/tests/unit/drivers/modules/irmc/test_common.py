@@ -201,12 +201,12 @@ class IRMCCommonMethodsTestCase(db_base.DbTestCase):
 
     def test_out_range_port(self):
         self.assertRaises(ValueError, cfg.CONF.set_override,
-                          'port', 60, 'irmc', enforce_type=True)
+                          'port', 60, 'irmc')
 
     def test_out_range_auth_method(self):
         self.assertRaises(ValueError, cfg.CONF.set_override,
-                          'auth_method', 'fake', 'irmc', enforce_type=True)
+                          'auth_method', 'fake', 'irmc')
 
     def test_out_range_sensor_method(self):
         self.assertRaises(ValueError, cfg.CONF.set_override,
-                          'sensor_method', 'fake', 'irmc', enforce_type=True)
+                          'sensor_method', 'fake', 'irmc')

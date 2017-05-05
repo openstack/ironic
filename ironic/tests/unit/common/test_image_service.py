@@ -361,10 +361,8 @@ class ServiceGetterTestCase(base.TestCase):
 
     def test_out_range_auth_strategy(self):
         self.assertRaises(ValueError, cfg.CONF.set_override,
-                          'auth_strategy', 'fake', 'glance',
-                          enforce_type=True)
+                          'auth_strategy', 'fake', 'glance')
 
     def test_out_range_glance_protocol(self):
         self.assertRaises(ValueError, cfg.CONF.set_override,
-                          'glance_protocol', 'fake', 'glance',
-                          enforce_type=True)
+                          'glance_protocol', 'fake', 'glance')
