@@ -56,8 +56,7 @@ class ConductorRPCAPITestCase(tests_base.TestCase):
     @mock.patch('ironic.common.rpc.get_client')
     def test_version_capped(self, mock_get_client, mock_release_mapping):
         CONF.set_override('pin_release_version',
-                          release_mappings.RELEASE_VERSIONS[0],
-                          enforce_type=True)
+                          release_mappings.RELEASE_VERSIONS[0])
         mock_release_mapping.get.return_value = {'rpc': '3'}
         conductor_rpcapi.ConductorAPI()
         self.assertEqual('3', mock_get_client.call_args[1]['version_cap'])

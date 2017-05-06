@@ -105,8 +105,7 @@ class TestNeutronClient(base.TestCase):
 
     def test_out_range_auth_strategy(self, mock_client_init, mock_session):
         self.assertRaises(ValueError, cfg.CONF.set_override,
-                          'auth_strategy', 'fake', 'neutron',
-                          enforce_type=True)
+                          'auth_strategy', 'fake', 'neutron')
 
 
 class TestNeutronNetworkActions(db_base.DbTestCase):

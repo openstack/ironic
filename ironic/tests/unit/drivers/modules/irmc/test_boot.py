@@ -1047,10 +1047,7 @@ class IRMCVirtualMediaBootTestCase(db_base.DbTestCase):
                 task, boot_devices.CDROM, persistent=True)
 
     def test_remote_image_share_type_values(self):
-        cfg.CONF.set_override('remote_image_share_type', 'cifs', 'irmc',
-                              enforce_type=True)
-        cfg.CONF.set_override('remote_image_share_type', 'nfs', 'irmc',
-                              enforce_type=True)
+        cfg.CONF.set_override('remote_image_share_type', 'cifs', 'irmc')
+        cfg.CONF.set_override('remote_image_share_type', 'nfs', 'irmc')
         self.assertRaises(ValueError, cfg.CONF.set_override,
-                          'remote_image_share_type', 'fake', 'irmc',
-                          enforce_type=True)
+                          'remote_image_share_type', 'fake', 'irmc')

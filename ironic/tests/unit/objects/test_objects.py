@@ -547,8 +547,7 @@ class TestObjectSerializer(test_base.TestCase):
     def test_serialize_entity_backport(self, mock_release_mapping):
         """Test single element serializer with backport."""
         CONF.set_override('pin_release_version',
-                          release_mappings.RELEASE_VERSIONS[-1],
-                          enforce_type=True)
+                          release_mappings.RELEASE_VERSIONS[-1])
         mock_release_mapping.__getitem__.return_value = {
             'objects': {
                 'MyObj': '1.4',
@@ -571,8 +570,7 @@ class TestObjectSerializer(test_base.TestCase):
     @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING')
     def test_serialize_entity_invalid_pin(self, mock_release_mapping):
         CONF.set_override('pin_release_version',
-                          release_mappings.RELEASE_VERSIONS[-1],
-                          enforce_type=True)
+                          release_mappings.RELEASE_VERSIONS[-1])
         mock_release_mapping.__getitem__.return_value = {
             'objects': {
                 'MyObj': '1.6',
@@ -586,8 +584,7 @@ class TestObjectSerializer(test_base.TestCase):
     @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING')
     def test_serialize_entity_no_pin(self, mock_release_mapping):
         CONF.set_override('pin_release_version',
-                          release_mappings.RELEASE_VERSIONS[-1],
-                          enforce_type=True)
+                          release_mappings.RELEASE_VERSIONS[-1])
         mock_release_mapping.__getitem__.return_value = {
             'objects': {}
         }
