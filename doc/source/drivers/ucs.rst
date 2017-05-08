@@ -75,7 +75,7 @@ The following sequence of commands can be used to enroll a UCS node.
 
   Create Node::
 
-    ironic node-create -d <pxe_ucs/agent_ucs> -i ucs_address=<UCS Manager hostname/ip-address> -i ucs_username=<ucsm_username> -i ucs_password=<ucsm_password> -i ucs_service_profile=<serivce_profile_dn_being_enrolled> -i deploy_kernel=<glance_uuid_of_deploy_kernel> -i deploy_ramdisk=<glance_uuid_of_deploy_ramdisk> -p cpus=<number_of_cpus> -p memory_mb=<memory_size_in_MB> -p local_gb=<local_disk_size_in_GB> -p cpu_arch=<cpu_arch>
+    ironic node-create -d <pxe_ucs/agent_ucs> -i ucs_address=<UCS Manager hostname/ip-address> -i ucs_username=<ucsm_username> -i ucs_password=<ucsm_password> -i ucs_service_profile=<service_profile_dn_being_enrolled> -i deploy_kernel=<glance_uuid_of_deploy_kernel> -i deploy_ramdisk=<glance_uuid_of_deploy_ramdisk> -p cpus=<number_of_cpus> -p memory_mb=<memory_size_in_MB> -p local_gb=<local_disk_size_in_GB> -p cpu_arch=<cpu_arch>
 
   The above command 'ironic node-create' will return UUID of the node, which is the value of $NODE in the following command.
 
