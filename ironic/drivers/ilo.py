@@ -46,23 +46,6 @@ class IloHardware(generic.GenericHardware):
         return [boot.IloVirtualMediaBoot, boot.IloPXEBoot]
 
     @property
-    def supported_deploy_interfaces(self):
-        """List of supported deploy interfaces."""
-
-        # Note(stendulker) It does not support ISCSI based deploy
-        # (iscsi.ISCSIDeploy) mechanism.
-        # The reason being all the Ironic features supported by ISCSIDeploy
-        # are supported with agentDeploy as well. There is no additional
-        # advantage of having iscsi based deploy except for the cases wherein
-        # instance images(qcow2) are larger than RAM size of the bare metal.
-        # That also could be overcome by using 'raw' images.
-        # To avoid the additional driver supportability and reduce test matrix,
-        # ISCSI based deploy is not supported. However, if any user insists
-        # for ISCSI based deploy, we would surely enable the same.
-
-        return [agent.AgentDeploy]
-
-    @property
     def supported_console_interfaces(self):
         """List of supported console interfaces."""
         return [console.IloConsoleInterface, noop.NoConsole]

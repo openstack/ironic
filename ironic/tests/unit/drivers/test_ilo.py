@@ -43,7 +43,7 @@ class IloHardwareTestCase(db_base.DbTestCase):
         self.config(enabled_hardware_types=['ilo'],
                     enabled_boot_interfaces=['ilo-virtual-media', 'ilo-pxe'],
                     enabled_console_interfaces=['ilo'],
-                    enabled_deploy_interfaces=['direct'],
+                    enabled_deploy_interfaces=['iscsi', 'direct'],
                     enabled_inspect_interfaces=['ilo'],
                     enabled_management_interfaces=['ilo'],
                     enabled_power_interfaces=['ilo'],
@@ -59,7 +59,7 @@ class IloHardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(task.driver.console,
                                   ilo.console.IloConsoleInterface)
             self.assertIsInstance(task.driver.deploy,
-                                  agent.AgentDeploy)
+                                  iscsi_deploy.ISCSIDeploy)
             self.assertIsInstance(task.driver.inspect,
                                   ilo.inspect.IloInspect)
             self.assertIsInstance(task.driver.management,
@@ -99,7 +99,6 @@ class IloHardwareTestCase(db_base.DbTestCase):
     def test_override_with_pxe(self):
         node = obj_utils.create_test_node(
             self.context, driver='ilo',
-            deploy_interface='direct',
             boot_interface='ilo-pxe',
             raid_interface='agent')
         with task_manager.acquire(self.context, node.id) as task:
@@ -108,7 +107,7 @@ class IloHardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(task.driver.console,
                                   ilo.console.IloConsoleInterface)
             self.assertIsInstance(task.driver.deploy,
-                                  agent.AgentDeploy)
+                                  iscsi_deploy.ISCSIDeploy)
             self.assertIsInstance(task.driver.inspect,
                                   ilo.inspect.IloInspect)
             self.assertIsInstance(task.driver.management,
