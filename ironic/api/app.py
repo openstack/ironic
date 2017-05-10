@@ -29,6 +29,21 @@ from ironic.common import exception
 from ironic.conf import CONF
 
 
+class IronicCORS(cors_middleware.CORS):
+    """Ironic-specific CORS class
+
+    We're adding the Ironic-specific version headers to the list of simple
+    headers in order that a request bearing those headers might be accepted by
+    the Ironic REST API.
+    """
+    simple_headers = cors_middleware.CORS.simple_headers + [
+        'X-Auth-Token',
+        base.Version.max_string,
+        base.Version.min_string,
+        base.Version.string
+    ]
+
+
 def get_pecan_config():
     # Set up the pecan configuration
     filename = config.__file__.replace('.pyc', '.py')
@@ -80,10 +95,8 @@ def setup_app(pecan_config=None, extra_hooks=None):
 
     # Create a CORS wrapper, and attach ironic-specific defaults that must be
     # included in all CORS responses.
-    app = cors_middleware.CORS(app, CONF)
+    app = IronicCORS(app, CONF)
     cors_middleware.set_defaults(
-        allow_headers=[base.Version.max_string, base.Version.min_string,
-                       base.Version.string],
         allow_methods=['GET', 'PUT', 'POST', 'DELETE', 'PATCH'],
         expose_headers=[base.Version.max_string, base.Version.min_string,
                         base.Version.string]
