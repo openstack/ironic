@@ -21,9 +21,11 @@ from ironic.common import exception
 from ironic import objects
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
+from ironic.tests.unit.objects import utils as obj_utils
 
 
-class TestVolumeConnectorObject(db_base.DbTestCase):
+class TestVolumeConnectorObject(db_base.DbTestCase,
+                                obj_utils.SchemasTestMixIn):
 
     def setUp(self):
         super(TestVolumeConnectorObject, self).setUp()
@@ -193,3 +195,7 @@ class TestVolumeConnectorObject(db_base.DbTestCase):
         vc_copy.name = 'aaff'
         # Ensure this passes and an exception is not generated
         vc_copy.save()
+
+    def test_payload_schemas(self):
+        self._check_payload_schemas(objects.volume_connector,
+                                    objects.VolumeConnector.fields)

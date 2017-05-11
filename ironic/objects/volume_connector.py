@@ -20,6 +20,7 @@ from ironic.common import exception
 from ironic.db import api as db_api
 from ironic.objects import base
 from ironic.objects import fields as object_fields
+from ironic.objects import notification
 
 
 @base.IronicObjectRegistry.register
@@ -240,3 +241,44 @@ class VolumeConnector(base.IronicObject,
         current = self.get_by_uuid(self._context, uuid=self.uuid)
         self.obj_refresh(current)
         self.obj_reset_changes()
+
+
+@base.IronicObjectRegistry.register
+class VolumeConnectorCRUDNotification(notification.NotificationBase):
+    """Notification emitted at CRUD of a volume connector."""
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'payload': object_fields.ObjectField('VolumeConnectorCRUDPayload')
+    }
+
+
+@base.IronicObjectRegistry.register
+class VolumeConnectorCRUDPayload(notification.NotificationPayloadBase):
+    """Payload schema for CRUD of a volume connector."""
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    SCHEMA = {
+        'extra': ('connector', 'extra'),
+        'type': ('connector', 'type'),
+        'connector_id': ('connector', 'connector_id'),
+        'created_at': ('connector', 'created_at'),
+        'updated_at': ('connector', 'updated_at'),
+        'uuid': ('connector', 'uuid'),
+    }
+
+    fields = {
+        'extra': object_fields.FlexibleDictField(nullable=True),
+        'type': object_fields.StringField(nullable=True),
+        'connector_id': object_fields.StringField(nullable=True),
+        'node_uuid': object_fields.UUIDField(),
+        'created_at': object_fields.DateTimeField(nullable=True),
+        'updated_at': object_fields.DateTimeField(nullable=True),
+        'uuid': object_fields.UUIDField(),
+    }
+
+    def __init__(self, connector, node_uuid):
+        super(VolumeConnectorCRUDPayload, self).__init__(node_uuid=node_uuid)
+        self.populate_schema(connector=connector)
