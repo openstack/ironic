@@ -14,7 +14,7 @@ Who is responsible for releases?
 ================================
 
 The current PTL is ultimately responsible for making sure code gets released.
-They may choose to delegate this reponsibility to a liaison, which is
+They may choose to delegate this responsibility to a liaison, which is
 documented in the `cross-project liaison wiki`_.
 
 Anyone may submit a release request per the process below, but the PTL or
