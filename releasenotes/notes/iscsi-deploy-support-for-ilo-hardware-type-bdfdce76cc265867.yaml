@@ -1,4 +1,0 @@
----
-features:
-  - |
-    Adds support for ``iscsi`` deploy interface for ``ilo`` hardware type.

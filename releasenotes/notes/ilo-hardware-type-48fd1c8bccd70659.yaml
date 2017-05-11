@@ -9,7 +9,7 @@ features:
 
     * boot: ``ilo-virtual-media`` and ``ilo-pxe``
     * console: ``ilo`` and ``no-console``
-    * deploy: ``direct``
+    * deploy: ``iscsi`` and ``direct``
     * inspect: ``ilo``, ``inspector`` and ``no-inspect``
     * management: ``ilo``
     * network: ``flat``, ``no-op`` and ``neutron``
