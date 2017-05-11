@@ -64,6 +64,18 @@ _VENDOR_METHODS = {}
 _RAID_PROPERTIES = {}
 
 
+def hide_fields_in_newer_versions(obj):
+    """This method hides fields that were added in newer API versions.
+
+    Certain fields were introduced at certain API versions.
+    These fields are only made available when the request's API version
+    matches or exceeds the versions when these fields were introduced.
+    """
+    if not api_utils.allow_storage_interface():
+        obj.default_storage_interface = wsme.Unset
+        obj.enabled_storage_interfaces = wsme.Unset
+
+
 class Driver(base.APIBase):
     """API representation of a driver."""
 
@@ -91,6 +103,7 @@ class Driver(base.APIBase):
     default_network_interface = wtypes.text
     default_power_interface = wtypes.text
     default_raid_interface = wtypes.text
+    default_storage_interface = wtypes.text
     default_vendor_interface = wtypes.text
 
     """A list of enabled interfaces for a hardware type"""
@@ -102,6 +115,7 @@ class Driver(base.APIBase):
     enabled_network_interfaces = [wtypes.text]
     enabled_power_interfaces = [wtypes.text]
     enabled_raid_interfaces = [wtypes.text]
+    enabled_storage_interfaces = [wtypes.text]
     enabled_vendor_interfaces = [wtypes.text]
 
     @staticmethod
@@ -172,6 +186,7 @@ class Driver(base.APIBase):
                     setattr(driver, 'default_%s_interface' % iface_type, None)
                     setattr(driver, 'enabled_%s_interfaces' % iface_type, None)
 
+        hide_fields_in_newer_versions(driver)
         return driver
 
     @classmethod

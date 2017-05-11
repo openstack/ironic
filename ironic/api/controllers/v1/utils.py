@@ -300,6 +300,8 @@ def check_allowed_fields(fields):
     if not allow_dynamic_interfaces():
         if set(V31_FIELDS).intersection(set(fields)):
             raise exception.NotAcceptable()
+    if 'storage_interface' in fields and not allow_storage_interface():
+        raise exception.NotAcceptable()
 
 
 def check_allowed_portgroup_fields(fields):
@@ -555,6 +557,15 @@ def allow_volume():
     Version 1.32 of the API added support for volume connectors and targets
     """
     return pecan.request.version.minor >= versions.MINOR_32_VOLUME
+
+
+def allow_storage_interface():
+    """Check if we should support storage_interface node field.
+
+    Version 1.33 of the API added support for storage interfaces.
+    """
+    return (pecan.request.version.minor >=
+            versions.MINOR_33_STORAGE_INTERFACE)
 
 
 def get_controller_reserved_names(cls):

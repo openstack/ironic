@@ -2,6 +2,11 @@
 REST API Version History
 ========================
 
+**1.33** (Pike)
+
+    Added ``storage_interface`` field to the node object to allow getting and
+    setting the interface.
+
 **1.32** (Pike)
 
     Added new endpoints for remote volume configuration:

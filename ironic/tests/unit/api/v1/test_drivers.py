@@ -48,7 +48,7 @@ class TestListDrivers(base.BaseApiTest):
             self.dbapi.register_conductor_hardware_interfaces(
                 c.id, self.d3, 'deploy', ['iscsi', 'direct'], 'direct')
 
-    def _test_drivers(self, use_dynamic, detail=False):
+    def _test_drivers(self, use_dynamic, detail=False, storage_if=False):
         self.register_fake_conductors()
         headers = {}
         expected = [
@@ -58,7 +58,10 @@ class TestListDrivers(base.BaseApiTest):
         ]
         expected = sorted(expected, key=lambda d: d['name'])
         if use_dynamic:
-            headers[api_base.Version.string] = '1.30'
+            if storage_if:
+                headers[api_base.Version.string] = '1.33'
+            else:
+                headers[api_base.Version.string] = '1.30'
 
         path = '/drivers'
         if detail:
@@ -83,6 +86,12 @@ class TestListDrivers(base.BaseApiTest):
             # as this case can't actually happen.
             if detail:
                 self.assertIn('default_deploy_interface', d)
+                if storage_if:
+                    self.assertIn('default_storage_interface', d)
+                    self.assertIn('enabled_storage_interfaces', d)
+                else:
+                    self.assertNotIn('default_storage_interface', d)
+                    self.assertNotIn('enabled_storage_interfaces', d)
             else:
                 # ensure we don't spill these fields into driver listing
                 # one should be enough
@@ -94,7 +103,7 @@ class TestListDrivers(base.BaseApiTest):
     def test_drivers_with_dynamic(self):
         self._test_drivers(True)
 
-    def test_drivers_with_dynamic_detailed(self):
+    def _test_drivers_with_dynamic_detailed(self, storage_if=False):
         with mock.patch.object(self.dbapi, 'list_hardware_type_interfaces',
                                autospec=True) as mock_hw:
             mock_hw.return_value = [
@@ -112,7 +121,13 @@ class TestListDrivers(base.BaseApiTest):
                 },
             ]
 
-            self._test_drivers(True, detail=True)
+            self._test_drivers(True, detail=True, storage_if=storage_if)
+
+    def test_drivers_with_dynamic_detailed(self):
+        self._test_drivers_with_dynamic_detailed()
+
+    def test_drivers_with_dynamic_detailed_storage_interface(self):
+        self._test_drivers_with_dynamic_detailed(storage_if=True)
 
     def _test_drivers_type_filter(self, requested_type):
         self.register_fake_conductors()
@@ -163,7 +178,8 @@ class TestListDrivers(base.BaseApiTest):
         self.assertEqual([], data['drivers'])
 
     @mock.patch.object(rpcapi.ConductorAPI, 'get_driver_properties')
-    def _test_drivers_get_one_ok(self, use_dynamic, mock_driver_properties):
+    def _test_drivers_get_one_ok(self, use_dynamic, mock_driver_properties,
+                                 storage_if=False):
         # get_driver_properties mock is required by validate_link()
         self.register_fake_conductors()
 
@@ -176,8 +192,14 @@ class TestListDrivers(base.BaseApiTest):
             driver_type = 'classic'
             hosts = [self.h1]
 
+        headers = {}
+        if storage_if:
+            headers[api_base.Version.string] = '1.33'
+        else:
+            headers[api_base.Version.string] = '1.30'
+
         data = self.get_json('/drivers/%s' % driver,
-                             headers={api_base.Version.string: '1.30'})
+                             headers=headers)
 
         self.assertEqual(driver, data['name'])
         self.assertEqual(sorted(hosts), sorted(data['hosts']))
@@ -186,8 +208,7 @@ class TestListDrivers(base.BaseApiTest):
 
         if use_dynamic:
             for iface in driver_base.ALL_INTERFACES:
-                # NOTE(jroll) we don't expose storage interface yet
-                if iface != 'storage':
+                if storage_if or iface != 'storage':
                     self.assertIn('default_%s_interface' % iface, data)
                     self.assertIn('enabled_%s_interfaces' % iface, data)
             self.assertIsNotNone(data['default_deploy_interface'])
@@ -204,7 +225,7 @@ class TestListDrivers(base.BaseApiTest):
     def test_drivers_get_one_ok_classic(self):
         self._test_drivers_get_one_ok(False)
 
-    def test_drivers_get_one_ok_dynamic(self):
+    def _test_drivers_get_one_ok_dynamic(self, storage_if=False):
         with mock.patch.object(self.dbapi, 'list_hardware_type_interfaces',
                                autospec=True) as mock_hw:
             mock_hw.return_value = [
@@ -222,8 +243,14 @@ class TestListDrivers(base.BaseApiTest):
                 },
             ]
 
-            self._test_drivers_get_one_ok(True)
+            self._test_drivers_get_one_ok(True, storage_if=storage_if)
             mock_hw.assert_called_once_with([self.d3])
+
+    def test_drivers_get_one_ok_dynamic(self):
+        self._test_drivers_get_one_ok_dynamic()
+
+    def test_drivers_get_one_ok_dynamic_storage_interface(self):
+        self._test_drivers_get_one_ok_dynamic(storage_if=True)
 
     def test_driver_properties_hidden_in_lower_version(self):
         self.register_fake_conductors()

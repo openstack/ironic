@@ -116,6 +116,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn('resource_class', data['nodes'][0])
         for field in api_utils.V31_FIELDS:
             self.assertNotIn(field, data['nodes'][0])
+        self.assertNotIn('storage_interface', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -149,6 +150,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('resource_class', data)
         for field in api_utils.V31_FIELDS:
             self.assertIn(field, data)
+        self.assertIn('storage_interface', data)
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data)
 
@@ -167,6 +169,14 @@ class TestListNodes(test_api_base.BaseApiTest):
             headers={api_base.Version.string: '1.30'})
         for field in api_utils.V31_FIELDS:
             self.assertNotIn(field, data)
+
+    def test_node_storage_interface_hidden_in_lower_version(self):
+        node = obj_utils.create_test_node(self.context,
+                                          storage_interface='cinder')
+        data = self.get_json(
+            '/nodes/%s' % node.uuid,
+            headers={api_base.Version.string: '1.32'})
+        self.assertNotIn('storage_interface', data)
 
     def test_get_one_custom_fields(self):
         node = obj_utils.create_test_node(self.context,
@@ -267,6 +277,25 @@ class TestListNodes(test_api_base.BaseApiTest):
         for field in api_utils.V31_FIELDS:
             self.assertIn(field, response)
 
+    def test_get_storage_interface_fields_invalid_api_version(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        fields = 'storage_interface'
+        response = self.get_json(
+            '/nodes/%s?fields=%s' % (node.uuid, fields),
+            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+    def test_get_storage_interface_fields(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        fields = 'storage_interface'
+        response = self.get_json(
+            '/nodes/%s?fields=%s' % (node.uuid, fields),
+            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+        self.assertIn('storage_interface', response)
+
     def test_detail(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
@@ -294,6 +323,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('resource_class', data['nodes'][0])
         for field in api_utils.V31_FIELDS:
             self.assertIn(field, data['nodes'][0])
+        self.assertIn('storage_interface', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
 
@@ -412,6 +442,17 @@ class TestListNodes(test_api_base.BaseApiTest):
         data = self.get_json('/nodes/%s' % node.uuid,
                              headers={api_base.Version.string: "1.32"})
         self.assertIn('volume', data)
+
+    def test_hide_fields_in_newer_versions_storage_interface(self):
+        node = obj_utils.create_test_node(self.context,
+                                          storage_interface='cinder')
+        data = self.get_json(
+            '/nodes/detail', headers={api_base.Version.string: '1.32'})
+        self.assertNotIn('storage_interface', data['nodes'][0])
+        new_data = self.get_json(
+            '/nodes/detail', headers={api_base.Version.string: '1.33'})
+        self.assertEqual(node.storage_interface,
+                         new_data['nodes'][0]["storage_interface"])
 
     def test_many(self):
         nodes = []
@@ -2013,6 +2054,35 @@ class TestPatch(test_api_base.BaseApiTest):
             self.assertEqual(http_client.BAD_REQUEST, response.status_int)
             self.assertEqual('application/json', response.content_type)
 
+    def test_update_storage_interface(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        storage_interface = 'cinder'
+        headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/storage_interface',
+                                     'value': storage_interface,
+                                     'op': 'add'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_update_storage_interface_old_api(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        storage_interface = 'cinder'
+        headers = {api_base.Version.string: '1.32'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/storage_interface',
+                                     'value': storage_interface,
+                                     'op': 'add'}],
+                                   headers=headers,
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+
 
 def _create_node_locally(node):
     driver_factory.check_and_update_node_interfaces(node)
@@ -2121,6 +2191,12 @@ class TestPost(test_api_base.BaseApiTest):
             self.assertEqual(http_client.BAD_REQUEST, response.status_int)
             self.assertEqual('application/json', response.content_type)
             self.assertTrue(response.json['error_message'])
+
+    def test_create_node_explicit_storage_interface(self):
+        headers = {api_base.Version.string: '1.33'}
+        result = self._test_create_node(headers=headers,
+                                        storage_interface='cinder')
+        self.assertEqual('cinder', result['storage_interface'])
 
     def test_create_node_name_empty_invalid(self):
         ndict = test_api_utils.post_get_test_node(name='')
@@ -2507,6 +2583,22 @@ class TestPost(test_api_base.BaseApiTest):
         response = self.post_json('/nodes', ndict, expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+    def test_create_node_storage_interface_old_api_version(self):
+        headers = {api_base.Version.string: '1.32'}
+        ndict = test_api_utils.post_get_test_node(storage_interface='cinder')
+        response = self.post_json('/nodes', ndict, headers=headers,
+                                  expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+    def test_create_node_invalid_storage_interface(self):
+        ndict = test_api_utils.post_get_test_node(storage_interface='foo')
+        response = self.post_json('/nodes', ndict, expect_errors=True,
+                                  headers={api_base.Version.string:
+                                           str(api_v1.MAX_VER)})
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
 
 class TestDelete(test_api_base.BaseApiTest):

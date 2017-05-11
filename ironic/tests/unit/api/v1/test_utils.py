@@ -419,6 +419,13 @@ class TestApiUtils(base.TestCase):
         mock_request.version.minor = 31
         self.assertFalse(utils.allow_volume())
 
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_allow_storage_interface(self, mock_request):
+        mock_request.version.minor = 33
+        self.assertTrue(utils.allow_storage_interface())
+        mock_request.version.minor = 32
+        self.assertFalse(utils.allow_storage_interface())
+
 
 class TestNodeIdent(base.TestCase):
 
