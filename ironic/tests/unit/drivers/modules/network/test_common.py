@@ -11,6 +11,7 @@
 #    under the License.
 
 import mock
+from neutronclient.common import exceptions as neutron_exceptions
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
@@ -38,35 +39,45 @@ class TestCommonFunctions(db_base.DbTestCase):
         self.port = obj_utils.create_test_port(
             self.context, node_id=self.node.id, address='52:54:00:cf:2d:32')
         self.vif_id = "fake_vif_id"
+        self.client = mock.MagicMock()
 
-    def _objects_setup(self):
+    def _objects_setup(self, set_physnets):
         pg1 = obj_utils.create_test_portgroup(
             self.context, node_id=self.node.id)
         pg1_ports = []
-        # This portgroup contains 2 ports, both of them without VIF
+        # This portgroup contains 2 ports, both of them without VIF. The ports
+        # are assigned to physnet physnet1.
+        physical_network = 'physnet1' if set_physnets else None
         for i in range(2):
             pg1_ports.append(obj_utils.create_test_port(
                 self.context, node_id=self.node.id,
                 address='52:54:00:cf:2d:0%d' % i,
+                physical_network=physical_network,
                 uuid=uuidutils.generate_uuid(), portgroup_id=pg1.id))
         pg2 = obj_utils.create_test_portgroup(
             self.context, node_id=self.node.id, address='00:54:00:cf:2d:04',
             name='foo2', uuid=uuidutils.generate_uuid())
         pg2_ports = []
         # This portgroup contains 3 ports, one of them with 'some-vif'
-        # attached, so the two free ones should be considered standalone
+        # attached, so the two free ones should be considered standalone.
+        # The ports are assigned physnet physnet2.
+        physical_network = 'physnet2' if set_physnets else None
         for i in range(2, 4):
             pg2_ports.append(obj_utils.create_test_port(
                 self.context, node_id=self.node.id,
                 address='52:54:00:cf:2d:0%d' % i,
+                physical_network=physical_network,
                 uuid=uuidutils.generate_uuid(), portgroup_id=pg2.id))
         pg2_ports.append(obj_utils.create_test_port(
             self.context, node_id=self.node.id,
             address='52:54:00:cf:2d:04',
+            physical_network=physical_network,
             extra={'vif_port_id': 'some-vif'},
             uuid=uuidutils.generate_uuid(), portgroup_id=pg2.id))
         # This portgroup has 'some-vif-2' attached to it and contains one port,
-        # so neither portgroup nor port can be considered free
+        # so neither portgroup nor port can be considered free. The ports are
+        # assigned physnet3.
+        physical_network = 'physnet3' if set_physnets else None
         pg3 = obj_utils.create_test_portgroup(
             self.context, node_id=self.node.id, address='00:54:00:cf:2d:05',
             name='foo3', uuid=uuidutils.generate_uuid(),
@@ -74,37 +85,119 @@ class TestCommonFunctions(db_base.DbTestCase):
         pg3_ports = [obj_utils.create_test_port(
             self.context, node_id=self.node.id,
             address='52:54:00:cf:2d:05', uuid=uuidutils.generate_uuid(),
+            physical_network=physical_network,
             portgroup_id=pg3.id)]
         return pg1, pg1_ports, pg2, pg2_ports, pg3, pg3_ports
 
-    def test__get_free_portgroups_and_ports(self):
+    def test__get_free_portgroups_and_ports_no_port_physnets(self):
         self.node.network_interface = 'flat'
         self.node.save()
-        pg1, pg1_ports, pg2, pg2_ports, pg3, pg3_ports = self._objects_setup()
+        pg1, pg1_ports, pg2, pg2_ports, pg3, pg3_ports = self._objects_setup(
+            set_physnets=False)
         with task_manager.acquire(self.context, self.node.id) as task:
-            free_portgroups, free_ports = (
-                common._get_free_portgroups_and_ports(task, self.vif_id))
+            free_port_like_objs = (
+                common._get_free_portgroups_and_ports(task, self.vif_id,
+                                                      {'anyphysnet'}))
+        self.assertItemsEqual(
+            [pg1.uuid, self.port.uuid] + [p.uuid for p in pg2_ports[:2]],
+            [p.uuid for p in free_port_like_objs])
+
+    def test__get_free_portgroups_and_ports_no_physnets(self):
+        self.node.network_interface = 'flat'
+        self.node.save()
+        pg1, pg1_ports, pg2, pg2_ports, pg3, pg3_ports = self._objects_setup(
+            set_physnets=True)
+        with task_manager.acquire(self.context, self.node.id) as task:
+            free_port_like_objs = (
+                common._get_free_portgroups_and_ports(task, self.vif_id,
+                                                      set()))
+        self.assertItemsEqual(
+            [pg1.uuid, self.port.uuid] + [p.uuid for p in pg2_ports[:2]],
+            [p.uuid for p in free_port_like_objs])
+
+    def test__get_free_portgroups_and_ports_no_matching_physnet(self):
+        self.node.network_interface = 'flat'
+        self.node.save()
+        pg1, pg1_ports, pg2, pg2_ports, pg3, pg3_ports = self._objects_setup(
+            set_physnets=True)
+        with task_manager.acquire(self.context, self.node.id) as task:
+            free_port_like_objs = (
+                common._get_free_portgroups_and_ports(task, self.vif_id,
+                                                      {'notaphysnet'}))
+        self.assertItemsEqual(
+            [self.port.uuid],
+            [p.uuid for p in free_port_like_objs])
+
+    def test__get_free_portgroups_and_ports_physnet1(self):
+        self.node.network_interface = 'flat'
+        self.node.save()
+        pg1, pg1_ports, pg2, pg2_ports, pg3, pg3_ports = self._objects_setup(
+            set_physnets=True)
+        with task_manager.acquire(self.context, self.node.id) as task:
+            free_port_like_objs = (
+                common._get_free_portgroups_and_ports(task, self.vif_id,
+                                                      {'physnet1'}))
+        self.assertItemsEqual(
+            [pg1.uuid, self.port.uuid],
+            [p.uuid for p in free_port_like_objs])
+
+    def test__get_free_portgroups_and_ports_physnet2(self):
+        self.node.network_interface = 'flat'
+        self.node.save()
+        pg1, pg1_ports, pg2, pg2_ports, pg3, pg3_ports = self._objects_setup(
+            set_physnets=True)
+        with task_manager.acquire(self.context, self.node.id) as task:
+            free_port_like_objs = (
+                common._get_free_portgroups_and_ports(task, self.vif_id,
+                                                      {'physnet2'}))
         self.assertItemsEqual(
             [self.port.uuid] + [p.uuid for p in pg2_ports[:2]],
-            [p.uuid for p in free_ports])
-        self.assertItemsEqual([pg1.uuid], [p.uuid for p in free_portgroups])
+            [p.uuid for p in free_port_like_objs])
+
+    def test__get_free_portgroups_and_ports_physnet3(self):
+        self.node.network_interface = 'flat'
+        self.node.save()
+        pg1, pg1_ports, pg2, pg2_ports, pg3, pg3_ports = self._objects_setup(
+            set_physnets=True)
+        with task_manager.acquire(self.context, self.node.id) as task:
+            free_port_like_objs = (
+                common._get_free_portgroups_and_ports(task, self.vif_id,
+                                                      {'physnet3'}))
+        self.assertItemsEqual(
+            [self.port.uuid], [p.uuid for p in free_port_like_objs])
+
+    def test__get_free_portgroups_and_ports_all_physnets(self):
+        self.node.network_interface = 'flat'
+        self.node.save()
+        pg1, pg1_ports, pg2, pg2_ports, pg3, pg3_ports = self._objects_setup(
+            set_physnets=True)
+        physnets = {'physnet1', 'physnet2', 'physnet3'}
+        with task_manager.acquire(self.context, self.node.id) as task:
+            free_port_like_objs = (
+                common._get_free_portgroups_and_ports(task, self.vif_id,
+                                                      physnets))
+        self.assertItemsEqual(
+            [pg1.uuid, self.port.uuid] + [p.uuid for p in pg2_ports[:2]],
+            [p.uuid for p in free_port_like_objs])
 
     @mock.patch.object(neutron_common, 'validate_port_info', autospec=True)
     def test__get_free_portgroups_and_ports_neutron_missed(self, vpi_mock):
         vpi_mock.return_value = False
         with task_manager.acquire(self.context, self.node.id) as task:
-            free_portgroups, free_ports = (
-                common._get_free_portgroups_and_ports(task, self.vif_id))
-        self.assertItemsEqual([], free_ports)
+            free_port_like_objs = (
+                common._get_free_portgroups_and_ports(task, self.vif_id,
+                                                      {'anyphysnet'}))
+        self.assertItemsEqual([], free_port_like_objs)
 
     @mock.patch.object(neutron_common, 'validate_port_info', autospec=True)
     def test__get_free_portgroups_and_ports_neutron(self, vpi_mock):
         vpi_mock.return_value = True
         with task_manager.acquire(self.context, self.node.id) as task:
-            free_portgroups, free_ports = (
-                common._get_free_portgroups_and_ports(task, self.vif_id))
+            free_port_like_objs = (
+                common._get_free_portgroups_and_ports(task, self.vif_id,
+                                                      {'anyphysnet'}))
         self.assertItemsEqual(
-            [self.port.uuid], [p.uuid for p in free_ports])
+            [self.port.uuid], [p.uuid for p in free_port_like_objs])
 
     @mock.patch.object(neutron_common, 'validate_port_info', autospec=True)
     def test__get_free_portgroups_and_ports_flat(self, vpi_mock):
@@ -112,14 +205,18 @@ class TestCommonFunctions(db_base.DbTestCase):
         self.node.save()
         vpi_mock.return_value = True
         with task_manager.acquire(self.context, self.node.id) as task:
-            free_portgroups, free_ports = (
-                common._get_free_portgroups_and_ports(task, self.vif_id))
+            free_port_like_objs = (
+                common._get_free_portgroups_and_ports(task, self.vif_id,
+                                                      {'anyphysnet'}))
+        self.assertItemsEqual(
+            [self.port.uuid], [p.uuid for p in free_port_like_objs])
 
     @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
                        return_value=True)
     def test_get_free_port_like_object_ports(self, vpi_mock):
         with task_manager.acquire(self.context, self.node.id) as task:
-            res = common.get_free_port_like_object(task, self.vif_id)
+            res = common.get_free_port_like_object(task, self.vif_id,
+                                                   {'anyphysnet'})
             self.assertEqual(self.port.uuid, res.uuid)
 
     @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
@@ -131,8 +228,41 @@ class TestCommonFunctions(db_base.DbTestCase):
             self.context, node_id=self.node.id, address='52:54:00:cf:2d:33',
             uuid=uuidutils.generate_uuid())
         with task_manager.acquire(self.context, self.node.id) as task:
-            res = common.get_free_port_like_object(task, self.vif_id)
+            res = common.get_free_port_like_object(task, self.vif_id,
+                                                   {'anyphysnet'})
             self.assertEqual(other_port.uuid, res.uuid)
+
+    @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
+                       return_value=True)
+    def test_get_free_port_like_object_ports_physnet_match_first(self,
+                                                                 vpi_mock):
+        self.port.pxe_enabled = False
+        self.port.physical_network = 'physnet1'
+        self.port.save()
+        obj_utils.create_test_port(
+            self.context, node_id=self.node.id, address='52:54:00:cf:2d:33',
+            uuid=uuidutils.generate_uuid())
+        with task_manager.acquire(self.context, self.node.id) as task:
+            res = common.get_free_port_like_object(task, self.vif_id,
+                                                   {'physnet1'})
+            self.assertEqual(self.port.uuid, res.uuid)
+
+    @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
+                       return_value=True)
+    def test_get_free_port_like_object_ports_physnet_match_first2(self,
+                                                                  vpi_mock):
+        self.port.pxe_enabled = False
+        self.port.physical_network = 'physnet1'
+        self.port.save()
+        pg = obj_utils.create_test_portgroup(
+            self.context, node_id=self.node.id)
+        obj_utils.create_test_port(
+            self.context, node_id=self.node.id, address='52:54:00:cf:2d:01',
+            uuid=uuidutils.generate_uuid(), portgroup_id=pg.id)
+        with task_manager.acquire(self.context, self.node.id) as task:
+            res = common.get_free_port_like_object(task, self.vif_id,
+                                                   {'physnet1'})
+            self.assertEqual(self.port.uuid, res.uuid)
 
     @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
                        return_value=True)
@@ -143,15 +273,38 @@ class TestCommonFunctions(db_base.DbTestCase):
             self.context, node_id=self.node.id, address='52:54:00:cf:2d:01',
             uuid=uuidutils.generate_uuid(), portgroup_id=pg.id)
         with task_manager.acquire(self.context, self.node.id) as task:
-            res = common.get_free_port_like_object(task, self.vif_id)
+            res = common.get_free_port_like_object(task, self.vif_id,
+                                                   {'anyphysnet'})
             self.assertEqual(pg.uuid, res.uuid)
+
+    @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
+                       return_value=True)
+    def test_get_free_port_like_object_portgroup_physnet_match_first(self,
+                                                                     vpi_mock):
+        pg1 = obj_utils.create_test_portgroup(
+            self.context, node_id=self.node.id)
+        obj_utils.create_test_port(
+            self.context, node_id=self.node.id, address='52:54:00:cf:2d:01',
+            uuid=uuidutils.generate_uuid(), portgroup_id=pg1.id)
+        pg2 = obj_utils.create_test_portgroup(
+            self.context, node_id=self.node.id, uuid=uuidutils.generate_uuid(),
+            name='pg2', address='52:54:00:cf:2d:01')
+        obj_utils.create_test_port(
+            self.context, node_id=self.node.id, address='52:54:00:cf:2d:02',
+            uuid=uuidutils.generate_uuid(), portgroup_id=pg2.id,
+            physical_network='physnet1')
+        with task_manager.acquire(self.context, self.node.id) as task:
+            res = common.get_free_port_like_object(task, self.vif_id,
+                                                   {'physnet1'})
+            self.assertEqual(pg2.uuid, res.uuid)
 
     @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
                        return_value=True)
     def test_get_free_port_like_object_ignores_empty_portgroup(self, vpi_mock):
         obj_utils.create_test_portgroup(self.context, node_id=self.node.id)
         with task_manager.acquire(self.context, self.node.id) as task:
-            res = common.get_free_port_like_object(task, self.vif_id)
+            res = common.get_free_port_like_object(task, self.vif_id,
+                                                   {'anyphysnet'})
             self.assertEqual(self.port.uuid, res.uuid)
 
     @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
@@ -169,7 +322,8 @@ class TestCommonFunctions(db_base.DbTestCase):
             self.context, node_id=self.node.id, address='52:54:00:cf:2d:02',
             uuid=uuidutils.generate_uuid(), portgroup_id=pg.id)
         with task_manager.acquire(self.context, self.node.id) as task:
-            res = common.get_free_port_like_object(task, self.vif_id)
+            res = common.get_free_port_like_object(task, self.vif_id,
+                                                   {'anyphysnet'})
             self.assertEqual(free_port.uuid, res.uuid)
 
     @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
@@ -186,7 +340,8 @@ class TestCommonFunctions(db_base.DbTestCase):
             self.assertRaisesRegex(
                 exception.VifAlreadyAttached,
                 r"already attached to Ironic Portgroup",
-                common.get_free_port_like_object, task, self.vif_id)
+                common.get_free_port_like_object,
+                task, self.vif_id, {'anyphysnet'})
 
     @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
                        return_value=True)
@@ -202,7 +357,8 @@ class TestCommonFunctions(db_base.DbTestCase):
             self.assertRaisesRegex(
                 exception.VifAlreadyAttached,
                 r"already attached to Ironic Portgroup",
-                common.get_free_port_like_object, task, self.vif_id)
+                common.get_free_port_like_object,
+                task, self.vif_id, {'anyphysnet'})
 
     @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
                        return_value=True)
@@ -213,7 +369,8 @@ class TestCommonFunctions(db_base.DbTestCase):
             self.assertRaisesRegex(
                 exception.VifAlreadyAttached,
                 r"already attached to Ironic Port\b",
-                common.get_free_port_like_object, task, self.vif_id)
+                common.get_free_port_like_object,
+                task, self.vif_id, {'anyphysnet'})
 
     @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
                        return_value=True)
@@ -225,7 +382,8 @@ class TestCommonFunctions(db_base.DbTestCase):
             self.assertRaisesRegex(
                 exception.VifAlreadyAttached,
                 r"already attached to Ironic Port\b",
-                common.get_free_port_like_object, task, self.vif_id)
+                common.get_free_port_like_object,
+                task, self.vif_id, {'anyphysnet'})
 
     @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
                        return_value=True)
@@ -235,7 +393,17 @@ class TestCommonFunctions(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.assertRaises(exception.NoFreePhysicalPorts,
                               common.get_free_port_like_object,
-                              task, self.vif_id)
+                              task, self.vif_id, {'anyphysnet'})
+
+    @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
+                       return_value=True)
+    def test_get_free_port_like_object_no_matching_physnets(self, vpi_mock):
+        self.port.physical_network = 'physnet1'
+        self.port.save()
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.assertRaises(exception.NoFreePhysicalPorts,
+                              common.get_free_port_like_object,
+                              task, self.vif_id, {'physnet2'})
 
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
     def test_plug_port_to_tenant_network_client(self, mock_gc):
@@ -330,24 +498,58 @@ class TestVifPortIDMixin(db_base.DbTestCase):
     @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
     @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
-    def test_vif_attach(self, mock_upa, mock_client, moc_gfp):
+    @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
+                       autospec=True)
+    def test_vif_attach(self, mock_gpbpi, mock_upa, mock_client, mock_gfp):
         self.port.extra = {}
         self.port.save()
         vif = {'id': "fake_vif_id"}
-        moc_gfp.return_value = self.port
+        mock_gfp.return_value = self.port
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.vif_attach(task, vif)
             self.port.refresh()
             self.assertEqual("fake_vif_id", self.port.internal_info.get(
                 common.TENANT_VIF_KEY))
             mock_client.assert_called_once_with()
+            self.assertFalse(mock_gpbpi.called)
+            mock_gfp.assert_called_once_with(task, 'fake_vif_id', set())
+            mock_client.return_value.show_port.assert_called_once_with(
+                'fake_vif_id')
             mock_upa.assert_called_once_with("fake_vif_id", self.port.address)
 
     @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
-    @mock.patch.object(neutron_common, 'get_client')
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
+    @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
+                       autospec=True)
+    def test_vif_attach_with_physnet(self, mock_gpbpi, mock_upa, mock_client,
+                                     mock_gfp):
+        self.port.extra = {}
+        self.port.physical_network = 'physnet1'
+        self.port.save()
+        vif = {'id': "fake_vif_id"}
+        mock_gpbpi.return_value = {'physnet1'}
+        mock_gfp.return_value = self.port
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.vif_attach(task, vif)
+            self.port.refresh()
+            self.assertEqual("fake_vif_id", self.port.internal_info.get(
+                common.TENANT_VIF_KEY))
+            mock_client.assert_called_once_with()
+            mock_gpbpi.assert_called_once_with(mock_client.return_value,
+                                               'fake_vif_id')
+            mock_gfp.assert_called_once_with(task, 'fake_vif_id', {'physnet1'})
+            mock_client.return_value.show_port.assert_called_once_with(
+                'fake_vif_id')
+            mock_upa.assert_called_once_with("fake_vif_id", self.port.address)
+
+    @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
     @mock.patch.object(neutron_common, 'update_port_address')
-    def test_vif_attach_portgroup_no_address(self, mock_upa, mock_client,
-                                             mock_gfp):
+    @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
+                       autospec=True)
+    def test_vif_attach_portgroup_no_address(self, mock_gpbpi, mock_upa,
+                                             mock_client, mock_gfp):
         pg = obj_utils.create_test_portgroup(
             self.context, node_id=self.node.id, address=None)
         mock_gfp.return_value = pg
@@ -360,15 +562,23 @@ class TestVifPortIDMixin(db_base.DbTestCase):
             pg.refresh()
             self.assertEqual(vif['id'],
                              pg.internal_info[common.TENANT_VIF_KEY])
+            mock_client.assert_called_once_with()
+            self.assertFalse(mock_gpbpi.called)
+            mock_gfp.assert_called_once_with(task, 'fake_vif_id', set())
+            self.assertFalse(mock_client.return_value.show_port.called)
             self.assertFalse(mock_upa.called)
-            self.assertTrue(mock_client.called)
 
-    @mock.patch.object(neutron_common, 'get_client')
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
     @mock.patch.object(neutron_common, 'update_port_address')
-    def test_vif_attach_update_port_exception(self, mock_upa, mock_client):
+    @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
+                       autospec=True)
+    def test_vif_attach_update_port_exception(self, mock_gpbpi, mock_upa,
+                                              mock_client):
         self.port.extra = {}
+        self.port.physical_network = 'physnet1'
         self.port.save()
         vif = {'id': "fake_vif_id"}
+        mock_gpbpi.return_value = {'physnet1'}
         mock_upa.side_effect = (
             exception.FailedToUpdateMacOnPort(port_id='fake'))
         with task_manager.acquire(self.context, self.node.id) as task:
@@ -376,6 +586,84 @@ class TestVifPortIDMixin(db_base.DbTestCase):
                 exception.NetworkError, "can not update Neutron port",
                 self.interface.vif_attach, task, vif)
             mock_client.assert_called_once_with()
+            mock_gpbpi.assert_called_once_with(mock_client.return_value,
+                                               'fake_vif_id')
+            mock_client.return_value.show_port.assert_called_once_with(
+                'fake_vif_id')
+
+    @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    @mock.patch.object(neutron_common, 'update_port_address')
+    @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
+                       autospec=True)
+    def test_vif_attach_neutron_absent(self, mock_gpbpi, mock_upa,
+                                       mock_client, mock_gfp):
+        self.port.extra = {}
+        self.port.physical_network = 'physnet1'
+        self.port.save()
+        vif = {'id': "fake_vif_id"}
+        mock_gfp.return_value = self.port
+        mock_client.return_value.show_port.side_effect = (
+            neutron_exceptions.NeutronClientException)
+        mock_gpbpi.side_effect = exception.NetworkError
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.vif_attach(task, vif)
+            mock_client.assert_called_once_with()
+            mock_gpbpi.assert_called_once_with(mock_client.return_value,
+                                               'fake_vif_id')
+            mock_gfp.assert_called_once_with(task, 'fake_vif_id', set())
+            mock_client.return_value.show_port.assert_called_once_with(
+                'fake_vif_id')
+            self.assertFalse(mock_upa.called)
+
+    @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client')
+    @mock.patch.object(neutron_common, 'update_port_address')
+    @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
+                       autospec=True)
+    def test_vif_attach_portgroup_physnet_inconsistent(self, mock_gpbpi,
+                                                       mock_upa, mock_client,
+                                                       mock_gfp):
+        self.port.extra = {}
+        self.port.physical_network = 'physnet1'
+        self.port.save()
+        vif = {'id': "fake_vif_id"}
+        mock_gpbpi.return_value = {'anyphysnet'}
+        mock_gfp.side_effect = exception.PortgroupPhysnetInconsistent(
+            portgroup='fake-portgroup-id', physical_networks='physnet1')
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.assertRaises(
+                exception.PortgroupPhysnetInconsistent,
+                self.interface.vif_attach, task, vif)
+            mock_client.assert_called_once_with()
+            mock_gpbpi.assert_called_once_with(mock_client.return_value,
+                                               'fake_vif_id')
+            self.assertFalse(mock_upa.called)
+
+    @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client')
+    @mock.patch.object(neutron_common, 'update_port_address')
+    @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
+                       autospec=True)
+    def test_vif_attach_multiple_segment_mappings(self, mock_gpbpi, mock_upa,
+                                                  mock_client, mock_gfp):
+        self.port.extra = {}
+        self.port.physical_network = 'physnet1'
+        self.port.save()
+        obj_utils.create_test_port(
+            self.context, node_id=self.node.id, uuid=uuidutils.generate_uuid(),
+            address='52:54:00:cf:2d:33', physical_network='physnet2')
+        vif = {'id': "fake_vif_id"}
+        mock_gpbpi.return_value = {'physnet1', 'physnet2'}
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.assertRaises(
+                exception.VifInvalidForAttach,
+                self.interface.vif_attach, task, vif)
+            mock_client.assert_called_once_with()
+            mock_gpbpi.assert_called_once_with(mock_client.return_value,
+                                               'fake_vif_id')
+            self.assertFalse(mock_gfp.called)
+            self.assertFalse(mock_upa.called)
 
     def test_vif_detach_in_extra(self):
         with task_manager.acquire(self.context, self.node.id) as task:

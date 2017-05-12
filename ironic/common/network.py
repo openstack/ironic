@@ -64,3 +64,17 @@ def get_ports_by_portgroup_id(task, portgroup_id):
     :returns: A list of Port objects.
     """
     return [port for port in task.ports if port.portgroup_id == portgroup_id]
+
+
+def get_physnets_for_node(task):
+    """Return the set of physical networks for a node.
+
+    Returns the set of physical networks associated with a node's ports. The
+    physical network None is excluded from the set.
+
+    :param task: a TaskManager instance
+    :returns: A set of physical networks.
+    """
+    return set(port.physical_network
+               for port in task.ports
+               if port.physical_network is not None)

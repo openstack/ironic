@@ -26,6 +26,12 @@ DEFAULT_NEUTRON_URL = 'http://%s:9696' % CONF.my_ip
 
 _NEUTRON_SESSION = None
 
+PHYSNET_PARAM_NAME = 'provider:physical_network'
+"""Name of the neutron network API physical network parameter."""
+
+SEGMENTS_PARAM_NAME = 'segments'
+"""Name of the neutron network API segments parameter."""
+
 
 def _get_neutron_session():
     global _NEUTRON_SESSION
@@ -365,32 +371,10 @@ def validate_network(uuid_or_name, net_type=_('network')):
         raise exception.MissingParameterValue(
             _('UUID or name of %s is not set in configuration') % net_type)
 
-    if uuidutils.is_uuid_like(uuid_or_name):
-        filters = {'id': uuid_or_name}
-    else:
-        filters = {'name': uuid_or_name}
-
-    try:
-        client = get_client()
-        networks = client.list_networks(fields=['id'], **filters)
-    except neutron_exceptions.NeutronClientException as exc:
-        raise exception.NetworkError(_('Could not retrieve network list: %s') %
-                                     exc)
-
-    LOG.debug('Got list of networks matching %(cond)s: %(result)s',
-              {'cond': filters, 'result': networks})
-    networks = [n['id'] for n in networks.get('networks', [])]
-    if not networks:
-        raise exception.InvalidParameterValue(
-            _('%(type)s with name or UUID %(uuid_or_name)s was not found') %
-            {'type': net_type, 'uuid_or_name': uuid_or_name})
-    elif len(networks) > 1:
-        raise exception.InvalidParameterValue(
-            _('More than one %(type)s was found for name %(name)s: %(nets)s') %
-            {'name': uuid_or_name, 'nets': ', '.join(networks),
-             'type': net_type})
-
-    return networks[0]
+    client = get_client()
+    network = _get_network_by_uuid_or_name(client, uuid_or_name,
+                                           net_type=net_type, fields=['id'])
+    return network['id']
 
 
 def validate_port_info(node, port):
@@ -412,6 +396,104 @@ def validate_port_info(node, port):
         return False
 
     return True
+
+
+def _get_network_by_uuid_or_name(client, uuid_or_name, net_type=_('network'),
+                                 **params):
+    """Return a neutron network by UUID or name.
+
+    :param client: A Neutron client object.
+    :param uuid_or_name: network UUID or name
+    :param net_type: human-readable network type for error messages
+    :param params: Additional parameters to pass to the neutron client
+        list_networks method.
+    :returns: A dict describing the neutron network.
+    :raises: NetworkError on failure to contact Neutron
+    :raises: InvalidParameterValue for missing or duplicated network
+    """
+    if uuidutils.is_uuid_like(uuid_or_name):
+        params['id'] = uuid_or_name
+    else:
+        params['name'] = uuid_or_name
+
+    try:
+        networks = client.list_networks(**params)
+    except neutron_exceptions.NeutronClientException as exc:
+        raise exception.NetworkError(_('Could not retrieve network list: %s') %
+                                     exc)
+
+    LOG.debug('Got list of networks matching %(cond)s: %(result)s',
+              {'cond': params, 'result': networks})
+    networks = networks.get('networks', [])
+    if not networks:
+        raise exception.InvalidParameterValue(
+            _('%(type)s with name or UUID %(uuid_or_name)s was not found') %
+            {'type': net_type, 'uuid_or_name': uuid_or_name})
+    elif len(networks) > 1:
+        network_ids = [n['id'] for n in networks]
+        raise exception.InvalidParameterValue(
+            _('More than one %(type)s was found for name %(name)s: %(nets)s') %
+            {'name': uuid_or_name, 'nets': ', '.join(network_ids),
+             'type': net_type})
+    return networks[0]
+
+
+def _get_port_by_uuid(client, port_uuid, **params):
+    """Return a neutron port by UUID.
+
+    :param client: A Neutron client object.
+    :param port_uuid: UUID of a Neutron port to query.
+    :param params: Additional parameters to pass to the neutron client
+        show_port method.
+    :returns: A dict describing the neutron port.
+    :raises: InvalidParameterValue if the port does not exist.
+    :raises: NetworkError on failure to contact Neutron.
+    """
+    try:
+        port = client.show_port(port_uuid, **params)
+    except neutron_exceptions.PortNotFoundClient:
+        raise exception.InvalidParameterValue(
+            _('Neutron port %(port_uuid)s was not found') %
+            {'port_uuid': port_uuid})
+    except neutron_exceptions.NeutronClientException as exc:
+        raise exception.NetworkError(_('Could not retrieve neutron port: %s') %
+                                     exc)
+    return port['port']
+
+
+def get_physnets_by_port_uuid(client, port_uuid):
+    """Return the set of physical networks associated with a neutron port.
+
+    Query the network to which the port is attached and return the set of
+    physical networks associated with the segments in that network.
+
+    :param client: A Neutron client object.
+    :param port_uuid: UUID of a Neutron port to query.
+    :returns: A set of physical networks.
+    :raises: NetworkError if the network query fails.
+    :raises: InvalidParameterValue for missing network.
+    """
+    port = _get_port_by_uuid(client, port_uuid, fields=['network_id'])
+    network_uuid = port['network_id']
+
+    fields = [PHYSNET_PARAM_NAME, SEGMENTS_PARAM_NAME]
+    network = _get_network_by_uuid_or_name(client, network_uuid, fields=fields)
+
+    if SEGMENTS_PARAM_NAME in network:
+        # A network with multiple segments will have a 'segments' parameter
+        # which will contain a list of segments. Each segment should have a
+        # 'provider:physical_network' parameter which contains the physical
+        # network of the segment.
+        segments = network[SEGMENTS_PARAM_NAME]
+    else:
+        # A network with a single segment will have a
+        # 'provider:physical_network' parameter which contains the network's
+        # physical network.
+        segments = [network]
+
+    return set(segment[PHYSNET_PARAM_NAME]
+               for segment in segments
+               if segment[PHYSNET_PARAM_NAME])
 
 
 class NeutronNetworkInterfaceMixin(object):

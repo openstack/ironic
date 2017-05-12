@@ -3792,6 +3792,36 @@ class VifTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_attach.assert_called_once_with(mock.ANY, mock.ANY, self.vif)
 
     @mock.patch.object(n_flat.FlatNetwork, 'vif_attach', autpspec=True)
+    def test_vif_attach_raises_portgroup_physnet_inconsistent(
+            self, mock_attach, mock_valid):
+        mock_valid.side_effect = exception.PortgroupPhysnetInconsistent(
+            portgroup='fake-pg', physical_networks='fake-physnet')
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.vif_attach,
+                                self.context, node.uuid, self.vif)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.PortgroupPhysnetInconsistent,
+                         exc.exc_info[0])
+        mock_valid.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertFalse(mock_attach.called)
+
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_attach', autpspec=True)
+    def test_vif_attach_raises_vif_invalid_for_attach(
+            self, mock_attach, mock_valid):
+        mock_valid.side_effect = exception.VifInvalidForAttach(
+            node='fake-node', vif='fake-vif', reason='fake-reason')
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.vif_attach,
+                                self.context, node.uuid, self.vif)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.VifInvalidForAttach,
+                         exc.exc_info[0])
+        mock_valid.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertFalse(mock_attach.called)
+
+    @mock.patch.object(n_flat.FlatNetwork, 'vif_attach', autpspec=True)
     def test_vif_attach_validate_error(self, mock_attach,
                                        mock_valid):
         mock_valid.side_effect = exception.MissingParameterValue("BOOM")
