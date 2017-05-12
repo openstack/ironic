@@ -209,7 +209,7 @@ class TestCinderActions(db_base.DbTestCase):
         connector = {'foo': 'bar'}
         mock_create_meta.return_value = {'bar': 'baz'}
         mock_is_attached.return_value = False
-        mock_get.return_value = mock.Mock(attachments=[], uuid='000-001')
+        mock_get.return_value = mock.Mock(attachments=[], id='000-001')
 
         mock_init.return_value = {
             'driver_volume_type': 'iscsi',
@@ -261,9 +261,9 @@ class TestCinderActions(db_base.DbTestCase):
         connector = {'foo': 'bar'}
         mock_create_meta.return_value = {'bar': 'baz'}
         mock_get.side_effect = [
-            mock.Mock(attachments=[], uuid='000-000'),
+            mock.Mock(attachments=[], id='000-000'),
             mock.Mock(attachments=[{'server_id': self.node.uuid}],
-                      uuid='000-001')
+                      id='000-001')
         ]
 
         mock_init.return_value = {
@@ -415,7 +415,7 @@ class TestCinderActions(db_base.DbTestCase):
         connector = {'foo': 'bar'}
         mock_create_meta.return_value = {'bar': 'baz'}
         mock_is_attached.return_value = False
-        mock_get.return_value = mock.Mock(attachments=[], uuid='000-003')
+        mock_get.return_value = mock.Mock(attachments=[], id='000-003')
         mock_init.return_value = {
             'driver_volume_type': 'iscsi',
             'data': {
@@ -465,7 +465,7 @@ class TestCinderActions(db_base.DbTestCase):
         connector = {'foo': 'bar'}
         mock_create_meta.return_value = {'bar': 'baz'}
         mock_is_attached.return_value = False
-        mock_get.return_value = mock.Mock(attachments=[], uuid='000-000')
+        mock_get.return_value = mock.Mock(attachments=[], id='000-000')
         mock_init.return_value = {
             'driver_volume_type': 'iscsi',
             'data': {

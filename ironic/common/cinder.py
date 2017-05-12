@@ -252,7 +252,7 @@ def attach_volumes(task, volume_list, connector):
             # NOTE(jtaryma): Actual connection info of already connected
             # volume will be provided by nova. Adding this dictionary to
             # 'connected' list so it contains also already connected volumes.
-            connection = {'data': {'ironic_volume_uuid': volume.uuid,
+            connection = {'data': {'ironic_volume_uuid': volume.id,
                                    'volume_id': volume_id},
                           'already_attached': True}
             connected.append(connection)
@@ -280,7 +280,7 @@ def attach_volumes(task, volume_list, connector):
 
         if 'volume_id' not in connection['data']:
             connection['data']['volume_id'] = volume_id
-        connection['data']['ironic_volume_uuid'] = volume.uuid
+        connection['data']['ironic_volume_uuid'] = volume.id
         connected.append(connection)
 
         LOG.info('Successfully initialized volume %(vol_id)s for '
