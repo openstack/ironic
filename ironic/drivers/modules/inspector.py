@@ -21,7 +21,7 @@ from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LI
+from ironic.common.i18n import _
 from ironic.common import keystone
 from ironic.common import states
 from ironic.conductor import task_manager
@@ -70,9 +70,9 @@ class Inspector(base.InspectInterface):
         if CONF.inspector.enabled:
             return cls()
         else:
-            LOG.info(_LI("Inspection via ironic-inspector is disabled in "
-                         "configuration for driver %s. To enable, change "
-                         "[inspector] enabled = True."), driver_name)
+            LOG.info("Inspection via ironic-inspector is disabled in "
+                     "configuration for driver %s. To enable, change "
+                     "[inspector] enabled = True.", driver_name)
 
     def __init__(self):
         if not client:
@@ -138,8 +138,8 @@ def _start_inspection(node_uuid, context):
     try:
         _get_client().introspect(node_uuid)
     except Exception as exc:
-        LOG.exception(_LE('Exception during contacting ironic-inspector '
-                          'for inspection of node %(node)s: %(err)s'),
+        LOG.exception('Exception during contacting ironic-inspector '
+                      'for inspection of node %(node)s: %(err)s',
                       {'node': node_uuid, 'err': exc})
         # NOTE(dtantsur): if acquire fails our last option is to rely on
         # timeout
@@ -149,7 +149,7 @@ def _start_inspection(node_uuid, context):
             task.node.last_error = _('Failed to start inspection: %s') % exc
             task.process_event('fail')
     else:
-        LOG.info(_LI('Node %s was sent to inspection to ironic-inspector'),
+        LOG.info('Node %s was sent to inspection to ironic-inspector',
                  node_uuid)
 
 
@@ -169,8 +169,8 @@ def _check_status(task):
     except Exception:
         # NOTE(dtantsur): get_status should not normally raise
         # let's assume it's a transient failure and retry later
-        LOG.exception(_LE('Unexpected exception while getting '
-                          'inspection status for node %s, will retry later'),
+        LOG.exception('Unexpected exception while getting '
+                      'inspection status for node %s, will retry later',
                       node.uuid)
         return
 
@@ -185,13 +185,11 @@ def _check_status(task):
     node = task.node
 
     if error:
-        LOG.error(_LE('Inspection failed for node %(uuid)s '
-                      'with error: %(err)s'),
+        LOG.error('Inspection failed for node %(uuid)s with error: %(err)s',
                   {'uuid': node.uuid, 'err': error})
         node.last_error = (_('ironic-inspector inspection failed: %s')
                            % error)
         task.process_event('fail')
     elif finished:
-        LOG.info(_LI('Inspection finished successfully for node %s'),
-                 node.uuid)
+        LOG.info('Inspection finished successfully for node %s', node.uuid)
         task.process_event('done')

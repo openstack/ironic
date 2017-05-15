@@ -32,7 +32,7 @@ from oslo_utils import importutils
 import six
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LW
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
@@ -377,8 +377,8 @@ class SNMPDriverSimple(SNMPDriverBase):
         elif state == self.value_power_off:
             power_state = states.POWER_OFF
         else:
-            LOG.warning(_LW("SNMP PDU %(addr)s outlet %(outlet)s: "
-                            "unrecognised power state %(state)s."),
+            LOG.warning("SNMP PDU %(addr)s outlet %(outlet)s: "
+                        "unrecognised power state %(state)s.",
                         {'addr': self.snmp_info['address'],
                          'outlet': self.snmp_info['outlet'],
                          'state': state})
@@ -543,8 +543,8 @@ class SNMPDriverEatonPower(SNMPDriverBase):
         elif state in (self.status_off, self.status_pending_on):
             power_state = states.POWER_OFF
         else:
-            LOG.warning(_LW("Eaton Power SNMP PDU %(addr)s outlet %(outlet)s: "
-                            "unrecognised power state %(state)s."),
+            LOG.warning("Eaton Power SNMP PDU %(addr)s outlet %(outlet)s: "
+                        "unrecognised power state %(state)s.",
                         {'addr': self.snmp_info['address'],
                          'outlet': self.snmp_info['outlet'],
                          'state': state})

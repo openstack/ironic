@@ -21,7 +21,7 @@ import six.moves.urllib_parse as urlparse
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
-from ironic.common.i18n import _, _LI, _LW
+from ironic.common.i18n import _
 from ironic.common import images
 from ironic.common import raid
 from ironic.common import states
@@ -81,8 +81,8 @@ def check_image_size(task, image_source):
     properties = node.properties
     # skip check if 'memory_mb' is not defined
     if 'memory_mb' not in properties:
-        LOG.warning(_LW('Skip the image size check as memory_mb is not '
-                        'defined in properties on node %s.'), node.uuid)
+        LOG.warning('Skip the image size check as memory_mb is not '
+                    'defined in properties on node %s.', node.uuid)
         return
 
     image_show = images.image_show(task.context, image_source)
@@ -285,7 +285,7 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
             task.node.driver_internal_info = driver_internal_info
             task.node.save()
             self.prepare_instance_to_boot(task, root_uuid, efi_sys_uuid)
-        LOG.info(_LI('Image successfully written to node %s'), node.uuid)
+        LOG.info('Image successfully written to node %s', node.uuid)
         LOG.debug('Rebooting node %s to instance', node.uuid)
         if iwdi:
             manager_utils.node_set_boot_device(task, 'disk', persistent=True)
