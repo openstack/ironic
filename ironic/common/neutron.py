@@ -16,7 +16,7 @@ from oslo_log import log
 from oslo_utils import uuidutils
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LI, _LW
+from ironic.common.i18n import _
 from ironic.common import keystone
 from ironic.conf import CONF
 
@@ -227,9 +227,9 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
             port = client.create_port(body)
         except neutron_exceptions.NeutronClientException as e:
             failures.append(ironic_port.uuid)
-            LOG.warning(_LW("Could not create neutron port for node's "
-                            "%(node)s port %(ir-port)s on the neutron "
-                            "network %(net)s. %(exc)s"),
+            LOG.warning("Could not create neutron port for node's "
+                        "%(node)s port %(ir-port)s on the neutron "
+                        "network %(net)s. %(exc)s",
                         {'net': network_uuid, 'node': node.uuid,
                          'ir-port': ironic_port.uuid, 'exc': e})
         else:
@@ -242,13 +242,13 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
                 "Failed to create neutron ports for any PXE enabled port "
                 "on node %s.") % node.uuid)
         else:
-            LOG.warning(_LW("Some errors were encountered when updating "
-                            "vif_port_id for node %(node)s on "
-                            "the following ports: %(ports)s."),
+            LOG.warning("Some errors were encountered when updating "
+                        "vif_port_id for node %(node)s on "
+                        "the following ports: %(ports)s.",
                         {'node': node.uuid, 'ports': failures})
     else:
-        LOG.info(_LI('Successfully created ports for node %(node_uuid)s in '
-                     'network %(net)s.'),
+        LOG.info('Successfully created ports for node %(node_uuid)s in '
+                 'network %(net)s.',
                  {'node_uuid': node.uuid, 'net': network_uuid})
 
     return ports
@@ -311,7 +311,7 @@ def remove_neutron_ports(task, params):
             LOG.exception(msg)
             raise exception.NetworkError(msg)
 
-    LOG.info(_LI('Successfully removed node %(node_uuid)s neutron ports.'),
+    LOG.info('Successfully removed node %(node_uuid)s neutron ports.',
              {'node_uuid': node_uuid})
 
 
@@ -343,10 +343,9 @@ def rollback_ports(task, network_uuid):
         remove_ports_from_network(task, network_uuid)
     except exception.NetworkError:
         # Only log the error
-        LOG.exception(_LE(
-            'Failed to rollback port changes for node %(node)s '
-            'on network %(network)s'), {'node': task.node.uuid,
-                                        'network': network_uuid})
+        LOG.exception('Failed to rollback port changes for '
+                      'node %(node)s on network %(network)s',
+                      {'node': task.node.uuid, 'network': network_uuid})
 
 
 def validate_network(uuid_or_name, net_type=_('network')):
@@ -403,9 +402,9 @@ def validate_port_info(node, port):
     """
     if (node.network_interface == 'neutron' and
             not port.local_link_connection):
-        LOG.warning(_LW("The local_link_connection is required for "
-                        "'neutron' network interface and is not present "
-                        "in the nodes %(node)s port %(port)s"),
+        LOG.warning("The local_link_connection is required for "
+                    "'neutron' network interface and is not present "
+                    "in the nodes %(node)s port %(port)s",
                     {'node': node.uuid, 'port': port.uuid})
         return False
 

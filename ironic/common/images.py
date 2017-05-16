@@ -31,7 +31,7 @@ from oslo_utils import fileutils
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
-from ironic.common.i18n import _, _LE
+from ironic.common.i18n import _
 from ironic.common import image_service as service
 from ironic.common import utils
 from ironic.conf import CONF
@@ -126,7 +126,7 @@ def create_vfat_image(output_file, files_info=None, parameters=None,
                 utils.write_to_file(parameters_file, file_contents)
 
         except Exception as e:
-            LOG.exception(_LE("vfat image creation failed. Error: %s"), e)
+            LOG.exception("vfat image creation failed. Error: %s", e)
             raise exception.ImageCreationFailed(image_type='vfat', error=e)
 
         finally:
@@ -196,7 +196,7 @@ def create_isolinux_image_for_bios(output_file, kernel, ramdisk,
         try:
             _create_root_fs(tmpdir, files_info)
         except (OSError, IOError) as e:
-            LOG.exception(_LE("Creating the filesystem root failed."))
+            LOG.exception("Creating the filesystem root failed.")
             raise exception.ImageCreationFailed(image_type='iso', error=e)
 
         cfg = _generate_cfg(kernel_params,
@@ -211,7 +211,7 @@ def create_isolinux_image_for_bios(output_file, kernel, ramdisk,
                           '-boot-load-size', '4', '-boot-info-table',
                           '-b', ISOLINUX_BIN, '-o', output_file, tmpdir)
         except processutils.ProcessExecutionError as e:
-            LOG.exception(_LE("Creating ISO image failed."))
+            LOG.exception("Creating ISO image failed.")
             raise exception.ImageCreationFailed(image_type='iso', error=e)
 
 
@@ -262,7 +262,7 @@ def create_isolinux_image_for_uefi(output_file, deploy_iso, kernel, ramdisk,
             try:
                 _create_root_fs(tmpdir, files_info)
             except (OSError, IOError) as e:
-                LOG.exception(_LE("Creating the filesystem root failed."))
+                LOG.exception("Creating the filesystem root failed.")
                 raise exception.ImageCreationFailed(image_type='iso', error=e)
             finally:
                 _umount_without_raise(mountdir)
@@ -288,7 +288,7 @@ def create_isolinux_image_for_uefi(output_file, deploy_iso, kernel, ramdisk,
                           '-e', e_img_rel_path, '-no-emul-boot',
                           '-o', output_file, tmpdir)
         except processutils.ProcessExecutionError as e:
-            LOG.exception(_LE("Creating ISO image failed."))
+            LOG.exception("Creating ISO image failed.")
             raise exception.ImageCreationFailed(image_type='iso', error=e)
 
 
@@ -506,7 +506,7 @@ def _mount_deploy_iso(deploy_iso, mountdir):
     try:
         utils.mount(deploy_iso, mountdir, '-o', 'loop')
     except processutils.ProcessExecutionError as e:
-        LOG.exception(_LE("mounting the deploy iso failed."))
+        LOG.exception("mounting the deploy iso failed.")
         raise exception.ImageCreationFailed(image_type='iso', error=e)
 
     try:
@@ -520,7 +520,7 @@ def _mount_deploy_iso(deploy_iso, mountdir):
                 grub_rel_path = os.path.relpath(grub_path,
                                                 mountdir)
     except (OSError, IOError) as e:
-        LOG.exception(_LE("examining the deploy iso failed."))
+        LOG.exception("examining the deploy iso failed.")
         _umount_without_raise(mountdir)
         raise exception.ImageCreationFailed(image_type='iso', error=e)
 

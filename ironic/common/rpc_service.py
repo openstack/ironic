@@ -22,7 +22,6 @@ from oslo_service import service
 from oslo_utils import importutils
 
 from ironic.common import context
-from ironic.common.i18n import _LE, _LI
 from ironic.common import rpc
 from ironic.objects import base as objects_base
 
@@ -54,8 +53,8 @@ class RPCService(service.Service):
         self.handle_signal()
         self.manager.init_host(admin_context)
 
-        LOG.info(_LI('Created RPC server for service %(service)s on host '
-                     '%(host)s.'),
+        LOG.info('Created RPC server for service %(service)s on host '
+                 '%(host)s.',
                  {'service': self.topic, 'host': self.host})
 
     def stop(self):
@@ -63,22 +62,22 @@ class RPCService(service.Service):
             self.rpcserver.stop()
             self.rpcserver.wait()
         except Exception as e:
-            LOG.exception(_LE('Service error occurred when stopping the '
-                              'RPC server. Error: %s'), e)
+            LOG.exception('Service error occurred when stopping the '
+                          'RPC server. Error: %s', e)
         try:
             self.manager.del_host(deregister=self.deregister)
         except Exception as e:
-            LOG.exception(_LE('Service error occurred when cleaning up '
-                              'the RPC manager. Error: %s'), e)
+            LOG.exception('Service error occurred when cleaning up '
+                          'the RPC manager. Error: %s', e)
 
         super(RPCService, self).stop(graceful=True)
-        LOG.info(_LI('Stopped RPC server for service %(service)s on host '
-                     '%(host)s.'),
+        LOG.info('Stopped RPC server for service %(service)s on host '
+                 '%(host)s.',
                  {'service': self.topic, 'host': self.host})
 
     def _handle_signal(self, signo, frame):
-        LOG.info(_LI('Got signal SIGUSR1. Not deregistering on next shutdown '
-                     'of service %(service)s on host %(host)s.'),
+        LOG.info('Got signal SIGUSR1. Not deregistering on next shutdown '
+                 'of service %(service)s on host %(host)s.',
                  {'service': self.topic, 'host': self.host})
         self.deregister = False
 

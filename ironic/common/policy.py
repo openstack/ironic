@@ -23,7 +23,6 @@ from oslo_log import log
 from oslo_policy import policy
 
 from ironic.common import exception
-from ironic.common.i18n import _LW
 
 _ENFORCER = None
 CONF = cfg.CONF
@@ -323,10 +322,9 @@ def enforce(rule, target, creds, do_raise=False, exc=None, *args, **kwargs):
     # NOTE(deva): this method is obsoleted by authorize(), but retained for
     # backwards compatibility in case it has been used downstream.
     # It may be removed in the Pike cycle.
-    LOG.warning(_LW(
-        "Deprecation warning: calls to ironic.common.policy.enforce() "
-        "should be replaced with authorize(). This method may be removed "
-        "in a future release."))
+    LOG.warning("Deprecation warning: calls to ironic.common.policy.enforce() "
+                "should be replaced with authorize(). This method may be "
+                "removed in a future release.")
     if CONF.auth_strategy == 'noauth':
         return True
     enforcer = get_enforcer()
