@@ -23,12 +23,16 @@ inline callbacks.
 
 import copy
 import os
+import subprocess
 import sys
 import tempfile
 
 import eventlet
 eventlet.monkey_patch(os=False)
 import fixtures
+from ironic_lib import utils
+import mock
+from oslo_concurrency import processutils
 from oslo_config import fixture as config_fixture
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
@@ -73,6 +77,9 @@ class TestingException(Exception):
 class TestCase(testtools.TestCase):
     """Test case base class for all unit tests."""
 
+    # By default block execution of utils.execute() and related functions.
+    block_execute = True
+
     def setUp(self):
         """Run before each test method to initialize test environment."""
         super(TestCase, self).setUp()
@@ -116,6 +123,23 @@ class TestCase(testtools.TestCase):
         driver_factory.HardwareTypesFactory._extension_manager = None
         for factory in driver_factory._INTERFACE_LOADERS.values():
             factory._extension_manager = None
+
+        # Block access to utils.execute() and related functions.
+        # NOTE(bigjools): Not using a decorator on tests because I don't
+        # want to force every test method to accept a new arg. Instead, they
+        # can override or examine this self._exec_patch Mock as needed.
+        if self.block_execute:
+            self._exec_patch = mock.Mock()
+            self._exec_patch.side_effect = Exception(
+                "Don't call ironic_lib.utils.execute() / "
+                "processutils.execute() or similar functions in tests!")
+
+            self.patch(processutils, 'execute', self._exec_patch)
+            self.patch(subprocess, 'Popen', self._exec_patch)
+            self.patch(subprocess, 'call', self._exec_patch)
+            self.patch(subprocess, 'check_call', self._exec_patch)
+            self.patch(subprocess, 'check_output', self._exec_patch)
+            self.patch(utils, 'execute', self._exec_patch)
 
     def _set_config(self):
         self.cfg_fixture = self.useFixture(config_fixture.Config(CONF))
