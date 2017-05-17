@@ -8,6 +8,7 @@ Integration with other OpenStack services
    configure-identity
    configure-compute
    configure-networking
+   configure-glance-swift
    enabling-https
    configure-cleaning
    configure-tenant-networks.rst
