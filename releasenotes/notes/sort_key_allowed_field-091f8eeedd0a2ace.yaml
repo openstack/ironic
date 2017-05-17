@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    When returning lists of nodes, port groups, or ports, checks the sort key
+    to make sure the field is available in the requested API version. A 406
+    (Not Acceptable) HTTP status is returned if the field is not available.

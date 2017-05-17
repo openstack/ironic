@@ -354,6 +354,24 @@ class PortsController(rest.RestController):
         except exception.PortNotFound:
             return []
 
+    def _check_allowed_port_fields(self, fields):
+        """Check if fetching a particular field of a port is allowed.
+
+        Check if the required version is being requested for fields
+        that are only allowed to be fetched in a particular API version.
+
+        :param fields: list or set of fields to check
+        :raises: NotAcceptable if a field is not allowed
+        """
+        if fields is None:
+            return
+        if (not api_utils.allow_port_advanced_net_fields() and
+                set(fields).intersection(self.advanced_net_fields)):
+            raise exception.NotAcceptable()
+        if ('portgroup_uuid' in fields and not
+                api_utils.allow_portgroups_subcontrollers()):
+            raise exception.NotAcceptable()
+
     @METRICS.timer('PortsController.get_all')
     @expose.expose(PortCollection, types.uuid_or_name, types.uuid,
                    types.macaddress, types.uuid, int, wtypes.text,
@@ -389,14 +407,8 @@ class PortsController(rest.RestController):
         policy.authorize('baremetal:port:get', cdict, cdict)
 
         api_utils.check_allow_specify_fields(fields)
-        if fields:
-            if (not api_utils.allow_port_advanced_net_fields() and
-                    set(fields).intersection(self.advanced_net_fields)):
-                raise exception.NotAcceptable()
-            if ('portgroup_uuid' in fields and not
-                    api_utils.allow_portgroups_subcontrollers()):
-                    raise exception.NotAcceptable()
-
+        self._check_allowed_port_fields(fields)
+        self._check_allowed_port_fields([sort_key])
         if portgroup and not api_utils.allow_portgroups_subcontrollers():
             raise exception.NotAcceptable()
 
@@ -446,6 +458,7 @@ class PortsController(rest.RestController):
         cdict = pecan.request.context.to_policy_values()
         policy.authorize('baremetal:port:get', cdict, cdict)
 
+        self._check_allowed_port_fields([sort_key])
         if portgroup and not api_utils.allow_portgroups_subcontrollers():
             raise exception.NotAcceptable()
 
@@ -504,12 +517,7 @@ class PortsController(rest.RestController):
             raise exception.OperationNotPermitted()
 
         pdict = port.as_dict()
-        if (not api_utils.allow_port_advanced_net_fields() and
-                set(pdict).intersection(self.advanced_net_fields)):
-            raise exception.NotAcceptable()
-        if (not api_utils.allow_portgroups_subcontrollers() and
-            'portgroup_uuid' in pdict):
-            raise exception.NotAcceptable()
+        self._check_allowed_port_fields(pdict)
 
         extra = pdict.get('extra')
         vif = extra.get('vif_port_id') if extra else None
@@ -569,12 +577,7 @@ class PortsController(rest.RestController):
             if (api_utils.get_patch_values(patch, field_path) or
                     api_utils.is_path_removed(patch, field_path)):
                 fields_to_check.add(field)
-        if (fields_to_check.intersection(self.advanced_net_fields) and
-                not api_utils.allow_port_advanced_net_fields()):
-            raise exception.NotAcceptable()
-        if ('portgroup_uuid' in fields_to_check and
-                not api_utils.allow_portgroups_subcontrollers()):
-            raise exception.NotAcceptable()
+        self._check_allowed_port_fields(fields_to_check)
 
         rpc_port = objects.Port.get_by_uuid(context, port_uuid)
         try:

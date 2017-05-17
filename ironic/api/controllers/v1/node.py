@@ -1442,6 +1442,7 @@ class NodesController(rest.RestController):
 
         api_utils.check_allow_specify_fields(fields)
         api_utils.check_allowed_fields(fields)
+        api_utils.check_allowed_fields([sort_key])
         api_utils.check_for_invalid_state_and_allow_filter(provision_state)
         api_utils.check_allow_specify_driver(driver)
         api_utils.check_allow_specify_resource_class(resource_class)
@@ -1495,6 +1496,7 @@ class NodesController(rest.RestController):
         api_utils.check_for_invalid_state_and_allow_filter(provision_state)
         api_utils.check_allow_specify_driver(driver)
         api_utils.check_allow_specify_resource_class(resource_class)
+        api_utils.check_allowed_fields([sort_key])
         # /detail should only work against collections
         parent = pecan.request.path.split('/')[:-1][-1]
         if parent != "nodes":
