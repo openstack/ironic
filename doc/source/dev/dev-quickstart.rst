@@ -17,7 +17,7 @@ patch.
     conflicting configuration with system dependencies.
 
 .. note::
-    This document is compatible with Python (3.5), Ubuntu (16.04) and Fedora (23).
+    This document is compatible with Python (3.5), Ubuntu (16.04) and Fedora (24).
     When referring to different versions of Python and OS distributions, this
     is explicitly stated.
 
@@ -63,35 +63,6 @@ well.
   on openSUSE or SLE 12, see
   `<https://software.opensuse.org/download.html?project=graphics&package=graphviz-plugins>`_.
 
-
-(Optional) Installing Py35 requirements
----------------------------------------
-
-If you need Python 3.5 support on an older distro that does not already have
-it, follow the instructions for installing prerequisites above and
-*additionally* run the following commands.
-
-- On Ubuntu 14.04::
-
-    #Install SQLite development headers
-    sudo apt-get install libsqlite3-dev
-
-    wget https://www.python.org/ftp/python/3.5.2/Python-3.5.2.tgz
-    sudo tar xzf Python-3.5.2.tgz
-    cd Python-3.5.2
-    sudo ./configure
-
-    # Install Python 3.5 without replacing the system-wide Python version:
-    sudo make altinstall
-
-    # Check if Python 3.5 was installed properly:
-    python3.5 -V
-
-- On Fedora 23::
-
-    sudo dnf install -y dnf-plugins-core
-    sudo dnf copr enable -y mstuchli/Python3.5
-    dnf install -y python35-python3
 
 Python Prerequisites
 --------------------
@@ -433,8 +404,8 @@ DevStack may be configured to deploy Ironic, setup Nova to use the Ironic
 driver and provide hardware resources (network, baremetal compute nodes)
 using a combination of OpenVSwitch and libvirt.  It is highly recommended
 to deploy on an expendable virtual machine and not on your personal work
-station.  Deploying Ironic with DevStack requires a machine running Ubuntu
-14.04 (or later) or Fedora 20 (or later). Make sure your machine is fully
+station. Deploying Ironic with DevStack requires a machine running Ubuntu
+16.04 (or later) or Fedora 24 (or later). Make sure your machine is fully
 up to date and has the latest packages installed before beginning this process.
 
 .. seealso::
