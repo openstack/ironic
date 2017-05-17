@@ -18,7 +18,7 @@ from oslo_config import cfg
 from oslo_log import log
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LI
+from ironic.common.i18n import _
 from ironic.common import neutron
 from ironic.drivers import base
 from ironic.drivers.modules.network import common
@@ -69,7 +69,7 @@ class NeutronNetwork(common.VIFPortIDMixin,
         # If we have left over ports from a previous provision attempt, remove
         # them
         neutron.rollback_ports(task, self.get_provisioning_network_uuid())
-        LOG.info(_LI('Adding provisioning network to node %s'),
+        LOG.info('Adding provisioning network to node %s',
                  task.node.uuid)
         vifs = neutron.add_ports_to_network(
             task, self.get_provisioning_network_uuid(),
@@ -87,7 +87,7 @@ class NeutronNetwork(common.VIFPortIDMixin,
         :param task: A TaskManager instance.
         :raises: NetworkError
         """
-        LOG.info(_LI('Removing provisioning network from node %s'),
+        LOG.info('Removing provisioning network from node %s',
                  task.node.uuid)
         neutron.remove_ports_from_network(
             task, self.get_provisioning_network_uuid())
@@ -107,7 +107,7 @@ class NeutronNetwork(common.VIFPortIDMixin,
         """
         # If we have left over ports from a previous cleaning, remove them
         neutron.rollback_ports(task, self.get_cleaning_network_uuid())
-        LOG.info(_LI('Adding cleaning network to node %s'), task.node.uuid)
+        LOG.info('Adding cleaning network to node %s', task.node.uuid)
         security_groups = CONF.neutron.cleaning_network_security_groups
         vifs = neutron.add_ports_to_network(task,
                                             self.get_cleaning_network_uuid(),
@@ -126,7 +126,7 @@ class NeutronNetwork(common.VIFPortIDMixin,
         :param task: a TaskManager instance.
         :raises: NetworkError
         """
-        LOG.info(_LI('Removing cleaning network from node %s'),
+        LOG.info('Removing cleaning network from node %s',
                  task.node.uuid)
         neutron.remove_ports_from_network(task,
                                           self.get_cleaning_network_uuid())
@@ -145,7 +145,7 @@ class NeutronNetwork(common.VIFPortIDMixin,
         """
         node = task.node
         ports = task.ports
-        LOG.info(_LI('Mapping instance ports to %s'), node.uuid)
+        LOG.info('Mapping instance ports to %s', node.uuid)
 
         # TODO(russell_h): this is based on the broken assumption that the
         # number of Neutron ports will match the number of physical ports.
@@ -186,7 +186,7 @@ class NeutronNetwork(common.VIFPortIDMixin,
         :raises: NetworkError
         """
         node = task.node
-        LOG.info(_LI('Unbinding instance ports from node %s'), node.uuid)
+        LOG.info('Unbinding instance ports from node %s', node.uuid)
 
         ports = [p for p in task.ports if not p.portgroup_id]
         portgroups = task.portgroups

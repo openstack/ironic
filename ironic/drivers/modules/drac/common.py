@@ -19,7 +19,7 @@ from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LW
+from ironic.common.i18n import _
 from ironic.common import utils
 
 drac_client = importutils.try_import('dracclient.client')
@@ -64,19 +64,19 @@ def parse_driver_info(node):
     parsed_driver_info = {}
 
     if 'drac_host' in driver_info and 'drac_address' not in driver_info:
-        LOG.warning(_LW('The driver_info["drac_host"] property is deprecated '
-                        'and will be removed in the Pike release. Please '
-                        'update the node %s driver_info field to use '
-                        '"drac_address" instead'), node.uuid)
+        LOG.warning('The driver_info["drac_host"] property is deprecated '
+                    'and will be removed in the Pike release. Please '
+                    'update the node %s driver_info field to use '
+                    '"drac_address" instead', node.uuid)
         address = driver_info.pop('drac_host', None)
         if address:
             driver_info['drac_address'] = address
     elif 'drac_host' in driver_info and 'drac_address' in driver_info:
-        LOG.warning(_LW('Both driver_info["drac_address"] and '
-                        'driver_info["drac_host"] properties are '
-                        'specified for node %s. Please remove the '
-                        '"drac_host" property from the node. Ignoring '
-                        '"drac_host" for now'), node.uuid)
+        LOG.warning('Both driver_info["drac_address"] and '
+                    'driver_info["drac_host"] properties are '
+                    'specified for node %s. Please remove the '
+                    '"drac_host" property from the node. Ignoring '
+                    '"drac_host" for now', node.uuid)
 
     error_msgs = []
     for param in REQUIRED_PROPERTIES:

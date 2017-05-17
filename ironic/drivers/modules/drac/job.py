@@ -19,7 +19,7 @@ from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE
+from ironic.common.i18n import _
 from ironic.drivers.modules.drac import common as drac_common
 
 drac_exceptions = importutils.try_import('dracclient.exceptions')
@@ -56,8 +56,8 @@ def get_job(node, job_id):
     try:
         return client.get_job(job_id)
     except drac_exceptions.BaseClientException as exc:
-        LOG.error(_LE('DRAC driver failed to get the job %(job_id)s '
-                      'for node %(node_uuid)s. Reason: %(error)s.'),
+        LOG.error('DRAC driver failed to get the job %(job_id)s '
+                  'for node %(node_uuid)s. Reason: %(error)s.',
                   {'node_uuid': node.uuid,
                    'error': exc})
         raise exception.DracOperationError(error=exc)
@@ -75,8 +75,8 @@ def list_unfinished_jobs(node):
     try:
         return client.list_jobs(only_unfinished=True)
     except drac_exceptions.BaseClientException as exc:
-        LOG.error(_LE('DRAC driver failed to get the list of unfinished jobs '
-                      'for node %(node_uuid)s. Reason: %(error)s.'),
+        LOG.error('DRAC driver failed to get the list of unfinished jobs '
+                  'for node %(node_uuid)s. Reason: %(error)s.',
                   {'node_uuid': node.uuid,
                    'error': exc})
         raise exception.DracOperationError(error=exc)

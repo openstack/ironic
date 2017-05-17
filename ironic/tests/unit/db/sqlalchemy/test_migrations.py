@@ -50,7 +50,6 @@ from oslo_utils import uuidutils
 import sqlalchemy
 import sqlalchemy.exc
 
-from ironic.common.i18n import _LE
 from ironic.conf import CONF
 from ironic.db.sqlalchemy import migration
 from ironic.db.sqlalchemy import models
@@ -133,8 +132,8 @@ class WalkVersionsMixin(object):
                 if check:
                     check(engine, data)
         except Exception:
-            LOG.error(_LE("Failed to migrate to version %(version)s on engine "
-                          "%(engine)s"),
+            LOG.error("Failed to migrate to version %(version)s on engine "
+                      "%(engine)s",
                       {'version': version, 'engine': engine})
             raise
 

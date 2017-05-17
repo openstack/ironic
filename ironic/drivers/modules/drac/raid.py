@@ -24,9 +24,9 @@ from oslo_utils import importutils
 from oslo_utils import units
 
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.common import raid as raid_common
 from ironic.common import states
-from ironic.common.i18n import _, _LE, _LI
 from ironic.conductor import task_manager
 from ironic.conf import CONF
 from ironic.drivers import base
@@ -92,8 +92,8 @@ def list_raid_controllers(node):
     try:
         return client.list_raid_controllers()
     except drac_exceptions.BaseClientException as exc:
-        LOG.error(_LE('DRAC driver failed to get the list of RAID controllers '
-                      'for node %(node_uuid)s. Reason: %(error)s.'),
+        LOG.error('DRAC driver failed to get the list of RAID controllers '
+                  'for node %(node_uuid)s. Reason: %(error)s.',
                   {'node_uuid': node.uuid, 'error': exc})
         raise exception.DracOperationError(error=exc)
 
@@ -110,8 +110,8 @@ def list_virtual_disks(node):
     try:
         return client.list_virtual_disks()
     except drac_exceptions.BaseClientException as exc:
-        LOG.error(_LE('DRAC driver failed to get the list of virtual disks '
-                      'for node %(node_uuid)s. Reason: %(error)s.'),
+        LOG.error('DRAC driver failed to get the list of virtual disks '
+                  'for node %(node_uuid)s. Reason: %(error)s.',
                   {'node_uuid': node.uuid, 'error': exc})
         raise exception.DracOperationError(error=exc)
 
@@ -128,8 +128,8 @@ def list_physical_disks(node):
     try:
         return client.list_physical_disks()
     except drac_exceptions.BaseClientException as exc:
-        LOG.error(_LE('DRAC driver failed to get the list of physical disks '
-                      'for node %(node_uuid)s. Reason: %(error)s.'),
+        LOG.error('DRAC driver failed to get the list of physical disks '
+                  'for node %(node_uuid)s. Reason: %(error)s.',
                   {'node_uuid': node.uuid, 'error': exc})
         raise exception.DracOperationError(error=exc)
 
@@ -165,8 +165,8 @@ def create_virtual_disk(node, raid_controller, physical_disks, raid_level,
                                           raid_level, size_mb, disk_name,
                                           span_length, span_depth)
     except drac_exceptions.BaseClientException as exc:
-        LOG.error(_LE('DRAC driver failed to create virtual disk for node '
-                      '%(node_uuid)s. Reason: %(error)s.'),
+        LOG.error('DRAC driver failed to create virtual disk for node '
+                  '%(node_uuid)s. Reason: %(error)s.',
                   {'node_uuid': node.uuid,
                    'error': exc})
         raise exception.DracOperationError(error=exc)
@@ -193,9 +193,9 @@ def delete_virtual_disk(node, virtual_disk):
     try:
         return client.delete_virtual_disk(virtual_disk)
     except drac_exceptions.BaseClientException as exc:
-        LOG.error(_LE('DRAC driver failed to delete virtual disk '
-                      '%(virtual_disk_fqdd)s for node %(node_uuid)s. '
-                      'Reason: %(error)s.'),
+        LOG.error('DRAC driver failed to delete virtual disk '
+                  '%(virtual_disk_fqdd)s for node %(node_uuid)s. '
+                  'Reason: %(error)s.',
                   {'virtual_disk_fqdd': virtual_disk,
                    'node_uuid': node.uuid,
                    'error': exc})
@@ -217,9 +217,9 @@ def commit_config(node, raid_controller, reboot=False):
     try:
         return client.commit_pending_raid_changes(raid_controller, reboot)
     except drac_exceptions.BaseClientException as exc:
-        LOG.error(_LE('DRAC driver failed to commit pending RAID config for'
-                      ' controller %(raid_controller_fqdd)s on node '
-                      '%(node_uuid)s. Reason: %(error)s.'),
+        LOG.error('DRAC driver failed to commit pending RAID config for'
+                  ' controller %(raid_controller_fqdd)s on node '
+                  '%(node_uuid)s. Reason: %(error)s.',
                   {'raid_controller_fqdd': raid_controller,
                    'node_uuid': node.uuid,
                    'error': exc})
@@ -238,9 +238,9 @@ def abandon_config(node, raid_controller):
     try:
         client.abandon_pending_raid_changes(raid_controller)
     except drac_exceptions.BaseClientException as exc:
-        LOG.error(_LE('DRAC driver failed to delete pending RAID config '
-                      'for controller %(raid_controller_fqdd)s on node '
-                      '%(node_uuid)s. Reason: %(error)s.'),
+        LOG.error('DRAC driver failed to delete pending RAID config '
+                  'for controller %(raid_controller_fqdd)s on node '
+                  '%(node_uuid)s. Reason: %(error)s.',
                   {'raid_controller_fqdd': raid_controller,
                    'node_uuid': node.uuid,
                    'error': exc})
@@ -467,8 +467,8 @@ def _find_configuration(logical_disks, physical_disks):
             if not result:
                 error_msg = _('failed to find matching physical disks for all '
                               'logical disks')
-                LOG.error(_LE('DRAC driver failed to create RAID '
-                              'configuration. Reason: %(error)s.'),
+                LOG.error('DRAC driver failed to create RAID '
+                          'configuration. Reason: %(error)s.',
                           {'error': error_msg})
                 raise exception.DracOperationError(error=error_msg)
 
@@ -646,9 +646,9 @@ def _commit_to_controllers(node, controllers):
             job_id = commit_config(node, raid_controller=controller,
                                    reboot=False)
 
-        LOG.info(_LI('Change has been committed to RAID controller '
-                     '%(controller)s on node %(node)s. '
-                     'DRAC job id: %(job_id)s'),
+        LOG.info('Change has been committed to RAID controller '
+                 '%(controller)s on node %(node)s. '
+                 'DRAC job id: %(job_id)s',
                  {'controller': controller, 'node': node.uuid,
                   'job_id': job_id})
 
@@ -815,13 +815,13 @@ class DracRAID(base.RAIDInterface):
                     self._check_node_raid_jobs(task)
 
             except exception.NodeNotFound:
-                LOG.info(_LI("During query_raid_config_job_status, node "
-                             "%(node)s was not found and presumed deleted by "
-                             "another process."), {'node': node_uuid})
+                LOG.info("During query_raid_config_job_status, node "
+                         "%(node)s was not found and presumed deleted by "
+                         "another process.", {'node': node_uuid})
             except exception.NodeLocked:
-                LOG.info(_LI("During query_raid_config_job_status, node "
-                             "%(node)s was already locked by another process. "
-                             "Skip."), {'node': node_uuid})
+                LOG.info("During query_raid_config_job_status, node "
+                         "%(node)s was already locked by another process. "
+                         "Skip.", {'node': node_uuid})
 
     @METRICS.timer('DracRAID._check_node_raid_jobs')
     def _check_node_raid_jobs(self, task):
@@ -878,9 +878,9 @@ class DracRAID(base.RAIDInterface):
         node.save()
 
     def _set_clean_failed(self, task, config_job):
-        LOG.error(_LE("RAID configuration job failed for node %(node)s. "
-                      "Failed config job: %(config_job_id)s. "
-                      "Message: '%(message)s'."),
+        LOG.error("RAID configuration job failed for node %(node)s. "
+                  "Failed config job: %(config_job_id)s. "
+                  "Message: '%(message)s'.",
                   {'node': task.node.uuid, 'config_job_id': config_job.id,
                    'message': config_job.message})
         task.node.last_error = config_job.message

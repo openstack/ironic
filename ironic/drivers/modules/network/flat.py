@@ -19,7 +19,7 @@ from oslo_config import cfg
 from oslo_log import log
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LI, _LW
+from ironic.common.i18n import _
 from ironic.common import neutron
 from ironic.drivers import base
 from ironic.drivers.modules.network import common
@@ -37,11 +37,11 @@ class FlatNetwork(common.VIFPortIDMixin, neutron.NeutronNetworkInterfaceMixin,
     def __init__(self):
         cleaning_net = CONF.neutron.cleaning_network
         if not cleaning_net:
-            LOG.warning(_LW(
+            LOG.warning(
                 'Please specify a valid UUID or name for '
                 '[neutron]/cleaning_network configuration option so that '
                 'this interface is able to perform cleaning. Otherwise, '
-                'cleaning operations will fail to start.'))
+                'cleaning operations will fail to start.')
 
     def validate(self, task):
         """Validates the network interface.
@@ -117,7 +117,7 @@ class FlatNetwork(common.VIFPortIDMixin, neutron.NeutronNetworkInterfaceMixin,
         """
         # If we have left over ports from a previous cleaning, remove them
         neutron.rollback_ports(task, self.get_cleaning_network_uuid())
-        LOG.info(_LI('Adding cleaning network to node %s'), task.node.uuid)
+        LOG.info('Adding cleaning network to node %s', task.node.uuid)
         vifs = neutron.add_ports_to_network(
             task, self.get_cleaning_network_uuid())
         for port in task.ports:
@@ -134,7 +134,7 @@ class FlatNetwork(common.VIFPortIDMixin, neutron.NeutronNetworkInterfaceMixin,
         :param task: A TaskManager instance.
         :raises: NetworkError
         """
-        LOG.info(_LI('Removing ports from cleaning network for node %s'),
+        LOG.info('Removing ports from cleaning network for node %s',
                  task.node.uuid)
         neutron.remove_ports_from_network(task,
                                           self.get_cleaning_network_uuid())

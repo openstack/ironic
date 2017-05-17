@@ -19,7 +19,7 @@ from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base
@@ -95,8 +95,8 @@ class OneViewPower(base.PowerInterface):
             )
         except oneview_exceptions.OneViewException as oneview_exc:
             LOG.error(
-                _LE("Error getting power state for node %(node)s. Error:"
-                    "%(error)s"),
+                "Error getting power state for node %(node)s. Error:"
+                "%(error)s",
                 {'node': task.node.uuid, 'error': oneview_exc}
             )
             raise exception.OneViewError(error=oneview_exc)

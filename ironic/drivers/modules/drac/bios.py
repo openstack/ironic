@@ -19,7 +19,6 @@ from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common.i18n import _LE
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
 
@@ -90,8 +89,8 @@ def get_config(node):
     try:
         return client.list_bios_settings()
     except drac_exceptions.BaseClientException as exc:
-        LOG.error(_LE('DRAC driver failed to get the BIOS settings for node '
-                      '%(node_uuid)s. Reason: %(error)s.'),
+        LOG.error('DRAC driver failed to get the BIOS settings for node '
+                  '%(node_uuid)s. Reason: %(error)s.',
                   {'node_uuid': node.uuid,
                    'error': exc})
         raise exception.DracOperationError(error=exc)
@@ -117,8 +116,8 @@ def set_config(task, **kwargs):
     try:
         return client.set_bios_settings(kwargs)
     except drac_exceptions.BaseClientException as exc:
-        LOG.error(_LE('DRAC driver failed to set the BIOS settings for node '
-                      '%(node_uuid)s. Reason: %(error)s.'),
+        LOG.error('DRAC driver failed to set the BIOS settings for node '
+                  '%(node_uuid)s. Reason: %(error)s.',
                   {'node_uuid': node.uuid,
                    'error': exc})
         raise exception.DracOperationError(error=exc)
@@ -141,8 +140,8 @@ def commit_config(task, reboot=False):
     try:
         return client.commit_pending_bios_changes(reboot)
     except drac_exceptions.BaseClientException as exc:
-        LOG.error(_LE('DRAC driver failed to commit the pending BIOS changes '
-                      'for node %(node_uuid)s. Reason: %(error)s.'),
+        LOG.error('DRAC driver failed to commit the pending BIOS changes '
+                  'for node %(node_uuid)s. Reason: %(error)s.',
                   {'node_uuid': node.uuid,
                    'error': exc})
         raise exception.DracOperationError(error=exc)
@@ -160,8 +159,8 @@ def abandon_config(task):
     try:
         client.abandon_pending_bios_changes()
     except drac_exceptions.BaseClientException as exc:
-        LOG.error(_LE('DRAC driver failed to delete the pending BIOS '
-                      'settings for node %(node_uuid)s. Reason: %(error)s.'),
+        LOG.error('DRAC driver failed to delete the pending BIOS '
+                  'settings for node %(node_uuid)s. Reason: %(error)s.',
                   {'node_uuid': node.uuid,
                    'error': exc})
         raise exception.DracOperationError(error=exc)

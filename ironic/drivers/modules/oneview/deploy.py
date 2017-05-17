@@ -23,7 +23,7 @@ import retrying
 import six
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE, _LI, _LW
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
@@ -81,18 +81,18 @@ class OneViewPeriodicTasks(object):
                 # remaining nodes. This node will be checked in
                 # the next periodic call.
 
-                LOG.error(_LE("Error while determining if node "
-                              "%(node_uuid)s is in use by OneView. "
-                              "Error: %(error)s"),
+                LOG.error("Error while determining if node "
+                          "%(node_uuid)s is in use by OneView. "
+                          "Error: %(error)s",
                           {'node_uuid': node.uuid, 'error': e})
 
                 continue
 
             if oneview_using:
-                purpose = (_LI('Updating node %(node_uuid)s in use '
-                               'by OneView from %(provision_state)s state '
-                               'to %(target_state)s state and maintenance '
-                               'mode %(maintenance)s.'),
+                purpose = ('Updating node %(node_uuid)s in use '
+                           'by OneView from %(provision_state)s state '
+                           'to %(target_state)s state and maintenance '
+                           'mode %(maintenance)s.',
                            {'node_uuid': node_uuid,
                             'provision_state': states.AVAILABLE,
                             'target_state': states.MANAGEABLE,
@@ -143,18 +143,18 @@ class OneViewPeriodicTasks(object):
                     # remaining nodes. This node will be checked in
                     # the next periodic call.
 
-                    LOG.error(_LE("Error while determining if node "
-                                  "%(node_uuid)s is in use by OneView. "
-                                  "Error: %(error)s"),
+                    LOG.error("Error while determining if node "
+                              "%(node_uuid)s is in use by OneView. "
+                              "Error: %(error)s",
                               {'node_uuid': node.uuid, 'error': e})
 
                     continue
 
                 if not oneview_using:
-                    purpose = (_LI('Bringing node %(node_uuid)s back from '
-                                   'use by OneView from %(provision_state)s '
-                                   'state to %(target_state)s state and '
-                                   'maintenance mode %(maintenance)s.'),
+                    purpose = ('Bringing node %(node_uuid)s back from '
+                               'use by OneView from %(provision_state)s '
+                               'state to %(target_state)s state and '
+                               'maintenance mode %(maintenance)s.',
                                {'node_uuid': node_uuid,
                                 'provision_state': states.MANAGEABLE,
                                 'target_state': states.AVAILABLE,
@@ -202,10 +202,10 @@ class OneViewPeriodicTasks(object):
 
                 node = objects.Node.get(context, node_uuid)
 
-                purpose = (_LI('Bringing node %(node_uuid)s back from use '
-                               'by OneView from %(provision_state)s state '
-                               'to %(target_state)s state and '
-                               'maintenance mode %(maintenance)s.'),
+                purpose = ('Bringing node %(node_uuid)s back from use '
+                           'by OneView from %(provision_state)s state '
+                           'to %(target_state)s state and '
+                           'maintenance mode %(maintenance)s.',
                            {'node_uuid': node_uuid,
                             'provision_state': states.CLEANFAIL,
                             'target_state': states.MANAGEABLE,
@@ -288,7 +288,7 @@ class OneViewAgentDeployMixin(object):
             ironic_deploy_utils.set_failed_state(task, msg)
             return
 
-        LOG.info(_LI('Image successfully written to node %s'), node.uuid)
+        LOG.info('Image successfully written to node %s', node.uuid)
         LOG.debug('Rebooting node %s to instance', node.uuid)
 
         self.reboot_and_finish_deploy(task)
@@ -332,8 +332,8 @@ class OneViewAgentDeployMixin(object):
                 _wait_until_powered_off(task)
             except Exception as e:
                 LOG.warning(
-                    _LW('Failed to soft power off node %(node_uuid)s '
-                        'in at least %(timeout)d seconds. Error: %(error)s'),
+                    'Failed to soft power off node %(node_uuid)s '
+                    'in at least %(timeout)d seconds. Error: %(error)s',
                     {'node_uuid': node.uuid,
                      'timeout': (wait * (attempts - 1)) / 1000,
                      'error': e})
@@ -349,7 +349,7 @@ class OneViewAgentDeployMixin(object):
             agent_base_vendor.log_and_raise_deployment_error(task, msg)
 
         task.process_event('done')
-        LOG.info(_LI('Deployment to node %s done'), task.node.uuid)
+        LOG.info('Deployment to node %s done', task.node.uuid)
 
 
 class OneViewAgentDeploy(OneViewAgentDeployMixin, agent.AgentDeploy,

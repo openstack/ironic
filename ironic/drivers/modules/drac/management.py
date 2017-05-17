@@ -25,7 +25,7 @@ from oslo_utils import importutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
-from ironic.common.i18n import _, _LE
+from ironic.common.i18n import _
 from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.drac import common as drac_common
@@ -68,8 +68,8 @@ def _get_boot_device(node, drac_boot_devices=None):
         return {'boot_device': boot_device,
                 'persistent': next_boot_mode == PERSISTENT_BOOT_MODE}
     except (drac_exceptions.BaseClientException, IndexError) as exc:
-        LOG.error(_LE('DRAC driver failed to get next boot mode for '
-                      'node %(node_uuid)s. Reason: %(error)s.'),
+        LOG.error('DRAC driver failed to get next boot mode for '
+                  'node %(node_uuid)s. Reason: %(error)s.',
                   {'node_uuid': node.uuid, 'error': exc})
         raise exception.DracOperationError(error=exc)
 
@@ -114,8 +114,8 @@ def set_boot_device(node, device, persistent=False):
         client.change_boot_device_order(boot_list, drac_boot_device)
         client.commit_pending_bios_changes()
     except drac_exceptions.BaseClientException as exc:
-        LOG.error(_LE('DRAC driver failed to change boot device order for '
-                      'node %(node_uuid)s. Reason: %(error)s.'),
+        LOG.error('DRAC driver failed to change boot device order for '
+                  'node %(node_uuid)s. Reason: %(error)s.',
                   {'node_uuid': node.uuid, 'error': exc})
         raise exception.DracOperationError(error=exc)
 

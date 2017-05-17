@@ -17,7 +17,7 @@ from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common.i18n import _, _LE
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.conf import CONF
 from ironic.drivers import utils
@@ -247,8 +247,8 @@ def node_has_server_profile(func):
             )
         except oneview_exceptions.OneViewException as oneview_exc:
             LOG.error(
-                _LE("Failed to get server profile from OneView appliance for"
-                    " node %(node)s. Error: %(message)s"),
+                "Failed to get server profile from OneView appliance for"
+                " node %(node)s. Error: %(message)s",
                 {"node": task.node.uuid, "message": oneview_exc}
             )
             raise exception.OneViewError(error=oneview_exc)
