@@ -852,8 +852,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
          assert_called_once_with("/webserver/tmp_image_file"))
 
     @mock.patch.object(swift, 'SwiftAPI', spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'LOG')
-    def test_copy_image_to_swift(self, LOG_mock, swift_api_mock):
+    def test_copy_image_to_swift(self, swift_api_mock):
         # | GIVEN |
         self.config(swift_ilo_container='ilo_container', group='ilo')
         self.config(swift_object_expiry_timeout=1, group='ilo')
@@ -906,7 +905,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         swift_obj_mock.delete_object.assert_called_once_with(
             container, object_name)
 
-    @mock.patch.object(ilo_common, 'LOG')
+    @mock.patch.object(ilo_common, 'LOG', spec_set=True, autospec=True)
     @mock.patch.object(swift, 'SwiftAPI', spec_set=True, autospec=True)
     def test_remove_image_from_swift_suppresses_notfound_exc(
             self, swift_api_mock, LOG_mock):
@@ -925,7 +924,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         LOG_mock.warning.assert_called_once_with(
             mock.ANY, {'associated_with_msg': "", 'err': raised_exc})
 
-    @mock.patch.object(ilo_common, 'LOG')
+    @mock.patch.object(ilo_common, 'LOG', spec_set=True, autospec=True)
     @mock.patch.object(swift, 'SwiftAPI', spec_set=True, autospec=True)
     def test_remove_image_from_swift_suppresses_operror_exc(
             self, swift_api_mock, LOG_mock):

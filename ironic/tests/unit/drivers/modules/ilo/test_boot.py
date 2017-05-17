@@ -560,21 +560,18 @@ class IloBootPrivateMethodsTestCase(db_base.DbTestCase):
             func_set_secure_boot_mode.assert_called_once_with(task, False)
         self.assertTrue(returned_state)
 
-    @mock.patch.object(ilo_boot.LOG, 'debug', spec_set=True, autospec=True)
     @mock.patch.object(ilo_boot, 'exception', spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'get_secure_boot_mode', spec_set=True,
                        autospec=True)
     def test__disable_secure_boot_exception(self,
                                             func_get_secure_boot_mode,
-                                            exception_mock,
-                                            mock_log):
+                                            exception_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             exception_mock.IloOperationNotSupported = Exception
             func_get_secure_boot_mode.side_effect = Exception
             returned_state = ilo_boot._disable_secure_boot(task)
             func_get_secure_boot_mode.assert_called_once_with(task)
-            self.assertTrue(mock_log.called)
         self.assertFalse(returned_state)
 
     @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,

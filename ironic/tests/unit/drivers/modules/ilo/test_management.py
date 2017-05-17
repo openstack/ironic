@@ -306,11 +306,10 @@ class IloManagementTestCase(db_base.DbTestCase):
             clean_step_mock.assert_called_once_with(
                 task.node, 'activate_license', 'XXXXX-YYYYY-ZZZZZ-XYZZZ-XXYYZ')
 
-    @mock.patch.object(ilo_management, 'LOG', spec_set=True, autospec=True)
     @mock.patch.object(ilo_management, '_execute_ilo_clean_step',
                        spec_set=True, autospec=True)
     def test_activate_license_no_or_invalid_format_license_key(
-            self, clean_step_mock, log_mock):
+            self, clean_step_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             for license_key_value in (None, [], {}):
