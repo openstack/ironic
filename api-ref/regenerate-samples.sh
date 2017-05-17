@@ -97,9 +97,6 @@ GET v1/drivers/ipmi > driver-get-response.json
 GET v1/drivers/agent_ipmitool/properties > driver-property-response.json
 GET v1/drivers/agent_ipmitool/raid/logical_disk_properties > driver-logical-disk-properties-response.json
 
-GET v1/drivers/agent_ipmitool/vendor_passthru/methods > driver-passthru-methods-response.json
-
-
 
 #########
 # CHASSIS

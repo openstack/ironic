@@ -285,10 +285,7 @@ class DriverPassthruController(rest.RestController):
         :param data: body of data to supply to the specified method.
         """
         cdict = pecan.request.context.to_policy_values()
-        if method == "lookup":
-            policy.authorize('baremetal:driver:ipa_lookup', cdict, cdict)
-        else:
-            policy.authorize('baremetal:driver:vendor_passthru', cdict, cdict)
+        policy.authorize('baremetal:driver:vendor_passthru', cdict, cdict)
 
         topic = pecan.request.rpcapi.get_topic_for_driver(driver_name)
         return api_utils.vendor_passthru(driver_name, method, topic, data=data,
