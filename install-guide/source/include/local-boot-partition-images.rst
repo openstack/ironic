@@ -8,6 +8,9 @@ after the deployment the node's subsequent reboots won't happen via PXE or
 Virtual Media. Instead, it will boot from a local boot loader installed on
 the disk.
 
+.. note:: Whole disk images, on the contrary, support only local boot, and use
+          it by default.
+
 It's important to note that in order for this to work the image being
 deployed with Bare Metal service **must** contain ``grub2`` installed within it.
 
@@ -19,7 +22,7 @@ The following sections will describe both methods.
 
 
 Enabling local boot with Compute service
-========================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To enable local boot we need to set a capability on the bare metal node,
 for example::
@@ -42,7 +45,7 @@ an ``extra_spec`` to the Compute service flavor, for example::
 .. _local-boot-without-compute:
 
 Enabling local boot without Compute
-===================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Since adding ``capabilities`` to the node's properties is only used by
 the nova scheduler to perform more advanced scheduling of instances,
