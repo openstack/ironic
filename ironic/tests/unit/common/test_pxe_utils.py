@@ -133,6 +133,8 @@ class TestPXEUtils(db_base.DbTestCase):
 
         self.assertEqual(six.text_type(expected_template), rendered_template)
 
+    # NOTE(TheJulia): Remove elilo support after the deprecation period,
+    # in the Queens release.
     def test_default_elilo_config(self):
         pxe_opts = self.pxe_options
         pxe_opts['boot_mode'] = 'uefi'
@@ -361,6 +363,8 @@ class TestPXEUtils(db_base.DbTestCase):
         write_mock.assert_called_with(pxe_cfg_file_path,
                                       render_mock.return_value)
 
+    # NOTE(TheJulia): Remove elilo support after the deprecation period,
+    # in the Queens release.
     @mock.patch.object(os, 'chmod', autospec=True)
     @mock.patch('ironic.common.pxe_utils._link_ip_address_pxe_configs',
                 autospec=True)
