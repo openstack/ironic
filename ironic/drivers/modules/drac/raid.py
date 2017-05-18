@@ -705,6 +705,11 @@ class DracRAID(base.RAIDInterface):
         """
         node = task.node
 
+        # The node is rebooting at this point, so wait for the iDRAC to
+        # enter the ready state before proceeding with cleaning
+        client = drac_common.get_drac_client(node)
+        client.wait_until_idrac_is_ready()
+
         logical_disks = node.target_raid_config['logical_disks']
         for disk in logical_disks:
             if (disk['size_gb'] == 'MAX' and 'physical_disks' not in disk):
@@ -755,6 +760,11 @@ class DracRAID(base.RAIDInterface):
         :raises: DracOperationError on an error from python-dracclient.
         """
         node = task.node
+
+        # The node is rebooting at this point, so wait for the iDRAC to
+        # enter the ready state before proceeding with cleaning
+        client = drac_common.get_drac_client(node)
+        client.wait_until_idrac_is_ready()
 
         controllers = set()
         for disk in list_virtual_disks(node):
