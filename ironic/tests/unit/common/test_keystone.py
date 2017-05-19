@@ -95,10 +95,9 @@ class KeystoneTestCase(base.TestCase):
     @mock.patch.object(keystone, '_get_legacy_auth', return_value=None)
     @mock.patch.object(ironic_auth, 'load_auth', return_value=None)
     def test_get_session_fail(self, auth_get_mock, legacy_get_mock):
-        self.assertRaisesRegexp(
-            exception.KeystoneFailure,
-            "Failed to load auth from either",
-            keystone.get_session, self.test_group)
+        self.assertRaisesRegex(exception.KeystoneFailure,
+                               "Failed to load auth from either",
+                               keystone.get_session, self.test_group)
 
     @mock.patch('keystoneauth1.loading.load_auth_from_conf_options')
     @mock.patch('ironic.common.keystone._get_legacy_auth')
