@@ -632,10 +632,10 @@ class DbNodeTestCase(base.DbTestCase):
                                node_id=node.id,
                                address='aa:bb:cc:dd:ee:ff')
 
-        self.assertRaisesRegexp(exception.NodeNotFound,
-                                'was not found',
-                                self.dbapi.get_node_by_port_addresses,
-                                ['11:22:33:44:55:66'])
+        self.assertRaisesRegex(exception.NodeNotFound,
+                               'was not found',
+                               self.dbapi.get_node_by_port_addresses,
+                               ['11:22:33:44:55:66'])
 
     def test_get_node_by_port_addresses_multiple_found(self):
         node1 = utils.create_test_node(
@@ -652,7 +652,7 @@ class DbNodeTestCase(base.DbTestCase):
                                node_id=node2.id,
                                address=addresses[1])
 
-        self.assertRaisesRegexp(exception.NodeNotFound,
-                                'Multiple nodes',
-                                self.dbapi.get_node_by_port_addresses,
-                                addresses)
+        self.assertRaisesRegex(exception.NodeNotFound,
+                               'Multiple nodes',
+                               self.dbapi.get_node_by_port_addresses,
+                               addresses)

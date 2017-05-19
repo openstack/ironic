@@ -372,7 +372,7 @@ class TestVifPortIDMixin(db_base.DbTestCase):
         mock_upa.side_effect = (
             exception.FailedToUpdateMacOnPort(port_id='fake'))
         with task_manager.acquire(self.context, self.node.id) as task:
-            self.assertRaisesRegexp(
+            self.assertRaisesRegex(
                 exception.NetworkError, "can not update Neutron port",
                 self.interface.vif_attach, task, vif)
             mock_client.assert_called_once_with()
@@ -447,7 +447,7 @@ class TestVifPortIDMixin(db_base.DbTestCase):
 
     def test_vif_detach_not_attached(self):
         with task_manager.acquire(self.context, self.node.id) as task:
-            self.assertRaisesRegexp(
+            self.assertRaisesRegex(
                 exception.VifNotAttached, "it is not attached to it.",
                 self.interface.vif_detach, task, 'aaa')
 

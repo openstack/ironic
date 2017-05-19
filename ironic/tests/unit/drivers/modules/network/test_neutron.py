@@ -226,7 +226,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         n = utils.create_test_node(self.context, network_interface='neutron',
                                    uuid=uuidutils.generate_uuid())
         with task_manager.acquire(self.context, n.id) as task:
-            self.assertRaisesRegexp(
+            self.assertRaisesRegex(
                 exception.NetworkError, 'No ports are associated',
                 self.interface.configure_tenant_networks, task)
 
@@ -277,7 +277,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         client.update_port.side_effect = neutron_exceptions.ConnectionFailed(
             reason='meow')
         with task_manager.acquire(self.context, self.node.id) as task:
-            self.assertRaisesRegexp(
+            self.assertRaisesRegex(
                 exception.NetworkError, 'Could not add',
                 self.interface.configure_tenant_networks, task)
             client_mock.assert_called_once_with()
