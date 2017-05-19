@@ -364,6 +364,11 @@ IRONIC_PROVISION_ALLOCATION_POOL=${IRONIC_PROVISION_ALLOCATION_POOL:-'start=10.0
 IRONIC_PROVISION_PROVIDER_SUBNET_NAME=${IRONIC_PROVISION_PROVIDER_SUBNET_NAME:-${IRONIC_PROVISION_NETWORK_NAME}-subnet}
 
 
+# This is the storage interface to use for a node
+# Only 'cinder' can be set for testing boot from volume
+IRONIC_STORAGE_INTERFACE=${IRONIC_STORAGE_INTERFACE:-}
+
+
 # With multinode case all ironic-conductors should have IP from provisioning network.
 # IRONIC_PROVISION_SUBNET_GATEWAY - is configured on primary node.
 # Ironic provision subnet gateway.
@@ -384,6 +389,10 @@ if [[ "$HOST_TOPOLOGY_ROLE" == 'subnode' ]]; then
 fi
 
 IRONIC_HTTP_SERVER=${IRONIC_HTTP_SERVER:-$IRONIC_TFTPSERVER_IP}
+
+# Port that must be permitted for iSCSI connections to be
+# established from the tenant network.
+ISCSI_SERVICE_PORT=${ISCSI_SERVICE_PORT:-3260}
 
 # Retrieving logs from the deploy ramdisk
 #
@@ -1653,6 +1662,16 @@ function enroll_nodes {
 
                 local ironic_api_version='--ironic-api-version latest'
             fi
+
+            if [[ "${IRONIC_STORAGE_INTERFACE}" == "cinder" ]]; then
+                local connector_iqn="iqn.2017-05.org.openstack.$node_prefix-$total_nodes"
+                if [[ -n "$node_capabilities" ]]; then
+                    node_capabilities+=",iscsi_boot:True"
+                else
+                    node_capabilities+=" -p capabilities=iscsi_boot:True"
+                fi
+            fi
+
         else
             # Currently we require all hardware platform have same CPU/RAM/DISK info
             # in future, this can be enhanced to support different type, and then
@@ -1772,6 +1791,19 @@ function enroll_nodes {
             die_if_not_set $LINENO n_id "Failed to update network interface for node"
         fi
 
+        if [[ -n "${IRONIC_STORAGE_INTERFACE}" ]]; then
+            openstack --os-baremetal-api-version latest baremetal node set \
+                $node_id --storage-interface $IRONIC_STORAGE_INTERFACE || \
+                die $LINENO "Failed to update storage interface for node $node_id"
+
+            if [[ -n "${connector_iqn}" ]]; then
+                openstack --os-baremetal-api-version latest baremetal \
+                    volume connector create --node $node_id --type iqn \
+                    --connector-id $connector_iqn || \
+                    die $LINENO "Failed to create volume connector for node $node_id"
+            fi
+        fi
+
         local resource_class
         if [[ "$IRONIC_USE_RESOURCE_CLASSES" == "True" ]]; then
             # TODO(jroll) consider making this configurable, for now just make it unique per hardware combo
@@ -1854,6 +1886,10 @@ function configure_iptables {
 
     if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
         sudo iptables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport $IRONIC_HTTP_PORT -j ACCEPT || true
+    fi
+
+    if [[ "${IRONIC_STORAGE_INTERFACE}" == "cinder" ]]; then
+        sudo iptables -I INPUT -d $HOST_IP -p tcp --dport $ISCSI_SERVICE_PORT -s $FLOATING_RANGE -j ACCEPT || true
     fi
 }
 
