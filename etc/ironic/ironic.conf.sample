@@ -260,7 +260,7 @@
 # this value, please make sure that every enabled hardware
 # type will have the same set of enabled vendor interfaces on
 # every ironic-conductor service. (list value)
-#enabled_vendor_interfaces = no-vendor
+#enabled_vendor_interfaces = ipmitool,no-vendor
 
 # Default vendor interface to be used for nodes that do not
 # have vendor_interface field set. A complete list of vendor

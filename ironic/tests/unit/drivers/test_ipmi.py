@@ -31,7 +31,8 @@ class IPMIHardwareTestCase(db_base.DbTestCase):
                     enabled_power_interfaces=['ipmitool'],
                     enabled_management_interfaces=['ipmitool'],
                     enabled_raid_interfaces=['no-raid', 'agent'],
-                    enabled_console_interfaces=['no-console'])
+                    enabled_console_interfaces=['no-console'],
+                    enabled_vendor_interfaces=['ipmitool', 'no-vendor'])
 
     def test_default_interfaces(self):
         node = obj_utils.create_test_node(self.context, driver='ipmi')
@@ -43,6 +44,7 @@ class IPMIHardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(task.driver.deploy, iscsi_deploy.ISCSIDeploy)
             self.assertIsInstance(task.driver.console, noop.NoConsole)
             self.assertIsInstance(task.driver.raid, noop.NoRAID)
+            self.assertIsInstance(task.driver.vendor, ipmitool.VendorPassthru)
 
     def test_override_with_shellinabox(self):
         self.config(enabled_console_interfaces=['ipmitool-shellinabox',
@@ -51,7 +53,8 @@ class IPMIHardwareTestCase(db_base.DbTestCase):
             self.context, driver='ipmi',
             deploy_interface='direct',
             raid_interface='agent',
-            console_interface='ipmitool-shellinabox')
+            console_interface='ipmitool-shellinabox',
+            vendor_interface='no-vendor')
         with task_manager.acquire(self.context, node.id) as task:
             self.assertIsInstance(task.driver.management,
                                   ipmitool.IPMIManagement)
@@ -61,6 +64,7 @@ class IPMIHardwareTestCase(db_base.DbTestCase):
             self.assertIsInstance(task.driver.console,
                                   ipmitool.IPMIShellinaboxConsole)
             self.assertIsInstance(task.driver.raid, agent.AgentRAID)
+            self.assertIsInstance(task.driver.vendor, noop.NoVendor)
 
 
 class IPMIClassicDriversTestCase(testtools.TestCase):
