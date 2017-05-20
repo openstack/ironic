@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    The ``ipmi`` hardware type now supports ``ipmitool`` vendor interface
+    (similar to classic ipmitool drivers).

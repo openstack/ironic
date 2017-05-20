@@ -47,6 +47,11 @@ class IPMIHardware(generic.GenericHardware):
         """List of supported power interfaces."""
         return [ipmitool.IPMIPower]
 
+    @property
+    def supported_vendor_interfaces(self):
+        """List of supported vendor interfaces."""
+        return [ipmitool.VendorPassthru, noop.NoVendor]
+
 
 class PXEAndIPMIToolDriver(base.BaseDriver):
     """PXE + IPMITool driver.

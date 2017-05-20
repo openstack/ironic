@@ -140,7 +140,7 @@ driver_opts = [
     cfg.StrOpt('default_storage_interface',
                help=_DEFAULT_IFACE_HELP.format('storage')),
     cfg.ListOpt('enabled_vendor_interfaces',
-                default=['no-vendor'],
+                default=['ipmitool', 'no-vendor'],
                 help=_ENABLED_IFACE_HELP.format('vendor')),
     cfg.StrOpt('default_vendor_interface',
                help=_DEFAULT_IFACE_HELP.format('vendor')),
