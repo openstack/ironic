@@ -3309,6 +3309,17 @@
 # caching. (string value)
 #tftp_master_path = /tftpboot/master_images
 
+# The permission that will be applied to the TFTP folders upon
+# creation. This should be set to the permission such that the
+# tftpserver has access to read the contents of the configured
+# TFTP folder. This setting is only required when the
+# operating system's umask is restrictive such that ironic-
+# conductor is creating files that cannot be read by the TFTP
+# server. Setting to <None> will result in the operating
+# system's umask to be utilized for the creation of new tftp
+# folders. (integer value)
+#dir_permission = <None>
+
 # Bootfile DHCP parameter. (string value)
 #pxe_bootfile_name = pxelinux.0
 

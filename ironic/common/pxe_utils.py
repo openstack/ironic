@@ -49,8 +49,17 @@ def _ensure_config_dirs_exist(node_uuid):
 
     """
     root_dir = get_root_dir()
-    fileutils.ensure_tree(os.path.join(root_dir, node_uuid))
-    fileutils.ensure_tree(os.path.join(root_dir, PXE_CFG_DIR_NAME))
+    node_dir = os.path.join(root_dir, node_uuid)
+    pxe_dir = os.path.join(root_dir, PXE_CFG_DIR_NAME)
+    # NOTE: We should only change the permissions if the folder
+    # does not exist. i.e. if defined, an operator could have
+    # already created it and placed specific ACLs upon the folder
+    # which may not recurse downward.
+    for directory in (node_dir, pxe_dir):
+        if not os.path.isdir(directory):
+            fileutils.ensure_tree(directory)
+            if CONF.pxe.dir_permission:
+                os.chmod(directory, CONF.pxe.dir_permission)
 
 
 def _link_mac_pxe_configs(task):
