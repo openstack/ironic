@@ -75,6 +75,17 @@ configuration for devstack to bring up this environment.
 
   Configuring Devstack for multitenant network testing <ironic-multitenant-networking>
 
+Testing Boot-from-Volume
+------------------------
+
+Starting with the Pike release, it is also possible to use DevStack for testing
+booting from Cinder volumes with VMs.
+
+.. toctree::
+  :maxdepth: 1
+
+  Configuring Devstack for boot-from-volume testing <ironic-boot-from-volume>
+
 Full Ironic Server Python API Reference
 ---------------------------------------
 

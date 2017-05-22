@@ -397,6 +397,8 @@ help with that, but are not an exhaustive troubleshooting guide::
   pip install -U -e .
 
 
+.. _`deploy_devstack`:
+
 Deploying Ironic with DevStack
 ==============================
 
