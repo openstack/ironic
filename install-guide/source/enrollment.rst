@@ -198,6 +198,9 @@ and may be combined if desired.
         --deploy-interface direct \
         --raid-interface agent
 
+   If no value is provided for certain interfaces, `Defaults for hardware
+   interfaces`_ are used instead.
+
    It's an error to try changing this field for a node with a *classic driver*,
    and setting node's driver to classic one causes these fields to be set
    to ``None`` automatically.
@@ -478,6 +481,128 @@ UUID interchangeably:
 .. _rfc1123: http://tools.ietf.org/html/rfc1123
 .. _wiki_hostname: http://en.wikipedia.org/wiki/Hostname
 
+.. _hardware_interfaces_defaults:
+
+Defaults for hardware interfaces
+--------------------------------
+
+For *classic drivers* all hardware interface implementations (except for the
+*network interface*) are hardcoded and cannot be changed.
+For *hardware types*, users can request one of enabled implementations when
+creating or updating a node as explained in `Creating a node`_.
+
+When no value is provided for a certain interface when creating a node, or
+changing a node's hardware type, the default value is used. You can use
+the driver details command to list the current enabled and default
+interfaces for a hardware type (for your deployment):
+
+.. code-block:: console
+
+    $ openstack --os-baremetal-api-version 1.31 baremetal driver show ipmi
+    +-------------------------------+----------------+
+    | Field                         | Value          |
+    +-------------------------------+----------------+
+    | default_boot_interface        | pxe            |
+    | default_console_interface     | no-console     |
+    | default_deploy_interface      | iscsi          |
+    | default_inspect_interface     | no-inspect     |
+    | default_management_interface  | ipmitool       |
+    | default_network_interface     | flat           |
+    | default_power_interface       | ipmitool       |
+    | default_raid_interface        | no-raid        |
+    | default_vendor_interface      | no-vendor      |
+    | enabled_boot_interfaces       | pxe            |
+    | enabled_console_interfaces    | no-console     |
+    | enabled_deploy_interfaces     | iscsi, direct  |
+    | enabled_inspect_interfaces    | no-inspect     |
+    | enabled_management_interfaces | ipmitool       |
+    | enabled_network_interfaces    | flat, noop     |
+    | enabled_power_interfaces      | ipmitool       |
+    | enabled_raid_interfaces       | no-raid, agent |
+    | enabled_vendor_interfaces     | no-vendor      |
+    | hosts                         | ironic-host-1  |
+    | name                          | ipmi           |
+    | type                          | dynamic        |
+    +-------------------------------+----------------+
+
+The defaults are calculated as follows:
+
+#. If the ``default_<IFACE>_interface`` configuration option (where
+   ``<IFACE>`` is the interface name) is set, its value is used as the default.
+
+   If this implementation is not compatible with the node's hardware type,
+   an error is returned to a user. An explicit value has to be provided
+   for the node's ``<IFACE>_interface`` field in this case.
+
+#. Otherwise, the first supported implementation that is enabled by an
+   operator is used as the default.
+
+   A list of supported implementations is calculated by taking the intersection
+   between the implementations supported by the node's hardware type and
+   implementations enabled by the ``enabled_<IFACE>_interfaces`` option (where
+   ``<IFACE>`` is the interface name). The calculation preserves the order
+   of items, as provided by the hardware type.
+
+   If the list of supported implementations is not empty, the first one is
+   used.  Otherwise, an error is returned to a user. In this case, an explicit
+   value has to be provided for the ``<IFACE>_interface`` field.
+
+See :doc:`enabling-drivers` for more details on configuration.
+
+Example
+~~~~~~~
+
+Consider the following configuration (shortened for simplicity):
+
+.. code-block:: ini
+
+    [DEFAULT]
+    enabled_hardware_types = ipmi,redfish
+    enabled_console_interfaces = no-console,ipmitool-shellinabox
+    enabled_deploy_interfaces = iscsi,direct
+    enabled_management_interfaces = ipmitool,redfish
+    enabled_power_interfaces = ipmitool,redfish
+    default_deploy_interface = direct
+
+A new node is created with the ``ipmi`` driver and no interfaces specified:
+
+.. code-block:: console
+
+    $ export IRONIC_API_VERSION=1.31
+    $ ironic node-create -d ipmi
+    +--------------+--------------------------------------+
+    | Property     | Value                                |
+    +--------------+--------------------------------------+
+    | uuid         | dfc6189f-ad83-4261-9bda-b27258eb1987 |
+    | driver_info  | {}                                   |
+    | extra        | {}                                   |
+    | driver       | ipmi                                 |
+    | chassis_uuid |                                      |
+    | properties   | {}                                   |
+    | name         | None                                 |
+    +--------------+--------------------------------------+
+
+Then the defaults for the interfaces that will be used by the node in this
+example are calculated as follows:
+
+deploy
+    An explicit value of ``direct`` is provided for
+    ``default_deploy_interface``, so it is used.
+power
+    No default is configured. The ``ipmi`` hardware type supports only
+    ``ipmitool`` power. The intersection between supported power
+    interfaces and values provided in the ``enabled_power_interfaces``
+    option has only one item: ``ipmitool``. It is used.
+console
+    No default is configured. The ``ipmi`` hardware type supports the following
+    console interfaces: ``ipmitool-socat``, ``ipmitool-shellinabox`` and
+    ``no-console`` (in this order). Of these three, only two are enabled:
+    ``no-console`` and ``ipmitool-shellinabox`` (order does not matter). The
+    intersection contains ``ipmitool-shellinabox`` and ``no-console``.
+    The first item is used, and it is ``ipmitool-shellinabox``.
+management
+    Following the same calculation as *power*, the ``ipmitool`` management
+    interface is used.
 
 Hardware Inspection
 -------------------

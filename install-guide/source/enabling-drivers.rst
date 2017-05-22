@@ -44,6 +44,9 @@ hardware interfaces.
    All available hardware types and interfaces are listed in setup.cfg_ file
    in the source code tree.
 
+Enabling hardware interfaces
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 There are several types of hardware interfaces:
 
 boot
@@ -156,8 +159,96 @@ Note that some interfaces have implementations named ``no-<TYPE>`` where
 ``<TYPE>`` is the interface type. These implementations do nothing and return
 errors when used from API.
 
-.. TODO(dtantsur): create dev documentation on defaults calculation, and link
-   it here. Add explanation of default_<NAME>_interface options.
+Hardware interfaces in multi-conductor environments
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When enabling hardware types and their interfaces, make sure that for
+every enabled hardware type, the whole set of enabled interfaces matches for
+all conductors. However, different conductors can have different hardware
+types enabled.
+
+For example, you can have two conductors with the following configuration
+respectively:
+
+.. code-block:: ini
+
+    [DEFAULT]
+    enabled_hardware_types = ipmi
+    enabled_deploy_interfaces = direct
+    enabled_power_interfaces = ipmitool
+    enabled_management_interfaces = ipmitool
+
+.. code-block:: ini
+
+    [DEFAULT]
+    enabled_hardware_types = redfish
+    enabled_deploy_interfaces = iscsi
+    enabled_power_interfaces = redfish
+    enabled_management_interfaces = redfish
+
+But you cannot have two conductors with the following configuration
+respectively:
+
+.. code-block:: ini
+
+    [DEFAULT]
+    enabled_hardware_types = ipmi,redfish
+    enabled_deploy_interfaces = direct
+    enabled_power_interfaces = ipmitool,redfish
+    enabled_management_interfaces = ipmitool,redfish
+
+.. code-block:: ini
+
+    [DEFAULT]
+    enabled_hardware_types = redfish
+    enabled_deploy_interfaces = iscsi
+    enabled_power_interfaces = redfish
+    enabled_management_interfaces = redfish
+
+This is because the ``redfish`` hardware type will have different enabled
+*deploy* interfaces on these conductors. It would have been fine, if the second
+conductor had ``enabled_deploy_interface=direct`` instead of ``iscsi``.
+
+This situation is not detected by the Bare Metal service, but it can cause
+inconsistent behavior in the API, when node functionality will depend on
+which conductor it gets assigned to.
+
+.. note::
+   We don't treat it as an error, because such *temporary* inconsistency is
+   inevitable during a rolling upgrade or a configuration update.
+
+Configuring interface defaults
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When a user does not provide an explicit value for one of interfaces (when
+creating a node or updating its driver), the default value is calculated
+as described in :ref:`hardware_interfaces_defaults`. An operator can override
+the defaults for any interfaces by setting one of options named
+``default_<IFACE>_interface``, where ``<IFACE>`` is the interface name.
+For example:
+
+.. code-block:: ini
+
+    [DEFAULT]
+    default_deploy_interface = direct
+    default_network_interface = neutron
+
+This configuration forces the default *deploy* interface to be ``direct`` and
+the default *network* interface to be ``neutron`` for all hardware types.
+
+The defaults are calculated and set on a node when creating it or updating
+its hardware type. Thus, changing these configuration options has no effect on
+existing nodes.
+
+.. warning::
+   The default interface implementation has to be configured the same way
+   across all conductors in the cloud, except maybe for a short period of time
+   during an upgrade or configuration update.
+
+.. warning::
+   These options should be used with care. If a hardware type does not
+   support the provided default implementation, its users will have to always
+   provide an explicit value for this interface when creating a node.
 
 Enabling classic drivers
 ------------------------
