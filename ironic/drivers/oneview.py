@@ -1,5 +1,5 @@
-# Copyright 2015 Hewlett Packard Development Company, LP
-# Copyright 2015 Universidade Federal de Campina Grande
+# Copyright (2015-2017) Hewlett Packard Enterprise Development LP
+# Copyright (2015-2017) Universidade Federal de Campina Grande
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -13,9 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""
-OneView Driver and supporting meta-classes.
-"""
+"""OneView Driver and supporting meta-classes."""
 from oslo_utils import importutils
 
 from ironic.common import exception
@@ -73,6 +71,11 @@ class AgentPXEOneViewDriver(base.BaseDriver):
                 driver=self.__class__.__name__,
                 reason=_("Unable to import python-oneviewclient library"))
 
+        if not importutils.try_import('hpOneView.oneview_client'):
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_("Unable to import hpOneView library"))
+
         # Checks connectivity to OneView and version compatibility on driver
         # initialization
         oneview_client = common.get_oneview_client()
@@ -100,6 +103,11 @@ class ISCSIPXEOneViewDriver(base.BaseDriver):
             raise exception.DriverLoadError(
                 driver=self.__class__.__name__,
                 reason=_("Unable to import python-oneviewclient library"))
+
+        if not importutils.try_import('hpOneView.oneview_client'):
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_("Unable to import hpOneView library"))
 
         # Checks connectivity to OneView and version compatibility on driver
         # initialization
