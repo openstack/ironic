@@ -1,5 +1,3 @@
-.. _IPMITOOL:
-
 ===============
 IPMITool driver
 ===============
@@ -7,54 +5,66 @@ IPMITool driver
 Overview
 ========
 
-The IPMITool driver enables managing nodes by using the Intelligent
-Platform Management Interface (IPMI) versions 2.0 or 1.5. The name of
-the driver comes from the utility ``ipmitool`` which is an open-source
-command-line interface (CLI) for controlling IPMI-enabled devices.
+The IPMI_ (Intelligent Platform Management Interface) drivers manage nodes
+by using IPMI protocol versions 2.0 or 1.5. They use the IPMItool_ utility
+which is an open-source command-line interface (CLI) for controlling
+IPMI-enabled devices.
 
-Currently there are 2 IPMITool drivers:
+The following hardware types and classic drivers use IPMItool for power and
+management:
 
-* ``agent_ipmitool``
-* ``pxe_ipmitool``
+* hardware types:
+
+  * ``ipmi``
+
+* classic drivers:
+
+  * ``agent_ipmitool``
+  * ``pxe_ipmitool``
+  * ``agent_ipmitool_socat``
+  * ``pxe_ipmitool_socat``
 
 Glossary
 ========
 
-* IPMI - Intelligent Platform Management Interface.
+* IPMI_ - Intelligent Platform Management Interface.
 * IPMB - Intelligent Platform Management Bus/Bridge.
-* BMC  - Baseboard Management Controller.
+* BMC_  - Baseboard Management Controller.
 * RMCP - Remote Management Control Protocol.
-
-Prerequisites
-=============
-
-* The `ipmitool utility <https://sourceforge.net/projects/ipmitool>`_
-  should be installed on the ironic conductor node. On most distros,
-  this is provided as part of the ``ipmitool`` package.
 
 Enabling the IPMITool driver(s)
 ===============================
 
-.. note::
-    The ``pxe_ipmitool`` driver is the default driver in Ironic, so if
-    no extra configuration is provided the driver will be enabled.
+Please see `IPMI configuration guide`_ for the required dependencies.
 
-#. Add ``pxe_ipmitool`` and/or ``agent_ipmitool`` to the list of
-   ``enabled_drivers`` in */etc/ironic/ironic.conf*. For example::
+#. The ``ipmi`` hardware type is enabled by default starting with the Ocata
+   release. To enable it explicitly, add the following to your ``ironic.conf``:
+
+   .. code-block:: ini
 
     [DEFAULT]
-    ...
+    enabled_hardware_types = ipmi
+
+#. The ``pxe_ipmitool`` classic driver is enabled by default. To enable one or
+   more of the other ipmitool classic drivers, add them to the
+   ``enabled_drivers`` configuration option in your ``ironic.conf``.
+   The following enables ``pxe_ipmitool`` and ``agent_ipmitool`` drivers:
+
+   .. code-block:: ini
+
+    [DEFAULT]
     enabled_drivers = pxe_ipmitool,agent_ipmitool
 
-#. Restart the Ironic conductor service::
+#. Restart the Ironic conductor service.
 
-    service ironic-conductor restart
+Please see `documentation on enabling drivers`_ for more details.
 
 Registering a node with the IPMItool driver
 ===========================================
 
-Nodes configured to use the IPMItool drivers should have the ``driver``
-property set to ``pxe_ipmitool`` or ``agent_ipmitool``.
+Nodes configured to use the IPMItool drivers should have the driver field set
+to ``ipmi`` (hardware type) or to the name of one of the classic drivers
+that support ipmitool.
 
 The following configuration value is required and has to be added to
 the node's ``driver_info`` field:
@@ -75,10 +85,10 @@ good practice to have them set:
    your BMC.
 
 The ``ironic node-create`` command can be used to enroll a node with
-the IPMITool driver. For example::
+an IPMITool-based driver. For example::
 
-    ironic node-create -d pxe_ipmitool -i ipmi_address=<address>
-    -i ipmi_username=<username> -i ipmi_password=<password>
+    ironic node-create -d ipmi -i ipmi_address=<address> \
+        -i ipmi_username=<username> -i ipmi_password=<password>
 
 Advanced configuration
 ======================
@@ -91,11 +101,11 @@ Single/Double bridging functionality
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. note::
-   A version of ``ipmitool`` higher or equal to 1.8.12 is required to use
+   A version of IPMItool higher or equal to 1.8.12 is required to use
    the bridging functionality.
 
 There are two different bridging functionalities supported by the
-IPMITool driver: *single* bridge and *dual* bridge.
+IPMITool-based drivers: *single* bridge and *dual* bridge.
 
 The following configuration values need to be added to the node's
 ``driver_info`` field so bridging can be used:
@@ -105,7 +115,7 @@ The following configuration values need to be added to the node's
 - ``ipmi_local_address``: The local IPMB address for bridged requests.
    Required only if ``ipmi_bridging`` is set to *single* or *dual*. This
    configuration is optional, if not specified it will be auto discovered
-   by ipmitool.
+   by IPMItool.
 - ``ipmi_target_address``: The destination address for bridged
   requests. Required only if ``ipmi_bridging`` is set to *single* or *dual*.
 - ``ipmi_target_channel``: The destination channel for bridged
@@ -129,21 +139,21 @@ driver. For example:
 
 * Single Bridging::
 
-    ironic node-update add <UUID or name> driver_info/ipmi_local_address=<address>
-    driver_info/ipmi_bridging=single driver_info/ipmi_target_channel=<channel>
-    driver_info/ipmi_target_address=<target address>
+    ironic node-update add <UUID or name> driver_info/ipmi_local_address=<address> \
+        driver_info/ipmi_bridging=single driver_info/ipmi_target_channel=<channel> \
+        driver_info/ipmi_target_address=<target address>
 
 * Double Bridging::
 
-    ironic node-update add <UUID or name> driver_info/ipmi_local_address=<address>
-    driver_info/ipmi_bridging=dual driver_info/ipmi_transit_channel=<transit channel>
-    driver_info/ipmi_transit_address=<transit address> driver_info/ipmi_target_channel=<target channel>
-    driver_info/ipmi_target_address=<target address>
+    ironic node-update add <UUID or name> driver_info/ipmi_local_address=<address> \
+        driver_info/ipmi_bridging=dual driver_info/ipmi_transit_channel=<transit channel> \
+        driver_info/ipmi_transit_address=<transit address> driver_info/ipmi_target_channel=<target channel> \
+        driver_info/ipmi_target_address=<target address>
 
 Changing the version of the IPMI protocol
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The IPMItool driver works with the versions *2.0* and *1.5* of the
+The IPMItool-based drivers works with the versions *2.0* and *1.5* of the
 IPMI protocol. By default, the version *2.0* is used.
 
 In order to change the IPMI protocol version in the bare metal node,
@@ -158,8 +168,14 @@ protocol version::
     ironic node-update add <UUID or name> driver_info/ipmi_protocol_version=<version>
 
 .. warning::
-   The version *1.5* of the IPMI protocol does not support encryption. So
-   it's very recommended that the version *2.0* is used.
+   Version *1.5* of the IPMI protocol does not support encryption.
+   Therefore, it is highly recommended that version 2.0 is used.
 
 .. TODO(lucasagomes): Write about privilege level
 .. TODO(lucasagomes): Write about force boot device
+
+.. _IPMItool: https://sourceforge.net/projects/ipmitool/
+.. _IPMI: https://en.wikipedia.org/wiki/Intelligent_Platform_Management_Interface
+.. _BMC: https://en.wikipedia.org/wiki/Intelligent_Platform_Management_Interface#Baseboard_management_controller
+.. _IPMI configuration guide: https://docs.openstack.org/project-install-guide/baremetal/draft/configure-ipmi.html
+.. _documentation on enabling drivers: https://docs.openstack.org/project-install-guide/baremetal/draft/enabling-drivers.html
