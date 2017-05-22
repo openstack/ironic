@@ -120,3 +120,67 @@ Additional references:
 
 - :ref:`cleaning`
 - :ref:`trusted-boot`
+
+
+Other considerations
+====================
+
+Internal networks
+-----------------
+
+Access to networks which the Bare Metal service uses internally should be
+prohibited from outside. These networks are the ones used for management (with
+the nodes' BMC controllers), provisioning, cleaning (if used) and rescuing
+(if used).
+
+This can be done with physical or logical network isolation, traffic filtering, etc.
+
+Management interface technologies
+---------------------------------
+
+Some nodes support more than one management interface technology (vendor and
+IPMI for example). If you use only one modern technology for out-of-band node
+access, it is recommended that you disable IPMI since the IPMI protocol is not
+secure.  If IPMI is enabled, in most cases a local OS administrator is able to
+work in-band with IPMI settings without specifying any credentials, as this
+is a DCMI specification requirement.
+
+Tenant network isolation
+------------------------
+
+If you use tenant network isolation, services (TFTP or HTTP) that handle the
+nodes' boot files should serve requests only from the internal networks that
+are used for the nodes being deployed and cleaned.
+
+TFTP protocol does not support per-user access control at all.
+
+For HTTP, there is no generic and safe way to transfer credentials to the
+node.
+
+Also, tenant network isolation is not intended to work with network-booting
+a node by default, once the node has been provisioned.
+
+API endpoints for RAM disk use
+------------------------------
+
+There are `two (unauthorized) endpoints
+<https://developer.openstack.org/api-ref/baremetal/#utility>`_ in the
+Bare Metal API that are intended for use by the ironic-python-agent RAM disk.
+They are not intended for public use.
+
+These endpoints can potentially cause security issues. Access to
+these endpoints from external or untrusted networks should be prohibited.
+An easy way to do this is to:
+
+* set up two groups of API services: one for external requests, the second for
+  deploy RAM disks' requests.
+* to disable unauthorized access to these endpoints in the (first) API services
+  group that serves external requests, the following lines should be
+  added to the `policy.yaml file
+  <https://docs.openstack.org/ironic/latest/configuration/sample-policy.html>`_::
+
+    # Send heartbeats from IPA ramdisk
+    "baremetal:node:ipa_heartbeat": "rule:is_admin"
+
+    # Access IPA ramdisk functions
+    "baremetal:driver:ipa_lookup": "rule:is_admin"
