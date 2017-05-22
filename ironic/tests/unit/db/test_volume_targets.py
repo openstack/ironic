@@ -115,6 +115,16 @@ class DbVolumeTargetTestCase(base.DbTestCase):
     def test_get_volume_targets_by_node_id_that_does_not_exist(self):
         self.assertEqual([], self.dbapi.get_volume_targets_by_node_id(99))
 
+    def test_get_volume_targets_by_volume_id(self):
+        # Create two volume_targets. They'll have the same volume_id.
+        uuids = self._create_list_of_volume_targets(2)
+        res = self.dbapi.get_volume_targets_by_volume_id('12345678')
+        res_uuids = [r.uuid for r in res]
+        self.assertEqual(uuids, res_uuids)
+
+    def test_get_volume_targets_by_volume_id_that_does_not_exist(self):
+        self.assertEqual([], self.dbapi.get_volume_targets_by_volume_id('dne'))
+
     def test_update_volume_target(self):
         old_boot_index = self.target.boot_index
         new_boot_index = old_boot_index + 1

@@ -1067,6 +1067,13 @@ class Connection(api.Connection):
         return _paginate_query(models.VolumeTarget, limit, marker, sort_key,
                                sort_dir, query)
 
+    def get_volume_targets_by_volume_id(self, volume_id, limit=None,
+                                        marker=None, sort_key=None,
+                                        sort_dir=None):
+        query = model_query(models.VolumeTarget).filter_by(volume_id=volume_id)
+        return _paginate_query(models.VolumeTarget, limit, marker, sort_key,
+                               sort_dir, query)
+
     @oslo_db_api.retry_on_deadlock
     def create_volume_target(self, target_info):
         if 'uuid' not in target_info:
