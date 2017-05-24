@@ -28,8 +28,8 @@ opts = [
     cfg.IntOpt('heartbeat_interval',
                default=10,
                help=_('Seconds between conductor heart beats.')),
-    cfg.StrOpt('api_url',
-               regex='^http(s?):\/\/.+',
+    cfg.URIOpt('api_url',
+               schemes=('http', 'https'),
                help=_('URL of Ironic API service. If not set ironic can '
                       'get the current value from the keystone service '
                       'catalog. If set, the value must start with either '

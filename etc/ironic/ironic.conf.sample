@@ -974,7 +974,7 @@
 # URL for connecting to cinder. If set, the value must start
 # with either http:// or https://. This option is part of
 # boot-from-volume work, which is not currently exposed to
-# users. (string value)
+# users. (uri value)
 #url = <None>
 
 # User's domain id (string value)
@@ -1023,7 +1023,7 @@
 
 # URL of Ironic API service. If not set ironic can get the
 # current value from the keystone service catalog. If set, the
-# value must start with either http:// or https://. (string
+# value must start with either http:// or https://. (uri
 # value)
 #api_url = <None>
 
