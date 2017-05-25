@@ -16,7 +16,6 @@ from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
 from tempest.lib import exceptions as lib_exc
-from tempest import test
 
 from ironic_tempest_plugin.common import waiters
 from ironic_tempest_plugin.tests.api.admin import api_microversion_fixture
@@ -231,7 +230,7 @@ class TestNodesResourceClass(base.BaseBaremetalTest):
         for node in body['nodes']:
             self.assertEqual(res_class, node['resource_class'])
 
-    @test.attr(type='negative')
+    @decorators.attr(type='negative')
     @decorators.idempotent_id('e75136d4-0690-48a5-aef3-75040aee73ad')
     def test_create_node_resource_class_too_long(self):
         """Try to create a node with too long resource class name."""
@@ -239,7 +238,7 @@ class TestNodesResourceClass(base.BaseBaremetalTest):
         self.assertRaises(lib_exc.BadRequest, self.create_node,
                           self.chassis['uuid'], resource_class=resource_class)
 
-    @test.attr(type='negative')
+    @decorators.attr(type='negative')
     @decorators.idempotent_id('f0aeece4-8671-44ea-a482-b4047fc4cf74')
     def test_update_node_resource_class_too_long(self):
         """Try to update a node with too long resource class name."""
@@ -261,7 +260,7 @@ class TestNodesResourceClassOldApi(base.BaseBaremetalTest):
         _, self.chassis = self.create_chassis()
         _, self.node = self.create_node(self.chassis['uuid'])
 
-    @test.attr(type='negative')
+    @decorators.attr(type='negative')
     @decorators.idempotent_id('2c364408-4746-4b3c-9821-20d47b57bdec')
     def test_create_node_resource_class_old_api(self):
         """Try to create a node with resource class using older api version."""
@@ -269,7 +268,7 @@ class TestNodesResourceClassOldApi(base.BaseBaremetalTest):
         self.assertRaises(lib_exc.UnexpectedResponseCode, self.create_node,
                           self.chassis['uuid'], resource_class=resource_class)
 
-    @test.attr(type='negative')
+    @decorators.attr(type='negative')
     @decorators.idempotent_id('666f3c1a-4922-4a3d-b6d9-dea7c74d30bc')
     def test_update_node_resource_class_old_api(self):
         """Try to update a node with resource class using older api version."""
@@ -278,7 +277,7 @@ class TestNodesResourceClassOldApi(base.BaseBaremetalTest):
                           self.client.update_node,
                           self.node['uuid'], resource_class=resource_class)
 
-    @test.attr(type='negative')
+    @decorators.attr(type='negative')
     @decorators.idempotent_id('95903480-f16d-4774-8775-6c7f87b27c59')
     def test_list_nodes_by_resource_class_old_api(self):
         """Try to list nodes with resource class using older api version."""
