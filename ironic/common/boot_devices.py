@@ -43,3 +43,6 @@ SAFE = 'safe'
 
 WANBOOT = 'wanboot'
 "Boot from Wide Area Network"
+
+ISCSIBOOT = 'iscsiboot'
+"Boot from iSCSI volume"

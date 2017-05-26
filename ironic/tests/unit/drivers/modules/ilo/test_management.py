@@ -16,6 +16,7 @@
 
 import mock
 from oslo_utils import importutils
+from oslo_utils import uuidutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -63,7 +64,7 @@ class IloManagementTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             expected = [boot_devices.PXE, boot_devices.DISK,
-                        boot_devices.CDROM]
+                        boot_devices.CDROM, boot_devices.ISCSIBOOT]
             self.assertEqual(
                 sorted(expected),
                 sorted(task.driver.management.
@@ -709,3 +710,132 @@ class IloManagementTestCase(db_base.DbTestCase):
             task.driver.management._update_firmware_sum_final(
                 task, command)
         self.assertTrue(log_mock.exception.called)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_set_iscsi_boot_target_with_auth(self, get_ilo_object_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            vol_id = uuidutils.generate_uuid()
+            obj_utils.create_test_volume_target(
+                self.context, node_id=self.node.id, volume_type='iscsi',
+                boot_index=0, volume_id='1234', uuid=vol_id,
+                properties={'target_lun': 0,
+                            'target_portal': 'fake_host:3260',
+                            'target_iqn': 'fake_iqn',
+                            'auth_username': 'fake_username',
+                            'auth_password': 'fake_password'})
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['boot_from_volume'] = vol_id
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+            ilo_object_mock = get_ilo_object_mock.return_value
+            task.driver.management.set_iscsi_boot_target(task)
+            ilo_object_mock.set_iscsi_info.assert_called_once_with(
+                'fake_iqn', 0, 'fake_host', '3260',
+                'CHAP', 'fake_username', 'fake_password')
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_set_iscsi_boot_target_without_auth(self, get_ilo_object_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            vol_id = uuidutils.generate_uuid()
+            obj_utils.create_test_volume_target(
+                self.context, node_id=self.node.id, volume_type='iscsi',
+                boot_index=0, volume_id='1234', uuid=vol_id,
+                properties={'target_lun': 0,
+                            'target_portal': 'fake_host:3260',
+                            'target_iqn': 'fake_iqn'})
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['boot_from_volume'] = vol_id
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+            ilo_object_mock = get_ilo_object_mock.return_value
+            task.driver.management.set_iscsi_boot_target(task)
+            ilo_object_mock.set_iscsi_info.assert_called_once_with(
+                'fake_iqn', 0, 'fake_host', '3260')
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_set_iscsi_boot_target_failed(self, get_ilo_object_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            vol_id = uuidutils.generate_uuid()
+            obj_utils.create_test_volume_target(
+                self.context, node_id=self.node.id, volume_type='iscsi',
+                boot_index=0, volume_id='1234', uuid=vol_id,
+                properties={'target_lun': 0,
+                            'target_portal': 'fake_host:3260',
+                            'target_iqn': 'fake_iqn',
+                            'auth_username': 'fake_username',
+                            'auth_password': 'fake_password'})
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['boot_from_volume'] = vol_id
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+            ilo_object_mock = get_ilo_object_mock.return_value
+            ilo_object_mock.set_iscsi_info.side_effect = (
+                ilo_error.IloError)
+            self.assertRaises(exception.IloOperationError,
+                              task.driver.management.set_iscsi_boot_target,
+                              task)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_set_iscsi_boot_target_in_bios(self, get_ilo_object_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            vol_id = uuidutils.generate_uuid()
+            obj_utils.create_test_volume_target(
+                self.context, node_id=self.node.id, volume_type='iscsi',
+                boot_index=0, volume_id='1234', uuid=vol_id,
+                properties={'target_lun': 0,
+                            'target_portal': 'fake_host:3260',
+                            'target_iqn': 'fake_iqn',
+                            'auth_username': 'fake_username',
+                            'auth_password': 'fake_password'})
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['boot_from_volume'] = vol_id
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+            ilo_object_mock = get_ilo_object_mock.return_value
+            ilo_object_mock.set_iscsi_info.side_effect = (
+                ilo_error.IloCommandNotSupportedInBiosError)
+            self.assertRaises(exception.IloOperationNotSupported,
+                              task.driver.management.set_iscsi_boot_target,
+                              task)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_clear_iscsi_boot_target(self, get_ilo_object_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_object_mock = get_ilo_object_mock.return_value
+
+            task.driver.management.clear_iscsi_boot_target(task)
+            ilo_object_mock.unset_iscsi_info.assert_called_once()
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_clear_iscsi_boot_target_failed(self, get_ilo_object_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_object_mock = get_ilo_object_mock.return_value
+            ilo_object_mock.unset_iscsi_info.side_effect = (
+                ilo_error.IloError)
+            self.assertRaises(exception.IloOperationError,
+                              task.driver.management.clear_iscsi_boot_target,
+                              task)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_clear_iscsi_boot_target_in_bios(self, get_ilo_object_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_object_mock = get_ilo_object_mock.return_value
+            ilo_object_mock.unset_iscsi_info.side_effect = (
+                ilo_error.IloCommandNotSupportedInBiosError)
+            self.assertRaises(exception.IloOperationNotSupported,
+                              task.driver.management.clear_iscsi_boot_target,
+                              task)

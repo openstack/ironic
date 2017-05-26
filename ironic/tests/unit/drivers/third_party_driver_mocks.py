@@ -61,6 +61,8 @@ if not proliantutils:
     proliantutils.exception.IloError = type('IloError', (Exception,), {})
     command_exception = type('IloCommandNotSupportedError', (Exception,), {})
     proliantutils.exception.IloCommandNotSupportedError = command_exception
+    proliantutils.exception.IloCommandNotSupportedInBiosError = type(
+        'IloCommandNotSupportedInBiosError', (Exception,), {})
     proliantutils.exception.InvalidInputError = type(
         'InvalidInputError', (Exception,), {})
     proliantutils.exception.ImageExtractionFailed = type(
