@@ -17,8 +17,8 @@ from ironic.common.i18n import _
 from ironic.conf import auth
 
 opts = [
-    cfg.StrOpt('url',
-               regex='^http(s?):\/\/.+',
+    cfg.URIOpt('url',
+               schemes=('http', 'https'),
                help=_('URL for connecting to cinder. If set, the value must '
                       'start with either http:// or https://. This option is '
                       'part of boot-from-volume work, which is not currently '
@@ -47,10 +47,4 @@ def register_opts(conf):
 
 
 def list_opts():
-    # NOTE(jtaryma): Function add_auth_opts uses deepcopy on passed array.
-    #                Since deepcopy does not support regex, to enable regex
-    #                protocol restriction for 'url' option, empty array is
-    #                passed. The result is appended to opts array and resorted.
-    cinder_opts = opts + auth.add_auth_opts([])
-    cinder_opts.sort(key=lambda x: x.name)
-    return cinder_opts
+    return auth.add_auth_opts(opts)
