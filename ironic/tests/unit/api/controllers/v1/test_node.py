@@ -244,7 +244,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         fields = 'network_interface'
         response = self.get_json(
             '/nodes/%s?fields=%s' % (node.uuid, fields),
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str('1.19')},
             expect_errors=True)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
@@ -263,7 +263,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         fields_arg = ','.join(api_utils.V31_FIELDS)
         response = self.get_json(
             '/nodes/%s?fields=%s' % (node.uuid, fields_arg),
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: '1.30'},
             expect_errors=True)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
@@ -283,7 +283,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         fields = 'storage_interface'
         response = self.get_json(
             '/nodes/%s?fields=%s' % (node.uuid, fields),
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: '1.32'},
             expect_errors=True)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
