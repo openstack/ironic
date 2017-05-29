@@ -1,0 +1,6 @@
+fixes:
+  - Updating the python-oneviewclient minimum version to 2.5.1 on
+    driver-requirements.txt. The minimum version that was in the requirements
+    was 2.0.2, and is very outdated, causing the driver to not work for this
+    version. With this change, the new minimal version works for the driver,
+    making the CI for stable/newton also work.
