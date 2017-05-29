@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    Support for the ``elilo`` boot loader has been deprecated and will
+    be removed in the Queens release cycle. The elilo boot loader has
+    been orphaned as a project and dropped from the majority of Linux
+    distributions. Please switch to the ``grub2`` boot loader.

@@ -1,3 +1,4 @@
+{#- NOTE(TheJulia): Remove elilo support after the deprecation period, in the Queens release. -#}
 default=deploy
 
 image={{pxe_options.deployment_aki_path}}

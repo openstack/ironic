@@ -138,6 +138,8 @@ def _get_pxe_ip_address_path(ip_address, hex_form):
     :returns: the path to the config file.
 
     """
+    # NOTE(TheJulia): Remove elilo support after the deprecation
+    # period, in the Queens release.
     # elilo bootloader needs hex based config file name.
     if hex_form:
         ip = ip_address.split('.')
@@ -216,6 +218,9 @@ def create_pxe_config(task, pxe_options, template=None):
         hex_form = False
         pxe_config_root_tag = '(( ROOT ))'
         pxe_config_disk_ident = '(( DISK_IDENTIFIER ))'
+        LOG.warning("The requested config appears to support elilo. "
+                    "Support for elilo has been deprecated and will be "
+                    "removed in the Queens release of OpenStack.")
     else:
         # TODO(stendulker): We should use '(' ')' as the delimiters for all our
         # config files so that we do not need special handling for each of the
@@ -257,6 +262,8 @@ def clean_up_pxe_config(task):
                 # Get xx.xx.xx.xx based grub config file
                 ip_address_path = _get_pxe_ip_address_path(port_ip_address,
                                                            False)
+                # NOTE(TheJulia): Remove elilo support after the deprecation
+                # period, in the Queens release.
                 # Get 0AOAOAOA based elilo config file
                 hex_ip_path = _get_pxe_ip_address_path(port_ip_address,
                                                        True)

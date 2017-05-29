@@ -789,6 +789,8 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
 class SwitchPxeConfigTestCase(tests_base.TestCase):
 
+    # NOTE(TheJulia): Remove elilo support after the deprecation period,
+    # in the Queens release.
     def _create_config(self, ipxe=False, boot_mode=None, boot_loader='elilo'):
         (fd, fname) = tempfile.mkstemp()
         if boot_mode == 'uefi' and not ipxe:
@@ -860,6 +862,8 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
             pxeconf = f.read()
         self.assertEqual(_IPXECONF_BOOT_WHOLE_DISK, pxeconf)
 
+    # NOTE(TheJulia): Remove elilo support after the deprecation period,
+    # in the Queens release.
     def test_switch_uefi_elilo_pxe_config_partition_image(self):
         boot_mode = 'uefi'
         fname = self._create_config(boot_mode=boot_mode)
@@ -871,6 +875,8 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
             pxeconf = f.read()
         self.assertEqual(_UEFI_PXECONF_BOOT_PARTITION, pxeconf)
 
+    # NOTE(TheJulia): Remove elilo support after the deprecation period,
+    # in the Queens release.
     def test_switch_uefi_elilo_config_whole_disk_image(self):
         boot_mode = 'uefi'
         fname = self._create_config(boot_mode=boot_mode)
