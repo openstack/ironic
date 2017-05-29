@@ -87,7 +87,8 @@ opts = [
                       "creating files that cannot be read by the TFTP server. "
                       "Setting to <None> will result in the operating "
                       "system's umask to be utilized for the creation of new "
-                      "tftp folders.")),
+                      "tftp folders. It is recommended that an octal "
+                      "representation is specified. For example: 0o755")),
     cfg.StrOpt('pxe_bootfile_name',
                default='pxelinux.0',
                help=_('Bootfile DHCP parameter.')),
