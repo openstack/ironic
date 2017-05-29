@@ -891,10 +891,10 @@
 # From ironic
 #
 
-# Number of retries in the case of a failed action (only
-# specific actions are retried). This option is part of boot-
-# from-volume work, which is not currently exposed to users.
-# (integer value)
+# Number of retries in the case of a failed action (currently
+# only used when detaching volumes). This option is part of
+# boot-from-volume work, which is not currently exposed to
+# users. (integer value)
 #action_retries = 3
 
 # Retry interval in seconds in the case of a failed action
@@ -2580,6 +2580,10 @@
 # value)
 #sasl_config_name =
 
+# SASL realm to use if no realm present in username (string
+# value)
+#sasl_default_realm =
+
 # DEPRECATED: User name for message broker authentication
 # (string value)
 # This option is deprecated for removal.
@@ -2804,6 +2808,11 @@
 # Deprecated group/name - [rpc_notifier2]/topics
 # Deprecated group/name - [DEFAULT]/notification_topics
 #topics = notifications
+
+# The maximum number of attempts to re-send a notification
+# message which failed to be delivered due to a recoverable
+# error. 0 - No retry, -1 - indefinite (integer value)
+#retry = -1
 
 
 [oslo_messaging_rabbit]
