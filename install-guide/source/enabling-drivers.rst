@@ -138,6 +138,12 @@ vendor
     is a place for vendor extensions to be exposed in API. See `vendor
     methods documentation`_ for details.
 
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = ipmi,redfish,ilo,irmc
+        enabled_vendor_interfaces = ipmitool,no-vendor
+
 Here is a complete configuration example, enabling two generic protocols,
 IPMI and Redfish, with a few additional features:
 
@@ -153,7 +159,7 @@ IPMI and Redfish, with a few additional features:
     enabled_network_interfaces = flat,neutron
     enabled_power_interfaces = ipmitool,redfish
     enabled_raid_interfaces = agent
-    enabled_vendor_interfaces = no-vendor
+    enabled_vendor_interfaces = ipmitool,no-vendor
 
 Note that some interfaces have implementations named ``no-<TYPE>`` where
 ``<TYPE>`` is the interface type. These implementations do nothing and return

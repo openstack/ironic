@@ -5,7 +5,7 @@ Installing ipmitool command
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To enable one of the drivers that use IPMI_ protocol for power and management
-actions (e.g. ``ipmi``, ``pxe_ipmitool`` and ``agent_ipmitool``), the
+actions (for example, ``ipmi``, ``pxe_ipmitool`` and ``agent_ipmitool``), the
 ``ipmitool`` command must be present on the service node(s) where
 ``ironic-conductor`` is running. On most distros, it is provided as part
 of the ``ipmitool`` package. Source code is available at
@@ -16,6 +16,12 @@ http://ipmitool.sourceforge.net/.
     instead of ``ipmitool`` by default. This driver is not compatible with
     ``openipmi`` as it relies on error handling options not provided by
     this tool.
+
+Please refer to the `ipmitool driver page`_ for information on how to use
+IPMItool-based drivers.
+
+Validation and troubleshooting
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Check that you can connect to, and authenticate with, the IPMI
 controller in your bare metal server by running ``ipmitool``::
@@ -76,3 +82,4 @@ these are ``Temperature``, ``Fan``, ``Voltage``, ``Current``.
 Special value ``All`` (the default) designates all supported sensor types.
 
 .. _IPMI: https://en.wikipedia.org/wiki/Intelligent_Platform_Management_Interface
+.. _ipmitool driver page: https://docs.openstack.org/developer/ironic/drivers/ipmitool.html
