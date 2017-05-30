@@ -31,7 +31,7 @@ opts = [
     cfg.IntOpt('action_retries',
                default=3,
                help=_('Number of retries in the case of a failed '
-                      'action (currently only used when deatching'
+                      'action (currently only used when detaching '
                       'volumes). This option is part of boot-from-volume '
                       'work, which is not currently exposed to users.')),
     cfg.IntOpt('action_retry_interval',
