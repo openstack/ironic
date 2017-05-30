@@ -23,11 +23,13 @@ import sys
 
 from oslo_config import cfg
 from oslo_log import log
+from oslo_reports import guru_meditation_report as gmr
 from oslo_service import service
 
 from ironic.common import rpc_service
 from ironic.common import service as ironic_service
 from ironic.conf import auth
+from ironic import version
 
 CONF = cfg.CONF
 
@@ -68,6 +70,8 @@ def main():
 
     # Parse config file and command line options, then start logging
     ironic_service.prepare_service(sys.argv)
+
+    gmr.TextGuruMeditation.setup_autorun(version)
 
     mgr = rpc_service.RPCService(CONF.host,
                                  'ironic.conductor.manager',

@@ -1,0 +1,662 @@
+/usr/local/lib/python2.7/dist-packages/pecan/__init__.py:122: RuntimeWarning: `static_root` is only used when `debug` is True, ignoring
+  RuntimeWarning
+========================================================================
+====                        Guru Meditation                         ====
+========================================================================
+||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+
+========================================================================
+====                            Package                             ====
+========================================================================
+product = None
+vendor = None
+version = None
+========================================================================
+====                            Threads                             ====
+========================================================================
+------                  Thread #140512155997952                   ------
+
+/usr/local/lib/python2.7/dist-packages/eventlet/hubs/hub.py:346 in run
+    `self.wait(sleep_time)`
+
+/usr/local/lib/python2.7/dist-packages/eventlet/hubs/poll.py:82 in wait
+    `sleep(seconds)`
+
+========================================================================
+====                         Green Threads                          ====
+========================================================================
+------                        Green Thread                        ------
+
+/usr/local/bin/ironic-api:10 in <module>
+    `sys.exit(main())`
+
+/opt/stack/ironic/ironic/cmd/api.py:48 in main
+    `launcher.wait()`
+
+/usr/local/lib/python2.7/dist-packages/oslo_service/service.py:586 in wait
+    `self._respawn_children()`
+
+/usr/local/lib/python2.7/dist-packages/oslo_service/service.py:570 in _respawn_children
+    `eventlet.greenthread.sleep(self.wait_interval)`
+
+/usr/local/lib/python2.7/dist-packages/eventlet/greenthread.py:34 in sleep
+    `hub.switch()`
+
+/usr/local/lib/python2.7/dist-packages/eventlet/hubs/hub.py:294 in switch
+    `return self.greenlet.switch()`
+
+------                        Green Thread                        ------
+
+No Traceback!
+
+========================================================================
+====                           Processes                            ====
+========================================================================
+Process 124840 (under 48114) [ run by: ubuntu (1000), state: running ]
+    Process 124849 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124850 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124851 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124852 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124853 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124854 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124855 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124856 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124857 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124858 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124859 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124860 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124861 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124862 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124863 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124864 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124865 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124866 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124867 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124868 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124869 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124870 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124871 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124872 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124873 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124874 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124875 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124876 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124877 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124878 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124879 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+    Process 124880 (under 124840) [ run by: ubuntu (1000), state: sleeping ]
+
+========================================================================
+====                         Configuration                          ====
+========================================================================
+
+agent:
+  agent_api_version = v1
+  deploy_logs_collect = always
+  deploy_logs_local_path = /home/ubuntu/ironic-bm-logs/deploy_logs
+  deploy_logs_storage_backend = local
+  deploy_logs_swift_container = ironic_deploy_logs_container
+  deploy_logs_swift_days_to_expire = 30
+  manage_agent_boot = True
+  memory_consumed_by_agent = 0
+  post_deploy_get_power_state_retries = 6
+  post_deploy_get_power_state_retry_interval = 5
+  stream_raw_images = True
+
+api:
+  api_workers = None
+  enable_ssl_api = False
+  host_ip = 0.0.0.0
+  max_limit = 1000
+  port = 6385
+  public_endpoint = None
+  ramdisk_heartbeat_timeout = 30
+  restrict_lookup = True
+
+audit:
+  audit_map_file = /etc/ironic/api_audit_map.conf
+  enabled = False
+  ignore_req_list =
+  namespace = openstack
+
+audit_middleware_notifications:
+  driver = None
+  topics = None
+  transport_url = ***
+
+cimc:
+  action_interval = 10
+  max_retry = 6
+
+cisco_ucs:
+  action_interval = 5
+  max_retry = 6
+
+conductor:
+  api_url = http://10.223.197.220:6385
+  automated_clean = True
+  check_provision_state_interval = 60
+  clean_callback_timeout = 1800
+  configdrive_swift_container = ironic_configdrive_container
+  configdrive_use_swift = False
+  deploy_callback_timeout = 1800
+  force_power_state_during_sync = True
+  heartbeat_interval = 10
+  heartbeat_timeout = 60
+  inspect_timeout = 1800
+  node_locked_retry_attempts = 3
+  node_locked_retry_interval = 1
+  periodic_max_workers = 8
+  power_state_sync_max_retries = 3
+  send_sensor_data = False
+  send_sensor_data_interval = 600
+  send_sensor_data_types =
+    ALL
+  sync_local_state_interval = 180
+  sync_power_state_interval = 60
+  workers_pool_size = 100
+
+console:
+  subprocess_checking_interval = 1
+  subprocess_timeout = 10
+  terminal = shellinaboxd
+  terminal_cert_dir = None
+  terminal_pid_dir = None
+
+cors:
+  allow_credentials = True
+  allow_headers =
+  allow_methods =
+    DELETE
+    GET
+    HEAD
+    OPTIONS
+    PATCH
+    POST
+    PUT
+    TRACE
+  allowed_origin = None
+  expose_headers =
+  max_age = 3600
+
+cors.subdomain:
+  allow_credentials = True
+  allow_headers =
+  allow_methods =
+    DELETE
+    GET
+    HEAD
+    OPTIONS
+    PATCH
+    POST
+    PUT
+    TRACE
+  allowed_origin = None
+  expose_headers =
+  max_age = 3600
+
+database:
+  backend = sqlalchemy
+  connection = ***
+  connection_debug = 0
+  connection_trace = False
+  db_inc_retry_interval = True
+  db_max_retries = 20
+  db_max_retry_interval = 10
+  db_retry_interval = 1
+  idle_timeout = 3600
+  max_overflow = 50
+  max_pool_size = 5
+  max_retries = 10
+  min_pool_size = 1
+  mysql_engine = InnoDB
+  mysql_sql_mode = TRADITIONAL
+  pool_timeout = None
+  retry_interval = 10
+  slave_connection = ***
+  sqlite_synchronous = True
+  use_db_reconnect = False
+
+default:
+  api_paste_config = api-paste.ini
+  auth_strategy = keystone
+  bindir = /opt/stack/ironic/ironic/bin
+  client_socket_timeout = 900
+  config-dir =
+  config-file =
+    /etc/ironic/ironic.conf
+  control_exchange = ironic
+  debug = True
+  debug_tracebacks_in_api = False
+  default_boot_interface = None
+  default_console_interface = None
+  default_deploy_interface = None
+  default_inspect_interface = None
+  default_log_levels =
+    amqp=WARNING
+    amqplib=WARNING
+    eventlet.wsgi.server=INFO
+    glanceclient=WARNING
+    iso8601=WARNING
+    keystoneauth.session=INFO
+    keystonemiddleware.auth_token=INFO
+    neutronclient=WARNING
+    oslo_messaging=INFO
+    paramiko=WARNING
+    qpid.messaging=INFO
+    requests=WARNING
+    sqlalchemy=WARNING
+    stevedore=INFO
+    urllib3.connectionpool=WARNING
+  default_management_interface = None
+  default_network_interface = None
+  default_portgroup_mode = active-backup
+  default_power_interface = None
+  default_raid_interface = None
+  default_vendor_interface = None
+  enabled_boot_interfaces =
+    pxe
+  enabled_console_interfaces =
+    no-console
+  enabled_deploy_interfaces =
+    direct
+    iscsi
+  enabled_drivers =
+    agent_ipmitool
+    agent_ssh
+    fake
+    pxe_ipmitool
+    pxe_ssh
+  enabled_hardware_types =
+    ipmi
+    redfish
+  enabled_inspect_interfaces =
+    no-inspect
+  enabled_management_interfaces =
+    ipmitool
+    redfish
+  enabled_network_interfaces =
+    flat
+    noop
+  enabled_power_interfaces =
+    ipmitool
+    redfish
+  enabled_raid_interfaces =
+    agent
+    no-raid
+  enabled_vendor_interfaces =
+    no-vendor
+  fatal_exception_format_errors = False
+  force_raw_images = True
+  graceful_shutdown_timeout = 60
+  grub_config_template = /opt/stack/ironic/ironic/common/grub_conf.template
+  hash_distribution_replicas = 1
+  hash_partition_exponent = 5
+  hash_ring_reset_interval = 180
+  host = ubuntu
+  instance_format = [instance: %(uuid)s]
+  instance_uuid_format = [instance: %(uuid)s]
+  isolinux_bin = /usr/lib/syslinux/isolinux.bin
+  isolinux_config_template = /opt/stack/ironic/ironic/common/isolinux_config.template
+  log-config-append = None
+  log-date-format = %Y-%m-%d %H:%M:%S
+  log-dir = None
+  log-file = None
+  log_options = True
+  logging_context_format_string = %(asctime)s.%(msecs)03d %(color)s%(levelname)s %(name)s [[01;36m%(request_id)s [00;36m%(project_name)s %(user_name)s%(color)s] [01;35m%(instance)s%(color)s%(message)s[00m
+  logging_debug_format_suffix = [00;33mfrom (pid=%(process)d) %(funcName)s %(pathname)s:%(lineno)d[00m
+  logging_default_format_string = %(asctime)s.%(msecs)03d %(color)s%(levelname)s %(name)s [[00;36m-%(color)s] [01;35m%(instance)s%(color)s%(message)s[00m
+  logging_exception_prefix = %(color)s%(asctime)s.%(msecs)03d TRACE %(name)s [01;35m%(instance)s[00m
+  logging_user_identity_format = %(user)s %(tenant)s %(domain)s %(user_domain)s %(project_domain)s
+  max_header_line = 16384
+  my_ip = 10.223.197.220
+  notification_level = None
+  parallel_image_downloads = False
+  pecan_debug = False
+  publish_errors = False
+  pybasedir = /opt/stack/ironic/ironic
+  rate_limit_burst = 0
+  rate_limit_except_level = CRITICAL
+  rate_limit_interval = 0
+  rootwrap_config = /etc/ironic/rootwrap.conf
+  rpc_backend = rabbit
+  rpc_response_timeout = 60
+  state_path = /var/lib/ironic
+  syslog-log-facility = LOG_USER
+  tcp_keepidle = 600
+  tempdir = /tmp
+  transport_url = ***
+  use-journal = False
+  use-syslog = False
+  use_stderr = False
+  watch-log-file = False
+  wsgi_default_pool_size = 100
+  wsgi_keep_alive = True
+  wsgi_log_format = %(client_ip)s "%(request_line)s" status: %(status_code)s  len: %(body_length)s time: %(wall_seconds).7f
+
+deploy:
+  continue_if_disk_secure_erase_fails = False
+  default_boot_option = netboot
+  erase_devices_metadata_priority = None
+  erase_devices_priority = 0
+  http_root = /opt/stack/data/ironic/httpboot
+  http_url = http://10.223.197.220:3928
+  power_off_after_deploy_failure = True
+  shred_final_overwrite_with_zeros = True
+  shred_random_overwrite_iterations = 1
+
+dhcp:
+  dhcp_provider = neutron
+
+disk_partitioner:
+  check_device_interval = 1
+  check_device_max_retries = 20
+
+disk_utils:
+  bios_boot_partition_size = 1
+  dd_block_size = 1M
+  efi_system_partition_size = 200
+  iscsi_verify_attempts = 3
+
+drac:
+  query_raid_config_job_status_interval = 120
+
+glance:
+  allowed_direct_url_schemes =
+  auth_section = None
+  auth_strategy = keystone
+  auth_type = password
+  cafile = /opt/stack/data/ca-bundle.pem
+  certfile = None
+  glance_api_insecure = False
+  glance_api_servers = None
+  glance_cafile = None
+  glance_host = 10.223.197.220
+  glance_num_retries = 0
+  glance_port = 9292
+  glance_protocol = http
+  insecure = False
+  keyfile = None
+  swift_account = AUTH_cb13c4492d124b01b4659a97d627955c
+  swift_api_version = v1
+  swift_container = glance
+  swift_endpoint_url = http://10.223.197.220:8080
+  swift_store_multiple_containers_seed = 0
+  swift_temp_url_cache_enabled = False
+  swift_temp_url_duration = 3600
+  swift_temp_url_expected_download_start_delay = 0
+  swift_temp_url_key = ***
+  temp_url_endpoint_type = swift
+  timeout = None
+
+ilo:
+  ca_file = None
+  clean_priority_clear_secure_boot_keys = 0
+  clean_priority_erase_devices = None
+  clean_priority_reset_bios_to_default = 10
+  clean_priority_reset_ilo = 0
+  clean_priority_reset_ilo_credential = 30
+  clean_priority_reset_secure_boot_keys_to_default = 20
+  client_port = 443
+  client_timeout = 60
+  default_boot_mode = auto
+  power_retry = 6
+  power_wait = 2
+  swift_ilo_container = ironic_ilo_container
+  swift_object_expiry_timeout = 900
+  use_web_server_for_images = False
+
+inspector:
+  auth_section = None
+  auth_type = password
+  cafile = /opt/stack/data/ca-bundle.pem
+  certfile = None
+  enabled = False
+  insecure = False
+  keyfile = None
+  service_url = None
+  status_check_period = 60
+  timeout = None
+
+ipmi:
+  min_command_interval = 5
+  retry_timeout = 60
+
+irmc:
+  auth_method = basic
+  client_timeout = 60
+  port = 443
+  remote_image_server = None
+  remote_image_share_name = share
+  remote_image_share_root = /remote_image_share_root
+  remote_image_share_type = CIFS
+  remote_image_user_domain =
+  remote_image_user_name = None
+  remote_image_user_password = ***
+  sensor_method = ipmitool
+  snmp_community = public
+  snmp_port = 161
+  snmp_security = None
+  snmp_version = v2c
+
+ironic_lib:
+  fatal_exception_format_errors = False
+  root_helper = sudo ironic-rootwrap /etc/ironic/rootwrap.conf
+
+iscsi:
+  portal_port = 3260
+
+keystone:
+  region_name = RegionOne
+
+keystone_authtoken:
+  admin_password = ***
+  admin_tenant_name = admin
+  admin_token = ***
+  admin_user = None
+  auth-url = http://10.223.197.220/identity_admin
+  auth_admin_prefix =
+  auth_host = 127.0.0.1
+  auth_port = 35357
+  auth_protocol = https
+  auth_section = None
+  auth_type = password
+  auth_uri = http://10.223.197.220/identity
+  auth_version = None
+  cache = None
+  cafile = /opt/stack/data/ca-bundle.pem
+  certfile = None
+  check_revocations_for_cached = False
+  default-domain-id = None
+  default-domain-name = None
+  delay_auth_decision = False
+  domain-id = None
+  domain-name = None
+  enforce_token_bind = permissive
+  hash_algorithms =
+    md5
+  http_connect_timeout = None
+  http_request_max_retries = 3
+  identity_uri = None
+  include_service_catalog = True
+  insecure = False
+  keyfile = None
+  memcache_pool_conn_get_timeout = 10
+  memcache_pool_dead_retry = 300
+  memcache_pool_maxsize = 10
+  memcache_pool_socket_timeout = 3
+  memcache_pool_unused_timeout = 60
+  memcache_secret_key = ***
+  memcache_security_strategy = None
+  memcache_use_advanced_pool = False
+  memcached_servers =
+    10.223.197.220:11211
+  password = ***
+  project-domain-id = None
+  project-domain-name = Default
+  project-id = None
+  project-name = service
+  region_name = None
+  revocation_cache_time = 10
+  service_token_roles =
+    service
+  service_token_roles_required = False
+  signing_dir = /var/cache/ironic/api
+  token_cache_time = 300
+  trust-id = None
+  user-domain-id = None
+  user-domain-name = Default
+  user-id = None
+  username = ironic
+
+metrics:
+  agent_backend = noop
+  agent_global_prefix = None
+  agent_prepend_host = False
+  agent_prepend_host_reverse = True
+  agent_prepend_uuid = False
+  backend = noop
+  global_prefix = None
+  prepend_host = False
+  prepend_host_reverse = True
+
+metrics_statsd:
+  agent_statsd_host = localhost
+  agent_statsd_port = 8125
+  statsd_host = localhost
+  statsd_port = 8125
+
+neutron:
+  auth_section = None
+  auth_strategy = keystone
+  auth_type = password
+  cafile = /opt/stack/data/ca-bundle.pem
+  certfile = None
+  cleaning_network = private
+  cleaning_network_security_groups =
+  insecure = False
+  keyfile = None
+  port_setup_delay = 15
+  provisioning_network = None
+  provisioning_network_security_groups =
+  retries = 3
+  timeout = None
+  url = None
+  url_timeout = 30
+
+oneview:
+  allow_insecure_connections = False
+  enable_periodic_tasks = True
+  manager_url = None
+  max_polling_attempts = 12
+  password = ***
+  periodic_check_interval = 300
+  tls_cacert_file = None
+  username = None
+
+oslo_concurrency:
+  disable_process_locking = False
+  lock_path = None
+
+oslo_messaging_notifications:
+  driver =
+  topics =
+    notifications
+  transport_url = ***
+
+oslo_messaging_rabbit:
+  amqp_auto_delete = False
+  amqp_durable_queues = False
+  conn_pool_min_size = 2
+  conn_pool_ttl = 1200
+  fake_rabbit = False
+  heartbeat_rate = 2
+  heartbeat_timeout_threshold = 60
+  kombu_compression = None
+  kombu_failover_strategy = round-robin
+  kombu_missing_consumer_retry_timeout = 60
+  kombu_reconnect_delay = 1.0
+  rabbit_ha_queues = False
+  rabbit_host = localhost
+  rabbit_hosts =
+    localhost:5672
+  rabbit_interval_max = 30
+  rabbit_login_method = AMQPLAIN
+  rabbit_max_retries = 0
+  rabbit_password = ***
+  rabbit_port = 5672
+  rabbit_qos_prefetch_count = 0
+  rabbit_retry_backoff = 2
+  rabbit_retry_interval = 1
+  rabbit_transient_queues_ttl = 1800
+  rabbit_userid = guest
+  rabbit_virtual_host = /
+  rpc_conn_pool_size = 30
+  ssl = False
+  ssl_ca_file =
+  ssl_cert_file =
+  ssl_key_file =
+  ssl_version =
+
+oslo_versionedobjects:
+  fatal_exception_format_errors = False
+
+pxe:
+  default_ephemeral_format = ext4
+  image_cache_size = 20480
+  image_cache_ttl = 10080
+  images_path = /var/lib/ironic/images/
+  instance_master_path = /var/lib/ironic/master_images
+  ip_version = 4
+  ipxe_boot_script = /opt/stack/ironic/ironic/drivers/modules/boot.ipxe
+  ipxe_enabled = True
+  ipxe_timeout = 0
+  ipxe_use_swift = False
+  pxe_append_params = nofb nomodeset vga=normal console=ttyS0 systemd.journald.forward_to_console=yes
+  pxe_bootfile_name = undionly.kpxe
+
+  pxe_bootfile_name_by_arch:
+  pxe_config_template = /opt/stack/ironic/ironic/drivers/modules/ipxe_config.template
+
+  pxe_config_template_by_arch:
+  tftp_master_path = /opt/stack/data/ironic/tftpboot/master_images
+  tftp_root = /opt/stack/data/ironic/tftpboot
+  tftp_server = 10.223.197.220
+  uefi_pxe_bootfile_name = ipxe.efi
+  uefi_pxe_config_template = /opt/stack/ironic/ironic/drivers/modules/ipxe_config.template
+
+seamicro:
+  action_timeout = 10
+  max_retry = 3
+
+service_catalog:
+  auth_section = None
+  auth_type = password
+  cafile = /opt/stack/data/ca-bundle.pem
+  certfile = None
+  insecure = False
+  keyfile = None
+  timeout = None
+
+snmp:
+  power_timeout = 10
+  reboot_delay = 0
+
+ssh:
+  get_vm_name_attempts = 3
+  get_vm_name_retry_interval = 3
+  libvirt_uri = qemu:///system
+
+swift:
+  auth_section = None
+  auth_type = password
+  cafile = /opt/stack/data/ca-bundle.pem
+  certfile = None
+  insecure = False
+  keyfile = None
+  swift_max_retries = 2
+  timeout = None
+
+virtualbox:
+  port = 18083
