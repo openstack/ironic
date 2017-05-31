@@ -27,10 +27,6 @@ class ImageService(object):
         """Constructor."""
 
     @abc.abstractmethod
-    def detail(self):
-        """Calls out to Glance for a list of detailed image information."""
-
-    @abc.abstractmethod
     def show(self, image_id):
         """Returns a dict with image data for the given opaque image id.
 
@@ -46,36 +42,4 @@ class ImageService(object):
 
         :param image_id: The opaque image identifier.
         :param data: (Optional) File object to write data to.
-        """
-
-    @abc.abstractmethod
-    def create(self, image_meta, data=None):
-        """Store the image data and return the new image object.
-
-        :param image_meta: A dict containing image metadata
-        :param data: (Optional) File object to create image from.
-        :returns: dict -- New created image metadata
-        """
-
-    @abc.abstractmethod
-    def update(self, image_id,
-               image_meta, data=None, purge_props=False):
-        """Modify the given image with the new data.
-
-        :param image_id: The opaque image identifier.
-        :param data: (Optional) File object to update data from.
-        :param purge_props: (Optional=True) Purge existing properties.
-        :returns: dict -- New created image metadata
-        """
-
-    @abc.abstractmethod
-    def delete(self, image_id):
-        """Delete the given image.
-
-        :param image_id: The opaque image identifier.
-
-        :raises: ImageNotFound if the image does not exist.
-        :raises: NotAuthorized if the user is not an owner.
-        :raises: ImageNotAuthorized if the user is not authorized.
-
         """

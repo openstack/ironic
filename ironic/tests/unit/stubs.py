@@ -27,22 +27,8 @@ class StubGlanceClient(object):
 
         # NOTE(bcwaldon): HACK to get client.images.* to work
         self.images = lambda: None
-        for fn in ('list', 'get', 'data', 'create', 'update', 'delete'):
+        for fn in ('get', 'data'):
             setattr(self.images, fn, getattr(self, fn))
-
-    # TODO(bcwaldon): implement filters
-    def list(self, filters=None, marker=None, limit=30):
-        if marker is None:
-            index = 0
-        else:
-            for index, image in enumerate(self._images):
-                if image.id == str(marker):
-                    index += 1
-                    break
-            else:
-                raise glance_exc.BadRequest('Marker not found')
-
-        return self._images[index:index + limit]
 
     def get(self, image_id):
         for image in self._images:
@@ -54,53 +40,18 @@ class StubGlanceClient(object):
         self.get(image_id)
         return []
 
-    def create(self, **metadata):
-        metadata['created_at'] = NOW_GLANCE_FORMAT
-        metadata['updated_at'] = NOW_GLANCE_FORMAT
-
-        self._images.append(FakeImage(metadata))
-
-        try:
-            image_id = str(metadata['id'])
-        except KeyError:
-            # auto-generate an id if one wasn't provided
-            image_id = str(len(self._images))
-
-        self._images[-1].id = image_id
-
-        return self._images[-1]
-
-    def update(self, image_id, **metadata):
-        for i, image in enumerate(self._images):
-            if image.id == str(image_id):
-                for k, v in metadata.items():
-                    setattr(self._images[i], k, v)
-                return self._images[i]
-        raise glance_exc.NotFound(image_id)
-
-    def delete(self, image_id):
-        for i, image in enumerate(self._images):
-            if image.id == image_id:
-                # When you delete an image from glance, it sets the status to
-                # DELETED. If you try to delete a DELETED image, it raises
-                # HTTPForbidden.
-                image_data = self._images[i]
-                if image_data.deleted:
-                    raise glance_exc.Forbidden()
-                image_data.deleted = True
-                return
-        raise glance_exc.NotFound(image_id)
-
 
 class FakeImage(object):
     def __init__(self, metadata):
         IMAGE_ATTRIBUTES = ['size', 'disk_format', 'owner',
                             'container_format', 'checksum', 'id',
-                            'name', 'created_at', 'updated_at',
+                            'name',
                             'deleted', 'status',
                             'min_disk', 'min_ram', 'is_public']
         raw = dict.fromkeys(IMAGE_ATTRIBUTES)
         raw.update(metadata)
+        # raw['created_at'] = NOW_GLANCE_FORMAT
+        # raw['updated_at'] = NOW_GLANCE_FORMAT
         self.__dict__['raw'] = raw
 
     def __getattr__(self, key):
