@@ -539,15 +539,25 @@ class PortsController(rest.RestController):
         if not pdict.get('uuid'):
             pdict['uuid'] = uuidutils.generate_uuid()
 
-        new_port = objects.Port(context, **pdict)
+        rpc_port = objects.Port(context, **pdict)
+        rpc_node = objects.Node.get_by_id(context, rpc_port.node_id)
 
         notify_extra = {'node_uuid': port.node_uuid,
                         'portgroup_uuid': port.portgroup_uuid}
-        notify.emit_start_notification(context, new_port, 'create',
+        notify.emit_start_notification(context, rpc_port, 'create',
                                        **notify_extra)
-        with notify.handle_error_notification(context, new_port, 'create',
+        with notify.handle_error_notification(context, rpc_port, 'create',
                                               **notify_extra):
-            new_port.create()
+            # TODO(mgoddard): In RPC API v1.41, port creation was moved to the
+            # conductor service to facilitate validation of the physical
+            # network field of ports in portgroups. Further consideration is
+            # required determine how best to support rolling upgrades from a
+            # release in which ports are created by the API service to one in
+            # which they are created by the conductor service, while ensuring
+            # that all required validation is performed.
+            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+            new_port = pecan.request.rpcapi.create_port(context, rpc_port,
+                                                        topic)
         notify.emit_end_notification(context, new_port, 'create',
                                      **notify_extra)
         # Set the HTTP Location Header
