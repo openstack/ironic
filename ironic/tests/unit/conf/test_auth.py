@@ -12,7 +12,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from keystoneauth1 import identity as kaidentity
 from keystoneauth1 import loading as kaloading
 from oslo_config import cfg
 
@@ -54,17 +53,3 @@ class AuthConfTestCase(base.TestCase):
                     'tenant_name', 'project_name', 'trust_id',
                     'domain_id', 'user_domain_id', 'project_domain_id'}
         self.assertTrue(expected.issubset(names))
-
-    def test_load_auth(self):
-        auth = ironic_auth.load_auth(self.cfg_fixture.conf, self.test_group)
-        # NOTE(pas-ha) 'password' auth_plugin is used
-        self.assertIsInstance(auth, kaidentity.generic.password.Password)
-        self.assertEqual('http://127.0.0.1:9898', auth.auth_url)
-
-    def test_load_auth_missing_options(self):
-        # NOTE(pas-ha) 'password' auth_plugin is used,
-        # so when we set the required auth_url to None,
-        # MissingOption is raised
-        self.config(auth_url=None, group=self.test_group)
-        self.assertIsNone(ironic_auth.load_auth(
-            self.cfg_fixture.conf, self.test_group))

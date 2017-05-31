@@ -18,32 +18,12 @@ from keystoneauth1 import exceptions as kaexception
 from keystoneauth1 import loading as kaloading
 from oslo_log import log as logging
 import six
-from six.moves.urllib import parse  # for legacy options loading only
 
 from ironic.common import exception
-from ironic.common.i18n import _
-from ironic.conf import auth as ironic_auth
 from ironic.conf import CONF
 
 
 LOG = logging.getLogger(__name__)
-
-
-# FIXME(pas-ha): for backward compat with legacy options loading only
-def _is_apiv3(auth_url, auth_version):
-    """Check if V3 version of API is being used or not.
-
-    This method inspects auth_url and auth_version, and checks whether V3
-    version of the API is being used or not.
-    When no auth_version is specified and auth_url is not a versioned
-    endpoint, v2.0 is assumed.
-    :param auth_url: a http or https url to be inspected (like
-        'http://127.0.0.1:9898/').
-    :param auth_version: a string containing the version (like 'v2', 'v3.0')
-                         or None
-    :returns: True if V3 of the API is being used.
-    """
-    return auth_version == 'v3.0' or '/v3' in parse.urlparse(auth_url).path
 
 
 def ks_exceptions(f):
@@ -71,48 +51,20 @@ def ks_exceptions(f):
 
 @ks_exceptions
 def get_session(group):
-    auth = ironic_auth.load_auth(CONF, group) or _get_legacy_auth()
-    if not auth:
-        msg = _("Failed to load auth from either [%(new)s] or [%(old)s] "
-                "config sections.")
-        raise exception.ConfigInvalid(message=msg, new=group,
-                                      old=ironic_auth.LEGACY_SECTION)
+    try:
+        auth = kaloading.load_auth_from_conf_options(CONF, group)
+    except kaexception.MissingRequiredOptions:
+        LOG.error('Failed to load auth plugin from group %s', group)
+        raise
     session = kaloading.load_session_from_conf_options(
         CONF, group, auth=auth)
     return session
 
 
-# FIXME(pas-ha) remove legacy path after deprecation
-def _get_legacy_auth():
-    """Load auth from keystone_authtoken config section
-
-    Used only to provide backward compatibility with old configs.
-    """
-    conf = getattr(CONF, ironic_auth.LEGACY_SECTION)
-    # NOTE(pas-ha) first try to load auth from legacy section
-    # using the new keystoneauth options that might be already set there
-    auth = ironic_auth.load_auth(CONF, ironic_auth.LEGACY_SECTION)
-    if auth:
-        return auth
-    # NOTE(pas-ha) now we surely have legacy config section for auth
-    # and with legacy options set in it, deal with it.
-    legacy_loader = kaloading.get_plugin_loader('password')
-    auth_params = {
-        'auth_url': conf.auth_uri,
-        'username': conf.admin_user,
-        'password': conf.admin_password,
-        'tenant_name': conf.admin_tenant_name
-    }
-    api_v3 = _is_apiv3(conf.auth_uri, conf.auth_version)
-    if api_v3:
-        # NOTE(pas-ha): mimic defaults of keystoneclient
-        auth_params.update({
-            'project_domain_id': 'default',
-            'user_domain_id': 'default',
-        })
-    return legacy_loader.load_from_options(**auth_params)
-
-
+# TODO(pas-ha) we actually should barely need this at all:
+# if we instantiate a identity.Token auth plugin from incoming
+# request context we could build a session with it, and each client
+# would know its service_type already, looking up the endpoint by itself
 @ks_exceptions
 def get_service_url(session, service_type='baremetal',
                     endpoint_type='internal'):
@@ -131,12 +83,11 @@ def get_service_url(session, service_type='baremetal',
                                 region_name=CONF.keystone.region_name)
 
 
+# TODO(pas-ha) move all clients to sessions, then we do not need this
 @ks_exceptions
 def get_admin_auth_token(session):
     """Get admin token.
 
     Currently used for inspector, glance and swift clients.
-    Only swift client does not actually support using sessions directly,
-    LP #1518938, others will be updated in ironic code.
     """
     return session.get_token()
