@@ -281,8 +281,12 @@ fi
 IRONIC_BIN_DIR=$(get_python_exec_prefix)
 
 # Ironic connection info.  Note the port must be specified.
+if is_service_enabled tls-proxy; then
+    IRONIC_SERVICE_PROTOCOL=https
+fi
 IRONIC_SERVICE_PROTOCOL=${IRONIC_SERVICE_PROTOCOL:-$SERVICE_PROTOCOL}
 IRONIC_SERVICE_PORT=${IRONIC_SERVICE_PORT:-6385}
+IRONIC_SERVICE_PORT_INT=${IRONIC_SERVICE_PORT_INT:-16385}
 # If ironic api running under apache we use the path rather than port
 if [[ "$IRONIC_USE_MOD_WSGI" != "True" ]]; then
     IRONIC_HOSTPORT=${IRONIC_HOSTPORT:-$SERVICE_HOST:$IRONIC_SERVICE_PORT}
@@ -835,13 +839,17 @@ function _cleanup_ironic_apache_wsgi {
 function _config_ironic_apache_wsgi {
     local ironic_apache_conf
     local ipxe_apache_conf
+    local ironic_service_port=$IRONIC_SERVICE_PORT
+    if is_service_enabled tls-proxy; then
+        ironic_service_port=$IRONIC_SERVICE_PORT_INT
+    fi
     if [[ "$IRONIC_USE_MOD_WSGI" == "True" ]]; then
         sudo mkdir -p $IRONIC_WSGI_DIR
         sudo cp $IRONIC_DIR/ironic/api/app.wsgi $IRONIC_WSGI_DIR/app.wsgi
         ironic_apache_conf=$(apache_site_config_for ironic-api)
         sudo cp $IRONIC_DEVSTACK_FILES_DIR/apache-ironic-api.template $ironic_apache_conf
         sudo sed -e "
-            s|%IRONIC_SERVICE_PORT%|$IRONIC_SERVICE_PORT|g;
+            s|%IRONIC_SERVICE_PORT%|$ironic_service_port|g;
             s|%IRONIC_WSGI_DIR%|$IRONIC_WSGI_DIR|g;
             s|%USER%|$STACK_USER|g;
             s|%APIWORKERS%|$API_WORKERS|g;
@@ -1085,6 +1093,9 @@ function configure_ironic_api {
 
     if [[ "$IRONIC_USE_MOD_WSGI" == "True" ]]; then
         iniset $IRONIC_CONF_FILE api public_endpoint $IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT
+    elif is_service_enabled tls-proxy; then
+        iniset $IRONIC_CONF_FILE api public_endpoint $IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT
+        iniset $IRONIC_CONF_FILE api port $IRONIC_SERVICE_PORT_INT
     else
         iniset $IRONIC_CONF_FILE api port $IRONIC_SERVICE_PORT
     fi
@@ -1183,6 +1194,9 @@ function configure_ironic_conductor {
 
     local pxe_params="nofb nomodeset vga=normal console=${IRONIC_TTY_DEV}"
     pxe_params+=" systemd.journald.forward_to_console=yes"
+    if is_service_enabled tls-proxy; then
+        pxe_params+=" ipa-insecure=1"
+    fi
 
     pxe_params+=" $IRONIC_EXTRA_PXE_PARAMS"
 
@@ -1343,9 +1357,22 @@ function start_ironic_api {
     else
         run_process ir-api "$IRONIC_BIN_DIR/ironic-api --config-file=$IRONIC_CONF_FILE"
     fi
-    echo "Waiting for ir-api ($IRONIC_HOSTPORT) to start..."
-    if ! timeout $SERVICE_TIMEOUT sh -c "while ! wget --no-proxy -q -O- $IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT/; do sleep 1; done"; then
+
+    # Get right service port for testing
+    local service_port=$IRONIC_SERVICE_PORT
+    local service_protocol=$IRONIC_SERVICE_PROTOCOL
+    if is_service_enabled tls-proxy; then
+        service_port=$IRONIC_SERVICE_PORT_INT
+        service_protocol="http"
+    fi
+
+    echo "Waiting for ir-api ($SERVICE_HOST:$service_port) to start..."
+    if ! timeout $SERVICE_TIMEOUT sh -c "while ! wget --no-proxy -q -O- $service_protocol://$SERVICE_HOST:$service_port/; do sleep 1; done"; then
         die $LINENO "ir-api did not start"
+    fi
+
+    if is_service_enabled tls-proxy; then
+        start_tls_proxy ironic '*' $IRONIC_SERVICE_PORT $SERVICE_HOST $IRONIC_SERVICE_PORT_INT
     fi
 }
 
@@ -1847,6 +1874,7 @@ function configure_iptables {
         sudo iptables -I FORWARD -p tcp --dport $IRONIC_SERVICE_PORT -j ACCEPT || true
     else
         sudo iptables -I INPUT -d $HOST_IP -p tcp --dport 80 -j ACCEPT || true
+        sudo iptables -I INPUT -d $HOST_IP -p tcp --dport 443 -j ACCEPT || true
     fi
     if is_deployed_by_agent; then
         # agent ramdisk gets instance image from swift
@@ -2132,6 +2160,7 @@ function cleanup_baremetal_basic_ops {
     sudo iptables -D INPUT -d $HOST_IP -p udp --dport 69 -j ACCEPT || true
     sudo iptables -D INPUT -d $HOST_IP -p tcp --dport $IRONIC_SERVICE_PORT -j ACCEPT || true
     sudo iptables -D INPUT -d $HOST_IP -p tcp --dport 80 -j ACCEPT || true
+    sudo iptables -D INPUT -d $HOST_IP -p tcp --dport 443 -j ACCEPT || true
     if is_deployed_by_agent; then
         # agent ramdisk gets instance image from swift
         sudo iptables -D INPUT -d $HOST_IP -p tcp --dport ${SWIFT_DEFAULT_BIND_PORT:-8080} -j ACCEPT || true
