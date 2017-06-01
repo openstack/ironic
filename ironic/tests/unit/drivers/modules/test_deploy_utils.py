@@ -1177,37 +1177,6 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         mock_clean_up_caches.assert_called_once_with(None, 'master_dir',
                                                      [('uuid', 'path')])
 
-    @mock.patch.object(utils, 'LOG', autospec=True)
-    def test_warn_about_unsafe_shred_parameters_defaults(self, log_mock):
-        utils.warn_about_unsafe_shred_parameters()
-        self.assertFalse(log_mock.warning.called)
-
-    @mock.patch.object(utils, 'LOG', autospec=True)
-    def test_warn_about_unsafe_shred_parameters_zeros(self, log_mock):
-        cfg.CONF.set_override('shred_random_overwrite_iterations', 0, 'deploy')
-        cfg.CONF.set_override('shred_final_overwrite_with_zeros', True,
-                              'deploy')
-        utils.warn_about_unsafe_shred_parameters()
-        self.assertFalse(log_mock.warning.called)
-
-    @mock.patch.object(utils, 'LOG', autospec=True)
-    def test_warn_about_unsafe_shred_parameters_random_no_zeros(self,
-                                                                log_mock):
-        cfg.CONF.set_override('shred_random_overwrite_iterations', 1, 'deploy')
-        cfg.CONF.set_override('shred_final_overwrite_with_zeros', False,
-                              'deploy')
-        utils.warn_about_unsafe_shred_parameters()
-        self.assertFalse(log_mock.warning.called)
-
-    @mock.patch.object(utils, 'LOG', autospec=True)
-    def test_warn_about_unsafe_shred_parameters_produces_a_warning(self,
-                                                                   log_mock):
-        cfg.CONF.set_override('shred_random_overwrite_iterations', 0, 'deploy')
-        cfg.CONF.set_override('shred_final_overwrite_with_zeros', False,
-                              'deploy')
-        utils.warn_about_unsafe_shred_parameters()
-        self.assertTrue(log_mock.warning.called)
-
     @mock.patch.object(utils, '_get_ironic_session')
     @mock.patch('ironic.common.keystone.get_service_url')
     def test_get_ironic_api_url_from_config(self, mock_get_url, mock_ks):

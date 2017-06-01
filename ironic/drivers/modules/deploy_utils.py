@@ -68,27 +68,6 @@ SUPPORTED_CAPABILITIES = {
 DISK_LAYOUT_PARAMS = ('root_gb', 'swap_mb', 'ephemeral_gb')
 
 
-def warn_about_unsafe_shred_parameters():
-    iterations = CONF.deploy.shred_random_overwrite_iterations
-    overwrite_with_zeros = CONF.deploy.shred_final_overwrite_with_zeros
-    if iterations == 0 and overwrite_with_zeros is False:
-        LOG.warning('With shred_random_overwrite_iterations set to 0 and '
-                    'shred_final_overwrite_with_zeros set to False, disks '
-                    'may NOT be shredded at all, unless they support ATA '
-                    'Secure Erase. This is a possible SECURITY ISSUE!')
-
-
-def warn_about_missing_default_boot_option():
-    if not CONF.deploy.default_boot_option:
-        LOG.warning('The default value of default_boot_option '
-                    'configuration will change eventually from '
-                    '"netboot" to "local". It is recommended to set '
-                    'an explicit value for it during the transition period')
-
-
-warn_about_unsafe_shred_parameters()
-warn_about_missing_default_boot_option()
-
 # All functions are called from deploy() directly or indirectly.
 # They are split for stub-out.
 

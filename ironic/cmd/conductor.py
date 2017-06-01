@@ -40,7 +40,7 @@ SECTIONS_WITH_AUTH = (
 
 
 # TODO(pas-ha) remove this check after deprecation period
-def _check_auth_options(conf):
+def check_auth_options(conf):
     missing = []
     for section in SECTIONS_WITH_AUTH:
         if not auth.load_auth(conf, section):
@@ -57,6 +57,30 @@ def _check_auth_options(conf):
                     dict(missing=", ".join(missing),
                          old=auth.LEGACY_SECTION,
                          link=link))
+
+
+def warn_about_unsafe_shred_parameters(conf):
+    iterations = conf.deploy.shred_random_overwrite_iterations
+    overwrite_with_zeros = conf.deploy.shred_final_overwrite_with_zeros
+    if iterations == 0 and overwrite_with_zeros is False:
+        LOG.warning('With shred_random_overwrite_iterations set to 0 and '
+                    'shred_final_overwrite_with_zeros set to False, disks '
+                    'may NOT be shredded at all, unless they support ATA '
+                    'Secure Erase. This is a possible SECURITY ISSUE!')
+
+
+def warn_about_missing_default_boot_option(conf):
+    if not conf.deploy.default_boot_option:
+        LOG.warning('The default value of default_boot_option '
+                    'configuration will change eventually from '
+                    '"netboot" to "local". It is recommended to set '
+                    'an explicit value for it during the transition period')
+
+
+def issue_startup_warnings(conf):
+    check_auth_options(conf)
+    warn_about_unsafe_shred_parameters(conf)
+    warn_about_missing_default_boot_option(conf)
 
 
 def main():
@@ -77,7 +101,7 @@ def main():
                                  'ironic.conductor.manager',
                                  'ConductorManager')
 
-    _check_auth_options(CONF)
+    issue_startup_warnings(CONF)
 
     launcher = service.launch(CONF, mgr)
     launcher.wait()
