@@ -299,6 +299,15 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.obj_refresh(current)
         self.obj_reset_changes()
 
+    @classmethod
+    def supports_physical_network(cls):
+        """Return whether the physical_network field is supported.
+
+        :returns: Whether the physical_network field is supported
+        :raises: ovo_exception.IncompatibleObjectVersion
+        """
+        return cls.supports_version((1, 7))
+
 
 @base.IronicObjectRegistry.register
 class PortCRUDNotification(notification.NotificationBase):
@@ -315,13 +324,15 @@ class PortCRUDNotification(notification.NotificationBase):
 class PortCRUDPayload(notification.NotificationPayloadBase):
     # Version 1.0: Initial version
     # Version 1.1: Add "portgroup_uuid" field
-    VERSION = '1.1'
+    # Version 1.2: Add "physical_network" field
+    VERSION = '1.2'
 
     SCHEMA = {
         'address': ('port', 'address'),
         'extra': ('port', 'extra'),
         'local_link_connection': ('port', 'local_link_connection'),
         'pxe_enabled': ('port', 'pxe_enabled'),
+        'physical_network': ('port', 'physical_network'),
         'created_at': ('port', 'created_at'),
         'updated_at': ('port', 'updated_at'),
         'uuid': ('port', 'uuid')
@@ -335,6 +346,7 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
         'pxe_enabled': object_fields.BooleanField(nullable=True),
         'node_uuid': object_fields.UUIDField(),
         'portgroup_uuid': object_fields.UUIDField(nullable=True),
+        'physical_network': object_fields.StringField(nullable=True),
         'created_at': object_fields.DateTimeField(nullable=True),
         'updated_at': object_fields.DateTimeField(nullable=True),
         'uuid': object_fields.UUIDField()

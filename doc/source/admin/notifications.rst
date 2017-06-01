@@ -198,13 +198,14 @@ Example of port CRUD notification::
     "payload":{
         "ironic_object.namespace":"ironic",
         "ironic_object.name":"PortCRUDPayload",
-        "ironic_object.version":"1.1",
+        "ironic_object.version":"1.2",
         "ironic_object.data":{
             "address": "77:66:23:34:11:b7",
             "created_at": "2016-02-11T15:23:03+00:00",
             "node_uuid": "5b236cab-ad4e-4220-b57c-e827e858745a",
             "extra": {},
             "local_link_connection": {},
+            "physical_network": "physnet1",
             "portgroup_uuid": "bd2f385e-c51c-4752-82d1-7a9ec2c25f24",
             "pxe_enabled": True,
             "updated_at": "2016-03-27T20:41:03+00:00",

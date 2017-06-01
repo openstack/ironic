@@ -1,0 +1,34 @@
+---
+features:
+  - |
+    Adds a ``physical_network`` field to the port object in REST API version
+    1.34.
+
+    This field specifies the name of the physical network to which the port is
+    connected, and is empty by default.  This field may be set by the operator
+    to allow the Bare Metal service to incorporate physical network information
+    when attaching virtual interfaces (VIFs).
+
+    The REST API endpoints related to ports provide support for the
+    ``physical_network`` field.  The `ironic developer documentation
+    <https://docs.openstack.org/ironic/latest/admin/multitenancy.html>`_
+    provides information on how to configure and use physical networks.
+upgrade:
+  - |
+    Adds a ``physical_network`` field to the port object in REST API version
+    1.34.
+
+    This field specifies the name of the physical network to which the port is
+    connected, and is empty by default.  This field may be set by the operator
+    to allow the Bare Metal service to incorporate physical network information
+    when attaching virtual interfaces (VIFs).
+
+    The REST API endpoints related to ports provide support for the
+    ``physical_network`` field.  The `ironic developer documentation
+    <https://docs.openstack.org/ironic/latest/admin/multitenancy.html>`_
+    provides information on how to configure and use physical networks.
+
+    Following an upgrade to this release, all ports will have an empty
+    ``physical_network`` field. Attachment of Virtual Interfaces (VIFs) will
+    continue to function as in the previous release until any ports have their
+    physical network field set.

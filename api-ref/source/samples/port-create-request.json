@@ -6,5 +6,6 @@
         "switch_id": "0a:1b:2c:3d:4e:5f",
         "port_id": "Ethernet3/1",
         "switch_info": "switch1"
-    }
+    },
+    "physical_network": "physnet1"
 }

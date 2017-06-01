@@ -54,6 +54,9 @@ def hide_fields_in_newer_versions(obj):
     # if requested version is < 1.24, hide portgroup_uuid field
     if not api_utils.allow_portgroups_subcontrollers():
         obj.portgroup_uuid = wsme.Unset
+    # if requested version is < 1.34, hide physical_network field.
+    if not api_utils.allow_port_physical_network():
+        obj.physical_network = wsme.Unset
 
 
 class Port(base.APIBase):
@@ -145,6 +148,9 @@ class Port(base.APIBase):
     local_link_connection = types.locallinkconnectiontype
     """The port binding profile for the port"""
 
+    physical_network = wtypes.StringType(max_length=64)
+    """The name of the physical network to which this port is connected."""
+
     links = wsme.wsattr([link.Link], readonly=True)
     """A list containing a self link and associated port links"""
 
@@ -224,7 +230,8 @@ class Port(base.APIBase):
                      pxe_enabled=True,
                      local_link_connection={
                          'switch_info': 'host', 'port_id': 'Gig0/1',
-                         'switch_id': 'aa:bb:cc:dd:ee:ff'})
+                         'switch_id': 'aa:bb:cc:dd:ee:ff'},
+                     physical_network='physnet1')
         # NOTE(lucasagomes): node_uuid getter() method look at the
         # _node_uuid variable
         sample._node_uuid = '7ae81bb3-dec3-4289-8d6c-da80bd8001ae'
@@ -371,6 +378,9 @@ class PortsController(rest.RestController):
         if ('portgroup_uuid' in fields and not
                 api_utils.allow_portgroups_subcontrollers()):
             raise exception.NotAcceptable()
+        if ('physical_network' in fields and not
+                api_utils.allow_port_physical_network()):
+            raise exception.NotAcceptable()
 
     @METRICS.timer('PortsController.get_all')
     @expose.expose(PortCollection, types.uuid_or_name, types.uuid,
@@ -497,6 +507,7 @@ class PortsController(rest.RestController):
             raise exception.OperationNotPermitted()
 
         api_utils.check_allow_specify_fields(fields)
+        self._check_allowed_port_fields(fields)
 
         rpc_port = objects.Port.get_by_uuid(pecan.request.context, port_uuid)
         return Port.convert_with_links(rpc_port, fields=fields)
@@ -523,6 +534,7 @@ class PortsController(rest.RestController):
         vif = extra.get('vif_port_id') if extra else None
         if vif:
             common_utils.warn_about_deprecated_extra_vif_port_id()
+
         if (pdict.get('portgroup_uuid') and
                 (pdict.get('pxe_enabled') or vif)):
             rpc_pg = objects.Portgroup.get_by_uuid(context,
@@ -582,7 +594,8 @@ class PortsController(rest.RestController):
             raise exception.OperationNotPermitted()
 
         fields_to_check = set()
-        for field in self.advanced_net_fields + ['portgroup_uuid']:
+        for field in (self.advanced_net_fields +
+                      ['portgroup_uuid', 'physical_network']):
             field_path = '/%s' % field
             if (api_utils.get_patch_values(patch, field_path) or
                     api_utils.is_path_removed(patch, field_path)):
