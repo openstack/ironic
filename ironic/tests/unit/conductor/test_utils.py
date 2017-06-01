@@ -16,6 +16,7 @@ from oslo_utils import uuidutils
 
 from ironic.common import driver_factory
 from ironic.common import exception
+from ironic.common import network
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as conductor_utils
@@ -990,3 +991,322 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         conductor_utils.power_state_error_handler(exc, self.node, 'foo')
         self.assertFalse(self.node.save.called)
         self.assertFalse(log_mock.warning.called)
+
+
+class ValidatePortPhysnetTestCase(base.DbTestCase):
+
+    def setUp(self):
+        super(ValidatePortPhysnetTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(self.context, driver='fake')
+
+    @mock.patch.object(objects.Port, 'obj_what_changed')
+    def test_validate_port_physnet_no_portgroup_create(self, mock_owc):
+        port = obj_utils.get_test_port(self.context, node_id=self.node.id)
+        # NOTE(mgoddard): The port object passed to the conductor will not have
+        # a portgroup_id attribute in this case.
+        del port.portgroup_id
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            conductor_utils.validate_port_physnet(task, port)
+        # Verify the early return in the non-portgroup case.
+        self.assertFalse(mock_owc.called)
+
+    @mock.patch.object(network, 'get_ports_by_portgroup_id')
+    def test_validate_port_physnet_no_portgroup_update(self, mock_gpbpi):
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id)
+        port.extra = {'foo': 'bar'}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            conductor_utils.validate_port_physnet(task, port)
+        # Verify the early return in the no portgroup update case.
+        self.assertFalse(mock_gpbpi.called)
+
+    def test_validate_port_physnet_inconsistent_physnets(self):
+        # NOTE(mgoddard): This *shouldn't* happen, but let's make sure we can
+        # handle it.
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=self.node.id)
+        obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                   portgroup_id=portgroup.id,
+                                   address='00:11:22:33:44:55',
+                                   physical_network='physnet1',
+                                   uuid=uuidutils.generate_uuid())
+        obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                   portgroup_id=portgroup.id,
+                                   address='00:11:22:33:44:56',
+                                   physical_network='physnet2',
+                                   uuid=uuidutils.generate_uuid())
+        port = obj_utils.get_test_port(self.context, node_id=self.node.id,
+                                       portgroup_id=portgroup.id,
+                                       address='00:11:22:33:44:57',
+                                       physical_network='physnet2',
+                                       uuid=uuidutils.generate_uuid())
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.PortgroupPhysnetInconsistent,
+                              conductor_utils.validate_port_physnet,
+                              task, port)
+
+    def test_validate_port_physnet_inconsistent_physnets_fix(self):
+        # NOTE(mgoddard): This *shouldn't* happen, but let's make sure that if
+        # we do get into this state that it is possible to resolve by setting
+        # the physical_network correctly.
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=self.node.id)
+        obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                   portgroup_id=portgroup.id,
+                                   address='00:11:22:33:44:55',
+                                   physical_network='physnet1',
+                                   uuid=uuidutils.generate_uuid())
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          portgroup_id=portgroup.id,
+                                          address='00:11:22:33:44:56',
+                                          physical_network='physnet2',
+                                          uuid=uuidutils.generate_uuid())
+        port.physical_network = 'physnet1'
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            conductor_utils.validate_port_physnet(task, port)
+
+    def _test_validate_port_physnet(self,
+                                    num_current_ports,
+                                    current_physnet,
+                                    new_physnet,
+                                    operation,
+                                    valid=True):
+        """Helper method for testing validate_port_physnet.
+
+        :param num_current_ports: Number of existing ports in the portgroup.
+        :param current_physnet: Physical network of existing ports in the
+                                portgroup.
+        :param new_physnet: Physical network to set on the port that is being
+                            created or updated.
+                            portgroup.
+        :param operation: The operation to perform. One of 'create', 'update',
+                          or 'update_add'. 'create' creates a new port and adds
+                          it to the portgroup. 'update' updates one of the
+                          existing ports. 'update_add' updates a port and adds
+                          it to the portgroup.
+        :param valid: Whether the operation is expected to succeed.
+        """
+        # Prepare existing resources - a node, and a portgroup with optional
+        # existing ports.
+        port = None
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=self.node.id)
+        macs = ("00:11:22:33:44:%02x" % index
+                for index in range(num_current_ports + 1))
+        for _ in range(num_current_ports):
+            # NOTE: When operation == 'update' we update the last port in the
+            # portgroup.
+            port = obj_utils.create_test_port(
+                self.context, node_id=self.node.id, portgroup_id=portgroup.id,
+                address=next(macs), physical_network=current_physnet,
+                uuid=uuidutils.generate_uuid())
+
+        # Prepare the port on which we are performing the operation.
+        if operation == 'create':
+            # NOTE(mgoddard): We use utils here rather than obj_utils as it
+            # allows us to create a Port without a physical_network field, more
+            # closely matching what happens during creation of a port when a
+            # physical_network is not specified.
+            port = utils.get_test_port(
+                node_id=self.node.id, portgroup_id=portgroup.id,
+                address=next(macs), uuid=uuidutils.generate_uuid(),
+                physical_network=new_physnet)
+            if new_physnet is None:
+                del port["physical_network"]
+            port = objects.Port(self.context, **port)
+        elif operation == 'update_add':
+            port = obj_utils.create_test_port(
+                self.context, node_id=self.node.id, portgroup_id=None,
+                address=next(macs), physical_network=current_physnet,
+                uuid=uuidutils.generate_uuid())
+            port.portgroup_id = portgroup.id
+
+        if operation != 'create' and new_physnet != current_physnet:
+            port.physical_network = new_physnet
+
+        # Perform the validation.
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            if valid:
+                conductor_utils.validate_port_physnet(task, port)
+            else:
+                self.assertRaises(exception.Conflict,
+                                  conductor_utils.validate_port_physnet,
+                                  task, port)
+
+    def _test_validate_port_physnet_create(self, **kwargs):
+        self._test_validate_port_physnet(operation='create', **kwargs)
+
+    def _test_validate_port_physnet_update(self, **kwargs):
+        self._test_validate_port_physnet(operation='update', **kwargs)
+
+    def _test_validate_port_physnet_update_add(self, **kwargs):
+        self._test_validate_port_physnet(operation='update_add', **kwargs)
+
+    # Empty portgroup
+
+    def test_validate_port_physnet_empty_portgroup_create_1(self):
+        self._test_validate_port_physnet_create(
+            num_current_ports=0,
+            current_physnet=None,
+            new_physnet=None)
+
+    def test_validate_port_physnet_empty_portgroup_create_2(self):
+        self._test_validate_port_physnet_create(
+            num_current_ports=0,
+            current_physnet=None,
+            new_physnet='physnet1')
+
+    def test_validate_port_physnet_empty_portgroup_update_1(self):
+        self._test_validate_port_physnet_update_add(
+            num_current_ports=0,
+            current_physnet=None,
+            new_physnet=None)
+
+    def test_validate_port_physnet_empty_portgroup_update_2(self):
+        self._test_validate_port_physnet_update_add(
+            num_current_ports=0,
+            current_physnet=None,
+            new_physnet='physnet1')
+
+    # 1-port portgroup, no physnet.
+
+    def test_validate_port_physnet_1_port_portgroup_no_physnet_create_1(self):
+        self._test_validate_port_physnet_create(
+            num_current_ports=1,
+            current_physnet=None,
+            new_physnet=None)
+
+    def test_validate_port_physnet_1_port_portgroup_no_physnet_create_2(self):
+        self._test_validate_port_physnet_create(
+            num_current_ports=1,
+            current_physnet=None,
+            new_physnet='physnet1',
+            valid=False)
+
+    def test_validate_port_physnet_1_port_portgroup_no_physnet_update_1(self):
+        self._test_validate_port_physnet_update(
+            num_current_ports=1,
+            current_physnet=None,
+            new_physnet=None)
+
+    def test_validate_port_physnet_1_port_portgroup_no_physnet_update_2(self):
+        self._test_validate_port_physnet_update(
+            num_current_ports=1,
+            current_physnet=None,
+            new_physnet='physnet1')
+
+    def test_validate_port_physnet_1_port_portgroup_no_physnet_update_add_1(
+            self):
+        self._test_validate_port_physnet_update_add(
+            num_current_ports=1,
+            current_physnet=None,
+            new_physnet=None)
+
+    def test_validate_port_physnet_1_port_portgroup_no_physnet_update_add_2(
+            self):
+        self._test_validate_port_physnet_update_add(
+            num_current_ports=1,
+            current_physnet=None,
+            new_physnet='physnet1',
+            valid=False)
+
+    # 1-port portgroup, with physnet 'physnet1'.
+
+    def test_validate_port_physnet_1_port_portgroup_w_physnet_create_1(self):
+        self._test_validate_port_physnet_create(
+            num_current_ports=1,
+            current_physnet='physnet1',
+            new_physnet='physnet1')
+
+    def test_validate_port_physnet_1_port_portgroup_w_physnet_create_2(self):
+        self._test_validate_port_physnet_create(
+            num_current_ports=1,
+            current_physnet='physnet1',
+            new_physnet='physnet2',
+            valid=False)
+
+    def test_validate_port_physnet_1_port_portgroup_w_physnet_create_3(self):
+        self._test_validate_port_physnet_create(
+            num_current_ports=1,
+            current_physnet='physnet1',
+            new_physnet=None,
+            valid=False)
+
+    def test_validate_port_physnet_1_port_portgroup_w_physnet_update_1(self):
+        self._test_validate_port_physnet_update(
+            num_current_ports=1,
+            current_physnet='physnet1',
+            new_physnet='physnet1')
+
+    def test_validate_port_physnet_1_port_portgroup_w_physnet_update_2(self):
+        self._test_validate_port_physnet_update(
+            num_current_ports=1,
+            current_physnet='physnet1',
+            new_physnet='physnet2')
+
+    def test_validate_port_physnet_1_port_portgroup_w_physnet_update_3(self):
+        self._test_validate_port_physnet_update(
+            num_current_ports=1,
+            current_physnet='physnet1',
+            new_physnet=None)
+
+    def test_validate_port_physnet_1_port_portgroup_w_physnet_update_add_1(
+            self):
+        self._test_validate_port_physnet_update_add(
+            num_current_ports=1,
+            current_physnet='physnet1',
+            new_physnet='physnet1')
+
+    def test_validate_port_physnet_1_port_portgroup_w_physnet_update_add_2(
+            self):
+        self._test_validate_port_physnet_update_add(
+            num_current_ports=1,
+            current_physnet='physnet1',
+            new_physnet='physnet2',
+            valid=False)
+
+    def test_validate_port_physnet_1_port_portgroup_w_physnet_update_add_3(
+            self):
+        self._test_validate_port_physnet_update_add(
+            num_current_ports=1,
+            current_physnet='physnet1',
+            new_physnet=None,
+            valid=False)
+
+    # 2-port portgroup, no physnet
+
+    def test_validate_port_physnet_2_port_portgroup_no_physnet_update_1(self):
+        self._test_validate_port_physnet_update(
+            num_current_ports=2,
+            current_physnet=None,
+            new_physnet=None)
+
+    def test_validate_port_physnet_2_port_portgroup_no_physnet_update_2(self):
+        self._test_validate_port_physnet_update(
+            num_current_ports=2,
+            current_physnet=None,
+            new_physnet='physnet1',
+            valid=False)
+
+    # 2-port portgroup, with physnet 'physnet1'
+
+    def test_validate_port_physnet_2_port_portgroup_w_physnet_update_1(self):
+        self._test_validate_port_physnet_update(
+            num_current_ports=2,
+            current_physnet='physnet1',
+            new_physnet='physnet1')
+
+    def test_validate_port_physnet_2_port_portgroup_w_physnet_update_2(self):
+        self._test_validate_port_physnet_update(
+            num_current_ports=2,
+            current_physnet='physnet1',
+            new_physnet='physnet2',
+            valid=False)
+
+    def test_validate_port_physnet_2_port_portgroup_w_physnet_update_3(self):
+        self._test_validate_port_physnet_update(
+            num_current_ports=2,
+            current_physnet='physnet1',
+            new_physnet=None,
+            valid=False)

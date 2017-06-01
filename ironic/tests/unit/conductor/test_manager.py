@@ -3160,7 +3160,8 @@ class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin,
 class CreatePortTestCase(mgr_utils.ServiceSetUpMixin,
                          tests_db_base.DbTestCase):
 
-    def test_create_port(self):
+    @mock.patch.object(conductor_utils, 'validate_port_physnet')
+    def test_create_port(self, mock_validate):
         node = obj_utils.create_test_node(self.context, driver='fake')
         port = obj_utils.get_test_port(self.context, node_id=node.id,
                                        extra={'foo': 'bar'})
@@ -3168,6 +3169,7 @@ class CreatePortTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual({'foo': 'bar'}, res.extra)
         res = objects.Port.get_by_uuid(self.context, port['uuid'])
         self.assertEqual({'foo': 'bar'}, res.extra)
+        mock_validate.assert_called_once_with(mock.ANY, port)
 
     def test_create_port_node_locked(self):
         node = obj_utils.create_test_node(self.context, driver='fake',
@@ -3181,7 +3183,8 @@ class CreatePortTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertRaises(exception.PortNotFound, port.get_by_uuid,
                           self.context, port.uuid)
 
-    def test_create_port_mac_exists(self):
+    @mock.patch.object(conductor_utils, 'validate_port_physnet')
+    def test_create_port_mac_exists(self, mock_validate):
         node = obj_utils.create_test_node(self.context, driver='fake')
         port = obj_utils.create_test_port(self.context, node_id=node.id)
         port = obj_utils.get_test_port(self.context, node_id=node.id,
@@ -3194,14 +3197,45 @@ class CreatePortTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertRaises(exception.PortNotFound, port.get_by_uuid,
                           self.context, port.uuid)
 
+    @mock.patch.object(conductor_utils, 'validate_port_physnet')
+    def test_create_port_physnet_validation_failure_conflict(self,
+                                                             mock_validate):
+        mock_validate.side_effect = exception.Conflict
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        port = obj_utils.get_test_port(self.context, node_id=node.id)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.create_port,
+                                self.context, port)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.Conflict, exc.exc_info[0])
+        self.assertRaises(exception.PortNotFound, port.get_by_uuid,
+                          self.context, port.uuid)
+
+    @mock.patch.object(conductor_utils, 'validate_port_physnet')
+    def test_create_port_physnet_validation_failure_inconsistent(
+            self, mock_validate):
+        mock_validate.side_effect = exception.PortgroupPhysnetInconsistent(
+            portgroup='pg1', physical_networks='physnet1, physnet2')
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        port = obj_utils.get_test_port(self.context, node_id=node.id)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.create_port,
+                                self.context, port)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.PortgroupPhysnetInconsistent,
+                         exc.exc_info[0])
+        self.assertRaises(exception.PortNotFound, port.get_by_uuid,
+                          self.context, port.uuid)
+
 
 @mgr_utils.mock_record_keepalive
 class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
                          tests_db_base.DbTestCase):
 
+    @mock.patch.object(conductor_utils, 'validate_port_physnet')
     @mock.patch.object(n_flat.FlatNetwork, 'port_changed', autospec=True)
     @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
-    def test_update_port(self, mock_val, mock_pc):
+    def test_update_port(self, mock_val, mock_pc, mock_vpp):
         node = obj_utils.create_test_node(self.context, driver='fake')
 
         port = obj_utils.create_test_port(self.context,
@@ -3213,6 +3247,7 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(new_extra, res.extra)
         mock_val.assert_called_once_with(mock.ANY, mock.ANY)
         mock_pc.assert_called_once_with(mock.ANY, mock.ANY, port)
+        mock_vpp.assert_called_once_with(mock.ANY, port)
 
     def test_update_port_node_locked(self):
         node = obj_utils.create_test_node(self.context, driver='fake',
@@ -3374,6 +3409,69 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(True, port.pxe_enabled)
         mock_val.assert_called_once_with(mock.ANY, mock.ANY)
         mock_pc.assert_called_once_with(mock.ANY, mock.ANY, port)
+
+    @mock.patch.object(n_flat.FlatNetwork, 'port_changed', autospec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    def test_update_port_physnet_maintenance(self, mock_val, mock_pc):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake', maintenance=True,
+            instance_uuid=uuidutils.generate_uuid(), provision_state='active')
+        port = obj_utils.create_test_port(self.context,
+                                          node_id=node.id,
+                                          extra={'vif_port_id': 'fake-id'})
+        new_physnet = 'physnet1'
+        port.physical_network = new_physnet
+        res = self.service.update_port(self.context, port)
+        self.assertEqual(new_physnet, res.physical_network)
+        mock_val.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_pc.assert_called_once_with(mock.ANY, mock.ANY, port)
+
+    def test_update_port_physnet_node_deleting_state(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          provision_state=states.DELETING)
+        port = obj_utils.create_test_port(self.context,
+                                          node_id=node.id,
+                                          extra={'foo': 'bar'})
+        old_physnet = port.physical_network
+        port.physical_network = 'physnet1'
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_port,
+                                self.context, port)
+        self.assertEqual(exception.InvalidState, exc.exc_info[0])
+        port.refresh()
+        self.assertEqual(old_physnet, port.physical_network)
+
+    @mock.patch.object(conductor_utils, 'validate_port_physnet')
+    def test_update_port_physnet_validation_failure_conflict(self,
+                                                             mock_validate):
+        mock_validate.side_effect = exception.Conflict
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        port = obj_utils.create_test_port(self.context, node_id=node.id,
+                                          uuid=uuidutils.generate_uuid())
+        port.extra = {'foo': 'bar'}
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_port,
+                                self.context, port)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.Conflict, exc.exc_info[0])
+        mock_validate.assert_called_once_with(mock.ANY, port)
+
+    @mock.patch.object(conductor_utils, 'validate_port_physnet')
+    def test_update_port_physnet_validation_failure_inconsistent(
+            self, mock_validate):
+        mock_validate.side_effect = exception.PortgroupPhysnetInconsistent(
+            portgroup='pg1', physical_networks='physnet1, physnet2')
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        port = obj_utils.create_test_port(self.context, node_id=node.id,
+                                          uuid=uuidutils.generate_uuid())
+        port.extra = {'foo': 'bar'}
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_port,
+                                self.context, port)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.PortgroupPhysnetInconsistent,
+                         exc.exc_info[0])
+        mock_validate.assert_called_once_with(mock.ANY, port)
 
     def test__filter_out_unsupported_types_all(self):
         self._start_service()

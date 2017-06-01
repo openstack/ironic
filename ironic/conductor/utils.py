@@ -19,6 +19,7 @@ from oslo_utils import reflection
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import network
 from ironic.common import states
 from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import task_manager
@@ -505,3 +506,73 @@ def _validate_user_clean_steps(task, user_steps):
     if errors:
         raise exception.InvalidParameterValue('; '.join(errors))
     return result
+
+
+@task_manager.require_exclusive_lock
+def validate_port_physnet(task, port_obj):
+    """Validate the consistency of physical networks of ports in a portgroup.
+
+    Validate the consistency of a port's physical network with other ports in
+    the same portgroup.  All ports in a portgroup should have the same value
+    (which may be None) for their physical_network field.
+
+    During creation or update of a port in a portgroup we apply the
+    following validation criteria:
+
+    - If the portgroup has existing ports with different physical networks, we
+      raise PortgroupPhysnetInconsistent. This shouldn't ever happen.
+    - If the port has a physical network that is inconsistent with other
+      ports in the portgroup, we raise exception.Conflict.
+
+    If a port's physical network is None, this indicates that ironic's VIF
+    attachment mapping algorithm should operate in a legacy (physical
+    network unaware) mode for this port or portgroup. This allows existing
+    ironic nodes to continue to function after an upgrade to a release
+    including physical network support.
+
+    :param task: a TaskManager instance
+    :param port_obj: a port object to be validated.
+    :raises: Conflict if the port is a member of a portgroup which is on a
+             different physical network.
+    :raises: PortgroupPhysnetInconsistent if the port's portgroup has
+             ports which are not all assigned the same physical network.
+    """
+    if 'portgroup_id' not in port_obj or not port_obj.portgroup_id:
+        return
+
+    delta = port_obj.obj_what_changed()
+    # We can skip this step if the port's portgroup membership or physical
+    # network assignment is not being changed (during creation these will
+    # appear changed).
+    if not (delta & {'portgroup_id', 'physical_network'}):
+        return
+
+    # Determine the current physical network of the portgroup.
+    pg_ports = network.get_ports_by_portgroup_id(task, port_obj.portgroup_id)
+    port_obj_id = port_obj.id if 'id' in port_obj else None
+    pg_physnets = {port.physical_network
+                   for port in pg_ports if port.id != port_obj_id}
+
+    if not pg_physnets:
+        return
+
+    # Sanity check that all existing ports in the group have the same
+    # physical network (should never happen).
+    if len(pg_physnets) > 1:
+        portgroup = network.get_portgroup_by_id(task, port_obj.portgroup_id)
+        raise exception.PortgroupPhysnetInconsistent(
+            portgroup=portgroup.uuid, physical_networks=", ".join(pg_physnets))
+
+    # Check that the port has the same physical network as any existing
+    # member ports.
+    pg_physnet = pg_physnets.pop()
+    port_physnet = (port_obj.physical_network
+                    if 'physical_network' in port_obj else None)
+    if port_physnet != pg_physnet:
+        portgroup = network.get_portgroup_by_id(task, port_obj.portgroup_id)
+        msg = _("Port with physical network %(physnet)s cannot become a "
+                "member of port group %(portgroup)s which has ports in "
+                "physical network %(pg_physnet)s.")
+        raise exception.Conflict(
+            msg % {'portgroup': portgroup.uuid, 'physnet': port_physnet,
+                   'pg_physnet': pg_physnet})

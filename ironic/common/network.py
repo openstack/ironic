@@ -42,3 +42,25 @@ def get_node_vif_ids(task):
             port_vifs[port.uuid] = vif
     vifs['ports'] = port_vifs
     return vifs
+
+
+def get_portgroup_by_id(task, portgroup_id):
+    """Lookup a portgroup by ID on a task object.
+
+    :param task: a TaskManager instance
+    :param portgroup_id: ID of the portgroup.
+    :returns: A Portgroup object or None.
+    """
+    for portgroup in task.portgroups:
+        if portgroup.id == portgroup_id:
+            return portgroup
+
+
+def get_ports_by_portgroup_id(task, portgroup_id):
+    """Lookup ports by their portgroup ID on a task object.
+
+    :param task: a TaskManager instance
+    :param portgroup_id: ID of the portgroup.
+    :returns: A list of Port objects.
+    """
+    return [port for port in task.ports if port.portgroup_id == portgroup_id]
