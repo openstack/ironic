@@ -115,6 +115,13 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
                                'Invalid value type',
                                redfish_utils.parse_driver_info, self.node)
 
+    def test_parse_driver_info_invalid_system_id(self):
+        # Integers are not supported
+        self.node.driver_info['redfish_system_id'] = 123
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               'The value should be a path',
+                               redfish_utils.parse_driver_info, self.node)
+
     @mock.patch('ironic.drivers.modules.redfish.utils.sushy')
     def test_get_system(self, mock_sushy):
         fake_conn = mock_sushy.Sushy.return_value
