@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Prevents deletion of ports for active nodes. It is still possible to
+    delete them after putting the node in the maintenance mode.
