@@ -21,7 +21,6 @@ from glanceclient import client as glance_client
 from glanceclient import exc as glance_exc
 import mock
 from oslo_config import cfg
-from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
 from six.moves.urllib import parse as urlparse
 import testtools
@@ -53,41 +52,35 @@ class TestGlanceSerializer(testtools.TestCase):
                     'foo': 'bar',
                     'properties': {
                         'prop1': 'propvalue1',
-                        'mappings': [
-                            {'virtual': 'aaa',
-                             'device': 'bbb'},
-                            {'virtual': 'xxx',
-                             'device': 'yyy'}],
-                        'block_device_mapping': [
-                            {'virtual_device': 'fake',
-                             'device_name': '/dev/fake'},
-                            {'virtual_device': 'ephemeral0',
-                             'device_name': '/dev/fake0'}]}}
+                        'mappings': '['
+                        '{"virtual":"aaa","device":"bbb"},'
+                        '{"virtual":"xxx","device":"yyy"}]',
+                        'block_device_mapping': '['
+                        '{"virtual_device":"fake","device_name":"/dev/fake"},'
+                        '{"virtual_device":"ephemeral0",'
+                        '"device_name":"/dev/fake0"}]'}}
 
-        converted_expected = {
+        expected = {
             'name': 'image1',
             'is_public': True,
             'foo': 'bar',
-            'properties': {'prop1': 'propvalue1'}
+            'properties': {'prop1': 'propvalue1',
+                           'mappings': [
+                               {'virtual': 'aaa',
+                                'device': 'bbb'},
+                               {'virtual': 'xxx',
+                                'device': 'yyy'},
+                           ],
+                           'block_device_mapping': [
+                               {'virtual_device': 'fake',
+                                'device_name': '/dev/fake'},
+                               {'virtual_device': 'ephemeral0',
+                                'device_name': '/dev/fake0'}
+                           ]
+                           }
         }
-        converted = service_utils._convert(metadata, 'to')
-        self.assertEqual(metadata,
-                         service_utils._convert(converted, 'from'))
-        # Fields that rely on dict ordering can't be compared as text
-        mappings = jsonutils.loads(converted['properties']
-                                   .pop('mappings'))
-        self.assertEqual([{"device": "bbb", "virtual": "aaa"},
-                          {"device": "yyy", "virtual": "xxx"}],
-                         mappings)
-        bd_mapping = jsonutils.loads(converted['properties']
-                                     .pop('block_device_mapping'))
-        self.assertEqual([{"virtual_device": "fake",
-                           "device_name": "/dev/fake"},
-                          {"virtual_device": "ephemeral0",
-                           "device_name": "/dev/fake0"}],
-                         bd_mapping)
-        # Compare the remaining
-        self.assertEqual(converted_expected, converted)
+        converted = service_utils._convert(metadata)
+        self.assertEqual(expected, converted)
 
 
 class TestGlanceImageService(base.TestCase):
@@ -122,7 +115,7 @@ class TestGlanceImageService(base.TestCase):
                    'status': None,
                    'is_public': None}
         fixture.update(kwargs)
-        return fixture
+        return stubs.FakeImage(fixture)
 
     @property
     def endpoint(self):
@@ -141,250 +134,10 @@ class TestGlanceImageService(base.TestCase):
                                   updated_at=self.NOW_GLANCE_FORMAT,
                                   deleted_at=self.NOW_GLANCE_FORMAT)
 
-    def test_create_with_instance_id(self):
-        # Ensure instance_id is persisted as an image-property.
-        fixture = {'name': 'test image',
-                   'is_public': False,
-                   'properties': {'instance_id': '42', 'user_id': 'fake'}}
-        image_id = self.service.create(fixture)['id']
-        image_meta = self.service.show(image_id)
-        expected = {
-            'id': image_id,
-            'name': 'test image',
-            'is_public': False,
-            'size': None,
-            'min_disk': None,
-            'min_ram': None,
-            'disk_format': None,
-            'container_format': None,
-            'checksum': None,
-            'created_at': self.NOW_DATETIME,
-            'updated_at': self.NOW_DATETIME,
-            'deleted_at': None,
-            'deleted': None,
-            'status': None,
-            'properties': {'instance_id': '42', 'user_id': 'fake'},
-            'owner': None,
-        }
-
-        self.assertEqual(expected, image_meta)
-
-        image_metas = self.service.detail()
-        self.assertEqual(expected, image_metas[0])
-
-    def test_create_without_instance_id(self):
-        """Test creating an image without an instance ID.
-
-        Ensure we can create an image without having to specify an
-        instance_id. Public images are an example of an image not tied to an
-        instance.
-        """
-        fixture = {'name': 'test image', 'is_public': False}
-        image_id = self.service.create(fixture)['id']
-
-        expected = {
-            'id': image_id,
-            'name': 'test image',
-            'is_public': False,
-            'size': None,
-            'min_disk': None,
-            'min_ram': None,
-            'disk_format': None,
-            'container_format': None,
-            'checksum': None,
-            'created_at': self.NOW_DATETIME,
-            'updated_at': self.NOW_DATETIME,
-            'deleted_at': None,
-            'deleted': None,
-            'status': None,
-            'properties': {},
-            'owner': None,
-        }
-        actual = self.service.show(image_id)
-        self.assertEqual(expected, actual)
-
-    def test_create(self):
-        fixture = self._make_fixture(name='test image')
-        num_images = len(self.service.detail())
-        image_id = self.service.create(fixture)['id']
-
-        self.assertIsNotNone(image_id)
-        self.assertEqual(
-            num_images + 1, len(self.service.detail()))
-
-    def test_create_and_show_non_existing_image(self):
-        fixture = self._make_fixture(name='test image')
-        image_id = self.service.create(fixture)['id']
-
-        self.assertIsNotNone(image_id)
-        self.assertRaises(exception.ImageNotFound,
-                          self.service.show,
-                          'bad image id')
-
-    def test_detail_private_image(self):
-        fixture = self._make_fixture(name='test image')
-        fixture['is_public'] = False
-        properties = {'owner_id': 'proj1'}
-        fixture['properties'] = properties
-
-        self.service.create(fixture)['id']
-
-        proj = self.context.project_id
-        self.context.project_id = 'proj1'
-
-        image_metas = self.service.detail()
-
-        self.context.project_id = proj
-
-        self.assertEqual(1, len(image_metas))
-        self.assertEqual('test image', image_metas[0]['name'])
-        self.assertFalse(image_metas[0]['is_public'])
-
-    def test_detail_marker(self):
-        fixtures = []
-        ids = []
-        for i in range(10):
-            fixture = self._make_fixture(name='TestImage %d' % (i))
-            fixtures.append(fixture)
-            ids.append(self.service.create(fixture)['id'])
-
-        image_metas = self.service.detail(marker=ids[1])
-        self.assertEqual(8, len(image_metas))
-        i = 2
-        for meta in image_metas:
-            expected = {
-                'id': ids[i],
-                'status': None,
-                'is_public': None,
-                'name': 'TestImage %d' % (i),
-                'properties': {},
-                'size': None,
-                'min_disk': None,
-                'min_ram': None,
-                'disk_format': None,
-                'container_format': None,
-                'checksum': None,
-                'created_at': self.NOW_DATETIME,
-                'updated_at': self.NOW_DATETIME,
-                'deleted_at': None,
-                'deleted': None,
-                'owner': None,
-            }
-
-            self.assertEqual(expected, meta)
-            i = i + 1
-
-    def test_detail_limit(self):
-        fixtures = []
-        ids = []
-        for i in range(10):
-            fixture = self._make_fixture(name='TestImage %d' % (i))
-            fixtures.append(fixture)
-            ids.append(self.service.create(fixture)['id'])
-
-        image_metas = self.service.detail(limit=5)
-        self.assertEqual(5, len(image_metas))
-
-    def test_detail_default_limit(self):
-        fixtures = []
-        ids = []
-        for i in range(10):
-            fixture = self._make_fixture(name='TestImage %d' % (i))
-            fixtures.append(fixture)
-            ids.append(self.service.create(fixture)['id'])
-
-        image_metas = self.service.detail()
-        for i, meta in enumerate(image_metas):
-            self.assertEqual(meta['name'], 'TestImage %d' % (i))
-
-    def test_detail_marker_and_limit(self):
-        fixtures = []
-        ids = []
-        for i in range(10):
-            fixture = self._make_fixture(name='TestImage %d' % (i))
-            fixtures.append(fixture)
-            ids.append(self.service.create(fixture)['id'])
-
-        image_metas = self.service.detail(marker=ids[3], limit=5)
-        self.assertEqual(5, len(image_metas))
-        i = 4
-        for meta in image_metas:
-            expected = {
-                'id': ids[i],
-                'status': None,
-                'is_public': None,
-                'name': 'TestImage %d' % (i),
-                'properties': {},
-                'size': None,
-                'min_disk': None,
-                'min_ram': None,
-                'disk_format': None,
-                'container_format': None,
-                'checksum': None,
-                'created_at': self.NOW_DATETIME,
-                'updated_at': self.NOW_DATETIME,
-                'deleted_at': None,
-                'deleted': None,
-                'owner': None,
-            }
-            self.assertEqual(expected, meta)
-            i = i + 1
-
-    def test_detail_invalid_marker(self):
-        fixtures = []
-        ids = []
-        for i in range(10):
-            fixture = self._make_fixture(name='TestImage %d' % (i))
-            fixtures.append(fixture)
-            ids.append(self.service.create(fixture)['id'])
-
-        self.assertRaises(exception.Invalid, self.service.detail,
-                          marker='invalidmarker')
-
-    def test_update(self):
-        fixture = self._make_fixture(name='test image')
-        image = self.service.create(fixture)
-        image_id = image['id']
-        fixture['name'] = 'new image name'
-        self.service.update(image_id, fixture)
-
-        new_image_data = self.service.show(image_id)
-        self.assertEqual('new image name', new_image_data['name'])
-
-    def test_delete(self):
-        fixture1 = self._make_fixture(name='test image 1')
-        fixture2 = self._make_fixture(name='test image 2')
-        fixtures = [fixture1, fixture2]
-
-        num_images = len(self.service.detail())
-        self.assertEqual(0, num_images)
-
-        ids = []
-        for fixture in fixtures:
-            new_id = self.service.create(fixture)['id']
-            ids.append(new_id)
-
-        num_images = len(self.service.detail())
-        self.assertEqual(2, num_images)
-
-        self.service.delete(ids[0])
-        # When you delete an image from glance, it sets the status to DELETED
-        # and doesn't actually remove the image.
-
-        # Check the image is still there.
-        num_images = len(self.service.detail())
-        self.assertEqual(2, num_images)
-
-        # Check the image is marked as deleted.
-        num_images = len([x for x in self.service.detail()
-                          if not x['deleted']])
-        self.assertEqual(1, num_images)
-
     def test_show_passes_through_to_client(self):
-        fixture = self._make_fixture(name='image1', is_public=True)
-        image_id = self.service.create(fixture)['id']
-
-        image_meta = self.service.show(image_id)
+        image_id = uuidutils.generate_uuid()
+        image = self._make_fixture(name='image1', is_public=True,
+                                   id=image_id)
         expected = {
             'id': image_id,
             'name': 'image1',
@@ -395,65 +148,33 @@ class TestGlanceImageService(base.TestCase):
             'disk_format': None,
             'container_format': None,
             'checksum': None,
-            'created_at': self.NOW_DATETIME,
-            'updated_at': self.NOW_DATETIME,
+            'created_at': None,
+            'updated_at': None,
             'deleted_at': None,
             'deleted': None,
             'status': None,
             'properties': {},
             'owner': None,
         }
+        with mock.patch.object(self.service, 'call', return_value=image):
+            image_meta = self.service.show(image_id)
+            self.service.call.assert_called_once_with('get', image_id)
         self.assertEqual(expected, image_meta)
 
+    def test_show_makes_datetimes(self):
+        image_id = uuidutils.generate_uuid()
+        image = self._make_datetime_fixture()
+        with mock.patch.object(self.service, 'call', return_value=image):
+            image_meta = self.service.show(image_id)
+            self.service.call.assert_called_once_with('get', image_id)
+        self.assertEqual(self.NOW_DATETIME, image_meta['created_at'])
+        self.assertEqual(self.NOW_DATETIME, image_meta['updated_at'])
+
     def test_show_raises_when_no_authtoken_in_the_context(self):
-        fixture = self._make_fixture(name='image1',
-                                     is_public=False,
-                                     properties={'one': 'two'})
-        image_id = self.service.create(fixture)['id']
         self.context.auth_token = False
         self.assertRaises(exception.ImageNotFound,
                           self.service.show,
-                          image_id)
-
-    def test_detail_passes_through_to_client(self):
-        fixture = self._make_fixture(name='image10', is_public=True)
-        image_id = self.service.create(fixture)['id']
-        image_metas = self.service.detail()
-        expected = [
-            {
-                'id': image_id,
-                'name': 'image10',
-                'is_public': True,
-                'size': None,
-                'min_disk': None,
-                'min_ram': None,
-                'disk_format': None,
-                'container_format': None,
-                'checksum': None,
-                'created_at': self.NOW_DATETIME,
-                'updated_at': self.NOW_DATETIME,
-                'deleted_at': None,
-                'deleted': None,
-                'status': None,
-                'properties': {},
-                'owner': None,
-            },
-        ]
-        self.assertEqual(expected, image_metas)
-
-    def test_show_makes_datetimes(self):
-        fixture = self._make_datetime_fixture()
-        image_id = self.service.create(fixture)['id']
-        image_meta = self.service.show(image_id)
-        self.assertEqual(self.NOW_DATETIME, image_meta['created_at'])
-        self.assertEqual(self.NOW_DATETIME, image_meta['updated_at'])
-
-    def test_detail_makes_datetimes(self):
-        fixture = self._make_datetime_fixture()
-        self.service.create(fixture)
-        image_meta = self.service.detail()[0]
-        self.assertEqual(self.NOW_DATETIME, image_meta['created_at'])
-        self.assertEqual(self.NOW_DATETIME, image_meta['updated_at'])
+                          uuidutils.generate_uuid())
 
     @mock.patch.object(time, 'sleep', autospec=True)
     def test_download_with_retries(self, mock_sleep):

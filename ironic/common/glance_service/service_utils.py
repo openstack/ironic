@@ -89,29 +89,16 @@ def _convert_timestamps_to_datetimes(image_meta):
 _CONVERT_PROPS = ('block_device_mapping', 'mappings')
 
 
-def _convert(metadata, method):
+def _convert(metadata):
     metadata = copy.deepcopy(metadata)
     properties = metadata.get('properties')
     if properties:
         for attr in _CONVERT_PROPS:
             if attr in properties:
                 prop = properties[attr]
-                if method == 'from':
-                    if isinstance(prop, six.string_types):
-                        properties[attr] = jsonutils.loads(prop)
-                if method == 'to':
-                    if not isinstance(prop, six.string_types):
-                        properties[attr] = jsonutils.dumps(prop)
+                if isinstance(prop, six.string_types):
+                    properties[attr] = jsonutils.loads(prop)
     return metadata
-
-
-def _remove_read_only(image_meta):
-    IMAGE_ATTRIBUTES = ['status', 'updated_at', 'created_at', 'deleted_at']
-    output = copy.deepcopy(image_meta)
-    for attr in IMAGE_ATTRIBUTES:
-        if attr in output:
-            del output[attr]
-    return output
 
 
 def _get_api_server_iterator():
@@ -185,34 +172,10 @@ def parse_image_ref(image_href):
             raise exception.InvalidImageRef(image_href=image_href)
 
 
-def extract_query_params(params, version):
-    _params = {}
-    accepted_params = ('filters', 'marker', 'limit',
-                       'sort_key', 'sort_dir')
-    for param in accepted_params:
-        if params.get(param):
-            _params[param] = params.get(param)
-    # ensure filters is a dict
-    _params.setdefault('filters', {})
-
-    # NOTE(vish): don't filter out private images
-    # NOTE(ghe): in v2, not passing any visibility doesn't filter prvate images
-    if version == 1:
-        _params['filters'].setdefault('is_public', 'none')
-
-    return _params
-
-
-def translate_to_glance(image_meta):
-    image_meta = _convert(image_meta, 'to')
-    image_meta = _remove_read_only(image_meta)
-    return image_meta
-
-
 def translate_from_glance(image):
     image_meta = _extract_attributes(image)
     image_meta = _convert_timestamps_to_datetimes(image_meta)
-    image_meta = _convert(image_meta, 'from')
+    image_meta = _convert(image_meta)
     return image_meta
 
 

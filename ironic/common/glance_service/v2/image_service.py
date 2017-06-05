@@ -44,26 +44,11 @@ class GlanceImageService(base_image_service.BaseImageService,
     # }
     _cache = {}
 
-    def detail(self, **kwargs):
-        return self._detail(method='list', **kwargs)
-
     def show(self, image_id):
         return self._show(image_id, method='get')
 
     def download(self, image_id, data=None):
         return self._download(image_id, method='data', data=data)
-
-    def create(self, image_meta, data=None):
-        image_id = self._create(image_meta, method='create', data=None)['id']
-        return self.update(image_id, None, data)
-
-    def update(self, image_id, image_meta, data=None, purge_props=False):
-        # NOTE(ghe): purge_props not working until bug 1206472 solved
-        return self._update(image_id, image_meta, data, method='update',
-                            purge_props=False)
-
-    def delete(self, image_id):
-        return self._delete(image_id, method='delete')
 
     def _generate_temp_url(self, path, seconds, key, method, endpoint,
                            image_id):
