@@ -30,34 +30,17 @@ class RequestContext(context.RequestContext):
 
     def to_policy_values(self):
         policy_values = super(RequestContext, self).to_policy_values()
-        # TODO(vdrok): remove all of these apart from is_public_api and
-        # project_name after deprecation period
         policy_values.update({
-            'user': self.user,
-            'domain_id': self.user_domain,
-            'domain_name': self.user_domain_name,
-            'tenant': self.tenant,
             'project_name': self.project_name,
             'is_public_api': self.is_public_api,
         })
         return policy_values
 
-    def to_dict(self):
-        # TODO(vdrok): reuse the base class to_dict in Pike
-        return {'auth_token': self.auth_token,
-                'user': self.user,
-                'tenant': self.tenant,
-                'is_admin': self.is_admin,
-                'read_only': self.read_only,
-                'show_deleted': self.show_deleted,
-                'request_id': self.request_id,
-                'domain_id': self.user_domain,
-                'roles': self.roles,
-                'domain_name': self.user_domain_name,
-                'is_public_api': self.is_public_api}
-
     @classmethod
     def from_dict(cls, values, **kwargs):
+        # TODO(vdrok): these are left so that if older service communicates
+        # with a new one, new one could still understand what old one sends,
+        # remove in Queens
         kwargs.setdefault('is_public_api', values.get('is_public_api', False))
         if 'domain_id' in values:
             kwargs.setdefault('user_domain', values['domain_id'])

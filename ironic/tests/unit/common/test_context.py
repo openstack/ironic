@@ -44,22 +44,6 @@ class RequestContextTestCase(tests_base.TestCase):
         context_mock.assert_called_once_with()
         self.assertFalse(test_context.is_public_api)
 
-    def test_to_dict(self):
-        ctx = context.RequestContext(**self.context_dict)
-        ctx_dict = ctx.to_dict()
-        self.assertEqual('auth_token1', ctx_dict['auth_token'])
-        self.assertEqual('user1', ctx_dict['user'])
-        self.assertEqual('tenant1', ctx_dict['tenant'])
-        self.assertTrue(ctx_dict['is_admin'])
-        self.assertTrue(ctx_dict['read_only'])
-        self.assertTrue(ctx_dict['show_deleted'])
-        self.assertEqual('id1', ctx_dict['request_id'])
-        self.assertTrue(ctx_dict['is_public_api'])
-        self.assertEqual('domain_id3', ctx_dict['domain_id'])
-        self.assertEqual('TreeDomain', ctx_dict['domain_name'])
-        self.assertEqual([], ctx_dict['roles'])
-        self.assertNotIn('overwrite', ctx_dict)
-
     def test_from_dict(self):
         test_context = context.RequestContext.from_dict(
             {'project_name': 'demo', 'is_public_api': True,
@@ -71,18 +55,8 @@ class RequestContextTestCase(tests_base.TestCase):
     def test_to_policy_values(self):
         ctx = context.RequestContext(**self.context_dict)
         ctx_dict = ctx.to_policy_values()
-        self.assertEqual('user1', ctx_dict['user'])
-        self.assertEqual('user1', ctx_dict['user_id'])
-        self.assertEqual('tenant1', ctx_dict['tenant'])
-        self.assertEqual('tenant1', ctx_dict['project_id'])
         self.assertEqual('somename', ctx_dict['project_name'])
         self.assertTrue(ctx_dict['is_public_api'])
-        self.assertTrue(ctx_dict['is_admin_project'])
-        self.assertEqual('domain_id3', ctx_dict['domain_id'])
-        self.assertEqual('TreeDomain', ctx_dict['domain_name'])
-        self.assertEqual('domain_id3', ctx_dict['user_domain_id'])
-        self.assertEqual('domain_id4', ctx_dict['project_domain_id'])
-        self.assertEqual([], ctx_dict['roles'])
 
     def test_get_admin_context(self):
         admin_context = context.get_admin_context()
