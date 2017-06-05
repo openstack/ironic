@@ -45,12 +45,12 @@ class ReleaseMappingsTestCase(base.TestCase):
     """
     def test_structure(self):
         for value in RELEASE_MAPPING.values():
-            self.assertTrue(isinstance(value, dict))
+            self.assertIsInstance(value, dict)
             self.assertEqual({'rpc', 'objects'}, set(value))
-            self.assertTrue(isinstance(value['rpc'], six.string_types))
-            self.assertTrue(isinstance(value['objects'], dict))
+            self.assertIsInstance(value['rpc'], six.string_types)
+            self.assertIsInstance(value['objects'], dict)
             for obj_value in value['objects'].values():
-                self.assertTrue(isinstance(obj_value, six.string_types))
+                self.assertIsInstance(obj_value, six.string_types)
                 tuple_ver = versionutils.convert_version_to_tuple(obj_value)
                 self.assertEqual(2, len(tuple_ver))
 
