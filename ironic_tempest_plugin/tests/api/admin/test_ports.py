@@ -14,6 +14,7 @@ from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
 from tempest.lib import exceptions as lib_exc
 
+from ironic_tempest_plugin.tests.api.admin import api_microversion_fixture
 from ironic_tempest_plugin.tests.api.admin import base
 
 
@@ -256,3 +257,120 @@ class TestPorts(base.BaseBaremetalTest):
         _, body = self.client.show_port(port['uuid'])
         self.assertEqual(new_address, body['address'])
         self.assertEqual(new_extra, body['extra'])
+
+
+class TestPortsWithPhysicalNetwork(base.BaseBaremetalTest):
+    """Tests for ports with physical network information."""
+
+    min_microversion = '1.34'
+
+    def setUp(self):
+        super(TestPortsWithPhysicalNetwork, self).setUp()
+
+        self.useFixture(
+            api_microversion_fixture.APIMicroversionFixture(
+                TestPortsWithPhysicalNetwork.min_microversion)
+        )
+        _, self.chassis = self.create_chassis()
+        _, self.node = self.create_node(self.chassis['uuid'])
+
+    @decorators.idempotent_id('f1a5d279-c456-4311-ad31-fea09f61c22b')
+    def test_create_port_with_physical_network(self):
+        node_id = self.node['uuid']
+        address = data_utils.rand_mac_address()
+
+        _, port = self.create_port(node_id=node_id, address=address,
+                                   physical_network='physnet1')
+
+        _, body = self.client.show_port(port['uuid'])
+
+        self._assertExpected(port, body)
+        self.assertEqual('physnet1', port['physical_network'])
+
+    @decorators.idempotent_id('9c26298b-1bcb-47b7-9b9e-8bdd6e3c4aba')
+    def test_update_port_replace_physical_network(self):
+        node_id = self.node['uuid']
+        address = data_utils.rand_mac_address()
+
+        _, port = self.create_port(node_id=node_id, address=address,
+                                   physical_network='physnet1')
+
+        new_physnet = 'physnet2'
+
+        patch = [{'path': '/physical_network',
+                  'op': 'replace',
+                  'value': new_physnet}]
+
+        self.client.update_port(port['uuid'], patch)
+
+        _, body = self.client.show_port(port['uuid'])
+        self.assertEqual(new_physnet, body['physical_network'])
+
+    @decorators.idempotent_id('6503309c-b2c7-4f59-b15a-0d92b5de9210')
+    def test_update_port_remove_physical_network(self):
+        node_id = self.node['uuid']
+        address = data_utils.rand_mac_address()
+
+        _, port = self.create_port(node_id=node_id, address=address,
+                                   physical_network='physnet1')
+
+        patch = [{'path': '/physical_network',
+                  'op': 'remove'}]
+
+        self.client.update_port(port['uuid'], patch)
+
+        _, body = self.client.show_port(port['uuid'])
+        self.assertIsNone(body['physical_network'])
+
+    @decorators.idempotent_id('4155c24d-8474-4b53-a320-aee475f85a68')
+    def test_create_ports_in_portgroup_with_physical_network(self):
+        node_id = self.node['uuid']
+        address = data_utils.rand_mac_address()
+
+        _, portgroup = self.create_portgroup(node_id, address=address)
+
+        _, port1 = self.create_port(node_id=node_id, address=address,
+                                    portgroup_uuid=portgroup['uuid'],
+                                    physical_network='physnet1')
+
+        address = data_utils.rand_mac_address()
+        _, port2 = self.create_port(node_id=node_id, address=address,
+                                    portgroup_uuid=portgroup['uuid'],
+                                    physical_network='physnet1')
+
+        _, body = self.client.show_port(port1['uuid'])
+        self.assertEqual('physnet1', body['physical_network'])
+        self.assertEqual(portgroup['uuid'], body['portgroup_uuid'])
+
+        _, body = self.client.show_port(port2['uuid'])
+        self.assertEqual('physnet1', body['physical_network'])
+        self.assertEqual(portgroup['uuid'], body['portgroup_uuid'])
+
+    @decorators.idempotent_id('cf05a3ef-3bc4-4db7-bb4c-4eb871eb9f81')
+    def test_update_ports_in_portgroup_with_physical_network(self):
+        node_id = self.node['uuid']
+        address = data_utils.rand_mac_address()
+
+        _, portgroup = self.create_portgroup(node_id, address=address)
+
+        _, port1 = self.create_port(node_id=node_id, address=address,
+                                    portgroup_uuid=portgroup['uuid'],
+                                    physical_network='physnet1')
+
+        address = data_utils.rand_mac_address()
+        _, port2 = self.create_port(node_id=node_id, address=address,
+                                    physical_network='physnet1')
+
+        patch = [{'path': '/portgroup_uuid',
+                  'op': 'replace',
+                  'value': portgroup['uuid']}]
+
+        self.client.update_port(port2['uuid'], patch)
+
+        _, body = self.client.show_port(port1['uuid'])
+        self.assertEqual('physnet1', body['physical_network'])
+        self.assertEqual(portgroup['uuid'], body['portgroup_uuid'])
+
+        _, body = self.client.show_port(port2['uuid'])
+        self.assertEqual('physnet1', body['physical_network'])
+        self.assertEqual(portgroup['uuid'], body['portgroup_uuid'])

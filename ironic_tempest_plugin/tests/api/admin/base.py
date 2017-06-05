@@ -185,7 +185,8 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
 
     @classmethod
     @creates('port')
-    def create_port(cls, node_id, address, extra=None, uuid=None):
+    def create_port(cls, node_id, address, extra=None, uuid=None,
+                    portgroup_uuid=None, physical_network=None):
         """Wrapper utility for creating test ports.
 
         :param node_id: The unique identifier of the node.
@@ -193,12 +194,18 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
         :param extra: Meta data of the port. If not supplied, an empty
             dictionary will be created.
         :param uuid: UUID of the port.
+        :param portgroup_uuid: The UUID of a portgroup of which this port is a
+            member.
+        :param physical_network: The physical network to which the port is
+            attached.
         :return: A tuple with the server response and the created port.
 
         """
         extra = extra or {}
         resp, body = cls.client.create_port(address=address, node_id=node_id,
-                                            extra=extra, uuid=uuid)
+                                            extra=extra, uuid=uuid,
+                                            portgroup_uuid=portgroup_uuid,
+                                            physical_network=physical_network)
 
         return resp, body
 
