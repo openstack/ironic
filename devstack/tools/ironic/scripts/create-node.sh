@@ -112,7 +112,7 @@ if ! virsh list --all | grep -q $NAME; then
     if [[ -n "$EMULATOR" ]]; then
         vm_opts+="--emulator $EMULATOR "
     fi
-    $TOP_DIR/scripts/configure-vm.py \
+    $PYTHON $TOP_DIR/scripts/configure-vm.py \
         --bootdev network --name $NAME --image "$volume_path" \
         --arch $ARCH --cpus $CPU --memory $MEM --libvirt-nic-driver $LIBVIRT_NIC_DRIVER \
         --disk-format $DISK_FORMAT $VM_LOGGING --engine $ENGINE $UEFI_OPTS $vm_opts \
