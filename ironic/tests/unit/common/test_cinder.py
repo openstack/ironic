@@ -11,6 +11,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
+import json
 
 from cinderclient import exceptions as cinder_exceptions
 import cinderclient.v3 as cinderclient
@@ -152,20 +154,22 @@ class TestCinderUtils(db_base.DbTestCase):
         self.assertIsNone(cinder._get_attachment_id(self.node, unattached))
         self.assertIsNone(cinder._get_attachment_id(self.node, no_attachment))
 
-    def test__create_metadata_dictionary(self):
+    @mock.patch.object(datetime, 'datetime')
+    def test__create_metadata_dictionary(self, mock_datetime):
+        fake_time = '2017-06-05T00:33:26.574676'
+        mock_utcnow = mock.Mock()
+        mock_datetime.utcnow.return_value = mock_utcnow
+        mock_utcnow.isoformat.return_value = fake_time
         expected_key = ("ironic_node_%s" % self.node.uuid)
-        expected = {
-            expected_key: {
-                'instance_uuid': self.node.instance_uuid,
-                'last_seen': 'faked-time',
-                'last_action': 'meow'
-            }
+        expected_data = {
+            'instance_uuid': self.node.instance_uuid,
+            'last_seen': fake_time,
+            'last_action': 'meow'
         }
 
         result = cinder._create_metadata_dictionary(self.node, 'meow')
-        self.assertIsInstance(result[expected_key]['last_seen'], str)
-        result[expected_key]['last_seen'] = 'faked-time'
-        self.assertEqual(expected, result)
+        data = json.loads(result[expected_key])
+        self.assertEqual(expected_data, data)
 
 
 @mock.patch.object(cinder, '_get_cinder_session', autospec=True)

@@ -13,6 +13,7 @@
 # under the License.
 
 import datetime
+import json
 
 from cinderclient import exceptions as cinder_exceptions
 from cinderclient.v3 import client as client
@@ -120,11 +121,10 @@ def _create_metadata_dictionary(node, action):
     :returns: Metadata dictionary for volume.
     """
     label = "ironic_node_%s" % node.uuid
-    return {
-        label: {
-            'instance_uuid': node.instance_uuid or node.uuid,
+    data = {'instance_uuid': node.instance_uuid or node.uuid,
             'last_seen': datetime.datetime.utcnow().isoformat(),
-            'last_action': action}}
+            'last_action': action}
+    return {label: json.dumps(data)}
 
 
 def _init_client(task):
