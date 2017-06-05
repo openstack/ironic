@@ -8,9 +8,10 @@ Each driver MAY support vendor-specific extensions, called "passthru" methods.
 
 Internally, Ironic's driver API supports flexibly exposing functions via the
 common HTTP methods GET, PUT, POST, and DELETE. To call a passthru method,
-the query string must contain the name of the method, eg.
-``/vendor_passthru?method=lookup``. The contents of the HTTP request are
-forwarded to the driver and validated there.
+the query string must contain the name of the method. For example, if the
+method name was ``my_passthru_method``, the request would look like
+``/vendor_passthru?method=my_passthru_method``. The contents of the HTTP
+request are forwarded to the driver and validated there.
 
 Ironic's REST API provides a means to discover these methods, but does not
 provide support, testing, or documentation for these endpoints. The Ironic
@@ -42,8 +43,12 @@ Request
 
     - driver_name: driver_ident
 
-Response Parameters
--------------------
+Response
+--------
+
+The response BODY is a dictionary whose keys are the method names. The value
+of each item is itself a dictionary describing how to interact with that
+method.
 
 .. rest_parameters:: parameters.yaml
 
@@ -51,16 +56,6 @@ Response Parameters
    - attach: passthru_attach
    - description: passthru_description
    - http_methods: passthru_http_methods
-
-Response Example
-----------------
-
-The response BODY is a dictionary whose keys are a ``method_name``. The value
-of each item is itself a dictionary describing how to interact with that
-method.
-
-.. literalinclude:: samples/driver-passthru-methods-response.json
-   :language: javascript
 
 
 Call a Method
@@ -71,7 +66,7 @@ Call a Method
 The HTTP METHOD may be one of GET, POST, PUT, DELETE, depending on the driver
 and method.
 
-This endpoint passes the request directly to the Node's hardware driver. The
+This endpoint passes the request directly to the hardware driver. The
 HTTP BODY must be parseable JSON, which will be converted to parameters passed
 to that function. Unparseable JSON, missing parameters, or excess parameters
 will cause the request to be rejected with an HTTP 400 error.
