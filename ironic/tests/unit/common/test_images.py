@@ -549,9 +549,9 @@ class FsImageTestCase(base.TestCase):
     @mock.patch.object(utils, 'tempdir', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
     @mock.patch.object(images, '_generate_cfg', autospec=True)
-    def test_create_isolinux_image_for_bios(
+    def _test_create_isolinux_image_for_bios(
             self, gen_cfg_mock, execute_mock, tempdir_mock,
-            write_to_file_mock, create_root_fs_mock):
+            write_to_file_mock, create_root_fs_mock, ldlinux_path=None):
 
         mock_file_handle = mock.MagicMock(spec=file)
         mock_file_handle.__enter__.return_value = 'tmpdir'
@@ -575,6 +575,8 @@ class FsImageTestCase(base.TestCase):
             'path/to/ramdisk': 'initrd',
             CONF.isolinux_bin: 'isolinux/isolinux.bin'
         }
+        if ldlinux_path:
+            files_info[ldlinux_path] = 'isolinux/ldlinux.c32'
         create_root_fs_mock.assert_called_once_with('tmpdir', files_info)
         gen_cfg_mock.assert_called_once_with(params,
                                              CONF.isolinux_config_template,
@@ -586,6 +588,22 @@ class FsImageTestCase(base.TestCase):
             '-no-emul-boot', '-boot-load-size',
             '4', '-boot-info-table', '-b', 'isolinux/isolinux.bin',
             '-o', 'tgt_file', 'tmpdir')
+
+    @mock.patch.object(os.path, 'isfile', autspec=True)
+    def test_create_isolinux_image_for_bios(self, mock_isfile):
+        mock_isfile.return_value = False
+        self._test_create_isolinux_image_for_bios()
+
+    def test_create_isolinux_image_for_bios_conf_ldlinux(self):
+        CONF.set_override('ldlinux_c32', 'path/to/ldlinux.c32')
+        self._test_create_isolinux_image_for_bios(
+            ldlinux_path='path/to/ldlinux.c32')
+
+    @mock.patch.object(os.path, 'isfile', autspec=True)
+    def test_create_isolinux_image_for_bios_default_ldlinux(self, mock_isfile):
+        mock_isfile.side_effect = [False, True]
+        self._test_create_isolinux_image_for_bios(
+            ldlinux_path='/usr/share/syslinux/ldlinux.c32')
 
     @mock.patch.object(images, '_umount_without_raise', autospec=True)
     @mock.patch.object(images, '_create_root_fs', autospec=True)

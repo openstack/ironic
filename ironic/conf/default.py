@@ -199,6 +199,12 @@ image_opts = [
                default=os.path.join('$pybasedir',
                                     'common/grub_conf.template'),
                help=_('Template file for grub configuration file.')),
+    cfg.StrOpt('ldlinux_c32',
+               help=_('Path to ldlinux.c32 file. This file is required for '
+                      'syslinux 5.0 or later. If not specified, the file is '
+                      'searched in general paths, '
+                      '"/usr/lib/syslinux/modules/bios/ldlinux.c32" and '
+                      '"/usr/share/syslinux/ldlinux.c32".')),
 ]
 
 img_cache_opts = [

@@ -184,6 +184,9 @@ def create_isolinux_image_for_bios(output_file, kernel, ramdisk,
     """
     ISOLINUX_BIN = 'isolinux/isolinux.bin'
     ISOLINUX_CFG = 'isolinux/isolinux.cfg'
+    LDLINUX_SRC_DIRS = ['/usr/lib/syslinux/modules/bios',
+                        '/usr/share/syslinux']
+    LDLINUX_BIN = 'isolinux/ldlinux.c32'
 
     options = {'kernel': '/vmlinuz', 'ramdisk': '/initrd'}
 
@@ -193,6 +196,20 @@ def create_isolinux_image_for_bios(output_file, kernel, ramdisk,
             ramdisk: 'initrd',
             CONF.isolinux_bin: ISOLINUX_BIN,
         }
+
+        # ldlinux.c32 is required for syslinux 5.0 or later.
+        if CONF.ldlinux_c32:
+            ldlinux_src = CONF.ldlinux_c32
+        else:
+            for directory in LDLINUX_SRC_DIRS:
+                ldlinux_src = os.path.join(directory, 'ldlinux.c32')
+                if os.path.isfile(ldlinux_src):
+                    break
+            else:
+                ldlinux_src = None
+        if ldlinux_src:
+            files_info[ldlinux_src] = LDLINUX_BIN
+
         try:
             _create_root_fs(tmpdir, files_info)
         except (OSError, IOError) as e:
