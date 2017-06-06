@@ -1503,9 +1503,14 @@
 # Authentication URL (string value)
 #auth_url = <None>
 
-# Authentication strategy to use when connecting to glance.
-# (string value)
+# DEPRECATED: Authentication strategy to use when connecting
+# to glance. (string value)
 # Allowed values: keystone, noauth
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: To configure glance in noauth mode, set
+# [glance]/auth_type=none and
+# [glance]/endpoint_override=<GLANCE_API_ADDRESS> instead.
 #auth_strategy = keystone
 
 # Authentication type to load (string value)
@@ -1535,15 +1540,24 @@
 # Domain name to scope to (string value)
 #domain_name = <None>
 
-# Allow to perform insecure SSL (https) requests to glance.
-# (boolean value)
+# Always use this endpoint URL for requests for this client.
+# (string value)
+#endpoint_override = <None>
+
+# DEPRECATED: Allow to perform insecure SSL (https) requests
+# to glance. (boolean value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Use [glance]/insecure option instead.
 #glance_api_insecure = false
 
-# A list of the glance api servers available to ironic. Prefix
-# with https:// for SSL-based glance API servers. Format is
-# [hostname|IP]:port. If this option is not set, the service
-# catalog is used. It is recommended to rely on the service
-# catalog, if possible. (list value)
+# DEPRECATED: A list of the glance api servers available to
+# ironic. Prefix with https:// for SSL-based glance API
+# servers. Format is [hostname|IP]:port. (list value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Use [glance]/endpoint_override option to set the
+# full load-balanced glance API URL instead.
 #glance_api_servers = <None>
 
 # DEPRECATED: Glance API version (1 or 2) to use. (integer
@@ -1556,9 +1570,13 @@
 # in the Queens release.
 #glance_api_version = 2
 
-# Optional path to a CA certificate bundle to be used to
-# validate the SSL certificate served by glance. It is used
-# when glance_api_insecure is set to False. (string value)
+# DEPRECATED: Optional path to a CA certificate bundle to be
+# used to validate the SSL certificate served by glance. It is
+# used when glance_api_insecure is set to False. (string
+# value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Use [glance]/cafile option instead.
 #glance_cafile = <None>
 
 # Number of retries when downloading an image from glance.
@@ -1570,6 +1588,18 @@
 
 # PEM encoded client certificate key file (string value)
 #keyfile = <None>
+
+# The maximum major version of a given API, intended to be
+# used as the upper bound of a range with min_version.
+# Mutually exclusive with version. (string value)
+#max_version = <None>
+
+# The minimum major version of a given API, intended to be
+# used as the lower bound of a range with max_version.
+# Mutually exclusive with version. If min_version is given
+# with no max_version it is as if max version is "latest".
+# (string value)
+#min_version = <None>
 
 # User's password (string value)
 #password = <None>
@@ -1587,6 +1617,18 @@
 # Project name to scope to (string value)
 # Deprecated group/name - [glance]/tenant_name
 #project_name = <None>
+
+# The default region_name for endpoint URL discovery. (string
+# value)
+#region_name = <None>
+
+# The default service_name for endpoint URL discovery. (string
+# value)
+#service_name = <None>
+
+# The default service_type for endpoint URL discovery. (string
+# value)
+#service_type = image
 
 # The account that Glance uses to communicate with Swift. The
 # format is "AUTH_uuid". "uuid" is the UUID for the account
@@ -1684,6 +1726,15 @@
 # Username (string value)
 # Deprecated group/name - [glance]/user_name
 #username = <None>
+
+# List of interfaces, in order of preference, for endpoint
+# URL. (list value)
+#valid_interfaces = internal,public
+
+# Minimum Major API version within a given Major API version
+# for endpoint URL discovery. Mutually exclusive with
+# min_version and max_version (string value)
+#version = <None>
 
 
 [ilo]

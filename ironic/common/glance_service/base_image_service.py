@@ -21,7 +21,6 @@ import time
 
 from glanceclient import client
 from glanceclient import exc as glance_exc
-from oslo_config import cfg
 from oslo_log import log
 import sendfile
 import six
@@ -29,10 +28,20 @@ import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
+from ironic.common import keystone
+from ironic.conf import CONF
 
 
 LOG = log.getLogger(__name__)
-CONF = cfg.CONF
+
+_GLANCE_SESSION = None
+
+
+def _get_glance_session(**session_kwargs):
+    global _GLANCE_SESSION
+    if not _GLANCE_SESSION:
+        _GLANCE_SESSION = keystone.get_session('glance', **session_kwargs)
+    return _GLANCE_SESSION
 
 
 def _translate_image_exception(image_id, exc_value):
@@ -46,6 +55,10 @@ def _translate_image_exception(image_id, exc_value):
     return exc_value
 
 
+# NOTE(pas-ha) while looking very ugly currently, this will be simplified
+# in Rocky after all deprecated [glance] options are removed and
+# keystone catalog is always used with 'keystone' auth strategy
+# together with session always loaded from config options
 def check_image_service(func):
     """Creates a glance client if doesn't exists and calls the function."""
     @six.wraps(func)
@@ -58,19 +71,54 @@ def check_image_service(func):
         if self.client:
             return func(self, *args, **kwargs)
 
-        image_href = kwargs.get('image_href')
-        _id, self.endpoint, use_ssl = service_utils.parse_image_ref(image_href)
+        # TODO(pas-ha) remove in Rocky
+        session_params = {}
+        if CONF.glance.glance_api_insecure and not CONF.glance.insecure:
+            session_params['insecure'] = CONF.glance.glance_api_insecure
+        if CONF.glance.glance_cafile and not CONF.glance.cafile:
+            session_params['cacert'] = CONF.glance.glance_cafile
+        # NOTE(pas-ha) glanceclient uses Adapter-based SessionClient,
+        # so we can pass session and auth separately, makes things easier
+        session = _get_glance_session(**session_params)
 
-        params = {}
-        params['insecure'] = CONF.glance.glance_api_insecure
-        if (not params['insecure'] and CONF.glance.glance_cafile
-                and use_ssl):
-            params['cacert'] = CONF.glance.glance_cafile
-        if CONF.glance.auth_strategy == 'keystone':
-            params['token'] = self.context.auth_token
-        self.client = client.Client(self.version,
-                                    self.endpoint, **params)
+        # TODO(pas-ha) remove in Rocky
+        # NOTE(pas-ha) new option must win if configured
+        if (CONF.glance.glance_api_servers and
+                not CONF.glance.endpoint_override):
+            # NOTE(pas-ha) all the 2 methods have image_href as the first
+            #              positional arg, but check in kwargs too
+            image_href = args[0] if args else kwargs.get('image_href')
+            url = service_utils.get_glance_api_server(image_href)
+            CONF.set_override('endpoint_override', url, group='glance')
+
+        # TODO(pas-ha) remove in Rocky
+        if CONF.glance.auth_strategy == 'noauth':
+            CONF.set_override('auth_type', 'none', group='glance')
+
+        service_auth = keystone.get_auth('glance')
+
+        # TODO(pas-ha) remove in Rocky
+        adapter_params = {}
+        if CONF.keystone.region_name and not CONF.glance.region_name:
+            adapter_params['region_name'] = CONF.keystone.region_name
+
+        adapter = keystone.get_adapter('glance', session=session,
+                                       auth=service_auth, **adapter_params)
+        self.endpoint = adapter.get_endpoint()
+
+        user_auth = None
+        # NOTE(pas-ha) our ContextHook removes context.auth_token in noauth
+        # case, so when ironic is in noauth but glance is not, we will not
+        # enter the next if-block and use auth from [glance] config section
+        if self.context.auth_token:
+            user_auth = keystone.get_service_auth(self.context, self.endpoint,
+                                                  service_auth)
+        self.client = client.Client(self.version, session=session,
+                                    auth=user_auth or service_auth,
+                                    endpoint_override=self.endpoint,
+                                    global_request_id=self.context.global_id)
         return func(self, *args, **kwargs)
+
     return wrapper
 
 
@@ -110,16 +158,16 @@ class BaseImageService(object):
             try:
                 return getattr(self.client.images, method)(*args, **kwargs)
             except retry_excs as e:
-                error_msg = ("Error contacting glance server "
-                             "'%(endpoint)s' for '%(method)s', attempt"
-                             " %(attempt)s of %(num_attempts)s failed.")
+                error_msg = ("Error contacting glance endpoint "
+                             "%(endpoint)s for '%(method)s', attempt "
+                             "%(attempt)s of %(num_attempts)s failed.")
                 LOG.exception(error_msg, {'endpoint': self.endpoint,
                                           'num_attempts': num_attempts,
                                           'attempt': attempt,
                                           'method': method})
                 if attempt == num_attempts:
                     raise exception.GlanceConnectionFailed(
-                        endpoint=self.endpoint, reason=str(e))
+                        endpoint=self.endpoint, reason=e)
                 time.sleep(1)
             except image_excs as e:
                 exc_type, exc_value, exc_trace = sys.exc_info()
@@ -131,14 +179,14 @@ class BaseImageService(object):
     def _show(self, image_href, method='get'):
         """Returns a dict with image data for the given opaque image id.
 
-        :param image_id: The opaque image identifier.
+        :param image_href: The opaque image identifier.
         :returns: A dict containing image metadata.
 
         :raises: ImageNotFound
         """
         LOG.debug("Getting image metadata from glance. Image: %s",
                   image_href)
-        image_id = service_utils.parse_image_ref(image_href)[0]
+        image_id = service_utils.parse_image_id(image_href)
 
         image = self.call(method, image_id)
 
@@ -152,10 +200,10 @@ class BaseImageService(object):
     def _download(self, image_href, data=None, method='data'):
         """Calls out to Glance for data and writes data.
 
-        :param image_id: The opaque image identifier.
+        :param image_href: The opaque image identifier.
         :param data: (Optional) File object to write data to.
         """
-        image_id = service_utils.parse_image_ref(image_href)[0]
+        image_id = service_utils.parse_image_id(image_href)
 
         if (self.version == 2 and
                 'file' in CONF.glance.allowed_direct_url_schemes):

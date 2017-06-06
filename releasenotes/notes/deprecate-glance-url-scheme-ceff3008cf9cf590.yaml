@@ -1,0 +1,7 @@
+---
+other:
+  - |
+    Support for parsing the glance API endpoint from the full REST path
+    to a glance image was removed as it was not working anyway.
+    The image service API is now always resolved from keystone catalog or
+    via the options in the ``[glance]`` section in ironic configuration file.

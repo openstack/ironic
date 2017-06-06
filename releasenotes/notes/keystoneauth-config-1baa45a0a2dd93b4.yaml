@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds the ability to set keystoneauth settings in the
+    ``[glance]`` configuration section for service automatic
+    discovery.

@@ -19,6 +19,7 @@ import time
 
 from glanceclient import client as glance_client
 from glanceclient import exc as glance_exc
+from keystoneauth1 import loading as kaloading
 import mock
 from oslo_config import cfg
 from oslo_utils import uuidutils
@@ -98,15 +99,7 @@ class TestGlanceImageService(base.TestCase):
         self.service = service.GlanceImageService(client, 1, self.context)
 
         self.config(glance_api_servers=['http://localhost'], group='glance')
-        try:
-            self.config(auth_strategy='keystone', group='glance')
-        except Exception:
-            opts = [
-                cfg.StrOpt('auth_strategy', default='keystone'),
-            ]
-            CONF.register_opts(opts)
-
-        return
+        self.config(auth_strategy='keystone', group='glance')
 
     @staticmethod
     def _make_fixture(**kwargs):
@@ -196,7 +189,7 @@ class TestGlanceImageService(base.TestCase):
         stub_context.user_id = 'fake'
         stub_context.project_id = 'fake'
         stub_service = service.GlanceImageService(stub_client, 1, stub_context)
-        image_id = 1  # doesn't matter
+        image_id = uuidutils.generate_uuid()
         writer = NullWriter()
 
         # When retries are disabled, we should get an exception
@@ -233,7 +226,7 @@ class TestGlanceImageService(base.TestCase):
         stub_service = service.GlanceImageService(stub_client,
                                                   context=stub_context,
                                                   version=2)
-        image_id = 1  # doesn't matter
+        image_id = uuidutils.generate_uuid()
 
         self.config(allowed_direct_url_schemes=['file'], group='glance')
 
@@ -268,7 +261,7 @@ class TestGlanceImageService(base.TestCase):
         stub_context.user_id = 'fake'
         stub_context.project_id = 'fake'
         stub_service = service.GlanceImageService(stub_client, 1, stub_context)
-        image_id = 1  # doesn't matter
+        image_id = uuidutils.generate_uuid()
         writer = NullWriter()
         self.assertRaises(exception.ImageNotAuthorized, stub_service.download,
                           image_id, writer)
@@ -284,7 +277,7 @@ class TestGlanceImageService(base.TestCase):
         stub_context.user_id = 'fake'
         stub_context.project_id = 'fake'
         stub_service = service.GlanceImageService(stub_client, 1, stub_context)
-        image_id = 1  # doesn't matter
+        image_id = uuidutils.generate_uuid()
         writer = NullWriter()
         self.assertRaises(exception.ImageNotAuthorized, stub_service.download,
                           image_id, writer)
@@ -300,7 +293,7 @@ class TestGlanceImageService(base.TestCase):
         stub_context.user_id = 'fake'
         stub_context.project_id = 'fake'
         stub_service = service.GlanceImageService(stub_client, 1, stub_context)
-        image_id = 1  # doesn't matter
+        image_id = uuidutils.generate_uuid()
         writer = NullWriter()
         self.assertRaises(exception.ImageNotFound, stub_service.download,
                           image_id, writer)
@@ -316,12 +309,44 @@ class TestGlanceImageService(base.TestCase):
         stub_context.user_id = 'fake'
         stub_context.project_id = 'fake'
         stub_service = service.GlanceImageService(stub_client, 1, stub_context)
-        image_id = 1  # doesn't matter
+        image_id = uuidutils.generate_uuid()
         writer = NullWriter()
         self.assertRaises(exception.ImageNotFound, stub_service.download,
                           image_id, writer)
 
-    def test_check_image_service_client_set(self):
+
+@mock.patch('ironic.common.keystone.get_auth', autospec=True,
+            return_value=mock.sentinel.auth)
+@mock.patch('ironic.common.keystone.get_service_auth', autospec=True,
+            return_value=mock.sentinel.sauth)
+@mock.patch('ironic.common.keystone.get_adapter', autospec=True)
+@mock.patch('ironic.common.keystone.get_session', autospec=True,
+            return_value=mock.sentinel.session)
+@mock.patch.object(glance_client, 'Client', autospec=True)
+class CheckImageServiceTestCase(base.TestCase):
+    def setUp(self):
+        super(CheckImageServiceTestCase, self).setUp()
+        self.context = context.RequestContext(global_request_id='global')
+        self.service = service.GlanceImageService(None, 1, self.context)
+        # NOTE(pas-ha) register keystoneauth dynamic options manually
+        plugin = kaloading.get_plugin_loader('password')
+        opts = kaloading.get_auth_plugin_conf_options(plugin)
+        self.cfg_fixture.register_opts(opts, group='glance')
+        self.config(auth_type='password',
+                    auth_url='viking',
+                    username='spam',
+                    password='ham',
+                    project_name='parrot',
+                    service_type='image',
+                    region_name='SomeRegion',
+                    interface='internal',
+                    auth_strategy='keystone',
+                    group='glance')
+        base_image_service._GLANCE_SESSION = None
+
+    def test_check_image_service_client_already_set(self, mock_gclient,
+                                                    mock_sess, mock_adapter,
+                                                    mock_sauth, mock_auth):
         def func(self):
             return True
 
@@ -329,70 +354,118 @@ class TestGlanceImageService(base.TestCase):
 
         wrapped_func = base_image_service.check_image_service(func)
         self.assertTrue(wrapped_func(self.service))
+        self.assertEqual(0, mock_gclient.call_count)
+        self.assertEqual(0, mock_sess.call_count)
+        self.assertEqual(0, mock_adapter.call_count)
+        self.assertEqual(0, mock_auth.call_count)
+        self.assertEqual(0, mock_sauth.call_count)
 
-    @mock.patch.object(glance_client, 'Client', autospec=True)
-    def test_check_image_service__no_client_set_http(self, mock_gclient):
-        def func(service, *args, **kwargs):
-            return (self.endpoint, args, kwargs)
-
-        endpoint = 'http://123.123.123.123:9292'
-        mock_gclient.return_value.endpoint = endpoint
-        self.service.client = None
-
-        params = {'image_href': '%s/image_uuid' % endpoint}
-        self.config(auth_strategy='keystone', group='glance')
-        wrapped_func = base_image_service.check_image_service(func)
-        self.assertEqual((endpoint, (), params),
-                         wrapped_func(self.service, **params))
+    def _assert_client_call(self, mock_gclient, url, user=False):
         mock_gclient.assert_called_once_with(
-            1, endpoint,
-            **{'insecure': CONF.glance.glance_api_insecure,
-               'token': self.context.auth_token})
+            1,
+            session=mock.sentinel.session,
+            global_request_id='global',
+            auth=mock.sentinel.sauth if user else mock.sentinel.auth,
+            endpoint_override=url)
 
-    @mock.patch.object(glance_client, 'Client', autospec=True)
-    def test_get_image_service__no_client_set_https_insecure(self,
-                                                             mock_gclient):
+    def test_check_image_service__config_auth(self, mock_gclient, mock_sess,
+                                              mock_adapter, mock_sauth,
+                                              mock_auth):
         def func(service, *args, **kwargs):
-            return (self.endpoint, args, kwargs)
+            return args, kwargs
 
-        endpoint = 'https://123.123.123.123:9292'
-        mock_gclient.return_value.endpoint = endpoint
-        self.service.client = None
+        mock_adapter.return_value = adapter = mock.Mock()
+        adapter.get_endpoint.return_value = 'glance_url'
+        uuid = uuidutils.generate_uuid()
+        params = {'image_href': uuid}
 
-        params = {'image_href': '%s/image_uuid' % endpoint}
-        self.config(auth_strategy='keystone', group='glance')
-        self.config(glance_api_insecure=True, group='glance')
         wrapped_func = base_image_service.check_image_service(func)
+        self.assertEqual(((), params), wrapped_func(self.service, **params))
+        self._assert_client_call(mock_gclient, 'glance_url')
+        mock_auth.assert_called_once_with('glance')
+        mock_sess.assert_called_once_with('glance')
+        mock_adapter.assert_called_once_with('glance',
+                                             session=mock.sentinel.session,
+                                             auth=mock.sentinel.auth)
+        adapter.get_endpoint.assert_called_once_with()
+        self.assertEqual(0, mock_sauth.call_count)
 
-        self.assertEqual((endpoint, (), params),
-                         wrapped_func(self.service, **params))
-        mock_gclient.assert_called_once_with(
-            1, endpoint,
-            **{'insecure': CONF.glance.glance_api_insecure,
-               'token': self.context.auth_token})
-
-    @mock.patch.object(glance_client, 'Client', autospec=True)
-    def test_get_image_service__no_client_set_https_secure(self, mock_gclient):
+    def test_check_image_service__token_auth(self, mock_gclient, mock_sess,
+                                             mock_adapter, mock_sauth,
+                                             mock_auth):
         def func(service, *args, **kwargs):
-            return (self.endpoint, args, kwargs)
+            return args, kwargs
 
-        endpoint = 'https://123.123.123.123:9292'
-        mock_gclient.return_value.endpoint = endpoint
-        self.service.client = None
+        self.service.context = context.RequestContext(
+            auth_token='token', global_request_id='global')
+        mock_adapter.return_value = adapter = mock.Mock()
+        adapter.get_endpoint.return_value = 'glance_url'
+        uuid = uuidutils.generate_uuid()
+        params = {'image_href': uuid}
 
-        params = {'image_href': '%s/image_uuid' % endpoint}
-        self.config(auth_strategy='keystone', group='glance')
-        self.config(glance_api_insecure=False, group='glance')
-        self.config(glance_cafile='/path/to/certfile', group='glance')
         wrapped_func = base_image_service.check_image_service(func)
+        self.assertEqual(((), params), wrapped_func(self.service, **params))
+        self._assert_client_call(mock_gclient, 'glance_url', user=True)
+        mock_sess.assert_called_once_with('glance')
+        mock_adapter.assert_called_once_with('glance',
+                                             session=mock.sentinel.session,
+                                             auth=mock.sentinel.auth)
+        mock_sauth.assert_called_once_with(self.service.context, 'glance_url',
+                                           mock.sentinel.auth)
+        mock_auth.assert_called_once_with('glance')
 
-        self.assertEqual((endpoint, (), params),
-                         wrapped_func(self.service, **params))
-        mock_gclient.assert_called_once_with(
-            1, endpoint,
-            **{'cacert': CONF.glance.glance_cafile,
-               'insecure': CONF.glance.glance_api_insecure,
-               'token': self.context.auth_token})
+    def test_check_image_service__deprecated_opts(self, mock_gclient,
+                                                  mock_sess, mock_adapter,
+                                                  mock_sauth, mock_auth):
+        def func(service, *args, **kwargs):
+            return args, kwargs
+
+        mock_adapter.return_value = adapter = mock.Mock()
+        adapter.get_endpoint.return_value = 'glance_url'
+        uuid = uuidutils.generate_uuid()
+        params = {'image_href': uuid}
+        self.config(glance_api_servers='https://localhost:1234',
+                    glance_api_insecure=True,
+                    glance_cafile='cafile',
+                    region_name=None,
+                    group='glance')
+        self.config(region_name='OtherRegion', group='keystone')
+
+        wrapped_func = base_image_service.check_image_service(func)
+        self.assertEqual(((), params), wrapped_func(self.service, **params))
+        self.assertEqual('https://localhost:1234',
+                         base_image_service.CONF.glance.endpoint_override)
+        self._assert_client_call(mock_gclient, 'glance_url')
+        mock_sess.assert_called_once_with('glance', insecure=True,
+                                          cacert='cafile')
+        mock_adapter.assert_called_once_with(
+            'glance', session=mock.sentinel.session,
+            auth=mock.sentinel.auth, region_name='OtherRegion')
+        self.assertEqual(0, mock_sauth.call_count)
+        mock_auth.assert_called_once_with('glance')
+
+    def test_check_image_service__no_auth(self, mock_gclient, mock_sess,
+                                          mock_adapter, mock_sauth, mock_auth):
+        def func(service, *args, **kwargs):
+            return args, kwargs
+
+        self.config(endpoint_override='foo',
+                    auth_strategy='noauth',
+                    group='glance')
+        mock_adapter.return_value = adapter = mock.Mock()
+        adapter.get_endpoint.return_value = 'foo'
+        uuid = uuidutils.generate_uuid()
+        params = {'image_href': uuid}
+
+        wrapped_func = base_image_service.check_image_service(func)
+        self.assertEqual(((), params), wrapped_func(self.service, **params))
+        self.assertEqual('none', base_image_service.CONF.glance.auth_type)
+        self._assert_client_call(mock_gclient, 'foo')
+        mock_sess.assert_called_once_with('glance')
+        mock_adapter.assert_called_once_with('glance',
+                                             session=mock.sentinel.session,
+                                             auth=mock.sentinel.auth)
+        self.assertEqual(0, mock_sauth.call_count)
 
 
 def _create_failing_glance_client(info):
@@ -811,19 +884,43 @@ class TestSwiftTempUrlCache(base.TestCase):
 
 class TestServiceUtils(base.TestCase):
 
-    def test_parse_image_ref_no_ssl(self):
-        image_href = u'http://127.0.0.1:9292/image_path/'\
-            u'image_\u00F9\u00FA\u00EE\u0111'
-        parsed_href = service_utils.parse_image_ref(image_href)
-        self.assertEqual((u'image_\u00F9\u00FA\u00EE\u0111',
-                          'http://127.0.0.1:9292', False), parsed_href)
+    def setUp(self):
+        super(TestServiceUtils, self).setUp()
+        service_utils._GLANCE_API_SERVER = None
 
-    def test_parse_image_ref_ssl(self):
-        image_href = 'https://127.0.0.1:9292/image_path/'\
-                     u'image_\u00F9\u00FA\u00EE\u0111'
-        parsed_href = service_utils.parse_image_ref(image_href)
-        self.assertEqual((u'image_\u00F9\u00FA\u00EE\u0111',
-                          'https://127.0.0.1:9292', True), parsed_href)
+    def test_parse_image_id_from_uuid(self):
+        image_href = uuidutils.generate_uuid()
+        parsed_id = service_utils.parse_image_id(image_href)
+        self.assertEqual(image_href, parsed_id)
+
+    def test_parse_image_id_from_glance(self):
+        uuid = uuidutils.generate_uuid()
+        image_href = u'glance://some-stuff/%s' % uuid
+        parsed_id = service_utils.parse_image_id(image_href)
+        self.assertEqual(uuid, parsed_id)
+
+    def test_parse_image_id_from_glance_fail(self):
+        self.assertRaises(exception.InvalidImageRef,
+                          service_utils.parse_image_id, u'glance://not-a-uuid')
+
+    def test_parse_image_id_fail(self):
+        self.assertRaises(exception.InvalidImageRef,
+                          service_utils.parse_image_id,
+                          u'http://spam.ham/eggs')
+
+    def test_get_glance_api_server_fail(self):
+        self.assertRaises(exception.InvalidImageRef,
+                          service_utils.get_glance_api_server,
+                          u'http://spam.ham/eggs')
+
+    # TODO(pas-ha) remove in Rocky
+    def test_get_glance_api_server(self):
+        self.config(glance_api_servers='http://spam:1234, https://ham',
+                    group='glance')
+        api_servers = {service_utils.get_glance_api_server(
+            uuidutils.generate_uuid()) for i in range(2)}
+        self.assertEqual({'http://spam:1234', 'https://ham'},
+                         api_servers)
 
     def test_is_glance_image(self):
         image_href = u'uui\u0111'
@@ -850,51 +947,3 @@ class TestServiceUtils(base.TestCase):
                       u'file://\u0111eploy_iso',):
             result = service_utils.is_image_href_ordinary_file_name(image)
             self.assertFalse(result)
-
-
-class TestGlanceAPIServers(base.TestCase):
-
-    def setUp(self):
-        super(TestGlanceAPIServers, self).setUp()
-        service_utils._GLANCE_API_SERVER = None
-
-    @mock.patch.object(service_utils.keystone, 'get_service_url',
-                       autospec=True)
-    @mock.patch.object(service_utils.keystone, 'get_session', autospec=True)
-    @mock.patch.object(service_utils.keystone, 'get_auth', autospec=True)
-    def test__get_api_servers_with_keystone(self, mock_auth, mock_session,
-                                            mock_service_url):
-        mock_service_url.return_value = 'https://example.com'
-
-        endpoint = service_utils._get_api_server()
-        self.assertEqual('https://example.com', endpoint)
-
-        mock_auth.assert_called_once_with('glance')
-        mock_session.assert_called_once_with('glance',
-                                             auth=mock_auth.return_value)
-        mock_service_url.assert_called_once_with(mock_session.return_value,
-                                                 service_type='image',
-                                                 endpoint_type='public')
-
-    def test__get_api_servers_one(self):
-        CONF.set_override('glance_api_servers', ['https://10.0.0.1:9293'],
-                          'glance')
-        s1 = service_utils._get_api_server()
-        s2 = service_utils._get_api_server()
-        self.assertEqual('https://10.0.0.1:9293', s1)
-
-        # Only one server, should always get the same one
-        self.assertEqual(s1, s2)
-
-    def test__get_api_servers_two(self):
-        CONF.set_override('glance_api_servers',
-                          ['http://10.0.0.1:9293', 'http://10.0.0.2:9294'],
-                          'glance')
-        s1 = service_utils._get_api_server()
-        s2 = service_utils._get_api_server()
-        s3 = service_utils._get_api_server()
-
-        self.assertNotEqual(s1, s2)
-
-        # 2 servers, so cycles to the first again
-        self.assertEqual(s1, s3)
