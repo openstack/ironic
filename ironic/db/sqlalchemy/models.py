@@ -195,6 +195,7 @@ class Port(Base):
     portgroup_id = Column(Integer, ForeignKey('portgroups.id'), nullable=True)
     pxe_enabled = Column(Boolean, default=True)
     internal_info = Column(db_types.JsonEncodedDict)
+    physical_network = Column(String(64), nullable=True)
 
 
 class Portgroup(Base):

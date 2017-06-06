@@ -257,6 +257,9 @@ class TestListPorts(test_api_base.BaseApiTest):
         # never expose the node_id and portgroup_id
         self.assertNotIn('node_id', data['ports'][0])
         self.assertNotIn('portgroup_id', data['ports'][0])
+        # NOTE(mgoddard): The physical network attribute is not yet exposed by
+        # the API.
+        self.assertNotIn('physical_network', data['ports'][0])
 
     def test_detail_against_single(self):
         port = obj_utils.create_test_port(self.context, node_id=self.node.id)

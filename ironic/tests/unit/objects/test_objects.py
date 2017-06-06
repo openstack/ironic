@@ -411,7 +411,7 @@ expected_object_fingerprints = {
     'Node': '1.21-52674c214141cf3e09f8688bfed54577',
     'MyObj': '1.5-4f5efe8f0fcaf182bbe1c7fe3ba858db',
     'Chassis': '1.3-d656e039fd8ae9f34efc232ab3980905',
-    'Port': '1.6-609504503d68982a10f495659990084b',
+    'Port': '1.7-898a47921f4a1f53fcdddd4eeb179e0b',
     'Portgroup': '1.3-71923a81a86743b313b190f5c675e258',
     'Conductor': '1.2-5091f249719d4a465062a1b3dc7f860d',
     'EventType': '1.1-aa2ba1afd38553e3880c267404e8d370',

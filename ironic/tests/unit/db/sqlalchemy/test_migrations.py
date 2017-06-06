@@ -634,6 +634,13 @@ class MigrationCheckersMixin(object):
                               (sqlalchemy.types.Boolean,
                                sqlalchemy.types.Integer))
 
+    def _check_3d86a077a3f2(self, engine, data):
+        ports = db_utils.get_table(engine, 'ports')
+        col_names = [column.name for column in ports.c]
+        self.assertIn('physical_network', col_names)
+        self.assertIsInstance(ports.c.physical_network.type,
+                              sqlalchemy.types.String)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')
