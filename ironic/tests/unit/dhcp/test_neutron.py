@@ -17,7 +17,6 @@
 import mock
 
 from neutronclient.common import exceptions as neutron_client_exc
-from neutronclient.v2_0 import client
 from oslo_utils import uuidutils
 
 from ironic.common import dhcp_factory
@@ -41,17 +40,6 @@ class TestNeutron(db_base.DbTestCase):
         self.config(enabled_drivers=['fake'])
         self.config(dhcp_provider='neutron',
                     group='dhcp')
-        self.config(url='test-url',
-                    url_timeout=30,
-                    retries=2,
-                    group='neutron')
-        self.config(insecure=False,
-                    certfile='test-file',
-                    admin_user='test-admin-user',
-                    admin_tenant_name='test-admin-tenant',
-                    admin_password='test-admin-password',
-                    auth_uri='test-auth-uri',
-                    group='keystone_authtoken')
         self.node = object_utils.create_test_node(self.context)
         self.ports = [
             object_utils.create_test_port(
@@ -64,9 +52,8 @@ class TestNeutron(db_base.DbTestCase):
 
         dhcp_factory.DHCPFactory._dhcp_provider = None
 
-    @mock.patch.object(client.Client, 'update_port')
-    @mock.patch.object(client.Client, "__init__")
-    def test_update_port_dhcp_opts(self, mock_client_init, mock_update_port):
+    @mock.patch('ironic.common.neutron.get_client', autospec=True)
+    def test_update_port_dhcp_opts(self, client_mock):
         opts = [{'opt_name': 'bootfile-name',
                  'opt_value': 'pxelinux.0'},
                 {'opt_name': 'tftp-server',
@@ -76,19 +63,16 @@ class TestNeutron(db_base.DbTestCase):
         port_id = 'fake-port-id'
         expected = {'port': {'extra_dhcp_opts': opts}}
 
-        mock_client_init.return_value = None
         api = dhcp_factory.DHCPFactory()
         api.provider.update_port_dhcp_opts(port_id, opts)
-        mock_update_port.assert_called_once_with(port_id, expected)
+        client_mock.return_value.update_port.assert_called_once_with(
+            port_id, expected)
 
-    @mock.patch.object(client.Client, 'update_port')
-    @mock.patch.object(client.Client, "__init__")
-    def test_update_port_dhcp_opts_with_exception(self, mock_client_init,
-                                                  mock_update_port):
+    @mock.patch('ironic.common.neutron.get_client', autospec=True)
+    def test_update_port_dhcp_opts_with_exception(self, client_mock):
         opts = [{}]
         port_id = 'fake-port-id'
-        mock_client_init.return_value = None
-        mock_update_port.side_effect = (
+        client_mock.return_value.update_port.side_effect = (
             neutron_client_exc.NeutronClientException())
 
         api = dhcp_factory.DHCPFactory()
@@ -379,8 +363,9 @@ class TestNeutron(db_base.DbTestCase):
     def test__get_ip_addresses_portgroup_int_info(self):
         self._test__get_ip_addresses_portgroup('internal_info')
 
+    @mock.patch('ironic.common.neutron.get_client', autospec=True)
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_port_ip_address')
-    def test_get_ip_addresses(self, get_ip_mock):
+    def test_get_ip_addresses(self, get_ip_mock, client_mock):
         ip_address = '10.10.0.1'
         expected = [ip_address]
 
@@ -390,11 +375,13 @@ class TestNeutron(db_base.DbTestCase):
             api = dhcp_factory.DHCPFactory().provider
             result = api.get_ip_addresses(task)
             get_ip_mock.assert_called_once_with(task, task.ports[0],
-                                                mock.ANY)
+                                                client_mock.return_value)
         self.assertEqual(expected, result)
 
+    @mock.patch('ironic.common.neutron.get_client', autospec=True)
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_port_ip_address')
-    def test_get_ip_addresses_for_port_and_portgroup(self, get_ip_mock):
+    def test_get_ip_addresses_for_port_and_portgroup(self, get_ip_mock,
+                                                     client_mock):
         object_utils.create_test_portgroup(
             self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
             uuid=uuidutils.generate_uuid(),
@@ -404,5 +391,6 @@ class TestNeutron(db_base.DbTestCase):
             api = dhcp_factory.DHCPFactory().provider
             api.get_ip_addresses(task)
             get_ip_mock.assert_has_calls(
-                [mock.call(task, task.ports[0], mock.ANY),
-                 mock.call(task, task.portgroups[0], mock.ANY)])
+                [mock.call(task, task.ports[0], client_mock.return_value),
+                 mock.call(task, task.portgroups[0], client_mock.return_value)]
+            )

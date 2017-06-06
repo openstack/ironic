@@ -65,6 +65,8 @@ class BaseTestCase(db_base.DbTestCase):
         self.task.node = self.node
         self.task.driver = self.driver
         self.api_version = (1, 0)
+        # NOTE(pas-ha) force-reset  global inspector session object
+        inspector._INSPECTOR_SESSION = None
 
 
 class CommonFunctionsTestCase(BaseTestCase):

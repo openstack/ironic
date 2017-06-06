@@ -1111,6 +1111,7 @@ function configure_ironic_conductor {
     configure_auth_for swift
     configure_auth_for glance
     configure_auth_for inspector
+    configure_auth_for cinder
     # this one is needed for lookup of Ironic API endpoint via Keystone
     configure_auth_for service_catalog
 

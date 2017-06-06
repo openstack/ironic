@@ -1,0 +1,14 @@
+---
+upgrade:
+  - |
+    Ironic no longer falls back to loading authentication configuration
+    options for accessing other services from the ``[keystone_authtoken]``
+    section.
+    As a result, the following configuration sections now must contain
+    proper authentication options for appropriate service:
+
+      - glance
+      - neutron
+      - swift
+      - inspector
+      - service_catalog

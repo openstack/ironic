@@ -14,34 +14,11 @@
 
 import copy
 
-from keystoneauth1 import exceptions as kaexception
 from keystoneauth1 import loading as kaloading
-from oslo_config import cfg
 from oslo_log import log
 
 
 LOG = log.getLogger(__name__)
-LEGACY_SECTION = 'keystone_authtoken'
-OLD_SESSION_OPTS = {
-    'certfile': [cfg.DeprecatedOpt('certfile', LEGACY_SECTION)],
-    'keyfile': [cfg.DeprecatedOpt('keyfile', LEGACY_SECTION)],
-    'cafile': [cfg.DeprecatedOpt('cafile', LEGACY_SECTION)],
-    'insecure': [cfg.DeprecatedOpt('insecure', LEGACY_SECTION)],
-    'timeout': [cfg.DeprecatedOpt('timeout', LEGACY_SECTION)],
-}
-
-# FIXME(pas-ha) remove import of auth_token section after deprecation period
-cfg.CONF.import_group(LEGACY_SECTION, 'keystonemiddleware.auth_token')
-
-
-def load_auth(conf, group):
-    try:
-        auth = kaloading.load_auth_from_conf_options(conf, group)
-    except kaexception.MissingRequiredOptions as exc:
-        LOG.debug('Failed to load credentials from group %(grp)s: %(err)s',
-                  {'grp': group, 'err': exc})
-        auth = None
-    return auth
 
 
 def register_auth_opts(conf, group):
@@ -50,8 +27,7 @@ def register_auth_opts(conf, group):
     Registers only basic auth options shared by all auth plugins.
     The rest are registered at runtime depending on auth plugin used.
     """
-    kaloading.register_session_conf_options(
-        conf, group, deprecated_opts=OLD_SESSION_OPTS)
+    kaloading.register_session_conf_options(conf, group)
     kaloading.register_auth_conf_options(conf, group)
 
 

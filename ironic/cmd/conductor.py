@@ -28,35 +28,11 @@ from oslo_service import service
 
 from ironic.common import rpc_service
 from ironic.common import service as ironic_service
-from ironic.conf import auth
 from ironic import version
 
 CONF = cfg.CONF
 
 LOG = log.getLogger(__name__)
-
-SECTIONS_WITH_AUTH = (
-    'service_catalog', 'neutron', 'glance', 'swift', 'cinder', 'inspector')
-
-
-# TODO(pas-ha) remove this check after deprecation period
-def check_auth_options(conf):
-    missing = []
-    for section in SECTIONS_WITH_AUTH:
-        if not auth.load_auth(conf, section):
-            missing.append('[%s]' % section)
-    if missing:
-        link = "http://docs.openstack.org/releasenotes/ironic/newton.html"
-        LOG.warning("Failed to load authentification credentials from "
-                    "%(missing)s config sections. "
-                    "The corresponding service users' credentials "
-                    "will be loaded from [%(old)s] config section, "
-                    "which is deprecated for this purpose. "
-                    "Please update the config file. "
-                    "For more info see %(link)s.",
-                    dict(missing=", ".join(missing),
-                         old=auth.LEGACY_SECTION,
-                         link=link))
 
 
 def warn_about_unsafe_shred_parameters(conf):
@@ -78,7 +54,6 @@ def warn_about_missing_default_boot_option(conf):
 
 
 def issue_startup_warnings(conf):
-    check_auth_options(conf)
     warn_about_unsafe_shred_parameters(conf)
     warn_about_missing_default_boot_option(conf)
 
