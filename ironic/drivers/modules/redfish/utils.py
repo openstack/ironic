@@ -18,6 +18,7 @@ import os
 from oslo_log import log
 from oslo_utils import excutils
 from oslo_utils import importutils
+from oslo_utils import strutils
 import retrying
 import rfc3986
 import six
@@ -117,13 +118,18 @@ def parse_driver_info(node):
     # Check if verify_ca is a Boolean or a file/directory in the file-system
     verify_ca = driver_info.get('redfish_verify_ca', True)
     if isinstance(verify_ca, six.string_types):
-        if not os.path.exists(verify_ca):
-            raise exception.InvalidParameterValue(
-                _('Invalid value "%(value)s" set in '
-                  'driver_info/redfish_verify_ca on node %(node)s. '
-                  'The value should be either a Boolean, a path to a '
-                  'CA_BUNDLE file or directory with certificates of '
-                  'trusted CAs') % {'value': verify_ca, 'node': node.uuid})
+        if os.path.isdir(verify_ca) or os.path.isfile(verify_ca):
+            pass
+        else:
+            try:
+                verify_ca = strutils.bool_from_string(verify_ca, strict=True)
+            except ValueError:
+                raise exception.InvalidParameterValue(
+                    _('Invalid value type set in driver_info/'
+                      'redfish_verify_ca on node %(node)s. '
+                      'The value should be a Boolean or the path '
+                      'to a file/directory, not "%(value)s"'
+                      ) % {'value': verify_ca, 'node': node.uuid})
     elif isinstance(verify_ca, bool):
         # If it's a boolean it's grand, we don't need to do anything
         pass

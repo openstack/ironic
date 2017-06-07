@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
 import os
 
 import mock
@@ -87,26 +88,28 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
                                    'Invalid Redfish address',
                                    redfish_utils.parse_driver_info, self.node)
 
-    @mock.patch.object(os.path, 'exists', autospec=True)
-    def test_parse_driver_info_path_verify_ca(self, mock_path_exists):
-        mock_path_exists.return_value = True
+    @mock.patch.object(os.path, 'isdir', autospec=True)
+    def test_parse_driver_info_path_verify_ca(self,
+                                              mock_isdir):
+        mock_isdir.return_value = True
         fake_path = '/path/to/a/valid/CA'
         self.node.driver_info['redfish_verify_ca'] = fake_path
         self.parsed_driver_info['verify_ca'] = fake_path
 
         response = redfish_utils.parse_driver_info(self.node)
         self.assertEqual(self.parsed_driver_info, response)
-        mock_path_exists.assert_called_once_with(fake_path)
+        mock_isdir.assert_called_once_with(fake_path)
 
-    @mock.patch.object(os.path, 'exists', autospec=True)
-    def test_parse_driver_info_invalid_path_verify_ca(self, mock_path_exists):
-        mock_path_exists.return_value = False
-        fake_path = '/this/path/doesnt/exist'
+    @mock.patch.object(os.path, 'isfile', autospec=True)
+    def test_parse_driver_info_valid_capath(self, mock_isfile):
+        mock_isfile.return_value = True
+        fake_path = '/path/to/a/valid/CA.pem'
         self.node.driver_info['redfish_verify_ca'] = fake_path
-        self.assertRaisesRegex(exception.InvalidParameterValue,
-                               'path to a CA_BUNDLE',
-                               redfish_utils.parse_driver_info, self.node)
-        mock_path_exists.assert_called_once_with(fake_path)
+        self.parsed_driver_info['verify_ca'] = fake_path
+
+        response = redfish_utils.parse_driver_info(self.node)
+        self.assertEqual(self.parsed_driver_info, response)
+        mock_isfile.assert_called_once_with(fake_path)
 
     def test_parse_driver_info_invalid_value_verify_ca(self):
         # Integers are not supported
@@ -121,6 +124,26 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         self.assertRaisesRegex(exception.InvalidParameterValue,
                                'The value should be a path',
                                redfish_utils.parse_driver_info, self.node)
+
+    def test_parse_driver_info_valid_string_value_verify_ca(self):
+        for value in ('0', 'f', 'false', 'off', 'n', 'no'):
+            self.node.driver_info['redfish_verify_ca'] = value
+            response = redfish_utils.parse_driver_info(self.node)
+            parsed_driver_info = copy.deepcopy(self.parsed_driver_info)
+            parsed_driver_info['verify_ca'] = False
+            self.assertEqual(parsed_driver_info, response)
+
+        for value in ('1', 't', 'true', 'on', 'y', 'yes'):
+            self.node.driver_info['redfish_verify_ca'] = value
+            response = redfish_utils.parse_driver_info(self.node)
+            self.assertEqual(self.parsed_driver_info, response)
+
+    def test_parse_driver_info_invalid_string_value_verify_ca(self):
+        for value in ('xyz', '*', '!123', '123'):
+            self.node.driver_info['redfish_verify_ca'] = value
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   'The value should be a Boolean',
+                                   redfish_utils.parse_driver_info, self.node)
 
     @mock.patch('ironic.drivers.modules.redfish.utils.sushy')
     def test_get_system(self, mock_sushy):
