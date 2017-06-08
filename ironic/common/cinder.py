@@ -118,7 +118,9 @@ def _create_metadata_dictionary(node, action):
     :param node: Object representing a node.
     :param action: String value representing the last action.
 
-    :returns: Metadata dictionary for volume.
+    :returns: Dictionary with a json representation of
+              the metadata to send to cinder as it does
+              not support nested dictionaries.
     """
     label = "ironic_node_%s" % node.uuid
     data = {'instance_uuid': node.instance_uuid or node.uuid,
