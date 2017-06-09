@@ -138,7 +138,7 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
                         object, e.g.: Chassis(context)
 
         """
-        values = self.obj_get_changes()
+        values = self.do_version_changes_for_db()
         db_chassis = self.dbapi.create_chassis(values)
         self._from_db_object(self._context, self, db_chassis)
 
@@ -176,7 +176,7 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
                         A context should be set when instantiating the
                         object, e.g.: Chassis(context)
         """
-        updates = self.obj_get_changes()
+        updates = self.do_version_changes_for_db()
         updated_chassis = self.dbapi.update_chassis(self.uuid, updates)
         self._from_db_object(self._context, self, updated_chassis)
 

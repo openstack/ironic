@@ -218,7 +218,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         :raises: DuplicateName, MACAlreadyExists, PortgroupAlreadyExists
 
         """
-        values = self.obj_get_changes()
+        values = self.do_version_changes_for_db()
         db_portgroup = self.dbapi.create_portgroup(values)
         self._from_db_object(self._context, self, db_portgroup)
 
@@ -260,7 +260,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         :raises: PortgroupNotFound, DuplicateName, MACAlreadyExists
 
         """
-        updates = self.obj_get_changes()
+        updates = self.do_version_changes_for_db()
         updated_portgroup = self.dbapi.update_portgroup(self.uuid, updates)
         self._from_db_object(self._context, self, updated_portgroup)
 

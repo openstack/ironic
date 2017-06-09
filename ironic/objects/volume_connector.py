@@ -168,7 +168,7 @@ class VolumeConnector(base.IronicObject,
         :raises: VolumeConnectorAlreadyExists if a volume connector with the
                  same UUID already exists
         """
-        values = self.obj_get_changes()
+        values = self.do_version_changes_for_db()
         db_connector = self.dbapi.create_volume_connector(values)
         self._from_db_object(self._context, self, db_connector)
 
@@ -199,7 +199,7 @@ class VolumeConnector(base.IronicObject,
         """Save updates to this VolumeConnector.
 
         Updates will be made column by column based on the result
-        of self.obj_get_changes().
+        of self.do_version_changes_for_db().
 
         :param context: security context. NOTE: This should only
                         be used internally by the indirection_api.
@@ -214,7 +214,7 @@ class VolumeConnector(base.IronicObject,
                  fields
         :raises: InvalidParameterValue when the UUID is being changed
         """
-        updates = self.obj_get_changes()
+        updates = self.do_version_changes_for_db()
         updated_connector = self.dbapi.update_volume_connector(self.uuid,
                                                                updates)
         self._from_db_object(self._context, self, updated_connector)

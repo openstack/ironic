@@ -17,6 +17,7 @@ import datetime
 
 import iso8601
 import mock
+from oslo_utils import timeutils
 from oslo_versionedobjects import base as object_base
 from oslo_versionedobjects import exception as object_exception
 from oslo_versionedobjects import fixture as object_fixture
@@ -39,13 +40,11 @@ class MyObj(base.IronicObject, object_base.VersionedObjectDictCompat):
               'missing': fields.StringField(),
               }
 
-    def obj_make_compatible(self, primitive, target_version):
-        super(MyObj, self).obj_make_compatible(primitive, target_version)
-        if target_version == '1.4' and 'missing' in primitive:
-            del primitive['missing']
-
     def obj_load_attr(self, attrname):
-        setattr(self, attrname, 'loaded!')
+        if attrname == 'version':
+            setattr(self, attrname, None)
+        else:
+            setattr(self, attrname, 'loaded!')
 
     @object_base.remotable_classmethod
     def query(cls, context):
@@ -68,6 +67,7 @@ class MyObj(base.IronicObject, object_base.VersionedObjectDictCompat):
 
     @object_base.remotable
     def save(self, context=None):
+        self.do_version_changes_for_db()
         self.obj_reset_changes()
 
     @object_base.remotable
@@ -81,6 +81,12 @@ class MyObj(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.bar = 'meow'
         self.save()
         self.foo = 42
+
+    def _convert_to_version(self, target_version):
+        if target_version == '1.5':
+            self.missing = 'foo'
+        elif self.missing:
+            self.missing = ''
 
 
 class MyObj2(object):
@@ -336,15 +342,226 @@ class _TestObject(object):
         self.assertEqual(set(myobj_fields) | set(myobj3_fields),
                          set(TestSubclassedObject.fields.keys()))
 
-    def test_get_changes(self):
+    def _test_get_changes(self, target_version='1.5'):
         obj = MyObj(self.context)
+        self.assertEqual('1.5', obj.VERSION)
+        self.assertEqual(target_version, obj.get_target_version())
         self.assertEqual({}, obj.obj_get_changes())
         obj.foo = 123
         self.assertEqual({'foo': 123}, obj.obj_get_changes())
         obj.bar = 'test'
-        self.assertEqual({'foo': 123, 'bar': 'test'}, obj.obj_get_changes())
+        obj.missing = 'test'  # field which is missing in v1.4
+        self.assertEqual({'foo': 123, 'bar': 'test', 'missing': 'test'},
+                         obj.obj_get_changes())
         obj.obj_reset_changes()
         self.assertEqual({}, obj.obj_get_changes())
+
+    def test_get_changes(self):
+        self._test_get_changes()
+
+    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING',
+                autospec=True)
+    def test_get_changes_pinned(self, mock_release_mapping):
+        # obj_get_changes() is not affected by pinning
+        CONF.set_override('pin_release_version',
+                          release_mappings.RELEASE_VERSIONS[-1])
+        mock_release_mapping.__getitem__.return_value = {
+            'objects': {
+                'MyObj': '1.4',
+            }
+        }
+        self._test_get_changes(target_version='1.4')
+
+    def test_convert_to_version_same(self):
+        # missing is added
+        obj = MyObj(self.context)
+        self.assertEqual('1.5', obj.VERSION)
+        obj.convert_to_version('1.5')
+        self.assertEqual('1.5', obj.VERSION)
+        self.assertEqual(obj.__class__.VERSION, obj.VERSION)
+        self.assertEqual({'missing': 'foo'}, obj.obj_get_changes())
+
+    def test_convert_to_version_new(self):
+        obj = MyObj(self.context)
+        obj.VERSION = '1.4'
+        obj.convert_to_version('1.5')
+        self.assertEqual('1.5', obj.VERSION)
+        self.assertEqual(obj.__class__.VERSION, obj.VERSION)
+        self.assertEqual({'missing': 'foo'}, obj.obj_get_changes())
+
+    def test_convert_to_version_old(self):
+        obj = MyObj(self.context)
+        obj.missing = 'something'
+        obj.obj_reset_changes()
+        obj.convert_to_version('1.4')
+        self.assertEqual('1.4', obj.VERSION)
+        self.assertEqual({'missing': ''}, obj.obj_get_changes())
+
+    @mock.patch.object(MyObj, 'convert_to_version', autospec=True)
+    def test_do_version_changes_for_db(self, mock_convert):
+        # no object conversion
+        obj = MyObj(self.context)
+        self.assertEqual('1.5', obj.VERSION)
+        self.assertEqual('1.5', obj.get_target_version())
+        self.assertEqual({}, obj.obj_get_changes())
+        obj.foo = 123
+        obj.bar = 'test'
+        obj.missing = 'test'  # field which is missing in v1.4
+        self.assertEqual({'foo': 123, 'bar': 'test', 'missing': 'test'},
+                         obj.obj_get_changes())
+        changes = obj.do_version_changes_for_db()
+        self.assertEqual({'foo': 123, 'bar': 'test', 'missing': 'test',
+                          'version': '1.5'}, changes)
+        self.assertEqual('1.5', obj.VERSION)
+        self.assertFalse(mock_convert.called)
+
+    @mock.patch.object(MyObj, 'convert_to_version', autospec=True)
+    @mock.patch.object(base.IronicObject, 'get_target_version', autospec=True)
+    def test_do_version_changes_for_db_pinned(self, mock_target_version,
+                                              mock_convert):
+        # obj is same version as pinned, no conversion done
+        mock_target_version.return_value = '1.4'
+
+        obj = MyObj(self.context)
+        obj.VERSION = '1.4'
+        self.assertEqual('1.4', obj.get_target_version())
+        obj.foo = 123
+        obj.bar = 'test'
+        self.assertEqual({'foo': 123, 'bar': 'test'}, obj.obj_get_changes())
+        self.assertEqual('1.4', obj.VERSION)
+        changes = obj.do_version_changes_for_db()
+        self.assertEqual({'foo': 123, 'bar': 'test', 'version': '1.4'},
+                         changes)
+        self.assertEqual('1.4', obj.VERSION)
+        mock_target_version.assert_called_with(obj)
+        self.assertFalse(mock_convert.called)
+
+    @mock.patch.object(base.IronicObject, 'get_target_version', autospec=True)
+    def test_do_version_changes_for_db_downgrade(self, mock_target_version):
+        # obj is 1.5; convert to 1.4
+        mock_target_version.return_value = '1.4'
+
+        obj = MyObj(self.context)
+        obj.foo = 123
+        obj.bar = 'test'
+        obj.missing = 'something'
+        self.assertEqual({'foo': 123, 'bar': 'test', 'missing': 'something'},
+                         obj.obj_get_changes())
+        self.assertEqual('1.5', obj.VERSION)
+        changes = obj.do_version_changes_for_db()
+        self.assertEqual({'foo': 123, 'bar': 'test', 'missing': '',
+                          'version': '1.4'}, changes)
+        self.assertEqual('1.4', obj.VERSION)
+        mock_target_version.assert_called_with(obj)
+
+    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING',
+                autospec=True)
+    def _test__from_db_object(self, version, mock_release_mapping):
+        mock_release_mapping.__getitem__.return_value = {
+            'objects': {
+                'MyObj': '1.4',
+            }
+        }
+        missing = ''
+        if version == '1.5':
+            missing = 'foo'
+        obj = MyObj(self.context)
+        dbobj = {'created_at': timeutils.utcnow(),
+                 'updated_at': timeutils.utcnow(),
+                 'version': version,
+                 'foo': 123, 'bar': 'test', 'missing': missing}
+        MyObj._from_db_object(self.context, obj, dbobj)
+        self.assertEqual(obj.__class__.VERSION, obj.VERSION)
+        self.assertEqual(123, obj.foo)
+        self.assertEqual('test', obj.bar)
+        self.assertEqual('foo', obj.missing)
+        self.assertFalse(mock_release_mapping.called)
+
+    def test__from_db_object(self):
+        self._test__from_db_object('1.5')
+
+    def test__from_db_object_old(self):
+        self._test__from_db_object('1.4')
+
+    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING',
+                autospec=True)
+    def test__from_db_object_no_version(self, mock_release_mapping):
+        # DB doesn't have version; get it from mapping
+        mock_release_mapping.__getitem__.return_value = {
+            'objects': {
+                'MyObj': '1.4',
+            }
+        }
+        obj = MyObj(self.context)
+        dbobj = {'created_at': timeutils.utcnow(),
+                 'updated_at': timeutils.utcnow(),
+                 'version': None,
+                 'foo': 123, 'bar': 'test', 'missing': ''}
+        MyObj._from_db_object(self.context, obj, dbobj)
+        self.assertEqual(obj.__class__.VERSION, obj.VERSION)
+        self.assertEqual(123, obj.foo)
+        self.assertEqual('test', obj.bar)
+        self.assertEqual('foo', obj.missing)
+
+    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING',
+                autospec=True)
+    def test__from_db_object_map_version_bad(self, mock_release_mapping):
+        mock_release_mapping.__getitem__.return_value = {
+            'objects': {
+                'MyObj': '1.6',
+            }
+        }
+        obj = MyObj(self.context)
+        dbobj = {'created_at': timeutils.utcnow(),
+                 'updated_at': timeutils.utcnow(),
+                 'version': None,
+                 'foo': 123, 'bar': 'test', 'missing': ''}
+        self.assertRaises(object_exception.IncompatibleObjectVersion,
+                          MyObj._from_db_object, self.context, obj, dbobj)
+
+    def test_get_target_version_no_pin(self):
+        obj = MyObj(self.context)
+        self.assertEqual('1.5', obj.get_target_version())
+
+    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING',
+                autospec=True)
+    def test_get_target_version_pinned(self, mock_release_mapping):
+        CONF.set_override('pin_release_version',
+                          release_mappings.RELEASE_VERSIONS[-1])
+        mock_release_mapping.__getitem__.return_value = {
+            'objects': {
+                'MyObj': '1.4',
+            }
+        }
+        obj = MyObj(self.context)
+        self.assertEqual('1.4', obj.get_target_version())
+
+    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING',
+                autospec=True)
+    def test_get_target_version_pinned_no_myobj(self, mock_release_mapping):
+        CONF.set_override('pin_release_version',
+                          release_mappings.RELEASE_VERSIONS[-1])
+        mock_release_mapping.__getitem__.return_value = {
+            'objects': {
+                'NotMyObj': '1.4',
+            }
+        }
+        obj = MyObj(self.context)
+        self.assertEqual('1.5', obj.get_target_version())
+
+    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING',
+                autospec=True)
+    def test_get_target_version_pinned_bad(self, mock_release_mapping):
+        CONF.set_override('pin_release_version',
+                          release_mappings.RELEASE_VERSIONS[-1])
+        mock_release_mapping.__getitem__.return_value = {
+            'objects': {
+                'MyObj': '1.6',
+            }
+        }
+        obj = MyObj(self.context)
+        self.assertRaises(object_exception.IncompatibleObjectVersion,
+                          obj.get_target_version)
 
     def test_obj_fields(self):
         @base.IronicObjectRegistry.register_if(False)
@@ -485,8 +702,9 @@ class TestObjectSerializer(test_base.TestCase):
                                        mock_indirection_api,
                                        my_version='1.6'):
         ser = base.IronicObjectSerializer()
+        backported_obj = MyObj()
         mock_indirection_api.object_backport_versions.return_value \
-            = 'backported'
+            = backported_obj
 
         @base.IronicObjectRegistry.register
         class MyTestObj(MyObj):
@@ -500,7 +718,7 @@ class TestObjectSerializer(test_base.TestCase):
             self.assertFalse(
                 mock_indirection_api.object_backport_versions.called)
         else:
-            self.assertEqual('backported', result)
+            self.assertEqual(backported_obj, result)
             versions = object_base.obj_tree_get_versions('MyTestObj')
             mock_indirection_api.object_backport_versions.assert_called_with(
                 self.context, primitive, versions)
@@ -525,9 +743,35 @@ class TestObjectSerializer(test_base.TestCase):
         "Test object with unsupported (newer) version and revision"
         self._test_deserialize_entity_newer('1.7', '1.6.1', my_version='1.6.1')
 
-    @mock.patch.object(MyObj, 'obj_make_compatible')
-    def test_serialize_entity_no_backport(self, make_compatible_mock):
-        """Test single element serializer with no backport."""
+    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING',
+                autospec=True)
+    def test_deserialize_entity_pin_ignored(self, mock_release_mapping):
+        # Deserializing doesn't look at pinning
+        CONF.set_override('pin_release_version',
+                          release_mappings.RELEASE_VERSIONS[-1])
+        mock_release_mapping.__getitem__.return_value = {
+            'objects': {
+                'MyTestObj': '1.0',
+            }
+        }
+        ser = base.IronicObjectSerializer()
+
+        @base.IronicObjectRegistry.register
+        class MyTestObj(MyObj):
+            VERSION = '1.1'
+
+        obj = MyTestObj(self.context)
+        primitive = obj.obj_to_primitive()
+        result = ser.deserialize_entity(self.context, primitive)
+        self.assertEqual('1.1', result.VERSION)
+        self.assertEqual('1.0', result.get_target_version())
+        self.assertFalse(mock_release_mapping.called)
+
+    @mock.patch.object(base.IronicObject, 'convert_to_version', autospec=True)
+    @mock.patch.object(base.IronicObject, 'get_target_version', autospec=True)
+    def test_serialize_entity_unpinned(self, mock_version, mock_convert):
+        """Test single element serializer with no backport, unpinned."""
+        mock_version.return_value = MyObj.VERSION
         serializer = base.IronicObjectSerializer()
         obj = MyObj(self.context)
         obj.foo = 1
@@ -541,70 +785,69 @@ class TestObjectSerializer(test_base.TestCase):
         self.assertEqual('textt', data['missing'])
         changes = primitive['ironic_object.changes']
         self.assertEqual(set(['foo', 'bar', 'missing']), set(changes))
-        make_compatible_mock.assert_not_called()
+        mock_version.assert_called_once_with(mock.ANY)
+        self.assertFalse(mock_convert.called)
 
-    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING')
-    def test_serialize_entity_backport(self, mock_release_mapping):
-        """Test single element serializer with backport."""
-        CONF.set_override('pin_release_version',
-                          release_mappings.RELEASE_VERSIONS[-1])
-        mock_release_mapping.__getitem__.return_value = {
-            'objects': {
-                'MyObj': '1.4',
-            }
-        }
+    @mock.patch.object(base.IronicObject, 'get_target_version', autospec=True)
+    def test_serialize_entity_pinned(self, mock_version):
+        """Test single element serializer with backport to pinned version."""
+        mock_version.return_value = '1.4'
+
         serializer = base.IronicObjectSerializer()
         obj = MyObj(self.context)
         obj.foo = 1
         obj.bar = 'text'
-        obj.missing = 'textt'
+        obj.missing = 'miss'
+        self.assertEqual('1.5', obj.VERSION)
         primitive = serializer.serialize_entity(self.context, obj)
         self.assertEqual('1.4', primitive['ironic_object.version'])
         data = primitive['ironic_object.data']
         self.assertEqual(1, data['foo'])
         self.assertEqual('text', data['bar'])
-        self.assertNotIn('missing', data)
+        self.assertEqual('', data['missing'])
         changes = primitive['ironic_object.changes']
-        self.assertEqual(set(['foo', 'bar']), set(changes))
+        self.assertEqual(set(['foo', 'bar', 'missing']), set(changes))
+        mock_version.assert_called_once_with(mock.ANY)
 
-    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING')
-    def test_serialize_entity_invalid_pin(self, mock_release_mapping):
-        CONF.set_override('pin_release_version',
-                          release_mappings.RELEASE_VERSIONS[-1])
-        mock_release_mapping.__getitem__.return_value = {
-            'objects': {
-                'MyObj': '1.6',
-            }
-        }
+    @mock.patch.object(base.IronicObject, 'get_target_version', autospec=True)
+    def test_serialize_entity_invalid_pin(self, mock_version):
+        mock_version.side_effect = object_exception.InvalidTargetVersion(
+            version='1.6')
+
         serializer = base.IronicObjectSerializer()
         obj = MyObj(self.context)
         self.assertRaises(object_exception.InvalidTargetVersion,
                           serializer.serialize_entity, self.context, obj)
+        mock_version.assert_called_once_with(mock.ANY)
 
-    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING')
-    def test_serialize_entity_no_pin(self, mock_release_mapping):
-        CONF.set_override('pin_release_version',
-                          release_mappings.RELEASE_VERSIONS[-1])
-        mock_release_mapping.__getitem__.return_value = {
-            'objects': {}
-        }
-        serializer = base.IronicObjectSerializer()
+    @mock.patch.object(base.IronicObject, 'convert_to_version', autospec=True)
+    def test__process_object(self, mock_convert):
         obj = MyObj(self.context)
-        primitive = serializer.serialize_entity(self.context, obj)
-        self.assertEqual('1.5', primitive['ironic_object.version'])
-
-    @mock.patch('ironic.objects.base.IronicObject._get_target_version')
-    @mock.patch('ironic.objects.base.LOG.warning')
-    def test_serialize_entity_unknown_entity(self, mock_warn, mock_version):
-        class Foo(object):
-            fields = {'foobar': fields.IntegerField()}
+        obj.foo = 1
+        obj.bar = 'text'
+        obj.missing = 'miss'
+        primitive = obj.obj_to_primitive()
 
         serializer = base.IronicObjectSerializer()
-        obj = Foo()
-        primitive = serializer.serialize_entity(self.context, obj)
-        self.assertEqual(obj, primitive)
-        self.assertTrue(mock_warn.called)
-        mock_version.assert_not_called()
+        obj2 = serializer._process_object(self.context, primitive)
+        self.assertEqual(obj.foo, obj2.foo)
+        self.assertEqual(obj.bar, obj2.bar)
+        self.assertEqual(obj.missing, obj2.missing)
+        self.assertEqual(obj.VERSION, obj2.VERSION)
+        self.assertFalse(mock_convert.called)
+
+    @mock.patch.object(base.IronicObject, 'convert_to_version', autospec=True)
+    def test__process_object_convert(self, mock_convert):
+        obj = MyObj(self.context)
+        obj.foo = 1
+        obj.bar = 'text'
+        obj.missing = ''
+        obj.VERSION = '1.4'
+        primitive = obj.obj_to_primitive()
+
+        serializer = base.IronicObjectSerializer()
+        serializer._process_object(self.context, primitive)
+        mock_convert.assert_called_once_with(mock.ANY, '1.5')
 
 
 class TestRegistry(test_base.TestCase):

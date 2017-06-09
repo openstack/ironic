@@ -20,6 +20,13 @@ from oslo_utils import timeutils
 from ironic.common import states
 from ironic.db import api as db_api
 from ironic.drivers import base as drivers_base
+from ironic.objects import chassis
+from ironic.objects import conductor
+from ironic.objects import node
+from ironic.objects import port
+from ironic.objects import portgroup
+from ironic.objects import volume_connector
+from ironic.objects import volume_target
 
 
 def get_test_ipmi_info():
@@ -181,6 +188,7 @@ def get_test_node(**kw):
         "private_state": "secret value"
     }
     result = {
+        'version': kw.get('version', node.Node.VERSION),
         'id': kw.get('id', 123),
         'name': kw.get('name', None),
         'uuid': kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'),
@@ -247,6 +255,7 @@ def create_test_node(**kw):
 def get_test_port(**kw):
     return {
         'id': kw.get('id', 987),
+        'version': kw.get('version', port.Port.VERSION),
         'uuid': kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c781'),
         'node_id': kw.get('node_id', 123),
         'address': kw.get('address', '52:54:00:cf:2d:31'),
@@ -284,6 +293,7 @@ def create_test_port(**kw):
 def get_test_volume_connector(**kw):
     return {
         'id': kw.get('id', 789),
+        'version': kw.get('version', volume_connector.VolumeConnector.VERSION),
         'uuid': kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c781'),
         'node_id': kw.get('node_id', 123),
         'type': kw.get('type', 'iqn'),
@@ -316,6 +326,7 @@ def get_test_volume_target(**kw):
     fake_properties = {"target_iqn": "iqn.foo"}
     return {
         'id': kw.get('id', 789),
+        'version': kw.get('version', volume_target.VolumeTarget.VERSION),
         'uuid': kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c781'),
         'node_id': kw.get('node_id', 123),
         'volume_type': kw.get('volume_type', 'iscsi'),
@@ -348,6 +359,7 @@ def create_test_volume_target(**kw):
 def get_test_chassis(**kw):
     return {
         'id': kw.get('id', 42),
+        'version': kw.get('version', chassis.Chassis.VERSION),
         'uuid': kw.get('uuid', 'e74c40e0-d825-11e2-a28f-0800200c9a66'),
         'extra': kw.get('extra', {}),
         'description': kw.get('description', 'data-center-1-chassis'),
@@ -376,6 +388,7 @@ def create_test_chassis(**kw):
 def get_test_conductor(**kw):
     return {
         'id': kw.get('id', 6),
+        'version': kw.get('version', conductor.Conductor.VERSION),
         'hostname': kw.get('hostname', 'test-conductor-node'),
         'drivers': kw.get('drivers', ['fake-driver', 'null-driver']),
         'created_at': kw.get('created_at', timeutils.utcnow()),
@@ -430,6 +443,7 @@ def get_test_redfish_info():
 def get_test_portgroup(**kw):
     return {
         'id': kw.get('id', 654),
+        'version': kw.get('version', portgroup.Portgroup.VERSION),
         'uuid': kw.get('uuid', '6eb02b44-18a3-4659-8c0b-8d2802581ae4'),
         'name': kw.get('name', 'fooname'),
         'node_id': kw.get('node_id', 123),
@@ -464,6 +478,9 @@ def create_test_portgroup(**kw):
 
 def get_test_node_tag(**kw):
     return {
+        # TODO(rloo): Replace None below with the object NodeTag VERSION,
+        #             after this lands: https://review.openstack.org/#/c/233357
+        'version': kw.get('version', None),
         "tag": kw.get("tag", "tag1"),
         "node_id": kw.get("node_id", "123"),
         'created_at': kw.get('created_at'),

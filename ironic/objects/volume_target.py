@@ -194,7 +194,7 @@ class VolumeTarget(base.IronicObject,
         :raises: VolumeTargetAlreadyExists if a volume target with the same
                  UUID exists
         """
-        values = self.obj_get_changes()
+        values = self.do_version_changes_for_db()
         db_target = self.dbapi.create_volume_target(values)
         self._from_db_object(self._context, self, db_target)
 
@@ -224,7 +224,7 @@ class VolumeTarget(base.IronicObject,
         """Save updates to this VolumeTarget.
 
         Updates will be made column by column based on the result
-        of self.obj_get_changes().
+        of self.do_version_changes_for_db().
 
         :param context: security context. NOTE: This should only
                         be used internally by the indirection_api.
@@ -237,7 +237,7 @@ class VolumeTarget(base.IronicObject,
                  exists with the same node ID and boot index values
         :raises: VolumeTargetNotFound if the volume target cannot be found
         """
-        updates = self.obj_get_changes()
+        updates = self.do_version_changes_for_db()
         updated_target = self.dbapi.update_volume_target(self.uuid, updates)
         self._from_db_object(self._context, self, updated_target)
 
