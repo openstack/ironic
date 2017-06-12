@@ -1180,6 +1180,10 @@
 # start. (integer value)
 #subprocess_timeout = 10
 
+# IP address of Socat service running on the host of ironic
+# conductor. Used only by Socat console. (IP address value)
+#socat_address = $my_ip
+
 
 [cors]
 

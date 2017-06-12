@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds configuration option ``[console]/socat_address`` so
+    that the binding address of socat based console can be
+    configured independently. The option is backward compatible
+    by keeping $my_ip as the default value.

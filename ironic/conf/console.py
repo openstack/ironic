@@ -45,6 +45,10 @@ opts = [
                default=10,
                help=_('Time (in seconds) to wait for the console subprocess '
                       'to start.')),
+    cfg.IPOpt('socat_address',
+              default='$my_ip',
+              help=_('IP address of Socat service running on the host of '
+                     'ironic conductor. Used only by Socat console.')),
 ]
 
 

@@ -251,7 +251,7 @@ def get_socat_console_url(port):
     :param port: the terminal port (integer) for the node
     :return: an access URL to the socat console of the node
     """
-    console_host = CONF.my_ip
+    console_host = CONF.console.socat_address
     if netutils.is_valid_ipv6(console_host):
         console_host = '[%s]' % console_host
 
@@ -289,7 +289,7 @@ def start_socat_console(node_uuid, port, console_cmd):
         args.append('-T%d' % CONF.console.terminal_timeout)
     args.append('-L%s' % pid_file)
 
-    console_host = CONF.my_ip
+    console_host = CONF.console.socat_address
     if netutils.is_valid_ipv6(console_host):
         arg = 'TCP6-LISTEN:%(port)s,bind=[%(host)s],reuseaddr'
     else:
