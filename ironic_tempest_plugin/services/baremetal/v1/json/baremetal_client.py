@@ -51,6 +51,16 @@ class BaremetalClient(base.BaremetalClient):
         return self._list_request('portgroups', **kwargs)
 
     @base.handle_errors
+    def list_volume_connectors(self, **kwargs):
+        """List all existing volume connectors."""
+        return self._list_request('volume/connectors', **kwargs)
+
+    @base.handle_errors
+    def list_volume_targets(self, **kwargs):
+        """List all existing volume targets."""
+        return self._list_request('volume/targets', **kwargs)
+
+    @base.handle_errors
     def list_node_ports(self, uuid):
         """List all ports associated with the node."""
         return self._list_request('/nodes/%s/ports' % uuid)
@@ -122,6 +132,24 @@ class BaremetalClient(base.BaremetalClient):
         :return: Serialized port group as a dictionary.
         """
         return self._show_request('portgroups', portgroup_ident)
+
+    @base.handle_errors
+    def show_volume_connector(self, volume_connector_ident):
+        """Gets a specific volume connector.
+
+        :param volume_connector_ident: UUID of the volume connector.
+        :return: Serialized volume connector as a dictionary.
+        """
+        return self._show_request('volume/connectors', volume_connector_ident)
+
+    @base.handle_errors
+    def show_volume_target(self, volume_target_ident):
+        """Gets a specific volume target.
+
+        :param volume_target_ident: UUID of the volume target.
+        :return: Serialized volume target as a dictionary.
+        """
+        return self._show_request('volume/targets', volume_target_ident)
 
     @base.handle_errors
     def show_port_by_address(self, address):
@@ -239,6 +267,52 @@ class BaremetalClient(base.BaremetalClient):
         return self._create_request('portgroups', portgroup)
 
     @base.handle_errors
+    def create_volume_connector(self, node_uuid, **kwargs):
+        """Create a volume connector with the specified parameters.
+
+        :param node_uuid: The UUID of the node which owns the volume connector.
+        :param kwargs:
+            type: type of the volume connector.
+            connector_id: connector_id of the volume connector.
+            uuid: UUID of the volume connector. Optional.
+            extra: meta data of the volume connector; a dictionary. Optional.
+        :return: A tuple with the server response and the created volume
+            connector.
+        """
+        volume_connector = {'node_uuid': node_uuid}
+
+        for arg in ('type', 'connector_id', 'uuid', 'extra'):
+            if arg in kwargs:
+                volume_connector[arg] = kwargs[arg]
+
+        return self._create_request('volume/connectors', volume_connector)
+
+    @base.handle_errors
+    def create_volume_target(self, node_uuid, **kwargs):
+        """Create a volume target with the specified parameters.
+
+        :param node_uuid: The UUID of the node which owns the volume target.
+        :param kwargs:
+            volume_type: type of the volume target.
+            volume_id: volume_id of the volume target.
+            boot_index: boot index of the volume target.
+            uuid: UUID of the volume target. Optional.
+            extra: meta data of the volume target; a dictionary. Optional.
+            properties: properties related to the type of the volume target;
+                a dictionary. Optional.
+        :return: A tuple with the server response and the created volume
+            target.
+        """
+        volume_target = {'node_uuid': node_uuid}
+
+        for arg in ('volume_type', 'volume_id', 'boot_index', 'uuid', 'extra',
+                    'properties'):
+            if arg in kwargs:
+                volume_target[arg] = kwargs[arg]
+
+        return self._create_request('volume/targets', volume_target)
+
+    @base.handle_errors
     def delete_node(self, uuid):
         """Deletes a node having the specified UUID.
 
@@ -276,6 +350,25 @@ class BaremetalClient(base.BaremetalClient):
         :return: A tuple with the server response and the response body.
         """
         return self._delete_request('portgroups', portgroup_ident)
+
+    @base.handle_errors
+    def delete_volume_connector(self, volume_connector_ident):
+        """Deletes a volume connector having the specified UUID.
+
+        :param volume_connector_ident: UUID of the volume connector.
+        :return: A tuple with the server response and the response body.
+        """
+        return self._delete_request('volume/connectors',
+                                    volume_connector_ident)
+
+    @base.handle_errors
+    def delete_volume_target(self, volume_target_ident):
+        """Deletes a volume target having the specified UUID.
+
+        :param volume_target_ident: UUID of the volume target.
+        :return: A tuple with the server response and the response body.
+        """
+        return self._delete_request('volume/targets', volume_target_ident)
 
     @base.handle_errors
     def update_node(self, uuid, patch=None, **kwargs):
@@ -325,6 +418,32 @@ class BaremetalClient(base.BaremetalClient):
         """
 
         return self._patch_request('ports', uuid, patch)
+
+    @base.handle_errors
+    def update_volume_connector(self, uuid, patch):
+        """Update the specified volume connector.
+
+        :param uuid: The unique identifier of the volume connector.
+        :param patch: List of dicts representing json patches. Each dict
+            has keys 'path', 'op' and 'value'; to update a field.
+        :return: A tuple with the server response and the updated volume
+            connector.
+        """
+
+        return self._patch_request('volume/connectors', uuid, patch)
+
+    @base.handle_errors
+    def update_volume_target(self, uuid, patch):
+        """Update the specified volume target.
+
+        :param uuid: The unique identifier of the volume target.
+        :param patch: List of dicts representing json patches. Each dict
+            has keys 'path', 'op' and 'value'; to update a field.
+        :return: A tuple with the server response and the updated volume
+            target.
+        """
+
+        return self._patch_request('volume/targets', uuid, patch)
 
     @base.handle_errors
     def set_node_power_state(self, node_uuid, state):

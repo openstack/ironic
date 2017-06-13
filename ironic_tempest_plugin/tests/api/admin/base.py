@@ -33,7 +33,8 @@ SUPPORTED_DRIVERS = ['fake']
 
 # NOTE(jroll): resources must be deleted in a specific order, this list
 # defines the resource types to clean up, and the correct order.
-RESOURCE_TYPES = ['port', 'node', 'chassis', 'portgroup']
+RESOURCE_TYPES = ['port', 'portgroup', 'volume_connector', 'volume_target',
+                  'node', 'chassis']
 
 
 def creates(resource):
@@ -222,6 +223,34 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
         return resp, body
 
     @classmethod
+    @creates('volume_connector')
+    def create_volume_connector(cls, node_uuid, **kwargs):
+        """Wrapper utility for creating test volume connector.
+
+        :param node_uuid: The unique identifier of the node.
+        :return: A tuple with the server response and the created volume
+            connector.
+        """
+        resp, body = cls.client.create_volume_connector(node_uuid=node_uuid,
+                                                        **kwargs)
+
+        return resp, body
+
+    @classmethod
+    @creates('volume_target')
+    def create_volume_target(cls, node_uuid, **kwargs):
+        """Wrapper utility for creating test volume target.
+
+        :param node_uuid: The unique identifier of the node.
+        :return: A tuple with the server response and the created volume
+            target.
+        """
+        resp, body = cls.client.create_volume_target(node_uuid=node_uuid,
+                                                     **kwargs)
+
+        return resp, body
+
+    @classmethod
     def delete_chassis(cls, chassis_id):
         """Deletes a chassis having the specified UUID.
 
@@ -280,6 +309,35 @@ class BaseBaremetalTest(api_version_utils.BaseMicroversionTest,
 
         if portgroup_ident in cls.created_objects['portgroup']:
             cls.created_objects['portgroup'].remove(portgroup_ident)
+
+        return resp
+
+    @classmethod
+    def delete_volume_connector(cls, volume_connector_id):
+        """Deletes a volume connector having the specified UUID.
+
+        :param volume_connector_id: The UUID of the volume connector.
+        :return: Server response.
+        """
+        resp, body = cls.client.delete_volume_connector(volume_connector_id)
+
+        if volume_connector_id in cls.created_objects['volume_connector']:
+            cls.created_objects['volume_connector'].remove(
+                volume_connector_id)
+
+        return resp
+
+    @classmethod
+    def delete_volume_target(cls, volume_target_id):
+        """Deletes a volume target having the specified UUID.
+
+        :param volume_target_id: The UUID of the volume target.
+        :return: Server response.
+        """
+        resp, body = cls.client.delete_volume_target(volume_target_id)
+
+        if volume_target_id in cls.created_objects['volume_target']:
+            cls.created_objects['volume_target'].remove(volume_target_id)
 
         return resp
 
