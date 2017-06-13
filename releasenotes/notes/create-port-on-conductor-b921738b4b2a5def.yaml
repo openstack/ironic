@@ -1,0 +1,7 @@
+---
+upgrade:
+  - Moves port creation logic from the API service to the conductor service.
+    This is more consistent with port update operations and opens opportunities
+    for conductor-side validations on ports.  However, with this change, port
+    creation may take longer, and this may limit the number of ports that can
+    be created in parallel.

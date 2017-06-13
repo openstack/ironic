@@ -89,7 +89,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.40'
+    RPC_API_VERSION = '1.41'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -1835,6 +1835,26 @@ class ConductorManager(base_manager.BaseConductorManager):
             node.save()
             notify_utils.emit_console_notification(
                 task, 'console_set', fields.NotificationStatus.END)
+
+    @METRICS.timer('ConductorManager.create_port')
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.MACAlreadyExists)
+    def create_port(self, context, port_obj):
+        """Create a port.
+
+        :param context: request context.
+        :param port_obj: a changed (but not saved) port object.
+        :raises: NodeLocked if node is locked by another conductor
+        :raises: MACAlreadyExists if the port has a MAC which is registered on
+                 another port already.
+        """
+        port_uuid = port_obj.uuid
+        LOG.debug("RPC create_port called for port %s.", port_uuid)
+
+        with task_manager.acquire(context, port_obj.node_id,
+                                  purpose='port create'):
+            port_obj.create()
+            return port_obj
 
     @METRICS.timer('ConductorManager.update_port')
     @messaging.expected_exceptions(exception.NodeLocked,

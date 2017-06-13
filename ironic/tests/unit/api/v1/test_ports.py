@@ -34,7 +34,6 @@ from ironic.api.controllers.v1 import versions
 from ironic.common import exception
 from ironic.common import utils as common_utils
 from ironic.conductor import rpcapi
-from ironic import objects
 from ironic.objects import fields as obj_fields
 from ironic.tests import base
 from ironic.tests.unit.api import base as test_api_base
@@ -51,6 +50,16 @@ def post_get_test_port(**kw):
     portgroup = dbutils.get_test_portgroup()
     port['node_uuid'] = kw.get('node_uuid', node['uuid'])
     port['portgroup_uuid'] = kw.get('portgroup_uuid', portgroup['uuid'])
+    return port
+
+
+def _rpcapi_create_port(self, context, port, topic):
+    """Fake used to mock out the conductor RPCAPI's create_port method.
+
+    Performs creation of the port object and returns the created port as-per
+    the real method.
+    """
+    port.create()
     return port
 
 
@@ -1055,6 +1064,8 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
 
 
+@mock.patch.object(rpcapi.ConductorAPI, 'create_port', autospec=True,
+                   side_effect=_rpcapi_create_port)
 class TestPost(test_api_base.BaseApiTest):
 
     def setUp(self):
@@ -1065,11 +1076,17 @@ class TestPost(test_api_base.BaseApiTest):
         self.headers = {api_base.Version.string: str(
             versions.MAX_VERSION_STRING)}
 
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        self.mock_gtf = p.start()
+        self.mock_gtf.return_value = 'test-topic'
+        self.addCleanup(p.stop)
+
     @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
                        autospec=True)
     @mock.patch.object(notification_utils, '_emit_api_notification')
     @mock.patch.object(timeutils, 'utcnow')
-    def test_create_port(self, mock_utcnow, mock_notify, mock_warn):
+    def test_create_port(self, mock_utcnow, mock_notify, mock_warn,
+                         mock_create):
         pdict = post_get_test_port()
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = test_time
@@ -1087,6 +1104,8 @@ class TestPost(test_api_base.BaseApiTest):
         expected_location = '/v1/ports/%s' % pdict['uuid']
         self.assertEqual(urlparse.urlparse(response.location).path,
                          expected_location)
+        mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                            'test-topic')
         mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'create',
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.START,
@@ -1099,7 +1118,7 @@ class TestPost(test_api_base.BaseApiTest):
                                       portgroup_uuid=self.portgroup.uuid)])
         self.assertEqual(0, mock_warn.call_count)
 
-    def test_create_port_min_api_version(self):
+    def test_create_port_min_api_version(self, mock_create):
         pdict = post_get_test_port(
             node_uuid=self.node.uuid)
         pdict.pop('local_link_connection')
@@ -1110,8 +1129,10 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.CREATED, response.status_int)
         self.assertEqual(self.node.uuid, response.json['node_uuid'])
+        mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                            'test-topic')
 
-    def test_create_port_doesnt_contain_id(self):
+    def test_create_port_doesnt_contain_id(self, mock_create):
         with mock.patch.object(self.dbapi, 'create_port',
                                wraps=self.dbapi.create_port) as cp_mock:
             pdict = post_get_test_port(extra={'foo': 123})
@@ -1122,10 +1143,13 @@ class TestPost(test_api_base.BaseApiTest):
             cp_mock.assert_called_once_with(mock.ANY)
             # Check that 'id' is not in first arg of positional args
             self.assertNotIn('id', cp_mock.call_args[0][0])
+            mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                                'test-topic')
 
     @mock.patch.object(notification_utils.LOG, 'exception', autospec=True)
     @mock.patch.object(notification_utils.LOG, 'warning', autospec=True)
-    def test_create_port_generate_uuid(self, mock_warning, mock_exception):
+    def test_create_port_generate_uuid(self, mock_warning, mock_exception,
+                                       mock_create):
         pdict = post_get_test_port()
         del pdict['uuid']
         response = self.post_json('/ports', pdict, headers=self.headers)
@@ -1135,10 +1159,11 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertTrue(uuidutils.is_uuid_like(result['uuid']))
         self.assertFalse(mock_warning.called)
         self.assertFalse(mock_exception.called)
+        mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                            'test-topic')
 
     @mock.patch.object(notification_utils, '_emit_api_notification')
-    @mock.patch.object(objects.Port, 'create')
-    def test_create_port_error(self, mock_create, mock_notify):
+    def test_create_port_error(self, mock_notify, mock_create):
         mock_create.side_effect = Exception()
         pdict = post_get_test_port()
         self.post_json('/ports', pdict, headers=self.headers,
@@ -1153,8 +1178,10 @@ class TestPost(test_api_base.BaseApiTest):
                                       obj_fields.NotificationStatus.ERROR,
                                       node_uuid=self.node.uuid,
                                       portgroup_uuid=self.portgroup.uuid)])
+        mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                            'test-topic')
 
-    def test_create_port_valid_extra(self):
+    def test_create_port_valid_extra(self, mock_create):
         pdict = post_get_test_port(extra={'str': 'foo', 'int': 123,
                                           'float': 0.1, 'bool': True,
                                           'list': [1, 2], 'none': None,
@@ -1163,8 +1190,10 @@ class TestPost(test_api_base.BaseApiTest):
         result = self.get_json('/ports/%s' % pdict['uuid'],
                                headers=self.headers)
         self.assertEqual(pdict['extra'], result['extra'])
+        mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                            'test-topic')
 
-    def test_create_port_no_mandatory_field_address(self):
+    def test_create_port_no_mandatory_field_address(self, mock_create):
         pdict = post_get_test_port()
         del pdict['address']
         response = self.post_json('/ports', pdict, expect_errors=True,
@@ -1172,31 +1201,36 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_create.called)
 
-    def test_create_port_no_mandatory_field_node_uuid(self):
+    def test_create_port_no_mandatory_field_node_uuid(self, mock_create):
         pdict = post_get_test_port()
         del pdict['node_uuid']
         response = self.post_json('/ports', pdict, expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_create.called)
 
-    def test_create_port_invalid_addr_format(self):
+    def test_create_port_invalid_addr_format(self, mock_create):
         pdict = post_get_test_port(address='invalid-format')
         response = self.post_json('/ports', pdict, expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_create.called)
 
-    def test_create_port_address_normalized(self):
+    def test_create_port_address_normalized(self, mock_create):
         address = 'AA:BB:CC:DD:EE:FF'
         pdict = post_get_test_port(address=address)
         self.post_json('/ports', pdict, headers=self.headers)
         result = self.get_json('/ports/%s' % pdict['uuid'],
                                headers=self.headers)
         self.assertEqual(address.lower(), result['address'])
+        mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                            'test-topic')
 
-    def test_create_port_with_hyphens_delimiter(self):
+    def test_create_port_with_hyphens_delimiter(self, mock_create):
         pdict = post_get_test_port()
         colonsMAC = pdict['address']
         hyphensMAC = colonsMAC.replace(':', '-')
@@ -1205,30 +1239,35 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_create.called)
 
-    def test_create_port_invalid_node_uuid_format(self):
+    def test_create_port_invalid_node_uuid_format(self, mock_create):
         pdict = post_get_test_port(node_uuid='invalid-format')
         response = self.post_json('/ports', pdict, expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_create.called)
 
-    def test_node_uuid_to_node_id_mapping(self):
+    def test_node_uuid_to_node_id_mapping(self, mock_create):
         pdict = post_get_test_port(node_uuid=self.node['uuid'])
         self.post_json('/ports', pdict, headers=self.headers)
         # GET doesn't return the node_id it's an internal value
         port = self.dbapi.get_port_by_uuid(pdict['uuid'])
         self.assertEqual(self.node['id'], port.node_id)
+        mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                            'test-topic')
 
-    def test_create_port_node_uuid_not_found(self):
+    def test_create_port_node_uuid_not_found(self, mock_create):
         pdict = post_get_test_port(
             node_uuid='1a1a1a1a-2b2b-3c3c-4d4d-5e5e5e5e5e5e')
         response = self.post_json('/ports', pdict, expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_create.called)
 
-    def test_create_port_portgroup_uuid_not_found(self):
+    def test_create_port_portgroup_uuid_not_found(self, mock_create):
         pdict = post_get_test_port(
             portgroup_uuid='1a1a1a1a-2b2b-3c3c-4d4d-5e5e5e5e5e5e')
         response = self.post_json('/ports', pdict, expect_errors=True,
@@ -1236,16 +1275,19 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_create.called)
 
-    def test_create_port_portgroup_uuid_not_found_old_api_version(self):
+    def test_create_port_portgroup_uuid_not_found_old_api_version(self,
+                                                                  mock_create):
         pdict = post_get_test_port(
             portgroup_uuid='1a1a1a1a-2b2b-3c3c-4d4d-5e5e5e5e5e5e')
         response = self.post_json('/ports', pdict, expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
         self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_create.called)
 
-    def test_create_port_portgroup(self):
+    def test_create_port_portgroup(self, mock_create):
         pdict = post_get_test_port(
             portgroup_uuid=self.portgroup.uuid,
             node_uuid=self.node.uuid)
@@ -1253,8 +1295,10 @@ class TestPost(test_api_base.BaseApiTest):
         response = self.post_json('/ports', pdict, headers=self.headers)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.CREATED, response.status_int)
+        mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                            'test-topic')
 
-    def test_create_port_portgroup_different_nodes(self):
+    def test_create_port_portgroup_different_nodes(self, mock_create):
         pdict = post_get_test_port(
             portgroup_uuid=self.portgroup.uuid,
             node_uuid=uuidutils.generate_uuid())
@@ -1263,8 +1307,9 @@ class TestPost(test_api_base.BaseApiTest):
                                   expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertFalse(mock_create.called)
 
-    def test_create_port_portgroup_old_api_version(self):
+    def test_create_port_portgroup_old_api_version(self, mock_create):
         pdict = post_get_test_port(
             portgroup_uuid=self.portgroup.uuid,
             node_uuid=self.node.uuid
@@ -1274,12 +1319,13 @@ class TestPost(test_api_base.BaseApiTest):
                                   headers=headers)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+        self.assertFalse(mock_create.called)
 
-    def test_create_port_address_already_exist(self):
+    @mock.patch.object(notification_utils, '_emit_api_notification')
+    def test_create_port_address_already_exist(self, mock_notify, mock_create):
         address = 'AA:AA:AA:11:22:33'
-        pdict = post_get_test_port(address=address)
-        self.post_json('/ports', pdict, headers=self.headers)
-        pdict['uuid'] = uuidutils.generate_uuid()
+        mock_create.side_effect = exception.MACAlreadyExists(mac=address)
+        pdict = post_get_test_port(address=address, node_id=self.node.id)
         response = self.post_json('/ports', pdict, expect_errors=True,
                                   headers=self.headers)
         self.assertEqual(http_client.CONFLICT, response.status_int)
@@ -1287,16 +1333,30 @@ class TestPost(test_api_base.BaseApiTest):
         error_msg = response.json['error_message']
         self.assertTrue(error_msg)
         self.assertIn(address, error_msg.upper())
+        self.assertTrue(mock_create.called)
 
-    def test_create_port_with_internal_field(self):
+        mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'create',
+                                      obj_fields.NotificationLevel.INFO,
+                                      obj_fields.NotificationStatus.START,
+                                      node_uuid=self.node.uuid,
+                                      portgroup_uuid=pdict['portgroup_uuid']),
+                                      mock.call(mock.ANY, mock.ANY, 'create',
+                                      obj_fields.NotificationLevel.ERROR,
+                                      obj_fields.NotificationStatus.ERROR,
+                                      node_uuid=self.node.uuid,
+                                      portgroup_uuid=pdict['portgroup_uuid'])])
+
+    def test_create_port_with_internal_field(self, mock_create):
         pdict = post_get_test_port()
         pdict['internal_info'] = {'a': 'b'}
         response = self.post_json('/ports', pdict, expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_create.called)
 
-    def test_create_port_some_invalid_local_link_connection_key(self):
+    def test_create_port_some_invalid_local_link_connection_key(self,
+                                                                mock_create):
         pdict = post_get_test_port(
             local_link_connection={'switch_id': 'value1',
                                    'port_id': 'Ethernet1/15',
@@ -1306,8 +1366,9 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_create.called)
 
-    def test_create_port_local_link_connection_keys(self):
+    def test_create_port_local_link_connection_keys(self, mock_create):
         pdict = post_get_test_port(
             local_link_connection={'switch_id': '0a:1b:2c:3d:4e:5f',
                                    'port_id': 'Ethernet1/15',
@@ -1315,8 +1376,11 @@ class TestPost(test_api_base.BaseApiTest):
         response = self.post_json('/ports', pdict, headers=self.headers)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.CREATED, response.status_int)
+        mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                            'test-topic')
 
-    def test_create_port_local_link_connection_switch_id_bad_mac(self):
+    def test_create_port_local_link_connection_switch_id_bad_mac(self,
+                                                                 mock_create):
         pdict = post_get_test_port(
             local_link_connection={'switch_id': 'zz:zz:zz:zz:zz:zz',
                                    'port_id': 'Ethernet1/15',
@@ -1326,8 +1390,10 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertTrue(response.json['error_message'])
+        self.assertFalse(mock_create.called)
 
-    def test_create_port_local_link_connection_missing_mandatory(self):
+    def test_create_port_local_link_connection_missing_mandatory(self,
+                                                                 mock_create):
         pdict = post_get_test_port(
             local_link_connection={'switch_id': '0a:1b:2c:3d:4e:5f',
                                    'switch_info': 'fooswitch'})
@@ -1335,16 +1401,20 @@ class TestPost(test_api_base.BaseApiTest):
                                   headers=self.headers)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertFalse(mock_create.called)
 
-    def test_create_port_local_link_connection_missing_optional(self):
+    def test_create_port_local_link_connection_missing_optional(self,
+                                                                mock_create):
         pdict = post_get_test_port(
             local_link_connection={'switch_id': '0a:1b:2c:3d:4e:5f',
                                    'port_id': 'Ethernet1/15'})
         response = self.post_json('/ports', pdict, headers=self.headers)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.CREATED, response.status_int)
+        mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                            'test-topic')
 
-    def test_create_port_with_llc_old_api_version(self):
+    def test_create_port_with_llc_old_api_version(self, mock_create):
         headers = {api_base.Version.string: '1.14'}
         pdict = post_get_test_port(
             local_link_connection={'switch_id': '0a:1b:2c:3d:4e:5f',
@@ -1353,8 +1423,9 @@ class TestPost(test_api_base.BaseApiTest):
                                   expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+        self.assertFalse(mock_create.called)
 
-    def test_create_port_with_pxe_enabled_old_api_version(self):
+    def test_create_port_with_pxe_enabled_old_api_version(self, mock_create):
         headers = {api_base.Version.string: '1.14'}
         pdict = post_get_test_port(pxe_enabled=False)
         del pdict['local_link_connection']
@@ -1363,26 +1434,31 @@ class TestPost(test_api_base.BaseApiTest):
                                   expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+        self.assertFalse(mock_create.called)
 
-    def test_portgroups_subresource_post(self):
+    def test_portgroups_subresource_post(self, mock_create):
         headers = {api_base.Version.string: '1.24'}
         pdict = post_get_test_port()
         response = self.post_json('/portgroups/%s/ports' % self.portgroup.uuid,
                                   pdict, headers=headers, expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        self.assertFalse(mock_create.called)
 
     @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
                        autospec=True)
-    def test_create_port_with_extra_vif_port_id_deprecated(self, mock_warn):
+    def test_create_port_with_extra_vif_port_id_deprecated(self, mock_warn,
+                                                           mock_create):
         pdict = post_get_test_port(pxe_enabled=False,
                                    extra={'vif_port_id': 'foo'})
         response = self.post_json('/ports', pdict, headers=self.headers)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.CREATED, response.status_int)
         self.assertEqual(1, mock_warn.call_count)
+        mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                            'test-topic')
 
-    def _test_create_port(self, has_vif=False, in_portgroup=False,
+    def _test_create_port(self, mock_create, has_vif=False, in_portgroup=False,
                           pxe_enabled=True, standalone_ports=True,
                           http_status=http_client.CREATED):
         extra = {}
@@ -1410,71 +1486,82 @@ class TestPost(test_api_base.BaseApiTest):
             self.assertEqual(expected_portgroup_uuid,
                              response.json['portgroup_uuid'])
             self.assertEqual(extra, response.json['extra'])
+            mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                                'test-topic')
+        else:
+            self.assertFalse(mock_create.called)
 
-    def test_create_port_novif_pxe_noportgroup(self):
-        self._test_create_port(has_vif=False, in_portgroup=False,
+    def test_create_port_novif_pxe_noportgroup(self, mock_create):
+        self._test_create_port(mock_create, has_vif=False, in_portgroup=False,
                                pxe_enabled=True,
                                http_status=http_client.CREATED)
 
-    def test_create_port_novif_nopxe_noportgroup(self):
-        self._test_create_port(has_vif=False, in_portgroup=False,
+    def test_create_port_novif_nopxe_noportgroup(self, mock_create):
+        self._test_create_port(mock_create, has_vif=False, in_portgroup=False,
                                pxe_enabled=False,
                                http_status=http_client.CREATED)
 
-    def test_create_port_vif_pxe_noportgroup(self):
-        self._test_create_port(has_vif=True, in_portgroup=False,
+    def test_create_port_vif_pxe_noportgroup(self, mock_create):
+        self._test_create_port(mock_create, has_vif=True, in_portgroup=False,
                                pxe_enabled=True,
                                http_status=http_client.CREATED)
 
-    def test_create_port_vif_nopxe_noportgroup(self):
-        self._test_create_port(has_vif=True, in_portgroup=False,
+    def test_create_port_vif_nopxe_noportgroup(self, mock_create):
+        self._test_create_port(mock_create, has_vif=True, in_portgroup=False,
                                pxe_enabled=False,
                                http_status=http_client.CREATED)
 
-    def test_create_port_novif_pxe_portgroup_standalone_ports(self):
-        self._test_create_port(has_vif=False, in_portgroup=True,
+    def test_create_port_novif_pxe_portgroup_standalone_ports(self,
+                                                              mock_create):
+        self._test_create_port(mock_create, has_vif=False, in_portgroup=True,
                                pxe_enabled=True,
                                standalone_ports=True,
                                http_status=http_client.CREATED)
 
-    def test_create_port_novif_pxe_portgroup_nostandalone_ports(self):
-        self._test_create_port(has_vif=False, in_portgroup=True,
+    def test_create_port_novif_pxe_portgroup_nostandalone_ports(self,
+                                                                mock_create):
+        self._test_create_port(mock_create, has_vif=False, in_portgroup=True,
                                pxe_enabled=True,
                                standalone_ports=False,
                                http_status=http_client.CONFLICT)
 
-    def test_create_port_novif_nopxe_portgroup_standalone_ports(self):
-        self._test_create_port(has_vif=False, in_portgroup=True,
+    def test_create_port_novif_nopxe_portgroup_standalone_ports(self,
+                                                                mock_create):
+        self._test_create_port(mock_create, has_vif=False, in_portgroup=True,
                                pxe_enabled=False,
                                standalone_ports=True,
                                http_status=http_client.CREATED)
 
-    def test_create_port_novif_nopxe_portgroup_nostandalone_ports(self):
-        self._test_create_port(has_vif=False, in_portgroup=True,
+    def test_create_port_novif_nopxe_portgroup_nostandalone_ports(self,
+                                                                  mock_create):
+        self._test_create_port(mock_create, has_vif=False, in_portgroup=True,
                                pxe_enabled=False,
                                standalone_ports=False,
                                http_status=http_client.CREATED)
 
-    def test_create_port_vif_pxe_portgroup_standalone_ports(self):
-        self._test_create_port(has_vif=True, in_portgroup=True,
+    def test_create_port_vif_pxe_portgroup_standalone_ports(self, mock_create):
+        self._test_create_port(mock_create, has_vif=True, in_portgroup=True,
                                pxe_enabled=True,
                                standalone_ports=True,
                                http_status=http_client.CREATED)
 
-    def test_create_port_vif_pxe_portgroup_nostandalone_ports(self):
-        self._test_create_port(has_vif=True, in_portgroup=True,
+    def test_create_port_vif_pxe_portgroup_nostandalone_ports(self,
+                                                              mock_create):
+        self._test_create_port(mock_create, has_vif=True, in_portgroup=True,
                                pxe_enabled=True,
                                standalone_ports=False,
                                http_status=http_client.CONFLICT)
 
-    def test_create_port_vif_nopxe_portgroup_standalone_ports(self):
-        self._test_create_port(has_vif=True, in_portgroup=True,
+    def test_create_port_vif_nopxe_portgroup_standalone_ports(self,
+                                                              mock_create):
+        self._test_create_port(mock_create, has_vif=True, in_portgroup=True,
                                pxe_enabled=False,
                                standalone_ports=True,
                                http_status=http_client.CREATED)
 
-    def test_create_port_vif_nopxe_portgroup_nostandalone_ports(self):
-        self._test_create_port(has_vif=True, in_portgroup=True,
+    def test_create_port_vif_nopxe_portgroup_nostandalone_ports(self,
+                                                                mock_create):
+        self._test_create_port(mock_create, has_vif=True, in_portgroup=True,
                                pxe_enabled=False,
                                standalone_ports=False,
                                http_status=http_client.CONFLICT)

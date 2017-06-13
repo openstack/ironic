@@ -3157,6 +3157,45 @@ class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin,
 
 
 @mgr_utils.mock_record_keepalive
+class CreatePortTestCase(mgr_utils.ServiceSetUpMixin,
+                         tests_db_base.DbTestCase):
+
+    def test_create_port(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        port = obj_utils.get_test_port(self.context, node_id=node.id,
+                                       extra={'foo': 'bar'})
+        res = self.service.create_port(self.context, port)
+        self.assertEqual({'foo': 'bar'}, res.extra)
+        res = objects.Port.get_by_uuid(self.context, port['uuid'])
+        self.assertEqual({'foo': 'bar'}, res.extra)
+
+    def test_create_port_node_locked(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          reservation='fake-reserv')
+        port = obj_utils.get_test_port(self.context, node_id=node.id)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.create_port,
+                                self.context, port)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+        self.assertRaises(exception.PortNotFound, port.get_by_uuid,
+                          self.context, port.uuid)
+
+    def test_create_port_mac_exists(self):
+        node = obj_utils.create_test_node(self.context, driver='fake')
+        port = obj_utils.create_test_port(self.context, node_id=node.id)
+        port = obj_utils.get_test_port(self.context, node_id=node.id,
+                                       uuid=uuidutils.generate_uuid())
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.create_port,
+                                self.context, port)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.MACAlreadyExists, exc.exc_info[0])
+        self.assertRaises(exception.PortNotFound, port.get_by_uuid,
+                          self.context, port.uuid)
+
+
+@mgr_utils.mock_record_keepalive
 class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
                          tests_db_base.DbTestCase):
 

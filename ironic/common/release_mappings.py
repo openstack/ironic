@@ -70,7 +70,7 @@ RELEASE_MAPPING = {
         }
     },
     'master': {
-        'rpc': '1.40',
+        'rpc': '1.41',
         'objects': {
             'Node': '1.21',
             'Conductor': '1.2',
