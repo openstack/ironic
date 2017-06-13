@@ -461,6 +461,12 @@ if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
     fi
 fi
 
+# TODO(dtantsur): change this when we change the default value.
+IRONIC_DEFAULT_BOOT_OPTION=${IRONIC_DEFAULT_BOOT_OPTION:-netboot}
+if [ $IRONIC_DEFAULT_BOOT_OPTION != 'netboot' ] && [ $IRONIC_DEFAULT_BOOT_OPTION != 'local' ]; then
+    die $LINENO "Supported values for IRONIC_DEFAULT_BOOT_OPTION are 'netboot' and 'local' only."
+fi
+
 # Functions
 # ---------
 
@@ -1240,8 +1246,7 @@ function configure_ironic_conductor {
 
     iniset $IRONIC_CONF_FILE dhcp dhcp_provider $IRONIC_DHCP_PROVIDER
 
-    # TODO(dtantsur): change this when we change the default value.
-    iniset $IRONIC_CONF_FILE deploy default_boot_option netboot
+    iniset $IRONIC_CONF_FILE deploy default_boot_option $IRONIC_DEFAULT_BOOT_OPTION
 }
 
 # create_ironic_cache_dir() - Part of the init_ironic() process
