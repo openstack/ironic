@@ -120,24 +120,26 @@ class IronicObject(object_base.VersionedObject):
         :raises: ovo_exception.IncompatibleObjectVersion
         """
         pin = CONF.pin_release_version
-        if pin:
-            version_manifest = versions.RELEASE_MAPPING[pin]['objects']
-            pinned_version = version_manifest.get(self.obj_name())
-            if pinned_version:
-                if not versionutils.is_compatible(pinned_version,
-                                                  self.__class__.VERSION):
-                    LOG.error(
-                        'For object "%(objname)s", the target version '
-                        '"%(target)s" is not compatible with its supported '
-                        'version "%(support)s". The value ("%(pin)s") of the '
-                        '"pin_release_version" configuration option may be '
-                        'incorrect.',
-                        {'objname': self.obj_name(), 'target': pinned_version,
-                         'support': self.__class__.VERSION, 'pin': pin})
-                    raise ovo_exception.IncompatibleObjectVersion(
-                        objname=self.obj_name(), objver=pinned_version,
-                        supported=self.__class__.VERSION)
-                return pinned_version
+        if not pin:
+            return self.__class__.VERSION
+
+        version_manifest = versions.RELEASE_MAPPING[pin]['objects']
+        pinned_version = version_manifest.get(self.obj_name())
+        if pinned_version:
+            if not versionutils.is_compatible(pinned_version,
+                                              self.__class__.VERSION):
+                LOG.error(
+                    'For object "%(objname)s", the target version '
+                    '"%(target)s" is not compatible with its supported '
+                    'version "%(support)s". The value ("%(pin)s") of the '
+                    '"pin_release_version" configuration option may be '
+                    'incorrect.',
+                    {'objname': self.obj_name(), 'target': pinned_version,
+                     'support': self.__class__.VERSION, 'pin': pin})
+                raise ovo_exception.IncompatibleObjectVersion(
+                    objname=self.obj_name(), objver=pinned_version,
+                    supported=self.__class__.VERSION)
+            return pinned_version
 
         return self.__class__.VERSION
 
@@ -185,6 +187,14 @@ class IronicObject(object_base.VersionedObject):
             obj[field] = db_object[field]
 
         obj._context = context
+
+        # NOTE(rloo). We now have obj, a versioned object that corresponds to
+        # its DB representation. A versioned object has an internal attribute
+        # ._changed_fields; this is a list of changed fields -- used, e.g.,
+        # when saving the object to the DB (only those changed fields are
+        # saved to the DB). The obj.obj_reset_changes() clears this list
+        # since we didn't actually make any modifications to the object that
+        # we want saved later.
         obj.obj_reset_changes()
 
         if db_version != obj.__class__.VERSION:
@@ -217,30 +227,29 @@ class IronicObject(object_base.VersionedObject):
                 for db_obj in db_objects]
 
     def do_version_changes_for_db(self):
-        """Do any changes to the object before saving it in the DB.
+        """Change the object to the version needed for the database.
 
-        This determines which version of the object should be saved to the
-        database, and if needed, updates the object (fields) to correspond to
-        the desired version.
+        If needed, this changes the object (modifies object fields) to be in
+        the correct version for saving to the database.
 
-        The version used to save the object is determined as follows:
+        The version used to save the object in the DB is determined as follows:
 
         * If the object is pinned, we save the object in the pinned version.
-          Since it is pinned, we don't want to save in a newer version, in case
+          Since it is pinned, we must not save in a newer version, in case
           a rolling upgrade is happening and some services are still using the
           older version of ironic, with no knowledge of this newer version.
         * If the object isn't pinned, we save the object in the latest version.
 
-        Because the object may be converted to a different object version,
-        this method should only be called just before saving the object to
-        the DB.
+        Because the object may be converted to a different object version, this
+        method must only be called just before saving the object to the DB.
 
         :returns: a dictionary of changed fields and their new values
-                  (could be an empty dictionary).
+                  (could be an empty dictionary). These are the fields/values
+                  of the object that would be saved to the DB.
         """
         target_version = self.get_target_version()
 
-        if (target_version != self.VERSION):
+        if target_version != self.VERSION:
             # Convert the object so we can save it in the target version.
             self.convert_to_version(target_version)
             db_version = target_version
