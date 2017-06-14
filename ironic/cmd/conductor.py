@@ -81,7 +81,7 @@ def main():
 
     profiler.setup('ironic_conductor', CONF.host)
 
-    launcher = service.launch(CONF, mgr)
+    launcher = service.launch(CONF, mgr, restart_method='mutate')
     launcher.wait()
 
 

@@ -282,7 +282,7 @@ service_opts = [
                       'hostname, FQDN, or IP address.')),
     cfg.StrOpt('pin_release_version',
                choices=versions.RELEASE_VERSIONS,
-               # TODO(xek): mutable=True,
+               mutable=True,
                help=_('Used for rolling upgrades. Setting this option '
                       'downgrades (or pins) the Bare Metal API, '
                       'the internal ironic RPC communication, and '
