@@ -1542,6 +1542,9 @@ function wait_for_nova_resources {
         if [ $(openstack hypervisor stats show -f value -c $resource) -ge $expected_count ]; then
             return 0
         fi
+        if is_service_enabled n-api; then
+            $TOP_DIR/tools/discover_hosts.sh
+        fi
         sleep 1
     done
     die $LINENO "Timed out waiting for Nova hypervisor-stats $resource >= $expected_count"
