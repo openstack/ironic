@@ -750,3 +750,9 @@ class RedfishError(IronicException):
 
 class RedfishConnectionError(RedfishError):
     _msg_fmt = _("Redfish connection failed for node %(node)s: %(error)s")
+
+
+class PortgroupPhysnetInconsistent(IronicException):
+    _msg_fmt = _("Port group %(portgroup)s has member ports with inconsistent "
+                 "physical networks (%(physical_networks)s). All ports in a "
+                 "port group must have the same physical network.")

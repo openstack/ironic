@@ -1838,7 +1838,9 @@ class ConductorManager(base_manager.BaseConductorManager):
 
     @METRICS.timer('ConductorManager.create_port')
     @messaging.expected_exceptions(exception.NodeLocked,
-                                   exception.MACAlreadyExists)
+                                   exception.Conflict,
+                                   exception.MACAlreadyExists,
+                                   exception.PortgroupPhysnetInconsistent)
     def create_port(self, context, port_obj):
         """Create a port.
 
@@ -1847,12 +1849,17 @@ class ConductorManager(base_manager.BaseConductorManager):
         :raises: NodeLocked if node is locked by another conductor
         :raises: MACAlreadyExists if the port has a MAC which is registered on
                  another port already.
+        :raises: Conflict if the port is a member of a portgroup which is on a
+                 different physical network.
+        :raises: PortgroupPhysnetInconsistent if the port's portgroup has
+                 ports which are not all assigned the same physical network.
         """
         port_uuid = port_obj.uuid
         LOG.debug("RPC create_port called for port %s.", port_uuid)
 
         with task_manager.acquire(context, port_obj.node_id,
-                                  purpose='port create'):
+                                  purpose='port create') as task:
+            utils.validate_port_physnet(task, port_obj)
             port_obj.create()
             return port_obj
 
@@ -1864,7 +1871,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                    exception.FailedToUpdateDHCPOptOnPort,
                                    exception.Conflict,
                                    exception.InvalidParameterValue,
-                                   exception.NetworkError)
+                                   exception.NetworkError,
+                                   exception.PortgroupPhysnetInconsistent)
     def update_port(self, context, port_obj):
         """Update a port.
 
@@ -1881,6 +1889,10 @@ class ConductorManager(base_manager.BaseConductorManager):
         :raises: Conflict if trying to set extra/vif_port_id or
                  pxe_enabled=True on port which is a member of portgroup with
                  standalone_ports_supported=False.
+        :raises: Conflict if the port is a member of a portgroup which is on a
+                 different physical network.
+        :raises: PortgroupPhysnetInconsistent if the port's portgroup has
+                 ports which are not all assigned the same physical network.
         """
         port_uuid = port_obj.uuid
         LOG.debug("RPC update_port called for port %s.", port_uuid)
@@ -1900,13 +1912,14 @@ class ConductorManager(base_manager.BaseConductorManager):
                                                            'port': port_uuid})
 
             # If port update is modifying the portgroup membership of the port
-            # or modifying the local_link_connection or pxe_enabled flags then
-            # node should be in MANAGEABLE/INSPECTING/ENROLL provisioning state
-            # or in maintenance mode.
-            # Otherwise InvalidState exception is raised.
+            # or modifying the local_link_connection, pxe_enabled or physical
+            # network flags then node should be in MANAGEABLE/INSPECTING/ENROLL
+            # provisioning state or in maintenance mode.  Otherwise
+            # InvalidState exception is raised.
             connectivity_attr = {'portgroup_id',
                                  'pxe_enabled',
-                                 'local_link_connection'}
+                                 'local_link_connection',
+                                 'physical_network'}
             allowed_update_states = [states.ENROLL,
                                      states.INSPECTING,
                                      states.MANAGEABLE]
@@ -1924,6 +1937,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                               'connect': ', '.join(connectivity_attr),
                               'allowed': ', '.join(allowed_update_states)})
 
+            utils.validate_port_physnet(task, port_obj)
             task.driver.network.validate(task)
             # Handle mac_address update and VIF attach/detach stuff.
             task.driver.network.port_changed(task, port_obj)

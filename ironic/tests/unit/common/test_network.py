@@ -151,3 +151,51 @@ class TestNetwork(db_base.DbTestCase):
 
     def test_get_node_vif_ids_during_provisioning(self):
         self._test_get_node_vif_ids_multitenancy('provisioning_vif_port_id')
+
+
+class GetPortgroupByIdTestCase(db_base.DbTestCase):
+
+    def test_portgroup_by_id(self):
+        node = object_utils.create_test_node(self.context, driver='fake')
+        portgroup = object_utils.create_test_portgroup(self.context,
+                                                       node_id=node.id)
+        object_utils.create_test_portgroup(self.context,
+                                           node_id=node.id,
+                                           uuid=uuidutils.generate_uuid(),
+                                           address='00:11:22:33:44:55',
+                                           name='pg2')
+        with task_manager.acquire(self.context, node.uuid) as task:
+            res = network.get_portgroup_by_id(task, portgroup.id)
+        self.assertEqual(portgroup.id, res.id)
+
+    def test_portgroup_by_id_no_such_portgroup(self):
+        node = object_utils.create_test_node(self.context, driver='fake')
+        object_utils.create_test_portgroup(self.context, node_id=node.id)
+        with task_manager.acquire(self.context, node.uuid) as task:
+            portgroup_id = 'invalid-portgroup-id'
+            res = network.get_portgroup_by_id(task, portgroup_id)
+        self.assertIsNone(res)
+
+
+class GetPortsByPortgroupIdTestCase(db_base.DbTestCase):
+
+    def test_ports_by_portgroup_id(self):
+        node = object_utils.create_test_node(self.context, driver='fake')
+        portgroup = object_utils.create_test_portgroup(self.context,
+                                                       node_id=node.id)
+        port = object_utils.create_test_port(self.context, node_id=node.id,
+                                             portgroup_id=portgroup.id)
+        object_utils.create_test_port(self.context, node_id=node.id,
+                                      uuid=uuidutils.generate_uuid(),
+                                      address='00:11:22:33:44:55')
+        with task_manager.acquire(self.context, node.uuid) as task:
+            res = network.get_ports_by_portgroup_id(task, portgroup.id)
+        self.assertEqual([port.id], [p.id for p in res])
+
+    def test_ports_by_portgroup_id_empty(self):
+        node = object_utils.create_test_node(self.context, driver='fake')
+        portgroup = object_utils.create_test_portgroup(self.context,
+                                                       node_id=node.id)
+        with task_manager.acquire(self.context, node.uuid) as task:
+            res = network.get_ports_by_portgroup_id(task, portgroup.id)
+        self.assertEqual([], res)
