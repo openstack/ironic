@@ -15,10 +15,10 @@ import mock
 from oslo_config import cfg
 
 from ironic.cmd import conductor
-from ironic.tests.unit.db import base
+from ironic.tests.unit.db import base as db_base
 
 
-class ConductorStartTestCase(base.DbTestCase):
+class ConductorStartTestCase(db_base.DbTestCase):
 
     @mock.patch.object(conductor, 'LOG', autospec=True)
     def test_warn_about_unsafe_shred_parameters_defaults(self, log_mock):

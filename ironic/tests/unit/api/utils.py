@@ -24,7 +24,7 @@ from ironic.api.controllers.v1 import node as node_controller
 from ironic.api.controllers.v1 import port as port_controller
 from ironic.api.controllers.v1 import portgroup as portgroup_controller
 from ironic.drivers import base as drivers_base
-from ironic.tests.unit.db import utils
+from ironic.tests.unit.db import utils as db_utils
 
 ADMIN_TOKEN = '4562138218392831'
 MEMBER_TOKEN = '4562138218392832'
@@ -91,7 +91,7 @@ def remove_internal(values, internal):
 
 
 def node_post_data(**kw):
-    node = utils.get_test_node(**kw)
+    node = db_utils.get_test_node(**kw)
     # These values are not part of the API object
     node.pop('version')
     node.pop('conductor_affinity')
@@ -113,7 +113,7 @@ def node_post_data(**kw):
 
 
 def port_post_data(**kw):
-    port = utils.get_test_port(**kw)
+    port = db_utils.get_test_port(**kw)
     # These values are not part of the API object
     port.pop('version')
     port.pop('node_id')
@@ -125,7 +125,7 @@ def port_post_data(**kw):
 
 
 def chassis_post_data(**kw):
-    chassis = utils.get_test_chassis(**kw)
+    chassis = db_utils.get_test_chassis(**kw)
     # version is not part of the API object
     chassis.pop('version')
     internal = chassis_controller.ChassisPatchType.internal_attrs()
@@ -136,14 +136,14 @@ def post_get_test_node(**kw):
     # NOTE(lucasagomes): When creating a node via API (POST)
     #                    we have to use chassis_uuid
     node = node_post_data(**kw)
-    chassis = utils.get_test_chassis()
+    chassis = db_utils.get_test_chassis()
     node['chassis_uuid'] = kw.get('chassis_uuid', chassis['uuid'])
     return node
 
 
 def portgroup_post_data(**kw):
     """Return a Portgroup object without internal attributes."""
-    portgroup = utils.get_test_portgroup(**kw)
+    portgroup = db_utils.get_test_portgroup(**kw)
 
     # These values are not part of the API object
     portgroup.pop('version')
@@ -164,6 +164,6 @@ def portgroup_post_data(**kw):
 def post_get_test_portgroup(**kw):
     """Return a Portgroup object with appropriate attributes."""
     portgroup = portgroup_post_data(**kw)
-    node = utils.get_test_node()
+    node = db_utils.get_test_node()
     portgroup['node_uuid'] = kw.get('node_uuid', node['uuid'])
     return portgroup

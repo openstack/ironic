@@ -19,15 +19,15 @@ from testtools.matchers import HasLength
 
 from ironic.common import exception
 from ironic import objects
-from ironic.tests.unit.db import base
-from ironic.tests.unit.db import utils
+from ironic.tests.unit.db import base as db_base
+from ironic.tests.unit.db import utils as db_utils
 
 
-class TestVolumeTargetObject(base.DbTestCase):
+class TestVolumeTargetObject(db_base.DbTestCase):
 
     def setUp(self):
         super(TestVolumeTargetObject, self).setUp()
-        self.volume_target_dict = utils.get_test_volume_target()
+        self.volume_target_dict = db_utils.get_test_volume_target()
 
     @mock.patch('ironic.objects.VolumeTarget.get_by_uuid')
     @mock.patch('ironic.objects.VolumeTarget.get_by_id')
@@ -157,8 +157,8 @@ class TestVolumeTargetObject(base.DbTestCase):
             with mock.patch.object(self.dbapi, 'update_volume_target',
                                    autospec=True) as mock_update_target:
                 mock_update_target.return_value = (
-                    utils.get_test_volume_target(boot_index=boot_index,
-                                                 updated_at=test_time))
+                    db_utils.get_test_volume_target(boot_index=boot_index,
+                                                    updated_at=test_time))
                 target = objects.VolumeTarget.get_by_uuid(self.context, uuid)
                 target.boot_index = boot_index
                 target.save()
@@ -176,7 +176,7 @@ class TestVolumeTargetObject(base.DbTestCase):
         uuid = self.volume_target_dict['uuid']
         old_boot_index = self.volume_target_dict['boot_index']
         returns = [self.volume_target_dict,
-                   utils.get_test_volume_target(boot_index=100)]
+                   db_utils.get_test_volume_target(boot_index=100)]
         expected = [mock.call(uuid), mock.call(uuid)]
         with mock.patch.object(self.dbapi, 'get_volume_target_by_uuid',
                                side_effect=returns,
@@ -192,7 +192,7 @@ class TestVolumeTargetObject(base.DbTestCase):
 
     def test_save_after_refresh(self):
         # Ensure that it's possible to do object.save() after object.refresh()
-        db_volume_target = utils.create_test_volume_target()
+        db_volume_target = db_utils.create_test_volume_target()
 
         vt = objects.VolumeTarget.get_by_uuid(self.context,
                                               db_volume_target.uuid)

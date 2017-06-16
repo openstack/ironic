@@ -30,7 +30,7 @@ from ironic.conductor import task_manager
 from ironic import objects
 from ironic.objects import fields
 from ironic.tests import base as tests_base
-from ironic.tests.unit.db import base as tests_db_base
+from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
 
@@ -42,7 +42,7 @@ from ironic.tests.unit.objects import utils as obj_utils
 @mock.patch.object(objects.Portgroup, 'list_by_node_id')
 @mock.patch.object(objects.VolumeConnector, 'list_by_node_id')
 @mock.patch.object(objects.VolumeTarget, 'list_by_node_id')
-class TaskManagerTestCase(tests_db_base.DbTestCase):
+class TaskManagerTestCase(db_base.DbTestCase):
     def setUp(self):
         super(TaskManagerTestCase, self).setUp()
         self.host = 'test-host'

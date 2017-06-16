@@ -21,16 +21,16 @@ from testtools import matchers
 
 from ironic.common import exception
 from ironic import objects
-from ironic.tests.unit.db import base
-from ironic.tests.unit.db import utils
+from ironic.tests.unit.db import base as db_base
+from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 
-class TestChassisObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
+class TestChassisObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
 
     def setUp(self):
         super(TestChassisObject, self).setUp()
-        self.fake_chassis = utils.get_test_chassis()
+        self.fake_chassis = db_utils.get_test_chassis()
 
     def test_get_by_id(self):
         chassis_id = self.fake_chassis['id']
@@ -62,7 +62,7 @@ class TestChassisObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
         chassis = objects.Chassis(self.context, **self.fake_chassis)
         with mock.patch.object(self.dbapi, 'create_chassis',
                                autospec=True) as mock_create_chassis:
-            mock_create_chassis.return_value = utils.get_test_chassis()
+            mock_create_chassis.return_value = db_utils.get_test_chassis()
 
             chassis.create()
 
@@ -79,7 +79,8 @@ class TestChassisObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
             with mock.patch.object(self.dbapi, 'update_chassis',
                                    autospec=True) as mock_update_chassis:
                 mock_update_chassis.return_value = (
-                    utils.get_test_chassis(extra=extra, updated_at=test_time))
+                    db_utils.get_test_chassis(extra=extra,
+                                              updated_at=test_time))
                 c = objects.Chassis.get_by_uuid(self.context, uuid)
                 c.extra = extra
                 c.save()
@@ -114,7 +115,7 @@ class TestChassisObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
     # This test will avoid update_chassis() regressions in future.
     def test_save_after_refresh(self):
         # Ensure that it's possible to do object.save() after object.refresh()
-        db_chassis = utils.create_test_chassis()
+        db_chassis = db_utils.create_test_chassis()
         c = objects.Chassis.get_by_uuid(self.context, db_chassis.uuid)
         c_copy = objects.Chassis.get_by_uuid(self.context, db_chassis.uuid)
         c.description = 'b240'

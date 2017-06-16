@@ -19,15 +19,15 @@ from testtools.matchers import HasLength
 
 from ironic.common import exception
 from ironic import objects
-from ironic.tests.unit.db import base
-from ironic.tests.unit.db import utils
+from ironic.tests.unit.db import base as db_base
+from ironic.tests.unit.db import utils as db_utils
 
 
-class TestVolumeConnectorObject(base.DbTestCase):
+class TestVolumeConnectorObject(db_base.DbTestCase):
 
     def setUp(self):
         super(TestVolumeConnectorObject, self).setUp()
-        self.volume_connector_dict = utils.get_test_volume_connector()
+        self.volume_connector_dict = db_utils.get_test_volume_connector()
 
     @mock.patch('ironic.objects.VolumeConnector.get_by_uuid')
     @mock.patch('ironic.objects.VolumeConnector.get_by_id')
@@ -145,8 +145,8 @@ class TestVolumeConnectorObject(base.DbTestCase):
             with mock.patch.object(self.dbapi, 'update_volume_connector',
                                    autospec=True) as mock_update_connector:
                 mock_update_connector.return_value = (
-                    utils.get_test_volume_connector(connector_id=connector_id,
-                                                    updated_at=test_time))
+                    db_utils.get_test_volume_connector(
+                        connector_id=connector_id, updated_at=test_time))
                 c = objects.VolumeConnector.get_by_uuid(self.context, uuid)
                 c.connector_id = connector_id
                 c.save()
@@ -164,7 +164,7 @@ class TestVolumeConnectorObject(base.DbTestCase):
         uuid = self.volume_connector_dict['uuid']
         old_connector_id = self.volume_connector_dict['connector_id']
         returns = [self.volume_connector_dict,
-                   utils.get_test_volume_connector(
+                   db_utils.get_test_volume_connector(
                        connector_id="new_connector_id")]
         expected = [mock.call(uuid), mock.call(uuid)]
         with mock.patch.object(self.dbapi, 'get_volume_connector_by_uuid',
@@ -181,7 +181,7 @@ class TestVolumeConnectorObject(base.DbTestCase):
 
     def test_save_after_refresh(self):
         # Ensure that it's possible to do object.save() after object.refresh()
-        db_volume_connector = utils.create_test_volume_connector()
+        db_volume_connector = db_utils.create_test_volume_connector()
 
         vc = objects.VolumeConnector.get_by_uuid(self.context,
                                                  db_volume_connector.uuid)

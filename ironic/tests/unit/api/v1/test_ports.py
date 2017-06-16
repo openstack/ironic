@@ -38,7 +38,7 @@ from ironic.objects import fields as obj_fields
 from ironic.tests import base
 from ironic.tests.unit.api import base as test_api_base
 from ironic.tests.unit.api import utils as apiutils
-from ironic.tests.unit.db import utils as dbutils
+from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 
@@ -46,8 +46,8 @@ from ironic.tests.unit.objects import utils as obj_utils
 #                    we have to use node_uuid and portgroup_uuid
 def post_get_test_port(**kw):
     port = apiutils.port_post_data(**kw)
-    node = dbutils.get_test_node()
-    portgroup = dbutils.get_test_portgroup()
+    node = db_utils.get_test_node()
+    portgroup = db_utils.get_test_portgroup()
     port['node_uuid'] = kw.get('node_uuid', node['uuid'])
     port['portgroup_uuid'] = kw.get('portgroup_uuid', portgroup['uuid'])
     return port

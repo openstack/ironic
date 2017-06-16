@@ -49,8 +49,8 @@ from ironic.objects import base as obj_base
 from ironic.objects import fields as obj_fields
 from ironic.tests import base as tests_base
 from ironic.tests.unit.conductor import mgr_utils
-from ironic.tests.unit.db import base as tests_db_base
-from ironic.tests.unit.db import utils
+from ironic.tests.unit.db import base as db_base
+from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 CONF = cfg.CONF
@@ -58,7 +58,7 @@ CONF = cfg.CONF
 
 @mgr_utils.mock_record_keepalive
 class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
-                                   tests_db_base.DbTestCase):
+                                   db_base.DbTestCase):
 
     def test_change_node_power_state_power_on(self):
         # Test change_node_power_state including integration with
@@ -442,8 +442,7 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
 
 
 @mgr_utils.mock_record_keepalive
-class CreateNodeTestCase(mgr_utils.ServiceSetUpMixin,
-                         tests_db_base.DbTestCase):
+class CreateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_create_node(self):
         node = obj_utils.get_test_node(self.context, driver='fake',
                                        extra={'test': 'one'})
@@ -474,8 +473,7 @@ class CreateNodeTestCase(mgr_utils.ServiceSetUpMixin,
 
 
 @mgr_utils.mock_record_keepalive
-class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin,
-                         tests_db_base.DbTestCase):
+class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_update_node(self):
         node = obj_utils.create_test_node(self.context, driver='fake',
                                           extra={'test': 'one'})
@@ -619,8 +617,7 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin,
 
 
 @mgr_utils.mock_record_keepalive
-class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin,
-                             tests_db_base.DbTestCase):
+class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     @mock.patch.object(task_manager.TaskManager, 'upgrade_lock')
     @mock.patch.object(task_manager.TaskManager, 'spawn_after')
@@ -1070,7 +1067,7 @@ class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin,
 @mgr_utils.mock_record_keepalive
 @mock.patch.object(images, 'is_whole_disk_image')
 class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
-                                  tests_db_base.DbTestCase):
+                                  db_base.DbTestCase):
     def test_do_node_deploy_invalid_state(self, mock_iwdi):
         mock_iwdi.return_value = False
         self._start_service()
@@ -1340,7 +1337,7 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
 
 @mgr_utils.mock_record_keepalive
 class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
-                                   tests_db_base.DbTestCase):
+                                   db_base.DbTestCase):
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.deploy')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare')
     def test__do_node_deploy_driver_raises_prepare_error(self, mock_prepare,
@@ -1807,8 +1804,7 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
 
 
 @mgr_utils.mock_record_keepalive
-class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
-                          tests_db_base.DbTestCase):
+class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def setUp(self):
         super(DoNodeCleanTestCase, self).setUp()
         self.config(automated_clean=True, group='conductor')
@@ -2663,8 +2659,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin,
 
 
 @mgr_utils.mock_record_keepalive
-class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin,
-                           tests_db_base.DbTestCase):
+class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch('ironic.objects.node.NodeCorrectedPowerStateNotification')
     @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state')
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
@@ -2763,10 +2758,10 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin,
 
 @mgr_utils.mock_record_keepalive
 class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
-                   tests_db_base.DbTestCase):
+                   db_base.DbTestCase):
     def test__mapped_to_this_conductor(self):
         self._start_service()
-        n = utils.get_test_node()
+        n = db_utils.get_test_node()
         self.assertTrue(self.service._mapped_to_this_conductor(n['uuid'],
                                                                'fake'))
         self.assertFalse(self.service._mapped_to_this_conductor(n['uuid'],
@@ -2855,7 +2850,7 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
 
 
 @mgr_utils.mock_record_keepalive
-class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
+class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_set_console_mode_worker_pool_full(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
         self._start_service()
@@ -3035,8 +3030,7 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
 
 
 @mgr_utils.mock_record_keepalive
-class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin,
-                          tests_db_base.DbTestCase):
+class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def test_destroy_node(self):
         self._start_service()
@@ -3157,8 +3151,7 @@ class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin,
 
 
 @mgr_utils.mock_record_keepalive
-class CreatePortTestCase(mgr_utils.ServiceSetUpMixin,
-                         tests_db_base.DbTestCase):
+class CreatePortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     @mock.patch.object(conductor_utils, 'validate_port_physnet')
     def test_create_port(self, mock_validate):
@@ -3229,8 +3222,7 @@ class CreatePortTestCase(mgr_utils.ServiceSetUpMixin,
 
 
 @mgr_utils.mock_record_keepalive
-class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
-                         tests_db_base.DbTestCase):
+class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     @mock.patch.object(conductor_utils, 'validate_port_physnet')
     @mock.patch.object(n_flat.FlatNetwork, 'port_changed', autospec=True)
@@ -3752,7 +3744,7 @@ class UpdatePortTestCase(mgr_utils.ServiceSetUpMixin,
 
 @mgr_utils.mock_record_keepalive
 @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
-class VifTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
+class VifTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def setUp(self):
         super(VifTestCase, self).setUp()
@@ -3859,8 +3851,7 @@ class VifTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
 
 
 @mgr_utils.mock_record_keepalive
-class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin,
-                              tests_db_base.DbTestCase):
+class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch.object(n_flat.FlatNetwork, 'portgroup_changed', autospec=True)
     @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
     def test_update_portgroup(self, mock_val, mock_pc):
@@ -4012,7 +4003,7 @@ class UpdatePortgroupTestCase(mgr_utils.ServiceSetUpMixin,
 
 
 @mgr_utils.mock_record_keepalive
-class RaidTestCases(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
+class RaidTestCases(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     driver_name = 'fake'
     raid_interface = None
@@ -4118,7 +4109,7 @@ class RaidHardwareTypeTestCases(RaidTestCases):
 
 
 @mock.patch.object(conductor_utils, 'node_power_action')
-class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
+class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
     def setUp(self):
         super(ManagerDoSyncPowerStateTestCase, self).setUp()
         self.service = manager.ConductorManager('hostname', 'test-topic')
@@ -4402,7 +4393,7 @@ class ManagerDoSyncPowerStateTestCase(tests_db_base.DbTestCase):
 @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
 @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
 class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
-                                     tests_db_base.DbTestCase):
+                                     db_base.DbTestCase):
     def setUp(self):
         super(ManagerSyncPowerStatesTestCase, self).setUp()
         self.service = manager.ConductorManager('hostname', 'test-topic')
@@ -4632,7 +4623,7 @@ class ManagerSyncPowerStatesTestCase(mgr_utils.CommonMixIn,
 @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
 @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
 class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
-                                         tests_db_base.DbTestCase):
+                                         db_base.DbTestCase):
     def setUp(self):
         super(ManagerCheckDeployTimeoutsTestCase, self).setUp()
         self.config(deploy_callback_timeout=300, group='conductor')
@@ -4867,8 +4858,7 @@ class ManagerCheckDeployTimeoutsTestCase(mgr_utils.CommonMixIn,
 
 
 @mgr_utils.mock_record_keepalive
-class ManagerTestProperties(mgr_utils.ServiceSetUpMixin,
-                            tests_db_base.DbTestCase):
+class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def setUp(self):
         super(ManagerTestProperties, self).setUp()
@@ -4980,7 +4970,7 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin,
 
 @mgr_utils.mock_record_keepalive
 class ManagerTestHardwareTypeProperties(mgr_utils.ServiceSetUpMixin,
-                                        tests_db_base.DbTestCase):
+                                        db_base.DbTestCase):
 
     def _check_hardware_type_properties(self, hardware_type, expected):
         self.config(enabled_hardware_types=[hardware_type])
@@ -4999,8 +4989,7 @@ class ManagerTestHardwareTypeProperties(mgr_utils.ServiceSetUpMixin,
 @mock.patch.object(task_manager, 'acquire')
 @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
 @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
-class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn,
-                                    tests_db_base.DbTestCase):
+class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
 
     def setUp(self):
         super(ManagerSyncLocalStateTestCase, self).setUp()
@@ -5200,8 +5189,7 @@ class StoreConfigDriveTestCase(tests_base.TestCase):
 
 
 @mgr_utils.mock_record_keepalive
-class NodeInspectHardware(mgr_utils.ServiceSetUpMixin,
-                          tests_db_base.DbTestCase):
+class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware')
     def test_inspect_hardware_ok(self, mock_inspect):
@@ -5355,7 +5343,7 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin,
 @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
 @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list')
 class ManagerCheckInspectTimeoutsTestCase(mgr_utils.CommonMixIn,
-                                          tests_db_base.DbTestCase):
+                                          db_base.DbTestCase):
     def setUp(self):
         super(ManagerCheckInspectTimeoutsTestCase, self).setUp()
         self.config(inspect_timeout=300, group='conductor')
@@ -5576,8 +5564,7 @@ class ManagerCheckInspectTimeoutsTestCase(mgr_utils.CommonMixIn,
 
 
 @mgr_utils.mock_record_keepalive
-class DestroyPortTestCase(mgr_utils.ServiceSetUpMixin,
-                          tests_db_base.DbTestCase):
+class DestroyPortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_destroy_port(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
 
@@ -5600,7 +5587,7 @@ class DestroyPortTestCase(mgr_utils.ServiceSetUpMixin,
 
 @mgr_utils.mock_record_keepalive
 class DestroyPortgroupTestCase(mgr_utils.ServiceSetUpMixin,
-                               tests_db_base.DbTestCase):
+                               db_base.DbTestCase):
     def test_destroy_portgroup(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
         portgroup = obj_utils.create_test_portgroup(self.context,
@@ -5625,7 +5612,7 @@ class DestroyPortgroupTestCase(mgr_utils.ServiceSetUpMixin,
 @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor')
 @mock.patch.object(dbapi.IMPL, 'get_offline_conductors')
 class ManagerCheckDeployingStatusTestCase(mgr_utils.ServiceSetUpMixin,
-                                          tests_db_base.DbTestCase):
+                                          db_base.DbTestCase):
     def setUp(self):
         super(ManagerCheckDeployingStatusTestCase, self).setUp()
         self._start_service()
@@ -5715,7 +5702,7 @@ class ManagerCheckDeployingStatusTestCase(mgr_utils.ServiceSetUpMixin,
             err_handler=conductor_utils.provisioning_error_handler)
 
 
-class TestIndirectionApiConductor(tests_db_base.DbTestCase):
+class TestIndirectionApiConductor(db_base.DbTestCase):
 
     def setUp(self):
         super(TestIndirectionApiConductor, self).setUp()
@@ -5818,8 +5805,7 @@ class TestIndirectionApiConductor(tests_db_base.DbTestCase):
 
 
 @mgr_utils.mock_record_keepalive
-class DoNodeTakeOverTestCase(mgr_utils.ServiceSetUpMixin,
-                             tests_db_base.DbTestCase):
+class DoNodeTakeOverTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over')
@@ -5893,9 +5879,7 @@ class DoNodeTakeOverTestCase(mgr_utils.ServiceSetUpMixin,
 
 
 @mgr_utils.mock_record_keepalive
-class DoNodeAdoptionTestCase(
-        mgr_utils.ServiceSetUpMixin,
-        tests_db_base.DbTestCase):
+class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
     @mock.patch('ironic.drivers.modules.fake.FakeBoot.validate')
@@ -6055,7 +6039,7 @@ class DoNodeAdoptionTestCase(
 
 @mgr_utils.mock_record_keepalive
 class DestroyVolumeConnectorTestCase(mgr_utils.ServiceSetUpMixin,
-                                     tests_db_base.DbTestCase):
+                                     db_base.DbTestCase):
     def test_destroy_volume_connector(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
 
@@ -6083,7 +6067,7 @@ class DestroyVolumeConnectorTestCase(mgr_utils.ServiceSetUpMixin,
 
 @mgr_utils.mock_record_keepalive
 class UpdateVolumeConnectorTestCase(mgr_utils.ServiceSetUpMixin,
-                                    tests_db_base.DbTestCase):
+                                    db_base.DbTestCase):
     def test_update_volume_connector(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
 
@@ -6147,7 +6131,7 @@ class UpdateVolumeConnectorTestCase(mgr_utils.ServiceSetUpMixin,
 
 @mgr_utils.mock_record_keepalive
 class DestroyVolumeTargetTestCase(mgr_utils.ServiceSetUpMixin,
-                                  tests_db_base.DbTestCase):
+                                  db_base.DbTestCase):
     def test_destroy_volume_target(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
 
@@ -6198,7 +6182,7 @@ class DestroyVolumeTargetTestCase(mgr_utils.ServiceSetUpMixin,
 
 @mgr_utils.mock_record_keepalive
 class UpdateVolumeTargetTestCase(mgr_utils.ServiceSetUpMixin,
-                                 tests_db_base.DbTestCase):
+                                 db_base.DbTestCase):
     def test_update_volume_target(self):
         node = obj_utils.create_test_node(self.context, driver='fake')
 

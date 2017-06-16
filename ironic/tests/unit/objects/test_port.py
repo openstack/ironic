@@ -20,16 +20,16 @@ from testtools import matchers
 
 from ironic.common import exception
 from ironic import objects
-from ironic.tests.unit.db import base
-from ironic.tests.unit.db import utils
+from ironic.tests.unit.db import base as db_base
+from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 
-class TestPortObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
+class TestPortObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
 
     def setUp(self):
         super(TestPortObject, self).setUp()
-        self.fake_port = utils.get_test_port()
+        self.fake_port = db_utils.get_test_port()
 
     def test_get_by_id(self):
         port_id = self.fake_port['id']
@@ -72,7 +72,7 @@ class TestPortObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
         port = objects.Port(self.context, **self.fake_port)
         with mock.patch.object(self.dbapi, 'create_port',
                                autospec=True) as mock_create_port:
-            mock_create_port.return_value = utils.get_test_port()
+            mock_create_port.return_value = db_utils.get_test_port()
 
             port.create()
 
@@ -89,7 +89,8 @@ class TestPortObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
             with mock.patch.object(self.dbapi, 'update_port',
                                    autospec=True) as mock_update_port:
                 mock_update_port.return_value = (
-                    utils.get_test_port(address=address, updated_at=test_time))
+                    db_utils.get_test_port(address=address,
+                                           updated_at=test_time))
                 p = objects.Port.get_by_uuid(self.context, uuid)
                 p.address = address
                 p.save()
@@ -105,7 +106,7 @@ class TestPortObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
     def test_refresh(self):
         uuid = self.fake_port['uuid']
         returns = [self.fake_port,
-                   utils.get_test_port(address="c3:54:00:cf:2d:40")]
+                   db_utils.get_test_port(address="c3:54:00:cf:2d:40")]
         expected = [mock.call(uuid), mock.call(uuid)]
         with mock.patch.object(self.dbapi, 'get_port_by_uuid',
                                side_effect=returns,
@@ -121,8 +122,8 @@ class TestPortObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
     def test_save_after_refresh(self):
         # Ensure that it's possible to do object.save() after object.refresh()
         address = "b2:54:00:cf:2d:40"
-        db_node = utils.create_test_node()
-        db_port = utils.create_test_port(node_id=db_node.id)
+        db_node = db_utils.create_test_node()
+        db_port = db_utils.create_test_port(node_id=db_node.id)
         p = objects.Port.get_by_uuid(self.context, db_port.uuid)
         p_copy = objects.Port.get_by_uuid(self.context, db_port.uuid)
         p.address = address
