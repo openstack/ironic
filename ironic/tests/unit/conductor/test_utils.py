@@ -1079,7 +1079,6 @@ class ValidatePortPhysnetTestCase(base.DbTestCase):
                                 portgroup.
         :param new_physnet: Physical network to set on the port that is being
                             created or updated.
-                            portgroup.
         :param operation: The operation to perform. One of 'create', 'update',
                           or 'update_add'. 'create' creates a new port and adds
                           it to the portgroup. 'update' updates one of the
