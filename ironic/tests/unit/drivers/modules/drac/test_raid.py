@@ -615,6 +615,7 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
             task.driver.raid.create_configuration(
                 task, create_root_volume=True, create_nonroot_volumes=False)
 
+            mock_client.wait_until_idrac_is_ready.assert_called_once()
             mock_client.create_virtual_disk.assert_called_once_with(
                 'RAID.Integrated.1-1',
                 ['Disk.Bay.0:Enclosure.Internal.0-1:RAID.Integrated.1-1',
@@ -647,6 +648,7 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
             return_value = task.driver.raid.create_configuration(
                 task, create_root_volume=False, create_nonroot_volumes=False)
 
+            mock_client.wait_until_idrac_is_ready.assert_called_once()
             self.assertEqual(0, mock_client.create_virtual_disk.call_count)
             self.assertEqual(0, mock_commit_config.call_count)
 
@@ -688,6 +690,7 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
             task.driver.raid.create_configuration(
                 task, create_root_volume=True, create_nonroot_volumes=True)
 
+            mock_client.wait_until_idrac_is_ready.assert_called_once()
             mock_client.create_virtual_disk.assert_called_once_with(
                 'RAID.Integrated.1-1',
                 ['Disk.Bay.0:Enclosure.Internal.0-1:RAID.Integrated.1-1',
@@ -729,6 +732,7 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
             task.driver.raid.create_configuration(
                 task, create_root_volume=True, create_nonroot_volumes=True)
 
+            mock_client.wait_until_idrac_is_ready.assert_called_once()
             mock_client.create_virtual_disk.assert_has_calls(
                 [mock.call(
                     'controller-2',
@@ -800,6 +804,7 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
             task.driver.raid.create_configuration(
                 task, create_root_volume=True, create_nonroot_volumes=True)
 
+            mock_client.wait_until_idrac_is_ready.assert_called_once()
             mock_client.create_virtual_disk.assert_has_calls(
                 [mock.call(
                     'RAID.Integrated.1-1',
@@ -859,6 +864,7 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
             task.driver.raid.create_configuration(
                 task, create_root_volume=True, create_nonroot_volumes=True)
 
+            mock_client.wait_until_idrac_is_ready.assert_called_once()
             mock_client.create_virtual_disk.assert_has_calls(
                 [mock.call(
                     'RAID.Integrated.1-1',
@@ -919,6 +925,7 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
             task.driver.raid.create_configuration(
                 task, create_root_volume=True, create_nonroot_volumes=True)
 
+            mock_client.wait_until_idrac_is_ready.assert_called_once()
             mock_client.create_virtual_disk.assert_has_calls(
                 [mock.call(
                     'RAID.Integrated.1-1',
@@ -975,6 +982,7 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
                 exception.InvalidParameterValue,
                 task.driver.raid.create_configuration,
                 task)
+            mock_client.wait_until_idrac_is_ready.assert_called_once()
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
@@ -1007,6 +1015,7 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
             task.driver.raid.create_configuration(
                 task, create_root_volume=True, create_nonroot_volumes=True)
 
+            mock_client.wait_until_idrac_is_ready.assert_called_once()
             mock_client.create_virtual_disk.assert_has_calls(
                 [mock.call(
                     'RAID.Integrated.1-1',
@@ -1061,6 +1070,7 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
                 exception.DracOperationError,
                 task.driver.raid.create_configuration,
                 task, create_root_volume=True, create_nonroot_volumes=True)
+            mock_client.wait_until_idrac_is_ready.assert_called_once()
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
@@ -1098,6 +1108,7 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
             task.driver.raid.create_configuration(
                 task, create_root_volume=True, create_nonroot_volumes=True)
 
+            mock_client.wait_until_idrac_is_ready.assert_called_once()
             mock_client.create_virtual_disk.assert_has_calls(
                 [mock.call(
                     'RAID.Integrated.1-1',
@@ -1163,6 +1174,7 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
                 exception.DracOperationError,
                 task.driver.raid.create_configuration,
                 task, create_root_volume=True, create_nonroot_volumes=True)
+            mock_client.wait_until_idrac_is_ready.assert_called_once()
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
@@ -1198,6 +1210,7 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
                 exception.DracOperationError,
                 task.driver.raid.create_configuration,
                 task, create_root_volume=True, create_nonroot_volumes=True)
+            mock_client.wait_until_idrac_is_ready.assert_called_once()
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
@@ -1235,6 +1248,7 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
                 exception.DracOperationError,
                 task.driver.raid.create_configuration,
                 task, create_root_volume=True, create_nonroot_volumes=True)
+            mock_client.wait_until_idrac_is_ready.assert_called_once()
 
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
@@ -1269,6 +1283,7 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             return_value = task.driver.raid.delete_configuration(task)
 
+            mock_client.wait_until_idrac_is_ready.assert_called_once()
             mock_client.delete_virtual_disk.assert_called_once_with(
                 'Disk.Virtual.0:RAID.Integrated.1-1')
             mock_commit_config.assert_called_once_with(
@@ -1298,6 +1313,7 @@ class DracRaidInterfaceTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             return_value = task.driver.raid.delete_configuration(task)
 
+            mock_client.wait_until_idrac_is_ready.assert_called_once()
             self.assertEqual(0, mock_client.delete_virtual_disk.call_count)
             self.assertEqual(0, mock_commit_config.call_count)
 
