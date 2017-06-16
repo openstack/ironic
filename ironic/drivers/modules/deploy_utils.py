@@ -1204,3 +1204,96 @@ def build_instance_info_for_deploy(task):
     else:
         instance_info['image_type'] = 'whole-disk-image'
     return instance_info
+
+
+def check_interface_capability(interface, capability):
+    """Evaluate interface to determine if capability is present.
+
+    :param interface: The interface object to check.
+    :param capability: The value representing the capability that
+                       the caller wishes to check if present.
+
+    :returns: True if capability found, otherwise False.
+    """
+    return capability in getattr(interface, 'capabilities', [])
+
+
+def get_remote_boot_volume(task):
+    """Identify a boot volume from any configured volumes.
+
+    :returns: None or the volume target representing the volume.
+    """
+    targets = task.volume_targets
+    for volume in targets:
+        if volume['boot_index'] == 0:
+            return volume
+
+
+def populate_storage_driver_internal_info(task):
+    """Set node driver_internal_info for boot from volume parameters.
+
+    :param task: a TaskManager object containing the node.
+    :raises StorageError when a node has an iSCSI or FibreChannel boot volume
+        defined but is not capable to support it.
+    """
+    node = task.node
+    boot_volume = get_remote_boot_volume(task)
+    if not boot_volume:
+        return
+    vol_type = str(boot_volume.volume_type).lower()
+    node_caps = driver_utils.capabilities_to_dict(
+        node.properties.get('capabilities'))
+    if vol_type == 'iscsi' and 'iscsi_boot' not in node_caps:
+        # TODO(TheJulia): In order to support the FCoE and HBA boot cases,
+        # some additional logic will be needed here to ensure we align.
+        # The deployment, in theory, should never reach this point
+        # if the interfaces all validated, but we shouldn't use that
+        # as the only guard against bad configurations.
+        raise exception.StorageError(_('Node %(node)s has an iSCSI boot '
+                                       'volume defined and no iSCSI boot '
+                                       'support available.') %
+                                     {'node': node.uuid})
+    if vol_type == 'fibre_channel' and 'fibre_channel_boot' not in node_caps:
+        raise exception.StorageError(_('Node %(node)s has a Fibre Channel '
+                                       'boot volume defined and no Fibre '
+                                       'Channel boot support available.') %
+                                     {'node': node.uuid})
+    boot_capability = ("%s_volume_boot" % vol_type)
+    deploy_capability = ("%s_volume_deploy" % vol_type)
+    vol_uuid = boot_volume['uuid']
+    driver_internal_info = node.driver_internal_info
+    if check_interface_capability(task.driver.boot, boot_capability):
+        driver_internal_info['boot_from_volume'] = vol_uuid
+    # NOTE(TheJulia): This would be a convenient place to check
+    # if we need to know about deploying the volume.
+    if (check_interface_capability(task.driver.deploy, deploy_capability) and
+            task.driver.storage.should_write_image(task)):
+        driver_internal_info['boot_from_volume_deploy'] = vol_uuid
+        # NOTE(TheJulia): This is also a useful place to include a
+        # root device hint since we should/might/be able to obtain
+        # and supply that information to IPA if it needs to write
+        # the image to the volume.
+    node.driver_internal_info = driver_internal_info
+    node.save()
+
+
+def tear_down_storage_configuration(task):
+    """Clean up storage configuration.
+
+    Remove entries from driver_internal_info for storage and
+    deletes the volume targets from the database. This is done
+    to ensure a clean state for the next boot of the machine.
+    """
+
+    # TODO(mjturek): TheJulia mentioned that this should
+    # possibly be configurable for the standalone case. However,
+    # this is dangerous if IPA is not handling the cleaning.
+    for volume in task.volume_targets:
+        volume.destroy()
+
+    node = task.node
+    driver_internal_info = node.driver_internal_info
+    driver_internal_info.pop('boot_from_volume', None)
+    driver_internal_info.pop('boot_from_volume_deploy', None)
+    node.driver_internal_info = driver_internal_info
+    node.save()
