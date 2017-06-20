@@ -143,8 +143,19 @@ class IronicObject(object_base.VersionedObject):
 
         return self.__class__.VERSION
 
+    def _set_from_db_object(self, context, db_object, fields=None):
+        """Sets object fields.
+
+        :param context: security context
+        :param db_object: A DB entity of the object
+        :param fields: list of fields to set on obj from values from db_object.
+        """
+        fields = fields or self.fields
+        for field in fields:
+            self[field] = db_object[field]
+
     @staticmethod
-    def _from_db_object(context, obj, db_object):
+    def _from_db_object(context, obj, db_object, fields=None):
         """Converts a database entity to a formal object.
 
         This always converts the database entity to the latest version
@@ -156,6 +167,7 @@ class IronicObject(object_base.VersionedObject):
         :param context: security context
         :param obj: An object of the class.
         :param db_object: A DB entity of the object
+        :param fields: list of fields to set on obj from values from db_object.
         :return: The object of the class with the database entity added
         :raises: ovo_exception.IncompatibleObjectVersion
         """
@@ -183,8 +195,7 @@ class IronicObject(object_base.VersionedObject):
                 objname=objname, objver=db_version,
                 supported=obj.__class__.VERSION)
 
-        for field in obj.fields:
-            obj[field] = db_object[field]
+        obj._set_from_db_object(context, db_object, fields)
 
         obj._context = context
 
