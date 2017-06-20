@@ -24,19 +24,19 @@ from ironic import objects
 from ironic.objects import fields as obj_fields
 from ironic.tests import base as tests_base
 from ironic.tests.unit.conductor import mgr_utils
-from ironic.tests.unit.db import base
-from ironic.tests.unit.db import utils
+from ironic.tests.unit.db import base as db_base
+from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 CONF = cfg.CONF
 
 
-class NodeSetBootDeviceTestCase(base.DbTestCase):
+class NodeSetBootDeviceTestCase(db_base.DbTestCase):
 
     def test_node_set_boot_device_non_existent_device(self):
         mgr_utils.mock_the_extension_manager(driver="fake_ipmitool")
         self.driver = driver_factory.get_driver("fake_ipmitool")
-        ipmi_info = utils.get_test_ipmi_info()
+        ipmi_info = db_utils.get_test_ipmi_info()
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
                                           driver='fake_ipmitool',
@@ -50,7 +50,7 @@ class NodeSetBootDeviceTestCase(base.DbTestCase):
     def test_node_set_boot_device_valid(self):
         mgr_utils.mock_the_extension_manager(driver="fake_ipmitool")
         self.driver = driver_factory.get_driver("fake_ipmitool")
-        ipmi_info = utils.get_test_ipmi_info()
+        ipmi_info = db_utils.get_test_ipmi_info()
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
                                           driver='fake_ipmitool',
@@ -68,7 +68,7 @@ class NodeSetBootDeviceTestCase(base.DbTestCase):
     def test_node_set_boot_device_adopting(self):
         mgr_utils.mock_the_extension_manager(driver="fake_ipmitool")
         self.driver = driver_factory.get_driver("fake_ipmitool")
-        ipmi_info = utils.get_test_ipmi_info()
+        ipmi_info = db_utils.get_test_ipmi_info()
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
                                           driver='fake_ipmitool',
@@ -83,7 +83,7 @@ class NodeSetBootDeviceTestCase(base.DbTestCase):
             self.assertFalse(mock_sbd.called)
 
 
-class NodePowerActionTestCase(base.DbTestCase):
+class NodePowerActionTestCase(db_base.DbTestCase):
     def setUp(self):
         super(NodePowerActionTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager()
@@ -559,7 +559,7 @@ class NodePowerActionTestCase(base.DbTestCase):
             self.assertIsNone(node['last_error'])
 
 
-class NodeSoftPowerActionTestCase(base.DbTestCase):
+class NodeSoftPowerActionTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(NodeSoftPowerActionTestCase, self).setUp()
@@ -715,7 +715,7 @@ class CleanupAfterTimeoutTestCase(tests_base.TestCase):
         self.assertIn('Deploy timed out', self.node.last_error)
 
 
-class NodeCleaningStepsTestCase(base.DbTestCase):
+class NodeCleaningStepsTestCase(db_base.DbTestCase):
     def setUp(self):
         super(NodeCleaningStepsTestCase, self).setUp()
         mgr_utils.mock_the_extension_manager()
@@ -1077,7 +1077,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertFalse(log_mock.warning.called)
 
 
-class ValidatePortPhysnetTestCase(base.DbTestCase):
+class ValidatePortPhysnetTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(ValidatePortPhysnetTestCase, self).setUp()
@@ -1187,11 +1187,11 @@ class ValidatePortPhysnetTestCase(base.DbTestCase):
 
         # Prepare the port on which we are performing the operation.
         if operation == 'create':
-            # NOTE(mgoddard): We use utils here rather than obj_utils as it
+            # NOTE(mgoddard): We use db_utils here rather than obj_utils as it
             # allows us to create a Port without a physical_network field, more
             # closely matching what happens during creation of a port when a
             # physical_network is not specified.
-            port = utils.get_test_port(
+            port = db_utils.get_test_port(
                 node_id=self.node.id, portgroup_id=portgroup.id,
                 address=next(macs), uuid=uuidutils.generate_uuid(),
                 physical_network=new_physnet)

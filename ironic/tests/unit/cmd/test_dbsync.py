@@ -16,10 +16,10 @@
 #    under the License.
 
 from ironic.db import migration
-from ironic.tests.unit.db import base
+from ironic.tests.unit.db import base as db_base
 
 
-class DbSyncTestCase(base.DbTestCase):
+class DbSyncTestCase(db_base.DbTestCase):
 
     def test_upgrade_and_version(self):
         migration.upgrade('head')

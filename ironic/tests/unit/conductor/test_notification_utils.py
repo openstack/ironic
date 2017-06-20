@@ -26,11 +26,11 @@ from ironic.objects import fields
 from ironic.objects import node as node_objects
 from ironic.objects import notification
 from ironic.tests import base as tests_base
-from ironic.tests.unit.db import base
+from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
 
-class TestNotificationUtils(base.DbTestCase):
+class TestNotificationUtils(db_base.DbTestCase):
     def setUp(self):
         super(TestNotificationUtils, self).setUp()
         self.config(notification_level='debug')

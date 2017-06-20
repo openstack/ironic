@@ -21,17 +21,17 @@ from testtools import matchers
 from ironic.common import context
 from ironic.common import exception
 from ironic import objects
-from ironic.tests.unit.db import base
-from ironic.tests.unit.db import utils
+from ironic.tests.unit.db import base as db_base
+from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 
-class TestNodeObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
+class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
 
     def setUp(self):
         super(TestNodeObject, self).setUp()
         self.ctxt = context.get_admin_context()
-        self.fake_node = utils.get_test_node()
+        self.fake_node = db_utils.get_test_node()
         self.node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
 
     def test_get_by_id(self):
@@ -79,7 +79,7 @@ class TestNodeObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
             mock_get_node.return_value = self.fake_node
             with mock.patch.object(self.dbapi, 'update_node',
                                    autospec=True) as mock_update_node:
-                mock_update_node.return_value = utils.get_test_node(
+                mock_update_node.return_value = db_utils.get_test_node(
                     properties={"fake": "property"}, driver='fake-driver',
                     driver_internal_info={}, updated_at=test_time)
                 n = objects.Node.get(self.context, uuid)
@@ -110,7 +110,7 @@ class TestNodeObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
             with mock.patch.object(self.dbapi, 'update_node',
                                    autospec=True) as mock_update_node:
                 mock_update_node.return_value = (
-                    utils.get_test_node(extra=extra, updated_at=test_time))
+                    db_utils.get_test_node(extra=extra, updated_at=test_time))
                 n = objects.Node.get(self.context, uuid)
                 self.assertEqual({"private_state": "secret value"},
                                  n.driver_internal_info)
@@ -148,7 +148,7 @@ class TestNodeObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
 
     def test_save_after_refresh(self):
         # Ensure that it's possible to do object.save() after object.refresh()
-        db_node = utils.create_test_node()
+        db_node = db_utils.create_test_node()
         n = objects.Node.get_by_uuid(self.context, db_node.uuid)
         n_copy = objects.Node.get_by_uuid(self.context, db_node.uuid)
         n.name = 'b240'
@@ -218,7 +218,7 @@ class TestNodeObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
         node = objects.Node(self.context, **self.fake_node)
         with mock.patch.object(self.dbapi, 'create_node',
                                autospec=True) as mock_create_node:
-            mock_create_node.return_value = utils.get_test_node()
+            mock_create_node.return_value = db_utils.get_test_node()
 
             node.create()
 

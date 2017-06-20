@@ -21,16 +21,16 @@ from oslo_utils import timeutils
 
 from ironic import objects
 from ironic.objects import fields
-from ironic.tests.unit.db import base
-from ironic.tests.unit.db import utils
+from ironic.tests.unit.db import base as db_base
+from ironic.tests.unit.db import utils as db_utils
 
 
-class TestConductorObject(base.DbTestCase):
+class TestConductorObject(db_base.DbTestCase):
 
     def setUp(self):
         super(TestConductorObject, self).setUp()
         self.fake_conductor = (
-            utils.get_test_conductor(updated_at=timeutils.utcnow()))
+            db_utils.get_test_conductor(updated_at=timeutils.utcnow()))
 
     def test_load(self):
         host = self.fake_conductor['hostname']

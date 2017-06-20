@@ -33,8 +33,8 @@ from ironic.conductor import manager as conductor_manager
 from ironic.conductor import rpcapi as conductor_rpcapi
 from ironic import objects
 from ironic.tests import base as tests_base
-from ironic.tests.unit.db import base
-from ironic.tests.unit.db import utils as dbutils
+from ironic.tests.unit.db import base as db_base
+from ironic.tests.unit.db import utils as db_utils
 
 CONF = cfg.CONF
 
@@ -62,14 +62,14 @@ class ConductorRPCAPITestCase(tests_base.TestCase):
         self.assertEqual('3', mock_get_client.call_args[1]['version_cap'])
 
 
-class RPCAPITestCase(base.DbTestCase):
+class RPCAPITestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(RPCAPITestCase, self).setUp()
-        self.fake_node = dbutils.get_test_node(driver='fake-driver')
+        self.fake_node = db_utils.get_test_node(driver='fake-driver')
         self.fake_node_obj = objects.Node._from_db_object(
             self.context, objects.Node(), self.fake_node)
-        self.fake_portgroup = dbutils.get_test_portgroup()
+        self.fake_portgroup = db_utils.get_test_portgroup()
 
     def test_serialized_instance_has_uuid(self):
         self.assertIn('uuid', self.fake_node)
@@ -266,14 +266,14 @@ class RPCAPITestCase(base.DbTestCase):
                           enabled=True)
 
     def test_create_port(self):
-        fake_port = dbutils.get_test_port()
+        fake_port = db_utils.get_test_port()
         self._test_rpcapi('create_port',
                           'call',
                           version='1.41',
                           port_obj=fake_port)
 
     def test_update_port(self):
-        fake_port = dbutils.get_test_port()
+        fake_port = db_utils.get_test_port()
         self._test_rpcapi('update_port',
                           'call',
                           version='1.13',
@@ -431,14 +431,14 @@ class RPCAPITestCase(base.DbTestCase):
                           version='1.34')
 
     def test_destroy_volume_connector(self):
-        fake_volume_connector = dbutils.get_test_volume_connector()
+        fake_volume_connector = db_utils.get_test_volume_connector()
         self._test_rpcapi('destroy_volume_connector',
                           'call',
                           version='1.35',
                           connector=fake_volume_connector)
 
     def test_update_volume_connector(self):
-        fake_volume_connector = dbutils.get_test_volume_connector()
+        fake_volume_connector = db_utils.get_test_volume_connector()
         self._test_rpcapi('update_volume_connector',
                           'call',
                           version='1.35',
@@ -451,14 +451,14 @@ class RPCAPITestCase(base.DbTestCase):
                           node_obj=self.fake_node)
 
     def test_destroy_volume_target(self):
-        fake_volume_target = dbutils.get_test_volume_target()
+        fake_volume_target = db_utils.get_test_volume_target()
         self._test_rpcapi('destroy_volume_target',
                           'call',
                           version='1.37',
                           target=fake_volume_target)
 
     def test_update_volume_target(self):
-        fake_volume_target = dbutils.get_test_volume_target()
+        fake_volume_target = db_utils.get_test_volume_target()
         self._test_rpcapi('update_volume_target',
                           'call',
                           version='1.37',

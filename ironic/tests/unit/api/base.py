@@ -26,14 +26,14 @@ import pecan
 import pecan.testing
 from six.moves.urllib import parse as urlparse
 
-from ironic.tests.unit.db import base
+from ironic.tests.unit.db import base as db_base
 
 PATH_PREFIX = '/v1'
 
 cfg.CONF.import_group('keystone_authtoken', 'keystonemiddleware.auth_token')
 
 
-class BaseApiTest(base.DbTestCase):
+class BaseApiTest(db_base.DbTestCase):
     """Pecan controller functional testing class.
 
     Used for functional tests of Pecan controllers where you need to

@@ -34,7 +34,7 @@ from ironic import objects
 from ironic.objects import fields
 from ironic.tests import base as tests_base
 from ironic.tests.unit.conductor import mgr_utils
-from ironic.tests.unit.db import base as tests_db_base
+from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
 
@@ -42,7 +42,7 @@ CONF = cfg.CONF
 
 
 @mgr_utils.mock_record_keepalive
-class StartStopTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
+class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_start_registers_conductor(self):
         self.assertRaises(exception.ConductorNotFound,
                           objects.Conductor.get_by_hostname,
@@ -273,8 +273,7 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
                 self._start_service()
 
 
-class CheckInterfacesTestCase(mgr_utils.ServiceSetUpMixin,
-                              tests_db_base.DbTestCase):
+class CheckInterfacesTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test__check_enabled_interfaces_success(self):
         base_manager._check_enabled_interfaces()
 
@@ -290,7 +289,7 @@ class CheckInterfacesTestCase(mgr_utils.ServiceSetUpMixin,
         base_manager._check_enabled_interfaces()
 
 
-class KeepAliveTestCase(mgr_utils.ServiceSetUpMixin, tests_db_base.DbTestCase):
+class KeepAliveTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test__conductor_service_record_keepalive(self):
         self._start_service()
         # avoid wasting time at the event.wait()
@@ -345,7 +344,7 @@ class ManagerSpawnWorkerTestCase(tests_base.TestCase):
                    autospec=True)
 @mgr_utils.mock_record_keepalive
 class RegisterInterfacesTestCase(mgr_utils.ServiceSetUpMixin,
-                                 tests_db_base.DbTestCase):
+                                 db_base.DbTestCase):
     def setUp(self):
         super(RegisterInterfacesTestCase, self).setUp()
         self._start_service()
@@ -417,8 +416,7 @@ class RegisterInterfacesTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertFalse(reg_mock.called)
 
 
-class StartConsolesTestCase(mgr_utils.ServiceSetUpMixin,
-                            tests_db_base.DbTestCase):
+class StartConsolesTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch.object(notification_utils, 'emit_console_notification')
     def test__start_consoles(self, mock_notify):
         obj_utils.create_test_node(self.context,

@@ -25,7 +25,7 @@ from ironic.conductor import task_manager
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import power as drac_power
 from ironic.tests.unit.conductor import mgr_utils
-from ironic.tests.unit.db import base
+from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
@@ -34,7 +34,7 @@ INFO_DICT = db_utils.get_test_drac_info()
 
 @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                    autospec=True)
-class DracPowerTestCase(base.DbTestCase):
+class DracPowerTestCase(db_base.DbTestCase):
 
     def setUp(self):
         super(DracPowerTestCase, self).setUp()

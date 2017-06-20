@@ -17,16 +17,16 @@ from testtools import matchers
 
 from ironic.common import exception
 from ironic import objects
-from ironic.tests.unit.db import base
-from ironic.tests.unit.db import utils
+from ironic.tests.unit.db import base as db_base
+from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 
-class TestPortgroupObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
+class TestPortgroupObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
 
     def setUp(self):
         super(TestPortgroupObject, self).setUp()
-        self.fake_portgroup = utils.get_test_portgroup()
+        self.fake_portgroup = db_utils.get_test_portgroup()
 
     def test_get_by_id(self):
         portgroup_id = self.fake_portgroup['id']
@@ -81,7 +81,7 @@ class TestPortgroupObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
         portgroup = objects.Portgroup(self.context, **self.fake_portgroup)
         with mock.patch.object(self.dbapi, 'create_portgroup',
                                autospec=True) as mock_create_portgroup:
-            mock_create_portgroup.return_value = utils.get_test_portgroup()
+            mock_create_portgroup.return_value = db_utils.get_test_portgroup()
 
             portgroup.create()
 
@@ -98,8 +98,8 @@ class TestPortgroupObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
             with mock.patch.object(self.dbapi, 'update_portgroup',
                                    autospec=True) as mock_update_portgroup:
                 mock_update_portgroup.return_value = (
-                    utils.get_test_portgroup(address=address,
-                                             updated_at=test_time))
+                    db_utils.get_test_portgroup(address=address,
+                                                updated_at=test_time))
                 p = objects.Portgroup.get_by_uuid(self.context, uuid)
                 p.address = address
                 p.save()
@@ -115,7 +115,7 @@ class TestPortgroupObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
     def test_refresh(self):
         uuid = self.fake_portgroup['uuid']
         returns = [self.fake_portgroup,
-                   utils.get_test_portgroup(address="c3:54:00:cf:2d:40")]
+                   db_utils.get_test_portgroup(address="c3:54:00:cf:2d:40")]
         expected = [mock.call(uuid), mock.call(uuid)]
         with mock.patch.object(self.dbapi, 'get_portgroup_by_uuid',
                                side_effect=returns,
@@ -131,8 +131,8 @@ class TestPortgroupObject(base.DbTestCase, obj_utils.SchemasTestMixIn):
     def test_save_after_refresh(self):
         # Ensure that it's possible to do object.save() after object.refresh()
         address = "b2:54:00:cf:2d:40"
-        db_node = utils.create_test_node()
-        db_portgroup = utils.create_test_portgroup(node_id=db_node.id)
+        db_node = db_utils.create_test_node()
+        db_portgroup = db_utils.create_test_portgroup(node_id=db_node.id)
         p = objects.Portgroup.get_by_uuid(self.context, db_portgroup.uuid)
         p_copy = objects.Portgroup.get_by_uuid(self.context, db_portgroup.uuid)
         p.address = address
