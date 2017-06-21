@@ -1,0 +1,17 @@
+---
+deprecations:
+  - |
+    Configuration option ``[inspector]/service_url`` is deprecated
+    and will be ignored in the Rocky release.
+    Instead, use ``[inspector]/endpoint_override`` configuration option to set
+    specific ironic-inspector api address when automatic discovery of
+    inspector API endpoint from keystone catalog is not desired.
+    This new option has no default value (``None``) and must be set explicitly.
+
+  - |
+    Relying on the value of ``[DEFAULT]/auth_strategy`` configuration option to
+    configure usage of standalone mode for inspector client is deprecated and
+    will be impossible the the Rocky release.
+    Instead, set ``[inspector]/auth_type`` configuration option to ``none`` and
+    provide the inspector API address as ``[inspector]/endpoint_override``
+    configuration option.
