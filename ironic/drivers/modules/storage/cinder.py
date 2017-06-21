@@ -100,7 +100,7 @@ class CinderStorage(base.StorageInterface):
                     wwnn_found += 1
         if len(iscsi_uuids_found) > 1:
             LOG.warning("Multiple possible iSCSI connectors, "
-                        "%(iscsi_uuids_found) found, for node %(node)s. "
+                        "%(iscsi_uuids_found)s found, for node %(node)s. "
                         "Only the first iSCSI connector, %(iscsi_uuid)s, "
                         "will be utilized.",
                         {'node': node.uuid,
@@ -229,24 +229,6 @@ class CinderStorage(base.StorageInterface):
 
         self._validate_targets(task, found_types, iscsi_boot, fc_boot)
 
-    def _abort_attach_volume(self, task, connector):
-        """Detach volumes as a result of failed attachment.
-
-        If detachment fails, it will be retried with allow_errors=True.
-
-        :param task: The task object.
-        :param connector: The dictionary representing a node's connectivity
-                          as define by _generate_connector.
-        """
-        targets = [target.volume_id for target in task.volume_targets]
-        try:
-            cinder.detach_volumes(task, targets, connector)
-        except exception.StorageError as e:
-            LOG.warning("Error detaching volume for node %(node)s on "
-                        "aborting volume attach: %(err)s. Retrying with "
-                        "errors allowed.", {'node': task.node.uuid, 'err': e})
-            cinder.detach_volumes(task, targets, connector, allow_errors=True)
-
     def attach_volumes(self, task):
         """Informs the storage subsystem to attach all volumes for the node.
 
@@ -268,13 +250,15 @@ class CinderStorage(base.StorageInterface):
             with excutils.save_and_reraise_exception():
                 LOG.error("Error attaching volumes for node %(node)s: "
                           "%(err)s", {'node': node.uuid, 'err': e})
-                self._abort_attach_volume(task, connector)
+                self.detach_volumes(task, connector=connector,
+                                    aborting_attach=True)
 
         if len(targets) != len(connected):
             LOG.error("The number of volumes defined for node %(node)s does "
                       "not match the number of attached volumes. Attempting "
                       "detach and abort operation.", {'node': node.uuid})
-            self._abort_attach_volume(task, connector)
+            self.detach_volumes(task, connector=connector,
+                                aborting_attach=True)
             raise exception.StorageError(("Mismatch between the number of "
                                           "configured volume targets for "
                                           "node %(uuid)s and the number of "
@@ -282,24 +266,30 @@ class CinderStorage(base.StorageInterface):
                                          {'uuid': node.uuid})
 
         for volume in connected:
-            volume_uuid = volume['data']['ironic_volume_uuid']
-            targets = objects.VolumeTarget.list_by_volume_id(task.context,
-                                                             volume_uuid)
+            # Volumes that were already attached are
+            # skipped. Updating target volume properties
+            # for these volumes is nova's responsibility.
+            if not volume.get('already_attached'):
+                volume_uuid = volume['data']['ironic_volume_uuid']
+                targets = objects.VolumeTarget.list_by_volume_id(task.context,
+                                                                 volume_uuid)
 
-            for target in targets:
-                # Volumes that were already attached are
-                # skipped. Updating target volume properties
-                # for these volumes is nova's responsibility.
-                if not volume.get('already_attached'):
+                for target in targets:
                     target.properties = volume['data']
                     target.save()
 
-    def detach_volumes(self, task):
+    def detach_volumes(self, task, connector=None, aborting_attach=False):
         """Informs the storage subsystem to detach all volumes for the node.
 
         This action is retried in case of failure.
 
         :param task: The task object.
+        :param connector: The dictionary representing a node's connectivity
+                          as defined by _generate_connector(). Generated
+                          if not passed.
+        :param aborting_attach: Boolean representing if this detachment
+                                was requested to handle aborting a
+                                failed attachment
         :raises: StorageError If an underlying exception or failure
                               is detected.
         """
@@ -312,7 +302,8 @@ class CinderStorage(base.StorageInterface):
         if not targets:
             return
 
-        connector = self._generate_connector(task)
+        if not connector:
+            connector = self._generate_connector(task)
 
         @retrying.retry(
             retry_on_exception=lambda e: isinstance(e, exception.StorageError),
@@ -323,23 +314,29 @@ class CinderStorage(base.StorageInterface):
                 # NOTE(TheJulia): If the node is in ACTIVE state, we can
                 # tolerate failures detaching as the node is likely being
                 # powered down to cause a detachment event.
-                allow_errors = (task.node.provision_state == states.ACTIVE)
+                allow_errors = (task.node.provision_state == states.ACTIVE or
+                                aborting_attach and outer_args['attempt'] > 0)
                 cinder.detach_volumes(task, targets, connector,
                                       allow_errors=allow_errors)
             except exception.StorageError as e:
-                # NOTE(TheJulia): In the event that the node is not in
-                # ACTIVE state, we need to fail hard as we need to ensure
-                # all attachments are removed.
-                msg = ("Error detaching volumes for "
-                       "node %(node)s: %(err)s.") % {'node': node.uuid,
-                                                     'err': e}
-                if outer_args['attempt'] < CONF.cinder.action_retries:
-                    outer_args['attempt'] += 1
-                    msg += " Re-attempting detachment."
-                    LOG.warning(msg)
-                else:
-                    LOG.error(msg)
-                raise
+                with excutils.save_and_reraise_exception():
+                    # NOTE(TheJulia): In the event that the node is not in
+                    # ACTIVE state, we need to fail hard as we need to ensure
+                    # all attachments are removed.
+                    if aborting_attach:
+                        msg_format = ("Error on aborting volume detach for "
+                                      "node %(node)s: %(err)s.")
+                    else:
+                        msg_format = ("Error detaching volume for "
+                                      "node %(node)s: %(err)s.")
+                    msg = (msg_format) % {'node': node.uuid,
+                                          'err': e}
+                    if outer_args['attempt'] < CONF.cinder.action_retries:
+                        outer_args['attempt'] += 1
+                        msg += " Re-attempting detachment."
+                        LOG.warning(msg)
+                    else:
+                        LOG.error(msg)
 
         # NOTE(mjturek): This dict is used by detach_volumes to determine
         # if this is the last attempt. This is a dict rather than an int
