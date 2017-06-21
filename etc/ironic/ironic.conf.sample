@@ -948,11 +948,27 @@
 # Domain name to scope to (string value)
 #domain_name = <None>
 
+# Always use this endpoint URL for requests for this client.
+# (string value)
+#endpoint_override = <None>
+
 # Verify HTTPS connections. (boolean value)
 #insecure = false
 
 # PEM encoded client certificate key file (string value)
 #keyfile = <None>
+
+# The maximum major version of a given API, intended to be
+# used as the upper bound of a range with min_version.
+# Mutually exclusive with version. (string value)
+#max_version = <None>
+
+# The minimum major version of a given API, intended to be
+# used as the lower bound of a range with max_version.
+# Mutually exclusive with version. If min_version is given
+# with no max_version it is as if max version is "latest".
+# (string value)
+#min_version = <None>
 
 # User's password (string value)
 #password = <None>
@@ -971,9 +987,21 @@
 # Deprecated group/name - [cinder]/tenant_name
 #project_name = <None>
 
+# The default region_name for endpoint URL discovery. (string
+# value)
+#region_name = <None>
+
 # Client retries in the case of a failed request connection.
 # (integer value)
 #retries = 3
+
+# The default service_name for endpoint URL discovery. (string
+# value)
+#service_name = <None>
+
+# The default service_type for endpoint URL discovery. (string
+# value)
+#service_type = volumev3
 
 # Tenant ID (string value)
 #tenant_id = <None>
@@ -987,8 +1015,12 @@
 # Trust ID (string value)
 #trust_id = <None>
 
-# URL for connecting to cinder. If set, the value must start
-# with either http:// or https://. (uri value)
+# DEPRECATED: URL for connecting to cinder. If set, the value
+# must start with either http:// or https://. (uri value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Use [cinder]/endpoint_override option to set a
+# specific cinder API url to connect to.
 #url = <None>
 
 # User's domain id (string value)
@@ -1003,6 +1035,15 @@
 # Username (string value)
 # Deprecated group/name - [cinder]/user_name
 #username = <None>
+
+# List of interfaces, in order of preference, for endpoint
+# URL. (list value)
+#valid_interfaces = internal,public
+
+# Minimum Major API version within a given Major API version
+# for endpoint URL discovery. Mutually exclusive with
+# min_version and max_version (string value)
+#version = <None>
 
 
 [cisco_ucs]

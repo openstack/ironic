@@ -19,6 +19,10 @@ from ironic.conf import auth
 opts = [
     cfg.URIOpt('url',
                schemes=('http', 'https'),
+               deprecated_for_removal=True,
+               deprecated_reason=_('Use [cinder]/endpoint_override option '
+                                   'to set a specific cinder API URL to '
+                                   'connect to.'),
                help=_('URL for connecting to cinder. If set, the value must '
                       'start with either http:// or https://.')),
     cfg.IntOpt('retries',
@@ -37,10 +41,12 @@ opts = [
 ]
 
 
+# NOTE(pas-ha) cinder V3 which ironic requires is registered as volumev3
+# service type ATM
 def register_opts(conf):
     conf.register_opts(opts, group='cinder')
-    auth.register_auth_opts(conf, 'cinder')
+    auth.register_auth_opts(conf, 'cinder', service_type='volumev3')
 
 
 def list_opts():
-    return auth.add_auth_opts(opts)
+    return auth.add_auth_opts(opts, service_type='volumev3')
