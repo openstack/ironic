@@ -90,12 +90,12 @@ class BaremetalMultitenancy(baremetal_manager.BaremetalScenarioTest,
         fixed_ip2 = '10.0.100.5'
         keypair = self.create_keypair()
         network, subnet, router = self.create_tenant_network(
-            self.manager, tenant_cidr)
+            self.os_primary, tenant_cidr)
 
         # Boot 2 instances in the primary tenant network
         # and check L2 connectivity between them
         instance1, node1 = self.boot_instance(
-            clients=self.manager,
+            clients=self.os_primary,
             keypair=keypair,
             net_id=network['id'],
             fixed_ip=fixed_ip1
