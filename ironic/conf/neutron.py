@@ -21,6 +21,13 @@ from ironic.conf import auth
 
 opts = [
     cfg.StrOpt('url',
+               deprecated_for_removal=True,
+               deprecated_reason=_("Use [neutron]/endpoint_override option "
+                                   "instead. It has no default value and must "
+                                   "be set explicitly if required to connect "
+                                   "to specific neutron URL, for example "
+                                   "in stand alone mode when "
+                                   "[neutron]/auth_type is 'none'."),
                help=_("URL for connecting to neutron. "
                       "Default value translates to 'http://$my_ip:9696' "
                       "when auth_strategy is 'noauth', "
@@ -28,6 +35,9 @@ opts = [
                       "when auth_strategy is 'keystone'.")),
     cfg.IntOpt('url_timeout',
                default=30,
+               deprecated_for_removal=True,
+               deprecated_reason=_("Set the desired value explicitly using "
+                                   "the [neutron]/timeout option instead."),
                help=_('Timeout value for connecting to neutron in seconds.')),
     cfg.IntOpt('port_setup_delay',
                default=0,
@@ -40,6 +50,11 @@ opts = [
     cfg.StrOpt('auth_strategy',
                default='keystone',
                choices=['keystone', 'noauth'],
+               deprecated_for_removal=True,
+               deprecated_reason=_("To configure neutron for noauth mode, "
+                                   "set [neutron]/auth_type = none and "
+                                   "[neutron]/endpoint_override="
+                                   "<NEUTRON_API_URL> instead"),
                help=_('Authentication strategy to use when connecting to '
                       'neutron. Running neutron in noauth mode (related to '
                       'but not affected by this setting) is insecure and '
@@ -80,8 +95,8 @@ opts = [
 
 def register_opts(conf):
     conf.register_opts(opts, group='neutron')
-    auth.register_auth_opts(conf, 'neutron')
+    auth.register_auth_opts(conf, 'neutron', service_type='network')
 
 
 def list_opts():
-    return auth.add_auth_opts(opts)
+    return auth.add_auth_opts(opts, service_type='network')

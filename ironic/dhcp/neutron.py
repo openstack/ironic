@@ -34,7 +34,8 @@ LOG = logging.getLogger(__name__)
 class NeutronDHCPApi(base.BaseDHCP):
     """API for communicating to neutron 2.x API."""
 
-    def update_port_dhcp_opts(self, port_id, dhcp_options, token=None):
+    def update_port_dhcp_opts(self, port_id, dhcp_options, token=None,
+                              context=None):
         """Update a port's attributes.
 
         Update one or more DHCP options on the specified port.
@@ -51,13 +52,17 @@ class NeutronDHCPApi(base.BaseDHCP):
                                 'opt_value': 'pxelinux.0'},
                                {'opt_name': '66',
                                 'opt_value': '123.123.123.456'}]
-        :param token: optional auth token.
-
+        :param token: optional auth token. Deprecated, use context.
+        :param context: request context
+        :type context: ironic.common.context.RequestContext
         :raises: FailedToUpdateDHCPOptOnPort
         """
+        super(NeutronDHCPApi, self).update_port_dhcp_opts(
+            port_id, dhcp_options, token=token, context=context)
         port_req_body = {'port': {'extra_dhcp_opts': dhcp_options}}
         try:
-            neutron.get_client(token).update_port(port_id, port_req_body)
+            neutron.get_client(token=token, context=context).update_port(
+                port_id, port_req_body)
         except neutron_client_exc.NeutronClientException:
             LOG.exception("Failed to update Neutron port %s.", port_id)
             raise exception.FailedToUpdateDHCPOptOnPort(port_id=port_id)
@@ -99,7 +104,7 @@ class NeutronDHCPApi(base.BaseDHCP):
         vif_list = [vif for pdict in vifs.values() for vif in pdict.values()]
         for vif in vif_list:
             try:
-                self.update_port_dhcp_opts(vif, options)
+                self.update_port_dhcp_opts(vif, options, context=task.context)
             except exception.FailedToUpdateDHCPOptOnPort:
                 failures.append(vif)
 
@@ -228,7 +233,7 @@ class NeutronDHCPApi(base.BaseDHCP):
         :returns: List of IP addresses associated with
                   task's ports/portgroups.
         """
-        client = neutron.get_client()
+        client = neutron.get_client(context=task.context)
 
         port_ip_addresses = self._get_ip_addresses(task, task.ports, client)
         portgroup_ip_addresses = self._get_ip_addresses(

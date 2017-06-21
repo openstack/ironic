@@ -15,6 +15,7 @@ from neutronclient.v2_0 import client as clientv20
 from oslo_log import log
 from oslo_utils import uuidutils
 
+from ironic.common import context as ironic_context
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import keystone
@@ -23,6 +24,8 @@ from ironic.conf import CONF
 
 LOG = log.getLogger(__name__)
 
+# TODO(pas-ha) remove in Rocky, until then it is a default
+# for CONF.neutron.url in noauth case when endpoint_override is not set
 DEFAULT_NEUTRON_URL = 'http://%s:9696' % CONF.my_ip
 
 _NEUTRON_SESSION = None
@@ -39,49 +42,53 @@ SEGMENTS_PARAM_NAME = 'segments'
 def _get_neutron_session():
     global _NEUTRON_SESSION
     if not _NEUTRON_SESSION:
-        auth = keystone.get_auth('neutron')
-        _NEUTRON_SESSION = keystone.get_session('neutron', auth=auth)
+        _NEUTRON_SESSION = keystone.get_session(
+            'neutron',
+            # TODO(pas-ha) remove in Rocky
+            timeout=CONF.neutron.timeout or CONF.neutron.url_timeout)
     return _NEUTRON_SESSION
 
 
-def get_client(token=None):
-    params = {'retries': CONF.neutron.retries}
-    url = CONF.neutron.url
-    if CONF.neutron.auth_strategy == 'noauth':
-        params['endpoint_url'] = url or DEFAULT_NEUTRON_URL
-        params['auth_strategy'] = 'noauth'
-        params.update({
-            'timeout': CONF.neutron.url_timeout or CONF.neutron.timeout,
-            'insecure': CONF.neutron.insecure,
-            'ca_cert': CONF.neutron.cafile})
+# TODO(pas-ha) remove deprecated options handling in Rocky
+# until then it might look ugly due to all if's.
+def get_client(token=None, context=None):
+    if not context:
+        context = ironic_context.RequestContext(auth_token=token)
+    # NOTE(pas-ha) neutronclient supports passing both session
+    # and the auth to client separately, makes things easier
+    session = _get_neutron_session()
+    service_auth = keystone.get_auth('neutron')
+
+    # TODO(pas-ha) remove in Rocky, always simply load from config
+    # 'noauth' then would correspond to 'auth_type=none' and
+    # 'endpoint_override'
+    adapter_params = {}
+    if (CONF.neutron.auth_strategy == 'noauth' and
+            CONF.neutron.auth_type is None):
+        CONF.set_override('auth_type', 'none', group='neutron')
+        if not CONF.neutron.endpoint_override:
+            adapter_params['endpoint_override'] = (CONF.neutron.url or
+                                                   DEFAULT_NEUTRON_URL)
     else:
-        session = _get_neutron_session()
-        if token is None:
-            params['session'] = session
-            # NOTE(pas-ha) endpoint_override==None will auto-discover
-            # endpoint from Keystone catalog.
-            # Region is needed only in this case.
-            # SSL related options are ignored as they are already embedded
-            # in keystoneauth Session object
-            if url:
-                params['endpoint_override'] = url
-            else:
-                params['region_name'] = CONF.keystone.region_name
-        else:
-            params['token'] = token
-            params['endpoint_url'] = url or keystone.get_service_url(
-                session,
-                service_type='network',
-                region_name=CONF.keystone.region_name)
-            params.update({
-                'timeout': CONF.neutron.url_timeout or CONF.neutron.timeout,
-                'insecure': CONF.neutron.insecure,
-                'ca_cert': CONF.neutron.cafile})
+        if CONF.keystone.region_name and not CONF.neutron.region_name:
+            adapter_params['region_name'] = CONF.keystone.region_name
+        if CONF.neutron.url and not CONF.neutron.endpoint_override:
+            adapter_params['endpoint_override'] = CONF.neutron.url
+    adapter = keystone.get_adapter('neutron', session=session,
+                                   auth=service_auth, **adapter_params)
+    endpoint = adapter.get_endpoint()
 
-    return clientv20.Client(**params)
+    user_auth = None
+    if CONF.neutron.auth_type != 'none' and context.auth_token:
+        user_auth = keystone.get_service_auth(context, endpoint, service_auth)
+    return clientv20.Client(session=session,
+                            auth=user_auth or service_auth,
+                            endpoint_override=endpoint,
+                            retries=CONF.neutron.retries,
+                            global_request_id=context.global_id)
 
 
-def unbind_neutron_port(port_id, client=None):
+def unbind_neutron_port(port_id, client=None, context=None):
     """Unbind a neutron port
 
     Remove a neutron port's binding profile and host ID so that it returns to
@@ -89,11 +96,13 @@ def unbind_neutron_port(port_id, client=None):
 
     :param port_id: Neutron port ID.
     :param client: Optional a Neutron client object.
+    :param context: request context
+    :type context: ironic.common.context.RequestContext
     :raises: NetworkError
     """
 
     if not client:
-        client = get_client()
+        client = get_client(context=context)
 
     body = {'port': {'binding:host_id': '',
                      'binding:profile': {}}}
@@ -111,14 +120,16 @@ def unbind_neutron_port(port_id, client=None):
         raise exception.NetworkError(msg)
 
 
-def update_port_address(port_id, address):
+def update_port_address(port_id, address, context=None):
     """Update a port's mac address.
 
     :param port_id: Neutron port id.
     :param address: new MAC address.
+    :param context: request context
+    :type context: ironic.common.context.RequestContext
     :raises: FailedToUpdateMacOnPort
     """
-    client = get_client()
+    client = get_client(context=context)
     port_req_body = {'port': {'mac_address': address}}
 
     try:
@@ -134,7 +145,7 @@ def update_port_address(port_id, address):
             msg = (_("Failed to remove the current binding from "
                      "Neutron port %s, while updating its MAC "
                      "address.") % port_id)
-            unbind_neutron_port(port_id, client=client)
+            unbind_neutron_port(port_id, client=client, context=context)
 
         msg = (_("Failed to update MAC address on Neutron port %s.") % port_id)
         client.update_port(port_id, port_req_body)
@@ -196,7 +207,7 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
     :raises: NetworkError
     :returns: a dictionary in the form {port.uuid: neutron_port['id']}
     """
-    client = get_client()
+    client = get_client(context=task.context)
     node = task.node
 
     # If Security Groups are specified, verify that they exist
@@ -300,7 +311,7 @@ def remove_neutron_ports(task, params):
     :param params: Dict of params to filter ports.
     :raises: NetworkError
     """
-    client = get_client()
+    client = get_client(context=task.context)
     node_uuid = task.node.uuid
 
     try:
@@ -410,11 +421,13 @@ def rollback_ports(task, network_uuid):
                       {'node': task.node.uuid, 'network': network_uuid})
 
 
-def validate_network(uuid_or_name, net_type=_('network')):
+def validate_network(uuid_or_name, net_type=_('network'), context=None):
     """Check that the given network is present.
 
     :param uuid_or_name: network UUID or name
     :param net_type: human-readable network type for error messages
+    :param context: request context
+    :type context: ironic.common.context.RequestContext
     :return: network UUID
     :raises: MissingParameterValue if uuid_or_name is empty
     :raises: NetworkError on failure to contact Neutron
@@ -424,7 +437,7 @@ def validate_network(uuid_or_name, net_type=_('network')):
         raise exception.MissingParameterValue(
             _('UUID or name of %s is not set in configuration') % net_type)
 
-    client = get_client()
+    client = get_client(context=context)
     network = _get_network_by_uuid_or_name(client, uuid_or_name,
                                            net_type=net_type, fields=['id'])
     return network['id']
@@ -554,16 +567,16 @@ class NeutronNetworkInterfaceMixin(object):
     _cleaning_network_uuid = None
     _provisioning_network_uuid = None
 
-    def get_cleaning_network_uuid(self):
+    def get_cleaning_network_uuid(self, context=None):
         if self._cleaning_network_uuid is None:
             self._cleaning_network_uuid = validate_network(
                 CONF.neutron.cleaning_network,
-                _('cleaning network'))
+                _('cleaning network'), context=context)
         return self._cleaning_network_uuid
 
-    def get_provisioning_network_uuid(self):
+    def get_provisioning_network_uuid(self, context=None):
         if self._provisioning_network_uuid is None:
             self._provisioning_network_uuid = validate_network(
                 CONF.neutron.provisioning_network,
-                _('provisioning network'))
+                _('provisioning network'), context=context)
         return self._provisioning_network_uuid

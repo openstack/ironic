@@ -19,7 +19,8 @@ from ironic.dhcp import base
 class NoneDHCPApi(base.BaseDHCP):
     """No-op DHCP API."""
 
-    def update_port_dhcp_opts(self, port_id, dhcp_options, token=None):
+    def update_port_dhcp_opts(self, port_id, dhcp_options, token=None,
+                              context=None):
         pass
 
     def update_dhcp_opts(self, task, options, vifs=None):

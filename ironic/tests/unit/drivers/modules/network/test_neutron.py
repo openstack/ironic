@@ -86,14 +86,16 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
     def test_validate(self, validate_mock):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.validate(task)
-        self.assertEqual([mock.call(CONF.neutron.cleaning_network,
-                                    'cleaning network'),
-                          mock.call(CONF.neutron.provisioning_network,
-                                    'provisioning network')],
-                         validate_mock.call_args_list)
+            self.assertEqual([mock.call(CONF.neutron.cleaning_network,
+                                        'cleaning network',
+                                        context=task.context),
+                              mock.call(CONF.neutron.provisioning_network,
+                                        'provisioning network',
+                                        context=task.context)],
+                             validate_mock.call_args_list)
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       side_effect=lambda n, t: n)
+                       side_effect=lambda n, t, context=None: n)
     @mock.patch.object(neutron_common, 'rollback_ports')
     @mock.patch.object(neutron_common, 'add_ports_to_network')
     def test_add_provisioning_network(self, add_ports_mock, rollback_mock,
@@ -110,13 +112,13 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                 security_groups=[])
             validate_mock.assert_called_once_with(
                 CONF.neutron.provisioning_network,
-                'provisioning network')
+                'provisioning network', context=task.context)
         self.port.refresh()
         self.assertEqual(self.neutron_port['id'],
                          self.port.internal_info['provisioning_vif_port_id'])
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       lambda n, t: n)
+                       lambda n, t, context=None: n)
     @mock.patch.object(neutron_common, 'rollback_ports')
     @mock.patch.object(neutron_common, 'add_ports_to_network')
     def test_add_provisioning_network_with_sg(self, add_ports_mock,
@@ -141,7 +143,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                          self.port.internal_info['provisioning_vif_port_id'])
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       side_effect=lambda n, t: n)
+                       side_effect=lambda n, t, context=None: n)
     @mock.patch.object(neutron_common, 'remove_ports_from_network')
     def test_remove_provisioning_network(self, remove_ports_mock,
                                          validate_mock):
@@ -153,12 +155,12 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                 task, CONF.neutron.provisioning_network)
             validate_mock.assert_called_once_with(
                 CONF.neutron.provisioning_network,
-                'provisioning network')
+                'provisioning network', context=task.context)
         self.port.refresh()
         self.assertNotIn('provisioning_vif_port_id', self.port.internal_info)
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       side_effect=lambda n, t: n)
+                       side_effect=lambda n, t, context=None: n)
     @mock.patch.object(neutron_common, 'rollback_ports')
     @mock.patch.object(neutron_common, 'add_ports_to_network')
     def test_add_cleaning_network(self, add_ports_mock, rollback_mock,
@@ -171,13 +173,13 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             self.assertEqual(res, add_ports_mock.return_value)
             validate_mock.assert_called_once_with(
                 CONF.neutron.cleaning_network,
-                'cleaning network')
+                'cleaning network', context=task.context)
         self.port.refresh()
         self.assertEqual(self.neutron_port['id'],
                          self.port.internal_info['cleaning_vif_port_id'])
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       lambda n, t: n)
+                       lambda n, t, context=None: n)
     @mock.patch.object(neutron_common, 'rollback_ports')
     @mock.patch.object(neutron_common, 'add_ports_to_network')
     def test_add_cleaning_network_with_sg(self, add_ports_mock, rollback_mock):
@@ -199,7 +201,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                          self.port.internal_info['cleaning_vif_port_id'])
 
     @mock.patch.object(neutron_common, 'validate_network',
-                       side_effect=lambda n, t: n)
+                       side_effect=lambda n, t, context=None: n)
     @mock.patch.object(neutron_common, 'remove_ports_from_network')
     def test_remove_cleaning_network(self, remove_ports_mock,
                                      validate_mock):
@@ -211,7 +213,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                 task, CONF.neutron.cleaning_network)
             validate_mock.assert_called_once_with(
                 CONF.neutron.cleaning_network,
-                'cleaning network')
+                'cleaning network', context=task.context)
         self.port.refresh()
         self.assertNotIn('cleaning_vif_port_id', self.port.internal_info)
 
@@ -220,7 +222,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.unconfigure_tenant_networks(task)
             mock_unbind_port.assert_called_once_with(
-                self.port.extra['vif_port_id'])
+                self.port.extra['vif_port_id'], context=task.context)
 
     def test_configure_tenant_networks_no_ports_for_node(self):
         n = utils.create_test_node(self.context, network_interface='neutron',
@@ -243,7 +245,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                                    'associated with node',
                                    self.interface.configure_tenant_networks,
                                    task)
-        client_mock.assert_called_once_with()
+            client_mock.assert_called_once_with(context=task.context)
         upd_mock.assert_not_called()
         self.assertIn('No neutron ports or portgroups are associated with',
                       log_mock.error.call_args[0][0])
@@ -267,7 +269,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         client_mock.return_value.update_port = upd_mock
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.configure_tenant_networks(task)
-        client_mock.assert_called_once_with()
+            client_mock.assert_called_once_with(context=task.context)
         upd_mock.assert_called_once_with(self.port.extra['vif_port_id'],
                                          expected_body)
 
@@ -280,7 +282,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             self.assertRaisesRegex(
                 exception.NetworkError, 'Could not add',
                 self.interface.configure_tenant_networks, task)
-            client_mock.assert_called_once_with()
+            client_mock.assert_called_once_with(context=task.context)
 
     @mock.patch.object(neutron_common, 'get_client')
     def _test_configure_tenant_networks(self, client_mock, is_client_id=False,
@@ -333,7 +335,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                 [{'opt_name': '61', 'opt_value': client_ids[1]}])
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.configure_tenant_networks(task)
-            client_mock.assert_called_once_with()
+            client_mock.assert_called_once_with(context=task.context)
         if vif_int_info:
             portid1 = self.port.internal_info['tenant_vif_port_id']
             portid2 = second_port.internal_info['tenant_vif_port_id']
@@ -414,7 +416,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             # this portgroup object.
             task.portgroups = [pg]
             self.interface.configure_tenant_networks(task)
-            client_mock.assert_called_once_with()
+            client_mock.assert_called_once_with(context=task.context)
             glgi_mock.assert_called_once_with(task, pg)
         upd_mock.assert_has_calls(
             [mock.call(self.port.extra['vif_port_id'], call1_body),

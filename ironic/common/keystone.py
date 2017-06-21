@@ -22,7 +22,6 @@ from oslo_log import log as logging
 import six
 
 from ironic.common import exception
-from ironic.conf import auth as auth_conf
 from ironic.conf import CONF
 
 
@@ -118,24 +117,3 @@ def get_service_auth(context, endpoint, service_auth):
     user_auth = token_endpoint.Token(endpoint, context.auth_token)
     return service_token.ServiceTokenAuthWrapper(user_auth=user_auth,
                                                  service_auth=service_auth)
-
-
-# NOTE(pas-ha) Used by neutronclient only
-# FIXME(pas-ha) remove this while moving to kesytoneauth adapters
-@ks_exceptions
-def get_service_url(session, **kwargs):
-    """Find endpoint for given service in keystone catalog.
-
-    If 'interface' is provided, fetches service url of this interface.
-    Otherwise, first tries to fetch 'internal' endpoint,
-    and then the 'public' one.
-
-    :param session: keystoneauth Session object
-    :param kwargs: any other arguments accepted by Session.get_endpoint method
-
-    """
-
-    if 'interface' in kwargs:
-        return session.get_endpoint(**kwargs)
-    return session.get_endpoint(interface=auth_conf.DEFAULT_VALID_INTERFACES,
-                                **kwargs)

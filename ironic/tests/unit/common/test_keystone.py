@@ -70,21 +70,6 @@ class KeystoneTestCase(base.TestCase):
                           keystone.get_auth,
                           self.test_group)
 
-    def test_get_service_url_with_interface(self):
-        session = mock.Mock()
-        session.get_endpoint.return_value = 'spam'
-        params = {'interface': 'admin', 'ham': 'eggs'}
-        self.assertEqual('spam', keystone.get_service_url(session, **params))
-        session.get_endpoint.assert_called_once_with(**params)
-
-    def test_get_service_url(self):
-        session = mock.Mock()
-        session.get_endpoint.return_value = 'spam'
-        params = {'ham': 'eggs'}
-        self.assertEqual('spam', keystone.get_service_url(session, **params))
-        session.get_endpoint.assert_called_once_with(
-            interface=['internal', 'public'], **params)
-
     def test_get_adapter_from_config(self):
         self.config(valid_interfaces=['internal', 'public'],
                     group=self.test_group)

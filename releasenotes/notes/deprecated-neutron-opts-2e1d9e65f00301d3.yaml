@@ -1,0 +1,49 @@
+---
+deprecations:
+  - |
+    Configuration option ``[neutron]/url`` is deprecated
+    and will be ignored in the Rocky release.
+    Instead, use ``[neutron]/endpoint_override`` configuration option to set
+    specific neutron API address when automatic discovery of neutron API
+    endpoint from keystone catalog is not desired.
+    This option has no default value, and must be set explicitly
+    for a stand alone deployment of ironic and neutron
+    (when ``[neutron]/auth_type`` is set to ``none``), since the
+    service catalog is not available in this case.
+    Otherwise it is generally recommended to rely on keystone service catalog
+    for service endpoint discovery.
+
+  - |
+    Configuration option ``[neutron]/url_timeout`` is deprecated
+    and will be ignored in the Rocky release.
+    Instead, use ``[neutron]/timeout`` configuration option.
+    This new option has no default value and must be set explicitly
+    to ``30`` to keep previous default behavior.
+
+  - |
+    Configuration option ``[neutron]/auth_strategy`` is deprecated
+    and will be ignored in the Rocky release.
+    Instead, set ``[neutron]/auth_type`` configuration option to ``none``,
+    and provide neutron API address as ``[neutron]/endpoint_override``
+    configuration option.
+
+other:
+  - |
+    Signatures of several networking-related functions/methods have been
+    changed to include request context as an optional keyword argument.
+
+    The functions/methods in question are:
+
+      - ``ironic.common.neutron.get_client``
+      - ``ironic.common.neutron.unbind_neutron_port``
+      - ``ironic.common.neutron.update_port_address``
+      - ``ironic.common.neutron.validate_network``
+      - ``ironic.common.neutron.NeutronNetworkInterfaceMixin.get_cleaning_network``
+      - ``ironic.common.neutron.NeutronNetworkInterfaceMixin.get_provisioning_network``
+      - ``ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts``
+      - ``ironic.dhcp.none.NeutronDHCPApi.update_port_dhcp_opts``
+
+    If you are using any of the above functions/methods in your out-of-tree
+    ironic driver or driver interface code, you should update the code
+    to pass an instance of ``ironic.common.context.RequestContext`` class
+    as a ``context`` keyword argument to those functions/methods.
