@@ -59,13 +59,8 @@ def check_image_service(func):
             return func(self, *args, **kwargs)
 
         image_href = kwargs.get('image_href')
-        (image_id, self.glance_host,
-         self.glance_port, use_ssl) = service_utils.parse_image_ref(image_href)
+        _id, self.endpoint, use_ssl = service_utils.parse_image_ref(image_href)
 
-        if use_ssl:
-            scheme = 'https'
-        else:
-            scheme = 'http'
         params = {}
         params['insecure'] = CONF.glance.glance_api_insecure
         if (not params['insecure'] and CONF.glance.glance_cafile
@@ -73,9 +68,8 @@ def check_image_service(func):
             params['cacert'] = CONF.glance.glance_cafile
         if CONF.glance.auth_strategy == 'keystone':
             params['token'] = self.context.auth_token
-        endpoint = '%s://%s:%s' % (scheme, self.glance_host, self.glance_port)
         self.client = client.Client(self.version,
-                                    endpoint, **params)
+                                    self.endpoint, **params)
         return func(self, *args, **kwargs)
     return wrapper
 
@@ -86,6 +80,7 @@ class BaseImageService(object):
         self.client = client
         self.version = version
         self.context = context
+        self.endpoint = None
 
     def call(self, method, *args, **kwargs):
         """Call a glance client method.
@@ -115,20 +110,16 @@ class BaseImageService(object):
             try:
                 return getattr(self.client.images, method)(*args, **kwargs)
             except retry_excs as e:
-                host = self.glance_host
-                port = self.glance_port
                 error_msg = ("Error contacting glance server "
-                             "'%(host)s:%(port)s' for '%(method)s', attempt"
+                             "'%(endpoint)s' for '%(method)s', attempt"
                              " %(attempt)s of %(num_attempts)s failed.")
-                LOG.exception(error_msg, {'host': host,
-                                          'port': port,
+                LOG.exception(error_msg, {'endpoint': self.endpoint,
                                           'num_attempts': num_attempts,
                                           'attempt': attempt,
                                           'method': method})
                 if attempt == num_attempts:
-                    raise exception.GlanceConnectionFailed(host=host,
-                                                           port=port,
-                                                           reason=str(e))
+                    raise exception.GlanceConnectionFailed(
+                        endpoint=self.endpoint, reason=str(e))
                 time.sleep(1)
             except image_excs as e:
                 exc_type, exc_value, exc_trace = sys.exc_info()
@@ -147,8 +138,7 @@ class BaseImageService(object):
         """
         LOG.debug("Getting image metadata from glance. Image: %s",
                   image_href)
-        (image_id, self.glance_host,
-         self.glance_port, use_ssl) = service_utils.parse_image_ref(image_href)
+        image_id = service_utils.parse_image_ref(image_href)[0]
 
         image = self.call(method, image_id)
 
@@ -165,8 +155,7 @@ class BaseImageService(object):
         :param image_id: The opaque image identifier.
         :param data: (Optional) File object to write data to.
         """
-        (image_id, self.glance_host,
-         self.glance_port, use_ssl) = service_utils.parse_image_ref(image_href)
+        image_id = service_utils.parse_image_ref(image_href)[0]
 
         if (self.version == 2 and
                 'file' in CONF.glance.allowed_direct_url_schemes):
