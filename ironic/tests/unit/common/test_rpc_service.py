@@ -48,6 +48,6 @@ class TestRPCService(base.TestCase):
         mock_ctx.assert_called_once_with()
         mock_target.assert_called_once_with(topic=self.rpc_svc.topic,
                                             server="fake_host")
-        mock_ios.assert_called_once_with()
+        mock_ios.assert_called_once_with(is_server=True)
         mock_init_method.assert_called_once_with(self.rpc_svc.manager,
                                                  mock_ctx.return_value)

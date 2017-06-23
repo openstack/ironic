@@ -80,26 +80,71 @@ class IronicObject(object_base.VersionedObject):
                     self[field] != loaded_object[field]):
                 self[field] = loaded_object[field]
 
-    def _convert_to_version(self, target_version):
+    def _convert_to_version(self, target_version, remove_unavail_fields=True):
         """Convert to the target version.
 
-        Subclasses should redefine this method, to do the conversion
-        of the object to the specified version. As a result of any
-        conversion, the object changes (self.obj_what_changed()) should
-        be retained.
+        Subclasses should redefine this method, to do the conversion of the
+        object to the target version.
+
+        Convert the object to the target version. The target version may be
+        the same, older, or newer than the version of the object. This is
+        used for DB interactions as well as for serialization/deserialization.
+
+        The remove_unavail_fields flag is used to distinguish these two cases:
+
+        1) For serialization/deserialization, we need to remove the unavailable
+           fields, because the service receiving the object may not know about
+           these fields. remove_unavail_fields is set to True in this case.
+
+        2) For DB interactions, we need to set the unavailable fields to their
+           appropriate values so that these fields are saved in the DB. (If
+           they are not set, the VersionedObject magic will not know to
+           save/update them to the DB.) remove_unavail_fields is set to False
+           in this case.
 
         :param target_version: the desired version of the object
+        :param remove_unavail_fields: True to remove fields that are
+            unavailable in the target version; set this to True when
+            (de)serializing. False to set the unavailable fields to appropriate
+            values; set this to False for DB interactions.
         """
         pass
 
-    def convert_to_version(self, target_version):
+    def convert_to_version(self, target_version, remove_unavail_fields=True):
         """Convert this object to the target version.
+
+        Convert the object to the target version. The target version may be
+        the same, older, or newer than the version of the object. This is
+        used for DB interactions as well as for serialization/deserialization.
+
+        The remove_unavail_fields flag is used to distinguish these two cases:
+
+        1) For serialization/deserialization, we need to remove the unavailable
+           fields, because the service receiving the object may not know about
+           these fields. remove_unavail_fields is set to True in this case.
+
+        2) For DB interactions, we need to set the unavailable fields to their
+           appropriate values so that these fields are saved in the DB. (If
+           they are not set, the VersionedObject magic will not know to
+           save/update them to the DB.) remove_unavail_fields is set to False
+           in this case.
 
         _convert_to_version() does the actual work.
 
         :param target_version: the desired version of the object
+        :param remove_unavail_fields: True to remove fields that are
+            unavailable in the target version; set this to True when
+            (de)serializing. False to set the unavailable fields to appropriate
+            values; set this to False for DB interactions.
         """
-        self._convert_to_version(target_version)
+        if self.VERSION != target_version:
+            self._convert_to_version(
+                target_version, remove_unavail_fields=remove_unavail_fields)
+            if remove_unavail_fields:
+                # NOTE(rloo): We changed the object, but don't keep track of
+                # any of these changes, since it is inaccurate anyway (because
+                # it doesn't keep track of any 'changed' unavailable fields).
+                self.obj_reset_changes()
 
         # NOTE(rloo): self.__class__.VERSION is the latest version that
         # is supported by this service. self.VERSION is the version of
@@ -210,15 +255,9 @@ class IronicObject(object_base.VersionedObject):
 
         if db_version != obj.__class__.VERSION:
             # convert to the latest version
-            obj.convert_to_version(obj.__class__.VERSION)
-            if obj.get_target_version() == db_version:
-                # pinned, so no need to keep these changes (we'll end up
-                # converting back to db_version if obj is saved)
-                obj.obj_reset_changes()
-            else:
-                # keep these changes around because they are needed
-                # when/if saving to the DB in the latest version
-                pass
+            obj.VERSION = db_version
+            obj.convert_to_version(obj.__class__.VERSION,
+                                   remove_unavail_fields=False)
 
         return obj
 
@@ -262,16 +301,14 @@ class IronicObject(object_base.VersionedObject):
 
         if target_version != self.VERSION:
             # Convert the object so we can save it in the target version.
-            self.convert_to_version(target_version)
-            db_version = target_version
-        else:
-            db_version = self.VERSION
+            self.convert_to_version(target_version,
+                                    remove_unavail_fields=False)
 
         changes = self.obj_get_changes()
         # NOTE(rloo): Since this object doesn't keep track of the version that
         #             is saved in the DB and we don't want to make a DB call
         #             just to find out, we always update 'version' in the DB.
-        changes['version'] = db_version
+        changes['version'] = self.VERSION
 
         return changes
 
@@ -279,6 +316,16 @@ class IronicObject(object_base.VersionedObject):
 class IronicObjectSerializer(object_base.VersionedObjectSerializer):
     # Base class to use for object hydration
     OBJ_BASE_CLASS = IronicObject
+
+    def __init__(self, is_server=False):
+        """Initialization.
+
+        :param is_server: True if the service using this Serializer is a
+            server (i.e. an ironic-conductor). Default is False for clients
+            (such as ironic-api).
+        """
+        super(IronicObjectSerializer, self).__init__()
+        self.is_server = is_server
 
     def _process_object(self, context, objprim):
         """Process the object.
@@ -288,8 +335,8 @@ class IronicObjectSerializer(object_base.VersionedObjectSerializer):
         deserialization process converts them to Objects.
 
         This converts any IronicObjects to be in their latest versions,
-        so that the services (ironic-api and ironic-conductor) internally,
-        always deal objects in their latest versions.
+        so that internally, the services (ironic-api and ironic-conductor)
+        always deal with objects in their latest versions.
 
         :param objprim: a serialized entity that represents an object
         :returns: the deserialized Object
@@ -299,7 +346,11 @@ class IronicObjectSerializer(object_base.VersionedObjectSerializer):
             context, objprim)
         if isinstance(obj, IronicObject):
             if obj.VERSION != obj.__class__.VERSION:
-                obj.convert_to_version(obj.__class__.VERSION)
+                # NOTE(rloo): if deserializing at API (client) side,
+                # we don't want any changes
+                obj.convert_to_version(
+                    obj.__class__.VERSION,
+                    remove_unavail_fields=not self.is_server)
         return obj
 
     def serialize_entity(self, context, entity):
@@ -310,9 +361,14 @@ class IronicObjectSerializer(object_base.VersionedObjectSerializer):
         'ironic_object.namespace', 'ironic_object.data', 'ironic_object.name',
         'ironic_object.version', and 'ironic_object.changes'.
 
-        For IronicObjects, if the service (ironic-api or ironic-conductor)
-        is pinned, we want the object to be in the target/pinned version,
-        which is not necessarily the latest version of the object.
+        We assume that the client (ironic-API) is always talking to a
+        server (ironic-conductor) that is running the same or a newer
+        release than the client. The client doesn't need to downgrade
+        any IronicObjects when sending them over RPC. The server, on
+        the other hand, will need to do so if the server is pinned and
+        the target version of an IronicObject is older than the latest
+        version of that Object.
+
         (Internally, the services deal with the latest versions of objects
         so we know that these objects are always in the latest versions.)
 
@@ -322,13 +378,14 @@ class IronicObjectSerializer(object_base.VersionedObjectSerializer):
         :raises: ovo_exception.IncompatibleObjectVersion (via
                  .get_target_version())
         """
-        if isinstance(entity, IronicObject):
+        if self.is_server and isinstance(entity, IronicObject):
             target_version = entity.get_target_version()
             if target_version != entity.VERSION:
                 # NOTE(xek): If the version is pinned, target_version is an
                 # older object version. We need to backport/convert to target
                 # version before serialization.
-                entity.convert_to_version(target_version)
+                entity.convert_to_version(target_version,
+                                          remove_unavail_fields=True)
 
         return super(IronicObjectSerializer, self).serialize_entity(
             context, entity)
