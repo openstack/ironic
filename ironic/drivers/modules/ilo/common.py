@@ -183,11 +183,11 @@ def remove_image_from_swift(object_name, associated_with=None):
         swift_api = swift.SwiftAPI()
         swift_api.delete_object(container, object_name)
     except exception.SwiftObjectNotFoundError as e:
-        LOG.warning("Temporary object %(associated_with_msg)s"
-                    "was already deleted from Swift. Error: %(err)s",
-                    {'associated_with_msg':
-                        ("associated with %s " % associated_with
-                            if associated_with else ""), 'err': e})
+        LOG.info("Temporary object %(associated_with_msg)s"
+                 "was already deleted from Swift. Error: %(err)s",
+                 {'associated_with_msg':
+                     ("associated with %s " % associated_with
+                         if associated_with else ""), 'err': e})
     except exception.SwiftOperationError as e:
         LOG.exception("Error while deleting temporary swift object "
                       "%(object_name)s %(associated_with_msg)s from "
