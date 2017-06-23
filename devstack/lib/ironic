@@ -1058,9 +1058,13 @@ function configure_ironic_api {
     cp -p $IRONIC_DIR/etc/ironic/policy.json $IRONIC_POLICY_JSON
 }
 
-function configure_auth_for {
+# configure_client_for() - is used by configure_ironic_conductor.
+# Sets options to instantiate clients for other services
+# single argument - config section to fill
+function configure_client_for {
     local service_config_section
     service_config_section=$1
+    # keystoneauth auth plugin options
     iniset $IRONIC_CONF_FILE $service_config_section auth_type password
     iniset $IRONIC_CONF_FILE $service_config_section auth_url $KEYSTONE_SERVICE_URI
     iniset $IRONIC_CONF_FILE $service_config_section username ironic
@@ -1068,24 +1072,39 @@ function configure_auth_for {
     iniset $IRONIC_CONF_FILE $service_config_section project_name $SERVICE_PROJECT_NAME
     iniset $IRONIC_CONF_FILE $service_config_section user_domain_id default
     iniset $IRONIC_CONF_FILE $service_config_section project_domain_id default
+    # keystoneauth session options
     iniset $IRONIC_CONF_FILE $service_config_section cafile $SSL_BUNDLE_FILE
+}
+
+# TODO(pas-ha) this function is for transition period only,
+# after all clients are moved to use keystoneauth adapters, it will be merged
+# into configure_client_for function
+function configure_adapter_for {
+    local service_config_section
+    service_config_section=$1
+    # keystoneauth adapter options
+    # NOTE(pas-ha) relying on defaults for valid_interfaces being "internal,public" in ironic
+    iniset $IRONIC_CONF_FILE $service_config_section region_name $REGION_NAME
 }
 
 # configure_ironic_conductor() - Is used by configure_ironic().
 # Sets conductor specific settings.
 function configure_ironic_conductor {
 
-    # set keystone region for all services
-    iniset $IRONIC_CONF_FILE keystone region_name $REGION_NAME
+    # NOTE(pas-ha) service_catalog section is used to discover
+    # ironic API endpoint from keystone catalog
+    local client_sections="neutron swift glance inspector cinder service_catalog"
+    for conf_section in $client_sections; do
+        configure_client_for $conf_section
+    done
 
-    # set keystone auth plugin options for services
-    configure_auth_for neutron
-    configure_auth_for swift
-    configure_auth_for glance
-    configure_auth_for inspector
-    configure_auth_for cinder
-    # this one is needed for lookup of Ironic API endpoint via Keystone
-    configure_auth_for service_catalog
+    # TODO(pas-ha) this block is for transition period only,
+    # after all clients are moved to use keystoneauth adapters,
+    # it will be deleted
+    local sections_with_adapter="service_catalog"
+    for conf_section in $sections_with_adapter; do
+        configure_adapter_for $conf_section
+    done
 
     cp $IRONIC_DIR/etc/ironic/rootwrap.conf $IRONIC_ROOTWRAP_CONF
     cp -r $IRONIC_DIR/etc/ironic/rootwrap.d $IRONIC_CONF_DIR
@@ -1239,8 +1258,6 @@ function create_ironic_accounts {
         get_or_create_service "ironic" "baremetal" "Ironic baremetal provisioning service"
         get_or_create_endpoint "baremetal" \
             "$REGION_NAME" \
-            "$IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT" \
-            "$IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT" \
             "$IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT"
 
         # Create ironic service user

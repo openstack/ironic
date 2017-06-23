@@ -77,9 +77,7 @@ _IRONIC_SESSION = None
 def _get_ironic_session():
     global _IRONIC_SESSION
     if not _IRONIC_SESSION:
-        auth = keystone.get_auth('service_catalog')
-        _IRONIC_SESSION = keystone.get_session('service_catalog',
-                                               auth=auth)
+        _IRONIC_SESSION = keystone.get_session('service_catalog')
     return _IRONIC_SESSION
 
 
@@ -94,18 +92,28 @@ def get_ironic_api_url():
 
     either from config of from Keystone catalog.
     """
-    ironic_api = CONF.conductor.api_url
-    if not ironic_api:
-        try:
-            ironic_session = _get_ironic_session()
-            ironic_api = keystone.get_service_url(ironic_session)
-        except (exception.KeystoneFailure,
-                exception.CatalogNotFound,
-                exception.KeystoneUnauthorized) as e:
-            raise exception.InvalidParameterValue(_(
-                "Couldn't get the URL of the Ironic API service from the "
-                "configuration file or keystone catalog. Keystone error: "
-                "%s") % six.text_type(e))
+    adapter_opts = {'session': _get_ironic_session()}
+    # NOTE(pas-ha) force 'none' auth plugin for noauth mode
+    if CONF.auth_strategy != 'keystone':
+        CONF.set_override('auth_type', 'none', group='service_catalog')
+    adapter_opts['auth'] = keystone.get_auth('service_catalog')
+
+    # TODO(pas-ha) remove in Rocky
+    # NOTE(pas-ha) if both set, the new options win
+    if CONF.conductor.api_url and not CONF.service_catalog.endpoint_override:
+        adapter_opts['endpoint_override'] = CONF.conductor.api_url
+    if CONF.keystone.region_name and not CONF.service_catalog.region_name:
+        adapter_opts['region_name'] = CONF.keystone.region_name
+    adapter = keystone.get_adapter('service_catalog', **adapter_opts)
+    try:
+        ironic_api = adapter.get_endpoint()
+    except (exception.KeystoneFailure,
+            exception.CatalogNotFound,
+            exception.KeystoneUnauthorized) as e:
+        raise exception.InvalidParameterValue(_(
+            "Couldn't get the URL of the Ironic API service from the "
+            "configuration file or keystone catalog. Keystone error: "
+            "%s") % six.text_type(e))
     # NOTE: we should strip '/' from the end because it might be used in
     # hardcoded ramdisk script
     ironic_api = ironic_api.rstrip('/')

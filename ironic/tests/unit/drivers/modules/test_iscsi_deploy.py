@@ -521,7 +521,9 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                               iscsi_deploy.validate, task)
         mock_get_url.assert_called_once_with()
 
-    def test_validate_invalid_root_device_hints(self):
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_ironic_api_url')
+    def test_validate_invalid_root_device_hints(self, mock_get_url):
+        mock_get_url.return_value = 'http://spam.ham/baremetal'
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.properties['root_device'] = {'size': 'not-int'}

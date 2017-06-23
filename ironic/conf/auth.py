@@ -15,13 +15,16 @@
 import copy
 
 from keystoneauth1 import loading as kaloading
+from oslo_config import cfg
 from oslo_log import log
 
 
 LOG = log.getLogger(__name__)
 
+DEFAULT_VALID_INTERFACES = ['internal', 'public']
 
-def register_auth_opts(conf, group):
+
+def register_auth_opts(conf, group, service_type=None):
     """Register session- and auth-related options
 
     Registers only basic auth options shared by all auth plugins.
@@ -29,9 +32,14 @@ def register_auth_opts(conf, group):
     """
     kaloading.register_session_conf_options(conf, group)
     kaloading.register_auth_conf_options(conf, group)
+    if service_type:
+        kaloading.register_adapter_conf_options(conf, group)
+        conf.set_default('valid_interfaces', DEFAULT_VALID_INTERFACES,
+                         group=group)
+        conf.set_default('service_type', service_type, group=group)
 
 
-def add_auth_opts(options):
+def add_auth_opts(options, service_type=None):
     """Add auth options to sample config
 
     As these are dynamically registered at runtime,
@@ -55,5 +63,12 @@ def add_auth_opts(options):
         plugin = kaloading.get_plugin_loader(name)
         add_options(opts, kaloading.get_auth_plugin_conf_options(plugin))
     add_options(opts, kaloading.get_session_conf_options())
+    if service_type:
+        adapter_opts = kaloading.get_adapter_conf_options(
+            include_deprecated=False)
+        # adding defaults for valid interfaces
+        cfg.set_defaults(adapter_opts, service_type=service_type,
+                         valid_interfaces=DEFAULT_VALID_INTERFACES)
+        add_options(opts, adapter_opts)
     opts.sort(key=lambda x: x.name)
     return opts

@@ -30,6 +30,11 @@ opts = [
                help=_('Seconds between conductor heart beats.')),
     cfg.URIOpt('api_url',
                schemes=('http', 'https'),
+               deprecated_for_removal=True,
+               deprecated_reason=_("Use [service_catalog]endpoint_override "
+                                   "option instead if required to use "
+                                   "a specific ironic api address, "
+                                   "for example in noauth mode."),
                help=_('URL of Ironic API service. If not set ironic can '
                       'get the current value from the keystone service '
                       'catalog. If set, the value must start with either '
