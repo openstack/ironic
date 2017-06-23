@@ -859,14 +859,17 @@ class TestGlanceAPIServers(base.TestCase):
     @mock.patch.object(service_utils.keystone, 'get_service_url',
                        autospec=True)
     @mock.patch.object(service_utils.keystone, 'get_session', autospec=True)
-    def test__get_api_servers_with_keystone(self, mock_session,
+    @mock.patch.object(service_utils.keystone, 'get_auth', autospec=True)
+    def test__get_api_servers_with_keystone(self, mock_auth, mock_session,
                                             mock_service_url):
         mock_service_url.return_value = 'https://example.com'
 
         endpoint = service_utils._get_api_server()
         self.assertEqual('https://example.com', endpoint)
 
-        mock_session.assert_called_once_with('service_catalog')
+        mock_auth.assert_called_once_with('glance')
+        mock_session.assert_called_once_with('glance',
+                                             auth=mock_auth.return_value)
         mock_service_url.assert_called_once_with(mock_session.return_value,
                                                  service_type='image',
                                                  endpoint_type='public')

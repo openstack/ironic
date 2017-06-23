@@ -41,7 +41,8 @@ _GLANCE_SESSION = None
 def _get_glance_session():
     global _GLANCE_SESSION
     if not _GLANCE_SESSION:
-        _GLANCE_SESSION = keystone.get_session('glance')
+        auth = keystone.get_auth('glance')
+        _GLANCE_SESSION = keystone.get_session('glance', auth=auth)
     return _GLANCE_SESSION
 
 
@@ -55,8 +56,7 @@ def GlanceImageService(client=None, version=None, context=None):
     service_class = getattr(module, 'GlanceImageService')
     if (context is not None and CONF.glance.auth_strategy == 'keystone'
         and not context.auth_token):
-            session = _get_glance_session()
-            context.auth_token = keystone.get_admin_auth_token(session)
+            context.auth_token = _get_glance_session().get_token()
     return service_class(client, version, context)
 
 

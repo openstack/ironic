@@ -13,7 +13,6 @@
 #    under the License.
 
 from keystoneauth1 import exceptions as ksexception
-from keystoneauth1 import identity as kaidentity
 from keystoneauth1 import loading as kaloading
 import mock
 from oslo_config import cfg
@@ -52,52 +51,45 @@ class KeystoneTestCase(base.TestCase):
         self.cfg_fixture = self.useFixture(fixture.Config())
         self.addCleanup(cfg.CONF.reset)
 
-    def test_get_url(self):
-        fake_url = 'http://127.0.0.1:6385'
-        mock_sess = mock.Mock()
-        mock_sess.get_endpoint.return_value = fake_url
-        res = keystone.get_service_url(mock_sess)
-        mock_sess.get_endpoint.assert_called_with(
-            interface='internal', region_name='fake_region',
-            service_type='baremetal')
-        self.assertEqual(fake_url, res)
-
-    def test_get_url_failure(self):
-        exc_map = (
-            (ksexception.Unauthorized, exception.KeystoneUnauthorized),
-            (ksexception.EndpointNotFound, exception.CatalogNotFound),
-            (ksexception.EmptyCatalog, exception.CatalogNotFound),
-            (ksexception.Unauthorized, exception.KeystoneUnauthorized),
-        )
-        for kexc, irexc in exc_map:
-            mock_sess = mock.Mock()
-            mock_sess.get_endpoint.side_effect = kexc
-            self.assertRaises(irexc, keystone.get_service_url, mock_sess)
-
-    def test_get_admin_auth_token(self):
-        mock_sess = mock.Mock()
-        mock_sess.get_token.return_value = 'fake_token'
-        self.assertEqual('fake_token',
-                         keystone.get_admin_auth_token(mock_sess))
-
-    def test_get_admin_auth_token_failure(self):
-        mock_sess = mock.Mock()
-        mock_sess.get_token.side_effect = ksexception.Unauthorized
-        self.assertRaises(exception.KeystoneUnauthorized,
-                          keystone.get_admin_auth_token, mock_sess)
-
     def test_get_session(self):
-        session = keystone.get_session(self.test_group)
-        # NOTE(pas-ha) 'password' auth_plugin is used
-        self.assertIsInstance(session.auth,
-                              kaidentity.generic.password.Password)
-        self.assertEqual('http://127.0.0.1:9898', session.auth.auth_url)
+        self.config(timeout=10, group=self.test_group)
+        session = keystone.get_session(self.test_group, timeout=20)
+        self.assertEqual(20, session.timeout)
 
-    def test_get_session_fail(self):
+    def test_get_auth(self):
+        auth = keystone.get_auth(self.test_group)
+        self.assertEqual('http://127.0.0.1:9898', auth.auth_url)
+
+    def test_get_auth_fail(self):
         # NOTE(pas-ha) 'password' auth_plugin is used,
         # so when we set the required auth_url to None,
         # MissingOption is raised
         self.config(auth_url=None, group=self.test_group)
         self.assertRaises(exception.ConfigInvalid,
-                          keystone.get_session,
+                          keystone.get_auth,
                           self.test_group)
+
+    def test_get_service_url_with_interface(self):
+        session = mock.Mock()
+        session.get_endpoint.return_value = 'spam'
+        params = {'interface': 'admin', 'ham': 'eggs'}
+        self.assertEqual('spam', keystone.get_service_url(session, **params))
+        session.get_endpoint.assert_called_once_with(**params)
+
+    def test_get_service_url_internal(self):
+        session = mock.Mock()
+        session.get_endpoint.return_value = 'spam'
+        params = {'ham': 'eggs'}
+        self.assertEqual('spam', keystone.get_service_url(session, **params))
+        session.get_endpoint.assert_called_once_with(interface='internal',
+                                                     **params)
+
+    def test_get_service_url_internal_fail(self):
+        session = mock.Mock()
+        session.get_endpoint.side_effect = [ksexception.EndpointNotFound(),
+                                            'spam']
+        params = {'ham': 'eggs'}
+        self.assertEqual('spam', keystone.get_service_url(session, **params))
+        session.get_endpoint.assert_has_calls([
+            mock.call(interface='internal', **params),
+            mock.call(interface='public', **params)])

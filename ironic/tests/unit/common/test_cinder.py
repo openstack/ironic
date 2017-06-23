@@ -30,6 +30,7 @@ from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as object_utils
 
 
+@mock.patch.object(keystone, 'get_auth', autospec=True)
 @mock.patch.object(keystone, 'get_session', autospec=True)
 class TestCinderSession(base.TestCase):
 
@@ -39,17 +40,21 @@ class TestCinderSession(base.TestCase):
                     retries=2,
                     group='cinder')
 
-    def test__get_cinder_session(self, mock_keystone_session):
+    def test__get_cinder_session(self, mock_keystone_session, mock_auth):
         """Check establishing new session when no session exists."""
         mock_keystone_session.return_value = 'session1'
         self.assertEqual('session1', cinder._get_cinder_session())
-        mock_keystone_session.assert_called_once_with('cinder')
+        mock_keystone_session.assert_called_once_with(
+            'cinder', auth=mock_auth.return_value)
+        mock_auth.assert_called_once_with('cinder')
 
         """Check if existing session is used."""
         mock_keystone_session.reset_mock()
+        mock_auth.reset_mock()
         mock_keystone_session.return_value = 'session2'
         self.assertEqual('session1', cinder._get_cinder_session())
         self.assertFalse(mock_keystone_session.called)
+        self.assertFalse(mock_auth.called)
 
 
 @mock.patch.object(cinder, '_get_cinder_session', autospec=True)

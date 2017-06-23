@@ -45,7 +45,8 @@ def _get_inspector_session():
 
     global _INSPECTOR_SESSION
     if not _INSPECTOR_SESSION:
-        _INSPECTOR_SESSION = keystone.get_session('inspector')
+        _INSPECTOR_SESSION = keystone.get_session(
+            'inspector', auth=keystone.get_auth('inspector'))
     return _INSPECTOR_SESSION
 
 

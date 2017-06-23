@@ -30,7 +30,8 @@ _NEUTRON_SESSION = None
 def _get_neutron_session():
     global _NEUTRON_SESSION
     if not _NEUTRON_SESSION:
-        _NEUTRON_SESSION = keystone.get_session('neutron')
+        auth = keystone.get_auth('neutron')
+        _NEUTRON_SESSION = keystone.get_session('neutron', auth=auth)
     return _NEUTRON_SESSION
 
 
@@ -60,7 +61,9 @@ def get_client(token=None):
         else:
             params['token'] = token
             params['endpoint_url'] = url or keystone.get_service_url(
-                session, service_type='network')
+                session,
+                service_type='network',
+                region_name=CONF.keystone.region_name)
             params.update({
                 'timeout': CONF.neutron.url_timeout or CONF.neutron.timeout,
                 'insecure': CONF.neutron.insecure,

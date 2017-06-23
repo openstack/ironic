@@ -35,7 +35,8 @@ _CINDER_SESSION = None
 def _get_cinder_session():
     global _CINDER_SESSION
     if not _CINDER_SESSION:
-        _CINDER_SESSION = keystone.get_session('cinder')
+        auth = keystone.get_auth('cinder')
+        _CINDER_SESSION = keystone.get_session('cinder', auth=auth)
     return _CINDER_SESSION
 
 
