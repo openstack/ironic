@@ -10,15 +10,20 @@ iLO drivers enable to take advantage of features of iLO management engine in
 HPE ProLiant servers.  iLO drivers are targeted for HPE ProLiant Gen 8 systems
 and above which have `iLO 4 management engine <https://www.hpe.com/us/en/servers/integrated-lights-out-ilo.html>`_.
 
-For more details, please refer the iLO driver document of Juno, Kilo and Liberty releases,
-and for up-to-date information (like tested platforms, known issues, etc), please check the
-`iLO driver wiki page <https://wiki.openstack.org/wiki/Ironic/Drivers/iLODrivers>`_.
+For more details and for up-to-date information (like tested platforms,
+known issues, etc), please check the `iLO driver wiki page <https://wiki.openstack.org/wiki/Ironic/Drivers/iLODrivers>`_.
 
-Currently there are 3 iLO drivers:
+ProLiant hardware is supported by the ``ilo`` hardware type and the following
+classic drivers:
 
 * ``iscsi_ilo``
 * ``agent_ilo``
 * ``pxe_ilo``
+
+.. note::
+   All HPE ProLiant servers support reference hardware type ``ipmi``
+   (see :doc:`ipmitool`). HPE ProLiant Gen10 servers also support
+   hardware type ``redfish`` (see :doc:`redfish`).
 
 The ``iscsi_ilo`` and ``agent_ilo`` drivers provide security enhanced
 PXE-less deployment by using iLO virtual media to boot up the bare metal node.
@@ -35,6 +40,134 @@ and local-boot of instance.
 and deploys from ironic conductor. Additionally it supports automatic setting of
 requested boot mode from nova. This driver doesn't require iLO Advanced license.
 
+Hardware Interfaces
+^^^^^^^^^^^^^^^^^^^
+
+The ``ilo`` hardware type supports following hardware interfaces:
+
+* boot
+    ``ilo-virtual-media`` and ``ilo-pxe``. They can be enabled via the
+    ``enabled_boot_interfaces`` option:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = ilo
+        enabled_boot_interfaces = ilo-virtual-media,ilo-pxe
+
+    .. note::
+       ``ilo-virtual-media`` is the default ``boot`` interface for ``ilo``
+       hardware type.
+
+* inspect
+    ``ilo`` and ``inspector``. They can be enabled via the
+    ``enabled_inspect_interfaces`` option:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = ilo
+        enabled_inspect_interfaces = ilo,inspector
+
+    .. note::
+       ``ilo`` is the default ``inspect`` interface for ``ilo``
+       hardware type. `Ironic Inspector <https://docs.openstack.org/ironic-inspector/latest/>`_
+       needs to be configured to use ``inspector`` as the inspect interface.
+
+* management
+    ``ilo``. It can be enabled via the
+    ``enabled_management_interfaces`` option:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = ilo
+        enabled_management_interfaces = ilo
+
+* power
+    ``ilo``. It can be enabled via the
+    ``enabled_power_interfaces`` option:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = ilo
+        enabled_power_interfaces = ilo
+
+The following command can be used to enroll a ProLiant node with
+``ilo`` hardware type:
+
+    .. code-block:: console
+
+        openstack baremetal node create --os-baremetal-api-version=1.31 \
+            --driver ilo \
+            --deploy-interface direct \
+            --raid-interface agent \
+            --driver-info ilo_address=<ilo-ip-address> \
+            --driver-info ilo_username=<ilo-username> \
+            --driver-info ilo_password=<ilo-password> \
+            --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso>
+
+Please refer to :doc:`/install/enabling-drivers` for detailed
+explanation of hardware type.
+
+To enable the same feature set as provided by all iLO classic drivers,
+apply the following configuration:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = ilo
+        enabled_boot_interfaces = ilo-virtual-media,ilo-pxe
+        enabled_power_interfaces = ilo
+        enabled_console_interfaces = ilo
+        enabled_raid_interfaces = agent
+        enabled_management_interfaces = ilo
+        enabled_inspect_interfaces = ilo
+
+The following commands can be used to enroll a node with the same
+feature set as one of the classic drivers, but using the ``ilo``
+hardware type:
+
+* ``iscsi_ilo``:
+
+    .. code-block:: console
+
+        openstack baremetal node create --os-baremetal-api-version=1.31 \
+            --driver ilo \
+            --deploy-interface iscsi \
+            --boot-interface ilo-virtual-media \
+            --driver-info ilo_address=<ilo-ip-address> \
+            --driver-info ilo_username=<ilo-username> \
+            --driver-info ilo_password=<ilo-password> \
+            --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso>
+
+* ``pxe_ilo``:
+
+    .. code-block:: console
+
+        openstack baremetal node create --os-baremetal-api-version=1.31 \
+            --driver ilo \
+            --deploy-interface iscsi \
+            --boot-interface ilo-pxe \
+            --driver-info ilo_address=<ilo-ip-address> \
+            --driver-info ilo_username=<ilo-username> \
+            --driver-info ilo_password=<ilo-password> \
+            --driver-info deploy_kernel=<glance-uuid-of-pxe-deploy-kernel> \
+            --driver-info deploy_ramdisk=<glance-uuid-of-deploy-ramdisk>
+
+* ``agent_ilo``:
+
+    .. code-block:: console
+
+        openstack baremetal node create --os-baremetal-api-version=1.31 \
+            --driver ilo \
+            --deploy-interface direct \
+            --boot-interface ilo-virtual-media \
+            --driver-info ilo_address=<ilo-ip-address> \
+            --driver-info ilo_username=<ilo-username> \
+            --driver-info ilo_password=<ilo-password> \
+            --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso>
 
 Prerequisites
 =============
