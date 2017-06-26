@@ -37,7 +37,7 @@ from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
 from ironic.drivers import utils as driver_utils
-
+from ironic import objects
 LOG = logging.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
@@ -212,6 +212,9 @@ def _build_pxe_config_options(task, pxe_info, service=False):
     """
     if service:
         pxe_options = {}
+    elif (task.node.driver_internal_info.get('boot_from_volume') and
+            CONF.pxe.ipxe_enabled):
+        pxe_options = _get_volume_pxe_options(task)
     else:
         pxe_options = _build_deploy_pxe_options(task, pxe_info)
 
@@ -243,7 +246,65 @@ def _build_service_pxe_config(task, instance_image_info,
     deploy_utils.switch_pxe_config(
         pxe_config_path, root_uuid_or_disk_id,
         deploy_utils.get_boot_mode_for_deploy(node),
-        iwdi, deploy_utils.is_trusted_boot_requested(node))
+        iwdi, deploy_utils.is_trusted_boot_requested(node),
+        deploy_utils.is_iscsi_boot(task))
+
+
+def _get_volume_pxe_options(task):
+    """Identify volume information for iPXE template generation."""
+    def __return_item_or_first_if_list(item):
+        if isinstance(item, list):
+            return item[0]
+        else:
+            return item
+
+    def __get_property(properties, key):
+        prop = __return_item_or_first_if_list(properties.get(key, ''))
+        if prop is not '':
+            return prop
+        return __return_item_or_first_if_list(properties.get(key + 's', ''))
+
+    def __generate_iscsi_url(properties):
+        """Returns iscsi url."""
+        portal = __get_property(properties, 'target_portal')
+        iqn = __get_property(properties, 'target_iqn')
+        lun = __get_property(properties, 'target_lun')
+
+        if ':' in portal:
+            host, port = portal.split(':')
+        else:
+            host = portal
+            port = ''
+        return ("iscsi:%(host)s::%(port)s:%(lun)s:%(iqn)s" %
+                {'host': host, 'port': port, 'lun': lun, 'iqn': iqn})
+
+    pxe_options = {}
+    node = task.node
+    boot_volume = node.driver_internal_info.get('boot_from_volume')
+    volume = objects.VolumeTarget.get_by_uuid(task.context,
+                                              boot_volume)
+    properties = volume.properties
+    if 'iscsi' in volume['volume_type']:
+        if 'auth_username' in properties:
+            pxe_options['username'] = properties['auth_username']
+        if 'auth_password' in properties:
+            pxe_options['password'] = properties['auth_password']
+        pxe_options.update(
+            {'iscsi_boot_url': __generate_iscsi_url(volume.properties),
+             'iscsi_initiator_iqn': (__get_property(properties,
+                                                    'target_iqn') or None)})
+        # NOTE(TheJulia): This may be the route to multi-path, define
+        # volumes via sanhook in the ipxe template and let the OS sort it out.
+        additional_targets = []
+        for target in task.volume_targets:
+            if target.boot_index != 0 and 'iscsi' in target.volume_type:
+                additional_targets.append(
+                    __generate_iscsi_url(target.properties))
+        pxe_options.update({'iscsi_volumes': additional_targets,
+                            'boot_from_volume': True})
+    # TODO(TheJulia): FibreChannel boot, i.e. wwpn in volume_type
+    # for FCoE, should go here.
+    return pxe_options
 
 
 @METRICS.timer('validate_boot_option_for_trusted_boot')
@@ -311,6 +372,9 @@ def _clean_up_pxe_env(task, images_info):
 
 
 class PXEBoot(base.BootInterface):
+
+    def __init__(self):
+        self.capabilities = ['iscsi_volume_boot']
 
     def get_properties(self):
         """Return the properties of the interface.
