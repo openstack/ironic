@@ -160,3 +160,64 @@ class TestPortObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
 
     def test_payload_schemas(self):
         self._check_payload_schemas(objects.port, objects.Port.fields)
+
+
+class TestConvertToVersion(db_base.DbTestCase):
+
+    def setUp(self):
+        super(TestConvertToVersion, self).setUp()
+        self.fake_port = db_utils.get_test_port()
+
+    def test_physnet_supported_missing(self):
+        # Physical network not set, should be set to default.
+        port = objects.Port(self.context, **self.fake_port)
+        delattr(port, 'physical_network')
+        port.obj_reset_changes()
+        port._convert_to_version("1.7")
+        self.assertIsNone(port.physical_network)
+        self.assertEqual({'physical_network': None}, port.obj_get_changes())
+
+    def test_physnet_supported_set(self):
+        # Physical network set, no change required.
+        port = objects.Port(self.context, **self.fake_port)
+        port.physical_network = 'physnet1'
+        port.obj_reset_changes()
+        port._convert_to_version("1.7")
+        self.assertEqual('physnet1', port.physical_network)
+        self.assertEqual({}, port.obj_get_changes())
+
+    def test_physnet_unsupported_missing(self):
+        # Physical network not set, no change required.
+        port = objects.Port(self.context, **self.fake_port)
+        delattr(port, 'physical_network')
+        port.obj_reset_changes()
+        port._convert_to_version("1.6")
+        self.assertNotIn('physical_network', port)
+        self.assertEqual({}, port.obj_get_changes())
+
+    def test_physnet_unsupported_set_remove(self):
+        # Physical network set, should be removed.
+        port = objects.Port(self.context, **self.fake_port)
+        port.physical_network = 'physnet1'
+        port.obj_reset_changes()
+        port._convert_to_version("1.6")
+        self.assertNotIn('physical_network', port)
+        self.assertEqual({}, port.obj_get_changes())
+
+    def test_physnet_unsupported_set_no_remove_non_default(self):
+        # Physical network set, should be set to default.
+        port = objects.Port(self.context, **self.fake_port)
+        port.physical_network = 'physnet1'
+        port.obj_reset_changes()
+        port._convert_to_version("1.6", False)
+        self.assertIsNone(port.physical_network)
+        self.assertEqual({'physical_network': None}, port.obj_get_changes())
+
+    def test_physnet_unsupported_set_no_remove_default(self):
+        # Physical network set, no change required.
+        port = objects.Port(self.context, **self.fake_port)
+        port.physical_network = None
+        port.obj_reset_changes()
+        port._convert_to_version("1.6", False)
+        self.assertIsNone(port.physical_network)
+        self.assertEqual({}, port.obj_get_changes())
