@@ -807,24 +807,6 @@ class TestSwiftTempUrlCache(base.TestCase):
         self.assertNotIn(fake_image['id'], self.glance_service._cache)
 
 
-class TestGlanceUrl(base.TestCase):
-
-    def test_generate_glance_http_url(self):
-        self.config(glance_host="127.0.0.1", group='glance')
-        generated_url = service_utils.generate_glance_url()
-        http_url = "http://%s:%d" % (CONF.glance.glance_host,
-                                     CONF.glance.glance_port)
-        self.assertEqual(http_url, generated_url)
-
-    def test_generate_glance_https_url(self):
-        self.config(glance_protocol="https", group='glance')
-        self.config(glance_host="127.0.0.1", group='glance')
-        generated_url = service_utils.generate_glance_url()
-        https_url = "https://%s:%d" % (CONF.glance.glance_host,
-                                       CONF.glance.glance_port)
-        self.assertEqual(https_url, generated_url)
-
-
 class TestServiceUtils(base.TestCase):
 
     def test_parse_image_ref_no_ssl(self):
@@ -832,24 +814,14 @@ class TestServiceUtils(base.TestCase):
             u'image_\u00F9\u00FA\u00EE\u0111'
         parsed_href = service_utils.parse_image_ref(image_href)
         self.assertEqual((u'image_\u00F9\u00FA\u00EE\u0111',
-                          '127.0.0.1', 9292, False), parsed_href)
+                          'http://127.0.0.1:9292', False), parsed_href)
 
     def test_parse_image_ref_ssl(self):
         image_href = 'https://127.0.0.1:9292/image_path/'\
                      u'image_\u00F9\u00FA\u00EE\u0111'
         parsed_href = service_utils.parse_image_ref(image_href)
         self.assertEqual((u'image_\u00F9\u00FA\u00EE\u0111',
-                          '127.0.0.1', 9292, True), parsed_href)
-
-    def test_generate_image_url(self):
-        image_href = u'image_\u00F9\u00FA\u00EE\u0111'
-        self.config(glance_host='123.123.123.123', group='glance')
-        self.config(glance_port=1234, group='glance')
-        self.config(glance_protocol='https', group='glance')
-        generated_url = service_utils.generate_image_url(image_href)
-        self.assertEqual('https://123.123.123.123:1234/images/'
-                         u'image_\u00F9\u00FA\u00EE\u0111',
-                         generated_url)
+                          'https://127.0.0.1:9292', True), parsed_href)
 
     def test_is_glance_image(self):
         image_href = u'uui\u0111'
@@ -884,18 +856,34 @@ class TestGlanceAPIServers(base.TestCase):
         super(TestGlanceAPIServers, self).setUp()
         service_utils._GLANCE_API_SERVER = None
 
-    def test__get_api_servers_default(self):
-        host, port, use_ssl = service_utils._get_api_server()
-        self.assertEqual(CONF.glance.glance_host, host)
-        self.assertEqual(CONF.glance.glance_port, port)
-        self.assertEqual(CONF.glance.glance_protocol == 'https', use_ssl)
+    @mock.patch.object(service_utils.keystone, 'get_service_url',
+                       autospec=True)
+    @mock.patch.object(service_utils.keystone, 'get_session', autospec=True)
+    def test__get_api_servers_with_keystone(self, mock_session,
+                                            mock_service_url):
+        mock_service_url.return_value = 'https://example.com'
+
+        endpoint = service_utils._get_api_server()
+        self.assertEqual('https://example.com', endpoint)
+
+        mock_session.assert_called_once_with('service_catalog')
+        mock_service_url.assert_called_once_with(mock_session.return_value,
+                                                 service_type='image',
+                                                 endpoint_type='public')
+
+    def test__get_api_servers_with_host_port(self):
+        CONF.set_override('glance_host', 'example.com', 'glance')
+        CONF.set_override('glance_port', 42, 'glance')
+        CONF.set_override('glance_protocol', 'https', 'glance')
+        endpoint = service_utils._get_api_server()
+        self.assertEqual('https://example.com:42', endpoint)
 
     def test__get_api_servers_one(self):
         CONF.set_override('glance_api_servers', ['https://10.0.0.1:9293'],
                           'glance')
         s1 = service_utils._get_api_server()
         s2 = service_utils._get_api_server()
-        self.assertEqual(('10.0.0.1', 9293, True), s1)
+        self.assertEqual('https://10.0.0.1:9293', s1)
 
         # Only one server, should always get the same one
         self.assertEqual(s1, s2)

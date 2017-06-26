@@ -1210,9 +1210,6 @@ function configure_ironic_conductor {
         iniset $IRONIC_CONF_FILE glance swift_account AUTH_${tenant_id}
         iniset $IRONIC_CONF_FILE glance swift_container glance
         iniset $IRONIC_CONF_FILE glance swift_temp_url_duration 3600
-        iniset $IRONIC_CONF_FILE glance glance_protocol $GLANCE_SERVICE_PROTOCOL
-        iniset $IRONIC_CONF_FILE glance glance_host $SERVICE_HOST
-        iniset $IRONIC_CONF_FILE glance glance_port $GLANCE_SERVICE_PORT
     fi
 
     if is_deployed_by_agent; then

@@ -27,23 +27,12 @@ import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
 from ironic.common import image_service
+from ironic.common import keystone
 
 CONF = cfg.CONF
 
 _GLANCE_API_SERVER = None
 """ iterator that cycles (indefinitely) over glance API servers. """
-
-
-def generate_glance_url():
-    """Generate the URL to glance."""
-    return "%s://%s:%d" % (CONF.glance.glance_protocol,
-                           CONF.glance.glance_host,
-                           CONF.glance.glance_port)
-
-
-def generate_image_url(image_ref):
-    """Generate an image URL from an image_ref."""
-    return "%s/images/%s" % (generate_glance_url(), image_ref)
 
 
 def _extract_attributes(image):
@@ -110,24 +99,28 @@ def _get_api_server_iterator():
 
     If CONF.glance.glance_api_servers isn't set, we fall back to using this
     as the server: CONF.glance.glance_host:CONF.glance.glance_port.
+    If CONF.glance.glance_host is also not set, fetch the endpoint from the
+    service catalog.
 
     :returns: iterator that cycles (indefinitely) over shuffled glance API
-              servers. The iterator returns tuples of (host, port, use_ssl).
+              servers.
     """
     api_servers = []
 
-    configured_servers = (CONF.glance.glance_api_servers or
-                          ['%s:%s' % (CONF.glance.glance_host,
-                                      CONF.glance.glance_port)])
-    for api_server in configured_servers:
-        if '//' not in api_server:
-            api_server = '%s://%s' % (CONF.glance.glance_protocol, api_server)
-        url = urlparse.urlparse(api_server)
-        port = url.port or 80
-        host = url.netloc.split(':', 1)[0]
-        use_ssl = (url.scheme == 'https')
-        api_servers.append((host, port, use_ssl))
-    random.shuffle(api_servers)
+    if not CONF.glance.glance_api_servers and not CONF.glance.glance_host:
+        session = keystone.get_session('service_catalog')
+        api_servers = [keystone.get_service_url(session, service_type='image',
+                                                endpoint_type='public')]
+    else:
+        configured_servers = (CONF.glance.glance_api_servers or
+                              ['%s:%s' % (CONF.glance.glance_host,
+                                          CONF.glance.glance_port)])
+        for api_server in configured_servers:
+            if '//' not in api_server:
+                api_server = '%s://%s' % (CONF.glance.glance_protocol,
+                                          api_server)
+            api_servers.append(api_server)
+        random.shuffle(api_servers)
     return itertools.cycle(api_servers)
 
 
@@ -145,29 +138,31 @@ def _get_api_server():
 
 
 def parse_image_ref(image_href):
-    """Parse an image href into composite parts.
+    """Parse an image href.
 
     :param image_href: href of an image
-    :returns: a tuple of the form (image_id, host, port, use_ssl)
+    :returns: a tuple (image ID, glance URL, whether to use SSL)
 
     :raises ValueError: when input image href is invalid
     """
     if '/' not in six.text_type(image_href):
-        image_id = image_href
-        (glance_host, glance_port, use_ssl) = _get_api_server()
-        return (image_id, glance_host, glance_port, use_ssl)
+        endpoint = _get_api_server()
+        return (image_href, endpoint, endpoint.startswith('https'))
     else:
         try:
             url = urlparse.urlparse(image_href)
             if url.scheme == 'glance':
-                (glance_host, glance_port, use_ssl) = _get_api_server()
+                endpoint = _get_api_server()
                 image_id = image_href.split('/')[-1]
+                return (image_id, endpoint, endpoint.startswith('https'))
             else:
                 glance_port = url.port or 80
                 glance_host = url.netloc.split(':', 1)[0]
                 image_id = url.path.split('/')[-1]
                 use_ssl = (url.scheme == 'https')
-            return (image_id, glance_host, glance_port, use_ssl)
+                endpoint = '%s://%s:%s' % (url.scheme, glance_host,
+                                           glance_port)
+                return (image_id, endpoint, use_ssl)
         except ValueError:
             raise exception.InvalidImageRef(image_href=image_href)
 

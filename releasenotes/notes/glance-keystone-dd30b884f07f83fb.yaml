@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    The configuration option ``[glance]glance_host`` is now empty by default.
+    If neither it nor ``[glance]glance_api_servers`` are provided, ironic will
+    now try fetching the Image service endpoint from the service catalog.
+deprecations:
+  - |
+    The configuration options ``[glance]glance_host``, ``[glance]glance_port``
+    and ``[glance]glance_protocol`` are deprecated in favor of either using
+    ``[glance]glance_api_servers`` or using the service catalog.

@@ -104,20 +104,29 @@ opts = [
                       'multiple containers to store images, and this value '
                       'will determine how many containers are created.')),
     cfg.StrOpt('glance_host',
-               default='$my_ip',
-               help=_('Default glance hostname or IP address.')),
+               help=_('Default glance hostname or IP address. The service '
+                      'catalog is used when not defined. Deprecated, '
+                      'use glance_api_servers instead.'),
+               deprecated_for_removal=True),
     cfg.PortOpt('glance_port',
                 default=9292,
-                help=_('Default glance port.')),
+                help=_('Default glance port. Deprecated, use '
+                       'glance_api_servers instead.'),
+                deprecated_for_removal=True),
     cfg.StrOpt('glance_protocol',
                default='http',
                choices=['http', 'https'],
                help=_('Default protocol to use when connecting to glance. '
-                      'Set to https for SSL.')),
+                      'Set to https for SSL. Deprecated, use '
+                      'glance_api_services instead.'),
+               deprecated_for_removal=True),
     cfg.ListOpt('glance_api_servers',
                 help=_('A list of the glance api servers available to ironic. '
                        'Prefix with https:// for SSL-based glance API '
-                       'servers. Format is [hostname|IP]:port.')),
+                       'servers. Format is [hostname|IP]:port. If neither '
+                       'this option nor glance_host is set, the service '
+                       'catalog is used. It is recommended to rely on the '
+                       'service catalog, if possible.')),
     cfg.BoolOpt('glance_api_insecure',
                 default=False,
                 help=_('Allow to perform insecure SSL (https) requests to '
