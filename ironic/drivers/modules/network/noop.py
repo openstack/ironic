@@ -61,7 +61,7 @@ class NoopNetwork(base.NetworkInterface):
         :returns: List of VIF dictionaries, each dictionary will have an 'id'
             entry with the ID of the VIF.
         """
-        pass
+        return []
 
     def get_current_vif(self, task, p_obj):
         """Returns the currently used VIF associated with port or portgroup
