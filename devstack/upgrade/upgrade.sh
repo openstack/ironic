@@ -106,7 +106,7 @@ start_ironic
 # may cause nova-compute failure due to LP1537076
 stop_nova_compute || true
 wait_for_keystone
-start_nova_compute
+start_nova_compute nomulticell
 
 if [[ -n "$ensure_stopped" ]]; then
     ensure_services_stopped $ensure_stopped
