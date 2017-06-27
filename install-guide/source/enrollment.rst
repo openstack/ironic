@@ -236,6 +236,29 @@ and may be combined if desired.
 
    See `Choosing a driver`_ above for details on driver properties.
 
+#. Specify a deploy kernel and ramdisk compatible with the node's driver,
+   for example:
+
+   .. code-block:: console
+
+    $ ironic node-update $NODE_UUID add \
+        driver_info/deploy_kernel=$DEPLOY_VMLINUZ_UUID \
+        driver_info/deploy_ramdisk=$DEPLOY_INITRD_UUID
+
+   See :doc:`configure-glance-images` for details.
+
+#. You must also inform the Bare Metal service of the network interface cards
+   which are part of the node by creating a port with each NIC's MAC address.
+   These MAC addresses are passed to the Networking service during instance
+   provisioning and used to configure the network appropriately:
+
+   .. code-block:: console
+
+    $ ironic port-create -n $NODE_UUID -a $MAC_ADDRESS
+
+Adding scheduling information
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 #. Update the node's properties to match the bare metal flavor you created
    when :doc:`configure-nova-flavors`:
 
@@ -273,25 +296,36 @@ and may be combined if desired.
       :ref:`root-device-hints`), the ``local_gb`` value should match the size
       of picked target disk.
 
-   .. TODO(dtantsur): cover resource classes
+   .. note::
+      Properties-based approach to scheduling will eventually be replaced by
+      scheduling based on custom resource classes, as explained below and in
+      :doc:`configure-nova-flavors`.
 
-#. As mentioned in the :ref:`flavor-creation` section, you should specify
-   a deploy kernel and ramdisk compatible with the node's driver, for example:
+#. Assign a *resource class* to the node. Resource classes will be used for
+   scheduling bare metal instances in the future. A *resource class* should
+   represent a class of hardware in your data center, that roughly corresponds
+   to a Compute flavor.
+
+   For example, you may split hardware into three classes:
+
+   #. nodes with a lot of RAM and powerful CPU for computational tasks,
+   #. nodes with powerful GPU for OpenCL computing,
+   #. smaller nodes for development and testing.
+
+   These would correspond to three resource classes, which you can name
+   arbitrary, e.g. ``large-cpu``, ``large-gpu`` and ``small``.
 
    .. code-block:: console
 
-    $ ironic node-update $NODE_UUID add \
-        driver_info/deploy_kernel=$DEPLOY_VMLINUZ_UUID \
-        driver_info/deploy_ramdisk=$DEPLOY_INITRD_UUID
+    $ ironic --ironic-api-version=1.21 node-update $NODE_UUID \
+        replace resource_class=$CLASS_NAME
 
-#. You must also inform the Bare Metal service of the network interface cards
-   which are part of the node by creating a port with each NIC's MAC address.
-   These MAC addresses are passed to the Networking service during instance
-   provisioning and used to configure the network appropriately:
+   To use resource classes for scheduling you need to update your flavors as
+   described in :doc:`configure-nova-flavors`.
 
-   .. code-block:: console
-
-    $ ironic port-create -n $NODE_UUID -a $MAC_ADDRESS
+   .. note::
+      Scheduling based on resource classes will replace scheduling based on
+      properties in the future.
 
 #. If you wish to perform more advanced scheduling of the instances based on
    hardware capabilities, you may add metadata to each node that will be
