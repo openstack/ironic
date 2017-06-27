@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes an issue with the 'noop' network interface where listing the VIFs for
+    a node fails with a HTTP 500 Internal Server Error.
