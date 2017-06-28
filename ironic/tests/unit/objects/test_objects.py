@@ -38,7 +38,15 @@ class MyObj(base.IronicObject, object_base.VersionedObjectDictCompat):
     fields = {'foo': fields.IntegerField(),
               'bar': fields.StringField(),
               'missing': fields.StringField(),
+              # nested object added as string for simplicity
+              'nested_object': fields.StringField(),
               }
+
+    def _set_from_db_object(self, context, db_object, fields=None):
+        fields = set(fields or self.fields) - {'nested_object'}
+        super(MyObj, self)._set_from_db_object(context, db_object, fields)
+        # some special manipulation with nested_object here
+        self['nested_object'] = db_object.get('nested_object', '') + 'test'
 
     def obj_load_attr(self, attrname):
         if attrname == 'version':
@@ -332,7 +340,7 @@ class _TestObject(object):
 
     def test_object_inheritance(self):
         base_fields = list(base.IronicObject.fields)
-        myobj_fields = ['foo', 'bar', 'missing'] + base_fields
+        myobj_fields = ['foo', 'bar', 'missing', 'nested_object'] + base_fields
         myobj3_fields = ['new_field']
         self.assertTrue(issubclass(TestSubclassedObject, MyObj))
         self.assertEqual(len(myobj_fields), len(MyObj.fields))
@@ -505,6 +513,34 @@ class _TestObject(object):
 
     @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING',
                 autospec=True)
+    def test__from_db_object_no_version_subset_of_fields(self,
+                                                         mock_release_mapping):
+        # DB doesn't have version; get it from mapping
+        mock_release_mapping.__getitem__.return_value = {
+            'objects': {
+                'MyObj': '1.5',
+            }
+        }
+        obj = MyObj(self.context)
+        dbobj = {'created_at': timeutils.utcnow(),
+                 'updated_at': timeutils.utcnow(),
+                 'version': None,
+                 'foo': 123, 'bar': 'test', 'missing': '',
+                 'nested_object': 'test'}
+        # Mock obj_load_attr as this is what is called if an attribute that we
+        # try to access is not yet set. For all ironic objects it's a noop,
+        # we've implemented it in MyObj purely for testing
+        with mock.patch.object(obj, 'obj_load_attr'):
+            MyObj._from_db_object(self.context, obj, dbobj,
+                                  fields=['foo', 'bar'])
+            self.assertEqual(obj.__class__.VERSION, obj.VERSION)
+            self.assertEqual(123, obj.foo)
+            self.assertEqual('test', obj.bar)
+            self.assertRaises(AttributeError, getattr, obj, 'missing')
+            self.assertEqual('testtest', obj.nested_object)
+
+    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING',
+                autospec=True)
     def test__from_db_object_map_version_bad(self, mock_release_mapping):
         mock_release_mapping.__getitem__.return_value = {
             'objects': {
@@ -626,7 +662,7 @@ class TestObject(_LocalTest, _TestObject):
 # The fingerprint values should only be changed if there is a version bump.
 expected_object_fingerprints = {
     'Node': '1.21-52674c214141cf3e09f8688bfed54577',
-    'MyObj': '1.5-4f5efe8f0fcaf182bbe1c7fe3ba858db',
+    'MyObj': '1.5-9459d30d6954bffc7a9afd347a807ca6',
     'Chassis': '1.3-d656e039fd8ae9f34efc232ab3980905',
     'Port': '1.7-898a47921f4a1f53fcdddd4eeb179e0b',
     'Portgroup': '1.3-71923a81a86743b313b190f5c675e258',
