@@ -20,6 +20,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conductor import utils as cond_utils
 from ironic.drivers import base
 from ironic.drivers.modules.redfish import utils as redfish_utils
 
@@ -42,6 +43,12 @@ if sushy:
         states.SOFT_REBOOT: sushy.RESET_GRACEFUL_RESTART,
         states.SOFT_POWER_OFF: sushy.RESET_GRACEFUL_SHUTDOWN
     }
+
+TARGET_STATE_MAP = {
+    states.REBOOT: states.POWER_ON,
+    states.SOFT_REBOOT: states.POWER_ON,
+    states.SOFT_POWER_OFF: states.POWER_OFF,
+}
 
 
 class RedfishPower(base.PowerInterface):
@@ -93,7 +100,7 @@ class RedfishPower(base.PowerInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         :param power_state: Any power state from :mod:`ironic.common.states`.
-        :param timeout: Not used by this driver.
+        :param timeout: Time to wait for the node to reach the requested state.
         :raises: MissingParameterValue if a required parameter is missing.
         :raises: RedfishConnectionError when it fails to connect to Redfish
         :raises: RedfishError on an error from the Sushy library
@@ -108,12 +115,16 @@ class RedfishPower(base.PowerInterface):
             LOG.error(error_msg)
             raise exception.RedfishError(error=error_msg)
 
+        target_state = TARGET_STATE_MAP.get(power_state, power_state)
+        cond_utils.node_wait_for_power_state(task, target_state,
+                                             timeout=timeout)
+
     @task_manager.require_exclusive_lock
     def reboot(self, task, timeout=None):
         """Perform a hard reboot of the task's node.
 
         :param task: a TaskManager instance containing the node to act on.
-        :param timeout: Not used by this driver.
+        :param timeout: Time to wait for the node to become powered on.
         :raises: MissingParameterValue if a required parameter is missing.
         :raises: RedfishConnectionError when it fails to connect to Redfish
         :raises: RedfishError on an error from the Sushy library
@@ -132,6 +143,9 @@ class RedfishPower(base.PowerInterface):
                                                   'error': e})
             LOG.error(error_msg)
             raise exception.RedfishError(error=error_msg)
+
+        cond_utils.node_wait_for_power_state(task, states.POWER_ON,
+                                             timeout=timeout)
 
     def get_supported_power_states(self, task):
         """Get a list of the supported power states.
