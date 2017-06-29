@@ -20,14 +20,31 @@ from oslo_config import cfg
 from ironic.common.i18n import _
 
 opts = [
-    cfg.IntOpt('retry_timeout',
+    cfg.IntOpt('command_retry_timeout',
                default=60,
+               help=_('Maximum time in seconds to retry, retryable IPMI '
+                      'operations. For example if the requested action fails '
+                      'because the BMC is busy. There is a tradeoff when '
+                      'setting this value. Setting this too low may cause '
+                      'older BMCs to crash and require a hard reset. However, '
+                      'setting too high can cause the sync power state '
+                      'periodic task to hang when there are slow or '
+                      'unresponsive BMCs.')),
+    cfg.IntOpt('retry_timeout',
                help=_('Maximum time in seconds to retry IPMI operations. '
                       'There is a tradeoff when setting this value. Setting '
                       'this too low may cause older BMCs to crash and require '
                       'a hard reset. However, setting too high can cause the '
                       'sync power state periodic task to hang when there are '
-                      'slow or unresponsive BMCs.')),
+                      'slow or unresponsive BMCs.'),
+               deprecated_for_removal=True,
+               deprecated_reason=_('Option ipmi.command_retry_timeout should '
+                                   'be used to define IPMI command retries '
+                                   'and option '
+                                   'conductor.power_state_change_timeout '
+                                   'should be use to define timeout value for '
+                                   'waiting for power operations to '
+                                   'complete')),
     cfg.IntOpt('min_command_interval',
                default=5,
                help=_('Minimum time, in seconds, between IPMI operations '
