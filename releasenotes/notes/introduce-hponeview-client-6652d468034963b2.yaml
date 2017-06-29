@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Adds the ``hpOneView`` and ``ilorest`` library requirement
+    to the OneView Driver, in order to prepare for the eventual
+    removal of dependency on ``python-oneviewclient`` library.
