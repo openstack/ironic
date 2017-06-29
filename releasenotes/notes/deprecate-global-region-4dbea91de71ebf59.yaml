@@ -1,0 +1,28 @@
+---
+deprecations:
+  - |
+    Configuration option ``[keystone]/region_name`` is deprecated
+    and will be ignored in the Rocky release.
+    Instead, provide per-service ``region_name`` option in the following
+    configuration file sections:
+
+    - service_catalog (for ironic API discovery from keystone service catalog)
+    - glance
+    - neutron
+    - cinder
+    - inspector
+    - swift
+
+upgrade:
+  - |
+    Configuration option ``[keystone]/region_name`` is deprecated
+    and will be ignored in the Rocky release.
+    Instead, provide per-service ``region_name`` option in the following
+    configuration file sections:
+
+    - service_catalog (for ironic API discovery from keystone service catalog)
+    - glance
+    - neutron
+    - cinder
+    - inspector
+    - swift

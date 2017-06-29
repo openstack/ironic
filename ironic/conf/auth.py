@@ -32,10 +32,11 @@ def register_auth_opts(conf, group, service_type=None):
     """
     kaloading.register_session_conf_options(conf, group)
     kaloading.register_auth_conf_options(conf, group)
+    kaloading.register_adapter_conf_options(conf, group)
+    conf.set_default('valid_interfaces', DEFAULT_VALID_INTERFACES, group=group)
+    # TODO(pas-ha) use os-service-type to try find the service_type by the
+    # config group name assuming it is a project name (e.g. 'glance')
     if service_type:
-        kaloading.register_adapter_conf_options(conf, group)
-        conf.set_default('valid_interfaces', DEFAULT_VALID_INTERFACES,
-                         group=group)
         conf.set_default('service_type', service_type, group=group)
 
 

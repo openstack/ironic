@@ -2218,8 +2218,14 @@
 # From ironic
 #
 
-# The region used for getting endpoints of OpenStack services.
-# (string value)
+# DEPRECATED: The region used for getting endpoints of
+# OpenStack services. (string value)
+# This option is deprecated for removal.
+# Its value may be silently ignored in the future.
+# Reason: Use 'region_name' option in the following sections -
+# '[service_catalog]', '[neutron]', '[glance]', '[cinder]',
+# '[swift]' and '[inspector]' to configure region for those
+# services individually.
 #region_name = <None>
 
 
@@ -2643,7 +2649,9 @@
 #domain_name = <None>
 
 # Always use this endpoint URL for requests for this client.
-# (string value)
+# NOTE: The unversioned endpoint should be specified here; to
+# request a particular API version, use the `version`, `min-
+# version`, and/or `max-version` options. (string value)
 #endpoint_override = <None>
 
 # Verify HTTPS connections. (boolean value)
@@ -2736,16 +2744,16 @@
 # Its value may be silently ignored in the future.
 # Reason: Use [neutron]/endpoint_override option instead. It
 # has no default value and must be set explicitly if required
-# to connect to specific neutron URL, for example when
-# [neutron]auth_strategy is noauth.
+# to connect to specific neutron URL, for example in stand
+# alone mode when [neutron]/auth_type is 'none'.
 #url = <None>
 
 # DEPRECATED: Timeout value for connecting to neutron in
 # seconds. (integer value)
 # This option is deprecated for removal.
 # Its value may be silently ignored in the future.
-# Reason: Use [neutron]/timeout option instead. It has no
-# default value and must be set explicitly.
+# Reason: Set the desired value explicitly using the
+# [neutron]/timeout option instead.
 #url_timeout = 30
 
 # User's domain id (string value)
@@ -4057,7 +4065,9 @@
 #domain_name = <None>
 
 # Always use this endpoint URL for requests for this client.
-# (string value)
+# NOTE: The unversioned endpoint should be specified here; to
+# request a particular API version, use the `version`, `min-
+# version`, and/or `max-version` options. (string value)
 #endpoint_override = <None>
 
 # Verify HTTPS connections. (boolean value)

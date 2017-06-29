@@ -67,15 +67,18 @@ Configuring ironic-conductor service
    service users for each service.
 
    Under the hood, Bare Metal service uses ``keystoneauth`` library
-   together with ``Authentication plugin`` and ``Session`` concepts
-   provided by it to instantiate service clients.
+   together with ``Authentication plugin``, ``Session`` and ``Adapter``
+   concepts provided by it to instantiate service clients.
    Please refer to `Keystoneauth documentation`_ for supported plugins,
-   their available options as well as Session-related options
-   for authentication and connection respectively.
+   their available options as well as Session- and Adapter-related options
+   for authentication, connection and endpoint discovery respectively.
 
    In the example below, authentication information for user to access the
    OpenStack Networking service is configured to use:
 
+   * Networking service is deployed in the Identity service region named
+     ``RegionTwo``, with only its ``public`` endpoint interface registered
+     in the service catalog.
    * HTTPS connection with specific CA SSL certificate when making requests
    * the same service user as configured for ironic-api service
    * dynamic ``password`` authentication plugin that will discover
@@ -116,60 +119,45 @@ Configuring ironic-conductor service
       # HTTPs connections. (string value)
       cafile=/opt/stack/data/ca-bundle.pem
 
-#. Notes for configuring the Image service access
+      # The default region_name for endpoint URL discovery. (string
+      # value)
+      region_name = RegionTwo
 
-   .. note::
-      Swift backend for the Image service must be installed and configured
-      for ``agent_*`` drivers. Ceph Object Gateway (RADOS Gateway) is also
-      supported as the Image service's backend (:ref:`radosgw support`).
-
-   Configure the ironic-conductor service to use specific Image service
-   endpoints - only if you do not want to use Image service endpoint discovery
-   from the keystone service catalog.
-   Replace ``<GLANCE_SERVICE_URL>`` with the address of the image service API:
-
-   .. code-block:: ini
-
-      [glance]
-      endpoint_override = <GLANCE_SERVICE_URL>
+      # List of interfaces, in order of preference, for endpoint
+      # URL. (list value)
+      valid_interfaces=public
 
 
-#. Notes for configuring the Network service access
-
-   .. note::
-      To configure the network for ironic-conductor service to perform node
-      cleaning, see :ref:`cleaning` from the admin guide.
-
-   Set a specific URL (replace ``NETWORKING_SERVICE_ENDPOINT``)
-   for connecting to the Networking service, to be the Networking
-   service endpoint - only for the case when you do not want to use
-   discovery of Networking service endpoint from keystone service catalog:
+   By default, in order to communicate with another service, the Bare
+   Metal service will attempt to discover an appropriate endpoint for
+   that service via the Identity service's service catalog.
+   The relevant configuration options from that service group in the Bare
+   Metal service configuration file are used for this purpose.
+   If you want to use a different endpoint for a particular service,
+   specify this via the ``endpoint_override`` configuration option of
+   that service group, in the Bare Metal service's configuration file.
+   Taking the previous Networking service example, this would be
 
    .. code-block:: ini
 
       [neutron]
+      ...
+      endpoint_override = <NEUTRON_API_ADDRESS>
 
-      # URL for connecting to neutron. (string value)
-      endpoint_override = <NETWORKING_SERVICE_ENDPOINT>
-
-#. Configure a specific ironic-api service URL - only if you do not want
-   to use discovery of the Baremetal service endpoint from keystone catalog
-   (for example when having deployed two separate pools of ironic-api services
-   for security reasons).
-   Replace ``IRONIC_API_IP`` with IP of specific ironic-api service as follows:
-
-   .. code-block:: ini
-
-      [conductor]
-
-      # URL of Ironic API service. If not set ironic can get the
-      # current value from the keystone service catalog. (string
-      # value)
-      endpoint_override=http://IRONIC_API_IP:6385
-
+   (Replace `<NEUTRON_API_ADDRESS>` with actual address of a specific
+   Networking service endpoint.)
 
 #. Configure enabled drivers and hardware types as described in
    :doc:`/install/enabling-drivers`.
+
+   A. If you enabled any driver that uses :ref:`direct-deploy`,
+      Swift backend for the Image service must be installed and configured,
+      see :ref:`image-store`.
+      Ceph Object Gateway (RADOS Gateway) is also supported as the Image
+      service's backend, see :ref:`radosgw support`.
+
+#. Configure the network for ironic-conductor service to perform node
+   cleaning, see :ref:`cleaning` from the admin guide.
 
 #. Restart the ironic-conductor service:
 

@@ -18,6 +18,12 @@ from ironic.common.i18n import _
 
 opts = [
     cfg.StrOpt('region_name',
+               deprecated_for_removal=True,
+               deprecated_reason=_("Use 'region_name' option in the following "
+                                   "sections - '[service_catalog]', "
+                                   "'[neutron]', '[glance]', '[cinder]', "
+                                   "'[swift]' and '[inspector]' to configure "
+                                   "region for those services individually."),
                help=_('The region used for getting endpoints of OpenStack'
                       ' services.')),
 ]
