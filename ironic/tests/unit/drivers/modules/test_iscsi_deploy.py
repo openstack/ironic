@@ -568,6 +568,27 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             validate_capabilities_mock.assert_called_once_with(task.node)
             validate_mock.assert_called_once_with(task)
 
+    @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
+                       autospec=True)
+    @mock.patch.object(iscsi_deploy, 'validate', autospec=True)
+    @mock.patch.object(deploy_utils, 'validate_capabilities', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
+    def test_validate_storage_should_write_image_false(
+            self, pxe_validate_mock,
+            validate_capabilities_mock, validate_mock,
+            should_write_image_mock):
+        should_write_image_mock.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+
+            task.driver.deploy.validate(task)
+
+            pxe_validate_mock.assert_called_once_with(task.driver.boot, task)
+            validate_capabilities_mock.assert_called_once_with(task.node)
+            self.assertFalse(validate_mock.called)
+            should_write_image_mock.assert_called_once_with(
+                task.driver.storage, task)
+
     @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
                        autospec=True)
     @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
@@ -646,6 +667,35 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                 self.context, task.node)
             mock_check_image_size.assert_called_once_with(task)
             mock_node_power_action.assert_called_once_with(task, states.REBOOT)
+
+    @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
+                       autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
+                'configure_tenant_networks', spec_set=True, autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
+                'remove_provisioning_network', spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'check_image_size', autospec=True)
+    @mock.patch.object(iscsi_deploy, 'cache_instance_image', autospec=True)
+    def test_deploy_storage_check_write_image_false(self,
+                                                    mock_cache_instance_image,
+                                                    mock_check_image_size,
+                                                    mock_node_power_action,
+                                                    mock_remove_network,
+                                                    mock_tenant_network,
+                                                    mock_write):
+        mock_write.return_value = False
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
+        with task_manager.acquire(self.context,
+                                  self.node.uuid, shared=False) as task:
+            state = task.driver.deploy.deploy(task)
+            self.assertEqual(state, states.DEPLOYDONE)
+            self.assertFalse(mock_cache_instance_image.called)
+            self.assertFalse(mock_check_image_size.called)
+            mock_remove_network.assert_called_once_with(mock.ANY, task)
+            mock_tenant_network.assert_called_once_with(mock.ANY, task)
+            self.assertEqual(2, mock_node_power_action.call_count)
 
     @mock.patch.object(noop_storage.NoopStorage, 'detach_volumes',
                        autospec=True)

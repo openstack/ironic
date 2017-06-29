@@ -590,3 +590,19 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
             self.assertEqual(1, mock_log.error.call_count)
             # CONF.cinder.action_retries + 1, number of retries is set to 3.
             self.assertEqual(4, mock_detach.call_count)
+
+    def test_should_write_image(self):
+        self.node = object_utils.create_test_node(self.context,
+                                                  storage_interface='cinder')
+        object_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=0, volume_id='1234')
+
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.assertFalse(self.interface.should_write_image(task))
+
+        self.node.instance_info = {'image_source': 'fake-value'}
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.assertTrue(self.interface.should_write_image(task))

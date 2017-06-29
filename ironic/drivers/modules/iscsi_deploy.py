@@ -424,6 +424,11 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
         # Check the boot_mode, boot_option and disk_label capabilities values.
         deploy_utils.validate_capabilities(node)
 
+        # Edit early if we are not writing a volume as the validate
+        # tasks evaluate root device hints.
+        if not task.driver.storage.should_write_image(task):
+            return
+
         # TODO(rameshg87): iscsi_ilo driver uses this method. Remove
         # and copy-paste it's contents here once iscsi_ilo deploy driver
         # broken down into separate boot and deploy implementations.
@@ -443,12 +448,24 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
         :returns: deploy state DEPLOYWAIT.
         """
         node = task.node
-        cache_instance_image(task.context, node)
-        check_image_size(task)
+        if task.driver.storage.should_write_image(task):
+            cache_instance_image(task.context, node)
+            check_image_size(task)
+            manager_utils.node_power_action(task, states.REBOOT)
 
-        manager_utils.node_power_action(task, states.REBOOT)
-
-        return states.DEPLOYWAIT
+            return states.DEPLOYWAIT
+        else:
+            # TODO(TheJulia): At some point, we should de-dupe this code
+            # as it is nearly identical to the agent deploy interface.
+            # This is not being done now as it is expected to be
+            # refactored in the near future.
+            manager_utils.node_power_action(task, states.POWER_OFF)
+            task.driver.network.remove_provisioning_network(task)
+            task.driver.network.configure_tenant_networks(task)
+            manager_utils.node_power_action(task, states.POWER_ON)
+            task.process_event('done')
+            LOG.info('Deployment to node %s done', node.uuid)
+            return states.DEPLOYDONE
 
     @METRICS.timer('ISCSIDeploy.tear_down')
     @task_manager.require_exclusive_lock
