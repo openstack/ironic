@@ -29,8 +29,8 @@ opts = [
 
 def register_opts(conf):
     conf.register_opts(opts, group='swift')
-    auth.register_auth_opts(conf, 'swift')
+    auth.register_auth_opts(conf, 'swift', service_type='object-store')
 
 
 def list_opts():
-    return auth.add_auth_opts(opts)
+    return auth.add_auth_opts(opts, service_type='object-store')

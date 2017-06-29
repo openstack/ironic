@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import six
 from six.moves import http_client
 from six.moves.urllib import parse
 from swiftclient import client as swift_client
@@ -45,16 +46,41 @@ class SwiftAPI(object):
         :raises: ConfigInvalid if required keystone authorization credentials
          with swift are missing.
         """
-        params = {}
+        params = {'retries': CONF.swift.swift_max_retries}
         if CONF.deploy.object_store_endpoint_type == 'radosgw':
-            params = {'authurl': CONF.swift.auth_url,
-                      'user': CONF.swift.username,
-                      'key': CONF.swift.password}
+            params.update({'authurl': CONF.swift.auth_url,
+                           'user': CONF.swift.username,
+                           'key': CONF.swift.password})
         else:
-            # NOTE(aNuposic): Session will be initiated only when connection
-            # with swift is initialized. Since v3.2.0 swiftclient supports
-            # instantiating the API client from keystoneauth session.
-            params = {'session': _get_swift_session()}
+            # NOTE(pas-ha) swiftclient still (as of 3.3.0) does not use
+            # (adapter-based) SessionClient, and uses the passed in session
+            # only to resolve endpoint and get a token,
+            # but not to make further requests to Swift itself (LP 1736135).
+            # Thus we need to deconstruct back all the adapter- and
+            # session-related args as loaded by keystoneauth from config
+            # to pass them to the client explicitly.
+            # TODO(pas-ha) re-write this when swiftclient is brought on par
+            # with other OS clients re auth plugins, sessions and adapters
+            # support.
+            # TODO(pas-ha) pass the context here and use token from context
+            # with service auth
+            params['session'] = session = _get_swift_session()
+            adapter = keystone.get_adapter('swift', session=session)
+            params['os_options'] = {
+                'object_storage_url': adapter.get_endpoint()}
+            # deconstruct back session-related options
+            params['timeout'] = session.timeout
+            if session.verify is False:
+                params['insecure'] = True
+            elif isinstance(session.verify, six.string_types):
+                params['cacert'] = session.verify
+            if session.cert:
+                # NOTE(pas-ha) although setting cert as path to single file
+                # with both client cert and key is supported by Session,
+                # keystoneauth loading always sets the session.cert
+                # as tuple of cert and key.
+                params['cert'], params['cert_key'] = session.cert
+
         self.connection = swift_client.Connection(**params)
 
     def create_object(self, container, obj, filename,

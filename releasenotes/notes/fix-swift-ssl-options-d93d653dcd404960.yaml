@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes a bug when SSL-related options in ``[swift]`` section of ironic
+    configuration file were ignored when performing API requests to Swift.
+    See https://launchpad.net/bugs/1736158 for more information.
