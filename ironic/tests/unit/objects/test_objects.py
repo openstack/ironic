@@ -690,6 +690,10 @@ expected_object_fingerprints = {
     'NodeConsoleNotification': '1.0-59acc533c11d306f149846f922739c15',
     'PortgroupCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
     'PortgroupCRUDPayload': '1.0-b73c1fecf0cef3aa56bbe3c7e2275018',
+    'VolumeConnectorCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
+    'VolumeConnectorCRUDPayload': '1.0-5e8dbb41e05b6149d8f7bfd4daff9339',
+    'VolumeTargetCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
+    'VolumeTargetCRUDPayload': '1.0-30dcc4735512c104a3a36a2ae1e2aeb2',
 }
 
 
