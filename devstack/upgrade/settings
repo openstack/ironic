@@ -10,23 +10,16 @@
 register_project_for_upgrade ironic
 register_db_to_save ironic
 
-# Duplicate some setup bits from target DevStack. Use old devstack as we install base environment from it.
-BASE_TOP_DIR=$TOP_DIR/../../old/devstack/
-source $BASE_TOP_DIR/stackrc
-source $BASE_TOP_DIR/lib/tls
-source $BASE_TOP_DIR/lib/nova
-source $BASE_TOP_DIR/lib/neutron-legacy
-source $BASE_TOP_DIR/lib/apache
-source $BASE_TOP_DIR/lib/keystone
+# Duplicate some settings from devstack. Use old devstack as we install base
+# environment from it. In common_settings we also source the old localrc
+# variables, so we need to do this before checking the HOST_TOPOLOGY value
+IRONIC_BASE_DEVSTACK_DIR=$TOP_DIR/../../old/ironic/devstack
+source $IRONIC_BASE_DEVSTACK_DIR/common_settings
 
 if [[ "${HOST_TOPOLOGY}" != "multinode" ]]; then
     # Disable automated cleaning on single node grenade to save a time and resources.
     export IRONIC_AUTOMATED_CLEAN_ENABLED=False
 fi
-
-# Update global variables like DEFAULT_IMAGE_NAME that are set in ironic devstack plugin
-IRONIC_BASE_DEVSTACK_DIR=$BASE_TOP_DIR/../ironic/devstack
-source $IRONIC_BASE_DEVSTACK_DIR/lib/ironic
 
 # NOTE(jlvillal): For multi-node grenade jobs we do not want to upgrade Nova
 if [[ "${HOST_TOPOLOGY}" == "multinode" ]]; then
