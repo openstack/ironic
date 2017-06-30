@@ -1092,11 +1092,11 @@ class PXEBootTestCase(db_base.DbTestCase):
             self.assertFalse(switch_pxe_config_mock.called)
             self.assertFalse(set_boot_device_mock.called)
 
-    @mock.patch('os.path.isfile', return_value=False, autospec=True)
+    @mock.patch('os.path.isfile', lambda filename: False)
     @mock.patch.object(pxe_utils, 'create_pxe_config', autospec=True)
-    @mock.patch.object(deploy_utils, 'is_iscsi_boot', autospec=True)
+    @mock.patch.object(deploy_utils, 'is_iscsi_boot', lambda task: True)
     @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
-                       autospec=True)
+                       lambda task: False)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
     @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
@@ -1105,13 +1105,10 @@ class PXEBootTestCase(db_base.DbTestCase):
     def test_prepare_instance_netboot_iscsi(
             self, get_image_info_mock, cache_mock,
             dhcp_factory_mock, switch_pxe_config_mock,
-            set_boot_device_mock, should_write_image_mock,
-            is_iscsi_boot_mock, create_pxe_config_mock, isfile_mock):
+            set_boot_device_mock, create_pxe_config_mock):
         http_url = 'http://192.1.2.3:1234'
         self.config(ipxe_enabled=True, group='pxe')
         self.config(http_url=http_url, group='deploy')
-        is_iscsi_boot_mock.return_value = True
-        should_write_image_mock.return_valule = False
         provider_mock = mock.MagicMock()
         dhcp_factory_mock.return_value = provider_mock
         vol_id = uuidutils.generate_uuid()

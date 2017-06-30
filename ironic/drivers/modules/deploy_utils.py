@@ -1297,6 +1297,9 @@ def tear_down_storage_configuration(task):
     # this is dangerous if IPA is not handling the cleaning.
     for volume in task.volume_targets:
         volume.destroy()
+        LOG.info('Successfully deleted volume target %(target)s. '
+                 'The node associated with the target was %(node)s.',
+                 {'target': volume.uuid, 'node': task.node.uuid})
 
     node = task.node
     driver_internal_info = node.driver_internal_info
