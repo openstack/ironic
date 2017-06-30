@@ -204,14 +204,6 @@ IRONIC_DEPLOY_RAMDISK=${IRONIC_DEPLOY_RAMDISK:-$TOP_DIR/files/ir-deploy-$IRONIC_
 IRONIC_DEPLOY_KERNEL=${IRONIC_DEPLOY_KERNEL:-$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.kernel}
 IRONIC_DEPLOY_ISO=${IRONIC_DEPLOY_ISO:-$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.iso}
 
-# These parameters describe which image will be used to provision a node in
-# tempest tests
-if [[ -z "$IRONIC_TEMPEST_WHOLE_DISK_IMAGE" && "$IRONIC_VM_EPHEMERAL_DISK" == 0 ]]; then
-    IRONIC_TEMPEST_WHOLE_DISK_IMAGE=True
-fi
-
-IRONIC_TEMPEST_WHOLE_DISK_IMAGE=$(trueorfalse False IRONIC_TEMPEST_WHOLE_DISK_IMAGE)
-
 # NOTE(jroll) this needs to be updated when stable branches are cut
 IPA_DOWNLOAD_BRANCH=${IPA_DOWNLOAD_BRANCH:-master}
 IPA_DOWNLOAD_BRANCH=$(echo $IPA_DOWNLOAD_BRANCH | tr / -)
@@ -445,13 +437,6 @@ IRONIC_PXE_BOOT_IMAGE=${IRONIC_PXE_BOOT_IMAGE:-$(get_pxe_boot_file)}
 
 IRONIC_AUTOMATED_CLEAN_ENABLED=$(trueorfalse True IRONIC_AUTOMATED_CLEAN_ENABLED)
 
-# Whether configure the nodes to boot in Legacy BIOS or UEFI mode. Accepted
-# values are: "bios" or "uefi", defaults to "bios".
-#
-# WARNING: UEFI is EXPERIMENTAL. The CirrOS images uploaded by DevStack by
-# default WILL NOT WORK with UEFI. You will need to download the UEFI capable
-# images manually from [0] and upload it to Glance before deploying.
-IRONIC_BOOT_MODE=${IRONIC_BOOT_MODE:-bios}
 IRONIC_UEFI_FILES_DIR=${IRONIC_UEFI_FILES_DIR:-/var/lib/libvirt/images}
 UEFI_LOADER_PATH=$IRONIC_UEFI_FILES_DIR/OVMF_CODE.fd
 UEFI_NVRAM_PATH=$IRONIC_UEFI_FILES_DIR/OVMF_VARS.fd
@@ -594,13 +579,6 @@ function configure_enabled_interfaces {
     fi
 }
 
-IRONIC_DEFAULT_IMAGE_NAME=cirros-${CIRROS_VERSION}-x86_64-uec
-if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
-    IRONIC_DEFAULT_IMAGE_NAME=cirros-d160722-x86_64-uec
-fi
-
-IRONIC_IMAGE_NAME=${DEFAULT_IMAGE_NAME:-$IRONIC_DEFAULT_IMAGE_NAME}
-
 # Assert that the redfish hardware type is enabled in case we are using
 # the redfish driver
 if is_deployed_by_redfish && [[ "$IRONIC_ENABLED_HARDWARE_TYPES" != *"redfish"* ]]; then
@@ -609,43 +587,6 @@ if is_deployed_by_redfish && [[ "$IRONIC_ENABLED_HARDWARE_TYPES" != *"redfish"* 
         "IRONIC_ENABLED_HARDWARE_TYPES configuration option" \
         "for DevStack"
 fi
-
-# Add link to download queue, ignore if already exist.
-# TODO(vsaienko) Move to devstack https://review.openstack.org/420656
-function add_image_link {
-    local i_link="$1"
-    if ! [[ "$IMAGE_URLS"  =~ "$i_link" ]]; then
-        if [[ -z "$IMAGE_URLS" || "${IMAGE_URLS: -1}" == "," ]]; then
-            IMAGE_URLS+="$i_link"
-        else
-            IMAGE_URLS+=",$i_link"
-        fi
-    fi
-}
-
-if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
-    add_image_link http://download.cirros-cloud.net/daily/20160722/cirros-d160722-x86_64-uec.tar.gz
-    add_image_link http://download.cirros-cloud.net/daily/20160722/cirros-d160722-x86_64-disk.img
-else
-    # NOTE (vsaienko) We are going to test mixed drivers/partitions in single setup.
-    # Do not restrict downloading image only for specific case. Download both disk and uec images.
-    add_image_link http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-x86_64-uec.tar.gz
-    add_image_link http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-x86_64-disk.img
-fi
-
-
-IRONIC_WHOLEDISK_IMAGE_NAME=${IRONIC_WHOLEDISK_IMAGE_NAME:-${IRONIC_IMAGE_NAME/-uec/-disk}}
-IRONIC_PARTITIONED_IMAGE_NAME=${IRONIC_PARTITIONED_IMAGE_NAME:-${IRONIC_IMAGE_NAME/-disk/-uec}}
-
-if [[ "$IRONIC_TEMPEST_WHOLE_DISK_IMAGE" == "True" ]]; then
-    IRONIC_IMAGE_NAME=$IRONIC_WHOLEDISK_IMAGE_NAME
-else
-    IRONIC_IMAGE_NAME=$IRONIC_PARTITIONED_IMAGE_NAME
-fi
-
-# NOTE(vsaienko) set DEFAULT_IMAGE_NAME here, as it is still used by grenade
-# https://github.com/openstack-dev/grenade/blob/90c4ead2f2a7ed48c873c51cef415b83d655752e/projects/60_nova/resources.sh#L31
-export DEFAULT_IMAGE_NAME=$IRONIC_IMAGE_NAME
 
 # Syslinux >= 5.00 pxelinux.0 binary is not "stand-alone" anymore,
 # it depends on some c32 modules to work correctly.

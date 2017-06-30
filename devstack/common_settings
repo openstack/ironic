@@ -1,0 +1,63 @@
+if [[ -f $TOP_DIR/../../old/devstack/.localrc.auto ]]; then
+    source <(cat $TOP_DIR/../../old/devstack/.localrc.auto | grep -v 'enable_plugin')
+fi
+
+CIRROS_VERSION=0.3.5
+
+# Whether configure the nodes to boot in Legacy BIOS or UEFI mode. Accepted
+# values are: "bios" or "uefi", defaults to "bios".
+#
+# WARNING: UEFI is EXPERIMENTAL. The CirrOS images uploaded by DevStack by
+# default WILL NOT WORK with UEFI.
+IRONIC_BOOT_MODE=${IRONIC_BOOT_MODE:-bios}
+
+IRONIC_DEFAULT_IMAGE_NAME=cirros-${CIRROS_VERSION}-x86_64-uec
+if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
+    IRONIC_DEFAULT_IMAGE_NAME=cirros-d160722-x86_64-uec
+fi
+
+IRONIC_IMAGE_NAME=${DEFAULT_IMAGE_NAME:-$IRONIC_DEFAULT_IMAGE_NAME}
+
+# Add link to download queue, ignore if already exist.
+# TODO(vsaienko) Move to devstack https://review.openstack.org/420656
+function add_image_link {
+    local i_link="$1"
+    if ! [[ "$IMAGE_URLS"  =~ "$i_link" ]]; then
+        if [[ -z "$IMAGE_URLS" || "${IMAGE_URLS: -1}" == "," ]]; then
+            IMAGE_URLS+="$i_link"
+        else
+            IMAGE_URLS+=",$i_link"
+        fi
+    fi
+}
+
+if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
+    add_image_link http://download.cirros-cloud.net/daily/20160722/cirros-d160722-x86_64-uec.tar.gz
+    add_image_link http://download.cirros-cloud.net/daily/20160722/cirros-d160722-x86_64-disk.img
+else
+    # NOTE (vsaienko) We are going to test mixed drivers/partitions in single setup.
+    # Do not restrict downloading image only for specific case. Download both disk and uec images.
+    add_image_link http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-x86_64-uec.tar.gz
+    add_image_link http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-x86_64-disk.img
+fi
+
+export IRONIC_WHOLEDISK_IMAGE_NAME=${IRONIC_WHOLEDISK_IMAGE_NAME:-${IRONIC_IMAGE_NAME/-uec/-disk}}
+export IRONIC_PARTITIONED_IMAGE_NAME=${IRONIC_PARTITIONED_IMAGE_NAME:-${IRONIC_IMAGE_NAME/-disk/-uec}}
+
+# These parameters describe which image will be used to provision a node in
+# tempest tests
+if [[ -z "$IRONIC_TEMPEST_WHOLE_DISK_IMAGE" && "$IRONIC_VM_EPHEMERAL_DISK" == 0 ]]; then
+    IRONIC_TEMPEST_WHOLE_DISK_IMAGE=True
+fi
+
+IRONIC_TEMPEST_WHOLE_DISK_IMAGE=$(trueorfalse False IRONIC_TEMPEST_WHOLE_DISK_IMAGE)
+
+if [[ "$IRONIC_TEMPEST_WHOLE_DISK_IMAGE" == "True" ]]; then
+    export IRONIC_IMAGE_NAME=$IRONIC_WHOLEDISK_IMAGE_NAME
+else
+    export IRONIC_IMAGE_NAME=$IRONIC_PARTITIONED_IMAGE_NAME
+fi
+
+# NOTE(vsaienko) set DEFAULT_IMAGE_NAME here, as it is still used by grenade
+# https://github.com/openstack-dev/grenade/blob/90c4ead2f2a7ed48c873c51cef415b83d655752e/projects/60_nova/resources.sh#L31
+export DEFAULT_IMAGE_NAME=$IRONIC_IMAGE_NAME
