@@ -89,8 +89,10 @@ class CommonFunctionsTestCase(BaseTestCase):
         self.assertTrue(warn_mock.called)
 
 
+@mock.patch('ironic.common.keystone.get_auth',
+            lambda _section, **kwargs: mock.sentinel.auth)
 @mock.patch('ironic.common.keystone.get_session',
-            lambda _n: mock.sentinel.session)
+            lambda _section, **kwargs: mock.sentinel.session)
 @mock.patch.object(eventlet, 'spawn_n', lambda f, *a, **kw: f(*a, **kw))
 @mock.patch.object(client.ClientV1, 'introspect')
 @mock.patch.object(client.ClientV1, '__init__', return_value=None)
@@ -134,8 +136,10 @@ class InspectHardwareTestCase(BaseTestCase):
         mock_introspect.assert_called_once_with(self.node.uuid)
 
 
+@mock.patch('ironic.common.keystone.get_auth',
+            lambda _section, **kwargs: mock.sentinel.auth)
 @mock.patch('ironic.common.keystone.get_session',
-            lambda _n: mock.sentinel.session)
+            lambda _section, **kwargs: mock.sentinel.session)
 @mock.patch.object(client.ClientV1, 'get_status')
 @mock.patch.object(client.ClientV1, '__init__', return_value=None)
 class CheckStatusTestCase(BaseTestCase):

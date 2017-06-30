@@ -108,7 +108,8 @@ def _get_api_server_iterator():
     api_servers = []
 
     if not CONF.glance.glance_api_servers and not CONF.glance.glance_host:
-        session = keystone.get_session('service_catalog')
+        session = keystone.get_session('glance',
+                                       auth=keystone.get_auth('glance'))
         api_servers = [keystone.get_service_url(session, service_type='image',
                                                 endpoint_type='public')]
     else:

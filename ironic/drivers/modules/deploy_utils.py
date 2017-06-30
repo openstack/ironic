@@ -77,7 +77,9 @@ _IRONIC_SESSION = None
 def _get_ironic_session():
     global _IRONIC_SESSION
     if not _IRONIC_SESSION:
-        _IRONIC_SESSION = keystone.get_session('service_catalog')
+        auth = keystone.get_auth('service_catalog')
+        _IRONIC_SESSION = keystone.get_session('service_catalog',
+                                               auth=auth)
     return _IRONIC_SESSION
 
 

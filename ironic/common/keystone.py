@@ -50,44 +50,60 @@ def ks_exceptions(f):
 
 
 @ks_exceptions
-def get_session(group):
+def get_session(group, **session_kwargs):
+    """Loads session object from options in a configuration file section.
+
+    The session_kwargs will be passed directly to keystoneauth1 Session
+    and will override the values loaded from config.
+    Consult keystoneauth1 docs for available options.
+
+    :param group: name of the config section to load session options from
+
+    """
+    return kaloading.load_session_from_conf_options(
+        CONF, group, **session_kwargs)
+
+
+@ks_exceptions
+def get_auth(group, **auth_kwargs):
+    """Loads auth plugin from options in a configuration file section.
+
+    The auth_kwargs will be passed directly to keystoneauth1 auth plugin
+    and will override the values loaded from config.
+    Note that the accepted kwargs will depend on auth plugin type as defined
+    by [group]auth_type option.
+    Consult keystoneauth1 docs for available auth plugins and their options.
+
+    :param group: name of the config section to load auth plugin options from
+
+    """
     try:
-        auth = kaloading.load_auth_from_conf_options(CONF, group)
+        auth = kaloading.load_auth_from_conf_options(CONF, group,
+                                                     **auth_kwargs)
     except kaexception.MissingRequiredOptions:
         LOG.error('Failed to load auth plugin from group %s', group)
         raise
-    session = kaloading.load_session_from_conf_options(
-        CONF, group, auth=auth)
-    return session
+    return auth
 
 
-# TODO(pas-ha) we actually should barely need this at all:
-# if we instantiate a identity.Token auth plugin from incoming
-# request context we could build a session with it, and each client
-# would know its service_type already, looking up the endpoint by itself
+# NOTE(pas-ha) Used by neutronclient and resolving ironic API only
+# FIXME(pas-ha) remove this while moving to kesytoneauth adapters
 @ks_exceptions
-def get_service_url(session, service_type='baremetal',
-                    endpoint_type='internal'):
-    """Wrapper for get service url from keystone service catalog.
+def get_service_url(session, **kwargs):
+    """Find endpoint for given service in keystone catalog.
 
-    Given a service_type and an endpoint_type, this method queries
-    keystone service catalog and provides the url for the desired
-    endpoint.
+    If 'interrace' is provided, fetches service url of this interface.
+    Otherwise, first tries to fetch 'internal' endpoint,
+    and then the 'public' one.
 
-    :param service_type: the keystone service for which url is required.
-    :param endpoint_type: the type of endpoint for the service.
-    :returns: an http/https url for the desired endpoint.
+    :param session: keystoneauth Session object
+    :param kwargs: any other arguments accepted by Session.get_endpoint method
+
     """
-    return session.get_endpoint(service_type=service_type,
-                                interface=endpoint_type,
-                                region_name=CONF.keystone.region_name)
 
-
-# TODO(pas-ha) move all clients to sessions, then we do not need this
-@ks_exceptions
-def get_admin_auth_token(session):
-    """Get admin token.
-
-    Currently used for inspector, glance and swift clients.
-    """
-    return session.get_token()
+    if 'interface' in kwargs:
+        return session.get_endpoint(**kwargs)
+    try:
+        return session.get_endpoint(interface='internal', **kwargs)
+    except kaexception.EndpointNotFound:
+        return session.get_endpoint(interface='public', **kwargs)
