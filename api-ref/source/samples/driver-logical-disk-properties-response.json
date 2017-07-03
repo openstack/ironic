@@ -5,7 +5,7 @@
   "is_root_volume": "Specifies whether this disk is a root volume. By default, this is False. Optional.",
   "number_of_physical_disks": "Number of physical disks to use for this logical disk. By default, the driver uses the minimum number of disks required for that RAID level. Optional.",
   "physical_disks": "The physical disks to use for this logical disk. If not specified, the driver will choose suitable physical disks to use. Optional.",
-  "raid_level": "RAID level for the logical disk. Valid values are 'JBOD', 0', '1', '2', '5', '6', '1+0', '5+0' and '6+0'. Required.",
+  "raid_level": "RAID level for the logical disk. Valid values are 'JBOD', '0', '1', '2', '5', '6', '1+0', '5+0' and '6+0'. Required.",
   "share_physical_disks": "Specifies whether other logical disks can share physical disks with this logical disk. By default, this is False. Optional.",
   "size_gb": "Size in GiB (Integer) for the logical disk. Use 'MAX' as size_gb if this logical disk is supposed to use the rest of the space available. Required.",
   "volume_name": "Name of the volume to be created. If this is not specified, it will be auto-generated. Optional."

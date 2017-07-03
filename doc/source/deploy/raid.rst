@@ -172,7 +172,7 @@ HDD::
                       "disk_type": "ssd"
                      },
                      {
-                      "size_gb": "500",
+                      "size_gb": 500,
                       "raid_level": "1",
                       "disk_type": "hdd"
                      }
