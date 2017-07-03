@@ -1992,6 +1992,10 @@
 # SNMP polling interval in seconds (integer value)
 #snmp_polling_interval = 10
 
+# Priority for restore_irmc_bios_config clean step. (integer
+# value)
+#clean_priority_restore_irmc_bios_config = 0
+
 
 [ironic_lib]
 

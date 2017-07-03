@@ -91,6 +91,7 @@ SCCICLIENT_IRMC_SCCI_SPEC = (
     'UNMOUNT_CD',
     'MOUNT_FD',
     'UNMOUNT_FD',
+    'SCCIError',
     'SCCIClientError',
     'SCCIInvalidInputError',
     'get_share_type',
@@ -100,6 +101,10 @@ SCCICLIENT_IRMC_SCCI_SPEC = (
     'get_virtual_cd_set_params_cmd',
     'get_virtual_fd_set_params_cmd',
     'get_essential_properties',
+)
+SCCICLIENT_IRMC_ELCM_SPEC = (
+    'backup_bios_config',
+    'restore_bios_config',
 )
 
 ONEVIEWCLIENT_SPEC = (

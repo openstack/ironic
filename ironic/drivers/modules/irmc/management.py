@@ -14,6 +14,7 @@
 """
 iRMC Management Driver
 """
+
 from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
@@ -21,14 +22,19 @@ from oslo_utils import importutils
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
+from ironic import conf
+from ironic.drivers import base
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers import utils as driver_utils
 
-scci = importutils.try_import('scciclient.irmc.scci')
+irmc = importutils.try_import('scciclient.irmc')
 
 LOG = logging.getLogger(__name__)
+CONF = conf.CONF
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
@@ -61,12 +67,12 @@ def _get_sensors_data(task):
 
     try:
         report = irmc_common.get_irmc_report(task.node)
-        sensor = scci.get_sensor_data(report)
+        sensor = irmc.scci.get_sensor_data(report)
 
     except (exception.InvalidParameterValue,
             exception.MissingParameterValue,
-            scci.SCCIInvalidInputError,
-            scci.SCCIClientError) as e:
+            irmc.scci.SCCIInvalidInputError,
+            irmc.scci.SCCIClientError) as e:
         LOG.error("SCCI get sensor data failed for node %(node_id)s "
                   "with the following error: %(error)s",
                   {'node_id': task.node.uuid, 'error': e})
@@ -104,6 +110,96 @@ def _get_sensors_data(task):
         }
 
     return sensors_data
+
+
+def backup_bios_config(task):
+    """Backup BIOS config from a node.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :raises: IRMCOperationError on failure.
+    """
+    node_uuid = task.node.uuid
+
+    # Skip this operation if the clean step 'restore' is disabled
+    if CONF.irmc.clean_priority_restore_irmc_bios_config == 0:
+        LOG.debug('Skipped the operation backup_BIOS_config for node %s '
+                  'as the clean step restore_BIOS_config is disabled.',
+                  node_uuid)
+        return
+
+    irmc_info = irmc_common.parse_driver_info(task.node)
+
+    try:
+        # Backup bios config
+        result = irmc.elcm.backup_bios_config(irmc_info)
+    except irmc.scci.SCCIError as e:
+        LOG.error('Failed to backup BIOS config for node %(node)s. '
+                  'Error: %(error)s', {'node': node_uuid, 'error': e})
+        raise exception.IRMCOperationError(operation='backup BIOS config',
+                                           error=e)
+
+    # Save bios config into the driver_internal_info
+    internal_info = task.node.driver_internal_info
+    internal_info['irmc_bios_config'] = result['bios_config']
+    task.node.driver_internal_info = internal_info
+    task.node.save()
+
+    LOG.info('BIOS config is backed up successfully for node %s',
+             node_uuid)
+
+    # NOTE(tiendc): When the backup operation done, server is automatically
+    # shutdown. However, this function is called right before the method
+    # task.driver.deploy() that will trigger a reboot. So, we don't need
+    # to power on the server at this point.
+
+
+def _restore_bios_config(task):
+    """Restore BIOS config to a node.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :raises: IRMCOperationError if the operation fails.
+    """
+    node_uuid = task.node.uuid
+
+    # Get bios config stored in the node object
+    bios_config = task.node.driver_internal_info.get('irmc_bios_config')
+    if not bios_config:
+        LOG.info('Skipped operation "restore BIOS config" on node %s '
+                 'as the backup data not found.', node_uuid)
+        return
+
+    def _remove_bios_config(task):
+        """Remove backup bios config from the node."""
+        internal_info = task.node.driver_internal_info
+        internal_info.pop('irmc_bios_config', None)
+        task.node.driver_internal_info = internal_info
+        task.node.save()
+
+    irmc_info = irmc_common.parse_driver_info(task.node)
+
+    try:
+        # Restore bios config
+        irmc.elcm.restore_bios_config(irmc_info, bios_config)
+    except irmc.scci.SCCIError as e:
+        # If the input bios config is not correct or corrupted, then
+        # we should remove it from the node object.
+        if isinstance(e, irmc.scci.SCCIInvalidInputError):
+            _remove_bios_config(task)
+
+        LOG.error('Failed to restore BIOS config on node %(node)s. '
+                  'Error: %(error)s', {'node': node_uuid, 'error': e})
+        raise exception.IRMCOperationError(operation='restore BIOS config',
+                                           error=e)
+
+    # Remove the backup data after restoring
+    _remove_bios_config(task)
+
+    LOG.info('BIOS config is restored successfully on node %s',
+             node_uuid)
+
+    # Change power state to ON as server is automatically
+    # shutdown after the operation.
+    manager_utils.node_power_action(task, states.POWER_ON)
 
 
 class IRMCManagement(ipmitool.IPMIManagement):
@@ -249,9 +345,25 @@ class IRMCManagement(ipmitool.IPMIManagement):
         node = task.node
         irmc_client = irmc_common.get_irmc_client(node)
         try:
-            irmc_client(scci.POWER_RAISE_NMI)
-        except scci.SCCIClientError as err:
+            irmc_client(irmc.scci.POWER_RAISE_NMI)
+        except irmc.scci.SCCIClientError as err:
             LOG.error('iRMC Inject NMI failed for node %(node)s: %(err)s.',
                       {'node': node.uuid, 'err': err})
             raise exception.IRMCOperationError(
-                operation=scci.POWER_RAISE_NMI, error=err)
+                operation=irmc.scci.POWER_RAISE_NMI, error=err)
+
+    @METRICS.timer('IRMCManagement.restore_irmc_bios_config')
+    @base.clean_step(
+        priority=CONF.irmc.clean_priority_restore_irmc_bios_config)
+    def restore_irmc_bios_config(self, task):
+        """Restore BIOS config for a node.
+
+        :param task: a task from TaskManager.
+        :raises: NodeCleaningFailure, on failure to execute step.
+        :returns: None.
+        """
+        try:
+            _restore_bios_config(task)
+        except exception.IRMCOperationError as e:
+            raise exception.NodeCleaningFailure(node=task.node.uuid,
+                                                reason=e)
