@@ -160,7 +160,7 @@ Configuring ironic-conductor service
       cafile=/opt/stack/data/ca-bundle.pem
 
 #. Configure enabled drivers and hardware types as described in
-   :doc:`enabling-drivers`.
+   :doc:`/install/enabling-drivers`.
 
 #. Restart the ironic-conductor service:
 

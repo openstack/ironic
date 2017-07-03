@@ -1,4 +1,4 @@
-.. _troubleshooting:
+.. _troubleshooting-install:
 
 ===============
 Troubleshooting

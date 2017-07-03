@@ -14,7 +14,7 @@ they are in the ``available`` provision state.
    resource tracker syncs periodically, and so any changes made directly to the
    Bare Metal service's resources will become visible in the Compute service
    only after the next run of that periodic task.
-   More information is in the :ref:`troubleshooting` section.
+   More information is in the :ref:`troubleshooting-install` section.
 
 .. note::
    Any bare metal node that is visible to the Compute service may have a

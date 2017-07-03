@@ -140,7 +140,7 @@ the services.
 .. toctree::
   :maxdepth: 1
 
-  Installation Guide <http://docs.openstack.org/project-install-guide/baremetal/draft/>
+  Installation Guide <install/index>
   gmr
   Upgrade Guide <deploy/upgrade-guide>
   Release Notes <http://docs.openstack.org/releasenotes/ironic/>
