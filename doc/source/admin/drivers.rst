@@ -19,7 +19,7 @@ IPMITool driver
 .. toctree::
   :maxdepth: 1
 
-  ../drivers/ipmitool
+  drivers/ipmitool
 
 DRAC driver
 -----------
@@ -38,7 +38,7 @@ SNMP driver
 .. toctree::
   :maxdepth: 1
 
-  ../drivers/snmp
+  drivers/snmp
 
 iLO driver
 ----------
@@ -46,7 +46,7 @@ iLO driver
 .. toctree::
   :maxdepth: 1
 
-  ../drivers/ilo
+  drivers/ilo
 
 iRMC driver
 -----------
@@ -54,7 +54,7 @@ iRMC driver
 .. toctree::
   :maxdepth: 1
 
-  ../drivers/irmc
+  drivers/irmc
 
 Cisco UCS driver
 ----------------
@@ -62,7 +62,7 @@ Cisco UCS driver
 .. toctree::
   :maxdepth: 1
 
-  ../drivers/ucs
+  drivers/ucs
 
 
 CIMC driver
@@ -71,7 +71,7 @@ CIMC driver
 .. toctree::
   :maxdepth: 1
 
-  ../drivers/cimc
+  drivers/cimc
 
 
 OneView driver
@@ -80,7 +80,7 @@ OneView driver
 .. toctree::
   :maxdepth: 1
 
-  ../drivers/oneview
+  drivers/oneview
 
 
 XenServer ssh driver
@@ -89,7 +89,7 @@ XenServer ssh driver
 .. toctree::
   :maxdepth: 1
 
-  ../drivers/xenserver
+  drivers/xenserver
 
 
 Redfish driver
@@ -98,7 +98,7 @@ Redfish driver
 .. toctree::
   :maxdepth: 1
 
-  ../drivers/redfish
+  drivers/redfish
 
 
 Unsupported drivers

@@ -149,4 +149,4 @@ provisioning will happen in a multi-tenant environment (which means using the
 
 See `Multitenancy in Bare Metal service`_ for required node configuration.
 
-.. _`Multitenancy in Bare Metal service`: http://docs.openstack.org/developer/ironic/deploy/multitenancy.html#multitenancy
+.. _`Multitenancy in Bare Metal service`: http://docs.openstack.org/ironic/latest/admin/multitenancy.html#multitenancy

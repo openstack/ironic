@@ -7,7 +7,7 @@ Configure the Bare Metal service for cleaning
           (which is enabled by default), you will need to set the
           ``cleaning_network`` configuration option.
 
-.. _`Node cleaning`: http://docs.openstack.org/developer/ironic/deploy/cleaning.html#node-cleaning
+.. _`Node cleaning`: http://docs.openstack.org/ironic/latest/admin/cleaning.html#node-cleaning
 
 #. Note the network UUID (the `id` field) of the network you created in
    :ref:`configure-networking` or another network you created for cleaning:

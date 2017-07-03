@@ -283,11 +283,11 @@ be installed locally. For example,
 See `driver-specific documentation`_ for required configuration of each driver.
 
 .. _driver composition reform specification: http://specs.openstack.org/openstack/ironic-specs/specs/approved/driver-composition-reform.html
-.. _driver-specific documentation: https://docs.openstack.org/developer/ironic/deploy/drivers.html
+.. _driver-specific documentation: https://docs.openstack.org/ironic/latest/admin/drivers.html
 .. _setup.cfg: https://git.openstack.org/cgit/openstack/ironic/tree/setup.cfg
-.. _`Configuring Web or Serial Console`: http://docs.openstack.org/developer/ironic/deploy/console.html
+.. _`Configuring Web or Serial Console`: http://docs.openstack.org/ironic/latest/admin/console.html
 .. _iSCSI: https://en.wikipedia.org/wiki/ISCSI
 .. _ironic-inspector: https://docs.openstack.org/developer/ironic-inspector/
-.. _inspection documentation: https://docs.openstack.org/developer/ironic/deploy/inspection.html
-.. _RAID documentation: https://docs.openstack.org/developer/ironic/deploy/raid.html
+.. _inspection documentation: https://docs.openstack.org/ironic/latest/admin/inspection.html
+.. _RAID documentation: https://docs.openstack.org/ironic/latest/admin/raid.html
 .. _vendor methods documentation: https://docs.openstack.org/developer/ironic/dev/vendor-passthru.html

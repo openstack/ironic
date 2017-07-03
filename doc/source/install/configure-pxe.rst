@@ -359,7 +359,7 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
    you have to ensure that iPXE firmware on the nodes can indeed
    boot from generated temporary URLs that use HTTPS protocol.
 
-   .. _Ceph Object Gateway support: http://docs.openstack.org/developer/ironic/deploy/radosgw.html
+   .. _Ceph Object Gateway support: http://docs.openstack.org/ironic/latest/admin/radosgw.html
 
 #. Restart the ``ironic-conductor`` process:
 

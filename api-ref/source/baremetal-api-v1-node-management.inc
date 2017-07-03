@@ -367,7 +367,7 @@ Set RAID Config
 
 Store the supplied configuration on the Node's ``target_raid_config`` property.
 This property must be structured JSON, and will be validated by the driver upon receipt. The request
-schema is defined in the `documentation for the RAID feature <http://docs.openstack.org/developer/ironic/deploy/raid.html>`_
+schema is defined in the `documentation for the RAID feature <http://docs.openstack.org/ironic/latest/admin/raid.html>`_
 
 .. note:: Calling this API only stores the requested configuration; it will be applied the next time
   that the Node transitions through the ``cleaning`` phase.

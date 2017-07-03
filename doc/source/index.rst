@@ -16,7 +16,7 @@ with a unified interface to a heterogeneous fleet of servers while also
 providing the Compute service with an interface that allows physical servers to
 be managed as though they were virtual machines.
 
-:doc:`An introduction to ironic's conceptual architecture <deploy/user-guide>`
+:doc:`An introduction to ironic's conceptual architecture <user/index>`
 is available for those new to the project.
 
 Site Notes
@@ -130,59 +130,10 @@ configuration for devstack to bring up this environment.
 Administrator's Guide
 =====================
 
-Installation & Operations
--------------------------
-
-If you are a system administrator running Ironic, this section contains
-information that should help you understand how to deploy, operate, and upgrade
-the services.
-
 .. toctree::
   :maxdepth: 1
 
-  Installation Guide <install/index>
-  gmr
-  Upgrade Guide <deploy/upgrade-guide>
-  Release Notes <http://docs.openstack.org/releasenotes/ironic/>
-  Troubleshooting FAQ <deploy/troubleshooting>
-
-Configuration
--------------
-
-There are many aspects of the Bare Metal service which are environment
-specific. The following pages will be helpful in configuring specific aspects
-of ironic that may or may not be suitable to every situation.
-
-.. toctree::
-  :maxdepth: 1
-
-  Guide to Node Cleaning <deploy/cleaning>
-  Configuring Node Inspection <deploy/inspection>
-  Configuring RAID during deployment <deploy/raid>
-  Security considerations for your Bare Metal installation <deploy/security>
-  Adopting Nodes in an ACTIVE state <deploy/adoption>
-  Configuring for Multi-tenant Networking <deploy/multitenancy>
-  Configuring for port groups <deploy/portgroups>
-  Configuring node web or serial console <deploy/console>
-  Emitting software metrics <deploy/metrics>
-  Auditing API Traffic <deploy/api-audit-support>
-  Notifications <deploy/notifications>
-  Ceph Object Gateway support <deploy/radosgw>
-  Configuration Reference <http://docs.openstack.org/draft/config-reference/bare-metal.html>
-  Sample configuration file <https://git.openstack.org/cgit/openstack/ironic/tree/etc/ironic/ironic.conf.sample>
-
-
-Dashboard Integration
----------------------
-
-A plugin for the OpenStack Dashboard (horizon) service is under development.
-Documentation for that can be found within the ironic-ui project.
-
-.. toctree::
-  :maxdepth: 1
-
-  Dashboard (horizon) plugin <http://docs.openstack.org/developer/ironic-ui/>
-
+  admin/index
 
 Driver References
 =================
@@ -191,10 +142,10 @@ Every driver author is expected to document the use and configuration of their
 driver. These pages are linked below.
 
 .. toctree::
-  :maxdepth: 2
+  :maxdepth: 1
 
-  Driver Documentation pages <deploy/drivers>
-  Further Considerations for the Agent Drivers <drivers/ipa>
+  Driver Documentation pages <admin/drivers>
+  Further Considerations for the Agent Drivers <admin/drivers/ipa>
 
 Command References
 ==================
@@ -216,12 +167,13 @@ Indices and tables
 .. # NOTE(jaegerandi): This is where we hide things that we don't want
    # shown in the top level table of contents. api/autoindex is hidden
    # since it's in the modindex link above.
-   # deploy/user-guide is referenced above but not in a toctree.
+   # user/index is referenced above but not in a toctree.
 .. toctree::
    :hidden:
 
    api/autoindex
-   deploy/install-guide.rst
-   deploy/user-guide.rst
+   admin/install-guide.rst
+   user/index
    releasenotes/index
    webapi/v1.rst
+   admin/index

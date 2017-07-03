@@ -82,4 +82,4 @@ these are ``Temperature``, ``Fan``, ``Voltage``, ``Current``.
 Special value ``All`` (the default) designates all supported sensor types.
 
 .. _IPMI: https://en.wikipedia.org/wiki/Intelligent_Platform_Management_Interface
-.. _ipmitool driver page: https://docs.openstack.org/developer/ironic/drivers/ipmitool.html
+.. _ipmitool driver page: https://docs.openstack.org/ironic/latest/admin/drivers/ipmitool.html

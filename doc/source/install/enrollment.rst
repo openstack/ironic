@@ -82,7 +82,7 @@ command:
 The properties marked as required must be supplied either during node creation
 or shortly after. Some properties may only be required for certain features.
 
-.. _driver-specific documentation: https://docs.openstack.org/developer/ironic/deploy/drivers.html
+.. _driver-specific documentation: https://docs.openstack.org/ironic/latest/admin/drivers.html
 
 Note on API versions
 --------------------
@@ -644,7 +644,7 @@ Hardware Inspection
 The Bare Metal service supports hardware inspection that simplifies enrolling
 nodes - please see `inspection`_ for details.
 
-.. _`inspection`: http://docs.openstack.org/developer/ironic/deploy/inspection.html
+.. _`inspection`: http://docs.openstack.org/ironic/latest/admin/inspection.html
 
 Tenant Networks and Port Groups
 -------------------------------
@@ -652,5 +652,5 @@ Tenant Networks and Port Groups
 See `Multitenancy in Bare Metal service`_ and
 `Port groups configuration in Bare Metal service`_.
 
-.. _`Multitenancy in Bare Metal service`: http://docs.openstack.org/developer/ironic/deploy/multitenancy.html
-.. _`Port groups configuration in Bare Metal service`: http://docs.openstack.org/developer/ironic/deploy/portgroups.html
+.. _`Multitenancy in Bare Metal service`: http://docs.openstack.org/ironic/latest/admin/multitenancy.html
+.. _`Port groups configuration in Bare Metal service`: http://docs.openstack.org/ironic/latest/admin/portgroups.html
