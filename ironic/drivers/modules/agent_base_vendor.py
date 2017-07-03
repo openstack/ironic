@@ -129,6 +129,10 @@ def _cleaning_reboot(task):
     :param task: a TaskManager instance
     """
     try:
+        # NOTE(fellypefca): Call prepare_ramdisk on ensure that the
+        # baremetal node boots back into the ramdisk after reboot.
+        deploy_opts = deploy_utils.build_agent_options(task.node)
+        task.driver.boot.prepare_ramdisk(task, deploy_opts)
         manager_utils.node_power_action(task, states.REBOOT)
     except Exception as e:
         msg = (_('Reboot requested by clean step %(step)s failed for '

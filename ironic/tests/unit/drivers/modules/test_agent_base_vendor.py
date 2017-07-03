@@ -755,17 +755,26 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.deploy.continue_cleaning(task)
             notify_mock.assert_called_once_with(task)
 
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', spec_set=True,
+                       autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    def test__cleaning_reboot(self, mock_reboot):
+    def test__cleaning_reboot(self, mock_reboot, mock_prepare, mock_build_opt):
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
             agent_base_vendor._cleaning_reboot(task)
+            self.assertTrue(mock_build_opt.called)
+            self.assertTrue(mock_prepare.called)
             mock_reboot.assert_called_once_with(task, states.REBOOT)
             self.assertTrue(task.node.driver_internal_info['cleaning_reboot'])
 
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', spec_set=True,
+                       autospec=True)
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    def test__cleaning_reboot_fail(self, mock_reboot, mock_handler):
+    def test__cleaning_reboot_fail(self, mock_reboot, mock_handler,
+                                   mock_prepare, mock_build_opt):
         mock_reboot.side_effect = RuntimeError("broken")
 
         with task_manager.acquire(self.context, self.node['uuid'],
@@ -776,10 +785,14 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.assertNotIn('cleaning_reboot',
                              task.node.driver_internal_info)
 
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', spec_set=True,
+                       autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
-    def test_continue_cleaning_reboot(self, status_mock, reboot_mock):
+    def test_continue_cleaning_reboot(
+            self, status_mock, reboot_mock, mock_prepare, mock_build_opt):
         # Test a successful execute clean step on the agent, with reboot
         self.node.clean_step = {
             'priority': 42,

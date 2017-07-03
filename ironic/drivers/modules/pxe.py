@@ -32,6 +32,7 @@ from ironic.common import images
 from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.common import utils
+from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
@@ -490,7 +491,8 @@ class PXEBoot(base.BootInterface):
 
         pxe_utils.create_pxe_config(task, pxe_options,
                                     pxe_config_template)
-        deploy_utils.try_set_boot_device(task, boot_devices.PXE)
+        manager_utils.node_set_boot_device(task, boot_devices.PXE,
+                                           persistent=False)
 
         if CONF.pxe.ipxe_enabled and CONF.pxe.ipxe_use_swift:
             pxe_info.pop('deploy_kernel', None)
@@ -602,7 +604,8 @@ class PXEBoot(base.BootInterface):
         # NOTE(pas-ha) do not re-set boot device on ACTIVE nodes
         # during takeover
         if boot_device and task.node.provision_state != states.ACTIVE:
-            deploy_utils.try_set_boot_device(task, boot_device)
+            manager_utils.node_set_boot_device(task, boot_device,
+                                               persistent=True)
 
     @METRICS.timer('PXEBoot.clean_up_instance')
     def clean_up_instance(self, task):
