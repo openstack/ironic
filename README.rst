@@ -24,15 +24,15 @@ full terms and conditions of this license are detailed in the LICENSE file.
 Project resources
 ~~~~~~~~~~~~~~~~~
 
-* Documentation: http://docs.openstack.org/developer/ironic
-* Source: http://git.openstack.org/cgit/openstack/ironic
-* Bugs: http://bugs.launchpad.net/ironic
+* Documentation: https://docs.openstack.org/ironic/latest
+* Source: https://git.openstack.org/cgit/openstack/ironic
+* Bugs: https://bugs.launchpad.net/ironic
 * Wiki: https://wiki.openstack.org/wiki/Ironic
-* APIs: http://developer.openstack.org/api-ref/baremetal/index.html
+* APIs: https://developer.openstack.org/api-ref/baremetal/index.html
 
 Project status, bugs, and requests for feature enhancements (RFEs) are tracked
 on Launchpad:
-http://launchpad.net/ironic
+https://launchpad.net/ironic
 
 For information on how to contribute to ironic, see
-http://docs.openstack.org/developer/ironic/dev/code-contribution-guide.html
+https://docs.openstack.org/ironic/latest/contributor
