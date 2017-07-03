@@ -85,9 +85,9 @@ Command References
 Here are references for commands not elsewhere documented.
 
 .. toctree::
-  :maxdepth: 1
+  :maxdepth: 2
 
-  cmds/ironic-dbsync
+  cli/index
 
 Indices and tables
 ==================
