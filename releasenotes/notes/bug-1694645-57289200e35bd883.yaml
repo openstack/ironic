@@ -1,14 +1,12 @@
 ---
 fixes:
   - |
-    Fix a bug that netboot is unavailable with virtual media boot in an
-    environment using syslinux 5.00 or later such as Ubuntu 16.04. This is
-    caused by a change in syslinux that ldlinux.c32 is required for creating
-    boot ISO. This file is searched in the following general paths:
+    Fixes a bug whereby netboot was unavailable with virtual media boot in an
+    environment using syslinux 5.00 or later, such as Ubuntu 16.04. This was
+    caused by a syslinux change; the ldlinux.c32 file is required for creating
+    a boot ISO. To address this, the new configuration option
+    ``[DEFAULT]/ldlinux_32`` can be set to the path of the ldlinux.c32 file.
+    If not specified, the default is to look for the file in the paths:
 
       * /usr/lib/syslinux/modules/bios/ldlinux.c32
       * /usr/share/syslinux/ldlinux.c32
-
-    This path can be set with the configuration parameter
-    ``[DEFAULT]/ldlinux_c32`` for another distribution or for a case where the
-    path is changed with future update.
