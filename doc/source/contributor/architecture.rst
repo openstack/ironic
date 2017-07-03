@@ -112,10 +112,10 @@ cluster, nodes may be remapped to different Conductors, thus triggering various
 driver actions such as take-over or clean-up.
 
 
-.. _API service: ../webapi/v1.html
-.. _BaseDriver: ../api/ironic.drivers.base.html#ironic.drivers.base.BaseDriver
-.. _Conductor service: ../api/ironic.conductor.manager.html
-.. _DB API: ../api/ironic.db.api.html
+.. _API service: webapi.html
+.. _BaseDriver: api/ironic.drivers.base.html#ironic.drivers.base.BaseDriver
+.. _Conductor service: api/ironic.conductor.manager.html
+.. _DB API: api/ironic.db.api.html
 .. _diskimage-builder: http://docs.openstack.org/developer/diskimage-builder/
 .. _consistent hashing algorithm: http://docs.openstack.org/developer/tooz/tutorial/hashring.html
 .. _periodic: http://docs.openstack.org/developer/futurist/api.html#futurist.periodics.periodic

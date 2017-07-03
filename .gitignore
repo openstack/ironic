@@ -6,7 +6,7 @@
 
 # Sphinx
 _build
-doc/source/api/
+doc/source/contributor/api/
 
 # release notes build
 releasenotes/build

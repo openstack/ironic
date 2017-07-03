@@ -290,4 +290,4 @@ See `driver-specific documentation`_ for required configuration of each driver.
 .. _ironic-inspector: https://docs.openstack.org/developer/ironic-inspector/
 .. _inspection documentation: https://docs.openstack.org/ironic/latest/admin/inspection.html
 .. _RAID documentation: https://docs.openstack.org/ironic/latest/admin/raid.html
-.. _vendor methods documentation: https://docs.openstack.org/developer/ironic/dev/vendor-passthru.html
+.. _vendor methods documentation: https://docs.openstack.org/ironic/latest/contributor/vendor-passthru.html

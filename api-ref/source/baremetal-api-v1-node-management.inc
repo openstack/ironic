@@ -331,7 +331,7 @@ Request a change to the Node's provision state.
 
 Acceptable target states depend on the Node's current provision state. More
 detailed documentation of the Ironic State Machine is available
-`in the developer docs <http://docs.openstack.org/developer/ironic/dev/states.html>`_.
+`in the developer docs <http://docs.openstack.org/ironic/latest/contributor/states.html>`_.
 
 Normal response code: 202
 

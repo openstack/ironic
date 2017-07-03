@@ -449,7 +449,7 @@ To move a node from ``manageable`` to ``available`` provision state:
     +------------------------+--------------------------------------------------------------------+
 
 For more details on the Bare Metal service's state machine, see the
-`state machine <http://docs.openstack.org/developer/ironic/dev/states.html>`_
+`state machine <http://docs.openstack.org/ironic/latest/contributor/states.html>`_
 documentation.
 
 .. _ComputeCapabilitiesFilter: http://docs.openstack.org/developer/nova/devref/filter_scheduler.html?highlight=computecapabilitiesfilter

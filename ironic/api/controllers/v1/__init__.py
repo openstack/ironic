@@ -102,7 +102,7 @@ class V1(base.APIBase):
                                         'v1', '', bookmark=True),
                     link.Link.make_link('describedby',
                                         'https://docs.openstack.org',
-                                        'developer/ironic/dev',
+                                        '/ironic/latest/contributor/',
                                         'webapi.html',
                                         bookmark=True, type='text/html')
                     ]

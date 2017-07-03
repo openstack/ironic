@@ -40,7 +40,7 @@ Things to do before releasing
 
 * For ironic releases only, not ironic-inspector releases: if any new API
   microversions have been added since the last release, update the REST API
-  version history (doc/source/dev/webapi-version-history.rst) to
+  version history (doc/source/contributor/webapi-version-history.rst) to
   indicate that they were part of the new release.
 
 * To support rolling upgrades, add this new release version (and release name
@@ -54,7 +54,7 @@ Things to do before releasing
   * Regenerate the sample config file, so that the choices for the
     ``[DEFAULT]/pin_release_version`` configuration are accurate.
 
-.. _`standards`: http://docs.openstack.org/developer/ironic/dev/faq.html#know-if-a-release-note-is-needed-for-my-change
+.. _`standards`: http://docs.openstack.org/ironic/latest/contributor/faq.html#know-if-a-release-note-is-needed-for-my-change
 
 Things to do after releasing
 ============================
