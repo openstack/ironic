@@ -202,7 +202,7 @@ image_opts = [
     cfg.StrOpt('ldlinux_c32',
                help=_('Path to ldlinux.c32 file. This file is required for '
                       'syslinux 5.0 or later. If not specified, the file is '
-                      'searched in general paths, '
+                      'looked for in '
                       '"/usr/lib/syslinux/modules/bios/ldlinux.c32" and '
                       '"/usr/share/syslinux/ldlinux.c32".')),
 ]
