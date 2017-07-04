@@ -1682,7 +1682,8 @@ class ConductorManager(base_manager.BaseConductorManager):
     @METRICS.timer('ConductorManager.destroy_volume_connector')
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.NodeNotFound,
-                                   exception.VolumeConnectorNotFound)
+                                   exception.VolumeConnectorNotFound,
+                                   exception.InvalidStateRequested)
     def destroy_volume_connector(self, context, connector):
         """Delete a volume connector.
 
@@ -1693,12 +1694,20 @@ class ConductorManager(base_manager.BaseConductorManager):
                  not exist
         :raises: VolumeConnectorNotFound if the volume connector cannot be
                  found
+        :raises: InvalidStateRequested if the node associated with the
+                 connector is not powered off.
         """
         LOG.debug('RPC destroy_volume_connector called for volume connector '
                   '%(connector)s',
                   {'connector': connector.uuid})
         with task_manager.acquire(context, connector.node_id,
                                   purpose='volume connector deletion') as task:
+            node = task.node
+            if node.power_state != states.POWER_OFF:
+                raise exception.InvalidStateRequested(
+                    action='volume connector deletion',
+                    node=node.uuid,
+                    state=node.power_state)
             connector.destroy()
             LOG.info('Successfully deleted volume connector %(connector)s. '
                      'The node associated with the connector was %(node)s',
@@ -1707,7 +1716,8 @@ class ConductorManager(base_manager.BaseConductorManager):
     @METRICS.timer('ConductorManager.destroy_volume_target')
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.NodeNotFound,
-                                   exception.VolumeTargetNotFound)
+                                   exception.VolumeTargetNotFound,
+                                   exception.InvalidStateRequested)
     def destroy_volume_target(self, context, target):
         """Delete a volume target.
 
@@ -1717,12 +1727,20 @@ class ConductorManager(base_manager.BaseConductorManager):
         :raises: NodeNotFound if the node associated with the target does
                  not exist
         :raises: VolumeTargetNotFound if the volume target cannot be found
+        :raises: InvalidStateRequested if the node associated with the target
+                 is not powered off.
         """
         LOG.debug('RPC destroy_volume_target called for volume target '
                   '%(target)s',
                   {'target': target.uuid})
         with task_manager.acquire(context, target.node_id,
                                   purpose='volume target deletion') as task:
+            node = task.node
+            if node.power_state != states.POWER_OFF:
+                raise exception.InvalidStateRequested(
+                    action='volume target deletion',
+                    node=node.uuid,
+                    state=node.power_state)
             target.destroy()
             LOG.info('Successfully deleted volume target %(target)s. '
                      'The node associated with the target was %(node)s',
@@ -2030,7 +2048,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         exception.NodeLocked,
         exception.NodeNotFound,
         exception.VolumeConnectorNotFound,
-        exception.VolumeConnectorTypeAndIdAlreadyExists)
+        exception.VolumeConnectorTypeAndIdAlreadyExists,
+        exception.InvalidStateRequested)
     def update_volume_connector(self, context, connector):
         """Update a volume connector.
 
@@ -2047,13 +2066,21 @@ class ConductorManager(base_manager.BaseConductorManager):
         :raises: VolumeConnectorTypeAndIdAlreadyExists if another connector
                  already exists with the same values for type and connector_id
                  fields
+        :raises: InvalidStateRequested if the node associated with the
+                 connector is not powered off.
         """
         LOG.debug("RPC update_volume_connector called for connector "
                   "%(connector)s.",
                   {'connector': connector.uuid})
 
         with task_manager.acquire(context, connector.node_id,
-                                  purpose='volume connector update'):
+                                  purpose='volume connector update') as task:
+            node = task.node
+            if node.power_state != states.POWER_OFF:
+                raise exception.InvalidStateRequested(
+                    action='volume connector update',
+                    node=node.uuid,
+                    state=node.power_state)
             connector.save()
             LOG.info("Successfully updated volume connector %(connector)s.",
                      {'connector': connector.uuid})
@@ -2065,7 +2092,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         exception.NodeLocked,
         exception.NodeNotFound,
         exception.VolumeTargetNotFound,
-        exception.VolumeTargetBootIndexAlreadyExists)
+        exception.VolumeTargetBootIndexAlreadyExists,
+        exception.InvalidStateRequested)
     def update_volume_target(self, context, target):
         """Update a volume target.
 
@@ -2080,12 +2108,20 @@ class ConductorManager(base_manager.BaseConductorManager):
         :raises: VolumeTargetNotFound if the volume target cannot be found
         :raises: VolumeTargetBootIndexAlreadyExists if a volume target already
                  exists with the same node ID and boot index values
+        :raises: InvalidStateRequested if the node associated with the target
+                 is not powered off.
         """
         LOG.debug("RPC update_volume_target called for target %(target)s.",
                   {'target': target.uuid})
 
         with task_manager.acquire(context, target.node_id,
-                                  purpose='volume target update'):
+                                  purpose='volume target update') as task:
+            node = task.node
+            if node.power_state != states.POWER_OFF:
+                raise exception.InvalidStateRequested(
+                    action='volume target update',
+                    node=node.uuid,
+                    state=node.power_state)
             target.save()
             LOG.info("Successfully updated volume target %(target)s.",
                      {'target': target.uuid})

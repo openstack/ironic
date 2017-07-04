@@ -6041,7 +6041,8 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 class DestroyVolumeConnectorTestCase(mgr_utils.ServiceSetUpMixin,
                                      db_base.DbTestCase):
     def test_destroy_volume_connector(self):
-        node = obj_utils.create_test_node(self.context, driver='fake')
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=states.POWER_OFF)
 
         volume_connector = obj_utils.create_test_volume_connector(
             self.context, node_id=node.id)
@@ -6064,12 +6065,25 @@ class DestroyVolumeConnectorTestCase(mgr_utils.ServiceSetUpMixin,
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.NodeLocked, exc.exc_info[0])
 
+    def test_destroy_volume_connector_node_power_on(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=states.POWER_ON)
+
+        volume_connector = obj_utils.create_test_volume_connector(
+            self.context, node_id=node.id)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.destroy_volume_connector,
+                                self.context, volume_connector)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.InvalidStateRequested, exc.exc_info[0])
+
 
 @mgr_utils.mock_record_keepalive
 class UpdateVolumeConnectorTestCase(mgr_utils.ServiceSetUpMixin,
                                     db_base.DbTestCase):
     def test_update_volume_connector(self):
-        node = obj_utils.create_test_node(self.context, driver='fake')
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=states.POWER_OFF)
 
         volume_connector = obj_utils.create_test_volume_connector(
             self.context, node_id=node.id, extra={'foo': 'bar'})
@@ -6093,7 +6107,8 @@ class UpdateVolumeConnectorTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(exception.NodeLocked, exc.exc_info[0])
 
     def test_update_volume_connector_type(self):
-        node = obj_utils.create_test_node(self.context, driver='fake')
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=states.POWER_OFF)
         volume_connector = obj_utils.create_test_volume_connector(
             self.context, node_id=node.id, extra={'vol_id': 'fake-id'})
         new_type = 'wwnn'
@@ -6103,7 +6118,8 @@ class UpdateVolumeConnectorTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(new_type, res.type)
 
     def test_update_volume_connector_uuid(self):
-        node = obj_utils.create_test_node(self.context, driver='fake')
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=states.POWER_OFF)
         volume_connector = obj_utils.create_test_volume_connector(
             self.context, node_id=node.id)
         volume_connector.uuid = uuidutils.generate_uuid()
@@ -6114,7 +6130,8 @@ class UpdateVolumeConnectorTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
 
     def test_update_volume_connector_duplicate(self):
-        node = obj_utils.create_test_node(self.context, driver='fake')
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=states.POWER_OFF)
         volume_connector1 = obj_utils.create_test_volume_connector(
             self.context, node_id=node.id)
         volume_connector2 = obj_utils.create_test_volume_connector(
@@ -6128,12 +6145,26 @@ class UpdateVolumeConnectorTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(exception.VolumeConnectorTypeAndIdAlreadyExists,
                          exc.exc_info[0])
 
+    def test_update_volume_connector_node_power_on(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=states.POWER_ON)
+
+        volume_connector = obj_utils.create_test_volume_connector(
+            self.context, node_id=node.id)
+        volume_connector.extra = {'foo': 'baz'}
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_volume_connector,
+                                self.context, volume_connector)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.InvalidStateRequested, exc.exc_info[0])
+
 
 @mgr_utils.mock_record_keepalive
 class DestroyVolumeTargetTestCase(mgr_utils.ServiceSetUpMixin,
                                   db_base.DbTestCase):
     def test_destroy_volume_target(self):
-        node = obj_utils.create_test_node(self.context, driver='fake')
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=states.POWER_OFF)
 
         volume_target = obj_utils.create_test_volume_target(self.context,
                                                             node_id=node.id)
@@ -6169,7 +6200,8 @@ class DestroyVolumeTargetTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(exception.NodeNotFound, exc.exc_info[0])
 
     def test_destroy_volume_target_already_destroyed(self):
-        node = obj_utils.create_test_node(self.context, driver='fake')
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=states.POWER_OFF)
         volume_target = obj_utils.create_test_volume_target(self.context,
                                                             node_id=node.id)
         self.service.destroy_volume_target(self.context, volume_target)
@@ -6179,12 +6211,25 @@ class DestroyVolumeTargetTestCase(mgr_utils.ServiceSetUpMixin,
         # Compare true exception hidden by @messaging.expected_exceptions
         self.assertEqual(exception.VolumeTargetNotFound, exc.exc_info[0])
 
+    def test_destroy_volume_target_node_power_on(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=states.POWER_ON)
+
+        volume_target = obj_utils.create_test_volume_target(self.context,
+                                                            node_id=node.id)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.destroy_volume_target,
+                                self.context, volume_target)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.InvalidStateRequested, exc.exc_info[0])
+
 
 @mgr_utils.mock_record_keepalive
 class UpdateVolumeTargetTestCase(mgr_utils.ServiceSetUpMixin,
                                  db_base.DbTestCase):
     def test_update_volume_target(self):
-        node = obj_utils.create_test_node(self.context, driver='fake')
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=states.POWER_OFF)
 
         volume_target = obj_utils.create_test_volume_target(
             self.context, node_id=node.id, extra={'foo': 'bar'})
@@ -6206,7 +6251,8 @@ class UpdateVolumeTargetTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(exception.NodeLocked, exc.exc_info[0])
 
     def test_update_volume_target_volume_type(self):
-        node = obj_utils.create_test_node(self.context, driver='fake')
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=states.POWER_OFF)
         volume_target = obj_utils.create_test_volume_target(
             self.context, node_id=node.id, extra={'vol_id': 'fake-id'})
         new_volume_type = 'fibre_channel'
@@ -6216,7 +6262,8 @@ class UpdateVolumeTargetTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(new_volume_type, res.volume_type)
 
     def test_update_volume_target_uuid(self):
-        node = obj_utils.create_test_node(self.context, driver='fake')
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=states.POWER_OFF)
         volume_target = obj_utils.create_test_volume_target(
             self.context, node_id=node.id)
         volume_target.uuid = uuidutils.generate_uuid()
@@ -6227,7 +6274,8 @@ class UpdateVolumeTargetTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
 
     def test_update_volume_target_duplicate(self):
-        node = obj_utils.create_test_node(self.context, driver='fake')
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=states.POWER_OFF)
         volume_target1 = obj_utils.create_test_volume_target(
             self.context, node_id=node.id)
         volume_target2 = obj_utils.create_test_volume_target(
@@ -6242,7 +6290,8 @@ class UpdateVolumeTargetTestCase(mgr_utils.ServiceSetUpMixin,
                          exc.exc_info[0])
 
     def _test_update_volume_target_exception(self, expected_exc):
-        node = obj_utils.create_test_node(self.context, driver='fake')
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=states.POWER_OFF)
         volume_target = obj_utils.create_test_volume_target(
             self.context, node_id=node.id, extra={'vol_id': 'fake-id'})
         new_volume_type = 'fibre_channel'
@@ -6261,3 +6310,15 @@ class UpdateVolumeTargetTestCase(mgr_utils.ServiceSetUpMixin,
     def test_update_volume_target_not_found(self):
             self._test_update_volume_target_exception(
                 exception.VolumeTargetNotFound)
+
+    def test_update_volume_target_node_power_on(self):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          power_state=states.POWER_ON)
+        volume_target = obj_utils.create_test_volume_target(self.context,
+                                                            node_id=node.id)
+        volume_target.extra = {'foo': 'baz'}
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.update_volume_target,
+                                self.context, volume_target)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.InvalidStateRequested, exc.exc_info[0])
