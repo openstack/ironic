@@ -27,7 +27,6 @@ from ironic.drivers.modules.oneview import deploy_utils
 from ironic.drivers.modules.oneview import management
 
 client_exception = importutils.try_import('hpOneView.exceptions')
-oneview_exceptions = importutils.try_import('oneview_client.exceptions')
 
 LOG = logging.getLogger(__name__)
 METRICS = metrics_utils.get_metrics_logger(__name__)
@@ -60,7 +59,6 @@ class OneViewPower(base.PowerInterface):
     def __init__(self):
         super(OneViewPower, self).__init__()
         self.client = common.get_hponeview_client()
-        self.oneview_client = common.get_oneview_client()
 
     def get_properties(self):
         return deploy_utils.get_properties()
