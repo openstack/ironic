@@ -314,13 +314,13 @@ daemons; you can observe their output and stop them with Ctrl-C at any time.
 
     cd ~/ironic
     source .tox/venv/bin/activate
-    ironic-api -v -d --config-file etc/ironic/ironic.conf.local
+    ironic-api -d --config-file etc/ironic/ironic.conf.local
 
 #. Start the Conductor service in debug mode and watch its output::
 
     cd ~/ironic
     source .tox/venv/bin/activate
-    ironic-conductor -v -d --config-file etc/ironic/ironic.conf.local
+    ironic-conductor -d --config-file etc/ironic/ironic.conf.local
 
 Step 4: Interact with the running services
 ------------------------------------------
