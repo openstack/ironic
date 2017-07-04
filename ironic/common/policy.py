@@ -204,6 +204,25 @@ extra_policies = [
                        description='Access IPA ramdisk functions'),
 ]
 
+volume_policies = [
+    policy.RuleDefault('baremetal:volume:get',
+                       'rule:is_admin or rule:is_observer',
+                       description='Retrieve Volume connector and target '
+                                   'records'),
+    policy.RuleDefault('baremetal:volume:create',
+                       'rule:is_admin',
+                       description='Create Volume connector and target '
+                                   'records'),
+    policy.RuleDefault('baremetal:volume:delete',
+                       'rule:is_admin',
+                       description='Delete Volume connetor and target '
+                                   'records'),
+    policy.RuleDefault('baremetal:volume:update',
+                       'rule:is_admin',
+                       description='Update Volume connector and target '
+                                   'records'),
+]
+
 
 def list_policies():
     policies = (default_policies
@@ -212,7 +231,8 @@ def list_policies():
                 + portgroup_policies
                 + chassis_policies
                 + driver_policies
-                + extra_policies)
+                + extra_policies
+                + volume_policies)
     return policies
 
 

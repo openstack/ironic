@@ -1,0 +1,54 @@
+---
+features:
+  - |
+    Adds support for volume connectors and volume targets with new API
+    endpoints ``/v1/volume/connectors`` and ``/v1/volume/targets``. These
+    endpoints are available with API version 1.32 or later. These new
+    resources are used to connect a node to a volume. A volume connector
+    represents connector information of a node such as an iSCSI initiator. A
+    volume target provides volume information such as an iSCSI target. These
+    endpoints are available:
+
+    * ``GET /v1/volume/connectors`` for listing volume connectors
+    * ``POST /v1/volume/connectors`` for creating a volume connector
+    * ``GET /v1/volume/connectors/<UUID>`` for showing a volume connector
+    * ``PATCH /v1/volume/connectors/<UUID>`` for updating a volume connector
+    * ``DELETE /v1/volume/connectors/<UUID>`` for deleting a volume connector
+    * ``GET /v1/volume/targets`` for listing volume targets
+    * ``POST /v1/volume/targets`` for creating a volume target
+    * ``GET /v1/volume/targets/<UUID>`` for showing a volume target
+    * ``PATCH /v1/volume/targets/<UUID>`` for updating a volume target
+    * ``DELETE /v1/volume/targets/<UUID>`` for deleting a volume target
+
+    The Volume resources also can be listed as sub resources of nodes:
+
+    * ``GET /v1/nodes/<node>/volume/connectors``
+    * ``GET /v1/nodes/<node>/volume/targets``
+
+    Root endpoints of volume resources are also added. These endpoints provide
+    links to volume connectors and volume targets:
+
+    * ``GET /v1/volume``
+    * ``GET /v1/node/<node>/volume``
+
+    When a volume connector or a volume target is created, updated, or
+    deleted, these CRUD notifications can be emitted:
+
+    * ``baremetal.volumeconnector.create.start``
+    * ``baremetal.volumeconnector.create.end``
+    * ``baremetal.volumeconnector.create.error``
+    * ``baremetal.volumeconnector.update.start``
+    * ``baremetal.volumeconnector.update.end``
+    * ``baremetal.volumeconnector.update.error``
+    * ``baremetal.volumeconnector.delete.start``
+    * ``baremetal.volumeconnector.delete.end``
+    * ``baremetal.volumeconnector.delete.error``
+    * ``baremetal.volumetarget.create.start``
+    * ``baremetal.volumetarget.create.end``
+    * ``baremetal.volumetarget.create.error``
+    * ``baremetal.volumetarget.update.start``
+    * ``baremetal.volumetarget.update.end``
+    * ``baremetal.volumetarget.update.error``
+    * ``baremetal.volumetarget.delete.start``
+    * ``baremetal.volumetarget.delete.end``
+    * ``baremetal.volumetarget.delete.error``

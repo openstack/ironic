@@ -251,6 +251,88 @@ Example of portgroup CRUD notification::
     "publisher_id":"ironic-api.hostname02"
    }
 
+List of CRUD notifications for volume connector:
+
+* ``baremetal.volumeconnector.create.start``
+* ``baremetal.volumeconnector.create.end``
+* ``baremetal.volumeconnector.create.error``
+* ``baremetal.volumeconnector.update.start``
+* ``baremetal.volumeconnector.update.end``
+* ``baremetal.volumeconnector.update.error``
+* ``baremetal.volumeconnector.delete.start``
+* ``baremetal.volumeconnector.delete.end``
+* ``baremetal.volumeconnector.delete.error``
+
+Example of volume connector CRUD notification::
+
+   {
+    "priority": "info",
+    "payload": {
+        "ironic_object.namespace": "ironic",
+        "ironic_object.name": "VolumeConnectorCRUDPayload",
+        "ironic_object.version": "1.0",
+        "ironic_object.data": {
+           "connector_id": "iqn.2017-05.org.openstack:01:d9a51732c3f",
+           "created_at": "2017-05-11T05:57:36+00:00",
+           "extra": {},
+           "node_uuid": "4dbb4e69-99a8-4e13-b6e8-dd2ad4a20caf",
+           "type": "iqn",
+           "updated_at": "2017-05-11T08:28:58+00:00",
+           "uuid": "19b9f3ab-4754-4725-a7a4-c43ea7e57360"
+        }
+    },
+    "event_type": "baremetal.volumeconnector.update.end",
+    "publisher_id":"ironic-api.hostname02"
+   }
+
+List of CRUD notifications for volume target:
+
+* ``baremetal.volumetarget.create.start``
+* ``baremetal.volumetarget.create.end``
+* ``baremetal.volumetarget.create.error``
+* ``baremetal.volumetarget.update.start``
+* ``baremetal.volumetarget.update.end``
+* ``baremetal.volumetarget.update.error``
+* ``baremetal.volumetarget.delete.start``
+* ``baremetal.volumetarget.delete.end``
+* ``baremetal.volumetarget.delete.error``
+
+Example of volume target CRUD notification::
+
+   {
+    "priority": "info",
+    "payload": {
+        "ironic_object.namespace": "ironic",
+        "ironic_object.version": "1.0",
+        "ironic_object.name": "VolumeTargetCRUDPayload"
+        "ironic_object.data": {
+            "boot_index": 0,
+            "created_at": "2017-05-11T09:38:59+00:00",
+            "extra": {},
+            "node_uuid": "4dbb4e69-99a8-4e13-b6e8-dd2ad4a20caf",
+            "properties": {
+                "access_mode": "rw",
+                "auth_method": "CHAP"
+                "auth_password": "***",
+                "auth_username": "urxhQCzAKr4sjyE8DivY",
+                "encrypted": false,
+                "qos_specs": null,
+                "target_discovered": false,
+                "target_iqn": "iqn.2010-10.org.openstack:volume-f0d9b0e6-b242-9105-91d4-a20331693ad8",
+                "target_lun": 1,
+                "target_portal": "192.168.12.34:3260",
+                "volume_id": "f0d9b0e6-b042-4105-91d4-a20331693ad8",
+            },
+            "updated_at": "2017-05-11T09:52:04+00:00",
+            "uuid": "82a45833-9c58-4ec1-943c-2091ab10e47b",
+            "volume_id": "f0d9b0e6-b242-9105-91d4-a20331693ad8",
+            "volume_type": "iscsi"
+        }
+    },
+    "event_type": "baremetal.volumetarget.update.end",
+    "publisher_id":"ironic-api.hostname02"
+   }
+
 Node maintenance notifications
 ------------------------------
 

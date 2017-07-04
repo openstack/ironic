@@ -35,6 +35,7 @@ from ironic.api.controllers.v1 import portgroup
 from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import versions
+from ironic.api.controllers.v1 import volume
 from ironic.api import expose
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -813,6 +814,9 @@ class Node(base.APIBase):
     portgroups = wsme.wsattr([link.Link], readonly=True)
     """Links to the collection of portgroups on this node"""
 
+    volume = wsme.wsattr([link.Link], readonly=True)
+    """Links to endpoint for retrieving volume resources on this node"""
+
     states = wsme.wsattr([link.Link], readonly=True)
     """Links to endpoint for retrieving and setting node states"""
 
@@ -869,7 +873,7 @@ class Node(base.APIBase):
 
     @staticmethod
     def _convert_with_links(node, url, fields=None, show_states_links=True,
-                            show_portgroups=True):
+                            show_portgroups=True, show_volume=True):
         # NOTE(lucasagomes): Since we are able to return a specified set of
         # fields the "uuid" can be unset, so we need to save it in another
         # variable to use when building the links
@@ -895,6 +899,14 @@ class Node(base.APIBase):
                                         node_uuid + "/portgroups"),
                     link.Link.make_link('bookmark', url, 'nodes',
                                         node_uuid + "/portgroups",
+                                        bookmark=True)]
+
+            if show_volume:
+                node.volume = [
+                    link.Link.make_link('self', url, 'nodes',
+                                        node_uuid + "/volume"),
+                    link.Link.make_link('bookmark', url, 'nodes',
+                                        node_uuid + "/volume",
                                         bookmark=True)]
 
         # NOTE(lucasagomes): The numeric ID should not be exposed to
@@ -951,10 +963,12 @@ class Node(base.APIBase):
         show_states_links = (
             api_utils.allow_links_node_states_and_driver_properties())
         show_portgroups = api_utils.allow_portgroups_subcontrollers()
+        show_volume = api_utils.allow_volume()
         return cls._convert_with_links(node, pecan.request.public_url,
                                        fields=fields,
                                        show_states_links=show_states_links,
-                                       show_portgroups=show_portgroups)
+                                       show_portgroups=show_portgroups,
+                                       show_volume=show_volume)
 
     @classmethod
     def sample(cls, expand=True):
@@ -1247,6 +1261,7 @@ class NodesController(rest.RestController):
         'ports': port.PortsController,
         'portgroups': portgroup.PortgroupsController,
         'vifs': NodeVIFController,
+        'volume': volume.VolumeController,
     }
 
     @pecan.expose()
