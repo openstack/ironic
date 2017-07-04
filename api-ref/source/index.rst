@@ -16,6 +16,8 @@
 .. include:: baremetal-api-v1-ports.inc
 .. include:: baremetal-api-v1-nodes-ports.inc
 .. include:: baremetal-api-v1-portgroups-ports.inc
+.. include:: baremetal-api-v1-volume.inc
+.. include:: baremetal-api-v1-nodes-volume.inc
 .. include:: baremetal-api-v1-drivers.inc
 .. include:: baremetal-api-v1-driver-passthru.inc
 .. include:: baremetal-api-v1-chassis.inc

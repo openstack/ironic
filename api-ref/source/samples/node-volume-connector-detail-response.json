@@ -1,0 +1,23 @@
+{
+  "connectors": [
+    {
+      "connector_id": "iqn.2017-07.org.openstack:02:10190a4153e",
+      "created_at": "2016-08-18T22:28:48.643434+11:11",
+      "extra": {},
+      "links": [
+        {
+          "href": "http://127.0.0.1:6385/v1/volume/connectors/9bf93e01-d728-47a3-ad4b-5e66a835037c",
+          "rel": "self"
+        },
+        {
+          "href": "http://127.0.0.1:6385/volume/connectors/9bf93e01-d728-47a3-ad4b-5e66a835037c",
+          "rel": "bookmark"
+        }
+      ],
+      "node_uuid": "6d85703a-565d-469a-96ce-30b6de53079d",
+      "type": "iqn",
+      "updated_at": "2016-08-18T22:28:49.653974+00:00",
+      "uuid": "9bf93e01-d728-47a3-ad4b-5e66a835037c"
+    }
+  ]
+}
