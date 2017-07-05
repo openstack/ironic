@@ -105,6 +105,7 @@ SCCICLIENT_IRMC_SCCI_SPEC = (
 SCCICLIENT_IRMC_ELCM_SPEC = (
     'backup_bios_config',
     'restore_bios_config',
+    'set_secure_boot_mode',
 )
 
 ONEVIEWCLIENT_SPEC = (

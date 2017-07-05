@@ -17,6 +17,7 @@ Common functionalities shared between different iRMC modules.
 """
 import six
 
+from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
@@ -24,7 +25,9 @@ from ironic.common.i18n import _
 from ironic.conf import CONF
 
 scci = importutils.try_import('scciclient.irmc.scci')
+elcm = importutils.try_import('scciclient.irmc.elcm')
 
+LOG = logging.getLogger(__name__)
 REQUIRED_PROPERTIES = {
     'irmc_address': _("IP address or hostname of the iRMC. Required."),
     'irmc_username': _("Username for the iRMC with administrator privileges. "
@@ -195,3 +198,26 @@ def get_irmc_report(node):
         port=driver_info['irmc_port'],
         auth_method=driver_info['irmc_auth_method'],
         client_timeout=driver_info['irmc_client_timeout'])
+
+
+def set_secure_boot_mode(node, enable):
+    """Enable or disable UEFI Secure Boot
+
+    Enable or disable UEFI Secure Boot
+
+    :param node: An ironic node object.
+    :param enable: Boolean value. True if the secure boot to be
+        enabled.
+    :raises: IRMCOperationError if the operation fails.
+    """
+    driver_info = parse_driver_info(node)
+
+    try:
+        elcm.set_secure_boot_mode(driver_info, enable)
+        LOG.info("Set secure boot to %(flag)s for node %(node)s",
+                 {'flag': enable, 'node': node.uuid})
+    except scci.SCCIError as irmc_exception:
+        LOG.error("Failed to set secure boot to %(flag)s for node %(node)s",
+                  {'flag': enable, 'node': node.uuid})
+        raise exception.IRMCOperationError(operation=_("set_secure_boot_mode"),
+                                           error=irmc_exception)

@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds support to provision an instance in UEFI secure boot for
+    ``irmc-pxe`` boot interface.

@@ -210,3 +210,37 @@ class IRMCCommonMethodsTestCase(db_base.DbTestCase):
     def test_out_range_sensor_method(self):
         self.assertRaises(ValueError, cfg.CONF.set_override,
                           'sensor_method', 'fake', 'irmc')
+
+    @mock.patch.object(irmc_common, 'elcm',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_ELCM_SPEC)
+    def test_set_secure_boot_mode_enable(self, mock_elcm):
+        mock_elcm.set_secure_boot_mode.return_value = 'set_secure_boot_mode'
+        info = irmc_common.parse_driver_info(self.node)
+        irmc_common.set_secure_boot_mode(self.node, True)
+        mock_elcm.set_secure_boot_mode.assert_called_once_with(
+            info, True)
+
+    @mock.patch.object(irmc_common, 'elcm',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_ELCM_SPEC)
+    def test_set_secure_boot_mode_disable(self, mock_elcm):
+        mock_elcm.set_secure_boot_mode.return_value = 'set_secure_boot_mode'
+        info = irmc_common.parse_driver_info(self.node)
+        irmc_common.set_secure_boot_mode(self.node, False)
+        mock_elcm.set_secure_boot_mode.assert_called_once_with(
+            info, False)
+
+    @mock.patch.object(irmc_common, 'elcm',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_ELCM_SPEC)
+    @mock.patch.object(irmc_common, 'scci',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
+    def test_set_secure_boot_mode_fail(self, mock_scci, mock_elcm):
+        irmc_common.scci.SCCIError = Exception
+        mock_elcm.set_secure_boot_mode.side_effect = Exception
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.IRMCOperationError,
+                              irmc_common.set_secure_boot_mode,
+                              task.node, True)
+            info = irmc_common.parse_driver_info(task.node)
+            mock_elcm.set_secure_boot_mode.assert_called_once_with(
+                info, True)
