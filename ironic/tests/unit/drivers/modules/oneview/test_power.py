@@ -25,6 +25,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy_utils
+from ironic.drivers.modules.oneview import management
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -142,7 +143,9 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
                 task
             )
 
-    def test_set_power_on(self, mock_get_ov_client):
+    @mock.patch.object(management, 'set_boot_device')
+    def test_set_power_on(
+            self, mock_set_boot_device, mock_get_ov_client):
 
         sp_uri = '/any/server-profile'
         oneview_client = mock_get_ov_client()
@@ -158,10 +161,13 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
             driver_info['applied_server_profile_uri'] = sp_uri
             task.node.driver_info = driver_info
             self.driver.power.set_power_state(task, states.POWER_ON)
+            mock_set_boot_device.assert_called_once_with(task)
             self.info['applied_server_profile_uri'] = sp_uri
             oneview_client.power_on.assert_called_once_with(self.info)
 
-    def test_set_power_off(self, mock_get_ov_client):
+    @mock.patch.object(management, 'set_boot_device')
+    def test_set_power_off(
+            self, mock_set_boot_device, mock_get_ov_client):
 
         sp_uri = '/any/server-profile'
         oneview_client = mock_get_ov_client()
@@ -177,10 +183,13 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
             driver_info['applied_server_profile_uri'] = sp_uri
             task.node.driver_info = driver_info
             self.driver.power.set_power_state(task, states.POWER_OFF)
+            self.assertFalse(mock_set_boot_device.called)
             self.info['applied_server_profile_uri'] = sp_uri
             oneview_client.power_off.assert_called_once_with(self.info)
 
-    def test_set_power_on_fail(self, mock_get_ov_client):
+    @mock.patch.object(management, 'set_boot_device')
+    def test_set_power_on_fail(
+            self, mock_set_boot_device, mock_get_ov_client):
 
         sp_uri = '/any/server-profile'
         oneview_client = mock_get_ov_client()
@@ -198,10 +207,13 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.OneViewError,
                               self.driver.power.set_power_state, task,
                               states.POWER_ON)
+            mock_set_boot_device.assert_called_once_with(task)
             self.info['applied_server_profile_uri'] = sp_uri
             oneview_client.power_on.assert_called_once_with(self.info)
 
-    def test_set_power_off_fail(self, mock_get_ov_client):
+    @mock.patch.object(management, 'set_boot_device')
+    def test_set_power_off_fail(
+            self, mock_set_boot_device, mock_get_ov_client):
 
         sp_uri = '/any/server-profile'
         oneview_client = mock_get_ov_client()
@@ -219,10 +231,13 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.OneViewError,
                               self.driver.power.set_power_state, task,
                               states.POWER_OFF)
+            self.assertFalse(mock_set_boot_device.called)
             self.info['applied_server_profile_uri'] = sp_uri
             oneview_client.power_off.assert_called_once_with(self.info)
 
-    def test_set_power_invalid_state(self, mock_get_ov_client):
+    @mock.patch.object(management, 'set_boot_device')
+    def test_set_power_invalid_state(
+            self, mock_set_boot_device, mock_get_ov_client):
 
         sp_uri = '/any/server-profile'
         oneview_client = mock_get_ov_client()
@@ -240,8 +255,11 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               self.driver.power.set_power_state, task,
                               'fake state')
+            self.assertFalse(mock_set_boot_device.called)
 
-    def test_set_power_reboot(self, mock_get_ov_client):
+    @mock.patch.object(management, 'set_boot_device')
+    def test_set_power_reboot(
+            self, mock_set_boot_device, mock_get_ov_client):
 
         sp_uri = '/any/server-profile'
         oneview_client = mock_get_ov_client()
@@ -257,12 +275,15 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
             driver_info['applied_server_profile_uri'] = sp_uri
             task.node.driver_info = driver_info
             self.driver.power.set_power_state(task, states.REBOOT)
+            mock_set_boot_device.assert_called_once_with(task)
             self.info['applied_server_profile_uri'] = sp_uri
             oneview_client.power_off.assert_called_once_with(self.info)
             oneview_client.power_off.assert_called_once_with(self.info)
             oneview_client.power_on.assert_called_once_with(self.info)
 
-    def test_reboot(self, mock_get_ov_client):
+    @mock.patch.object(management, 'set_boot_device')
+    def test_reboot(
+            self, mock_set_boot_device, mock_get_ov_client):
 
         sp_uri = '/any/server-profile'
         oneview_client = mock_get_ov_client()
@@ -278,11 +299,14 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
             driver_info['applied_server_profile_uri'] = sp_uri
             task.node.driver_info = driver_info
             self.driver.power.reboot(task)
+            mock_set_boot_device.assert_called_once_with(task)
             self.info['applied_server_profile_uri'] = sp_uri
             oneview_client.power_off.assert_called_once_with(self.info)
             oneview_client.power_on.assert_called_once_with(self.info)
 
-    def test_reboot_fail(self, mock_get_ov_client):
+    @mock.patch.object(management, 'set_boot_device')
+    def test_reboot_fail(
+            self, mock_set_boot_device, mock_get_ov_client):
 
         sp_uri = '/any/server-profile'
         oneview_client = mock_get_ov_client()
@@ -300,6 +324,7 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
             task.node.driver_info = driver_info
             self.assertRaises(exception.OneViewError,
                               self.driver.power.reboot, task)
+            self.assertFalse(mock_set_boot_device.called)
             self.info['applied_server_profile_uri'] = sp_uri
             oneview_client.power_off.assert_called_once_with(self.info)
             self.assertFalse(oneview_client.power_on.called)
