@@ -486,7 +486,7 @@ and uses the ``agent_ipmitool`` driver by default::
     DEFAULT_INSTANCE_TYPE=baremetal
 
     # Enable Ironic drivers.
-    IRONIC_ENABLED_DRIVERS=fake,agent_ssh,agent_ipmitool,pxe_ssh,pxe_ipmitool
+    IRONIC_ENABLED_DRIVERS=fake,agent_ipmitool,pxe_ipmitool
 
     # Change this to alter the default driver for nodes created by devstack.
     # This driver should be in the enabled list above.
@@ -531,9 +531,7 @@ and uses the ``agent_ipmitool`` driver by default::
       enable_plugin ironic https://git.openstack.org/openstack/ironic
 
 .. note::
-    The agent_ssh and pxe_ssh drivers are being deprecated in favor of the
-    more production-like agent_ipmitool and pxe_ipmitool drivers. When a
-    \*_ipmitool driver is set and IRONIC_IS_HARDWARE variable is false devstack
+    When a \*_ipmitool driver is set and IRONIC_IS_HARDWARE variable is false devstack
     will automatically set up `VirtualBMC <https://github.com/openstack/virtualbmc>`_
     to control the power state of the virtual baremetal nodes.
 
