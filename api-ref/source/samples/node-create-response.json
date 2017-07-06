@@ -73,6 +73,7 @@
       "rel": "bookmark"
     }
   ],
+  "storage_interface": "noop",
   "target_power_state": null,
   "target_provision_state": null,
   "target_raid_config": {},

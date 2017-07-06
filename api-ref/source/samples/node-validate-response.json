@@ -22,5 +22,8 @@
   },
   "raid": {
     "result": true
+  },
+  "storage": {
+    "result": true
   }
 }

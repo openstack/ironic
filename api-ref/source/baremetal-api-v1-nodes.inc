@@ -101,8 +101,12 @@ API microversion 1.31 introduced all of the ``*_interface`` fields
 network_interface field, which was introduced in API microversion 1.20. If this
 field is not supplied when creating the Node, the default value will be used.
 
+.. versionadded:: 1.33
+   The ``storage_interface`` field was introduced. If this field is not supplied when creating
+   the Node, the default value will be used.
+
 The list and example below are representative of the response as of API
-microversion 1.32.
+microversion 1.33.
 
 .. rest_parameters:: parameters.yaml
 
@@ -141,6 +145,7 @@ microversion 1.32.
     - network_interface: network_interface
     - power_interface: power_interface
     - raid_interface: raid_interface
+    - storage_interface: storage_interface
     - vendor_interface: vendor_interface
     - volume: n_volume
 
@@ -285,6 +290,7 @@ Response
     - network_interface: network_interface
     - power_interface: power_interface
     - raid_interface: raid_interface
+    - storage_interface: storage_interface
     - vendor_interface: vendor_interface
     - volume: n_volume
 
@@ -355,6 +361,7 @@ Response
     - network_interface: network_interface
     - power_interface: power_interface
     - raid_interface: raid_interface
+    - storage_interface: storage_interface
     - vendor_interface: vendor_interface
     - volume: n_volume
 
@@ -434,6 +441,7 @@ Response
     - network_interface: network_interface
     - power_interface: power_interface
     - raid_interface: raid_interface
+    - storage_interface: storage_interface
     - vendor_interface: vendor_interface
     - volume: n_volume
 

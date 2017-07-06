@@ -86,6 +86,7 @@ driver will also include the following fields.
    - default_network_interface: default_network_interface
    - default_power_interface: default_power_interface
    - default_raid_interface: default_raid_interface
+   - default_storage_interface: default_storage_interface
    - default_vendor_interface: default_vendor_interface
    - enabled_boot_interfaces: enabled_boot_interfaces
    - enabled_console_interfaces: enabled_console_interfaces
@@ -95,6 +96,7 @@ driver will also include the following fields.
    - enabled_network_interfaces: enabled_network_interfaces
    - enabled_power_interfaces: enabled_power_interfaces
    - enabled_raid_interfaces: enabled_raid_interfaces
+   - enabled_storage_interfaces: enabled_storage_interfaces
    - enabled_vendor_interfaces: enabled_vendor_interfaces
 
 Response Example
@@ -142,6 +144,7 @@ Response Parameters
    - default_network_interface: default_network_interface
    - default_power_interface: default_power_interface
    - default_raid_interface: default_raid_interface
+   - default_storage_interface: default_storage_interface
    - default_vendor_interface: default_vendor_interface
    - enabled_boot_interfaces: enabled_boot_interfaces
    - enabled_console_interfaces: enabled_console_interfaces
@@ -151,6 +154,7 @@ Response Parameters
    - enabled_network_interfaces: enabled_network_interfaces
    - enabled_power_interfaces: enabled_power_interfaces
    - enabled_raid_interfaces: enabled_raid_interfaces
+   - enabled_storage_interfaces: enabled_storage_interfaces
    - enabled_vendor_interfaces: enabled_vendor_interfaces
    - links: links
    - properties: driver_property_links
