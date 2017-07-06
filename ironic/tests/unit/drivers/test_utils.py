@@ -260,7 +260,7 @@ class UtilsRamdiskLogsTestCase(tests_base.TestCase):
         mock_utcnow.return_value = datetime.datetime(2000, 1, 1, 0, 0)
         name = driver_utils.get_ramdisk_logs_file_name(self.node)
         expected_name = ('1be26c0b-03f2-4d2e-ae87-c02d7f33c123_'
-                         '2000-01-01-00:00:00.tar.gz')
+                         '2000-01-01-00-00-00.tar.gz')
         self.assertEqual(expected_name, name)
 
         # with instance_info
@@ -269,7 +269,7 @@ class UtilsRamdiskLogsTestCase(tests_base.TestCase):
             self.context, instance_uuid=instance_uuid)
         name = driver_utils.get_ramdisk_logs_file_name(node2)
         expected_name = ('1be26c0b-03f2-4d2e-ae87-c02d7f33c123_' +
-                         instance_uuid + '_2000-01-01-00:00:00.tar.gz')
+                         instance_uuid + '_2000-01-01-00-00-00.tar.gz')
         self.assertEqual(expected_name, name)
 
     @mock.patch.object(driver_utils, 'store_ramdisk_logs', autospec=True)

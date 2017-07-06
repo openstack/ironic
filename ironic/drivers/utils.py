@@ -269,7 +269,7 @@ def get_ramdisk_logs_file_name(node):
     :param node: A node object.
     :returns: The log file name.
     """
-    timestamp = timeutils.utcnow().strftime('%Y-%m-%d-%H:%M:%S')
+    timestamp = timeutils.utcnow().strftime('%Y-%m-%d-%H-%M-%S')
     file_name_fields = [node.uuid]
     if node.instance_uuid:
         file_name_fields.append(node.instance_uuid)
