@@ -57,8 +57,8 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
             is invalid.
         :raises: MissingParameterValue, if some parameters are missing.
         """
-        self.get_cleaning_network_uuid(context=task.context)
-        self.get_provisioning_network_uuid(context=task.context)
+        self.get_cleaning_network_uuid(task)
+        self.get_provisioning_network_uuid(task)
 
     def add_provisioning_network(self, task):
         """Add the provisioning network to a node.
@@ -69,11 +69,11 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         # If we have left over ports from a previous provision attempt, remove
         # them
         neutron.rollback_ports(
-            task, self.get_provisioning_network_uuid(context=task.context))
+            task, self.get_provisioning_network_uuid(task))
         LOG.info('Adding provisioning network to node %s',
                  task.node.uuid)
         vifs = neutron.add_ports_to_network(
-            task, self.get_provisioning_network_uuid(context=task.context),
+            task, self.get_provisioning_network_uuid(task),
             security_groups=CONF.neutron.provisioning_network_security_groups)
         for port in task.ports:
             if port.uuid in vifs:
@@ -91,7 +91,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         LOG.info('Removing provisioning network from node %s',
                  task.node.uuid)
         neutron.remove_ports_from_network(
-            task, self.get_provisioning_network_uuid(context=task.context))
+            task, self.get_provisioning_network_uuid(task))
         for port in task.ports:
             if 'provisioning_vif_port_id' in port.internal_info:
                 internal_info = port.internal_info
@@ -107,13 +107,12 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         :returns: a dictionary in the form {port.uuid: neutron_port['id']}
         """
         # If we have left over ports from a previous cleaning, remove them
-        neutron.rollback_ports(task, self.get_cleaning_network_uuid(
-            context=task.context))
+        neutron.rollback_ports(task, self.get_cleaning_network_uuid(task))
         LOG.info('Adding cleaning network to node %s', task.node.uuid)
         security_groups = CONF.neutron.cleaning_network_security_groups
         vifs = neutron.add_ports_to_network(
             task,
-            self.get_cleaning_network_uuid(context=task.context),
+            self.get_cleaning_network_uuid(task),
             security_groups=security_groups)
         for port in task.ports:
             if port.uuid in vifs:
@@ -132,7 +131,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         LOG.info('Removing cleaning network from node %s',
                  task.node.uuid)
         neutron.remove_ports_from_network(
-            task, self.get_cleaning_network_uuid(context=task.context))
+            task, self.get_cleaning_network_uuid(task))
         for port in task.ports:
             if 'cleaning_vif_port_id' in port.internal_info:
                 internal_info = port.internal_info
@@ -147,13 +146,12 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         :returns: a dictionary in the form {port.uuid: neutron_port['id']}
         """
         # If we have left over ports from a previous rescue, remove them
-        neutron.rollback_ports(task, self.get_rescuing_network_uuid(
-            context=task.context))
+        neutron.rollback_ports(task, self.get_rescuing_network_uuid(task))
         LOG.info('Adding rescuing network to node %s', task.node.uuid)
         security_groups = CONF.neutron.rescuing_network_security_groups
         vifs = neutron.add_ports_to_network(
             task,
-            self.get_rescuing_network_uuid(context=task.context),
+            self.get_rescuing_network_uuid(task),
             security_groups=security_groups)
         for port in task.ports:
             if port.uuid in vifs:
@@ -172,7 +170,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         LOG.info('Removing rescuing network from node %s',
                  task.node.uuid)
         neutron.remove_ports_from_network(
-            task, self.get_rescuing_network_uuid(context=task.context))
+            task, self.get_rescuing_network_uuid(task))
         for port in task.ports:
             if 'rescuing_vif_port_id' in port.internal_info:
                 internal_info = port.internal_info

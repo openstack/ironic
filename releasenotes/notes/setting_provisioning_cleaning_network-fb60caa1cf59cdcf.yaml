@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    Allows specifying the provisioning and cleaning networks on a node as
+    ``driver_info['cleaning_network']`` and
+    ``driver_info['provisioning_network']`` respectively. If these
+    values are defined in the node's driver_info at the time of
+    provisioning or cleaning the baremetal node, they will be used.
+    Otherwise, the configuration options ``cleaning_network`` and
+    ``provisioning_network`` are used as before.
+fixes:
+  - |
+    A network UUID for provisioning and cleaning network is no longer cached
+    locally if the requested network (either via node's ``driver_info`` or
+    via configuration options) is specified as a network name. Fixes the
+    situation when a network is re-created with the same name.
