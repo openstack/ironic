@@ -50,6 +50,7 @@ class Chassis(base.IronicObject, object_base.VersionedObjectDictCompat):
     def get(cls, context, chassis_id):
         """Find a chassis based on its id or uuid and return a Chassis object.
 
+        :param context: Security context
         :param chassis_id: the id *or* uuid of a chassis.
         :returns: a :class:`Chassis` object.
         """

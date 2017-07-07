@@ -1197,7 +1197,7 @@ class NodeVIFController(rest.RestController):
     def post(self, vif):
         """Attach a VIF to this node
 
-        :param vif_info: a dictionary of information about a VIF.
+        :param vif: a dictionary of information about a VIF.
             It must have an 'id' key, whose value is a unique identifier
             for that VIF.
         """

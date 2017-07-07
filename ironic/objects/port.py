@@ -66,6 +66,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         Find a port based on its id or uuid or MAC address and return a Port
         object.
 
+        :param context: Security context
         :param port_id: the id *or* uuid *or* MAC address of a port.
         :returns: a :class:`Port` object.
         :raises: InvalidIdentity
