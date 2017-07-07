@@ -22,6 +22,7 @@
 
 import contextlib
 import os
+import random
 import stat
 import subprocess
 import tempfile
@@ -349,6 +350,19 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
             driver='fake_ipmitool',
             driver_info=INFO_DICT)
         self.info = ipmi._parse_driver_info(self.node)
+
+        # power actions use oslo_service.BackoffLoopingCall,
+        # mock random.SystemRandom gauss distribution
+        self._mock_system_random_distribution()
+
+    def _mock_system_random_distribution(self):
+        # random.SystemRandom with gauss distribution is used by oslo_service's
+        # BackoffLoopingCall, it multiplies default interval (equals to 1) by
+        # 2 * return_value, so if you want BackoffLoopingCall to "sleep" for
+        # 1 second, return_value should be 0.5.
+        m = mock.patch.object(random.SystemRandom, 'gauss', return_value=0.5)
+        m.start()
+        self.addCleanup(m.stop)
 
     def _test__make_password_file(self, mock_sleep, input_password,
                                   exception_to_raise=None):
@@ -1259,7 +1273,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
             self.assertRaises(exception.PowerStateFailure,
                               ipmi._power_on, task, self.info, timeout=2)
 
-        self.assertEqual(mock_exec.call_args_list, expected)
+        self.assertEqual(expected, mock_exec.call_args_list)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     @mock.patch('eventlet.greenthread.sleep', autospec=True)
@@ -1279,8 +1293,8 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             state = ipmi._soft_power_off(task, self.info)
 
-        self.assertEqual(mock_exec.call_args_list, expected)
-        self.assertEqual(state, states.POWER_OFF)
+        self.assertEqual(expected, mock_exec.call_args_list)
+        self.assertEqual(states.POWER_OFF, state)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     @mock.patch('eventlet.greenthread.sleep', autospec=True)
@@ -1302,7 +1316,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
             self.assertRaises(exception.PowerStateFailure,
                               ipmi._soft_power_off, task, self.info, timeout=2)
 
-        self.assertEqual(mock_exec.call_args_list, expected)
+        self.assertEqual(expected, mock_exec.call_args_list)
 
     @mock.patch.object(ipmi, '_power_status', autospec=True)
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
