@@ -27,8 +27,8 @@ from ironic.tests.unit.objects import utils as obj_utils
 class DisabledTestCase(db_base.DbTestCase):
     def _do_mock(self):
         # NOTE(dtantsur): fake driver always has inspection, using another one
-        mgr_utils.mock_the_extension_manager("pxe_ssh")
-        self.driver = driver_factory.get_driver("pxe_ssh")
+        mgr_utils.mock_the_extension_manager("pxe_ipmitool")
+        self.driver = driver_factory.get_driver("pxe_ipmitool")
 
     def test_disabled(self):
         self.config(enabled=False, group='inspector')

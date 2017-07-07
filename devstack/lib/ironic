@@ -113,17 +113,8 @@ IRONIC_NODE_UUID=${IRONIC_NODE_UUID:-`uuidgen`}
 IRONIC_SCRIPTS_DIR=${IRONIC_SCRIPTS_DIR:-$IRONIC_DEVSTACK_DIR/tools/ironic/scripts}
 IRONIC_TEMPLATES_DIR=${IRONIC_TEMPLATES_DIR:-$IRONIC_DEVSTACK_DIR/tools/ironic/templates}
 IRONIC_BAREMETAL_BASIC_OPS=$(trueorfalse False IRONIC_BAREMETAL_BASIC_OPS)
-IRONIC_SSH_USERNAME=${IRONIC_SSH_USERNAME:-`whoami`}
-IRONIC_SSH_TIMEOUT=${IRONIC_SSH_TIMEOUT:-15}
-IRONIC_SSH_ATTEMPTS=${IRONIC_SSH_ATTEMPTS:-5}
-IRONIC_SSH_KEY_DIR=${IRONIC_SSH_KEY_DIR:-$IRONIC_DATA_DIR/ssh_keys}
-IRONIC_SSH_KEY_FILENAME=${IRONIC_SSH_KEY_FILENAME:-ironic_key}
-IRONIC_KEY_FILE=${IRONIC_KEY_FILE:-$IRONIC_SSH_KEY_DIR/$IRONIC_SSH_KEY_FILENAME}
-IRONIC_SSH_VIRT_TYPE=${IRONIC_SSH_VIRT_TYPE:-virsh}
 IRONIC_TFTPBOOT_DIR=${IRONIC_TFTPBOOT_DIR:-$IRONIC_DATA_DIR/tftpboot}
 IRONIC_TFTPSERVER_IP=${IRONIC_TFTPSERVER_IP:-$HOST_IP}
-IRONIC_VM_SSH_PORT=${IRONIC_VM_SSH_PORT:-22}
-IRONIC_VM_SSH_ADDRESS=${IRONIC_VM_SSH_ADDRESS:-$HOST_IP}
 IRONIC_VM_COUNT=${IRONIC_VM_COUNT:-1}
 IRONIC_VM_SPECS_CPU=${IRONIC_VM_SPECS_CPU:-1}
 IRONIC_VM_SPECS_RAM=${IRONIC_VM_SPECS_RAM:-1280}
@@ -137,7 +128,6 @@ IRONIC_VM_NETWORK_BRIDGE=${IRONIC_VM_NETWORK_BRIDGE:-brbm}
 IRONIC_VM_NETWORK_RANGE=${IRONIC_VM_NETWORK_RANGE:-192.0.2.0/24}
 IRONIC_VM_INTERFACE_COUNT=${IRONIC_VM_INTERFACE_COUNT:-2}
 IRONIC_VM_MACS_CSV_FILE=${IRONIC_VM_MACS_CSV_FILE:-$IRONIC_DATA_DIR/ironic_macs.csv}
-IRONIC_AUTHORIZED_KEYS_FILE=${IRONIC_AUTHORIZED_KEYS_FILE:-$HOME/.ssh/authorized_keys}
 IRONIC_CLEAN_NET_NAME=${IRONIC_CLEAN_NET_NAME:-${IRONIC_PROVISION_NETWORK_NAME:-${PRIVATE_NETWORK_NAME}}}
 IRONIC_EXTRA_PXE_PARAMS=${IRONIC_EXTRA_PXE_PARAMS:-}
 IRONIC_TTY_DEV=${IRONIC_TTY_DEV:-ttyS0}
@@ -263,8 +253,7 @@ if [[ "$IRONIC_DEPLOY_ISO_REQUIRED" = "True" \
         or set IRONIC_BUILD_DEPLOY_RAMDISK=True to use ISOs"
 fi
 # Which deploy driver to use - valid choices right now
-# are ``pxe_ssh``, ``pxe_ipmitool``, ``agent_ssh``, ``agent_ipmitool``,
-# ``pxe_snmp`` and ``ipmi``.
+# are ``pxe_ipmitool``, ``agent_ipmitool``, ``pxe_snmp`` and ``ipmi``.
 #
 # Additional valid choices if IRONIC_IS_HARDWARE == true are:
 # ``pxe_iscsi_cimc``, ``pxe_agent_cimc``, ``pxe_ucs``, ``pxe_cimc``,
@@ -1603,13 +1592,6 @@ function enroll_nodes {
                 -i redfish_address=http://${HOST_IP}:${IRONIC_REDFISH_EMULATOR_PORT} \
                 -i redfish_username=admin \
                 -i redfish_password=password"
-        else
-            local node_options="\
-                -i ssh_virt_type=$IRONIC_SSH_VIRT_TYPE \
-                -i ssh_address=$IRONIC_VM_SSH_ADDRESS \
-                -i ssh_port=$IRONIC_VM_SSH_PORT \
-                -i ssh_username=$IRONIC_SSH_USERNAME \
-                -i ssh_key_filename=$IRONIC_KEY_FILE"
         fi
         node_options="\
             $node_options \
@@ -1913,54 +1895,6 @@ function configure_tftpd {
     restart_service xinetd
 }
 
-function configure_ironic_ssh_keypair {
-    if [[ ! -d $HOME/.ssh ]]; then
-        mkdir -p $HOME/.ssh
-        chmod 700 $HOME/.ssh
-    fi
-    # recreate ssh if any part is missing
-    if [[ ! -e $IRONIC_KEY_FILE ]] || [[ ! -e $IRONIC_KEY_FILE.pub ]]; then
-        if [[ ! -d $(dirname $IRONIC_KEY_FILE) ]]; then
-            mkdir -p $(dirname $IRONIC_KEY_FILE)
-        fi
-        echo -e 'n\n' | ssh-keygen -q -t rsa -P '' -f $IRONIC_KEY_FILE
-    fi
-    # NOTE(vsaienko) check for new line character, add if doesn't exist.
-    if [[ "$(tail -c1 $IRONIC_AUTHORIZED_KEYS_FILE | wc -l)" == "0" ]]; then
-        echo "" >> $IRONIC_AUTHORIZED_KEYS_FILE
-    fi
-    cat $IRONIC_KEY_FILE.pub | tee -a $IRONIC_AUTHORIZED_KEYS_FILE
-    # remove duplicate keys.
-    sort -u -o $IRONIC_AUTHORIZED_KEYS_FILE $IRONIC_AUTHORIZED_KEYS_FILE
-}
-
-function ironic_ssh_check {
-    local key_file=$1
-    local floating_ip=$2
-    local port=$3
-    local default_instance_user=$4
-    local attempt=$5
-    local status=false
-    local ssh_options="-o BatchMode=yes -o ConnectTimeout=$IRONIC_SSH_TIMEOUT -o StrictHostKeyChecking=no"
-    while [[ $attempt -gt 0 ]]; do
-        ssh -p $port $ssh_options -i $key_file ${default_instance_user}@$floating_ip exit
-        if [[ "$?" == "0" ]]; then
-            status=true
-            break
-        fi
-        attempt=$((attempt - 1))
-        echo "SSH connection failed. $attempt attempts left."
-    done
-    if ! $status; then
-        die $LINENO "server didn't become ssh-able!"
-    fi
-}
-
-function configure_ironic_auxiliary {
-    configure_ironic_ssh_keypair
-    ironic_ssh_check $IRONIC_KEY_FILE $IRONIC_VM_SSH_ADDRESS $IRONIC_VM_SSH_PORT $IRONIC_SSH_USERNAME $IRONIC_SSH_ATTEMPTS
-}
-
 function build_ipa_ramdisk {
     local kernel_path=$1
     local ramdisk_path=$2
@@ -2125,10 +2059,6 @@ function prepare_baremetal_basic_ops {
         return 0
     fi
 
-    if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
-        configure_ironic_auxiliary
-    fi
-
     if ! is_service_enabled nova && [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
         sudo install -g $LIBVIRT_GROUP -o $STACK_USER -m 644 $FILES/${IRONIC_WHOLEDISK_IMAGE_NAME}.img $IRONIC_HTTP_DIR
     fi
@@ -2144,13 +2074,6 @@ function cleanup_baremetal_basic_ops {
         return 0
     fi
     rm -f $IRONIC_VM_MACS_CSV_FILE
-    if [ -f $IRONIC_KEY_FILE ]; then
-        local key
-        key=$(cat $IRONIC_KEY_FILE.pub)
-        # remove public key from authorized_keys
-        grep -v "$key" $IRONIC_AUTHORIZED_KEYS_FILE > temp && mv temp $IRONIC_AUTHORIZED_KEYS_FILE
-        chmod 0600 $IRONIC_AUTHORIZED_KEYS_FILE
-    fi
     sudo rm -rf $IRONIC_DATA_DIR $IRONIC_STATE_PATH
 
     local vm_name

@@ -100,15 +100,14 @@ configured in Neutron.
 
     # Create 3 virtual machines to pose as Ironic's baremetal nodes.
     IRONIC_VM_COUNT=3
-    IRONIC_VM_SSH_PORT=22
     IRONIC_BAREMETAL_BASIC_OPS=True
 
     # Enable Ironic drivers.
-    IRONIC_ENABLED_DRIVERS=fake,agent_ssh,agent_ipmitool,pxe_ssh,pxe_ipmitool
+    IRONIC_ENABLED_DRIVERS=fake,agent_ipmitool,pxe_ipmitool
 
     # Change this to alter the default driver for nodes created by devstack.
     # This driver should be in the enabled list above.
-    IRONIC_DEPLOY_DRIVER=agent_ssh
+    IRONIC_DEPLOY_DRIVER=agent_ipmitool
 
     # The parameters below represent the minimum possible values to create
     # functional nodes.

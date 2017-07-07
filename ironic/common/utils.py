@@ -32,7 +32,6 @@ from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import netutils
 from oslo_utils import timeutils
-import paramiko
 import pytz
 import six
 
@@ -77,46 +76,6 @@ def execute(*cmd, **kwargs):
     LOG.debug('Command stdout is: "%s"', result[0])
     LOG.debug('Command stderr is: "%s"', result[1])
     return result
-
-
-def ssh_connect(connection):
-    """Method to connect to a remote system using ssh protocol.
-
-    :param connection: a dict of connection parameters.
-    :returns: paramiko.SSHClient -- an active ssh connection.
-    :raises: SSHConnectFailed
-
-    """
-    try:
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        key_contents = connection.get('key_contents')
-        if key_contents:
-            data = six.StringIO(key_contents)
-            if "BEGIN RSA PRIVATE" in key_contents:
-                pkey = paramiko.RSAKey.from_private_key(data)
-            elif "BEGIN DSA PRIVATE" in key_contents:
-                pkey = paramiko.DSSKey.from_private_key(data)
-            else:
-                # Can't include the key contents - secure material.
-                raise ValueError(_("Invalid private key"))
-        else:
-            pkey = None
-        ssh.connect(connection.get('host'),
-                    username=connection.get('username'),
-                    password=connection.get('password'),
-                    port=connection.get('port', 22),
-                    pkey=pkey,
-                    key_filename=connection.get('key_filename'),
-                    timeout=connection.get('timeout', 10))
-
-        # send TCP keepalive packets every 20 seconds
-        ssh.get_transport().set_keepalive(20)
-    except Exception as e:
-        LOG.debug("SSH connect failed: %s", e)
-        raise exception.SSHConnectFailed(host=connection.get('host'))
-
-    return ssh
 
 
 def is_valid_datapath_id(datapath_id):

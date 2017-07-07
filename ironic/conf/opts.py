@@ -59,7 +59,6 @@ _opts = [
     ('pxe', ironic.conf.pxe.opts),
     ('service_catalog', ironic.conf.service_catalog.list_opts()),
     ('snmp', ironic.conf.snmp.opts),
-    ('ssh', ironic.conf.ssh.opts),
     ('swift', ironic.conf.swift.list_opts()),
 ]
 
@@ -96,7 +95,6 @@ def update_opt_defaults():
             'stevedore=INFO',
             'eventlet.wsgi.server=INFO',
             'iso8601=WARNING',
-            'paramiko=WARNING',
             'requests=WARNING',
             'neutronclient=WARNING',
             'glanceclient=WARNING',

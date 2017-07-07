@@ -33,7 +33,8 @@ ironic-api
   ironic-conductor over `remote procedure call (RPC)`_.
 
 ironic-conductor
-  Adds/edits/deletes nodes; powers on/off nodes with ipmi or ssh;
+  Adds/edits/deletes nodes; powers on/off nodes with ipmi or other
+  vendor-specific protocol;
   provisions/deploys/cleans bare metal nodes.
 
 ironic-python-agent

@@ -4979,13 +4979,6 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                     ]
         self._check_driver_properties("fake_ipmitool", expected)
 
-    def test_driver_properties_fake_ssh(self):
-        expected = ['ssh_address', 'ssh_username',
-                    'vbox_use_headless', 'ssh_virt_type',
-                    'ssh_key_contents', 'ssh_key_filename',
-                    'ssh_password', 'ssh_port', 'ssh_terminal_port']
-        self._check_driver_properties("fake_ssh", expected)
-
     def test_driver_properties_fake_pxe(self):
         expected = ['deploy_kernel', 'deploy_ramdisk',
                     'deploy_forces_oob_reboot']
@@ -5005,15 +4998,6 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                     'deploy_kernel', 'deploy_ramdisk', 'ipmi_protocol_version',
                     'ipmi_force_boot_device', 'deploy_forces_oob_reboot']
         self._check_driver_properties("pxe_ipmitool", expected)
-
-    def test_driver_properties_pxe_ssh(self):
-        expected = ['deploy_kernel', 'deploy_ramdisk',
-                    'ssh_address', 'ssh_username',
-                    'vbox_use_headless', 'ssh_virt_type',
-                    'ssh_key_contents', 'ssh_key_filename',
-                    'ssh_password', 'ssh_port', 'ssh_terminal_port',
-                    'deploy_forces_oob_reboot']
-        self._check_driver_properties("pxe_ssh", expected)
 
     def test_driver_properties_pxe_snmp(self):
         expected = ['deploy_kernel', 'deploy_ramdisk',

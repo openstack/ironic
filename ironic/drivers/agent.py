@@ -23,7 +23,6 @@ from ironic.drivers.modules.cimc import management as cimc_mgmt
 from ironic.drivers.modules.cimc import power as cimc_power
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import pxe
-from ironic.drivers.modules import ssh
 from ironic.drivers.modules.ucs import management as ucs_mgmt
 from ironic.drivers.modules.ucs import power as ucs_power
 
@@ -31,32 +30,6 @@ from ironic.drivers.modules.ucs import power as ucs_power
 # For backward compatibility
 AgentAndIPMIToolDriver = ipmi.AgentAndIPMIToolDriver
 AgentAndIPMIToolAndSocatDriver = ipmi.AgentAndIPMIToolAndSocatDriver
-
-
-class AgentAndSSHDriver(base.BaseDriver):
-    """Agent + SSH driver.
-
-    NOTE: This driver is meant only for testing environments.
-
-    This driver implements the `core` functionality, combining
-    :class:`ironic.drivers.modules.ssh.SSH` (for power on/off and reboot of
-    virtual machines tunneled over SSH), with
-    :class:`ironic.drivers.modules.agent.AgentDeploy` (for image
-    deployment). Implementations are in those respective classes; this class
-    is merely the glue between them.
-    """
-
-    supported = False
-
-    def __init__(self):
-        self.power = ssh.SSHPower()
-        self.boot = pxe.PXEBoot()
-        self.deploy = agent.AgentDeploy()
-        self.management = ssh.SSHManagement()
-        self.raid = agent.AgentRAID()
-        self.inspect = inspector.Inspector.create_if_enabled(
-            'AgentAndSSHDriver')
-        self.console = ssh.ShellinaboxConsole()
 
 
 class AgentAndUcsDriver(base.BaseDriver):

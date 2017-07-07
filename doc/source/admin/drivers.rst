@@ -83,15 +83,6 @@ OneView driver
   drivers/oneview
 
 
-XenServer ssh driver
---------------------
-
-.. toctree::
-  :maxdepth: 1
-
-  drivers/xenserver
-
-
 Redfish driver
 --------------
 

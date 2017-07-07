@@ -264,10 +264,8 @@ default:
     iscsi
   enabled_drivers =
     agent_ipmitool
-    agent_ssh
     fake
     pxe_ipmitool
-    pxe_ssh
   enabled_hardware_types =
     ipmi
     redfish
@@ -642,11 +640,6 @@ service_catalog:
 snmp:
   power_timeout = 10
   reboot_delay = 0
-
-ssh:
-  get_vm_name_attempts = 3
-  get_vm_name_retry_interval = 3
-  libvirt_uri = qemu:///system
 
 swift:
   auth_section = None
