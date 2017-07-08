@@ -402,6 +402,11 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         url = console_utils.get_socat_console_url(self.info['port'])
         self.assertEqual("tcp://[::1]:%s" % self.info['port'], url)
 
+    def test_get_socat_console_url_tcp_with_address_conf(self):
+        self.config(socat_address="10.0.0.1", group='console')
+        url = console_utils.get_socat_console_url(self.info['port'])
+        self.assertEqual("tcp://10.0.0.1:%s" % self.info['port'], url)
+
     @mock.patch.object(subprocess, 'Popen', autospec=True)
     @mock.patch.object(console_utils, '_get_console_pid_file', autospec=True)
     @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',
@@ -439,6 +444,18 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         self.config(terminal_timeout=0, group='console')
         args = self._test_start_socat_console_check_arg()
         self.assertNotIn('-T0', args)
+
+    def test_start_socat_console_check_arg_bind_addr_default_ipv4(self):
+        self.config(my_ip='10.0.0.1')
+        args = self._test_start_socat_console_check_arg()
+        self.assertIn('TCP4-LISTEN:%s,bind=10.0.0.1,reuseaddr' %
+                      self.info['port'], args)
+
+    def test_start_socat_console_check_arg_bind_addr_ipv4(self):
+        self.config(socat_address='10.0.0.1', group='console')
+        args = self._test_start_socat_console_check_arg()
+        self.assertIn('TCP4-LISTEN:%s,bind=10.0.0.1,reuseaddr' %
+                      self.info['port'], args)
 
     @mock.patch.object(os.path, 'exists', autospec=True)
     @mock.patch.object(subprocess, 'Popen', autospec=True)
