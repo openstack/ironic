@@ -3030,6 +3030,32 @@ class TestPut(test_api_base.BaseApiTest):
                             expect_errors=True)
         self.assertEqual(http_client.CONFLICT, ret.status_code)  # Conflict
 
+    def test_inspect_validation_failed_status_code(self):
+        self.mock_dnih.side_effect = exception.InvalidParameterValue(
+            err='Failed to validate inspection or power info.')
+        node = self.node
+        node.provision_state = states.MANAGEABLE
+        node.reservation = 'fake-host'
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': 'inspect'},
+                            headers={api_base.Version.string: "1.6"},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+
+    def test_inspect_validation_failed_missing_parameter_value(self):
+        self.mock_dnih.side_effect = exception.MissingParameterValue(
+            err='Failed to validate inspection or power info.')
+        node = self.node
+        node.provision_state = states.MANAGEABLE
+        node.reservation = 'fake-host'
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': 'inspect'},
+                            headers={api_base.Version.string: "1.6"},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+
     @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
     def test_manage_from_available(self, mock_dpa):
         self.node.provision_state = states.AVAILABLE
