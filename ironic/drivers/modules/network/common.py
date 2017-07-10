@@ -467,8 +467,8 @@ class VIFPortIDMixin(object):
                 # either neutron doesn't exist because we're running in
                 # standalone environment or we can't find a matching neutron
                 # port which means a user might be requesting a non-neutron
-                # port. So skip trying to update the neutron port MAC address
-                # in these cases.
+                # port. Assume no physical network information exists in these
+                # cases.
                 pass
 
             if len(physnets) > 1:
