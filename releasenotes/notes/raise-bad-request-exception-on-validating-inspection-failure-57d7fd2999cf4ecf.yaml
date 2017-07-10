@@ -1,4 +1,5 @@
 ---
 fixes:
-  - Raise HTTP 400 Bad request on failure to validate
-    power or inspect interface parameters before inspecting.
+  - Raises HTTP 400 ``Bad Request`` (instead of HTTP 500 ``Internal Server``)
+    error on failure to validate ``power`` or ``inspect`` interface parameters
+    before performing a hardware inspection.
