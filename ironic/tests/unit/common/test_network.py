@@ -15,6 +15,7 @@
 
 from oslo_utils import uuidutils
 
+from ironic.common import exception
 from ironic.common import network
 from ironic.conductor import task_manager
 from ironic.tests.unit.conductor import mgr_utils
@@ -227,3 +228,78 @@ class GetPhysnetsForNodeTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, node.uuid) as task:
             res = network.get_physnets_for_node(task)
         self.assertEqual({'physnet1', 'physnet2'}, res)
+
+
+class GetPhysnetsByPortgroupID(db_base.DbTestCase):
+
+    def setUp(self):
+        super(GetPhysnetsByPortgroupID, self).setUp()
+        self.node = object_utils.create_test_node(self.context, driver='fake')
+        self.portgroup = object_utils.create_test_portgroup(
+            self.context, node_id=self.node.id)
+
+    def _test(self, expected_result, exclude_port=None):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = network.get_physnets_by_portgroup_id(task,
+                                                          self.portgroup.id,
+                                                          exclude_port)
+        self.assertEqual(expected_result, result)
+
+    def test_empty(self):
+        self._test(set())
+
+    def test_one_port(self):
+        object_utils.create_test_port(self.context, node_id=self.node.id,
+                                      portgroup_id=self.portgroup.id,
+                                      physical_network='physnet1')
+        self._test({'physnet1'})
+
+    def test_two_ports(self):
+        object_utils.create_test_port(self.context, node_id=self.node.id,
+                                      portgroup_id=self.portgroup.id,
+                                      physical_network='physnet1')
+        object_utils.create_test_port(self.context, node_id=self.node.id,
+                                      uuid=uuidutils.generate_uuid(),
+                                      address='00:11:22:33:44:55',
+                                      portgroup_id=self.portgroup.id,
+                                      physical_network='physnet1')
+        self._test({'physnet1'})
+
+    def test_exclude_port(self):
+        object_utils.create_test_port(self.context, node_id=self.node.id,
+                                      portgroup_id=self.portgroup.id,
+                                      physical_network='physnet1')
+        port2 = object_utils.create_test_port(self.context,
+                                              node_id=self.node.id,
+                                              uuid=uuidutils.generate_uuid(),
+                                              address='00:11:22:33:44:55',
+                                              portgroup_id=self.portgroup.id,
+                                              physical_network='physnet2')
+        self._test({'physnet1'}, port2)
+
+    def test_exclude_port_no_id(self):
+        # During port creation there may be no 'id' field.
+        object_utils.create_test_port(self.context, node_id=self.node.id,
+                                      portgroup_id=self.portgroup.id,
+                                      physical_network='physnet1')
+        port2 = object_utils.get_test_port(self.context,
+                                           node_id=self.node.id,
+                                           uuid=uuidutils.generate_uuid(),
+                                           address='00:11:22:33:44:55',
+                                           portgroup_id=self.portgroup.id,
+                                           physical_network='physnet2')
+        self._test({'physnet1'}, port2)
+
+    def test_two_ports_inconsistent(self):
+        object_utils.create_test_port(self.context, node_id=self.node.id,
+                                      portgroup_id=self.portgroup.id,
+                                      physical_network='physnet1')
+        object_utils.create_test_port(self.context, node_id=self.node.id,
+                                      uuid=uuidutils.generate_uuid(),
+                                      address='00:11:22:33:44:55',
+                                      portgroup_id=self.portgroup.id,
+                                      physical_network='physnet2')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.PortgroupPhysnetInconsistent,
+                              network.get_physnets_by_portgroup_id,
+                              task, self.portgroup.id)
