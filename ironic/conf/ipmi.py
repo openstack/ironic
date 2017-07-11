@@ -22,9 +22,10 @@ from ironic.common.i18n import _
 opts = [
     cfg.IntOpt('command_retry_timeout',
                default=60,
-               help=_('Maximum time in seconds to retry, retryable IPMI '
-                      'operations. For example if the requested action fails '
-                      'because the BMC is busy. There is a tradeoff when '
+               help=_('Maximum time in seconds to retry retryable IPMI '
+                      'operations. (An operation is retryable, for '
+                      'example, if the requested operation fails '
+                      'because the BMC is busy.) There is a tradeoff when '
                       'setting this value. Setting this too low may cause '
                       'older BMCs to crash and require a hard reset. However, '
                       'setting too high can cause the sync power state '
@@ -38,13 +39,14 @@ opts = [
                       'sync power state periodic task to hang when there are '
                       'slow or unresponsive BMCs.'),
                deprecated_for_removal=True,
-               deprecated_reason=_('Option ipmi.command_retry_timeout should '
-                                   'be used to define IPMI command retries '
-                                   'and option '
-                                   'conductor.power_state_change_timeout '
-                                   'should be use to define timeout value for '
-                                   'waiting for power operations to '
-                                   'complete')),
+               deprecated_reason=_('Use option [ipmi]/command_retry_timeout '
+                                   'to specify the timeout value for '
+                                   'IPMI command retries, and use option '
+                                   '[conductor]/power_state_change_timeout to '
+                                   'specify the timeout value for waiting for '
+                                   'a power operation to complete so that a '
+                                   'baremetal node reaches the desired '
+                                   'power state.')),
     cfg.IntOpt('min_command_interval',
                default=5,
                help=_('Minimum time, in seconds, between IPMI operations '

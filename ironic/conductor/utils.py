@@ -70,6 +70,15 @@ def node_set_boot_device(task, device, persistent=False):
 
 
 def node_wait_for_power_state(task, new_state, timeout=None):
+    """Wait for node to be in new power state.
+
+    :param task: a TaskManager instance.
+    :param new_state: the desired new power state, one of the power states
+        in :mod:`ironic.common.states`.
+    :param timeout: number of seconds to wait before giving up. If not
+        specified, uses the conductor.power_state_change_timeout config value.
+    :raises: PowerStateFailure if timed out
+    """
     retry_timeout = (timeout or CONF.conductor.power_state_change_timeout)
 
     def _wait():

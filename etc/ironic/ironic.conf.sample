@@ -1140,9 +1140,10 @@
 # Minimum value: 1
 #soft_power_off_timeout = 600
 
-# Number of seconds to wait for power operations to complete
-# on the baremetal node before declaring the power operation
-# has failed (integer value)
+# Number of seconds to wait for power operations to complete,
+# i.e., so that a baremetal node is in the desired power
+# state. If timed out, the power operation is considered a
+# failure. (integer value)
 # Minimum value: 2
 #power_state_change_timeout = 30
 
@@ -1900,13 +1901,14 @@
 # From ironic
 #
 
-# Maximum time in seconds to retry, retryable IPMI operations.
-# For example if the requested action fails because the BMC is
-# busy. There is a tradeoff when setting this value. Setting
-# this too low may cause older BMCs to crash and require a
-# hard reset. However, setting too high can cause the sync
-# power state periodic task to hang when there are slow or
-# unresponsive BMCs. (integer value)
+# Maximum time in seconds to retry retryable IPMI operations.
+# (An operation is retryable, for example, if the requested
+# operation fails because the BMC is busy.) There is a
+# tradeoff when setting this value. Setting this too low may
+# cause older BMCs to crash and require a hard reset. However,
+# setting too high can cause the sync power state periodic
+# task to hang when there are slow or unresponsive BMCs.
+# (integer value)
 #command_retry_timeout = 60
 
 # DEPRECATED: Maximum time in seconds to retry IPMI
@@ -1917,10 +1919,11 @@
 # slow or unresponsive BMCs. (integer value)
 # This option is deprecated for removal.
 # Its value may be silently ignored in the future.
-# Reason: Option ipmi.command_retry_timeout should be used to
-# define IPMI command retries and option
-# conductor.power_state_change_timeout should be use to define
-# timeout value for waiting for power operations to complete
+# Reason: Use option [ipmi]/command_retry_timeout to specify
+# the timeout value for IPMI command retries, and use option
+# [conductor]/power_state_change_timeout to specify the
+# timeout value for waiting for a power operation to complete
+# so that a baremetal node reaches the desired power state.
 #retry_timeout = <None>
 
 # Minimum time, in seconds, between IPMI operations sent to a

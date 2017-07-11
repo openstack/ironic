@@ -396,7 +396,7 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None):
             args.append(option)
             args.append(driver_info[name])
 
-    # TODO(sambetts) Remove useage of ipmi.retry_timeout in Queens
+    # TODO(sambetts) Remove usage of ipmi.retry_timeout in Queens
     timeout = CONF.ipmi.retry_timeout or CONF.ipmi.command_retry_timeout
 
     # specify retry timing more precisely, if supported
@@ -473,7 +473,7 @@ def _set_and_wait(task, power_action, driver_info, timeout=None):
     :returns: one of ironic.common.states
 
     """
-    # TODO(sambetts) Remove useage of ipmi.retry_timeout in Queens
+    # TODO(sambetts) Remove usage of ipmi.retry_timeout in Queens
     default_timeout = CONF.ipmi.retry_timeout
 
     if power_action == states.POWER_ON:

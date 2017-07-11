@@ -148,8 +148,9 @@ opts = [
     cfg.IntOpt('power_state_change_timeout',
                min=2, default=30,
                help=_('Number of seconds to wait for power operations to '
-                      'complete on the baremetal node before declaring the '
-                      'power operation has failed')),
+                      'complete, i.e., so that a baremetal node is in the '
+                      'desired power state. If timed out, the power operation '
+                      'is considered a failure.')),
 ]
 
 

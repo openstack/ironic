@@ -1,14 +1,21 @@
 ---
 deprecations:
   - |
-    Configuration option IPMI.retry_timeout is deprecated in favor of new
-    options IPMI.command_retry_timeout, and
-    CONDUCTOR.power_state_change_timeout
+    Configuration option ``[ipmi]/retry_timeout`` is deprecated in favor of
+    these new options:
+
+    * ``[ipmi]/command_retry_timeout``: timeout value to wait for an IPMI
+      command to complete (be acknowledged by the baremetal node)
+    * ``[conductor]/power_state_change_timeout``: timeout value to wait for
+      a power operation to complete, so that the baremetal node is in the
+      desired new power state
 fixes:
   - |
-    Prevents the IPMI driver from needlessly checking status if the power
-    change action fails. Additionally stop retrying power actions and power
-    status polls if we receive a non-retryable error from ipmitool.
-    https//bugs.launchpad.net/ironic/+bug/1675529. New configuration option
-    `power_state_change_timeout` added to define how many seconds to wait for a
-    server to change power state when a power action is requested.
+    Prevents the IPMI driver from needlessly checking status of the baremetal
+    node if a power change action fails. Additionally, stops retrying power
+    actions and power status polls on receipt of a non-retryable error from
+    ipmitool. For more information, see
+    https//bugs.launchpad.net/ironic/+bug/1675529. A new configuration option
+    ``[conductor]/power_state_change_timeout`` can be used to specify how many
+    seconds to wait for a baremetal node to change power state when a power
+    action is requested.
