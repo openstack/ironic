@@ -22,6 +22,7 @@ from oslo_log import log
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import network
 from ironic.common import neutron
 from ironic.common import states
 from ironic.common import utils
@@ -54,7 +55,35 @@ def _vif_attached(port_like_obj, vif_id):
     return attached_vif_id is not None
 
 
-def _get_free_portgroups_and_ports(task, vif_id):
+def _is_port_physnet_allowed(port, physnets):
+    """Check whether a port's physical network is allowed for a VIF.
+
+    Supports VIFs on networks with no physical network configuration by
+    allowing all ports regardless of their physical network. This will be the
+    case when the port is not a neutron port because we're in standalone mode
+    or not using neutron.
+
+    Allows ports with physical_network=None to ensure backwards compatibility
+    and provide support for simple deployments with no physical network
+    configuration in ironic.
+
+    When the physnets set is not empty and the port's physical_network field is
+    not None, the port's physical_network field must be present in the physnets
+    set.
+
+    :param port: A Port object to check.
+    :param physnets: Set of physical networks on which the VIF may be
+        attached. This is governed by the segments of the VIF's network. An
+        empty set indicates that the ports' physical networks should be
+        ignored.
+    :returns: True if the port's physical network is allowed, False otherwise.
+    """
+    return (not physnets or
+            port.physical_network is None or
+            port.physical_network in physnets)
+
+
+def _get_free_portgroups_and_ports(task, vif_id, physnets):
     """Get free portgroups and ports.
 
     It only returns ports or portgroups that can be used for attachment of
@@ -62,13 +91,18 @@ def _get_free_portgroups_and_ports(task, vif_id):
 
     :param task: a TaskManager instance.
     :param vif_id: Name or UUID of a VIF.
-    :returns: tuple of: list of free portgroups, list of free ports.
+    :param physnets: Set of physical networks on which the VIF may be
+        attached. This is governed by the segments of the VIF's network. An
+        empty set indicates that the ports' physical networks should be
+        ignored.
+    :returns: list of free ports and portgroups.
     :raises: VifAlreadyAttached, if vif_id is attached to any of the
         node's ports or portgroups.
     """
 
-    # This list contains ports selected as candidates for attachment
-    free_ports = []
+    # This list contains ports and portgroups selected as candidates for
+    # attachment.
+    free_port_like_objs = []
     # This is a mapping of portgroup id to collection of its free ports
     ports_by_portgroup = collections.defaultdict(list)
     # This set contains IDs of portgroups that should be ignored, as they have
@@ -84,14 +118,13 @@ def _get_free_portgroups_and_ports(task, vif_id):
             # added in this set is not a problem
             non_usable_portgroups.add(p.portgroup_id)
             continue
+        if not _is_port_physnet_allowed(p, physnets):
+            continue
         if p.portgroup_id is None:
             # ports without portgroup_id are always considered candidates
-            free_ports.append(p)
+            free_port_like_objs.append(p)
         else:
             ports_by_portgroup[p.portgroup_id].append(p)
-
-    # This list contains portgroups selected as candidates for attachment
-    free_portgroups = []
 
     for pg in task.portgroups:
         if _vif_attached(pg, vif_id):
@@ -99,43 +132,91 @@ def _get_free_portgroups_and_ports(task, vif_id):
         if pg.id in non_usable_portgroups:
             # This portgroup has vifs attached to its ports, consider its
             # ports instead to avoid collisions
-            free_ports.extend(ports_by_portgroup[pg.id])
+            free_port_like_objs.extend(ports_by_portgroup[pg.id])
         # Also ignore empty portgroups
         elif ports_by_portgroup[pg.id]:
-            free_portgroups.append(pg)
+            free_port_like_objs.append(pg)
 
-    return free_portgroups, free_ports
+    return free_port_like_objs
 
 
-def get_free_port_like_object(task, vif_id):
+def _get_physnet_for_portgroup(task, portgroup):
+    """Return the physical network associated with a portgroup.
+
+    :param task: a TaskManager instance.
+    :param portgroup: a Portgroup object.
+    :returns: The physical network associated with the portgroup.
+    :raises: PortgroupPhysnetInconsistent if the portgroup's ports are not
+             assigned the same physical network.
+    """
+    pg_ports = network.get_ports_by_portgroup_id(task, portgroup.id)
+    pg_physnets = {port.physical_network for port in pg_ports}
+    # Sanity check: there should be at least one port in the portgroup and
+    # all ports should have the same physical network.
+    if len(pg_physnets) != 1:
+        raise exception.PortgroupPhysnetInconsistent(
+            portgroup=portgroup.uuid, physical_networks=", ".join(pg_physnets))
+    return pg_physnets.pop()
+
+
+def get_free_port_like_object(task, vif_id, physnets):
     """Find free port-like object (portgroup or port) VIF will be attached to.
 
-    Ensures that VIF is not already attached to this node. It will return the
-    first free port group. If there are no free port groups, then the first
-    available port (pxe_enabled preferably) is used.
+    Ensures that the VIF is not already attached to this node.  When selecting
+    a port or portgroup to attach the virtual interface to, the following
+    ordered criteria are applied:
+
+    * Require ports or portgroups to have a physical network that is either
+      None or one of the VIF's allowed physical networks.
+    * Prefer ports or portgroups with a physical network field which is not
+      None.
+    * Prefer portgroups to ports.
+    * Prefer ports with PXE enabled.
 
     :param task: a TaskManager instance.
     :param vif_id: Name or UUID of a VIF.
+    :param physnets: Set of physical networks on which the VIF may be
+        attached. This is governed by the segments of the VIF's network. An
+        empty set indicates that the ports' physical networks should be
+        ignored.
     :raises: VifAlreadyAttached, if VIF is already attached to the node.
     :raises: NoFreePhysicalPorts, if there is no port-like object VIF can be
         attached to.
+    :raises: PortgroupPhysnetInconsistent if one of the node's portgroups
+             has ports which are not all assigned the same physical network.
     :returns: port-like object VIF will be attached to.
     """
+    free_port_like_objs = _get_free_portgroups_and_ports(task, vif_id,
+                                                         physnets)
 
-    free_portgroups, free_ports = _get_free_portgroups_and_ports(task, vif_id)
-
-    if free_portgroups:
-        # portgroups are higher priority
-        return free_portgroups[0]
-
-    if not free_ports:
+    if not free_port_like_objs:
         raise exception.NoFreePhysicalPorts(vif=vif_id)
 
-    # Sort ports by pxe_enabled to ensure we always bind pxe_enabled ports
-    # first
-    sorted_free_ports = sorted(free_ports, key=lambda p: p.pxe_enabled,
-                               reverse=True)
-    return sorted_free_ports[0]
+    def sort_key(port_like_obj):
+        """Key function for sorting a combined list of ports and portgroups.
+
+        We key the port-like objects using the following precedence:
+
+        1. Prefer objects with a physical network field which is in the
+           physnets set.
+        2. Prefer portgroups to ports.
+        3. Prefer ports with PXE enabled.
+
+        :param port_like_obj: The port or portgroup to key.
+        :returns: A key value for sorting the object.
+        """
+        is_pg = isinstance(port_like_obj, objects.Portgroup)
+        if is_pg:
+            pg_physnet = _get_physnet_for_portgroup(task, port_like_obj)
+            physnet_matches = pg_physnet in physnets
+            pxe_enabled = True
+        else:
+            physnet_matches = port_like_obj.physical_network in physnets
+            pxe_enabled = port_like_obj.pxe_enabled
+        return (physnet_matches, is_pg, pxe_enabled)
+
+    sorted_free_plos = sorted(free_port_like_objs, key=sort_key, reverse=True)
+    return sorted_free_plos[0]
 
 
 def plug_port_to_tenant_network(task, port_like_obj, client=None):
@@ -347,21 +428,64 @@ class VIFPortIDMixin(object):
     def vif_attach(self, task, vif_info):
         """Attach a virtual network interface to a node
 
-        Attach a virtual interface to a node. It will use the first free port
-        group. If there are no free port groups, then the first available port
-        (pxe_enabled preferably) is used.
+        Attach a virtual interface to a node.  When selecting a port or
+        portgroup to attach the virtual interface to, the following ordered
+        criteria are applied:
+
+        * Require ports or portgroups to have a physical network that is either
+          None or one of the VIF's allowed physical networks.
+        * Prefer ports or portgroups with a physical network field which is not
+          None.
+        * Prefer portgroups to ports.
+        * Prefer ports with PXE enabled.
 
         :param task: A TaskManager instance.
         :param vif_info: a dictionary of information about a VIF.
              It must have an 'id' key, whose value is a unique
              identifier for that VIF.
         :raises: NetworkError, VifAlreadyAttached, NoFreePhysicalPorts
+        :raises: PortgroupPhysnetInconsistent if one of the node's portgroups
+                 has ports which are not all assigned the same physical
+                 network.
         """
         vif_id = vif_info['id']
-
-        port_like_obj = get_free_port_like_object(task, vif_id)
-
         client = neutron.get_client()
+
+        # Determine whether any of the node's ports have a physical network. If
+        # not, we don't need to check the VIF's network's physical networks as
+        # they will not affect the VIF to port mapping.
+        physnets = set()
+        if any(port.physical_network is not None for port in task.ports):
+            try:
+                physnets = neutron.get_physnets_by_port_uuid(client, vif_id)
+            except (exception.InvalidParameterValue, exception.NetworkError):
+                # TODO(mgoddard): Remove this except clause and handle errors
+                # properly. We can do this once a strategy has been determined
+                # for handling the tempest VIF tests in an environment that
+                # may not support neutron.
+                # NOTE(sambetts): If a client error occurs this is because
+                # either neutron doesn't exist because we're running in
+                # standalone environment or we can't find a matching neutron
+                # port which means a user might be requesting a non-neutron
+                # port. So skip trying to update the neutron port MAC address
+                # in these cases.
+                pass
+
+            if len(physnets) > 1:
+                # NOTE(mgoddard): Neutron cannot currently handle hosts which
+                # are mapped to multiple segments in the same routed network.
+                node_physnets = network.get_physnets_for_node(task)
+                if len(node_physnets.intersection(physnets)) > 1:
+                    reason = _("Node has ports which map to multiple segments "
+                               "of the routed network to which the VIF is "
+                               "attached. Currently neutron only supports "
+                               "hosts which map to one segment of a routed "
+                               "network")
+                    raise exception.VifInvalidForAttach(
+                        node=task.node.uuid, vif=vif_id, reason=reason)
+
+        port_like_obj = get_free_port_like_object(task, vif_id, physnets)
+
         # Address is optional for portgroups
         if port_like_obj.address:
             # Check if the requested vif_id is a neutron port. If it is
@@ -369,6 +493,10 @@ class VIFPortIDMixin(object):
             try:
                 client.show_port(vif_id)
             except neutron_exceptions.NeutronClientException:
+                # TODO(mgoddard): Remove this except clause and handle errors
+                # properly. We can do this once a strategy has been determined
+                # for handling the tempest VIF tests in an environment that
+                # may not support neutron.
                 # NOTE(sambetts): If a client error occurs this is because
                 # either neutron doesn't exist because we're running in
                 # standalone environment or we can't find a matching neutron

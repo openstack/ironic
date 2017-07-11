@@ -199,3 +199,31 @@ class GetPortsByPortgroupIdTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, node.uuid) as task:
             res = network.get_ports_by_portgroup_id(task, portgroup.id)
         self.assertEqual([], res)
+
+
+class GetPhysnetsForNodeTestCase(db_base.DbTestCase):
+
+    def test_get_physnets_for_node_no_ports(self):
+        node = object_utils.create_test_node(self.context, driver='fake')
+        with task_manager.acquire(self.context, node.uuid) as task:
+            res = network.get_physnets_for_node(task)
+        self.assertEqual(set(), res)
+
+    def test_get_physnets_for_node_excludes_None(self):
+        node = object_utils.create_test_node(self.context, driver='fake')
+        object_utils.create_test_port(self.context, node_id=node.id)
+        with task_manager.acquire(self.context, node.uuid) as task:
+            res = network.get_physnets_for_node(task)
+        self.assertEqual(set(), res)
+
+    def test_get_physnets_for_node_multiple_ports(self):
+        node = object_utils.create_test_node(self.context, driver='fake')
+        object_utils.create_test_port(self.context, node_id=node.id,
+                                      physical_network='physnet1')
+        object_utils.create_test_port(self.context, node_id=node.id,
+                                      uuid=uuidutils.generate_uuid(),
+                                      address='00:11:22:33:44:55',
+                                      physical_network='physnet2')
+        with task_manager.acquire(self.context, node.uuid) as task:
+            res = network.get_physnets_for_node(task)
+        self.assertEqual({'physnet1', 'physnet2'}, res)

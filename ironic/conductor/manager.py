@@ -2582,6 +2582,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                    exception.NetworkError,
                                    exception.VifAlreadyAttached,
                                    exception.NoFreePhysicalPorts,
+                                   exception.PortgroupPhysnetInconsistent,
+                                   exception.VifInvalidForAttach,
                                    exception.InvalidParameterValue)
     def vif_attach(self, context, node_id, vif_info):
         """Attach a VIF to a node
@@ -2597,6 +2599,11 @@ class ConductorManager(base_manager.BaseConductorManager):
         :raises: NetworkError, if an error occurs during attaching the VIF.
         :raises: InvalidParameterValue, if a parameter that's required for
             VIF attach is wrong/missing.
+        :raises: PortgroupPhysnetInconsistent if one of the node's portgroups
+                 has ports which are not all assigned the same physical
+                 network.
+        :raises: VifInvalidForAttach if the VIF is not valid for attachment to
+                 the node.
         """
         LOG.debug("RPC vif_attach called for the node %(node_id)s with "
                   "vif_info %(vif_info)s", {'node_id': node_id,

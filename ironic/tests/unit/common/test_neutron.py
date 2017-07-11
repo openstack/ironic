@@ -656,3 +656,228 @@ class TestUnbindPort(base.TestCase):
                                                                      body)
         mock_log.info.assert_called_once_with('Port %s was not found while '
                                               'unbinding.', port_id)
+
+
+class TestGetNetworkByUUIDOrName(base.TestCase):
+
+    def setUp(self):
+        super(TestGetNetworkByUUIDOrName, self).setUp()
+        self.client = mock.MagicMock()
+
+    def test__get_network_by_uuid_or_name_uuid(self):
+        network_uuid = '9acb0256-2c1b-420a-b9d7-62bee90b6ed7'
+        networks = {
+            'networks': [{
+                'field1': 'value1',
+                'field2': 'value2',
+            }],
+        }
+        fields = ['field1', 'field2']
+        self.client.list_networks.return_value = networks
+        result = neutron._get_network_by_uuid_or_name(
+            self.client, network_uuid, fields=fields)
+        self.client.list_networks.assert_called_once_with(
+            id=network_uuid, fields=fields)
+        self.assertEqual(networks['networks'][0], result)
+
+    def test__get_network_by_uuid_or_name_name(self):
+        network_name = 'test-net'
+        networks = {
+            'networks': [{
+                'field1': 'value1',
+                'field2': 'value2',
+            }],
+        }
+        fields = ['field1', 'field2']
+        self.client.list_networks.return_value = networks
+        result = neutron._get_network_by_uuid_or_name(
+            self.client, network_name, fields=fields)
+        self.client.list_networks.assert_called_once_with(
+            name=network_name, fields=fields)
+        self.assertEqual(networks['networks'][0], result)
+
+    def test__get_network_by_uuid_or_name_failure(self):
+        network_uuid = '9acb0256-2c1b-420a-b9d7-62bee90b6ed7'
+        self.client.list_networks.side_effect = (
+            neutron_client_exc.NeutronClientException())
+        self.assertRaises(exception.NetworkError,
+                          neutron._get_network_by_uuid_or_name,
+                          self.client, network_uuid)
+        self.client.list_networks.assert_called_once_with(id=network_uuid)
+
+    def test__get_network_by_uuid_or_name_missing(self):
+        network_uuid = '9acb0256-2c1b-420a-b9d7-62bee90b6ed7'
+        networks = {
+            'networks': [],
+        }
+        self.client.list_networks.return_value = networks
+        self.assertRaises(exception.InvalidParameterValue,
+                          neutron._get_network_by_uuid_or_name,
+                          self.client, network_uuid)
+        self.client.list_networks.assert_called_once_with(id=network_uuid)
+
+    def test__get_network_by_uuid_or_name_duplicate(self):
+        network_name = 'test-net'
+        networks = {
+            'networks': [
+                {'id': '9acb0256-2c1b-420a-b9d7-62bee90b6ed7'},
+                {'id': '9014b6a7-8291-4676-80b0-ab00988ce3c7'},
+            ],
+        }
+        self.client.list_networks.return_value = networks
+        self.assertRaises(exception.InvalidParameterValue,
+                          neutron._get_network_by_uuid_or_name,
+                          self.client, network_name)
+        self.client.list_networks.assert_called_once_with(name=network_name)
+
+
+@mock.patch.object(neutron, '_get_network_by_uuid_or_name', autospec=True)
+@mock.patch.object(neutron, '_get_port_by_uuid', autospec=True)
+class TestGetPhysnetsByPortUUID(base.TestCase):
+
+    PORT_FIELDS = ['network_id']
+    NETWORK_FIELDS = ['provider:physical_network', 'segments']
+
+    def setUp(self):
+        super(TestGetPhysnetsByPortUUID, self).setUp()
+        self.client = mock.MagicMock()
+
+    def test_get_physnets_by_port_uuid_single_segment(self, mock_gp, mock_gn):
+        port_uuid = 'fake-port-uuid'
+        network_uuid = 'fake-network-uuid'
+        physnet = 'fake-physnet'
+        mock_gp.return_value = {
+            'network_id': network_uuid,
+        }
+        mock_gn.return_value = {
+            'provider:physical_network': physnet,
+        }
+        result = neutron.get_physnets_by_port_uuid(self.client,
+                                                   port_uuid)
+        mock_gp.assert_called_once_with(self.client, port_uuid,
+                                        fields=self.PORT_FIELDS)
+        mock_gn.assert_called_once_with(self.client, network_uuid,
+                                        fields=self.NETWORK_FIELDS)
+        self.assertEqual({physnet}, result)
+
+    def test_get_physnets_by_port_uuid_single_segment_no_physnet(
+            self, mock_gp, mock_gn):
+        port_uuid = 'fake-port-uuid'
+        network_uuid = 'fake-network-uuid'
+        mock_gp.return_value = {
+            'network_id': network_uuid,
+        }
+        mock_gn.return_value = {
+            'provider:physical_network': None,
+        }
+        result = neutron.get_physnets_by_port_uuid(self.client,
+                                                   port_uuid)
+        mock_gp.assert_called_once_with(self.client, port_uuid,
+                                        fields=self.PORT_FIELDS)
+        mock_gn.assert_called_once_with(self.client, network_uuid,
+                                        fields=self.NETWORK_FIELDS)
+        self.assertEqual(set(), result)
+
+    def test_get_physnets_by_port_uuid_multiple_segments(self, mock_gp,
+                                                         mock_gn):
+        port_uuid = 'fake-port-uuid'
+        network_uuid = 'fake-network-uuid'
+        physnet1 = 'fake-physnet-1'
+        physnet2 = 'fake-physnet-2'
+        mock_gp.return_value = {
+            'network_id': network_uuid,
+        }
+        mock_gn.return_value = {
+            'segments': [
+                {
+                    'provider:physical_network': physnet1,
+                },
+                {
+                    'provider:physical_network': physnet2,
+                },
+            ],
+        }
+        result = neutron.get_physnets_by_port_uuid(self.client,
+                                                   port_uuid)
+        mock_gp.assert_called_once_with(self.client, port_uuid,
+                                        fields=self.PORT_FIELDS)
+        mock_gn.assert_called_once_with(self.client, network_uuid,
+                                        fields=self.NETWORK_FIELDS)
+        self.assertEqual({physnet1, physnet2}, result)
+
+    def test_get_physnets_by_port_uuid_multiple_segments_no_physnet(
+            self, mock_gp, mock_gn):
+        port_uuid = 'fake-port-uuid'
+        network_uuid = 'fake-network-uuid'
+        mock_gp.return_value = {
+            'network_id': network_uuid,
+        }
+        mock_gn.return_value = {
+            'segments': [
+                {
+                    'provider:physical_network': None,
+                },
+                {
+                    'provider:physical_network': None,
+                },
+            ],
+        }
+        result = neutron.get_physnets_by_port_uuid(self.client,
+                                                   port_uuid)
+        mock_gp.assert_called_once_with(self.client, port_uuid,
+                                        fields=self.PORT_FIELDS)
+        mock_gn.assert_called_once_with(self.client, network_uuid,
+                                        fields=self.NETWORK_FIELDS)
+        self.assertEqual(set(), result)
+
+    def test_get_physnets_by_port_uuid_port_missing(self, mock_gp, mock_gn):
+        port_uuid = 'fake-port-uuid'
+        mock_gp.side_effect = exception.InvalidParameterValue('error')
+        self.assertRaises(exception.InvalidParameterValue,
+                          neutron.get_physnets_by_port_uuid,
+                          self.client, port_uuid)
+        mock_gp.assert_called_once_with(self.client, port_uuid,
+                                        fields=self.PORT_FIELDS)
+        self.assertFalse(mock_gn.called)
+
+    def test_get_physnets_by_port_uuid_port_failure(self, mock_gp, mock_gn):
+        port_uuid = 'fake-port-uuid'
+        mock_gp.side_effect = exception.NetworkError
+        self.assertRaises(exception.NetworkError,
+                          neutron.get_physnets_by_port_uuid,
+                          self.client, port_uuid)
+        mock_gp.assert_called_once_with(self.client, port_uuid,
+                                        fields=self.PORT_FIELDS)
+        self.assertFalse(mock_gn.called)
+
+    def test_get_physnets_by_port_uuid_network_missing(
+            self, mock_gp, mock_gn):
+        port_uuid = 'fake-port-uuid'
+        network_uuid = 'fake-network-uuid'
+        mock_gp.return_value = {
+            'network_id': network_uuid,
+        }
+        mock_gn.side_effect = exception.InvalidParameterValue('error')
+        self.assertRaises(exception.InvalidParameterValue,
+                          neutron.get_physnets_by_port_uuid,
+                          self.client, port_uuid)
+        mock_gp.assert_called_once_with(self.client, port_uuid,
+                                        fields=self.PORT_FIELDS)
+        mock_gn.assert_called_once_with(self.client, network_uuid,
+                                        fields=self.NETWORK_FIELDS)
+
+    def test_get_physnets_by_port_uuid_network_failure(
+            self, mock_gp, mock_gn):
+        port_uuid = 'fake-port-uuid'
+        network_uuid = 'fake-network-uuid'
+        mock_gp.return_value = {
+            'network_id': network_uuid,
+        }
+        mock_gn.side_effect = exception.NetworkError
+        self.assertRaises(exception.NetworkError,
+                          neutron.get_physnets_by_port_uuid,
+                          self.client, port_uuid)
+        mock_gp.assert_called_once_with(self.client, port_uuid,
+                                        fields=self.PORT_FIELDS)
+        mock_gn.assert_called_once_with(self.client, network_uuid,
+                                        fields=self.NETWORK_FIELDS)
