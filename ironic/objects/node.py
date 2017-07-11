@@ -447,6 +447,7 @@ class NodePayload(notification.NotificationPayloadBase):
         'network_interface': ('node', 'network_interface'),
         'power_interface': ('node', 'power_interface'),
         'raid_interface': ('node', 'raid_interface'),
+        'storage_interface': ('node', 'storage_interface'),
         'vendor_interface': ('node', 'vendor_interface'),
         'power_state': ('node', 'power_state'),
         'properties': ('node', 'properties'),
@@ -458,17 +459,14 @@ class NodePayload(notification.NotificationPayloadBase):
         'updated_at': ('node', 'updated_at'),
         'uuid': ('node', 'uuid')
     }
-    # TODO(TheJulia): At a later point in time, once storage_interfaces
-    # are able to be leveraged, we need to add the sotrage_interface
-    # field to payload and increment the object versions for all objects
-    # that inherit the NodePayload object.
 
     # Version 1.0: Initial version, based off of Node version 1.18.
     # Version 1.1: Type of network_interface changed to just nullable string
     #              similar to version 1.20 of Node.
     # Version 1.2: Add nullable to console_enabled and maintenance.
     # Version 1.3: Add dynamic interfaces fields exposed via API.
-    VERSION = '1.3'
+    # Version 1.4: Add storage interface field exposed via API.
+    VERSION = '1.4'
     fields = {
         'clean_step': object_fields.FlexibleDictField(nullable=True),
         'console_enabled': object_fields.BooleanField(nullable=True),
@@ -489,6 +487,7 @@ class NodePayload(notification.NotificationPayloadBase):
         'network_interface': object_fields.StringField(nullable=True),
         'power_interface': object_fields.StringField(nullable=True),
         'raid_interface': object_fields.StringField(nullable=True),
+        'storage_interface': object_fields.StringField(nullable=True),
         'vendor_interface': object_fields.StringField(nullable=True),
         'name': object_fields.StringField(nullable=True),
         'power_state': object_fields.StringField(nullable=True),
@@ -525,7 +524,8 @@ class NodeSetPowerStatePayload(NodePayload):
     # Version 1.1: Parent NodePayload version 1.1
     # Version 1.2: Parent NodePayload version 1.2
     # Version 1.3: Parent NodePayload version 1.3
-    VERSION = '1.3'
+    # Version 1.4: Parent NodePayload version 1.4
+    VERSION = '1.4'
 
     fields = {
         # "to_power" indicates the future target_power_state of the node. A
@@ -569,7 +569,8 @@ class NodeCorrectedPowerStatePayload(NodePayload):
     # Version 1.1: Parent NodePayload version 1.1
     # Version 1.2: Parent NodePayload version 1.2
     # Version 1.3: Parent NodePayload version 1.3
-    VERSION = '1.3'
+    # Version 1.4: Parent NodePayload version 1.4
+    VERSION = '1.4'
 
     fields = {
         'from_power': object_fields.StringField(nullable=True)
@@ -598,7 +599,8 @@ class NodeSetProvisionStatePayload(NodePayload):
     # Version 1.1: Parent NodePayload version 1.1
     # Version 1.2: Parent NodePayload version 1.2
     # Version 1.3: Parent NodePayload version 1.3
-    VERSION = '1.3'
+    # Version 1.4: Parent NodePayload version 1.4
+    VERSION = '1.4'
 
     SCHEMA = dict(NodePayload.SCHEMA,
                   **{'instance_info': ('node', 'instance_info')})
@@ -633,7 +635,8 @@ class NodeCRUDPayload(NodePayload):
     """Payload schema for when ironic creates, updates or deletes a node."""
     # Version 1.0: Initial version
     # Version 1.1: Parent NodePayload version 1.3
-    VERSION = '1.1'
+    # Version 1.2: Parent NodePayload version 1.4
+    VERSION = '1.2'
 
     SCHEMA = dict(NodePayload.SCHEMA,
                   **{'instance_info': ('node', 'instance_info'),

@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Adds storage interface field to node-related notifications:
+
+    Affected notifications are:
+
+    * baremetal.node.create.*, new payload version 1.2
+    * baremetal.node.update.*, new payload version 1.2
+    * baremetal.node.delete.*, new payload version 1.2
+    * baremetal.node.maintenance.*, new payload version 1.4
+    * baremetal.node.console.*, new payload version 1.4
+    * baremetal.node.power_set.*, new payload version 1.4
+    * baremetal.node.power_state_corrected.*, new payload version 1.4
+    * baremetal.node.provision_set.*, new payload version 1.4
