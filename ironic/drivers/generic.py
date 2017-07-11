@@ -26,6 +26,8 @@ from ironic.drivers.modules.network import neutron
 from ironic.drivers.modules.network import noop as noop_net
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import pxe
+from ironic.drivers.modules.storage import cinder
+from ironic.drivers.modules.storage import noop as noop_storage
 
 
 class GenericHardware(hardware_type.AbstractHardwareType):
@@ -64,6 +66,11 @@ class GenericHardware(hardware_type.AbstractHardwareType):
         # AgentRAID requires RAID bits on the IPA image that are not shipped by
         # default. Hence, even if AgentRAID is enabled, NoRAID is the default.
         return [noop.NoRAID, agent.AgentRAID]
+
+    @property
+    def supported_storage_interfaces(self):
+        """List of supported storage interfaces."""
+        return [noop_storage.NoopStorage, cinder.CinderStorage]
 
 
 class ManualManagementHardware(GenericHardware):

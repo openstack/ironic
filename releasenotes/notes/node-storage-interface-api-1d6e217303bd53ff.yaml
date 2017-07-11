@@ -1,0 +1,20 @@
+---
+features:
+  - |
+    Adds version 1.33 of the REST API, which exposes the ``storage_interface``
+    field of the node resource. This version also exposes
+    ``default_storage_interface`` and ``enable_storage_interfaces`` fields
+    of the driver resource.
+
+    There are 2 available storage interfaces:
+
+    * ``noop``: This interface provides nothing regarding storage.
+
+    * ``cinder``: This interface enables a node to attach and detach volumes
+      by leveraging cinder API.
+
+    A storage interface can be set when creating or updating a node. Enabled
+    storage interfaces are defined via the
+    ``[DEFAULT]/enabled_storage_interfaces`` configuration option. A default
+    interface for a created node can be specified with
+    ``[DEFAULT]/default_storage_interface`` configuration option.

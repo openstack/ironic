@@ -153,6 +153,9 @@ def hide_fields_in_newer_versions(obj):
         for field in api_utils.V31_FIELDS:
             setattr(obj, field, wsme.Unset)
 
+    if not api_utils.allow_storage_interface():
+        obj.storage_interface = wsme.Unset
+
 
 def update_state_in_older_versions(obj):
     """Change provision state names for API backwards compatibility.
@@ -844,6 +847,9 @@ class Node(base.APIBase):
     raid_interface = wsme.wsattr(wtypes.text)
     """The raid interface to be used for this node"""
 
+    storage_interface = wsme.wsattr(wtypes.text)
+    """The storage interface to be used for this node"""
+
     vendor_interface = wsme.wsattr(wtypes.text)
     """The vendor interface to be used for this node"""
 
@@ -995,7 +1001,8 @@ class Node(base.APIBase):
                      boot_interface=None, console_interface=None,
                      deploy_interface=None, inspect_interface=None,
                      management_interface=None, power_interface=None,
-                     raid_interface=None, vendor_interface=None)
+                     raid_interface=None, vendor_interface=None,
+                     storage_interface=None)
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
@@ -1602,6 +1609,10 @@ class NodesController(rest.RestController):
                 if getattr(node, field) is not wsme.Unset:
                     raise exception.NotAcceptable()
 
+        if (not api_utils.allow_storage_interface() and
+                node.storage_interface is not wtypes.Unset):
+            raise exception.NotAcceptable()
+
         # NOTE(deva): get_topic_for checks if node.driver is in the hash ring
         #             and raises NoValidHost if it is not.
         #             We need to ensure that node has a UUID before it can
@@ -1665,6 +1676,10 @@ class NodesController(rest.RestController):
             for field in api_utils.V31_FIELDS:
                 if api_utils.get_patch_values(patch, '/%s' % field):
                     raise exception.NotAcceptable()
+
+        s_interface = api_utils.get_patch_values(patch, '/storage_interface')
+        if s_interface and not api_utils.allow_storage_interface():
+            raise exception.NotAcceptable()
 
         rpc_node = api_utils.get_rpc_node(node_ident)
 

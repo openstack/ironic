@@ -19,6 +19,8 @@ from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import pxe
+from ironic.drivers.modules.storage import cinder
+from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
@@ -34,17 +36,36 @@ class IPMIHardwareTestCase(db_base.DbTestCase):
                     enabled_console_interfaces=['no-console'],
                     enabled_vendor_interfaces=['ipmitool', 'no-vendor'])
 
+    def _validate_interfaces(self, task, **kwargs):
+            self.assertIsInstance(
+                task.driver.management,
+                kwargs.get('management', ipmitool.IPMIManagement))
+            self.assertIsInstance(
+                task.driver.power,
+                kwargs.get('power', ipmitool.IPMIPower))
+            self.assertIsInstance(
+                task.driver.boot,
+                kwargs.get('boot', pxe.PXEBoot))
+            self.assertIsInstance(
+                task.driver.deploy,
+                kwargs.get('deploy', iscsi_deploy.ISCSIDeploy))
+            self.assertIsInstance(
+                task.driver.console,
+                kwargs.get('console', noop.NoConsole))
+            self.assertIsInstance(
+                task.driver.raid,
+                kwargs.get('raid', noop.NoRAID))
+            self.assertIsInstance(
+                task.driver.vendor,
+                kwargs.get('vendor', ipmitool.VendorPassthru))
+            self.assertIsInstance(
+                task.driver.storage,
+                kwargs.get('storage', noop_storage.NoopStorage))
+
     def test_default_interfaces(self):
         node = obj_utils.create_test_node(self.context, driver='ipmi')
         with task_manager.acquire(self.context, node.id) as task:
-            self.assertIsInstance(task.driver.management,
-                                  ipmitool.IPMIManagement)
-            self.assertIsInstance(task.driver.power, ipmitool.IPMIPower)
-            self.assertIsInstance(task.driver.boot, pxe.PXEBoot)
-            self.assertIsInstance(task.driver.deploy, iscsi_deploy.ISCSIDeploy)
-            self.assertIsInstance(task.driver.console, noop.NoConsole)
-            self.assertIsInstance(task.driver.raid, noop.NoRAID)
-            self.assertIsInstance(task.driver.vendor, ipmitool.VendorPassthru)
+            self._validate_interfaces(task)
 
     def test_override_with_shellinabox(self):
         self.config(enabled_console_interfaces=['ipmitool-shellinabox',
@@ -56,15 +77,20 @@ class IPMIHardwareTestCase(db_base.DbTestCase):
             console_interface='ipmitool-shellinabox',
             vendor_interface='no-vendor')
         with task_manager.acquire(self.context, node.id) as task:
-            self.assertIsInstance(task.driver.management,
-                                  ipmitool.IPMIManagement)
-            self.assertIsInstance(task.driver.power, ipmitool.IPMIPower)
-            self.assertIsInstance(task.driver.boot, pxe.PXEBoot)
-            self.assertIsInstance(task.driver.deploy, agent.AgentDeploy)
-            self.assertIsInstance(task.driver.console,
-                                  ipmitool.IPMIShellinaboxConsole)
-            self.assertIsInstance(task.driver.raid, agent.AgentRAID)
-            self.assertIsInstance(task.driver.vendor, noop.NoVendor)
+            self._validate_interfaces(
+                task,
+                deploy=agent.AgentDeploy,
+                console=ipmitool.IPMIShellinaboxConsole,
+                raid=agent.AgentRAID,
+                vendor=noop.NoVendor)
+
+    def test_override_with_cinder_storage(self):
+        self.config(enabled_storage_interfaces=['noop', 'cinder'])
+        node = obj_utils.create_test_node(
+            self.context, driver='ipmi',
+            storage_interface='cinder')
+        with task_manager.acquire(self.context, node.id) as task:
+            self._validate_interfaces(task, storage=cinder.CinderStorage)
 
 
 class IPMIClassicDriversTestCase(testtools.TestCase):
