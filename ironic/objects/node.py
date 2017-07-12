@@ -162,6 +162,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     def get(cls, context, node_id):
         """Find a node based on its id or uuid and return a Node object.
 
+        :param context: Security context
         :param node_id: the id *or* uuid of a node.
         :returns: a :class:`Node` object.
         """
