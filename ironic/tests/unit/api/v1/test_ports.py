@@ -64,6 +64,16 @@ def _rpcapi_create_port(self, context, port, topic):
     return port
 
 
+def _rpcapi_update_port(self, context, port, topic):
+    """Fake used to mock out the conductor RPCAPI's update_port method.
+
+    Saves the updated port object and returns the updated port as-per the real
+    method.
+    """
+    port.save()
+    return port
+
+
 class TestPortObject(base.TestCase):
 
     @mock.patch("pecan.request")
@@ -684,7 +694,8 @@ class TestListPorts(test_api_base.BaseApiTest):
                       response.json['error_message'])
 
 
-@mock.patch.object(rpcapi.ConductorAPI, 'update_port')
+@mock.patch.object(rpcapi.ConductorAPI, 'update_port', autospec=True,
+                   side_effect=_rpcapi_update_port)
 class TestPatch(test_api_base.BaseApiTest):
 
     def setUp(self):
@@ -701,7 +712,6 @@ class TestPatch(test_api_base.BaseApiTest):
     def _test_success(self, mock_upd, patch, version):
         # Helper to test an update to a port that is expected to succeed at a
         # given API version.
-        mock_upd.return_value = self.port
         headers = {api_base.Version.string: version}
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    patch,
@@ -709,7 +719,7 @@ class TestPatch(test_api_base.BaseApiTest):
 
         self.assertEqual(http_client.OK, response.status_code)
         self.assertTrue(mock_upd.called)
-        self.assertEqual(self.port.id, mock_upd.call_args[0][1].id)
+        self.assertEqual(self.port.id, mock_upd.call_args[0][2].id)
         return response
 
     def _test_old_api_version(self, mock_upd, patch, version):
@@ -728,8 +738,6 @@ class TestPatch(test_api_base.BaseApiTest):
     @mock.patch.object(notification_utils, '_emit_api_notification')
     def test_update_byid(self, mock_notify, mock_upd):
         extra = {'foo': 'bar'}
-        mock_upd.return_value = self.port
-        mock_upd.return_value.extra = extra
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/extra/foo',
                                      'value': 'bar',
@@ -738,7 +746,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(extra, response.json['extra'])
 
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(extra, kargs.extra)
         mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'update',
                                       obj_fields.NotificationLevel.INFO,
@@ -752,9 +760,6 @@ class TestPatch(test_api_base.BaseApiTest):
                                       portgroup_uuid=wtypes.Unset)])
 
     def test_update_byaddress_not_allowed(self, mock_upd):
-        extra = {'foo': 'bar'}
-        mock_upd.return_value = self.port
-        mock_upd.return_value.extra = extra
         response = self.patch_json('/ports/%s' % self.port.address,
                                    [{'path': '/extra/foo',
                                      'value': 'bar',
@@ -779,8 +784,6 @@ class TestPatch(test_api_base.BaseApiTest):
 
     def test_replace_singular(self, mock_upd):
         address = 'aa:bb:cc:dd:ee:ff'
-        mock_upd.return_value = self.port
-        mock_upd.return_value.address = address
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/address',
                                      'value': address,
@@ -790,7 +793,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(address, response.json['address'])
         self.assertTrue(mock_upd.called)
 
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(address, kargs.address)
 
     @mock.patch.object(notification_utils, '_emit_api_notification')
@@ -807,7 +810,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertTrue(response.json['error_message'])
         self.assertTrue(mock_upd.called)
 
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(address, kargs.address)
         mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'update',
                                       obj_fields.NotificationLevel.INFO,
@@ -821,7 +824,6 @@ class TestPatch(test_api_base.BaseApiTest):
                                       portgroup_uuid=wtypes.Unset)])
 
     def test_replace_node_uuid(self, mock_upd):
-        mock_upd.return_value = self.port
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/node_uuid',
                                      'value': self.node.uuid,
@@ -831,8 +833,6 @@ class TestPatch(test_api_base.BaseApiTest):
 
     def test_replace_local_link_connection(self, mock_upd):
         switch_id = 'aa:bb:cc:dd:ee:ff'
-        mock_upd.return_value = self.port
-        mock_upd.return_value.local_link_connection['switch_id'] = switch_id
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path':
                                      '/local_link_connection/switch_id',
@@ -845,7 +845,7 @@ class TestPatch(test_api_base.BaseApiTest):
                          response.json['local_link_connection']['switch_id'])
         self.assertTrue(mock_upd.called)
 
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(switch_id, kargs.local_link_connection['switch_id'])
 
     def test_remove_local_link_connection_old_api(self, mock_upd):
@@ -868,7 +868,6 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
 
     def test_add_portgroup_uuid(self, mock_upd):
-        mock_upd.return_value = self.port
         pg = obj_utils.create_test_portgroup(self.context,
                                              node_id=self.node.id,
                                              uuid=uuidutils.generate_uuid(),
@@ -890,7 +889,6 @@ class TestPatch(test_api_base.BaseApiTest):
                                              uuid=uuidutils.generate_uuid(),
                                              address='bb:bb:bb:bb:bb:bb',
                                              name='bar')
-        mock_upd.return_value = self.port
         headers = {api_base.Version.string: '1.24'}
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/portgroup_uuid',
@@ -906,7 +904,6 @@ class TestPatch(test_api_base.BaseApiTest):
                                              uuid=uuidutils.generate_uuid(),
                                              address='bb:bb:bb:bb:bb:bb',
                                              name='bar')
-        mock_upd.return_value = self.port
         headers = {api_base.Version.string: '1.24'}
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/portgroup_uuid',
@@ -914,7 +911,7 @@ class TestPatch(test_api_base.BaseApiTest):
                                      'op': 'remove'}],
                                    headers=headers)
         self.assertEqual('application/json', response.content_type)
-        self.assertIsNone(mock_upd.call_args[0][1].portgroup_id)
+        self.assertIsNone(mock_upd.call_args[0][2].portgroup_id)
 
     def test_replace_portgroup_uuid_remove_add(self, mock_upd):
         pg = obj_utils.create_test_portgroup(self.context,
@@ -927,7 +924,6 @@ class TestPatch(test_api_base.BaseApiTest):
                                               uuid=uuidutils.generate_uuid(),
                                               address='bb:bb:bb:bb:bb:b1',
                                               name='bbb')
-        mock_upd.return_value = self.port
         headers = {api_base.Version.string: '1.24'}
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/portgroup_uuid',
@@ -938,7 +934,7 @@ class TestPatch(test_api_base.BaseApiTest):
                                      'op': 'add'}],
                                    headers=headers)
         self.assertEqual('application/json', response.content_type)
-        self.assertTrue(pg1.id, mock_upd.call_args[0][1].portgroup_id)
+        self.assertTrue(pg1.id, mock_upd.call_args[0][2].portgroup_id)
 
     def test_replace_portgroup_uuid_old_api(self, mock_upd):
         pg = obj_utils.create_test_portgroup(self.context,
@@ -946,7 +942,6 @@ class TestPatch(test_api_base.BaseApiTest):
                                              uuid=uuidutils.generate_uuid(),
                                              address='bb:bb:bb:bb:bb:bb',
                                              name='bar')
-        mock_upd.return_value = self.port
         headers = {api_base.Version.string: '1.15'}
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/portgroup_uuid',
@@ -958,7 +953,6 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
 
     def test_add_node_uuid(self, mock_upd):
-        mock_upd.return_value = self.port
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/node_uuid',
                                      'value': self.node.uuid,
@@ -1020,14 +1014,12 @@ class TestPatch(test_api_base.BaseApiTest):
             patch.append({'path': '/extra/%s' % k,
                           'value': extra[k],
                           'op': 'replace'})
-        mock_upd.return_value = self.port
-        mock_upd.return_value.extra = extra
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    patch)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(extra, response.json['extra'])
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(extra, kargs.extra)
 
     def test_remove_multi(self, mock_upd):
@@ -1037,26 +1029,23 @@ class TestPatch(test_api_base.BaseApiTest):
 
         # Removing one item from the collection
         extra.pop('foo1')
-        mock_upd.return_value = self.port
-        mock_upd.return_value.extra = extra
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/extra/foo1',
                                      'op': 'remove'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(extra, response.json['extra'])
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(extra, kargs.extra)
 
         # Removing the collection
         extra = {}
-        mock_upd.return_value.extra = extra
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/extra', 'op': 'remove'}])
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual({}, response.json['extra'])
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(extra, kargs.extra)
 
         # Assert nothing else was changed
@@ -1086,8 +1075,6 @@ class TestPatch(test_api_base.BaseApiTest):
 
     def test_add_root(self, mock_upd):
         address = 'aa:bb:cc:dd:ee:ff'
-        mock_upd.return_value = self.port
-        mock_upd.return_value.address = address
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/address',
                                      'value': address,
@@ -1096,7 +1083,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(address, response.json['address'])
         self.assertTrue(mock_upd.called)
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(address, kargs.address)
 
     def test_add_root_non_existent(self, mock_upd):
@@ -1117,14 +1104,12 @@ class TestPatch(test_api_base.BaseApiTest):
             patch.append({'path': '/extra/%s' % k,
                           'value': extra[k],
                           'op': 'add'})
-        mock_upd.return_value = self.port
-        mock_upd.return_value.extra = extra
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    patch)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(extra, response.json['extra'])
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(extra, kargs.extra)
 
     def test_remove_uuid(self, mock_upd):
@@ -1150,8 +1135,6 @@ class TestPatch(test_api_base.BaseApiTest):
 
     def test_update_port_address_normalized(self, mock_upd):
         address = 'AA:BB:CC:DD:EE:FF'
-        mock_upd.return_value = self.port
-        mock_upd.return_value.address = address.lower()
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/address',
                                      'value': address,
@@ -1159,13 +1142,11 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(address.lower(), response.json['address'])
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(address.lower(), kargs.address)
 
     def test_update_pxe_enabled_allowed(self, mock_upd):
         pxe_enabled = True
-        mock_upd.return_value = self.port
-        mock_upd.return_value.pxe_enabled = pxe_enabled
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/pxe_enabled',
                                      'value': pxe_enabled,
@@ -1176,7 +1157,6 @@ class TestPatch(test_api_base.BaseApiTest):
 
     def test_update_pxe_enabled_old_api_version(self, mock_upd):
         pxe_enabled = True
-        mock_upd.return_value = self.port
         headers = {api_base.Version.string: '1.14'}
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/pxe_enabled',
@@ -1192,16 +1172,13 @@ class TestPatch(test_api_base.BaseApiTest):
                                        expected_physical_network):
         # Helper to test an update to a port's physical_network that is
         # expected to succeed at API version 1.34.
-        self.port.physical_network = expected_physical_network
         response = self._test_success(mock_upd, patch, '1.34')
 
         self.assertEqual(expected_physical_network,
                          response.json['physical_network'])
-        # TODO(mgoddard): Add this when mock_upd has been modified to save the
-        # port to the DB.
-        # self.port.refresh()
-        # self.assertEqual(expected_physical_network,
-        #                  self.port.physical_network)
+        self.port.refresh()
+        self.assertEqual(expected_physical_network,
+                         self.port.physical_network)
 
     def test_add_physical_network(self, mock_upd):
         physical_network = 'physnet1'
