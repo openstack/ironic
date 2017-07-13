@@ -1903,20 +1903,15 @@
 
 # Maximum time in seconds to retry retryable IPMI operations.
 # (An operation is retryable, for example, if the requested
-# operation fails because the BMC is busy.) There is a
-# tradeoff when setting this value. Setting this too low may
-# cause older BMCs to crash and require a hard reset. However,
-# setting too high can cause the sync power state periodic
-# task to hang when there are slow or unresponsive BMCs.
-# (integer value)
+# operation fails because the BMC is busy.) Setting this too
+# high can cause the sync power state periodic task to hang
+# when there are slow or unresponsive BMCs. (integer value)
 #command_retry_timeout = 60
 
 # DEPRECATED: Maximum time in seconds to retry IPMI
-# operations. There is a tradeoff when setting this value.
-# Setting this too low may cause older BMCs to crash and
-# require a hard reset. However, setting too high can cause
-# the sync power state periodic task to hang when there are
-# slow or unresponsive BMCs. (integer value)
+# operations. Setting this too high can cause the sync power
+# state periodic task to hang when there are slow or
+# unresponsive BMCs. (integer value)
 # This option is deprecated for removal.
 # Its value may be silently ignored in the future.
 # Reason: Use option [ipmi]/command_retry_timeout to specify
