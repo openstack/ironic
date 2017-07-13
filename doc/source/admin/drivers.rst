@@ -13,6 +13,14 @@ nodes, and runs processes inside of a ramdisk.
 
 For more information on this, see :ref:`IPA`.
 
+PXE Boot Interface
+------------------
+
+.. toctree::
+  :maxdepth: 1
+
+  drivers/pxe
+
 IPMITool driver
 ---------------
 

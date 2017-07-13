@@ -1201,6 +1201,21 @@ class PXEBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
+    def test_is_force_persistent_boot_device_enabled(
+            self, clean_up_pxe_config_mock, set_boot_device_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.instance_info['capabilities'] = {'boot_option': 'local'}
+            task.driver.boot.prepare_instance(task)
+            clean_up_pxe_config_mock.assert_called_once_with(task)
+            driver_info = task.node.driver_info
+            driver_info['force_persistent _boot_device'] = True
+            task.node.driver_info = driver_info
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.DISK,
+                                                         persistent=True)
+
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
+    @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
     def test_prepare_instance_localboot_active(self, clean_up_pxe_config_mock,
                                                set_boot_device_mock):
         self.node.provision_state = states.ACTIVE

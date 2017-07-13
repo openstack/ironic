@@ -21,6 +21,7 @@ from ironic_lib import metrics_utils
 from ironic_lib import utils as ironic_utils
 from oslo_log import log as logging
 from oslo_utils import fileutils
+from oslo_utils import strutils
 
 from ironic.common import boot_devices
 from ironic.common import dhcp_factory
@@ -493,8 +494,11 @@ class PXEBoot(base.BootInterface):
 
         pxe_utils.create_pxe_config(task, pxe_options,
                                     pxe_config_template)
+        persistent = strutils.bool_from_string(
+            node.driver_info.get('force_persistent_boot_device',
+                                 False))
         manager_utils.node_set_boot_device(task, boot_devices.PXE,
-                                           persistent=False)
+                                           persistent=persistent)
 
         if CONF.pxe.ipxe_enabled and CONF.pxe.ipxe_use_swift:
             pxe_info.pop('deploy_kernel', None)
