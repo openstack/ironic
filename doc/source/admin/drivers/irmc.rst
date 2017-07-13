@@ -252,6 +252,39 @@ Node configuration
   - ``driver_info/irmc_snmp_community`` property overrides ``snmp_community``.
   - ``driver_info/irmc_snmp_security`` property overrides ``snmp_security``.
 
+Functionalities across drivers
+==============================
+
+.. _irmc_node_cleaning:
+
+Node Cleaning Support
+^^^^^^^^^^^^^^^^^^^^^
+The following iRMC drivers support node cleaning:
+
+* ``pxe_irmc``
+* ``iscsi_irmc``
+* ``agent_irmc``
+
+For more information on node cleaning, see :ref:`cleaning`
+
+Supported **Automated** Cleaning Operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The automated cleaning operations supported are:
+
+* ``restore_irmc_bios_config``:
+  Restores BIOS settings on a baremetal node from backup data. If this
+  clean step is enabled, the BIOS settings of a baremetal node will be
+  backed up automatically before the deployment. By default, this clean
+  step is disabled with priority ``0``. Set its priority to a positive
+  integer to enable it. The recommended value is ``10``.
+
+Configuration options for the automated cleaning steps are listed under
+``[irmc]`` section in ironic.conf ::
+
+  clean_priority_restore_irmc_bios_config = 0
+
+For more information on node automated cleaning, see :ref:`automated_cleaning`
 
 Supported platforms
 ===================
