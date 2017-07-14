@@ -448,7 +448,7 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.driver.prepare(task)
             build_instance_info_mock.assert_not_called()
             build_options_mock.assert_not_called()
-            pxe_prepare_ramdisk_mock.assert_called_once_with(task, None)
+            pxe_prepare_ramdisk_mock.assert_not_called()
 
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory._set_dhcp_provider')
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory.clean_dhcp')

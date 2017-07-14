@@ -241,6 +241,22 @@ def create_pxe_config(task, pxe_options, template=None):
         _link_mac_pxe_configs(task)
 
 
+def create_ipxe_boot_script():
+    """Render the iPXE boot script into the HTTP root directory"""
+    boot_script = utils.render_template(
+        CONF.pxe.ipxe_boot_script,
+        {'ipxe_for_mac_uri': PXE_CFG_DIR_NAME + '/'})
+    bootfile_path = os.path.join(
+        CONF.deploy.http_root,
+        os.path.basename(CONF.pxe.ipxe_boot_script))
+    # NOTE(pas-ha) to prevent unneeded writes,
+    # only write to file if its content is different from required,
+    # which should be rather rare
+    if (not os.path.isfile(bootfile_path) or
+            not utils.file_has_content(bootfile_path, boot_script)):
+        utils.write_to_file(bootfile_path, boot_script)
+
+
 def clean_up_pxe_config(task):
     """Clean up the TFTP environment for the task's node.
 

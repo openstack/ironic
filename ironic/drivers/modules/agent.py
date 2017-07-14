@@ -449,21 +449,19 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
                 task.driver.network.add_provisioning_network(task)
             # Signal to storage driver to attach volumes
             task.driver.storage.attach_volumes(task)
+            if not task.driver.storage.should_write_image(task):
+                # We have nothing else to do as this is handled in the
+                # backend storage system.
+                return
         if node.provision_state == states.ACTIVE:
             # Call is due to conductor takeover
             task.driver.boot.prepare_instance(task)
         elif node.provision_state != states.ADOPTING:
-
-            if task.driver.storage.should_write_image(task):
-                instance_info = deploy_utils.build_instance_info_for_deploy(
-                    task)
-                node.instance_info = instance_info
-                node.save()
+            node.instance_info = deploy_utils.build_instance_info_for_deploy(
+                task)
+            node.save()
             if CONF.agent.manage_agent_boot:
-                if task.driver.storage.should_write_image(task):
-                    deploy_opts = deploy_utils.build_agent_options(node)
-                else:
-                    deploy_opts = None
+                deploy_opts = deploy_utils.build_agent_options(node)
                 task.driver.boot.prepare_ramdisk(task, deploy_opts)
 
     @METRICS.timer('AgentDeploy.clean_up')

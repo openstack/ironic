@@ -808,10 +808,7 @@ class PXEBootTestCase(db_base.DbTestCase):
     @mock.patch.object(pxe, '_cache_ramdisk_kernel', autospec=True)
     @mock.patch.object(pxe, '_build_pxe_config_options', autospec=True)
     @mock.patch.object(pxe_utils, 'create_pxe_config', autospec=True)
-    @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
-                       autospec=True)
-    def _test_prepare_ramdisk(self, mock_should_write_image,
-                              mock_pxe_config,
+    def _test_prepare_ramdisk(self, mock_pxe_config,
                               mock_build_pxe, mock_cache_r_k,
                               mock_deploy_img_info,
                               mock_instance_img_info,
@@ -820,9 +817,7 @@ class PXEBootTestCase(db_base.DbTestCase):
                               uefi=False,
                               cleaning=False,
                               ipxe_use_swift=False,
-                              whole_disk_image=False,
-                              should_write_image=True):
-        mock_should_write_image.return_value = should_write_image
+                              whole_disk_image=False):
         mock_build_pxe.return_value = {}
         mock_deploy_img_info.return_value = {'deploy_kernel': 'a'}
         if whole_disk_image:
@@ -838,51 +833,38 @@ class PXEBootTestCase(db_base.DbTestCase):
         self.node.driver_internal_info = driver_internal_info
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            if should_write_image:
-                dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
+            dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
             task.driver.boot.prepare_ramdisk(task, {'foo': 'bar'})
-            if should_write_image:
-                mock_deploy_img_info.assert_called_once_with(task.node)
-                provider_mock.update_dhcp.assert_called_once_with(task,
-                                                                  dhcp_opts)
-                set_boot_device_mock.assert_called_once_with(task,
-                                                             boot_devices.PXE,
-                                                             persistent=False)
-                if ipxe_use_swift:
-                    if whole_disk_image:
-                        self.assertFalse(mock_cache_r_k.called)
-                    else:
-                        mock_cache_r_k.assert_called_once_with(
-                            self.context, task.node,
-                            {'kernel': 'b'})
-                    mock_instance_img_info.assert_called_once_with(
-                        task.node, self.context)
-                elif cleaning is False:
-                    mock_cache_r_k.assert_called_once_with(
-                        self.context, task.node,
-                        {'deploy_kernel': 'a', 'kernel': 'b'})
-                    mock_instance_img_info.assert_called_once_with(
-                        task.node, self.context)
+            mock_deploy_img_info.assert_called_once_with(task.node)
+            provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.PXE,
+                                                         persistent=False)
+            if ipxe_use_swift:
+                if whole_disk_image:
+                    self.assertFalse(mock_cache_r_k.called)
                 else:
                     mock_cache_r_k.assert_called_once_with(
                         self.context, task.node,
-                        {'deploy_kernel': 'a'})
-                if uefi:
-                    mock_pxe_config.assert_called_once_with(
-                        task, {'foo': 'bar'},
-                        CONF.pxe.uefi_pxe_config_template)
-                else:
-                    mock_pxe_config.assert_called_once_with(
-                        task, {'foo': 'bar'}, CONF.pxe.pxe_config_template)
+                        {'kernel': 'b'})
+                mock_instance_img_info.assert_called_once_with(task.node,
+                                                               self.context)
+            elif cleaning is False:
+                mock_cache_r_k.assert_called_once_with(
+                    self.context, task.node,
+                    {'deploy_kernel': 'a', 'kernel': 'b'})
+                mock_instance_img_info.assert_called_once_with(task.node,
+                                                               self.context)
             else:
-                # When booting from volume we return early.
-                # Check that nothing was called
-                self.assertFalse(mock_pxe_config.called)
-                self.assertFalse(mock_build_pxe.called)
-                self.assertFalse(mock_cache_r_k.called)
-                self.assertFalse(mock_deploy_img_info.called)
-                self.assertFalse(mock_instance_img_info.called)
-                self.assertFalse(dhcp_factory_mock.called)
+                mock_cache_r_k.assert_called_once_with(
+                    self.context, task.node,
+                    {'deploy_kernel': 'a'})
+            if uefi:
+                mock_pxe_config.assert_called_once_with(
+                    task, {'foo': 'bar'}, CONF.pxe.uefi_pxe_config_template)
+            else:
+                mock_pxe_config.assert_called_once_with(
+                    task, {'foo': 'bar'}, CONF.pxe.pxe_config_template)
 
     def test_prepare_ramdisk(self):
         self.node.provision_state = states.DEPLOYING
@@ -934,28 +916,6 @@ class PXEBootTestCase(db_base.DbTestCase):
         isfile_mock.return_value = False
         render_mock.return_value = 'foo'
         self._test_prepare_ramdisk()
-        self.assertFalse(cmp_mock.called)
-        write_mock.assert_called_once_with(
-            os.path.join(
-                CONF.deploy.http_root,
-                os.path.basename(CONF.pxe.ipxe_boot_script)),
-            'foo')
-        render_mock.assert_called_once_with(
-            CONF.pxe.ipxe_boot_script,
-            {'ipxe_for_mac_uri': 'pxelinux.cfg/'})
-
-    @mock.patch.object(os.path, 'isfile', autospec=True)
-    @mock.patch('ironic.common.utils.file_has_content', autospec=True)
-    @mock.patch('ironic.common.utils.write_to_file', autospec=True)
-    @mock.patch('ironic.common.utils.render_template', autospec=True)
-    def test_prepare_ramdisk_ipxe_boot_from_volume(
-            self, render_mock, write_mock, cmp_mock, isfile_mock):
-        self.node.provision_state = states.DEPLOYING
-        self.node.save()
-        self.config(group='pxe', ipxe_enabled=True)
-        isfile_mock.return_value = False
-        render_mock.return_value = 'foo'
-        self._test_prepare_ramdisk(should_write_image=False)
         self.assertFalse(cmp_mock.called)
         write_mock.assert_called_once_with(
             os.path.join(

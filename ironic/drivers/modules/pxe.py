@@ -31,7 +31,6 @@ from ironic.common import image_service as service
 from ironic.common import images
 from ironic.common import pxe_utils
 from ironic.common import states
-from ironic.common import utils
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
@@ -376,6 +375,8 @@ class PXEBoot(base.BootInterface):
 
     def __init__(self):
         self.capabilities = ['iscsi_volume_boot']
+        if CONF.pxe.ipxe_enabled:
+            pxe_utils.create_ipxe_boot_script()
 
     def get_properties(self):
         """Return the properties of the interface.
@@ -458,22 +459,12 @@ class PXEBoot(base.BootInterface):
         node = task.node
 
         if CONF.pxe.ipxe_enabled:
-            # Render the iPXE boot script template and save it
-            # to HTTP root directory
-            boot_script = utils.render_template(
-                CONF.pxe.ipxe_boot_script,
-                {'ipxe_for_mac_uri': pxe_utils.PXE_CFG_DIR_NAME + '/'})
-            bootfile_path = os.path.join(
-                CONF.deploy.http_root,
-                os.path.basename(CONF.pxe.ipxe_boot_script))
-            # NOTE(pas-ha) to prevent unneeded writes,
-            # only write to file if its content is different from required,
-            # which should be rather rare
-            if (not os.path.isfile(bootfile_path) or
-                not utils.file_has_content(bootfile_path, boot_script)):
-                    utils.write_to_file(bootfile_path, boot_script)
-            if not task.driver.storage.should_write_image(task):
-                return
+            # NOTE(mjturek): At this point, the ipxe boot script should
+            # already exist as it is created at startup time. However, we
+            # call the boot script create method here to assert its
+            # existence and handle the unlikely case that it wasn't created
+            # or was deleted.
+            pxe_utils.create_ipxe_boot_script()
 
         dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
         provider = dhcp_factory.DHCPFactory()

@@ -532,6 +532,55 @@ class TestPXEUtils(db_base.DbTestCase):
         rmtree_mock.assert_called_once_with(
             os.path.join(CONF.pxe.tftp_root, self.node.uuid))
 
+    @mock.patch.object(os.path, 'isfile', autospec=True)
+    @mock.patch('ironic.common.utils.file_has_content', autospec=True)
+    @mock.patch('ironic.common.utils.write_to_file', autospec=True)
+    @mock.patch('ironic.common.utils.render_template', autospec=True)
+    def test_create_ipxe_boot_script(self, render_mock, write_mock,
+                                     cmp_mock, isfile_mock):
+        isfile_mock.return_value = False
+        render_mock.return_value = 'foo'
+        self.assertFalse(cmp_mock.called)
+        pxe_utils.create_ipxe_boot_script()
+        write_mock.assert_called_once_with(
+            os.path.join(CONF.deploy.http_root,
+                         os.path.basename(CONF.pxe.ipxe_boot_script)),
+            'foo')
+        render_mock.assert_called_once_with(
+            CONF.pxe.ipxe_boot_script,
+            {'ipxe_for_mac_uri': 'pxelinux.cfg/'})
+
+    @mock.patch.object(os.path, 'isfile', autospec=True)
+    @mock.patch('ironic.common.utils.file_has_content', autospec=True)
+    @mock.patch('ironic.common.utils.write_to_file', autospec=True)
+    @mock.patch('ironic.common.utils.render_template', autospec=True)
+    def test_create_ipxe_boot_script_copy_file_different(
+            self, render_mock, write_mock, cmp_mock, isfile_mock):
+        isfile_mock.return_value = True
+        cmp_mock.return_value = False
+        render_mock.return_value = 'foo'
+        self.assertFalse(cmp_mock.called)
+        pxe_utils.create_ipxe_boot_script()
+        write_mock.assert_called_once_with(
+            os.path.join(CONF.deploy.http_root,
+                         os.path.basename(CONF.pxe.ipxe_boot_script)),
+            'foo')
+        render_mock.assert_called_once_with(
+            CONF.pxe.ipxe_boot_script,
+            {'ipxe_for_mac_uri': 'pxelinux.cfg/'})
+
+    @mock.patch.object(os.path, 'isfile', autospec=True)
+    @mock.patch('ironic.common.utils.file_has_content', autospec=True)
+    @mock.patch('ironic.common.utils.write_to_file', autospec=True)
+    @mock.patch('ironic.common.utils.render_template', autospec=True)
+    def test_create_ipxe_boot_script_already_exists(self, render_mock,
+                                                    write_mock, cmp_mock,
+                                                    isfile_mock):
+        isfile_mock.return_value = True
+        cmp_mock.return_value = True
+        pxe_utils.create_ipxe_boot_script()
+        self.assertFalse(write_mock.called)
+
     def test__get_pxe_mac_path(self):
         mac = '00:11:22:33:44:55:66'
         self.assertEqual('/tftpboot/pxelinux.cfg/01-00-11-22-33-44-55-66',
