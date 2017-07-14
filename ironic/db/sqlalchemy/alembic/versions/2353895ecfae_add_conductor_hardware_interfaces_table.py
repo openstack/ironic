@@ -44,4 +44,6 @@ def upgrade():
                     sa.UniqueConstraint(
                         'conductor_id', 'hardware_type',
                         'interface_type', 'interface_name',
-                        name='uniq_conductorhardwareinterfaces0'))
+                        name='uniq_conductorhardwareinterfaces0'),
+                    mysql_charset='utf8',
+                    mysql_engine='InnoDB')

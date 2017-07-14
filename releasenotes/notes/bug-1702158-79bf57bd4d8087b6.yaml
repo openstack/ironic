@@ -1,0 +1,22 @@
+---
+fixes:
+  - |
+    Fixes a bug 1702158, where the wrong database engine is used for the
+    conductor_hardware_interfaces table, if the system is using MySQL prior to
+    version 5.5 (or the default_storage_engine option is set explicitly to
+    'MyISAM' in my.cnf). In this case, a table could be created with MyISAM
+    engine and foreign key constraint conductor_id(conductors.id) ignored.
+upgrade:
+  - |
+    Due to a bug 1702158, conductor_hardware_interfaces table could be created
+    with MyISAM database engine, while all other tables in ironic database are
+    using InnoDB engine. This could happen during initial installation, or
+    upgrade to ocata release, if the system is using MySQL prior to version 5.5
+    (or the default_storage_engine option is set explicitly to 'MyISAM' in
+    my.cnf). If this is the case, conductor_hardware_interfaces needs to be
+    manually migrated to InnoDB, and foreign key constraint re-created::
+
+      alter table conductor_hardware_interfaces engine='InnoDB';
+      alter table conductor_hardware_interfaces
+        add constraint conductor_hardware_interfaces_ibfk_1
+        foreign key (conductor_id) references conductors(id);
