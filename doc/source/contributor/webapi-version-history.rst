@@ -6,6 +6,8 @@ REST API Version History
 
     Added ``storage_interface`` field to the node object to allow getting and
     setting the interface.
+    Also added ``default_storage_interface`` and ``enabled_storage_interfaces``
+    fields to the driver object to show the information.
 
 **1.32** (Pike)
 
