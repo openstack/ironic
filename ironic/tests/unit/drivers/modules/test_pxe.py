@@ -32,6 +32,7 @@ from ironic.common.glance_service import base_image_service
 from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import pxe
@@ -800,6 +801,7 @@ class PXEBootTestCase(db_base.DbTestCase):
                 self.assertRaises(exception.InvalidParameterValue,
                                   task.driver.boot.validate, task)
 
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(dhcp_factory, 'DHCPFactory')
     @mock.patch.object(pxe, '_get_instance_image_info', autospec=True)
     @mock.patch.object(pxe, '_get_deploy_image_info', autospec=True)
@@ -810,7 +812,9 @@ class PXEBootTestCase(db_base.DbTestCase):
                               mock_build_pxe, mock_cache_r_k,
                               mock_deploy_img_info,
                               mock_instance_img_info,
-                              dhcp_factory_mock, uefi=False,
+                              dhcp_factory_mock,
+                              set_boot_device_mock,
+                              uefi=False,
                               cleaning=False,
                               ipxe_use_swift=False,
                               whole_disk_image=False):
@@ -833,6 +837,9 @@ class PXEBootTestCase(db_base.DbTestCase):
             task.driver.boot.prepare_ramdisk(task, {'foo': 'bar'})
             mock_deploy_img_info.assert_called_once_with(task.node)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.PXE,
+                                                         persistent=False)
             if ipxe_use_swift:
                 if whole_disk_image:
                     self.assertFalse(mock_cache_r_k.called)
@@ -984,7 +991,7 @@ class PXEBootTestCase(db_base.DbTestCase):
             clean_up_pxe_env_mock.assert_called_once_with(task, image_info)
             get_deploy_image_info_mock.assert_called_once_with(task.node)
 
-    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
     @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
     @mock.patch.object(pxe, '_cache_ramdisk_kernel', autospec=True)
@@ -1018,11 +1025,12 @@ class PXEBootTestCase(db_base.DbTestCase):
                 pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
                 'bios', False, False, False)
             set_boot_device_mock.assert_called_once_with(task,
-                                                         boot_devices.PXE)
+                                                         boot_devices.PXE,
+                                                         persistent=True)
 
     @mock.patch('os.path.isfile', return_value=False)
     @mock.patch.object(pxe_utils, 'create_pxe_config', autospec=True)
-    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
     @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
     @mock.patch.object(pxe, '_cache_ramdisk_kernel', autospec=True)
@@ -1061,7 +1069,7 @@ class PXEBootTestCase(db_base.DbTestCase):
                 'bios', False, False, False)
             self.assertFalse(set_boot_device_mock.called)
 
-    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
     @mock.patch.object(dhcp_factory, 'DHCPFactory')
     @mock.patch.object(pxe, '_cache_ramdisk_kernel', autospec=True)
@@ -1095,7 +1103,7 @@ class PXEBootTestCase(db_base.DbTestCase):
     @mock.patch.object(deploy_utils, 'is_iscsi_boot', autospec=True)
     @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
     @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
     @mock.patch.object(pxe, '_cache_ramdisk_kernel', autospec=True)
@@ -1136,9 +1144,10 @@ class PXEBootTestCase(db_base.DbTestCase):
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, None, None, False, iscsi_boot=True)
             set_boot_device_mock.assert_called_once_with(task,
-                                                         boot_devices.PXE)
+                                                         boot_devices.PXE,
+                                                         persistent=True)
 
-    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
     def test_prepare_instance_localboot(self, clean_up_pxe_config_mock,
                                         set_boot_device_mock):
@@ -1147,9 +1156,10 @@ class PXEBootTestCase(db_base.DbTestCase):
             task.driver.boot.prepare_instance(task)
             clean_up_pxe_config_mock.assert_called_once_with(task)
             set_boot_device_mock.assert_called_once_with(task,
-                                                         boot_devices.DISK)
+                                                         boot_devices.DISK,
+                                                         persistent=True)
 
-    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
     def test_prepare_instance_localboot_active(self, clean_up_pxe_config_mock,
                                                set_boot_device_mock):

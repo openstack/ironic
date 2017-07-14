@@ -1,0 +1,7 @@
+fixes:
+  - |
+    Fixes a bug which caused boot device changes to be persistent in
+    places where they did not need to be during cleaning and deployment
+    phases, due to the default behavior of PXE interface forcing a persistent
+    change.
+    For more info, see https://bugs.launchpad.net/ironic/+bug/1701721
