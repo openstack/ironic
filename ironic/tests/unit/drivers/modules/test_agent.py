@@ -426,6 +426,30 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertFalse(pxe_prepare_ramdisk_mock.called)
             self.assertFalse(add_provisioning_net_mock.called)
 
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
+                'add_provisioning_network', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
+    @mock.patch.object(deploy_utils, 'build_agent_options')
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
+    @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
+                       autospec=True)
+    def test_prepare_boot_from_volume(self, mock_write,
+                                      build_instance_info_mock,
+                                      build_options_mock,
+                                      pxe_prepare_ramdisk_mock,
+                                      add_provisioning_net_mock):
+        mock_write.return_value = False
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            task.node.provision_state = states.DEPLOYING
+            build_instance_info_mock.return_value = {'foo': 'bar'}
+            build_options_mock.return_value = {'a': 'b'}
+
+            self.driver.prepare(task)
+            build_instance_info_mock.assert_not_called()
+            build_options_mock.assert_not_called()
+            pxe_prepare_ramdisk_mock.assert_called_once_with(task, None)
+
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory._set_dhcp_provider')
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory.clean_dhcp')
     @mock.patch.object(pxe.PXEBoot, 'clean_up_instance')

@@ -472,6 +472,8 @@ class PXEBoot(base.BootInterface):
             if (not os.path.isfile(bootfile_path) or
                 not utils.file_has_content(bootfile_path, boot_script)):
                     utils.write_to_file(bootfile_path, boot_script)
+            if not task.driver.storage.should_write_image(task):
+                return
 
         dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
         provider = dhcp_factory.DHCPFactory()
