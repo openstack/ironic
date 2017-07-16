@@ -18,6 +18,7 @@
 
 """Test class for Ironic ManagerService."""
 
+from collections import namedtuple
 import datetime
 
 import eventlet
@@ -569,51 +570,90 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node.refresh()
         self.assertEqual(existing_driver, node.driver)
 
-    def test_update_network_node_deleting_state(self):
-        node = obj_utils.create_test_node(self.context, driver='fake',
-                                          provision_state=states.DELETING,
-                                          network_interface='flat')
-        old_iface = node.network_interface
-        node.network_interface = 'noop'
+    UpdateInterfaces = namedtuple('UpdateInterfaces', ('old', 'new'))
+    IFACE_UPDATE_DICT = {
+        'boot_interface': UpdateInterfaces(None, 'fake'),
+        'console_interface': UpdateInterfaces(None, 'fake'),
+        'deploy_interface': UpdateInterfaces(None, 'fake'),
+        'inspect_interface': UpdateInterfaces(None, 'fake'),
+        'management_interface': UpdateInterfaces(None, 'fake'),
+        'network_interface': UpdateInterfaces('flat', 'noop'),
+        'power_interface': UpdateInterfaces(None, 'fake'),
+        'raid_interface': UpdateInterfaces(None, 'fake'),
+        'storage_interface': UpdateInterfaces('noop', 'cinder'),
+    }
+
+    def _create_node_with_interfaces(self, prov_state, maintenance=False):
+        old_ifaces = {}
+        for iface_name, ifaces in self.IFACE_UPDATE_DICT.items():
+            old_ifaces[iface_name] = ifaces.old
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=prov_state,
+                                          maintenance=maintenance,
+                                          **old_ifaces)
+        return node
+
+    def _test_update_node_interface_allowed(self, node, iface_name, new_iface):
+        setattr(node, iface_name, new_iface)
+        self.service.update_node(self.context, node)
+        node.refresh()
+        self.assertEqual(new_iface, getattr(node, iface_name))
+
+    def _test_update_node_interface_in_allowed_state(self, prov_state,
+                                                     maintenance=False):
+        node = self._create_node_with_interfaces(prov_state,
+                                                 maintenance=maintenance)
+        for iface_name, ifaces in self.IFACE_UPDATE_DICT.items():
+            self._test_update_node_interface_allowed(node, iface_name,
+                                                     ifaces.new)
+        node.destroy()
+
+    def test_update_node_interface_in_allowed_state(self):
+        for state in [states.ENROLL, states.MANAGEABLE, states.INSPECTING,
+                      states.AVAILABLE]:
+            self._test_update_node_interface_in_allowed_state(state)
+
+    def test_update_node_interface_in_maintenance(self):
+        self._test_update_node_interface_in_allowed_state(states.ACTIVE,
+                                                          maintenance=True)
+
+    def _test_update_node_interface_not_allowed(self, node, iface_name,
+                                                new_iface):
+        old_iface = getattr(node, iface_name)
+        setattr(node, iface_name, new_iface)
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.update_node,
                                 self.context, node)
         self.assertEqual(exception.InvalidState, exc.exc_info[0])
         node.refresh()
-        self.assertEqual(old_iface, node.network_interface)
+        self.assertEqual(old_iface, getattr(node, iface_name))
 
-    def test_update_network_node_manageable_state(self):
-        node = obj_utils.create_test_node(self.context, driver='fake',
-                                          provision_state=states.MANAGEABLE,
-                                          network_interface='flat')
-        node.network_interface = 'noop'
-        self.service.update_node(self.context, node)
-        node.refresh()
-        self.assertEqual('noop', node.network_interface)
+    def _test_update_node_interface_in_not_allowed_state(self, prov_state):
+        node = self._create_node_with_interfaces(prov_state)
+        for iface_name, ifaces in self.IFACE_UPDATE_DICT.items():
+            self._test_update_node_interface_not_allowed(node, iface_name,
+                                                         ifaces.new)
+        node.destroy()
 
-    def test_update_network_node_active_state_and_maintenance(self):
-        node = obj_utils.create_test_node(self.context, driver='fake',
-                                          provision_state=states.ACTIVE,
-                                          network_interface='flat',
-                                          maintenance=True)
-        node.network_interface = 'noop'
-        self.service.update_node(self.context, node)
-        node.refresh()
-        self.assertEqual('noop', node.network_interface)
+    def test_update_node_interface_in_not_allowed_state(self):
+        for state in [states.ACTIVE, states.DELETING]:
+            self._test_update_node_interface_in_not_allowed_state(state)
 
-    def test_update_node_invalid_network_interface(self):
-        node = obj_utils.create_test_node(self.context, driver='fake',
-                                          provision_state=states.MANAGEABLE,
-                                          network_interface='flat')
-        old_iface = node.network_interface
-        node.network_interface = 'cosci'
+    def _test_update_node_interface_invalid(self, node, iface_name):
+        old_iface = getattr(node, iface_name)
+        setattr(node, iface_name, 'invalid')
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.update_node,
                                 self.context, node)
         self.assertEqual(exception.InterfaceNotFoundInEntrypoint,
                          exc.exc_info[0])
         node.refresh()
-        self.assertEqual(old_iface, node.network_interface)
+        self.assertEqual(old_iface, getattr(node, iface_name))
+
+    def test_update_node_interface_invalid(self):
+        node = self._create_node_with_interfaces(states.MANAGEABLE)
+        for iface_name in self.IFACE_UPDATE_DICT:
+            self._test_update_node_interface_invalid(node, iface_name)
 
 
 @mgr_utils.mock_record_keepalive
