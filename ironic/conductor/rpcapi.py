@@ -428,6 +428,7 @@ class ConductorAPI(object):
 
         :param context: request context.
         :param node_id: node id or uuid.
+        :param topic: RPC topic. Defaults to self.topic.
         :raises: NodeLocked if node is locked by another conductor.
         :raises: NodeAssociated if the node contains an instance
             associated with it.
@@ -561,6 +562,7 @@ class ConductorAPI(object):
                        :mod:`ironic.common.boot_devices`.
         :param persistent: Whether to set next-boot, or make the change
                            permanent. Default: False.
+        :param topic: RPC topic. Defaults to self.topic.
         :raises: NodeLocked if node is locked by another conductor.
         :raises: UnsupportedDriverExtension if the node's driver doesn't
                  support management.
@@ -579,6 +581,7 @@ class ConductorAPI(object):
 
         :param context: request context.
         :param node_id: node id or uuid.
+        :param topic: RPC topic. Defaults to self.topic.
         :raises: NodeLocked if node is locked by another conductor.
         :raises: UnsupportedDriverExtension if the node's driver doesn't
                  support management.
@@ -604,6 +607,7 @@ class ConductorAPI(object):
 
         :param context: request context.
         :param node_id: node id or uuid.
+        :param topic: RPC topic. Defaults to self.topic.
         :raises: NodeLocked if node is locked by another conductor.
         :raises: UnsupportedDriverExtension if the node's driver doesn't
                  support management or management.inject_nmi.
@@ -622,6 +626,7 @@ class ConductorAPI(object):
 
         :param context: request context.
         :param node_id: node id or uuid.
+        :param topic: RPC topic. Defaults to self.topic.
         :raises: NodeLocked if node is locked by another conductor.
         :raises: UnsupportedDriverExtension if the node's driver doesn't
                  support management.
