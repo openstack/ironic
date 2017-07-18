@@ -90,11 +90,12 @@ class MyObj(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.save()
         self.foo = 42
 
-    def _convert_to_version(self, target_version, remove_unavail_fields=True):
+    def _convert_to_version(self, target_version,
+                            remove_unavailable_fields=True):
         if target_version == '1.5':
             self.missing = 'foo'
         elif self.missing:
-            if remove_unavail_fields:
+            if remove_unavailable_fields:
                 delattr(self, 'missing')
             else:
                 self.missing = ''
@@ -387,7 +388,7 @@ class _TestObject(object):
         # no changes
         obj = MyObj(self.context)
         self.assertEqual('1.5', obj.VERSION)
-        obj.convert_to_version('1.5', remove_unavail_fields=False)
+        obj.convert_to_version('1.5', remove_unavailable_fields=False)
         self.assertEqual('1.5', obj.VERSION)
         self.assertEqual(obj.__class__.VERSION, obj.VERSION)
         self.assertEqual({}, obj.obj_get_changes())
@@ -395,7 +396,7 @@ class _TestObject(object):
     def test_convert_to_version_new(self):
         obj = MyObj(self.context)
         obj.VERSION = '1.4'
-        obj.convert_to_version('1.5', remove_unavail_fields=False)
+        obj.convert_to_version('1.5', remove_unavailable_fields=False)
         self.assertEqual('1.5', obj.VERSION)
         self.assertEqual(obj.__class__.VERSION, obj.VERSION)
         self.assertEqual({'missing': 'foo'}, obj.obj_get_changes())
@@ -404,7 +405,7 @@ class _TestObject(object):
         obj = MyObj(self.context)
         obj.missing = 'something'
         obj.obj_reset_changes()
-        obj.convert_to_version('1.4', remove_unavail_fields=True)
+        obj.convert_to_version('1.4', remove_unavailable_fields=True)
         self.assertEqual('1.4', obj.VERSION)
         self.assertEqual({}, obj.obj_get_changes())
 
@@ -412,7 +413,7 @@ class _TestObject(object):
         obj = MyObj(self.context)
         obj.missing = 'something'
         obj.obj_reset_changes()
-        obj.convert_to_version('1.4', remove_unavail_fields=False)
+        obj.convert_to_version('1.4', remove_unavailable_fields=False)
         self.assertEqual('1.4', obj.VERSION)
         self.assertEqual({'missing': ''}, obj.obj_get_changes())
 
@@ -945,7 +946,7 @@ class TestObjectSerializer(test_base.TestCase):
         serializer = base.IronicObjectSerializer(is_server=is_server)
         serializer._process_object(self.context, primitive)
         mock_convert.assert_called_once_with(
-            mock.ANY, '1.5', remove_unavail_fields=not is_server)
+            mock.ANY, '1.5', remove_unavailable_fields=not is_server)
 
     def test__process_object_convert_api(self):
         self._test__process_object_convert(False)
