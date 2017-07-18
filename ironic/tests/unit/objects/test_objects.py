@@ -90,11 +90,14 @@ class MyObj(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.save()
         self.foo = 42
 
-    def _convert_to_version(self, target_version):
+    def _convert_to_version(self, target_version, remove_unavail_fields=True):
         if target_version == '1.5':
             self.missing = 'foo'
         elif self.missing:
-            self.missing = ''
+            if remove_unavail_fields:
+                delattr(self, 'missing')
+            else:
+                self.missing = ''
 
 
 class MyObj2(object):
@@ -381,18 +384,18 @@ class _TestObject(object):
         self._test_get_changes(target_version='1.4')
 
     def test_convert_to_version_same(self):
-        # missing is added
+        # no changes
         obj = MyObj(self.context)
         self.assertEqual('1.5', obj.VERSION)
-        obj.convert_to_version('1.5')
+        obj.convert_to_version('1.5', remove_unavail_fields=False)
         self.assertEqual('1.5', obj.VERSION)
         self.assertEqual(obj.__class__.VERSION, obj.VERSION)
-        self.assertEqual({'missing': 'foo'}, obj.obj_get_changes())
+        self.assertEqual({}, obj.obj_get_changes())
 
     def test_convert_to_version_new(self):
         obj = MyObj(self.context)
         obj.VERSION = '1.4'
-        obj.convert_to_version('1.5')
+        obj.convert_to_version('1.5', remove_unavail_fields=False)
         self.assertEqual('1.5', obj.VERSION)
         self.assertEqual(obj.__class__.VERSION, obj.VERSION)
         self.assertEqual({'missing': 'foo'}, obj.obj_get_changes())
@@ -401,7 +404,15 @@ class _TestObject(object):
         obj = MyObj(self.context)
         obj.missing = 'something'
         obj.obj_reset_changes()
-        obj.convert_to_version('1.4')
+        obj.convert_to_version('1.4', remove_unavail_fields=True)
+        self.assertEqual('1.4', obj.VERSION)
+        self.assertEqual({}, obj.obj_get_changes())
+
+    def test_convert_to_version_old_keep(self):
+        obj = MyObj(self.context)
+        obj.missing = 'something'
+        obj.obj_reset_changes()
+        obj.convert_to_version('1.4', remove_unavail_fields=False)
         self.assertEqual('1.4', obj.VERSION)
         self.assertEqual({'missing': ''}, obj.obj_get_changes())
 
@@ -809,10 +820,32 @@ class TestObjectSerializer(test_base.TestCase):
 
     @mock.patch.object(base.IronicObject, 'convert_to_version', autospec=True)
     @mock.patch.object(base.IronicObject, 'get_target_version', autospec=True)
-    def test_serialize_entity_unpinned(self, mock_version, mock_convert):
+    def test_serialize_entity_unpinned_api(self, mock_version, mock_convert):
         """Test single element serializer with no backport, unpinned."""
         mock_version.return_value = MyObj.VERSION
-        serializer = base.IronicObjectSerializer()
+        serializer = base.IronicObjectSerializer(is_server=False)
+        obj = MyObj(self.context)
+        obj.foo = 1
+        obj.bar = 'text'
+        obj.missing = 'textt'
+        primitive = serializer.serialize_entity(self.context, obj)
+        self.assertEqual('1.5', primitive['ironic_object.version'])
+        data = primitive['ironic_object.data']
+        self.assertEqual(1, data['foo'])
+        self.assertEqual('text', data['bar'])
+        self.assertEqual('textt', data['missing'])
+        changes = primitive['ironic_object.changes']
+        self.assertEqual(set(['foo', 'bar', 'missing']), set(changes))
+        self.assertFalse(mock_version.called)
+        self.assertFalse(mock_convert.called)
+
+    @mock.patch.object(base.IronicObject, 'convert_to_version', autospec=True)
+    @mock.patch.object(base.IronicObject, 'get_target_version', autospec=True)
+    def test_serialize_entity_unpinned_conductor(self, mock_version,
+                                                 mock_convert):
+        """Test single element serializer with no backport, unpinned."""
+        mock_version.return_value = MyObj.VERSION
+        serializer = base.IronicObjectSerializer(is_server=True)
         obj = MyObj(self.context)
         obj.foo = 1
         obj.bar = 'text'
@@ -829,11 +862,30 @@ class TestObjectSerializer(test_base.TestCase):
         self.assertFalse(mock_convert.called)
 
     @mock.patch.object(base.IronicObject, 'get_target_version', autospec=True)
-    def test_serialize_entity_pinned(self, mock_version):
+    def test_serialize_entity_pinned_api(self, mock_version):
         """Test single element serializer with backport to pinned version."""
         mock_version.return_value = '1.4'
 
-        serializer = base.IronicObjectSerializer()
+        serializer = base.IronicObjectSerializer(is_server=False)
+        obj = MyObj(self.context)
+        obj.foo = 1
+        obj.bar = 'text'
+        obj.missing = 'miss'
+        self.assertEqual('1.5', obj.VERSION)
+        primitive = serializer.serialize_entity(self.context, obj)
+        self.assertEqual('1.5', primitive['ironic_object.version'])
+        data = primitive['ironic_object.data']
+        self.assertEqual(1, data['foo'])
+        self.assertEqual('text', data['bar'])
+        self.assertEqual('miss', data['missing'])
+        self.assertFalse(mock_version.called)
+
+    @mock.patch.object(base.IronicObject, 'get_target_version', autospec=True)
+    def test_serialize_entity_pinned_conductor(self, mock_version):
+        """Test single element serializer with backport to pinned version."""
+        mock_version.return_value = '1.4'
+
+        serializer = base.IronicObjectSerializer(is_server=True)
         obj = MyObj(self.context)
         obj.foo = 1
         obj.bar = 'text'
@@ -844,9 +896,8 @@ class TestObjectSerializer(test_base.TestCase):
         data = primitive['ironic_object.data']
         self.assertEqual(1, data['foo'])
         self.assertEqual('text', data['bar'])
-        self.assertEqual('', data['missing'])
-        changes = primitive['ironic_object.changes']
-        self.assertEqual(set(['foo', 'bar', 'missing']), set(changes))
+        self.assertNotIn('missing', data)
+        self.assertNotIn('ironic_object.changes', primitive)
         mock_version.assert_called_once_with(mock.ANY)
 
     @mock.patch.object(base.IronicObject, 'get_target_version', autospec=True)
@@ -854,21 +905,21 @@ class TestObjectSerializer(test_base.TestCase):
         mock_version.side_effect = object_exception.InvalidTargetVersion(
             version='1.6')
 
-        serializer = base.IronicObjectSerializer()
+        serializer = base.IronicObjectSerializer(is_server=True)
         obj = MyObj(self.context)
         self.assertRaises(object_exception.InvalidTargetVersion,
                           serializer.serialize_entity, self.context, obj)
         mock_version.assert_called_once_with(mock.ANY)
 
     @mock.patch.object(base.IronicObject, 'convert_to_version', autospec=True)
-    def test__process_object(self, mock_convert):
+    def _test__process_object(self, mock_convert, is_server=True):
         obj = MyObj(self.context)
         obj.foo = 1
         obj.bar = 'text'
         obj.missing = 'miss'
         primitive = obj.obj_to_primitive()
 
-        serializer = base.IronicObjectSerializer()
+        serializer = base.IronicObjectSerializer(is_server=is_server)
         obj2 = serializer._process_object(self.context, primitive)
         self.assertEqual(obj.foo, obj2.foo)
         self.assertEqual(obj.bar, obj2.bar)
@@ -876,8 +927,14 @@ class TestObjectSerializer(test_base.TestCase):
         self.assertEqual(obj.VERSION, obj2.VERSION)
         self.assertFalse(mock_convert.called)
 
+    def test__process_object_api(self):
+        self._test__process_object(is_server=False)
+
+    def test__process_object_conductor(self):
+        self._test__process_object(is_server=True)
+
     @mock.patch.object(base.IronicObject, 'convert_to_version', autospec=True)
-    def test__process_object_convert(self, mock_convert):
+    def _test__process_object_convert(self, is_server, mock_convert):
         obj = MyObj(self.context)
         obj.foo = 1
         obj.bar = 'text'
@@ -885,9 +942,16 @@ class TestObjectSerializer(test_base.TestCase):
         obj.VERSION = '1.4'
         primitive = obj.obj_to_primitive()
 
-        serializer = base.IronicObjectSerializer()
+        serializer = base.IronicObjectSerializer(is_server=is_server)
         serializer._process_object(self.context, primitive)
-        mock_convert.assert_called_once_with(mock.ANY, '1.5')
+        mock_convert.assert_called_once_with(
+            mock.ANY, '1.5', remove_unavail_fields=not is_server)
+
+    def test__process_object_convert_api(self):
+        self._test__process_object_convert(False)
+
+    def test__process_object_convert_conductor(self):
+        self._test__process_object_convert(True)
 
 
 class TestRegistry(test_base.TestCase):

@@ -46,7 +46,7 @@ class RPCService(service.Service):
 
         target = messaging.Target(topic=self.topic, server=self.host)
         endpoints = [self.manager]
-        serializer = objects_base.IronicObjectSerializer()
+        serializer = objects_base.IronicObjectSerializer(is_server=True)
         self.rpcserver = rpc.get_server(target, endpoints, serializer)
         self.rpcserver.start()
 
