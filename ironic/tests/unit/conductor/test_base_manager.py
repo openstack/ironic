@@ -272,6 +272,12 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                         missing_parameters_error):
                 self._start_service()
 
+    def test_conductor_shutdown_flag(self):
+        self._start_service()
+        self.assertFalse(self.service._shutdown)
+        self.service.del_host()
+        self.assertTrue(self.service._shutdown)
+
 
 class CheckInterfacesTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test__check_enabled_interfaces_success(self):

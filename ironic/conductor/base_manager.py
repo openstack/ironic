@@ -74,6 +74,7 @@ class BaseConductorManager(object):
         self.topic = topic
         self.sensors_notifier = rpc.get_sensors_notifier()
         self._started = False
+        self._shutdown = None
 
     def init_host(self, admin_context=None):
         """Initialize the conductor host.
@@ -91,6 +92,7 @@ class BaseConductorManager(object):
         if self._started:
             raise RuntimeError(_('Attempt to start an already running '
                                  'conductor manager'))
+        self._shutdown = False
 
         self.dbapi = dbapi.get_instance()
 
@@ -262,6 +264,7 @@ class BaseConductorManager(object):
         # conductor (e.g. when rpc server is unreachable).
         if not hasattr(self, 'conductor'):
             return
+        self._shutdown = True
         self._keepalive_evt.set()
         if deregister:
             try:
@@ -362,6 +365,8 @@ class BaseConductorManager(object):
         columns = ['uuid', 'driver'] + list(fields or ())
         node_list = self.dbapi.get_nodeinfo_list(columns=columns, **kwargs)
         for result in node_list:
+            if self._shutdown:
+                break
             if self._mapped_to_this_conductor(*result[:2]):
                 yield result
 
