@@ -80,7 +80,8 @@ class IronicObject(object_base.VersionedObject):
                     self[field] != loaded_object[field]):
                 self[field] = loaded_object[field]
 
-    def _convert_to_version(self, target_version, remove_unavail_fields=True):
+    def _convert_to_version(self, target_version,
+                            remove_unavailable_fields=True):
         """Convert to the target version.
 
         Subclasses should redefine this method, to do the conversion of the
@@ -90,57 +91,61 @@ class IronicObject(object_base.VersionedObject):
         the same, older, or newer than the version of the object. This is
         used for DB interactions as well as for serialization/deserialization.
 
-        The remove_unavail_fields flag is used to distinguish these two cases:
+        The remove_unavailable_fields flag is used to distinguish these two
+        cases:
 
         1) For serialization/deserialization, we need to remove the unavailable
            fields, because the service receiving the object may not know about
-           these fields. remove_unavail_fields is set to True in this case.
+           these fields. remove_unavailable_fields is set to True in this case.
 
         2) For DB interactions, we need to set the unavailable fields to their
            appropriate values so that these fields are saved in the DB. (If
            they are not set, the VersionedObject magic will not know to
-           save/update them to the DB.) remove_unavail_fields is set to False
-           in this case.
+           save/update them to the DB.) remove_unavailable_fields is set to
+           False in this case.
 
         :param target_version: the desired version of the object
-        :param remove_unavail_fields: True to remove fields that are
+        :param remove_unavailable_fields: True to remove fields that are
             unavailable in the target version; set this to True when
             (de)serializing. False to set the unavailable fields to appropriate
             values; set this to False for DB interactions.
         """
         pass
 
-    def convert_to_version(self, target_version, remove_unavail_fields=True):
+    def convert_to_version(self, target_version,
+                           remove_unavailable_fields=True):
         """Convert this object to the target version.
 
         Convert the object to the target version. The target version may be
         the same, older, or newer than the version of the object. This is
         used for DB interactions as well as for serialization/deserialization.
 
-        The remove_unavail_fields flag is used to distinguish these two cases:
+        The remove_unavailable_fields flag is used to distinguish these two
+        cases:
 
         1) For serialization/deserialization, we need to remove the unavailable
            fields, because the service receiving the object may not know about
-           these fields. remove_unavail_fields is set to True in this case.
+           these fields. remove_unavailable_fields is set to True in this case.
 
         2) For DB interactions, we need to set the unavailable fields to their
            appropriate values so that these fields are saved in the DB. (If
            they are not set, the VersionedObject magic will not know to
-           save/update them to the DB.) remove_unavail_fields is set to False
-           in this case.
+           save/update them to the DB.) remove_unavailable_fields is set to
+           False in this case.
 
         _convert_to_version() does the actual work.
 
         :param target_version: the desired version of the object
-        :param remove_unavail_fields: True to remove fields that are
+        :param remove_unavailable_fields: True to remove fields that are
             unavailable in the target version; set this to True when
             (de)serializing. False to set the unavailable fields to appropriate
             values; set this to False for DB interactions.
         """
         if self.VERSION != target_version:
             self._convert_to_version(
-                target_version, remove_unavail_fields=remove_unavail_fields)
-            if remove_unavail_fields:
+                target_version,
+                remove_unavailable_fields=remove_unavailable_fields)
+            if remove_unavailable_fields:
                 # NOTE(rloo): We changed the object, but don't keep track of
                 # any of these changes, since it is inaccurate anyway (because
                 # it doesn't keep track of any 'changed' unavailable fields).
@@ -257,7 +262,7 @@ class IronicObject(object_base.VersionedObject):
             # convert to the latest version
             obj.VERSION = db_version
             obj.convert_to_version(obj.__class__.VERSION,
-                                   remove_unavail_fields=False)
+                                   remove_unavailable_fields=False)
 
         return obj
 
@@ -302,7 +307,7 @@ class IronicObject(object_base.VersionedObject):
         if target_version != self.VERSION:
             # Convert the object so we can save it in the target version.
             self.convert_to_version(target_version,
-                                    remove_unavail_fields=False)
+                                    remove_unavailable_fields=False)
 
         changes = self.obj_get_changes()
         # NOTE(rloo): Since this object doesn't keep track of the version that
@@ -350,7 +355,7 @@ class IronicObjectSerializer(object_base.VersionedObjectSerializer):
                 # we don't want any changes
                 obj.convert_to_version(
                     obj.__class__.VERSION,
-                    remove_unavail_fields=not self.is_server)
+                    remove_unavailable_fields=not self.is_server)
         return obj
 
     def serialize_entity(self, context, entity):
@@ -385,7 +390,7 @@ class IronicObjectSerializer(object_base.VersionedObjectSerializer):
                 # older object version. We need to backport/convert to target
                 # version before serialization.
                 entity.convert_to_version(target_version,
-                                          remove_unavail_fields=True)
+                                          remove_unavailable_fields=True)
 
         return super(IronicObjectSerializer, self).serialize_entity(
             context, entity)
