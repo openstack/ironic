@@ -39,6 +39,8 @@ fields.
 
 API microversion 1.24 added the portgroup_uuid field.
 
+API microversion 1.34 added the ``physical_network`` field.
+
 Normal response code: 200
 
 Request
@@ -82,6 +84,8 @@ Creates a new Port resource.
 This method requires a Node UUID and the physical hardware address for the Port
 (MAC address in most cases).
 
+``physical_network`` response field was added in API microversion 1.34.
+
 Normal response code: 201
 
 Request
@@ -91,6 +95,7 @@ Request
 
     - node_uuid: node_uuid
     - address: port_address
+    - physical_network: physical_network
 
 **Example Port creation request:**
 
@@ -108,6 +113,7 @@ Response
     - portgroup_uuid: portgroup_uuid
     - local_link_connection: local_link_connection
     - pxe_enabled: pxe_enabled
+    - physical_network: physical_network
     - internal_info: internal_info
     - extra: extra
     - created_at: created_at
@@ -133,6 +139,8 @@ will be used to filter results.
 
 ``portgroup`` query parameter and ``portgroup_uuid`` response field
 were added in API microversion 1.24.
+
+``physical_network`` response field was added in API microversion 1.34.
 
 Normal response code: 200
 
@@ -162,6 +170,7 @@ Response
     - portgroup_uuid: portgroup_uuid
     - local_link_connection: local_link_connection
     - pxe_enabled: pxe_enabled
+    - physical_network: physical_network
     - internal_info: internal_info
     - extra: extra
     - created_at: created_at
@@ -188,6 +197,8 @@ rather than the default set.
 ``portgroup`` query parameter and ``portgroup_uuid`` response field
 were added in API microversion 1.24.
 
+``physical_network`` response field was added in API microversion 1.34.
+
 Normal response code: 200
 
 Request
@@ -209,6 +220,7 @@ Response
     - portgroup_uuid: portgroup_uuid
     - local_link_connection: local_link_connection
     - pxe_enabled: pxe_enabled
+    - physical_network: physical_network
     - internal_info: internal_info
     - extra: extra
     - created_at: created_at
@@ -227,6 +239,8 @@ Update a Port
 .. rest_method:: PATCH /v1/ports/{port_id}
 
 Update a Port.
+
+API microversion 1.34 added the ``physical_network`` field.
 
 Normal response code: 200
 
@@ -256,6 +270,7 @@ Response
     - portgroup_uuid: portgroup_uuid
     - local_link_connection: local_link_connection
     - pxe_enabled: pxe_enabled
+    - physical_network: physical_network
     - internal_info: internal_info
     - extra: extra
     - created_at: created_at

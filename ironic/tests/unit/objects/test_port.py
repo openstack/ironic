@@ -16,13 +16,17 @@
 import datetime
 
 import mock
+from oslo_config import cfg
 from testtools import matchers
 
 from ironic.common import exception
 from ironic import objects
+from ironic.objects import base as obj_base
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
+
+CONF = cfg.CONF
 
 
 class TestPortObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
@@ -141,6 +145,18 @@ class TestPortObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
             self.assertThat(ports, matchers.HasLength(1))
             self.assertIsInstance(ports[0], objects.Port)
             self.assertEqual(self.context, ports[0]._context)
+
+    @mock.patch.object(obj_base.IronicObject, 'supports_version')
+    def test_supports_physical_network_supported(self, mock_sv):
+        mock_sv.return_value = True
+        self.assertTrue(objects.Port.supports_physical_network())
+        mock_sv.assert_called_once_with((1, 7))
+
+    @mock.patch.object(obj_base.IronicObject, 'supports_version')
+    def test_supports_physical_network_unsupported(self, mock_sv):
+        mock_sv.return_value = False
+        self.assertFalse(objects.Port.supports_physical_network())
+        mock_sv.assert_called_once_with((1, 7))
 
     def test_payload_schemas(self):
         self._check_payload_schemas(objects.port, objects.Port.fields)

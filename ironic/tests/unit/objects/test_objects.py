@@ -436,7 +436,7 @@ class _TestObject(object):
         self.assertFalse(mock_convert.called)
 
     @mock.patch.object(MyObj, 'convert_to_version', autospec=True)
-    @mock.patch.object(base.IronicObject, 'get_target_version', autospec=True)
+    @mock.patch.object(base.IronicObject, 'get_target_version')
     def test_do_version_changes_for_db_pinned(self, mock_target_version,
                                               mock_convert):
         # obj is same version as pinned, no conversion done
@@ -453,10 +453,10 @@ class _TestObject(object):
         self.assertEqual({'foo': 123, 'bar': 'test', 'version': '1.4'},
                          changes)
         self.assertEqual('1.4', obj.VERSION)
-        mock_target_version.assert_called_with(obj)
+        mock_target_version.assert_called_with()
         self.assertFalse(mock_convert.called)
 
-    @mock.patch.object(base.IronicObject, 'get_target_version', autospec=True)
+    @mock.patch.object(base.IronicObject, 'get_target_version')
     def test_do_version_changes_for_db_downgrade(self, mock_target_version):
         # obj is 1.5; convert to 1.4
         mock_target_version.return_value = '1.4'
@@ -472,7 +472,7 @@ class _TestObject(object):
         self.assertEqual({'foo': 123, 'bar': 'test', 'missing': '',
                           'version': '1.4'}, changes)
         self.assertEqual('1.4', obj.VERSION)
-        mock_target_version.assert_called_with(obj)
+        mock_target_version.assert_called_with()
 
     @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING',
                 autospec=True)
@@ -611,6 +611,13 @@ class _TestObject(object):
         self.assertRaises(object_exception.IncompatibleObjectVersion,
                           obj.get_target_version)
 
+    @mock.patch.object(base.IronicObject, 'get_target_version')
+    def test_supports_version(self, mock_target_version):
+        mock_target_version.return_value = "1.5"
+        obj = MyObj(self.context)
+        self.assertTrue(obj.supports_version((1, 5)))
+        self.assertFalse(obj.supports_version((1, 6)))
+
     def test_obj_fields(self):
         @base.IronicObjectRegistry.register_if(False)
         class TestObj(base.IronicObject,
@@ -697,7 +704,7 @@ expected_object_fingerprints = {
     'NodeCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
     'NodeCRUDPayload': '1.2-b7a265a5e2fe47adada3c7c20c68e465',
     'PortCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
-    'PortCRUDPayload': '1.1-1ecf2d63b68014c52cb52d0227f8b5b8',
+    'PortCRUDPayload': '1.2-233d259df442eb15cc584fae1fe81504',
     'NodeMaintenanceNotification': '1.0-59acc533c11d306f149846f922739c15',
     'NodeConsoleNotification': '1.0-59acc533c11d306f149846f922739c15',
     'PortgroupCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
@@ -820,7 +827,7 @@ class TestObjectSerializer(test_base.TestCase):
         self.assertFalse(mock_release_mapping.called)
 
     @mock.patch.object(base.IronicObject, 'convert_to_version', autospec=True)
-    @mock.patch.object(base.IronicObject, 'get_target_version', autospec=True)
+    @mock.patch.object(base.IronicObject, 'get_target_version')
     def test_serialize_entity_unpinned_api(self, mock_version, mock_convert):
         """Test single element serializer with no backport, unpinned."""
         mock_version.return_value = MyObj.VERSION
@@ -841,7 +848,7 @@ class TestObjectSerializer(test_base.TestCase):
         self.assertFalse(mock_convert.called)
 
     @mock.patch.object(base.IronicObject, 'convert_to_version', autospec=True)
-    @mock.patch.object(base.IronicObject, 'get_target_version', autospec=True)
+    @mock.patch.object(base.IronicObject, 'get_target_version')
     def test_serialize_entity_unpinned_conductor(self, mock_version,
                                                  mock_convert):
         """Test single element serializer with no backport, unpinned."""
@@ -859,10 +866,10 @@ class TestObjectSerializer(test_base.TestCase):
         self.assertEqual('textt', data['missing'])
         changes = primitive['ironic_object.changes']
         self.assertEqual(set(['foo', 'bar', 'missing']), set(changes))
-        mock_version.assert_called_once_with(mock.ANY)
+        mock_version.assert_called_once_with()
         self.assertFalse(mock_convert.called)
 
-    @mock.patch.object(base.IronicObject, 'get_target_version', autospec=True)
+    @mock.patch.object(base.IronicObject, 'get_target_version')
     def test_serialize_entity_pinned_api(self, mock_version):
         """Test single element serializer with backport to pinned version."""
         mock_version.return_value = '1.4'
@@ -881,7 +888,7 @@ class TestObjectSerializer(test_base.TestCase):
         self.assertEqual('miss', data['missing'])
         self.assertFalse(mock_version.called)
 
-    @mock.patch.object(base.IronicObject, 'get_target_version', autospec=True)
+    @mock.patch.object(base.IronicObject, 'get_target_version')
     def test_serialize_entity_pinned_conductor(self, mock_version):
         """Test single element serializer with backport to pinned version."""
         mock_version.return_value = '1.4'
@@ -899,9 +906,9 @@ class TestObjectSerializer(test_base.TestCase):
         self.assertEqual('text', data['bar'])
         self.assertNotIn('missing', data)
         self.assertNotIn('ironic_object.changes', primitive)
-        mock_version.assert_called_once_with(mock.ANY)
+        mock_version.assert_called_once_with()
 
-    @mock.patch.object(base.IronicObject, 'get_target_version', autospec=True)
+    @mock.patch.object(base.IronicObject, 'get_target_version')
     def test_serialize_entity_invalid_pin(self, mock_version):
         mock_version.side_effect = object_exception.InvalidTargetVersion(
             version='1.6')
@@ -910,7 +917,7 @@ class TestObjectSerializer(test_base.TestCase):
         obj = MyObj(self.context)
         self.assertRaises(object_exception.InvalidTargetVersion,
                           serializer.serialize_entity, self.context, obj)
-        mock_version.assert_called_once_with(mock.ANY)
+        mock_version.assert_called_once_with()
 
     @mock.patch.object(base.IronicObject, 'convert_to_version', autospec=True)
     def _test__process_object(self, mock_convert, is_server=True):

@@ -22,6 +22,8 @@ List Ports by Portgroup
 
 Return a list of bare metal Ports associated with ``portgroup_ident``.
 
+API microversion 1.34 added the ``physical_network`` field.
+
 Normal response code: 200
 
 Error codes: 400,401,403,404
@@ -60,6 +62,8 @@ List detailed Ports by Portgroup
 
 Return a detailed list of bare metal Ports associated with ``portgroup_ident``.
 
+API microversion 1.34 added the ``physical_network`` field.
+
 Normal response code: 200
 
 Error codes: 400,401,403,404
@@ -86,6 +90,7 @@ Response
     - node_uuid: node_uuid
     - local_link_connection: local_link_connection
     - pxe_enabled: pxe_enabled
+    - physical_network: physical_network
     - internal_info: internal_info
     - extra: extra
     - portgroup_uuid: portgroup_uuid

@@ -18,6 +18,8 @@ List Ports by Node
 
 Return a list of bare metal Ports associated with ``node_ident``.
 
+API microversion 1.34 added the ``physical_network`` field.
+
 Normal response code: 200
 
 Error codes: TBD
@@ -56,6 +58,8 @@ List detailed Ports by Node
 
 Return a detailed list of bare metal Ports associated with ``node_ident``.
 
+API microversion 1.34 added the ``physical_network`` field.
+
 Normal response code: 200
 
 Error codes: TBD
@@ -83,6 +87,7 @@ Response
     - node_uuid: node_uuid
     - local_link_connection: local_link_connection
     - pxe_enabled: pxe_enabled
+    - physical_network: physical_network
     - internal_info: internal_info
     - extra: extra
     - created_at: created_at

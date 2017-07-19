@@ -426,6 +426,24 @@ class TestApiUtils(base.TestCase):
         mock_request.version.minor = 32
         self.assertFalse(utils.allow_storage_interface())
 
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    @mock.patch.object(objects.Port, 'supports_physical_network')
+    def test_allow_port_physical_network_no_pin(self, mock_spn, mock_request):
+        mock_spn.return_value = True
+        mock_request.version.minor = 34
+        self.assertTrue(utils.allow_port_physical_network())
+        mock_request.version.minor = 33
+        self.assertFalse(utils.allow_port_physical_network())
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    @mock.patch.object(objects.Port, 'supports_physical_network')
+    def test_allow_port_physical_network_pin(self, mock_spn, mock_request):
+        mock_spn.return_value = False
+        mock_request.version.minor = 34
+        self.assertFalse(utils.allow_port_physical_network())
+        mock_request.version.minor = 33
+        self.assertFalse(utils.allow_port_physical_network())
+
 
 class TestNodeIdent(base.TestCase):
 

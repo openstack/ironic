@@ -64,6 +64,7 @@ BASE_VERSION = 1
 # v1.31: Add dynamic interfaces fields to node.
 # v1.32: Add volume support.
 # v1.33: Add node storage interface
+# v1.34: Add physical network field to port.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -99,11 +100,12 @@ MINOR_30_DYNAMIC_DRIVERS = 30
 MINOR_31_DYNAMIC_INTERFACES = 31
 MINOR_32_VOLUME = 32
 MINOR_33_STORAGE_INTERFACE = 33
+MINOR_34_PORT_PHYSICAL_NETWORK = 34
 
 # When adding another version, update MINOR_MAX_VERSION and also update
 # doc/source/dev/webapi-version-history.rst with a detailed explanation of
 # what the version has changed.
-MINOR_MAX_VERSION = MINOR_33_STORAGE_INTERFACE
+MINOR_MAX_VERSION = MINOR_34_PORT_PHYSICAL_NETWORK
 
 # String representations of the minor and maximum versions
 MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

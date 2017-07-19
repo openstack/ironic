@@ -34,6 +34,7 @@ from ironic.api.controllers.v1 import versions
 from ironic.common import exception
 from ironic.common import utils as common_utils
 from ironic.conductor import rpcapi
+from ironic import objects
 from ironic.objects import fields as obj_fields
 from ironic.tests import base
 from ironic.tests.unit.api import base as test_api_base
@@ -75,6 +76,7 @@ class TestPortObject(base.TestCase):
         self.assertEqual(wtypes.Unset, port.extra)
 
 
+@mock.patch.object(api_utils, 'allow_port_physical_network', autospec=True)
 @mock.patch.object(api_utils, 'allow_portgroups_subcontrollers', autospec=True)
 @mock.patch.object(api_utils, 'allow_port_advanced_net_fields', autospec=True)
 class TestPortsController__CheckAllowedPortFields(base.TestCase):
@@ -84,14 +86,17 @@ class TestPortsController__CheckAllowedPortFields(base.TestCase):
         self.controller = api_port.PortsController()
 
     def test__check_allowed_port_fields_none(self, mock_allow_port,
-                                             mock_allow_portgroup):
+                                             mock_allow_portgroup,
+                                             mock_allow_physnet):
         self.assertIsNone(
             self.controller._check_allowed_port_fields(None))
         self.assertFalse(mock_allow_port.called)
         self.assertFalse(mock_allow_portgroup.called)
+        self.assertFalse(mock_allow_physnet.called)
 
     def test__check_allowed_port_fields_empty(self, mock_allow_port,
-                                              mock_allow_portgroup):
+                                              mock_allow_portgroup,
+                                              mock_allow_physnet):
         for v in (True, False):
             mock_allow_port.return_value = v
             self.assertIsNone(
@@ -99,9 +104,11 @@ class TestPortsController__CheckAllowedPortFields(base.TestCase):
             mock_allow_port.assert_called_once_with()
             mock_allow_port.reset_mock()
             self.assertFalse(mock_allow_portgroup.called)
+            self.assertFalse(mock_allow_physnet.called)
 
     def test__check_allowed_port_fields_not_allow(self, mock_allow_port,
-                                                  mock_allow_portgroup):
+                                                  mock_allow_portgroup,
+                                                  mock_allow_physnet):
         mock_allow_port.return_value = False
         for field in api_port.PortsController.advanced_net_fields:
             self.assertRaises(exception.NotAcceptable,
@@ -110,9 +117,11 @@ class TestPortsController__CheckAllowedPortFields(base.TestCase):
             mock_allow_port.assert_called_once_with()
             mock_allow_port.reset_mock()
             self.assertFalse(mock_allow_portgroup.called)
+            self.assertFalse(mock_allow_physnet.called)
 
     def test__check_allowed_port_fields_allow(self, mock_allow_port,
-                                              mock_allow_portgroup):
+                                              mock_allow_portgroup,
+                                              mock_allow_physnet):
         mock_allow_port.return_value = True
         for field in api_port.PortsController.advanced_net_fields:
             self.assertIsNone(
@@ -120,9 +129,10 @@ class TestPortsController__CheckAllowedPortFields(base.TestCase):
             mock_allow_port.assert_called_once_with()
             mock_allow_port.reset_mock()
             self.assertFalse(mock_allow_portgroup.called)
+            self.assertFalse(mock_allow_physnet.called)
 
     def test__check_allowed_port_fields_portgroup_not_allow(
-            self, mock_allow_port, mock_allow_portgroup):
+            self, mock_allow_port, mock_allow_portgroup, mock_allow_physnet):
         mock_allow_port.return_value = True
         mock_allow_portgroup.return_value = False
         self.assertRaises(exception.NotAcceptable,
@@ -130,15 +140,38 @@ class TestPortsController__CheckAllowedPortFields(base.TestCase):
                           ['portgroup_uuid'])
         mock_allow_port.assert_called_once_with()
         mock_allow_portgroup.assert_called_once_with()
+        self.assertFalse(mock_allow_physnet.called)
 
     def test__check_allowed_port_fields_portgroup_allow(
-            self, mock_allow_port, mock_allow_portgroup):
+            self, mock_allow_port, mock_allow_portgroup, mock_allow_physnet):
         mock_allow_port.return_value = True
         mock_allow_portgroup.return_value = True
         self.assertIsNone(
             self.controller._check_allowed_port_fields(['portgroup_uuid']))
         mock_allow_port.assert_called_once_with()
         mock_allow_portgroup.assert_called_once_with()
+        self.assertFalse(mock_allow_physnet.called)
+
+    def test__check_allowed_port_fields_physnet_not_allow(
+            self, mock_allow_port, mock_allow_portgroup, mock_allow_physnet):
+        mock_allow_port.return_value = True
+        mock_allow_physnet.return_value = False
+        self.assertRaises(exception.NotAcceptable,
+                          self.controller._check_allowed_port_fields,
+                          ['physical_network'])
+        mock_allow_port.assert_called_once_with()
+        self.assertFalse(mock_allow_portgroup.called)
+        mock_allow_physnet.assert_called_once_with()
+
+    def test__check_allowed_port_fields_physnet_allow(
+            self, mock_allow_port, mock_allow_portgroup, mock_allow_physnet):
+        mock_allow_port.return_value = True
+        mock_allow_physnet.return_value = True
+        self.assertIsNone(
+            self.controller._check_allowed_port_fields(['physical_network']))
+        mock_allow_port.assert_called_once_with()
+        self.assertFalse(mock_allow_portgroup.called)
+        mock_allow_physnet.assert_called_once_with()
 
 
 class TestListPorts(test_api_base.BaseApiTest):
@@ -206,6 +239,60 @@ class TestListPorts(test_api_base.BaseApiTest):
                              headers={api_base.Version.string: "1.18"})
         self.assertEqual({"foo": "bar"}, data['internal_info'])
 
+    def test_hide_fields_in_newer_versions_advanced_net(self):
+        llc = {'switch_info': 'switch', 'switch_id': 'aa:bb:cc:dd:ee:ff',
+               'port_id': 'Gig0/1'}
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          pxe_enabled=True,
+                                          local_link_connection=llc)
+        data = self.get_json(
+            '/ports/%s' % port.uuid,
+            headers={api_base.Version.string: "1.18"})
+        self.assertNotIn('pxe_enabled', data)
+        self.assertNotIn('local_link_connection', data)
+
+        data = self.get_json('/ports/%s' % port.uuid,
+                             headers={api_base.Version.string: "1.19"})
+        self.assertTrue(data['pxe_enabled'])
+        self.assertEqual(llc, data['local_link_connection'])
+
+    def test_hide_fields_in_newer_versions_portgroup_uuid(self):
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    node_id=self.node.id)
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          portgroup_id=portgroup.id)
+        data = self.get_json(
+            '/ports/%s' % port.uuid,
+            headers={api_base.Version.string: "1.23"})
+        self.assertNotIn('portgroup_uuid', data)
+
+        data = self.get_json('/ports/%s' % port.uuid,
+                             headers={api_base.Version.string: "1.24"})
+        self.assertEqual(portgroup.uuid, data['portgroup_uuid'])
+
+    def test_hide_fields_in_newer_versions_physical_network(self):
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          physical_network='physnet1')
+        data = self.get_json(
+            '/ports/%s' % port.uuid,
+            headers={api_base.Version.string: "1.33"})
+        self.assertNotIn('physical_network', data)
+
+        data = self.get_json('/ports/%s' % port.uuid,
+                             headers={api_base.Version.string: "1.34"})
+        self.assertEqual("physnet1", data['physical_network'])
+
+    @mock.patch.object(objects.Port, 'supports_physical_network')
+    def test_hide_fields_in_newer_versions_physical_network_upgrade(self,
+                                                                    mock_spn):
+        mock_spn.return_value = False
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          physical_network='physnet1')
+        data = self.get_json(
+            '/ports/%s' % port.uuid,
+            headers={api_base.Version.string: "1.34"})
+        self.assertNotIn('physical_network', data)
+
     def test_get_collection_custom_fields(self):
         fields = 'uuid,extra'
         for i in range(3):
@@ -243,6 +330,34 @@ class TestListPorts(test_api_base.BaseApiTest):
             expect_errors=True)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
+    def test_get_custom_fields_physical_network(self):
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          physical_network='physnet1')
+        fields = 'uuid,physical_network'
+        response = self.get_json(
+            '/ports/%s?fields=%s' % (port.uuid, fields),
+            headers={api_base.Version.string: "1.33"},
+            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+        response = self.get_json(
+            '/ports/%s?fields=%s' % (port.uuid, fields),
+            headers={api_base.Version.string: "1.34"})
+        # We always append "links".
+        self.assertItemsEqual(['uuid', 'physical_network', 'links'], response)
+
+    @mock.patch.object(objects.Port, 'supports_physical_network')
+    def test_get_custom_fields_physical_network_upgrade(self, mock_spn):
+        mock_spn.return_value = False
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          physical_network='physnet1')
+        fields = 'uuid,physical_network'
+        response = self.get_json(
+            '/ports/%s?fields=%s' % (port.uuid, fields),
+            headers={api_base.Version.string: "1.34"},
+            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
     def test_detail(self):
         llc = {'switch_info': 'switch', 'switch_id': 'aa:bb:cc:dd:ee:ff',
                'port_id': 'Gig0/1'}
@@ -251,7 +366,8 @@ class TestListPorts(test_api_base.BaseApiTest):
         port = obj_utils.create_test_port(self.context, node_id=self.node.id,
                                           portgroup_id=portgroup.id,
                                           pxe_enabled=False,
-                                          local_link_connection=llc)
+                                          local_link_connection=llc,
+                                          physical_network='physnet1')
         data = self.get_json(
             '/ports/detail',
             headers={api_base.Version.string: str(api_v1.MAX_VER)}
@@ -263,12 +379,10 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertIn('pxe_enabled', data['ports'][0])
         self.assertIn('local_link_connection', data['ports'][0])
         self.assertIn('portgroup_uuid', data['ports'][0])
+        self.assertIn('physical_network', data['ports'][0])
         # never expose the node_id and portgroup_id
         self.assertNotIn('node_id', data['ports'][0])
         self.assertNotIn('portgroup_id', data['ports'][0])
-        # NOTE(mgoddard): The physical network attribute is not yet exposed by
-        # the API.
-        self.assertNotIn('physical_network', data['ports'][0])
 
     def test_detail_against_single(self):
         port = obj_utils.create_test_port(self.context, node_id=self.node.id)
@@ -583,6 +697,33 @@ class TestPatch(test_api_base.BaseApiTest):
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
+
+    def _test_success(self, mock_upd, patch, version):
+        # Helper to test an update to a port that is expected to succeed at a
+        # given API version.
+        mock_upd.return_value = self.port
+        headers = {api_base.Version.string: version}
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   patch,
+                                   headers=headers)
+
+        self.assertEqual(http_client.OK, response.status_code)
+        self.assertTrue(mock_upd.called)
+        self.assertEqual(self.port.id, mock_upd.call_args[0][1].id)
+        return response
+
+    def _test_old_api_version(self, mock_upd, patch, version):
+        # Helper to test an update to a port affecting a field that is not
+        # available in the specified API version.
+        headers = {api_base.Version.string: version}
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   patch,
+                                   expect_errors=True,
+                                   headers=headers)
+
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+        self.assertFalse(mock_upd.called)
 
     @mock.patch.object(notification_utils, '_emit_api_notification')
     def test_update_byid(self, mock_notify, mock_upd):
@@ -1047,6 +1188,133 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
         self.assertFalse(mock_upd.called)
 
+    def _test_physical_network_success(self, mock_upd, patch,
+                                       expected_physical_network):
+        # Helper to test an update to a port's physical_network that is
+        # expected to succeed at API version 1.34.
+        self.port.physical_network = expected_physical_network
+        response = self._test_success(mock_upd, patch, '1.34')
+
+        self.assertEqual(expected_physical_network,
+                         response.json['physical_network'])
+        # TODO(mgoddard): Add this when mock_upd has been modified to save the
+        # port to the DB.
+        # self.port.refresh()
+        # self.assertEqual(expected_physical_network,
+        #                  self.port.physical_network)
+
+    def test_add_physical_network(self, mock_upd):
+        physical_network = 'physnet1'
+        patch = [{'path': '/physical_network',
+                  'value': physical_network,
+                  'op': 'add'}]
+        self._test_physical_network_success(mock_upd, patch, physical_network)
+
+    def test_replace_physical_network(self, mock_upd):
+        self.port.physical_network = 'physnet1'
+        self.port.save()
+        new_physical_network = 'physnet2'
+        patch = [{'path': '/physical_network',
+                  'value': new_physical_network,
+                  'op': 'replace'}]
+        self._test_physical_network_success(mock_upd, patch,
+                                            new_physical_network)
+
+    def test_remove_physical_network(self, mock_upd):
+        self.port.physical_network = 'physnet1'
+        self.port.save()
+        patch = [{'path': '/physical_network', 'op': 'remove'}]
+        self._test_physical_network_success(mock_upd, patch, None)
+
+    def _test_physical_network_old_api_version(self, mock_upd, patch,
+                                               expected_physical_network):
+        # Helper to test an update to a port's physical network that is
+        # expected to fail at API version 1.33.
+        self._test_old_api_version(mock_upd, patch, '1.33')
+
+        self.port.refresh()
+        self.assertEqual(expected_physical_network, self.port.physical_network)
+
+    def test_add_physical_network_old_api_version(self, mock_upd):
+        patch = [{'path': '/physical_network',
+                  'value': 'physnet1',
+                  'op': 'add'}]
+        self._test_physical_network_old_api_version(mock_upd, patch, None)
+
+    def test_replace_physical_network_old_api_version(self, mock_upd):
+        self.port.physical_network = 'physnet1'
+        self.port.save()
+        patch = [{'path': '/physical_network',
+                  'value': 'physnet2',
+                  'op': 'replace'}]
+        self._test_physical_network_old_api_version(mock_upd, patch,
+                                                    'physnet1')
+
+    def test_remove_physical_network_old_api_version(self, mock_upd):
+        self.port.physical_network = 'physnet1'
+        self.port.save()
+        patch = [{'path': '/physical_network', 'op': 'remove'}]
+        self._test_physical_network_old_api_version(mock_upd, patch,
+                                                    'physnet1')
+
+    @mock.patch.object(objects.Port, 'supports_physical_network')
+    def _test_physical_network_upgrade(self, mock_upd, patch,
+                                       expected_physical_network, mock_spn):
+        # Helper to test an update to a port's physical network that is
+        # expected to fail at API version 1.34 while the API service is pinned
+        # to the Ocata release.
+        mock_spn.return_value = False
+        self._test_old_api_version(mock_upd, patch, '1.34')
+
+        self.port.refresh()
+        self.assertEqual(expected_physical_network, self.port.physical_network)
+
+    def test_add_physical_network_upgrade(self, mock_upd):
+        patch = [{'path': '/physical_network',
+                  'value': 'physnet1',
+                  'op': 'add'}]
+        self._test_physical_network_upgrade(mock_upd, patch, None)
+
+    def test_replace_physical_network_upgrade(self, mock_upd):
+        self.port.physical_network = 'physnet1'
+        self.port.save()
+        patch = [{'path': '/physical_network',
+                  'value': 'physnet2',
+                  'op': 'replace'}]
+        self._test_physical_network_upgrade(mock_upd, patch, 'physnet1')
+
+    def test_remove_physical_network_upgrade(self, mock_upd):
+        self.port.physical_network = 'physnet1'
+        self.port.save()
+        patch = [{'path': '/physical_network', 'op': 'remove'}]
+        self._test_physical_network_upgrade(mock_upd, patch, 'physnet1')
+
+    def test_invalid_physnet_non_text(self, mock_upd):
+        physnet = 1234
+        headers = {api_base.Version.string: versions.MAX_VERSION_STRING}
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   [{'path': '/physical_network',
+                                     'value': physnet,
+                                     'op': 'replace'}],
+                                   expect_errors=True,
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertIn('should be string', response.json['error_message'])
+
+    def test_invalid_physnet_too_long(self, mock_upd):
+        physnet = 'p' * 65
+        headers = {api_base.Version.string: versions.MAX_VERSION_STRING}
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   [{'path': '/physical_network',
+                                     'value': physnet,
+                                     'op': 'replace'}],
+                                   expect_errors=True,
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertIn('maximum character', response.json['error_message'])
+
     def test_portgroups_subresource_patch(self, mock_upd):
         portgroup = obj_utils.create_test_portgroup(self.context,
                                                     node_id=self.node.id)
@@ -1124,6 +1392,7 @@ class TestPost(test_api_base.BaseApiTest):
         pdict.pop('local_link_connection')
         pdict.pop('pxe_enabled')
         pdict.pop('extra')
+        pdict.pop('physical_network')
         headers = {api_base.Version.string: str(api_v1.MIN_VER)}
         response = self.post_json('/ports', pdict, headers=headers)
         self.assertEqual('application/json', response.content_type)
@@ -1436,6 +1705,42 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
         self.assertFalse(mock_create.called)
 
+    def test_create_port_with_physical_network(self, mock_create):
+        physical_network = 'physnet1'
+        pdict = post_get_test_port(
+            physical_network=physical_network,
+            node_uuid=self.node.uuid)
+
+        response = self.post_json('/ports', pdict, headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                            'test-topic')
+        self.assertEqual(physical_network, response.json['physical_network'])
+        port = objects.Port.get(self.context, pdict['uuid'])
+        self.assertEqual(physical_network, port.physical_network)
+
+    def test_create_port_with_physical_network_old_api_version(self,
+                                                               mock_create):
+        headers = {api_base.Version.string: '1.33'}
+        pdict = post_get_test_port(physical_network='physnet1')
+        response = self.post_json('/ports', pdict, headers=headers,
+                                  expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+        self.assertFalse(mock_create.called)
+
+    @mock.patch.object(objects.Port, 'supports_physical_network')
+    def test_create_port_with_physical_network_upgrade(self, mock_spn,
+                                                       mock_create):
+        mock_spn.return_value = False
+        pdict = post_get_test_port(physical_network='physnet1')
+        response = self.post_json('/ports', pdict, headers=self.headers,
+                                  expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+        self.assertFalse(mock_create.called)
+
     def test_portgroups_subresource_post(self, mock_create):
         headers = {api_base.Version.string: '1.24'}
         pdict = post_get_test_port()
@@ -1565,6 +1870,26 @@ class TestPost(test_api_base.BaseApiTest):
                                pxe_enabled=False,
                                standalone_ports=False,
                                http_status=http_client.CONFLICT)
+
+    def test_create_port_invalid_physnet_non_text(self, mock_create):
+        physnet = 1234
+        pdict = post_get_test_port(physical_network=physnet)
+        response = self.post_json('/ports', pdict, expect_errors=True,
+                                  headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertIn('should be string', response.json['error_message'])
+        self.assertFalse(mock_create.called)
+
+    def test_create_port_invalid_physnet_too_long(self, mock_create):
+        physnet = 'p' * 65
+        pdict = post_get_test_port(physical_network=physnet)
+        response = self.post_json('/ports', pdict, expect_errors=True,
+                                  headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertIn('maximum character', response.json['error_message'])
+        self.assertFalse(mock_create.called)
 
 
 @mock.patch.object(rpcapi.ConductorAPI, 'destroy_port')

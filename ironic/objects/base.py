@@ -159,7 +159,8 @@ class IronicObject(object_base.VersionedObject):
             self.VERSION != self.__class__.VERSION):
             self.VERSION = target_version
 
-    def get_target_version(self):
+    @classmethod
+    def get_target_version(cls):
         """Returns the target version for this object.
 
         This is the version in which the object should be manipulated, e.g.
@@ -171,27 +172,43 @@ class IronicObject(object_base.VersionedObject):
         """
         pin = CONF.pin_release_version
         if not pin:
-            return self.__class__.VERSION
+            return cls.VERSION
 
         version_manifest = versions.RELEASE_MAPPING[pin]['objects']
-        pinned_version = version_manifest.get(self.obj_name())
+        pinned_version = version_manifest.get(cls.obj_name())
         if pinned_version:
             if not versionutils.is_compatible(pinned_version,
-                                              self.__class__.VERSION):
+                                              cls.VERSION):
                 LOG.error(
                     'For object "%(objname)s", the target version '
                     '"%(target)s" is not compatible with its supported '
                     'version "%(support)s". The value ("%(pin)s") of the '
                     '"pin_release_version" configuration option may be '
                     'incorrect.',
-                    {'objname': self.obj_name(), 'target': pinned_version,
-                     'support': self.__class__.VERSION, 'pin': pin})
+                    {'objname': cls.obj_name(), 'target': pinned_version,
+                     'support': cls.VERSION, 'pin': pin})
                 raise ovo_exception.IncompatibleObjectVersion(
-                    objname=self.obj_name(), objver=pinned_version,
-                    supported=self.__class__.VERSION)
+                    objname=cls.obj_name(), objver=pinned_version,
+                    supported=cls.VERSION)
             return pinned_version
 
-        return self.__class__.VERSION
+        return cls.VERSION
+
+    @classmethod
+    def supports_version(cls, version):
+        """Return whether this object supports a particular version.
+
+        Check the requested version against the object's target version. The
+        target version may not be the latest version during an upgrade, when
+        object versions are pinned.
+
+        :param version: A tuple representing the version to check
+        :returns: Whether the version is supported
+        :raises: ovo_exception.IncompatibleObjectVersion
+        """
+        target_version = cls.get_target_version()
+        target_version = versionutils.convert_version_to_tuple(target_version)
+        return target_version >= version
 
     def _set_from_db_object(self, context, db_object, fields=None):
         """Sets object fields.

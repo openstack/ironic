@@ -27,6 +27,19 @@ members to be used by themselves, you need to set port group's
 ``standalone_ports_supported`` value to be ``False`` in ironic, as it is
 ``True`` by default.
 
+Physical networks
+-----------------
+
+If any port in a port group has a physical network, then all ports in
+that port group must have the same physical network.
+
+In order to change the physical network of the ports in a port group, all ports
+must first be removed from the port group, before changing their physical
+networks (to the same value), then adding them back to the port group.
+
+See :ref:`physical networks <multitenancy-physnets>` for further information on
+using physical networks in the Bare Metal service.
+
 Port groups configuration in the Bare Metal service
 ---------------------------------------------------
 
