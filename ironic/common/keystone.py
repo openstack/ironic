@@ -92,7 +92,7 @@ def get_auth(group, **auth_kwargs):
 def get_service_url(session, **kwargs):
     """Find endpoint for given service in keystone catalog.
 
-    If 'interrace' is provided, fetches service url of this interface.
+    If 'interface' is provided, fetches service url of this interface.
     Otherwise, first tries to fetch 'internal' endpoint,
     and then the 'public' one.
 
