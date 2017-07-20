@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    Add a new hardware type ``oneview`` for HPE OneView supported
+    servers. ``oneview`` hardware type supplies support following
+    driver interfaces:
+
+    * boot: ``pxe``
+    * console: ``no-console``
+    * deploy: ``oneview-direct`` and ``oneview-iscsi``
+      (Based on 'direct' and 'iscsi' respectively)
+    * inspect: ``oneview`` and ``no-inspect``
+    * management: ``oneview``
+    * network: ``flat``, ``neutron`` and ``no-op``
+    * power: ``oneview``
+    * raid: ``no-raid`` and ``agent``
