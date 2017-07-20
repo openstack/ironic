@@ -146,6 +146,21 @@ class RPCAPITestCase(db_base.DbTestCase):
         self.assertEqual('fake-topic.fake-host',
                          rpcapi.get_topic_for_driver('fake-driver'))
 
+    def _test_can_send_create_port(self, can_send):
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
+        with mock.patch.object(rpcapi.client,
+                               "can_send_version") as mock_can_send_version:
+            mock_can_send_version.return_value = can_send
+            result = rpcapi.can_send_create_port()
+            self.assertEqual(can_send, result)
+            mock_can_send_version.assert_called_once_with("1.41")
+
+    def test_can_send_create_port_True(self):
+        self._test_can_send_create_port(True)
+
+    def test_can_send_create_port_False(self):
+        self._test_can_send_create_port(False)
+
     def _test_rpcapi(self, method, rpc_method, **kwargs):
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
 

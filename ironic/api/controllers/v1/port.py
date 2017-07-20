@@ -530,6 +530,17 @@ class PortsController(rest.RestController):
         pdict = port.as_dict()
         self._check_allowed_port_fields(pdict)
 
+        create_remotely = pecan.request.rpcapi.can_send_create_port()
+        if (not create_remotely and pdict.get('portgroup_uuid')):
+            # NOTE(mgoddard): In RPC API v1.41, port creation was moved to the
+            # conductor service to facilitate validation of the physical
+            # network field of ports in portgroups. During a rolling upgrade,
+            # the RPCAPI will reject the create_port method, so we need to
+            # create the port locally. If the port is a member of a portgroup,
+            # we are unable to perform the validation and must reject the
+            # request.
+            raise exception.NotAcceptable()
+
         extra = pdict.get('extra')
         vif = extra.get('vif_port_id') if extra else None
         if vif:
@@ -560,16 +571,18 @@ class PortsController(rest.RestController):
                                        **notify_extra)
         with notify.handle_error_notification(context, rpc_port, 'create',
                                               **notify_extra):
-            # TODO(mgoddard): In RPC API v1.41, port creation was moved to the
+            # NOTE(mgoddard): In RPC API v1.41, port creation was moved to the
             # conductor service to facilitate validation of the physical
-            # network field of ports in portgroups. Further consideration is
-            # required determine how best to support rolling upgrades from a
-            # release in which ports are created by the API service to one in
-            # which they are created by the conductor service, while ensuring
-            # that all required validation is performed.
-            topic = pecan.request.rpcapi.get_topic_for(rpc_node)
-            new_port = pecan.request.rpcapi.create_port(context, rpc_port,
-                                                        topic)
+            # network field of ports in portgroups. During a rolling upgrade,
+            # the RPCAPI will reject the create_port method, so we need to
+            # create the port locally.
+            if create_remotely:
+                topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+                new_port = pecan.request.rpcapi.create_port(context, rpc_port,
+                                                            topic)
+            else:
+                rpc_port.create()
+                new_port = rpc_port
         notify.emit_end_notification(context, new_port, 'create',
                                      **notify_extra)
         # Set the HTTP Location Header

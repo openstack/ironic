@@ -153,6 +153,10 @@ class ConductorAPI(object):
         host = random.choice(list(ring.nodes))
         return self.topic + "." + host
 
+    def can_send_create_port(self):
+        """Return whether the RPCAPI supports the create_port method."""
+        return self.client.can_send_version("1.41")
+
     def create_node(self, context, node_obj, topic=None):
         """Synchronously, have a conductor validate and create a node.
 
