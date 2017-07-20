@@ -291,7 +291,7 @@ def plug_port_to_tenant_network(task, port_like_obj, client=None):
         raise exception.NetworkError(msg)
 
 
-class VIFPortIDMixin(object):
+class NeutronVIFPortIDMixin(object):
 
     def port_changed(self, task, port_obj):
         """Handle any actions required when a port changes

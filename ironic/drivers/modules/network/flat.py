@@ -30,8 +30,8 @@ LOG = log.getLogger(__name__)
 CONF = cfg.CONF
 
 
-class FlatNetwork(common.VIFPortIDMixin, neutron.NeutronNetworkInterfaceMixin,
-                  base.NetworkInterface):
+class FlatNetwork(common.NeutronVIFPortIDMixin,
+                  neutron.NeutronNetworkInterfaceMixin, base.NetworkInterface):
     """Flat network interface."""
 
     def __init__(self):

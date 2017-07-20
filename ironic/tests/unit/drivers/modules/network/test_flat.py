@@ -24,7 +24,7 @@ from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils
 
 CONF = cfg.CONF
-VIFMIXINPATH = 'ironic.drivers.modules.network.common.VIFPortIDMixin'
+VIFMIXINPATH = 'ironic.drivers.modules.network.common.NeutronVIFPortIDMixin'
 
 
 class TestFlatInterface(db_base.DbTestCase):
