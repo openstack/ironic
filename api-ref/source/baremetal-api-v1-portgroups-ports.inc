@@ -10,9 +10,9 @@ of, and details of, all Ports associated with that Portgroup.
 These endpoints do not allow modification of the Ports; that should be done
 by accessing the Port resources under the ``/v1/ports`` endpoint.
 
-``/v1/portgroups/{portgroup_ident}/ports`` endpoint was added in API
-microversion 1.24, if using older version, all the requests return
-``Not Found (404)`` error code.
+API microversion 1.24 added the ``/v1/portgroups/{portgroup_ident}/ports``
+endpoint.  If using an older version, all requests to this endpoint will return
+a ``Not Found (404)`` error code.
 
 
 List Ports by Portgroup
@@ -21,6 +21,9 @@ List Ports by Portgroup
 .. rest_method:: GET /v1/portgroups/{portgroup_ident}/ports
 
 Return a list of bare metal Ports associated with ``portgroup_ident``.
+
+When specified, the ``fields`` request parameter causes the content of the
+Response to include only the specified fields, rather than the default set.
 
 API microversion 1.34 added the ``physical_network`` field.
 
