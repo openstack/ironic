@@ -1,0 +1,23 @@
+---
+features:
+  - |
+    Adds two new hardware types to support Cisco UCS Servers,
+    ``cisco-ucs-standalone`` and ``cisco-ucs-managed``.
+    ``cisco-ucs-standalone`` supports driver interfaces for controlling UCS
+    servers in standalone mode via either CIMC APIs or via IPMI.
+    ``cisco-ucs-managed`` is a superset of ``cisco-ucs-standalone`` and
+    supports additional driver interfaces for controlling the UCS server via
+    UCSM.
+
+    To support these hardware types the following Ironic driver interfaces were
+    made available to be configured on a node:
+
+    * ``node.power_interface`` can be set to:
+
+      * ``cimc`` for CIMC API power control (power on/off, reboot etc)
+      * ``ucsm`` for UCSM API power control (power on/off, reboot etc)
+
+    * ``node.management_interface`` can be set to:
+
+      * ``cimc`` for CIMC API management control (setting the boot device etc)
+      * ``ucsm`` for UCSM API management control (setting the boot device etc)
