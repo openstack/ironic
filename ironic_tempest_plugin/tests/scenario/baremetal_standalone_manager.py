@@ -62,7 +62,7 @@ class BaremetalStandaloneManager(bm.BaremetalScenarioTest,
                 m = ('Configuration option "[compute]/fixed_network_name" '
                      'must be set.')
                 raise lib_exc.InvalidConfiguration(m)
-            network = cls.admin_manager.networks_client.list_networks(
+            network = cls.os_admin.networks_client.list_networks(
                 name=CONF.compute.fixed_network_name)['networks'][0]
         return network, subnet, router
 
@@ -148,10 +148,10 @@ class BaremetalStandaloneManager(bm.BaremetalScenarioTest,
     @classmethod
     def cleanup_floating_ip(cls, ip_address):
         """Removes floating IP."""
-        body = cls.admin_manager.floating_ips_client.list_floatingips()
+        body = cls.os_admin.floating_ips_client.list_floatingips()
         floating_ip_id = [f['id'] for f in body['floatingips'] if
                           f['floating_ip_address'] == ip_address][0]
-        cls.admin_manager.floating_ips_client.delete_floatingip(floating_ip_id)
+        cls.os_admin.floating_ips_client.delete_floatingip(floating_ip_id)
 
     @classmethod
     @bm.retry_on_conflict
