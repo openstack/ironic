@@ -364,8 +364,11 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_configure_tenant_networks(is_client_id=True)
 
-    @mock.patch.object(neutron_common, 'get_client')
-    def test_configure_tenant_networks_with_portgroups(self, client_mock):
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    @mock.patch.object(neutron_common, 'get_local_group_information',
+                       autospec=True)
+    def test_configure_tenant_networks_with_portgroups(
+            self, glgi_mock, client_mock):
         pg = utils.create_test_portgroup(
             self.context, node_id=self.node.id, address='ff:54:00:cf:2d:32',
             extra={'vif_port_id': uuidutils.generate_uuid()})
@@ -387,6 +390,8 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         )
         upd_mock = mock.Mock()
         client_mock.return_value.update_port = upd_mock
+        local_group_info = {'a': 'b'}
+        glgi_mock.return_value = local_group_info
         expected_body = {
             'port': {
                 'binding:vnic_type': 'baremetal',
@@ -395,16 +400,22 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         }
         call1_body = copy.deepcopy(expected_body)
         call1_body['port']['binding:profile'] = {
-            'local_link_information': [self.port.local_link_connection]
+            'local_link_information': [self.port.local_link_connection],
         }
         call2_body = copy.deepcopy(expected_body)
         call2_body['port']['binding:profile'] = {
             'local_link_information': [port1.local_link_connection,
-                                       port2.local_link_connection]
+                                       port2.local_link_connection],
+            'local_group_information': local_group_info
         }
         with task_manager.acquire(self.context, self.node.id) as task:
+            # Override task.portgroups here, to have ability to check
+            # that mocked get_local_group_information was called with
+            # this portgroup object.
+            task.portgroups = [pg]
             self.interface.configure_tenant_networks(task)
             client_mock.assert_called_once_with()
+            glgi_mock.assert_called_once_with(task, pg)
         upd_mock.assert_has_calls(
             [mock.call(self.port.extra['vif_port_id'], call1_body),
              mock.call(pg.extra['vif_port_id'], call2_body)]

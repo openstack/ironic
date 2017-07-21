@@ -398,6 +398,25 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                 portmap
             )
 
+    def test_get_local_group_information(self):
+        pg = object_utils.create_test_portgroup(
+            self.context, node_id=self.node.id,
+            uuid=uuidutils.generate_uuid(),
+            address='52:54:55:cf:2d:32',
+            mode='802.3ad', properties={'bond_opt1': 'foo',
+                                        'opt2': 'bar'},
+            name='test-pg'
+        )
+        expected = {
+            'id': pg.uuid,
+            'name': pg.name,
+            'bond_mode': pg.mode,
+            'bond_properties': {'bond_opt1': 'foo', 'bond_opt2': 'bar'},
+        }
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            res = neutron.get_local_group_information(task, pg)
+        self.assertEqual(expected, res)
+
     @mock.patch.object(neutron, 'remove_ports_from_network')
     def test_rollback_ports(self, remove_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:

@@ -328,7 +328,14 @@ def get_node_portmap(task):
     """Extract the switch port information for the node.
 
     :param task: a task containing the Node object.
-    :returns: a dictionary in the form {port.uuid: port.local_link_connection}
+    :returns: a dictionary in the form
+        {
+            port.uuid: {
+                'switch_id': 'abc',
+                'port_id': 'Po0/1',
+                'other_llc_key': 'val'
+            }
+        }
     """
 
     portmap = {}
@@ -337,6 +344,41 @@ def get_node_portmap(task):
     return portmap
     # TODO(jroll) raise InvalidParameterValue if a port doesn't have the
     # necessary info? (probably)
+
+
+def get_local_group_information(task, portgroup):
+    """Extract the portgroup information.
+
+    :param task: a task containing the Node object.
+    :param portgroup: Ironic portgroup object to extract data for.
+    :returns: a dictionary in the form:
+              {
+                  'id': portgroup.uuid,
+                  'name': portgroup.name,
+                  'bond_mode': portgroup.mode,
+                  'bond_properties': {
+                      'bond_propertyA': 'valueA',
+                      'bond_propertyB': 'valueB',
+                  }
+              {
+    """
+
+    portgroup_properties = {}
+    for prop, value in portgroup.properties.items():
+        # These properties are the bonding driver options described
+        # at https://www.kernel.org/doc/Documentation/networking/bonding.txt .
+        # cloud-init checks the same way, parameter name has to start with
+        # 'bond'. Keep this structure when passing properties to neutron ML2
+        # drivers.
+        key = prop if prop.startswith('bond') else 'bond_%s' % prop
+        portgroup_properties[key] = value
+
+    return {
+        'id': portgroup.uuid,
+        'name': portgroup.name,
+        'bond_mode': portgroup.mode,
+        'bond_properties': portgroup_properties
+    }
 
 
 def rollback_ports(task, network_uuid):
