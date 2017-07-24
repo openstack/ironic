@@ -37,7 +37,7 @@ configuration option, for example:
     [DEFAULT]
     enabled_hardware_types = ipmi,redfish
 
-However, due to their dynamic nature, they also require configuring enabled
+Due to the driver's dynamic nature, they also require configuring enabled
 hardware interfaces.
 
 .. note::
@@ -61,9 +61,11 @@ boot
         enabled_boot_interfaces = pxe,ilo-virtual-media
 
     Boot interfaces with ``pxe`` in their name require :doc:`configure-pxe`.
+    There are also a few hardware-specific boot interfaces - see
+    :doc:`/admin/drivers` for their required configuration.
 console
     manages access to the serial console of a bare metal node.
-    See `Configuring Web or Serial Console`_ for details.
+    See :doc:`/admin/console` for details.
 deploy
     defines how the image gets transferred to the target disk.
 
@@ -92,7 +94,7 @@ inspect
         enabled_hardware_types = ipmi,ilo,irmc
         enabled_inspect_interfaces = ilo,irmc,inspector
 
-    See `inspection documentation`_ for more details.
+    See :doc:`/admin/inspection` for more details.
 management
     provides additional hardware management actions, like getting or setting
     boot devices. This interface is usually vendor-specific, and its name
@@ -106,7 +108,7 @@ management
         enabled_management_interfaces = ipmitool,redfish,ilo,irmc
 
     Using ``ipmitool`` requires :doc:`configure-ipmi`. See
-    `driver-specific documentation`_ for required configuration of each driver.
+    :doc:`/admin/drivers` for the required configuration of each driver.
 network
     connects/disconnects bare metal nodes to/from virtual networks. This is
     the only interface that is also pluggable for classic drivers. See
@@ -123,11 +125,11 @@ power
         enabled_power_interfaces = ipmitool,redfish,ilo,irmc
 
     Using ``ipmitool`` requires :doc:`configure-ipmi`. See
-    `driver-specific documentation`_ for required configuration of each driver.
+    :doc:`/admin/drivers` for the required configuration of each driver.
 raid
     manages building and tearing down RAID on nodes. Similar to inspection,
     it can be implemented either out-of-band or in-band (via ``agent``
-    implementation). See `RAID documentation`_ for details.
+    implementation). See :doc:`/admin/raid` for details. For example:
 
     .. code-block:: ini
 
@@ -135,8 +137,8 @@ raid
         enabled_hardware_types = ipmi,redfish,ilo,irmc
         enabled_raid_interfaces = agent,no-raid
 vendor
-    is a place for vendor extensions to be exposed in API. See `vendor
-    methods documentation`_ for details.
+    is a place for vendor extensions to be exposed in API. See
+    :doc:`/contributor/vendor-passthru` for details.
 
     .. code-block:: ini
 
@@ -213,23 +215,23 @@ respectively:
 
 This is because the ``redfish`` hardware type will have different enabled
 *deploy* interfaces on these conductors. It would have been fine, if the second
-conductor had ``enabled_deploy_interface=direct`` instead of ``iscsi``.
+conductor had ``enabled_deploy_interfaces = direct`` instead of ``iscsi``.
 
 This situation is not detected by the Bare Metal service, but it can cause
 inconsistent behavior in the API, when node functionality will depend on
 which conductor it gets assigned to.
 
 .. note::
-   We don't treat it as an error, because such *temporary* inconsistency is
+   We don't treat this as an error, because such *temporary* inconsistency is
    inevitable during a rolling upgrade or a configuration update.
 
 Configuring interface defaults
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When a user does not provide an explicit value for one of interfaces (when
-creating a node or updating its driver), the default value is calculated
-as described in :ref:`hardware_interfaces_defaults`. An operator can override
-the defaults for any interfaces by setting one of options named
+When an operator does not provide an explicit value for one of the interfaces
+(when creating a node or updating its driver), the default value is calculated
+as described in :ref:`hardware_interfaces_defaults`. It is also possible
+to override the defaults for any interfaces by setting one of the options named
 ``default_<IFACE>_interface``, where ``<IFACE>`` is the interface name.
 For example:
 
@@ -247,9 +249,11 @@ its hardware type. Thus, changing these configuration options has no effect on
 existing nodes.
 
 .. warning::
-   The default interface implementation has to be configured the same way
+   The default interface implementation must be configured the same way
    across all conductors in the cloud, except maybe for a short period of time
-   during an upgrade or configuration update.
+   during an upgrade or configuration update. Otherwise the default
+   implementation will depend on which conductor handles which node, and this
+   mapping is not predictable or even persistent.
 
 .. warning::
    These options should be used with care. If a hardware type does not
@@ -280,14 +284,9 @@ be installed locally. For example,
 
 * drivers ending with ``ipmitool`` require :doc:`configure-ipmi`.
 
-See `driver-specific documentation`_ for required configuration of each driver.
+See :doc:`/admin/drivers` for the required configuration of each driver.
 
 .. _driver composition reform specification: http://specs.openstack.org/openstack/ironic-specs/specs/approved/driver-composition-reform.html
-.. _driver-specific documentation: https://docs.openstack.org/ironic/latest/admin/drivers.html
 .. _setup.cfg: https://git.openstack.org/cgit/openstack/ironic/tree/setup.cfg
-.. _`Configuring Web or Serial Console`: http://docs.openstack.org/ironic/latest/admin/console.html
 .. _iSCSI: https://en.wikipedia.org/wiki/ISCSI
-.. _ironic-inspector: https://docs.openstack.org/developer/ironic-inspector/
-.. _inspection documentation: https://docs.openstack.org/ironic/latest/admin/inspection.html
-.. _RAID documentation: https://docs.openstack.org/ironic/latest/admin/raid.html
-.. _vendor methods documentation: https://docs.openstack.org/ironic/latest/contributor/vendor-passthru.html
+.. _ironic-inspector: https://docs.openstack.org/ironic-inspector/latest/

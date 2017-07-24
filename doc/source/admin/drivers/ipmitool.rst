@@ -32,10 +32,10 @@ Glossary
 * BMC_  - Baseboard Management Controller.
 * RMCP - Remote Management Control Protocol.
 
-Enabling the IPMITool driver(s)
+Enabling the IPMItool driver(s)
 ===============================
 
-Please see `IPMI configuration guide`_ for the required dependencies.
+Please see :doc:`/install/configure-ipmi` for the required dependencies.
 
 #. The ``ipmi`` hardware type is enabled by default starting with the Ocata
    release. To enable it explicitly, add the following to your ``ironic.conf``:
@@ -46,7 +46,7 @@ Please see `IPMI configuration guide`_ for the required dependencies.
     enabled_hardware_types = ipmi
 
 #. The ``pxe_ipmitool`` classic driver is enabled by default. To enable one or
-   more of the other ipmitool classic drivers, add them to the
+   more of the other IPMI classic drivers, add them to the
    ``enabled_drivers`` configuration option in your ``ironic.conf``.
    The following enables ``pxe_ipmitool`` and ``agent_ipmitool`` drivers:
 
@@ -57,14 +57,14 @@ Please see `IPMI configuration guide`_ for the required dependencies.
 
 #. Restart the Ironic conductor service.
 
-Please see `documentation on enabling drivers`_ for more details.
+Please see :doc:`/install/enabling-drivers` for more details.
 
 Registering a node with the IPMItool driver
 ===========================================
 
-Nodes configured to use the IPMItool drivers should have the driver field set
-to ``ipmi`` (hardware type) or to the name of one of the classic drivers
-that support ipmitool.
+Nodes configured to use the IPMItool drivers should have the ``driver`` field
+set to ``ipmi`` (hardware type) or to the name of one of the classic drivers
+that support IPMItool.
 
 The following configuration value is required and has to be added to
 the node's ``driver_info`` field:
@@ -85,7 +85,7 @@ good practice to have them set:
    your BMC.
 
 The ``ironic node-create`` command can be used to enroll a node with
-an IPMITool-based driver. For example::
+an IPMItool-based driver. For example::
 
     ironic node-create -d ipmi -i ipmi_address=<address> \
         -i ipmi_username=<username> -i ipmi_password=<password>
@@ -105,7 +105,7 @@ Single/Double bridging functionality
    the bridging functionality.
 
 There are two different bridging functionalities supported by the
-IPMITool-based drivers: *single* bridge and *dual* bridge.
+IPMItool-based drivers: *single* bridge and *dual* bridge.
 
 The following configuration values need to be added to the node's
 ``driver_info`` field so bridging can be used:
@@ -177,5 +177,3 @@ protocol version::
 .. _IPMItool: https://sourceforge.net/projects/ipmitool/
 .. _IPMI: https://en.wikipedia.org/wiki/Intelligent_Platform_Management_Interface
 .. _BMC: https://en.wikipedia.org/wiki/Intelligent_Platform_Management_Interface#Baseboard_management_controller
-.. _IPMI configuration guide: https://docs.openstack.org/project-install-guide/baremetal/draft/configure-ipmi.html
-.. _documentation on enabling drivers: https://docs.openstack.org/project-install-guide/baremetal/draft/enabling-drivers.html

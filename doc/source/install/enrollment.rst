@@ -56,8 +56,8 @@ also list only classic or only dynamic drivers:
     +---------------------+-----------------------+
 
 The specific driver to use should be picked based on actual hardware
-capabilities and expected features. See `driver-specific documentation`_
-for more hints on that.
+capabilities and expected features. See :doc:`/admin/drivers` for more hints
+on that.
 
 Each driver has a list of *driver properties* that need to be specified via
 the node's ``driver_info`` field, in order for the driver to operate on node.
@@ -81,8 +81,6 @@ command:
 
 The properties marked as required must be supplied either during node creation
 or shortly after. Some properties may only be required for certain features.
-
-.. _driver-specific documentation: https://docs.openstack.org/ironic/latest/admin/drivers.html
 
 Note on API versions
 --------------------
@@ -172,7 +170,7 @@ and may be combined if desired.
     +------------------------+--------------------------------------+
 
    A node may also be referred to by a logical name as well as its UUID.
-   A name can be assigned to the node during creating by adding the ``-n``
+   A name can be assigned to the node during its creation by adding the ``-n``
    option to the ``node-create`` command or by updating an existing node with
    the ``node-update`` command. See `Logical Names`_ for examples.
 
@@ -198,7 +196,7 @@ and may be combined if desired.
         --deploy-interface direct \
         --raid-interface agent
 
-   If no value is provided for certain interfaces, `Defaults for hardware
+   If no value is provided for some interfaces, `Defaults for hardware
    interfaces`_ are used instead.
 
    It's an error to try changing this field for a node with a *classic driver*,
@@ -449,10 +447,9 @@ To move a node from ``manageable`` to ``available`` provision state:
     +------------------------+--------------------------------------------------------------------+
 
 For more details on the Bare Metal service's state machine, see the
-`state machine <http://docs.openstack.org/ironic/latest/contributor/states.html>`_
-documentation.
+:doc:`/contributor/states` documentation.
 
-.. _ComputeCapabilitiesFilter: http://docs.openstack.org/developer/nova/devref/filter_scheduler.html?highlight=computecapabilitiesfilter
+.. _ComputeCapabilitiesFilter: https://docs.openstack.org/nova/latest/user/filter-scheduler.html
 
 Logical names
 -------------
@@ -642,15 +639,9 @@ Hardware Inspection
 -------------------
 
 The Bare Metal service supports hardware inspection that simplifies enrolling
-nodes - please see `inspection`_ for details.
-
-.. _`inspection`: http://docs.openstack.org/ironic/latest/admin/inspection.html
+nodes - please see :doc:`/admin/inspection` for details.
 
 Tenant Networks and Port Groups
 -------------------------------
 
-See `Multitenancy in Bare Metal service`_ and
-`Port groups configuration in Bare Metal service`_.
-
-.. _`Multitenancy in Bare Metal service`: http://docs.openstack.org/ironic/latest/admin/multitenancy.html
-.. _`Port groups configuration in Bare Metal service`: http://docs.openstack.org/ironic/latest/admin/portgroups.html
+See :doc:`/admin/multitenancy` and :doc:`/admin/portgroups`.
