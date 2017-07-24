@@ -48,6 +48,11 @@ Upgrading from Ocata to Pike
    <https://docs.openstack.org/project-install-guide/baremetal/draft/enrollment.html#enrollment-process>`_
    for details.
 
+#. It is recommended to move from old-style classic drivers to the new
+   hardware types after the upgrade to Pike. We expect the classic drivers to
+   be deprecated in the Queens release and removed in the Rocky release.
+   See :doc:`upgrade-to-hardware-types` for the details on the migration.
+
 Other upgrade instructions are in the `Pike release notes
 <https://docs.openstack.org/releasenotes/ironic/pike.html>`_.
 
