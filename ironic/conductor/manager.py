@@ -164,7 +164,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         # TODO(dtantsur): reconsider allowing changing some (but not all)
         # interfaces for active nodes in the future.
         allowed_update_states = [states.ENROLL, states.INSPECTING,
-                                 states.MANAGEABLE]
+                                 states.MANAGEABLE, states.AVAILABLE]
         for iface in drivers_base.ALL_INTERFACES:
             interface_field = '%s_interface' % iface
             if interface_field not in delta:

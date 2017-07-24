@@ -1768,10 +1768,8 @@ function enroll_nodes {
         # will NOT go to available state automatically.
         if [[ -n "${IRONIC_NETWORK_INTERFACE}" ]]; then
             local n_id
-            ironic node-set-maintenance $node_id true
             n_id=$(ironic $ironic_api_version node-update $node_id add network_interface=$IRONIC_NETWORK_INTERFACE | grep " uuid " | awk '{ print $4; }')
             die_if_not_set $LINENO n_id "Failed to update network interface for node"
-            ironic node-set-maintenance $node_id false
         fi
 
         local resource_class
