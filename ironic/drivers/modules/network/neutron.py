@@ -28,7 +28,7 @@ LOG = log.getLogger(__name__)
 CONF = cfg.CONF
 
 
-class NeutronNetwork(common.VIFPortIDMixin,
+class NeutronNetwork(common.NeutronVIFPortIDMixin,
                      neutron.NeutronNetworkInterfaceMixin,
                      base.NetworkInterface):
     """Neutron v2 network interface"""

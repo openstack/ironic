@@ -436,13 +436,13 @@ class TestCommonFunctions(db_base.DbTestCase):
                 task, self.port)
 
 
-class TestVifPortIDMixin(db_base.DbTestCase):
+class TestNeutronVifPortIDMixin(db_base.DbTestCase):
 
     def setUp(self):
-        super(TestVifPortIDMixin, self).setUp()
+        super(TestNeutronVifPortIDMixin, self).setUp()
         self.config(enabled_drivers=['fake'])
         mgr_utils.mock_the_extension_manager()
-        self.interface = common.VIFPortIDMixin()
+        self.interface = common.NeutronVIFPortIDMixin()
         self.node = obj_utils.create_test_node(self.context,
                                                network_interface='neutron')
         self.port = obj_utils.create_test_port(

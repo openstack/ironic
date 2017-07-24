@@ -28,7 +28,7 @@ from ironic.tests.unit.objects import utils
 CONF = cfg.CONF
 CLIENT_ID1 = '20:00:55:04:01:fe:80:00:00:00:00:00:00:00:02:c9:02:00:23:13:92'
 CLIENT_ID2 = '20:00:55:04:01:fe:80:00:00:00:00:00:00:00:02:c9:02:00:23:13:93'
-VIFMIXINPATH = 'ironic.drivers.modules.network.common.VIFPortIDMixin'
+VIFMIXINPATH = 'ironic.drivers.modules.network.common.NeutronVIFPortIDMixin'
 
 
 class NeutronInterfaceTestCase(db_base.DbTestCase):
