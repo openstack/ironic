@@ -231,6 +231,7 @@ def plug_port_to_tenant_network(task, port_like_obj, client=None):
 
     node = task.node
     local_link_info = []
+    local_group_info = {}
     client_id_opt = None
 
     vif_id = (
@@ -253,6 +254,8 @@ def plug_port_to_tenant_network(task, port_like_obj, client=None):
                     if p.portgroup_id == port_like_obj.id]
         for port in pg_ports:
             local_link_info.append(port.local_link_connection)
+        local_group_info = neutron.get_local_group_information(
+            task, port_like_obj)
     else:
         # We iterate only on ports or portgroups, no need to check
         # that it is a port
@@ -268,11 +271,13 @@ def plug_port_to_tenant_network(task, port_like_obj, client=None):
         'port': {
             'binding:vnic_type': 'baremetal',
             'binding:host_id': node.uuid,
-            'binding:profile': {
-                'local_link_information': local_link_info,
-            },
         }
     }
+    binding_profile = {'local_link_information': local_link_info}
+    if local_group_info:
+        binding_profile['local_group_information'] = local_group_info
+    body['port']['binding:profile'] = binding_profile
+
     if client_id_opt:
         body['port']['extra_dhcp_opts'] = [client_id_opt]
 
