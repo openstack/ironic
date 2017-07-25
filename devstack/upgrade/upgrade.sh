@@ -36,6 +36,10 @@ set -o errexit
 # Upgrade Ironic
 # ============
 
+# Workaroud to remove the use of ipxe-qemu from xenial-updates/queens/main
+# https://storyboard.openstack.org/#!/story/2003808
+sudo apt-get -y --allow-downgrades install ipxe-qemu=1.0.0+git-20150424.a25a16d-1ubuntu1.2
+
 # Duplicate some setup bits from target DevStack
 source $TARGET_DEVSTACK_DIR/stackrc
 source $TARGET_DEVSTACK_DIR/lib/tls
@@ -89,7 +93,8 @@ ensure_stopped=''
 # According to Ironic upgrade procedure, we shouldn't have upgraded (new) ironic-api and not upgraded (old)
 # ironic-conductor. By setting redirect of API requests from primary node to subnode during upgrade
 # allow to satisfy ironic upgrade requirements.
-if [[ "$HOST_TOPOLOGY_ROLE" == 'primary' ]]; then
+# FIXME: We need a wsgi alternative to this ASAP
+if [[ "$HOST_TOPOLOGY_ROLE" == 'primary-disabled' ]]; then
     disable_service ir-api
     ensure_stopped+='ironic-api'
     ironic_apache_conf=$(apache_site_config_for ironic-api-redirect)

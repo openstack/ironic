@@ -29,5 +29,9 @@ fi
 
 # NOTE(vdrok): Do not setup multicell during upgrade
 export CELLSV2_SETUP="singleconductor"
-# NOTE(vsaienko) Do not run ironic-api under wsgi after upgrade
-export IRONIC_USE_MOD_WSGI=False
+
+# TODO(derekh): investigate if this is actually needed
+devstack_localrc base """
+[[post-config|\$KEYSTONE_CONF]]
+[token]
+expiration=10800"""
