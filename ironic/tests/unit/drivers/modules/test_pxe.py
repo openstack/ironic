@@ -31,6 +31,7 @@ from ironic.common import exception
 from ironic.common.glance_service import base_image_service
 from ironic.common import pxe_utils
 from ironic.common import states
+from ironic.common import utils as common_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import agent_base_vendor
@@ -880,18 +881,16 @@ class PXEBootTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_prepare_ramdisk(uefi=True)
 
-    @mock.patch.object(os.path, 'isfile', autospec=True)
-    @mock.patch('ironic.common.utils.file_has_content', autospec=True)
+    @mock.patch.object(os.path, 'isfile', lambda path: True)
+    @mock.patch.object(common_utils, 'file_has_content', lambda *args: False)
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
     @mock.patch('ironic.common.utils.render_template', autospec=True)
     def test_prepare_ramdisk_ipxe_with_copy_file_different(
-            self, render_mock, write_mock, cmp_mock, isfile_mock):
+            self, render_mock, write_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
         self.config(group='pxe', ipxe_enabled=True)
         self.config(group='deploy', http_url='http://myserver')
-        isfile_mock.return_value = True
-        cmp_mock.return_value = False
         render_mock.return_value = 'foo'
         self._test_prepare_ramdisk()
         write_mock.assert_called_once_with(
@@ -903,20 +902,19 @@ class PXEBootTestCase(db_base.DbTestCase):
             CONF.pxe.ipxe_boot_script,
             {'ipxe_for_mac_uri': 'pxelinux.cfg/'})
 
-    @mock.patch.object(os.path, 'isfile', autospec=True)
+    @mock.patch.object(os.path, 'isfile', lambda path: False)
     @mock.patch('ironic.common.utils.file_has_content', autospec=True)
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
     @mock.patch('ironic.common.utils.render_template', autospec=True)
     def test_prepare_ramdisk_ipxe_with_copy_no_file(
-            self, render_mock, write_mock, cmp_mock, isfile_mock):
+            self, render_mock, write_mock, file_has_content_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
         self.config(group='pxe', ipxe_enabled=True)
         self.config(group='deploy', http_url='http://myserver')
-        isfile_mock.return_value = False
         render_mock.return_value = 'foo'
         self._test_prepare_ramdisk()
-        self.assertFalse(cmp_mock.called)
+        self.assertFalse(file_has_content_mock.called)
         write_mock.assert_called_once_with(
             os.path.join(
                 CONF.deploy.http_root,
@@ -926,30 +924,27 @@ class PXEBootTestCase(db_base.DbTestCase):
             CONF.pxe.ipxe_boot_script,
             {'ipxe_for_mac_uri': 'pxelinux.cfg/'})
 
-    @mock.patch.object(os.path, 'isfile', autospec=True)
-    @mock.patch('ironic.common.utils.file_has_content', autospec=True)
+    @mock.patch.object(os.path, 'isfile', lambda path: True)
+    @mock.patch.object(common_utils, 'file_has_content', lambda *args: True)
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
     @mock.patch('ironic.common.utils.render_template', autospec=True)
     def test_prepare_ramdisk_ipxe_without_copy(
-            self, render_mock, write_mock, cmp_mock, isfile_mock):
+            self, render_mock, write_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
         self.config(group='pxe', ipxe_enabled=True)
         self.config(group='deploy', http_url='http://myserver')
-        isfile_mock.return_value = True
-        cmp_mock.return_value = True
         self._test_prepare_ramdisk()
         self.assertFalse(write_mock.called)
 
+    @mock.patch.object(common_utils, 'render_template', lambda *args: 'foo')
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
-    @mock.patch('ironic.common.utils.render_template', autospec=True)
-    def test_prepare_ramdisk_ipxe_swift(self, render_mock, write_mock):
+    def test_prepare_ramdisk_ipxe_swift(self, write_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
         self.config(group='pxe', ipxe_enabled=True)
         self.config(group='pxe', ipxe_use_swift=True)
         self.config(group='deploy', http_url='http://myserver')
-        render_mock.return_value = 'foo'
         self._test_prepare_ramdisk(ipxe_use_swift=True)
         write_mock.assert_called_once_with(
             os.path.join(
@@ -957,16 +952,15 @@ class PXEBootTestCase(db_base.DbTestCase):
                 os.path.basename(CONF.pxe.ipxe_boot_script)),
             'foo')
 
+    @mock.patch.object(common_utils, 'render_template', lambda *args: 'foo')
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
-    @mock.patch('ironic.common.utils.render_template', autospec=True)
     def test_prepare_ramdisk_ipxe_swift_whole_disk_image(
-            self, render_mock, write_mock):
+            self, write_mock):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
         self.config(group='pxe', ipxe_enabled=True)
         self.config(group='pxe', ipxe_use_swift=True)
         self.config(group='deploy', http_url='http://myserver')
-        render_mock.return_value = 'foo'
         self._test_prepare_ramdisk(ipxe_use_swift=True, whole_disk_image=True)
         write_mock.assert_called_once_with(
             os.path.join(
