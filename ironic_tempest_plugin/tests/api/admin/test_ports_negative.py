@@ -14,6 +14,7 @@ from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
 from tempest.lib import exceptions as lib_exc
 
+from ironic_tempest_plugin.tests.api.admin import api_microversion_fixture
 from ironic_tempest_plugin.tests.api.admin import base
 
 
@@ -337,3 +338,128 @@ class TestPortsNegative(base.BaseBaremetalTest):
         _, body = self.client.show_port(port_id)
         self.assertEqual(address, body['address'])
         self.assertEqual(extra, body['extra'])
+
+
+class TestPortsWithPhysicalNetworkOldAPI(base.BaseBaremetalTest):
+    """Negative tests for ports with physical network information."""
+
+    old_microversion = '1.33'
+
+    def setUp(self):
+        super(TestPortsWithPhysicalNetworkOldAPI, self).setUp()
+
+        self.useFixture(
+            api_microversion_fixture.APIMicroversionFixture(
+                TestPortsWithPhysicalNetworkOldAPI.old_microversion)
+        )
+        _, self.chassis = self.create_chassis()
+        _, self.node = self.create_node(self.chassis['uuid'])
+
+    @decorators.idempotent_id('307e57e9-082f-4830-9480-91affcbfda08')
+    def test_create_port_with_physical_network_old_api(self):
+        node_id = self.node['uuid']
+        address = data_utils.rand_mac_address()
+
+        self.assertRaises(lib_exc.UnexpectedResponseCode,
+                          self.create_port,
+                          node_id=node_id, address=address,
+                          physical_network='physnet1')
+
+    @decorators.idempotent_id('0b278c0a-d334-424e-a5c5-b6d001c2a715')
+    def test_update_port_replace_physical_network_old_api(self):
+        _, port = self.create_port(self.node['uuid'],
+                                   data_utils.rand_mac_address())
+
+        new_physnet = 'physnet1'
+
+        patch = [{'path': '/physical_network',
+                  'op': 'replace',
+                  'value': new_physnet}]
+
+        self.assertRaises(lib_exc.UnexpectedResponseCode,
+                          self.client.update_port,
+                          port['uuid'], patch)
+
+
+class TestPortsNegativeWithPhysicalNetwork(base.BaseBaremetalTest):
+    """Negative tests for ports with physical network information."""
+
+    min_microversion = '1.34'
+
+    def setUp(self):
+        super(TestPortsNegativeWithPhysicalNetwork, self).setUp()
+
+        self.useFixture(
+            api_microversion_fixture.APIMicroversionFixture(
+                TestPortsNegativeWithPhysicalNetwork.min_microversion)
+        )
+        _, self.chassis = self.create_chassis()
+        _, self.node = self.create_node(self.chassis['uuid'])
+
+    @decorators.idempotent_id('e20156fb-956b-4d5b-89a4-f379044a1d3c')
+    def test_create_ports_in_portgroup_with_inconsistent_physical_network(
+            self):
+        node_id = self.node['uuid']
+        address = data_utils.rand_mac_address()
+
+        _, portgroup = self.create_portgroup(node_id, address=address)
+
+        _, _ = self.create_port(node_id=node_id, address=address,
+                                portgroup_uuid=portgroup['uuid'],
+                                physical_network='physnet1')
+
+        address = data_utils.rand_mac_address()
+        self.assertRaises(lib_exc.Conflict,
+                          self.create_port,
+                          node_id=node_id, address=address,
+                          portgroup_uuid=portgroup['uuid'],
+                          physical_network='physnet2')
+
+    @decorators.idempotent_id('050e792c-22c9-4e4a-ae89-dfbfc52ad00d')
+    def test_update_ports_in_portgroup_with_inconsistent_physical_network(
+            self):
+        node_id = self.node['uuid']
+        address = data_utils.rand_mac_address()
+
+        _, portgroup = self.create_portgroup(node_id, address=address)
+
+        _, _ = self.create_port(node_id=node_id, address=address,
+                                portgroup_uuid=portgroup['uuid'],
+                                physical_network='physnet1')
+
+        address = data_utils.rand_mac_address()
+        _, port2 = self.create_port(node_id=node_id, address=address,
+                                    physical_network='physnet2')
+
+        patch = [{'path': '/portgroup_uuid',
+                  'op': 'replace',
+                  'value': portgroup['uuid']}]
+
+        self.assertRaises(lib_exc.Conflict,
+                          self.client.update_port,
+                          port2['uuid'], patch)
+
+    @decorators.idempotent_id('3cd1c8ec-57d1-40cb-922b-dd02431beea3')
+    def test_update_ports_in_portgroup_with_inconsistent_physical_network_2(
+            self):
+        node_id = self.node['uuid']
+        address = data_utils.rand_mac_address()
+
+        _, portgroup = self.create_portgroup(node_id, address=address)
+
+        _, _ = self.create_port(node_id=node_id, address=address,
+                                portgroup_uuid=portgroup['uuid'],
+                                physical_network='physnet1')
+
+        address = data_utils.rand_mac_address()
+        _, port2 = self.create_port(node_id=node_id, address=address,
+                                    portgroup_uuid=portgroup['uuid'],
+                                    physical_network='physnet1')
+
+        patch = [{'path': '/physical_network',
+                  'op': 'replace',
+                  'value': 'physnet2'}]
+
+        self.assertRaises(lib_exc.Conflict,
+                          self.client.update_port,
+                          port2['uuid'], patch)

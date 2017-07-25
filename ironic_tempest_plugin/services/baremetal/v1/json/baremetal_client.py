@@ -195,6 +195,10 @@ class BaremetalClient(base.BaremetalClient):
         :param address: MAC address of the port.
         :param extra: Meta data of the port. Default: {'foo': 'bar'}.
         :param uuid: UUID of the port.
+        :param portgroup_uuid: The UUID of a portgroup of which this port is a
+            member.
+        :param physical_network: The physical network to which the port is
+            attached.
         :return: A tuple with the server response and the created port.
 
         """
@@ -204,8 +208,9 @@ class BaremetalClient(base.BaremetalClient):
         if node_id is not None:
             port['node_uuid'] = node_id
 
-        if kwargs['address'] is not None:
-            port['address'] = kwargs['address']
+        for key in ('address', 'physical_network', 'portgroup_uuid'):
+            if kwargs.get(key) is not None:
+                port[key] = kwargs[key]
 
         return self._create_request('ports', port)
 
