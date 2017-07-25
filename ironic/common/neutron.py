@@ -360,7 +360,7 @@ def get_local_group_information(task, portgroup):
                       'bond_propertyA': 'valueA',
                       'bond_propertyB': 'valueB',
                   }
-              {
+              }
     """
 
     portgroup_properties = {}
