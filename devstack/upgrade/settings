@@ -22,3 +22,9 @@ source $BASE_TOP_DIR/lib/keystone
 # Update global variables like DEFAULT_IMAGE_NAME that are set in ironic devstack plugin
 IRONIC_BASE_DEVSTACK_DIR=$BASE_TOP_DIR/../ironic/devstack
 source $IRONIC_BASE_DEVSTACK_DIR/lib/ironic
+
+# NOTE(jlvillal): For multi-node grenade jobs we do not want to upgrade Nova
+if [[ "${HOST_TOPOLOGY}" == "multinode" ]]; then
+    # Remove 'nova' from the list of projects to upgrade
+    UPGRADE_PROJECTS=$(echo $UPGRADE_PROJECTS | sed -e 's/\s*nova//g' )
+fi
