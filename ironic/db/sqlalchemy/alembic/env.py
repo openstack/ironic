@@ -50,7 +50,7 @@ def run_migrations_online():
     and associate a connection with the context.
 
     """
-    engine = enginefacade.get_legacy_facade().get_engine()
+    engine = enginefacade.writer.get_engine()
     with engine.connect() as connection:
         context.configure(connection=connection,
                           target_metadata=target_metadata)

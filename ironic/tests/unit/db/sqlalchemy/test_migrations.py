@@ -82,7 +82,7 @@ def _get_connect_string(backend, user, passwd, database):
 
 @contextlib.contextmanager
 def patch_with_engine(engine):
-    with mock.patch.object(enginefacade.get_legacy_facade(),
+    with mock.patch.object(enginefacade.writer,
                            'get_engine') as patch_engine:
         patch_engine.return_value = engine
         yield
