@@ -231,7 +231,7 @@ def plug_port_to_tenant_network(task, port_like_obj, client=None):
 
     node = task.node
     local_link_info = []
-    local_group_info = {}
+    local_group_info = None
     client_id_opt = None
 
     vif_id = (
