@@ -188,7 +188,7 @@ steps on the ironic conductor node to configure the PXE UEFI environment.
    It redirects it to specific grub config file based on DHCP IP assigned to
    baremetal node.
 
-   .. literalinclude:: ../../ironic/drivers/modules/master_grub_cfg.txt
+   .. literalinclude:: ../../../ironic/drivers/modules/master_grub_cfg.txt
 
    Change the permission of grub.cfg::
 

@@ -66,7 +66,7 @@ Configuring ironic-conductor service
       glance_host=GLANCE_IP
 
    .. note::
-      Swift backend for the Image service should be installed and configured
+      Swift backend for the Image service must be installed and configured
       for ``agent_*`` drivers. Ceph Object Gateway (RADOS Gateway) is also
       supported as the Image service's backend (`radosgw support
       <http://docs.openstack.org/ironic/latest/admin/radosgw.html#radosgw-support>`_).
