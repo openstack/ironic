@@ -25,17 +25,13 @@ opts = [
                help=_('Maximum time in seconds to retry retryable IPMI '
                       'operations. (An operation is retryable, for '
                       'example, if the requested operation fails '
-                      'because the BMC is busy.) There is a tradeoff when '
-                      'setting this value. Setting this too low may cause '
-                      'older BMCs to crash and require a hard reset. However, '
-                      'setting too high can cause the sync power state '
+                      'because the BMC is busy.) Setting this too high '
+                      'can cause the sync power state '
                       'periodic task to hang when there are slow or '
                       'unresponsive BMCs.')),
     cfg.IntOpt('retry_timeout',
                help=_('Maximum time in seconds to retry IPMI operations. '
-                      'There is a tradeoff when setting this value. Setting '
-                      'this too low may cause older BMCs to crash and require '
-                      'a hard reset. However, setting too high can cause the '
+                      'Setting this too high can cause the '
                       'sync power state periodic task to hang when there are '
                       'slow or unresponsive BMCs.'),
                deprecated_for_removal=True,

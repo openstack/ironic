@@ -48,8 +48,8 @@ IPMI configuration
 ~~~~~~~~~~~~~~~~~~
 
 If there are slow or unresponsive BMCs in the environment, the
-``command_retry_timeout`` configuration option in the ``[ipmi]`` section may
-need to be lowered. The default is fairly conservative, as setting this timeout
+``min_command_interval`` configuration option in the ``[ipmi]`` section may
+need to be raised. The default is fairly conservative, as setting this timeout
 too low can cause older BMCs to crash and require a hard-reset.
 
 Collecting sensor data
