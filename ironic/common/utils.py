@@ -281,8 +281,13 @@ def hash_file(file_like_object, hash_algo='md5'):
     :returns: a condensed digest of the bytes of contents.
     """
     checksum = _get_hash_object(hash_algo)
-    for chunk in iter(lambda: file_like_object.read(32768), b''):
-        checksum.update(chunk)
+    while True:
+        chunk = file_like_object.read(32768)
+        if not chunk:
+            break
+        encoded_chunk = (chunk.encode(encoding='utf-8')
+                         if isinstance(chunk, six.string_types) else chunk)
+        checksum.update(encoded_chunk)
     return checksum.hexdigest()
 
 
@@ -298,7 +303,9 @@ def file_has_content(path, content, hash_algo='md5'):
     with open(path, 'rb') as existing:
         file_hash_hex = hash_file(existing, hash_algo=hash_algo)
     ref_hash = _get_hash_object(hash_algo)
-    ref_hash.update(content)
+    encoded_content = (content.encode(encoding='utf-8')
+                       if isinstance(content, six.string_types) else content)
+    ref_hash.update(encoded_content)
     return file_hash_hex == ref_hash.hexdigest()
 
 
