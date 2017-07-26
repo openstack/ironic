@@ -44,6 +44,11 @@ source $TARGET_DEVSTACK_DIR/lib/neutron-legacy
 source $TARGET_DEVSTACK_DIR/lib/apache
 source $TARGET_DEVSTACK_DIR/lib/keystone
 
+# TODO(vdrok): remove this when https://bugs.launchpad.net/neutron/+bug/1707160
+# fixed
+source $TARGET_DEVSTACK_DIR/lib/tempest
+iniset $TEMPEST_CONFIG service-clients http_timeout 120
+
 source $TOP_DIR/openrc admin admin
 
 # Keep track of the DevStack directory
@@ -106,7 +111,7 @@ start_ironic
 # may cause nova-compute failure due to LP1537076
 stop_nova_compute || true
 wait_for_keystone
-start_nova_compute nomulticell
+start_nova_compute
 
 if [[ -n "$ensure_stopped" ]]; then
     ensure_services_stopped $ensure_stopped
