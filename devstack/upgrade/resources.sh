@@ -67,9 +67,6 @@ function early_create {
     neutron router-interface-add $NEUTRON_NET $subnet_id
     neutron router-gateway-set $NEUTRON_NET public
 
-    # NOTE(vsaeinko) sleep is needed in order to setup route
-    sleep 5
-
     # Add a route to the baremetal network via the Neutron public router.
     # ironic-conductor will be able to access the ironic nodes via this new
     # route.
@@ -80,6 +77,7 @@ function early_create {
     # address.  This does not actually attempt to contact 8.8.8.8, it just
     # determines the IP address of the interface that traffic to 8.8.8.8 would
     # use. We use the IP address of this interface to setup the route.
+    test_with_retry "sudo ip netns exec qrouter-$router_id ip -4 route get 8.8.8.8 " "Route did not start" 60
     r_net_gateway=$(sudo ip netns exec qrouter-$router_id ip -4 route get 8.8.8.8 |grep dev | awk '{print $7}')
     sudo ip route replace $RESOURCES_FIXED_RANGE via $r_net_gateway
 
