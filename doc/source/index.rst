@@ -1,6 +1,6 @@
-============================================
-Welcome to Ironic's developer documentation!
-============================================
+==================================
+Welcome to Ironic's documentation!
+==================================
 
 Introduction
 ============
@@ -16,54 +16,25 @@ with a unified interface to a heterogeneous fleet of servers while also
 providing the Compute service with an interface that allows physical servers to
 be managed as though they were virtual machines.
 
-:doc:`An introduction to ironic's conceptual architecture <user/index>`
-is available for those new to the project.
-
-Site Notes
-----------
-
-This site is primarily intended to provide documentation for developers
-interested in contributing to or working with ironic. It *also* contains
-references and guides for administrators which are not yet hosted elsewhere on
-the OpenStack documentation sites.
-
 This documentation is continually updated and may not represent the state of
 the project at any specific prior release. To access documentation for a
-previous release of ironic, append the OpenStack release name to the URL, for
-example:
+previous release of ironic, append the OpenStack release name to the URL; for
+example, the ``ocata`` release is available at
+http://docs.openstack.org/ironic/ocata/.
 
-    http://docs.openstack.org/developer/ironic/mitaka/
-
-
-Bare Metal API References
-=========================
-
-Ironic's REST API has changed since its first release, and continues to evolve
-to meet the changing needs of the community.  Here we provide a conceptual
-guide as well as more detailed reference documentation.
+User Guide
+==========
 
 .. toctree::
-  :maxdepth: 1
+  :maxdepth: 2
 
-  API Concept Guide <contributor/webapi>
-  API Reference (latest) <http://developer.openstack.org/api-ref/baremetal/>
-  API Reference (latest) <api/index>
-  API Version History <contributor/webapi-version-history>
+  user/index
 
-
-Contributor's Guide
+Administrator Guide
 ===================
 
 .. toctree::
-   :maxdepth: 2
-
-   contributor/index
-
-Administrator's Guide
-=====================
-
-.. toctree::
-  :maxdepth: 1
+  :maxdepth: 2
 
   admin/index
 
@@ -79,6 +50,20 @@ driver. These pages are linked below.
   Driver Documentation pages <admin/drivers>
   Further Considerations for the Agent Drivers <admin/drivers/ipa>
 
+Bare Metal API References
+=========================
+
+Ironic's REST API has changed since its first release, and continues to evolve
+to meet the changing needs of the community.  Here we provide a conceptual
+guide as well as more detailed reference documentation.
+
+.. toctree::
+  :maxdepth: 1
+
+  API Concept Guide <contributor/webapi>
+  API Reference (latest) <http://developer.openstack.org/api-ref/baremetal/>
+  API Version History <contributor/webapi-version-history>
+
 Command References
 ==================
 
@@ -89,20 +74,16 @@ Here are references for commands not elsewhere documented.
 
   cli/index
 
+Contributor Guide
+=================
+
+.. toctree::
+   :maxdepth: 2
+
+   contributor/index
+
 Indices and tables
 ==================
 
 * :ref:`genindex`
 * :ref:`search`
-
-.. # NOTE(jaegerandi): This is where we hide things that we don't want
-   # shown in the top level table of contents.
-   # user/index is referenced above but not in a toctree.
-.. toctree::
-   :hidden:
-
-   admin/install-guide.rst
-   user/index
-   releasenotes/index
-   webapi/v1.rst
-   admin/index
