@@ -16,6 +16,7 @@
 from oslo_utils import netutils
 from oslo_utils import strutils
 from oslo_utils import uuidutils
+from oslo_utils import versionutils
 from oslo_versionedobjects import base as object_base
 
 from ironic.common import exception
@@ -54,6 +55,41 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         'internal_info': object_fields.FlexibleDictField(nullable=True),
         'physical_network': object_fields.StringField(nullable=True),
     }
+
+    def _convert_to_version(self, target_version,
+                            remove_unavailable_fields=True):
+        """Convert to the target version.
+
+        Convert the object to the target version. The target version may be
+        the same, older, or newer than the version of the object. This is
+        used for DB interactions as well as for serialization/deserialization.
+
+        Version 1.7: physical_network field was added. Its default value is
+            None. For versions prior to this, it should be set to None (or
+            removed).
+
+        :param target_version: the desired version of the object
+        :param remove_unavailable_fields: True to remove fields that are
+            unavailable in the target version; set this to True when
+            (de)serializing. False to set the unavailable fields to appropriate
+            values; set this to False for DB interactions.
+        """
+        target_version = versionutils.convert_version_to_tuple(target_version)
+        # Convert the physical_network field.
+        physnet_is_set = self.obj_attr_is_set('physical_network')
+        if target_version >= (1, 7):
+            # Target version supports physical_network. Set it to its default
+            # value if it is not set.
+            if not physnet_is_set:
+                self.physical_network = None
+        elif physnet_is_set:
+            # Target version does not support physical_network, and it is set.
+            if remove_unavailable_fields:
+                # (De)serialising: remove unavailable fields.
+                delattr(self, 'physical_network')
+            elif self.physical_network is not None:
+                # DB: set unavailable fields to their default.
+                self.physical_network = None
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
