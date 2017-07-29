@@ -28,3 +28,6 @@ if [[ "${HOST_TOPOLOGY}" == "multinode" ]]; then
     # Remove 'nova' from the list of projects to upgrade
     UPGRADE_PROJECTS=$(echo $UPGRADE_PROJECTS | sed -e 's/\s*nova//g' )
 fi
+
+# NOTE(vdrok): Do not setup multicell during upgrade
+export CELLSV2_SETUP="singleconductor"
