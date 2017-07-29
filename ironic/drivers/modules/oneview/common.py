@@ -1,3 +1,4 @@
+# Copyright 2017 Hewlett Packard Enterprise Development Company LP.
 # Copyright 2015 Hewlett Packard Development Company, LP
 # Copyright 2015 Universidade Federal de Campina Grande
 #
@@ -236,26 +237,41 @@ def _verify_node_info(node_namespace, node_info_dict, info_required):
 def node_has_server_profile(func):
     """Checks if the node's Server Hardware has a Server Profile associated.
 
+    Decorator to execute before the function execution if the Server Profile
+    is applied to the Server Hardware.
+
+    :param func: a given decorated function.
     """
     def inner(self, *args, **kwargs):
         oneview_client = self.oneview_client
         task = args[0]
-        oneview_info = get_oneview_info(task.node)
-        try:
-            node_has_server_profile = (
-                oneview_client.get_server_profile_from_hardware(oneview_info)
-            )
-        except oneview_exceptions.OneViewException as oneview_exc:
-            LOG.error(
-                "Failed to get server profile from OneView appliance for"
-                " node %(node)s. Error: %(message)s",
-                {"node": task.node.uuid, "message": oneview_exc}
-            )
-            raise exception.OneViewError(error=oneview_exc)
-        if not node_has_server_profile:
-            raise exception.OperationNotPermitted(
-                _("A Server Profile is not associated with node %s.") %
-                task.node.uuid
-            )
+        has_server_profile(task, oneview_client)
         return func(self, *args, **kwargs)
     return inner
+
+
+def has_server_profile(task, oneview_client):
+    """Checks if the node's Server Hardware has a Server Profile associated.
+
+    Function to check if the Server Profile is applied to the Server Hardware.
+
+    :param oneview_client: an instance of the OneView client
+    :param task: a TaskManager instance containing the node to act on.
+    """
+    oneview_info = get_oneview_info(task.node)
+    try:
+        node_has_server_profile = (
+            oneview_client.get_server_profile_from_hardware(oneview_info)
+        )
+    except oneview_exceptions.OneViewException as oneview_exc:
+        LOG.error(
+            "Failed to get server profile from OneView appliance for"
+            " node %(node)s. Error: %(message)s",
+            {"node": task.node.uuid, "message": oneview_exc}
+        )
+        raise exception.OneViewError(error=oneview_exc)
+    if not node_has_server_profile:
+        raise exception.OperationNotPermitted(
+            _("A Server Profile is not associated with node %s.") %
+            task.node.uuid
+        )

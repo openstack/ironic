@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Oneview drivers caches the next boot device in node's internal
+    info when set_boot_device() is called. It is applied on the
+    bare metal when node is power cycled.

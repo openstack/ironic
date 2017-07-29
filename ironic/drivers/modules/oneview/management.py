@@ -1,4 +1,4 @@
-#
+# Copyright 2017 Hewlett Packard Enterprise Development Company LP.
 # Copyright 2015 Hewlett Packard Development Company, LP
 # Copyright 2015 Universidade Federal de Campina Grande
 #
@@ -42,6 +42,59 @@ BOOT_DEVICE_OV_TO_GENERIC = {
 }
 
 oneview_exceptions = importutils.try_import('oneview_client.exceptions')
+
+
+def set_boot_device(task):
+    """Sets the boot device for a node.
+
+    Sets the boot device to use on next reboot of the node.
+
+    :param task: a task from TaskManager.
+    :raises: InvalidParameterValue if an invalid boot device is
+             specified.
+    :raises: OperationNotPermitted if the server has no server profile or
+             if the server is already powered on.
+    :raises: OneViewError if the communication with OneView fails
+    """
+    oneview_client = common.get_oneview_client()
+    common.has_server_profile(task, oneview_client)
+    driver_internal_info = task.node.driver_internal_info
+    next_boot_device = driver_internal_info.get('next_boot_device')
+
+    if next_boot_device:
+        boot_device = next_boot_device.get('boot_device')
+        persistent = next_boot_device.get('persistent')
+
+        if boot_device not in sorted(BOOT_DEVICE_MAPPING_TO_OV):
+            raise exception.InvalidParameterValue(
+                _("Invalid boot device %s specified.") % boot_device)
+
+        LOG.debug("Setting boot device to %(boot_device)s and "
+                  "persistent to %(persistent)s for node %(node)s",
+                  {"boot_device": boot_device, "persistent": persistent,
+                   "node": task.node.uuid})
+
+        try:
+            oneview_info = common.get_oneview_info(task.node)
+            device_to_oneview = BOOT_DEVICE_MAPPING_TO_OV.get(boot_device)
+            oneview_client.set_boot_device(oneview_info,
+                                           device_to_oneview,
+                                           onetime=not persistent)
+            driver_internal_info.pop('next_boot_device', None)
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+        except oneview_exceptions.OneViewException as oneview_exc:
+            msg = (_(
+                "Error setting boot device on OneView. Error: %s")
+                % oneview_exc
+            )
+            raise exception.OneViewError(error=msg)
+
+    else:
+        LOG.debug("Not going to set boot device because there is no "
+                  "'next_boot_device' on driver_internal_info "
+                  "for the %(node)s",
+                  {"node": task.node.uuid})
 
 
 class OneViewManagement(base.ManagementInterface):
@@ -99,9 +152,11 @@ class OneViewManagement(base.ManagementInterface):
     @task_manager.require_exclusive_lock
     @common.node_has_server_profile
     def set_boot_device(self, task, device, persistent=False):
-        """Sets the boot device for a node.
+        """Set the next boot device to the node.
 
-        Sets the boot device to use on next reboot of the node.
+        Sets the boot device to the node next_boot_device on
+        driver_internal_info namespace. The operation will be
+        performed before the next node power on.
 
         :param task: a task from TaskManager.
         :param device: the boot device, one of the supported devices
@@ -111,36 +166,32 @@ class OneViewManagement(base.ManagementInterface):
                            Default: False.
         :raises: InvalidParameterValue if an invalid boot device is
                  specified.
-        :raises: OperationNotPermitted if the server has no server profile or
-                 if the server is already powered on.
-        :raises: OneViewError if the communication with OneView fails
         """
-        oneview_info = common.get_oneview_info(task.node)
-
         if device not in self.get_supported_boot_devices(task):
             raise exception.InvalidParameterValue(
                 _("Invalid boot device %s specified.") % device)
 
-        LOG.debug("Setting boot device to %(device)s for node %(node)s",
-                  {"device": device, "node": task.node.uuid})
-        try:
-            device_to_oneview = BOOT_DEVICE_MAPPING_TO_OV.get(device)
-            self.oneview_client.set_boot_device(oneview_info,
-                                                device_to_oneview,
-                                                onetime=not persistent)
-        except oneview_exceptions.OneViewException as oneview_exc:
-            msg = (_(
-                "Error setting boot device on OneView. Error: %s")
-                % oneview_exc
-            )
-            raise exception.OneViewError(error=msg)
+        driver_internal_info = task.node.driver_internal_info
+        next_boot_device = {'boot_device': device,
+                            'persistent': persistent}
+        driver_internal_info['next_boot_device'] = next_boot_device
+        task.node.driver_internal_info = driver_internal_info
+        task.node.save()
+        LOG.debug("The 'next_boot_device' flag was updated on "
+                  "driver_internal_info with device=%(boot_device)s "
+                  "and persistent=%(persistent)s for the node "
+                  "%(node)s",
+                  {"boot_device": device, "persistent": persistent,
+                   "node": task.node.uuid})
 
     @METRICS.timer('OneViewManagement.get_boot_device')
     @common.node_has_server_profile
     def get_boot_device(self, task):
-        """Get the current boot device for the task's node.
+        """Get the current boot device from the node.
 
-        Provides the current boot device of the node.
+        Gets the boot device from the node 'next_boot_device on
+        driver_internal_info namespace if exists. Gets through
+        a request to OneView otherwise.
 
         :param task: a task from TaskManager.
         :returns: a dictionary containing:
@@ -153,6 +204,12 @@ class OneViewManagement(base.ManagementInterface):
         :raises: InvalidParameterValue if the boot device is unknown
         :raises: OneViewError if the communication with OneView fails
         """
+        driver_internal_info = task.node.driver_internal_info
+        next_boot_device = driver_internal_info.get('next_boot_device')
+
+        if next_boot_device:
+            return next_boot_device
+
         oneview_info = common.get_oneview_info(task.node)
 
         try:

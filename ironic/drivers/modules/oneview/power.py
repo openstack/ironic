@@ -1,4 +1,4 @@
-#
+# Copyright 2017 Hewlett Packard Enterprise Development Company LP.
 # Copyright 2015 Hewlett Packard Development Company, LP
 # Copyright 2015 Universidade Federal de Campina Grande
 #
@@ -25,6 +25,7 @@ from ironic.conductor import task_manager
 from ironic.drivers import base
 from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy_utils
+from ironic.drivers.modules.oneview import management
 
 LOG = logging.getLogger(__name__)
 
@@ -130,11 +131,13 @@ class OneViewPower(base.PowerInterface):
 
         try:
             if power_state == states.POWER_ON:
+                management.set_boot_device(task)
                 self.oneview_client.power_on(oneview_info)
             elif power_state == states.POWER_OFF:
                 self.oneview_client.power_off(oneview_info)
             elif power_state == states.REBOOT:
                 self.oneview_client.power_off(oneview_info)
+                management.set_boot_device(task)
                 self.oneview_client.power_on(oneview_info)
             else:
                 raise exception.InvalidParameterValue(
