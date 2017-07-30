@@ -1730,7 +1730,8 @@ function enroll_nodes {
             elif is_deployed_by_ilo; then
                 node_options+=" -i ilo_address=$bmc_address -i ilo_password=$bmc_passwd\
                     -i ilo_username=$bmc_username"
-                if [[ $IRONIC_DEPLOY_DRIVER != "pxe_ilo" ]]; then
+                if [[ $IRONIC_DEPLOY_DRIVER != "pxe_ilo" && \
+                    $IRONIC_ENABLED_BOOT_INTERFACES == *"ilo-virtual-media"* ]]; then
                     node_options+=" -i ilo_deploy_iso=$IRONIC_DEPLOY_ISO_ID"
                 fi
             elif is_deployed_by_drac; then
