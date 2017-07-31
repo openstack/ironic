@@ -599,20 +599,12 @@ def validate_port_physnet(task, port_obj):
         return
 
     # Determine the current physical network of the portgroup.
-    pg_ports = network.get_ports_by_portgroup_id(task, port_obj.portgroup_id)
-    port_obj_id = port_obj.id if 'id' in port_obj else None
-    pg_physnets = {port.physical_network
-                   for port in pg_ports if port.id != port_obj_id}
+    pg_physnets = network.get_physnets_by_portgroup_id(task,
+                                                       port_obj.portgroup_id,
+                                                       exclude_port=port_obj)
 
     if not pg_physnets:
         return
-
-    # Sanity check that all existing ports in the group have the same
-    # physical network (should never happen).
-    if len(pg_physnets) > 1:
-        portgroup = network.get_portgroup_by_id(task, port_obj.portgroup_id)
-        raise exception.PortgroupPhysnetInconsistent(
-            portgroup=portgroup.uuid, physical_networks=", ".join(pg_physnets))
 
     # Check that the port has the same physical network as any existing
     # member ports.

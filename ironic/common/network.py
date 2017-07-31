@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from ironic.common import exception
+
 
 def get_node_vif_ids(task):
     """Get all VIF ids for a node.
@@ -78,3 +80,31 @@ def get_physnets_for_node(task):
     return set(port.physical_network
                for port in task.ports
                if port.physical_network is not None)
+
+
+def get_physnets_by_portgroup_id(task, portgroup_id, exclude_port=None):
+    """Return the set of physical networks associated with a portgroup.
+
+    :param task: a TaskManager instance.
+    :param portgroup_id: ID of the portgroup.
+    :param exclude_port: A Port object to exclude from the determination of the
+        portgroup's physical network, or None.
+    :returns: The set of physical networks associated with the portgroup. The
+        set will contain zero or one physical networks.
+    :raises: PortgroupPhysnetInconsistent if the portgroup's ports are not
+        assigned the same physical network.
+    """
+    pg_ports = get_ports_by_portgroup_id(task, portgroup_id)
+    if exclude_port is not None and 'id' in exclude_port:
+        exclude_port_id = exclude_port.id
+    else:
+        exclude_port_id = None
+    pg_physnets = set(port.physical_network
+                      for port in pg_ports
+                      if port.id != exclude_port_id)
+    # Sanity check: all ports should have the same physical network.
+    if len(pg_physnets) > 1:
+        portgroup = get_portgroup_by_id(task, portgroup_id)
+        raise exception.PortgroupPhysnetInconsistent(
+            portgroup=portgroup.uuid, physical_networks=", ".join(pg_physnets))
+    return pg_physnets

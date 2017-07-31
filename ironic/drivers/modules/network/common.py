@@ -140,25 +140,6 @@ def _get_free_portgroups_and_ports(task, vif_id, physnets):
     return free_port_like_objs
 
 
-def _get_physnet_for_portgroup(task, portgroup):
-    """Return the physical network associated with a portgroup.
-
-    :param task: a TaskManager instance.
-    :param portgroup: a Portgroup object.
-    :returns: The physical network associated with the portgroup.
-    :raises: PortgroupPhysnetInconsistent if the portgroup's ports are not
-             assigned the same physical network.
-    """
-    pg_ports = network.get_ports_by_portgroup_id(task, portgroup.id)
-    pg_physnets = {port.physical_network for port in pg_ports}
-    # Sanity check: there should be at least one port in the portgroup and
-    # all ports should have the same physical network.
-    if len(pg_physnets) != 1:
-        raise exception.PortgroupPhysnetInconsistent(
-            portgroup=portgroup.uuid, physical_networks=", ".join(pg_physnets))
-    return pg_physnets.pop()
-
-
 def get_free_port_like_object(task, vif_id, physnets):
     """Find free port-like object (portgroup or port) VIF will be attached to.
 
@@ -207,7 +188,9 @@ def get_free_port_like_object(task, vif_id, physnets):
         """
         is_pg = isinstance(port_like_obj, objects.Portgroup)
         if is_pg:
-            pg_physnet = _get_physnet_for_portgroup(task, port_like_obj)
+            pg_physnets = network.get_physnets_by_portgroup_id(
+                task, port_like_obj.id)
+            pg_physnet = pg_physnets.pop()
             physnet_matches = pg_physnet in physnets
             pxe_enabled = True
         else:
