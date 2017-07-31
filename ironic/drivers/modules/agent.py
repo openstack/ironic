@@ -451,7 +451,8 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
             task.driver.storage.attach_volumes(task)
             if not task.driver.storage.should_write_image(task):
                 # We have nothing else to do as this is handled in the
-                # backend storage system.
+                # backend storage system, and we can return to the caller
+                # as we do not need to boot the agent to deploy.
                 return
         if node.provision_state == states.ACTIVE:
             # Call is due to conductor takeover
