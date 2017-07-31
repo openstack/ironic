@@ -98,6 +98,7 @@ def parse_driver_info(node):
     if not parsed.scheme or not parsed.authority:
         address = 'https://%s' % address
         parsed = rfc3986.uri_reference(address)
+    # TODO(vdrok): Workaround this check, in py3 we need to use validator class
     if not parsed.is_valid(require_scheme=True, require_authority=True):
         raise exception.InvalidParameterValue(
             _('Invalid Redfish address %(address)s set in '
