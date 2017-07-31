@@ -32,3 +32,8 @@ upgrade:
     ``physical_network`` field. Attachment of Virtual Interfaces (VIFs) will
     continue to function as in the previous release until any ports have their
     physical network field set.
+
+    During a live upgrade to this release, the ``physical_network`` field will
+    not be available.  It will also not be possible to create ports which are
+    members of a port group during a live upgrade, as the API service will be
+    unable to validate the consistency of the request.
