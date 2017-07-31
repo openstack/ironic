@@ -636,7 +636,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
             self.assertTrue(log_mock.called)
             eject_mock.assert_called_once_with(task)
 
-    @mock.patch.object(ilo_common.LOG, 'warning', spec_set=True,
+    @mock.patch.object(ilo_common.LOG, 'info', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_common, 'eject_vmedia_devices',
                        spec_set=True, autospec=True)
@@ -921,7 +921,7 @@ class IloCommonMethodsTestCase(db_base.DbTestCase):
         # | WHEN |
         ilo_common.remove_image_from_swift(object_name)
         # | THEN |
-        LOG_mock.warning.assert_called_once_with(
+        LOG_mock.info.assert_called_once_with(
             mock.ANY, {'associated_with_msg': "", 'err': raised_exc})
 
     @mock.patch.object(ilo_common, 'LOG', spec_set=True, autospec=True)
