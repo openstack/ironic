@@ -165,7 +165,7 @@ class BaremetalScenarioTest(manager.ScenarioTest):
         dest.validate_authentication()
 
     def boot_instance(self, clients=None, keypair=None,
-                      net_id=None, fixed_ip=None):
+                      net_id=None, fixed_ip=None, **create_kwargs):
         if clients is None:
             servers_client = self.servers_client
         else:
@@ -182,12 +182,14 @@ class BaremetalScenarioTest(manager.ScenarioTest):
             instance = self.create_server(
                 key_name=keypair['name'],
                 networks=[network],
-                clients=clients
+                clients=clients,
+                **create_kwargs
             )
         else:
             instance = self.create_server(
                 key_name=keypair['name'],
-                clients=clients
+                clients=clients,
+                **create_kwargs
             )
 
         self.wait_node(instance['id'])
