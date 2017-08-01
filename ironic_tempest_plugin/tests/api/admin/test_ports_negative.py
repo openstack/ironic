@@ -355,6 +355,7 @@ class TestPortsWithPhysicalNetworkOldAPI(base.BaseBaremetalTest):
         _, self.chassis = self.create_chassis()
         _, self.node = self.create_node(self.chassis['uuid'])
 
+    @decorators.attr(type=['negative'])
     @decorators.idempotent_id('307e57e9-082f-4830-9480-91affcbfda08')
     def test_create_port_with_physical_network_old_api(self):
         node_id = self.node['uuid']
@@ -365,6 +366,7 @@ class TestPortsWithPhysicalNetworkOldAPI(base.BaseBaremetalTest):
                           node_id=node_id, address=address,
                           physical_network='physnet1')
 
+    @decorators.attr(type=['negative'])
     @decorators.idempotent_id('0b278c0a-d334-424e-a5c5-b6d001c2a715')
     def test_update_port_replace_physical_network_old_api(self):
         _, port = self.create_port(self.node['uuid'],
@@ -396,6 +398,7 @@ class TestPortsNegativeWithPhysicalNetwork(base.BaseBaremetalTest):
         _, self.chassis = self.create_chassis()
         _, self.node = self.create_node(self.chassis['uuid'])
 
+    @decorators.attr(type=['negative'])
     @decorators.idempotent_id('e20156fb-956b-4d5b-89a4-f379044a1d3c')
     def test_create_ports_in_portgroup_with_inconsistent_physical_network(
             self):
@@ -415,6 +418,7 @@ class TestPortsNegativeWithPhysicalNetwork(base.BaseBaremetalTest):
                           portgroup_uuid=portgroup['uuid'],
                           physical_network='physnet2')
 
+    @decorators.attr(type=['negative'])
     @decorators.idempotent_id('050e792c-22c9-4e4a-ae89-dfbfc52ad00d')
     def test_update_ports_in_portgroup_with_inconsistent_physical_network(
             self):
@@ -439,6 +443,7 @@ class TestPortsNegativeWithPhysicalNetwork(base.BaseBaremetalTest):
                           self.client.update_port,
                           port2['uuid'], patch)
 
+    @decorators.attr(type=['negative'])
     @decorators.idempotent_id('3cd1c8ec-57d1-40cb-922b-dd02431beea3')
     def test_update_ports_in_portgroup_with_inconsistent_physical_network_2(
             self):
