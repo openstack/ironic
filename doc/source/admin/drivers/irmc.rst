@@ -288,6 +288,70 @@ Configuration options for the automated cleaning steps are listed under
 
 For more information on node automated cleaning, see :ref:`automated_cleaning`
 
+Boot from Remote Volume
+^^^^^^^^^^^^^^^^^^^^^^^
+The iRMC driver supports the generic iPXE based remote volume booting when
+you use ``pxe_irmc`` classic driver or the following boot interfaces with
+the ``irmc`` hardware type.
+
+* ``irmc-pxe``
+* ``pxe``
+
+The iRMC driver also supports a remote volume booting without iPXE. How to use this iRMC
+specific remote volume booting is described here.
+
+The ``irmc-virtual-media`` boot interface supports this feature for the
+``irmc`` hardware type. This feature is also supported with following classic
+drivers:
+
+* ``iscsi_irmc``
+* ``agent_irmc``
+
+This feature configures a node to boot from a remote volume by using API of
+iRMC. It supports iSCSI and FibreChannel.
+
+Configuration
+~~~~~~~~~~~~~
+
+In addition to configuration for generic drivers for the remote volume boot,
+the drivers require the following configuration.
+
+* It is necessary to set physical port IDs to network ports and volume
+  connectors. All cards including those not used for volume boot should be
+  registered.
+
+  - A physical ID format is: ``<Card Type><Slot No>-<Port No>`` where:
+
+    - ``<Card Type>``: could be a ``LAN``, ``FC`` or ``CNA``
+    - ``<Slot No>``: 0 indicates onboard slot. Use 1 to 9 for add-on slots.
+    - ``<Port No>``: A port number. It starts from 1.
+
+  - Set the IDs to ``driver_info/irmc_pci_physical_ids`` of a Node. This
+    parameter is a dictionary of pair of UUID of a resource (Port or Volume
+    connector) and a physical ID. This parameter can be set with the following
+    command::
+
+      openstack baremetal node set $NODE_UUID --driver-info irmc_pci_physical_ids={} \
+      --driver-info irmc_pci_physical_ids/$PORT_UUID=LAN0-1 \
+      --driver-info irmc_pci_physical_ids/$VOLUME_CONNECTOR_UUID=CNA1-1
+
+* For iSCSI boot, volume connectors with both type ``iqn`` and ``ip`` are
+  required. The configuration with DHCP is not supported yet.
+
+* For iSCSI, the size of the storage network is needed. This value should be
+  set to ``driver_info/irmc_storage_network_size`` of a Node as an integer.
+  For example, if your storage network is 10.2.0.0/22, use the following
+  command::
+
+    openstack baremetal node set $NODE_UUID --driver-info irmc_storage_network_size=22
+
+Supported hardware
+~~~~~~~~~~~~~~~~~~
+
+The drivers support the PCI controllers, Fibrechannel Cards, Converged Network
+Adapters supported by
+`Fujitsu ServerView Virtual-IO Manager <http://www.fujitsu.com/fts/products/computing/servers/primergy/management/primergy-blade-server-io-virtualization.html>`_.
+
 Supported platforms
 ===================
 This driver supports FUJITSU PRIMERGY BX S4 or RX S8 servers and above.
