@@ -22,9 +22,6 @@ from ironic.tests.unit.api import base as test_api_base
 
 class TestGetVolume(test_api_base.BaseApiTest):
 
-    def setUp(self):
-        super(TestGetVolume, self).setUp()
-
     def _test_links(self, data, key, headers):
         self.assertIn(key, data)
         self.assertEqual(2, len(data[key]))
