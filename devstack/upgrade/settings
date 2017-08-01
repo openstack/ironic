@@ -19,6 +19,11 @@ source $BASE_TOP_DIR/lib/neutron-legacy
 source $BASE_TOP_DIR/lib/apache
 source $BASE_TOP_DIR/lib/keystone
 
+if [[ "${HOST_TOPOLOGY}" != "multinode" ]]; then
+    # Disable automated cleaning on single node grenade to save a time and resources.
+    export IRONIC_AUTOMATED_CLEAN_ENABLED=False
+fi
+
 # Update global variables like DEFAULT_IMAGE_NAME that are set in ironic devstack plugin
 IRONIC_BASE_DEVSTACK_DIR=$BASE_TOP_DIR/../ironic/devstack
 source $IRONIC_BASE_DEVSTACK_DIR/lib/ironic
