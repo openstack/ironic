@@ -343,15 +343,8 @@ class TestPortsNegative(base.BaseBaremetalTest):
 class TestPortsWithPhysicalNetworkOldAPI(base.BaseBaremetalTest):
     """Negative tests for ports with physical network information."""
 
-    old_microversion = '1.33'
-
     def setUp(self):
         super(TestPortsWithPhysicalNetworkOldAPI, self).setUp()
-
-        self.useFixture(
-            api_microversion_fixture.APIMicroversionFixture(
-                TestPortsWithPhysicalNetworkOldAPI.old_microversion)
-        )
         _, self.chassis = self.create_chassis()
         _, self.node = self.create_node(self.chassis['uuid'])
 

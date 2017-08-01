@@ -249,14 +249,8 @@ class TestNodesResourceClass(base.BaseBaremetalTest):
 
 class TestNodesResourceClassOldApi(base.BaseBaremetalTest):
 
-    old_microversion = '1.20'
-
     def setUp(self):
         super(TestNodesResourceClassOldApi, self).setUp()
-        self.useFixture(
-            api_microversion_fixture.APIMicroversionFixture(
-                TestNodesResourceClassOldApi.old_microversion)
-        )
         _, self.chassis = self.create_chassis()
         _, self.node = self.create_node(self.chassis['uuid'])
 
