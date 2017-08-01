@@ -1,0 +1,13 @@
+---
+upgrade:
+  - |
+    Changes timestamp part of ramdisk log filename by replacing
+    colon with dash. The ``tar`` command does not handle colon
+    properly, and untar of the file with colon in filename will
+    fail.
+fixes:
+  - |
+    Changes timestamp part of ramdisk log filename by replacing
+    colon with dash. The ``tar`` command does not handle colon
+    properly, and untar of the file with colon in filename will
+    fail.
