@@ -31,9 +31,11 @@ Agent Lookup
 
 .. rest_method:: GET /v1/lookup
 
-Beginning with the v1.22 API, a ``/lookup`` method is exposed at the root of
-the REST API. This should only be used by the ``ironic-python-agent`` ramdisk
-to retrieve required configuration data from the Bare Metal service.
+.. versionadded:: 1.22
+
+A ``/lookup`` method is exposed at the root of the REST API. This should only
+be used by the ``ironic-python-agent`` ramdisk to retrieve required
+configuration data from the Bare Metal service.
 
 By default, ``/v1/lookup`` will only match Nodes that are expected to be
 running the ``ironic-python-agent`` ramdisk (for instance, because the Bare
@@ -82,10 +84,12 @@ Agent Heartbeat
 
 .. rest_method:: POST /v1/heartbeat/{node_ident}
 
-Beginning with the v1.22 API, a ``/heartbeat`` method is exposed at the root of
-the REST API. This is used as a callback from within the ``ironic-python-agent``
-ramdisk, so that an active ramdisk may periodically contact the Bare Metal
-service and provide the current URL at which to contact the agent.
+.. versionadded:: 1.22
+
+A ``/heartbeat`` method is exposed at the root of the REST API. This is used
+as a callback from within the ``ironic-python-agent`` ramdisk, so that an
+active ramdisk may periodically contact the Bare Metal service and provide
+the current URL at which to contact the agent.
 
 Normal response codes: 202
 

@@ -228,6 +228,8 @@ Inject NMI (Non-Masking Interrupts)
 
 .. rest_method:: PUT /v1/nodes/{node_ident}/management/inject_nmi
 
+.. versionadded:: 1.29
+
 Inject NMI (Non-Masking Interrupts) for the given Node. This feature
 can be used for hardware diagnostics, and actual support depends on a
 driver.
@@ -365,14 +367,14 @@ Set RAID Config
 
 .. rest_method:: PUT /v1/nodes/{node_ident}/states/raid
 
+.. versionadded:: 1.12
+
 Store the supplied configuration on the Node's ``target_raid_config`` property.
 This property must be structured JSON, and will be validated by the driver upon receipt. The request
 schema is defined in the `documentation for the RAID feature <http://docs.openstack.org/ironic/latest/admin/raid.html>`_
 
 .. note:: Calling this API only stores the requested configuration; it will be applied the next time
   that the Node transitions through the ``cleaning`` phase.
-
-Added in API microversion: 1.12
 
 Normal response code: 204
 

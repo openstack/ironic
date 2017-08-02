@@ -4,10 +4,12 @@
 Volume (volume)
 ===============
 
-Since API version 1.32, information for connecting remote volumes to a node
-can be associated with a Node. There are two types of resources, Volume
-connectors and Volume targets. Volume connectors contain initiator information
-of Nodes. Volume targets contain target information of remote volumes.
+.. versionadded:: 1.32
+
+Information for connecting remote volumes to a node can be associated with a
+Node. There are two types of resources, Volume connectors and Volume targets.
+Volume connectors contain initiator information of Nodes. Volume targets
+contain target information of remote volumes.
 
 Listing, Searching, Creating, Updating, and Deleting of Volume connector
 resources are done through the ``v1/volume/connectors`` resource. The same
