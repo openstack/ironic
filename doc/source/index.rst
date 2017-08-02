@@ -38,6 +38,14 @@ Administrator Guide
 
   admin/index
 
+Configuration Reference
+=======================
+
+.. toctree::
+  :maxdepth: 2
+
+  configuration/index
+
 Driver References
 =================
 

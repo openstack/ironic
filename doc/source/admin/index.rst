@@ -39,9 +39,8 @@ of ironic that may or may not be suitable to every situation.
   Auditing API Traffic <api-audit-support>
   Notifications <notifications>
   Ceph Object Gateway support <radosgw>
-  Configuration Reference <http://docs.openstack.org/draft/config-reference/bare-metal.html>
-  Sample configuration file <https://git.openstack.org/cgit/openstack/ironic/tree/etc/ironic/ironic.conf.sample>
-
+  /configuration/sample-config
+  /configuration/sample-policy
 
 Dashboard Integration
 ---------------------

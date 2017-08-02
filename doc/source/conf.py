@@ -21,6 +21,8 @@ extensions = ['sphinx.ext.autodoc',
               'sphinxcontrib.pecanwsme.rest',
               'sphinxcontrib.seqdiag',
               'wsmeext.sphinxext',
+              'oslo_config.sphinxconfiggen',
+              'oslo_policy.sphinxpolicygen',
               ]
 
 try:
@@ -52,6 +54,12 @@ master_doc = 'index'
 # General information about the project.
 project = u'Ironic'
 copyright = u'OpenStack Foundation'
+
+config_generator_config_file = '../../tools/config/ironic-config-generator.conf'
+sample_config_basename = '_static/ironic'
+
+policy_generator_config_file = '../../tools/policy/ironic-policy-generator.conf'
+sample_policy_basename = '_static/ironic'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
