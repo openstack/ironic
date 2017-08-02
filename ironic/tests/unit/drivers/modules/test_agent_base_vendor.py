@@ -64,6 +64,53 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         super(HeartbeatMixinTest, self).setUp()
         self.deploy = agent_base_vendor.HeartbeatMixin()
 
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
+                       autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'reboot_to_instance', autospec=True)
+    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
+                       autospec=True)
+    def test_heartbeat_in_maintenance(self, ncrc_mock, rti_mock, cd_mock):
+        # NOTE(pas-ha) checking only for states that are not noop
+        for state in (states.DEPLOYWAIT, states.CLEANWAIT):
+            for m in (ncrc_mock, rti_mock, cd_mock):
+                m.reset_mock()
+            self.node.provision_state = state
+            self.node.maintenance = True
+            self.node.save()
+            agent_url = 'url-%s' % state
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=True) as task:
+                self.deploy.heartbeat(task, agent_url)
+                self.assertFalse(task.shared)
+                self.assertEqual(
+                    agent_url,
+                    task.node.driver_internal_info['agent_url'])
+            self.assertEqual(0, ncrc_mock.call_count)
+            self.assertEqual(0, rti_mock.call_count)
+            self.assertEqual(0, cd_mock.call_count)
+
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
+                       autospec=True)
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
+                       'reboot_to_instance', autospec=True)
+    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
+                       autospec=True)
+    def test_heartbeat_noops_in_wrong_state(self, ncrc_mock, rti_mock,
+                                            cd_mock):
+        allowed = {states.DEPLOYWAIT, states.CLEANWAIT}
+        for state in set(states.machine.states) - allowed:
+            for m in (ncrc_mock, rti_mock, cd_mock):
+                m.reset_mock()
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=True) as task:
+                self.node.provision_state = state
+                self.deploy.heartbeat(task, 'url')
+                self.assertTrue(task.shared)
+            self.assertEqual(0, ncrc_mock.call_count)
+            self.assertEqual(0, rti_mock.call_count)
+            self.assertEqual(0, cd_mock.call_count)
+
     @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'deploy_has_started', autospec=True)
     @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
@@ -215,58 +262,12 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         mock_continue.assert_called_once_with(mock.ANY, task)
         mock_handler.assert_called_once_with(task, mock.ANY)
 
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
-                       autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
-                       'reboot_to_instance', autospec=True)
-    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
-                       autospec=True)
-    def test_heartbeat_no_agent_last_heartbeat(self, ncrc_mock, rti_mock,
-                                               cd_mock):
-        """node.driver_internal_info doesn't have 'agent_last_heartbeat'."""
-        node = self.node
-        node.maintenance = True
-        node.provision_state = states.AVAILABLE
-        driver_internal_info = {'agent_last_heartbeat': 'time'}
-        node.driver_internal_info = driver_internal_info
-        node.save()
-        with task_manager.acquire(
-                self.context, node['uuid'], shared=False) as task:
-            self.deploy.heartbeat(task, 'http://127.0.0.1:8080')
-
-        self.assertEqual(0, ncrc_mock.call_count)
-        self.assertEqual(0, rti_mock.call_count)
-        self.assertEqual(0, cd_mock.call_count)
-        node.refresh()
-        self.assertNotIn('agent_last_heartbeat', node.driver_internal_info)
-
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin, 'continue_deploy',
-                       autospec=True)
-    @mock.patch.object(agent_base_vendor.HeartbeatMixin,
-                       'reboot_to_instance', autospec=True)
-    @mock.patch.object(agent_base_vendor, '_notify_conductor_resume_clean',
-                       autospec=True)
-    def test_heartbeat_noops_maintenance_mode(self, ncrc_mock, rti_mock,
-                                              cd_mock):
-        """Ensures that heartbeat() no-ops for a maintenance node."""
-        self.node.maintenance = True
-        for state in (states.AVAILABLE, states.DEPLOYWAIT, states.DEPLOYING,
-                      states.CLEANING):
-            self.node.provision_state = state
-            self.node.save()
-            with task_manager.acquire(
-                    self.context, self.node['uuid'], shared=False) as task:
-                self.deploy.heartbeat(task, 'http://127.0.0.1:8080')
-
-        self.assertEqual(0, ncrc_mock.call_count)
-        self.assertEqual(0, rti_mock.call_count)
-        self.assertEqual(0, cd_mock.call_count)
-
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
     @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'deploy_has_started', autospec=True)
-    def test_heartbeat_touch_provisioning(self, mock_deploy_started,
-                                          mock_touch):
+    def test_heartbeat_touch_provisioning_and_url_save(self,
+                                                       mock_deploy_started,
+                                                       mock_touch):
         mock_deploy_started.return_value = True
 
         self.node.provision_state = states.DEPLOYWAIT
@@ -274,7 +275,8 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             self.deploy.heartbeat(task, 'http://127.0.0.1:8080')
-
+            self.assertEqual('http://127.0.0.1:8080',
+                             task.node.driver_internal_info['agent_url'])
         mock_touch.assert_called_once_with(mock.ANY)
 
 
