@@ -18,6 +18,7 @@
 import keystonemiddleware.audit as audit_middleware
 from oslo_config import cfg
 import oslo_middleware.cors as cors_middleware
+import osprofiler.web as osprofiler_web
 import pecan
 
 from ironic.api import config
@@ -92,6 +93,9 @@ def setup_app(pecan_config=None, extra_hooks=None):
         app = auth_token.AuthTokenMiddleware(
             app, dict(cfg.CONF),
             public_api_routes=pecan_config.app.acl_public_routes)
+
+    if CONF.profiler.enabled:
+        app = osprofiler_web.WsgiMiddleware(app)
 
     # Create a CORS wrapper, and attach ironic-specific defaults that must be
     # included in all CORS responses.

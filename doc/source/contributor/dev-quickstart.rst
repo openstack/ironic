@@ -709,6 +709,16 @@ For more information about the supported parameters see::
    Always be careful when running debuggers in time sensitive code,
    they may cause timeout errors that weren't there before.
 
+
+OSProfiler Tracing in Ironic
+============================
+
+OSProfiler is an OpenStack cross-project profiling library. It is being
+used among OpenStack projects to look at performance issues and detect
+bottlenecks. For details on how OSProfiler works and how to use it in ironic,
+please refer to `OSProfiler Support Documentation <osprofiler-support>`_.
+
+
 Building developer documentation
 ================================
 
