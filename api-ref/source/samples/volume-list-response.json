@@ -1,0 +1,32 @@
+{
+  "connectors": [
+    {
+      "href": "http://127.0.0.1:6385/v1/volume/connectors",
+      "rel": "self"
+    },
+    {
+      "href": "http://127.0.0.1:6385/volume/connectors",
+      "rel": "bookmark"
+    }
+  ],
+  "links": [
+    {
+      "href": "http://127.0.0.1:6385/v1/volume/",
+      "rel": "self"
+    },
+    {
+      "href": "http://127.0.0.1:6385/volume/",
+      "rel": "bookmark"
+    }
+  ],
+  "targets": [
+    {
+      "href": "http://127.0.0.1:6385/v1/volume/targets",
+      "rel": "self"
+    },
+    {
+      "href": "http://127.0.0.1:6385/volume/targets",
+      "rel": "bookmark"
+    }
+  ]
+}

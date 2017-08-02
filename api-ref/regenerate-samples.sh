@@ -20,6 +20,8 @@ DOC_NODE_UUID="6d85703a-565d-469a-96ce-30b6de53079d"
 DOC_DYNAMIC_NODE_UUID="2b045129-a906-46af-bc1a-092b294b3428"
 DOC_PORT_UUID="d2b30520-907d-46c8-bfee-c5586e6fb3a1"
 DOC_PORTGROUP_UUID="e43c722c-248e-4c6e-8ce8-0d8ff129387a"
+DOC_VOL_CONNECTOR_UUID="9bf93e01-d728-47a3-ad4b-5e66a835037c"
+DOC_VOL_TARGET_UUID="bd4d008c-7d31-463d-abf9-6c23d9d55f7f"
 DOC_PROVISION_UPDATED_AT="2016-08-18T22:28:49.946416+00:00"
 DOC_CREATED_AT="2016-08-18T22:28:48.643434+11:11"
 DOC_UPDATED_AT="2016-08-18T22:28:49.653974+00:00"
@@ -256,6 +258,45 @@ POST v1/nodes/$NID/vifs node-vif-attach-request.json
 GET v1/nodes/$NID/vifs > node-vif-list-response.json
 
 
+#############
+# VOLUME APIs
+GET v1/volume/ > volume-list-response.json
+
+sed -i "s/.*node_uuid.*/    \"node_uuid\": \"$NID\",/" volume-connector-create-request.json
+POST v1/volume/connectors volume-connector-create-request.json > volume-connector-create-response.json
+VCID=$(cat volume-connector-create-response.json | grep '"uuid"' | sed 's/.*"\([0-9a-f\-]*\)",*/\1/')
+if [ "$VCID" == "" ]; then
+    exit 1
+else
+    echo "Volume connector created. UUID: $VCID"
+fi
+
+GET v1/volume/connectors > volume-connector-list-response.json
+GET v1/volume/connectors?detail=True > volume-connector-list-detail-response.json
+PATCH v1/volume/connectors/$VCID volume-connector-update-request.json > volume-connector-update-response.json
+
+sed -i "s/.*node_uuid.*/    \"node_uuid\": \"$NID\",/" volume-target-create-request.json
+POST v1/volume/targets volume-target-create-request.json > volume-target-create-response.json
+VTID=$(cat volume-target-create-response.json | grep '"uuid"' | sed 's/.*"\([0-9a-f\-]*\)",*/\1/')
+if [ "$VTID" == "" ]; then
+    exit 1
+else
+    echo "Volume target created. UUID: $VCID"
+fi
+
+GET v1/volume/targets > volume-target-list-response.json
+GET v1/volume/targets?detail=True > volume-target-list-detail-response.json
+PATCH v1/volume/targets/$VTID volume-target-update-request.json > volume-target-update-response.json
+
+##################
+# NODE VOLUME APIs
+GET v1/nodes/$NID/volume > node-volume-list-response.json
+GET v1/nodes/$NID/volume/connectors > node-volume-connector-list-response.json
+GET v1/nodes/$NID/volume/connectors?detail=True > node-volume-connector-detail-response.json
+GET v1/nodes/$NID/volume/targets > node-volume-target-list-response.json
+GET v1/nodes/$NID/volume/targets?detail=True > node-volume-target-detail-response.json
+
+
 #####################
 # Replace automatically generated UUIDs by already used in documentation
 sed -i "s/$CID/$DOC_CHASSIS_UUID/" *.json
@@ -263,6 +304,8 @@ sed -i "s/$NID/$DOC_NODE_UUID/" *.json
 sed -i "s/$DNID/$DOC_DYNAMIC_NODE_UUID/" *.json
 sed -i "s/$PID/$DOC_PORT_UUID/" *.json
 sed -i "s/$PGID/$DOC_PORTGROUP_UUID/" *.json
+sed -i "s/$VCID/$DOC_VOL_CONNECTOR_UUID/" *.json
+sed -i "s/$VTID/$DOC_VOL_TARGET_UUID/" *.json
 sed -i "s/$(hostname)/$DOC_IRONIC_CONDUCTOR_HOSTNAME/" *.json
 sed -i "s/created_at\": \".*\"/created_at\": \"$DOC_CREATED_AT\"/" *.json
 sed -i "s/updated_at\": \".*\"/updated_at\": \"$DOC_UPDATED_AT\"/" *.json

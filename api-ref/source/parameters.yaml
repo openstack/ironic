@@ -74,7 +74,18 @@ portgroup_ident:
   in: path
   required: true
   type: string
-
+volume_connector_id:
+  description: |
+    The UUID of the Volume connector.
+  in: path
+  required: true
+  type: string
+volume_target_id:
+  description: |
+    The UUID of the Volume target.
+  in: path
+  required: true
+  type: string
 
 callback_url:
   description: |
@@ -83,6 +94,14 @@ callback_url:
   in: query
   required: true
   type: string
+
+detail:
+  description: |
+    Whether to show detailed information about the resource. This cannot be
+    set to True if ``fields`` parameter is specified.
+  in: query
+  required: false
+  type: boolean
 
 # variables in driver query string
 driver_detail:
@@ -245,6 +264,22 @@ r_resource_class:
   description: |
     Filter the list of returned nodes, and only return the ones with the
     specified resource class. Introduced in API version 1.21.
+  in: query
+  required: false
+  type: string
+r_volume_connector_node_ident:
+  description: |
+    Filter the list of returned Volume connectors, and only return the ones
+    associated with this specific node (name or UUID), or an empty set if not
+    found. Added in API microversion 1.32.
+  in: query
+  required: false
+  type: string
+r_volume_target_node_ident:
+  description: |
+    Filter the list of returned Volume targets, and only return the ones
+    associated with this specific node (name or UUID), or an empty set if not
+    found. Added in API microversion 1.32.
   in: query
   required: false
   type: string
@@ -679,6 +714,12 @@ n_vifs:
   in: body
   required: true
   type: array
+n_volume:
+  description: |
+    Links to the volume resources. Added in API microversion 1.32.
+  in: body
+  required: true
+  type: array
 name:
   description: |
     The name of the driver.
@@ -691,6 +732,13 @@ network_interface:
     connections for this Node. Added in API microversion v1.20
   in: body
   required: true
+  type: string
+next:
+  description: |
+    A URL to request a next collection of the resource. This parameter is
+    returned when ``limit`` is specified in a request and there remain items.
+  in: body
+  required: false
   type: string
 node_name:
   description: |
@@ -1043,6 +1091,78 @@ version:
 versions:
   description: |
     Array of information about currently supported versions.
+  in: body
+  required: true
+  type: array
+
+# variables returned from volume-connector
+volume_connector_connector_id:
+  description: |
+    The identifier of Volume connector. The identifier format depends on the
+    ``type`` of the Volume connector, eg
+    "iqn.2017-05.org.openstack:01:d9a51732c3f" if the ``type`` is "iqn",
+    "192.168.1.2" if the ``type`` is "ip".
+  in: body
+  required: true
+  type: string
+volume_connector_type:
+  description: |
+    The type of Volume connector such as "iqn", "ip", "wwnn" and "wwpn".
+  in: body
+  required: true
+  type: string
+volume_connectors:
+  description: |
+    A collection of Volume connector resources.
+  in: body
+  required: true
+  type: array
+volume_connectors_link:
+  description: |
+    Links to a collection of Volume connector resources.
+  in: body
+  required: true
+  type: array
+
+# variables returned from volume-target
+volume_target_boot_index:
+  description: |
+    The boot index of the Volume target. "0" indicates that this volume is
+    used as a boot volume.
+  in: body
+  required: true
+  type: string
+volume_target_properties:
+  description: |
+    A set of physical information of the volume such as the identifier
+    (eg. IQN) and LUN number of the volume. This information is used to connect
+    the node to the volume by the storage interface. The contents depend on the
+    volume type.
+  in: body
+  required: true
+  type: object
+volume_target_volume_id:
+  description: |
+    The identifier of the volume. This ID is used by storage interface to
+    distinguish volumes.
+  in: body
+  required: true
+  type: string
+volume_target_volume_type:
+  description: |
+    The type of Volume target such as 'iscsi' and 'fibre_channel'.
+  in: body
+  required: true
+  type: string
+volume_targets:
+  description: |
+    A collection of Volume target resources.
+  in: body
+  required: true
+  type: array
+volume_targets_link:
+  description: |
+    Links to a collection of Volume target resources.
   in: body
   required: true
   type: array

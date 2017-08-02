@@ -1,0 +1,7 @@
+[
+   {
+      "path" : "/connector_id",
+      "value" : "iqn.2017-07.org.openstack:02:10190a4153e",
+      "op" : "replace"
+   }
+]

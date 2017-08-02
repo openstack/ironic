@@ -102,7 +102,7 @@ network_interface field, which was introduced in API microversion 1.20. If this
 field is not supplied when creating the Node, the default value will be used.
 
 The list and example below are representative of the response as of API
-microversion 1.31.
+microversion 1.32.
 
 .. rest_parameters:: parameters.yaml
 
@@ -142,6 +142,7 @@ microversion 1.31.
     - power_interface: power_interface
     - raid_interface: raid_interface
     - vendor_interface: vendor_interface
+    - volume: n_volume
 
 **Example JSON representation of a Node:**
 
@@ -285,6 +286,7 @@ Response
     - power_interface: power_interface
     - raid_interface: raid_interface
     - vendor_interface: vendor_interface
+    - volume: n_volume
 
 **Example detailed list of Nodes:**
 
@@ -354,6 +356,7 @@ Response
     - power_interface: power_interface
     - raid_interface: raid_interface
     - vendor_interface: vendor_interface
+    - volume: n_volume
 
 **Example JSON representation of a Node:**
 
@@ -432,6 +435,7 @@ Response
     - power_interface: power_interface
     - raid_interface: raid_interface
     - vendor_interface: vendor_interface
+    - volume: n_volume
 
 **Example JSON representation of a Node:**
 

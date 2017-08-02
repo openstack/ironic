@@ -86,5 +86,15 @@
       "href": "http://127.0.0.1:6385/ports/",
       "rel": "bookmark"
     }
+  ],
+  "volume": [
+    {
+      "href": "http://127.0.0.1:6385/v1/volume/",
+      "rel": "self"
+    },
+    {
+      "href": "http://127.0.0.1:6385/volume/",
+      "rel": "bookmark"
+    }
   ]
 }
