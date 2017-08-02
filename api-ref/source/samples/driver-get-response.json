@@ -7,6 +7,7 @@
   "default_network_interface": "flat",
   "default_power_interface": "ipmitool",
   "default_raid_interface": "no-raid",
+  "default_storage_interface": "noop",
   "default_vendor_interface": "no-vendor",
   "enabled_boot_interfaces": [
     "pxe"
@@ -34,6 +35,9 @@
   "enabled_raid_interfaces": [
     "no-raid",
     "agent"
+  ],
+  "enabled_storage_interfaces": [
+    "noop"
   ],
   "enabled_vendor_interfaces": [
     "no-vendor"

@@ -454,6 +454,14 @@ default_raid_interface:
   in: body
   required: true
   type: string
+default_storage_interface:
+  description: |
+    The default storage interface used for a node with a dynamic driver, if
+    no storage interface is specified for the node. Added in API
+    microversion 1.33.
+  in: body
+  required: true
+  type: string
 default_vendor_interface:
   description: |
     The default vendor interface used for a node with a dynamic driver, if
@@ -559,6 +567,13 @@ enabled_raid_interfaces:
   description: |
     The enabled RAID interfaces for this driver. Added in API microversion
     1.30.
+  in: body
+  required: true
+  type: list
+enabled_storage_interfaces:
+  description: |
+    The enabled storage interfaces for this driver. Added in API microversion
+    1.33.
   in: body
   required: true
   type: list
@@ -984,6 +999,13 @@ standalone_ports_supported:
   in: body
   required: true
   type: boolean
+storage_interface:
+  description: |
+    Interface used for attaching and detaching volumes on this node, e.g.
+    "cinder". Added in API microversion 1.33.
+  in: body
+  required: true
+  type: string
 supported_boot_devices:
   description: |
     List of boot devices which this Node's driver supports.
