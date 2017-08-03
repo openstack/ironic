@@ -10,9 +10,13 @@ Overview
 The iRMC driver enables control FUJITSU PRIMERGY via ServerView
 Common Command Interface (SCCI).
 
-There are 3 iRMC drivers:
+Support for FUJITSU PRIMERGY servers consists of the ``irmc`` hardware
+type, along with three classic drivers that were instituted before the
+implementation of the functionality enabling the hardware type.
 
-* ``pxe_irmc``.
+The classic drivers are:
+
+* ``pxe_irmc``
 * ``iscsi_irmc``
 * ``agent_irmc``
 
@@ -24,8 +28,95 @@ Prerequisites
 
   $ pip install "python-scciclient>=0.5.0" pysnmp
 
-Drivers
-=======
+Hardware Type
+=============
+
+The ``irmc`` hardware type is introduced to support the new Ironic driver
+model. It is recommended to use ``irmc`` hardware type for FUJITSU PRIMERGY
+hardware instead of the classic drivers.
+
+For how to enable ``irmc`` hardware type, see :ref:`enable-hardware-types`.
+
+Hardware interfaces
+^^^^^^^^^^^^^^^^^^^
+
+The ``irmc`` hardware type overrides the selection of the following
+hardware interfaces:
+
+* boot
+    Supports ``irmc-virtual-media``, ``irmc-pxe``, and ``pxe``.
+    The default is ``irmc-virtual-media``.
+
+    .. warning::
+       We deprecated the ``pxe`` boot interface when used with ``irmc``
+       hardware type. Support for this interface will be removed in the
+       future. Instead, use ``irmc-pxe``. ``irmc-pxe`` boot interface
+       was introduced in Pike and is used in the ``pxe_irmc`` classic
+       driver.
+
+* console
+    Supports ``ipmitool-socat``, ``ipmitool-shellinabox``, and ``no-console``.
+    The default is ``ipmitool-socat``.
+
+* inspect
+    Supports ``irmc``, ``inspector``, and ``no-inspect``.
+    The default is ``irmc``.
+
+    .. note::
+       `Ironic Inspector <https://docs.openstack.org/ironic-inspector/latest/>`_
+       needs to be present and configured to use ``inspector`` as the
+       inspect interface.
+
+* management
+    Supports only ``irmc``.
+
+* power
+    Supports only ``irmc``.
+
+For other hardware interfaces, ``irmc`` hardware type supports the
+Bare Metal reference interfaces. For more details about the hardware
+interfaces and how to enable the desired ones, see
+:ref:`enable-hardware-interfaces`.
+
+Here is a complete configuration example with most of the supported hardware
+interfaces enabled for ``irmc`` hardware type.
+
+.. code-block:: ini
+
+   [DEFAULT]
+   enabled_hardware_types = irmc
+   enabled_boot_interfaces = irmc-virtual-media,irmc-pxe
+   enabled_console_interfaces = ipmitool-socat,ipmitool-shellinabox,no-console
+   enabled_deploy_interfaces = iscsi,direct
+   enabled_inspect_interfaces = irmc,inspector,no-inspect
+   enabled_management_interfaces = irmc
+   enabled_network_interfaces = flat,neutron
+   enabled_power_interfaces = irmc
+   enabled_raid_interfaces = no-raid
+   enabled_storage_interfaces = noop,cinder
+   enabled_vendor_interfaces = no-vendor,ipmitool
+
+Here is a command example to enroll a node with ``irmc`` hardware type.
+
+.. code-block:: console
+
+   openstack baremetal node create --os-baremetal-api-version=1.31 \
+      --driver irmc \
+      --boot-interface irmc-pxe \
+      --deploy-interface direct \
+      --inspect-interface irmc
+
+Upgrading to ``irmc`` hardware type
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When upgrading from a classic driver to the ``irmc`` hardware type,
+make sure you specify the hardware interfaces that are used by the
+classic driver. :doc:`/admin/upgrade-to-hardware-types` has more
+information, including the hardware interfaces corresponding to
+the classic drivers.
+
+Classic Drivers
+===============
 
 pxe_irmc driver
 ^^^^^^^^^^^^^^^
@@ -70,7 +161,7 @@ Node configuration
   - ``sensor_method``: Sensor data retrieval method; either
     ``ipmitool`` or ``scci``. The default value is ``ipmitool``. Optional.
 
- * The following options are only required for inspection:
+* The following options are only required for inspection:
 
   - ``snmp_version``: SNMP protocol version; either ``v1``, ``v2c`` or
     ``v3``. The default value is ``v2c``. Optional.
@@ -152,7 +243,7 @@ Node configuration
   - ``remote_image_user_password``: Password of ``remote_image_user_name``.
   - ``remote_image_user_domain``: Domain name of ``remote_image_user_name``.
 
- * The following options are only required for inspection:
+* The following options are only required for inspection:
 
   - ``snmp_version``: SNMP protocol version; either ``v1``, ``v2c`` or
     ``v3``. The default value is ``v2c``. Optional.
@@ -231,7 +322,7 @@ Node configuration
   - ``remote_image_user_password``: Password of ``remote_image_user_name``.
   - ``remote_image_user_domain``: Domain name of ``remote_image_user_name``.
 
- * The following options are only required for inspection:
+* The following options are only required for inspection:
 
   - ``snmp_version``: SNMP protocol version; either ``v1``, ``v2c`` or
     ``v3``. The default value is ``v2c``. Optional.
@@ -261,7 +352,8 @@ Functionalities across drivers
 
 Node Cleaning Support
 ^^^^^^^^^^^^^^^^^^^^^
-The following iRMC drivers support node cleaning:
+The ``irmc`` hardware type and the following iRMC classic drivers support
+node cleaning:
 
 * ``pxe_irmc``
 * ``iscsi_irmc``
@@ -280,6 +372,13 @@ The automated cleaning operations supported are:
   backed up automatically before the deployment. By default, this clean
   step is disabled with priority ``0``. Set its priority to a positive
   integer to enable it. The recommended value is ``10``.
+
+  .. warning::
+     ``pxe`` boot interface, when used with ``irmc`` hardware type, does
+     not support this clean step. If uses ``irmc`` hardware type, it is
+     required to select ``irmc-pxe`` or ``irmc-virtual-media`` as the
+     boot interface in order to make this clean step work.
+
 
 Configuration options for the automated cleaning steps are listed under
 ``[irmc]`` section in ironic.conf ::
