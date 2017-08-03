@@ -884,3 +884,34 @@ class Connection(object):
         :raises: VolumeTargetNotFound if a volume target with the specified
                  ident does not exist.
         """
+
+    @abc.abstractmethod
+    def check_versions(self):
+        """Checks the whole database for incompatible objects.
+
+        This scans all the tables in search of objects that are not supported;
+        i.e., those that are not specified in
+        `ironic.common.release_mappings.RELEASE_MAPPING`.
+
+        :returns: A Boolean. True if all the objects have supported versions;
+                  False otherwise.
+        """
+
+    @abc.abstractmethod
+    def backfill_version_column(self, max_count):
+        """Backfill the version column with Ocata versions.
+
+        The version column was added to all the resource tables in this Pike
+        release (via 'ironic-dbsync upgrade'). After upgrading (from Ocata to
+        Pike), the 'ironic-dbsync online_data_migrations' command will invoke
+        this method to populate (backfill) the version columns. The version
+        used will be the object version from the pinning set in config (i.e.
+        prior to this column being added).
+
+        :param max_count: The maximum number of objects to migrate. Must be
+                          >= 0. If zero, all the objects will be migrated.
+        :returns: A 2-tuple, 1. the total number of objects that need to be
+                  migrated (at the beginning of this call) and 2. the number
+                  of migrated objects.
+        """
+        # TODO(rloo) Delete this in Queens cycle.

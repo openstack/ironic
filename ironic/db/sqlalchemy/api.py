@@ -1,5 +1,3 @@
-# -*- encoding: utf-8 -*-
-#
 # Copyright 2013 Hewlett-Packard Development Company, L.P.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -38,6 +36,7 @@ from sqlalchemy import sql
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import profiler
+from ironic.common import release_mappings
 from ironic.common import states
 from ironic.conf import CONF
 from ironic.db import api
@@ -1132,3 +1131,102 @@ class Connection(api.Connection):
             count = query.delete()
             if count == 0:
                 raise exception.VolumeTargetNotFound(target=ident)
+
+    def check_versions(self):
+        """Checks the whole database for incompatible objects.
+
+        This scans all the tables in search of objects that are not supported;
+        i.e., those that are not specified in
+        `ironic.common.release_mappings.RELEASE_MAPPING`. This includes objects
+        that have null 'version' values.
+
+        :returns: A Boolean. True if all the objects have supported versions;
+                  False otherwise.
+        """
+        object_versions = release_mappings.get_object_versions()
+        for model in models.Base.__subclasses__():
+            if model.__name__ in object_versions:
+                supported_versions = object_versions[model.__name__]
+                if not supported_versions:
+                    continue
+                # NOTE(rloo): .notin_ does not handle null:
+                # http://docs.sqlalchemy.org/en/latest/core/sqlelement.html#sqlalchemy.sql.operators.ColumnOperators.notin_
+                query = model_query(model).filter(
+                    sql.or_(model.version == sql.null(),
+                            model.version.notin_(supported_versions)))
+                if query.count():
+                    return False
+        return True
+
+    @oslo_db_api.retry_on_deadlock
+    def backfill_version_column(self, context, max_count):
+        """Backfill the version column with Ocata versions.
+
+        The version column was added to all the resource tables in this Pike
+        release (via 'ironic-dbsync upgrade'). After upgrading (from Ocata to
+        Pike), the 'ironic-dbsync online_data_migrations' command will invoke
+        this method to populate (backfill) the version columns. The version
+        used will be the object version prior to this column being added.
+
+        :param context: the admin context (not used)
+        :param max_count: The maximum number of objects to migrate. Must be
+                          >= 0. If zero, all the objects will be migrated.
+        :returns: A 2-tuple, 1. the total number of objects that need to be
+                  migrated (at the beginning of this call) and 2. the number
+                  of migrated objects.
+        """
+        # TODO(rloo): Delete this in Queens cycle.
+        prior_release = '7.0'
+        mapping = release_mappings.RELEASE_MAPPING[prior_release]['objects']
+        total_to_migrate = 0
+        total_migrated = 0
+
+        # backfill only objects that were in the prior release
+        sql_models = [model for model in models.Base.__subclasses__()
+                      if model.__name__ in mapping]
+        for model in sql_models:
+            query = model_query(model).filter(model.version.is_(None))
+            total_to_migrate += query.count()
+
+        if not total_to_migrate:
+            return total_to_migrate, 0
+
+        # NOTE(xek): Each of these operations happen in different transactions.
+        # This is to ensure a minimal load on the database, but at the same
+        # time it can cause an inconsistency in the amount of total and
+        # migrated objects returned (total could be > migrated). This is
+        # because some objects may have already migrated or been deleted from
+        # the database between the time the total was computed (above) to the
+        # time we do the updating (below).
+        #
+        # By the time this script is run, only the new release version is
+        # running, so the impact of this error will be minimal - e.g. the
+        # operator will run this script more than once to ensure that all
+        # data have been migrated.
+
+        # If max_count is zero, we want to migrate all the objects.
+        max_to_migrate = max_count or total_to_migrate
+
+        for model in sql_models:
+            num_migrated = 0
+            with _session_for_write():
+                query = model_query(model).filter(model.version.is_(None))
+                if max_to_migrate < query.count():
+                    # Only want to update max_to_migrate objects; cannot use
+                    # sql's limit(), so we generate a new query with
+                    # max_to_migrate objects.
+                    ids = []
+                    for obj in query.slice(0, max_to_migrate):
+                        ids.append(obj['id'])
+                    query = model_query(model).filter(model.id.in_(ids))
+
+                num_migrated = query.update(
+                    {model.version: mapping[model.__name__][0]},
+                    synchronize_session=False)
+
+            total_migrated += num_migrated
+            max_to_migrate -= num_migrated
+            if max_to_migrate <= 0:
+                break
+
+        return total_to_migrate, total_migrated

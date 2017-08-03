@@ -1,0 +1,8 @@
+---
+upgrade:
+  - The new ``ironic-dbsync online_data_migrations`` command should be
+    run after each upgrade to ensure all DB records are converted to the
+    newest format. It must be run before starting the software as part of
+    a new upgrade to the next named release. For more information about
+    this command, see
+    https://docs.openstack.org/ironic/latest/cli/ironic-dbsync.html.
