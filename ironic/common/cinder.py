@@ -405,7 +405,7 @@ def detach_volumes(task, volume_list, connector, allow_errors=False):
             # Skip proceeding with this method if we're not raising
             # errors. This will leave the volume in the detaching
             # state, but in that case something very unexpected
-            # has occured.
+            # has occurred.
             continue
 
         # Attempt to identify the attachment id value to provide
