@@ -25,6 +25,8 @@ From API user's point of view, both *classic drivers* and *hardware types* can
 be assigned to the ``driver`` field of a node. However, they are configured
 differently.
 
+.. _enable-hardware-types:
+
 Enabling hardware types
 -----------------------
 
@@ -43,6 +45,8 @@ hardware interfaces.
 .. note::
    All available hardware types and interfaces are listed in setup.cfg_ file
    in the source code tree.
+
+.. _enable-hardware-interfaces:
 
 Enabling hardware interfaces
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
