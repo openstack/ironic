@@ -70,6 +70,7 @@ profiler options and restart ironic services::
     [profiler]
     enabled = True
     hmac_keys = SECRET_KEY # default value used across several OpenStack projects
+    trace_sqlalchemy = True
 
 
 In order to trace ironic using OSProfiler, use openstackclient to run
@@ -95,6 +96,10 @@ The trace results can be saved in a file with ``--out file-name`` option::
 
     $ osprofiler trace show --html <trace-id> --out trace.html
 
+The trace results show the time spent in ironic-api, ironic-conductor, and db
+calls. More detailed db tracing is enabled if ``trace_sqlalchemy``
+is set to true.
+
 Sample Trace:
 
 .. figure:: ../images/sample_trace.svg
@@ -102,6 +107,8 @@ Sample Trace:
    :align: left
    :alt: Sample Trace
 
+
+Each trace has embedded trace point details as shown below:
 
 .. figure:: ../images/sample_trace_details.svg
    :width: 660px
