@@ -147,7 +147,7 @@ class APINotifyTestCase(tests_base.TestCase):
         self.assertEqual('11:22:33:77:88:99', payload.address)
         self.assertEqual({'a': 25}, payload.local_link_connection)
         self.assertEqual({'as': 34}, payload.extra)
-        self.assertEqual(False, payload.pxe_enabled)
+        self.assertIs(False, payload.pxe_enabled)
 
     def test_portgroup_notification(self):
         node_uuid = uuidutils.generate_uuid()

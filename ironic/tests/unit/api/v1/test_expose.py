@@ -52,12 +52,12 @@ class TestExposedAPIMethodsCheckPolicy(test_base.TestCase):
 
         for func in self.exposed_methods:
             src = inspect.getsource(func)
-            self.assertTrue('policy.authorize' in src,
-                            'policy.authorize call not found in exposed '
-                            'method %s' % func)
-            self.assertTrue('context.to_policy_values' in src,
-                            'context.to_policy_values call not found in '
-                            'exposed method %s' % func)
+            self.assertIn('policy.authorize', src,
+                          'policy.authorize call not found in exposed '
+                          'method %s' % func)
+            self.assertIn('context.to_policy_values', src,
+                          'context.to_policy_values call not found in '
+                          'exposed method %s' % func)
 
     def test_chasis_api_policy(self):
         self._test('ironic.api.controllers.v1.chassis')

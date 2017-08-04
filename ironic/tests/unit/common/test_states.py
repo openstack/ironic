@@ -32,7 +32,7 @@ class StatesTest(base.TestCase):
             # Assumption: A state variable name is all UPPERCASE and contents
             # are a string.
             if key.upper() == key and isinstance(value, six.string_types):
-                self.assertTrue(
-                    (len(value) <= 15),
+                self.assertLessEqual(
+                    len(value), 15,
                     "Value for state: {} is greater than 15 characters".format(
                         key))

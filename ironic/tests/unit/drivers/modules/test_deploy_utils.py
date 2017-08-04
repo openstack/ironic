@@ -1625,9 +1625,9 @@ class AgentMethodsTestCase(db_base.DbTestCase):
             utils.agent_add_clean_params(task)
             self.assertEqual(2, task.node.driver_internal_info[
                 'agent_erase_devices_iterations'])
-            self.assertEqual(False, task.node.driver_internal_info[
+            self.assertIs(False, task.node.driver_internal_info[
                 'agent_erase_devices_zeroize'])
-            self.assertEqual(True, task.node.driver_internal_info[
+            self.assertIs(True, task.node.driver_internal_info[
                 'agent_continue_if_ata_erase_failed'])
 
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
@@ -1649,8 +1649,8 @@ class AgentMethodsTestCase(db_base.DbTestCase):
             power_mock.assert_called_once_with(task, states.REBOOT)
             self.assertEqual(1, task.node.driver_internal_info[
                              'agent_erase_devices_iterations'])
-            self.assertEqual(True, task.node.driver_internal_info[
-                             'agent_erase_devices_zeroize'])
+            self.assertIs(True, task.node.driver_internal_info[
+                          'agent_erase_devices_zeroize'])
             if manage_boot:
                 prepare_ramdisk_mock.assert_called_once_with(
                     mock.ANY, mock.ANY, {'a': 'b'})

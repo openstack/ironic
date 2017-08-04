@@ -2057,7 +2057,7 @@ class IPMIToolDriverTestCase(db_base.DbTestCase):
             self.info['force_boot_device'] = True
             self.driver.management.set_boot_device(task, boot_devices.PXE)
             task.node.refresh()
-            self.assertEqual(
+            self.assertIs(
                 False,
                 task.node.driver_internal_info['is_next_boot_persistent']
             )
