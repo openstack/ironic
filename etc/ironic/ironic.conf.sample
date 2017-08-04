@@ -1219,39 +1219,6 @@
 #allow_headers =
 
 
-[cors.subdomain]
-
-#
-# From oslo.middleware.cors
-#
-
-# Indicate whether this resource may be shared with the domain
-# received in the requests "origin" header. Format:
-# "<protocol>://<host>[:<port>]", no trailing slash. Example:
-# https://horizon.example.com (list value)
-#allowed_origin = <None>
-
-# Indicate that the actual request can include user
-# credentials (boolean value)
-#allow_credentials = true
-
-# Indicate which headers are safe to expose to the API.
-# Defaults to HTTP Simple Headers. (list value)
-#expose_headers =
-
-# Maximum cache age of CORS preflight requests. (integer
-# value)
-#max_age = 3600
-
-# Indicate which methods can be used during the actual
-# request. (list value)
-#allow_methods = OPTIONS,GET,HEAD,POST,PUT,DELETE,TRACE,PATCH
-
-# Indicate which header field names may be used during the
-# actual request. (list value)
-#allow_headers =
-
-
 [database]
 
 #
@@ -1289,6 +1256,10 @@
 # set this to no value. Example: mysql_sql_mode= (string
 # value)
 #mysql_sql_mode = TRADITIONAL
+
+# If True, transparently enables support for handling MySQL
+# Cluster (NDB). (boolean value)
+#mysql_enable_ndb = false
 
 # Timeout before idle SQL connections are reaped. (integer
 # value)
@@ -2045,11 +2016,11 @@
 # should not be an "admin" endpoint, as it should be
 # accessible by all end users. Unauthenticated clients are
 # redirected to this endpoint to authenticate. Although this
-# endpoint should  ideally be unversioned, client support in
-# the wild varies.  If you're using a versioned v2 endpoint
-# here, then this  should *not* be the same endpoint the
-# service user utilizes  for validating tokens, because normal
-# end users may not be  able to reach that endpoint. (string
+# endpoint should ideally be unversioned, client support in
+# the wild varies. If you're using a versioned v2 endpoint
+# here, then this should *not* be the same endpoint the
+# service user utilizes for validating tokens, because normal
+# end users may not be able to reach that endpoint. (string
 # value)
 #auth_uri = <None>
 
@@ -3390,8 +3361,50 @@
 #
 # * messaging://: use oslo_messaging driver for sending
 # notifications.
+# * mongodb://127.0.0.1:27017 : use mongodb driver for sending
+# notifications.
+# * elasticsearch://127.0.0.1:9200 : use elasticsearch driver
+# for sending
+# notifications.
 #  (string value)
 #connection_string = messaging://
+
+#
+# Document type for notification indexing in elasticsearch.
+#  (string value)
+#es_doc_type = notification
+
+#
+# This parameter is a time value parameter (for example:
+# es_scroll_time=2m),
+# indicating for how long the nodes that participate in the
+# search will maintain
+# relevant resources in order to continue and support it.
+#  (string value)
+#es_scroll_time = 2m
+
+#
+# Elasticsearch splits large requests in batches. This
+# parameter defines
+# maximum size of each batch (for example:
+# es_scroll_size=10000).
+#  (integer value)
+#es_scroll_size = 10000
+
+#
+# Redissentinel provides a timeout option on the connections.
+# This parameter defines that timeout (for example:
+# socket_timeout=0.1).
+#  (floating point value)
+#socket_timeout = 0.1
+
+#
+# Redissentinel uses a service name to identify a master redis
+# service.
+# This parameter defines the name (for example:
+# sentinal_service_name=mymaster).
+#  (string value)
+#sentinel_service_name = mymaster
 
 
 [pxe]
