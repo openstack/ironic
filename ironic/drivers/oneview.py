@@ -21,12 +21,41 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
+from ironic.drivers import generic
+from ironic.drivers.modules import noop
 from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy
 from ironic.drivers.modules.oneview import inspect
 from ironic.drivers.modules.oneview import management
 from ironic.drivers.modules.oneview import power
 from ironic.drivers.modules import pxe
+
+
+class OneViewHardware(generic.GenericHardware):
+    """OneView hardware type.
+
+    OneView hardware type is targeted for OneView
+    """
+
+    @property
+    def supported_deploy_interfaces(self):
+        """List of supported deploy interfaces."""
+        return [deploy.OneViewIscsiDeploy, deploy.OneViewAgentDeploy]
+
+    @property
+    def supported_inspect_interfaces(self):
+        """List of supported inspect interfaces."""
+        return [inspect.OneViewInspect, noop.NoInspect]
+
+    @property
+    def supported_management_interfaces(self):
+        """List of supported management interfaces."""
+        return [management.OneViewManagement]
+
+    @property
+    def supported_power_interfaces(self):
+        """List of supported power interfaces."""
+        return [power.OneViewPower]
 
 
 class AgentPXEOneViewDriver(base.BaseDriver):
