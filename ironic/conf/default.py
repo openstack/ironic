@@ -271,16 +271,14 @@ service_opts = [
     cfg.StrOpt('pin_release_version',
                choices=versions.RELEASE_VERSIONS,
                # TODO(xek): mutable=True,
-               help=_('WARNING: This configuration option is part of the '
-                      'incomplete rolling upgrades work. Do not change this '
-                      'from the default value. '
-                      'Used for rolling upgrades. Setting this option '
+               help=_('Used for rolling upgrades. Setting this option '
                       'downgrades (or pins) the internal ironic RPC '
-                      'communication to the specified version to enable '
-                      'communication with older services. When doing a '
-                      'rolling upgrade from version X to version Y, set (pin) '
-                      'this to X. To unpin, leave it unset. Defaults to '
-                      'using the newest possible RPC behavior.')),
+                      'communication and database objects to their respective '
+                      'versions, so they are compatible with older services. '
+                      'When doing a rolling upgrade from version N to version '
+                      'N+1, set (to pin) this to N. To unpin (default), leave '
+                      'it unset and the latest versions of RPC communication '
+                      'and database objects will be used.')),
 ]
 
 utils_opts = [
