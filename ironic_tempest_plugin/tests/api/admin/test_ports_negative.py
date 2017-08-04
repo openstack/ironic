@@ -354,7 +354,7 @@ class TestPortsWithPhysicalNetworkOldAPI(base.BaseBaremetalTest):
         node_id = self.node['uuid']
         address = data_utils.rand_mac_address()
 
-        self.assertRaises(lib_exc.UnexpectedResponseCode,
+        self.assertRaises((lib_exc.BadRequest, lib_exc.UnexpectedResponseCode),
                           self.create_port,
                           node_id=node_id, address=address,
                           physical_network='physnet1')
@@ -371,7 +371,7 @@ class TestPortsWithPhysicalNetworkOldAPI(base.BaseBaremetalTest):
                   'op': 'replace',
                   'value': new_physnet}]
 
-        self.assertRaises(lib_exc.UnexpectedResponseCode,
+        self.assertRaises((lib_exc.BadRequest, lib_exc.UnexpectedResponseCode),
                           self.client.update_port,
                           port['uuid'], patch)
 
