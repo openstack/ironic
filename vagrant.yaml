@@ -116,7 +116,7 @@
           }
         - {
             section: 'DEFAULT',
-            option: 'enabled_drivers', value: 'pxe_ssh, agent_ssh, fake'
+            option: 'enabled_drivers', value: 'pxe_ipmitool, agent_ipmitool, fake'
             # All other testing drivers require add'l packages
             # and should be enabled locally, if desired
           }

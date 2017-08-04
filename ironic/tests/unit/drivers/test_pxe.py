@@ -35,23 +35,12 @@ from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe as pxe_module
 from ironic.drivers.modules import snmp
-from ironic.drivers.modules import ssh
 from ironic.drivers.modules.ucs import management as ucs_management
 from ironic.drivers.modules.ucs import power as ucs_power
 from ironic.drivers import pxe
 
 
 class PXEDriversTestCase(testtools.TestCase):
-
-    def test_pxe_ssh_driver(self):
-        driver = pxe.PXEAndSSHDriver()
-
-        self.assertIsInstance(driver.power, ssh.SSHPower)
-        self.assertIsInstance(driver.boot, pxe_module.PXEBoot)
-        self.assertIsInstance(driver.deploy, iscsi_deploy.ISCSIDeploy)
-        self.assertIsInstance(driver.management, ssh.SSHManagement)
-        self.assertIsNone(driver.inspect)
-        self.assertIsInstance(driver.raid, agent.AgentRAID)
 
     @mock.patch.object(pxe.importutils, 'try_import', spec_set=True,
                        autospec=True)

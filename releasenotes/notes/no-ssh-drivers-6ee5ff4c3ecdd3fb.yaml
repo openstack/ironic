@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    SSH-based power and management driver interfaces were removed from ironic.
+    The drivers ``pxe_ssh``, ``agent_ssh`` and ``fake_ssh`` are no longer
+    available.
+    Operators are required to ensure that these drivers are not used
+    or enabled (in ``[DEFAULT]enabled_drivers`` configuration file option)
+    in their ironic installation before upgrade.

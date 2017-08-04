@@ -1045,12 +1045,12 @@ class TestListNodes(test_api_base.BaseApiTest):
     def test_get_nodes_by_driver(self):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
-                                          driver='pxe_ssh')
+                                          driver='pxe_ipmitool')
         node1 = obj_utils.create_test_node(self.context,
                                            uuid=uuidutils.generate_uuid(),
                                            driver='fake')
 
-        data = self.get_json('/nodes?driver=pxe_ssh',
+        data = self.get_json('/nodes?driver=pxe_ipmitool',
                              headers={api_base.Version.string: "1.16"})
         uuids = [n['uuid'] for n in data['nodes']]
         self.assertIn(node.uuid, uuids)

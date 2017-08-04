@@ -41,7 +41,6 @@ from ironic.drivers.modules.irmc import power as irmc_power
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import snmp
-from ironic.drivers.modules import ssh
 from ironic.drivers.modules.ucs import management as ucs_mgmt
 from ironic.drivers.modules.ucs import power as ucs_power
 
@@ -49,32 +48,6 @@ from ironic.drivers.modules.ucs import power as ucs_power
 # For backward compatibility
 PXEAndIPMIToolDriver = ipmi.PXEAndIPMIToolDriver
 PXEAndIPMIToolAndSocatDriver = ipmi.PXEAndIPMIToolAndSocatDriver
-
-
-class PXEAndSSHDriver(base.BaseDriver):
-    """PXE + SSH driver.
-
-    NOTE: This driver is meant only for testing environments.
-
-    This driver implements the `core` functionality, combining
-    :class:`ironic.drivers.modules.ssh.SSH` for power on/off and
-    reboot of virtual machines tunneled over SSH, with
-    :class:`ironic.drivers.modules.iscsi_deploy.ISCSIDeploy` for
-    image deployment. Implementations are in those respective
-    classes; this class is merely the glue between them.
-    """
-
-    supported = False
-
-    def __init__(self):
-        self.power = ssh.SSHPower()
-        self.boot = pxe.PXEBoot()
-        self.deploy = iscsi_deploy.ISCSIDeploy()
-        self.management = ssh.SSHManagement()
-        self.inspect = inspector.Inspector.create_if_enabled(
-            'PXEAndSSHDriver')
-        self.raid = agent.AgentRAID()
-        self.console = ssh.ShellinaboxConsole()
 
 
 class PXEAndIloDriver(base.BaseDriver):

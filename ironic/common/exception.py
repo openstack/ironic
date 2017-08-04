@@ -481,14 +481,6 @@ class IPMIFailure(IronicException):
     _msg_fmt = _("IPMI call failed: %(cmd)s.")
 
 
-class SSHConnectFailed(IronicException):
-    _msg_fmt = _("Failed to establish SSH connection to host %(host)s.")
-
-
-class SSHCommandFailed(IronicException):
-    _msg_fmt = _("Failed to execute command via SSH: %(cmd)s.")
-
-
 class UnsupportedDriverExtension(Invalid):
     _msg_fmt = _('Driver %(driver)s does not support %(extension)s '
                  '(disabled or not implemented).')

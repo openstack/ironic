@@ -85,10 +85,8 @@ Currently it is supported by the following generic drivers::
 
     pxe_ipmitool
     pxe_ipminative
-    pxe_ssh
     agent_ipmitool
     agent_ipminative
-    agent_ssh
     fake_inspector
 
 It is also the default inspection approach for the following vendor drivers::

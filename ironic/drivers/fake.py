@@ -46,7 +46,6 @@ from ironic.drivers.modules.oneview import management as oneview_management
 from ironic.drivers.modules.oneview import power as oneview_power
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import snmp
-from ironic.drivers.modules import ssh
 from ironic.drivers.modules.ucs import management as ucs_mgmt
 from ironic.drivers.modules.ucs import power as ucs_power
 from ironic.drivers import utils
@@ -110,18 +109,6 @@ class FakePXEDriver(base.BaseDriver):
         self.power = fake.FakePower()
         self.boot = pxe.PXEBoot()
         self.deploy = iscsi_deploy.ISCSIDeploy()
-
-
-class FakeSSHDriver(base.BaseDriver):
-    """Example implementation of a Driver."""
-
-    supported = False
-
-    def __init__(self):
-        self.power = ssh.SSHPower()
-        self.deploy = fake.FakeDeploy()
-        self.management = ssh.SSHManagement()
-        self.console = ssh.ShellinaboxConsole()
 
 
 class FakeAgentDriver(base.BaseDriver):

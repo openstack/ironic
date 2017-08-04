@@ -481,7 +481,6 @@ and uses the ``agent_ipmitool`` driver by default::
 
     # Create 3 virtual machines to pose as Ironic's baremetal nodes.
     IRONIC_VM_COUNT=3
-    IRONIC_VM_SSH_PORT=22
     IRONIC_BAREMETAL_BASIC_OPS=True
     DEFAULT_INSTANCE_TYPE=baremetal
 
@@ -612,8 +611,8 @@ It should be powered on and in a 'wait call-back' provisioning state::
     | 4099e31c-576c-48f8-b460-75e1b14e497f | node-2 | a2c7f812-e386-4a22-b393-fe1802abd56e | power on    | wait call-back     | False       |
     +--------------------------------------+--------+--------------------------------------+-------------+--------------------+-------------+
 
-At this point, Ironic conductor has called to libvirt via SSH to power on a
-virtual machine, which will PXE + TFTP boot from the conductor node and
+At this point, Ironic conductor has called to libvirt (via virtualbmc) to
+power on a virtual machine, which will PXE + TFTP boot from the conductor node and
 progress through the Ironic provisioning workflow.  One libvirt domain should
 be active now::
 

@@ -177,7 +177,7 @@ Enable driver
 4. Add the driver name to the list of ``enabled_drivers`` in
    ``/etc/ironic/ironic.conf``.  For example, for `iscsi_ilo` driver::
 
-    enabled_drivers = fake,pxe_ssh,pxe_ipmitool,iscsi_ilo
+    enabled_drivers = fake,pxe_ipmitool,iscsi_ilo
 
    Similarly it can be added for ``agent_ilo`` and ``pxe_ilo`` drivers.
 
@@ -570,7 +570,7 @@ Configuring and Enabling the driver
 3. Add ``pxe_ilo`` to the list of ``enabled_drivers`` in
    ``/etc/ironic/ironic.conf``.  For example:::
 
-    enabled_drivers = fake,pxe_ssh,pxe_ipmitool,pxe_ilo
+    enabled_drivers = fake,pxe_ipmitool,pxe_ilo
 
 4. Restart the ironic conductor service::
 
