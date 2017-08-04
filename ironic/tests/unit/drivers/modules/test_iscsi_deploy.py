@@ -36,6 +36,7 @@ from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import iscsi_deploy
+from ironic.drivers.modules.network import flat as flat_network
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.drivers import utils as driver_utils
@@ -593,8 +594,8 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
                        autospec=True)
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
-                'add_provisioning_network', spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
+                       spec_set=True, autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
     def test_prepare_node_active(self, prepare_instance_mock,
                                  add_provisioning_net_mock,
@@ -611,8 +612,8 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             storage_driver_info_mock.assert_called_once_with(task)
         self.assertFalse(storage_attach_volumes_mock.called)
 
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
-                'add_provisioning_network', spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
+                       spec_set=True, autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
     def test_prepare_node_adopting(self, prepare_instance_mock,
                                    add_provisioning_net_mock):
@@ -631,10 +632,11 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
-                'add_provisioning_network', spec_set=True, autospec=True)
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
-                'unconfigure_tenant_networks', spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
     def test_prepare_node_deploying(
             self, unconfigure_tenant_net_mock, add_provisioning_net_mock,
             mock_prepare_ramdisk, mock_agent_options,
@@ -654,6 +656,41 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             storage_attach_volumes_mock.assert_called_once_with(
                 task.driver.storage, task)
 
+    @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
+                       autospec=True)
+    @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
+    def test_prepare_node_deploying_storage_should_write_false(
+            self, unconfigure_tenant_net_mock, add_provisioning_net_mock,
+            mock_prepare_ramdisk, mock_agent_options,
+            storage_driver_info_mock, storage_attach_volumes_mock,
+            storage_should_write_mock):
+        storage_should_write_mock.return_value = False
+        mock_agent_options.return_value = {'c': 'd'}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.provision_state = states.DEPLOYING
+
+            task.driver.deploy.prepare(task)
+
+            mock_agent_options.assert_called_once_with(task.node)
+            mock_prepare_ramdisk.assert_called_once_with(
+                task.driver.boot, task, {'c': 'd'})
+            self.assertFalse(add_provisioning_net_mock.called)
+            self.assertFalse(unconfigure_tenant_net_mock.called)
+            storage_driver_info_mock.assert_called_once_with(task)
+            storage_attach_volumes_mock.assert_called_once_with(
+                task.driver.storage, task)
+            self.assertEqual(1, storage_should_write_mock.call_count)
+
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(iscsi_deploy, 'check_image_size', autospec=True)
     @mock.patch.object(iscsi_deploy, 'cache_instance_image', autospec=True)
@@ -670,10 +707,12 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
                        autospec=True)
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
-                'configure_tenant_networks', spec_set=True, autospec=True)
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
-                'remove_provisioning_network', spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'configure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'remove_provisioning_network',
+                       spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(iscsi_deploy, 'check_image_size', autospec=True)
     @mock.patch.object(iscsi_deploy, 'cache_instance_image', autospec=True)
@@ -699,8 +738,9 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
 
     @mock.patch.object(noop_storage.NoopStorage, 'detach_volumes',
                        autospec=True)
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
-                'unconfigure_tenant_networks', autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     def test_tear_down(self, node_power_action_mock,
                        unconfigure_tenant_nets_mock,

@@ -338,6 +338,9 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
             # NOTE(TheJulia): There is no reason to validate
             # image properties if we will not be writing an image
             # in a boot from volume case. As such, return to the caller.
+            LOG.debug('Skipping complete deployment interface validation '
+                      'for node %s as it is set to boot from a remote '
+                      'volume.', node.uuid)
             return
 
         params = {}

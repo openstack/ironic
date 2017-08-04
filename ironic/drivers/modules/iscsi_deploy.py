@@ -427,6 +427,9 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
         # Edit early if we are not writing a volume as the validate
         # tasks evaluate root device hints.
         if not task.driver.storage.should_write_image(task):
+            LOG.debug('Skipping complete deployment interface validation '
+                      'for node %s as it is set to boot from a remote '
+                      'volume.', node.uuid)
             return
 
         # TODO(rameshg87): iscsi_ilo driver uses this method. Remove
@@ -521,8 +524,9 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
                 manager_utils.node_power_action(task, states.POWER_OFF)
                 # NOTE(vdrok): in case of rebuild, we have tenant network
                 # already configured, unbind tenant ports if present
-                task.driver.network.unconfigure_tenant_networks(task)
-                task.driver.network.add_provisioning_network(task)
+                if task.driver.storage.should_write_image(task):
+                    task.driver.network.unconfigure_tenant_networks(task)
+                    task.driver.network.add_provisioning_network(task)
                 task.driver.storage.attach_volumes(task)
 
             deploy_opts = deploy_utils.build_agent_options(node)

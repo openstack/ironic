@@ -29,6 +29,7 @@ from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import fake
+from ironic.drivers.modules.network import flat as flat_network
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.drivers import utils as driver_utils
@@ -300,8 +301,9 @@ class TestAgentDeploy(db_base.DbTestCase):
 
     @mock.patch.object(noop_storage.NoopStorage, 'detach_volumes',
                        autospec=True)
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
-                'unconfigure_tenant_networks', autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
     def test_tear_down(self, power_mock,
                        unconfigure_tenant_nets_mock,
@@ -328,10 +330,11 @@ class TestAgentDeploy(db_base.DbTestCase):
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
     @mock.patch.object(deploy_utils, 'build_agent_options')
     @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
-                'add_provisioning_network', autospec=True)
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
-                'unconfigure_tenant_networks', spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
     def test_prepare(
             self, unconfigure_tenant_net_mock, add_provisioning_net_mock,
             build_instance_info_mock, build_options_mock,
@@ -382,8 +385,8 @@ class TestAgentDeploy(db_base.DbTestCase):
     @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
                        autospec=True)
     @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info')
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
-                'add_provisioning_network', autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
+                       spec_set=True, autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance')
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
     @mock.patch.object(deploy_utils, 'build_agent_options')
@@ -407,8 +410,46 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertTrue(storage_driver_info_mock.called)
             self.assertFalse(storage_attach_volumes_mock.called)
 
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
-                'add_provisioning_network', autospec=True)
+    @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
+                       autospec=True)
+    @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
+                       autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
+                       autospec=True)
+    def test_prepare_storage_write_false(
+            self, build_instance_info_mock, build_options_mock,
+            pxe_prepare_ramdisk_mock, pxe_prepare_instance_mock,
+            remove_tenant_net_mock, add_provisioning_net_mock,
+            storage_driver_info_mock, storage_attach_volumes_mock,
+            should_write_image_mock):
+        should_write_image_mock.return_value = False
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            task.node.provision_state = states.DEPLOYING
+
+            self.driver.prepare(task)
+
+            self.assertFalse(build_instance_info_mock.called)
+            self.assertFalse(build_options_mock.called)
+            self.assertFalse(pxe_prepare_ramdisk_mock.called)
+            self.assertFalse(pxe_prepare_instance_mock.called)
+            self.assertFalse(add_provisioning_net_mock.called)
+            self.assertTrue(storage_driver_info_mock.called)
+            self.assertTrue(storage_attach_volumes_mock.called)
+            self.assertEqual(2, should_write_image_mock.call_count)
+
+    @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
+                       spec_set=True, autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
     @mock.patch.object(deploy_utils, 'build_agent_options')
     @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
@@ -426,8 +467,8 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertFalse(pxe_prepare_ramdisk_mock.called)
             self.assertFalse(add_provisioning_net_mock.called)
 
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
-                'add_provisioning_network', autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
+                       spec_set=True, autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
     @mock.patch.object(deploy_utils, 'build_agent_options')
     @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
