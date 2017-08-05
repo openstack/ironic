@@ -2153,6 +2153,11 @@ function ironic_configure_tempest {
         iniset $TEMPEST_CONFIG compute flavor_ref $bm_flavor_id
         iniset $TEMPEST_CONFIG compute flavor_ref_alt $bm_flavor_id
         iniset $TEMPEST_CONFIG compute-feature-enabled disk_config False
+        if [[ "$IRONIC_NETWORK_INTERFACE" == "neutron" && $IRONIC_VM_INTERFACE_COUNT -gt 1 ]]; then
+            iniset $TEMPEST_CONFIG compute-feature-enabled interface_attach True
+        else
+            iniset $TEMPEST_CONFIG compute-feature-enabled interface_attach False
+        fi
     fi
     # NOTE(jlvillal): If IRONIC_PROVISION_NETWORK_NAME is set it means that
     # nodes are using the neutron network driver / multi-tenant networking.
