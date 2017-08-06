@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Adds a new hardware type, ``idrac``, for Dell EMC integrated Dell Remote
+    Access Controllers (iDRAC). ``idrac`` hardware type supports PXE-based
+    provisioning using an iDRAC. It supports the following driver interfaces:
+
+    * boot: ``pxe``
+    * console: ``no-console``
+    * deploy: ``iscsi`` and ``direct``
+    * inspect: ``idrac``, ``inspector``, and ``no-inspect``
+    * management: ``idrac``
+    * network: ``flat``, ``neutron``, and ``noop``
+    * power:  ``idrac``
+    * raid: ``idrac`` and ``no-raid``
+    * storage: ``noop`` and ``cinder``
+    * vendor: ``idrac``
