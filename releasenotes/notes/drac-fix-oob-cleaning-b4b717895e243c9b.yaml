@@ -1,7 +1,6 @@
 ---
 fixes:
-  - Fixes issue where RAID creation/deletion done as part of out-of-band
-    cleaning would frequently fail when using the iDRAC driver due to
-    Export Configuration job running.  For more information, see
-    https://bugs.launchpad.net/ironic/+bug/1691808.  Note that this fix
-    requires python-dracclient version 1.3.0 or higher.
+  - Fixes `bug 1691808 <https://bugs.launchpad.net/ironic/+bug/1691808>`_
+    causing RAID creation/deletion to frequently fail when using the iDRAC
+    driver due to an *Export Configuration* job running. The fix requires
+    the ``python-dracclient`` library of version 1.3.0 or higher.

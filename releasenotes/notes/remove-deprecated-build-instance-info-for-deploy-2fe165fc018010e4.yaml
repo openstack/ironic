@@ -1,8 +1,8 @@
 ---
-upgrade:
+other:
   - |
-    The method build_instance_info_for_deploy() from
-    ironic.drivers.modules.agent was deprecated in Ocata cycle (7.0.0).
-    It is no longer supported. Please use the method
-    build_instance_info_for_deploy() from ironic.drivers.modules.deploy_utils
-    instead.
+    The method ``build_instance_info_for_deploy()`` from the
+    ``ironic.drivers.modules.agent`` module was deprecated in the Ocata cycle
+    (version 7.0.0). It is no longer available. Please use the method
+    ``build_instance_info_for_deploy()`` from the
+    ``ironic.drivers.modules.deploy_utils`` module instead.

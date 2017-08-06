@@ -2,4 +2,5 @@
 fixes:
   - |
     Fixes an issue where some internal information for a node was not being
-    saved to the database.
+    saved to the database. See `bug 1679297
+    <https://bugs.launchpad.net/ironic/+bug/1679297>`_ for details.

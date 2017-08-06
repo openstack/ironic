@@ -1,5 +1,5 @@
 ---
 features:
-  - Passes port group information (``portgroup.mode`` and
-    ``portgroup.properties``) to Neutron via Neutron ``port.binding:profile``
-    field.
+  - Port group information (``mode`` and ``properties`` fields)
+    is now passed to Neutron via the port's ``binding:profile`` field.
+    This allows an ML2 driver to configure the port bonding automatically.

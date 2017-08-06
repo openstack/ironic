@@ -1,16 +1,17 @@
 ---
 features:
-  - Adds support for storing the configdrive in radosgw using
-    the swift API.
+  - |
+    Adds support for storing the configdrive in `Ceph Object Gateway
+    <http://docs.ceph.com/docs/master/radosgw/>`_ (radosgw) instead
+    of the OpenStack Object service (swift) using the compatible API.
   - |
     Adds support to use the radosgw authentication mechanism that relies
-    on username and password instead of auth token.
+    on a user name and a password instead of an authentication token.
     The following options must be specified in ironic configuration file:
 
-     * ``[swift]/auth_url``
-     * ``[swift]/username``
-     * ``[swift]/password``
-
+    * ``[swift]/auth_url``
+    * ``[swift]/username``
+    * ``[swift]/password``
 deprecations:
   - The ``[conductor]/configdrive_use_swift`` and
     ``[glance]/temp_url_endpoint_type`` options are deprecated and will be
@@ -18,6 +19,6 @@ deprecations:
     Use ``[deploy]/configdrive_use_object_store`` and
     ``[deploy]/object_store_endpoint_type`` respectively instead.
 upgrade:
-  - Adds a ``[deploy]/object_store_endpoint_type`` option to specify the
+  - Adds the ``[deploy]/object_store_endpoint_type`` option to specify the
     type of endpoint to use for instance images and configdrive storage.
-    Allowed values are 'swift' or 'radosgw'. The default is 'swift'.
+    Allowed values are ``swift`` or ``radosgw``. The default is ``swift``.

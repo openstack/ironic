@@ -1,5 +1,6 @@
 ---
 fixes:
-  - Fix handling of whole disk images with 0x00000000 disk identifier.
-    Instances failed to boot as the identifier in boot config was overwritten
-    during config drive creation. See https://bugs.launchpad.net/ironic/+bug/1685093
+  - Fix handling of whole disk images with disk identifier 0x00000000.
+    Instances failed to boot as the identifier in the boot config was
+    overwritten during config drive creation. See `bug 1685093
+    <https://bugs.launchpad.net/ironic/+bug/1685093>`_.
