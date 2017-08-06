@@ -20,6 +20,7 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
+from ironic.drivers import generic
 from ironic.drivers.modules.drac import inspect as drac_inspect
 from ironic.drivers.modules.drac import management
 from ironic.drivers.modules.drac import power
@@ -27,7 +28,44 @@ from ironic.drivers.modules.drac import raid
 from ironic.drivers.modules.drac import vendor_passthru
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import iscsi_deploy
+from ironic.drivers.modules import noop
 from ironic.drivers.modules import pxe
+
+
+class IDRACHardware(generic.GenericHardware):
+    """integrated Dell Remote Access Controller hardware type"""
+
+    # Required hardware interfaces
+
+    @property
+    def supported_management_interfaces(self):
+        """List of supported management interfaces."""
+        return [management.DracManagement]
+
+    @property
+    def supported_power_interfaces(self):
+        """List of supported power interfaces."""
+        return [power.DracPower]
+
+    # Optional hardware interfaces
+
+    @property
+    def supported_inspect_interfaces(self):
+        """List of supported inspect interfaces."""
+        # Inspector support should have a higher priority than NoInspect
+        # if it is enabled by an operator (implying that the service is
+        # installed).
+        return [drac_inspect.DracInspect, inspector.Inspector, noop.NoInspect]
+
+    @property
+    def supported_raid_interfaces(self):
+        """List of supported raid interfaces."""
+        return [raid.DracRAID, noop.NoRAID]
+
+    @property
+    def supported_vendor_interfaces(self):
+        """List of supported vendor interfaces."""
+        return [vendor_passthru.DracVendorPassthru]
 
 
 class PXEDracDriver(base.BaseDriver):
