@@ -16,9 +16,7 @@ configured on the switch have to correspond to the mode and properties that
 will be configured on the ironic side, as bonding mode and properties may be
 named differently on your switch, or have possible values different from the
 ones described in `kernel documentation on bonding`_. Please refer to your
-switch configuration documentation for more details. In the future, we may
-pass the port group mode and properties to ML2 drivers so that they can do the
-configuration automatically, but it is not supported as of now.
+switch configuration documentation for more details.
 
 Provisioning and cleaning cannot make use of port groups if they need to boot
 the deployment ramdisk via (i)PXE. If your switches or desired port group
