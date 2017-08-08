@@ -273,7 +273,7 @@ class HeartbeatMixin(object):
         # NOTE(pas-ha) immediately skip the rest if nothing to do
         if task.node.provision_state not in self.heartbeat_allowed_states:
             LOG.debug('Heartbeat from node %(node)s in unsupported '
-                      'provision state %(state), not taking any action.',
+                      'provision state %(state)s, not taking any action.',
                       {'node': task.node.uuid,
                        'state': task.node.provision_state})
             return
