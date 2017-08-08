@@ -22,6 +22,22 @@ previous release of ironic, append the OpenStack release name to the URL; for
 example, the ``ocata`` release is available at
 http://docs.openstack.org/ironic/ocata/.
 
+Installation Guide
+==================
+
+.. toctree::
+  :maxdepth: 2
+
+  install/index
+
+Upgrade Guide
+=============
+
+.. toctree::
+  :maxdepth: 2
+
+  admin/upgrade-guide
+
 User Guide
 ==========
 
@@ -38,25 +54,13 @@ Administrator Guide
 
   admin/index
 
-Configuration Reference
-=======================
+Configuration Guide
+===================
 
 .. toctree::
   :maxdepth: 2
 
   configuration/index
-
-Driver References
-=================
-
-Every driver author is expected to document the use and configuration of their
-driver. These pages are linked below.
-
-.. toctree::
-  :maxdepth: 1
-
-  Driver Documentation pages <admin/drivers>
-  Further Considerations for the Agent Drivers <admin/drivers/ipa>
 
 Bare Metal API References
 =========================
@@ -89,6 +93,11 @@ Contributor Guide
    :maxdepth: 2
 
    contributor/index
+
+Release Notes
+=============
+
+`Release Notes <http://docs.openstack.org/releasenotes/ironic/>`_
 
 Indices and tables
 ==================

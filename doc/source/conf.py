@@ -21,7 +21,9 @@ extensions = ['sphinx.ext.autodoc',
               'sphinxcontrib.pecanwsme.rest',
               'sphinxcontrib.seqdiag',
               'wsmeext.sphinxext',
+              'oslo_config.sphinxext',
               'oslo_config.sphinxconfiggen',
+              'oslo_policy.sphinxext',
               'oslo_policy.sphinxpolicygen',
               ]
 
