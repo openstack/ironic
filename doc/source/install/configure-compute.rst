@@ -56,11 +56,6 @@ service's controller nodes and compute nodes.
       #reserved_host_disk_mb=0
       reserved_host_memory_mb=0
 
-      # Flag to decide whether to use baremetal_scheduler_default_filters or not.
-      # (boolean value)
-      #scheduler_use_baremetal_filters=False
-      scheduler_use_baremetal_filters=True
-
       # Determines if the Scheduler tracks changes to instances to help with
       # its filtering decisions (boolean value)
       #scheduler_tracks_instance_changes=True
@@ -73,6 +68,21 @@ service's controller nodes and compute nodes.
       # to more evenly distribute instances across the nodes.
       #scheduler_host_subset_size=1
       scheduler_host_subset_size=9999999
+
+    If you have not migrated to using :ref:`scheduling-resource-classes`, then
+    the following should be set as well:
+
+    .. code-block:: ini
+
+      [default]
+
+      # Flag to decide whether to use baremetal_scheduler_default_filters or not.
+      # (boolean value)
+      #scheduler_use_baremetal_filters=False
+      scheduler_use_baremetal_filters=True
+
+    This option is deprecated and has to be unset after migration
+    to resource classes.
 
 #. Change these configuration options in the ``ironic`` section.
    Replace:

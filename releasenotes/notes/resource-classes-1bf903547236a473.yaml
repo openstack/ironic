@@ -1,0 +1,15 @@
+---
+upgrade:
+  - |
+    Due to upcoming changes in the way Nova schedules bare metal nodes, all
+    nodes in a deployment using Nova have to get the ``resource_class`` field
+    populated before the upgrade. See `enrollment documentation
+    <https://docs.openstack.org/ironic/latest/install/enrollment.html#enrollment-process>`_
+    and `flavor configuration documentation
+    <https://docs.openstack.org/ironic/latest/install/configure-nova-flavors.html#scheduling-based-on-resource-classes>`_
+    for details.
+
+    Once you've migrated your flavors to resource classes, you should unset
+    the deprecated ``use_baremetal_filters`` option in the Compute service
+    configuration. Otherwise you'll be using the filters incompatible with
+    scheduling based on resource classes.

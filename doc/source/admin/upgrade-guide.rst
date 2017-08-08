@@ -42,7 +42,7 @@ Plan your Upgrade
 Upgrading from Ocata to Pike
 ============================
 
-#. It is recommended to set the ``resource_class`` field for nodes registered
+#. It is required to set the ``resource_class`` field for nodes registered
    with the Bare Metal service *before* using the Pike version of the Compute
    service. See `enrollment documentation
    <https://docs.openstack.org/project-install-guide/baremetal/draft/enrollment.html#enrollment-process>`_
