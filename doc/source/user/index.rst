@@ -1,8 +1,8 @@
 .. _user-guide:
 
-======================
-Introduction to Ironic
-======================
+=============================
+Bare Metal Service User Guide
+=============================
 
 Ironic is an OpenStack project which provisions bare metal (as opposed to
 virtual) machines. It may be used independently or as part of an OpenStack

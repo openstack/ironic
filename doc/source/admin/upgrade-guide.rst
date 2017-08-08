@@ -321,6 +321,11 @@ Upgrading from Ocata to Pike
 Other upgrade instructions are in the `Pike release notes
 <https://docs.openstack.org/releasenotes/ironic/pike.html>`_.
 
+.. toctree::
+  :maxdepth: 1
+
+  upgrade-to-hardware-types.rst
+
 
 Upgrading from Newton to Ocata
 ==============================
