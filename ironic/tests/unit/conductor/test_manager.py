@@ -655,6 +655,54 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         for iface_name in self.IFACE_UPDATE_DICT:
             self._test_update_node_interface_invalid(node, iface_name)
 
+    def _test_update_node_change_resource_class(self, state,
+                                                resource_class=None,
+                                                new_resource_class='new',
+                                                expect_error=False):
+        node = obj_utils.create_test_node(self.context, driver='fake',
+                                          uuid=uuidutils.generate_uuid(),
+                                          provision_state=state,
+                                          resource_class=resource_class)
+        self.addCleanup(node.destroy)
+
+        node.resource_class = new_resource_class
+        if expect_error:
+            exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                    self.service.update_node,
+                                    self.context,
+                                    node)
+            # Compare true exception hidden by @messaging.expected_exceptions
+            self.assertEqual(exception.InvalidState, exc.exc_info[0])
+
+            # verify change did not happen
+            res = objects.Node.get_by_uuid(self.context, node['uuid'])
+            self.assertEqual(resource_class, res['resource_class'])
+        else:
+            self.service.update_node(self.context, node)
+
+            res = objects.Node.get_by_uuid(self.context, node['uuid'])
+            self.assertEqual('new', res['resource_class'])
+
+    def test_update_resource_class_allowed_state(self):
+        for state in [states.ENROLL, states.MANAGEABLE, states.INSPECTING,
+                      states.AVAILABLE]:
+            self._test_update_node_change_resource_class(
+                state, resource_class='old', expect_error=False)
+
+    def test_update_resource_class_no_previous_value(self):
+        for state in [states.ENROLL, states.MANAGEABLE, states.INSPECTING,
+                      states.AVAILABLE, states.ACTIVE]:
+            self._test_update_node_change_resource_class(
+                state, resource_class=None, expect_error=False)
+
+    def test_update_resource_class_not_allowed(self):
+        self._test_update_node_change_resource_class(
+            states.ACTIVE, resource_class='old', new_resource_class='new',
+            expect_error=True)
+        self._test_update_node_change_resource_class(
+            states.ACTIVE, resource_class='old', new_resource_class=None,
+            expect_error=True)
+
 
 @mgr_utils.mock_record_keepalive
 class VendorPassthruTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
