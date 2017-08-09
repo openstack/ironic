@@ -20,8 +20,8 @@ The following sections will describe both methods.
    with diskimage-builder_ **version >= 0.1.42** or ironic-python-agent_
    in the kilo-era.
 
-.. _diskimage-builder: http://docs.openstack.org/developer/diskimage-builder/
-.. _ironic-python-agent: http://docs.openstack.org/developer/ironic-python-agent/ocata/
+.. _diskimage-builder: http://docs.openstack.org/developer/diskimage-builder
+.. _ironic-python-agent: http://docs.openstack.org/ironic-python-agent/ocata/
 
 
 Enabling local boot with Compute service

@@ -123,4 +123,4 @@ following command.
     $ ironic node-set-maintenance $NODE_UUID off
 
 
-.. _ironic-python-agent: http://docs.openstack.org/developer/ironic-python-agent/ocata/
+.. _ironic-python-agent: http://docs.openstack.org/ironic-python-agent/ocata/

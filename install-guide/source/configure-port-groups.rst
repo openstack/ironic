@@ -5,4 +5,4 @@ Configure port groups
 
 See `Port groups configuration in Bare Metal service`_.
 
-.. _`Port groups configuration in Bare Metal service`: http://docs.openstack.org/developer/ironic/ocata/deploy/portgroups.html
+.. _`Port groups configuration in Bare Metal service`: http://docs.openstack.org/ironic/ocata/deploy/portgroups.html
