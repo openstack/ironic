@@ -50,8 +50,3 @@ class ConductorStartTestCase(db_base.DbTestCase):
                               'deploy')
         conductor.warn_about_unsafe_shred_parameters(cfg.CONF)
         self.assertTrue(log_mock.warning.called)
-
-    @mock.patch.object(conductor, 'LOG', autospec=True)
-    def test_warn_on_missing_default_boot_option(self, log_mock):
-        conductor.warn_about_missing_default_boot_option(cfg.CONF)
-        self.assertTrue(log_mock.warning.called)

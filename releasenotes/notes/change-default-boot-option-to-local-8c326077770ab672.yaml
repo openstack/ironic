@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The default value of ``[deploy]/default_boot_option`` is changed from
+    ``netboot`` to ``local``.
+  - Due to the default boot option change, partition images without ``grub2``
+    will be unable to be deployed without the ``boot_option`` for the node
+    to be explicitly set to ``netboot``.

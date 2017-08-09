@@ -151,6 +151,7 @@
         IRONIC_ENABLED_POWER_INTERFACES: redfish
         IRONIC_ENABLED_MANAGEMENT_INTERFACES: redfish
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        IRONIC_DEFAULT_BOOT_OPTION: netboot
 
 - job:
     name: ironic-tempest-partition-uefi-redfish-vmedia
@@ -198,6 +199,7 @@
         IRONIC_ENABLED_BOOT_INTERFACES: "fake,pxe"
         IRONIC_IPXE_ENABLED: False
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        IRONIC_DEFAULT_BOOT_OPTION: netboot
       devstack_services:
         mysql: False
         postgresql: True
@@ -248,6 +250,7 @@
         IRONIC_BOOT_MODE: uefi
         IRONIC_VM_SPECS_RAM: 3096
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        IRONIC_DEFAULT_BOOT_OPTION: netboot
 
 - job:
     name: ironic-tempest-ipa-partition-pxe_ipmitool
@@ -262,6 +265,7 @@
         # cause this job to fail easily due to the extra steps
         # and boot cycle of the cleaning operation.
         IRONIC_TEMPEST_BUILD_TIMEOUT: 850
+        IRONIC_DEFAULT_BOOT_OPTION: netboot
 
 - job:
     name: ironic-tempest-bfv
@@ -305,6 +309,7 @@
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
+        IRONIC_DEFAULT_BOOT_OPTION: netboot
       devstack_plugins:
         ironic-inspector: https://opendev.org/openstack/ironic-inspector
       devstack_services:
@@ -337,6 +342,7 @@
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         IRONIC_DEFAULT_RESCUE_INTERFACE: no-rescue
         IRONIC_ENABLED_RESCUE_INTERFACES: "fake,no-rescue"
+        IRONIC_DEFAULT_BOOT_OPTION: netboot
 
 - job:
     name: ironic-tempest-functional-python3
@@ -569,6 +575,7 @@
         IRONIC_IPXE_ENABLED: False
         IRONIC_BOOT_MODE: uefi
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        IRONIC_DEFAULT_BOOT_OPTION: netboot
 
 - job:
     # Security testing for known issues
