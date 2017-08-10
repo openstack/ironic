@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds a boolean flag called ``force_persistent_boot_device`` into
+    a node's ``driver_info`` to enable persistent behavior when you
+    set the boot device during deploy and cleaning operations. This
+    flag will override a non-persistent behavior in the cleaning and
+    deploy process.
+    For more information, see https://bugs.launchpad.net/ironic/+bug/1703945.
