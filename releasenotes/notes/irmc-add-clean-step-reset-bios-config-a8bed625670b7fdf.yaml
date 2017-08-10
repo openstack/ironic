@@ -1,16 +1,20 @@
 ---
 features:
-  - Adds new boot interface named ``irmc-pxe``.
+  - Adds new boot interface named ``irmc-pxe`` for PXE booting
+    FUJITSU PRIMERGY servers.
   - Adds clean step ``restore_irmc_bios_config`` to restore BIOS config
-    for a node during automatic cleaning.
+    for a node with an ``irmc``-based driver during automatic cleaning.
 upgrade:
   - Adds new configuration option
     ``[irmc]clean_priority_restore_irmc_bios_config``, which
-    enables setting priority for the clean step. Default value for
-    this option is 0, which means the clean step is disabled.
+    enables setting priority for the ``restore_irmc_bios_config`` clean step.
+    The default value for this option is 0, which means the clean step
+    is disabled.
 deprecations:
-  - Deprecates the boot interface ``pxe`` from using with hardware type
-    ``irmc``. It is recommended for operator to switch to use the boot
-    iterface ``irmc-pxe`` as soon as possible. Using the interface
-    ``pxe`` with ``irmc`` drivers will cause the reset bios feature
-    not to work even the priority option is set to enable.
+  - The use of the ``pxe`` boot interface with the ``irmc`` hardware typed has
+    been deprecated. It is recommended for to switch to the new ``irmc-pxe``
+    boot interface as soon as possible.
+issues:
+  - The ``restore_irmc_bios_config`` clean step does not work for nodes using
+    the ``pxe`` boot interface with the ``irmc`` hardware type.
+    The ``irmc-pxe`` boot interface has to be used instead.

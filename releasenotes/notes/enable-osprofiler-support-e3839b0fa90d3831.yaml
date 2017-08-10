@@ -1,17 +1,21 @@
 ---
 features:
   - |
-    Adds OSProfiler support. This cross-project profiling library
-    provides the ability to trace various OpenStack requests through all
-    OpenStack services that support it. To initiate OpenStack request tracing,
-    `--profile <HMAC_KEY>` option needs to be added to the CLI command.
-    As part of the output, there will be a message with <trace_id>.
-    To see the HTML graphs, the following command should be used -
-    `$ osprofiler trace show <trace_id> --html --out result.html`. See
-    OSProfiler documentation: http://docs.openstack.org/developer/osprofiler/.
+    Adds `OSProfiler <https://docs.openstack.org/osprofiler/latest/>`_ support.
+    This cross-project profiling library provides the ability to trace various
+    OpenStack requests through all OpenStack services that support it.
+
+    To initiate OpenStack request tracing, ``--os-profile <HMAC_KEY>`` option
+    needs to be added to an OpenStackClient command. As part of the output,
+    there will be a message with a Trace ID.
+
+    To see the HTML graphs, the following command should be used::
+
+        $ osprofiler trace show <trace_id> --html --out result.html
+
 security:
   - OSProfiler support requires passing of trace information between
     various OpenStack services. This information is securely signed
-    by one of HMAC keys, defined in ironic.conf configuration file.
-    To allow cross-project tracing, user should use the key that is
-    common among all OpenStack services he or she wants to trace.
+    by one of HMAC keys, defined in the ``ironic.conf`` configuration file.
+    To allow cross-project tracing, the same key should be used for all
+    OpenStack services.

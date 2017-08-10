@@ -1,20 +1,25 @@
 ---
 fixes:
   - |
-    Fixes a bug 1702158, where the wrong database engine is used for the
-    conductor_hardware_interfaces table, if the system is using MySQL prior to
-    version 5.5 (or the default_storage_engine option is set explicitly to
-    'MyISAM' in my.cnf). In this case, a table could be created with MyISAM
-    engine and foreign key constraint conductor_id(conductors.id) ignored.
+    Fixes database schema that could cause the wrong database engine to be
+    utilized for the ``conductor_hardware_interfaces`` table, if the system
+    is using MySQL prior to version 5.5 or the ``default_storage_engine``
+    option is set explicitly to 'MyISAM' in ``my.cnf``.
+    In this case, a table could be created with MyISAM engine, and the foreign
+    key constraint ``conductor_id(conductors.id)`` was ignored.
+    See `bug 1702158 <https://bugs.launchpad.net/ironic/+bug/1702158>`_
+    for details.
 upgrade:
   - |
-    Due to a bug 1702158, conductor_hardware_interfaces table could be created
-    with MyISAM database engine, while all other tables in ironic database are
+    Due to `bug 1702158 <https://bugs.launchpad.net/ironic/+bug/1702158>`_,
+    the ``conductor_hardware_interfaces`` table could be created with MyISAM
+    database engine, while all other tables in ironic database are
     using InnoDB engine. This could happen during initial installation, or
-    upgrade to ocata release, if the system is using MySQL prior to version 5.5
-    (or the default_storage_engine option is set explicitly to 'MyISAM' in
-    my.cnf). If this is the case, conductor_hardware_interfaces needs to be
-    manually migrated to InnoDB, and foreign key constraint re-created::
+    upgrade to the Ocata release, if the system was using MySQL prior to
+    version 5.5 or the ``default_storage_engine`` option was set explicitly
+    to 'MyISAM' in ``my.cnf``. If this is the case, the
+    ``conductor_hardware_interfaces`` table needs to be manually migrated
+    to InnoDB, and the foreign key constraint needs to be re-created::
 
       alter table conductor_hardware_interfaces engine='InnoDB';
       alter table conductor_hardware_interfaces

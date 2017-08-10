@@ -1,12 +1,12 @@
 ---
 features:
   - |
-    Adds support for Redfish with:
+    Adds support for the `Redfish <https://www.dmtf.org/standards/redfish>`_
+    standard via a new ``redfish`` hardware type. It uses two new interfaces:
 
-    * ``redfish`` hardware type
-    * ``redfish`` power interface that provides hard power
-      [on, off, reboot] and soft power [off, reboot]
-    * ``redfish`` management interface to set the boot device (PXE, disk,
-      cd-rom and bios) and its frequency (persistent or not); and NMI
-      injection SSL authentication
+    * ``redfish`` power interface supports all hard and soft power operations
+    * ``redfish`` management interface supports:
 
+      - getting and setting the boot device (PXE, disk, CD-ROM or BIOS)
+      - making the configured boot device persistent or not
+      - injecting NMI

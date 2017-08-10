@@ -1,7 +1,6 @@
 ---
 features:
   - |
-    Adds configuration option ``[console]/socat_address`` so
-    that the binding address of socat based console can be
-    configured independently. The option is backward compatible
-    by keeping $my_ip as the default value.
+    Adds new configuration option ``[console]/socat_address`` to set the
+    binding address for socat-based console. The default is the value of the
+    ``[DEFAULT]my_ip`` option of the conductor responsible for the node.

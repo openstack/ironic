@@ -3,5 +3,5 @@ fixes:
   - |
     When the deletion of a swift temporary object fails because the
     object is no longer available in swift, a message is logged.
-    The log level of this message was changed from ``warning`` to
-    ``info``.
+    The log level of this message was changed from ``WARNING`` to
+    ``INFO``.

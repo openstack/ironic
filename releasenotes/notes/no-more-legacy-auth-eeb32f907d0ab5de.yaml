@@ -5,10 +5,10 @@ upgrade:
     options for accessing other services from the ``[keystone_authtoken]``
     section.
     As a result, the following configuration sections now must contain
-    proper authentication options for appropriate service:
+    proper authentication options for appropriate services:
 
-      - glance
-      - neutron
-      - swift
-      - inspector
-      - service_catalog
+    - glance
+    - neutron
+    - swift
+    - inspector
+    - service_catalog

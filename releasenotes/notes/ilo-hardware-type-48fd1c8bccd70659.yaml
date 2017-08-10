@@ -1,17 +1,16 @@
 ---
 features:
   - |
-    Adds a new hardware type ``ilo`` for iLO 4 based Proliant Gen 8
-    and Gen 9 servers.
-    ``ilo`` hardware type will support virtual media and PXE based
-    provisioning using HPE iLO 4 management engine. It supports the
-    following driver interfaces:
+    Adds a new hardware type ``ilo`` for iLO 4 based Proliant Gen 8 and Gen 9
+    servers. This hardware type supports virtual media and PXE based boot
+    using HPE iLO 4 management engine. The following driver interfaces
+    are supported:
 
     * boot: ``ilo-virtual-media`` and ``ilo-pxe``
     * console: ``ilo`` and ``no-console``
     * deploy: ``iscsi`` and ``direct``
     * inspect: ``ilo``, ``inspector`` and ``no-inspect``
     * management: ``ilo``
-    * network: ``flat``, ``no-op`` and ``neutron``
+    * network: ``flat``, ``noop`` and ``neutron``
     * power:  ``ilo``
     * raid: ``no-raid`` and ``agent``

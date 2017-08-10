@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    The ``redfish`` power interface now waits for a power action to apply.
-    Previously it used to return immediately, which was not consistent with
-    how other power interfaces work.
