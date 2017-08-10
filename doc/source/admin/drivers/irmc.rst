@@ -22,7 +22,7 @@ Prerequisites
 * Install `python-scciclient <https://pypi.python.org/pypi/python-scciclient>`_
   and `pysnmp <https://pypi.python.org/pypi/pysnmp>`_ packages::
 
-  $ pip install "python-scciclient>=0.4.0" pysnmp
+  $ pip install "python-scciclient>=0.5.0" pysnmp
 
 Drivers
 =======
@@ -55,6 +55,8 @@ Node configuration
     irmc_username.
   - ``properties/capabilities`` property to be ``boot_mode:uefi`` if
     UEFI boot is required.
+  - ``properties/capabilities`` property to be ``boot_mode:uefi,secure_boot:true`` if
+    UEFI Secure Boot is required.
 
 * All of nodes are configured by setting the following configuration
   options in ``[irmc]`` section of ``/etc/ironic/ironic.conf``:
