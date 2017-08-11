@@ -44,11 +44,6 @@ source $TARGET_DEVSTACK_DIR/lib/neutron-legacy
 source $TARGET_DEVSTACK_DIR/lib/apache
 source $TARGET_DEVSTACK_DIR/lib/keystone
 
-# TODO(vdrok): remove this when https://bugs.launchpad.net/neutron/+bug/1707160
-# fixed
-source $TARGET_DEVSTACK_DIR/lib/tempest
-iniset $TEMPEST_CONFIG service-clients http_timeout 120
-
 source $TOP_DIR/openrc admin admin
 
 # Keep track of the DevStack directory
