@@ -86,6 +86,17 @@ set new values for some or all interfaces:
 See :doc:`/install/enrollment` for more details on setting hardware types and
 interfaces.
 
+.. warning::
+    It is not recommended to change the interfaces for ``active`` nodes. If
+    absolutely needed, the nodes have to be put in the maintenance mode first:
+
+    .. code-block:: console
+
+        openstack baremetal node maintenance set $UUID \
+            --reason "Changing driver and/or hardware interfaces"
+        # do the update, validate its correctness
+        openstack baremetal node maintenance unset $UUID
+
 Other interfaces
 ----------------
 
