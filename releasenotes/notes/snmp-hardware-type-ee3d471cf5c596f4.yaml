@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds a new hardware type ``snmp`` for SNMP powered systems.
+    It supports the following driver interfaces:
+
+    * boot: ``pxe``
+    * deploy: ``iscsi``, ``direct``
+    * power:  ``snmp``
+    * management:  ``fake``
