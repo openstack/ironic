@@ -165,6 +165,9 @@ class ConductorManager(base_manager.BaseConductorManager):
         # interfaces for active nodes in the future.
         allowed_update_states = [states.ENROLL, states.INSPECTING,
                                  states.MANAGEABLE, states.AVAILABLE]
+        action = _("Node %(node)s can not have %(field)s "
+                   "updated unless it is in one of allowed "
+                   "(%(allowed)s) states or in maintenance mode.")
         for iface in drivers_base.ALL_INTERFACES:
             interface_field = '%s_interface' % iface
             if interface_field not in delta:
@@ -172,13 +175,10 @@ class ConductorManager(base_manager.BaseConductorManager):
 
             if not (node_obj.provision_state in allowed_update_states or
                     node_obj.maintenance):
-                action = _("Node %(node)s can not have %(iface)s "
-                           "updated unless it is in one of allowed "
-                           "(%(allowed)s) states or in maintenance mode.")
                 raise exception.InvalidState(
                     action % {'node': node_obj.uuid,
                               'allowed': ', '.join(allowed_update_states),
-                              'iface': interface_field})
+                              'field': interface_field})
 
         driver_factory.check_and_update_node_interfaces(node_obj)
 
@@ -191,6 +191,17 @@ class ConductorManager(base_manager.BaseConductorManager):
                 task.node.instance_uuid):
                 raise exception.NodeAssociated(
                     node=node_id, instance=task.node.instance_uuid)
+
+            # NOTE(dtantsur): if the resource class is changed for an active
+            # instance, nova will not update its internal record. That will
+            # result in the new resource class exposed on the node as available
+            # for consumption, and nova may try to schedule on this node again.
+            if ('resource_class' in delta and task.node.resource_class and
+                    task.node.provision_state not in allowed_update_states):
+                raise exception.InvalidState(
+                    action % {'node': node_obj.uuid,
+                              'allowed': ', '.join(allowed_update_states),
+                              'field': 'resource_class'})
 
             node_obj.save()
 

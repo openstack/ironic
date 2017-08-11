@@ -1,0 +1,12 @@
+---
+upgrade:
+  - |
+    Changing the ``resource_class`` field of a node in the ``active`` state
+    or any of the transient states is no longer possible. Please update your
+    scripts to only set a resource class for nodes that are not deployed to.
+    Setting a resource class for nodes that do not have it is still possible.
+fixes:
+  - |
+    No longer allows changing the ``resource_class`` field for ``active`` nodes
+    if it was already set to a non-empty value. Doing so would break the
+    Compute scheduler.
