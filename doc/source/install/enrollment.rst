@@ -178,7 +178,9 @@ and may be combined if desired.
    pick which hardware interface to use with nodes that use hardware types.
    Each interface is represented by a node field called ``<IFACE>_interface``
    where ``<IFACE>`` in the interface type, e.g. ``boot``. See
-   :doc:`enabling-drivers` for details on hardware interfaces.
+   :doc:`enabling-drivers` for details on hardware interfaces and
+   :doc:`/admin/upgrade-to-hardware-types` for the matching between classic
+   drivers and hardware types.
 
    An interface can be set either separately:
 

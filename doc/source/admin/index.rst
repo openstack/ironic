@@ -14,6 +14,7 @@ the services.
   Installation Guide </install/index>
   gmr
   Upgrade Guide <upgrade-guide>
+  upgrade-to-hardware-types
   Release Notes <http://docs.openstack.org/releasenotes/ironic/>
   Troubleshooting FAQ <troubleshooting>
 
