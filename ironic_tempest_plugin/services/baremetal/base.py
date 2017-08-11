@@ -150,7 +150,11 @@ class BaremetalClient(rest_client.RestClient):
 
         return resp, self.deserialize(body)
 
-    def _show_request(self, resource, uuid, permanent=False, **kwargs):
+    def _show_request(self,
+                      resource,
+                      uuid=None,
+                      permanent=False,
+                      **kwargs):
         """Gets a specific object of the specified type.
 
         :param uuid: Unique identifier of the object in UUID format.

@@ -493,3 +493,30 @@ class BaremetalClient(base.BaremetalClient):
         resp, body = self._delete_request('nodes/%s/vifs' % node_uuid, vif_id)
         self.expected_success(http_client.NO_CONTENT, resp.status)
         return resp, body
+
+    @base.handle_errors
+    def get_driver_properties(self, driver_name):
+        """Get properties information about driver.
+
+        :param driver_name: Name of driver.
+        :return: tuple of response and serialized properties as a dictionary.
+
+        """
+        uri = 'drivers/%s/properties' % driver_name
+        resp, body = self.get(uri)
+        self.expected_success(200, resp.status)
+        return resp, self.deserialize(body)
+
+    @base.handle_errors
+    def get_driver_logical_disk_properties(self, driver_name):
+        """Get driver logical disk properties.
+
+        :param driver_name: Name of driver.
+        :return: tuple of response and serialized logical disk properties as
+                 a dictionary.
+
+        """
+        uri = 'drivers/%s/raid/logical_disk_properties' % driver_name
+        resp, body = self.get(uri)
+        self.expected_success(200, resp.status)
+        return resp, self.deserialize(body)
