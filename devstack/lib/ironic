@@ -137,6 +137,9 @@ if [[ -n "$BUILD_TIMEOUT" ]]; then
     echo "WARNING: BUILD_TIMEOUT variable is renamed to IRONIC_TEMPEST_BUILD_TIMEOUT and will be deprecated in Pike."
 fi
 
+IRONIC_DEFAULT_API_VERSION=${IRONIC_DEFAULT_API_VERSION:-latest}
+IRONIC_CMD="openstack --os-baremetal-api-version $IRONIC_DEFAULT_API_VERSION baremetal"
+
 # driver / hardware type options
 IRONIC_ENABLED_DRIVERS=${IRONIC_ENABLED_DRIVERS:-fake,pxe_ipmitool,agent_ipmitool}
 IRONIC_ENABLED_HARDWARE_TYPES=${IRONIC_ENABLED_HARDWARE_TYPES:-ipmi}
@@ -181,6 +184,7 @@ IRONIC_VM_LOG_ROTATE=$(trueorfalse True IRONIC_VM_LOG_ROTATE)
 
 # Set resource_classes for nodes to use Nova's placement engine
 IRONIC_USE_RESOURCE_CLASSES=$(trueorfalse False IRONIC_USE_RESOURCE_CLASSES)
+IRONIC_DEFAULT_RESOURCE_CLASS=${IRONIC_DEFAULT_RESOURCE_CLASS:-baremetal}
 
 # Whether to build the ramdisk or download a prebuilt one.
 IRONIC_BUILD_DEPLOY_RAMDISK=$(trueorfalse True IRONIC_BUILD_DEPLOY_RAMDISK)
@@ -468,6 +472,15 @@ IRONIC_DEFAULT_BOOT_OPTION=${IRONIC_DEFAULT_BOOT_OPTION:-netboot}
 if [ $IRONIC_DEFAULT_BOOT_OPTION != 'netboot' ] && [ $IRONIC_DEFAULT_BOOT_OPTION != 'local' ]; then
     die $LINENO "Supported values for IRONIC_DEFAULT_BOOT_OPTION are 'netboot' and 'local' only."
 fi
+
+# Timeout for "manage" action. 2 minutes is more than enough.
+IRONIC_MANAGE_TIMEOUT=${IRONIC_MANAGE_TIMEOUT:-120}
+# Timeout for "provide" action. This involves cleaning. Generally, 15 minutes
+# should be enough, but real hardware may need more.
+IRONIC_CLEANING_TIMEOUT=${IRONIC_CLEANING_TIMEOUT:-900}
+
+IRONIC_CLEANING_DELAY=10
+IRONIC_CLEANING_ATTEMPTS=$(( $IRONIC_CLEANING_TIMEOUT / $IRONIC_CLEANING_DELAY ))
 
 # Functions
 # ---------
@@ -1584,9 +1597,43 @@ function _clean_ncpu_failure {
     fi
 }
 
+function provide_nodes {
+    local nodes=$@
+
+    for node_id in $nodes; do
+        $IRONIC_CMD node provide $node_id
+    done
+
+    local attempt
+    for attempt in $(seq 1 $IRONIC_CLEANING_ATTEMPTS); do
+        local available
+        available=$(openstack baremetal node list --provision-state available -f value -c UUID)
+
+        local nodes_not_finished=
+        for node_id in $nodes; do
+            if ! echo $available | grep -q $node_id; then
+                nodes_not_finished+=" $node_id"
+            fi
+        done
+
+        nodes=$nodes_not_finished
+        if [[ "$nodes" == "" ]]; then
+            break
+        fi
+
+        echo "Waiting for nodes to become available: $nodes"
+        echo "Currently available: $available"
+        sleep $IRONIC_CLEANING_DELAY
+    done
+
+    if [[ "$nodes" != "" ]]; then
+        die $LINENO "Some nodes did not finish cleaning: $nodes"
+    fi
+}
+
 function enroll_nodes {
     local chassis_id
-    chassis_id=$(ironic chassis-create -d "ironic test chassis" | grep " uuid " | get_field 2)
+    chassis_id=$($IRONIC_CMD chassis create --description "ironic test chassis" -f value -c uuid)
     die_if_not_set $LINENO chassis_id "Failed to create chassis"
 
     local node_prefix
@@ -1604,26 +1651,26 @@ function enroll_nodes {
 
         if is_deployed_by_ipmitool; then
             local node_options="\
-                -i ipmi_address=${HOST_IP} \
-                -i ipmi_username=admin \
-                -i ipmi_password=password"
+                --driver-info ipmi_address=${HOST_IP} \
+                --driver-info ipmi_username=admin \
+                --driver-info ipmi_password=password"
         elif is_deployed_by_snmp; then
             local node_options="\
-                -i snmp_driver=${IRONIC_VPDU_SNMPDRIVER} \
-                -i snmp_address=${HOST_IP} \
-                -i snmp_port=${IRONIC_VPDU_LISTEN_PORT} \
-                -i snmp_protocol=2c \
-                -i snmp_community=${IRONIC_VPDU_COMMUNITY}"
+                --driver-info snmp_driver=${IRONIC_VPDU_SNMPDRIVER} \
+                --driver-info snmp_address=${HOST_IP} \
+                --driver-info snmp_port=${IRONIC_VPDU_LISTEN_PORT} \
+                --driver-info snmp_protocol=2c \
+                --driver-info snmp_community=${IRONIC_VPDU_COMMUNITY}"
         elif is_deployed_by_redfish; then
             local node_options="\
-                -i redfish_address=http://${HOST_IP}:${IRONIC_REDFISH_EMULATOR_PORT} \
-                -i redfish_username=admin \
-                -i redfish_password=password"
+                --driver-info redfish_address=http://${HOST_IP}:${IRONIC_REDFISH_EMULATOR_PORT} \
+                --driver-info redfish_username=admin \
+                --driver-info redfish_password=password"
         fi
         node_options="\
             $node_options \
-            -i deploy_kernel=$IRONIC_DEPLOY_KERNEL_ID \
-            -i deploy_ramdisk=$IRONIC_DEPLOY_RAMDISK_ID"
+            --driver-info deploy_kernel=$IRONIC_DEPLOY_KERNEL_ID \
+            --driver-info deploy_ramdisk=$IRONIC_DEPLOY_RAMDISK_ID"
 
     else
         local ironic_node_cpu=$IRONIC_HW_NODE_CPU
@@ -1636,6 +1683,8 @@ function enroll_nodes {
 
     local total_nodes=0
     local total_cpus=0
+    local node_uuids=
+    local node_id
 
     while read hardware_info; do
         local node_name
@@ -1643,7 +1692,7 @@ function enroll_nodes {
 
         local node_capabilities=""
         if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
-            node_capabilities+=" -p capabilities=boot_mode:uefi"
+            node_capabilities+=" --property capabilities=boot_mode:uefi"
         fi
 
         if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
@@ -1652,13 +1701,13 @@ function enroll_nodes {
             if is_deployed_by_ipmitool; then
                 local vbmc_port
                 vbmc_port=$(echo $hardware_info | awk '{print $2}')
-                node_options+=" -i ipmi_port=$vbmc_port"
+                node_options+=" --driver-info ipmi_port=$vbmc_port"
             elif is_deployed_by_snmp; then
                 local pdu_outlet
                 pdu_outlet=$(echo $hardware_info | awk '{print $3}')
-                node_options+=" -i snmp_outlet=$pdu_outlet"
+                node_options+=" --driver-info snmp_outlet=$pdu_outlet"
             elif is_deployed_by_redfish; then
-                node_options+=" -i redfish_system_id=/redfish/v1/Systems/$node_name"
+                node_options+=" --driver-info redfish_system_id=/redfish/v1/Systems/$node_name"
             fi
             # Local-link-connection options
             local llc_opts=""
@@ -1670,9 +1719,8 @@ function enroll_nodes {
                 switch_info=$(echo $hardware_info |awk '{print $5}')
 
                 # NOTE(vsaienko) we will add port_id later in the code.
-                llc_opts="-l switch_id=${switch_id} -l switch_info=${switch_info} "
-
-                local ironic_api_version='--ironic-api-version latest'
+                llc_opts="--local-link-connection switch_id=${switch_id} \
+                    --local-link-connection switch_info=${switch_info} "
             fi
 
             if [[ "${IRONIC_STORAGE_INTERFACE}" == "cinder" ]]; then
@@ -1680,7 +1728,7 @@ function enroll_nodes {
                 if [[ -n "$node_capabilities" ]]; then
                     node_capabilities+=",iscsi_boot:True"
                 else
-                    node_capabilities+=" -p capabilities=iscsi_boot:True"
+                    node_capabilities+=" --property capabilities=iscsi_boot:True"
                 fi
             fi
 
@@ -1696,20 +1744,24 @@ function enroll_nodes {
             bmc_username=$(echo $hardware_info |awk '{print $3}')
             local bmc_passwd
             bmc_passwd=$(echo $hardware_info |awk '{print $4}')
-            local node_options="-i deploy_kernel=$IRONIC_DEPLOY_KERNEL_ID"
-            node_options+=" -i deploy_ramdisk=$IRONIC_DEPLOY_RAMDISK_ID"
+            local node_options="--driver-info deploy_kernel=$IRONIC_DEPLOY_KERNEL_ID"
+            node_options+=" --driver-info deploy_ramdisk=$IRONIC_DEPLOY_RAMDISK_ID"
 
             if is_deployed_by_ipmitool; then
-                node_options+=" -i ipmi_address=$bmc_address -i ipmi_password=$bmc_passwd\
-                    -i ipmi_username=$bmc_username"
+                node_options+=" --driver-info ipmi_address=$bmc_address \
+                    --driver-info ipmi_password=$bmc_passwd \
+                    --driver-info ipmi_username=$bmc_username"
             elif is_deployed_by_cimc; then
-                node_options+=" -i cimc_address=$bmc_address -i cimc_password=$bmc_passwd\
-                    -i cimc_username=$bmc_username"
+                node_options+=" --driver-info cimc_address=$bmc_address \
+                    --driver-info cimc_password=$bmc_passwd \
+                    --driver-info cimc_username=$bmc_username"
             elif is_deployed_by_ucs; then
                 local ucs_service_profile
                 ucs_service_profile=$(echo $hardware_info |awk '{print $5}')
-                node_options+=" -i ucs_address=$bmc_address -i ucs_password=$bmc_passwd\
-                    -i ucs_username=$bmc_username -i ucs_service_profile=$ucs_service_profile"
+                node_options+=" --driver-info ucs_address=$bmc_address \
+                    --driver-info ucs_password=$bmc_passwd \
+                    --driver-info ucs_username=$bmc_username \
+                    --driver-info ucs_service_profile=$ucs_service_profile"
             elif is_deployed_by_oneview; then
                 local server_hardware_uri
                 server_hardware_uri=$(echo $hardware_info |awk  '{print $1}')
@@ -1723,29 +1775,31 @@ function enroll_nodes {
                 local applied_server_profile_uri
                 applied_server_profile_uri=$(echo $hardware_info |awk '{print $6}')
 
-                node_options+=" -i server_hardware_uri=$server_hardware_uri"
+                node_options+=" --driver-info server_hardware_uri=$server_hardware_uri"
                 if [[ -n "$applied_server_profile_uri" ]]; then
-                    node_options+=" -i applied_server_profile_uri=$applied_server_profile_uri"
+                    node_options+=" --driver-info applied_server_profile_uri=$applied_server_profile_uri"
                 fi
 
                 if [[ "$node_capabilities" ]]; then
                     node_capabilities+=","
                 else
-                    node_capabilities+=" -p capabilities="
+                    node_capabilities+=" --property capabilities="
                 fi
                 node_capabilities+="server_hardware_type_uri:$server_hardware_type_uri,"
                 node_capabilities+="enclosure_group_uri:$enclosure_group_uri,"
                 node_capabilities+="server_profile_template_uri:$server_profile_template_uri"
             elif is_deployed_by_ilo; then
-                node_options+=" -i ilo_address=$bmc_address -i ilo_password=$bmc_passwd\
-                    -i ilo_username=$bmc_username"
+                node_options+=" --driver-info ilo_address=$bmc_address \
+                    --driver-info ilo_password=$bmc_passwd \
+                    --driver-info ilo_username=$bmc_username"
                 if [[ $IRONIC_DEPLOY_DRIVER != "pxe_ilo" && \
                     $IRONIC_ENABLED_BOOT_INTERFACES == *"ilo-virtual-media"* ]]; then
-                    node_options+=" -i ilo_deploy_iso=$IRONIC_DEPLOY_ISO_ID"
+                    node_options+=" --driver-info ilo_deploy_iso=$IRONIC_DEPLOY_ISO_ID"
                 fi
             elif is_deployed_by_drac; then
-                node_options+=" -i drac_host=$bmc_address -i drac_password=$bmc_passwd\
-                    -i drac_username=$bmc_username"
+                node_options+=" --driver-info drac_host=$bmc_address \
+                    --driver-info drac_password=$bmc_passwd \
+                    --driver-info drac_username=$bmc_username"
             fi
 
             interface_info="${mac_address}"
@@ -1758,25 +1812,31 @@ function enroll_nodes {
             standalone_node_uuid="--uuid $IRONIC_NODE_UUID"
         fi
 
-        local node_id
-        node_id=$(ironic \
-            node-create $standalone_node_uuid \
-            --chassis_uuid $chassis_id \
+        # TODO(dtantsur): it would be cool to test with different resource
+        # classes, but for now just use the same.
+        node_id=$($IRONIC_CMD node create $standalone_node_uuid \
+            --chassis $chassis_id \
             --driver $IRONIC_DEPLOY_DRIVER \
             --name $node_name \
-            -p cpus=$ironic_node_cpu\
-            -p memory_mb=$ironic_node_ram\
-            -p local_gb=$ironic_node_disk\
-            -p cpu_arch=$ironic_node_arch \
+            --resource-class $IRONIC_DEFAULT_RESOURCE_CLASS \
+            --property cpus=$ironic_node_cpu\
+            --property memory_mb=$ironic_node_ram\
+            --property local_gb=$ironic_node_disk\
+            --property cpu_arch=$ironic_node_arch \
             $node_capabilities \
             $node_options \
-            | grep " uuid " | get_field 2)
+            -f value -c uuid)
+        die_if_not_set $LINENO node_id "Failed to create node"
+        node_uuids+=" $node_id"
+
+        $IRONIC_CMD node manage $node_id --wait $IRONIC_MANAGE_TIMEOUT || \
+            die $LINENO "Node did not reach manageable state in $IRONIC_MANAGE_TIMEOUT seconds"
 
         # NOTE(vsaienko) IPA didn't automatically recognize root devices less than 4Gb.
         # Setting root hint allows to install OS on such devices.
         # 0x1af4 is VirtIO vendor device ID.
         if [[ "$ironic_node_disk" -lt "4" && is_deployed_by_agent ]]; then
-            ironic node-update $node_id add properties/root_device='{"vendor": "0x1af4"}'
+            $IRONIC_CMD node set --property root_device='{"vendor": "0x1af4"}'
         fi
 
         # In case we using portgroups, we should API version that support them.
@@ -1790,45 +1850,36 @@ function enroll_nodes {
             mac_address=$(echo $info| awk -F ',' '{print $1}')
             port_id=$(echo $info| awk -F ',' '{print $2}')
             if [[ "${IRONIC_USE_LINK_LOCAL}" == "True" ]]; then
-                llc_port_opt+=" -l port_id=${port_id} "
+                llc_port_opt+=" --local-link-connection port_id=${port_id} "
             fi
-            ironic $ironic_api_version port-create --address $mac_address --node $node_id $llc_opts $llc_port_opt
+            $IRONIC_CMD port create --node $node_id $llc_opts $llc_port_opt $mac_address
         done
 
         # NOTE(vsaienko) use node-update instead of specifying network_interface
         # during node creation. If node is added with latest version of API it
         # will NOT go to available state automatically.
         if [[ -n "${IRONIC_NETWORK_INTERFACE}" ]]; then
-            local n_id
-            n_id=$(ironic $ironic_api_version node-update $node_id add network_interface=$IRONIC_NETWORK_INTERFACE | grep " uuid " | awk '{ print $4; }')
-            die_if_not_set $LINENO n_id "Failed to update network interface for node"
+            $IRONIC_CMD node set $node_id --network-interface $IRONIC_NETWORK_INTERFACE || \
+                die $LINENO "Failed to update network interface for node"
         fi
 
         if [[ -n "${IRONIC_STORAGE_INTERFACE}" ]]; then
-            openstack --os-baremetal-api-version latest baremetal node set \
-                $node_id --storage-interface $IRONIC_STORAGE_INTERFACE || \
+            $IRONIC_CMD node set $node_id --storage-interface $IRONIC_STORAGE_INTERFACE || \
                 die $LINENO "Failed to update storage interface for node $node_id"
 
             if [[ -n "${connector_iqn}" ]]; then
-                openstack --os-baremetal-api-version latest baremetal \
-                    volume connector create --node $node_id --type iqn \
+                $IRONIC_CMD volume connector create --node $node_id --type iqn \
                     --connector-id $connector_iqn || \
                     die $LINENO "Failed to create volume connector for node $node_id"
             fi
         fi
 
-        local resource_class
-        if [[ "$IRONIC_USE_RESOURCE_CLASSES" == "True" ]]; then
-            # TODO(jroll) consider making this configurable, for now just make it unique per hardware combo
-            # this will look like baremetal_1cpu_256mbram_10gbdisk
-            resource_class="baremetal_${ironic_node_cpu}cpu_${ironic_node_ram}mbram_${ironic_node_disk}gbdisk"
-            openstack --os-baremetal-api-version 1.21 baremetal node set \
-                --resource-class $resource_class $node_id
-        fi
-
         total_nodes=$((total_nodes+1))
         total_cpus=$((total_cpus+$ironic_node_cpu))
     done < $ironic_hwinfo_file
+
+    # NOTE(dtantsur): doing it outside of the loop, because of cleaning
+    provide_nodes $node_uuids
 
     if is_service_enabled nova && [[ "$VIRT_DRIVER" == "ironic" ]]; then
         if [[ "$HOST_TOPOLOGY_ROLE" != 'subnode' ]]; then
@@ -2098,9 +2149,9 @@ function prepare_baremetal_basic_ops {
     fi
 
     upload_baremetal_ironic_deploy
-    enroll_nodes
     configure_tftpd
     configure_iptables
+    enroll_nodes
 }
 
 function cleanup_baremetal_basic_ops {
