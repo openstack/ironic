@@ -73,7 +73,8 @@ OPTIONAL_PROPERTIES = {
         _("SNMP community.  Required for versions %(v1)s and %(v2c)s")
         % {"v1": SNMP_V1, "v2c": SNMP_V2C},
     'snmp_security':
-        _("SNMP security name.  Required for version %(v3)s")
+        _("SNMPv3 User-based Security Model (USM) username. "
+          "Required for version %(v3)s")
         % {"v3": SNMP_V3},
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
