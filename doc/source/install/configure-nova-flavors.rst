@@ -33,40 +33,32 @@ The flavor is mapped to the bare metal node through the hardware specifications.
 
       $ nova flavor-key my-baremetal-flavor set cpu_arch=$ARCH
 
+.. _scheduling-resource-classes:
+
 Scheduling based on resource classes
 ====================================
 
 The Newton release of the Bare Metal service includes a field on the node
 resource called ``resource_class``. This field is available in version 1.21 of
-the Bare Metal service API.
+the Bare Metal service API. Starting with the Pike release, this field has
+to be populated for all nodes, as explained in :doc:`enrollment`.
 
-In the future (Pike or Queens release), a Compute service flavor will use this
-field for scheduling, instead of the CPU, RAM, and disk properties defined in
-the flavor above. A flavor will require *exactly one* of some bare metal
+As of the Pike release, a Compute service flavor is able to use this field
+for scheduling, instead of the CPU, RAM, and disk properties defined in
+the flavor above. A flavor can request *exactly one* instance of a bare metal
 resource class.
 
-This work is still in progress (see `blueprint
-custom-resource-classes-in-flavors`), and the syntax for the ``flavor-create``
-call to associate flavors with resource classes is yet to be implemented.
-According to the `custom resource classes specification`_, it will look
-as follows:
+To achieve that, the flavors, created as described in `Scheduling based on
+properties`_, have to be associated with one custom resource class each.
+A name of the custom resource class is the name of node's resource class, but
+upper-cased, with ``CUSTOM_`` prefix prepended, and all punctuation replaced
+with an underscore:
 
 .. code-block:: console
 
       $ nova flavor-key my-baremetal-flavor set resources:CUSTOM_<RESOURCE_CLASS>=1
 
-where ``<RESOURCE_CLASS>`` is the resource class name in upper case with all
-punctuation replaces with an underscore.
-
-For example,
-
-.. code-block:: console
-
-      $ ironic --ironic-api-version=1.21 node-update $NODE_UUID \
-        replace resource_class=baremetal.with-GPU
-      $ nova flavor-key my-baremetal-flavor set resources:CUSTOM_BAREMETAL_WITH_CPU=1
-
-Another set of extra_specs properties will be used to disable scheduling
+Another set of flavor properties should be used to disable scheduling
 based on standard properties for a bare metal flavor:
 
 .. code-block:: console
@@ -75,9 +67,34 @@ based on standard properties for a bare metal flavor:
       $ nova flavor-key my-baremetal-flavor set resources:MEMORY_MB=0
       $ nova flavor-key my-baremetal-flavor set resources:DISK_GB=0
 
-.. note::
-   The last step will be required, as the Compute service will stop providing
-   standard resources for bare metal nodes.
+.. warning::
+   The last step will be mandatory in the Queens release, as the Compute
+   service will stop providing standard resources for bare metal nodes.
 
-.. _blueprint custom-resource-classes-in-flavors: https://blueprints.launchpad.net/nova/+spec/custom-resource-classes-in-flavors
-.. _custom resource classes specification: https://specs.openstack.org/openstack/nova-specs/specs/pike/approved/custom-resource-classes-in-flavors.html
+Example
+-------
+
+If you want to define a class of nodes called ``baremetal.with-GPU``, start
+with tagging some nodes with it:
+
+.. code-block:: console
+
+      $ ironic --ironic-api-version=1.21 node-update $NODE_UUID \
+        replace resource_class=baremetal.with-GPU
+
+.. warning::
+    It is possible to **add** a resource class to ``active`` nodes, but it is
+    not possiblre to **replace** an existing resource class on them.
+
+Then you can update your flavor to request the resource class instead of
+the standard properties:
+
+.. code-block:: console
+
+      $ nova flavor-key my-baremetal-flavor set resources:CUSTOM_BAREMETAL_WITH_GPU=1
+      $ nova flavor-key my-baremetal-flavor set resources:VCPU=0
+      $ nova flavor-key my-baremetal-flavor set resources:MEMORY_MB=0
+      $ nova flavor-key my-baremetal-flavor set resources:DISK_GB=0
+
+Note how ``baremetal.with-GPU`` in the node's ``resource_class`` field becomes
+``CUSTOM_BAREMETAL_WITH_GPU`` in the flavor's properties.
