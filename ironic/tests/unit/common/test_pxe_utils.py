@@ -103,7 +103,7 @@ class TestPXEUtils(db_base.DbTestCase):
         # NOTE(lucasagomes): iPXE is just an extension of the PXE driver,
         # it doesn't have it's own configuration option for template.
         # More info:
-        # http://docs.openstack.org/developer/ironic/deploy/install-guide.html
+        # https://docs.openstack.org/ironic/latest/install/
         self.config(
             pxe_config_template='ironic/drivers/modules/ipxe_config.template',
             group='pxe'
@@ -125,7 +125,7 @@ class TestPXEUtils(db_base.DbTestCase):
         # NOTE(lucasagomes): iPXE is just an extension of the PXE driver,
         # it doesn't have it's own configuration option for template.
         # More info:
-        # http://docs.openstack.org/developer/ironic/deploy/install-guide.html
+        # https://docs.openstack.org/ironic/latest/install/
         self.config(
             pxe_config_template='ironic/drivers/modules/ipxe_config.template',
             group='pxe'

@@ -7,7 +7,7 @@
 #
 # The vagrant vm's IP address is assumed to be 192.168.99.11
 #
-# http://docs.openstack.org/developer/ironic/dev/dev-quickstart.html#exercising-the-services-locally
+# https://docs.openstack.org/ironic/latest/contributor/dev-quickstart.html#exercising-the-services-locally
 #
 - hosts: ironic
   sudo: yes
