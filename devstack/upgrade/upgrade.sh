@@ -100,11 +100,14 @@ fi
 
 start_ironic
 
-# NOTE(vsaienko) installing ironic service triggers apache restart, that
-# may cause nova-compute failure due to LP1537076
-stop_nova_compute || true
-wait_for_keystone
-start_nova_compute
+# NOTE(vsaienko) do not restart n-cpu on multinode as we didn't upgrade nova.
+if [[ "${HOST_TOPOLOGY}" != "multinode" ]]; then
+    # NOTE(vsaienko) installing ironic service triggers apache restart, that
+    # may cause nova-compute failure due to LP1537076
+    stop_nova_compute || true
+    wait_for_keystone
+    start_nova_compute
+fi
 
 if [[ -n "$ensure_stopped" ]]; then
     ensure_services_stopped $ensure_stopped
