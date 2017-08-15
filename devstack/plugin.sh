@@ -2,7 +2,7 @@
 # plugin.sh - devstack plugin for ironic
 
 # devstack plugin contract defined at:
-# http://docs.openstack.org/developer/devstack/plugins.html
+# https://docs.openstack.org/devstack/latest/plugins.html
 
 echo_summary "ironic devstack plugin.sh called: $1/$2"
 source $DEST/ironic/devstack/lib/ironic

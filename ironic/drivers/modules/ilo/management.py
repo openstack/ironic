@@ -343,7 +343,7 @@ class IloManagement(base.ManagementInterface):
                 "'power_pic', 'bios' and 'chassis'. The firmware images will "
                 "be applied (in the order given) one by one on the baremetal "
                 "server. For more information, see "
-                "http://docs.openstack.org/developer/ironic/drivers/ilo.html#initiating-firmware-update-as-manual-clean-step"  # noqa
+                "https://docs.openstack.org/ironic/latest/admin/drivers/ilo.html#initiating-firmware-update-as-manual-clean-step"  # noqa
             ),
             'required': True
         }

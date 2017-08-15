@@ -103,7 +103,7 @@ class GlanceImageService(base_image_service.BaseImageService,
         :param image_info: The return from a GET request to Glance for a
             certain image_id. Should be a dictionary, with keys like 'name' and
             'checksum'. See
-            http://docs.openstack.org/developer/glance/glanceapi.html for
+            https://docs.openstack.org/glance/latest/user/glanceapi.html for
             examples.
         :returns: A signed Swift URL from which an image can be downloaded,
             without authentication.
