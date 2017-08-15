@@ -40,6 +40,14 @@ Plan your upgrade
   database. Hence, in case of upgrade failure, restoring the database from
   a backup is the only choice.
 
+* Before starting your upgrade, it is best to ensure that all nodes have
+  reached, or are in, a stable ``provision_state``. Nodes in states with
+  long running processes such as deploying or cleaning, may fail, and may
+  require manual intervention to return them to the available hardware pool.
+  This is most likely in cases where a timeout has occurred or a service was
+  terminated abruptly. For a visual diagram detailing states and possible
+  state transitions, please see the
+  `state machine diagram <https://docs.openstack.org/ironic/latest/contributor/states.html>`_.
 
 Offline upgrades
 ================
@@ -75,20 +83,33 @@ Once the above is done, do the following:
   limits the number of migrations executed in one run. You should complete
   all of the migrations as soon as possible after the upgrade.
 
-.. warning:: You will not be able to start an upgrade to the next release
-             after this one, until this has been completed for the current
-             release. For example, as part of upgrading from Ocata to Pike,
-             you need to complete Pike's data migrations. If this not done,
-             you will not be able to upgrade to Queens -- it will not be
-             possible to execute Queens' database schema updates.
+  .. warning::
+     You will not be able to start an upgrade to the release
+     after this one, until this has been completed for the current
+     release. For example, as part of upgrading from Ocata to Pike,
+     you need to complete Pike's data migrations. If this not done,
+     you will not be able to upgrade to Queens -- it will not be
+     possible to execute Queens' database schema updates.
 
 
 Rolling upgrades
 ================
 
-Rolling upgrades are available starting with the Pike release; that is, when
-upgrading from Ocata. This means that it is possible to do an upgrade with
+To Reduce downtime, the services can be upgraded in a rolling fashion, meaning
+to upgrade one or a few services at a time to minimize impact.
+
+Rolling upgrades are available starting with the Pike release. This feature
+makes it possible to upgrade between releases, such as Ocata to Pike, with
 minimal to no downtime of the Bare Metal API.
+
+Requirements
+------------
+
+To facilitate an upgrade in a rolling fashion, you need to have a
+highly-available deployment consisting of at least two ironic-api
+and two ironic-conductor services.
+Use of a load balancer to balance requests across the ironic-api
+services is recommended, as it allows for a minimal impact to end users.
 
 Concepts
 --------
@@ -110,19 +131,27 @@ that the older services are using. The newer services will backport RPC calls
 and objects to their appropriate versions from the pinned release. If the
 ``IncompatibleObjectVersion`` exception occurs, it is most likely due to an
 incorrect or unspecified ``[DEFAULT]/pin_release_version`` configuration value.
-For example, when it is not set to the older release version, no conversion
-will happen during the upgrade.
+For example, when ``[DEFAULT]/pin_release_version`` is not set to the older
+release version, no conversion will happen during the upgrade.
 
 Online data migrations
 ~~~~~~~~~~~~~~~~~~~~~~
 
-To make database schema migrations less painful to execute, all data migrations
-are banned from schema migration scripts. The schema migration scripts only
-update the database schema. Data migrations must be done at the end of the
-rolling upgrade process, after the schema migration and after the services
-have been upgraded to the latest release. The data migration is performed
-using the ``ironic-dbsync online_data_migrations`` command. It can be run in
-a background process so that it does not interrupt running services.
+To make database schema migrations less painful to execute, we have
+implemented process changes to facilitate upgrades.
+
+* All data migrations are banned from schema migration scripts.
+* Schema migration scripts only update the database schema.
+* Data migrations must be done at the end of the rolling upgrade process,
+  after the schema migration and after the services have been upgraded to
+  the latest release.
+
+All data migrations are performed using the
+``ironic-dbsync online_data_migrations`` command. It can be run as
+a background process so that it does not interrupt running services;
+however it must be run to completion for a cold upgrade if the intent
+is to make use of new features immediately.
+
 (You would also execute the same command with services turned off if
 you are doing a cold upgrade).
 
@@ -132,8 +161,8 @@ Pike but did not do the data migrations, you will not be able to upgrade from
 Pike to Queens. (More precisely, you will not be able to apply Queens' schema
 migrations.)
 
-Graceful service shutdown
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Graceful conductor service shutdown
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ironic-conductor service is a Python process listening for messages on a
 message queue. When the operator sends the SIGTERM signal to the process, the
@@ -147,6 +176,12 @@ older code, and start up a service using newer code with minimal impact.
    This was tested with RabbitMQ messaging backend and may vary with other
    backends.
 
+Nodes that are being acted upon by an ironic-conductor process, which are
+not in a stable state, may encounter failures. Node failures that occur
+during an upgrade are likely due to timeouts, resulting from delays
+involving messages being processed and acted upon by a conductor
+during long running, multi-step processes such as deployment or cleaning.
+
 API load balancer draining
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -157,13 +192,9 @@ services that have not yet been upgraded.
 Rolling upgrade process
 -----------------------
 
-To reduce downtime, the services can be upgraded in a rolling fashion. It means
-upgrading one or a few services at a time. To minimise downtime you need to
-have HA ironic deployment (at least two ironic-api and two ironic-conductor
-services) so that when a service instance is being upgraded, the other
-instances are still running.
-
-**New features should not be used until after the upgrade has been completed.**
+.. warning::
+   New features and/or new API versions should not be used until after the upgrade
+   has been completed.
 
 Before maintenance window
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -183,23 +214,25 @@ Before maintenance window
   database schema changes are done in a way that both the old and new (N and
   N+1) releases can perform operations against the same schema.
 
-.. note:: Ironic bases its RPC and object storage format versions on the
-          ``[DEFAULT]/pin_release_version`` configuration option. It is
-          advisable to automate the deployment of changes in configuration
-          files to make the process less error prone and repeatable.
+.. note::
+   Ironic bases its RPC and object storage format versions on the
+   ``[DEFAULT]/pin_release_version`` configuration option. It is
+   advisable to automate the deployment of changes in configuration
+   files to make the process less error prone and repeatable.
 
 During maintenance window
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#. ironic-conductor services should be upgraded first. Ensure that at least
-   one ironic-conductor service is running at all times. For every
+#. All ironic-conductor services should be upgraded first. Ensure that at
+   least one ironic-conductor service is running at all times. For every
    ironic-conductor, either one by one or a few at a time:
 
-   * shut down the service. Conductors are load-balanced by the message queue,
+   * shut down the service. Messages from the ironic-api services to the
+     conductors are load-balanced by the message queue and a hash-ring,
      so the only thing you need to worry about is to shut the service down
      gracefully (using ``SIGTERM`` signal) to make sure it will finish all the
-     requests being processed before shutting down
-   * upgrade the code and dependencies
+     requests being processed before shutting down.
+   * upgrade the installed version of ironic and dependencies
    * set the ``[DEFAULT]/pin_release_version`` configuration option value to
      the version you are upgrading from (that is, the old version). Based on
      this setting, the new ironic-conductor services will downgrade any
@@ -210,15 +243,15 @@ During maintenance window
 
 #. The next service to upgrade is ironic-api. Ensure that at least one
    ironic-api service is running at all times. You may want to start another
-   instance of the older ironic-api to handle the load while you are upgrading
-   the original ironic-api services. For every ironic-api service, either one
-   by one or a few at a time:
+   temporary instance of the older ironic-api to handle the load while you are
+   upgrading the original ironic-api services. For every ironic-api service,
+   either one by one or a few at a time:
 
    * in HA deployment you are typically running them behind a load balancer
      (for example HAProxy), so you need to take the service instance out of the
      balancer
    * shut it down
-   * upgrade the code and dependencies
+   * upgrade the installed version of ironic and dependencies
    * set the ``[DEFAULT]/pin_release_version`` configuration option value to
      the version you are upgrading from (that is, the old version). Based on
      this setting, the new ironic-api services will downgrade any RPC
@@ -258,7 +291,7 @@ release.
   performed.
 
 * Upgrade ``python-ironicclient`` along with other services connecting
-  to the Bare Metal service as a client, such as nova-compute.
+  to the Bare Metal service as a client, such as ``nova-compute``.
 
 * Run the ``ironic-dbsync online_data_migrations`` command to make sure
   that data migrations are applied. The command lets you limit
@@ -266,11 +299,12 @@ release.
   limits the number of migrations executed in one run. You should complete
   all of the migrations as soon as possible after the upgrade.
 
-Note that you will not be able to start an upgrade to the next release after
-this one, until this has been completed for the current release. For example,
-as part of upgrading from Ocata to Pike, you need to complete Pike's data
-migrations. If this not done, you will not be able to upgrade to Queens --
-it will not be possible to execute Queens' database schema updates.
+  .. warning::
+     Note that you will not be able to start an upgrade to the next release after
+     this one, until this has been completed for the current release. For example,
+     as part of upgrading from Ocata to Pike, you need to complete Pike's data
+     migrations. If this not done, you will not be able to upgrade to Queens --
+     it will not be possible to execute Queens' database schema updates.
 
 Upgrading from Ocata to Pike
 ============================
