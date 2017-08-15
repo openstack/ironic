@@ -49,7 +49,7 @@ and provide the file or HTTP URL to the Bare Metal service.
 For the format of the configuration drive, Bare Metal service expects a
 ``gzipped`` and ``base64`` encoded ISO 9660 [*]_ file with a ``config-2``
 label. The
-`ironic client <http://docs.openstack.org/developer/python-ironicclient/>`_
+`ironic client <https://docs.openstack.org/python-ironicclient/latest/>`_
 can generate a configuration drive in the `expected format`_. Just pass a
 directory path containing the files that will be injected into it via the
 ``--config-drive`` parameter of the ``node-set-provision-state`` command,
@@ -161,7 +161,7 @@ but in order to use it we should follow some rules:
     DIB_CLOUD_INIT_DATASOURCES="ConfigDrive, OpenStack" disk-image-create -o fedora-cloud-image fedora baremetal
 
   For more information see `how to configure cloud-init data sources
-  <http://docs.openstack.org/developer/diskimage-builder/elements/cloud-init-datasources/README.html>`_.
+  <https://docs.openstack.org/diskimage-builder/latest/elements/cloud-init-datasources/README.html>`_.
 
-.. _`expected format`: http://docs.openstack.org/user-guide/cli_config_drive.html#openstack-metadata-format
-.. _disk-image-builder: http://docs.openstack.org/developer/diskimage-builder/
+.. _`expected format`: https://docs.openstack.org/nova/latest/user/vendordata.html
+.. _disk-image-builder: https://docs.openstack.org/diskimage-builder/latest/

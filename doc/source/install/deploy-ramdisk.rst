@@ -12,7 +12,7 @@ the `CoreOS tools`_ at:
 * `CoreOS deploy kernel <http://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe.vmlinuz>`_
 * `CoreOS deploy ramdisk <http://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe_image-oem.cpio.gz>`_
 
-.. _ironic-python-agent: http://docs.openstack.org/developer/ironic-python-agent/
+.. _ironic-python-agent: https://docs.openstack.org/ironic-python-agent/latest/
 
 Building from source
 --------------------
@@ -97,5 +97,5 @@ disk-image-builder
    check the `diskimage-builder documentation`_ for other supported
    operational systems.
 
-.. _`diskimage-builder documentation`: http://docs.openstack.org/developer/diskimage-builder
-.. _`diskimage-builder installation documentation`: http://docs.openstack.org/developer/diskimage-builder/user_guide/installation.html
+.. _`diskimage-builder documentation`: https://docs.openstack.org/diskimage-builder/latest/
+.. _`diskimage-builder installation documentation`: https://docs.openstack.org/diskimage-builder/latest/user_guide/installation.html
