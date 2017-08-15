@@ -73,8 +73,8 @@ bifrost_
   A set of Ansible playbooks that automates the task of deploying a base image
   onto a set of known hardware using ironic in a standalone mode.
 
-.. _python-ironicclient: http://docs.openstack.org/developer/python-ironicclient/
-.. _ironic-inspector: http://docs.openstack.org/developer/ironic-inspector/
-.. _diskimage-builder: http://docs.openstack.org/developer/diskimage-builder/
-.. _bifrost: http://docs.openstack.org/developer/bifrost/
+.. _python-ironicclient: https://docs.openstack.org/python-ironicclient/latest/
+.. _ironic-inspector: https://docs.openstack.org/ironic-inspector/latest/
+.. _diskimage-builder: https://docs.openstack.org/diskimage-builder/latest/
+.. _bifrost: https://docs.openstack.org/bifrost/latest/
 
