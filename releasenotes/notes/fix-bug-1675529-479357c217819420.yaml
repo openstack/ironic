@@ -15,7 +15,7 @@ fixes:
     node if a power change action fails. Additionally, stops retrying power
     actions and power status polls on receipt of a non-retryable error from
     ipmitool. For more information, see `bug 1675529
-    <https//bugs.launchpad.net/ironic/+bug/1675529>`_.
+    <https://bugs.launchpad.net/ironic/+bug/1675529>`_.
 
     A new configuration option ``[conductor]/power_state_change_timeout``
     can be used to specify how many seconds to wait for a baremetal node

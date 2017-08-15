@@ -14,10 +14,10 @@ features:
 
     * ``node.power_interface`` can be set to:
 
-      * ``cimc`` for CIMC API power control (power on/off, reboot etc)
-      * ``ucsm`` for UCSM API power control (power on/off, reboot etc)
+      * ``cimc`` for CIMC API power control (power on/off, reboot, etc.)
+      * ``ucsm`` for UCSM API power control (power on/off, reboot, etc.)
 
     * ``node.management_interface`` can be set to:
 
-      * ``cimc`` for CIMC API management control (setting the boot device etc)
-      * ``ucsm`` for UCSM API management control (setting the boot device etc)
+      * ``cimc`` for CIMC API management control (setting the boot device, etc.)
+      * ``ucsm`` for UCSM API management control (setting the boot device, etc.)

@@ -1,4 +1,4 @@
 ---
 fixes:
-  - Fixes multi-region issue when region specified in config file
-    was ignored when getting keystone service url.
+  - Fixes a multi-region issue where the region specified in the configuration
+    file was ignored when getting the Identity service's (keystone) URL.

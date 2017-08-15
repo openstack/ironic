@@ -11,8 +11,8 @@ upgrade:
     The default value for this option is 0, which means the clean step
     is disabled.
 deprecations:
-  - The use of the ``pxe`` boot interface with the ``irmc`` hardware typed has
-    been deprecated. It is recommended for to switch to the new ``irmc-pxe``
+  - The use of the ``pxe`` boot interface with the ``irmc`` hardware type has
+    been deprecated. It is recommended to switch to the new ``irmc-pxe``
     boot interface as soon as possible.
 issues:
   - The ``restore_irmc_bios_config`` clean step does not work for nodes using
