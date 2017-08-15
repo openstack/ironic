@@ -23,6 +23,7 @@ import tempfile
 from ironic_lib import utils as ironic_utils
 import mock
 from oslo_config import cfg
+from oslo_utils import uuidutils
 import six
 
 from ironic.common import boot_devices
@@ -41,6 +42,8 @@ from ironic.drivers.modules import pxe
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
+from ironic.tests.unit.drivers import third_party_driver_mock_specs \
+    as mock_specs
 from ironic.tests.unit.objects import utils as obj_utils
 
 if six.PY3:
@@ -50,6 +53,19 @@ if six.PY3:
 
 INFO_DICT = db_utils.get_test_irmc_info()
 CONF = cfg.CONF
+PARSED_IFNO = {
+    'irmc_address': '1.2.3.4',
+    'irmc_port': 80,
+    'irmc_username': 'admin0',
+    'irmc_password': 'fake0',
+    'irmc_auth_method': 'digest',
+    'irmc_client_timeout': 60,
+    'irmc_snmp_community': 'public',
+    'irmc_snmp_port': 161,
+    'irmc_snmp_version': 'v2c',
+    'irmc_snmp_security': None,
+    'irmc_sensor_method': 'ipmitool',
+}
 
 
 class IRMCDeployPrivateMethodsTestCase(db_base.DbTestCase):
@@ -1215,3 +1231,439 @@ class IRMCPXEBootTestCase(db_base.DbTestCase):
             self.assertFalse(mock_set_secure_boot_mode.called)
             mock_clean_up_instance.assert_called_once_with(
                 task.driver.boot, task)
+
+
+@mock.patch.object(irmc_boot, 'viom',
+                   spec_set=mock_specs.SCCICLIENT_VIOM_SPEC)
+class IRMCVirtualMediaBootWithVolumeTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(IRMCVirtualMediaBootWithVolumeTestCase, self).setUp()
+        irmc_boot.check_share_fs_mounted_patcher.start()
+        self.addCleanup(irmc_boot.check_share_fs_mounted_patcher.stop)
+        self.config(enabled_hardware_types=['irmc'],
+                    enabled_boot_interfaces=['irmc-virtual-media'],
+                    enabled_deploy_interfaces=['direct'],
+                    enabled_power_interfaces=['irmc'],
+                    enabled_management_interfaces=['irmc'],
+                    enabled_storage_interfaces=['cinder'])
+        driver_info = INFO_DICT
+        d_in_info = dict(boot_from_volume='volume-uuid')
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='irmc',
+                                               driver_info=driver_info,
+                                               storage_interface='cinder',
+                                               driver_internal_info=d_in_info)
+
+    def _create_mock_conf(self, mock_viom):
+        mock_conf = mock.Mock(spec_set=mock_specs.SCCICLIENT_VIOM_CONF_SPEC)
+        mock_viom.VIOMConfiguration.return_value = mock_conf
+        return mock_conf
+
+    def _add_pci_physical_id(self, uuid, physical_id):
+        driver_info = self.node.driver_info
+        ids = driver_info.get('irmc_pci_physical_ids', {})
+        ids[uuid] = physical_id
+        driver_info['irmc_pci_physical_ids'] = ids
+        self.node.driver_info = driver_info
+        self.node.save()
+
+    def _create_port(self, physical_id='LAN0-1', **kwargs):
+        uuid = uuidutils.generate_uuid()
+        obj_utils.create_test_port(self.context,
+                                   uuid=uuid,
+                                   node_id=self.node.id,
+                                   **kwargs)
+        if physical_id:
+            self._add_pci_physical_id(uuid, physical_id)
+
+    def _create_iscsi_iqn_connector(self, physical_id='CNA1-1'):
+        uuid = uuidutils.generate_uuid()
+        obj_utils.create_test_volume_connector(
+            self.context,
+            uuid=uuid,
+            type='iqn',
+            node_id=self.node.id,
+            connector_id='iqn.initiator')
+        if physical_id:
+            self._add_pci_physical_id(uuid, physical_id)
+
+    def _create_iscsi_ip_connector(self, physical_id=None, network_size='24'):
+        uuid = uuidutils.generate_uuid()
+        obj_utils.create_test_volume_connector(
+            self.context,
+            uuid=uuid,
+            type='ip',
+            node_id=self.node.id,
+            connector_id='192.168.11.11')
+        if physical_id:
+            self._add_pci_physical_id(uuid, physical_id)
+        if network_size:
+            driver_info = self.node.driver_info
+            driver_info['irmc_storage_network_size'] = network_size
+            self.node.driver_info = driver_info
+            self.node.save()
+
+    def _create_iscsi_target(self, target_info=None, boot_index=0, **kwargs):
+        target_properties = {
+            'target_portal': '192.168.22.22:3260',
+            'target_iqn': 'iqn.target',
+            'target_lun': 1,
+        }
+        if target_info:
+            target_properties.update(target_info)
+        obj_utils.create_test_volume_target(
+            self.context,
+            volume_type='iscsi',
+            node_id=self.node.id,
+            boot_index=boot_index,
+            properties=target_properties,
+            **kwargs)
+
+    def _create_iscsi_resources(self):
+        self._create_iscsi_iqn_connector()
+        self._create_iscsi_ip_connector()
+        self._create_iscsi_target()
+
+    def _create_fc_connector(self):
+        uuid = uuidutils.generate_uuid()
+        obj_utils.create_test_volume_connector(
+            self.context,
+            uuid=uuid,
+            type='wwnn',
+            node_id=self.node.id,
+            connector_id='11:22:33:44:55')
+        self._add_pci_physical_id(uuid, 'FC2-1')
+        obj_utils.create_test_volume_connector(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            type='wwpn',
+            node_id=self.node.id,
+            connector_id='11:22:33:44:56')
+
+    def _create_fc_target(self):
+        target_properties = {
+            'target_wwn': 'aa:bb:cc:dd:ee',
+            'target_lun': 2,
+        }
+        obj_utils.create_test_volume_target(
+            self.context,
+            volume_type='fibre_channel',
+            node_id=self.node.id,
+            boot_index=0,
+            properties=target_properties)
+
+    def _create_fc_resources(self):
+        self._create_fc_connector()
+        self._create_fc_target()
+
+    def _call_validate(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.boot.validate(task)
+
+    def test_validate_iscsi(self, mock_viom):
+        self._create_port()
+        self._create_iscsi_resources()
+        self._call_validate()
+        self.assertEqual([mock.call('LAN0-1'), mock.call('CNA1-1')],
+                         mock_viom.validate_physical_port_id.call_args_list)
+
+    def test_validate_no_physical_id_in_lan_port(self, mock_viom):
+        self._create_port(physical_id=None)
+        self._create_iscsi_resources()
+        self.assertRaises(exception.MissingParameterValue,
+                          self._call_validate)
+
+    @mock.patch.object(irmc_boot, 'scci',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
+    def test_validate_invalid_physical_id_in_lan_port(self, mock_scci,
+                                                      mock_viom):
+        self._create_port(physical_id='wrong-id')
+        self._create_iscsi_resources()
+
+        mock_viom.validate_physical_port_id.side_effect = (
+            Exception('fake error'))
+        mock_scci.SCCIInvalidInputError = Exception
+        self.assertRaises(exception.InvalidParameterValue,
+                          self._call_validate)
+
+    def test_validate_iscsi_connector_no_ip(self, mock_viom):
+        self._create_port()
+        self._create_iscsi_iqn_connector()
+        self._create_iscsi_target()
+
+        self.assertRaises(exception.MissingParameterValue,
+                          self._call_validate)
+
+    def test_validate_iscsi_connector_no_iqn(self, mock_viom):
+        self._create_port()
+        self._create_iscsi_ip_connector(physical_id='CNA1-1')
+        self._create_iscsi_target()
+
+        self.assertRaises(exception.MissingParameterValue,
+                          self._call_validate)
+
+    def test_validate_iscsi_connector_no_netmask(self, mock_viom):
+        self._create_port()
+        self._create_iscsi_iqn_connector()
+        self._create_iscsi_ip_connector(network_size=None)
+        self._create_iscsi_target()
+
+        self.assertRaises(exception.MissingParameterValue,
+                          self._call_validate)
+
+    def test_validate_iscsi_connector_invalid_netmask(self, mock_viom):
+        self._create_port()
+        self._create_iscsi_iqn_connector()
+        self._create_iscsi_ip_connector(network_size='worng-netmask')
+        self._create_iscsi_target()
+
+        self.assertRaises(exception.InvalidParameterValue,
+                          self._call_validate)
+
+    def test_validate_iscsi_connector_too_small_netmask(self, mock_viom):
+        self._create_port()
+        self._create_iscsi_iqn_connector()
+        self._create_iscsi_ip_connector(network_size='0')
+        self._create_iscsi_target()
+
+        self.assertRaises(exception.InvalidParameterValue,
+                          self._call_validate)
+
+    def test_validate_iscsi_connector_too_large_netmask(self, mock_viom):
+        self._create_port()
+        self._create_iscsi_iqn_connector()
+        self._create_iscsi_ip_connector(network_size='32')
+        self._create_iscsi_target()
+
+        self.assertRaises(exception.InvalidParameterValue,
+                          self._call_validate)
+
+    def test_validate_iscsi_connector_no_physical_id(self, mock_viom):
+        self._create_port()
+        self._create_iscsi_iqn_connector(physical_id=None)
+        self._create_iscsi_ip_connector()
+        self._create_iscsi_target()
+
+        self.assertRaises(exception.MissingParameterValue,
+                          self._call_validate)
+
+    @mock.patch.object(deploy_utils, 'get_single_nic_with_vif_port_id')
+    def test_prepare_ramdisk_skip(self, mock_nic, mock_viom):
+        self._create_iscsi_resources()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.provision_state = states.DEPLOYING
+            task.driver.boot.prepare_ramdisk(task, {})
+            mock_nic.assert_not_called()
+
+    @mock.patch.object(irmc_boot, '_cleanup_vmedia_boot')
+    def test_prepare_instance(self, mock_clean, mock_viom):
+        mock_conf = self._create_mock_conf(mock_viom)
+        self._create_port()
+        self._create_iscsi_resources()
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.boot.prepare_instance(task)
+            mock_clean.assert_not_called()
+
+        mock_conf.set_iscsi_volume.assert_called_once_with(
+            'CNA1-1',
+            'iqn.initiator',
+            initiator_ip='192.168.11.11',
+            initiator_netmask=24,
+            target_iqn='iqn.target',
+            target_ip='192.168.22.22',
+            target_port='3260',
+            target_lun=1,
+            boot_prio=1,
+            chap_user=None,
+            chap_secret=None)
+        mock_conf.set_lan_port.assert_called_once_with('LAN0-1')
+        mock_viom.validate_physical_port_id.assert_called_once_with('CNA1-1')
+        self._assert_viom_apply(mock_viom, mock_conf)
+
+    def _call__configure_boot_from_volume(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.boot._configure_boot_from_volume(task)
+
+    def _assert_viom_apply(self, mock_viom, mock_conf):
+        mock_conf.apply.assert_called_once_with()
+        mock_conf.dump_json.assert_called_once_with()
+        mock_viom.VIOMConfiguration.assert_called_once_with(
+            PARSED_IFNO, identification=self.node.uuid)
+
+    def test__configure_boot_from_volume_iscsi(self, mock_viom):
+        mock_conf = self._create_mock_conf(mock_viom)
+        self._create_port()
+        self._create_iscsi_resources()
+
+        self._call__configure_boot_from_volume()
+
+        mock_conf.set_iscsi_volume.assert_called_once_with(
+            'CNA1-1',
+            'iqn.initiator',
+            initiator_ip='192.168.11.11',
+            initiator_netmask=24,
+            target_iqn='iqn.target',
+            target_ip='192.168.22.22',
+            target_port='3260',
+            target_lun=1,
+            boot_prio=1,
+            chap_user=None,
+            chap_secret=None)
+        mock_conf.set_lan_port.assert_called_once_with('LAN0-1')
+        mock_viom.validate_physical_port_id.assert_called_once_with('CNA1-1')
+        self._assert_viom_apply(mock_viom, mock_conf)
+
+    def test__configure_boot_from_volume_multi_lan_ports(self, mock_viom):
+        mock_conf = self._create_mock_conf(mock_viom)
+        self._create_port()
+        self._create_port(physical_id='LAN0-2',
+                          address='52:54:00:cf:2d:32')
+        self._create_iscsi_resources()
+
+        self._call__configure_boot_from_volume()
+
+        mock_conf.set_iscsi_volume.assert_called_once_with(
+            'CNA1-1',
+            'iqn.initiator',
+            initiator_ip='192.168.11.11',
+            initiator_netmask=24,
+            target_iqn='iqn.target',
+            target_ip='192.168.22.22',
+            target_port='3260',
+            target_lun=1,
+            boot_prio=1,
+            chap_user=None,
+            chap_secret=None)
+        self.assertEqual([mock.call('LAN0-1'), mock.call('LAN0-2')],
+                         mock_conf.set_lan_port.call_args_list)
+        mock_viom.validate_physical_port_id.assert_called_once_with('CNA1-1')
+        self._assert_viom_apply(mock_viom, mock_conf)
+
+    def test__configure_boot_from_volume_iscsi_no_portal_port(self, mock_viom):
+        mock_conf = self._create_mock_conf(mock_viom)
+        self._create_port()
+        self._create_iscsi_iqn_connector()
+        self._create_iscsi_ip_connector()
+        self._create_iscsi_target(
+            target_info=dict(target_portal='192.168.22.23'))
+
+        self._call__configure_boot_from_volume()
+
+        mock_conf.set_iscsi_volume.assert_called_once_with(
+            'CNA1-1',
+            'iqn.initiator',
+            initiator_ip='192.168.11.11',
+            initiator_netmask=24,
+            target_iqn='iqn.target',
+            target_ip='192.168.22.23',
+            target_port=None,
+            target_lun=1,
+            boot_prio=1,
+            chap_user=None,
+            chap_secret=None)
+        mock_conf.set_lan_port.assert_called_once_with('LAN0-1')
+        mock_viom.validate_physical_port_id.assert_called_once_with('CNA1-1')
+        self._assert_viom_apply(mock_viom, mock_conf)
+
+    def test__configure_boot_from_volume_iscsi_chap(self, mock_viom):
+        mock_conf = self._create_mock_conf(mock_viom)
+        self._create_port()
+        self._create_iscsi_iqn_connector()
+        self._create_iscsi_ip_connector()
+        self._create_iscsi_target(
+            target_info=dict(auth_method='CHAP',
+                             auth_username='chapuser',
+                             auth_password='chappass'))
+
+        self._call__configure_boot_from_volume()
+
+        mock_conf.set_iscsi_volume.assert_called_once_with(
+            'CNA1-1',
+            'iqn.initiator',
+            initiator_ip='192.168.11.11',
+            initiator_netmask=24,
+            target_iqn='iqn.target',
+            target_ip='192.168.22.22',
+            target_port='3260',
+            target_lun=1,
+            boot_prio=1,
+            chap_user='chapuser',
+            chap_secret='chappass')
+        mock_conf.set_lan_port.assert_called_once_with('LAN0-1')
+        mock_viom.validate_physical_port_id.assert_called_once_with('CNA1-1')
+        self._assert_viom_apply(mock_viom, mock_conf)
+
+    def test__configure_boot_from_volume_fc(self, mock_viom):
+        mock_conf = self._create_mock_conf(mock_viom)
+        self._create_port()
+        self._create_fc_connector()
+        self._create_fc_target()
+
+        self._call__configure_boot_from_volume()
+
+        mock_conf.set_fc_volume.assert_called_once_with(
+            'FC2-1',
+            'aa:bb:cc:dd:ee',
+            2,
+            boot_prio=1)
+        mock_conf.set_lan_port.assert_called_once_with('LAN0-1')
+        mock_viom.validate_physical_port_id.assert_called_once_with('FC2-1')
+        self._assert_viom_apply(mock_viom, mock_conf)
+
+    @mock.patch.object(irmc_boot, 'scci',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
+    def test__configure_boot_from_volume_apply_error(self, mock_scci,
+                                                     mock_viom):
+        mock_conf = self._create_mock_conf(mock_viom)
+        self._create_port()
+        self._create_fc_connector()
+        self._create_fc_target()
+        mock_conf.apply.side_effect = Exception('fake scci error')
+        mock_scci.SCCIError = Exception
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.IRMCOperationError,
+                              task.driver.boot._configure_boot_from_volume,
+                              task)
+
+        mock_conf.set_fc_volume.assert_called_once_with(
+            'FC2-1',
+            'aa:bb:cc:dd:ee',
+            2,
+            boot_prio=1)
+        mock_conf.set_lan_port.assert_called_once_with('LAN0-1')
+        mock_viom.validate_physical_port_id.assert_called_once_with('FC2-1')
+        self._assert_viom_apply(mock_viom, mock_conf)
+
+    def test_clean_up_instance(self, mock_viom):
+        mock_conf = self._create_mock_conf(mock_viom)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.boot.clean_up_instance(task)
+
+        mock_viom.VIOMConfiguration.assert_called_once_with(PARSED_IFNO,
+                                                            self.node.uuid)
+        mock_conf.terminate.assert_called_once_with(reboot=False)
+
+    def test_clean_up_instance_error(self, mock_viom):
+        mock_conf = self._create_mock_conf(mock_viom)
+        mock_conf.terminate.side_effect = Exception('fake error')
+        irmc_boot.scci.SCCIError = Exception
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.IRMCOperationError,
+                              task.driver.boot.clean_up_instance,
+                              task)
+
+        mock_viom.VIOMConfiguration.assert_called_once_with(PARSED_IFNO,
+                                                            self.node.uuid)
+        mock_conf.terminate.assert_called_once_with(reboot=False)
+
+    def test__cleanup_boot_from_volume(self, mock_viom):
+        mock_conf = self._create_mock_conf(mock_viom)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.boot._cleanup_boot_from_volume(task)
+
+        mock_viom.VIOMConfiguration.assert_called_once_with(PARSED_IFNO,
+                                                            self.node.uuid)
+        mock_conf.terminate.assert_called_once_with(reboot=False)

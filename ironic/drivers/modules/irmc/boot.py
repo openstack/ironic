@@ -41,6 +41,7 @@ from ironic.drivers.modules import pxe
 
 
 scci = importutils.try_import('scciclient.irmc.scci')
+viom = importutils.try_import('scciclient.irmc.viom.client')
 
 try:
     if CONF.debug:
@@ -57,7 +58,22 @@ REQUIRED_PROPERTIES = {
                          "Required."),
 }
 
-COMMON_PROPERTIES = REQUIRED_PROPERTIES
+OPTIONAL_PROPERTIES = {
+    'irmc_pci_physical_ids':
+        _("Physical IDs of PCI cards. A dictionary of pairs of resource UUID "
+          "and its physical ID like '<UUID>:<Physical ID>,...'. The resources "
+          "are Ports and Volume connectors. The Physical ID consists of card "
+          "type, slot No, and port No. The format is "
+          "{LAN|FC|CNA}<slot-No>-<Port-No>. This parameter is necessary for "
+          "booting a node from a remote volume. Optional."),
+    'irmc_storage_network_size':
+        _("Size of the network for iSCSI storage network. It should be a "
+          "positive integer. This is necessary for booting a node from a "
+          "remote iSCSI volume. Optional."),
+}
+
+COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
+COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 
 
 def _parse_config_option():
@@ -522,7 +538,329 @@ def check_share_fs_mounted():
             share=CONF.irmc.remote_image_share_root)
 
 
-class IRMCVirtualMediaBoot(base.BootInterface):
+class IRMCVolumeBootMixIn(object):
+    """Mix-in class for volume boot configuration to iRMC
+
+    iRMC has a feature to set up remote boot to a server. This feature can be
+    used by VIOM (Virtual I/O Manager) library of SCCI client.
+    """
+
+    def _validate_volume_boot(self, task):
+        """Validate information for volume boot with this interface.
+
+        This interface requires physical information of connectors to
+        configure remote boot to iRMC. Physical information of LAN ports
+        is also required since VIOM feature manages all adapters.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :raises: InvalidParameterValue: If invalid value is set to resources.
+        :raises: MissingParameterValue: If some value is not set to resources.
+        """
+
+        if not deploy_utils.get_remote_boot_volume(task):
+            # No boot volume. Nothing to validate.
+            return
+
+        irmc_common.parse_driver_info(task.node)
+
+        for port in task.ports:
+            self._validate_lan_port(task.node, port)
+
+        for vt in task.volume_targets:
+            if vt.volume_type == 'iscsi':
+                self._validate_iscsi_connectors(task)
+            elif vt.volume_type == 'fibre_channel':
+                self._validate_fc_connectors(task)
+            # Unknown volume type is filtered in storage interface validation.
+
+    def _get_connector_physical_id(self, task, types):
+        """Get physical ID of volume connector.
+
+        A physical ID of volume connector required by iRMC is registered in
+        "irmc_pci_physical_ids" of a Node's driver_info as a pair of resource
+        UUID and its physical ID. This method gets this ID from the parameter.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :param types: a list of types of volume connectors required for the
+            target volume. One of connectors must have a physical ID.
+        :raises InvalidParameterValue if a physical ID is invalid.
+        :returns: A physical ID of a volume connector.
+        """
+        for vc in task.volume_connectors:
+            if vc.type not in types:
+                continue
+            pid = task.node.driver_info['irmc_pci_physical_ids'].get(vc.uuid)
+            if pid:
+                try:
+                    viom.validate_physical_port_id(pid)
+                except scci.SCCIInvalidInputError as e:
+                    raise exception.InvalidParameterValue(
+                        _('Physical port information of volume connector '
+                          '%(connector)s is invalid: %(error)') %
+                        {'connector': vc.uuid, 'error': e})
+                return pid
+        return None
+
+    def _validate_iscsi_connectors(self, task):
+        """Validate if volume connectors are properly registered for iSCSI.
+
+        For connecting a node to a iSCSI volume, volume connectors containing
+        an IQNN and an IP address are necessary. One of connectors must have
+        a physical ID of the PCI card. Network size of a storage network is
+        also required by iRMC. which should be registered in the node's
+        driver_info.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :raises: InvalidParameterValue if a volume connector with a required
+            type is not registered.
+        :raises: InvalidParameterValue if a physical ID is not registered in
+            any volume connectors.
+        :raises: InvalidParameterValue if a physical ID is invalid.
+        """
+        vc_dict = self._get_volume_connectors_by_type(task)
+        node = task.node
+        missing_types = []
+        for vc_type in ('iqn', 'ip'):
+            vc = vc_dict.get(vc_type)
+            if not vc:
+                missing_types.append(vc_type)
+                continue
+
+        if missing_types:
+            raise exception.MissingParameterValue(
+                _('Failed to validate for node %(node)s because of missing '
+                  'volume connector(s) with type(s) %(types)s') %
+                {'node': node.uuid,
+                 'types': ', '.join(missing_types)})
+
+        if not self._get_connector_physical_id(task, ['iqn', 'ip']):
+            raise exception.MissingParameterValue(
+                _('Failed to validate for node %(node)s because of missing '
+                  'physical port information for iSCSI connector. This '
+                  'information must be set in "pci_physical_ids" parameter of '
+                  'node\'s driver_info as <connector uuid>:<physical id>.') %
+                {'node': node.uuid})
+        self._get_network_size(node)
+
+    def _validate_fc_connectors(self, task):
+        """Validate if volume connectors are properly registered for FC.
+
+        For connecting a node to a FC volume, one of connectors representing
+        wwnn and wwpn must have a physical ID of the PCI card.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :raises: InvalidParameterValue if a physical ID is not registered in
+            any volume connectors.
+        :raises: InvalidParameterValue if a physical ID is invalid.
+        """
+        node = task.node
+        if not self._get_connector_physical_id(task, ['wwnn', 'wwpn']):
+            raise exception.MissingParameterValue(
+                _('Failed to validate for node %(node)s because of missing '
+                  'physical port information for FC connector. This '
+                  'information must be set in "pci_physical_ids" parameter of '
+                  'node\'s driver_info as <connector uuid>:<physical id>.') %
+                {'node': node.uuid})
+
+    def _validate_lan_port(self, node, port):
+        """Validate ports for VIOM configuration.
+
+        Physical information of LAN ports must be registered to VIOM
+        configuration to activate them under VIOM management. The information
+        has to be set to "irmc_pci_physical_id" parameter in a nodes
+        driver_info.
+
+        :param node: an ironic node object
+        :param port: a port to be validated
+        :raises: MissingParameterValue if a physical ID of the port is not set.
+        :raises: InvalidParameterValue if a physical ID is invalid.
+        """
+        physical_id = node.driver_info['irmc_pci_physical_ids'].get(port.uuid)
+        if not physical_id:
+            raise exception.MissingParameterValue(
+                _('Failed to validate for node %(node)s because of '
+                  'missing physical port information of port %(port)s. '
+                  'This information should be contained in '
+                  '"pci_physical_ids" parameter of node\'s driver_info.') %
+                {'node': node.uuid,
+                 'port': port.uuid})
+        try:
+            viom.validate_physical_port_id(physical_id)
+        except scci.SCCIInvalidInputError as e:
+            raise exception.InvalidParameterValue(
+                _('Failed to validate for node %(node)s because '
+                  'the physical port ID for port %(port)s in node\'s'
+                  ' driver_info is invalid: %(reason)s') %
+                {'node': node.uuid,
+                 'port': port.uuid,
+                 'reason': e})
+
+    def _get_network_size(self, node):
+        """Get network size of a storage network.
+
+        The network size of iSCSI network is required by iRMC for connecting
+        a node to an iSCSI volume. This network size is set to node's
+        driver_info as "irmc_storage_network_size" parameter in the form of
+        positive integer.
+
+        :param node: an ironic node object.
+        :raises: MissingParameterValue if the network size parameter is not
+            set.
+        :raises: InvalidParameterValue the network size is invalid.
+        """
+        network_size = node.driver_info.get('irmc_storage_network_size')
+        if network_size is None:
+            raise exception.MissingParameterValue(
+                _('Failed to validate for node %(node)s because of '
+                  'missing "irmc_storage_network_size" parameter in the '
+                  'node\'s driver_info. This should be a positive integer '
+                  'smaller than 32.') %
+                {'node': node.uuid})
+        try:
+            network_size = int(network_size)
+        except (ValueError, TypeError):
+            raise exception.InvalidParameterValue(
+                _('Failed to validate for node %(node)s because '
+                  '"irmc_storage_network_size" parameter in the node\'s '
+                  'driver_info is invalid. This should be a '
+                  'positive integer smaller than 32.') %
+                {'node': node.uuid})
+
+        if network_size not in range(1, 32):
+            raise exception.InvalidParameterValue(
+                _('Failed to validate for node %(node)s because '
+                  '"irmc_storage_network_size" parameter in the node\'s '
+                  'driver_info is invalid. This should be a '
+                  'positive integer smaller than 32.') %
+                {'node': node.uuid})
+
+        return network_size
+
+    def _get_volume_connectors_by_type(self, task):
+        """Create a dictionary of volume connectors by types.
+
+        :param task: a TaskManager.
+        :returns: a volume connector dictionary whose key is a connector type.
+        """
+        connectors = {}
+        for vc in task.volume_connectors:
+            if vc.type in ('ip', 'iqn', 'wwnn', 'wwpn'):
+                connectors[vc.type] = vc
+            else:
+                LOG.warning('Node %(node)s has a volume_connector (%(uuid)s) '
+                            'defined with an unsupported type: %(type)s.',
+                            {'node': task.node.uuid,
+                             'uuid': vc.uuid,
+                             'type': vc.type})
+        return connectors
+
+    def _register_lan_ports(self, viom_conf, task):
+        """Register ports to VIOM configuration.
+
+        LAN ports information must be registered for VIOM configuration to
+        activate them under VIOM management.
+
+        :param viom_conf: a configurator for iRMC
+        :param task: a TaskManager instance containing the node to act on.
+        """
+        for port in task.ports:
+            viom_conf.set_lan_port(
+                task.node.driver_info['irmc_pci_physical_ids'].get(port.uuid))
+
+    def _configure_boot_from_volume(self, task):
+        """Set information for booting from a remote volume to iRMC.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :raises: IRMCOperationError if iRMC operation failed
+        """
+
+        irmc_info = irmc_common.parse_driver_info(task.node)
+        viom_conf = viom.VIOMConfiguration(irmc_info,
+                                           identification=task.node.uuid)
+
+        self._register_lan_ports(viom_conf, task)
+
+        for vt in task.volume_targets:
+            if vt.volume_type == 'iscsi':
+                self._set_iscsi_target(task, viom_conf, vt)
+            elif vt.volume_type == 'fibre_channel':
+                self._set_fc_target(task, viom_conf, vt)
+
+        try:
+            LOG.debug('Set VIOM configuration for node %(node)s: %(table)s',
+                      {'node': task.node.uuid,
+                       'table': viom_conf.dump_json()})
+            viom_conf.apply()
+        except scci.SCCIError as e:
+            LOG.error('iRMC failed to set VIOM configuration for node '
+                      '%(node)s: %(error)s',
+                      {'node': task.node.uuid,
+                       'error': e})
+            raise exception.IRMCOperationError(
+                operation='Configure VIOM', error=e)
+
+    def _set_iscsi_target(self, task, viom_conf, target):
+        """Set information for iSCSI boot to VIOM configuration."""
+        connectors = self._get_volume_connectors_by_type(task)
+        target_portal = target.properties['target_portal']
+        if ':' in target_portal:
+            target_host, target_port = target_portal.split(':')
+        else:
+            target_host = target_portal
+            target_port = None
+        if target.properties.get('auth_method') == 'CHAP':
+            chap_user = target.properties.get('auth_username')
+            chap_secret = target.properties.get('auth_password')
+        else:
+            chap_user = None
+            chap_secret = None
+
+        viom_conf.set_iscsi_volume(
+            self._get_connector_physical_id(task, ['iqn', 'ip']),
+            connectors['iqn'].connector_id,
+            initiator_ip=connectors['ip'].connector_id,
+            initiator_netmask=self._get_network_size(task.node),
+            target_iqn=target.properties['target_iqn'],
+            target_ip=target_host,
+            target_port=target_port,
+            target_lun=target.properties.get('target_lun'),
+            # Boot priority starts from 1 in the library.
+            boot_prio=target.boot_index + 1,
+            chap_user=chap_user,
+            chap_secret=chap_secret)
+
+    def _set_fc_target(self, task, viom_conf, target):
+        """Set information for FC boot to VIOM configuration."""
+        wwn = target.properties['target_wwn']
+        if isinstance(wwn, list):
+            wwn = wwn[0]
+        viom_conf.set_fc_volume(
+            self._get_connector_physical_id(task, ['wwnn', 'wwpn']),
+            wwn,
+            target.properties['target_lun'],
+            # Boot priority starts from 1 in the library.
+            boot_prio=target.boot_index + 1)
+
+    def _cleanup_boot_from_volume(self, task, reboot=False):
+        """Clear remote boot configuration.
+
+        :param task: a task from TaskManager.
+        :param reboot: True if reboot node soon
+        :raises: IRMCOperationError if iRMC operation failed
+        """
+        irmc_info = irmc_common.parse_driver_info(task.node)
+        try:
+            viom_conf = viom.VIOMConfiguration(irmc_info, task.node.uuid)
+            viom_conf.terminate(reboot=reboot)
+        except scci.SCCIError as e:
+            LOG.error('iRMC failed to terminate VIOM configuration from '
+                      'node %(node)s: %(error)s', {'node': task.node.uuid,
+                                                   'error': e})
+            raise exception.IRMCOperationError(operation='Terminate VIOM',
+                                               error=e)
+
+
+class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
     """iRMC Virtual Media boot-related actions."""
 
     def __init__(self):
@@ -533,6 +871,7 @@ class IRMCVirtualMediaBoot(base.BootInterface):
         :raises: InvalidParameterValue, if config option has invalid value.
         """
         check_share_fs_mounted()
+        self.capabilities = ['iscsi_volume_boot', 'fc_volume_boot']
         super(IRMCVirtualMediaBoot, self).__init__()
 
     def get_properties(self):
@@ -552,6 +891,13 @@ class IRMCVirtualMediaBoot(base.BootInterface):
             missing in the Non Glance image.
         """
         check_share_fs_mounted()
+
+        self._validate_volume_boot(task)
+        if not task.driver.storage.should_write_image(task):
+            LOG.debug('Node %(node) skips image validation because of booting '
+                      'from a remote volume.',
+                      {'node': task.node.uuid})
+            return
 
         d_info = _parse_deploy_info(task.node)
         if task.node.driver_internal_info.get('is_whole_disk_image'):
@@ -594,6 +940,12 @@ class IRMCVirtualMediaBoot(base.BootInterface):
         if task.node.provision_state == states.DEPLOYING:
             irmc_management.backup_bios_config(task)
 
+            if not task.driver.storage.should_write_image(task):
+                LOG.debug('Node %(node) skips ramdisk preparation because of '
+                          'booting from a remote volume.',
+                          {'node': task.node.uuid})
+                return
+
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
         ramdisk_params['BOOTIF'] = deploy_nic_mac
 
@@ -622,6 +974,13 @@ class IRMCVirtualMediaBoot(base.BootInterface):
         :param task: a task from TaskManager.
         :returns: None
         """
+        if task.node.driver_internal_info.get('boot_from_volume'):
+            LOG.debug('Node %(node) is configured for booting from a remote '
+                      'volume.',
+                      {'node': task.node.uuid})
+            self._configure_boot_from_volume(task)
+            return
+
         _cleanup_vmedia_boot(task)
 
         node = task.node
@@ -645,6 +1004,10 @@ class IRMCVirtualMediaBoot(base.BootInterface):
         :returns: None
         :raises: IRMCOperationError if iRMC operation failed.
         """
+        if task.node.driver_internal_info.get('boot_from_volume'):
+            self._cleanup_boot_from_volume(task)
+            return
+
         _remove_share_file(_get_boot_iso_name(task.node))
         driver_internal_info = task.node.driver_internal_info
         driver_internal_info.pop('irmc_boot_iso', None)

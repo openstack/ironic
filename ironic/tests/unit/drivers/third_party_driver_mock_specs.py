@@ -93,6 +93,7 @@ SCCICLIENT_IRMC_SCCI_SPEC = (
     'UNMOUNT_FD',
     'SCCIError',
     'SCCIClientError',
+    'SCCIError',
     'SCCIInvalidInputError',
     'get_share_type',
     'get_client',
@@ -106,6 +107,20 @@ SCCICLIENT_IRMC_ELCM_SPEC = (
     'backup_bios_config',
     'restore_bios_config',
     'set_secure_boot_mode',
+)
+
+SCCICLIENT_VIOM_SPEC = (
+    'validate_physical_port_id',
+    'VIOMConfiguration',
+)
+
+SCCICLIENT_VIOM_CONF_SPEC = (
+    'set_lan_port',
+    'set_iscsi_volume',
+    'set_fc_volume',
+    'apply',
+    'dump_json',
+    'terminate',
 )
 
 ONEVIEWCLIENT_SPEC = (
