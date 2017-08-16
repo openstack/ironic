@@ -47,6 +47,16 @@ and local-boot of instance.
 and deploys from ironic conductor. Additionally it supports automatic setting of
 requested boot mode from nova. This driver doesn't require iLO Advanced license.
 
+The hardware type ``ilo`` and iLO-based classic drivers support HPE server
+features like:
+
+* UEFI secure boot
+* Certificate based validation of iLO
+* Hardware based secure disk erase using Smart Storage Administrator (SSA) CLI
+* Out-of-band discovery of server attributes through hardware inspection
+* In-band RAID configuration
+* Firmware configuration and secure firmware update
+
 Hardware Interfaces
 ^^^^^^^^^^^^^^^^^^^
 
@@ -189,8 +199,8 @@ Prerequisites
 
 * ``ipmitool`` command must be present on the service node(s) where
   ``ironic-conductor`` is running. On most distros, this is provided as part
-  of the ``ipmitool`` package. Refer to `Hardware Inspection Support`_ for more
-  information on recommended version.
+  of the ``ipmitool`` package. Please refer to `Hardware Inspection Support`_
+  for more information on recommended version.
 
 Different Configuration for ilo drivers
 =======================================
@@ -414,7 +424,7 @@ Requirements
 Deploy Process
 ~~~~~~~~~~~~~~
 
-Refer to `Netboot with glance and swift`_  and
+Please refer to `Netboot with glance and swift`_  and
 `Localboot with glance and swift for partition images`_ for the deploy process
 of partition image and `Localboot with glance and swift`_ for the deploy
 process of whole disk image.
@@ -422,7 +432,7 @@ process of whole disk image.
 Configuring and Enabling the driver
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Refer to `Glance Configuration`_ and `Enable driver`_.
+Please refer to `Glance Configuration`_ and `Enable driver`_.
 
 Registering ProLiant node in ironic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -463,35 +473,37 @@ node::
 
 Boot modes
 ~~~~~~~~~~
-Refer to `Boot mode support`_ section for more information.
+Please refer to `Boot mode support`_ for more information.
 
 UEFI Secure Boot
 ~~~~~~~~~~~~~~~~
-Refer to `UEFI Secure Boot Support`_ section for more information.
+Please refer to `UEFI Secure Boot Support`_ for more information.
 
 Node cleaning
 ~~~~~~~~~~~~~
-Refer to `Node Cleaning Support`_ for more information.
+Please refer to `Node Cleaning Support`_ for more information.
 
 Hardware Inspection
 ~~~~~~~~~~~~~~~~~~~
-Refer to `Hardware Inspection Support`_ for more information.
+Please refer to `Hardware Inspection Support`_ for more information.
 
 Swiftless deploy for intermediate deploy and boot images
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Refer to `Swiftless deploy for intermediate images`_ for more information.
+Please refer to `Swiftless deploy for intermediate images`_ for more
+information.
 
 HTTP(S) Based Deploy
 ~~~~~~~~~~~~~~~~~~~~
-Refer to `HTTP(S) Based Deploy Support`_ for more information.
+Please refer to `HTTP(S) Based Deploy Support`_ for more information.
 
 iLO drivers with standalone ironic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Refer to `Support for iLO drivers with Standalone Ironic`_ for more information.
+Please refer to `Support for iLO drivers with Standalone Ironic`_ for
+more information.
 
 RAID Configuration
 ~~~~~~~~~~~~~~~~~~
-Refer to `RAID Support`_ for more information.
+Please refer to `RAID Support`_ for more information.
 
 agent_ilo driver
 ^^^^^^^^^^^^^^^^
@@ -572,7 +584,7 @@ Requirements
 Deploy Process
 ~~~~~~~~~~~~~~
 
-Refer to `Netboot with glance and swift`_  and
+Please refer to `Netboot with glance and swift`_  and
 `Localboot with glance and swift for partition images`_ for the deploy process
 of partition image and `Localboot with glance and swift`_ for the deploy
 process of whole disk image.
@@ -580,7 +592,7 @@ process of whole disk image.
 Configuring and Enabling the driver
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Refer to `Glance Configuration`_ and `Enable driver`_.
+Please refer to `Glance Configuration`_ and `Enable driver`_.
 
 Registering ProLiant node in ironic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -621,35 +633,37 @@ node::
 
 Boot modes
 ~~~~~~~~~~
-Refer to `Boot mode support`_ section for more information.
+Please refer to `Boot mode support`_ for more information.
 
 UEFI Secure Boot
 ~~~~~~~~~~~~~~~~
-Refer to `UEFI Secure Boot Support`_ section for more information.
+Please refer to `UEFI Secure Boot Support`_ for more information.
 
 Node Cleaning
 ~~~~~~~~~~~~~
-Refer to `Node Cleaning Support`_ for more information.
+Please refer to `Node Cleaning Support`_ for more information.
 
 Hardware Inspection
 ~~~~~~~~~~~~~~~~~~~
-Refer to `Hardware Inspection Support`_ for more information.
+Please refer to `Hardware Inspection Support`_ for more information.
 
 Swiftless deploy for intermediate deploy and boot images
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Refer to `Swiftless deploy for intermediate images`_ for more information.
+Please refer to `Swiftless deploy for intermediate images`_ for more
+information.
 
 HTTP(S) Based Deploy
 ~~~~~~~~~~~~~~~~~~~~
-Refer to `HTTP(S) Based Deploy Support`_ for more information.
+Please refer to `HTTP(S) Based Deploy Support`_ for more information.
 
 iLO drivers with standalone ironic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Refer to `Support for iLO drivers with Standalone Ironic`_ for more information.
+Please refer to `Support for iLO drivers with Standalone Ironic`_ for
+more information.
 
 RAID Configuration
 ~~~~~~~~~~~~~~~~~~
-Refer to `RAID Support`_ for more information.
+Please refer to `RAID Support`_ for more information.
 
 pxe_ilo driver
 ^^^^^^^^^^^^^^
@@ -759,43 +773,39 @@ node::
 
 Boot modes
 ~~~~~~~~~~
-Refer to `Boot mode support`_ section for more information.
+Please refer to `Boot mode support`_ for more information.
 
 UEFI Secure Boot
 ~~~~~~~~~~~~~~~~
-Refer to `UEFI Secure Boot Support`_ section for more information.
+Please refer to `UEFI Secure Boot Support`_ for more information.
 
 Node Cleaning
 ~~~~~~~~~~~~~
-Refer to `Node Cleaning Support`_ for more information.
+Please refer to `Node Cleaning Support`_ for more information.
 
 Hardware Inspection
 ~~~~~~~~~~~~~~~~~~~
-Refer to `Hardware Inspection Support`_ for more information.
+Please refer to `Hardware Inspection Support`_ for more information.
 
 HTTP(S) Based Deploy
 ~~~~~~~~~~~~~~~~~~~~
-Refer to `HTTP(S) Based Deploy Support`_ for more information.
+Please refer to `HTTP(S) Based Deploy Support`_ for more information.
 
 iLO drivers with standalone ironic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Refer to `Support for iLO drivers with Standalone Ironic`_ for more information.
+Please refer to `Support for iLO drivers with Standalone Ironic`_ for more information.
 
 RAID Configuration
 ~~~~~~~~~~~~~~~~~~
-Refer to `RAID Support`_ for more information.
+Please refer to `RAID Support`_ for more information.
 
 Functionalities across drivers
 ==============================
 
 Boot mode support
 ^^^^^^^^^^^^^^^^^
-The following drivers support automatic detection and setting of boot
-mode (Legacy BIOS or UEFI).
-
-* ``pxe_ilo``
-* ``iscsi_ilo``
-* ``agent_ilo``
+The hardware type ``ilo`` and iLO-based classic drivers support automatic
+detection and setting of boot mode (Legacy BIOS or UEFI).
 
 * When boot mode capability is not configured:
 
@@ -857,11 +867,8 @@ element to the diskimage-builder command to build the image.  For example::
 
 UEFI Secure Boot Support
 ^^^^^^^^^^^^^^^^^^^^^^^^
-The following drivers support UEFI secure boot deploy:
-
-* ``pxe_ilo``
-* ``iscsi_ilo``
-* ``agent_ilo``
+The hardware type ``ilo`` and iLO-based classic drivers support secure boot
+deploy.
 
 The UEFI secure boot can be configured in ironic by adding
 ``secure_boot`` parameter in the ``capabilities`` parameter  within
@@ -901,7 +908,7 @@ flavor.
 Use element ``ubuntu-signed`` or ``fedora`` to build signed deploy iso and
 user images from
 `diskimage-builder <https://pypi.python.org/pypi/diskimage-builder>`_.
-Refer :ref:`deploy-ramdisk` for more information on building
+Please refer to :ref:`deploy-ramdisk` for more information on building
 deploy ramdisk.
 
 The below command creates files named cloud-image-boot.iso, cloud-image.initrd,
@@ -938,11 +945,7 @@ For more up-to-date information, refer
 
 Node Cleaning Support
 ^^^^^^^^^^^^^^^^^^^^^
-The following iLO drivers support node cleaning -
-
-* ``pxe_ilo``
-* ``iscsi_ilo``
-* ``agent_ilo``
+The hardware type ``ilo`` and iLO-based classic drivers support node cleaning.
 
 For more information on node cleaning, see :ref:`cleaning`
 
@@ -1022,8 +1025,8 @@ Supported **Manual** Cleaning Operations
     with the ``management`` interface. See
     `Initiating firmware update as manual clean step`_ for user guidance on
     usage. The supported devices for firmware update are: ``ilo``, ``cpld``,
-    ``power_pic``, ``bios`` and ``chassis``. Refer to below table for their
-    commonly used descriptions.
+    ``power_pic``, ``bios`` and ``chassis``. Please refer to below table for
+    their commonly used descriptions.
 
     .. csv-table::
        :header: "Device", "Description"
@@ -1048,13 +1051,8 @@ For more information on node manual cleaning, see :ref:`manual_cleaning`
 
 Hardware Inspection Support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The following iLO drivers support hardware inspection:
-
-* ``pxe_ilo``
-* ``iscsi_ilo``
-* ``agent_ilo``
-* ``ilo`` hardware type
+The hardware type ``ilo`` and iLO-based classic drivers support hardware
+inspection.
 
 .. note::
 
@@ -1068,7 +1066,7 @@ The following iLO drivers support hardware inspection:
      an error. This feature is available in proliantutils release
      version >= 2.2.0.
    * The iLO must be updated with SNMPv3 authentication details.
-     Refer to the section `SNMPv3 Authentication` in `HPE iLO4 User Guide`_
+     Pleae refer to the section `SNMPv3 Authentication` in `HPE iLO4 User Guide`_
      for setting up authentication details on iLO.
      The  following parameters are mandatory to be given in driver_info
      for SNMPv3 inspection:
@@ -1170,14 +1168,15 @@ See :ref:`capabilities-discovery` for more details and examples.
 Swiftless deploy for intermediate images
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``iscsi_ilo`` and ``agent_ilo`` drivers can deploy and boot the server
-with and without ``swift`` being used for hosting the intermediate
-temporary floppy image (holding metadata for deploy kernel and ramdisk)
-and the boot ISO (which is required for ``iscsi_ilo`` only). A local HTTP(S)
-web server on each conductor node needs to be configured. Refer
-`Web server configuration on conductor`_ for more information. The HTTPS
-web server needs to be enabled (instead of HTTP web server) in order to
-send management information and images in encrypted channel over HTTPS.
+The hardware type ``ilo`` with ``ilo-virtual-media`` as boot interface and
+virtual media based classical drivers (``iscsi_ilo`` and ``agent_ilo``)
+can deploy and boot the server with and without ``swift`` being used for
+hosting the intermediate temporary floppy image (holding metadata for
+deploy kernel and ramdisk) and the boot ISO. A local HTTP(S) web server on
+each conductor node needs to be configured.
+Please refer to `Web server configuration on conductor`_ for more information.
+The HTTPS web server needs to be enabled (instead of HTTP web server) in order
+to send management information and images in encrypted channel over HTTPS.
 
 .. note::
     This feature assumes that the user inputs are on Glance which uses swift
@@ -1187,8 +1186,8 @@ send management information and images in encrypted channel over HTTPS.
 Deploy Process
 ~~~~~~~~~~~~~~
 
-Refer to `Netboot in swiftless deploy for intermediate images`_ for partition
-image support and refer to `Localboot in swiftless deploy for intermediate images`_
+Please refer to `Netboot in swiftless deploy for intermediate images`_ for
+partition image support and `Localboot in swiftless deploy for intermediate images`_
 for whole disk image support.
 
 HTTP(S) Based Deploy Support
@@ -1207,21 +1206,17 @@ must be reachable by the conductor and the bare metal nodes.
 Deploy Process
 ~~~~~~~~~~~~~~
 
-Refer to `Netboot with HTTP(S) based deploy`_ for partition image boot and refer to
-`Localboot with HTTP(S) based deploy`_ for whole disk image boot.
+Please refer to `Netboot with HTTP(S) based deploy`_ for partition image boot
+and `Localboot with HTTP(S) based deploy`_ for whole disk image boot.
 
 
 Support for iLO drivers with Standalone Ironic
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 It is possible to use ironic as standalone services without other
-OpenStack services. iLO drivers can be used in standalone ironic.
-This feature is referred to as ``iLO drivers with standalone ironic`` in this document and is
-supported by following drivers:
-
-* ``pxe_ilo``
-* ``iscsi_ilo``
-* ``agent_ilo``
+OpenStack services. The ``ilo`` hardware type and the iLO-based classic
+drivers can be used in standalone ironic. This feature is referred to as
+``iLO drivers with standalone ironic`` in this document.
 
 Configuration
 ~~~~~~~~~~~~~
@@ -1232,7 +1227,7 @@ intermediate images on conductor as described in
 
 Deploy Process
 ~~~~~~~~~~~~~~
-``iscsi_ilo`` and ``agent_ilo`` supports both netboot and localboot. Refer
+``iscsi_ilo`` and ``agent_ilo`` supports both netboot and localboot. Please refer
 to `Netboot in standalone ironic`_ and `Localboot in standalone ironic`_
 for details of deploy process for netboot and localboot respectively.
 For ``pxe_ilo``, the deploy process is same as native ``pxe_ipmitool`` driver.
