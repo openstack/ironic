@@ -136,6 +136,25 @@ raid
         [DEFAULT]
         enabled_hardware_types = ipmi,redfish,ilo,irmc
         enabled_raid_interfaces = agent,no-raid
+storage
+    manages the interaction with a remote storage subsystem, such as the
+    Block Storage service, and helps facilitate booting from a remote
+    volume. This interface ensures that volume target and connector
+    information is updated during the lifetime of a deployed instance.
+    See :doc:`/admin/boot-from-volume` for more details.
+
+    This interface defaults to a ``noop`` driver as it is considered
+    an "opt-in" interface which requires additional configuration
+    by the operator to be usable.
+
+    For example:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = ipmi,irmc
+        enabled_storage_interfaces = cinder,noop
+
 vendor
     is a place for vendor extensions to be exposed in API. See
     :doc:`/contributor/vendor-passthru` for details.
@@ -161,6 +180,7 @@ IPMI and Redfish, with a few additional features:
     enabled_network_interfaces = flat,neutron
     enabled_power_interfaces = ipmitool,redfish
     enabled_raid_interfaces = agent
+    enabled_storage_interfaces = cinder,noop
     enabled_vendor_interfaces = ipmitool,no-vendor
 
 Note that some interfaces have implementations named ``no-<TYPE>`` where
