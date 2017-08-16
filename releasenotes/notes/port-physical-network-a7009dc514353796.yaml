@@ -10,7 +10,7 @@ features:
     when attaching virtual interfaces (VIFs).
 
     The REST API endpoints related to ports provide support for the
-    ``physical_network`` field.  The `ironic developer documentation
+    ``physical_network`` field.  The `multi-tenancy documentation
     <https://docs.openstack.org/ironic/latest/admin/multitenancy.html>`_
     provides information on how to configure and use physical networks.
 upgrade:

@@ -6,7 +6,7 @@ fixes:
     location of the ``ldlinux.c32`` file.
 features:
   - |
-    New configuration option ``[DEFAULT]/ldlinux_32`` can used to set the
+    New configuration option ``[DEFAULT]/ldlinux_32`` can be used to set the
     location of the ``ldlinux.c32`` file (from the syslinux package).
     The default behavior is to look for it in the following locations:
 

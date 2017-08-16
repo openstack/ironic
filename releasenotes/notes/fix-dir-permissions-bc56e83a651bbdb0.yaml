@@ -3,5 +3,6 @@ fixes:
   - Adds the capability for an operator to explicitly define the permission
     for created tftpboot folders. This provides the ability for ironic to be
     utilized with a restrictive umask, where the tftp server may not be able
-    to read the file. Introduced a new config option ``[pxe]/dir_permission``
+    to read the file. Introduces a new configuration option
+    ``[pxe]/dir_permission``
     to specify the permission for the tftpboot directories to be created with.
