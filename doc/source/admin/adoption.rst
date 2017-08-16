@@ -119,25 +119,25 @@ from the ``manageable`` state to ``active`` state::
 
     # Explicitly set the client API version environment variable to
     # 1.17, which introduces the adoption capability.
-    export IRONIC_API_VERSION=1.17
+    export OS_BAREMETAL_API_VERSION=1.17
 
-    ironic node-create -n testnode \
-        -d agent_ipmitool \
-        -i ipmi_address=<ip_address> \
-        -i ipmi_username=<username> \
-        -i ipmi_password=<password> \
-        -i deploy_kernel=<deploy_kernel_id_or_url> \
-        -i deploy_ramdisk=<deploy_ramdisk_id_or_url>
+    openstack baremetal node create --name testnode \
+        --driver agent_ipmitool \
+        --driver-info ipmi_address=<ip_address> \
+        --driver-info ipmi_username=<username> \
+        --driver-info ipmi_password=<password> \
+        --driver-info deploy_kernel=<deploy_kernel_id_or_url> \
+        --driver-info deploy_ramdisk=<deploy_ramdisk_id_or_url>
 
-    ironic port-create --node <node_uuid> -a <node_mac_address>
+    openstack baremetal port create <node_mac_address> --node <node_uuid>
 
-    ironic node-update testnode add \
-        instance_info/image_source="http://localhost:8080/blankimage" \
-        instance_info/capabilities="{\"boot_option\": \"local\"}"
+    openstack baremetal node set testnode \
+        --instance-info image_source="http://localhost:8080/blankimage" \
+        --instance-info capabilities="{\"boot_option\": \"local\"}"
 
-    ironic node-set-provision-state testnode manage
+    openstack baremetal node manage testnode --wait
 
-    ironic node-set-provision-state testnode adopt
+    openstack baremetal node adopt testnode --wait
 
 .. NOTE::
    In the above example, the image_source setting must reference a valid
@@ -160,7 +160,7 @@ from the ``manageable`` state to ``active`` state::
    used to match an instance in the Compute service. Doing so is not
    required for the proper operation of the Bare Metal service.
 
-     ironic node-update <node name or uuid> add instance_uuid=<uuid>
+   openstack baremetal node set <node name or uuid> --instance-uuid <uuid>
 
 .. NOTE::
    In Newton, coupled with API version 1.20, the concept of a
@@ -180,18 +180,18 @@ upon what driver is selected for the node.
 Any node that is in the ``adopt failed`` state can have the ``adopt`` verb
 re-attempted.  Example::
 
-  ironic node-set-provision-state <node name or uuid> adopt
+  openstack baremetal node adopt <node name or uuid>
 
 If a user wishes to abort their attempt at adopting, they can then move
 the node back to ``manageable`` from ``adopt failed`` state by issuing the
 ``manage`` verb.  Example::
 
-  ironic node-set-provision-state <node name or uuid> manage
+  openstack baremetal node manage <node name or uuid>
 
 If all else fails the hardware node can be removed from the Bare Metal
-service.  The ``node-delete`` command, which is **not** the same as setting
+service.  The ``node delete`` command, which is **not** the same as setting
 the provision state to ``deleted``, can be used while the node is in
 ``adopt failed`` state. This will delete the node without cleaning
 occurring to preserve the node's current state. Example::
 
-  ironic node-delete <node name or uuid>
+  openstack baremetal node delete <node name or uuid>

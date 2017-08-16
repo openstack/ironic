@@ -98,22 +98,23 @@ The web console can be configured in Bare Metal service in the following way:
 
   Enable the web console, for example::
 
-   ironic node-update <node-uuid> add driver_info/<terminal_port>=<customized_port>
-   ironic node-set-console-mode <node-uuid> true
+   openstack baremetal node set <node-uuid> \
+       --driver-info <terminal_port>=<customized_port>
+   openstack baremetal node console enable <node-uuid>
 
   Check whether the console is enabled, for example::
 
-   ironic node-validate <node-uuid>
+   openstack baremetal node validate <node-uuid>
 
   Disable the web console, for example::
 
-   ironic node-set-console-mode <node-uuid> false
-   ironic node-update <node-uuid> remove driver_info/<terminal_port>
+   openstack baremetal node console disable  <node-uuid>
+   openstack baremetal node unset <node-uuid> --driver-info <terminal_port>
 
   The ``<terminal_port>`` is driver dependent. The actual name of this field can be
   checked in driver properties, for example::
 
-   ironic driver-properties <driver>
+   openstack baremetal driver property list <driver>
 
   For ``*_ipmitool`` and ``*_ipminative`` drivers, this option is ``ipmi_terminal_port``.
   Give a customized port number to ``<customized_port>``,
@@ -121,7 +122,7 @@ The web console can be configured in Bare Metal service in the following way:
 
   Get web console information for a node as follows::
 
-   ironic node-get-console <node-uuid>
+   openstack baremetal node console show <node-uuid>
    +-----------------+----------------------------------------------------------------------+
    | Property        | Value                                                                |
    +-----------------+----------------------------------------------------------------------+
@@ -171,22 +172,22 @@ Serial consoles can be configured in the Bare Metal service as follows:
 
   Enable the serial console, for example::
 
-   ironic node-update <node-uuid> add driver_info/ipmi_terminal_port=<port>
-   ironic node-set-console-mode <node-uuid> true
+   openstack baremetal node set <node-uuid> --driver-info ipmi_terminal_port=<port>
+   openstack baremetal node console enable <node-uuid>
 
   Check whether the serial console is enabled, for example::
 
-   ironic node-validate <node-uuid>
+   openstack baremetal node validate <node-uuid>
 
   Disable the serial console, for example::
 
-   ironic node-set-console-mode <node-uuid> false
-   ironic node-update <node-uuid> remove driver_info/ipmi_terminal_port
+   openstack baremetal node console disable  <node-uuid>
+   openstack baremetal node unset <node-uuid> --driver-info <ipmi_terminal_port>
 
 Serial console information is available from the Bare Metal service.  Get
 serial console information for a node from the Bare Metal service as follows::
 
- ironic node-get-console <node-uuid>
+ openstack baremetal node console show <node-uuid>
  +-----------------+----------------------------------------------------------------------+
  | Property        | Value                                                                |
  +-----------------+----------------------------------------------------------------------+

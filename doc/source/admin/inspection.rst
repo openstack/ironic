@@ -26,11 +26,11 @@ The node should be in MANAGEABLE state before inspection is initiated.
 
 * Move node to manageable state::
 
-    ironic node-set-provision-state <node_UUID> manage
+    openstack baremetal node manage <node_UUID>
 
 * Initiate inspection::
 
-    ironic node-set-provision-state <node_UUID> inspect
+    openstack baremetal node inspect <node_UUID>
 
 .. note::
     The above commands require the python-ironicclient_ to be version 0.5.0 or greater.

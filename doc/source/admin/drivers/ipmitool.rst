@@ -84,11 +84,13 @@ good practice to have them set:
    It is highly recommend that you setup a username and password for
    your BMC.
 
-The ``ironic node-create`` command can be used to enroll a node with
-an IPMItool-based driver. For example::
+The ``openstack baremetal node create`` command can be used to enroll a node
+with an IPMItool-based driver. For example::
 
-    ironic node-create -d ipmi -i ipmi_address=<address> \
-        -i ipmi_username=<username> -i ipmi_password=<password>
+    openstack baremetal node create --driver ipmi \
+        --driver-info ipmi_address=<address> \
+        --driver-info ipmi_username=<username> \
+        --driver-info ipmi_password=<password>
 
 Advanced configuration
 ======================
@@ -133,22 +135,27 @@ The parameter ``ipmi_bridging`` should specify the type of bridging
 required: *single* or *dual* to access the bare metal node. If the
 parameter is not specified, the default value will be set to *no*.
 
-The ``ironic node-update`` command can be used to set the required
+The ``openstack baremetal node set`` command can be used to set the required
 bridging information to the Ironic node enrolled with the IPMItool
 driver. For example:
 
 * Single Bridging::
 
-    ironic node-update add <UUID or name> driver_info/ipmi_local_address=<address> \
-        driver_info/ipmi_bridging=single driver_info/ipmi_target_channel=<channel> \
-        driver_info/ipmi_target_address=<target address>
+    openstack baremetal node set <UUID or name> \
+        --driver-info ipmi_local_address=<address> \
+        --driver-info ipmi_bridging=single \
+        --driver-info ipmi_target_channel=<channel> \
+        --driver-info ipmi_target_address=<target address>
 
 * Double Bridging::
 
-    ironic node-update add <UUID or name> driver_info/ipmi_local_address=<address> \
-        driver_info/ipmi_bridging=dual driver_info/ipmi_transit_channel=<transit channel> \
-        driver_info/ipmi_transit_address=<transit address> driver_info/ipmi_target_channel=<target channel> \
-        driver_info/ipmi_target_address=<target address>
+    openstack baremetal node set <UUID or name> \
+        --driver-info ipmi_local_address=<address> \
+        --driver-info ipmi_bridging=dual \
+        --driver-info ipmi_transit_channel=<transit channel> \
+        --driver-info ipmi_transit_address=<transit address> \
+        --driver-info ipmi_target_channel=<target channel> \
+        --driver-info ipmi_target_address=<target address>
 
 Changing the version of the IPMI protocol
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -162,10 +169,10 @@ the following option needs to be set to the node's ``driver_info`` field:
 - ``ipmi_protocol_version``: The version of the IPMI protocol; default
   is *2.0*. Supported values are *1.5* or *2.0*.
 
-The ``ironic node-update`` command can be used to set the desired
+The ``openstack baremetal node set`` command can be used to set the desired
 protocol version::
 
-    ironic node-update add <UUID or name> driver_info/ipmi_protocol_version=<version>
+    openstack baremetal node set <UUID or name> --driver-info ipmi_protocol_version=<version>
 
 .. warning::
    Version *1.5* of the IPMI protocol does not support encryption.

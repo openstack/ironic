@@ -24,25 +24,25 @@ A few things should be checked in this case:
    maintenance mode and not already used by an existing instance.
    Check with the following command::
 
-       ironic node-list --provision-state available --maintenance false --associated false
+       openstack baremetal node list --provision-state available --no-maintenance --unassociated
 
-   If this command does not show enough nodes, use generic ``ironic
-   node-list`` to check other nodes. For example, nodes in ``manageable`` state
+   If this command does not show enough nodes, use generic ``openstack baremetal
+   node list`` to check other nodes. For example, nodes in ``manageable`` state
    should be made available::
 
-       ironic node-set-provision-state <IRONIC NODE> provide
+       openstack baremetal node provide <IRONIC NODE>
 
    The Bare metal service automatically puts a node in maintenance mode if
    there are issues with accessing its management interface. Check the power
    credentials (e.g. ``ipmi_address``, ``ipmi_username`` and ``ipmi_password``)
    and then move the node out of maintenance mode::
 
-       ironic node-set-maintenance <IRONIC NODE> off
+       openstack baremetal node maintenance unset <IRONIC NODE>
 
-   The ``node-validate`` command can be used to verify that all required fields
+   The ``node validate`` command can be used to verify that all required fields
    are present. The following command should not return anything::
 
-       ironic node-validate baremetal-0 | grep -E '(power|management)\W*False'
+       openstack baremetal node validate <IRONIC NODE> | grep -E '(power|management)\W*False'
 
    Maintenance mode will be also set on a node if automated cleaning has
    failed for it previously.
@@ -53,7 +53,7 @@ A few things should be checked in this case:
    values for the keys ``cpus``, ``cpu_arch``, ``memory_mb`` and ``local_gb``.
    Example of valid properties::
 
-        $ ironic node-show <IRONIC NODE> --fields properties
+        $ openstack baremetal node show <IRONIC NODE> --fields properties
         +------------+------------------------------------------------------------------------------------+
         | Property   | Value                                                                              |
         +------------+------------------------------------------------------------------------------------+
@@ -86,7 +86,7 @@ A few things should be checked in this case:
 
       But in Ironic node::
 
-        $ ironic node-show <IRONIC NODE> --fields properties
+        $ openstack baremetal node show <IRONIC NODE> --fields properties
         +------------+-----------------------------------------+
         | Property   | Value                                   |
         +------------+-----------------------------------------+

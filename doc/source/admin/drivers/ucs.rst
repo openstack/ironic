@@ -73,15 +73,26 @@ Nodes configured for UCS driver should have the ``driver`` property set to
 
 The following sequence of commands can be used to enroll a UCS node.
 
-  Create Node::
+* Create Node::
 
-    ironic node-create -d <pxe_ucs/agent_ucs> -i ucs_address=<UCS Manager hostname/ip-address> -i ucs_username=<ucsm_username> -i ucs_password=<ucsm_password> -i ucs_service_profile=<service_profile_dn_being_enrolled> -i deploy_kernel=<glance_uuid_of_deploy_kernel> -i deploy_ramdisk=<glance_uuid_of_deploy_ramdisk> -p cpus=<number_of_cpus> -p memory_mb=<memory_size_in_MB> -p local_gb=<local_disk_size_in_GB> -p cpu_arch=<cpu_arch>
+    openstack baremetal node create --driver <pxe_ucs/agent_ucs> \
+        --driver-info ucs_address=<UCS Manager hostname/ip-address> \
+        --driver-info ucs_username=<ucsm_username> \
+        --driver-info ucs_password=<ucsm_password> \
+        --driver-info ucs_service_profile=<service_profile_dn_being_enrolled> \
+        --driver-info deploy_kernel=<glance_uuid_of_deploy_kernel> \
+        --driver-info deploy_ramdisk=<glance_uuid_of_deploy_ramdisk> \
+        --property cpus=<number_of_cpus> \
+        --property memory_mb=<memory_size_in_MB> \
+        --property local_gb=<local_disk_size_in_GB> \
+        --property cpu_arch=<cpu_arch>
 
-  The above command 'ironic node-create' will return UUID of the node, which is the value of $NODE in the following command.
+  The above command 'openstack baremetal node create' will return UUID of the
+  node, which is the value of $NODE in the following command.
 
-  Associate port with the node created::
+* Associate port with the node created::
 
-    ironic port-create -n $NODE -a <MAC_address_of_Ucs_server's_NIC>
+    openstack baremetal port create --node $NODE <MAC_address_of_Ucs_server's_NIC>
 
 References
 ==========

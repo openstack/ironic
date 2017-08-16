@@ -102,8 +102,9 @@ Steps to enable proxies
 
 #. Add one or more of ``image_http_proxy``, ``image_https_proxy``,
    ``image_no_proxy`` to driver_info properties in each node that will use the
-   proxy. Please refer to ``ironic driver-properties`` output of the
-   ``agent_*`` driver you're using for descriptions of these properties.
+   proxy. Please refer to the ``openstack baremetal driver property list``
+   output of the ``agent_*`` driver you're using for descriptions of these
+   properties.
 
 Advanced configuration
 ======================
@@ -123,4 +124,4 @@ that, you have to update the node's ``driver_info`` field and set the
 ``deploy_forces_oob_reboot`` parameter with the value of **True**. For
 example, the below command sets this configuration in a specific node::
 
-  ironic node-update <UUID or name> add driver_info/deploy_forces_oob_reboot=True
+  openstack baremetal node set <UUID or name> --driver-info deploy_forces_oob_reboot=True
