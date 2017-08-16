@@ -31,6 +31,7 @@ of ironic that may or may not be suitable to every situation.
   Guide to Node Cleaning <cleaning>
   Configuring Node Inspection <inspection>
   Configuring RAID during deployment <raid>
+  Configuring to boot from volume <boot-from-volume>
   Security considerations for your Bare Metal installation <security>
   Adopting Nodes in an ACTIVE state <adoption>
   Configuring for Multi-tenant Networking <multitenancy>
