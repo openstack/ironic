@@ -77,8 +77,6 @@ iniset $IRONIC_CONF_FILE DEFAULT pin_release_version ${BASE_DEVSTACK_BRANCH#*/}
 
 ensure_started='ironic-conductor nova-compute '
 ensure_stopped=''
-# Don't succeed unless the services come up
-logs_exist="ir-cond"
 # Multinode grenade is designed to upgrade services only on primary node. And there is no way to manipulate
 # subnode during grenade phases. With this after upgrade we can have upgraded (new) services on primary
 # node and not upgraded (old) services on subnode.
@@ -113,7 +111,6 @@ if [[ -n "$ensure_stopped" ]]; then
 fi
 
 ensure_services_started $ensure_started
-ensure_logs_exist $logs_exist
 
 # We need these steps only in case of flat-network
 # NOTE(vsaienko) starting from Ocata when Neutron is restarted there is no guarantee that
