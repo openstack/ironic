@@ -1,37 +1,7 @@
 ---
 features:
   - |
-    Adds support for booting from remote volumes to ``irmc-virtual-media``
+    Adds support for booting from remote volumes via the ``irmc-virtual-media``
     boot interface. It enables boot configuration for iSCSI or FibreChannel
-    via out-of-band network.
-
-    In addition to the same configuration as generic boot-from-volume, this
-    interface requires the following settings.
-
-    * It is necessary to set a physical port ID to network ports and volume
-      connectors. All cards including those not used for volume boot should be
-      registered.
-
-        * A physical ID format is: ``<Card Type><Slot No>-<Port No>``
-
-            ``<Card Type>``
-                LAN, FC or CNA
-            ``<Slot No>``
-                0 indicates onboard slot. Use 1 to 9 for addon slots.
-            ``<Port No>``
-                A port number starting from 1.
-
-        * Set the IDs to ``node.driver_info.pci_physical_ids``. This parameter
-          is a list of pair of UUID of a resource (Port or Volume connector)
-          and a physical ID like:
-
-            pci_physical_ids = 1ecd14ee-c191-4007-8413-16bb5d5a73a2:LAN0-1,1ecd14ee-c191-4007-8413-16bb5d5a73a2:CNA1-1
-
-    * For iSCSI, volume connectors with both type ``iqn`` and ``ip`` are
-      required. The configuration with DHCP is not supported yet.
-
-    * For iSCSI, a subnet mask of the storage network is necessary. It should
-      be set to ``node.driver_info.storage_network_size`` as integer.
-
-    This feature requires specific FC cards or CNAs (Converged Network Adapter).
-    See the documentation of iRMC driver for details.
+    via out-of-band network. For details, see the `iRMC driver documentation
+    <https://docs.openstack.org/ironic/latest/admin/drivers/irmc.html#boot-from-remote-volume>`_.
