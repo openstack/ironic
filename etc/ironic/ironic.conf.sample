@@ -368,7 +368,7 @@
 # (default), leave it unset and the latest versions of RPC
 # communication and database objects will be used. (string
 # value)
-# Allowed values: ocata, 8.0, 7.0
+# Allowed values: pike, ocata, 9.0, 8.0, 7.0
 #pin_release_version = <None>
 
 # Path to the rootwrap configuration file to use for running
@@ -468,7 +468,7 @@
 
 # List of package logging levels in logger=LEVEL pairs. This
 # option is ignored if log_config_append is set. (list value)
-#default_log_levels = amqp=WARNING,amqplib=WARNING,qpid.messaging=INFO,oslo_messaging=INFO,oslo.messaging=INFO,sqlalchemy=WARNING,stevedore=INFO,eventlet.wsgi.server=INFO,iso8601=WARNING,paramiko=WARNING,requests=WARNING,neutronclient=WARNING,glanceclient=WARNING,urllib3.connectionpool=WARNING,keystonemiddleware.auth_token=INFO,keystoneauth.session=INFO
+#default_log_levels = amqp=WARNING,amqplib=WARNING,qpid.messaging=INFO,oslo_messaging=INFO,oslo.messaging=INFO,sqlalchemy=WARNING,stevedore=INFO,eventlet.wsgi.server=INFO,iso8601=WARNING,requests=WARNING,neutronclient=WARNING,glanceclient=WARNING,urllib3.connectionpool=WARNING,keystonemiddleware.auth_token=INFO,keystoneauth.session=INFO
 
 # Enables or disables publication of error events. (boolean
 # value)
