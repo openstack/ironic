@@ -49,7 +49,14 @@ REQUIRED_PROPERTIES = {
     'deploy_ramdisk': _("UUID (from Glance) of the ramdisk that is "
                         "mounted at boot time. Required."),
 }
-COMMON_PROPERTIES = REQUIRED_PROPERTIES
+OPTIONAL_PROPERTIES = {
+    'force_persistent_boot_device': _("True to enable persistent behavior "
+                                      "when the boot device is set during "
+                                      "deploy and cleaning operations. "
+                                      "Defaults to False. Optional."),
+}
+COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
+COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 
 
 def _parse_driver_info(node):
