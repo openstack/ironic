@@ -1,0 +1,40 @@
+---
+prelude: |
+    The 9.1.0 (Pike) release includes many new features and bug fixes.
+
+    Please review the "Upgrade Notes" sections (for 8.0.0, 9.0.0, 9.0.1, and
+    9.1.0) which describe the required actions to upgrade your installation
+    from 7.0.x (Ocata) to 9.1.0 (Pike).
+
+    A few major changes are worth mentioning. This is not an exhaustive list,
+    and mostly includes changes from 9.0.0:
+
+    - It is now possible to do rolling upgrades, starting with upgrading Ocata
+      to Pike. For details, see
+      https://docs.openstack.org/ironic/latest/admin/upgrade-guide.html.
+
+    - The long-awaited support to boot from volumes is here. For details, see
+      https://docs.openstack.org/ironic/latest/admin/boot-from-volume.html.
+
+    - Full support for *hardware types* is available. There are hardware types
+      for all *classic* drivers, and classic drivers can be `upgraded to
+      hardware types <https://docs.openstack.org/ironic/latest/admin/upgrade-to-hardware-types.html>`_.
+      The use of hardware types is preferred over the use of classic drivers,
+      since classic drivers may be deprecated in the Queens release.
+
+    - Adds the new ``redfish`` hardware type that supports the Redfish standard.
+      For details, see
+      https://docs.openstack.org/ironic/latest/admin/drivers/redfish.html.
+
+    - The Compute service is changing the way bare metal nodes are scheduled,
+      and will be using the node's ``resource_class`` to do this. For more
+      details, see
+      https://docs.openstack.org/ironic/latest/install/configure-nova-flavors.html#scheduling-based-on-resource-classes.
+
+    - The Bare Metal service can now incorporate physical network information
+      when attaching virtual interfaces (VIFs) via the new ``physical_network``
+      field to the port object. For details, see
+      https://docs.openstack.org/ironic/latest/admin/multitenancy.html#multitenancy-physnets.
+
+    - The ssh-based drivers have been removed from ironic. Please see the 9.0.0
+      "Upgrade Notes" section for more information.
