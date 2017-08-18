@@ -55,7 +55,7 @@ and ``s==`` (for string values). The supported operators are:
 * For numerical values:
 
   * ``=`` equal to or greater than. This is equivalent to ``>=`` and is
-    supported for `legacy reasons <https://docs.openstack.org/nova/latest/user/filter-scheduler.html#filtering>`_
+    supported for `legacy reasons <https://docs.openstack.org/nova/pike/user/filter-scheduler.html#filtering>`_
   * ``==`` equal to
   * ``!=`` not equal to
   * ``>=`` greater than or equal to

@@ -124,4 +124,4 @@ following command.
     $ ironic node-set-maintenance $NODE_UUID off
 
 
-.. _ironic-python-agent: https://docs.openstack.org/ironic-python-agent/latest/
+.. _ironic-python-agent: https://docs.openstack.org/ironic-python-agent/pike/

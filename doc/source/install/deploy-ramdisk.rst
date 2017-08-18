@@ -12,7 +12,7 @@ the `CoreOS tools`_ at:
 * `CoreOS deploy kernel <https://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe.vmlinuz>`_
 * `CoreOS deploy ramdisk <https://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe_image-oem.cpio.gz>`_
 
-.. _ironic-python-agent: https://docs.openstack.org/ironic-python-agent/latest/
+.. _ironic-python-agent: https://docs.openstack.org/ironic-python-agent/pike/
 
 Building from source
 --------------------

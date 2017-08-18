@@ -18,7 +18,7 @@ Enabling the local boot is different when Bare Metal service is used with
 Compute service and without it.
 The following sections will describe both methods.
 
-.. _ironic-python-agent: https://docs.openstack.org/ironic-python-agent/latest/
+.. _ironic-python-agent: https://docs.openstack.org/ironic-python-agent/pike/
 
 
 Enabling local boot with Compute service

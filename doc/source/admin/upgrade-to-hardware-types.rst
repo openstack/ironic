@@ -204,7 +204,7 @@ RAID interface. For example, to update all nodes use:
     the ramdisk (more specifically, a `hardware manager`_ used in it),
     not on the driver.
 
-.. _hardware manager: https://docs.openstack.org/ironic-python-agent/latest/contributor/hardware_managers.html
+.. _hardware manager: https://docs.openstack.org/ironic-python-agent/pike/contributor/hardware_managers.html
 
 Network and storage
 ~~~~~~~~~~~~~~~~~~~

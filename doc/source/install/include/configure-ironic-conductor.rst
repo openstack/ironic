@@ -171,4 +171,4 @@ Configuring ironic-conductor service
       Ubuntu:
         sudo service ironic-conductor restart
 
-.. _Keystoneauth documentation: https://docs.openstack.org/keystoneauth/latest/
+.. _Keystoneauth documentation: https://docs.openstack.org/keystoneauth/pike/

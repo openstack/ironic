@@ -62,7 +62,7 @@ There are however some limitations for different drivers:
 
 Steps to start a deployment are pretty similar to those when using Compute:
 
-#. To use the `ironic CLI <https://docs.openstack.org/python-ironicclient/latest/cli/>`_,
+#. To use the `ironic CLI <https://docs.openstack.org/python-ironicclient/pike/cli/>`_,
    set up these environment variables. Since no authentication strategy is
    being used, the value can be any string for OS_AUTH_TOKEN. IRONIC_URL is
    the URL of the ironic-api process.

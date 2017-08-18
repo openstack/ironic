@@ -313,4 +313,4 @@ See :doc:`/admin/drivers` for the required configuration of each driver.
 .. _driver composition reform specification: https://specs.openstack.org/openstack/ironic-specs/specs/approved/driver-composition-reform.html
 .. _setup.cfg: https://git.openstack.org/cgit/openstack/ironic/tree/setup.cfg
 .. _iSCSI: https://en.wikipedia.org/wiki/ISCSI
-.. _ironic-inspector: https://docs.openstack.org/ironic-inspector/latest/
+.. _ironic-inspector: https://docs.openstack.org/ironic-inspector/pike/

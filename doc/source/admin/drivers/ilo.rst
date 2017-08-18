@@ -88,7 +88,7 @@ The ``ilo`` hardware type supports following hardware interfaces:
 
     .. note::
        ``ilo`` is the default ``inspect`` interface for ``ilo``
-       hardware type. `Ironic Inspector <https://docs.openstack.org/ironic-inspector/latest/>`_
+       hardware type. `Ironic Inspector <https://docs.openstack.org/ironic-inspector/pike/>`_
        needs to be configured to use ``inspector`` as the inspect interface.
 
 * management
