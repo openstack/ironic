@@ -311,9 +311,7 @@ Upgrading from Ocata to Pike
 
 #. It is required to set the ``resource_class`` field for nodes registered
    with the Bare Metal service *before* using the Pike version of the Compute
-   service. See `enrollment documentation
-   <https://docs.openstack.org/project-install-guide/baremetal/draft/enrollment.html#enrollment-process>`_
-   for details.
+   service. See :ref:`enrollment` for details.
 
 #. It is recommended to move from old-style classic drivers to the new
    hardware types after the upgrade to Pike. We expect the classic drivers to
@@ -359,7 +357,7 @@ client module for the in-band inspection service, which was previously part of
 the **ironic-discoverd** package. Ironic Liberty supports the
 **ironic-discoverd** service, but does not support its in-tree client module.
 Please refer to `ironic-inspector version support matrix
-<http://docs.openstack.org/developer/ironic-inspector/install.html#version-support-matrix>`_
+<https://docs.openstack.org/ironic-inspector/latest/install/index.html#version-support-matrix>`_
 for details on which ironic versions are compatible with which
 **ironic-inspector**/**ironic-discoverd** versions.
 
@@ -421,8 +419,5 @@ For more information, see :ref:`automated_cleaning`.
 If ironic is configured with automated cleaning enabled (defaults to True) and
 neutron is set as the DHCP provider (also the default), you will need to set
 the `cleaning_network_uuid` option in the ironic configuration file before
-starting the ironic service. See
-`Configure the Bare Metal service for cleaning`_ for information on how to set
-up the cleaning network for ironic.
-
-.. _`Configure the Bare Metal service for cleaning`: http://docs.openstack.org/project-install-guide/baremetal/draft/configure-cleaning.html
+starting the ironic service. See :ref:`configure-cleaning`
+for information on how to set up the cleaning network for ironic.

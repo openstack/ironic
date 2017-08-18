@@ -129,7 +129,7 @@ Configuring and enabling the driver
 
     $ sudo service ironic-conductor restart
 
-See [5]_ for more information.
+See :doc:`/install/index` for more information.
 
 Deploy process
 ~~~~~~~~~~~~~~
@@ -179,7 +179,7 @@ Configuring and enabling the driver
 
     $ service ironic-conductor restart
 
-See [5]_ for more information.
+See :doc:`/install/index` for more information.
 
 Deploy process
 ~~~~~~~~~~~~~~
@@ -277,7 +277,8 @@ To tell ironic which NIC should be connected to the provisioning network, do::
 
   $ ironic port-create -n $NODE_UUID -a $MAC_ADDRESS
 
-For more information on the enrollment process of an ironic node, see [4]_.
+For more information on the enrollment process of an ironic node, see
+:ref:`enrollment`.
 
 For more information on the definitions of ``Server Hardware``, ``Server
 Profile``, ``Server Profile Template`` and other OneView entities, refer to
@@ -321,10 +322,8 @@ References
 .. [1] HP OneView - https://www.hpe.com/us/en/integrated-systems/software.html
 .. [2] :ref:`architecture_drivers`
 .. [3] python-oneviewclient - https://pypi.python.org/pypi/python-oneviewclient
-.. [4] Enrollment process of a node - http://docs.openstack.org/project-install-guide/baremetal/draft/enrollment.html
-.. [5] ironic install guide - http://docs.openstack.org/project-install-guide/baremetal/draft/
 .. [6] Dynamic Allocation in OneView drivers - http://specs.openstack.org/openstack/ironic-specs/specs/not-implemented/oneview-drivers-dynamic-allocation.html
 .. [7] ironic-oneviewd - https://pypi.python.org/pypi/ironic-oneviewd/
 .. [8] ironic-oneview-cli - https://pypi.python.org/pypi/ironic-oneview-cli/
-.. [9] ironic-inspector - http://docs.openstack.org/developer/ironic-inspector/
-.. [10] ironic-inspector install - http://docs.openstack.org/developer/ironic-inspector/install.html
+.. [9] ironic-inspector - https://docs.openstack.org/ironic-inspector/latest/
+.. [10] ironic-inspector install - https://docs.openstack.org/ironic-inspector/latest/install/index.html
