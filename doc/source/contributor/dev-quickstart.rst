@@ -137,7 +137,7 @@ Then run ``tox`` with the debug environment as one of the following::
   tox -e debug test_file_name.TestClass.test_name
 
 For more information see the `oslotest documentation
-<http://docs.openstack.org/developer/oslotest/features.html#debugging-with-oslo-debug-helper>`_.
+<https://docs.openstack.org/oslotest/latest/user/features.html#debugging-with-oslo-debug-helper>`_.
 
 Database Setup
 --------------
@@ -412,7 +412,7 @@ up to date and has the latest packages installed before beginning this process.
 
 .. seealso::
 
-    http://docs.openstack.org/developer/devstack/
+    https://docs.openstack.org/devstack/latest/
 
 .. note::
     The devstack "demo" tenant is now granted the "baremetal_observer" role
@@ -559,7 +559,7 @@ and uses the ``agent_ipmitool`` driver by default::
 
     For more details, see the
     `devstack plugin interface documentation
-    <http://docs.openstack.org/developer/devstack/plugins.html#plugin-interface>`_.
+    <https://docs.openstack.org/devstack/latest/plugins.html#plugin-interface>`_.
 
 Run stack.sh::
 
