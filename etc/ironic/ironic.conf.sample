@@ -368,7 +368,7 @@
 # (default), leave it unset and the latest versions of RPC
 # communication and database objects will be used. (string
 # value)
-# Allowed values: pike, ocata, 9.0, 8.0, 7.0
+# Allowed values: pike, ocata, 9.1, 9.0, 8.0, 7.0
 #pin_release_version = <None>
 
 # Path to the rootwrap configuration file to use for running

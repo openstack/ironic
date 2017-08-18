@@ -90,6 +90,18 @@ RELEASE_MAPPING = {
             'VolumeTarget': ['1.0'],
         }
     },
+    '9.1': {
+        'rpc': '1.41',
+        'objects': {
+            'Node': ['1.21'],
+            'Conductor': ['1.2'],
+            'Chassis': ['1.3'],
+            'Port': ['1.7'],
+            'Portgroup': ['1.3'],
+            'VolumeConnector': ['1.0'],
+            'VolumeTarget': ['1.0'],
+        }
+    },
     'master': {
         'rpc': '1.41',
         'objects': {
@@ -107,16 +119,17 @@ RELEASE_MAPPING = {
 # NOTE(xek): Assign each named release to the appropriate semver.
 #
 #            Just before we do a new named release (more specifically, create
-#            a stable/<release> branch), add a mapping for the new
-#            named release. This is needed; otherwise CI (grenade) that tests
-#            old/new (i.e., new-release -> master) will fail.
+#            a stable/<release> branch), add a mapping for the new named
+#            release. This is needed; otherwise CI: a unit test (common.
+#            ReleaseMappingsTestCase.test_contains_current_release_entry())
+#            and grenade that tests old/new (new-release -> master) will fail.
 #
 #            Just after we do a new named release, delete the oldest named
 #            release (that we are no longer supporting for a rolling upgrade).
 #
 #            There should be at most two named mappings here.
 RELEASE_MAPPING['ocata'] = RELEASE_MAPPING['7.0']
-RELEASE_MAPPING['pike'] = RELEASE_MAPPING['9.0']
+RELEASE_MAPPING['pike'] = RELEASE_MAPPING['9.1']
 
 # List of available versions with named versions first; 'master' is excluded.
 RELEASE_VERSIONS = sorted(set(RELEASE_MAPPING) - {'master'}, reverse=True)
