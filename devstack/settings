@@ -1,5 +1,7 @@
 enable_service ironic ir-api ir-cond
 
+source $DEST/ironic/devstack/common_settings
+
 # NOTE(vsaienko) mtu calculation has been changed recently to 1450
 # https://github.com/openstack/neutron/commit/51a697
 # and caused https://bugs.launchpad.net/ironic/+bug/1631875
