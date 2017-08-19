@@ -1,0 +1,10 @@
+---
+prelude: >
+    The 9.0.1 release is an intermediary Pike release; it should be used
+    instead of the intermediary 9.0.0 release, since 9.0.1 passes all the
+    ironic CI tests.
+upgrade:
+  - |
+    Adds '9.0' and 'pike' as choices for the configuration option
+    [default]/pin_release_version. This addresses failures with the unit
+    and grenade tests.
