@@ -19,14 +19,18 @@ import mock
 from oslo_utils import importutils
 
 from ironic.common import exception
+from ironic.conductor import task_manager
 from ironic.drivers import drac as drac_drivers
+from ironic.drivers.modules import agent
 from ironic.drivers.modules import drac
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules.network import flat as flat_net
+from ironic.drivers.modules import noop
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.tests.unit.db import base as db_base
+from ironic.tests.unit.objects import utils as obj_utils
 
 
 class BaseIDRACTestCase(db_base.DbTestCase):
@@ -80,6 +84,51 @@ class BaseIDRACTestCase(db_base.DbTestCase):
         self.assertIsInstance(
             driver.vendor,
             kwargs.get('vendor', drac.vendor_passthru.DracVendorPassthru))
+
+
+class IDRACHardwareTestCase(BaseIDRACTestCase):
+
+    def setUp(self):
+        super(IDRACHardwareTestCase, self).setUp()
+        self.config(enabled_hardware_types=['idrac'],
+                    enabled_management_interfaces=['idrac'],
+                    enabled_power_interfaces=['idrac'],
+                    enabled_inspect_interfaces=[
+                        'idrac', 'inspector', 'no-inspect'],
+                    enabled_network_interfaces=['flat', 'neutron', 'noop'],
+                    enabled_raid_interfaces=['idrac', 'no-raid'],
+                    enabled_vendor_interfaces=['idrac'])
+
+    def test_default_interfaces(self):
+        node = obj_utils.create_test_node(self.context, driver='idrac')
+        with task_manager.acquire(self.context, node.id) as task:
+            self._validate_interfaces(task.driver, console=noop.NoConsole)
+
+    def test_override_with_inspector(self):
+        node = obj_utils.create_test_node(self.context, driver='idrac',
+                                          inspect_interface='inspector')
+        with task_manager.acquire(self.context, node.id) as task:
+            self._validate_interfaces(task.driver,
+                                      console=noop.NoConsole,
+                                      inspect=inspector.Inspector)
+
+    def test_override_with_agent(self):
+        node = obj_utils.create_test_node(self.context, driver='idrac',
+                                          deploy_interface='direct',
+                                          inspect_interface='inspector')
+        with task_manager.acquire(self.context, node.id) as task:
+            self._validate_interfaces(task.driver,
+                                      console=noop.NoConsole,
+                                      deploy=agent.AgentDeploy,
+                                      inspect=inspector.Inspector)
+
+    def test_override_with_raid(self):
+        node = obj_utils.create_test_node(self.context, driver='idrac',
+                                          raid_interface='no-raid')
+        with task_manager.acquire(self.context, node.id) as task:
+            self._validate_interfaces(task.driver,
+                                      console=noop.NoConsole,
+                                      raid=noop.NoRAID)
 
 
 @mock.patch.object(importutils, 'try_import', spec_set=True, autospec=True)
