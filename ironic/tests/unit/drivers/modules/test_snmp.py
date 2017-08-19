@@ -75,7 +75,10 @@ class SNMPClientTestCase(base.TestCase):
         client = snmp.SNMPClient(self.address, self.port, snmp.SNMP_V3)
         client._get_transport()
         mock_cmdgen.assert_called_once_with()
-        mock_transport.assert_called_once_with((client.address, client.port))
+        mock_transport.assert_called_once_with(
+            (client.address, client.port),
+            retries=CONF.snmp.udp_transport_retries,
+            timeout=CONF.snmp.udp_transport_timeout)
 
     @mock.patch.object(cmdgen, 'UdpTransportTarget', autospec=True)
     def test__get_transport_err(self, mock_transport, mock_cmdgen):
@@ -83,7 +86,28 @@ class SNMPClientTestCase(base.TestCase):
         client = snmp.SNMPClient(self.address, self.port, snmp.SNMP_V3)
         self.assertRaises(snmp_error.PySnmpError, client._get_transport)
         mock_cmdgen.assert_called_once_with()
-        mock_transport.assert_called_once_with((client.address, client.port))
+        mock_transport.assert_called_once_with(
+            (client.address, client.port),
+            retries=CONF.snmp.udp_transport_retries,
+            timeout=CONF.snmp.udp_transport_timeout)
+
+    @mock.patch.object(cmdgen, 'UdpTransportTarget', autospec=True)
+    def test__get_transport_custom_timeout(self, mock_transport, mock_cmdgen):
+        self.config(udp_transport_timeout=2.0, group='snmp')
+        client = snmp.SNMPClient(self.address, self.port, snmp.SNMP_V3)
+        client._get_transport()
+        mock_cmdgen.assert_called_once_with()
+        mock_transport.assert_called_once_with((client.address, client.port),
+                                               retries=5, timeout=2.0)
+
+    @mock.patch.object(cmdgen, 'UdpTransportTarget', autospec=True)
+    def test__get_transport_custom_retries(self, mock_transport, mock_cmdgen):
+        self.config(udp_transport_retries=10, group='snmp')
+        client = snmp.SNMPClient(self.address, self.port, snmp.SNMP_V3)
+        client._get_transport()
+        mock_cmdgen.assert_called_once_with()
+        mock_transport.assert_called_once_with((client.address, client.port),
+                                               retries=10, timeout=1.0)
 
     @mock.patch.object(snmp.SNMPClient, '_get_transport', autospec=True)
     @mock.patch.object(snmp.SNMPClient, '_get_auth', autospec=True)
