@@ -20,13 +20,13 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.drivers import base
-from ironic.drivers.modules.drac import deploy
 from ironic.drivers.modules.drac import inspect as drac_inspect
 from ironic.drivers.modules.drac import management
 from ironic.drivers.modules.drac import power
 from ironic.drivers.modules.drac import raid
 from ironic.drivers.modules.drac import vendor_passthru
 from ironic.drivers.modules import inspector
+from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import pxe
 
 
@@ -41,7 +41,7 @@ class PXEDracDriver(base.BaseDriver):
 
         self.power = power.DracPower()
         self.boot = pxe.PXEBoot()
-        self.deploy = deploy.DracDeploy()
+        self.deploy = iscsi_deploy.ISCSIDeploy()
         self.management = management.DracManagement()
         self.raid = raid.DracRAID()
         self.vendor = vendor_passthru.DracVendorPassthru()
