@@ -7,11 +7,18 @@ iLO drivers
 Overview
 ========
 iLO drivers enable to take advantage of features of iLO management engine in
-HPE ProLiant servers.  iLO drivers are targeted for HPE ProLiant Gen 8 systems
-and above which have `iLO 4 management engine <https://www.hpe.com/us/en/servers/integrated-lights-out-ilo.html>`_.
+HPE ProLiant servers. iLO drivers are targeted for HPE ProLiant Gen8 and Gen9
+systems which have `iLO 4 management engine`_. From **Pike** release iLO
+drivers start supporting ProLiant Gen10 systems which have
+`iLO 5 management engine`_. iLO5 conforms to `Redfish`_ API and hence
+hardware type ``redfish`` (see :doc:`redfish`) is also an option for this kind
+of hardware but it will lack the iLO specific features.
 
 For more details and for up-to-date information (like tested platforms,
 known issues, etc), please check the `iLO driver wiki page <https://wiki.openstack.org/wiki/Ironic/Drivers/iLODrivers>`_.
+
+For enabling Gen10 systems and getting detailed information on Gen10 feature
+support in Ironic please check this `Gen10 wiki section`_.
 
 ProLiant hardware is supported by the ``ilo`` hardware type and the following
 classic drivers:
@@ -176,9 +183,9 @@ Prerequisites
   which contains a set of modules for managing HPE ProLiant hardware.
 
   Install ``proliantutils`` module on the ironic conductor node. Minimum
-  version required is 2.2.1::
+  version required is 2.4.0::
 
-   $ pip install "proliantutils>=2.2.1"
+   $ pip install "proliantutils>=2.4.0"
 
 * ``ipmitool`` command must be present on the service node(s) where
   ``ironic-conductor`` is running. On most distros, this is provided as part
@@ -350,9 +357,9 @@ Target Users
 
 Tested Platforms
 ~~~~~~~~~~~~~~~~
-This driver should work on HPE ProLiant Gen7 Servers with iLO 3,
-Gen8 Servers and above with iLO 4.
-It has been tested with the following servers:
+This driver should work on HPE ProLiant Gen7 servers with iLO 3, Gen8 and Gen9
+servers with iLO 4 and Gen10 servers with iLO 5. It has been tested with the
+following servers:
 
 * ProLiant DL380 G7
 * ProLiant DL380e Gen8
@@ -361,6 +368,7 @@ It has been tested with the following servers:
 * ProLiant DL360 Gen9 UEFI
 * ProLiant DL380 Gen9 UEFI
 * ProLiant XL450 Gen9 UEFI
+* ProLiant DL360 Gen10
 
 For more up-to-date information on server platform support info, refer
 `iLO driver wiki page <https://wiki.openstack.org/wiki/Ironic/Drivers/iLODrivers>`_.
@@ -394,8 +402,8 @@ Features
 
 Requirements
 ~~~~~~~~~~~~
-* **iLO 4 Advanced License** needs to be installed on iLO to enable Virtual
-  Media feature.
+* **iLO 4** or **iLO 5 Advanced License** needs to be installed on iLO to
+  enable Virtual Media Boot feature.
 * **Swift Object Storage Service** - iLO driver uses swift to store temporary
   FAT images as well as boot ISO images.
 * **Glance Image Service with swift configured as its backend** - When using
@@ -513,9 +521,9 @@ Target Users
 
 Tested Platforms
 ~~~~~~~~~~~~~~~~
-This driver should work on HPE ProLiant Gen7 Servers with iLO 3,
-Gen8 Servers and above with iLO 4.
-It has been tested with the following servers:
+This driver should work on HPE ProLiant Gen7 servers with iLO 3, Gen8 and Gen9
+servers with iLO 4 and Gen10 servers with iLO 5. It has been tested with the
+following servers:
 
 * ProLiant DL380 G7
 * ProLiant DL380e Gen8
@@ -524,6 +532,7 @@ It has been tested with the following servers:
 * ProLiant DL380 Gen9 UEFI
 * ProLiant DL180 Gen9 UEFI
 * ProLiant XL450 Gen9 UEFI
+* ProLiant DL360 Gen10
 
 For more up-to-date information, check the
 `iLO driver wiki page <https://wiki.openstack.org/wiki/Ironic/Drivers/iLODrivers>`_.
@@ -552,8 +561,8 @@ Features
 
 Requirements
 ~~~~~~~~~~~~
-* **iLO 4 Advanced License** needs to be installed on iLO to enable Virtual
-  Media feature.
+* **iLO 4** or **iLO 5 Advanced License** needs to be installed on iLO to
+  enable Virtual Media Boot feature.
 * **Swift Object Storage Service** - iLO driver uses swift to store temporary
   FAT images as well as boot ISO images.
 * **Glance Image Service with swift configured as its backend** - When using
@@ -659,9 +668,9 @@ Target Users
 
 Tested Platforms
 ~~~~~~~~~~~~~~~~
-This driver should work on HPE ProLiant Gen7 Servers with iLO 3,
-Gen8 Servers and above with iLO 4.
-It has been tested with the following servers:
+This driver should work on HPE ProLiant Gen7 servers with iLO 3, Gen8 and Gen9
+servers with iLO 4 and Gen10 servers with iLO 5. It has been tested with the
+following servers:
 
 * ProLiant DL380 G7
 * ProLiant DL380e Gen8
@@ -670,6 +679,7 @@ It has been tested with the following servers:
 * ProLiant DL360 Gen9 UEFI
 * ProLiant DL380 Gen9 UEFI
 * ProLiant XL450 Gen9 UEFI
+* ProLiant DL360 Gen10
 
 For more up-to-date information, check the
 `iLO driver wiki page <https://wiki.openstack.org/wiki/Ironic/Drivers/iLODrivers>`_.
@@ -1771,3 +1781,7 @@ See the `proliant-tools`_ for more information on creating agent ramdisk with
 .. _`Enabling HTTPS in Swift`: http://docs.openstack.org/project-install-guide/baremetal/draft/enabling-https.html#enabling-https-in-swift
 .. _`Enabling HTTPS in Image service`: http://docs.openstack.org/project-install-guide/baremetal/draft/enabling-https.html#enabling-https-in-image-service
 .. _`HPE iLO4 User Guide`: http://h20566.www2.hpe.com/hpsc/doc/public/display?docId=c03334051
+.. _`iLO 4 management engine`: https://www.hpe.com/us/en/servers/integrated-lights-out-ilo.html
+.. _`iLO 5 management engine`: https://www.hpe.com/us/en/servers/integrated-lights-out-ilo.html#innovations
+.. _`Redfish`: https://www.dmtf.org/standards/redfish
+.. _`Gen10 wiki section`: https://wiki.openstack.org/wiki/Ironic/Drivers/iLODrivers/master#Enabling_ProLiant_Gen10_systems_in_Ironic

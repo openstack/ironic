@@ -1,0 +1,12 @@
+---
+upgrade:
+  - |
+    Updates required proliantutils version for iLO drivers to 2.4.0.
+    This version of the library comes with quite a few features:
+
+    * Adds support for Gen10 servers using
+      `Redfish <https://www.dmtf.org/standards/redfish>`_ protocol.
+    * Provides support for one-pass disk erase using HPE SSA CLI through
+      Proliant hardware manager in IPA.
+    * ``local_gb`` defaults to 0 (zero) when no disk could be discovered
+      during inspection.
