@@ -31,6 +31,29 @@ NEUTRON_NET=ironic_grenade
 
 set -o xtrace
 
+function wait_for_ironic_resources {
+    local i
+    local nodes_count
+    nodes_count=$(openstack baremetal node list -f value -c "Provisioning State" | wc -l)
+    echo_summary "Waiting 5 minutes for Ironic resources become available again"
+    for i in $(seq 1 30); do
+        if openstack baremetal node list -f value -c "Provisioning State" | grep -qi failed; then
+            die $LINENO "One of nodes is in failed state."
+        fi
+        if [[ $(openstack baremetal node list -f value -c "Provisioning State" | grep -ci available) == $nodes_count ]]; then
+            return 0
+        fi
+        sleep 10
+    done
+    openstack baremetal node list
+    die $LINENO "Timed out waiting for Ironic nodes are available again."
+}
+
+total_cpus=$(( $IRONIC_VM_SPECS_CPU * $IRONIC_VM_COUNT ))
+
+if [[ "${HOST_TOPOLOGY}" == "multinode" ]]; then
+    total_cpus=$(( 2 * $total_cpus ))
+fi
 
 function early_create {
     # We need these steps only in case of flat-network
@@ -125,6 +148,8 @@ function destroy {
 # Dispatcher
 case $1 in
     "early_create")
+        wait_for_ironic_resources
+        wait_for_nova_resources "vcpus" $total_cpus
         early_create
         ;;
     "create")
@@ -137,10 +162,6 @@ case $1 in
         verify
         ;;
     "destroy")
-        destroy
-        ;;
-    "force_destroy")
-        set +o errexit
         destroy
         ;;
 esac
