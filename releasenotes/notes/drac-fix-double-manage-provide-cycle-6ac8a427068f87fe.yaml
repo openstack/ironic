@@ -1,0 +1,8 @@
+---
+fixes:
+  - Fixes an issue that caused a node using a Dell EMC integrated Dell Remote
+    Access Controller (iDRAC) *classic driver*, ``pxe_drac`` or
+    ``pxe_drac_inspector``, to be placed in the ``clean failed`` state after a
+    double ``manage``/``provide`` cycle, instead of the ``available`` state.
+    For more information, see `bug 1676387
+    <https://bugs.launchpad.net/ironic/+bug/1676387>`_.
