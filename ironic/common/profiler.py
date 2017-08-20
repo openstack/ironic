@@ -32,16 +32,18 @@ def setup(name, host='0.0.0.0'):
                        a notifier backend, which is set in
                        osprofiler.initializer.init_from_conf.
     """
-    if CONF.profiler.enabled:
-        admin_context = context.get_admin_context()
-        initializer.init_from_conf(conf=CONF,
-                                   context=admin_context.to_dict(),
-                                   project="ironic",
-                                   service=name,
-                                   host=host)
-        LOG.info("OSProfiler is enabled. Trace is generated using "
-                 "[profiler]/hmac_keys specified in ironic.conf. "
-                 "To disable, set [profiler]/enabled=false")
+    if not CONF.profiler.enabled:
+        return
+
+    admin_context = context.get_admin_context()
+    initializer.init_from_conf(conf=CONF,
+                               context=admin_context.to_dict(),
+                               project="ironic",
+                               service=name,
+                               host=host)
+    LOG.info("OSProfiler is enabled. Trace is generated using "
+             "[profiler]/hmac_keys specified in ironic.conf. "
+             "To disable, set [profiler]/enabled=false")
 
 
 def trace_cls(name, **kwargs):
@@ -54,7 +56,7 @@ def trace_cls(name, **kwargs):
     :param kwargs: Any other keyword args used by profiler.trace_cls
     """
     def decorator(cls):
-        if profiler and 'profiler' in CONF and CONF.profiler.enabled:
+        if CONF.profiler.enabled:
             trace_decorator = profiler.trace_cls(name, kwargs)
             return trace_decorator(cls)
         return cls
