@@ -205,7 +205,7 @@ IRONIC_DEPLOY_KERNEL=${IRONIC_DEPLOY_KERNEL:-$TOP_DIR/files/ir-deploy-$IRONIC_DE
 IRONIC_DEPLOY_ISO=${IRONIC_DEPLOY_ISO:-$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.iso}
 
 # NOTE(jroll) this needs to be updated when stable branches are cut
-IPA_DOWNLOAD_BRANCH=${IPA_DOWNLOAD_BRANCH:-master}
+IPA_DOWNLOAD_BRANCH=${IPA_DOWNLOAD_BRANCH:-stable/pike}
 IPA_DOWNLOAD_BRANCH=$(echo $IPA_DOWNLOAD_BRANCH | tr / -)
 
 # Configure URLs required to download ramdisk if we're not building it, and
