@@ -31,9 +31,21 @@ LOG = logging.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
-CAPABILITIES_KEYS = {'BootMode', 'secure_boot', 'rom_firmware_version',
-                     'ilo_firmware_version', 'server_model', 'max_raid_level',
-                     'pci_gpu_devices', 'sr_iov_devices', 'nic_capacity'}
+CAPABILITIES_KEYS = {'secure_boot', 'rom_firmware_version',
+                     'ilo_firmware_version', 'server_model',
+                     'pci_gpu_devices', 'sriov_enabled', 'nic_capacity',
+                     'has_ssd', 'has_rotational',
+                     'rotational_drive_4800_rpm',
+                     'rotational_drive_5400_rpm',
+                     'rotational_drive_7200_rpm',
+                     'rotational_drive_10000_rpm',
+                     'rotational_drive_15000_rpm',
+                     'logical_raid_level_0', 'logical_raid_level_1',
+                     'logical_raid_level_2', 'logical_raid_level_10',
+                     'logical_raid_level_5', 'logical_raid_level_6',
+                     'logical_raid_level_50', 'logical_raid_level_60',
+                     'cpu_vt', 'hardware_supports_raid', 'has_nvme_ssd',
+                     'nvdimm_n', 'logical_nvdimm_n', 'persistent_memory'}
 
 
 def _create_ports_if_not_exist(task, macs):

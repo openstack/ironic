@@ -1054,6 +1054,7 @@ The following iLO drivers support hardware inspection:
 * ``pxe_ilo``
 * ``iscsi_ilo``
 * ``agent_ilo``
+* ``ilo`` hardware type
 
 .. note::
 
@@ -1113,6 +1114,38 @@ Inspection can also discover the following extra capabilities for iLO drivers:
 
 * ``nic_capacity``: the max speed of the embedded NIC adapter.
 
+* ``sriov_enabled``: true, if server has the SRIOV supporting NIC.
+
+* ``has_rotational``: true, if server has HDD disk.
+
+* ``has_ssd``: true, if server has SSD disk.
+
+* ``has_nvme_ssd``: true, if server has NVME SSD disk.
+
+* ``cpu_vt``: true, if server supports cpu virtualization.
+
+* ``hardware_supports_raid``: true, if RAID can be configured on the server using
+  RAID controller.
+
+* ``nvdimm_n``: true, if server has NVDIMM_N type of persistent memory.
+
+* ``persistent_memory``: true, if server has persistent memory.
+
+* ``logical_nvdimm_n``: true, if server has logical NVDIMM_N configured.
+
+* ``rotational_drive_<speed>_rpm``: The capabilities
+  ``rotational_drive_4800_rpm``, ``rotational_drive_5400_rpm``,
+  ``rotational_drive_7200_rpm``, ``rotational_drive_10000_rpm`` and
+  ``rotational_drive_15000_rpm`` are set to true if the server has HDD
+  drives with speed of 4800, 5400, 7200, 10000 and 15000 rpm respectively.
+
+* ``logical_raid_level_<raid_level>``: The capabilities
+  ``logical_raid_level_0``, ``logical_raid_level_1``, ``logical_raid_level_2``,
+  ``logical_raid_level_5``, ``logical_raid_level_6``, ``logical_raid_level_10``,
+  ``logical_raid_level_50`` and ``logical_raid_level_60`` are set to true if any
+  of the raid levels among 0, 1, 2, 5, 6, 10, 50 and 60 are configured on
+  the system.
+
   .. note::
 
      * The capability ``nic_capacity`` can only be discovered if ipmitool
@@ -1129,6 +1162,8 @@ for scheduling::
   nova flavor-key my-baremetal-flavor set capabilities:nic_capacity="10Gb"
 
   nova flavor-key my-baremetal-flavor set capabilities:ilo_firmware_version="<in> 2.10"
+
+  nova flavor-key my-baremetal-flavor set capabilities:has_ssd="true"
 
 See :ref:`capabilities-discovery` for more details and examples.
 
