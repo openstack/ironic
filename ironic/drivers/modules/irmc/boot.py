@@ -864,7 +864,7 @@ class IRMCVolumeBootMixIn(object):
 class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
     """iRMC Virtual Media boot-related actions."""
 
-    capabilities = ['iscsi_volume_boot', 'fc_volume_boot']
+    capabilities = ['iscsi_volume_boot', 'fibre_channel_volume_boot']
 
     def __init__(self):
         """Constructor of IRMCVirtualMediaBoot.
