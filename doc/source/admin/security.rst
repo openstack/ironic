@@ -118,7 +118,4 @@ include:
 
 Additional references:
   - :ref:`cleaning`
-  - `trusted boot with partition image`_
-  - :ref:`iLO UEFI Secure Boot Support`
-
-.. _trusted boot with partition image: http://docs.openstack.org/project-install-guide/baremetal/draft/advanced.html#trusted-boot-with-partition-image
+  - :ref:`trusted-boot`

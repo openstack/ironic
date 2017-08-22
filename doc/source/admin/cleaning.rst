@@ -103,7 +103,7 @@ higher::
 
     PUT /v1/nodes/<node_ident>/states/provision
 
-(Additional information is available `here <http://developer.openstack.org/api-ref/baremetal/index.html?expanded=change-node-provision-state-detail#change-node-provision-state>`_.)
+(Additional information is available `here <https://developer.openstack.org/api-ref/baremetal/index.html?expanded=change-node-provision-state-detail#change-node-provision-state>`_.)
 
 This API will allow operators to put a node directly into ``cleaning``
 provision state from ``manageable`` state via 'target': 'clean'.
@@ -192,7 +192,7 @@ If you are using the Neutron DHCP provider (the default) you will also need to
 ensure you have configured a cleaning network. This network will be used to
 boot the ramdisk for in-band cleaning. You can use the same network as your
 tenant network. For steps to set up the cleaning network, please see
-`Configure the Bare Metal service for cleaning`_.
+:ref:`configure-cleaning`.
 
 .. _InbandvsOutOfBandCleaning:
 
@@ -331,5 +331,3 @@ to allow it to be scheduled by nova.
 
 The node will begin automated cleaning from the start, and move to
 ``available`` state when complete.
-
-.. _`Configure the Bare Metal service for cleaning`: https://docs.openstack.org/project-install-guide/baremetal/draft/configure-cleaning.html

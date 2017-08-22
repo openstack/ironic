@@ -53,4 +53,4 @@ Documentation for that can be found within the ironic-ui project.
 .. toctree::
   :maxdepth: 1
 
-  Dashboard (horizon) plugin <http://docs.openstack.org/developer/ironic-ui/>
+  Dashboard (horizon) plugin <https://docs.openstack.org/ironic-ui/latest>
