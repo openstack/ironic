@@ -23,7 +23,7 @@ patch.
 
 .. seealso::
 
-    http://docs.openstack.org/infra/manual/developers.html#development-workflow
+    https://docs.openstack.org/infra/manual/developers.html#development-workflow
 
 Prepare Development System
 ==========================
