@@ -91,4 +91,4 @@ The following sequence of commands can be used to enroll a UCS Standalone node.
 
 For more information about enrolling nodes see `Enrolling a node`_ in the install guide.
 
-.. _`Enrolling a node`: http://docs.openstack.org/project-install-guide/baremetal/draft/enrollment.html#enrolling-a-node
+.. _`Enrolling a node`: https://docs.openstack.org/project-install-guide/baremetal/draft/enrollment.html#enrolling-a-node
