@@ -17,8 +17,8 @@ http://ipmitool.sourceforge.net/.
     ``openipmi`` as it relies on error handling options not provided by
     this tool.
 
-Please refer to the `ipmitool driver page`_ for information on how to use
-IPMItool-based drivers.
+Please refer to the :doc:`/admin/drivers/ipmitool` for information on how to
+use IPMItool-based drivers.
 
 Validation and troubleshooting
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -82,4 +82,3 @@ these are ``Temperature``, ``Fan``, ``Voltage``, ``Current``.
 Special value ``All`` (the default) designates all supported sensor types.
 
 .. _IPMI: https://en.wikipedia.org/wiki/Intelligent_Platform_Management_Interface
-.. _ipmitool driver page: https://docs.openstack.org/ironic/latest/admin/drivers/ipmitool.html

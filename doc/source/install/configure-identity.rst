@@ -83,11 +83,11 @@ Configure the Identity service for the Bare Metal service
           --user USERNAME baremetal_observer
 
 #. Further documentation is available elsewhere for the ``openstack``
-   `command-line client`_ and the Identity_ service. A policy.json.sample_
+   `command-line client`_ and the Identity_ service. A
+   :doc:`policy.json.sample </configuration/sample-policy>`
    file, which enumerates the service's default policies, is provided for
    your convenience with the Bare Metal Service.
 
-.. _Identity: http://docs.openstack.org/admin-guide/identity-management.html
-.. _`command-line client`: http://docs.openstack.org/admin-guide/cli-manage-projects-users-and-roles.html
-.. _here: http://docs.openstack.org/admin-guide/identity-concepts.html#user-management
-.. _policy.json.sample: https://github.com/openstack/ironic/blob/master/etc/ironic/policy.json.sample
+.. _Identity: https://docs.openstack.org/keystone/latest/admin/cli-manage-projects-users-and-roles.html
+.. _`command-line client`: https://docs.openstack.org/python-openstackclient/latest/cli/authentication.html
+.. _here: https://docs.openstack.org/keystone/latest/admin/identity-concepts.html#user-management

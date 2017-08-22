@@ -123,7 +123,7 @@ provisioning will happen in a multi-tenant environment (which means using the
 
 #. Install and configure a compatible ML2 mechanism driver which supports bare
    metal provisioning for your switch. See `ML2 plugin configuration manual
-   <http://docs.openstack.org/networking-guide/config-ml2.html>`_
+   <https://docs.openstack.org/neutron/latest/admin/config-ml2.html>`_
    for details.
 
 #. Restart the ironic-conductor and ironic-api services after the
@@ -147,6 +147,4 @@ provisioning will happen in a multi-tenant environment (which means using the
 
    where FILENAME is the file located at the TFTP server.
 
-See `Multitenancy in Bare Metal service`_ for required node configuration.
-
-.. _`Multitenancy in Bare Metal service`: http://docs.openstack.org/ironic/latest/admin/multitenancy.html#multitenancy
+See :ref:`multitenancy` for required node configuration.
