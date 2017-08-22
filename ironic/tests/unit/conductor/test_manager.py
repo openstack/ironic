@@ -5029,7 +5029,7 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def test_driver_properties_fake_pxe(self):
         expected = ['deploy_kernel', 'deploy_ramdisk',
-                    'deploy_forces_oob_reboot']
+                    'force_persistent_boot_device', 'deploy_forces_oob_reboot']
         self._check_driver_properties("fake_pxe", expected)
 
     def test_driver_properties_fake_snmp(self):
@@ -5043,12 +5043,14 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                     'ipmi_username', 'ipmi_bridging', 'ipmi_transit_channel',
                     'ipmi_transit_address', 'ipmi_target_channel',
                     'ipmi_target_address', 'ipmi_local_address',
-                    'deploy_kernel', 'deploy_ramdisk', 'ipmi_protocol_version',
+                    'deploy_kernel', 'deploy_ramdisk',
+                    'force_persistent_boot_device', 'ipmi_protocol_version',
                     'ipmi_force_boot_device', 'deploy_forces_oob_reboot']
         self._check_driver_properties("pxe_ipmitool", expected)
 
     def test_driver_properties_pxe_snmp(self):
         expected = ['deploy_kernel', 'deploy_ramdisk',
+                    'force_persistent_boot_device',
                     'snmp_driver', 'snmp_address', 'snmp_port', 'snmp_version',
                     'snmp_community', 'snmp_security', 'snmp_outlet',
                     'deploy_forces_oob_reboot']
@@ -5107,7 +5109,7 @@ class ManagerTestHardwareTypeProperties(mgr_utils.ServiceSetUpMixin,
 
     def test_hardware_type_properties_manual_management(self):
         expected = ['deploy_kernel', 'deploy_ramdisk',
-                    'deploy_forces_oob_reboot']
+                    'force_persistent_boot_device', 'deploy_forces_oob_reboot']
         self._check_hardware_type_properties('manual-management', expected)
 
 
