@@ -2489,8 +2489,10 @@ class TestStorageInterfaceUtils(db_base.DbTestCase):
     @mock.patch.object(fake, 'FakeDeploy', autospec=True)
     def test_populate_storage_driver_internal_info_error(
             self, mock_deploy, mock_boot):
-        mock_deploy.return_value = mock.Mock(capabilities=['fc_volume_deploy'])
-        mock_boot.return_value = mock.Mock(capabilities=['fc_volume_boot'])
+        mock_deploy.return_value = mock.Mock(
+            capabilities=['fibre_channel_volume_deploy'])
+        mock_boot.return_value = mock.Mock(
+            capabilities=['fibre_channel_volume_boot'])
 
         obj_utils.create_test_volume_target(
             self.context, node_id=self.node.id, volume_type='iscsi',
