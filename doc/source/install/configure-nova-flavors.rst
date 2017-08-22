@@ -38,25 +38,31 @@ The flavor is mapped to the bare metal node through the hardware specifications.
 Scheduling based on resource classes
 ====================================
 
-The Newton release of the Bare Metal service includes a field on the node
-resource called ``resource_class``. This field is available in version 1.21 of
-the Bare Metal service API. Starting with the Pike release, this field has
-to be populated for all nodes, as explained in :doc:`enrollment`.
-
-As of the Pike release, a Compute service flavor is able to use this field
+As of the Pike release, a Compute service flavor is able to use the node's
+``resource_class`` field (available starting with Bare Metal API version 1.21)
 for scheduling, instead of the CPU, RAM, and disk properties defined in
-the flavor above. A flavor can request *exactly one* instance of a bare metal
+the flavor. A flavor can request *exactly one* instance of a bare metal
 resource class.
 
-To achieve that, the flavors, created as described in `Scheduling based on
-properties`_, have to be associated with one custom resource class each.
-A name of the custom resource class is the name of node's resource class, but
-upper-cased, with ``CUSTOM_`` prefix prepended, and all punctuation replaced
-with an underscore:
+Start with creating the flavor in the same way as described in
+`Scheduling based on properties`_. The ``CPU``, ``RAM_MB`` and ``DISK_GB``
+values are not going to be used for scheduling, but the ``DISK_GB``
+value will still be used to determine the root partition size.
+
+After creation, associate each flavor with one custom resource class. The name
+of a custom resource class that corresponds to a node's resource class (in the
+Bare Metal service) is:
+
+* the bare metal node's resource class all upper-cased
+* prefixed with ``CUSTOM_``
+* all punctuation replaced with an underscore
+
+For example, if the resource class is named ``baremetal-small``, associate
+the flavor with this custom resource class via:
 
 .. code-block:: console
 
-      $ nova flavor-key my-baremetal-flavor set resources:CUSTOM_<RESOURCE_CLASS>=1
+      $ nova flavor-key my-baremetal-flavor set resources:CUSTOM_BAREMETAL_SMALL=1
 
 Another set of flavor properties should be used to disable scheduling
 based on standard properties for a bare metal flavor:
@@ -79,12 +85,12 @@ with tagging some nodes with it:
 
 .. code-block:: console
 
-      $ ironic --ironic-api-version=1.21 node-update $NODE_UUID \
-        replace resource_class=baremetal.with-GPU
+      $ openstack --os-baremetal-api-version 1.21 baremetal node set $NODE_UUID \
+        --resource-class baremetal.with-GPU
 
 .. warning::
     It is possible to **add** a resource class to ``active`` nodes, but it is
-    not possiblre to **replace** an existing resource class on them.
+    not possible to **replace** an existing resource class on them.
 
 Then you can update your flavor to request the resource class instead of
 the standard properties:
