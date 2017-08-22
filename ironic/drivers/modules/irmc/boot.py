@@ -67,9 +67,10 @@ OPTIONAL_PROPERTIES = {
           "{LAN|FC|CNA}<slot-No>-<Port-No>. This parameter is necessary for "
           "booting a node from a remote volume. Optional."),
     'irmc_storage_network_size':
-        _("Size of the network for iSCSI storage network. It should be a "
-          "positive integer. This is necessary for booting a node from a "
-          "remote iSCSI volume. Optional."),
+        _("Size of the network for iSCSI storage network. This is the size of "
+          "the IPv4 subnet mask that the storage network is configured to "
+          "utilize, in a range between 1 and 31 inclusive. This is necessary "
+          "for booting a node from a remote iSCSI volume. Optional."),
 }
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
@@ -584,28 +585,29 @@ class IRMCVolumeBootMixIn(object):
         :param types: a list of types of volume connectors required for the
             target volume. One of connectors must have a physical ID.
         :raises InvalidParameterValue if a physical ID is invalid.
-        :returns: A physical ID of a volume connector.
+        :returns: A physical ID of a volume connector, or None if not set.
         """
         for vc in task.volume_connectors:
             if vc.type not in types:
                 continue
             pid = task.node.driver_info['irmc_pci_physical_ids'].get(vc.uuid)
-            if pid:
-                try:
-                    viom.validate_physical_port_id(pid)
-                except scci.SCCIInvalidInputError as e:
-                    raise exception.InvalidParameterValue(
-                        _('Physical port information of volume connector '
-                          '%(connector)s is invalid: %(error)') %
-                        {'connector': vc.uuid, 'error': e})
-                return pid
+            if not pid:
+                continue
+            try:
+                viom.validate_physical_port_id(pid)
+            except scci.SCCIInvalidInputError as e:
+                raise exception.InvalidParameterValue(
+                    _('Physical port information of volume connector '
+                      '%(connector)s is invalid: %(error)') %
+                    {'connector': vc.uuid, 'error': e})
+            return pid
         return None
 
     def _validate_iscsi_connectors(self, task):
         """Validate if volume connectors are properly registered for iSCSI.
 
         For connecting a node to a iSCSI volume, volume connectors containing
-        an IQNN and an IP address are necessary. One of connectors must have
+        an IQN and an IP address are necessary. One of connectors must have
         a physical ID of the PCI card. Network size of a storage network is
         also required by iRMC. which should be registered in the node's
         driver_info.
@@ -624,7 +626,6 @@ class IRMCVolumeBootMixIn(object):
             vc = vc_dict.get(vc_type)
             if not vc:
                 missing_types.append(vc_type)
-                continue
 
         if missing_types:
             raise exception.MissingParameterValue(
@@ -863,6 +864,8 @@ class IRMCVolumeBootMixIn(object):
 class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
     """iRMC Virtual Media boot-related actions."""
 
+    capabilities = ['iscsi_volume_boot', 'fc_volume_boot']
+
     def __init__(self):
         """Constructor of IRMCVirtualMediaBoot.
 
@@ -871,7 +874,6 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
         :raises: InvalidParameterValue, if config option has invalid value.
         """
         check_share_fs_mounted()
-        self.capabilities = ['iscsi_volume_boot', 'fc_volume_boot']
         super(IRMCVirtualMediaBoot, self).__init__()
 
     def get_properties(self):
