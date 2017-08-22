@@ -256,11 +256,50 @@ and may be combined if desired.
 
     $ ironic port-create -n $NODE_UUID -a $MAC_ADDRESS
 
+.. _enrollment-scheduling:
+
 Adding scheduling information
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#. Update the node's properties to match the bare metal flavor you created
-   when :doc:`configure-nova-flavors`:
+#. Assign a *resource class* to the node. A *resource class* should represent
+   a class of hardware in your data center, that corresponds to a Compute
+   flavor.
+
+   For example, let's split hardware into these three groups:
+
+   #. nodes with a lot of RAM and powerful CPU for computational tasks,
+   #. nodes with powerful GPU for OpenCL computing,
+   #. smaller nodes for development and testing.
+
+   We can define three resource classes to reflect these hardware groups, named
+   ``large-cpu``, ``large-gpu`` and ``small`` respectively. Then, for each node
+   in each of the hardware groups, we'll set their ``resource_class``
+   appropriately via:
+
+   .. code-block:: console
+
+    $ openstack --os-baremetal-api-version 1.21 baremetal node set $NODE_UUID \
+        --resource-class $CLASS_NAME
+
+   The ``--resource-class`` argument can also be used when creating a node:
+
+   .. code-block:: console
+
+    $ openstack --os-baremetal-api-version 1.21 baremetal node create \
+        --driver $DRIVER --resource-class $CLASS_NAME
+
+   To use resource classes for scheduling you need to update your flavors as
+   described in :doc:`configure-nova-flavors`.
+
+   .. warning::
+      Scheduling based on resource classes will replace scheduling based on
+      properties in the Queens release.
+
+   .. note::
+      This is not required for standalone deployments, only for those using
+      the Compute service for provisioning bare metal instances.
+
+#. Update the node's properties to match the actual hardware of the node:
 
    .. code-block:: console
 
@@ -287,6 +326,11 @@ Adding scheduling information
    These values can also be discovered during `Hardware Inspection`_.
 
    .. warning::
+      If scheduling based on resource classes is not used, the three properties
+      ``cpus``, ``memory_mb`` and ``local_gb`` must match ones defined on the
+      flavor created when :doc:`configure-nova-flavors`.
+
+   .. warning::
       The value provided for the ``local_gb`` property must match the size of
       the root device you're going to deploy on. By default
       **ironic-python-agent** picks the smallest disk which is not smaller
@@ -295,37 +339,6 @@ Adding scheduling information
       If you override this logic by using root device hints (see
       :ref:`root-device-hints`), the ``local_gb`` value should match the size
       of picked target disk.
-
-   .. note::
-      Properties-based approach to scheduling will eventually be replaced by
-      scheduling based on custom resource classes, as explained below and in
-      :doc:`configure-nova-flavors`.
-
-#. Assign a *resource class* to the node. Resource classes will be used for
-   scheduling bare metal instances in the future. A *resource class* should
-   represent a class of hardware in your data center, that roughly corresponds
-   to a Compute flavor.
-
-   For example, you may split hardware into three classes:
-
-   #. nodes with a lot of RAM and powerful CPU for computational tasks,
-   #. nodes with powerful GPU for OpenCL computing,
-   #. smaller nodes for development and testing.
-
-   These would correspond to three resource classes, which you can name
-   arbitrary, e.g. ``large-cpu``, ``large-gpu`` and ``small``.
-
-   .. code-block:: console
-
-    $ ironic --ironic-api-version=1.21 node-update $NODE_UUID \
-        replace resource_class=$CLASS_NAME
-
-   To use resource classes for scheduling you need to update your flavors as
-   described in :doc:`configure-nova-flavors`.
-
-   .. note::
-      Scheduling based on resource classes will replace scheduling based on
-      properties in the future.
 
 #. If you wish to perform more advanced scheduling of the instances based on
    hardware capabilities, you may add metadata to each node that will be
