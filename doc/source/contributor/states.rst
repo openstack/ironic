@@ -27,4 +27,4 @@ Internally, the conductor initiates the other transitions (depicted in gray).
     For more information about the states, see the specification located at
     `ironic-state-machine`_.
 
-.. _ironic-state-machine: http://specs.openstack.org/openstack/ironic-specs/specs/kilo-implemented/new-ironic-state-machine.html
+.. _ironic-state-machine: https://specs.openstack.org/openstack/ironic-specs/specs/kilo-implemented/new-ironic-state-machine.html

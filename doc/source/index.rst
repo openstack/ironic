@@ -20,7 +20,7 @@ This documentation is continually updated and may not represent the state of
 the project at any specific prior release. To access documentation for a
 previous release of ironic, append the OpenStack release name to the URL; for
 example, the ``ocata`` release is available at
-http://docs.openstack.org/ironic/ocata/.
+https://docs.openstack.org/ironic/ocata/.
 
 User Guide
 ==========
@@ -69,7 +69,7 @@ guide as well as more detailed reference documentation.
   :maxdepth: 1
 
   API Concept Guide <contributor/webapi>
-  API Reference (latest) <http://developer.openstack.org/api-ref/baremetal/>
+  API Reference (latest) <https://developer.openstack.org/api-ref/baremetal/>
   API Version History <contributor/webapi-version-history>
 
 Command References

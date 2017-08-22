@@ -46,7 +46,7 @@ How to Use OSProfiler with Ironic in Devstack
 
 To use or test OSProfiler in ironic, the user needs to setup Devstack
 with OSProfiler and ceilometer. In addition to the setup described at
-`Deploying Ironic with DevStack`_, the user needs to do the following:
+:ref:`deploy_devstack`, the user needs to do the following:
 
 Add the following to ``localrc`` to enable OSProfiler and ceilometer::
 
@@ -120,8 +120,6 @@ References
 ==========
 
 - `OSProfiler – Cross-project profiling library`_
-- `Deploying Ironic with DevStack`_
+- :ref:`deploy_devstack`
 
-.. _OSProfiler – Cross-project profiling library: http://docs.openstack.org/osprofiler/latest/index.html
-.. _Deploying Ironic with DevStack: http://docs.openstack.org/ironic/latest/contributor/dev-quickstart.html#deploying-ironic-with-devstack
-
+.. _OSProfiler – Cross-project profiling library: https://docs.openstack.org/osprofiler/latest/index.html

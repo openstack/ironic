@@ -28,6 +28,8 @@ It will create an empty alembic migration. For more information see the
 
 .. _`alembic documentation`: http://alembic.zzzcomputing.com/en/latest/tutorial.html#create-a-migration-script
 
+.. _faq_release_note:
+
 ...know if a release note is needed for my change?
 --------------------------------------------------
 
