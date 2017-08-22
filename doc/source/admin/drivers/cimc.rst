@@ -22,7 +22,7 @@ the disk, instead of the conductor.
 
 The CIMC drivers can use the Ironic Inspector service for in-band inspection of
 equipment. For more information see the `Ironic Inspector documentation
-<http://docs.openstack.org/developer/ironic-inspector/>`_.
+<https://docs.openstack.org/ironic-inspector/latest>`_.
 
 Prerequisites
 =============
@@ -89,6 +89,4 @@ The following sequence of commands can be used to enroll a UCS Standalone node.
 
     ironic port-create -n $NODE -a <MAC_address_of_Ucs_server's_NIC>
 
-For more information about enrolling nodes see `Enrolling a node`_ in the install guide.
-
-.. _`Enrolling a node`: https://docs.openstack.org/project-install-guide/baremetal/draft/enrollment.html#enrolling-a-node
+For more information about enrolling nodes see :ref:`enrollment` in the install guide.

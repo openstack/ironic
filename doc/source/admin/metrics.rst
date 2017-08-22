@@ -77,7 +77,7 @@ drivers are used in the Bare Metal deployment. This estimate may be used to
 determine if a deployer needs to scale their metrics backend to handle the
 additional load before enabling metrics. To see which metrics have changed names
 or have been removed between releases, refer to the `ironic release notes
-<http://docs.openstack.org/releasenotes/ironic/>`_.
+<https://docs.openstack.org/releasenotes/ironic/>`_.
 
 .. note::
   With the default statsd configuration, each timing metric may create
