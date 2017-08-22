@@ -71,7 +71,7 @@ Then edit the result file. Note that:
 
 For more information see the `reno documentation`_.
 
-.. _`reno documentation`: http://docs.openstack.org/developer/reno/usage.html
+.. _`reno documentation`: https://docs.openstack.org/reno/latest/user/usage.html
 
 ...get a decision on something?
 -------------------------------
@@ -121,5 +121,5 @@ the preferred process is:
 -----------------------------------------------------------------
 
 For more information, see the
-`oslo.reports documentation <https://docs.openstack.org/developer/oslo.reports/usage.html>`_
+`oslo.reports documentation <https://docs.openstack.org/oslo.reports/latest/user/usage.html>`_
 page.

@@ -149,5 +149,5 @@ This example will send the following notification over the message bus::
        "publisher_id":"ironic-conductor.hostname01"
     }
 
-.. [1] http://docs.openstack.org/developer/oslo.messaging/notifier.html
-.. [2] http://docs.openstack.org/developer/oslo.versionedobjects
+.. [1] https://docs.openstack.org/oslo.messaging/latest/reference/notifier.html
+.. [2] https://docs.openstack.org/oslo.versionedobjects/latest/

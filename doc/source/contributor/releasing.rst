@@ -92,7 +92,7 @@ Additionally, changes need to be made on master to:
     version. See `example
     <https://git.openstack.org/cgit/openstack/ironic/commit/?id=4b28af4645c2f3b6d7864671e15904ed8f40414d>`_
     and `pbr documentation
-    <http://docs.openstack.org/developer/pbr/#version>`_ for details.
+    <https://docs.openstack.org/pbr/latest/user/features.html#version>`_ for details.
 
   * to support rolling upgrades, since the release was a named release:
 
