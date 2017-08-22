@@ -252,7 +252,7 @@ def plug_port_to_tenant_network(task, port_like_obj, client=None):
     # nova.
     body = {
         'port': {
-            'binding:vnic_type': 'baremetal',
+            'binding:vnic_type': neutron.VNIC_BAREMETAL,
             'binding:host_id': node.uuid,
         }
     }

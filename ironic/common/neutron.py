@@ -26,6 +26,8 @@ DEFAULT_NEUTRON_URL = 'http://%s:9696' % CONF.my_ip
 
 _NEUTRON_SESSION = None
 
+VNIC_BAREMETAL = 'baremetal'
+
 PHYSNET_PARAM_NAME = 'provider:physical_network'
 """Name of the neutron network API physical network parameter."""
 
@@ -132,11 +134,18 @@ def update_port_address(port_id, address):
                      "Neutron port %s, while updating its MAC "
                      "address.") % port_id)
             unbind_neutron_port(port_id, client=client)
-            port_req_body['port']['binding:host_id'] = binding_host_id
-            port_req_body['port']['binding:profile'] = binding_profile
 
         msg = (_("Failed to update MAC address on Neutron port %s.") % port_id)
         client.update_port(port_id, port_req_body)
+
+        # Restore original binding:profile and host_id
+        if binding_host_id:
+            msg = (_("Failed to update binding:host_id and profile on Neutron "
+                     "port %s.") % port_id)
+            port_req_body = {'port': {'binding:host_id': binding_host_id,
+                                      'binding:profile': binding_profile}}
+
+            client.update_port(port_id, port_req_body)
     except (neutron_exceptions.NeutronClientException, exception.NetworkError):
         LOG.exception(msg)
         raise exception.FailedToUpdateMacOnPort(port_id=port_id)
@@ -200,7 +209,7 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
         'port': {
             'network_id': network_uuid,
             'admin_state_up': True,
-            'binding:vnic_type': 'baremetal',
+            'binding:vnic_type': VNIC_BAREMETAL,
             'device_owner': 'baremetal:none',
             'binding:host_id': node.uuid,
         }

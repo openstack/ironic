@@ -1,0 +1,5 @@
+---
+fixes:
+  - Fixed an issue when mac address update was called in the same
+    request with bind port which is not handled by some neutron
+    backends like contrail correctly.
