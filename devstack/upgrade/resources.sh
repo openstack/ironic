@@ -116,7 +116,15 @@ function create {
 }
 
 function verify {
-    :
+    local side="$1"
+
+    if [[ "$side" = "post-upgrade" ]]; then
+        nodes=$(openstack --os-baremetal-api-version 1.9 baremetal node list --provision-state active -f value -c UUID)
+        # Trigger nova flavor migration code for active instances.
+        for node_id in $nodes; do
+            openstack --os-baremetal-api-version 1.21 baremetal node set $node_id --resource-class baremetal
+        done
+    fi
 }
 
 function verify_noapi {
@@ -156,10 +164,14 @@ case $1 in
         create
         ;;
     "verify_noapi")
-        verify_noapi
+        # NOTE(vdrok): our implementation of verify_noapi is a noop, but
+        # grenade always passes the upgrade side (pre-upgrade or post-upgrade)
+        # as an argument to it. Pass all the arguments grenade passes further.
+        verify_noapi "${@:2}"
         ;;
     "verify")
-        verify
+        # NOTE(vdrok): pass all the arguments grenade passes further.
+        verify "${@:2}"
         ;;
     "destroy")
         destroy
