@@ -93,15 +93,7 @@ function create {
 }
 
 function verify {
-    local side="$1"
-
-    if [[ "$side" = "post-upgrade" ]]; then
-        nodes=$(openstack --os-baremetal-api-version 1.9 baremetal node list --provision-state active -f value -c UUID)
-        # Trigger nova flavor migration code for active instances.
-        for node_id in $nodes; do
-            openstack --os-baremetal-api-version 1.21 baremetal node set $node_id --resource-class baremetal
-        done
-    fi
+    :
 }
 
 function verify_noapi {
