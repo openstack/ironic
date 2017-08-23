@@ -8,7 +8,7 @@ that process here.
 A full list of projects that ironic manages is available in the `governance
 site`_.
 
-.. _`governance site`: http://governance.openstack.org/reference/projects/ironic.html
+.. _`governance site`: https://governance.openstack.org/reference/projects/ironic.html
 
 Who is responsible for releases?
 ================================
@@ -28,13 +28,14 @@ Release process
 Releases are managed by the OpenStack release team. The release process is
 documented in the `Project Team Guide`_.
 
-.. _`Project Team Guide`: http://docs.openstack.org/project-team-guide/release-management.html#how-to-release
+.. _`Project Team Guide`: https://docs.openstack.org/project-team-guide/release-management.html#how-to-release
 
 Things to do before releasing
 =============================
 
 * Review the unreleased release notes, if the project uses them. Make sure
-  they follow our `standards`_, are coherent, and have proper grammar.
+  they follow our :ref:`standards <faq_release_note>`, are coherent, and have
+  proper grammar.
   Combine release notes if necessary (for example, a release note for a
   feature and another release note to add to that feature may be combined).
 
@@ -53,8 +54,6 @@ Things to do before releasing
     (that you just added above).
   * Regenerate the sample config file, so that the choices for the
     ``[DEFAULT]/pin_release_version`` configuration are accurate.
-
-.. _`standards`: http://docs.openstack.org/ironic/latest/contributor/faq.html#know-if-a-release-note-is-needed-for-my-change
 
 Things to do after releasing
 ============================
