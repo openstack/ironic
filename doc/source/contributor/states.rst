@@ -22,9 +22,149 @@ Internally, the conductor initiates the other transitions (depicted in gray).
    :align: left
    :alt: Ironic state transitions
 
-.. note::
+State Descriptions
+==================
 
-    For more information about the states, see the specification located at
-    `ironic-state-machine`_.
+enroll (stable state)
+  This is the state that all nodes start off in when created using API version
+  1.11 or newer. When a node is in the ``enroll`` state, the only thing ironic
+  knows about it is that it exists, and ironic cannot take any further action
+  by itself. Once a node has its driver/interfaces and their required
+  information set in ``node.driver_info``, the node can be transitioned to the
+  ``verifying`` state by setting the node's provision state using the
+  ``manage`` verb.
 
-.. _ironic-state-machine: https://specs.openstack.org/openstack/ironic-specs/specs/kilo-implemented/new-ironic-state-machine.html
+verifying
+  ironic will validate that it can manage the node using the information given
+  in ``node.driver_info`` and with either the driver/hardware type and
+  interfaces it has been assigned. This involves going out and confirming that
+  the credentials work to access whatever node control mechanism they talk to.
+
+manageable (stable state)
+  Once ironic has verified that it can manage the node using the
+  driver/interfaces and credentials passed in at node create time, the node
+  will be transitioned to the ``manageable`` state. From ``manageable``, nodes
+  can transition to:
+
+  * ``manageable`` (through ``cleaning``) by setting the node's provision state
+    using the ``clean`` verb.
+  * ``manageable`` (through ``inspecting``) by setting the node's provision
+    state using the ``inspect`` verb.
+  * ``available`` (through ``cleaning`` if automatic cleaning is enabled) by
+    setting the node's provision state using the ``provide`` verb.
+  * ``active`` (through ``adopting``) by setting the node's provision state
+    using the ``adopt`` verb.
+
+  ``manageable`` is the state that a node should be moved into when any updates
+  need to be made to it such as changes to fields in driver_info and updates to
+  networking information on ironic ports assigned to the node.
+
+  ``manageable`` is also the only stable state that can be transitioned to,
+  from these failure states:
+
+  * ``adopt failed``
+  * ``clean failed``
+  * ``inspect failed``
+
+inspecting
+  ``inspecting`` will utilize node introspection to update hardware-derived
+  node properties to reflect the current state of the hardware. If
+  introspection fails, the node will transition to ``inspect failed``.
+
+inspect failed
+  This is the state a node will move into when inspection of the node fails. From
+  here the node can transitioned to:
+
+  * ``inspecting`` by setting the node's provision state using the ``inspect``
+    verb.
+  * ``manageable`` by setting the node's provision state using the ``manage``
+    verb
+
+cleaning
+  Nodes in the ``cleaning`` state are being scrubbed and reprogrammed into a
+  known configuration.
+
+  When a node is in the ``cleaning`` state it means that the conductor is
+  executing the clean step (for out-of-band clean steps) or preparing the
+  environment (building PXE configuration files, configuring the DHCP, etc)
+  to boot the ramdisk for running in-band clean steps.
+
+clean wait
+  Just like the ``cleaning`` state, the nodes in the ``clean wait`` state are
+  being scrubbed and reprogrammed. The difference is that in the ``clean wait``
+  state the conductor is waiting for the ramdisk to boot or the clean step
+  which is running in-band to finish.
+
+  The cleaning process of a node in the ``clean wait`` state can be interrupted
+  by setting the node's provision state using the ``abort`` verb if the task
+  that is running allows it.
+
+available (stable state)
+  After nodes have been successfully preconfigured and cleaned, they are moved
+  into the ``available`` state and are ready to be provisioned. From
+  ``available``, nodes can transition to:
+
+  * ``active`` (through ``deploying``) by setting the node's provision state
+    using the ``active`` verb.
+  * ``manageable`` by setting the node's provision state using the ``manage``
+    verb
+
+deploying
+  Nodes in ``deploying`` are being prepared to run a workload on them. This
+  consists of running a series of tasks, such as:
+
+  * Setting appropriate BIOS configurations
+  * Partitioning drives and laying down file systems.
+  * Creating any additional resources (node-specific network config, a config
+    drive partition, etc.) that may be required by additional subsystems.
+
+wait call-back
+  Just like the ``deploying`` state, the nodes in ``wait call-back`` are being
+  deployed. The difference is that in ``wait call-back`` the conductor is
+  waiting for the ramdisk to boot or execute parts of the deployment which
+  need to run in-band on the node (for example, installing the bootloader, or
+  writing the image to the disk).
+
+  The deployment of a node in ``wait call-back`` can be interrupted by setting
+  the node's provision state using the ``deleted`` verb.
+
+deploy failed
+  This is the state a node will move into when a deployment fails, for example
+  a timeout waiting for the ramdisk to PXE boot. From here the node can be
+  transitioned to:
+
+  * ``active`` (through ``deploying``) by setting the node's provision state
+    using either the ``active`` or ``rebuild`` verbs.
+  * ``available`` (through ``deleting`` and ``cleaning``) by setting the
+    node's provision state using the ``deleted`` verb.
+
+active (stable state)
+  Nodes in ``active`` have a workload running on them. ironic may collect
+  out-of-band sensor information (including power state) on a regular basis.
+  Nodes in ``active`` can transition to:
+
+  * ``available`` (through ``deleting`` and ``cleaning``) by setting the node's
+    provision state using the ``deleted`` verb.
+  * ``active`` (through ``deploying``) by setting the node's provision state
+    using the ``rebuild`` verb.
+
+deleting
+  Nodes in ``deleting`` state are being torn down from running an active
+  workload. In ``deleting``, ironic tears down and removes any configuration and
+  resources it added in ``deploying``.
+
+error (stable state)
+  This is the state a node will move into when deleting an active deployment
+  fails. From ``error``, nodes can transition to:
+
+  * ``available`` (through ``deleting`` and ``cleaning``) by setting the node's
+    provision state using the ``deleted`` verb.
+
+adopting
+  This state allows ironic to take over management of a baremetal node with an
+  existing workload on it. Ordinarily when a baremetal node is enrolled and
+  managed by ironic, it must transition through ``cleaning`` and ``deploying``
+  to reach ``active`` state. However, those baremetal nodes that have an
+  existing workload on them, do not need to be deployed or cleaned again, so
+  this transition allows these nodes to move directly from ``manageable`` to
+  ``active``.
