@@ -16,7 +16,7 @@ Currently booting from a volume requires:
 
 - Bare Metal service version 9.0.0
 - Bare Metal API microversion 1.33 or later
-- A driver that utilizes the `PXE boot mechanism <https://docs.openstack.org/ironic/latest/install/configure-pxe.html>`_.
+- A driver that utilizes the :doc:`PXE boot mechanism </install/configure-pxe>`.
   Currently booting from a volume is supported by the reference drivers that
   utilize PXE boot mechanisms when iPXE is enabled.
 - iPXE is an explicit requirement, as it provides the mechanism that attaches
