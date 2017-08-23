@@ -24,7 +24,7 @@ Plan your upgrade
   This means that you cannot upgrade Ocata directly into Queens; you need to
   upgrade into Pike first.
 
-* The `release notes <http://docs.openstack.org/releasenotes/ironic/>`_
+* The `release notes <https://docs.openstack.org/releasenotes/ironic/>`_
   should always be read carefully when upgrading the Bare Metal service.
   Specific upgrade steps and considerations are documented there.
 
@@ -46,8 +46,7 @@ Plan your upgrade
   require manual intervention to return them to the available hardware pool.
   This is most likely in cases where a timeout has occurred or a service was
   terminated abruptly. For a visual diagram detailing states and possible
-  state transitions, please see the
-  `state machine diagram <https://docs.openstack.org/ironic/latest/contributor/states.html>`_.
+  state transitions, please see :ref:`states`.
 
 Offline upgrades
 ================

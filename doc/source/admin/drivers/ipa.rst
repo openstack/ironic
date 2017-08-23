@@ -14,7 +14,7 @@ IPA is distributed over nodes and runs, inside of a ramdisk, the
 process of booting this ramdisk on the node.
 
 For more information see the `ironic-python-agent documentation
-<http://docs.openstack.org/developer/ironic-python-agent/>`_.
+<https://docs.openstack.org/ironic-python-agent/latest>`_.
 
 Drivers
 =======

@@ -92,7 +92,7 @@ The web console can be configured in Bare Metal service in the following way:
 
 * Append console parameters for bare metal PXE boot in the Bare Metal service
   configuration file (/etc/ironic/ironic.conf). See the reference for
-  configuration in `console kernel parameters`_.
+  configuration in :ref:`kernel-boot-parameters`.
 
 * Configure node web console.
 
@@ -165,7 +165,7 @@ Serial consoles can be configured in the Bare Metal service as follows:
 
 * Append console parameters for bare metal PXE boot in the Bare Metal
   service configuration file. See the reference on how to configure them in
-  `console kernel parameters`_.
+  :ref:`kernel-boot-parameters`.
 
 * Configure node console.
 
@@ -199,4 +199,3 @@ the serial console is disabled. If you want to launch serial console, see the
 ``Configure node console``.
 
 .. _`socat`: http://www.dest-unreach.org/socat
-.. _`console kernel parameters`: https://docs.openstack.org/project-install-guide/baremetal/draft/advanced.html#appending-kernel-parameters-to-boot-instances

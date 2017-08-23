@@ -85,10 +85,9 @@ a node with the ``redfish`` driver. For example:
     redfish_system_id=/redfish/v1/Systems/CX34R87 --driver-info \
     redfish_username=admin --driver-info redfish_password=password
 
-For more information about enrolling nodes see `Enrolling a node`_
+For more information about enrolling nodes see :ref:`enrollment`
 in the install guide.
 
 .. _Redfish: http://redfish.dmtf.org/
 .. _Sushy: https://git.openstack.org/cgit/openstack/sushy
 .. _TLS: https://en.wikipedia.org/wiki/Transport_Layer_Security
-.. _`Enrolling a node`: http://docs.openstack.org/project-install-guide/baremetal/draft/enrollment.html#enrolling-a-node

@@ -87,10 +87,8 @@ criteria are used to select a suitable unattached port or port group:
 Configuring the Bare Metal service
 ==================================
 
-See the `Configure tenant networks`_ section in the installation guide for the
-Bare Metal service.
-
-.. _`Configure tenant networks`: http://docs.openstack.org/project-install-guide/baremetal/draft/configure-tenant-networks.html
+See the :ref:`configure-tenant-networks` section in the installation guide for
+the Bare Metal service.
 
 Configuring nodes
 =================
