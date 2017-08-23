@@ -37,8 +37,6 @@ create a configuration drive by setting the following option in the
 
 In some cases, you may wish to pass a user customized script when deploying an instance.
 To do this, pass ``--user-data /path/to/file`` to the ``nova boot`` command.
-More information can be found at `Provide user data to instances <http://docs.openstack.org/user-guide/cli_provide_user_data_to_instances.html>`_
-
 
 When used standalone
 --------------------
@@ -132,9 +130,6 @@ the configuration drive and mount it, for example::
 .. [*] A configuration drive could also be a data block with a VFAT filesystem
        on it instead of ISO 9660. But it's unlikely that it would be needed
        since ISO 9660 is widely supported across operating systems.
-
-For more information see `Store metadata on a configuration drive
-<http://docs.openstack.org/user-guide/cli-config-drive.html>`_.
 
 
 Cloud-init integration

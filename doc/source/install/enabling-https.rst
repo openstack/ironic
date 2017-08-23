@@ -16,7 +16,7 @@ conductor and swift and bare metal (via virtual media).  It can be enabled in on
 of the following ways:
 
 * `Using an SSL termination proxy
-  <http://docs.openstack.org/security-guide/secure-communication/tls-proxies-and-http-services.html>`_
+  <https://docs.openstack.org/security-guide/secure-communication/tls-proxies-and-http-services.html>`_
 
 * `Using native SSL support in swift
   <https://docs.openstack.org/swift/latest/deployment_guide.html>`_
