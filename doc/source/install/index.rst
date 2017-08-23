@@ -1,5 +1,5 @@
 =====================================
-Bare Metal service installation guide
+Bare Metal Service Installation Guide
 =====================================
 
 The Bare Metal service is a collection of components that provides support to
