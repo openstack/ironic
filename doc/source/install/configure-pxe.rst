@@ -333,7 +333,7 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
       for accessing objects stored in it.
       Both the OpenStack Swift and RADOS Gateway provide support for this.
 
-      * See `Ceph Object Gateway support`_ on how to configure
+      * See :doc:`/admin/radosgw` on how to configure
         the Bare Metal Service with RADOS Gateway as the Object Storage.
 
    Configure this by setting the ``[pxe]/ipxe_use_swift`` configuration
@@ -358,8 +358,6 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
    Note that when SSL is enabled on the Object Storage service
    you have to ensure that iPXE firmware on the nodes can indeed
    boot from generated temporary URLs that use HTTPS protocol.
-
-   .. _Ceph Object Gateway support: http://docs.openstack.org/ironic/latest/admin/radosgw.html
 
 #. Restart the ``ironic-conductor`` process:
 

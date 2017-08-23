@@ -68,8 +68,7 @@ Configuring ironic-conductor service
    .. note::
       Swift backend for the Image service must be installed and configured
       for ``agent_*`` drivers. Ceph Object Gateway (RADOS Gateway) is also
-      supported as the Image service's backend (`radosgw support
-      <http://docs.openstack.org/ironic/latest/admin/radosgw.html#radosgw-support>`_).
+      supported as the Image service's backend (:ref:`radosgw support`).
 
 #. Set the URL (replace ``NEUTRON_IP``) for connecting to the Networking
    service, to be the Networking service endpoint:
@@ -82,8 +81,7 @@ Configuring ironic-conductor service
       url=http://NEUTRON_IP:9696
 
    To configure the network for ironic-conductor service to perform node
-   cleaning, see `CleaningNetworkSetup <http://docs.openstack.org/ironic/latest/admin/cleaning.html>`_
-   from the Ironic deploy guide.
+   cleaning, see :ref:`cleaning` from the admin guide.
 
 #. Configure credentials for accessing other OpenStack services.
 
