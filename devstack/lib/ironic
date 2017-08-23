@@ -141,17 +141,19 @@ IRONIC_CMD="openstack --os-baremetal-api-version $IRONIC_DEFAULT_API_VERSION bar
 
 # driver / hardware type options
 IRONIC_ENABLED_DRIVERS=${IRONIC_ENABLED_DRIVERS:-fake,pxe_ipmitool,agent_ipmitool}
-IRONIC_ENABLED_HARDWARE_TYPES=${IRONIC_ENABLED_HARDWARE_TYPES:-ipmi}
-IRONIC_ENABLED_BOOT_INTERFACES=${IRONIC_ENABLED_BOOT_INTERFACES:-}
-IRONIC_ENABLED_DEPLOY_INTERFACES=${IRONIC_ENABLED_DEPLOY_INTERFACES:-}
-IRONIC_ENABLED_MANAGEMENT_INTERFACES=${IRONIC_ENABLED_MANAGEMENT_INTERFACES:-}
-IRONIC_ENABLED_POWER_INTERFACES=${IRONIC_ENABLED_POWER_INTERFACES:-}
-IRONIC_ENABLED_CONSOLE_INTERFACES=${IRONIC_ENABLED_CONSOLE_INTERFACES:-}
-IRONIC_ENABLED_INSPECT_INTERFACES=${IRONIC_ENABLED_INSPECT_INTERFACES:-}
-IRONIC_ENABLED_RAID_INTERFACES=${IRONIC_ENABLED_RAID_INTERFACES:-}
-IRONIC_ENABLED_VENDOR_INTERFACES=${IRONIC_ENABLED_VENDOR_INTERFACES:-}
-IRONIC_ENABLED_STORAGE_INTERFACES=${IRONIC_ENABLED_STORAGE_INTERFACES:-}
-IRONIC_ENABLED_NETWORK_INTERFACES=${IRONIC_ENABLED_NETWORK_INTERFACES:-}
+IRONIC_ENABLED_HARDWARE_TYPES=${IRONIC_ENABLED_HARDWARE_TYPES:-"ipmi"}
+# list of all available driver interfaces types
+IRONIC_DRIVER_INTERFACE_TYPES="boot power management deploy console inspect raid storage network vendor"
+IRONIC_ENABLED_BOOT_INTERFACES=${IRONIC_ENABLED_BOOT_INTERFACES:-"pxe"}
+IRONIC_ENABLED_DEPLOY_INTERFACES=${IRONIC_ENABLED_DEPLOY_INTERFACES:-"iscsi,direct"}
+IRONIC_ENABLED_MANAGEMENT_INTERFACES=${IRONIC_ENABLED_MANAGEMENT_INTERFACES:-"ipmitool"}
+IRONIC_ENABLED_POWER_INTERFACES=${IRONIC_ENABLED_POWER_INTERFACES:-"ipmitool"}
+IRONIC_ENABLED_CONSOLE_INTERFACES=${IRONIC_ENABLED_CONSOLE_INTERFACES:-"no-console"}
+IRONIC_ENABLED_INSPECT_INTERFACES=${IRONIC_ENABLED_INSPECT_INTERFACES:-"no-inspect"}
+IRONIC_ENABLED_RAID_INTERFACES=${IRONIC_ENABLED_RAID_INTERFACES:-"agent,no-raid"}
+IRONIC_ENABLED_VENDOR_INTERFACES=${IRONIC_ENABLED_VENDOR_INTERFACES:-"ipmitool,no-vendor"}
+IRONIC_ENABLED_STORAGE_INTERFACES=${IRONIC_ENABLED_STORAGE_INTERFACES:-"cinder,noop"}
+IRONIC_ENABLED_NETWORK_INTERFACES=${IRONIC_ENABLED_NETWORK_INTERFACES:-"flat,noop"}
 # If IRONIC_VM_ENGING is explicitly set to "auto" or "kvm",
 # devstack will attempt to use hardware virtualization
 # (aka nested kvm). We do not enable it in the infra gates
@@ -568,14 +570,6 @@ function is_glance_configuration_required {
 function is_deploy_iso_required {
     [[ "$IRONIC_IS_HARDWARE" == "True" && "$IRONIC_DEPLOY_ISO_REQUIRED" == "True" ]] && return 0
     return 1
-}
-
-function configure_enabled_interfaces {
-    local interface_name=$1
-    local interface_implementations=$2
-    if [[ -n $interface_implementations ]]; then
-        iniset $IRONIC_CONF_FILE DEFAULT enabled_${interface_name}_interfaces $interface_implementations
-    fi
 }
 
 # Assert that the redfish hardware type is enabled in case we are using
@@ -1104,16 +1098,13 @@ function configure_ironic_conductor {
     iniset $IRONIC_CONF_FILE DEFAULT enabled_drivers $IRONIC_ENABLED_DRIVERS
     iniset $IRONIC_CONF_FILE DEFAULT enabled_hardware_types $IRONIC_ENABLED_HARDWARE_TYPES
 
-    configure_enabled_interfaces "boot" $IRONIC_ENABLED_BOOT_INTERFACES
-    configure_enabled_interfaces "deploy" $IRONIC_ENABLED_DEPLOY_INTERFACES
-    configure_enabled_interfaces "management" $IRONIC_ENABLED_MANAGEMENT_INTERFACES
-    configure_enabled_interfaces "power" $IRONIC_ENABLED_POWER_INTERFACES
-    configure_enabled_interfaces "console" $IRONIC_ENABLED_CONSOLE_INTERFACES
-    configure_enabled_interfaces "inspect" $IRONIC_ENABLED_INSPECT_INTERFACES
-    configure_enabled_interfaces "raid" $IRONIC_ENABLED_RAID_INTERFACES
-    configure_enabled_interfaces "vendor" $IRONIC_ENABLED_VENDOR_INTERFACES
-    configure_enabled_interfaces "storage" $IRONIC_ENABLED_STORAGE_INTERFACES
-    configure_enabled_interfaces "network" $IRONIC_ENABLED_NETWORK_INTERFACES
+    # configure enabled interfaces
+    local iface
+    local iface_var
+    for iface in ${IRONIC_DRIVER_INTERFACE_TYPES}; do
+        iface_var="IRONIC_ENABLED_$(echo $iface | tr '[:lower:]' '[:upper:]')_INTERFACES"
+        iniset $IRONIC_CONF_FILE DEFAULT enabled_${iface}_interfaces ${!iface_var}
+    done
 
     if is_deployed_by_redfish; then
         # TODO(lucasagomes): We need to make it easier to configure
