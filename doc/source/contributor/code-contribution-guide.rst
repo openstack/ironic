@@ -13,10 +13,10 @@ Getting Started
 
 If you're completely new to OpenStack and want to contribute to the ironic
 project, please start by familiarizing yourself with the `Infra Team's Developer
-Guide <http://docs.openstack.org/infra/manual/developers.html>`_. This will help
-you get your accounts set up in Launchpad and Gerrit, familiarize you with the
-workflow for the OpenStack continuous integration and testing systems, and help
-you with your first commit.
+Guide <https://docs.openstack.org/infra/manual/developers.html>`_. This will
+help you get your accounts set up in Launchpad and Gerrit, familiarize you with
+the workflow for the OpenStack continuous integration and testing systems, and
+help you with your first commit.
 
 LaunchPad Project
 -----------------
@@ -48,13 +48,13 @@ Project Hosting Details
 -----------------------
 
 Bug tracker
-    http://launchpad.net/ironic
+    https://bugs.launchpad.net/ironic
 
 Mailing list (prefix Subject line with ``[ironic]``)
     http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-dev
 
 Wiki
-    http://wiki.openstack.org/Ironic
+    https://wiki.openstack.org/Ironic
 
 Code Hosting
     https://git.openstack.org/cgit/openstack/ironic
@@ -141,8 +141,10 @@ not be tolerated, and will be called out in public on the mailing list.
 
 Live Upgrade Related Concerns
 =============================
+
 Ironic implements upgrade with the same methodology of Nova:
-    http://docs.openstack.org/developer/nova/upgrade.html
+
+    https://docs.openstack.org/nova/latest/user/upgrade.html
 
 Ironic API RPC Versions
 -----------------------
@@ -219,20 +221,20 @@ Ironic Specs Process
 ====================
 
 Specifications must follow the template which can be found at
-`specs/template.rst <http://git.openstack.org/cgit/openstack/ironic-specs/tree/
+`specs/template.rst <https://git.openstack.org/cgit/openstack/ironic-specs/tree/
 specs/template.rst>`_, which is quite self-documenting. Specifications are
 proposed by adding them to the `specs/approved` directory, adding a soft link
 to it from the `specs/not-implemented` directory, and posting it for
-review to Gerrit. For more information, please see the `README <http://git.
+review to Gerrit. For more information, please see the `README <https://git.
 openstack.org/cgit/openstack/ironic-specs/tree/README.rst>`_.
 
 The same `Gerrit process
-<http://docs.openstack.org/infra/manual/developers.html>`_ as with source code,
-using the repository `ironic-specs <http://git.openstack.org/cgit/openstack/
+<https://docs.openstack.org/infra/manual/developers.html>`_ as with source code,
+using the repository `ironic-specs <https://git.openstack.org/cgit/openstack/
 ironic-specs/>`_, is used to add new specifications.
 
 All approved specifications are available at:
-http://specs.openstack.org/openstack/ironic-specs. If a specification has
+https://specs.openstack.org/openstack/ironic-specs. If a specification has
 been approved but not completed within one or more releases since the
 approval, it may be re-reviewed to make sure it still makes sense as written.
 
