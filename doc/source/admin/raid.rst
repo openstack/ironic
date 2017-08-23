@@ -7,9 +7,13 @@ RAID Configuration
 Overview
 ========
 Ironic supports RAID configuration for bare metal nodes.  It allows operators
-to specify the desired RAID configuration via Ironic CLI or REST API.
-The desired RAID configuration is applied on the bare metal during manual
+to specify the desired RAID configuration via the OpenStackClient CLI or REST
+API.  The desired RAID configuration is applied on the bare metal during manual
 cleaning.
+
+The examples described here use the OpenStackClient CLI; please see the
+`REST API reference <https://developer.openstack.org/api-ref/baremetal/>`_
+for their corresponding REST API requests.
 
 Prerequisites
 =============
@@ -38,9 +42,10 @@ in JSON format.
 
 Target RAID configuration
 -------------------------
-This is the desired RAID configuration on the bare metal node.  Using Ironic CLI
-or REST API, the operator sets ``target_raid_config`` field of the node.
-The target RAID configuration will be applied during manual cleaning.
+This is the desired RAID configuration on the bare metal node.  Using the
+OpenStackClient CLI (or REST API), the operator sets ``target_raid_config``
+field of the node. The target RAID configuration will be applied during manual
+cleaning.
 
 Target RAID configuration is a dictionary having ``logical_disks``
 as the key. The value for the ``logical_disks`` is a list of JSON
@@ -61,13 +66,9 @@ If the ``target_raid_config`` is an empty dictionary, it unsets the value of
 done on the node.
 
 Each dictionary of logical disk contains the desired properties of logical
-disk supported by the driver.  These properties are discoverable by using
-OpenStackClient CLI or REST API::
+disk supported by the driver.  These properties are discoverable by::
 
-  OpenStackClient CLI:
     openstack baremetal --os-baremetal-api-version 1.15 driver raid property list <driver name>
-  Ironic REST API:
-    curl -X GET -H "Content-Type: application/json" -H "X-Auth-Token: $AUTH_TOKEN" -H "X-OpenStack-Ironic-API-Version: 1.15"  http://<ironic-api-url>/v1/drivers/<driver name>/raid/logical_disk_properties
 
 The RAID feature is available in ironic API version 1.15 and above.
 If ``--os-baremetal-api-version`` is not used in the CLI, it will error out
@@ -236,11 +237,7 @@ physical disk found on the bare metal node.
 
 To get the current RAID configuration::
 
-  OpenStackClient CLI:
     openstack baremetal --os-baremetal-api-version 1.15 node show <node-uuid-or-name>
-  REST API:
-    curl -X GET -H "Content-Type: application/json" -H "X-Auth-Token: $AUTH_TOKEN" -H "X-OpenStack-Ironic-API-Version: 1.15" http://<ironic-api-url>/v1/nodes/<node-uuid-or-name>/states
-
 
 Workflow
 ========
@@ -256,11 +253,8 @@ Workflow
   `Target RAID configuration`_. The target RAID configuration is set on
   the Ironic node::
 
-    OpenStackClient CLI:
       openstack baremetal --os-baremetal-api-version 1.15 node set <node-uuid-or-name> \
          --target-raid-config <JSON file containing target RAID configuration>
-    REST API:
-      curl -X PUT -H "Content-Type: application/json" -H "X-Auth-Token: $AUTH_TOKEN" -H "X-OpenStack-Ironic-API-Version: 1.15" -d '<JSON data target RAID configuration>' http://<ironic-api-url>/v1/nodes/<node-uuid-or-name>/states/raid
 
     The CLI command can accept the input from standard input also:
        openstack baremetal --os-baremetal-api-version 1.15 node set <node-uuid-or-name> \
@@ -288,19 +282,13 @@ Workflow
 * Bring the node to ``manageable`` state and do a ``clean`` action to start
   cleaning on the node::
 
-    OpenStackClient CLI:
       openstack baremetal --os-baremetal-api-version 1.15 node clean <node-uuid-or-name> \
          --clean-steps <JSON file containing clean steps created above>
-    REST API:
-      curl -X PUT -H "Content-Type: application/json" -H "X-Auth-Token: $AUTH_TOKEN" -H "X-OpenStack-Ironic-API-Version: 1.15" -d '{'target': 'clean', 'clean_steps': <JSON description for clean steps as mentioned above>' http://<ironic-api-url>/v1/nodes/<node-uuid-or-name>/states/provision
 
 * After manual cleaning is complete, the current RAID configuration can be
   viewed using::
 
-    OpenStackClient CLI:
       openstack baremetal --os-baremetal-api-version 1.15 node show <node-uuid-or-name>
-    REST API:
-      curl -X GET -H "Content-Type: application/json" -H "X-Auth-Token: $AUTH_TOKEN" -H "X-OpenStack-Ironic-API-Version: 1.15" http://<ironic-api-url>/v1/nodes/<node-uuid-or-name>/states
 
 Using RAID in nova flavor for scheduling
 ========================================
