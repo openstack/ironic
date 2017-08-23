@@ -209,7 +209,7 @@ Glance Configuration
 ^^^^^^^^^^^^^^^^^^^^
 
 1. `Configure Glance image service with its storage backend as Swift
-   <http://docs.openstack.org/developer/glance/configuring.html#configuring-the-swift-storage-backend>`_.
+   <https://docs.openstack.org/glance/latest/configuration/configuring.html#configuring-the-swift-storage-backend>`_.
 
 2. Set a temp-url key for Glance user in Swift. For example, if you have
    configured Glance with user ``glance-swift`` and tenant as ``service``,
@@ -358,12 +358,11 @@ Target Users
 
   The PXE driver passes management information in clear-text to the
   bare metal node.  However, if swift proxy server and glance have HTTPS
-  endpoints (See `Enabling HTTPS in Swift`_, `Enabling HTTPS in Image
-  service`_ for more information), the ``iscsi_ilo`` driver provides enhanced
-  security by exchanging management information with swift and glance
-  endpoints over HTTPS.  The management information, deploy ramdisk and boot
-  images for the instance will be retrieved over encrypted management network
-  via iLO virtual media.
+  endpoints (See :ref:`EnableHTTPSinSwift`, :ref:`EnableHTTPSinGlance`
+  for more information), the ``iscsi_ilo`` driver provides enhanced security by
+  exchanging management information with swift and glance endpoints over HTTPS.
+  The management information, deploy ramdisk and boot images for the instance
+  will be retrieved over encrypted management network via iLO virtual media.
 
 Tested Platforms
 ~~~~~~~~~~~~~~~~
@@ -396,7 +395,7 @@ Features
 * UEFI Secure Boot Support
 * Passing management information via secure, encrypted management network
   (virtual media) if swift proxy server and glance have HTTPS endpoints. See
-  `Enabling HTTPS in Swift`_, `Enabling HTTPS in Image service`_ for more
+  :ref:`EnableHTTPSinSwift`, :ref:`EnableHTTPSinGlance` for more
   information.  User image provisioning is done using iSCSI over data network,
   so this driver has the benefit of security enhancement with the same
   performance. It segregates management info from data channel.
@@ -525,11 +524,11 @@ Target Users
 
   The PXE based agent drivers pass management information in clear-text to
   the bare metal node.  However, if swift proxy server and glance have HTTPS
-  endpoints (See `Enabling HTTPS in Swift`_, `Enabling HTTPS in Image
-  service`_ for more information), the ``agent_ilo`` driver provides enhanced
-  security by exchanging authtoken and management information with swift and
-  glance endpoints over HTTPS.  The management information and deploy ramdisk
-  will be retrieved over encrypted management network via iLO.
+  endpoints (See :ref:`EnableHTTPSinSwift`, :ref:`EnableHTTPSinGlance` for more
+  information), the ``agent_ilo`` driver provides enhanced security by
+  exchanging authtoken and management information with swift and glance
+  endpoints over HTTPS.  The management information and deploy ramdisk will be
+  retrieved over encrypted management network via iLO.
 
 Tested Platforms
 ~~~~~~~~~~~~~~~~
@@ -1807,9 +1806,7 @@ See the `proliant-tools`_ for more information on creating agent ramdisk with
 ``proliant-tools`` element in DIB.
 
 .. _`ssacli documentation`: http://h20566.www2.hpe.com/hpsc/doc/public/display?docId=c03909334
-.. _`proliant-tools`: http://docs.openstack.org/developer/diskimage-builder/elements/proliant-tools/README.html
-.. _`Enabling HTTPS in Swift`: http://docs.openstack.org/project-install-guide/baremetal/draft/enabling-https.html#enabling-https-in-swift
-.. _`Enabling HTTPS in Image service`: http://docs.openstack.org/project-install-guide/baremetal/draft/enabling-https.html#enabling-https-in-image-service
+.. _`proliant-tools`: https://docs.openstack.org/diskimage-builder/latest/elements/proliant-tools/README.html
 .. _`HPE iLO4 User Guide`: http://h20566.www2.hpe.com/hpsc/doc/public/display?docId=c03334051
 .. _`iLO 4 management engine`: https://www.hpe.com/us/en/servers/integrated-lights-out-ilo.html
 .. _`iLO 5 management engine`: https://www.hpe.com/us/en/servers/integrated-lights-out-ilo.html#innovations

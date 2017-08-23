@@ -46,7 +46,7 @@ Requirements
 ------------
 
 Using IPA requires it to be present and configured on the deploy ramdisk, see
-`Building or downloading a deploy ramdisk image`_.
+:ref:`deploy-ramdisk`
 
 Using proxies for image download in agent drivers
 =================================================
@@ -66,7 +66,7 @@ Steps to enable proxies
    This will probably require you to configure the proxy server to cache the
    content even if the requested URL contains a query, and to raise the maximum
    cached file size as images can be pretty big. If you have HTTPS enabled in
-   swift (see `swift deployment guide <http://docs.openstack.org/developer/swift/deployment_guide.html>`_),
+   swift (see `swift deployment guide <https://docs.openstack.org/swift/latest/deployment_guide.html>`_),
    it is possible to configure the proxy server to talk to swift via HTTPS
    to download the image, store it in the cache unencrypted and return it to
    the node via HTTPS again. Because the image will be stored unencrypted in
@@ -124,5 +124,3 @@ that, you have to update the node's ``driver_info`` field and set the
 example, the below command sets this configuration in a specific node::
 
   ironic node-update <UUID or name> add driver_info/deploy_forces_oob_reboot=True
-
-.. _`Building or downloading a deploy ramdisk image`: http://docs.openstack.org/project-install-guide/baremetal/draft/deploy-ramdisk.html
