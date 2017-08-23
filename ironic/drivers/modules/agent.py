@@ -52,7 +52,7 @@ OPTIONAL_PROPERTIES = {
                            'Optional.'),
     'image_no_proxy': _('A comma-separated list of host names, IP addresses '
                         'and domain names (with optional :port) that will be '
-                        'excluded from proxying. To denote a doman name, use '
+                        'excluded from proxying. To denote a domain name, use '
                         'a dot to prefix the domain name. This value will be '
                         'ignored if ``image_http_proxy`` and '
                         '``image_https_proxy`` are not specified. Optional.'),
