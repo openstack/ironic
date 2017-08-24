@@ -21,68 +21,93 @@ driver. The configuration file for the Compute service is typically located at
 The following configuration file must be modified on the Compute
 service's controller nodes and compute nodes.
 
-#. Change these configuration options in the ``default`` section, as follows:
+#. Change these configuration options in the Compute service configuration
+   file (for example, ``/etc/nova/nova.conf``):
 
    .. code-block:: ini
 
        [default]
 
-       # Driver to use for controlling virtualization. Options
-       # include: libvirt.LibvirtDriver, xenapi.XenAPIDriver,
-       # fake.FakeDriver, baremetal.BareMetalDriver,
-       # vmwareapi.VMwareESXDriver, vmwareapi.VMwareVCDriver (string
-       # value)
-       #compute_driver=<None>
+       # Defines which driver to use for controlling virtualization.
+       # Enable the ironic virt driver for this compute instance.
        compute_driver=ironic.IronicDriver
 
-       # Firewall driver (defaults to hypervisor specific iptables
-       # driver) (string value)
-       #firewall_driver=<None>
+       # Firewall driver to use with nova-network service.
+       # Ironic supports only neutron, so set this to noop.
        firewall_driver=nova.virt.firewall.NoopFirewallDriver
 
-       # The scheduler host manager class to use (string value)
-       #scheduler_host_manager=host_manager
-       scheduler_host_manager=ironic_host_manager
-
-       # Virtual ram to physical ram allocation ratio which affects
-       # all ram filters. This configuration specifies a global ratio
-       # for RamFilter. For AggregateRamFilter, it will fall back to
-       # this configuration value if no per-aggregate setting found.
-       # (floating point value)
-       #ram_allocation_ratio=1.5
-       ram_allocation_ratio=1.0
-
-       # Amount of disk in MB to reserve for the host (integer value)
-       #reserved_host_disk_mb=0
+       # Amount of memory in MB to reserve for the host so that it is always
+       # available to host processes.
+       # It is impossible to reserve any memory on bare metal nodes, so set
+       # this to zero.
        reserved_host_memory_mb=0
 
-       # Determines if the Scheduler tracks changes to instances to help with
-       # its filtering decisions (boolean value)
-       #scheduler_tracks_instance_changes=True
-       scheduler_tracks_instance_changes=False
+       [filter_scheduler]
 
-       # New instances will be scheduled on a host chosen randomly from a subset
-       # of the N best hosts, where N is the value set by this option.  Valid
-       # values are 1 or greater. Any value less than one will be treated as 1.
-       # For ironic, this should be set to a number >= the number of ironic nodes
-       # to more evenly distribute instances across the nodes.
-       #scheduler_host_subset_size=1
-       scheduler_host_subset_size=9999999
+       # Enables querying of individual hosts for instance information.
+       # Not possible for bare metal nodes, so set it to False.
+       track_instance_changes=False
 
-   If you have not migrated to using :ref:`scheduling-resource-classes`, then
-   the following should be set as well:
+#. If you have not switched to make use of :ref:`scheduling-resource-classes`,
+   then the following options should be set as well. They must be removed from
+   the configuration file after switching to resource classes.
 
    .. code-block:: ini
 
-       [default]
+       [scheduler]
 
-       # Flag to decide whether to use baremetal_scheduler_default_filters or not.
-       # (boolean value)
-       #scheduler_use_baremetal_filters=False
-       scheduler_use_baremetal_filters=True
+       # Use the ironic scheduler host manager. This host manager will consume
+       # all CPUs, disk space, and RAM from a host as bare metal hosts, can not
+       # be subdivided into multiple instances. Scheduling based on resource
+       # classes does not use CPU/disk/RAM, so the default host manager can be
+       # used in such cases.
+       host_manager=ironic_host_manager
 
-   This option is deprecated and has to be unset after migration
-   to resource classes.
+       [filter_scheduler]
+
+       # Size of subset of best hosts selected by scheduler.
+       # New instances will be scheduled on a host chosen randomly from a
+       # subset of the 999 hosts. The big value is used to avoid race
+       # conditions, when several instances are scheduled on the same bare
+       # metal nodes. This is not a problem when resource classes are used.
+       host_subset_size=999
+
+       # This flag enables a different set of scheduler filters, which is more
+       # suitable for bare metals. CPU, disk and memory filters are replaced
+       # with their exact counterparts, to make sure only nodes strictly
+       # matching the flavor are picked. These filters do not work with
+       # scheduling based on resource classes only.
+       use_baremetal_filters=True
+
+#. Carefully consider the following option:
+
+   .. code-block:: ini
+
+       [compute]
+
+       # This option will cause nova-compute to set itself to a disabled state
+       # if a certain number of consecutive build failures occur. This will
+       # prevent the scheduler from continuing to send builds to a compute
+       # service that is consistently failing. In the case of bare metal
+       # provisioning, however, a compute service is rarely the cause of build
+       # failures. Furthermore, bare metal nodes, managed by a disabled
+       # compute service, will be remapped to a different one. That may cause
+       # the second compute service to also be disabled, and so on, until no
+       # compute services are active.
+       # If this is not the desired behavior, consider increasing this value or
+       # setting it to 0 to disable this behavior completely.
+       #consecutive_build_service_disable_threshold = 10
+
+       [scheduler]
+
+       # This value controls how often (in seconds) the scheduler should
+       # attempt to discover new hosts that have been added to cells.
+       # If negative (the default), no automatic discovery will occur.
+       # As each bare metal node is represented by a separate host, it has
+       # to be discovered before the Compute service can deploy on it.
+       # It can be done manually after enrolling every node or batch of nodes,
+       # or this periodic task can be enabled to do it automatically.
+       #discover_hosts_in_cells_interval=-1
 
 #. Change these configuration options in the ``ironic`` section.
    Replace:
