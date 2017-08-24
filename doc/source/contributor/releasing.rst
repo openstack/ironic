@@ -49,9 +49,18 @@ Things to do before releasing
 
   * in RELEASE_MAPPING, make a copy of the 'master' entry, and rename the first
     'master' entry to the new semver release version.
+
   * If this is a named release, add a RELEASE_MAPPING entry for the named
     release. Its value should be the same as that of the latest semver one
     (that you just added above).
+
+    It is important to do this before a stable/<release> branch is made (or if
+    `the grenade switch is made <http://lists.openstack.org/pipermail/openstack-dev/2017-February/111849.html>`_
+    to use the latest release from stable as the 'old' release).
+    Otherwise, once it is made, CI (a `unit test
+    <https://github.com/openstack/ironic/blob/54efd312395a56cbeee5c556df34afd8153c8076/ironic/tests/unit/common/test_release_mappings.py#L68>`_
+    and grenade that tests new-release -> master) will fail.
+
   * Regenerate the sample config file, so that the choices for the
     ``[DEFAULT]/pin_release_version`` configuration are accurate.
 
@@ -60,33 +69,39 @@ Things to do after releasing
 
 When a release is done that results in a stable branch
 ------------------------------------------------------
+When a release is done that results in a stable branch for the project,
+several changes need to be made.
 
-When a release is done that results in a stable branch for the project, the
-release automation will push a number of changes that need to be approved.
+The release automation will push a number of changes that need to be approved.
+This includes:
 
-In the new stable branch, this will include:
+* In the new stable branch:
 
-* a change to point .gitreview at the branch
-* a change to update the upper constraints file used by tox
+  * a change to point .gitreview at the branch
+  * a change to update the upper constraints file used by tox
 
-In the master branch, this will include:
+* In the master branch:
 
-* updating the release notes RST to include the new branch
+  * updating the release notes RST to include the new branch.
 
-Additionally, changes need to be made to the stable branch to:
+    The generated RST does not include the version range in the title, so we
+    typically submit a follow-up patch to do that.
+
+We need to submit patches for changes in the stable branch to:
 
 * update the ironic devstack plugin to point at the branched tarball for IPA.
   An example of this patch is
   `here <https://review.openstack.org/#/c/374863/>`_.
-* update links in developer documentation to point to the branched version
-  of the install guide.
-* update links in the install guide to point to the branched version of
-  the developer documentation.
+* update links in the documentation (ironic/doc/source/) to point to the
+  branched versions of any openstack projects' (that branch) documents.
+  As of Pike release, the only outlier is
+  `diskimagebuilder <https://docs.openstack.org/diskimage-builder/latest/>`_.
 * set appropriate defaults for TEMPEST_BAREMETAL_MIN_MICROVERSION and
   TEMPEST_BAREMETAL_MAX_MICROVERSION in devstack/lib/ironic to make sure that
-  unsupported API tempest tests are skipped on stable branches.
+  unsupported API tempest tests are skipped on stable branches. E.g.
+  `patch 495319 <https://review.openstack.org/495319>`_.
 
-Additionally, changes need to be made on master to:
+We need to submit patches for changes on master to:
 
 * create an empty commit with a ``Sem-Ver`` tag to bump the generated minor
   version. See `example
