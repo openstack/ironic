@@ -110,9 +110,11 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         :returns: a :class:`Conductor` object.
 
         """
-        db_cond = cls.dbapi.register_conductor({'hostname': hostname,
-                                                'drivers': drivers},
-                                               update_existing=update_existing)
+        db_cond = cls.dbapi.register_conductor(
+            {'hostname': hostname,
+             'drivers': drivers,
+             'version': cls.get_target_version()},
+            update_existing=update_existing)
         return cls._from_db_object(context, cls(), db_cond)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
