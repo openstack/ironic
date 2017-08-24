@@ -1160,13 +1160,20 @@ class Connection(api.Connection):
 
     @oslo_db_api.retry_on_deadlock
     def backfill_version_column(self, context, max_count):
-        """Backfill the version column with Ocata versions.
+        """Backfill the Conductor version column with Pike version.
 
-        The version column was added to all the resource tables in this Pike
+        The version column was added to all the resource tables in the Pike
         release (via 'ironic-dbsync upgrade'). After upgrading (from Ocata to
-        Pike), the 'ironic-dbsync online_data_migrations' command will invoke
-        this method to populate (backfill) the version columns. The version
-        used will be the object version prior to this column being added.
+        Pike), the 'ironic-dbsync online_data_migrations' command would have
+        populated (backfilled) the version column for all objects.
+
+        Unfortunately, in the Pike release, we forgot to set the value for the
+        conductor's version column. For the Queens release, we are setting
+        the conductor version, however, we still need to backfill in case new
+        conductors were added between the time the operator ran Pike's
+        'ironic-dbsync online_data_migrations' and their upgrade to Queens.
+        The version used will be the conductor object version from the Pike
+        release.
 
         :param context: the admin context (not used)
         :param max_count: The maximum number of objects to migrate. Must be
@@ -1175,15 +1182,17 @@ class Connection(api.Connection):
                   migrated (at the beginning of this call) and 2. the number
                   of migrated objects.
         """
-        # TODO(rloo): Delete this in Queens cycle.
-        prior_release = '7.0'
+        # TODO(rloo): Delete this in Rocky cycle.
+        prior_release = 'pike'
         mapping = release_mappings.RELEASE_MAPPING[prior_release]['objects']
         total_to_migrate = 0
         total_migrated = 0
 
-        # backfill only objects that were in the prior release
-        sql_models = [model for model in models.Base.__subclasses__()
-                      if model.__name__ in mapping]
+        # backfill only the Conductor.
+        # NOTE(rloo) This code was used in Pike to backfill all the objects.
+        # To make it easier to review, etc., we are re-using that code with
+        # minimal code changes to only backfill the 'Conductor' object.
+        sql_models = [models.Conductor]
         for model in sql_models:
             query = model_query(model).filter(model.version.is_(None))
             total_to_migrate += query.count()
@@ -1211,6 +1220,9 @@ class Connection(api.Connection):
             num_migrated = 0
             with _session_for_write():
                 query = model_query(model).filter(model.version.is_(None))
+                # NOTE(rloo) Caution here; after doing query.count(), it is
+                #            possible that the value is different in the
+                #            next invocation of the query.
                 if max_to_migrate < query.count():
                     # Only want to update max_to_migrate objects; cannot use
                     # sql's limit(), so we generate a new query with

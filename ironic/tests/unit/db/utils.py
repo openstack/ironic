@@ -368,6 +368,23 @@ def get_test_conductor(**kw):
     }
 
 
+def create_test_conductor(**kw):
+    """Create test conductor entry in DB and return Conductor DB object.
+
+    Function to be used to create test Conductor objects in the database.
+
+    :param kw: kwargs with overriding values for conductor's attributes.
+    :returns: Test Conductor DB object.
+
+    """
+    conductor = get_test_conductor(**kw)
+    # Let DB generate ID if it isn't specified explicitly
+    if 'id' not in kw:
+        del conductor['id']
+    dbapi = db_api.get_instance()
+    return dbapi.register_conductor(conductor)
+
+
 def get_test_ucs_info():
     return {
         "ucs_username": "admin",
