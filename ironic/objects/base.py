@@ -243,19 +243,14 @@ class IronicObject(object_base.VersionedObject):
         db_version = db_object['version']
 
         if db_version is None:
-            # NOTE(rloo): This can only happen after we've updated the DB
-            # tables to include the 'version' column but haven't saved the
-            # object to the DB since the new column was added. This column is
-            # added in the Pike cycle, so if the version isn't set, use the
-            # version associated with the most recent release, i.e. '8.0'.
-            # The objects and RPC versions haven't changed between '8.0' and
-            # Ocata, which is why it is fine to use Ocata.
-            # Furthermore, if this is a new object that did not exist in the
-            # most recent release, we assume it is version 1.0.
-            # TODO(rloo): This entire if clause can be deleted in Queens
-            # since the dbsync online migration populates all the versions
-            # and it must be run to completion before upgrading to Queens.
-            db_version = versions.RELEASE_MAPPING['ocata']['objects'].get(
+            # NOTE(rloo): This can only happen if the DB is corrupt or this
+            # is the conductor object. (Because the rest of the objects will
+            # all have their DB version set properly.)
+            # TODO(rloo): This entire if clause can be deleted in Rocky
+            # since the dbsync online migration populates all the conductor
+            # versions and it must be run to completion before upgrading to
+            # Rocky.
+            db_version = versions.RELEASE_MAPPING['pike']['objects'].get(
                 objname, ['1.0'])[0]
 
         if not versionutils.is_compatible(db_version, obj.__class__.VERSION):
