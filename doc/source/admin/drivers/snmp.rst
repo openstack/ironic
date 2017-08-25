@@ -99,10 +99,10 @@ Enabling the SNMP Power Driver
       to boot using ``netboot`` by setting its ``capabilities`` and updating
       Nova flavor as described below:
 
-        .. code-block:: console
+      .. code-block:: console
 
-         openstack baremetal node set --property capabilities="boot_option:netboot" <node-uuid>
-         openstack flavor set --property "capabilities:boot_option"="netboot" ironic-flavor
+          openstack baremetal node set --property capabilities="boot_option:netboot" <node-uuid>
+          openstack flavor set --property "capabilities:boot_option"="netboot" ironic-flavor
 
 
 #. Restart the Ironic conductor service.

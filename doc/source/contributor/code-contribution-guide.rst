@@ -142,49 +142,49 @@ not be tolerated, and will be called out in public on the mailing list.
 Live Upgrade Related Concerns
 =============================
 
-Ironic implements upgrade with the same methodology of Nova:
-
-    https://docs.openstack.org/nova/latest/user/upgrade.html
+Ironic implements upgrade with the `same methodology as Nova <https://docs.openstack.org/nova/latest/user/upgrade.html>`_.
 
 Ironic API RPC Versions
 -----------------------
 
-*  When the signature(arguments) of an RPC method is changed, the following things
-   need to be considered:
+When the signature(arguments) of an RPC method is changed, the following
+things need to be considered:
 
- - The RPC version must be incremented and be the same value for both the client
-   (conductor/rpcapi.py, used by ironic-api) and the server (conductor/manager.py,
-   used by ironic-conductor).
- - New arguments of the method can only be added as optional. Existing arguments cannot be
-   removed or changed in incompatible ways (with the method in older RPC versions).
- - Client-side can pin a version cap by passing ``version_cap`` to the constructor
-   of oslo_messaging.RPCClient. Methods which change arguments should run
-   client.can_send_version() to see if the version of the request is compatible with the
-   version cap of RPC Client, otherwise the request needs to be created to work with a
-   previous version that is supported.
- - Server-side should tolerate the older version of requests in order to keep
-   working during the progress of live upgrade. The behavior of server-side should
-   depend on the input parameters passed from the client-side.
+- The RPC version must be incremented and be the same value for both the
+  client (conductor/rpcapi.py, used by ironic-api) and the server
+  (conductor/manager.py, used by ironic-conductor).
+- New arguments of the method can only be added as optional. Existing
+  arguments cannot be removed or changed in incompatible ways (with the
+  method in older RPC versions).
+- Client-side can pin a version cap by passing ``version_cap`` to the
+  constructor of oslo_messaging.RPCClient. Methods which change arguments
+  should run client.can_send_version() to see if the version of the request
+  is compatible with the version cap of RPC Client, otherwise the request
+  needs to be created to work with a previous version that is supported.
+- Server-side should tolerate the older version of requests in order to keep
+  working during the progress of live upgrade. The behavior of server-side
+  should depend on the input parameters passed from the client-side.
 
 Object Versions
 ---------------
-* When Object classes (subclasses of ironic.objects.base.IronicObject) are modified, the
-  following things need to be considered:
+When Object classes (subclasses of ironic.objects.base.IronicObject) are
+modified, the following things need to be considered:
 
- - The change of fields and the signature of remotable method needs a bump of object
-   version.
- - The arguments of methods can only be added as optional, they cannot be
-   removed or changed in an incompatible way.
- - Fields types cannot be changed. If it is a must, create a new field and
-   deprecate the old one.
- - When new version objects communicate with old version objects,
-   obj_make_compatible() will be called to convert objects to the target version during
-   serialization. So objects should implement their own obj_make_compatible() to
-   remove/alter attributes which was added/changed after the target version.
- - There is a test (object/test_objects.py) to generate the hash of object fields and the
-   signatures of remotable methods, which helps developers to check if the change of
-   objects need a version bump. The object fingerprint should only be updated with a
-   version bump.
+- The change of fields and the signature of remotable method needs a bump of
+  object version.
+- The arguments of methods can only be added as optional, they cannot be
+  removed or changed in an incompatible way.
+- Fields types cannot be changed. If it is a must, create a new field and
+  deprecate the old one.
+- When new version objects communicate with old version objects,
+  obj_make_compatible() will be called to convert objects to the target
+  version during serialization. So objects should implement their own
+  obj_make_compatible() to remove/alter attributes which was added/changed
+  after the target version.
+- There is a test (object/test_objects.py) to generate the hash of object
+  fields and the signatures of remotable methods, which helps developers to
+  check if the change of objects need a version bump. The object fingerprint
+  should only be updated with a version bump.
 
 Driver Internal Info
 ====================
@@ -192,7 +192,8 @@ The ``driver_internal_info`` node field was introduced in the Kilo release. It a
 driver developers to store internal information that can not be modified by end users.
 Here is the list of existing common and agent driver attributes:
 
-Common attributes:
+* Common attributes:
+
   * ``is_whole_disk_image``: A Boolean value to indicate whether the user image contains ramdisk/kernel.
   * ``clean_steps``: An ordered list of clean steps that will be performed on the node.
   * ``instance``: A list of dictionaries containing the disk layout values.
@@ -201,12 +202,15 @@ Common attributes:
   * ``is_next_boot_persistent``: A Boolean value to indicate whether the next boot device is
     ``persistent_boot_device``.
 
-Agent driver attributes:
-  * ``agent_url``: A String value of IPA API URL so that Ironic can talk to IPA ramdisk.
-  * ``hardware_manager_version``: A String value of the version of the hardware manager in IPA ramdisk.
-  * ``target_raid_config``: A Dictionary containing the target RAID configuration. This is a copy of
-    the same name attribute in Node object. But this one is never actually saved into DB and is only
-    read by IPA ramdisk.
+* Agent driver attributes:
+
+  * ``agent_url``: A String value of IPA API URL so that Ironic can talk to IPA
+    ramdisk.
+  * ``hardware_manager_version``: A String value of the version of the hardware
+    manager in IPA ramdisk.
+  * ``target_raid_config``: A Dictionary containing the target RAID
+    configuration. This is a copy of the same name attribute in Node object.
+    But this one is never actually saved into DB and is only read by IPA ramdisk.
 
 .. note::
 
@@ -252,13 +256,15 @@ Changes to existing specs
 -------------------------
 
 For approved but not-completed specs:
- - cosmetic cleanup, fixing errors, and changing the definition of a feature
-   can be done to the spec.
+
+- cosmetic cleanup, fixing errors, and changing the definition of a feature
+  can be done to the spec.
 
 For approved and completed specs:
- - changing a previously approved and completed spec should only be done
-   for cosmetic cleanup or fixing errors.
- - changing the definition of the feature should be done in a new spec.
+
+- changing a previously approved and completed spec should only be done
+  for cosmetic cleanup or fixing errors.
+- changing the definition of the feature should be done in a new spec.
 
 
 Please see the `Ironic specs process wiki page <https://wiki.openstack.org/
