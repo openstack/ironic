@@ -73,7 +73,13 @@ upgrade_project ironic $RUN_DIR $BASE_DEVSTACK_BRANCH $TARGET_DEVSTACK_BRANCH
 
 $IRONIC_BIN_DIR/ironic-dbsync --config-file=$IRONIC_CONF_FILE
 
-iniset $IRONIC_CONF_FILE DEFAULT pin_release_version ${BASE_DEVSTACK_BRANCH#*/}
+# NOTE(vsaienko) pin_release only on multinode job, for cold upgrade (single node)
+# run online data migration instead.
+if [[ "${HOST_TOPOLOGY}" == "multinode" ]]; then
+    iniset $IRONIC_CONF_FILE DEFAULT pin_release_version ${BASE_DEVSTACK_BRANCH#*/}
+else
+    ironic-dbsync online_data_migrations
+fi
 
 ensure_started='ironic-conductor nova-compute '
 ensure_stopped=''
