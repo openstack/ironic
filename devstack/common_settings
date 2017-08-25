@@ -1,3 +1,5 @@
+#!/bin/bash
+
 if [[ -f $TOP_DIR/../../old/devstack/.localrc.auto ]]; then
     source <(cat $TOP_DIR/../../old/devstack/.localrc.auto | grep -v 'enable_plugin')
 fi
