@@ -74,13 +74,11 @@ profiler options and restart ironic services::
 
 
 In order to trace ironic using OSProfiler, use openstackclient to run
-baremetal commands with
+baremetal commands with ``--os-profile SECRET_KEY``.
 
-    ``--os-profile SECRET_KEY``
+For example, the following will cause a <trace-id> to be printed after node list::
 
-For example, the following will cause a <trace-id> to be printed after node list:
-
-    ``$ openstack --os-profile SECRET_KEY baremetal node list``
+    $ openstack --os-profile SECRET_KEY baremetal node list
 
 Output of the above command will include the following::
 

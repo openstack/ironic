@@ -41,7 +41,7 @@ to ``/etc/ironic/ironic.conf``.
     audit_map_file=/etc/ironic/api_audit_map.conf
 
 #. Comma separated list of Ironic REST API HTTP methods to be ignored during audit.
-   For example: GET,POST. It is used only when API audit is enabled.
+   It is used only when API audit is enabled. For example::
 
     [audit]
     ...
