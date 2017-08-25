@@ -75,6 +75,10 @@ class DBCommand(object):
 
         If it isn't compatible, we exit the program, returning 2.
         """
+        if migration.version() is None:
+            # no tables, nothing to check
+            return
+
         if not dbapi.check_versions():
             sys.stderr.write(_('The database is not compatible with this '
                                'release of ironic (%s). Please run '
@@ -86,13 +90,7 @@ class DBCommand(object):
             sys.exit(2)
 
     def upgrade(self):
-        # TODO(rloo): enable this in Queens because we want the check done
-        # before someone tries to upgrade to Queens.
-        # It won't work now because the check looks at the value in the new
-        # 'version' column for all objects. And this column doesn't exist until
-        # *after* an upgrade to this Pike release (i.e., after this
-        # 'ironic-dbsync upgrade' is run).
-        # self._check_versions()
+        self._check_versions()
         migration.upgrade(CONF.command.revision)
 
     def revision(self):
@@ -108,12 +106,7 @@ class DBCommand(object):
         migration.create_schema()
 
     def online_data_migrations(self):
-        # TODO(rloo): enable this in Queens.
-        # It won't work now because the check looks at the value in the new
-        # 'version' column for all objects, which cannot be null/None. In Pike,
-        # only after running this 'ironic-dbsync online_data_migrations'
-        # command, will the version column be populated.
-        # self._check_versions()
+        self._check_versions()
         self._run_online_data_migrations(max_count=CONF.command.max_count)
 
     def _run_migration_functions(self, context, max_count):
@@ -217,16 +210,14 @@ def add_command_parsers(subparsers):
 
     parser = subparsers.add_parser(
         'upgrade',
-        # TODO(rloo): Add this to the help string in Queens (because we need
-        # to wait until online_data_migrations exists in older release first):
-        # It returns 2 (error) if the database is "
-        # "not compatible with this version. If this happens, the "
-        # "'ironic-dbsync online_data_migrations' command should be run "
-        # "using the previous version of ironic, before upgrading and "
-        # "running this command."))
         help=_("Upgrade the database schema to the latest version. "
                "Optionally, use --revision to specify an alembic revision "
-               "string to upgrade to."))
+               "string to upgrade to. It returns 2 (error) if the database is "
+               "not compatible with this version. If this happens, the "
+               "'ironic-dbsync online_data_migrations' command should be run "
+               "using the previous version of ironic, before upgrading and "
+               "running this command."))
+
     parser.set_defaults(func=command_object.upgrade)
     parser.add_argument('--revision', nargs='?')
 
