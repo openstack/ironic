@@ -98,7 +98,7 @@ description for DevStack is at :ref:`deploy_devstack`.
 After the environment is built, you can create a volume with cinder and request
 an instance with the volume to nova::
 
-    source ~/devstack/openrc
+    . ~/devstack/openrc
 
     # query the image id of the default cirros image
     image=$(openstack image show $DEFAULT_IMAGE_NAME -f value -c id)
