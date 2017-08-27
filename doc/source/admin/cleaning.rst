@@ -150,40 +150,42 @@ In the above example, the driver's RAID interface would configure hardware
 RAID without non-root volumes, and then all devices would be erased
 (in that order).
 
-Starting manual cleaning via ``ironic`` CLI
--------------------------------------------
+Starting manual cleaning via "openstack baremetal" CLI
+------------------------------------------------------
 
-Manual cleaning is supported in the ``ironic node-set-provision-state``
-command, starting with python-ironicclient 1.2.
+Manual cleaning is available via the ``openstack baremetal node clean``
+command, starting with Bare Metal API version 1.15.
 
-The target/verb is 'clean' and the argument 'clean-steps' must be specified.
-Its value is one of:
+The argument ``--clean-steps`` must be specified. Its value is one of:
 
 - a JSON string
 - path to a JSON file whose contents are passed to the API
 - '-', to read from stdin. This allows piping in the clean steps.
   Using '-' to signify stdin is common in Unix utilities.
 
-Keep in mind that manual cleaning is only supported in API version 1.15 and
-higher.
+The following examples assume that the Bare Metal API version was set via
+the ``OS_BAREMETAL_API_VERSION`` environment variable. (The alternative is to
+add ``--os-baremetal-api-version 1.15`` to the command.)::
+
+    export OS_BAREMETAL_API_VERSION=1.15
 
 Examples of doing this with a JSON string::
 
-    ironic --ironic-api-version 1.15 node-set-provision-state <node> \
-    clean --clean-steps '[{"interface": "deploy", "step": "erase_devices_metadata"}]'
+    openstack baremetal node clean <node> \
+        --clean-steps '[{"interface": "deploy", "step": "erase_devices_metadata"}]'
 
-    ironic --ironic-api-version 1.15 node-set-provision-state <node> \
-    clean --clean-steps '[{"interface": "deploy", "step": "erase_devices"}]'
+    openstack baremetal node clean <node> \
+        --clean-steps '[{"interface": "deploy", "step": "erase_devices"}]'
 
 Or with a file::
 
-    ironic --ironic-api-version 1.15 node-set-provision-state <node> \
-    clean --clean-steps my-clean-steps.txt
+    openstack baremetal node clean <node> \
+        --clean-steps my-clean-steps.txt
 
 Or with stdin::
 
-    cat my-clean-steps.txt | ironic --ironic-api-version 1.15 <node> \
-    node-set-provision-state clean --clean-steps -
+    cat my-clean-steps.txt | openstack baremetal node clean <node> \
+        --clean-steps -
 
 Cleaning Network
 ================
@@ -274,11 +276,14 @@ the number of iterations, use the following configuration option::
 What cleaning step is running?
 ------------------------------
 To check what cleaning step the node is performing or attempted to perform and
-failed, either query the node endpoint for the node or run ``ironic node-show
-$node_ident`` and look in the `driver_internal_info` field. The `clean_steps`
-field will contain a list of all remaining steps with their priorities, and the
-first one listed is the step currently in progress or that the node failed
-before going into ``clean failed`` state.
+failed, run the following command; it will return the value in the node's
+``driver_internal_info`` field::
+
+    openstack baremetal node show $node_ident -f value -c driver_internal_info
+
+The ``clean_steps`` field will contain a list of all remaining steps with their
+priorities, and the first one listed is the step currently in progress or that
+the node failed before going into ``clean failed`` state.
 
 Should I disable automated cleaning?
 ------------------------------------
@@ -309,8 +314,10 @@ information about the nature of the cleaning failure.
 
 A ``clean failed`` node can be moved to ``manageable`` state, where it cannot
 be scheduled by nova and you can safely attempt to fix the node. To move a node
-from ``clean failed`` to ``manageable``:
-``ironic node-set-provision-state manage``.
+from ``clean failed`` to ``manageable``::
+
+  openstack baremetal node manage $node_ident
+
 You can now take actions on the node, such as replacing a bad disk drive.
 
 Strategies for determining why a cleaning step failed include checking the
@@ -324,10 +331,10 @@ to allow it to be scheduled by nova.
 ::
 
   # First, move it out of maintenance mode
-  ironic node-set-maintenance $node_ident false
+  openstack baremetal node maintenance unset $node_ident
 
   # Now, make the node available for scheduling by nova
-  ironic node-set-provision-state $node_ident provide
+  openstack baremetal node provide $node_ident
 
 The node will begin automated cleaning from the start, and move to
 ``available`` state when complete.

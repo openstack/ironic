@@ -468,7 +468,11 @@ Nodes configured for iLO driver should have the ``driver`` property set to
 For example, you could run a similar command like below to enroll the ProLiant
 node::
 
-  ironic node-create -d iscsi_ilo -i ilo_address=<ilo-ip-address> -i ilo_username=<ilo-username> -i ilo_password=<ilo-password> -i ilo_deploy_iso=<glance-uuid-of-deploy-iso>
+  openstack baremetal node create --driver iscsi_ilo \
+      --driver-info ilo_address=<ilo-ip-address> \
+      --driver-info ilo_username=<ilo-username> \
+      --driver-info ilo_password=<ilo-password> \
+      --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso>
 
 Boot modes
 ~~~~~~~~~~
@@ -628,7 +632,11 @@ Nodes configured for iLO driver should have the ``driver`` property set to
 For example, you could run a similar command like below to enroll the ProLiant
 node::
 
-  ironic node-create -d agent_ilo -i ilo_address=<ilo-ip-address> -i ilo_username=<ilo-username> -i ilo_password=<ilo-password> -i ilo_deploy_iso=<glance-uuid-of-deploy-iso>
+  openstack baremetal node create --driver agent_ilo \
+      --driver-info ilo_address=<ilo-ip-address> \
+      --driver-info ilo_username=<ilo-username> \
+      --driver-info ilo_password=<ilo-password> \
+      --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso>
 
 Boot modes
 ~~~~~~~~~~
@@ -768,7 +776,12 @@ Nodes configured for iLO driver should have the ``driver`` property set to
 For example, you could run a similar command like below to enroll the ProLiant
 node::
 
-  ironic node-create -d pxe_ilo -i ilo_address=<ilo-ip-address> -i ilo_username=<ilo-username> -i ilo_password=<ilo-password> -i deploy_kernel=<glance-uuid-of-pxe-deploy-kernel> -i deploy_ramdisk=<glance-uuid-of-deploy-ramdisk>
+  openstack baremetal node create --driver pxe_ilo \
+      --driver-info ilo_address=<ilo-ip-address> \
+      --driver-info ilo_username=<ilo-username> \
+      --driver-info ilo_password=<ilo-password> \
+      --driver-info deploy_kernel=<glance-uuid-of-pxe-deploy-kernel> \
+      --driver-info deploy_ramdisk=<glance-uuid-of-deploy-ramdisk>
 
 Boot modes
 ~~~~~~~~~~
@@ -831,7 +844,7 @@ detection and setting of boot mode (Legacy BIOS or UEFI).
 
   To configure a node in ``uefi`` mode, then set ``capabilities`` as below::
 
-    ironic node-update <node-uuid> add properties/capabilities='boot_mode:uefi'
+    openstack baremetal node set <node-uuid> --property capabilities='boot_mode:uefi'
 
   Nodes having ``boot_mode`` set to ``uefi`` may be requested by adding an
   ``extra_spec`` to the nova flavor::
@@ -878,7 +891,7 @@ The UEFI secure boot can be configured in ironic by adding
 
 To enable ``secure_boot`` on a node add it to ``capabilities`` as below::
 
- ironic node-update <node-uuid> add properties/capabilities='secure_boot:true'
+ openstack baremetal node set <node-uuid> --property capabilities='secure_boot:true'
 
 Alternatively see `Hardware Inspection Support`_ to know how to
 automatically populate the secure boot capability.

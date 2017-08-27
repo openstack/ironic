@@ -103,16 +103,9 @@ Configuring nodes
      and is supported by python-ironicclient version 1.15.0 or higher.
 
    The following examples assume you are using python-ironicclient version
-   1.15.0 or higher.  They show the usage of both ``ironic`` and ``openstack
-   baremetal`` commands.
+   1.15.0 or higher.
 
-   If you're going to use ``ironic`` command, set the following variable in
-   your shell environment::
-
-    export IRONIC_API_VERSION=<API version>
-
-   If you're using ironic client plugin for openstack client via
-   ``openstack baremetal`` commands, export the following variable::
+   Export the following variable::
 
     export OS_BAREMETAL_API_VERSION=<API version>
 
@@ -120,17 +113,9 @@ Configuring nodes
    interface. Valid interfaces are listed in the
    ``[DEFAULT]/enabled_network_interfaces`` configuration option in the
    ironic-conductor's configuration file. Set it to ``neutron`` to use the
-   Networking service's ML2 driver:
+   Networking service's ML2 driver::
 
-   - ``ironic`` command::
-
-      ironic node-create --network-interface neutron \
-      --driver agent-ipmitool
-
-   - ``openstack`` command::
-
-      openstack baremetal node create --network-interface neutron \
-      --driver agent-ipmitool
+     openstack baremetal node create --network-interface neutron --driver ipmi
 
    .. note::
       If the ``[DEFAULT]/default_network_interface`` configuration option is
@@ -138,42 +123,23 @@ Configuring nodes
       when creating the node.
 
 #. To update an existing node's network interface to ``neutron``, use the
-   following commands:
+   following commands::
 
-   - ``ironic`` command::
+     openstack baremetal node set $NODE_UUID_OR_NAME \
+         --network-interface neutron
 
-      ironic node-update $NODE_UUID_OR_NAME add network_interface=neutron
+#. Create a port as follows::
 
-   - ``openstack`` command::
+     openstack baremetal port create $HW_MAC_ADDRESS --node $NODE_UUID \
+         --local-link-connection switch_id=$SWITCH_MAC_ADDRESS \
+         --local-link-connection switch_info=$SWITCH_HOSTNAME \
+         --local-link-connection port_id=$SWITCH_PORT \
+         --pxe-enabled true \
+         --physical-network physnet1
 
-      openstack baremetal node set $NODE_UUID_OR_NAME \
-      --network-interface neutron
+#. Check the port configuration::
 
-#. Create a port as follows:
-
-   - ``ironic`` command::
-
-      ironic port-create -a $HW_MAC_ADDRESS -n $NODE_UUID \
-      -l switch_id=$SWITCH_MAC_ADDRESS -l switch_info=$SWITCH_HOSTNAME \
-      -l port_id=$SWITCH_PORT --pxe-enabled true --physical-network physnet1
-
-   - ``openstack`` command::
-
-      openstack baremetal port create $HW_MAC_ADDRESS --node $NODE_UUID \
-      --local-link-connection switch_id=$SWITCH_MAC_ADDRESS \
-      --local-link-connection switch_info=$SWITCH_HOSTNAME \
-      --local-link-connection port_id=$SWITCH_PORT --pxe-enabled true \
-      --physical-network physnet1
-
-#. Check the port configuration:
-
-   - ``ironic`` command::
-
-      ironic port-show $PORT_UUID
-
-   - ``openstack`` command::
-
-      openstack baremetal port show $PORT_UUID
+     openstack baremetal port show $PORT_UUID
 
 After these steps, the provisioning of the created node will happen in the
 provisioning network, and then the node will be moved to the tenant network

@@ -20,8 +20,8 @@ out-of-band.
 In-band RAID configuration is done using the Ironic Python Agent
 ramdisk. For in-band RAID configuration using agent ramdisk, a hardware
 manager which supports RAID should be bundled with the ramdisk.
-The drivers supporting RAID configuration could be found using the ironic
-CLI ``ironic node-validate <node-uuid>``.
+The drivers supporting RAID configuration could be found using the CLI
+command ``openstack baremetal node validate <node-uuid>``.
 
 Build agent ramdisk which supports RAID configuration
 =====================================================
@@ -62,16 +62,16 @@ done on the node.
 
 Each dictionary of logical disk contains the desired properties of logical
 disk supported by the driver.  These properties are discoverable by using
-Ironic CLI or REST API::
+OpenStackClient CLI or REST API::
 
-  Ironic CLI:
-    ironic --ironic-api-version 1.15 driver-raid-logical-disk-properties <driver name>
+  OpenStackClient CLI:
+    openstack baremetal --os-baremetal-api-version 1.15 driver raid property list <driver name>
   Ironic REST API:
     curl -X GET -H "Content-Type: application/json" -H "X-Auth-Token: $AUTH_TOKEN" -H "X-OpenStack-Ironic-API-Version: 1.15"  http://<ironic-api-url>/v1/drivers/<driver name>/raid/logical_disk_properties
 
 The RAID feature is available in ironic API version 1.15 and above.
-If ``--ironic-api-version`` is not used in the CLI, it will error out with
-following message::
+If ``--os-baremetal-api-version`` is not used in the CLI, it will error out
+with the following message::
 
    No API version was specified and the requested operation was not
    supported by the client's negotiated API version 1.9. Supported
@@ -236,8 +236,8 @@ physical disk found on the bare metal node.
 
 To get the current RAID configuration::
 
-  Ironic CLI:
-    ironic --ironic-api-version 1.15 node-show <node-uuid-or-name>
+  OpenStackClient CLI:
+    openstack baremetal --os-baremetal-api-version 1.15 node show <node-uuid-or-name>
   REST API:
     curl -X GET -H "Content-Type: application/json" -H "X-Auth-Token: $AUTH_TOKEN" -H "X-OpenStack-Ironic-API-Version: 1.15" http://<ironic-api-url>/v1/nodes/<node-uuid-or-name>/states
 
@@ -256,13 +256,15 @@ Workflow
   `Target RAID configuration`_. The target RAID configuration is set on
   the Ironic node::
 
-    Ironic CLI:
-      ironic --ironic-api-version 1.15 node-set-target-raid-config <node-uuid-or-name> <JSON file containing target RAID configuration>
+    OpenStackClient CLI:
+      openstack baremetal --os-baremetal-api-version 1.15 node set <node-uuid-or-name> \
+         --target-raid-config <JSON file containing target RAID configuration>
     REST API:
       curl -X PUT -H "Content-Type: application/json" -H "X-Auth-Token: $AUTH_TOKEN" -H "X-OpenStack-Ironic-API-Version: 1.15" -d '<JSON data target RAID configuration>' http://<ironic-api-url>/v1/nodes/<node-uuid-or-name>/states/raid
 
-    The Ironic CLI can accept the input from standard input also:
-       ironic --ironic-api-version 1.15 node-set-target-raid-config <node-uuid-or-name> -
+    The CLI command can accept the input from standard input also:
+       openstack baremetal --os-baremetal-api-version 1.15 node set <node-uuid-or-name> \
+          --target-raid-config -
 
 * Create a JSON file with the RAID clean steps for manual cleaning. Add other
   clean steps as desired::
@@ -286,16 +288,17 @@ Workflow
 * Bring the node to ``manageable`` state and do a ``clean`` action to start
   cleaning on the node::
 
-    Ironic CLI:
-      ironic --ironic-api-version 1.15 node-set-provision-state <node-uuid-or-name> clean --clean-steps <JSON file containing clean steps created above>
+    OpenStackClient CLI:
+      openstack baremetal --os-baremetal-api-version 1.15 node clean <node-uuid-or-name> \
+         --clean-steps <JSON file containing clean steps created above>
     REST API:
       curl -X PUT -H "Content-Type: application/json" -H "X-Auth-Token: $AUTH_TOKEN" -H "X-OpenStack-Ironic-API-Version: 1.15" -d '{'target': 'clean', 'clean_steps': <JSON description for clean steps as mentioned above>' http://<ironic-api-url>/v1/nodes/<node-uuid-or-name>/states/provision
 
 * After manual cleaning is complete, the current RAID configuration can be
   viewed using::
 
-    Ironic CLI:
-      ironic --ironic-api-version 1.15 node-show <node-uuid-or-name>
+    OpenStackClient CLI:
+      openstack baremetal --os-baremetal-api-version 1.15 node show <node-uuid-or-name>
     REST API:
       curl -X GET -H "Content-Type: application/json" -H "X-Auth-Token: $AUTH_TOKEN" -H "X-OpenStack-Ironic-API-Version: 1.15" http://<ironic-api-url>/v1/nodes/<node-uuid-or-name>/states
 
