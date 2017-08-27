@@ -32,7 +32,7 @@ image service does not use HTTPS, but it is required for secure communication.
 It can be enabled by making the following changes to ``/etc/glance/glance-api.conf``:
 
 #. `Configuring SSL support
-   <http://docs.openstack.org/developer/glance/configuring.html#configuring-ssl-support>`_
+   <http://docs.openstack.org/glance/ocata/configuring.html#configuring-ssl-support>`_
 
 #. Restart the glance-api service::
 
@@ -42,7 +42,7 @@ It can be enabled by making the following changes to ``/etc/glance/glance-api.co
     Debian/Ubuntu:
         sudo service glance-api restart
 
-See the `Glance <http://docs.openstack.org/developer/glance/>`_ documentation,
+See the `Glance <http://docs.openstack.org/glance/ocata/>`_ documentation,
 for more details on the Image service.
 
 Enabling HTTPS communication between Image service and Object storage
@@ -56,7 +56,7 @@ To enable secure HTTPS communication between Image service and Object storage fo
 #. :ref:`EnableHTTPSinSwift`
 
 #.  `Configure Swift Storage Backend
-    <http://docs.openstack.org/developer/glance/configuring.html#configuring-the-swift-storage-backend>`_
+    <http://docs.openstack.org/glance/ocata/configuring.html#configuring-the-swift-storage-backend>`_
 
 #. :ref:`EnableHTTPSinGlance`
 

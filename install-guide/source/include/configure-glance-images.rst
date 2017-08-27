@@ -15,7 +15,7 @@ them to the Image service:
    The `disk-image-builder`_ can be used to create user images required for
    deployment and the actual OS which the user is going to run.
 
-   .. _disk-image-builder: http://docs.openstack.org/developer/diskimage-builder/
+   .. _disk-image-builder: http://docs.openstack.org/diskimage-builder/latest
 
    - Install diskimage-builder package (use virtualenv, if you don't
      want to install anything globally):
@@ -105,7 +105,7 @@ them to the Image service:
    one kernel disk ``coreos_production_pxe.vmlinuz`` and one ram disk
    ``coreos_production_pxe_image-oem.cpio.gz``.
 
-   .. note:: If you want to customize your deploy images, please read `Image Builders <http://docs.openstack.org/developer/ironic-python-agent/ocata/index.html#image-builders>`_.
+   .. note:: If you want to customize your deploy images, please read `Image Builders <http://docs.openstack.org/ironic-python-agent/ocata/index.html#image-builders>`_.
 
 #. Add the deploy images to the Image service
 

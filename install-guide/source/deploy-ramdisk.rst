@@ -12,7 +12,7 @@ the `CoreOS tools`_ at:
 * `CoreOS deploy kernel <http://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe-stable-ocata.vmlinuz>`_
 * `CoreOS deploy ramdisk <http://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe_image-oem-stable-ocata.cpio.gz>`_
 
-.. _ironic-python-agent: http://docs.openstack.org/developer/ironic-python-agent/ocata/
+.. _ironic-python-agent: http://docs.openstack.org/ironic-python-agent/ocata/
 
 Building from source
 --------------------
