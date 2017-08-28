@@ -20,6 +20,7 @@ import mock
 from oslo_utils import timeutils
 
 from ironic import objects
+from ironic.objects import base
 from ironic.objects import fields
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -86,7 +87,9 @@ class TestConductorObject(db_base.DbTestCase):
             self.assertEqual(expected, mock_get_cdr.call_args_list)
             self.assertEqual(self.context, c._context)
 
-    def _test_register(self, update_existing=False):
+    @mock.patch.object(base.IronicObject, 'get_target_version')
+    def _test_register(self, mock_target_version, update_existing=False):
+        mock_target_version.return_value = '1.5'
         host = self.fake_conductor['hostname']
         drivers = self.fake_conductor['drivers']
         with mock.patch.object(self.dbapi, 'register_conductor',
@@ -97,7 +100,9 @@ class TestConductorObject(db_base.DbTestCase):
 
             self.assertIsInstance(c, objects.Conductor)
             mock_register_cdr.assert_called_once_with(
-                {'drivers': drivers, 'hostname': host},
+                {'drivers': drivers,
+                 'hostname': host,
+                 'version': '1.5'},
                 update_existing=update_existing)
 
     def test_register(self):
