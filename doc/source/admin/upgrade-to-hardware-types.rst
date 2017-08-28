@@ -24,6 +24,7 @@ agent_ipmitool   ipmi          pxe                  direct ipmitool   ipmitool
 pxe_irmc         irmc          irmc-pxe             iscsi  irmc       irmc
 iscsi_irmc       irmc          irmc-virtual-media   iscsi  irmc       irmc
 agent_irmc       irmc          irmc-virtual-media   direct irmc       irmc
+pxe_snmp         snmp          pxe                  iscsi  fake       snmp
 ================ ============= ==================== ====== ========== =========
 
 .. TODO(dtantsur): finish this table
