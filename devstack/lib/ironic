@@ -336,21 +336,27 @@ IRONIC_DHCP_PROVIDER=${IRONIC_DHCP_PROVIDER:-neutron}
 # This is the network interface to use for a node
 IRONIC_NETWORK_INTERFACE=${IRONIC_NETWORK_INTERFACE:-}
 
-# Ironic provision network name
+# Ironic provision network name, if this value is set it means we are using
+# multi-tenant networking. If not set, then we are not using multi-tenant
+# networking and are therefore using a 'flat' network.
 IRONIC_PROVISION_NETWORK_NAME=${IRONIC_PROVISION_NETWORK_NAME:-}
 
 # Provision network provider type. Can be flat or vlan.
+# This is only used if IRONIC_PROVISION_NETWORK_NAME has been set.
 IRONIC_PROVISION_PROVIDER_NETWORK_TYPE=${IRONIC_PROVISION_PROVIDER_NETWORK_TYPE:-'vlan'}
 
 # If IRONIC_PROVISION_PROVIDER_NETWORK_TYPE is vlan. VLAN_ID may be specified. If it is not set,
 # vlan will be allocated dynamically.
+# This is only used if IRONIC_PROVISION_NETWORK_NAME has been set.
 IRONIC_PROVISION_SEGMENTATION_ID=${IRONIC_PROVISION_SEGMENTATION_ID:-}
 
 # Allocation network pool for provision network
 # Example: IRONIC_PROVISION_ALLOCATION_POOL=start=10.0.5.10,end=10.0.5.100
+# This is only used if IRONIC_PROVISION_NETWORK_NAME has been set.
 IRONIC_PROVISION_ALLOCATION_POOL=${IRONIC_PROVISION_ALLOCATION_POOL:-'start=10.0.5.10,end=10.0.5.100'}
 
 # Ironic provision subnet name.
+# This is only used if IRONIC_PROVISION_NETWORK_NAME has been set.
 IRONIC_PROVISION_PROVIDER_SUBNET_NAME=${IRONIC_PROVISION_PROVIDER_SUBNET_NAME:-${IRONIC_PROVISION_NETWORK_NAME}-subnet}
 
 
@@ -899,6 +905,8 @@ function configure_ironic_cleaning_network {
 }
 
 function configure_ironic_provision_network {
+    # This is only called if IRONIC_PROVISION_NETWORK_NAME has been set and
+    # means we are using multi-tenant networking.
     local net_id
     local ironic_provision_network_ip
     # NOTE(vsaienko) For multinode case there is no need to create a new provisioning
