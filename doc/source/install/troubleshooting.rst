@@ -21,14 +21,14 @@ therein should match the bare metal node properties, and the Compute service fla
 Here is an example set of commands to compare the resources in Compute
 service and Bare Metal service::
 
-    $ ironic node-list
+    $ openstack baremetal node list
     +--------------------------------------+---------------+-------------+--------------------+-------------+
     | UUID                                 | Instance UUID | Power State | Provisioning State | Maintenance |
     +--------------------------------------+---------------+-------------+--------------------+-------------+
     | 86a2b1bb-8b29-4964-a817-f90031debddb | None          | power off   | available          | False       |
     +--------------------------------------+---------------+-------------+--------------------+-------------+
 
-    $ ironic node-show 86a2b1bb-8b29-4964-a817-f90031debddb
+    $ openstack baremetal node show 86a2b1bb-8b29-4964-a817-f90031debddb
     +------------------------+----------------------------------------------------------------------+
     | Property               | Value                                                                |
     +------------------------+----------------------------------------------------------------------+
@@ -92,17 +92,17 @@ the node to the nova scheduler. Nodes can be placed into maintenance mode
 with the following command.
 ::
 
-    $ ironic node-set-maintenance $NODE_UUID on
+    $ openstack baremetal node maintenance set $NODE_UUID
 
 A maintenance reason may be included with the optional ``--reason`` command
 line option. This is a free form text field that will be displayed in the
-``maintenance_reason`` section of the ``node-show`` command.
+``maintenance_reason`` section of the ``node show`` command.
 
 ::
 
-    $ ironic node-set-maintenance $UUID on --reason "Need to add ram."
+    $ openstack baremetal node maintenance set $UUID --reason "Need to add ram."
 
-    $ ironic node-show $UUID
+    $ openstack baremetal node show $UUID
 
     +------------------------+--------------------------------------+
     | Property               | Value                                |
@@ -121,7 +121,7 @@ To remove maintenance mode and clear any ``maintenance_reason`` use the
 following command.
 ::
 
-    $ ironic node-set-maintenance $NODE_UUID off
+    $ openstack baremetal node maintenance unset $NODE_UUID
 
 
 .. _ironic-python-agent: https://docs.openstack.org/ironic-python-agent/latest/

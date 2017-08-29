@@ -27,9 +27,9 @@ with PXE and Nova:
 
 #. Enroll the node and update the node capability value::
 
-    ironic node-create -d pxe_ipmitool
+    openstack baremetal node create --driver pxe_ipmitool
 
-    ironic node-update $NODE_UUID add properties/capabilities={'trusted_boot':true}
+    openstack baremetal node set $NODE_UUID --property capabilities={'trusted_boot':true}
 
 #. Create a special flavor::
 

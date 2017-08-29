@@ -62,23 +62,26 @@ There are however some limitations for different drivers:
 
 Steps to start a deployment are pretty similar to those when using Compute:
 
-#. To use the `ironic CLI <https://docs.openstack.org/python-ironicclient/latest/cli/>`_,
+#. To use the `openstack baremetal CLI
+   <https://docs.openstack.org/python-ironicclient/latest/cli/osc_plugin_cli.html>`_,
    set up these environment variables. Since no authentication strategy is
-   being used, the value can be any string for OS_AUTH_TOKEN. IRONIC_URL is
+   being used, the value can be any string for OS_TOKEN. OS_URL is
    the URL of the ironic-api process.
    For example::
 
-    export OS_AUTH_TOKEN=fake-token
-    export IRONIC_URL=http://localhost:6385/
+    export OS_TOKEN=fake-token
+    export OS_URL=http://localhost:6385/
 
 #. Create a node in Bare Metal service. At minimum, you must specify the driver
    name (for example, "pxe_ipmitool"). You can also specify all the required
    driver parameters in one command. This will return the node UUID::
 
-    ironic node-create -d pxe_ipmitool -i ipmi_address=ipmi.server.net \
-    -i ipmi_username=user -i ipmi_password=pass \
-    -i deploy_kernel=file:///images/deploy.vmlinuz \
-    -i deploy_ramdisk=http://my.server.net/images/deploy.ramdisk
+    openstack node create --driver pxe_ipmitool \
+        --driver-info ipmi_address=ipmi.server.net \
+        --driver-info ipmi_username=user \
+        --driver-info ipmi_password=pass \
+        --driver-info deploy_kernel=file:///images/deploy.vmlinuz \
+        --driver-info deploy_ramdisk=http://my.server.net/images/deploy.ramdisk
 
     +--------------+--------------------------------------------------------------------------+
     | Property     | Value                                                                    |
@@ -107,26 +110,28 @@ Steps to start a deployment are pretty similar to those when using Compute:
    cards which are part of the node by creating a port with each NIC's MAC
    address. In this case, they're used for naming of PXE configs for a node::
 
-    ironic port-create -n $NODE_UUID -a $MAC_ADDRESS
+    openstack baremetal port create $MAC_ADDRESS --node $NODE_UUID
 
 #. As there is no Compute service flavor and instance image is not provided with
    nova boot command, you also need to specify some fields in ``instance_info``.
    For PXE deployment, they are ``image_source``, ``kernel``, ``ramdisk``,
    ``root_gb``::
 
-    ironic node-update $NODE_UUID add instance_info/image_source=$IMG \
-    instance_info/kernel=$KERNEL instance_info/ramdisk=$RAMDISK \
-    instance_info/root_gb=10
+    openstack baremetal node set $NODE_UUID \
+        --instance-info image_source=$IMG \
+        --instance-info kernel=$KERNEL \
+        --instance-info ramdisk=$RAMDISK \
+        --instance-info root_gb=10
 
    Here $IMG, $KERNEL, $RAMDISK can also be HTTP(S) or file hrefs. For agent
    drivers, you don't need to specify kernel and ramdisk, but MD5 checksum of
    instance image is required::
 
-    ironic node-update $NODE_UUID add instance_info/image_checksum=$MD5HASH
+    openstack baremetal node set $NODE_UUID --instance-info image_checksum=$MD5HASH
 
 #. Validate that all parameters are correct::
 
-    ironic node-validate $NODE_UUID
+    openstack baremetal node validate $NODE_UUID
 
     +------------+--------+----------------------------------------------------------------+
     | Interface  | Result | Reason                                                         |
@@ -139,10 +144,7 @@ Steps to start a deployment are pretty similar to those when using Compute:
 
 #. Now you can start the deployment, run::
 
-    ironic node-set-provision-state $NODE_UUID active
-
-   You can manage provisioning by issuing this command. Valid provision states
-   are ``active``, ``rebuild`` and ``deleted``.
+    openstack baremetal node deploy $NODE_UUID
 
 For iLO drivers, fields that should be provided are:
 

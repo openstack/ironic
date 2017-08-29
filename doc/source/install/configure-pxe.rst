@@ -197,7 +197,7 @@ steps on the ironic conductor node to configure the PXE UEFI environment.
 #. Update the bare metal node with ``boot_mode`` capability in node's properties
    field::
 
-    ironic node-update <node-uuid> add properties/capabilities='boot_mode:uefi'
+    openstack baremetal node set <node-uuid> --property capabilities='boot_mode:uefi'
 
 #. Make sure that bare metal node is configured to boot in UEFI boot mode and
    boot device is set to network/pxe.
