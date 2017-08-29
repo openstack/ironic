@@ -193,7 +193,7 @@ Step 1: Create a Python virtualenv
 
     . .tox/venv/bin/activate
 
-#. Install the ironic client::
+#. Install the openstack baremetal client::
 
     pip install python-ironicclient
 
@@ -204,8 +204,8 @@ Step 1: Create a Python virtualenv
 #. Export some ENV vars so the client will connect to the local services
    that you'll start in the next section::
 
-    export OS_AUTH_TOKEN=fake-token
-    export IRONIC_URL=http://localhost:6385/
+    export OS_TOKEN=fake-token
+    export OS_URL=http://localhost:6385/
 
 Next, install and configure system dependencies. Two different approaches are
 described below; you should only do one of these.
@@ -333,13 +333,13 @@ functionality without necessarily starting DevStack.
 To get started, list the available commands and resources::
 
     # get a list of available commands
-    ironic help
+    openstack help baremetal
 
     # get the list of drivers currently supported by the available conductor(s)
-    ironic driver-list
+    openstack baremetal driver list
 
     # get a list of nodes (should be empty at this point)
-    ironic node-list
+    openstack baremetal node list
 
 Here is an example walkthrough of creating a node::
 
@@ -349,24 +349,28 @@ Here is an example walkthrough of creating a node::
     IPMI_PASS="pass"          # replace with the BMC's password
 
     # enroll the node with the "fake" deploy driver and the "ipmitool" power driver
-    # Note that driver info may be added at node creation time with "-i"
-    NODE=$(ironic node-create -d fake_ipmitool -i ipmi_address=$IPMI_ADDR -i ipmi_username=$IPMI_USER | grep ' uuid ' | awk '{print $4}')
+    # Note that driver info may be added at node creation time with "--driver-info"
+    NODE=$(openstack baremetal node create \
+           --driver fake_ipmitool \
+           --driver-info ipmi_address=$IPMI_ADDR \
+           --driver-info ipmi_username=$IPMI_USER \
+           -f value -c uuid)
 
     # driver info may also be added or updated later on
-    ironic node-update $NODE add driver_info/ipmi_password=$IPMI_PASS
+    openstack baremetal node set $NODE --driver-info ipmi_password=$IPMI_PASS
 
     # add a network port
-    ironic port-create -n $NODE -a $MAC
+    openstack baremetal port create $MAC --node $NODE
 
     # view the information for the node
-    ironic node-show $NODE
+    openstack baremetal node show $NODE
 
     # request that the node's driver validate the supplied information
-    ironic node-validate $NODE
+    openstack baremetal node validate $NODE
 
     # you have now enrolled a node sufficiently to be able to control
     # its power state from ironic!
-    ironic node-set-power-state $NODE on
+    openstack baremetal node power on $NODE
 
 If you make some code changes and want to test their effects, simply stop the
 services with Ctrl-C and restart them.
