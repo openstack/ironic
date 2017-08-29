@@ -191,7 +191,7 @@ Step 1: Create a Python virtualenv
 
 #. Activate the virtual environment::
 
-    source .tox/venv/bin/activate
+    . .tox/venv/bin/activate
 
 #. Install the ironic client::
 
@@ -313,13 +313,13 @@ daemons; you can observe their output and stop them with Ctrl-C at any time.
 #. Start the API service in debug mode and watch its output::
 
     cd ~/ironic
-    source .tox/venv/bin/activate
+    . .tox/venv/bin/activate
     ironic-api -d --config-file etc/ironic/ironic.conf.local
 
 #. Start the Conductor service in debug mode and watch its output::
 
     cd ~/ironic
-    source .tox/venv/bin/activate
+    . .tox/venv/bin/activate
     ironic-conductor -d --config-file etc/ironic/ironic.conf.local
 
 Step 4: Interact with the running services
@@ -387,13 +387,13 @@ help with that, but are not an exhaustive troubleshooting guide::
 
   # reinstall ironic modules
   cd ~/ironic
-  source .tox/venv/bin/activate
+  . .tox/venv/bin/activate
   pip uninstall ironic
   pip install -e .
 
   # install and upgrade ironic and all python dependencies
   cd ~/ironic
-  source .tox/venv/bin/activate
+  . .tox/venv/bin/activate
   pip install -U -e .
 
 
@@ -567,7 +567,7 @@ Run stack.sh::
 
 Source credentials, create a key, and spawn an instance as the ``demo`` user::
 
-    source ~/devstack/openrc
+    . ~/devstack/openrc
 
     # query the image id of the default cirros image
     image=$(openstack image show $DEFAULT_IMAGE_NAME -f value -c id)
@@ -730,7 +730,7 @@ commands to build the documentation set:
 - On your local machine::
 
     # activate your development virtualenv
-    source .tox/venv/bin/activate
+    . .tox/venv/bin/activate
 
     # build the docs
     tox -edocs
