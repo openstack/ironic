@@ -47,11 +47,26 @@ A few things should be checked in this case:
    Maintenance mode will be also set on a node if automated cleaning has
    failed for it previously.
 
-#. Inspection should have succeeded for you before, or you should have
-   entered the required Ironic node properties manually. For each node with
-   ``available`` state make sure that the ``properties`` JSON field has valid
-   values for the keys ``cpus``, ``cpu_arch``, ``memory_mb`` and ``local_gb``.
-   Example of valid properties::
+#. Starting with the Pike release, check that all your nodes have the
+   ``resource_class`` field set using the following command::
+
+       openstack --os-baremetal-api-version 1.21 baremetal node list --fields uuid name resource_class
+
+   Then check that the flavor(s) are configured to request these resource
+   classes via their properties::
+
+       openstack flavor show <FLAVOR NAME> -f value -c properties
+
+   For example, if your node has resource class ``baremetal-large``, it will
+   be matched by a flavor with property ``resources:CUSTOM_BAREMETAL_LARGE``
+   set to ``1``. See :doc:`/install/configure-nova-flavors` for more
+   details on the correct configuration.
+
+#. If you do not use scheduling based on resource classes, then the node's
+   properties must have been set either manually or via inspection.
+   For each node with ``available`` state check that the ``properties``
+   JSON field has valid values for the keys ``cpus``, ``cpu_arch``,
+   ``memory_mb`` and ``local_gb``. Example of valid properties::
 
         $ openstack baremetal node show <IRONIC NODE> --fields properties
         +------------+------------------------------------------------------------------------------------+
@@ -102,6 +117,8 @@ A few things should be checked in this case:
    correctly shows total amount of resources in your system. You can also
    check ``openstack hypervisor show <IRONIC NODE>`` to see the status of
    individual Ironic nodes as reported to Nova.
+
+   .. TODO(dtantsur): explain inspecting the placement API
 
 #. Figure out which Nova Scheduler filter ruled out your nodes. Check the
    ``nova-scheduler`` logs for lines containing something like::
