@@ -15,6 +15,7 @@
 from ironic_lib import metrics_utils
 from ironic_lib import utils as il_utils
 from oslo_log import log
+from oslo_utils import excutils
 from oslo_utils import units
 import six.moves.urllib_parse as urlparse
 
@@ -272,34 +273,62 @@ class AgentDeployMixin(agent_base_vendor.AgentDeployMixin):
             LOG.error(msg)
             deploy_utils.set_failed_state(task, msg)
             return
+
+        # If `boot_option` is set to `netboot`, PXEBoot.prepare_instance()
+        # would need root_uuid of the whole disk image to add it into the
+        # pxe config to perform chain boot.
+        # IPA would have returned us the 'root_uuid_or_disk_id' if image
+        # being provisioned is a whole disk image. IPA would also provide us
+        # 'efi_system_partition_uuid' if the image being provisioned is a
+        # partition image.
+        # In case of local boot using partition image, we need both
+        # 'root_uuid_or_disk_id' and 'efi_system_partition_uuid' to configure
+        # bootloader for local boot.
+        driver_internal_info = task.node.driver_internal_info
+        root_uuid = self._get_uuid_from_result(task, 'root_uuid')
+        if root_uuid:
+            driver_internal_info['root_uuid_or_disk_id'] = root_uuid
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+        elif iwdi and CONF.agent.manage_agent_boot:
+            # IPA version less than 3.1.0 will not return root_uuid for
+            # whole disk image. Also IPA version introduced a requirement
+            # for hexdump utility that may not be always available. Need to
+            # fall back to older behavior for the same.
+            LOG.warning("With the deploy ramdisk based on Ironic Python Agent "
+                        "version 3.1.0 and beyond, the drivers using "
+                        "`direct` deploy interface performs `netboot` or "
+                        "`local` boot for whole disk image based on value "
+                        "of boot option setting. When you upgrade Ironic "
+                        "Python Agent in your deploy ramdisk, ensure that "
+                        "boot option is set appropriately for the node %s. "
+                        "The boot option can be set using configuration "
+                        "`[deploy]/default_boot_option` or as a `boot_option` "
+                        "capability in node's `properties['capabilities']`. "
+                        "Also please note that this functionality requires "
+                        "`hexdump` command in the ramdisk.", node.uuid)
+
+        efi_sys_uuid = None
         if not iwdi:
-            root_uuid = self._get_uuid_from_result(task, 'root_uuid')
             if deploy_utils.get_boot_mode_for_deploy(node) == 'uefi':
                 efi_sys_uuid = (
                     self._get_uuid_from_result(task,
                                                'efi_system_partition_uuid'))
-            else:
-                efi_sys_uuid = None
-            driver_internal_info = task.node.driver_internal_info
-            driver_internal_info['root_uuid_or_disk_id'] = root_uuid
-            task.node.driver_internal_info = driver_internal_info
-            task.node.save()
-            self.prepare_instance_to_boot(task, root_uuid, efi_sys_uuid)
         LOG.info('Image successfully written to node %s', node.uuid)
-        LOG.debug('Rebooting node %s to instance', node.uuid)
-        if iwdi:
+
+        if CONF.agent.manage_agent_boot:
+            # It is necessary to invoke prepare_instance() of the node's
+            # boot interface, so that the any necessary configurations like
+            # setting of the boot mode (e.g. UEFI secure boot) which cannot
+            # be done on node during deploy stage can be performed.
+            LOG.debug('Executing driver specific tasks before booting up the '
+                      'instance for node %s', node.uuid)
+            self.prepare_instance_to_boot(task, root_uuid, efi_sys_uuid)
+        else:
             manager_utils.node_set_boot_device(task, 'disk', persistent=True)
 
+        LOG.debug('Rebooting node %s to instance', node.uuid)
         self.reboot_and_finish_deploy(task)
-
-        # NOTE(TheJulia): If we deployed a whole disk image, we
-        # should expect a whole disk image and clean-up the tftp files
-        # on-disk incase the node is disregarding the boot preference.
-        # TODO(rameshg87): Not all in-tree drivers using reboot_to_instance
-        # have a boot interface. So include a check for now. Remove this
-        # check once all in-tree drivers have a boot interface.
-        if task.driver.boot and iwdi:
-            task.driver.boot.clean_up_ramdisk(task)
 
 
 class AgentDeploy(AgentDeployMixin, base.DeployInterface):
@@ -440,11 +469,36 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
             wrong occurred during the power action.
         :raises: exception.ImageRefValidationFailed if image_source is not
             Glance href and is not HTTP(S) URL.
+        :raises: exception.InvalidParameterValue if network validation fails.
         :raises: any boot interface's prepare_ramdisk exceptions.
         """
         node = task.node
         deploy_utils.populate_storage_driver_internal_info(task)
         if node.provision_state == states.DEPLOYING:
+            # Validate network interface to ensure that it supports boot
+            # options configured on the node.
+            try:
+                task.driver.network.validate(task)
+            except exception.InvalidParameterValue:
+                # For 'neutron' network interface validation will fail
+                # if node is using 'netboot' boot option while provisioning
+                # a whole disk image. Updating 'boot_option' in node's
+                # 'instance_info' to 'local for backward compatibility.
+                # TODO(stendulker): Fail here once the default boot
+                # option is local.
+                with excutils.save_and_reraise_exception(reraise=False) as ctx:
+                    instance_info = node.instance_info
+                    capabilities = instance_info.get('capabilities', {})
+                    if 'boot_option' not in capabilities:
+                        capabilities['boot_option'] = 'local'
+                        instance_info['capabilities'] = capabilities
+                        node.instance_info = instance_info
+                        node.save()
+                        # Re-validate the network interface
+                        task.driver.network.validate(task)
+                    else:
+                        ctx.reraise = True
+
             # Adding the node to provisioning network so that the dhcp
             # options get added for the provisioning port.
             manager_utils.node_power_action(task, states.POWER_OFF)

@@ -1202,6 +1202,34 @@ class PXEBootTestCase(db_base.DbTestCase):
             self.assertFalse(switch_pxe_config_mock.called)
             self.assertFalse(set_boot_device_mock.called)
 
+    @mock.patch.object(pxe.LOG, 'warning', autospec=True)
+    @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
+    @mock.patch.object(dhcp_factory, 'DHCPFactory')
+    @mock.patch.object(pxe, '_cache_ramdisk_kernel', autospec=True)
+    @mock.patch.object(pxe, '_get_instance_image_info', autospec=True)
+    def test_prepare_instance_whole_disk_image_missing_root_uuid(
+            self, get_image_info_mock, cache_mock,
+            dhcp_factory_mock, set_boot_device_mock,
+            clean_up_pxe_mock, log_mock):
+        provider_mock = mock.MagicMock()
+        dhcp_factory_mock.return_value = provider_mock
+        get_image_info_mock.return_value = {}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
+            task.node.properties['capabilities'] = 'boot_mode:bios'
+            task.node.driver_internal_info['is_whole_disk_image'] = True
+            task.driver.boot.prepare_instance(task)
+            get_image_info_mock.assert_called_once_with(
+                task.node, task.context)
+            cache_mock.assert_called_once_with(
+                task.context, task.node, {})
+            provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
+            self.assertTrue(log_mock.called)
+            clean_up_pxe_mock.assert_called_once_with(task)
+            set_boot_device_mock.assert_called_once_with(
+                task, boot_devices.DISK, persistent=True)
+
     @mock.patch('os.path.isfile', lambda filename: False)
     @mock.patch.object(pxe_utils, 'create_pxe_config', autospec=True)
     @mock.patch.object(deploy_utils, 'is_iscsi_boot', lambda task: True)
