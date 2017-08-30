@@ -21,7 +21,7 @@ An Ironic deployment will be composed of the following components:
   built which contains one of these agents, eg. with `diskimage-builder`_.
   This ramdisk can be booted on-demand.
 
-    - **NOTE:** The agent is never run inside a tenant instance.
+  .. note:: The agent is never run inside a tenant instance.
 
 .. _`architecture_drivers`:
 

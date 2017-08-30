@@ -37,7 +37,7 @@ flexible and can vary per instance.
 Here is an example for grub2 with ubuntu, users can customize it
 to fit their use case:
 
-    .. code:: python
+.. code:: python
 
      #!/usr/bin/env python
      import os

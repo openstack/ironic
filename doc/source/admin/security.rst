@@ -109,13 +109,14 @@ Ideally, an operator would work with their hardware vendor to ensure that
 proper firmware security measures are put in place ahead of time. This could
 include:
 
-  - installing signed firmware for BIOS and peripheral devices
-  - using a TPM (Trusted Platform Module) to validate signatures at boot time
-  - booting machines in :ref:`iLO UEFI Secure Boot Support`, rather than BIOS mode, to
-    validate kernel signatures
-  - disabling local (in-band) access from the host OS to the management controller (BMC)
-  - disabling modifications to boot settings from the host OS
+- installing signed firmware for BIOS and peripheral devices
+- using a TPM (Trusted Platform Module) to validate signatures at boot time
+- booting machines in :ref:`iLO UEFI Secure Boot Support`, rather than BIOS mode, to
+  validate kernel signatures
+- disabling local (in-band) access from the host OS to the management controller (BMC)
+- disabling modifications to boot settings from the host OS
 
 Additional references:
-  - :ref:`cleaning`
-  - :ref:`trusted-boot`
+
+- :ref:`cleaning`
+- :ref:`trusted-boot`

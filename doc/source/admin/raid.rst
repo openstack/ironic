@@ -137,12 +137,12 @@ The RAID properties can be split into 4 different types:
    - ``physical_disks`` - A list of physical disks to use as read by the
      driver.
 
- .. note::
-   If properties from both "Backing physical disk hints" or
-   "Backing physical disks" are specified, they should be consistent with
-   each other.  If they are not consistent, then the RAID configuration
-   will fail (because the appropriate backing physical disks could
-   not be found).
+   .. note::
+       If properties from both "Backing physical disk hints" or
+       "Backing physical disks" are specified, they should be consistent with
+       each other.  If they are not consistent, then the RAID configuration
+       will fail (because the appropriate backing physical disks could
+       not be found).
 
 Examples for ``target_raid_config``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

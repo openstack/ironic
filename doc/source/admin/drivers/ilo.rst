@@ -114,16 +114,16 @@ The ``ilo`` hardware type supports following hardware interfaces:
 The following command can be used to enroll a ProLiant node with
 ``ilo`` hardware type:
 
-    .. code-block:: console
+.. code-block:: console
 
-        openstack baremetal node create --os-baremetal-api-version=1.31 \
-            --driver ilo \
-            --deploy-interface direct \
-            --raid-interface agent \
-            --driver-info ilo_address=<ilo-ip-address> \
-            --driver-info ilo_username=<ilo-username> \
-            --driver-info ilo_password=<ilo-password> \
-            --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso>
+    openstack baremetal node create --os-baremetal-api-version=1.31 \
+        --driver ilo \
+        --deploy-interface direct \
+        --raid-interface agent \
+        --driver-info ilo_address=<ilo-ip-address> \
+        --driver-info ilo_username=<ilo-username> \
+        --driver-info ilo_password=<ilo-password> \
+        --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso>
 
 Please refer to :doc:`/install/enabling-drivers` for detailed
 explanation of hardware type.
@@ -131,16 +131,16 @@ explanation of hardware type.
 To enable the same feature set as provided by all iLO classic drivers,
 apply the following configuration:
 
-    .. code-block:: ini
+.. code-block:: ini
 
-        [DEFAULT]
-        enabled_hardware_types = ilo
-        enabled_boot_interfaces = ilo-virtual-media,ilo-pxe
-        enabled_power_interfaces = ilo
-        enabled_console_interfaces = ilo
-        enabled_raid_interfaces = agent
-        enabled_management_interfaces = ilo
-        enabled_inspect_interfaces = ilo
+    [DEFAULT]
+    enabled_hardware_types = ilo
+    enabled_boot_interfaces = ilo-virtual-media,ilo-pxe
+    enabled_power_interfaces = ilo
+    enabled_console_interfaces = ilo
+    enabled_raid_interfaces = agent
+    enabled_management_interfaces = ilo
+    enabled_inspect_interfaces = ilo
 
 The following commands can be used to enroll a node with the same
 feature set as one of the classic drivers, but using the ``ilo``
@@ -148,43 +148,43 @@ hardware type:
 
 * ``iscsi_ilo``:
 
-    .. code-block:: console
+  .. code-block:: console
 
-        openstack baremetal node create --os-baremetal-api-version=1.31 \
-            --driver ilo \
-            --deploy-interface iscsi \
-            --boot-interface ilo-virtual-media \
-            --driver-info ilo_address=<ilo-ip-address> \
-            --driver-info ilo_username=<ilo-username> \
-            --driver-info ilo_password=<ilo-password> \
-            --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso>
+     openstack baremetal node create --os-baremetal-api-version=1.31 \
+         --driver ilo \
+         --deploy-interface iscsi \
+         --boot-interface ilo-virtual-media \
+         --driver-info ilo_address=<ilo-ip-address> \
+         --driver-info ilo_username=<ilo-username> \
+         --driver-info ilo_password=<ilo-password> \
+         --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso>
 
 * ``pxe_ilo``:
 
-    .. code-block:: console
+  .. code-block:: console
 
-        openstack baremetal node create --os-baremetal-api-version=1.31 \
-            --driver ilo \
-            --deploy-interface iscsi \
-            --boot-interface ilo-pxe \
-            --driver-info ilo_address=<ilo-ip-address> \
-            --driver-info ilo_username=<ilo-username> \
-            --driver-info ilo_password=<ilo-password> \
-            --driver-info deploy_kernel=<glance-uuid-of-pxe-deploy-kernel> \
-            --driver-info deploy_ramdisk=<glance-uuid-of-deploy-ramdisk>
+     openstack baremetal node create --os-baremetal-api-version=1.31 \
+         --driver ilo \
+         --deploy-interface iscsi \
+         --boot-interface ilo-pxe \
+         --driver-info ilo_address=<ilo-ip-address> \
+         --driver-info ilo_username=<ilo-username> \
+         --driver-info ilo_password=<ilo-password> \
+         --driver-info deploy_kernel=<glance-uuid-of-pxe-deploy-kernel> \
+         --driver-info deploy_ramdisk=<glance-uuid-of-deploy-ramdisk>
 
 * ``agent_ilo``:
 
-    .. code-block:: console
+  .. code-block:: console
 
-        openstack baremetal node create --os-baremetal-api-version=1.31 \
-            --driver ilo \
-            --deploy-interface direct \
-            --boot-interface ilo-virtual-media \
-            --driver-info ilo_address=<ilo-ip-address> \
-            --driver-info ilo_username=<ilo-username> \
-            --driver-info ilo_password=<ilo-password> \
-            --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso>
+     openstack baremetal node create --os-baremetal-api-version=1.31 \
+         --driver ilo \
+         --deploy-interface direct \
+         --boot-interface ilo-virtual-media \
+         --driver-info ilo_address=<ilo-ip-address> \
+         --driver-info ilo_username=<ilo-username> \
+         --driver-info ilo_password=<ilo-password> \
+         --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso>
 
 Prerequisites
 =============
@@ -228,14 +228,14 @@ Glance Configuration
     swift_account=AUTH_51ea2fb400c34c9eb005ca945c0dc9e1
     swift_container=glance
 
-  The details can be retrieved by running the below command:
+   The details can be retrieved by running the below command:
 
-  .. code-block:: bash
+   .. code-block:: bash
 
-   $ swift --os-username=service:glance-swift stat -v | grep -i url
+       $ swift --os-username=service:glance-swift stat -v | grep -i url
 
-   StorageURL:     http://10.10.1.10:8080/v1/AUTH_51ea2fb400c34c9eb005ca945c0dc9e1
-   Meta Temp-Url-Key: mysecretkeyforglance
+       StorageURL:     http://10.10.1.10:8080/v1/AUTH_51ea2fb400c34c9eb005ca945c0dc9e1
+       Meta Temp-Url-Key: mysecretkeyforglance
 
 
 4. Swift must be accessible with the same admin credentials configured in
@@ -966,21 +966,21 @@ Supported **Automated** Cleaning Operations
 
 * The automated cleaning operations supported are:
 
-  ``reset_bios_to_default``:
+  * ``reset_bios_to_default``:
     Resets system ROM settings to default. By default, enabled with priority
     10. This clean step is supported only on Gen9 and above servers.
-  ``reset_secure_boot_keys_to_default``:
+  * ``reset_secure_boot_keys_to_default``:
     Resets secure boot keys to manufacturer's defaults. This step is supported
     only on Gen9 and above servers. By default, enabled with priority 20 .
-  ``reset_ilo_credential``:
+  * ``reset_ilo_credential``:
     Resets the iLO password, if ``ilo_change_password`` is specified as part of
     node's driver_info. By default, enabled with priority 30.
-  ``clear_secure_boot_keys``:
+  * ``clear_secure_boot_keys``:
     Clears all secure boot keys. This step is supported only on Gen9 and above
     servers. By default, this step is disabled.
-  ``reset_ilo``:
+  * ``reset_ilo``:
     Resets the iLO. By default, this step is disabled.
-  ``erase_devices``:
+  * ``erase_devices``:
     An inband clean step that performs disk erase on all the disks including
     the disks visible to OS as well as the raw disks visible to Smart
     Storage Administrator (SSA). This step supports erasing of the raw disks
@@ -1632,14 +1632,14 @@ step could be::
 
 The different attributes of ``activate_license`` clean step are as follows:
 
-  .. csv-table::
-   :header: "Attribute", "Description"
-   :widths: 30, 120
+.. csv-table::
+    :header: "Attribute", "Description"
+    :widths: 30, 120
 
-   "``interface``", "Interface of clean step, here ``management``"
-   "``step``", "Name of clean step, here ``activate_license``"
-   "``args``", "Keyword-argument entry (<name>: <value>) being passed to clean step"
-   "``args.ilo_license_key``", "iLO Advanced license key to activate enterprise features. This is mandatory."
+    "``interface``", "Interface of clean step, here ``management``"
+    "``step``", "Name of clean step, here ``activate_license``"
+    "``args``", "Keyword-argument entry (<name>: <value>) being passed to clean step"
+    "``args.ilo_license_key``", "iLO Advanced license key to activate enterprise features. This is mandatory."
 
 Initiating firmware update as manual clean step
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1689,15 +1689,15 @@ step could be::
 
 The different attributes of ``update_firmware`` clean step are as follows:
 
-  .. csv-table::
-   :header: "Attribute", "Description"
-   :widths: 30, 120
+.. csv-table::
+    :header: "Attribute", "Description"
+    :widths: 30, 120
 
-   "``interface``", "Interface of clean step, here ``management``"
-   "``step``", "Name of clean step, here ``update_firmware``"
-   "``args``", "Keyword-argument entry (<name>: <value>) being passed to clean step"
-   "``args.firmware_update_mode``", "Mode (or mechanism) of out-of-band firmware update. Supported value is ``ilo``. This is mandatory."
-   "``args.firmware_images``", "Ordered list of dictionaries of images to be flashed. This is mandatory."
+    "``interface``", "Interface of clean step, here ``management``"
+    "``step``", "Name of clean step, here ``update_firmware``"
+    "``args``", "Keyword-argument entry (<name>: <value>) being passed to clean step"
+    "``args.firmware_update_mode``", "Mode (or mechanism) of out-of-band firmware update. Supported value is ``ilo``. This is mandatory."
+    "``args.firmware_images``", "Ordered list of dictionaries of images to be flashed. This is mandatory."
 
 Each firmware image block is represented by a dictionary (JSON), in the form::
 
@@ -1712,22 +1712,22 @@ All the fields in the firmware image block are mandatory.
 * The different types of firmware url schemes supported are:
   ``file``, ``http``, ``https`` and ``swift``.
 
-.. note::
-   This feature assumes that while using ``file`` url scheme the file path is
-   on the conductor controlling the node.
+  .. note::
+     This feature assumes that while using ``file`` url scheme the file path is
+     on the conductor controlling the node.
 
-.. note::
-   The ``swift`` url scheme assumes the swift account of the ``service``
-   project. The ``service`` project (tenant) is a special project created in
-   the Keystone system designed for the use of the core OpenStack services.
-   When Ironic makes use of Swift for storage purpose, the account is generally
-   ``service`` and the container is generally ``ironic`` and ``ilo`` drivers
-   use a container named ``ironic_ilo_container`` for their own purpose.
+  .. note::
+     The ``swift`` url scheme assumes the swift account of the ``service``
+     project. The ``service`` project (tenant) is a special project created in
+     the Keystone system designed for the use of the core OpenStack services.
+     When Ironic makes use of Swift for storage purpose, the account is generally
+     ``service`` and the container is generally ``ironic`` and ``ilo`` drivers
+     use a container named ``ironic_ilo_container`` for their own purpose.
 
-.. note::
-   While using firmware files with a ``.rpm`` extension, make sure the commands
-   ``rpm2cpio`` and ``cpio`` are present on the conductor, as they are utilized
-   to extract the firmware image from the package.
+  .. note::
+     While using firmware files with a ``.rpm`` extension, make sure the commands
+     ``rpm2cpio`` and ``cpio`` are present on the conductor, as they are utilized
+     to extract the firmware image from the package.
 
 * The firmware components that can be updated are:
   ``ilo``, ``cpld``, ``power_pic``, ``bios`` and ``chassis``.
