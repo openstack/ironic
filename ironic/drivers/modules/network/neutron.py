@@ -20,7 +20,9 @@ from oslo_log import log
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import neutron
+from ironic.common import states
 from ironic.drivers import base
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.network import common
 
 LOG = log.getLogger(__name__)
@@ -59,6 +61,15 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         """
         self.get_cleaning_network_uuid(task)
         self.get_provisioning_network_uuid(task)
+        node = task.node
+        if (node.provision_state == states.DEPLOYING and
+            node.driver_internal_info.get('is_whole_disk_image') and
+            deploy_utils.get_boot_option(node) == 'netboot'):
+            error_msg = (_('The node %s cannot perform "local" boot for '
+                           'whole disk image when node is using "neutron" '
+                           'network and is configured with "netboot" boot '
+                           'option.') % node.uuid)
+            raise exception.InvalidParameterValue(error_msg)
 
     def add_provisioning_network(self, task):
         """Add the provisioning network to a node.
