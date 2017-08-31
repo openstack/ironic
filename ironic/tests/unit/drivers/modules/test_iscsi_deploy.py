@@ -681,15 +681,14 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
 
             task.driver.deploy.prepare(task)
 
-            mock_agent_options.assert_called_once_with(task.node)
-            mock_prepare_ramdisk.assert_called_once_with(
-                task.driver.boot, task, {'c': 'd'})
+            self.assertFalse(mock_agent_options.called)
+            self.assertFalse(mock_prepare_ramdisk.called)
             self.assertFalse(add_provisioning_net_mock.called)
             self.assertFalse(unconfigure_tenant_net_mock.called)
             storage_driver_info_mock.assert_called_once_with(task)
             storage_attach_volumes_mock.assert_called_once_with(
                 task.driver.storage, task)
-            self.assertEqual(1, storage_should_write_mock.call_count)
+            self.assertEqual(2, storage_should_write_mock.call_count)
 
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(iscsi_deploy, 'check_image_size', autospec=True)
