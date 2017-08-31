@@ -203,8 +203,6 @@ def get_irmc_report(node):
 def set_secure_boot_mode(node, enable):
     """Enable or disable UEFI Secure Boot
 
-    Enable or disable UEFI Secure Boot
-
     :param node: An ironic node object.
     :param enable: Boolean value. True if the secure boot to be
         enabled.
@@ -219,5 +217,6 @@ def set_secure_boot_mode(node, enable):
     except scci.SCCIError as irmc_exception:
         LOG.error("Failed to set secure boot to %(flag)s for node %(node)s",
                   {'flag': enable, 'node': node.uuid})
-        raise exception.IRMCOperationError(operation=_("set_secure_boot_mode"),
-                                           error=irmc_exception)
+        raise exception.IRMCOperationError(
+            operation=_("setting secure boot mode"),
+            error=irmc_exception)
