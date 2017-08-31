@@ -75,6 +75,26 @@ For more information see the `reno documentation`_.
 
 .. _`reno documentation`: https://docs.openstack.org/reno/latest/user/usage.html
 
+...update a release note?
+-------------------------
+
+If this is a release note that pertains to something that was fixed on master
+and has not yet been released, you can go ahead and update it by submitting
+a patch.
+
+If it is the release note of an ironic release that has branched, it can be
+updated but we will only allow it in extenuating circumstances. (It can be
+updated by *only* updating the file in that branch. DO NOT update the file
+in master and cherry-pick it. If you do, `see how the mess was cleaned up
+<https://bugs.launchpad.net/ironic/+bug/1670401>`_.)
+
+If it is the release note of an intermediary ironic release (during a
+development cycle), you cannot update it. (These show up in the
+"Current Series Release Notes"). If you do update it, it will show up under
+the current (unreleased) section, instead of under the intermediary release
+section, because the date/time of that file being touched is newer than the
+date/time of the tag associated with the intermediary release.
+
 ...get a decision on something?
 -------------------------------
 
