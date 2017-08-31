@@ -33,6 +33,12 @@ LOG = logging.getLogger(__name__)
 
 PXE_CFG_DIR_NAME = 'pxelinux.cfg'
 
+DHCP_TFTP_SERVER_NAME = '66'  # rfc2132
+DHCP_BOOTFILE_NAME = '67'  # rfc2132
+DHCP_TFTP_SERVER_ADDRESS = '150'  # rfc5859
+DHCP_IPXE_ENCAP_OPTS = '175'  # Tentatively Assigned
+DHCP_TFTP_PATH_PREFIX = '210'  # rfc5071
+
 
 def get_root_dir():
     """Returns the directory where the config files and images will live."""
@@ -317,30 +323,31 @@ def dhcp_options_for_instance(task):
         if dhcp_provider_name == 'neutron':
             # Neutron use dnsmasq as default DHCP agent, add extra config
             # to neutron "dhcp-match=set:ipxe,175" and use below option
-            dhcp_opts.append({'opt_name': 'tag:!ipxe,bootfile-name',
+            dhcp_opts.append({'opt_name': "tag:!ipxe,%s" % DHCP_BOOTFILE_NAME,
                               'opt_value': boot_file})
-            dhcp_opts.append({'opt_name': 'tag:ipxe,bootfile-name',
+            dhcp_opts.append({'opt_name': "tag:ipxe,%s" % DHCP_BOOTFILE_NAME,
                               'opt_value': ipxe_script_url})
         else:
             # !175 == non-iPXE.
             # http://ipxe.org/howto/dhcpd#ipxe-specific_options
-            dhcp_opts.append({'opt_name': '!175,bootfile-name',
+            dhcp_opts.append({'opt_name': "!%s,%s" % (DHCP_IPXE_ENCAP_OPTS,
+                              DHCP_BOOTFILE_NAME),
                               'opt_value': boot_file})
-            dhcp_opts.append({'opt_name': 'bootfile-name',
+            dhcp_opts.append({'opt_name': DHCP_BOOTFILE_NAME,
                               'opt_value': ipxe_script_url})
     else:
-        dhcp_opts.append({'opt_name': 'bootfile-name',
+        dhcp_opts.append({'opt_name': DHCP_BOOTFILE_NAME,
                           'opt_value': boot_file})
         # 210 == tftp server path-prefix or tftp root, will be used to find
         # pxelinux.cfg directory. The pxelinux.0 loader infers this information
         # from it's own path, but Petitboot needs it to be specified by this
         # option since it doesn't use pxelinux.0 loader.
-        dhcp_opts.append({'opt_name': '210',
+        dhcp_opts.append({'opt_name': DHCP_TFTP_PATH_PREFIX,
                           'opt_value': get_tftp_path_prefix()})
 
-    dhcp_opts.append({'opt_name': 'server-ip-address',
+    dhcp_opts.append({'opt_name': DHCP_TFTP_SERVER_NAME,
                       'opt_value': CONF.pxe.tftp_server})
-    dhcp_opts.append({'opt_name': 'tftp-server',
+    dhcp_opts.append({'opt_name': DHCP_TFTP_SERVER_ADDRESS,
                       'opt_value': CONF.pxe.tftp_server})
 
     # Append the IP version for all the configuration options
