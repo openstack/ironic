@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes an issue in boot from volume for ``iscsi`` deploy interface. Boot
+    from a volume fails when it is requested for a node having ``iscsi``
+    deploy interface, it doesn't create pxelinux.cfg file for mac,
+    and failed to boot. See `bug 1714436
+    <https://bugs.launchpad.net/ironic/+bug/1714436>`_ for details.
+
