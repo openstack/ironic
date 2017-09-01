@@ -528,6 +528,11 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
                     task.driver.network.unconfigure_tenant_networks(task)
                     task.driver.network.add_provisioning_network(task)
                 task.driver.storage.attach_volumes(task)
+                if not task.driver.storage.should_write_image(task):
+                    # We have nothing else to do as this is handled in the
+                    # backend storage system, and we can return to the caller
+                    # as we do not need to boot the agent to deploy.
+                    return
 
             deploy_opts = deploy_utils.build_agent_options(node)
             task.driver.boot.prepare_ramdisk(task, deploy_opts)
