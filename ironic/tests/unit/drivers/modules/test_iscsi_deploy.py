@@ -712,6 +712,9 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
     @mock.patch.object(flat_network.FlatNetwork,
                        'remove_provisioning_network',
                        spec_set=True, autospec=True)
+    @mock.patch.object(pxe.PXEBoot,
+                       'prepare_instance',
+                       spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(iscsi_deploy, 'check_image_size', autospec=True)
     @mock.patch.object(iscsi_deploy, 'cache_instance_image', autospec=True)
@@ -719,6 +722,7 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                                                     mock_cache_instance_image,
                                                     mock_check_image_size,
                                                     mock_node_power_action,
+                                                    mock_prepare_instance,
                                                     mock_remove_network,
                                                     mock_tenant_network,
                                                     mock_write):
@@ -733,6 +737,7 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             self.assertFalse(mock_check_image_size.called)
             mock_remove_network.assert_called_once_with(mock.ANY, task)
             mock_tenant_network.assert_called_once_with(mock.ANY, task)
+            mock_prepare_instance.assert_called_once_with(mock.ANY, task)
             self.assertEqual(2, mock_node_power_action.call_count)
 
     @mock.patch.object(noop_storage.NoopStorage, 'detach_volumes',
