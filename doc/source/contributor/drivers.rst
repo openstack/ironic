@@ -21,7 +21,7 @@ enumerating this entrypoint by running the following python script::
 A list of drivers enabled in a running Ironic service may be found by issuing
 the following command against that API end point::
 
-  ironic driver-list
+  openstack baremetal driver list
 
 
 Supported Drivers
