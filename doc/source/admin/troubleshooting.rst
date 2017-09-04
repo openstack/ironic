@@ -47,6 +47,22 @@ A few things should be checked in this case:
    Maintenance mode will be also set on a node if automated cleaning has
    failed for it previously.
 
+#. Make sure that you have Compute services running and enabled::
+
+       $ openstack compute service list --service nova-compute
+       +----+--------------+-------------+------+---------+-------+----------------------------+
+       | ID | Binary       | Host        | Zone | Status  | State | Updated At                 |
+       +----+--------------+-------------+------+---------+-------+----------------------------+
+       |  7 | nova-compute | example.com | nova | enabled | up    | 2017-09-04T13:14:03.000000 |
+       +----+--------------+-------------+------+---------+-------+----------------------------+
+
+   By default, a Compute service is disabled after 10 consecutive build
+   failures on it. This is to ensure that new build requests are not routed to
+   a broken Compute service. If it is the case, make sure to fix the source of
+   the failures, then re-enable it::
+
+       openstack compute service set --enable <COMPUTE HOST> nova-compute
+
 #. Starting with the Pike release, check that all your nodes have the
    ``resource_class`` field set using the following command::
 
