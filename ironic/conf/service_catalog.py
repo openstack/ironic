@@ -26,8 +26,9 @@ SERVICE_CATALOG_GROUP = cfg.OptGroup(
 
 
 def register_opts(conf):
-    auth.register_auth_opts(conf, SERVICE_CATALOG_GROUP.name)
+    auth.register_auth_opts(conf, SERVICE_CATALOG_GROUP.name,
+                            service_type='baremetal')
 
 
 def list_opts():
-    return auth.add_auth_opts([])
+    return auth.add_auth_opts([], service_type='baremetal')

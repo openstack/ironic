@@ -12,7 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from keystoneauth1 import exceptions as ksexception
 from keystoneauth1 import loading as kaloading
 import mock
 from oslo_config import cfg
@@ -32,7 +31,8 @@ class KeystoneTestCase(base.TestCase):
                     group='keystone')
         self.test_group = 'test_group'
         self.cfg_fixture.conf.register_group(cfg.OptGroup(self.test_group))
-        ironic_auth.register_auth_opts(self.cfg_fixture.conf, self.test_group)
+        ironic_auth.register_auth_opts(self.cfg_fixture.conf, self.test_group,
+                                       service_type='vikings')
         self.config(auth_type='password',
                     group=self.test_group)
         # NOTE(pas-ha) this is due to auth_plugin options
@@ -76,20 +76,19 @@ class KeystoneTestCase(base.TestCase):
         self.assertEqual('spam', keystone.get_service_url(session, **params))
         session.get_endpoint.assert_called_once_with(**params)
 
-    def test_get_service_url_internal(self):
+    def test_get_service_url(self):
         session = mock.Mock()
         session.get_endpoint.return_value = 'spam'
         params = {'ham': 'eggs'}
         self.assertEqual('spam', keystone.get_service_url(session, **params))
-        session.get_endpoint.assert_called_once_with(interface='internal',
-                                                     **params)
+        session.get_endpoint.assert_called_once_with(
+            interface=['internal', 'public'], **params)
 
-    def test_get_service_url_internal_fail(self):
-        session = mock.Mock()
-        session.get_endpoint.side_effect = [ksexception.EndpointNotFound(),
-                                            'spam']
-        params = {'ham': 'eggs'}
-        self.assertEqual('spam', keystone.get_service_url(session, **params))
-        session.get_endpoint.assert_has_calls([
-            mock.call(interface='internal', **params),
-            mock.call(interface='public', **params)])
+    def test_get_adapter_from_config(self):
+        self.config(valid_interfaces=['internal', 'public'],
+                    group=self.test_group)
+        session = keystone.get_session(self.test_group)
+        adapter = keystone.get_adapter(self.test_group, session=session,
+                                       interface='admin')
+        self.assertEqual('admin', adapter.interface)
+        self.assertEqual(session, adapter.session)

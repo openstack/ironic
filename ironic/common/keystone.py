@@ -20,6 +20,7 @@ from oslo_log import log as logging
 import six
 
 from ironic.common import exception
+from ironic.conf import auth as auth_conf
 from ironic.conf import CONF
 
 
@@ -86,7 +87,22 @@ def get_auth(group, **auth_kwargs):
     return auth
 
 
-# NOTE(pas-ha) Used by neutronclient and resolving ironic API only
+@ks_exceptions
+def get_adapter(group, **adapter_kwargs):
+    """Loads adapter from options in a configuration file section.
+
+    The adapter_kwargs will be passed directly to keystoneauth1 Adapter
+    and will override the values loaded from config.
+    Consult keystoneauth1 docs for available adapter options.
+
+    :param group: name of the config section to load adapter options from
+
+    """
+    return kaloading.load_adapter_from_conf_options(CONF, group,
+                                                    **adapter_kwargs)
+
+
+# NOTE(pas-ha) Used by neutronclient and glanceclient only
 # FIXME(pas-ha) remove this while moving to kesytoneauth adapters
 @ks_exceptions
 def get_service_url(session, **kwargs):
@@ -103,7 +119,5 @@ def get_service_url(session, **kwargs):
 
     if 'interface' in kwargs:
         return session.get_endpoint(**kwargs)
-    try:
-        return session.get_endpoint(interface='internal', **kwargs)
-    except kaexception.EndpointNotFound:
-        return session.get_endpoint(interface='public', **kwargs)
+    return session.get_endpoint(interface=auth_conf.DEFAULT_VALID_INTERFACES,
+                                **kwargs)

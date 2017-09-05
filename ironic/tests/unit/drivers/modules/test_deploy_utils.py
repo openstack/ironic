@@ -1214,38 +1214,42 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         mock_clean_up_caches.assert_called_once_with(None, 'master_dir',
                                                      [('uuid', 'path')])
 
+    @mock.patch('ironic.common.keystone.get_auth')
     @mock.patch.object(utils, '_get_ironic_session')
-    @mock.patch('ironic.common.keystone.get_service_url')
-    def test_get_ironic_api_url_from_config(self, mock_get_url, mock_ks):
+    def test_get_ironic_api_url_from_config(self, mock_ks, mock_auth):
         mock_sess = mock.Mock()
         mock_ks.return_value = mock_sess
         fake_api_url = 'http://foo/'
-        mock_get_url.side_effect = exception.KeystoneFailure
         self.config(api_url=fake_api_url, group='conductor')
-        url = utils.get_ironic_api_url()
         # also checking for stripped trailing slash
-        self.assertEqual(fake_api_url[:-1], url)
-        self.assertFalse(mock_get_url.called)
+        self.assertEqual(fake_api_url[:-1], utils.get_ironic_api_url())
 
+    @mock.patch('ironic.common.keystone.get_auth')
     @mock.patch.object(utils, '_get_ironic_session')
-    @mock.patch('ironic.common.keystone.get_service_url')
-    def test_get_ironic_api_url_from_keystone(self, mock_get_url, mock_ks):
+    @mock.patch('ironic.common.keystone.get_adapter')
+    def test_get_ironic_api_url_from_keystone(self, mock_ka, mock_ks,
+                                              mock_auth):
         mock_sess = mock.Mock()
         mock_ks.return_value = mock_sess
         fake_api_url = 'http://foo/'
-        mock_get_url.return_value = fake_api_url
+        mock_ka.return_value.get_endpoint.return_value = fake_api_url
+        # NOTE(pas-ha) endpoint_override is None by default
         self.config(api_url=None, group='conductor')
         url = utils.get_ironic_api_url()
         # also checking for stripped trailing slash
         self.assertEqual(fake_api_url[:-1], url)
-        mock_get_url.assert_called_with(mock_sess)
+        mock_ka.assert_called_with('service_catalog', session=mock_sess,
+                                   auth=mock_auth.return_value)
+        mock_ka.return_value.get_endpoint.assert_called_once_with()
 
+    @mock.patch('ironic.common.keystone.get_auth')
     @mock.patch.object(utils, '_get_ironic_session')
-    @mock.patch('ironic.common.keystone.get_service_url')
-    def test_get_ironic_api_url_fail(self, mock_get_url, mock_ks):
+    @mock.patch('ironic.common.keystone.get_adapter')
+    def test_get_ironic_api_url_fail(self, mock_ka, mock_ks, mock_auth):
         mock_sess = mock.Mock()
         mock_ks.return_value = mock_sess
-        mock_get_url.side_effect = exception.KeystoneFailure()
+        mock_ka.return_value.get_endpoint.side_effect = (
+            exception.KeystoneFailure())
         self.config(api_url=None, group='conductor')
         self.assertRaises(exception.InvalidParameterValue,
                           utils.get_ironic_api_url)
