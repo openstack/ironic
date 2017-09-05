@@ -465,6 +465,7 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
             manager_utils.node_power_action(task, states.POWER_OFF)
             task.driver.network.remove_provisioning_network(task)
             task.driver.network.configure_tenant_networks(task)
+            task.driver.boot.prepare_instance(task)
             manager_utils.node_power_action(task, states.POWER_ON)
             task.process_event('done')
             LOG.info('Deployment to node %s done', node.uuid)
