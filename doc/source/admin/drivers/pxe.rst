@@ -18,9 +18,9 @@ Enable persistent boot device on node
 
     $ openstack baremetal node set --driver-info force_persistent_boot_device=True <node>
 
-  .. note::
-     It's recommended to check if the node's state has not changed as there
-     is no way of locking the node between these commands.
+   .. note::
+      It's recommended to check if the node's state has not changed as there
+      is no way of locking the node between these commands.
 
 Once the flag is present, the next cleaning and deploy steps will be done
 with persistent boot for that node.

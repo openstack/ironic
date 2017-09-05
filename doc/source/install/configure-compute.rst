@@ -23,66 +23,66 @@ service's controller nodes and compute nodes.
 
 #. Change these configuration options in the ``default`` section, as follows:
 
-    .. code-block:: ini
+   .. code-block:: ini
 
-      [default]
+       [default]
 
-      # Driver to use for controlling virtualization. Options
-      # include: libvirt.LibvirtDriver, xenapi.XenAPIDriver,
-      # fake.FakeDriver, baremetal.BareMetalDriver,
-      # vmwareapi.VMwareESXDriver, vmwareapi.VMwareVCDriver (string
-      # value)
-      #compute_driver=<None>
-      compute_driver=ironic.IronicDriver
+       # Driver to use for controlling virtualization. Options
+       # include: libvirt.LibvirtDriver, xenapi.XenAPIDriver,
+       # fake.FakeDriver, baremetal.BareMetalDriver,
+       # vmwareapi.VMwareESXDriver, vmwareapi.VMwareVCDriver (string
+       # value)
+       #compute_driver=<None>
+       compute_driver=ironic.IronicDriver
 
-      # Firewall driver (defaults to hypervisor specific iptables
-      # driver) (string value)
-      #firewall_driver=<None>
-      firewall_driver=nova.virt.firewall.NoopFirewallDriver
+       # Firewall driver (defaults to hypervisor specific iptables
+       # driver) (string value)
+       #firewall_driver=<None>
+       firewall_driver=nova.virt.firewall.NoopFirewallDriver
 
-      # The scheduler host manager class to use (string value)
-      #scheduler_host_manager=host_manager
-      scheduler_host_manager=ironic_host_manager
+       # The scheduler host manager class to use (string value)
+       #scheduler_host_manager=host_manager
+       scheduler_host_manager=ironic_host_manager
 
-      # Virtual ram to physical ram allocation ratio which affects
-      # all ram filters. This configuration specifies a global ratio
-      # for RamFilter. For AggregateRamFilter, it will fall back to
-      # this configuration value if no per-aggregate setting found.
-      # (floating point value)
-      #ram_allocation_ratio=1.5
-      ram_allocation_ratio=1.0
+       # Virtual ram to physical ram allocation ratio which affects
+       # all ram filters. This configuration specifies a global ratio
+       # for RamFilter. For AggregateRamFilter, it will fall back to
+       # this configuration value if no per-aggregate setting found.
+       # (floating point value)
+       #ram_allocation_ratio=1.5
+       ram_allocation_ratio=1.0
 
-      # Amount of disk in MB to reserve for the host (integer value)
-      #reserved_host_disk_mb=0
-      reserved_host_memory_mb=0
+       # Amount of disk in MB to reserve for the host (integer value)
+       #reserved_host_disk_mb=0
+       reserved_host_memory_mb=0
 
-      # Determines if the Scheduler tracks changes to instances to help with
-      # its filtering decisions (boolean value)
-      #scheduler_tracks_instance_changes=True
-      scheduler_tracks_instance_changes=False
+       # Determines if the Scheduler tracks changes to instances to help with
+       # its filtering decisions (boolean value)
+       #scheduler_tracks_instance_changes=True
+       scheduler_tracks_instance_changes=False
 
-      # New instances will be scheduled on a host chosen randomly from a subset
-      # of the N best hosts, where N is the value set by this option.  Valid
-      # values are 1 or greater. Any value less than one will be treated as 1.
-      # For ironic, this should be set to a number >= the number of ironic nodes
-      # to more evenly distribute instances across the nodes.
-      #scheduler_host_subset_size=1
-      scheduler_host_subset_size=9999999
+       # New instances will be scheduled on a host chosen randomly from a subset
+       # of the N best hosts, where N is the value set by this option.  Valid
+       # values are 1 or greater. Any value less than one will be treated as 1.
+       # For ironic, this should be set to a number >= the number of ironic nodes
+       # to more evenly distribute instances across the nodes.
+       #scheduler_host_subset_size=1
+       scheduler_host_subset_size=9999999
 
-    If you have not migrated to using :ref:`scheduling-resource-classes`, then
-    the following should be set as well:
+   If you have not migrated to using :ref:`scheduling-resource-classes`, then
+   the following should be set as well:
 
-    .. code-block:: ini
+   .. code-block:: ini
 
-      [default]
+       [default]
 
-      # Flag to decide whether to use baremetal_scheduler_default_filters or not.
-      # (boolean value)
-      #scheduler_use_baremetal_filters=False
-      scheduler_use_baremetal_filters=True
+       # Flag to decide whether to use baremetal_scheduler_default_filters or not.
+       # (boolean value)
+       #scheduler_use_baremetal_filters=False
+       scheduler_use_baremetal_filters=True
 
-    This option is deprecated and has to be unset after migration
-    to resource classes.
+   This option is deprecated and has to be unset after migration
+   to resource classes.
 
 #. Change these configuration options in the ``ironic`` section.
    Replace:
@@ -92,51 +92,51 @@ service's controller nodes and compute nodes.
    - ``IRONIC_NODE`` with the hostname or IP address of the ironic-api node
    - ``IDENTITY_IP`` with the IP of the Identity server
 
-    .. code-block:: ini
+   .. code-block:: ini
 
-      [ironic]
+       [ironic]
 
-      # Ironic authentication type
-      auth_type=password
+       # Ironic authentication type
+       auth_type=password
 
-      # Keystone API endpoint
-      auth_url=http://IDENTITY_IP:35357/v3
+       # Keystone API endpoint
+       auth_url=http://IDENTITY_IP:35357/v3
 
-      # Ironic keystone project name
-      project_name=service
+       # Ironic keystone project name
+       project_name=service
 
-      # Ironic keystone admin name
-      username=ironic
+       # Ironic keystone admin name
+       username=ironic
 
-      # Ironic keystone admin password
-      password=IRONIC_PASSWORD
+       # Ironic keystone admin password
+       password=IRONIC_PASSWORD
 
-      # Ironic keystone project domain
-      # or set project_domain_id
-      project_domain_name=Default
+       # Ironic keystone project domain
+       # or set project_domain_id
+       project_domain_name=Default
 
-      # Ironic keystone user domain
-      # or set user_domain_id
-      user_domain_name=Default
+       # Ironic keystone user domain
+       # or set user_domain_id
+       user_domain_name=Default
 
 #. On the Compute service's controller nodes, restart the ``nova-scheduler``
    process:
 
-    .. code-block:: console
+   .. code-block:: console
 
-      Fedora/RHEL7/CentOS7/SUSE:
-        sudo systemctl restart openstack-nova-scheduler
+       Fedora/RHEL7/CentOS7/SUSE:
+         sudo systemctl restart openstack-nova-scheduler
 
-      Ubuntu:
-        sudo service nova-scheduler restart
+       Ubuntu:
+         sudo service nova-scheduler restart
 
 #. On the Compute service's compute nodes, restart the ``nova-compute``
    process:
 
-    .. code-block:: console
+   .. code-block:: console
 
-      Fedora/RHEL7/CentOS7/SUSE:
-        sudo systemctl restart openstack-nova-compute
+       Fedora/RHEL7/CentOS7/SUSE:
+         sudo systemctl restart openstack-nova-compute
 
-      Ubuntu:
-        sudo service nova-compute restart
+       Ubuntu:
+         sudo service nova-compute restart
