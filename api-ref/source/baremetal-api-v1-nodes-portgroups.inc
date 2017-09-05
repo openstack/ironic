@@ -4,16 +4,14 @@
 Listing Portgroups by Node (nodes, portgroups)
 ==============================================
 
+.. versionadded:: 1.24
+
 Given a Node identifier (``uuid`` or ``name``), the API exposes the list of,
 and details of, all Portgroups associated with that Node.
 
 These endpoints do not allow modification of the Portgroups; that should be
 done by accessing the Portgroup resources under the ``/v1/portgroups``
 endpoint.
-
-Portgroup resource was added in API microversion 1.24, if using older
-version, all the requests return ``Not Found (404)`` error code.
-
 
 List Portgroups by Node
 =======================

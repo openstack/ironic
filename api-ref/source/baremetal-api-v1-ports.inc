@@ -24,20 +24,23 @@ some parameters with the request.
 
 By default, this query will return the uuid and address for each Port.
 
-API microversion 1.6 added the ``node`` query parameter. If both ``node_uuid``
-and ``node`` are specified in the request, ``node_uuid`` will be used to filter
-results.
+.. versionadded:: 1.6
+  Added the ``node`` query parameter. If both ``node_uuid`` and ``node`` are
+  specified in the request, ``node_uuid`` will be used to filter results.
 
-API microversion 1.8 added the ``fields`` request parameter. When specified,
-this causes the content of the response to include only the specified fields,
-rather than the default set.
+.. versionadded:: 1.8
+  Added the ``fields`` request parameter. When specified, this causes the
+  content of the response to include only the specified fields, rather than the
+  default set.
 
-API microversion 1.19 added the ``pxe_enabled`` and ``local_link_connection``
-fields.
+.. versionadded:: 1.19
+  Added the ``pxe_enabled`` and ``local_link_connection`` fields.
 
-API microversion 1.24 added the ``portgroup_uuid`` field.
+.. versionadded:: 1.24
+  Added the ``portgroup_uuid`` field.
 
-API microversion 1.34 added the ``physical_network`` field.
+.. versionadded:: 1.34
+  Added the ``physical_network`` field.
 
 Normal response code: 200
 
@@ -82,13 +85,15 @@ Creates a new Port resource.
 This method requires a Node UUID and the physical hardware address for the Port
 (MAC address in most cases).
 
-API microversion 1.19 added the ``pxe_enabled`` and ``local_link_connection``
-request and response fields.
+.. versionadded:: 1.19
+  Added the ``pxe_enabled`` and ``local_link_connection``
+  request and response fields.
 
-API microversion 1.24 added the ``portgroup_uuid`` request and response fields.
+.. versionadded:: 1.24
+  Added the ``portgroup_uuid`` request and response fields.
 
-API microversion 1.34 added the ``physical_network`` request and response
-fields.
+.. versionadded:: 1.34
+  Added the ``physical_network`` request and response fields.
 
 Normal response code: 201
 
@@ -141,17 +146,19 @@ List Detailed Ports
 
 Return a list of bare metal Ports, with detailed information.
 
-API microversion 1.6 added the ``node`` query parameter. If both ``node_uuid``
-and ``node`` are specified in the request, ``node_uuid`` will be used to filter
-results.
+.. versionadded:: 1.6
+  Added the ``node`` query parameter. If both ``node_uuid`` and ``node`` are
+  specified in the request, ``node_uuid`` will be used to filter results.
 
-API microversion 1.19 added the ``pxe_enabled`` and ``local_link_connection``
-response fields.
+.. versionadded:: 1.19
+  Added the ``pxe_enabled`` and ``local_link_connection`` response fields.
 
-API microversion 1.24 added the ``portgroup`` query parameter and
-``portgroup_uuid`` response field.
+.. versionadded:: 1.24
+  Added the ``portgroup`` query parameter and ``portgroup_uuid`` response
+  field.
 
-API microversion 1.34 added the ``physical_network`` response field.
+.. versionadded:: 1.34
+  Added the ``physical_network`` response field.
 
 Normal response code: 200
 
@@ -201,16 +208,19 @@ Show Port Details
 
 Show details for the given Port.
 
-API microversion 1.8 added the ``fields`` request parameter. When specified,
-this causes the content of the response to include only the specified fields,
-rather than the default set.
+.. versionadded:: 1.8
+  Added the ``fields`` request parameter. When specified, this causes the
+  content of the response to include only the specified fields, rather than the
+  default set.
 
-API microversion 1.19 added the ``pxe_enabled`` and ``local_link_connection``
-response fields.
+.. versionadded:: 1.19
+  Added the ``pxe_enabled`` and ``local_link_connection`` response fields.
 
-API microversion 1.24 added the ``portgroup_uuid`` response field.
+.. versionadded:: 1.24
+  Added the ``portgroup_uuid`` response field.
 
-API microversion 1.34 added the ``physical_network`` response field.
+.. versionadded:: 1.34
+  Added the ``physical_network`` response field.
 
 Normal response code: 200
 
@@ -253,12 +263,14 @@ Update a Port
 
 Update a Port.
 
-API microversion 1.19 added the ``pxe_enabled`` and ``local_link_connection``
-fields.
+.. versionadded:: 1.19
+  Added the ``pxe_enabled`` and ``local_link_connection`` fields.
 
-API microversion 1.24 added the ``portgroup_uuid`` field.
+.. versionadded:: 1.24
+  Added the ``portgroup_uuid`` field.
 
-API microversion 1.34 added the ``physical_network`` field.
+.. versionadded:: 1.34
+  Added the ``physical_network`` field.
 
 Normal response code: 200
 

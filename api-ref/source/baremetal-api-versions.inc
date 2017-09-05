@@ -22,6 +22,13 @@ with every request; in the absence of this header, each request is treated
 as though coming from an older pre-Kilo client. This was done to preserve
 backwards compatibility as we introduced new features in the server.
 
+If you try to use a feature with an API version older than when that feature
+was introduced the ironic service will respond as would before that feature
+existed. For example if a new API URL was added, and you try to make a request
+with an older API version, then you will get a ``Not Found (404)`` error, or if
+a new field was added to an existing API and you request an older API version
+then you will get an ``Invalid Parameter`` response.
+
 List API versions
 =================
 

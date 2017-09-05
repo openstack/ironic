@@ -12,10 +12,11 @@ A Node is the canonical representation of a discretely allocatable server,
 capable of running an Operating System. Each Node must be associated with a
 ``driver``; this informs Ironic what protocol to use when managing the Node.
 
-Beginning with API microversion 1.6, a Node may be referenced both by its UUID
-and by a unique human-readable "name" in any request. Throughout this
-documentation, this is referred to as the ``node_ident``. Responses clearly
-indicate whether a given field is a ``uuid`` or a ``name``.
+.. versionchanged:: 1.6
+  A Node may be referenced both by its UUID and by a unique human-readable
+  "name" in any request. Throughout this documentation, this is referred to as
+  the ``node_ident``. Responses clearly indicate whether a given field is a
+  ``uuid`` or a ``name``.
 
 Depending on the Roles assigned to the authenticated OpenStack User, and upon
 the configuration of the Bare Metal service, API responses may change. For
@@ -34,22 +35,52 @@ This method requires that a ``driver`` be supplied in the request body.  Most
 subresources of a Node (eg, ``properties``, ``driver_info``, etc) may be
 supplied when the Node is created, or the resource may be updated later.
 
-If the specified driver is a dynamic driver (available from API microversion
-1.31), then all the interfaces (boot_interface, deploy_interface, etc.)
-will be set to the default interface for that driver unless another enabled
-interface is specified in the creation request.
+.. versionadded:: 1.2
+  Added ``available`` state name, which replaced ``None`` as the status of an
+  unprovisioned Node. All clients should be updated to use the new
+  ``available`` state name.  Nodes in the ``available`` state may have
+  workloads provisioned on them; they are "available" for use.
 
-API microversion 1.2 introduced the new ``available`` state name, which replaced
-``None`` as the status of an unprovisioned Node. All clients should be updated to
-use the new ``available`` state name.
+.. versionadded:: 1.5
+  Introduced the ``name`` field.
 
-Nodes in the ``available`` state may have workloads provisioned on them; they are
-"available" for use.
+.. versionadded:: 1.7
+  Introduced the ``clean_step`` field.
 
-API microversion 1.11 changed the default initial state of newly-created Nodes
-from ``available`` to ``enroll``. This provides users a workflow to verify the
-manageability of a Node and perform necessary operational functions (eg, building
-a RAID array) before making the Node available for provisioning.
+.. versionchanged:: 1.11
+  The default initial state of newly-created Nodes from ``available`` to
+  ``enroll``. This provides users a workflow to verify the manageability of a
+  Node and perform necessary operational functions (eg, building a RAID array)
+  before making the Node available for provisioning.
+
+.. versionadded:: 1.12
+  Introduced support for the ``raid_config`` and ``target_raid_config`` fields.
+
+.. versionadded:: 1.20
+  Introduced the ``network_interface`` field. If this field is not supplied
+  when creating the Node, the default value will be used.
+
+.. versionadded:: 1.21
+  Introduced the ``resource_class`` field, which may be used to store a
+  resource designation for the proposed OpenStack Placement Engine. This field
+  has no effect within Ironic.
+
+.. versionadded:: 1.31
+  Introduced the ``boot_interface``, ``deploy_interface``,
+  ``management_interface``, ``power_interface``, ``inspect_interface``,
+  ``console_interface``, ``vendor_interface`` and ``raid_interface`` fields. If
+  any of these fields are not supplied when creating the Node, their default
+  value will be used.
+
+.. versionchanged:: 1.31
+  If the specified driver is a dynamic driver, then all the interfaces
+  (boot_interface, deploy_interface, etc.) will be set to the default interface
+  for that driver unless another enabled interface is specified in the creation
+  request.
+
+.. versionadded:: 1.33
+  Introduced the ``storage_interface`` field. If this field is not supplied
+  when creating the Node, the default value will be used.
 
 Normal response codes: 201
 
@@ -78,32 +109,6 @@ Response
 The response will contain the complete Node record, with the supplied data,
 and any defaults added for non-specified fields. Most fields default to "null"
 or "".
-
-API microversion 1.5 introduced the ``name`` field.
-
-API microversion 1.7 introduced the ``clean_step`` field`
-
-API microversion 1.12 introduced support for the ``raid_config`` and
-``target_raid_config`` fields.
-
-API microversion 1.20 introduced the ``network_interface`` field. If this field
-is not supplied when creating the Node, the default value will be used.
-
-API microversion 1.21 introduced the ``resource_class`` field, which may be
-used to store a resource designation for the proposed OpenStack Placement
-Engine. This field has no effect within Ironic.
-
-API microversion 1.24 introduced the ``/nodes/{node_ident}/portgroups``
-endpoint.
-
-API microversion 1.31 introduced all of the ``*_interface`` fields
-(boot_interface, deploy_interface, etc.), with the exception of the
-network_interface field, which was introduced in API microversion 1.20. If this
-field is not supplied when creating the Node, the default value will be used.
-
-.. versionadded:: 1.33
-   The ``storage_interface`` field was introduced. If this field is not supplied when creating
-   the Node, the default value will be used.
 
 The list and example below are representative of the response as of API
 microversion 1.33.
@@ -166,18 +171,22 @@ each Node. Some filtering is possible by passing in flags with the request.
 By default, this query will return the name, uuid, instance uuid, power state,
 provision state, and maintenance setting for each Node.
 
-API microversion 1.8 added the ``fields`` Request parameter. When specified,
-this causes the content of the Response to include only the specified fields,
-rather than the default set.
+.. versionadded:: 1.8
+  Added the ``fields`` Request parameter. When specified,
+  this causes the content of the Response to include only the specified fields,
+  rather than the default set.
 
-API microversion 1.9 added the ``provision_state`` Request parameter, allowing
-the list of returned Nodes to be filtered by their current state.
+.. versionadded:: 1.9
+  Added the ``provision_state`` Request parameter, allowing the list of
+  returned Nodes to be filtered by their current state.
 
-API microversion 1.16 added the ``driver`` Request parameter, allowing
-the list of returned Nodes to be filtered by their driver name.
+.. versionadded:: 1.16
+  Added the ``driver`` Request parameter, allowing the list of returned Nodes
+  to be filtered by their driver name.
 
-API microversion 1.21 added the ``resource_class`` Request parameter,
-allowing the list of returned Nodes to be filtered by this field.
+.. versionadded:: 1.21
+  Added the ``resource_class`` Request parameter, allowing the list of returned
+  Nodes to be filtered by this field.
 
 Normal response codes: 200
 
@@ -381,7 +390,8 @@ Updates the information stored about a Node.
 Note that this endpoint can not be used to request state changes, which are
 managed through sub-resources.
 
-API microversion 1.25 introduced the ability to unset a node's chassis UUID.
+.. versionadded:: 1.25
+  Introduced the ability to unset a node's chassis UUID.
 
 Normal response codes: 200
 

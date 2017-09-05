@@ -4,6 +4,9 @@
 Drivers (drivers)
 =================
 
+.. versionchanged:: 1.30
+  The REST API now also exposes information about *dynamic* drivers.
+
 Ironic has two types of drivers: *classic* drivers and *dynamic* drivers.
 
 A *classic* driver is a Python object containing all the logic to manage the
@@ -12,15 +15,13 @@ more ``ironic-conductor`` services. Each driver contains a pre-determined set
 of instantiated interfaces. Each type of interface (eg, ``power`` or ``boot``)
 performs a specific hardware function.
 
-As of API version 1.30, the REST API also exposes information about *dynamic*
-drivers. *Dynamic* drivers are supported via hardware types, which are Python
-classes enabled via entry points. Unlike *classic* drivers, which have
-pre-determined interfaces, a hardware type may support multiple types of
-interfaces. For example, the ``ipmi`` hardware type may support multiple
-methods for enabling node console. Which interface a node of a particular
-hardware type uses is determined at runtime. This collection of interfaces is
-called a *dynamic* driver. For more information about this, see the node API
-documentation.
+*Dynamic* drivers are supported via hardware types, which are Python classes
+enabled via entry points. Unlike *classic* drivers, which have pre-determined
+interfaces, a hardware type may support multiple types of interfaces. For
+example, the ``ipmi`` hardware type may support multiple methods for enabling
+node console. Which interface a node of a particular hardware type uses is
+determined at runtime. This collection of interfaces is called a *dynamic*
+driver. For more information about this, see the node API documentation.
 
 The REST API exposes the list of drivers and which ``ironic-conductor``
 processes have loaded that driver via the Driver resource (``/v1/drivers``
@@ -73,8 +74,9 @@ drivers supported by this Ironic service.
    - links: links
    - properties: driver_property_links
 
-Additionally, if the request has the "detail" URL parameter set to true, each
-driver will also include the following fields.
+.. versionchanged:: 1.30
+  If the request has the "detail" URL parameter set to true, each
+  driver will also include the following fields.
 
 .. rest_parameters:: parameters.yaml
 
@@ -201,13 +203,13 @@ The following example is returned from the ``agent_ipmitool`` driver.
 Show driver logical disk properties
 ===================================
 
+.. versionadded:: 1.12
+
 .. rest_method::  GET /v1/drivers/{driver_name}/raid/logical_disk_properties
 
 Show the required and optional parameters that ``driver_name`` expects to be
 supplied in the node's ``raid_config`` field, if a RAID configuration change is
 requested.
-
-This resource was added in API microversion 1.12.
 
 Normal response codes: 200
 

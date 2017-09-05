@@ -70,7 +70,7 @@ port_ident:
   type: string
 portgroup_ident:
   description: |
-    The UUID or Name of the portgroup. Added in API microversion 1.23.
+    The UUID or Name of the portgroup.
   in: path
   required: true
   type: string
@@ -107,14 +107,13 @@ detail:
 driver_detail:
   description: |
     Whether to show detailed information about the drivers (e.g. the
-    "boot_interface" field). Added in API microversion 1.30.
+    "boot_interface" field).
   in: query
   required: false
   type: boolean
 driver_type:
   description: |
-    Only list drivers of this type. Options are "classic" or "dynamic". Added
-    in API microversion 1.30.
+    Only list drivers of this type. Options are "classic" or "dynamic".
   in: query
   required: false
   type: string
@@ -233,7 +232,6 @@ r_port_portgroup_ident:
   description: |
     Filter the list of returned Ports, and only return the ones associated
     with this specific Portgroup (name or UUID), or an empty set if not found.
-    Added in API microversion 1.24.
   in: query
   required: false
   type: string
@@ -241,7 +239,7 @@ r_portgroup_address:
   description: |
     Filter the list of returned Portgroups, and only return the ones with the
     specified physical hardware address, typically MAC, or an empty set if not
-    found. Added in API microversion 1.23.
+    found.
   in: query
   required: false
   type: string
@@ -249,7 +247,6 @@ r_portgroup_node_ident:
   description: |
     Filter the list of returned Portgroups, and only return the ones associated
     with this specific node (name or UUID), or an empty set if not found.
-    Added in API microversion 1.23.
   in: query
   required: false
   type: string
@@ -263,7 +260,7 @@ r_provision_state:
 r_resource_class:
   description: |
     Filter the list of returned nodes, and only return the ones with the
-    specified resource class. Introduced in API version 1.21.
+    specified resource class.
   in: query
   required: false
   type: string
@@ -271,7 +268,7 @@ r_volume_connector_node_ident:
   description: |
     Filter the list of returned Volume connectors, and only return the ones
     associated with this specific node (name or UUID), or an empty set if not
-    found. Added in API microversion 1.32.
+    found.
   in: query
   required: false
   type: string
@@ -279,7 +276,7 @@ r_volume_target_node_ident:
   description: |
     Filter the list of returned Volume targets, and only return the ones
     associated with this specific node (name or UUID), or an empty set if not
-    found. Added in API microversion 1.32.
+    found.
   in: query
   required: false
   type: string
@@ -332,7 +329,7 @@ boot_device:
   type: string
 boot_interface:
   description: |
-    The boot interface for a Node, e.g. "pxe". Added in API microversion 1.31.
+    The boot interface for a Node, e.g. "pxe".
   in: body
   required: true
   type: string
@@ -379,8 +376,7 @@ console_enabled:
   type: boolean
 console_interface:
   description: |
-    The console interface for a node, e.g. "no-console". Added in API
-    microversion 1.31.
+    The console interface for a node, e.g. "no-console".
   in: body
   required: true
   type: string
@@ -394,86 +390,76 @@ created_at:
 default_boot_interface:
   description: |
     The default boot interface used for a node with a dynamic driver, if no
-    boot interface is specified for the node. Added in API microversion 1.30.
+    boot interface is specified for the node.
   in: body
   required: true
   type: string
 default_console_interface:
   description: |
     The default console interface used for a node with a dynamic driver, if no
-    console interface is specified for the node. Added in API microversion
-    1.30.
+    console interface is specified for the node.
   in: body
   required: true
   type: string
 default_deploy_interface:
   description: |
     The default deploy interface used for a node with a dynamic driver, if no
-    deploy interface is specified for the node. Added in API microversion
-    1.30.
+    deploy interface is specified for the node.
   in: body
   required: true
   type: string
 default_inspect_interface:
   description: |
     The default inspection interface used for a node with a dynamic driver, if
-    no inspection interface is specified for the node. Added in API
-    microversion 1.30.
+    no inspection interface is specified for the node.
   in: body
   required: true
   type: string
 default_management_interface:
   description: |
     The default management interface used for a node with a dynamic driver, if
-    no management interface is specified for the node. Added in API
-    microversion 1.30.
+    no management interface is specified for the node.
   in: body
   required: true
   type: string
 default_network_interface:
   description: |
     The default network interface used for a node with a dynamic driver, if
-    no network interface is specified for the node. Added in API
-    microversion 1.30.
+    no network interface is specified for the node.
   in: body
   required: true
   type: string
 default_power_interface:
   description: |
     The default power interface used for a node with a dynamic driver, if
-    no power interface is specified for the node. Added in API
-    microversion 1.30.
+    no power interface is specified for the node.
   in: body
   required: true
   type: string
 default_raid_interface:
   description: |
     The default RAID interface used for a node with a dynamic driver, if
-    no RAID interface is specified for the node. Added in API
-    microversion 1.30.
+    no RAID interface is specified for the node.
   in: body
   required: true
   type: string
 default_storage_interface:
   description: |
     The default storage interface used for a node with a dynamic driver, if
-    no storage interface is specified for the node. Added in API
-    microversion 1.33.
+    no storage interface is specified for the node.
   in: body
   required: true
   type: string
 default_vendor_interface:
   description: |
     The default vendor interface used for a node with a dynamic driver, if
-    no vendor interface is specified for the node. Added in API
-    microversion 1.30.
+    no vendor interface is specified for the node.
   in: body
   required: true
   type: string
 deploy_interface:
   description: |
-    The deploy interface for a node, e.g. "iscsi". Added in API microversion
-    1.31.
+    The deploy interface for a node, e.g. "iscsi".
   in: body
   required: true
   type: string
@@ -504,7 +490,7 @@ driver_name:
   type: string
 driver_property_links:
   description: |
-    A list of links to driver properties. Added in API microversion 1.14.
+    A list of links to driver properties.
   in: body
   required: true
   type: array
@@ -516,71 +502,61 @@ drivers:
   type: array
 enabled_boot_interfaces:
   description: |
-    The enabled boot interfaces for this driver. Added in API microversion
-    1.30.
+    The enabled boot interfaces for this driver.
   in: body
   required: true
   type: list
 enabled_console_interfaces:
   description: |
-    The enabled console interfaces for this driver. Added in API microversion
-    1.30.
+    The enabled console interfaces for this driver.
   in: body
   required: true
   type: list
 enabled_deploy_interfaces:
   description: |
-    The enabled deploy interfaces for this driver. Added in API microversion
-    1.30.
+    The enabled deploy interfaces for this driver.
   in: body
   required: true
   type: list
 enabled_inspect_interfaces:
   description: |
-    The enabled inspection interfaces for this driver. Added in API
-    microversion 1.30.
+    The enabled inspection interfaces for this driver.
   in: body
   required: true
   type: list
 enabled_management_interfaces:
   description: |
-    The enabled management interfaces for this driver. Added in API
-    microversion 1.30.
+    The enabled management interfaces for this driver.
   in: body
   required: true
   type: list
 enabled_network_interfaces:
   description: |
-    The enabled network interfaces for this driver. Added in API microversion
-    1.30.
+    The enabled network interfaces for this driver.
   in: body
   required: true
   type: list
 enabled_power_interfaces:
   description: |
-    The enabled power interfaces for this driver. Added in API microversion
-    1.30.
+    The enabled power interfaces for this driver.
   in: body
   required: true
   type: list
 enabled_raid_interfaces:
   description: |
-    The enabled RAID interfaces for this driver. Added in API microversion
-    1.30.
+    The enabled RAID interfaces for this driver.
   in: body
   required: true
   type: list
 enabled_storage_interfaces:
   description: |
-    The enabled storage interfaces for this driver. Added in API microversion
-    1.33.
+    The enabled storage interfaces for this driver.
   in: body
   required: true
   type: list
 enabled_vendor_interfaces:
   description: |
-    The enabled vendor interfaces for this driver. Added in API microversion
-    1.30.
+    The enabled vendor interfaces for this driver.
   in: body
   required: true
   type: list
@@ -605,8 +581,7 @@ id:
   type: string
 inspect_interface:
   description: |
-    The interface used for node inspection, e.g. "no-inspect". Added in API
-    microversion 1.31.
+    The interface used for node inspection, e.g. "no-inspect".
   in: body
   required: true
   type: string
@@ -644,7 +619,6 @@ instance_uuid:
 internal_info:
   description: |
     Internal metadata set and stored by the Port. This field is read-only.
-    Added in API microversion 1.18.
   in: body
   required: true
   type: JSON
@@ -668,7 +642,6 @@ local_link_connection:
     in this field) and ``port_id`` (identifier of the physical port on the
     switch to which node's port is connected to) fields. ``switch_info`` is an
     optional string field to be used to store any vendor-specific information.
-    Added in API microversion 1.19.
   in: body
   required: true
   type: JSON
@@ -691,15 +664,13 @@ maintenance_reason:
   type: string
 management_interface:
   description: |
-    Interface for out-of-band node management, e.g. "ipmitool". Added in API
-    microversion 1.31.
+    Interface for out-of-band node management, e.g. "ipmitool".
   in: body
   required: true
   type: string
 n_portgroups:
   description: |
     Links to the collection of portgroups on this node.
-    Added in API microversion 1.24.
   in: body
   required: true
   type: array
@@ -725,13 +696,13 @@ n_states:
   type: array
 n_vifs:
   description: |
-    VIFs attached to this node. Added in API microversion 1.28.
+    VIFs attached to this node.
   in: body
   required: true
   type: array
 n_volume:
   description: |
-    Links to the volume resources. Added in API microversion 1.32.
+    Links to the volume resources.
   in: body
   required: true
   type: array
@@ -744,7 +715,7 @@ name:
 network_interface:
   description: |
     Which Network Interface provider to use when plumbing the network
-    connections for this Node. Added in API microversion v1.20
+    connections for this Node.
   in: body
   required: true
   type: string
@@ -758,7 +729,7 @@ next:
 node_name:
   description: |
     Human-readable identifier for the Node resource. May be undefined. Certain
-    words are reserved. Added in API microversion 1.5
+    words are reserved.
   in: body
   required: false
   type: string
@@ -770,7 +741,7 @@ node_uuid:
   type: string
 node_vif_ident:
   description: |
-    The UUID or name of the VIF. Added in API microversion 1.28.
+    The UUID or name of the VIF.
   in: body
   required: true
   type: string
@@ -816,15 +787,14 @@ persistent:
   type: boolean
 pg_ports:
   description: |
-    Links to the collection of ports belonging to this portgroup. Added in
-    API microversion 1.24.
+    Links to the collection of ports belonging to this portgroup.
   in: body
   required: true
   type: array
 physical_network:
   description: |
     The name of the physical network to which a port is connected. May be
-    empty. Added in API microversion 1.34.
+    empty.
   in: body
   required: true
   type: string
@@ -838,14 +808,13 @@ port_address:
 portgroup_address:
   description: |
     Physical hardware address of this Portgroup, typically the hardware
-    MAC address. Added in API microversion 1.23.
+    MAC address.
   in: body
   required: true
   type: string
 portgroup_internal_info:
   description: |
     Internal metadata set and stored by the Portgroup. This field is read-only.
-    Added in API microversion 1.23.
   in: body
   required: true
   type: JSON
@@ -855,33 +824,31 @@ portgroup_mode:
     https://www.kernel.org/doc/Documentation/networking/bonding.txt. If not
     specified in a request to create a port group, it will be set to the value
     of the ``[DEFAULT]default_portgroup_mode`` configuration option. When set,
-    can not be removed from the port group. Added in API microversion 1.26.
+    can not be removed from the port group.
   in: body
   required: true
   type: string
 portgroup_name:
   description: |
     Human-readable identifier for the Portgroup resource. May be undefined.
-    Added in API microversion 1.23.
   in: body
   required: false
   type: string
 portgroup_properties:
   description: |
     Key/value properties related to the port group's configuration.
-    Added in API microversion 1.26.
   in: body
   required: true
   type: JSON
 portgroup_uuid:
   description: |
-    UUID of the Portgroup this resource belongs to. Added in API microversion 1.23.
+    UUID of the Portgroup this resource belongs to.
   in: body
   required: true
   type: string
 portgroups:
   description: |
-    A collection of Portgroup resources. Added in API microversion 1.23.
+    A collection of Portgroup resources.
   in: body
   required: true
   type: array
@@ -894,7 +861,6 @@ ports:
 power_interface:
   description: |
     Interface used for performing power actions on the node, e.g. "ipmitool".
-    Added in API microversion 1.31.
   in: body
   required: true
   type: string
@@ -907,7 +873,7 @@ power_state:
   type: string
 power_timeout:
   description: |
-    Timeout for a power state transition. Added in API microversion 1.27.
+    Timeout for a power state transition.
   in: body
   required: false
   type: integer
@@ -933,8 +899,7 @@ provision_updated_at:
   type: string
 pxe_enabled:
   description: |
-    Indicates whether PXE is enabled or disabled on the Port. Added in API
-    microversion 1.19.
+    Indicates whether PXE is enabled or disabled on the Port.
   in: body
   required: true
   type: boolean
@@ -953,8 +918,7 @@ raid_config:
   type: JSON
 raid_interface:
   description: |
-    Interface used for configuring RAID on this node, e.g. "no-raid". Added in
-    API microversion 1.31.
+    Interface used for configuring RAID on this node, e.g. "no-raid".
   in: body
   required: true
   type: string
@@ -982,7 +946,7 @@ resource_class:
   description: |
     A string which can be used by external schedulers to identify this Node as
     a unit of a specific type of resource. This will be used by the openstack
-    Placement Engine in a future release. Added in API microversion 1.21.
+    Placement Engine in a future release.
   in: body
   required: true
   type: string
@@ -995,14 +959,14 @@ response_driver_type:
 standalone_ports_supported:
   description: |
     Indicates whether ports that are members of this portgroup can be
-    used as stand-alone ports. Added in API microversion 1.23.
+    used as stand-alone ports.
   in: body
   required: true
   type: boolean
 storage_interface:
   description: |
     Interface used for attaching and detaching volumes on this node, e.g.
-    "cinder". Added in API microversion 1.33.
+    "cinder".
   in: body
   required: true
   type: string
@@ -1015,9 +979,8 @@ supported_boot_devices:
 target_power_state:
   description: |
     If a power state transition has been requested, this field represents the
-    requested (ie, "target") state either "power on", "power off", or "rebooting".
-    Added new target power states "soft power off" and "soft rebooting" in API
-    microversion 1.27.
+    requested (ie, "target") state either "power on", "power off", "rebooting",
+    "soft power off" or "soft rebooting".
   in: body
   required: true
   type: string
@@ -1100,7 +1063,6 @@ v_raid:
 vendor_interface:
   description: |
     Interface for vendor-specific functionality on this node, e.g. "no-vendor".
-    Added in API microversion 1.31.
   in: body
   required: true
   type: string

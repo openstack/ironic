@@ -4,16 +4,14 @@
 Listing Volume resources by Node (nodes, volume)
 ================================================
 
+.. versionadded:: 1.32
+
 Given a Node identifier (``uuid`` or ``name``), the API exposes the list of,
 and details of, all Volume resources associated with that Node.
 
 These endpoints do not allow modification of the Volume connectors and Volume
 targets; that should be done by accessing the Volume resources under the
 ``/v1/volume/connectors`` and ``/v1/volume/targets`` endpoint.
-
-Volume resource was added in API microversion 1.32. If using an older
-version, all the requests return ``Not Found (404)`` error code.
-
 
 List Links of Volume Resources by Node
 ======================================

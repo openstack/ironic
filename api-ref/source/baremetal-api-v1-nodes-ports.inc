@@ -18,16 +18,19 @@ List Ports by Node
 
 Return a list of bare metal Ports associated with ``node_ident``.
 
-API microversion 1.8 added the ``fields`` request parameter. When specified,
-this causes the content of the response to include only the specified fields,
-rather than the default set.
+.. versionadded:: 1.8
+  Added the ``fields`` request parameter. When specified, this causes the
+  content of the response to include only the specified fields, rather than the
+  default set.
 
-API microversion 1.19 added the ``pxe_enabled`` and ``local_link_connection``
-fields.
+.. versionadded:: 1.19
+  Added the ``pxe_enabled`` and ``local_link_connection`` fields.
 
-API microversion 1.24 added the ``portgroup_uuid`` field.
+.. versionadded:: 1.24
+  Added the ``portgroup_uuid`` field.
 
-API microversion 1.34 added the ``physical_network`` field.
+.. versionadded:: 1.34
+  Added the ``physical_network`` field.
 
 Normal response code: 200
 
@@ -67,12 +70,14 @@ List detailed Ports by Node
 
 Return a detailed list of bare metal Ports associated with ``node_ident``.
 
-API microversion 1.19 added the ``pxe_enabled`` and ``local_link_connection``
-fields.
+.. versionadded:: 1.19
+  Added the ``pxe_enabled`` and ``local_link_connection`` fields.
 
-API microversion 1.24 added the ``portgroup_uuid`` field.
+.. versionadded:: 1.24
+  Added the ``portgroup_uuid`` field.
 
-API microversion 1.34 added the ``physical_network`` field.
+.. versionadded:: 1.34
+  Added the ``physical_network`` field.
 
 Normal response code: 200
 

@@ -4,10 +4,12 @@
 Portgroups (portgroups)
 =======================
 
-Starting with API version 1.23 ports can be combined into portgroups to support
-static link aggregation group (LAG) or multi-chassis link aggregation group
-(MLAG) configurations. Listing, Searching, Creating, Updating, and Deleting of
-bare metal Portgroup resources are done through the ``v1/portgroups`` resource.
+.. versionadded:: 1.23
+
+Ports can be combined into portgroups to support static link aggregation group
+(LAG) or multi-chassis link aggregation group (MLAG) configurations. Listing,
+Searching, Creating, Updating, and Deleting of bare metal Portgroup resources
+are done through the ``v1/portgroups`` resource.
 
 All Portgroups must be associated with a Node when created. This association
 can be changed, though the request may be rejected if either the current

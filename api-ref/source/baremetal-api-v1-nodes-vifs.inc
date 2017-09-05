@@ -4,10 +4,12 @@
 VIFs (Virtual Interfaces) of nodes
 ==================================
 
-Starting with API version 1.28 attaching and detaching VIFs (Virtual Interfaces)
-to or from a node are done via the ``v1/nodes/{node_ident}/vifs`` endpoint. Attaching
-a VIF to a node means that a VIF will be mapped to a free port or port group of
-the specified node.
+.. versionadded:: 1.28
+
+Attaching and detaching VIFs (Virtual Interfaces) to or from a node are done
+via the ``v1/nodes/{node_ident}/vifs`` endpoint. Attaching a VIF to a node
+means that a VIF will be mapped to a free port or port group of the specified
+node.
 
 List attached VIFs of a Node
 ============================
