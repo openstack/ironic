@@ -68,7 +68,7 @@ def create_schema(config=None, engine=None):
     #                schema, it will only add the new tables, but leave
     #                existing as is. So we should avoid of this situation.
     if version(engine=engine) is not None:
-        raise db_exc.DbMigrationError("DB schema is already under version"
+        raise db_exc.DBMigrationError("DB schema is already under version"
                                       " control. Use upgrade() instead")
 
     models.Base.metadata.create_all(engine)
