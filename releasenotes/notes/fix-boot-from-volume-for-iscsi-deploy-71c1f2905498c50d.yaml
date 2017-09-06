@@ -1,9 +1,9 @@
 ---
 fixes:
   - |
-    Fixes an issue in boot from volume for ``iscsi`` deploy interface. Boot
-    from a volume fails when it is requested for a node having ``iscsi``
-    deploy interface and no ``image_source`` is provided in node's
-    ``node.instance_info``. It fails while trying to perform validation of
-    ``image_source``. See `bug 1714147
-    <https://bugs.launchpad.net/ironic/+bug/1714147>`_ for details.
+    Fixes an issue in boot from volume for a node with the ``iscsi`` deploy
+    interface. It would fail if no ``image_source`` was provided in the node's
+    ``instance_info`` field because it would try to validate the
+    ``image_source`` which didn't exist. There is no need to specify the
+    ``image_source`` and the validation is no longer being attempted. See
+    `bug 1714147 <https://bugs.launchpad.net/ironic/+bug/1714147>`_ for details.
