@@ -63,8 +63,10 @@ Hardware Interfaces
 The ``ilo`` hardware type supports following hardware interfaces:
 
 * boot
-    ``ilo-virtual-media`` and ``ilo-pxe``. They can be enabled via the
-    ``enabled_boot_interfaces`` option:
+    Supports ``ilo-virtual-media`` and ``ilo-pxe``. The default is
+    ``ilo-virtual-media``. They can be enabled by using the
+    ``[DEFAULT]enabled_boot_interfaces`` option in ``ironic.conf``
+    as given below:
 
     .. code-block:: ini
 
@@ -72,13 +74,21 @@ The ``ilo`` hardware type supports following hardware interfaces:
         enabled_hardware_types = ilo
         enabled_boot_interfaces = ilo-virtual-media,ilo-pxe
 
-    .. note::
-       ``ilo-virtual-media`` is the default ``boot`` interface for ``ilo``
-       hardware type.
+* console
+    Supports ``ilo`` and ``no-console``. The default is ``ilo``.
+    They can be enabled by using the ``[DEFAULT]enabled_console_interfaces``
+    option in ``ironic.conf`` as given below:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = ilo
+        enabled_console_interfaces = ilo,no-console
 
 * inspect
-    ``ilo`` and ``inspector``. They can be enabled via the
-    ``enabled_inspect_interfaces`` option:
+    Supports ``ilo`` and ``inspector``. The default is ``ilo``. They
+    can be enabled by using the ``[DEFAULT]enabled_inspect_interfaces`` option
+    in ``ironic.conf`` as given below:
 
     .. code-block:: ini
 
@@ -87,13 +97,13 @@ The ``ilo`` hardware type supports following hardware interfaces:
         enabled_inspect_interfaces = ilo,inspector
 
     .. note::
-       ``ilo`` is the default ``inspect`` interface for ``ilo``
-       hardware type. `Ironic Inspector <https://docs.openstack.org/ironic-inspector/pike/>`_
+       `Ironic Inspector <https://docs.openstack.org/ironic-inspector/pike/>`_
        needs to be configured to use ``inspector`` as the inspect interface.
 
 * management
-    ``ilo``. It can be enabled via the
-    ``enabled_management_interfaces`` option:
+    Supports only ``ilo``. It can be enabled by using the
+    ``[DEFAULT]enabled_management_interfaces`` option in ``ironic.conf`` as
+    given below:
 
     .. code-block:: ini
 
@@ -102,14 +112,46 @@ The ``ilo`` hardware type supports following hardware interfaces:
         enabled_management_interfaces = ilo
 
 * power
-    ``ilo``. It can be enabled via the
-    ``enabled_power_interfaces`` option:
+    Supports only ``ilo``. It can be enabled by using the
+    ``[DEFAULT]enabled_power_interfaces`` option in ``ironic.conf`` as given
+    below:
 
     .. code-block:: ini
 
         [DEFAULT]
         enabled_hardware_types = ilo
         enabled_power_interfaces = ilo
+
+* raid
+    Supports ``agent`` and ``no-raid``. The default is ``no-raid``.
+    They can be enabled by using the ``[DEFAULT]enabled_raid_interfaces``
+    option in ``ironic.conf`` as given below:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = ilo
+        enabled_raid_interfaces = agent,no-raid
+
+* storage
+    Supports ``cinder`` and ``noop``. The default is ``noop``.
+    They can be enabled by using the ``[DEFAULT]enabled_storage_interfaces``
+    option in ``ironic.conf`` as given below:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = ilo
+        enabled_storage_interfaces = cinder,noop
+
+    .. note::
+       The storage interface ``cinder`` is supported only when corresponding
+       boot interface of the ``ilo`` hardware type based node is ``ilo-pxe``.
+       Please refer to :doc:`/admin/boot-from-volume` for configuring
+       ``cinder`` as a storage interface.
+
+``ilo`` hardware type supports all standard ``deploy`` and ``network``
+interface implementations, see :ref:`enable-hardware-interfaces` for details.
 
 The following command can be used to enroll a ProLiant node with
 ``ilo`` hardware type:
