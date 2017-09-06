@@ -26,6 +26,7 @@ Current list of mocked libraries:
 - pysnmp
 - scciclient
 - oneview_client
+- hpOneView
 - pywsman
 - python-dracclient
 """
@@ -94,6 +95,22 @@ oneview_client_module = importutils.try_import('oneview_client.client')
 # about mocks when it loads a module in mock_the_extension_manager
 sys.modules['oneview_client.client'].Client = mock.MagicMock(
     spec_set=mock_specs.ONEVIEWCLIENT_CLIENT_CLS_SPEC
+)
+if 'ironic.drivers.oneview' in sys.modules:
+    six.moves.reload_module(sys.modules['ironic.drivers.modules.oneview'])
+
+
+hpOneView = importutils.try_import('hpOneView')
+if not hpOneView:
+    hpOneView = mock.MagicMock(spec_set=mock_specs.HPONEVIEW_SPEC)
+    sys.modules['hpOneView'] = hpOneView
+    sys.modules['hpOneView.oneview_client'] = hpOneView.oneview_client
+    sys.modules['hpOneView.resources'] = hpOneView.resources
+    sys.modules['hpOneView.exceptions'] = hpOneView.exceptions
+    hpOneView.exceptions.HPOneViewException = type('HPOneViewException',
+                                                   (Exception,), {})
+sys.modules['hpOneView.oneview_client'].OneViewClient = mock.MagicMock(
+    spec_set=mock_specs.HPONEVIEW_CLS_SPEC
 )
 if 'ironic.drivers.oneview' in sys.modules:
     six.moves.reload_module(sys.modules['ironic.drivers.modules.oneview'])
