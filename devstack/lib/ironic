@@ -1107,19 +1107,7 @@ function configure_ironic_conductor {
         configure_adapter_for $conf_section
     done
 
-    cp $IRONIC_DIR/etc/ironic/rootwrap.conf $IRONIC_ROOTWRAP_CONF
-    cp -r $IRONIC_DIR/etc/ironic/rootwrap.d $IRONIC_CONF_DIR
-    local ironic_rootwrap
-    ironic_rootwrap=$(get_rootwrap_location ironic)
-    local rootwrap_isudoer_cmd="$ironic_rootwrap $IRONIC_CONF_DIR/rootwrap.conf *"
-
-    # Set up the rootwrap sudoers for ironic
-    local tempfile
-    tempfile=`mktemp`
-    echo "$STACK_USER ALL=(root) NOPASSWD: $rootwrap_isudoer_cmd" >$tempfile
-    chmod 0440 $tempfile
-    sudo chown root:root $tempfile
-    sudo mv $tempfile /etc/sudoers.d/ironic-rootwrap
+    configure_rootwrap ironic
 
     # set up drivers / hardware types
     iniset $IRONIC_CONF_FILE DEFAULT enabled_drivers $IRONIC_ENABLED_DRIVERS
