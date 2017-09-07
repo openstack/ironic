@@ -41,16 +41,16 @@ Things to do before releasing
 
 * For ironic releases only, not ironic-inspector releases: if any new API
   microversions have been added since the last release, update the REST API
-  version history (doc/source/contributor/webapi-version-history.rst) to
+  version history (``doc/source/contributor/webapi-version-history.rst``) to
   indicate that they were part of the new release.
 
 * To support rolling upgrades, add this new release version (and release name
-  if it is a named release) into ironic/common/release_mappings.py:
+  if it is a named release) into ``ironic/common/release_mappings.py``:
 
-  * in RELEASE_MAPPING, make a copy of the 'master' entry, and rename the first
-    'master' entry to the new semver release version.
+  * in ``RELEASE_MAPPING`` make a copy of the ``master`` entry, and rename the
+    first ``master`` entry to the new semver release version.
 
-  * If this is a named release, add a RELEASE_MAPPING entry for the named
+  * If this is a named release, add a ``RELEASE_MAPPING`` entry for the named
     release. Its value should be the same as that of the latest semver one
     (that you just added above).
 
@@ -77,8 +77,8 @@ This includes:
 
 * In the new stable branch:
 
-  * a change to point .gitreview at the branch
-  * a change to update the upper constraints file used by tox
+  * a change to point ``.gitreview`` at the branch
+  * a change to update the upper constraints file used by ``tox``
 
 * In the master branch:
 
@@ -92,13 +92,13 @@ We need to submit patches for changes in the stable branch to:
 * update the ironic devstack plugin to point at the branched tarball for IPA.
   An example of this patch is
   `here <https://review.openstack.org/#/c/374863/>`_.
-* update links in the documentation (ironic/doc/source/) to point to the
+* update links in the documentation (``ironic/doc/source/``) to point to the
   branched versions of any openstack projects' (that branch) documents.
   As of Pike release, the only outlier is
-  `diskimagebuilder <https://docs.openstack.org/diskimage-builder/latest/>`_.
-* set appropriate defaults for TEMPEST_BAREMETAL_MIN_MICROVERSION and
-  TEMPEST_BAREMETAL_MAX_MICROVERSION in devstack/lib/ironic to make sure that
-  unsupported API tempest tests are skipped on stable branches. E.g.
+  `diskimage-builder <https://docs.openstack.org/diskimage-builder/latest/>`_.
+* set appropriate defaults for ``TEMPEST_BAREMETAL_MIN_MICROVERSION`` and
+  ``TEMPEST_BAREMETAL_MAX_MICROVERSION`` in ``devstack/lib/ironic`` to make sure
+  that unsupported API tempest tests are skipped on stable branches. E.g.
   `patch 495319 <https://review.openstack.org/495319>`_.
 
 We need to submit patches for changes on master to:
@@ -111,15 +111,15 @@ We need to submit patches for changes on master to:
 
 * to support rolling upgrades, since the release was a named release:
 
-  * In ironic/common/release_mappings.py, delete any entries from RELEASE_MAPPING
-    associated with the oldest named release. Since we support upgrades between
-    adjacent named releases, the master branch will only support upgrades from
-    the most recent named release to master.
+  * In ``ironic/common/release_mappings.py``, delete any entries from
+    ``RELEASE_MAPPING`` associated with the oldest named release. Since we
+    support upgrades between adjacent named releases, the master branch will
+    only support upgrades from the most recent named release to master.
 
   * regenerate the sample config file, so that the choices for the
     ``[DEFAULT]/pin_release_version`` configuration are accurate.
 
-  * remove any DB migration scripts from ironic.cmd.dbsync.ONLINE_MIGRATIONS
+  * remove any DB migration scripts from ``ironic.cmd.dbsync.ONLINE_MIGRATIONS``
     and remove the corresponding code from ironic. (These migration scripts
     are used to migrate from an old release to this latest release; they
     shouldn't be needed after that.)
