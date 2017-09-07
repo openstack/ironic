@@ -1,0 +1,18 @@
+---
+prelude: >
+    This release includes a fix for a major `race condition
+    <https://bugs.launchpad.net/ironic/+bug/1715190>`_:
+    use the ``ironic-dbsync online_data_migrations`` command from this
+    release. The one from older (9.0.0 - 9.1.0) releases could cause a
+    a port's physical_network information to be deleted from the database.
+
+upgrade:
+  - |
+    Use the ``ironic-dbsync online_data_migrations`` command from this
+    release. The one from older (9.0.0 - 9.1.0) releases could cause a
+    a port's physical_network information to be deleted from the database.
+critical:
+  - |
+    Use the ``ironic-dbsync online_data_migrations`` command from this
+    release. The one from older (9.0.0 - 9.1.0) releases could cause a
+    a port's physical_network information to be deleted from the database.
