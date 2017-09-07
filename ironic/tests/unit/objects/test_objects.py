@@ -290,7 +290,7 @@ class _TestObject(object):
         self.assertEqual('updated', obj.bar)
 
     def test_base_attributes(self):
-        dt = datetime.datetime(1955, 11, 5, 0, 0, tzinfo=iso8601.iso8601.Utc())
+        dt = datetime.datetime(1955, 11, 5, 0, 0, tzinfo=iso8601.UTC)
         datatime = fields.DateTimeField()
         obj = MyObj(self.context)
         obj.created_at = dt
