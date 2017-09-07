@@ -560,7 +560,7 @@ class NodeStatesController(rest.RestController):
         :param target: The desired provision state of the node or verb.
         :param configdrive: Optional. A gzipped and base64 encoded
             configdrive. Only valid when setting provision state
-            to "active".
+            to "active" or "rebuild".
         :param clean_steps: An ordered list of cleaning steps that will be
             performed on the node. A cleaning step is a dictionary with
             required keys 'interface' and 'step', and optional key 'args'. If
@@ -622,11 +622,8 @@ class NodeStatesController(rest.RestController):
                 action=target, node=rpc_node.uuid,
                 state=rpc_node.provision_state)
 
-        if configdrive and target != ir_states.ACTIVE:
-            msg = (_('Adding a config drive is only supported when setting '
-                     'provision state to %s') % ir_states.ACTIVE)
-            raise wsme.exc.ClientSideError(
-                msg, status_code=http_client.BAD_REQUEST)
+        if configdrive:
+            api_utils.check_allow_configdrive(target)
 
         if clean_steps and target != ir_states.VERBS['clean']:
             msg = (_('"clean_steps" is only valid when setting target '
@@ -637,14 +634,13 @@ class NodeStatesController(rest.RestController):
         # Note that there is a race condition. The node state(s) could change
         # by the time the RPC call is made and the TaskManager manager gets a
         # lock.
-        if target == ir_states.ACTIVE:
-            pecan.request.rpcapi.do_node_deploy(pecan.request.context,
-                                                rpc_node.uuid, False,
-                                                configdrive, topic)
-        elif target == ir_states.REBUILD:
-            pecan.request.rpcapi.do_node_deploy(pecan.request.context,
-                                                rpc_node.uuid, True,
-                                                None, topic)
+        if target in (ir_states.ACTIVE, ir_states.REBUILD):
+            rebuild = (target == ir_states.REBUILD)
+            pecan.request.rpcapi.do_node_deploy(context=pecan.request.context,
+                                                node_id=rpc_node.uuid,
+                                                rebuild=rebuild,
+                                                configdrive=configdrive,
+                                                topic=topic)
         elif target == ir_states.DELETED:
             pecan.request.rpcapi.do_node_tear_down(
                 pecan.request.context, rpc_node.uuid, topic)
