@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue when running ``ironic-dbsync online_data_migrations``. The
+    value of an object's new ``version`` column might have been incorrectly
+    changed from a newer object version to an older object version, due to a
+    race condition. This is no longer the case.

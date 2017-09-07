@@ -1218,11 +1218,18 @@ class Connection(api.Connection):
                     ids = []
                     for obj in query.slice(0, max_to_migrate):
                         ids.append(obj['id'])
-                    query = model_query(model).filter(model.id.in_(ids))
-
-                num_migrated = query.update(
-                    {model.version: mapping[model.__name__][0]},
-                    synchronize_session=False)
+                    num_migrated = (
+                        model_query(model).
+                        filter(sql.and_(model.id.in_(ids),
+                                        model.version.is_(None))).
+                        update({model.version: mapping[model.__name__][0]},
+                               synchronize_session=False))
+                else:
+                    num_migrated = (
+                        model_query(model).
+                        filter(model.version.is_(None)).
+                        update({model.version: mapping[model.__name__][0]},
+                               synchronize_session=False))
 
             total_migrated += num_migrated
             max_to_migrate -= num_migrated
