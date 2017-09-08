@@ -13,19 +13,21 @@ It is necessary to figure out which hardware types and hardware interfaces
 correspond to which classic drivers used in your deployment.
 Use the following table:
 
-================ ============= ==================== ====== ========== =========
- Classic Driver  Hardware Type         Boot         Deploy Management   Power
-================ ============= ==================== ====== ========== =========
-pxe_ilo          ilo           ilo-pxe              iscsi  ilo        ilo
-agent_ilo        ilo           ilo-virtual-media    direct ilo        ilo
-iscsi_ilo        ilo           ilo-virtual-media    iscsi  ilo        ilo
-pxe_ipmitool     ipmi          pxe                  iscsi  ipmitool   ipmitool
-agent_ipmitool   ipmi          pxe                  direct ipmitool   ipmitool
-pxe_irmc         irmc          irmc-pxe             iscsi  irmc       irmc
-iscsi_irmc       irmc          irmc-virtual-media   iscsi  irmc       irmc
-agent_irmc       irmc          irmc-virtual-media   direct irmc       irmc
-pxe_snmp         snmp          pxe                  iscsi  fake       snmp
-================ ============= ==================== ====== ========== =========
+================== ============= ==================== ============== ========== =========
+  Classic Driver   Hardware Type         Boot             Deploy     Management   Power
+================== ============= ==================== ============== ========== =========
+pxe_ilo            ilo           ilo-pxe              iscsi          ilo        ilo
+agent_ilo          ilo           ilo-virtual-media    direct         ilo        ilo
+iscsi_ilo          ilo           ilo-virtual-media    iscsi          ilo        ilo
+pxe_ipmitool       ipmi          pxe                  iscsi          ipmitool   ipmitool
+agent_ipmitool     ipmi          pxe                  direct         ipmitool   ipmitool
+pxe_irmc           irmc          irmc-pxe             iscsi          irmc       irmc
+iscsi_irmc         irmc          irmc-virtual-media   iscsi          irmc       irmc
+agent_irmc         irmc          irmc-virtual-media   direct         irmc       irmc
+agent_pxe_oneview  oneview       pxe                  oneview-direct oneview    oneview
+iscsi_pxe_oneview  oneview       pxe                  oneview-iscsi  oneview    oneview
+pxe_snmp           snmp          pxe                  iscsi          fake       snmp
+================== ============= ==================== ============== ========== =========
 
 .. TODO(dtantsur): finish this table
 
