@@ -102,7 +102,7 @@ class TestVersion(base.BaseApiTest):
         self.assertTrue(hasattr(ver_1, '__eq__'))
         self.assertEqual(ver_1, ver_2)
         # Force __eq__ to be called and return False
-        self.assertFalse(ver_1 == ver_3)
+        self.assertFalse(ver_1 == ver_3)  # noqa
 
     def test_not_equals(self):
         ver_1 = cbase.Version(
@@ -114,7 +114,7 @@ class TestVersion(base.BaseApiTest):
         self.assertTrue(hasattr(ver_1, '__ne__'))
         self.assertNotEqual(ver_1, ver_3)
         # Force __ne__ to be called and return False
-        self.assertFalse(ver_1 != ver_2)
+        self.assertFalse(ver_1 != ver_2)  # noqa
 
     def test_greaterthan(self):
         ver_1 = cbase.Version(
@@ -124,7 +124,7 @@ class TestVersion(base.BaseApiTest):
         self.assertTrue(hasattr(ver_1, '__gt__'))
         self.assertGreater(ver_1, ver_2)
         # Force __gt__ to be called and return False
-        self.assertFalse(ver_2 > ver_1)
+        self.assertFalse(ver_2 > ver_1)  # noqa
 
     def test_lessthan(self):
         # __lt__ is created by @functools.total_ordering, make sure it exists
@@ -136,4 +136,4 @@ class TestVersion(base.BaseApiTest):
         self.assertTrue(hasattr(ver_1, '__lt__'))
         self.assertLess(ver_1, ver_2)
         # Force __lt__ to be called and return False
-        self.assertFalse(ver_2 < ver_1)
+        self.assertFalse(ver_2 < ver_1)  # noqa
