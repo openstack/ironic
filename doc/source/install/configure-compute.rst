@@ -48,6 +48,26 @@ service's controller nodes and compute nodes.
        # Not possible for bare metal nodes, so set it to False.
        track_instance_changes=False
 
+       [scheduler]
+
+       # This value controls how often (in seconds) the scheduler should
+       # attempt to discover new hosts that have been added to cells.
+       # If negative (the default), no automatic discovery will occur.
+       # As each bare metal node is represented by a separate host, it has
+       # to be discovered before the Compute service can deploy on it.
+       # The value here has to be carefully chosen based on a compromise
+       # between the enrollment speed and the load on the Compute scheduler.
+       # The recommended value of 2 minutes matches how often the Compute
+       # service polls the Bare Metal service for node information.
+       discover_hosts_in_cells_interval=120
+
+   .. note::
+        The alternative to setting the ``discover_hosts_in_cells_interval``
+        option is to run the following command on any Compute controller node
+        after each node is enrolled::
+
+            nova-manage cell_v2 discover_hosts
+
 #. If you have not switched to make use of :ref:`scheduling-resource-classes`,
    then the following options should be set as well. They must be removed from
    the configuration file after switching to resource classes.
@@ -97,17 +117,6 @@ service's controller nodes and compute nodes.
        # If this is not the desired behavior, consider increasing this value or
        # setting it to 0 to disable this behavior completely.
        #consecutive_build_service_disable_threshold = 10
-
-       [scheduler]
-
-       # This value controls how often (in seconds) the scheduler should
-       # attempt to discover new hosts that have been added to cells.
-       # If negative (the default), no automatic discovery will occur.
-       # As each bare metal node is represented by a separate host, it has
-       # to be discovered before the Compute service can deploy on it.
-       # It can be done manually after enrolling every node or batch of nodes,
-       # or this periodic task can be enabled to do it automatically.
-       #discover_hosts_in_cells_interval=-1
 
 #. Change these configuration options in the ``ironic`` section.
    Replace:
