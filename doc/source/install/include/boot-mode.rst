@@ -22,7 +22,7 @@ The boot modes can be configured in Bare Metal service in the following way:
 
   To configure a node in ``uefi`` mode, then set ``capabilities`` as below::
 
-    ironic node-update <node-uuid> add properties/capabilities='boot_mode:uefi'
+    openstack baremetal node set <node-uuid> --property capabilities='boot_mode:uefi'
 
   Nodes having ``boot_mode`` set to ``uefi`` may be requested by adding an
   ``extra_spec`` to the Compute service flavor::

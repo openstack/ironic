@@ -41,7 +41,7 @@ which disk it should pick for the deployment. The list of supported hints is:
 To associate one or more hints with a node, update the node's properties
 with a ``root_device`` key, for example::
 
-    ironic node-update <node-uuid> add properties/root_device='{"wwn": "0x4000cca77fc4dba1"}'
+    openstack baremetal node set <node-uuid> --property root_device='{"wwn": "0x4000cca77fc4dba1"}'
 
 
 That will guarantee that Bare Metal service will pick the disk device that
@@ -82,11 +82,11 @@ Examples are:
 
 * Finding a disk larger or equal to 60 GiB and non-rotational (SSD)::
 
-    ironic node-update <node-uuid> add properties/root_device='{"size": ">= 60", "rotational": false}'
+    openstack baremetal node set <node-uuid> --property root_device='{"size": ">= 60", "rotational": false}'
 
 * Finding a disk whose vendor is ``samsung`` or ``winsys``::
 
-    ironic node-update <node-uuid> add properties/root_device='{"vendor": "<or> samsung <or> winsys"}'
+    openstack baremetal node set <node-uuid> --property root_device='{"vendor": "<or> samsung <or> winsys"}'
 
 .. note::
     If multiple hints are specified, a device must satisfy all the hints.

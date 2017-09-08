@@ -30,12 +30,12 @@ Choosing a driver
 
 When enrolling a node, the most important information to supply is *driver*.
 This can be either a *classic driver* or a *hardware type* - see
-:doc:`enabling-drivers` for the difference. The ``driver-list`` command can
+:doc:`enabling-drivers` for the difference. The ``driver list`` command can
 be used to list all drivers (of both types) enabled on all hosts:
 
 .. code-block:: console
 
-    ironic driver-list
+    openstack baremetal driver list
     +---------------------+-----------------------+
     | Supported driver(s) | Active host(s)        |
     +---------------------+-----------------------+
@@ -48,7 +48,7 @@ also list only classic or only dynamic drivers:
 
 .. code-block:: console
 
-    ironic --ironic-api-version 1.31 driver-list -t dynamic
+    openstack baremetal --os-baremetal-api-version 1.31 driver list --type dynamic
     +---------------------+-----------------------+
     | Supported driver(s) | Active host(s)        |
     +---------------------+-----------------------+
@@ -62,12 +62,12 @@ on that.
 Each driver has a list of *driver properties* that need to be specified via
 the node's ``driver_info`` field, in order for the driver to operate on node.
 This list consists of the properties of the hardware interfaces that the driver
-uses. These driver properties are available with the ``driver-properties``
+uses. These driver properties are available with the ``driver property list``
 command:
 
 .. code-block:: console
 
-    $ ironic driver-properties pxe_ipmitool
+    $ openstack baremetal driver property list pxe_ipmitool
     +----------------------+-------------------------------------------------------------------------------------------------------------+
     | Property             | Description                                                                                                 |
     +----------------------+-------------------------------------------------------------------------------------------------------------+
@@ -123,7 +123,7 @@ This section describes the main steps to enroll a node and make it available
 for provisioning. Some steps are shown separately for illustration purposes,
 and may be combined if desired.
 
-#. Create a node in the Bare Metal service with the ``node-create`` command.
+#. Create a node in the Bare Metal service with the ``node create`` command.
    At a minimum, you must specify the driver name (for example,
    ``pxe_ipmitool``, ``agent_ipmitool`` or ``ipmi``).
 
@@ -132,8 +132,8 @@ and may be combined if desired.
 
    .. code-block:: console
 
-    $ export IRONIC_API_VERSION=1.11
-    $ ironic node-create -d pxe_ipmitool
+    $ export OS_BAREMETAL_API_VERSION=1.11
+    $ openstack baremetal node create --driver pxe_ipmitool
     +--------------+--------------------------------------+
     | Property     | Value                                |
     +--------------+--------------------------------------+
@@ -146,7 +146,7 @@ and may be combined if desired.
     | name         | None                                 |
     +--------------+--------------------------------------+
 
-    $ ironic node-show dfc6189f-ad83-4261-9bda-b27258eb1987
+    $ openstack baremetal node show dfc6189f-ad83-4261-9bda-b27258eb1987
     +------------------------+--------------------------------------+
     | Property               | Value                                |
     +------------------------+--------------------------------------+
@@ -171,8 +171,8 @@ and may be combined if desired.
 
    A node may also be referred to by a logical name as well as its UUID.
    A name can be assigned to the node during its creation by adding the ``-n``
-   option to the ``node-create`` command or by updating an existing node with
-   the ``node-update`` command. See `Logical Names`_ for examples.
+   option to the ``node create`` command or by updating an existing node with
+   the ``node set`` command. See `Logical Names`_ for examples.
 
 #. Starting with API version 1.31 (and ``python-ironicclient`` 1.13), you can
    pick which hardware interface to use with nodes that use hardware types.
@@ -186,15 +186,15 @@ and may be combined if desired.
 
    .. code-block:: console
 
-    $ ironic --ironic-api-version 1.31 node-update $NODE_UUID replace \
-        deploy_interface=direct \
-        raid_interface=agent
+    $ openstack baremetal --os-baremetal-api-version 1.31 node set $NODE_UUID \
+        --deploy-interface direct \
+        --raid-interface agent
 
    or set during node creation:
 
    .. code-block:: console
 
-    $ ironic --ironic-api-version 1.31 node-create -d ipmi \
+    $ openstack baremetal --os-baremetal-api-version 1.31 node create --driver ipmi \
         --deploy-interface direct \
         --raid-interface agent
 
@@ -210,10 +210,10 @@ and may be combined if desired.
 
    .. code-block:: console
 
-    $ ironic node-update $NODE_UUID add \
-        driver_info/ipmi_username=$USER \
-        driver_info/ipmi_password=$PASS \
-        driver_info/ipmi_address=$ADDRESS
+    $ openstack baremetal node set $NODE_UUID \
+        --driver-info ipmi_username=$USER \
+        --driver-info ipmi_password=$PASS \
+        --driver-info ipmi_address=$ADDRESS
 
    .. note::
       If IPMI is running on a port other than 623 (the default). The port must
@@ -222,17 +222,17 @@ and may be combined if desired.
 
       .. code-block:: console
 
-       $ ironic node-update $NODE_UUID add driver_info/ipmi_port=$PORT_NUMBER
+       $ openstack baremetal node set $NODE_UUID --driver-info ipmi_port=$PORT_NUMBER
 
    You may also specify all ``driver_info`` parameters during node
-   creation by passing the **-i** option multiple times:
+   creation by passing the **--driver-info** option multiple times:
 
    .. code-block:: console
 
-     $ ironic node-create -d pxe_ipmitool \
-         -i ipmi_username=$USER \
-         -i ipmi_password=$PASS \
-         -i ipmi_address=$ADDRESS
+     $ openstack baremetal node create --driver pxe_ipmitool \
+         --driver-info ipmi_username=$USER \
+         --driver-info ipmi_password=$PASS \
+         --driver-info ipmi_address=$ADDRESS
 
    See `Choosing a driver`_ above for details on driver properties.
 
@@ -241,9 +241,9 @@ and may be combined if desired.
 
    .. code-block:: console
 
-    $ ironic node-update $NODE_UUID add \
-        driver_info/deploy_kernel=$DEPLOY_VMLINUZ_UUID \
-        driver_info/deploy_ramdisk=$DEPLOY_INITRD_UUID
+    $ openstack baremetal node set $NODE_UUID \
+        --driver-info deploy_kernel=$DEPLOY_VMLINUZ_UUID \
+        --driver-info deploy_ramdisk=$DEPLOY_INITRD_UUID
 
    See :doc:`configure-glance-images` for details.
 
@@ -254,7 +254,7 @@ and may be combined if desired.
 
    .. code-block:: console
 
-    $ ironic port-create -n $NODE_UUID -a $MAC_ADDRESS
+    $ openstack baremetal port create $MAC_ADDRESS --node $NODE_UUID
 
 .. _enrollment-scheduling:
 
@@ -303,25 +303,25 @@ Adding scheduling information
 
    .. code-block:: console
 
-    $ ironic node-update $NODE_UUID add \
-        properties/cpus=$CPU_COUNT \
-        properties/memory_mb=$RAM_MB \
-        properties/local_gb=$DISK_GB \
-        properties/cpu_arch=$ARCH
+    $ openstack baremetal node set $NODE_UUID \
+        --property cpus=$CPU_COUNT \
+        --property memory_mb=$RAM_MB \
+        --property local_gb=$DISK_GB \
+        --property cpu_arch=$ARCH
 
-   As above, these can also be specified at node creation by passing the **-p**
-   option to ``node-create`` multiple times:
+   As above, these can also be specified at node creation by passing the
+   **--property** option to ``node create`` multiple times:
 
    .. code-block:: console
 
-     $ ironic node-create -d pxe_ipmitool \
-         -i ipmi_username=$USER \
-         -i ipmi_password=$PASS \
-         -i ipmi_address=$ADDRESS \
-         -p cpus=$CPU_COUNT \
-         -p memory_mb=$RAM_MB \
-         -p local_gb=$DISK_GB \
-         -p cpu_arch=$ARCH
+     $ openstack baremetal node create --driver pxe_ipmitool \
+         --driver-info ipmi_username=$USER \
+         --driver-info ipmi_password=$PASS \
+         --driver-info ipmi_address=$ADDRESS \
+         --property cpus=$CPU_COUNT \
+         --property memory_mb=$RAM_MB \
+         --property local_gb=$DISK_GB \
+         --property cpu_arch=$ARCH
 
    These values can also be discovered during `Hardware Inspection`_.
 
@@ -348,8 +348,8 @@ Adding scheduling information
 
    .. code-block:: console
 
-    $ ironic node-update $NODE_UUID add \
-        properties/capabilities=key1:val1,key2:val2
+    $ openstack baremetal node set $NODE_UUID \
+        --property capabilities=key1:val1,key2:val2
 
    Some capabilities can also be discovered during `Hardware Inspection`_.
 
@@ -361,7 +361,7 @@ Validating node information
 
    .. code-block:: console
 
-    $ ironic node-validate $NODE_UUID
+    $ openstack baremetal node validate $NODE_UUID
     +------------+--------+--------+
     | Interface  | Result | Reason |
     +------------+--------+--------+
@@ -376,7 +376,7 @@ Validating node information
 
    .. code-block:: console
 
-    $ ironic node-validate $NODE_UUID
+    $ openstack baremetal node validate $NODE_UUID
     +------------+--------+-------------------------------------------------------------------------------------------------------------------------------------+
     | Interface  | Result | Reason                                                                                                                              |
     +------------+--------+-------------------------------------------------------------------------------------------------------------------------------------+
@@ -394,7 +394,7 @@ Validating node information
 
    .. code-block:: console
 
-    $ ironic node-validate $NODE_UUID
+    $ openstack baremetal node validate $NODE_UUID
     +------------+--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     | Interface  | Result | Reason                                                                                                                                                           |
     +------------+--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -424,8 +424,8 @@ To move a node from ``enroll`` to ``manageable`` provision state:
 
 .. code-block:: console
 
-    $ ironic --ironic-api-version 1.11 node-set-provision-state $NODE_UUID manage
-    $ ironic node-show $NODE_UUID
+    $ openstack baremetal --os-baremetal-api-version 1.11 node manage $NODE_UUID
+    $ openstack baremetal node show $NODE_UUID
     +------------------------+--------------------------------------------------------------------+
     | Property               | Value                                                              |
     +------------------------+--------------------------------------------------------------------+
@@ -436,9 +436,9 @@ To move a node from ``enroll`` to ``manageable`` provision state:
     +------------------------+--------------------------------------------------------------------+
 
 .. note:: Since it is an asynchronous call, the response for
-          ``ironic node-set-provision-state`` will not indicate whether the
+          ``openstack baremetal node manage`` will not indicate whether the
           transition succeeded or not. You can check the status of the
-          operation via ``ironic node-show``. If it was successful,
+          operation via ``openstack baremetal node show``. If it was successful,
           ``provision_state`` will be in the desired state. If it failed,
           there will be information in the node's ``last_error``.
 
@@ -450,8 +450,8 @@ To move a node from ``manageable`` to ``available`` provision state:
 
 .. code-block:: console
 
-    $ ironic --ironic-api-version 1.11 node-set-provision-state $NODE_UUID provide
-    $ ironic node-show $NODE_UUID
+    $ openstack baremetal --os-baremetal-api-version 1.11 node provide $NODE_UUID
+    $ openstack baremetal node show $NODE_UUID
     +------------------------+--------------------------------------------------------------------+
     | Property               | Value                                                              |
     +------------------------+--------------------------------------------------------------------+
@@ -471,8 +471,8 @@ Logical names
 
 A node may also be referred to by a logical name as well as its UUID.
 Names can be assigned either during its creation by adding the ``-n``
-option to the ``node-create`` command or by updating an existing node with
-the ``node-update`` command.
+option to the ``node create`` command or by updating an existing node with
+the ``node set`` command.
 
 Node names must be unique, and conform to:
 
@@ -484,13 +484,13 @@ The node is named 'example' in the following examples:
 
 .. code-block:: console
 
-    $ ironic node-create -d agent_ipmitool -n example
+    $ openstack baremetal node create --driver agent_ipmitool --name example
 
 or
 
 .. code-block:: console
 
-    $ ironic node-update $NODE_UUID add name=example
+    $ openstack baremetal node set $NODE_UUID --name example
 
 
 Once assigned a logical name, a node can then be referred to by name or
@@ -498,7 +498,7 @@ UUID interchangeably:
 
 .. code-block:: console
 
-    $ ironic node-create -d agent_ipmitool -n example
+    $ openstack baremetal node create --driver agent_ipmitool --name example
     +--------------+--------------------------------------+
     | Property     | Value                                |
     +--------------+--------------------------------------+
@@ -511,7 +511,7 @@ UUID interchangeably:
     | name         | example                              |
     +--------------+--------------------------------------+
 
-    $ ironic node-show example
+    $ openstack baremetal node show example
     +------------------------+--------------------------------------+
     | Property               | Value                                |
     +------------------------+--------------------------------------+
@@ -544,7 +544,7 @@ interfaces for a hardware type (for your deployment):
 
 .. code-block:: console
 
-    $ openstack --os-baremetal-api-version 1.31 baremetal driver show ipmi
+    $ openstack baremetal --os-baremetal-api-version 1.31 driver show ipmi
     +-------------------------------+----------------+
     | Field                         | Value          |
     +-------------------------------+----------------+
@@ -614,8 +614,8 @@ A new node is created with the ``ipmi`` driver and no interfaces specified:
 
 .. code-block:: console
 
-    $ export IRONIC_API_VERSION=1.31
-    $ ironic node-create -d ipmi
+    $ export OS_BAREMETAL_API_VERSION=1.31
+    $ openstack baremetal node create --driver ipmi
     +--------------+--------------------------------------+
     | Property     | Value                                |
     +--------------+--------------------------------------+

@@ -46,14 +46,14 @@ and provide the file or HTTP URL to the Bare Metal service.
 
 For the format of the configuration drive, Bare Metal service expects a
 ``gzipped`` and ``base64`` encoded ISO 9660 [*]_ file with a ``config-2``
-label. The
-`ironic client <https://docs.openstack.org/python-ironicclient/latest/>`_
+label. The `openstack baremetal client
+<https://docs.openstack.org/python-ironicclient/latest/cli/osc_plugin_cli.html>`_
 can generate a configuration drive in the `expected format`_. Just pass a
 directory path containing the files that will be injected into it via the
-``--config-drive`` parameter of the ``node-set-provision-state`` command,
-for example::
+``--config-drive`` parameter of the ``openstack baremetal node deploy``
+command, for example::
 
-    ironic node-set-provision-state --config-drive /dir/configdrive_files $node_identifier active
+    openstack baremetal node deploy $node_identifier --config-drive /dir/configdrive_files
 
 
 Configuration drive storage in an object store
