@@ -11,7 +11,6 @@
 #    under the License.
 
 import mock
-from neutronclient.common import exceptions as neutron_exceptions
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
@@ -684,8 +683,6 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         mock_client.assert_called_once_with()
         self.assertFalse(mock_gpbpi.called)
         mock_gfp.assert_called_once_with(task, 'fake_vif_id', set())
-        mock_client.return_value.show_port.assert_called_once_with(
-            'fake_vif_id')
         mock_upa.assert_called_once_with("fake_vif_id", self.port.address)
         mock_save.assert_called_once_with(self.port, "fake_vif_id")
 
@@ -724,8 +721,6 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         mock_gpbpi.assert_called_once_with(mock_client.return_value,
                                            'fake_vif_id')
         mock_gfp.assert_called_once_with(task, 'fake_vif_id', {'physnet1'})
-        mock_client.return_value.show_port.assert_called_once_with(
-            'fake_vif_id')
         mock_upa.assert_called_once_with("fake_vif_id", self.port.address)
         mock_save.assert_called_once_with(self.port, "fake_vif_id")
 
@@ -747,10 +742,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         mock_client.assert_called_once_with()
         self.assertFalse(mock_gpbpi.called)
         mock_gfp.assert_called_once_with(task, 'fake_vif_id', set())
-        mock_client.return_value.show_port.assert_called_once_with(
-            'fake_vif_id')
         mock_upa.assert_called_once_with("fake_vif_id", self.port.address)
-        mock_save.assert_called_once_with(self.port, "fake_vif_id")
         mock_plug.assert_called_once_with(task, self.port, mock.ANY)
 
     @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj')
@@ -774,8 +766,6 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         mock_client.assert_called_once_with()
         self.assertFalse(mock_gpbpi.called)
         mock_gfp.assert_called_once_with(task, 'fake_vif_id', set())
-        mock_client.return_value.show_port.assert_called_once_with(
-            'fake_vif_id')
         mock_upa.assert_called_once_with("fake_vif_id", self.port.address)
         mock_save.assert_called_once_with(self.port, "fake_vif_id")
         mock_plug.assert_called_once_with(task, self.port, mock.ANY)
@@ -822,35 +812,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         mock_client.assert_called_once_with()
         mock_gpbpi.assert_called_once_with(mock_client.return_value,
                                            'fake_vif_id')
-        mock_client.return_value.show_port.assert_called_once_with(
-            'fake_vif_id')
         self.assertFalse(mock_save.called)
-
-    @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj')
-    @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
-    @mock.patch.object(neutron_common, 'get_client', autospec=True)
-    @mock.patch.object(neutron_common, 'update_port_address')
-    @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
-                       autospec=True)
-    def test_vif_attach_neutron_absent(self, mock_gpbpi, mock_upa,
-                                       mock_client, mock_gfp, mock_save):
-        self.port.physical_network = 'physnet1'
-        self.port.save()
-        vif = {'id': "fake_vif_id"}
-        mock_gfp.return_value = self.port
-        mock_client.return_value.show_port.side_effect = (
-            neutron_exceptions.NeutronClientException)
-        mock_gpbpi.side_effect = exception.NetworkError
-        with task_manager.acquire(self.context, self.node.id) as task:
-            self.interface.vif_attach(task, vif)
-        mock_client.assert_called_once_with()
-        mock_gpbpi.assert_called_once_with(mock_client.return_value,
-                                           'fake_vif_id')
-        mock_gfp.assert_called_once_with(task, 'fake_vif_id', set())
-        mock_client.return_value.show_port.assert_called_once_with(
-            'fake_vif_id')
-        self.assertFalse(mock_upa.called)
-        self.assertTrue(mock_save.called)
 
     @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj')
     @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
