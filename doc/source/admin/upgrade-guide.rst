@@ -308,6 +308,10 @@ release.
 Upgrading from Ocata to Pike
 ============================
 
+#. Use the ``ironic-dbsync online_data_migrations`` command from the 9.1.1 (or
+   newer) release. The one from older (9.0.0 - 9.1.0) releases could cause a
+   a port's physical_network information to be deleted from the database.
+
 #. It is required to set the ``resource_class`` field for nodes registered
    with the Bare Metal service *before* using the Pike version of the Compute
    service. See :ref:`enrollment` for details.
