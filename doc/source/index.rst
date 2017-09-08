@@ -97,7 +97,7 @@ Contributor Guide
 Release Notes
 =============
 
-`Release Notes <http://docs.openstack.org/releasenotes/ironic/>`_
+`Release Notes <https://docs.openstack.org/releasenotes/ironic/>`_
 
 Indices and tables
 ==================
