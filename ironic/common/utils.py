@@ -342,7 +342,7 @@ def umount(loc, *args):
     """Umounts a mounted location.
 
     :param loc: the path to be unmounted.
-    :param args: a tuple containing the argumnets to be
+    :param args: a tuple containing the arguments to be
         passed to the umount command.
     :raises: processutils.ProcessExecutionError if it failed
         to run the process.
