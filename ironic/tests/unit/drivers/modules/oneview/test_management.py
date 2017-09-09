@@ -82,14 +82,12 @@ class OneViewManagementDriverFunctionsTestCase(db_base.DbTestCase):
         client.server_profiles.get.return_value = server_profile
         boot_device_map_ilo = management.BOOT_DEVICE_MAP_ILO
         boot_device = boot_device_map_ilo.get(boot_devices.PXE)
-        path = '/rest/v1/Systems/1'
         body = {
             "Boot": {
                 "BootSourceOverrideTarget": boot_device,
                 "BootSourceOverrideEnabled": "Once"
             }
         }
-        headers = {"Content-Type": "application/json"}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             driver_info = task.node.driver_info
             profile_uri = driver_info.get('applied_server_profile_uri')
@@ -103,7 +101,10 @@ class OneViewManagementDriverFunctionsTestCase(db_base.DbTestCase):
             update.assert_called_once_with(server_profile, profile_uri)
             patch = ilo_client.patch
             patch.assert_called_once_with(
-                path=path, body=body, headers=headers)
+                path=management.ILO_SYSTEM_PATH,
+                body=body,
+                headers=management.ILO_REQUEST_HEADERS
+            )
             driver_internal_info = task.node.driver_internal_info
             self.assertNotIn('next_boot_device', driver_internal_info)
 
@@ -158,14 +159,12 @@ class OneViewManagementDriverFunctionsTestCase(db_base.DbTestCase):
             self, mock_iloclient, mock_get_ov_client):
         ilo_client = mock_iloclient()
         boot_device = management.BOOT_DEVICE_MAP_ILO.get(boot_devices.DISK)
-        path = '/rest/v1/Systems/1'
         body = {
             "Boot": {
                 "BootSourceOverrideTarget": boot_device,
                 "BootSourceOverrideEnabled": "Once"
             }
         }
-        headers = {"Content-Type": "application/json"}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             driver_internal_info = task.node.driver_internal_info
             next_boot_device = {'boot_device': 'disk', 'persistent': False}
@@ -174,7 +173,48 @@ class OneViewManagementDriverFunctionsTestCase(db_base.DbTestCase):
             management.set_onetime_boot(task)
             self.assertTrue(mock_iloclient.called)
             ilo_client.patch.assert_called_with(
-                path=path, body=body, headers=headers)
+                path=management.ILO_SYSTEM_PATH,
+                body=body,
+                headers=management.ILO_REQUEST_HEADERS
+            )
+
+    @mock.patch.object(common, 'get_ilorest_client')
+    def test__is_onetime_boot_true(
+            self, mock_iloclient, mock_get_ov_client):
+
+        class RestResponse(object):
+            @property
+            def dict(self):
+                return {'Boot': {'BootSourceOverrideEnabled': "Once"}}
+
+        ilo_client = mock_iloclient()
+        ilo_client.get.return_value = RestResponse()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertTrue(management._is_onetime_boot(task))
+            self.assertTrue(mock_iloclient.called)
+            ilo_client.get.assert_called_with(
+                path=management.ILO_SYSTEM_PATH,
+                headers=management.ILO_REQUEST_HEADERS
+            )
+
+    @mock.patch.object(common, 'get_ilorest_client')
+    def test__is_onetime_boot_false(
+            self, mock_iloclient, mock_get_ov_client):
+
+        class RestResponse(object):
+            @property
+            def dict(self):
+                return {'Boot': {'BootSourceOverrideEnabled': "Disabled"}}
+
+        ilo_client = mock_iloclient()
+        ilo_client.get.return_value = RestResponse()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertFalse(management._is_onetime_boot(task))
+            self.assertTrue(mock_iloclient.called)
+            ilo_client.get.assert_called_with(
+                path=management.ILO_SYSTEM_PATH,
+                headers=management.ILO_REQUEST_HEADERS
+            )
 
 
 @mock.patch.object(common, 'get_hponeview_client')
@@ -275,8 +315,11 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
                 task.driver.management.get_supported_boot_devices(task),
             )
 
-    def test_get_boot_device(self, mock_get_ov_client):
+    @mock.patch.object(common, 'get_ilorest_client')
+    def test_get_boot_device(
+            self, mock_ilo_client, mock_get_ov_client):
         client = mock_get_ov_client()
+        ilo_client = mock_ilo_client()
         self.driver.management.client = client
         device_mapping = management.BOOT_DEVICE_MAP_ONEVIEW.items()
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -289,10 +332,14 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
                 response = self.driver.management.get_boot_device(task)
                 self.assertEqual(expected, response)
                 self.assertTrue(client.server_profiles.get.called)
+                self.assertTrue(client.server_profiles.get.called)
+                self.assertTrue(ilo_client.get.called)
 
+    @mock.patch.object(common, 'get_ilorest_client')
     def test_get_boot_device_from_next_boot_device(
-            self, mock_get_ov_client):
+            self, mock_ilo_client, mock_get_ov_client):
         client = mock_get_ov_client()
+        ilo_client = mock_ilo_client()
         self.driver.management.client = client
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -307,10 +354,14 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
             }
             response = self.driver.management.get_boot_device(task)
             self.assertEqual(expected_response, response)
-        self.assertFalse(client.get_boot_order.called)
+            self.assertFalse(client.get_boot_order.called)
+            self.assertFalse(ilo_client.get.called)
 
-    def test_get_boot_device_fail(self, mock_get_ov_client):
+    @mock.patch.object(common, 'get_ilorest_client')
+    def test_get_boot_device_fail(
+            self, mock_ilo_client, mock_get_ov_client):
         client = mock_get_ov_client()
+        ilo_client = mock_ilo_client()
         self.driver.management.client = client
         exc = client_exception.HPOneViewException()
         client.server_profiles.get.side_effect = exc
@@ -321,9 +372,13 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
                 task
             )
             self.assertTrue(client.server_profiles.get.called)
+            self.assertFalse(ilo_client.get.called)
 
-    def test_get_boot_device_unknown_device(self, mock_get_ov_client):
+    @mock.patch.object(common, 'get_ilorest_client')
+    def test_get_boot_device_unknown_device(
+            self, mock_ilo_client, mock_get_ov_client):
         client = mock_get_ov_client()
+        ilo_client = mock_ilo_client()
         order = ['Eggs', 'Bacon']
         profile = {'boot': {'order': order}}
         client.server_profiles.get.return_value = profile
@@ -334,6 +389,7 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
                 task.driver.management.get_boot_device,
                 task
             )
+            self.assertFalse(ilo_client.get.called)
 
     def test_get_sensors_data_not_implemented(self, mock_get_ov_client):
         with task_manager.acquire(self.context, self.node.uuid) as task:
