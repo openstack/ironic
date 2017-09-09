@@ -1,5 +1,5 @@
-# Copyright 2015 Hewlett Packard Development Company, LP
-# Copyright 2015 Universidade Federal de Campina Grande
+# Copyright (2015-2017) Hewlett Packard Enterprise Development LP
+# Copyright (2015-2017) Universidade Federal de Campina Grande
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -17,7 +17,6 @@ import mock
 from oslo_utils import importutils
 
 from ironic.common import exception
-from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers.modules.oneview import common
 from ironic.tests.unit.conductor import mgr_utils
@@ -79,7 +78,7 @@ class OneViewCommonTestCase(db_base.DbTestCase):
         common.get_hponeview_client()
         mock_hponeview_client.assert_called_once_with(self.config)
 
-    def test_get_ilo_access(self):
+    def test__get_ilo_access(self):
         url = ("hplocons://addr=1.2.3.4&sessionkey" +
                "=a79659e3b3b7c8209c901ac3509a6719")
         remote_console = {'remoteConsoleUrl': url}
@@ -240,29 +239,10 @@ class OneViewCommonTestCase(db_base.DbTestCase):
                                      {"a": '', "b": None, "c": "something"},
                                      ["a", "b", "c"])
 
-    def _test_translate_oneview_states(self, power_state_to_translate,
-                                       expected_translated_power_state):
-        translated_power_state = common.translate_oneview_power_state(
-            power_state_to_translate)
-        self.assertEqual(translated_power_state,
-                         expected_translated_power_state)
-
-    def test_all_scenarios_for_translate_oneview_states(self):
-        self._test_translate_oneview_states(
-            oneview_states.ONEVIEW_POWERING_OFF, states.POWER_ON)
-        self._test_translate_oneview_states(
-            oneview_states.ONEVIEW_POWER_OFF, states.POWER_OFF)
-        self._test_translate_oneview_states(
-            oneview_states.ONEVIEW_POWERING_ON, states.POWER_OFF)
-        self._test_translate_oneview_states(
-            oneview_states.ONEVIEW_RESETTING, states.REBOOT)
-        self._test_translate_oneview_states("anything", states.ERROR)
-
     @mock.patch.object(common, 'get_oneview_client', spec_set=True,
                        autospec=True)
     def test_validate_oneview_resources_compatibility(
-        self, mock_get_ov_client
-    ):
+            self, mock_get_ov_client):
         """Validate compatibility of resources.
 
         1) Check validate_node_server_profile_template method is called

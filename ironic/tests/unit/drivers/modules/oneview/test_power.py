@@ -1,7 +1,5 @@
-# -*- encoding: utf-8 -*-
-#
-# Copyright 2015 Hewlett Packard Development Company, LP
-# Copyright 2015 Universidade Federal de Campina Grande
+# Copyright (2015-2017) Hewlett Packard Enterprise Development LP
+# Copyright (2015-2017) Universidade Federal de Campina Grande
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -26,20 +24,18 @@ from ironic.conductor import task_manager
 from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy_utils
 from ironic.drivers.modules.oneview import management
+from ironic.drivers.modules.oneview import power
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
+client_exception = importutils.try_import('hpOneView.exceptions')
 oneview_models = importutils.try_import('oneview_client.models')
 oneview_exceptions = importutils.try_import('oneview_client.exceptions')
 
-POWER_ON = 'On'
-POWER_OFF = 'Off'
-ERROR = 'error'
 
-
-@mock.patch.object(common, 'get_oneview_client', spec_set=True, autospec=True)
+@mock.patch.object(common, 'get_hponeview_client')
 class OneViewPowerDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
@@ -57,274 +53,199 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
             driver_info=db_utils.get_test_oneview_driver_info(),
         )
         self.info = common.get_oneview_info(self.node)
+        deploy_utils.is_node_in_use_by_oneview = mock.Mock(return_value=False)
 
-    @mock.patch.object(common, 'validate_oneview_resources_compatibility',
-                       spect_set=True, autospec=True)
-    @mock.patch.object(deploy_utils, 'is_node_in_use_by_oneview',
-                       spect_set=True, autospec=True)
-    def test_power_interface_validate(self, mock_is_node_in_use_by_oneview,
-                                      mock_validate, mock_get_ov_client):
-        mock_is_node_in_use_by_oneview.return_value = False
+    @mock.patch.object(common, 'validate_oneview_resources_compatibility')
+    def test_validate(self, mock_validate, mock_get_ov_client):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.power.validate(task)
             self.assertTrue(mock_validate.called)
 
-    def test_power_interface_validate_fail(self, mock_get_ov_client):
-        node = obj_utils.create_test_node(self.context,
-                                          uuid=uuidutils.generate_uuid(),
-                                          id=999,
-                                          driver='fake_oneview')
+    def test_validate_missing_parameter(self, mock_get_ov_client):
+        node = obj_utils.create_test_node(
+            self.context, uuid=uuidutils.generate_uuid(),
+            id=999, driver='fake_oneview')
         with task_manager.acquire(self.context, node.uuid) as task:
-            self.assertRaises(exception.MissingParameterValue,
-                              task.driver.power.validate, task)
+            self.assertRaises(
+                exception.MissingParameterValue,
+                task.driver.power.validate,
+                task)
 
-    @mock.patch.object(common, 'validate_oneview_resources_compatibility',
-                       spect_set=True, autospec=True)
-    def test_power_interface_validate_fail_exception(self, mock_validate,
-                                                     mock_get_ov_client):
+    @mock.patch.object(common, 'validate_oneview_resources_compatibility')
+    def test_validate_exception(self, mock_validate, mock_get_ov_client):
         mock_validate.side_effect = exception.OneViewError('message')
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.power.validate,
-                              task)
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                task.driver.power.validate,
+                task)
 
-    @mock.patch.object(common, 'validate_oneview_resources_compatibility',
-                       spect_set=True, autospec=True)
-    @mock.patch.object(deploy_utils, 'is_node_in_use_by_oneview',
-                       spect_set=True, autospec=True)
-    def test_power_validate_fail_node_used_by_oneview(
-            self, mock_is_node_in_use_by_oneview, mock_validate,
-            mock_get_ov_client):
-        mock_validate.return_value = True
-        mock_is_node_in_use_by_oneview.return_value = True
+    def test_validate_node_in_use_by_oneview(self, mock_get_ov_client):
+        deploy_utils.is_node_in_use_by_oneview.return_value = True
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.power.validate,
-                              task)
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                task.driver.power.validate,
+                task)
 
-    @mock.patch.object(common, 'validate_oneview_resources_compatibility',
-                       spect_set=True, autospec=True)
-    @mock.patch.object(deploy_utils, 'is_node_in_use_by_oneview',
-                       spect_set=True, autospec=True)
-    def test_validate_fail_node_in_use_by_oneview(
-            self, mock_is_node_in_use_by_oneview, mock_validate,
-            mock_get_ov_client):
-        mock_validate.return_value = True
-        mock_is_node_in_use_by_oneview.side_effect = (
-            exception.OneViewError('message'))
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.power.validate,
-                              task)
-
-    def test_power_interface_get_properties(self, mock_get_ov_client):
+    def test_get_properties(self, mock_get_ov_client):
         expected = common.COMMON_PROPERTIES
-        self.assertItemsEqual(expected, self.driver.power.get_properties())
+        self.assertEqual(expected, self.driver.power.get_properties())
 
     def test_get_power_state(self, mock_get_ov_client):
-        oneview_client = mock_get_ov_client()
-        oneview_client.get_node_power_state.return_value = POWER_ON
-        self.driver.power.oneview_client = oneview_client
-
+        client = mock_get_ov_client()
+        server_hardware = {'powerState': 'On'}
+        client.server_hardware.get.return_value = server_hardware
+        self.driver.power.client = client
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.driver.power.get_power_state(task)
-        oneview_client.get_node_power_state.assert_called_once_with(self.info)
+            power_state = self.driver.power.get_power_state(task)
+            self.assertEqual(states.POWER_ON, power_state)
 
     def test_get_power_state_fail(self, mock_get_ov_client):
-        oneview_client = mock_get_ov_client()
-        oneview_client.get_node_power_state.side_effect = \
-            oneview_exceptions.OneViewException()
-        self.driver.power.oneview_client = oneview_client
-
+        client = mock_get_ov_client()
+        exc = client_exception.HPOneViewException()
+        client.server_hardware.get.side_effect = exc
+        self.driver.power.client = client
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(
                 exception.OneViewError,
                 self.driver.power.get_power_state,
-                task
-            )
+                task)
 
     @mock.patch.object(management, 'set_boot_device')
-    def test_set_power_on(
-            self, mock_set_boot_device, mock_get_ov_client):
-
-        sp_uri = '/any/server-profile'
-        oneview_client = mock_get_ov_client()
-        fake_sh = oneview_models.ServerHardware()
-        fake_sh.server_profile_uri = sp_uri
-        oneview_client = mock_get_ov_client.return_value
-        oneview_client.get_server_hardware_by_uuid.return_value = fake_sh
-        oneview_client.power_on.return_value = POWER_ON
-        self.driver.power.oneview_client = oneview_client
-
+    def test_set_power_on(self, mock_set_boot_device, mock_get_ov_client):
+        client = mock_get_ov_client()
+        self.driver.power.client = client
+        server_hardware = self.node.driver_info.get('server_hardware_uri')
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            driver_info = task.node.driver_info
-            driver_info['applied_server_profile_uri'] = sp_uri
-            task.node.driver_info = driver_info
             self.driver.power.set_power_state(task, states.POWER_ON)
-            mock_set_boot_device.assert_called_once_with(task)
-            self.info['applied_server_profile_uri'] = sp_uri
-            oneview_client.power_on.assert_called_once_with(self.info)
+            self.assertTrue(mock_set_boot_device.called)
+            update = client.server_hardware.update_power_state
+            update.assert_called_once_with(power.POWER_ON, server_hardware)
 
     @mock.patch.object(management, 'set_boot_device')
-    def test_set_power_off(
-            self, mock_set_boot_device, mock_get_ov_client):
-
-        sp_uri = '/any/server-profile'
-        oneview_client = mock_get_ov_client()
-        fake_sh = oneview_models.ServerHardware()
-        fake_sh.server_profile_uri = sp_uri
-        oneview_client = mock_get_ov_client.return_value
-        oneview_client.get_server_hardware_by_uuid.return_value = fake_sh
-        oneview_client.power_off.return_value = POWER_OFF
-        self.driver.power.oneview_client = oneview_client
-
+    def test_set_power_off(self, mock_set_boot_device, mock_get_ov_client):
+        client = mock_get_ov_client()
+        self.driver.power.client = client
+        server_hardware = self.node.driver_info.get('server_hardware_uri')
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            driver_info = task.node.driver_info
-            driver_info['applied_server_profile_uri'] = sp_uri
-            task.node.driver_info = driver_info
             self.driver.power.set_power_state(task, states.POWER_OFF)
             self.assertFalse(mock_set_boot_device.called)
-            self.info['applied_server_profile_uri'] = sp_uri
-            oneview_client.power_off.assert_called_once_with(self.info)
+            update = client.server_hardware.update_power_state
+            update.assert_called_once_with(power.POWER_OFF, server_hardware)
 
     @mock.patch.object(management, 'set_boot_device')
-    def test_set_power_on_fail(
-            self, mock_set_boot_device, mock_get_ov_client):
-
-        sp_uri = '/any/server-profile'
-        oneview_client = mock_get_ov_client()
-        fake_sh = oneview_models.ServerHardware()
-        fake_sh.server_profile_uri = sp_uri
-        oneview_client.get_server_hardware_by_uuid.return_value = fake_sh
-        exc = oneview_exceptions.OneViewException()
-        oneview_client.power_on.side_effect = exc
-        self.driver.power.oneview_client = oneview_client
-
+    def test_set_power_reboot(self, mock_set_boot_device, mock_get_ov_client):
+        client = mock_get_ov_client()
+        self.driver.power.client = client
+        server_hardware = self.node.driver_info.get('server_hardware_uri')
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            driver_info = task.node.driver_info
-            driver_info['applied_server_profile_uri'] = sp_uri
-            task.node.driver_info = driver_info
-            self.assertRaises(exception.OneViewError,
-                              self.driver.power.set_power_state, task,
-                              states.POWER_ON)
+            self.driver.power.set_power_state(task, states.REBOOT)
+            calls = [mock.call(power.POWER_OFF, server_hardware),
+                     mock.call(power.POWER_ON, server_hardware)]
+            update = client.server_hardware.update_power_state
+            update.assert_has_calls(calls)
+
+    @mock.patch.object(management, 'set_boot_device')
+    def test_set_power_on_fail(self, mock_set_boot_device, mock_get_ov_client):
+        client = mock_get_ov_client()
+        exc = client_exception.HPOneViewException()
+        client.server_hardware.update_power_state.side_effect = exc
+        self.driver.power.client = client
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(
+                exception.OneViewError,
+                self.driver.power.set_power_state,
+                task,
+                states.POWER_ON)
             mock_set_boot_device.assert_called_once_with(task)
-            self.info['applied_server_profile_uri'] = sp_uri
-            oneview_client.power_on.assert_called_once_with(self.info)
 
     @mock.patch.object(management, 'set_boot_device')
     def test_set_power_off_fail(
             self, mock_set_boot_device, mock_get_ov_client):
-
-        sp_uri = '/any/server-profile'
-        oneview_client = mock_get_ov_client()
-        fake_sh = oneview_models.ServerHardware()
-        fake_sh.server_profile_uri = sp_uri
-        oneview_client.get_server_hardware_by_uuid.return_value = fake_sh
-        exc = oneview_exceptions.OneViewException()
-        oneview_client.power_off.side_effect = exc
-        self.driver.power.oneview_client = oneview_client
-
+        client = mock_get_ov_client()
+        exc = client_exception.HPOneViewException()
+        client.server_hardware.update_power_state.side_effect = exc
+        self.driver.power.client = client
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            driver_info = task.node.driver_info
-            driver_info['applied_server_profile_uri'] = sp_uri
-            task.node.driver_info = driver_info
-            self.assertRaises(exception.OneViewError,
-                              self.driver.power.set_power_state, task,
-                              states.POWER_OFF)
+            self.assertRaises(
+                exception.OneViewError,
+                self.driver.power.set_power_state,
+                task,
+                states.POWER_OFF)
             self.assertFalse(mock_set_boot_device.called)
-            self.info['applied_server_profile_uri'] = sp_uri
-            oneview_client.power_off.assert_called_once_with(self.info)
+
+    @mock.patch.object(management, 'set_boot_device')
+    def test_reboot_fail_with_hardware_on(
+            self, mock_set_boot_device, mock_get_ov_client):
+        client = mock_get_ov_client()
+        server_hardware = {'powerState': 'On'}
+        client.server_hardware.get.return_value = server_hardware
+        self.driver.power.client = client
+        exc = client_exception.HPOneViewException()
+        client.server_hardware.update_power_state.side_effect = exc
+        self.driver.power.client = client
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(
+                exception.OneViewError,
+                self.driver.power.reboot,
+                task)
+            self.assertFalse(mock_set_boot_device.called)
+
+    @mock.patch.object(management, 'set_boot_device')
+    def test_reboot_fail_with_hardware_off(
+            self, mock_set_boot_device, mock_get_ov_client):
+        client = mock_get_ov_client()
+        server_hardware = {'powerState': 'Off'}
+        client.server_hardware.get.return_value = server_hardware
+        self.driver.power.client = client
+        exc = client_exception.HPOneViewException()
+        client.server_hardware.update_power_state.side_effect = exc
+        self.driver.power.client = client
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(
+                exception.OneViewError,
+                self.driver.power.reboot,
+                task)
+            mock_set_boot_device.assert_called_once_with(task)
 
     @mock.patch.object(management, 'set_boot_device')
     def test_set_power_invalid_state(
             self, mock_set_boot_device, mock_get_ov_client):
-
-        sp_uri = '/any/server-profile'
-        oneview_client = mock_get_ov_client()
-        fake_sh = oneview_models.ServerHardware()
-        fake_sh.server_profile_uri = sp_uri
-        oneview_client.get_server_hardware_by_uuid.return_value = fake_sh
-        exc = oneview_exceptions.OneViewException()
-        oneview_client.power_off.side_effect = exc
-        self.driver.power.oneview_client = oneview_client
-
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            driver_info = task.node.driver_info
-            driver_info['applied_server_profile_uri'] = sp_uri
-            task.node.driver_info = driver_info
-            self.assertRaises(exception.InvalidParameterValue,
-                              self.driver.power.set_power_state, task,
-                              'fake state')
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                self.driver.power.set_power_state,
+                task,
+                'fake_state')
             self.assertFalse(mock_set_boot_device.called)
 
     @mock.patch.object(management, 'set_boot_device')
-    def test_set_power_reboot(
+    def test_set_power_reboot_with_hardware_on(
             self, mock_set_boot_device, mock_get_ov_client):
-
-        sp_uri = '/any/server-profile'
-        oneview_client = mock_get_ov_client()
-        fake_sh = oneview_models.ServerHardware()
-        fake_sh.server_profile_uri = sp_uri
-        oneview_client.get_server_hardware_by_uuid.return_value = fake_sh
-        oneview_client.power_off.return_value = POWER_OFF
-        oneview_client.power_on.return_value = POWER_ON
-        self.driver.power.oneview_client = oneview_client
-
+        client = mock_get_ov_client()
+        server_hardware = {'powerState': 'On'}
+        client.server_hardware.get.return_value = server_hardware
+        self.driver.power.client = client
+        server_hardware = self.node.driver_info.get('server_hardware_uri')
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            driver_info = task.node.driver_info
-            driver_info['applied_server_profile_uri'] = sp_uri
-            task.node.driver_info = driver_info
-            self.driver.power.set_power_state(task, states.REBOOT)
-            mock_set_boot_device.assert_called_once_with(task)
-            self.info['applied_server_profile_uri'] = sp_uri
-            oneview_client.power_off.assert_called_once_with(self.info)
-            oneview_client.power_off.assert_called_once_with(self.info)
-            oneview_client.power_on.assert_called_once_with(self.info)
-
-    @mock.patch.object(management, 'set_boot_device')
-    def test_reboot(
-            self, mock_set_boot_device, mock_get_ov_client):
-
-        sp_uri = '/any/server-profile'
-        oneview_client = mock_get_ov_client()
-        fake_sh = oneview_models.ServerHardware()
-        fake_sh.server_profile_uri = sp_uri
-        oneview_client.get_server_hardware_by_uuid.return_value = fake_sh
-        oneview_client.power_off.return_value = POWER_OFF
-        oneview_client.power_on.return_value = POWER_ON
-        self.driver.power.oneview_client = oneview_client
-
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            driver_info = task.node.driver_info
-            driver_info['applied_server_profile_uri'] = sp_uri
-            task.node.driver_info = driver_info
             self.driver.power.reboot(task)
+            calls = [mock.call(power.POWER_OFF, server_hardware),
+                     mock.call(power.POWER_ON, server_hardware)]
+            update = client.server_hardware.update_power_state
+            update.assert_has_calls(calls)
             mock_set_boot_device.assert_called_once_with(task)
-            self.info['applied_server_profile_uri'] = sp_uri
-            oneview_client.power_off.assert_called_once_with(self.info)
-            oneview_client.power_on.assert_called_once_with(self.info)
 
     @mock.patch.object(management, 'set_boot_device')
-    def test_reboot_fail(
+    def test_set_power_reboot_with_hardware_off(
             self, mock_set_boot_device, mock_get_ov_client):
-
-        sp_uri = '/any/server-profile'
-        oneview_client = mock_get_ov_client()
-        fake_sh = oneview_models.ServerHardware()
-        fake_sh.server_profile_uri = sp_uri
-        oneview_client.get_server_hardware_by_uuid.return_value = fake_sh
-        exc = oneview_exceptions.OneViewException()
-        oneview_client.power_off.side_effect = exc
-        self.driver.power.oneview_client = oneview_client
-
-        with task_manager.acquire(self.context,
-                                  self.node.uuid) as task:
-            driver_info = task.node.driver_info
-            driver_info['applied_server_profile_uri'] = sp_uri
-            task.node.driver_info = driver_info
-            self.assertRaises(exception.OneViewError,
-                              self.driver.power.reboot, task)
-            self.assertFalse(mock_set_boot_device.called)
-            self.info['applied_server_profile_uri'] = sp_uri
-            oneview_client.power_off.assert_called_once_with(self.info)
-            self.assertFalse(oneview_client.power_on.called)
+        client = mock_get_ov_client()
+        server_hardware = {'powerState': 'Off'}
+        client.server_hardware.get.return_value = server_hardware
+        self.driver.power.client = client
+        server_hardware = self.node.driver_info.get('server_hardware_uri')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.driver.power.reboot(task)
+            update = client.server_hardware.update_power_state
+            update.assert_called_once_with(power.POWER_ON, server_hardware)
+            mock_set_boot_device.assert_called_once_with(task)
