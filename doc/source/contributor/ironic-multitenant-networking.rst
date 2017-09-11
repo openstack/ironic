@@ -29,8 +29,6 @@ configured in Neutron.
 
     # Install networking-generic-switch Neutron ML2 driver that interacts with OVS
     enable_plugin networking-generic-switch https://git.openstack.org/openstack/networking-generic-switch
-    Q_PLUGIN_EXTRA_CONF_PATH=/etc/neutron/plugins/ml2
-    Q_PLUGIN_EXTRA_CONF_FILES['networking-generic-switch']=ml2_conf_genericswitch.ini
 
     # Add link local info when registering Ironic node
     IRONIC_USE_LINK_LOCAL=True
