@@ -299,6 +299,16 @@ class TestNodesVif(base.BaseBaremetalTest):
 
         _, self.chassis = self.create_chassis()
         _, self.node = self.create_node(self.chassis['uuid'])
+        self.net = self.admin_manager.networks_client.create_network()
+
+        self.nport_id = self.admin_manager.ports_client.create_port(
+            network_id=self.net['network']['id'])['port']['id']
+
+    def tearDown(self):
+        super(TestNodesVif, self).tearDown()
+        self.admin_manager.ports_client.delete_port(self.nport_id)
+        self.admin_manager.networks_client.delete_network(
+            self.net['network']['id'])
 
     @decorators.idempotent_id('a3d319d0-cacb-4e55-a3dc-3fa8b74880f1')
     def test_vif_on_port(self):
@@ -316,13 +326,13 @@ class TestNodesVif(base.BaseBaremetalTest):
             api_microversion_fixture.APIMicroversionFixture('1.28'))
         _, self.port = self.create_port(self.node['uuid'],
                                         data_utils.rand_mac_address())
-        self.client.vif_attach(self.node['uuid'], 'test-vif')
+        self.client.vif_attach(self.node['uuid'], self.nport_id)
         _, body = self.client.vif_list(self.node['uuid'])
-        self.assertEqual({'vifs': [{'id': 'test-vif'}]}, body)
+        self.assertEqual({'vifs': [{'id': self.nport_id}]}, body)
         _, port = self.client.show_port(self.port['uuid'])
-        self.assertEqual('test-vif',
+        self.assertEqual(self.nport_id,
                          port['internal_info']['tenant_vif_port_id'])
-        self.client.vif_detach(self.node['uuid'], 'test-vif')
+        self.client.vif_detach(self.node['uuid'], self.nport_id)
         _, body = self.client.vif_list(self.node['uuid'])
         self.assertEqual({'vifs': []}, body)
         _, port = self.client.show_port(self.port['uuid'])
@@ -355,17 +365,17 @@ class TestNodesVif(base.BaseBaremetalTest):
                   'value': self.portgroup['uuid']}]
         self.client.update_port(self.port['uuid'], patch)
 
-        self.client.vif_attach(self.node['uuid'], 'test-vif')
+        self.client.vif_attach(self.node['uuid'], self.nport_id)
         _, body = self.client.vif_list(self.node['uuid'])
-        self.assertEqual({'vifs': [{'id': 'test-vif'}]}, body)
+        self.assertEqual({'vifs': [{'id': self.nport_id}]}, body)
 
         _, port = self.client.show_port(self.port['uuid'])
         self.assertNotIn('tenant_vif_port_id', port['internal_info'])
         _, portgroup = self.client.show_portgroup(self.portgroup['uuid'])
-        self.assertEqual('test-vif',
+        self.assertEqual(self.nport_id,
                          portgroup['internal_info']['tenant_vif_port_id'])
 
-        self.client.vif_detach(self.node['uuid'], 'test-vif')
+        self.client.vif_detach(self.node['uuid'], self.nport_id)
         _, body = self.client.vif_list(self.node['uuid'])
         self.assertEqual({'vifs': []}, body)
         _, portgroup = self.client.show_portgroup(self.portgroup['uuid'])
@@ -379,13 +389,13 @@ class TestNodesVif(base.BaseBaremetalTest):
                                         data_utils.rand_mac_address())
         patch = [{'path': '/extra/vif_port_id',
                   'op': 'add',
-                  'value': 'test-vif'}]
+                  'value': self.nport_id}]
         self.client.update_port(self.port['uuid'], patch)
 
         _, body = self.client.vif_list(self.node['uuid'])
-        self.assertEqual({'vifs': [{'id': 'test-vif'}]}, body)
+        self.assertEqual({'vifs': [{'id': self.nport_id}]}, body)
 
         self.assertRaises(lib_exc.Conflict, self.client.vif_attach,
-                          self.node['uuid'], 'test-vif')
+                          self.node['uuid'], self.nport_id)
 
-        self.client.vif_detach(self.node['uuid'], 'test-vif')
+        self.client.vif_detach(self.node['uuid'], self.nport_id)

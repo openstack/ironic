@@ -559,32 +559,15 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
 
         # Address is optional for portgroups
         if port_like_obj.address:
-            # Check if the requested vif_id is a neutron port. If it is
-            # then attempt to update the port's MAC address.
             try:
-                client.show_port(vif_id)
-            except neutron_exceptions.NeutronClientException:
-                # TODO(mgoddard): Remove this except clause and handle errors
-                # properly. We can do this once a strategy has been determined
-                # for handling the tempest VIF tests in an environment that
-                # may not support neutron.
-                # NOTE(sambetts): If a client error occurs this is because
-                # either neutron doesn't exist because we're running in
-                # standalone environment or we can't find a matching neutron
-                # port which means a user might be requesting a non-neutron
-                # port. So skip trying to update the neutron port MAC address
-                # in these cases.
-                pass
-            else:
-                try:
-                    neutron.update_port_address(vif_id, port_like_obj.address)
-                except exception.FailedToUpdateMacOnPort:
-                    raise exception.NetworkError(_(
-                        "Unable to attach VIF %(vif)s because Ironic can not "
-                        "update Neutron port %(port)s MAC address to match "
-                        "physical MAC address %(mac)s") % {
-                            'vif': vif_id, 'port': vif_id,
-                            'mac': port_like_obj.address})
+                neutron.update_port_address(vif_id, port_like_obj.address)
+            except exception.FailedToUpdateMacOnPort:
+                raise exception.NetworkError(_(
+                    "Unable to attach VIF %(vif)s because Ironic can not "
+                    "update Neutron port %(port)s MAC address to match "
+                    "physical MAC address %(mac)s") % {
+                        'vif': vif_id, 'port': vif_id,
+                        'mac': port_like_obj.address})
 
         self._save_vif_to_port_like_obj(port_like_obj, vif_id)
 
