@@ -621,16 +621,16 @@ class TestPXEUtils(db_base.DbTestCase):
         self.config(tftp_server='192.0.2.1', group='pxe')
         self.config(pxe_bootfile_name='fake-bootfile', group='pxe')
         self.config(tftp_root='/tftp-path/', group='pxe')
-        expected_info = [{'opt_name': 'bootfile-name',
+        expected_info = [{'opt_name': '67',
                           'opt_value': 'fake-bootfile',
                           'ip_version': ip_version},
                          {'opt_name': '210',
                           'opt_value': '/tftp-path/',
                           'ip_version': ip_version},
-                         {'opt_name': 'server-ip-address',
+                         {'opt_name': '66',
                           'opt_value': '192.0.2.1',
                           'ip_version': ip_version},
-                         {'opt_name': 'tftp-server',
+                         {'opt_name': '150',
                           'opt_value': '192.0.2.1',
                           'ip_version': ip_version},
                          ]
@@ -689,16 +689,16 @@ class TestPXEUtils(db_base.DbTestCase):
 
         self.config(dhcp_provider='isc', group='dhcp')
         expected_boot_script_url = 'http://192.0.3.2:1234/boot.ipxe'
-        expected_info = [{'opt_name': '!175,bootfile-name',
+        expected_info = [{'opt_name': '!175,67',
                           'opt_value': boot_file,
                           'ip_version': 4},
-                         {'opt_name': 'server-ip-address',
+                         {'opt_name': '66',
                           'opt_value': '192.0.2.1',
                           'ip_version': 4},
-                         {'opt_name': 'tftp-server',
+                         {'opt_name': '150',
                           'opt_value': '192.0.2.1',
                           'ip_version': 4},
-                         {'opt_name': 'bootfile-name',
+                         {'opt_name': '67',
                           'opt_value': expected_boot_script_url,
                           'ip_version': 4}]
 
@@ -707,16 +707,16 @@ class TestPXEUtils(db_base.DbTestCase):
 
         self.config(dhcp_provider='neutron', group='dhcp')
         expected_boot_script_url = 'http://192.0.3.2:1234/boot.ipxe'
-        expected_info = [{'opt_name': 'tag:!ipxe,bootfile-name',
+        expected_info = [{'opt_name': 'tag:!ipxe,67',
                           'opt_value': boot_file,
                           'ip_version': 4},
-                         {'opt_name': 'server-ip-address',
+                         {'opt_name': '66',
                           'opt_value': '192.0.2.1',
                           'ip_version': 4},
-                         {'opt_name': 'tftp-server',
+                         {'opt_name': '150',
                           'opt_value': '192.0.2.1',
                           'ip_version': 4},
-                         {'opt_name': 'tag:ipxe,bootfile-name',
+                         {'opt_name': 'tag:ipxe,67',
                           'opt_value': expected_boot_script_url,
                           'ip_version': 4}]
 
