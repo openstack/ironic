@@ -393,6 +393,9 @@ class BaseConductorManager(object):
             except db_exception.DBConnectionError:
                 LOG.warning('Conductor could not connect to database '
                             'while heartbeating.')
+            except Exception as e:
+                LOG.exception('Error while heartbeating. Error: %(err)s',
+                              {'err': e})
             self._keepalive_evt.wait(CONF.conductor.heartbeat_interval)
 
     def _mapped_to_this_conductor(self, node_uuid, driver):

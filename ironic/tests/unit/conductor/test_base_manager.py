@@ -320,6 +320,19 @@ class KeepAliveTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 self.service._conductor_service_record_keepalive()
             self.assertEqual(3, mock_touch.call_count)
 
+    def test__conductor_service_record_keepalive_failed_error(self):
+        self._start_service()
+        # avoid wasting time at the event.wait()
+        CONF.set_override('heartbeat_interval', 0, 'conductor')
+        with mock.patch.object(self.dbapi, 'touch_conductor') as mock_touch:
+            mock_touch.side_effect = [None, Exception(),
+                                      None]
+            with mock.patch.object(self.service._keepalive_evt,
+                                   'is_set') as mock_is_set:
+                mock_is_set.side_effect = [False, False, False, True]
+                self.service._conductor_service_record_keepalive()
+            self.assertEqual(3, mock_touch.call_count)
+
 
 class ManagerSpawnWorkerTestCase(tests_base.TestCase):
     def setUp(self):
