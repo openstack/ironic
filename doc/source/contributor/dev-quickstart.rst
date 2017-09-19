@@ -103,15 +103,6 @@ name. For example::
     # run the unit tests under py27 and also run the pep8 tests
     tox -epy27 -epep8
 
-.. note::
-    If tests are run under py27 and then run under py35 the following error may occur::
-
-      db type could not be determined
-      ERROR: InvocationError: '/home/ubuntu/ironic/.tox/py35/bin/ostestr'
-
-    To overcome this error remove the file `.testrepository/times.dbm`
-    and then run the py35 test.
-
 You may pass options to the test programs using positional arguments.
 To run a specific unit test, this passes the -r option and desired test
 (regex string) to `os-testr <https://pypi.python.org/pypi/os-testr>`_::
