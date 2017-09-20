@@ -166,7 +166,7 @@ Response
 Show Portgroup Details
 ======================
 
-.. rest_method:: GET /v1/portgroups/{portgroup_id}
+.. rest_method:: GET /v1/portgroups/{portgroup_ident}
 
 Show details for the given Portgroup.
 
@@ -179,7 +179,7 @@ Request
 
 .. rest_parameters:: parameters.yaml
 
-    - portgroup_id: portgroup_ident
+    - portgroup_ident: portgroup_ident
     - fields: fields
 
 Response
@@ -210,7 +210,7 @@ Response
 Update a Portgroup
 ==================
 
-.. rest_method:: PATCH /v1/portgroups/{portgroup_id}
+.. rest_method:: PATCH /v1/portgroups/{portgroup_ident}
 
 Update a Portgroup.
 
@@ -226,7 +226,7 @@ The BODY of the PATCH request must be a JSON PATCH document, adhering to
 
 .. rest_parameters:: parameters.yaml
 
-    - portgroup_id: portgroup_ident
+    - portgroup_ident: portgroup_ident
 
 **Example Portgroup update request:**
 
@@ -261,7 +261,7 @@ Response
 Delete Portgroup
 ================
 
-.. rest_method:: DELETE /v1/portgroups/{portgroup_id}
+.. rest_method:: DELETE /v1/portgroups/{portgroup_ident}
 
 Delete a Portgroup.
 
@@ -274,4 +274,4 @@ Request
 
 .. rest_parameters:: parameters.yaml
 
-    - portgroup_id: portgroup_ident
+    - portgroup_ident: portgroup_ident
