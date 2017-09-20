@@ -466,6 +466,16 @@ For more details on the Bare Metal service's state machine, see the
 
 .. _ComputeCapabilitiesFilter: https://docs.openstack.org/nova/latest/user/filter-scheduler.html
 
+Mapping nodes to Compute cells
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If the Compute service is used for scheduling, and the
+``discover_hosts_in_cells_interval`` was not set as described in
+:doc:`configure-compute`, then log into any controller node and run the
+following command to map the new node(s) to Compute cells::
+
+    nova-manage cell_v2 discover_hosts
+
 Logical names
 -------------
 
