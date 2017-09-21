@@ -170,7 +170,7 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
 
         if is_client_id:
             expected_body['port']['extra_dhcp_opts'] = (
-                [{'opt_name': 'client-id', 'opt_value': self._CLIENT_ID}])
+                [{'opt_name': '61', 'opt_value': self._CLIENT_ID}])
         # Ensure we can create ports
         self.client_mock.create_port.return_value = {
             'port': self.neutron_port}

@@ -36,12 +36,10 @@ class BaseDHCP(object):
 
                              ::
 
-                              [{'opt_name': 'bootfile-name',
+                              [{'opt_name': '67',
                                 'opt_value': 'pxelinux.0'},
-                               {'opt_name': 'server-ip-address',
-                                'opt_value': '123.123.123.456'},
-                               {'opt_name': 'tftp-server',
-                                'opt_value': '123.123.123.123'}]
+                               {'opt_name': '66',
+                                'opt_value': '123.123.123.456'}]
         :param token: An optional authentication token.
 
         :raises: FailedToUpdateDHCPOptOnPort
@@ -56,12 +54,10 @@ class BaseDHCP(object):
 
                         ::
 
-                         [{'opt_name': 'bootfile-name',
+                         [{'opt_name': '67',
                            'opt_value': 'pxelinux.0'},
-                          {'opt_name': 'server-ip-address',
-                           'opt_value': '123.123.123.456'},
-                          {'opt_name': 'tftp-server',
-                           'opt_value': '123.123.123.123'}]
+                          {'opt_name': '66',
+                           'opt_value': '123.123.123.456'}]
 
         :param vifs: A dict with keys 'ports' and 'portgroups' and
             dicts as values. Each dict has key/value pairs of the form

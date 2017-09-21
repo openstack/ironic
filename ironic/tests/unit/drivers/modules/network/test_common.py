@@ -970,7 +970,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts')
     def test_port_changed_client_id(self, dhcp_update_mock):
         expected_extra = {'vif_port_id': 'fake-id', 'client-id': 'fake2'}
-        expected_dhcp_opts = [{'opt_name': 'client-id', 'opt_value': 'fake2'}]
+        expected_dhcp_opts = [{'opt_name': '61', 'opt_value': 'fake2'}]
         self.port.extra = expected_extra
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.port_changed(task, self.port)
