@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes a `bug <https://bugs.launchpad.net/ironic/+bug/1718683>`_
+    with the response for a
+    ``GET /nodes?limit=1&instance_uuid=<uuid>`` request. If a node matched,
+    a ``next`` link was returned, even though there are no more nodes that
+    will match. That link is no longer returned.
