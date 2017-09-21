@@ -1,5 +1,5 @@
 ---
 fixes:
-  - Fixed an issue when mac address update was called in the same
-    request with bind port which is not handled by some neutron
-    backends like contrail correctly.
+  - Fixes `an issue <https://bugs.launchpad.net/ironic/+bug/1712359>`_ where
+    the update of a MAC address failed for ports that were bound (for example,
+    when using the 'contrail' neutron backend).
