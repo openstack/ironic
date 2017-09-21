@@ -527,20 +527,7 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
         # they will not affect the VIF to port mapping.
         physnets = set()
         if any(port.physical_network is not None for port in task.ports):
-            try:
-                physnets = neutron.get_physnets_by_port_uuid(client, vif_id)
-            except (exception.InvalidParameterValue, exception.NetworkError):
-                # TODO(mgoddard): Remove this except clause and handle errors
-                # properly. We can do this once a strategy has been determined
-                # for handling the tempest VIF tests in an environment that
-                # may not support neutron.
-                # NOTE(sambetts): If a client error occurs this is because
-                # either neutron doesn't exist because we're running in
-                # standalone environment or we can't find a matching neutron
-                # port which means a user might be requesting a non-neutron
-                # port. Assume no physical network information exists in these
-                # cases.
-                pass
+            physnets = neutron.get_physnets_by_port_uuid(client, vif_id)
 
             if len(physnets) > 1:
                 # NOTE(mgoddard): Neutron cannot currently handle hosts which
