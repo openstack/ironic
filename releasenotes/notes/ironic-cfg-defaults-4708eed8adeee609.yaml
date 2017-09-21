@@ -1,0 +1,7 @@
+---
+other:
+  - |
+    The default rootwrap configuration files are now included when
+    building the ironic python package. The files are included in
+    the path ``etc/ironic`` relative to the root of where ironic
+    is installed.
