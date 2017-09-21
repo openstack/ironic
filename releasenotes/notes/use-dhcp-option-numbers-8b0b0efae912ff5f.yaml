@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Fixes compatibility with Neutron DHCP backends other than dnsmasq by using
-    standard DHCP option codes instead of dnsmasq-specific option names.
