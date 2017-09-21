@@ -550,16 +550,18 @@ class TestUpdatePortAddress(base.TestCase):
     def test_update_port_address_with_binding(self, mock_unp, mock_client):
         address = 'fe:54:00:77:07:d9'
         port_id = 'fake-port-id'
-        expected = {'port': {'mac_address': address,
-                             'binding:host_id': 'host',
-                             'binding:profile': 'foo'}}
+
         mock_client.return_value.show_port.return_value = {
             'port': {'binding:host_id': 'host',
                      'binding:profile': 'foo'}}
 
+        calls = [mock.call(port_id, {'port': {'mac_address': address}}),
+                 mock.call(port_id, {'port': {'binding:host_id': 'host',
+                                     'binding:profile': 'foo'}})]
+
         neutron.update_port_address(port_id, address)
         mock_unp.assert_called_once_with(port_id, client=mock_client())
-        mock_client.return_value.update_port.assert_any_call(port_id, expected)
+        mock_client.return_value.update_port.assert_has_calls(calls)
 
     @mock.patch.object(neutron, 'unbind_neutron_port', autospec=True)
     def test_update_port_address_without_binding(self, mock_unp, mock_client):
