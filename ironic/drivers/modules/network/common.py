@@ -24,6 +24,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import network
 from ironic.common import neutron
+from ironic.common.pxe_utils import DHCP_CLIENT_ID
 from ironic.common import states
 from ironic.common import utils
 from ironic import objects
@@ -245,7 +246,8 @@ def plug_port_to_tenant_network(task, port_like_obj, client=None):
         local_link_info.append(port_like_obj.local_link_connection)
         client_id = port_like_obj.extra.get('client-id')
         if client_id:
-            client_id_opt = ({'opt_name': 'client-id', 'opt_value': client_id})
+            client_id_opt = ({'opt_name': DHCP_CLIENT_ID,
+                              'opt_value': client_id})
 
     # NOTE(sambetts) Only update required binding: attributes,
     # because other port attributes may have been set by the user or
@@ -415,7 +417,7 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
                 # from the neutron port
                 if vif:
                     api = dhcp_factory.DHCPFactory()
-                    client_id_opt = {'opt_name': 'client-id',
+                    client_id_opt = {'opt_name': DHCP_CLIENT_ID,
                                      'opt_value': updated_client_id}
 
                     api.provider.update_port_dhcp_opts(

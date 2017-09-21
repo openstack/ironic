@@ -18,6 +18,7 @@ from oslo_utils import uuidutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import keystone
+from ironic.common.pxe_utils import DHCP_CLIENT_ID
 from ironic.conf import CONF
 
 LOG = log.getLogger(__name__)
@@ -228,7 +229,8 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
         body['port']['binding:profile'] = binding_profile
         client_id = ironic_port.extra.get('client-id')
         if client_id:
-            client_id_opt = {'opt_name': 'client-id', 'opt_value': client_id}
+            client_id_opt = {'opt_name': DHCP_CLIENT_ID,
+                             'opt_value': client_id}
             extra_dhcp_opts = body['port'].get('extra_dhcp_opts', [])
             extra_dhcp_opts.append(client_id_opt)
             body['port']['extra_dhcp_opts'] = extra_dhcp_opts
