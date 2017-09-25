@@ -67,12 +67,19 @@ IRONIC_AUTH_CACHE_DIR=${IRONIC_AUTH_CACHE_DIR:-/var/cache/ironic}
 IRONIC_CONF_DIR=${IRONIC_CONF_DIR:-/etc/ironic}
 IRONIC_CONF_FILE=$IRONIC_CONF_DIR/ironic.conf
 IRONIC_ROOTWRAP_CONF=$IRONIC_CONF_DIR/rootwrap.conf
-if is_suse; then
-    IRONIC_WSGI_DIR=${IRONIC_WSGI_DIR:-/srv/www/htdocs/ironic}
-else
-    IRONIC_WSGI_DIR=${IRONIC_WSGI_DIR:-/var/www/ironic}
-fi
-IRONIC_USE_MOD_WSGI=$(trueorfalse False IRONIC_USE_MOD_WSGI)
+# Deploy Ironic API under uwsgi (NOT mod_wsgi) server.
+# Devstack aims to remove mod_wsgi support, so ironic shouldn't use it too.
+# If set to False that will fall back to use the eventlet server that
+# can happen on grenade runs.
+# The (confusing) name IRONIC_USE_MOD_WSGI is left for backward compatibility,
+# for example during grenade runs
+# TODO(pas-ha) remove IRONIC_USE_MOD_WSGI var after oldest supported
+# stable branch is stable/rocky
+IRONIC_USE_MOD_WSGI=$(trueorfalse $ENABLE_HTTPD_MOD_WSGI_SERVICES IRONIC_USE_MOD_WSGI)
+# If True, will deploy Ironic API under WSGI server, currently supported one
+# is uwsgi.
+# Defaults to the (now confusingly named) IRONIC_USE_MOD_WSGI for backward compat
+IRONIC_USE_WSGI=$(trueorfalse $IRONIC_USE_MOD_WSGI IRONIC_USE_WSGI)
 
 # Deploy callback timeout can be changed from its default (1800), if required.
 IRONIC_CALLBACK_TIMEOUT=${IRONIC_CALLBACK_TIMEOUT:-}
@@ -290,6 +297,8 @@ fi
 
 # Support entry points installation of console scripts
 IRONIC_BIN_DIR=$(get_python_exec_prefix)
+IRONIC_UWSGI_CONF=$IRONIC_CONF_DIR/ironic-uwsgi.ini
+IRONIC_UWSGI=$IRONIC_BIN_DIR/ironic-api-wsgi
 
 # Ironic connection info.  Note the port must be specified.
 if is_service_enabled tls-proxy; then
@@ -298,11 +307,11 @@ fi
 IRONIC_SERVICE_PROTOCOL=${IRONIC_SERVICE_PROTOCOL:-$SERVICE_PROTOCOL}
 IRONIC_SERVICE_PORT=${IRONIC_SERVICE_PORT:-6385}
 IRONIC_SERVICE_PORT_INT=${IRONIC_SERVICE_PORT_INT:-16385}
-# If ironic api running under apache we use the path rather than port
-if [[ "$IRONIC_USE_MOD_WSGI" != "True" ]]; then
-    IRONIC_HOSTPORT=${IRONIC_HOSTPORT:-$SERVICE_HOST:$IRONIC_SERVICE_PORT}
-else
+# If ironic api running under apache or UWSGI we use the path rather than port
+if [[ "$IRONIC_USE_WSGI" == "True" ]]; then
     IRONIC_HOSTPORT=${IRONIC_HOSTPORT:-$SERVICE_HOST/baremetal}
+else
+    IRONIC_HOSTPORT=${IRONIC_HOSTPORT:-$SERVICE_HOST:$IRONIC_SERVICE_PORT}
 fi
 
 # Enable iPXE
@@ -812,7 +821,7 @@ function install_ironic {
 
     setup_develop $IRONIC_DIR
 
-    if [[ "$IRONIC_USE_MOD_WSGI" == "True" || "$IRONIC_IPXE_ENABLED" == "True" ]]; then
+    if [[ "$IRONIC_USE_WSGI" == "True" || "$IRONIC_IPXE_ENABLED" == "True" ]]; then
         install_apache_wsgi
     fi
 
@@ -878,50 +887,30 @@ function install_ironicclient {
     fi
 }
 
-# _cleanup_ironic_apache_wsgi() - Remove wsgi files, disable and remove apache vhost file
-function _cleanup_ironic_apache_wsgi {
-    sudo rm -rf $IRONIC_HTTP_DIR
-    sudo rm -rf $IRONIC_WSGI_DIR
-    disable_apache_site ironic-api
-    disable_apache_site ipxe-ironic
-    sudo rm -f $(apache_site_config_for ironic-api)
-    sudo rm -f $(apache_site_config_for ipxe-ironic)
+# _cleanup_ironic_apache_additions() - Remove uwsgi files, disable and remove apache vhost file
+function _cleanup_ironic_apache_additions {
+
+    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]]; then
+        sudo rm -rf $IRONIC_HTTP_DIR
+        disable_apache_site ipxe-ironic
+        sudo rm -f $(apache_site_config_for ipxe-ironic)
+    fi
+    if [[ "$IRONIC_USE_WSGI" == "True" ]]; then
+        remove_uwsgi_config "$IRONIC_UWSGI_CONF" "$IRONIC_UWSGI"
+    fi
     restart_apache_server
 }
 
-# _config_ironic_apache_wsgi() - Set WSGI config files of Ironic
-function _config_ironic_apache_wsgi {
-    local ironic_apache_conf
+# _config_ironic_apache_ipxe() - Configure ironic IPXE site
+function _config_ironic_apache_ipxe {
     local ipxe_apache_conf
-    local ironic_service_port=$IRONIC_SERVICE_PORT
-    if is_service_enabled tls-proxy; then
-        ironic_service_port=$IRONIC_SERVICE_PORT_INT
-    fi
-    if [[ "$IRONIC_USE_MOD_WSGI" == "True" ]]; then
-        sudo mkdir -p $IRONIC_WSGI_DIR
-        sudo cp $IRONIC_DIR/ironic/api/app.wsgi $IRONIC_WSGI_DIR/app.wsgi
-        ironic_apache_conf=$(apache_site_config_for ironic-api)
-        sudo cp $IRONIC_DEVSTACK_FILES_DIR/apache-ironic-api.template $ironic_apache_conf
-        sudo sed -e "
-            s|%IRONIC_SERVICE_PORT%|$ironic_service_port|g;
-            s|%IRONIC_WSGI_DIR%|$IRONIC_WSGI_DIR|g;
-            s|%USER%|$STACK_USER|g;
-            s|%APIWORKERS%|$API_WORKERS|g;
-            s|%APACHE_NAME%|$APACHE_NAME|g;
-        " -i $ironic_apache_conf
-        enable_apache_site ironic-api
-        tail_log ir-access /var/log/$APACHE_NAME/ironic-api-access.log
-        tail_log ir-api /var/log/$APACHE_NAME/ironic-api.log
-    fi
-    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]]; then
-        ipxe_apache_conf=$(apache_site_config_for ipxe-ironic)
-        sudo cp $IRONIC_DEVSTACK_FILES_DIR/apache-ipxe-ironic.template $ipxe_apache_conf
-        sudo sed -e "
-            s|%PUBLICPORT%|$IRONIC_HTTP_PORT|g;
-            s|%HTTPROOT%|$IRONIC_HTTP_DIR|g;
-        " -i $ipxe_apache_conf
-        enable_apache_site ipxe-ironic
-    fi
+    ipxe_apache_conf=$(apache_site_config_for ipxe-ironic)
+    sudo cp $IRONIC_DEVSTACK_FILES_DIR/apache-ipxe-ironic.template $ipxe_apache_conf
+    sudo sed -e "
+        s|%PUBLICPORT%|$IRONIC_HTTP_PORT|g;
+        s|%HTTPROOT%|$IRONIC_HTTP_DIR|g;
+    " -i $ipxe_apache_conf
+    enable_apache_site ipxe-ironic
 }
 
 # cleanup_ironic_config_files() - Remove residual cache/config/log files,
@@ -935,8 +924,10 @@ function cleanup_ironic_config_files {
 function cleanup_ironic {
     cleanup_ironic_config_files
 
-    # Cleanup the WSGI files
-    _cleanup_ironic_apache_wsgi
+    # Cleanup additions made to Apache
+    if [[ "$IRONIC_USE_WSGI" == "True" || "$IRONIC_IPXE_ENABLED" == "True" ]]; then
+        _cleanup_ironic_apache_additions
+    fi
 
     # It's noop if no emulator is running
     stop_redfish_emulator
@@ -1112,9 +1103,14 @@ function configure_ironic {
     # Format logging
     setup_logging $IRONIC_CONF_FILE
 
-    # Adds WSGI for Ironic API
-    if [[ "$IRONIC_USE_MOD_WSGI" == "True" || "$IRONIC_IPXE_ENABLED" == "True" ]]; then
-        _config_ironic_apache_wsgi
+    # Adds ironic site for IPXE
+    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]]; then
+        _config_ironic_apache_ipxe
+    fi
+
+    # Adds uWSGI for Ironic API
+    if [[ "$IRONIC_USE_WSGI" == "True" ]]; then
+        write_uwsgi_config "$IRONIC_UWSGI_CONF" "$IRONIC_UWSGI" "/baremetal"
     fi
 
     if [[ "$os_VENDOR" =~ (Debian|Ubuntu) ]]; then
@@ -1161,7 +1157,7 @@ function configure_ironic_api {
 
     iniset $IRONIC_CONF_FILE conductor automated_clean $IRONIC_AUTOMATED_CLEAN_ENABLED
 
-    if [[ "$IRONIC_USE_MOD_WSGI" == "True" ]]; then
+    if [[ "$IRONIC_USE_WSGI" == "True" ]]; then
         iniset $IRONIC_CONF_FILE api public_endpoint $IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT
     elif is_service_enabled tls-proxy; then
         iniset $IRONIC_CONF_FILE api public_endpoint $IRONIC_SERVICE_PROTOCOL://$IRONIC_HOSTPORT
@@ -1441,22 +1437,26 @@ function start_ironic {
 # start_ironic_api() - Used by start_ironic().
 # Starts Ironic API server.
 function start_ironic_api {
-    if [[ "$IRONIC_USE_MOD_WSGI" == "True" ]]; then
-        restart_apache_server
-    else
-        run_process ir-api "$IRONIC_BIN_DIR/ironic-api --config-file=$IRONIC_CONF_FILE"
-    fi
-
-    # Get right service port for testing
     local service_port=$IRONIC_SERVICE_PORT
     local service_protocol=$IRONIC_SERVICE_PROTOCOL
+    local ironic_url
+
+    # Get right service port for testing
     if is_service_enabled tls-proxy; then
         service_port=$IRONIC_SERVICE_PORT_INT
         service_protocol="http"
     fi
 
-    echo "Waiting for ir-api ($SERVICE_HOST:$service_port) to start..."
-    if ! timeout $SERVICE_TIMEOUT sh -c "while ! wget --no-proxy -q -O- $service_protocol://$SERVICE_HOST:$service_port/; do sleep 1; done"; then
+    if [[ "$IRONIC_USE_WSGI" == "True" ]]; then
+        run_process "ir-api" "$IRONIC_BIN_DIR/uwsgi --procname-prefix ironic-api --ini $IRONIC_UWSGI_CONF"
+        ironic_url=$service_protocol://$SERVICE_HOST/baremetal
+    else
+        run_process ir-api "$IRONIC_BIN_DIR/ironic-api --config-file=$IRONIC_CONF_FILE"
+        ironic_url=$service_protocol://$SERVICE_HOST:$service_port
+    fi
+
+    echo "Waiting for ir-api ($ironic_url) to start..."
+    if ! timeout $SERVICE_TIMEOUT sh -c "while ! wget --no-proxy -q -O- $ironic_url; do sleep 1; done"; then
         die $LINENO "ir-api did not start"
     fi
 
@@ -1480,11 +1480,7 @@ function start_virtualpdu {
 
 # stop_ironic() - Stop running processes
 function stop_ironic {
-    if [[ "$IRONIC_USE_MOD_WSGI" == "True" ]]; then
-        disable_apache_site ironic-api
-    else
-        stop_process ir-api
-    fi
+    stop_process ir-api
     stop_process ir-cond
 }
 
@@ -2102,7 +2098,7 @@ function configure_iptables {
     # nodes boot from TFTP and callback to the API server listening on $HOST_IP
     sudo iptables -I INPUT -d $IRONIC_TFTPSERVER_IP -p udp --dport 69 -j ACCEPT || true
     # To use named /baremetal endpoint we should open default apache port
-    if [[ "$IRONIC_USE_MOD_WSGI" == "False" ]]; then
+    if [[ "$IRONIC_USE_WSGI" == "False" ]]; then
         sudo iptables -I INPUT -d $HOST_IP -p tcp --dport $IRONIC_SERVICE_PORT -j ACCEPT || true
         # open ironic API on baremetal network
         sudo iptables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport $IRONIC_SERVICE_PORT -j ACCEPT || true
