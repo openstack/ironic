@@ -108,19 +108,19 @@ class BaremetalMultitenancy(baremetal_manager.BaremetalScenarioTest,
 
         # Boot instance in the alt tenant network and ensure there is no
         # L2 connectivity between instances of the different tenants
-        alt_keypair = self.create_keypair(self.alt_manager.keypairs_client)
+        alt_keypair = self.create_keypair(self.os_alt.keypairs_client)
         alt_network, alt_subnet, alt_router = self.create_tenant_network(
-            self.alt_manager, tenant_cidr)
+            self.os_alt, tenant_cidr)
 
         alt_instance, alt_node = self.boot_instance(
             keypair=alt_keypair,
-            clients=self.alt_manager,
+            clients=self.os_alt,
             net_id=alt_network['id'],
             fixed_ip=fixed_ip2
         )
         alt_floating_ip = self.create_floating_ip(
             alt_instance,
-            client=self.alt_manager.floating_ips_client
+            client=self.os_alt.floating_ips_client
         )['floating_ip_address']
 
         self.check_vm_connectivity(ip_address=alt_floating_ip,
@@ -149,5 +149,5 @@ class BaremetalMultitenancy(baremetal_manager.BaremetalScenarioTest,
 
         self.terminate_instance(
             instance=alt_instance,
-            servers_client=self.alt_manager.servers_client)
+            servers_client=self.os_alt.servers_client)
         self.terminate_instance(instance=instance1)

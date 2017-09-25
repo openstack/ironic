@@ -114,7 +114,7 @@ class BaremetalBFV(baremetal_manager.BaremetalScenarioTest):
             delete_on_termination=delete_on_termination))
 
         return self.boot_instance(
-            clients=self.manager,
+            clients=self.os_primary,
             keypair=keypair,
             **create_kwargs
         )

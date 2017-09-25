@@ -102,7 +102,7 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager(driver='fake_oneview')
         self.driver = driver_factory.get_driver('fake_oneview')
         self.deploy = OneViewDriverDeploy()
-        self.manager = mock.MagicMock(spec=METHODS)
+        self.os_primary = mock.MagicMock(spec=METHODS)
         self.node = obj_utils.create_test_node(
             self.context, driver='fake_oneview',
             properties=db_utils.get_test_oneview_properties(),
@@ -113,16 +113,16 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
             self, mock_is_node_in_use_by_oneview, mock_node_get):
         mock_node_get.get.return_value = self.node
         _setup_node_in_available_state(self.node)
-        self.manager.iter_nodes.return_value = nodes_taken_by_oneview
+        self.os_primary.iter_nodes.return_value = nodes_taken_by_oneview
         mock_is_node_in_use_by_oneview.return_value = True
         self.deploy._periodic_check_nodes_taken_by_oneview(
-            self.manager, self.context
+            self.os_primary, self.context
         )
         mock_is_node_in_use_by_oneview.assert_called_once_with(
             self.deploy.client, self.node
         )
-        self.assertTrue(self.manager.update_node.called)
-        self.assertTrue(self.manager.do_provisioning_action.called)
+        self.assertTrue(self.os_primary.update_node.called)
+        self.assertTrue(self.os_primary.do_provisioning_action.called)
         self.assertTrue(self.node.maintenance)
         self.assertEqual(common.NODE_IN_USE_BY_ONEVIEW,
                          self.node.maintenance_reason)
@@ -133,15 +133,15 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
         _setup_node_in_available_state(self.node)
         mock_node_get.return_value = self.node
         mock_is_node_in_use_by_oneview.return_value = False
-        self.manager.iter_nodes.return_value = nodes_taken_by_oneview
+        self.os_primary.iter_nodes.return_value = nodes_taken_by_oneview
         self.deploy._periodic_check_nodes_taken_by_oneview(
-            self.manager, self.context
+            self.os_primary, self.context
         )
         mock_is_node_in_use_by_oneview.assert_called_once_with(
             self.deploy.client, self.node
         )
-        self.assertFalse(self.manager.update_node.called)
-        self.assertFalse(self.manager.do_provisioning_action.called)
+        self.assertFalse(self.os_primary.update_node.called)
+        self.assertFalse(self.os_primary.do_provisioning_action.called)
         self.assertFalse(self.node.maintenance)
         self.assertIsNone(self.node.maintenance_reason)
 
@@ -151,15 +151,15 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
         _setup_node_in_available_state(self.node)
         side_effect = exception.OneViewError('boom')
         mock_is_node_in_use_by_oneview.side_effect = side_effect
-        self.manager.iter_nodes.return_value = nodes_taken_by_oneview
+        self.os_primary.iter_nodes.return_value = nodes_taken_by_oneview
         self.deploy._periodic_check_nodes_taken_by_oneview(
-            self.manager, self.context
+            self.os_primary, self.context
         )
         mock_is_node_in_use_by_oneview.assert_called_once_with(
             self.deploy.client, self.node
         )
-        self.assertFalse(self.manager.update_node.called)
-        self.assertFalse(self.manager.do_provisioning_action.called)
+        self.assertFalse(self.os_primary.update_node.called)
+        self.assertFalse(self.os_primary.do_provisioning_action.called)
         self.assertFalse(self.node.maintenance)
         self.assertNotEqual(common.NODE_IN_USE_BY_ONEVIEW,
                             self.node.maintenance_reason)
@@ -168,16 +168,16 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
             self, mock_is_node_in_use_by_oneview, mock_node_get):
         mock_node_get.get.return_value = self.node
         _setup_node_in_manageable_state(self.node)
-        self.manager.iter_nodes.return_value = nodes_freed_by_oneview
+        self.os_primary.iter_nodes.return_value = nodes_freed_by_oneview
         mock_is_node_in_use_by_oneview.return_value = False
         self.deploy._periodic_check_nodes_freed_by_oneview(
-            self.manager, self.context
+            self.os_primary, self.context
         )
         mock_is_node_in_use_by_oneview.assert_called_once_with(
             self.deploy.client, self.node
         )
-        self.assertTrue(self.manager.update_node.called)
-        self.assertTrue(self.manager.do_provisioning_action.called)
+        self.assertTrue(self.os_primary.update_node.called)
+        self.assertTrue(self.os_primary.do_provisioning_action.called)
         self.assertFalse(self.node.maintenance)
         self.assertIsNone(self.node.maintenance_reason)
 
@@ -186,15 +186,15 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
         mock_node_get.get.return_value = self.node
         _setup_node_in_manageable_state(self.node)
         mock_is_node_in_use_by_oneview.return_value = True
-        self.manager.iter_nodes.return_value = nodes_freed_by_oneview
+        self.os_primary.iter_nodes.return_value = nodes_freed_by_oneview
         self.deploy._periodic_check_nodes_freed_by_oneview(
-            self.manager, self.context
+            self.os_primary, self.context
         )
         mock_is_node_in_use_by_oneview.assert_called_once_with(
             self.deploy.client, self.node
         )
-        self.assertFalse(self.manager.update_node.called)
-        self.assertFalse(self.manager.do_provisioning_action.called)
+        self.assertFalse(self.os_primary.update_node.called)
+        self.assertFalse(self.os_primary.do_provisioning_action.called)
         self.assertTrue(self.node.maintenance)
         self.assertEqual(common.NODE_IN_USE_BY_ONEVIEW,
                          self.node.maintenance_reason)
@@ -205,15 +205,15 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
         _setup_node_in_manageable_state(self.node)
         side_effect = exception.OneViewError('boom')
         mock_is_node_in_use_by_oneview.side_effect = side_effect
-        self.manager.iter_nodes.return_value = nodes_freed_by_oneview
+        self.os_primary.iter_nodes.return_value = nodes_freed_by_oneview
         self.deploy._periodic_check_nodes_freed_by_oneview(
-            self.manager, self.context
+            self.os_primary, self.context
         )
         mock_is_node_in_use_by_oneview.assert_called_once_with(
             self.deploy.client, self.node
         )
-        self.assertFalse(self.manager.update_node.called)
-        self.assertFalse(self.manager.do_provisioning_action.called)
+        self.assertFalse(self.os_primary.update_node.called)
+        self.assertFalse(self.os_primary.do_provisioning_action.called)
         self.assertTrue(self.node.maintenance)
         self.assertEqual(common.NODE_IN_USE_BY_ONEVIEW,
                          self.node.maintenance_reason)
@@ -222,12 +222,12 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
             self, mock_is_node_in_use_by_oneview, mock_node_get):
         mock_node_get.get.return_value = self.node
         _setup_node_in_cleanfailed_state_with_oneview_error(self.node)
-        self.manager.iter_nodes.return_value = nodes_taken_on_cleanfail
+        self.os_primary.iter_nodes.return_value = nodes_taken_on_cleanfail
         self.deploy._periodic_check_nodes_taken_on_cleanfail(
-            self.manager, self.context
+            self.os_primary, self.context
         )
-        self.assertTrue(self.manager.update_node.called)
-        self.assertTrue(self.manager.do_provisioning_action.called)
+        self.assertTrue(self.os_primary.update_node.called)
+        self.assertTrue(self.os_primary.do_provisioning_action.called)
         self.assertTrue(self.node.maintenance)
         self.assertEqual(common.NODE_IN_USE_BY_ONEVIEW,
                          self.node.maintenance_reason)
@@ -237,12 +237,13 @@ class OneViewPeriodicTasks(db_base.DbTestCase):
             self, mock_is_node_in_use_by_oneview, mock_node_get):
         mock_node_get.get.return_value = self.node
         _setup_node_in_cleanfailed_state_without_oneview_error(self.node)
-        self.manager.iter_nodes.return_value = nodes_taken_on_cleanfail_no_info
+        self.os_primary.iter_nodes.return_value = \
+            nodes_taken_on_cleanfail_no_info
         self.deploy._periodic_check_nodes_taken_on_cleanfail(
-            self.manager, self.context
+            self.os_primary, self.context
         )
-        self.assertFalse(self.manager.update_node.called)
-        self.assertFalse(self.manager.do_provisioning_action.called)
+        self.assertFalse(self.os_primary.update_node.called)
+        self.assertFalse(self.os_primary.do_provisioning_action.called)
         self.assertFalse(self.node.maintenance)
         self.assertNotEqual(common.NODE_IN_USE_BY_ONEVIEW,
                             self.node.maintenance_reason)
