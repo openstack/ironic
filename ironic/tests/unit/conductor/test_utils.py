@@ -179,7 +179,10 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         task = task_manager.TaskManager(self.context, node.uuid)
 
         with mock.patch.object(self.driver.power, 'reboot') as reboot_mock:
-            conductor_utils.node_power_action(task, states.REBOOT)
+            with mock.patch.object(self.driver.power,
+                                   'get_power_state') as get_power_mock:
+                conductor_utils.node_power_action(task, states.REBOOT)
+                self.assertFalse(get_power_mock.called)
 
             node.refresh()
             reboot_mock.assert_called_once_with(mock.ANY)
@@ -205,7 +208,7 @@ class NodePowerActionTestCase(db_base.DbTestCase):
                               "INVALID_POWER_STATE")
 
             node.refresh()
-            get_power_mock.assert_called_once_with(mock.ANY)
+            self.assertFalse(get_power_mock.called)
             self.assertEqual(states.POWER_ON, node['power_state'])
             self.assertIsNone(node['target_power_state'])
             self.assertIsNotNone(node['last_error'])
@@ -240,7 +243,7 @@ class NodePowerActionTestCase(db_base.DbTestCase):
                               "INVALID_POWER_STATE")
 
             node.refresh()
-            get_power_mock.assert_called_once_with(mock.ANY)
+            self.assertFalse(get_power_mock.called)
             self.assertEqual(states.POWER_ON, node.power_state)
             self.assertIsNone(node.target_power_state)
             self.assertIsNotNone(node.last_error)
@@ -720,7 +723,7 @@ class NodeSoftPowerActionTestCase(db_base.DbTestCase):
             conductor_utils.node_power_action(task, states.SOFT_REBOOT)
 
             node.refresh()
-            get_power_mock.assert_called_once_with(mock.ANY)
+            self.assertFalse(get_power_mock.called)
             self.assertEqual(states.POWER_ON, node['power_state'])
             self.assertIsNone(node['target_power_state'])
             self.assertIsNone(node['last_error'])
@@ -741,7 +744,7 @@ class NodeSoftPowerActionTestCase(db_base.DbTestCase):
                                               timeout=2)
 
             node.refresh()
-            get_power_mock.assert_called_once_with(mock.ANY)
+            self.assertFalse(get_power_mock.called)
             self.assertEqual(states.POWER_ON, node['power_state'])
             self.assertIsNone(node['target_power_state'])
             self.assertIsNone(node['last_error'])

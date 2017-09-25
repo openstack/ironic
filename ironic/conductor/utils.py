@@ -124,6 +124,12 @@ def _can_skip_state_change(task, new_state):
     :returns: True if should ignore the requested power state change. False
               otherwise
     """
+    # We only ignore certain state changes. So if the desired new_state is not
+    # one of them, then we can return early and not do an un-needed
+    # get_power_state() call
+    if new_state not in (states.POWER_ON, states.POWER_OFF,
+                         states.SOFT_POWER_OFF):
+        return False
 
     node = task.node
 

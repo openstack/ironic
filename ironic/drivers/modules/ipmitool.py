@@ -833,7 +833,11 @@ class IPMIPower(base.PowerInterface):
 
         """
         driver_info = _parse_driver_info(task.node)
-        _power_off(task, driver_info, timeout=timeout)
+        # NOTE(jlvillal): Some BMCs will error if setting power state to off if
+        # the node is already turned off.
+        current_status = _power_status(driver_info)
+        if current_status != states.POWER_OFF:
+            _power_off(task, driver_info, timeout=timeout)
         driver_utils.ensure_next_boot_device(task, driver_info)
         _power_on(task, driver_info, timeout=timeout)
 
