@@ -217,3 +217,47 @@ Network and storage
 
 The network and storage interfaces have always been dynamic, and thus do not
 require any special treatment during upgrade.
+
+Vendor
+~~~~~~
+
+Classic drivers are allowed to use the ``VendorMixin`` functionality
+to combine and expose several node or driver vendor passthru methods
+from different vendor interface implementations in one driver.
+
+**This is no longer possible with hardware types.**
+
+With hardware types, a vendor interface can only have a single active
+implementation from the list of vendor interfaces supported by a given
+hardware type.
+
+Ironic no longer has in-tree drivers (both classic and hardware types) that
+rely on this ``VendorMixin`` functionality support.
+However if you are using an out-of-tree classic driver that depends on it,
+you'll need to do the following in order to use vendor
+passthru methods from different vendor passthru implementations:
+
+#. While creating a new hardware type to replace your classic driver,
+   specify all vendor interface implementations your classic driver
+   was using to build its ``VendorMixin`` as supported vendor interfaces
+   (property ``supported_vendor_interfaces`` of the Python class
+   that defines your hardware type).
+#. Ensure all required vendor interfaces are enabled in the ironic
+   configuration file under the ``[DEFAULT]enabled_vendor_interfaces``
+   option.
+   You should also consider setting the ``[DEFAULT]default_vendor_interface``
+   option to specify the vendor interface for nodes that do not have one set
+   explicitly.
+#. Before invoking a specific vendor passthru method,
+   make sure that the node's vendor interface is set to the interface
+   with the desired vendor passthru method.
+   For example, if you want to invoke the vendor passthru method
+   ``vendor_method_foo()`` from ``vendor_foo`` vendor interface:
+
+     .. code-block:: shell
+
+        # set the vendor interface to 'vendor_foo`
+        openstack --os-baremetal-api-version 1.31 baremetal node set <node> --vendor-interface vendor_foo
+
+        # invoke the vendor passthru method
+        openstack baremetal node passthru call <node> vendor_method_foo
