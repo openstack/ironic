@@ -299,16 +299,19 @@ class TestNodesVif(base.BaseBaremetalTest):
 
         _, self.chassis = self.create_chassis()
         _, self.node = self.create_node(self.chassis['uuid'])
-        self.net = self.admin_manager.networks_client.create_network()
+        if CONF.network.shared_physical_network:
+            self.net = self.os_admin.networks_client.list_networks(
+                name=CONF.compute.fixed_network_name)['networks'][0]
+        else:
+            self.net = self.os_admin.networks_client.\
+                create_network()['network']
+            self.addCleanup(self.os_admin.networks_client.delete_network,
+                            self.net['id'])
 
-        self.nport_id = self.admin_manager.ports_client.create_port(
-            network_id=self.net['network']['id'])['port']['id']
-
-    def tearDown(self):
-        super(TestNodesVif, self).tearDown()
-        self.admin_manager.ports_client.delete_port(self.nport_id)
-        self.admin_manager.networks_client.delete_network(
-            self.net['network']['id'])
+        self.nport_id = self.os_admin.ports_client.create_port(
+            network_id=self.net['id'])['port']['id']
+        self.addCleanup(self.os_admin.ports_client.delete_port,
+                        self.nport_id)
 
     @decorators.idempotent_id('a3d319d0-cacb-4e55-a3dc-3fa8b74880f1')
     def test_vif_on_port(self):
