@@ -12,13 +12,14 @@
 
 # This is an example Apache2 configuration file for using the
 # Ironic API through mod_wsgi.  This version assumes you are
-# running devstack to configure the software.
+# running devstack to configure the software, and PBR has generated
+# and installed the ironic-api-wsgi script while installing ironic.
 
 Listen 6385
 
 <VirtualHost *:6385>
     WSGIDaemonProcess ironic user=stack group=stack threads=10 display-name=%{GROUP}
-    WSGIScriptAlias / /opt/stack/ironic/ironic/api/app.wsgi
+    WSGIScriptAlias / /usr/local/bin/ironic-api-wsgi
 
     SetEnv APACHE_RUN_USER stack
     SetEnv APACHE_RUN_GROUP stack
