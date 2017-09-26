@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes switching to tenant networks, when using the 'neutron' network
+    interface with the OneView drivers.
+    For more information, see https://bugs.launchpad.net/ironic/+bug/1716023

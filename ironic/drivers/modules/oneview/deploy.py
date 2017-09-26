@@ -343,6 +343,9 @@ class OneViewAgentDeployMixin(object):
                      'error': e})
                 manager_utils.node_power_action(task, states.POWER_OFF)
 
+            task.driver.network.remove_provisioning_network(task)
+            task.driver.network.configure_tenant_networks(task)
+
             manager_utils.node_set_boot_device(task, 'disk',
                                                persistent=True)
             manager_utils.node_power_action(task, states.POWER_ON)

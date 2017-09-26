@@ -29,6 +29,7 @@ from ironic.conf import CONF
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import iscsi_deploy
+from ironic.drivers.modules.network import flat as flat_network
 from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy
 from ironic.drivers.modules.oneview import deploy_utils
@@ -289,8 +290,15 @@ class TestOneViewAgentDeploy(db_base.DbTestCase):
                        spec=types.FunctionType)
     @mock.patch.object(agent_client.AgentClient, 'power_off',
                        spec=types.FunctionType)
+    @mock.patch.object(flat_network.FlatNetwork, 'remove_provisioning_network',
+                       autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'configure_tenant_networks',
+                       autospec=True)
     @mock.patch('ironic.conductor.utils.node_set_boot_device', autospec=True)
-    def test_reboot_and_finish_deploy(self, set_bootdev_mock, power_off_mock,
+    def test_reboot_and_finish_deploy(self, set_bootdev_mock,
+                                      configure_tenant_mock,
+                                      remove_provisioning_mock,
+                                      power_off_mock,
                                       get_power_state_mock,
                                       node_power_action_mock,
                                       mock_get_ov_client):
@@ -302,6 +310,8 @@ class TestOneViewAgentDeploy(db_base.DbTestCase):
             get_power_state_mock.side_effect = [states.POWER_ON,
                                                 states.POWER_OFF]
             task.driver.deploy.reboot_and_finish_deploy(task)
+            remove_provisioning_mock.assert_called_once_with(mock.ANY, task)
+            configure_tenant_mock.assert_called_once_with(mock.ANY, task)
             power_off_mock.assert_called_once_with(task.node)
             self.assertEqual(2, get_power_state_mock.call_count)
             set_bootdev_mock.assert_called_once_with(task, 'disk',
