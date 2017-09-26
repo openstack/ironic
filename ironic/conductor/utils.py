@@ -100,35 +100,32 @@ def node_wait_for_power_state(task, new_state, timeout=None):
         raise exception.PowerStateFailure(pstate=new_state)
 
 
-@task_manager.require_exclusive_lock
-def node_power_action(task, new_state, timeout=None):
-    """Change power state or reset for a node.
-
-    Perform the requested power action if the transition is required.
-
-    :param task: a TaskManager instance containing the node to act on.
-    :param new_state: Any power state from ironic.common.states.
-    :param timeout: timeout (in seconds) positive integer (> 0) for any
-      power state. ``None`` indicates to use default timeout.
-    :raises: InvalidParameterValue when the wrong state is specified
-             or the wrong driver info is specified.
-    :raises: StorageError when a failure occurs updating the node's
-             storage interface upon setting power on.
-    :raises: other exceptions by the node's power driver if something
-             wrong occurred during the power action.
-
-    """
-    notify_utils.emit_power_set_notification(
-        task, fields.NotificationLevel.INFO, fields.NotificationStatus.START,
-        new_state)
-    node = task.node
-
+def _calculate_target_state(new_state):
     if new_state in (states.POWER_ON, states.REBOOT, states.SOFT_REBOOT):
         target_state = states.POWER_ON
     elif new_state in (states.POWER_OFF, states.SOFT_POWER_OFF):
         target_state = states.POWER_OFF
     else:
         target_state = None
+    return target_state
+
+
+def _can_skip_state_change(task, new_state):
+    """Check if we can ignore the power state change request for the node.
+
+    Check if we should ignore the requested power state change. This can occur
+    if the requested power state is already the same as our current state. This
+    only works for power on and power off state changes. More complex power
+    state changes, like reboot, are not skipped.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :param new_state: The requested power state to change to. This can be any
+                      power state from ironic.common.states.
+    :returns: True if should ignore the requested power state change. False
+              otherwise
+    """
+
+    node = task.node
 
     def _not_going_to_change():
         # Neither the ironic service nor the hardware has erred. The
@@ -168,16 +165,45 @@ def node_power_action(task, new_state, timeout=None):
     if curr_state == states.POWER_ON:
         if new_state == states.POWER_ON:
             _not_going_to_change()
-            return
+            return True
     elif curr_state == states.POWER_OFF:
         if new_state in (states.POWER_OFF, states.SOFT_POWER_OFF):
             _not_going_to_change()
-            return
+            return True
     else:
         # if curr_state == states.ERROR:
         # be optimistic and continue action
         LOG.warning("Driver returns ERROR power state for node %s.",
                     node.uuid)
+    return False
+
+
+@task_manager.require_exclusive_lock
+def node_power_action(task, new_state, timeout=None):
+    """Change power state or reset for a node.
+
+    Perform the requested power action if the transition is required.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :param new_state: Any power state from ironic.common.states.
+    :param timeout: timeout (in seconds) positive integer (> 0) for any
+      power state. ``None`` indicates to use default timeout.
+    :raises: InvalidParameterValue when the wrong state is specified
+             or the wrong driver info is specified.
+    :raises: StorageError when a failure occurs updating the node's
+             storage interface upon setting power on.
+    :raises: other exceptions by the node's power driver if something
+             wrong occurred during the power action.
+
+    """
+    notify_utils.emit_power_set_notification(
+        task, fields.NotificationLevel.INFO, fields.NotificationStatus.START,
+        new_state)
+    node = task.node
+
+    if _can_skip_state_change(task, new_state):
+        return
+    target_state = _calculate_target_state(new_state)
 
     # Set the target_power_state and clear any last_error, if we're
     # starting a new operation. This will expose to other processes
