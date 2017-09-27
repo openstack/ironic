@@ -14,15 +14,22 @@ instance. In this context, the ``HP OneView driver`` for ironic enables the
 users of OneView to use ironic as a bare metal provider to their managed
 physical hardware.
 
-Currently there are two OneView drivers:
+HPE OneView hardware is supported by the ``oneview`` hardware type and the
+following classic drivers:
 
 * ``iscsi_pxe_oneview``
 * ``agent_pxe_oneview``
+
+Classic Drivers
+===============
 
 The ``iscsi_pxe_oneview`` and ``agent_pxe_oneview`` drivers implement the
 core interfaces of an ironic Driver [2]_, and use the ``python-oneviewclient``
 [3]_ to provide communication between ironic and OneView through OneView's
 REST API.
+
+.. note::
+   Classic drivers will be deprecated in favor of Hardware Types.
 
 To provide a bare metal instance there are four components involved in the
 process:
@@ -95,6 +102,114 @@ Tested platforms
   Notice that for the driver to work correctly with Gen8 and Gen9 DL servers
   in general, the hardware also needs to run version 4.2.3 of iLO, with
   Redfish enabled.
+
+Hardware Interfaces
+===================
+
+The ``oneview`` hardware type supports the following hardware interfaces:
+
+* boot
+    Supports only ``pxe``. It can be enabled by using the
+    ``[DEFAULT]enabled_boot_interfaces`` option in ``ironic.conf``
+    as given below:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = oneview
+        enabled_boot_interfaces = pxe
+
+* console
+    Supports only ``no-console``. It can be enabled by using the
+    ``[DEFAULT]enabled_console_interfaces``
+    option in ``ironic.conf`` as given below:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = oneview
+        enabled_console_interfaces = no-console
+
+* deploy
+    Supports ``oneview-direct`` and ``oneview-iscsi``. The default is
+    ``oneview-iscsi``. They can be enabled by using the
+    ``[DEFAULT]enabled_deploy_interfaces`` option in ``ironic.conf``
+    as given below:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = oneview
+        enabled_deploy_interfaces = oneview-iscsi,oneview-direct
+
+* inspect
+    Supports ``oneview`` and ``no-inspect``. The default is ``oneview``.
+    They can be enabled by using the ``[DEFAULT]enabled_inspect_interfaces``
+    option in ``ironic.conf`` as given below:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = oneview
+        enabled_inspect_interfaces = oneview,no-inspect
+
+* management
+    Supports only ``oneview``. It can be enabled by using the
+    ``[DEFAULT]enabled_management_interfaces`` option in ``ironic.conf`` as
+    given below:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = oneview
+        enabled_management_interfaces = oneview
+
+* power
+    Supports only ``oneview``. It can be enabled by using the
+    ``[DEFAULT]enabled_power_interfaces`` option in ``ironic.conf`` as given
+    below:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = oneview
+        enabled_power_interfaces = oneview
+
+The ``oneview`` hardware type also supports the standard *network* and
+*storage* interfaces.
+
+To enable the same feature set as provided by all oneview classic drivers,
+apply the following configuration:
+
+.. code-block:: ini
+
+    [DEFAULT]
+    enabled_hardware_types = oneview
+    enabled_deploy_interfaces = oneview-direct,oneview-iscsi
+    enabled_inspect_interfaces = oneview
+    enabled_power_interfaces = oneview
+    enabled_management_interfaces = oneview
+
+The following commands can be used to enroll a node with the same
+feature set as one of the classic drivers, but using the ``oneview``
+hardware type:
+
+* ``oneview-direct``:
+
+  .. code-block:: console
+
+    openstack baremetal node create --os-baremetal-api-version=1.31 \
+        --driver oneview \
+        --deploy-interface oneview-direct
+
+* ``oneview-iscsi``:
+
+  .. code-block:: console
+
+    openstack baremetal node create --os-baremetal-api-version=1.31 \
+       --driver oneview \
+       --deploy-interface oneview-iscsi
+
 
 Drivers
 =======
