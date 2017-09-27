@@ -29,6 +29,7 @@ import tempfile
 import time
 import types
 
+import fixtures
 from ironic_lib import utils as ironic_utils
 import mock
 from oslo_concurrency import processutils
@@ -337,7 +338,6 @@ def _make_password_file_stub(password):
     yield awesome_password_filename
 
 
-@mock.patch.object(time, 'sleep', autospec=True)
 class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
     def setUp(self):
@@ -355,6 +355,10 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         # mock random.SystemRandom gauss distribution
         self._mock_system_random_distribution()
 
+        mock_sleep_fixture = self.useFixture(
+            fixtures.MockPatchObject(time, 'sleep', autospec=True))
+        self.mock_sleep = mock_sleep_fixture.mock
+
     def _mock_system_random_distribution(self):
         # random.SystemRandom with gauss distribution is used by oslo_service's
         # BackoffLoopingCall, it multiplies default interval (equals to 1) by
@@ -364,7 +368,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         m.start()
         self.addCleanup(m.stop)
 
-    def _test__make_password_file(self, mock_sleep, input_password,
+    def _test__make_password_file(self, input_password,
                                   exception_to_raise=None):
         pw_file = None
         try:
@@ -380,40 +384,40 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
             if pw_file is not None:
                 self.assertFalse(os.path.isfile(pw_file))
 
-    def test__make_password_file_str_password(self, mock_sleep):
-        self._test__make_password_file(mock_sleep, self.info['password'])
+    def test__make_password_file_str_password(self):
+        self._test__make_password_file(self.info['password'])
 
-    def test__make_password_file_with_numeric_password(self, mock_sleep):
-        self._test__make_password_file(mock_sleep, 12345)
+    def test__make_password_file_with_numeric_password(self):
+        self._test__make_password_file(12345)
 
-    def test__make_password_file_caller_exception(self, mock_sleep):
+    def test__make_password_file_caller_exception(self):
         # Test caller raising exception
         result = self.assertRaises(
             ValueError,
             self._test__make_password_file,
-            mock_sleep, 12345, ValueError('we should fail'))
+            12345, ValueError('we should fail'))
         self.assertEqual('we should fail', six.text_type(result))
 
     @mock.patch.object(tempfile, 'NamedTemporaryFile',
                        new=mock.MagicMock(side_effect=OSError('Test Error')))
-    def test__make_password_file_tempfile_known_exception(self, mock_sleep):
+    def test__make_password_file_tempfile_known_exception(self):
         # Test OSError exception in _make_password_file for
         # tempfile.NamedTemporaryFile
         self.assertRaises(
             exception.PasswordFileFailedToCreate,
-            self._test__make_password_file, mock_sleep, 12345)
+            self._test__make_password_file, 12345)
 
     @mock.patch.object(
         tempfile, 'NamedTemporaryFile',
         new=mock.MagicMock(side_effect=OverflowError('Test Error')))
-    def test__make_password_file_tempfile_unknown_exception(self, mock_sleep):
+    def test__make_password_file_tempfile_unknown_exception(self):
         # Test exception in _make_password_file for tempfile.NamedTemporaryFile
         result = self.assertRaises(
             OverflowError,
-            self._test__make_password_file, mock_sleep, 12345)
+            self._test__make_password_file, 12345)
         self.assertEqual('Test Error', six.text_type(result))
 
-    def test__make_password_file_write_exception(self, mock_sleep):
+    def test__make_password_file_write_exception(self):
         # Test exception in _make_password_file for write()
         mock_namedtemp = mock.mock_open(mock.MagicMock(name='JLV'))
         with mock.patch('tempfile.NamedTemporaryFile', mock_namedtemp):
@@ -422,9 +426,9 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
             mock_write.side_effect = OSError('Test 2 Error')
             self.assertRaises(
                 exception.PasswordFileFailedToCreate,
-                self._test__make_password_file, mock_sleep, 12345)
+                self._test__make_password_file, 12345)
 
-    def test__parse_driver_info(self, mock_sleep):
+    def test__parse_driver_info(self):
         # make sure we get back the expected things
         _OPTIONS = ['address', 'username', 'password', 'uuid']
         for option in _OPTIONS:
@@ -463,7 +467,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     def test__parse_driver_info_with_invalid_bridging_type(
-            self, mock_support, mock_sleep):
+            self, mock_support):
         info = BRIDGE_INFO_DICT.copy()
         # make sure error is raised when ipmi_bridging has unexpected value
         info['ipmi_bridging'] = 'junk'
@@ -475,7 +479,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     def test__parse_driver_info_with_no_bridging(
-            self, mock_support, mock_sleep):
+            self, mock_support):
         _OPTIONS = ['address', 'username', 'password', 'uuid']
         _BRIDGING_OPTIONS = ['local_address', 'transit_channel',
                              'transit_address',
@@ -500,7 +504,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     def test__parse_driver_info_with_dual_bridging_pass(
-            self, mock_support, mock_sleep):
+            self, mock_support):
         _OPTIONS = ['address', 'username', 'password', 'uuid',
                     'local_address', 'transit_channel', 'transit_address',
                     'target_channel', 'target_address']
@@ -529,7 +533,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     def test__parse_driver_info_with_dual_bridging_not_supported(
-            self, mock_support, mock_sleep):
+            self, mock_support):
         node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
                                        driver_info=BRIDGE_INFO_DICT)
         # if dual bridge is not supported then check if error is raised
@@ -540,7 +544,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     def test__parse_driver_info_with_dual_bridging_missing_parameters(
-            self, mock_support, mock_sleep):
+            self, mock_support):
         info = BRIDGE_INFO_DICT.copy()
         mock_support.return_value = True
         # make sure error is raised when dual bridging is selected and the
@@ -556,7 +560,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     def test__parse_driver_info_with_single_bridging_pass(
-            self, mock_support, mock_sleep):
+            self, mock_support):
         _OPTIONS = ['address', 'username', 'password', 'uuid',
                     'local_address', 'target_channel', 'target_address']
 
@@ -591,7 +595,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     def test__parse_driver_info_with_single_bridging_not_supported(
-            self, mock_support, mock_sleep):
+            self, mock_support):
         info = BRIDGE_INFO_DICT.copy()
         info['ipmi_bridging'] = 'single'
         node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
@@ -605,7 +609,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     def test__parse_driver_info_with_single_bridging_missing_parameters(
-            self, mock_support, mock_sleep):
+            self, mock_support):
         info = dict(BRIDGE_INFO_DICT)
         info['ipmi_bridging'] = 'single'
         mock_support.return_value = True
@@ -621,7 +625,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
                              mock_support.call_args)
 
     def test__parse_driver_info_numeric_password(
-            self, mock_sleep):
+            self):
         # ipmi_password must not be converted to int / float
         # even if it includes just numbers.
         info = dict(INFO_DICT)
@@ -631,28 +635,28 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         self.assertEqual(six.u('12345678'), ret['password'])
         self.assertIsInstance(ret['password'], six.text_type)
 
-    def test__parse_driver_info_ipmi_prot_version_1_5(self, mock_sleep):
+    def test__parse_driver_info_ipmi_prot_version_1_5(self):
         info = dict(INFO_DICT)
         info['ipmi_protocol_version'] = '1.5'
         node = obj_utils.get_test_node(self.context, driver_info=info)
         ret = ipmi._parse_driver_info(node)
         self.assertEqual('1.5', ret['protocol_version'])
 
-    def test__parse_driver_info_invalid_ipmi_prot_version(self, mock_sleep):
+    def test__parse_driver_info_invalid_ipmi_prot_version(self):
         info = dict(INFO_DICT)
         info['ipmi_protocol_version'] = '9000'
         node = obj_utils.get_test_node(self.context, driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                           ipmi._parse_driver_info, node)
 
-    def test__parse_driver_info_invalid_ipmi_port(self, mock_sleep):
+    def test__parse_driver_info_invalid_ipmi_port(self):
         info = dict(INFO_DICT)
         info['ipmi_port'] = '700000'
         node = obj_utils.get_test_node(self.context, driver_info=info)
         self.assertRaises(exception.InvalidParameterValue,
                           ipmi._parse_driver_info, node)
 
-    def test__parse_driver_info_ipmi_port_valid(self, mock_sleep):
+    def test__parse_driver_info_ipmi_port_valid(self):
         info = dict(INFO_DICT)
         info['ipmi_port'] = '623'
         node = obj_utils.get_test_node(self.context, driver_info=info)
@@ -661,7 +665,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi.LOG, 'warning', spec_set=True, autospec=True)
     def test__parse_driver_info_undefined_credentials(
-            self, mock_log, mock_sleep):
+            self, mock_log):
         info = dict(INFO_DICT)
         del info['ipmi_username']
         del info['ipmi_password']
@@ -677,7 +681,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi.LOG, 'warning', spec_set=True, autospec=True)
     def test__parse_driver_info_have_credentials(
-            self, mock_log, mock_sleep):
+            self, mock_log):
         """Ensure no warnings generated if have credentials"""
         info = dict(INFO_DICT)
         node = obj_utils.get_test_node(self.context, driver_info=info)
@@ -688,7 +692,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_first_call_to_address(self, mock_exec,
-                                                  mock_support, mock_sleep):
+                                                  mock_support):
         ipmi.LAST_CMD_TIME = {}
         args = [
             'ipmitool',
@@ -707,13 +711,13 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
         mock_support.assert_called_once_with('timing')
         mock_exec.assert_called_once_with(*args)
-        self.assertFalse(mock_sleep.called)
+        self.assertFalse(self.mock_sleep.called)
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_second_call_to_address_sleep(
-            self, mock_exec, mock_support, mock_sleep):
+            self, mock_exec, mock_support):
         ipmi.LAST_CMD_TIME = {}
         args = [[
             'ipmitool',
@@ -742,7 +746,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         mock_exec.assert_called_with(*args[0])
 
         ipmi._exec_ipmitool(self.info, 'D E F')
-        self.assertTrue(mock_sleep.called)
+        self.assertTrue(self.mock_sleep.called)
         self.assertEqual(expected, mock_support.call_args_list)
         mock_exec.assert_called_with(*args[1])
 
@@ -750,7 +754,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_second_call_to_address_no_sleep(
-            self, mock_exec, mock_support, mock_sleep):
+            self, mock_exec, mock_support):
         ipmi.LAST_CMD_TIME = {}
         args = [[
             'ipmitool',
@@ -781,7 +785,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         ipmi.LAST_CMD_TIME[self.info['address']] = (
             time.time() - CONF.ipmi.min_command_interval)
         ipmi._exec_ipmitool(self.info, 'D E F')
-        self.assertFalse(mock_sleep.called)
+        self.assertFalse(self.mock_sleep.called)
         self.assertEqual(expected, mock_support.call_args_list)
         mock_exec.assert_called_with(*args[1])
 
@@ -789,7 +793,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_two_calls_to_diff_address(
-            self, mock_exec, mock_support, mock_sleep):
+            self, mock_exec, mock_support):
         ipmi.LAST_CMD_TIME = {}
         args = [[
             'ipmitool',
@@ -818,7 +822,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         mock_exec.assert_called_with(*args[0])
         self.info['address'] = '127.127.127.127'
         ipmi._exec_ipmitool(self.info, 'D E F')
-        self.assertFalse(mock_sleep.called)
+        self.assertFalse(self.mock_sleep.called)
         self.assertEqual(expected, mock_support.call_args_list)
         mock_exec.assert_called_with(*args[1])
 
@@ -826,7 +830,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_without_timing(
-            self, mock_exec, mock_support, mock_sleep):
+            self, mock_exec, mock_support):
         args = [
             'ipmitool',
             '-I', 'lanplus',
@@ -849,7 +853,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_with_timing(
-            self, mock_exec, mock_support, mock_sleep):
+            self, mock_exec, mock_support):
         args = [
             'ipmitool',
             '-I', 'lanplus',
@@ -874,7 +878,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_without_username(
-            self, mock_exec, mock_support, mock_sleep):
+            self, mock_exec, mock_support):
         # An undefined username is treated the same as an empty username and
         # will cause no user (-U) to be specified.
         self.info['username'] = None
@@ -897,7 +901,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_with_empty_username(
-            self, mock_exec, mock_support, mock_sleep):
+            self, mock_exec, mock_support):
         # An empty username is treated the same as an undefined username and
         # will cause no user (-U) to be specified.
         self.info['username'] = ""
@@ -922,7 +926,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_without_password(self, mock_exec,
                                              _make_password_file_mock,
-                                             mock_support, mock_sleep):
+                                             mock_support):
         # An undefined password is treated the same as an empty password and
         # will cause a NULL (\0) password to be used"""
         self.info['password'] = None
@@ -949,7 +953,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_with_empty_password(self, mock_exec,
                                                 _make_password_file_mock,
-                                                mock_support, mock_sleep):
+                                                mock_support):
         # An empty password is treated the same as an undefined password and
         # will cause a NULL (\0) password to be used"""
         self.info['password'] = ""
@@ -975,8 +979,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_with_dual_bridging(self,
                                                mock_exec,
-                                               mock_support,
-                                               mock_sleep):
+                                               mock_support):
 
         node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
                                        driver_info=BRIDGE_INFO_DICT)
@@ -1012,14 +1015,13 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_with_single_bridging(self,
                                                  mock_exec,
-                                                 mock_pass,
                                                  mock_support):
         single_bridge_info = dict(BRIDGE_INFO_DICT)
         single_bridge_info['ipmi_bridging'] = 'single'
         node = obj_utils.get_test_node(self.context, driver='fake_ipmitool',
                                        driver_info=single_bridge_info)
         # when support for single bridge command is called returns True
-        mock_pass.return_value = True
+        mock_support.return_value = True
         info = ipmi._parse_driver_info(node)
         info['transit_channel'] = info['transit_address'] = None
 
@@ -1039,17 +1041,17 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         expected = [mock.call('single_bridge'),
                     mock.call('timing')]
         # When support for timing command is called returns False
-        mock_pass.return_value = False
+        mock_support.return_value = False
         mock_exec.return_value = (None, None)
         ipmi._exec_ipmitool(info, 'A B C')
-        self.assertEqual(expected, mock_pass.call_args_list)
+        self.assertEqual(expected, mock_support.call_args_list)
         mock_exec.assert_called_once_with(*args)
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_exception(
-            self, mock_exec, mock_pass, mock_support):
+            self, mock_exec, mock_support):
         args = [
             'ipmitool',
             '-I', 'lanplus',
@@ -1060,19 +1062,19 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
             'A', 'B', 'C',
         ]
 
-        mock_pass.return_value = False
+        mock_support.return_value = False
         mock_exec.side_effect = processutils.ProcessExecutionError("x")
         self.assertRaises(processutils.ProcessExecutionError,
                           ipmi._exec_ipmitool,
                           self.info, 'A B C')
-        mock_pass.assert_called_once_with('timing')
+        mock_support.assert_called_once_with('timing')
         mock_exec.assert_called_once_with(*args)
         self.assertEqual(1, mock_exec.call_count)
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_exception_retry(
-            self, mock_exec, mock_support, mock_sleep):
+            self, mock_exec, mock_support):
 
         ipmi.LAST_CMD_TIME = {}
         mock_support.return_value = False
@@ -1096,7 +1098,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_exception_retries_exceeded(
-            self, mock_exec, mock_support, mock_sleep):
+            self, mock_exec, mock_support):
 
         ipmi.LAST_CMD_TIME = {}
         mock_support.return_value = False
@@ -1119,7 +1121,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_exception_non_retryable_failure(
-            self, mock_exec, mock_support, mock_sleep):
+            self, mock_exec, mock_support):
 
         ipmi.LAST_CMD_TIME = {}
         mock_support.return_value = False
@@ -1152,7 +1154,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_IPMI_version_1_5(
-            self, mock_exec, mock_pass, mock_support):
+            self, mock_exec, mock_support):
         self.info['protocol_version'] = '1.5'
         # Assert it uses "-I lan" (1.5) instead of "-I lanplus" (2.0)
         args = [
@@ -1165,17 +1167,16 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
             'A', 'B', 'C',
         ]
 
-        mock_pass.return_value = False
+        mock_support.return_value = False
         mock_exec.return_value = (None, None)
         ipmi._exec_ipmitool(self.info, 'A B C')
-        mock_pass.assert_called_once_with('timing')
+        mock_support.assert_called_once_with('timing')
         mock_exec.assert_called_once_with(*args)
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
     @mock.patch.object(utils, 'execute', autospec=True)
-    def test__exec_ipmitool_with_port(self, mock_exec, mock_pass,
-                                      mock_support):
+    def test__exec_ipmitool_with_port(self, mock_exec, mock_support):
         self.info['dest_port'] = '1623'
         ipmi.LAST_CMD_TIME = {}
         args = [
@@ -1189,20 +1190,20 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
             'A', 'B', 'C',
         ]
 
-        mock_pass.return_value = False
+        mock_support.return_value = False
         mock_exec.return_value = (None, None)
 
         ipmi._exec_ipmitool(self.info, 'A B C')
 
-        mock_pass.assert_called_once_with('timing')
+        mock_support.assert_called_once_with('timing')
         mock_exec.assert_called_once_with(*args)
-        self.assertFalse(mock_support.called)
+        self.assertFalse(self.mock_sleep.called)
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_with_check_exit_code(self, mock_exec,
-                                                 mock_pass, mock_support):
+                                                 mock_support):
         args = [
             'ipmitool',
             '-I', 'lanplus',
@@ -1212,14 +1213,14 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
             '-f', awesome_password_filename,
             'A', 'B', 'C',
         ]
-        mock_pass.return_value = False
+        mock_support.return_value = False
         mock_exec.return_value = (None, None)
         ipmi._exec_ipmitool(self.info, 'A B C', check_exit_code=[0, 1])
-        mock_pass.assert_called_once_with('timing')
+        mock_support.assert_called_once_with('timing')
         mock_exec.assert_called_once_with(*args, check_exit_code=[0, 1])
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
-    def test__power_status_on(self, mock_exec, mock_sleep):
+    def test__power_status_on(self, mock_exec):
         mock_exec.return_value = ["Chassis Power is on\n", None]
 
         state = ipmi._power_status(self.info)
@@ -1228,7 +1229,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         self.assertEqual(states.POWER_ON, state)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
-    def test__power_status_off(self, mock_exec, mock_sleep):
+    def test__power_status_off(self, mock_exec):
         mock_exec.return_value = ["Chassis Power is off\n", None]
 
         state = ipmi._power_status(self.info)
@@ -1237,7 +1238,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         self.assertEqual(states.POWER_OFF, state)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
-    def test__power_status_error(self, mock_exec, mock_sleep):
+    def test__power_status_error(self, mock_exec):
         mock_exec.return_value = ["Chassis Power is badstate\n", None]
 
         state = ipmi._power_status(self.info)
@@ -1246,7 +1247,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         self.assertEqual(states.ERROR, state)
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
-    def test__power_status_exception(self, mock_exec, mock_sleep):
+    def test__power_status_exception(self, mock_exec):
         mock_exec.side_effect = processutils.ProcessExecutionError("error")
         self.assertRaises(exception.IPMIFailure,
                           ipmi._power_status,
@@ -1255,7 +1256,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     @mock.patch('eventlet.greenthread.sleep', autospec=True)
-    def test__power_on_max_retries(self, sleep_mock, mock_exec, mock_sleep):
+    def test__power_on_max_retries(self, sleep_mock, mock_exec):
         self.config(retry_timeout=2, group='ipmi')
 
         def side_effect(driver_info, command):
@@ -1277,8 +1278,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     @mock.patch('eventlet.greenthread.sleep', autospec=True)
-    def test__soft_power_off(self, sleep_mock, mock_exec,
-                             mock_sleep):
+    def test__soft_power_off(self, sleep_mock, mock_exec):
 
         def side_effect(driver_info, command):
             resp_dict = {"power status": ["Chassis Power is off\n", None],
@@ -1298,8 +1298,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     @mock.patch('eventlet.greenthread.sleep', autospec=True)
-    def test__soft_power_off_max_retries(self, sleep_mock, mock_exec,
-                                         mock_sleep):
+    def test__soft_power_off_max_retries(self, sleep_mock, mock_exec):
 
         def side_effect(driver_info, command):
             resp_dict = {"power status": ["Chassis Power is on\n", None],
@@ -1322,7 +1321,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     @mock.patch('eventlet.greenthread.sleep', autospec=True)
     def test___set_and_wait_no_needless_status_polling(
-            self, sleep_mock, mock_exec, mock_status, mock_sleep):
+            self, sleep_mock, mock_exec, mock_status):
         # Check that if the call to power state change fails, it doesn't
         # call power_status().
         self.config(retry_timeout=2, group='ipmi')
