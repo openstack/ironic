@@ -118,7 +118,7 @@ class HttpImageService(BaseImageService):
                              "HEAD request.") % response.status_code)
         except requests.RequestException as e:
             raise exception.ImageRefValidationFailed(image_href=output_url,
-                                                     reason=e)
+                                                     reason=six.text_type(e))
         return response
 
     def download(self, image_href, image_file):
@@ -143,7 +143,7 @@ class HttpImageService(BaseImageService):
                 shutil.copyfileobj(input_img, image_file, IMAGE_CHUNK_SIZE)
         except (requests.RequestException, IOError) as e:
             raise exception.ImageDownloadFailed(image_href=image_href,
-                                                reason=e)
+                                                reason=six.text_type(e))
 
     def show(self, image_href):
         """Get dictionary of image properties.
@@ -235,7 +235,7 @@ class FileImageService(BaseImageService):
                                       0, filesize)
         except Exception as e:
             raise exception.ImageDownloadFailed(image_href=image_href,
-                                                reason=e)
+                                                reason=six.text_type(e))
 
     def show(self, image_href):
         """Get dictionary of image properties.
