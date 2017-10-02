@@ -29,6 +29,7 @@ import tempfile
 
 import eventlet
 eventlet.monkey_patch(os=False)
+
 import fixtures
 from ironic_lib import utils
 import mock
@@ -37,7 +38,7 @@ from oslo_config import fixture as config_fixture
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
-import testtools
+from oslotest import base as oslo_test_base
 
 from ironic.common import config as ironic_config
 from ironic.common import context as ironic_context
@@ -74,7 +75,7 @@ class TestingException(Exception):
     pass
 
 
-class TestCase(testtools.TestCase):
+class TestCase(oslo_test_base.BaseTestCase):
     """Test case base class for all unit tests."""
 
     # By default block execution of utils.execute() and related functions.
@@ -84,27 +85,6 @@ class TestCase(testtools.TestCase):
         """Run before each test method to initialize test environment."""
         super(TestCase, self).setUp()
         self.context = ironic_context.get_admin_context()
-        test_timeout = os.environ.get('OS_TEST_TIMEOUT', 0)
-        try:
-            test_timeout = int(test_timeout)
-        except ValueError:
-            # If timeout value is invalid do not set a timeout.
-            test_timeout = 0
-        if test_timeout > 0:
-            self.useFixture(fixtures.Timeout(test_timeout, gentle=True))
-        self.useFixture(fixtures.NestedTempfile())
-        self.useFixture(fixtures.TempHomeDir())
-
-        if (os.environ.get('OS_STDOUT_CAPTURE') == 'True' or
-                os.environ.get('OS_STDOUT_CAPTURE') == '1'):
-            stdout = self.useFixture(fixtures.StringStream('stdout')).stream
-            self.useFixture(fixtures.MonkeyPatch('sys.stdout', stdout))
-        if (os.environ.get('OS_STDERR_CAPTURE') == 'True' or
-                os.environ.get('OS_STDERR_CAPTURE') == '1'):
-            stderr = self.useFixture(fixtures.StringStream('stderr')).stream
-            self.useFixture(fixtures.MonkeyPatch('sys.stderr', stderr))
-
-        self.log_fixture = self.useFixture(fixtures.FakeLogger())
         self._set_config()
         # NOTE(danms): Make sure to reset us back to non-remote objects
         # for each test to avoid interactions. Also, backup the object
