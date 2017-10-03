@@ -260,3 +260,19 @@ class FakeStorage(base.StorageInterface):
 
     def should_write_image(self, task):
         return True
+
+
+class FakeRescue(base.RescueInterface):
+    """Example implementation of a simple rescue interface."""
+
+    def get_properties(self):
+        return {}
+
+    def validate(self, task):
+        pass
+
+    def rescue(self, task):
+        return states.RESCUE
+
+    def unrescue(self, task):
+        return states.ACTIVE

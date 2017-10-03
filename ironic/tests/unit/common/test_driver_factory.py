@@ -97,7 +97,10 @@ class DriverLoadTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, node.id) as task:
             for iface in drivers_base.ALL_INTERFACES:
                 impl = getattr(task.driver, iface)
-                self.assertIsNotNone(impl)
+                if iface == 'rescue':
+                    self.assertIsNone(impl)
+                else:
+                    self.assertIsNotNone(impl)
 
     @mock.patch.object(driver_factory, '_attach_interfaces_to_driver',
                        autospec=True)
@@ -581,6 +584,11 @@ class TestFakeHardware(hardware_type.AbstractHardwareType):
         return [fake.FakeRAID]
 
     @property
+    def supported_rescue_interfaces(self):
+        """List of supported rescue interfaces."""
+        return [fake.FakeRescue]
+
+    @property
     def supported_vendor_interfaces(self):
         """List of supported rescue interfaces."""
         return [fake.FakeVendorB, fake.FakeVendorA]
@@ -732,6 +740,25 @@ class HardwareTypeLoadTestCase(db_base.DbTestCase):
                           driver_factory.check_and_update_node_interfaces,
                           node)
 
+    def test_none_rescue_interface(self):
+        node = obj_utils.get_test_node(self.context, driver='fake')
+        self.assertTrue(driver_factory.check_and_update_node_interfaces(node))
+        self.assertIsNone(node.rescue_interface)
+
+    def test_no_rescue_interface_default_from_conf(self):
+        self.config(enabled_rescue_interfaces=['fake'])
+        self.config(default_rescue_interface='fake')
+        node = obj_utils.get_test_node(self.context, driver='fake-hardware')
+        self.assertTrue(driver_factory.check_and_update_node_interfaces(node))
+        self.assertEqual('fake', node.rescue_interface)
+
+    def test_invalid_rescue_interface(self):
+        node = obj_utils.get_test_node(self.context, driver='fake-hardware',
+                                       rescue_interface='scoop')
+        self.assertRaises(exception.InterfaceNotFoundInEntrypoint,
+                          driver_factory.check_and_update_node_interfaces,
+                          node)
+
     def test_no_raid_interface_no_default(self):
         # NOTE(rloo): It doesn't seem possible to not have a default interface
         #             for storage, so we'll test this case with raid.
@@ -753,6 +780,7 @@ class HardwareTypeLoadTestCase(db_base.DbTestCase):
             'network': set(['noop']),
             'power': set(['fake']),
             'raid': set(['fake']),
+            'rescue': set(['fake']),
             'storage': set([]),
             'vendor': set(['fake'])
         }

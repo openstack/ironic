@@ -15,6 +15,7 @@
 
 from oslo_utils import strutils
 from oslo_utils import uuidutils
+from oslo_utils import versionutils
 from oslo_versionedobjects import base as object_base
 
 from ironic.common import exception
@@ -55,7 +56,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     #               power_interface, raid_interface, vendor_interface
     # Version 1.20: Type of network_interface changed to just nullable string
     # Version 1.21: Add storage_interface field
-    VERSION = '1.21'
+    # Version 1.22: Add rescue_interface field
+    VERSION = '1.22'
 
     dbapi = db_api.get_instance()
 
@@ -123,6 +125,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         'network_interface': object_fields.StringField(nullable=True),
         'power_interface': object_fields.StringField(nullable=True),
         'raid_interface': object_fields.StringField(nullable=True),
+        'rescue_interface': object_fields.StringField(nullable=True),
         'storage_interface': object_fields.StringField(nullable=True),
         'vendor_interface': object_fields.StringField(nullable=True),
     }
@@ -415,6 +418,41 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         node = cls._from_db_object(context, cls(), db_node)
         return node
 
+    def _convert_to_version(self, target_version,
+                            remove_unavailable_fields=True):
+        """Convert to the target version.
+
+        Convert the object to the target version. The target version may be
+        the same, older, or newer than the version of the object. This is
+        used for DB interactions as well as for serialization/deserialization.
+
+        Version 1.22: rescue_interface field was added. Its default value is
+            None. For versions prior to this, it should be set to None (or
+            removed).
+
+        :param target_version: the desired version of the object
+        :param remove_unavailable_fields: True to remove fields that are
+            unavailable in the target version; set this to True when
+            (de)serializing. False to set the unavailable fields to appropriate
+            values; set this to False for DB interactions.
+        """
+        target_version = versionutils.convert_version_to_tuple(target_version)
+        # Convert the rescue_interface field.
+        rescue_iface_is_set = self.obj_attr_is_set('rescue_interface')
+        if target_version >= (1, 22):
+            # Target version supports rescue_interface.
+            if not rescue_iface_is_set:
+                # Set it to its default value if it is not set.
+                self.rescue_interface = None
+        elif rescue_iface_is_set:
+            # Target version does not support rescue_interface, and it is set.
+            if remove_unavailable_fields:
+                # (De)serialising: remove unavailable fields.
+                delattr(self, 'rescue_interface')
+            elif self.rescue_interface is not None:
+                # DB: set unavailable field to the default of None.
+                self.rescue_interface = None
+
 
 @base.IronicObjectRegistry.register
 class NodePayload(notification.NotificationPayloadBase):
@@ -460,6 +498,11 @@ class NodePayload(notification.NotificationPayloadBase):
         'updated_at': ('node', 'updated_at'),
         'uuid': ('node', 'uuid')
     }
+
+    # TODO(stendulker): At a later point in time, once rescue_interface
+    # is able to be leveraged, we need to add the rescue_interface
+    # field to payload and increment the object versions for all objects
+    # that inherit the NodePayload object.
 
     # Version 1.0: Initial version, based off of Node version 1.18.
     # Version 1.1: Type of network_interface changed to just nullable string

@@ -447,6 +447,7 @@ class TestBareDriver(base.TestCase):
         self.assertEqual(('deploy', 'power', 'network'),
                          driver_base.BareDriver.core_interfaces)
         self.assertEqual(
-            ('boot', 'console', 'inspect', 'management', 'raid', 'storage'),
+            ('boot', 'console', 'inspect', 'management', 'raid',
+             'rescue', 'storage'),
             driver_base.BareDriver.standard_interfaces
         )

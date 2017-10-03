@@ -81,9 +81,6 @@ class BaseDriver(object):
     """
 
     rescue = None
-    # NOTE(deva): hide rescue from the interface list in Icehouse
-    #             because the API for this has not been created yet.
-    # standard_interfaces.append('rescue')
     """`Standard` attribute for accessing rescue features.
 
     A reference to an instance of :class:RescueInterface.
@@ -170,7 +167,9 @@ class BareDriver(BaseDriver):
 
     A reference to an instance of :class:StorageInterface.
     """
-    standard_interfaces = BaseDriver.standard_interfaces + ('storage',)
+
+    standard_interfaces = (BaseDriver.standard_interfaces + ('rescue',
+                           'storage',))
 
 
 ALL_INTERFACES = set(BareDriver().all_interfaces)
@@ -562,6 +561,10 @@ class RescueInterface(BaseInterface):
         """Boot the task's node into a rescue environment.
 
         :param task: a TaskManager instance containing the node to act on.
+        :raises: InstanceRescueFailure if node validation or rescue operation
+                 fails.
+        :returns: states.RESCUEWAIT if rescue is in progress asynchronously
+                  or states.RESCUE if it is complete.
         """
 
     @abc.abstractmethod
@@ -569,7 +572,21 @@ class RescueInterface(BaseInterface):
         """Tear down the rescue environment, and return to normal.
 
         :param task: a TaskManager instance containing the node to act on.
+        :raises: InstanceUnrescueFailure if node validation or unrescue
+                 operation fails.
+        :returns: states.ACTIVE if it is successful.
         """
+
+    def clean_up(self, task):
+        """Clean up the rescue environment for the task's node.
+
+        This is particularly useful for nodes where rescuing is asynchronous
+        and a timeout occurs.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :returns: None
+        """
+        pass
 
 
 # Representation of a single vendor method metadata

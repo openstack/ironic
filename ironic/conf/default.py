@@ -52,6 +52,18 @@ _DEFAULT_IFACE_HELP = _('Default {0} interface to be used for nodes that '
                         'be found by enumerating the '
                         '"ironic.hardware.interfaces.{0}" entrypoint.')
 
+# TODO(stendulker) Remove this in rescue API patch.
+_ENABLED_IFACE_HELP_FOR_RESCUE = (_ENABLED_IFACE_HELP +
+                                  _(' This option is part of rescue feature '
+                                    'work, which is not currently exposed to '
+                                    'users.'))
+
+# TODO(stendulker) Remove this in rescue API patch.
+_DEFAULT_IFACE_HELP_FOR_RESCUE = (_DEFAULT_IFACE_HELP +
+                                  _(' This option is part of rescue feature '
+                                    'work, which is not currently exposed to '
+                                    'users.'))
+
 api_opts = [
     cfg.StrOpt(
         'auth_strategy',
@@ -137,6 +149,11 @@ driver_opts = [
                 help=_ENABLED_IFACE_HELP.format('raid')),
     cfg.StrOpt('default_raid_interface',
                help=_DEFAULT_IFACE_HELP.format('raid')),
+    cfg.ListOpt('enabled_rescue_interfaces',
+                default=['no-rescue'],
+                help=_ENABLED_IFACE_HELP_FOR_RESCUE.format('rescue')),
+    cfg.StrOpt('default_rescue_interface',
+               help=_DEFAULT_IFACE_HELP_FOR_RESCUE.format('rescue')),
     cfg.ListOpt('enabled_storage_interfaces',
                 default=['cinder', 'noop'],
                 help=_ENABLED_IFACE_HELP.format('storage')),
