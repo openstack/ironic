@@ -48,6 +48,8 @@ VERBS = {
     'abort': 'abort',
     'clean': 'clean',
     'adopt': 'adopt',
+    'rescue': 'rescue',
+    'unrescue': 'unrescue',
 }
 """ Mapping of state-changing events that are PUT to the REST API
 
@@ -208,17 +210,18 @@ UNRESCUING = 'unrescuing'
 """ Node is being restored from rescue mode (to active state). """
 
 UPDATE_ALLOWED_STATES = (DEPLOYFAIL, INSPECTING, INSPECTFAIL, CLEANFAIL, ERROR,
-                         VERIFYING, ADOPTFAIL)
+                         VERIFYING, ADOPTFAIL, RESCUEFAIL, UNRESCUEFAIL)
 """Transitional states in which we allow updating a node."""
 
 DELETE_ALLOWED_STATES = (AVAILABLE, MANAGEABLE, ENROLL, ADOPTFAIL)
 """States in which node deletion is allowed."""
 
-STABLE_STATES = (ENROLL, MANAGEABLE, AVAILABLE, ACTIVE, ERROR)
+STABLE_STATES = (ENROLL, MANAGEABLE, AVAILABLE, ACTIVE, ERROR, RESCUE)
 """States that will not transition unless receiving a request."""
 
 UNSTABLE_STATES = (DEPLOYING, DEPLOYWAIT, CLEANING, CLEANWAIT, VERIFYING,
-                   DELETING, INSPECTING, ADOPTING)
+                   DELETING, INSPECTING, ADOPTING, RESCUING, RESCUEWAIT,
+                   UNRESCUING)
 """States that can be changed without external request."""
 
 ##############
@@ -293,6 +296,13 @@ machine.add_state(INSPECTFAIL, target=MANAGEABLE, **watchers)
 # Add adopt* states
 machine.add_state(ADOPTING, target=ACTIVE, **watchers)
 machine.add_state(ADOPTFAIL, target=ACTIVE, **watchers)
+
+# rescue states
+machine.add_state(RESCUING, target=RESCUE, **watchers)
+machine.add_state(RESCUEWAIT, target=RESCUE, **watchers)
+machine.add_state(RESCUEFAIL, target=RESCUE, **watchers)
+machine.add_state(UNRESCUING, target=ACTIVE, **watchers)
+machine.add_state(UNRESCUEFAIL, target=ACTIVE, **watchers)
 
 # A deployment may fail
 machine.add_transition(DEPLOYING, DEPLOYFAIL, 'fail')
@@ -388,6 +398,59 @@ machine.add_transition(INSPECTFAIL, MANAGEABLE, 'manage')
 
 # Reinitiate the inspect after inspectfail.
 machine.add_transition(INSPECTFAIL, INSPECTING, 'inspect')
+
+# A provisioned node may have a rescue initiated.
+machine.add_transition(ACTIVE, RESCUING, 'rescue')
+
+# A rescue may succeed.
+machine.add_transition(RESCUING, RESCUE, 'done')
+
+# A rescue may also wait on external callbacks
+machine.add_transition(RESCUING, RESCUEWAIT, 'wait')
+machine.add_transition(RESCUEWAIT, RESCUING, 'resume')
+
+# A rescued node may be re-rescued.
+machine.add_transition(RESCUE, RESCUING, 'rescue')
+
+# A rescued node may be deleted.
+machine.add_transition(RESCUE, DELETING, 'delete')
+
+# A rescue may fail.
+machine.add_transition(RESCUEWAIT, RESCUEFAIL, 'fail')
+machine.add_transition(RESCUING, RESCUEFAIL, 'fail')
+
+# While waiting for a rescue step to be finished, rescuing may be aborted
+machine.add_transition(RESCUEWAIT, RESCUEFAIL, 'abort')
+
+# A failed rescue may be re-rescued.
+machine.add_transition(RESCUEFAIL, RESCUING, 'rescue')
+
+# A failed rescue may be unrescued.
+machine.add_transition(RESCUEFAIL, UNRESCUING, 'unrescue')
+
+# A failed rescue may be deleted.
+machine.add_transition(RESCUEFAIL, DELETING, 'delete')
+
+# A rescuewait node may be deleted.
+machine.add_transition(RESCUEWAIT, DELETING, 'delete')
+
+# A rescued node may be unrescued.
+machine.add_transition(RESCUE, UNRESCUING, 'unrescue')
+
+# An unrescuing node may succeed
+machine.add_transition(UNRESCUING, ACTIVE, 'done')
+
+# An unrescuing node may fail
+machine.add_transition(UNRESCUING, UNRESCUEFAIL, 'fail')
+
+# A failed unrescue may be re-rescued
+machine.add_transition(UNRESCUEFAIL, RESCUING, 'rescue')
+
+# A failed unrescue may be re-unrescued
+machine.add_transition(UNRESCUEFAIL, UNRESCUING, 'unrescue')
+
+# A failed unrescue may be deleted.
+machine.add_transition(UNRESCUEFAIL, DELETING, 'delete')
 
 # Start power credentials verification
 machine.add_transition(ENROLL, VERIFYING, 'manage')

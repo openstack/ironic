@@ -94,7 +94,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.42'
+    RPC_API_VERSION = '1.43'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -527,6 +527,228 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         return get_vendor_passthru_metadata(vendor.driver_routes)
 
+    @METRICS.timer('ConductorManager.do_node_rescue')
+    @messaging.expected_exceptions(exception.NoFreeConductorWorker,
+                                   exception.NodeInMaintenance,
+                                   exception.NodeLocked,
+                                   exception.InstanceRescueFailure,
+                                   exception.InvalidStateRequested,
+                                   exception.UnsupportedDriverExtension
+                                   )
+    def do_node_rescue(self, context, node_id, rescue_password):
+        """RPC method to rescue an existing node deployment.
+
+        Validate driver specific information synchronously, and then
+        spawn a background worker to rescue the node asynchronously.
+
+        :param context: an admin context.
+        :param node_id: the id or uuid of a node.
+        :param rescue_password: string to be set as the password inside the
+            rescue environment.
+        :raises: InstanceRescueFailure if the node cannot be placed into
+                 rescue mode.
+        :raises: InvalidStateRequested if the state transition is not supported
+                 or allowed.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+        :raises: NodeLocked if the node is locked by another conductor.
+        :raises: NodeInMaintenance if the node is in maintenance mode.
+        :raises: UnsupportedDriverExtension if rescue interface is not
+                 supported by the driver.
+        """
+        LOG.debug("RPC do_node_rescue called for node %s.", node_id)
+
+        with task_manager.acquire(context,
+                                  node_id, purpose='node rescue') as task:
+
+            node = task.node
+            if node.maintenance:
+                raise exception.NodeInMaintenance(op=_('rescuing'),
+                                                  node=node.uuid)
+
+            if not getattr(task.driver, 'rescue', None):
+                raise exception.UnsupportedDriverExtension(
+                    driver=node.driver, extension='rescue')
+            # driver validation may check rescue_password, so save it on the
+            # node early
+            instance_info = node.instance_info
+            instance_info['rescue_password'] = rescue_password
+            node.instance_info = instance_info
+            node.save()
+
+            try:
+                task.driver.power.validate(task)
+                task.driver.rescue.validate(task)
+                task.driver.network.validate(task)
+            except (exception.InvalidParameterValue,
+                    exception.UnsupportedDriverExtension,
+                    exception.MissingParameterValue) as e:
+                utils.remove_node_rescue_password(node, save=True)
+                raise exception.InstanceRescueFailure(
+                    instance=node.instance_uuid,
+                    node=node.uuid,
+                    reason=_("Validation failed. Error: %s") % e)
+            try:
+                task.process_event(
+                    'rescue',
+                    callback=self._spawn_worker,
+                    call_args=(self._do_node_rescue, task),
+                    err_handler=utils.spawn_rescue_error_handler)
+            except exception.InvalidState:
+                utils.remove_node_rescue_password(node, save=True)
+                raise exception.InvalidStateRequested(
+                    action='rescue', node=node.uuid,
+                    state=node.provision_state)
+
+    def _do_node_rescue(self, task):
+        """Internal RPC method to rescue an existing node deployment."""
+        node = task.node
+
+        def handle_failure(e, errmsg, log_func=LOG.error):
+            utils.remove_node_rescue_password(node, save=False)
+            node.last_error = errmsg % e
+            task.process_event('fail')
+            log_func('Error while performing rescue operation for node '
+                     '%(node)s with instance %(instance)s: %(err)s',
+                     {'node': node.uuid, 'instance': node.instance_uuid,
+                      'err': e})
+
+        try:
+            next_state = task.driver.rescue.rescue(task)
+        except exception.IronicException as e:
+            with excutils.save_and_reraise_exception():
+                handle_failure(e,
+                               _('Failed to rescue: %s'))
+        except Exception as e:
+            with excutils.save_and_reraise_exception():
+                handle_failure(e,
+                               _('Failed to rescue. Exception: %s'),
+                               log_func=LOG.exception)
+        if next_state == states.RESCUEWAIT:
+            task.process_event('wait')
+        elif next_state == states.RESCUE:
+            task.process_event('done')
+        else:
+            error = (_("Driver returned unexpected state %s") % next_state)
+            handle_failure(error,
+                           _('Failed to rescue: %s'))
+
+    @METRICS.timer('ConductorManager.do_node_unrescue')
+    @messaging.expected_exceptions(exception.NoFreeConductorWorker,
+                                   exception.NodeInMaintenance,
+                                   exception.NodeLocked,
+                                   exception.InstanceUnrescueFailure,
+                                   exception.InvalidStateRequested,
+                                   exception.UnsupportedDriverExtension
+                                   )
+    def do_node_unrescue(self, context, node_id):
+        """RPC method to unrescue a node in rescue mode.
+
+        Validate driver specific information synchronously, and then
+        spawn a background worker to unrescue the node asynchronously.
+
+        :param context: an admin context.
+        :param node_id: the id or uuid of a node.
+        :raises: InstanceUnrescueFailure if the node fails to be unrescued
+        :raises: InvalidStateRequested if the state transition is not supported
+                 or allowed.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task
+        :raises: NodeLocked if the node is locked by another conductor.
+        :raises: NodeInMaintenance if the node is in maintenance mode.
+        :raises: UnsupportedDriverExtension if rescue interface is not
+                 supported by the driver.
+        """
+        LOG.debug("RPC do_node_unrescue called for node %s.", node_id)
+
+        with task_manager.acquire(context, node_id,
+                                  purpose='node unrescue') as task:
+            node = task.node
+            if node.maintenance:
+                raise exception.NodeInMaintenance(op=_('unrescuing'),
+                                                  node=node.uuid)
+            if not getattr(task.driver, 'rescue', None):
+                raise exception.UnsupportedDriverExtension(
+                    driver=node.driver, extension='rescue')
+            try:
+                task.driver.power.validate(task)
+            except (exception.InvalidParameterValue,
+                    exception.MissingParameterValue) as e:
+                raise exception.InstanceUnrescueFailure(
+                    instance=node.instance_uuid,
+                    node=node.uuid,
+                    reason=_("Validation failed. Error: %s") % e)
+
+            try:
+                task.process_event(
+                    'unrescue',
+                    callback=self._spawn_worker,
+                    call_args=(self._do_node_unrescue, task),
+                    err_handler=utils.provisioning_error_handler)
+            except exception.InvalidState:
+                raise exception.InvalidStateRequested(
+                    action='unrescue', node=node.uuid,
+                    state=node.provision_state)
+
+    def _do_node_unrescue(self, task):
+        """Internal RPC method to unrescue a node in rescue mode."""
+        node = task.node
+
+        def handle_failure(e, errmsg, log_func=LOG.error):
+            node.last_error = errmsg % e
+            task.process_event('fail')
+            log_func('Error while performing unrescue operation for node '
+                     '%(node)s with instance %(instance)s: %(err)s',
+                     {'node': node.uuid, 'instance': node.instance_uuid,
+                      'err': e})
+
+        try:
+            next_state = task.driver.rescue.unrescue(task)
+        except exception.IronicException as e:
+            with excutils.save_and_reraise_exception():
+                handle_failure(e,
+                               _('Failed to unrescue: %s'))
+        except Exception as e:
+            with excutils.save_and_reraise_exception():
+                handle_failure(e,
+                               _('Failed to unrescue. Exception: %s'),
+                               log_func=LOG.exception)
+        if next_state == states.ACTIVE:
+            task.process_event('done')
+        else:
+            error = (_("Driver returned unexpected state %s") % next_state)
+            handle_failure(error,
+                           _('Failed to unrescue: %s'))
+
+    @task_manager.require_exclusive_lock
+    def _do_node_rescue_abort(self, task):
+        """Internal method to abort an ongoing rescue operation.
+
+        :param task: a TaskManager instance with an exclusive lock
+        """
+        node = task.node
+        try:
+            task.driver.rescue.clean_up(task)
+        except Exception as e:
+            LOG.exception('Failed to clean up rescue for node %(node)s '
+                          'after aborting the operation. Error: %(err)s',
+                          {'node': node.uuid, 'err': e})
+            error_msg = _('Failed to clean up rescue after aborting '
+                          'the operation')
+            node.refresh()
+            node.last_error = error_msg
+            node.maintenance = True
+            node.maintenance_reason = error_msg
+            node.save()
+            return
+
+        info_message = _('Rescue operation aborted for node %s.') % node.uuid
+        last_error = _('By request, the rescue operation was aborted.')
+        node.refresh()
+        node.last_error = last_error
+        node.save()
+        LOG.info(info_message)
+
     @METRICS.timer('ConductorManager.do_node_deploy')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
@@ -657,7 +879,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                 task.process_event(
                     'delete',
                     callback=self._spawn_worker,
-                    call_args=(self._do_node_tear_down, task),
+                    call_args=(self._do_node_tear_down, task,
+                               task.node.provision_state),
                     err_handler=utils.provisioning_error_handler)
             except exception.InvalidState:
                 raise exception.InvalidStateRequested(
@@ -665,10 +888,21 @@ class ConductorManager(base_manager.BaseConductorManager):
                     state=task.node.provision_state)
 
     @task_manager.require_exclusive_lock
-    def _do_node_tear_down(self, task):
-        """Internal RPC method to tear down an existing node deployment."""
+    def _do_node_tear_down(self, task, initial_state):
+        """Internal RPC method to tear down an existing node deployment.
+
+        :param task: a task from TaskManager.
+        :param initial_state: The initial provision state from which node
+                              has moved into deleting state.
+        """
         node = task.node
         try:
+            if (initial_state in (states.RESCUEWAIT, states.RESCUE,
+                states.UNRESCUEFAIL, states.RESCUEFAIL)):
+                # Perform rescue clean up. Rescue clean up will remove
+                # rescuing network as well.
+                task.driver.rescue.clean_up(task)
+
             task.driver.deploy.clean_up(task)
             task.driver.deploy.tear_down(task)
         except Exception as e:
@@ -1214,6 +1448,16 @@ class ConductorManager(base_manager.BaseConductorManager):
                     call_args=(self._do_node_clean_abort, task),
                     err_handler=utils.provisioning_error_handler,
                     target_state=target_state)
+                return
+
+            if (action == states.VERBS['abort'] and
+                    node.provision_state == states.RESCUEWAIT):
+                utils.remove_node_rescue_password(node, save=True)
+                task.process_event(
+                    'abort',
+                    callback=self._spawn_worker,
+                    call_args=(self._do_node_rescue_abort, task),
+                    err_handler=utils.provisioning_error_handler)
                 return
 
             try:

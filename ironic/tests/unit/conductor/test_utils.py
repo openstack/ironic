@@ -1202,6 +1202,25 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertFalse(log_mock.warning.called)
 
     @mock.patch.object(conductor_utils, 'LOG')
+    def test_spawn_rescue_error_handler_no_worker(self, log_mock):
+        exc = exception.NoFreeConductorWorker()
+        self.node.instance_info = {'rescue_password': 'pass'}
+        conductor_utils.spawn_rescue_error_handler(exc, self.node)
+        self.node.save.assert_called_once_with()
+        self.assertIn('No free conductor workers', self.node.last_error)
+        self.assertTrue(log_mock.warning.called)
+        self.assertNotIn('rescue_password', self.node.instance_info)
+
+    @mock.patch.object(conductor_utils, 'LOG')
+    def test_spawn_rescue_error_handler_other_error(self, log_mock):
+        exc = Exception('foo')
+        self.node.instance_info = {'rescue_password': 'pass'}
+        conductor_utils.spawn_rescue_error_handler(exc, self.node)
+        self.assertFalse(self.node.save.called)
+        self.assertFalse(log_mock.warning.called)
+        self.assertIn('rescue_password', self.node.instance_info)
+
+    @mock.patch.object(conductor_utils, 'LOG')
     def test_power_state_error_handler_no_worker(self, log_mock):
         exc = exception.NoFreeConductorWorker()
         conductor_utils.power_state_error_handler(exc, self.node, 'newstate')
@@ -1535,3 +1554,27 @@ class ValidatePortPhysnetTestCase(db_base.DbTestCase):
             current_physnet='physnet1',
             new_physnet=None,
             valid=False)
+
+
+class MiscTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(MiscTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(
+            self.context,
+            driver='fake',
+            instance_info={'rescue_password': 'pass'})
+
+    def _test_remove_node_rescue_password(self, save=True):
+        conductor_utils.remove_node_rescue_password(self.node, save=save)
+        self.assertNotIn('rescue_password', self.node.instance_info)
+        self.node.refresh()
+        if save:
+            self.assertNotIn('rescue_password', self.node.instance_info)
+        else:
+            self.assertIn('rescue_password', self.node.instance_info)
+
+    def test_remove_node_rescue_password_save_true(self):
+        self._test_remove_node_rescue_password(save=True)
+
+    def test_remove_node_rescue_password_save_false(self):
+        self._test_remove_node_rescue_password(save=False)

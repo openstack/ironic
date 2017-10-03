@@ -86,7 +86,7 @@ class CommonMixIn(object):
         if node is None:
             node = self._create_node(**node_attrs)
         task = mock.Mock(spec_set=['node', 'release_resources',
-                                   'spawn_after', 'process_event'])
+                                   'spawn_after', 'process_event', 'driver'])
         task.node = node
         return task
 

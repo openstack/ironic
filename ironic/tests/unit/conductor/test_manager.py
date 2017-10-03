@@ -580,6 +580,7 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         'network_interface': UpdateInterfaces('flat', 'noop'),
         'power_interface': UpdateInterfaces(None, 'fake'),
         'raid_interface': UpdateInterfaces(None, 'fake'),
+        'rescue_interface': UpdateInterfaces(None, 'no-rescue'),
         'storage_interface': UpdateInterfaces('noop', 'cinder'),
     }
 
@@ -1647,7 +1648,8 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
         self._start_service()
         mock_tear_down.side_effect = exception.InstanceDeployFailure('test')
         self.assertRaises(exception.InstanceDeployFailure,
-                          self.service._do_node_tear_down, task)
+                          self.service._do_node_tear_down, task,
+                          node.provision_state)
         node.refresh()
         self.assertEqual(states.ERROR, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
@@ -1670,7 +1672,7 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
 
         task = task_manager.TaskManager(self.context, node.uuid)
         self._start_service()
-        self.service._do_node_tear_down(task)
+        self.service._do_node_tear_down(task, node.provision_state)
         node.refresh()
         # Node will be moved to AVAILABLE after cleaning, not tested here
         self.assertEqual(states.CLEANING, node.provision_state)
@@ -1682,12 +1684,15 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
         mock_tear_down.assert_called_once_with(mock.ANY)
         mock_clean.assert_called_once_with(mock.ANY)
 
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.clean_up')
     @mock.patch('ironic.conductor.manager.ConductorManager._do_node_clean')
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down')
-    def _test_do_node_tear_down_from_state(self, init_state, mock_tear_down,
-                                           mock_clean):
+    def _test_do_node_tear_down_from_state(self, init_state, is_rescue_state,
+                                           mock_tear_down, mock_clean,
+                                           mock_rescue_clean):
         node = obj_utils.create_test_node(
-            self.context, driver='fake', uuid=uuidutils.generate_uuid(),
+            self.context, driver='fake-hardware',
+            uuid=uuidutils.generate_uuid(),
             provision_state=init_state,
             target_provision_state=states.AVAILABLE,
             driver_internal_info={'is_whole_disk_image': False})
@@ -1703,12 +1708,21 @@ class DoNodeDeployTearDownTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual({}, node.instance_info)
         mock_tear_down.assert_called_once_with(mock.ANY)
         mock_clean.assert_called_once_with(mock.ANY)
+        if is_rescue_state:
+            mock_rescue_clean.assert_called_once_with(mock.ANY)
+        else:
+            self.assertFalse(mock_rescue_clean.called)
 
     def test__do_node_tear_down_from_valid_states(self):
         valid_states = [states.ACTIVE, states.DEPLOYWAIT, states.DEPLOYFAIL,
                         states.ERROR]
         for state in valid_states:
-            self._test_do_node_tear_down_from_state(state)
+            self._test_do_node_tear_down_from_state(state, False)
+
+        valid_rescue_states = [states.RESCUEWAIT, states.RESCUE,
+                               states.UNRESCUEFAIL, states.RESCUEFAIL]
+        for state in valid_rescue_states:
+            self._test_do_node_tear_down_from_state(state, True)
 
     # NOTE(deva): partial tear-down was broken. A node left in a state of
     #             DELETING could not have tear_down called on it a second time
@@ -2744,6 +2758,333 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         with task_manager.acquire(self.context, node.uuid) as task:
             step_index = self.service._get_node_next_clean_steps(task)
             self.assertEqual(0, step_index)
+
+
+class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
+                           db_base.DbTestCase):
+    @mock.patch('ironic.conductor.task_manager.acquire', autospec=True)
+    def test_do_node_rescue(self, mock_acquire):
+        self._start_service()
+        task = self._create_task(
+            node_attrs=dict(driver='fake-hardware',
+                            provision_state=states.ACTIVE,
+                            instance_info={}))
+        mock_acquire.side_effect = self._get_acquire_side_effect(task)
+        self.service.do_node_rescue(self.context, task.node.uuid,
+                                    "password")
+        task.process_event.assert_called_once_with(
+            'rescue',
+            callback=self.service._spawn_worker,
+            call_args=(self.service._do_node_rescue, task),
+            err_handler=conductor_utils.spawn_rescue_error_handler)
+        self.assertIn('rescue_password', task.node.instance_info)
+
+    def test_do_node_rescue_invalid_state(self):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          network_interface='noop',
+                                          provision_state=states.AVAILABLE,
+                                          instance_info={})
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_node_rescue,
+                                self.context, node.uuid, "password")
+        node.refresh()
+        self.assertNotIn('rescue_password', node.instance_info)
+        self.assertEqual(exception.InvalidStateRequested, exc.exc_info[0])
+
+    def _test_do_node_rescue_when_validate_fail(self, mock_validate):
+        # InvalidParameterValue should be re-raised as InstanceRescueFailure
+        mock_validate.side_effect = exception.InvalidParameterValue('error')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.ACTIVE,
+            target_provision_state=states.NOSTATE,
+            instance_info={})
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_node_rescue,
+                                self.context, node.uuid, "password")
+        node.refresh()
+        self.assertNotIn('rescue_password', node.instance_info)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.InstanceRescueFailure, exc.exc_info[0])
+
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.validate')
+    def test_do_node_rescue_when_rescue_validate_fail(self, mock_validate):
+        self._test_do_node_rescue_when_validate_fail(mock_validate)
+
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
+    def test_do_node_rescue_when_power_validate_fail(self, mock_validate):
+        self._test_do_node_rescue_when_validate_fail(mock_validate)
+
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate')
+    def test_do_node_rescue_when_network_validate_fail(self, mock_validate):
+        self._test_do_node_rescue_when_validate_fail(mock_validate)
+
+    def test_do_node_rescue_not_supported(self):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.ACTIVE,
+            target_provision_state=states.NOSTATE,
+            instance_info={})
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_node_rescue,
+                                self.context, node.uuid, "password")
+        self.assertEqual(exception.UnsupportedDriverExtension,
+                         exc.exc_info[0])
+
+    def test_do_node_rescue_maintenance(self):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.ACTIVE,
+            maintenance=True,
+            target_provision_state=states.NOSTATE,
+            instance_info={})
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_node_rescue,
+                                self.context, node['uuid'], "password")
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeInMaintenance, exc.exc_info[0])
+        # This is a sync operation last_error should be None.
+        self.assertIsNone(node.last_error)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue')
+    def test__do_node_rescue_returns_rescuewait(self, mock_rescue):
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.RESCUING,
+                                          instance_info={'rescue_password':
+                                                         'password'})
+        self._start_service()
+        with task_manager.TaskManager(self.context, node.uuid) as task:
+            mock_rescue.return_value = states.RESCUEWAIT
+            self.service._do_node_rescue(task)
+            node.refresh()
+            self.assertEqual(states.RESCUEWAIT, node.provision_state)
+            self.assertEqual(states.RESCUE, node.target_provision_state)
+            self.assertIn('rescue_password', node.instance_info)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue')
+    def test__do_node_rescue_returns_rescue(self, mock_rescue):
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.RESCUING,
+                                          instance_info={'rescue_password':
+                                                         'password'})
+        self._start_service()
+        with task_manager.TaskManager(self.context, node.uuid) as task:
+            mock_rescue.return_value = states.RESCUE
+            self.service._do_node_rescue(task)
+            node.refresh()
+            self.assertEqual(states.RESCUE, node.provision_state)
+            self.assertEqual(states.NOSTATE, node.target_provision_state)
+            self.assertIn('rescue_password', node.instance_info)
+
+    @mock.patch.object(manager, 'LOG')
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue')
+    def test__do_node_rescue_errors(self, mock_rescue, mock_log):
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.RESCUING,
+                                          instance_info={'rescue_password':
+                                                         'password'})
+        self._start_service()
+        mock_rescue.side_effect = exception.InstanceRescueFailure(
+            'failed to rescue')
+        with task_manager.TaskManager(self.context, node.uuid) as task:
+            self.assertRaises(exception.InstanceRescueFailure,
+                              self.service._do_node_rescue, task)
+            node.refresh()
+            self.assertEqual(states.RESCUEFAIL, node.provision_state)
+            self.assertEqual(states.RESCUE, node.target_provision_state)
+            self.assertNotIn('rescue_password', node.instance_info)
+            self.assertTrue(node.last_error.startswith('Failed to rescue'))
+            self.assertTrue(mock_log.error.called)
+
+    @mock.patch.object(manager, 'LOG')
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.rescue')
+    def test__do_node_rescue_bad_state(self, mock_rescue, mock_log):
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.RESCUING,
+                                          instance_info={'rescue_password':
+                                                         'password'})
+        self._start_service()
+        mock_rescue.return_value = states.ACTIVE
+        with task_manager.TaskManager(self.context, node.uuid) as task:
+            self.service._do_node_rescue(task)
+            node.refresh()
+            self.assertEqual(states.RESCUEFAIL, node.provision_state)
+            self.assertEqual(states.RESCUE, node.target_provision_state)
+            self.assertNotIn('rescue_password', node.instance_info)
+            self.assertTrue(node.last_error.startswith('Failed to rescue'))
+            self.assertTrue(mock_log.error.called)
+
+    @mock.patch('ironic.conductor.task_manager.acquire', autospec=True)
+    def test_do_node_unrescue(self, mock_acquire):
+        self._start_service()
+        task = self._create_task(
+            node_attrs=dict(driver='fake-hardware',
+                            provision_state=states.RESCUE))
+        mock_acquire.side_effect = self._get_acquire_side_effect(task)
+        self.service.do_node_unrescue(self.context, task.node.uuid)
+        task.process_event.assert_called_once_with(
+            'unrescue',
+            callback=self.service._spawn_worker,
+            call_args=(self.service._do_node_unrescue, task),
+            err_handler=conductor_utils.provisioning_error_handler)
+
+    def test_do_node_unrescue_invalid_state(self):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.AVAILABLE)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_node_unrescue,
+                                self.context, node.uuid)
+        self.assertEqual(exception.InvalidStateRequested, exc.exc_info[0])
+
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
+    def test_do_node_unrescue_validate_fail(self, mock_validate):
+        # InvalidParameterValue should be re-raised as InstanceUnrescueFailure
+        mock_validate.side_effect = exception.InvalidParameterValue('error')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.RESCUE,
+            target_provision_state=states.NOSTATE)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_node_unrescue,
+                                self.context, node.uuid)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.InstanceUnrescueFailure, exc.exc_info[0])
+
+    def test_do_node_unrescue_not_supported(self):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake',
+            provision_state=states.RESCUE,
+            instance_info={})
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_node_unrescue,
+                                self.context, node.uuid)
+        self.assertEqual(exception.UnsupportedDriverExtension,
+                         exc.exc_info[0])
+
+    def test_do_node_unrescue_maintenance(self):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.RESCUE,
+            maintenance=True,
+            target_provision_state=states.NOSTATE,
+            instance_info={})
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_node_unrescue,
+                                self.context, node.uuid)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeInMaintenance, exc.exc_info[0])
+        # This is a sync operation last_error should be None.
+        node.refresh()
+        self.assertIsNone(node.last_error)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.unrescue')
+    def test__do_node_unrescue(self, mock_unrescue):
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.UNRESCUING,
+                                          target_provision_state=states.ACTIVE,
+                                          instance_info={})
+        self._start_service()
+        with task_manager.TaskManager(self.context, node.uuid) as task:
+            mock_unrescue.return_value = states.ACTIVE
+            self.service._do_node_unrescue(task)
+            node.refresh()
+            self.assertEqual(states.ACTIVE, node.provision_state)
+            self.assertEqual(states.NOSTATE, node.target_provision_state)
+
+    @mock.patch.object(manager, 'LOG')
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.unrescue')
+    def test__do_node_unrescue_ironic_error(self, mock_unrescue, mock_log):
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.UNRESCUING,
+                                          target_provision_state=states.ACTIVE,
+                                          instance_info={})
+        self._start_service()
+        mock_unrescue.side_effect = exception.InstanceUnrescueFailure(
+            'Unable to unrescue')
+        with task_manager.TaskManager(self.context, node.uuid) as task:
+            self.assertRaises(exception.InstanceUnrescueFailure,
+                              self.service._do_node_unrescue, task)
+            node.refresh()
+            self.assertEqual(states.UNRESCUEFAIL, node.provision_state)
+            self.assertEqual(states.ACTIVE, node.target_provision_state)
+            self.assertTrue('Unable to unrescue' in node.last_error)
+            self.assertTrue(mock_log.error.called)
+
+    @mock.patch.object(manager, 'LOG')
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.unrescue')
+    def test__do_node_unrescue_other_error(self, mock_unrescue, mock_log):
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.UNRESCUING,
+                                          target_provision_state=states.ACTIVE,
+                                          instance_info={})
+        self._start_service()
+        mock_unrescue.side_effect = RuntimeError('Some failure')
+        with task_manager.TaskManager(self.context, node.uuid) as task:
+            self.assertRaises(RuntimeError,
+                              self.service._do_node_unrescue, task)
+            node.refresh()
+            self.assertEqual(states.UNRESCUEFAIL, node.provision_state)
+            self.assertEqual(states.ACTIVE, node.target_provision_state)
+            self.assertTrue('Some failure' in node.last_error)
+            self.assertTrue(mock_log.exception.called)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeRescue.unrescue')
+    def test__do_node_unrescue_bad_state(self, mock_unrescue):
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.UNRESCUING,
+                                          instance_info={})
+        self._start_service()
+        mock_unrescue.return_value = states.RESCUEWAIT
+        with task_manager.TaskManager(self.context, node.uuid) as task:
+            self.service._do_node_unrescue(task)
+            node.refresh()
+            self.assertEqual(states.UNRESCUEFAIL, node.provision_state)
+            self.assertEqual(states.ACTIVE, node.target_provision_state)
+            self.assertTrue('Driver returned unexpected state' in
+                            node.last_error)
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker')
+    def test_provision_rescue_abort(self, mock_spawn):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.RESCUEWAIT,
+            target_provision_state=states.RESCUE,
+            instance_info={'rescue_password': 'password'})
+        self._start_service()
+        self.service.do_provisioning_action(self.context, node.uuid, 'abort')
+        node.refresh()
+        self.assertEqual(states.RESCUEFAIL, node.provision_state)
+        self.assertIsNone(node.last_error)
+        self.assertNotIn('rescue_password', node.instance_info)
+        mock_spawn.assert_called_with(self.service._do_node_rescue_abort,
+                                      mock.ANY)
+
+    @mock.patch.object(fake.FakeRescue, 'clean_up', autospec=True)
+    def test__do_node_rescue_abort(self, clean_up_mock):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.RESCUEFAIL,
+            target_provision_state=states.RESCUE)
+        with task_manager.acquire(self.context, node.uuid) as task:
+            self.service._do_node_rescue_abort(task)
+            clean_up_mock.assert_called_once_with(task.driver.rescue, task)
+            self.assertIsNotNone(task.node.last_error)
+            self.assertFalse(task.node.maintenance)
+
+    @mock.patch.object(fake.FakeRescue, 'clean_up', autospec=True)
+    def test__do_node_rescue_abort_clean_up_fail(self, clean_up_mock):
+        clean_up_mock.side_effect = Exception('Surprise')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.RESCUEFAIL)
+        with task_manager.acquire(self.context, node.uuid) as task:
+            self.service._do_node_rescue_abort(task)
+            clean_up_mock.assert_called_once_with(task.driver.rescue, task)
+            self.assertIsNotNone(task.node.last_error)
+            self.assertIsNotNone(task.node.maintenance_reason)
+            self.assertTrue(task.node.maintenance)
 
 
 @mgr_utils.mock_record_keepalive

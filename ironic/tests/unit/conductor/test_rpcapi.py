@@ -499,3 +499,31 @@ class RPCAPITestCase(db_base.DbTestCase):
                           'call',
                           node_id='fake-node',
                           version='1.38')
+
+    def test_do_node_rescue(self):
+        self._test_rpcapi('do_node_rescue',
+                          'call',
+                          version='1.43',
+                          node_id=self.fake_node['uuid'],
+                          rescue_password="password")
+
+    def test_do_node_unrescue(self):
+        self._test_rpcapi('do_node_unrescue',
+                          'call',
+                          version='1.43',
+                          node_id=self.fake_node['uuid'])
+
+    def _test_can_send_rescue(self, can_send):
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
+        with mock.patch.object(rpcapi.client,
+                               "can_send_version") as mock_can_send_version:
+            mock_can_send_version.return_value = can_send
+            result = rpcapi.can_send_rescue()
+            self.assertEqual(can_send, result)
+            mock_can_send_version.assert_called_once_with("1.43")
+
+    def test_can_send_rescue_true(self):
+        self._test_can_send_rescue(True)
+
+    def test_can_send_rescue_false(self):
+        self._test_can_send_rescue(False)

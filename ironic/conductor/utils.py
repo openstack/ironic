@@ -398,13 +398,26 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
         task.process_event('fail', target_state=target_state)
 
 
-def spawn_cleaning_error_handler(e, node):
-    """Handle spawning error for node cleaning."""
+def _spawn_error_handler(e, node, state):
+    """Handle spawning error for node."""
     if isinstance(e, exception.NoFreeConductorWorker):
         node.last_error = (_("No free conductor workers available"))
         node.save()
         LOG.warning("No free conductor workers available to perform "
-                    "cleaning on node %(node)s", {'node': node.uuid})
+                    "%(state)s on node %(node)s",
+                    {'state': state, 'node': node.uuid})
+
+
+def spawn_cleaning_error_handler(e, node):
+    """Handle spawning error for node cleaning."""
+    _spawn_error_handler(e, node, states.CLEANING)
+
+
+def spawn_rescue_error_handler(e, node):
+    """Handle spawning error for node rescue."""
+    if isinstance(e, exception.NoFreeConductorWorker):
+        remove_node_rescue_password(node, save=False)
+    _spawn_error_handler(e, node, states.RESCUE)
 
 
 def power_state_error_handler(e, node, power_state):
@@ -652,3 +665,22 @@ def validate_port_physnet(task, port_obj):
         raise exception.Conflict(
             msg % {'portgroup': portgroup.uuid, 'physnet': port_physnet,
                    'pg_physnet': pg_physnet})
+
+
+def remove_node_rescue_password(node, save=True):
+    """Helper to remove rescue password from a node.
+
+    Removes rescue password from node. It saves node by default.
+    If node should not be saved, then caller needs to explicitly
+    indicate it.
+
+    :param node: an Ironic node object.
+    :param save: Boolean; True (default) to save the node; False
+                 otherwise.
+    """
+    instance_info = node.instance_info
+    if 'rescue_password' in instance_info:
+        del instance_info['rescue_password']
+        node.instance_info = instance_info
+        if save:
+            node.save()
