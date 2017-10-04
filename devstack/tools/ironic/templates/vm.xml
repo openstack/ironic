@@ -46,6 +46,9 @@
     </controller>
     {% for n in range(1, interface_count+1) %}
     <interface type='direct'>
+      {% if n == 1 and mac %}
+      <mac address='{{ mac }}'/>
+      {% endif %}
       <source dev='{{ "tap-" + name + "i" + n|string }}'/>
       <model type='{{ nicdriver }}'/>
       <address type='pci' domain='0x0000' bus='0x01' slot='{{ "0x0" + n|string }}' function='0x0'/>

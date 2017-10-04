@@ -12,7 +12,7 @@ export PS4='+ ${BASH_SOURCE:-}:${FUNCNAME[0]:-}:L${LINENO:-}:   '
 # Keep track of the DevStack directory
 TOP_DIR=$(cd $(dirname "$0")/.. && pwd)
 
-while getopts "n:c:i:m:M:d:a:b:e:E:p:o:f:l:L:N:" arg; do
+while getopts "n:c:i:m:M:d:a:b:e:E:p:o:f:l:L:N:A:" arg; do
     case $arg in
         n) NAME=$OPTARG;;
         c) CPU=$OPTARG;;
@@ -32,6 +32,7 @@ while getopts "n:c:i:m:M:d:a:b:e:E:p:o:f:l:L:N:" arg; do
         l) LOGDIR=$OPTARG;;
         L) UEFI_LOADER=$OPTARG;;
         N) UEFI_NVRAM=$OPTARG;;
+        A) MAC_ADDRESS=$OPTARG;;
     esac
 done
 
@@ -105,6 +106,10 @@ for int in $(seq 1 $INTERFACE_COUNT); do
     sudo ovs-vsctl add-port $BRIDGE $ovsif
 done
 
+if [ -n "$MAC_ADDRESS" ] ; then
+    MAC_ADDRESS="--mac $MAC_ADDRESS"
+fi
+
 if ! virsh list --all | grep -q $NAME; then
     virsh vol-list --pool $LIBVIRT_STORAGE_POOL | grep -q $VOL_NAME &&
         virsh vol-delete $VOL_NAME --pool $LIBVIRT_STORAGE_POOL >&2
@@ -121,7 +126,7 @@ if ! virsh list --all | grep -q $NAME; then
         --bootdev network --name $NAME --image "$volume_path" \
         --arch $ARCH --cpus $CPU --memory $MEM --libvirt-nic-driver $LIBVIRT_NIC_DRIVER \
         --disk-format $DISK_FORMAT $VM_LOGGING --engine $ENGINE $UEFI_OPTS $vm_opts \
-        --interface-count $INTERFACE_COUNT >&2
+        --interface-count $INTERFACE_COUNT $MAC_ADDRESS >&2
 
     # Createa Virtual BMC for the node if IPMI is used
     if [[ $(type -P vbmc) != "" ]]; then
