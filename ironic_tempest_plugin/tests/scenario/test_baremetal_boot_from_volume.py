@@ -12,12 +12,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from tempest.common import utils
 from tempest.common import waiters
 from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib.common.utils import test_utils
 from tempest.lib import decorators
-from tempest import test
 
 from ironic_tempest_plugin.tests.scenario import baremetal_manager
 
@@ -120,7 +120,7 @@ class BaremetalBFV(baremetal_manager.BaremetalScenarioTest):
         )
 
     @decorators.idempotent_id('d6e05e61-8221-44ac-b785-57545f8e0fcf')
-    @test.services('compute', 'image', 'network', 'volume')
+    @utils.services('compute', 'image', 'network', 'volume')
     def test_baremetal_boot_from_volume(self):
         """Test baremetal node can boot from a cinder volume.
 

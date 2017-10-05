@@ -14,11 +14,11 @@
 # under the License.
 
 from oslo_log import log as logging
+from tempest.common import utils
 from tempest.common import waiters
 from tempest import config
 from tempest.lib.common import api_version_request
 from tempest.lib import decorators
-from tempest import test
 
 from ironic_tempest_plugin.tests.scenario import baremetal_manager
 
@@ -125,7 +125,7 @@ class BaremetalBasicOps(baremetal_manager.BaremetalScenarioTest):
             self.assertIn(n_port['mac_address'], ir_ports_addresses)
 
     @decorators.idempotent_id('549173a5-38ec-42bb-b0e2-c8b9f4a08943')
-    @test.services('compute', 'image', 'network')
+    @utils.services('compute', 'image', 'network')
     def test_baremetal_server_ops(self):
         self.add_keypair()
         self.instance, self.node = self.boot_instance()
