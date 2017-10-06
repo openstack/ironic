@@ -729,6 +729,7 @@ class TaskManagerStateModelTestCases(tests_base.TestCase):
         t.shared = True
         t._purpose = 'purpose'
         t._debug_timer = mock.Mock()
+        t._debug_timer.elapsed.return_value = 3.14
 
         t.release_resources(t)
         self.assertIsNone(t.node)
