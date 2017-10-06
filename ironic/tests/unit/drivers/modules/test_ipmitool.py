@@ -624,8 +624,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
             self.assertEqual(mock.call('single_bridge'),
                              mock_support.call_args)
 
-    def test__parse_driver_info_numeric_password(
-            self):
+    def test__parse_driver_info_numeric_password(self):
         # ipmi_password must not be converted to int / float
         # even if it includes just numbers.
         info = dict(INFO_DICT)
@@ -664,8 +663,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         self.assertEqual(623, ret['dest_port'])
 
     @mock.patch.object(ipmi.LOG, 'warning', spec_set=True, autospec=True)
-    def test__parse_driver_info_undefined_credentials(
-            self, mock_log):
+    def test__parse_driver_info_undefined_credentials(self, mock_log):
         info = dict(INFO_DICT)
         del info['ipmi_username']
         del info['ipmi_password']
@@ -1010,8 +1008,8 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
         self.assertEqual(expected, mock_support.call_args_list)
         mock_exec.assert_called_once_with(*args)
 
-    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_with_single_bridging(self,
                                                  mock_exec,
@@ -1050,8 +1048,7 @@ class IPMIToolPrivateMethodTestCase(db_base.DbTestCase):
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
     @mock.patch.object(utils, 'execute', autospec=True)
-    def test__exec_ipmitool_exception(
-            self, mock_exec, mock_support):
+    def test__exec_ipmitool_exception(self, mock_exec, mock_support):
         args = [
             'ipmitool',
             '-I', 'lanplus',
