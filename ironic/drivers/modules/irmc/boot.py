@@ -977,7 +977,7 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
         :returns: None
         """
         if task.node.driver_internal_info.get('boot_from_volume'):
-            LOG.debug('Node %(node) is configured for booting from a remote '
+            LOG.debug('Node %(node)s is configured for booting from a remote '
                       'volume.',
                       {'node': task.node.uuid})
             self._configure_boot_from_volume(task)
