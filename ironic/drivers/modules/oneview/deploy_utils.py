@@ -367,7 +367,7 @@ def deallocate_server_hardware_from_ironic(client, task):
             task.driver.power.set_power_state(task, states.POWER_OFF)
             client.server_profiles.delete(server_profile_uri)
             _del_applied_server_profile_uri_field(node)
-            LOG.info("Server Profile %(server_profile_uuid)s was deleted "
+            LOG.info("Server Profile %(server_profile_uri)s was deleted "
                      "from node %(node_uuid)s in OneView.",
                      {'server_profile_uri': server_profile_uri,
                       'node_uuid': node.uuid})

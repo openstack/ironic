@@ -183,7 +183,7 @@ class NeutronDHCPApi(base.BaseDHCP):
             if isinstance(p_obj, objects.Port):
                 obj_name = 'port'
             LOG.warning("No VIFs found for node %(node)s when attempting "
-                        "to get IP address for %(obj_name)s: %(obj_id).",
+                        "to get IP address for %(obj_name)s: %(obj_id)s.",
                         {'node': task.node.uuid, 'obj_name': obj_name,
                          'obj_id': p_obj.uuid})
             raise exception.FailedToGetIPAddressOnPort(port_id=p_obj.uuid)
