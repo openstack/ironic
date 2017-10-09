@@ -1,0 +1,12 @@
+---
+- import_playbook: add-ironic-nodes.yaml
+
+- hosts: ironic
+  roles:
+    - discover
+    - prepare
+    - deploy
+    - configure
+  post_tasks:
+    - name: flush disk state
+      command: sync

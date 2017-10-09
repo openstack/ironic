@@ -100,7 +100,9 @@ pygments_style = 'sphinx'
 # A list of glob-style patterns that should be excluded when looking for
 # source files. They are matched against the source file names relative to the
 # source directory, using slashes as directory separators on all platforms.
-exclude_patterns = ['api/ironic_tempest_plugin.*']
+exclude_patterns = ['api/ironic_tempest_plugin.*',
+                    'api/ironic.drivers.modules.ansible.playbooks.*',
+                    'api/ironic.tests.*']
 
 # Ignore the following warning: WARNING: while setting up extension
 # wsmeext.sphinxext: directive 'autoattribute' is already registered,

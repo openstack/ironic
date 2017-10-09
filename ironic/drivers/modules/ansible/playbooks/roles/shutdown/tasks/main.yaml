@@ -1,0 +1,6 @@
+- name: soft power off
+  become: yes
+  shell: sleep 5 && poweroff
+  async: 1
+  poll: 0
+  ignore_errors: true

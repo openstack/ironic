@@ -1,0 +1,1 @@
+conductor ansible_connection=local

@@ -16,6 +16,7 @@
 from oslo_config import cfg
 
 from ironic.conf import agent
+from ironic.conf import ansible
 from ironic.conf import api
 from ironic.conf import audit
 from ironic.conf import cinder
@@ -47,6 +48,7 @@ from ironic.conf import swift
 CONF = cfg.CONF
 
 agent.register_opts(CONF)
+ansible.register_opts(CONF)
 api.register_opts(CONF)
 audit.register_opts(CONF)
 cinder.register_opts(CONF)

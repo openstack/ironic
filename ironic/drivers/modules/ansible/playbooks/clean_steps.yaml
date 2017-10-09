@@ -1,0 +1,19 @@
+- name: erase_devices_metadata
+  priority: 99
+  interface: deploy
+  args:
+    tags:
+      required: true
+      description: list of playbook tags used to erase partition table on disk devices
+      value:
+        - zap
+
+- name: erase_devices
+  priority: 10
+  interface: deploy
+  args:
+    tags:
+      required: true
+      description: list of playbook tags used to erase disk devices
+      value:
+        - shred

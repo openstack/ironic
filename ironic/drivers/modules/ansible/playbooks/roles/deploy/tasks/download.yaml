@@ -1,0 +1,13 @@
+- name: check that downloaded image will fit into memory
+  assert:
+    that: "{{ ansible_memfree_mb }} >= {{ ironic.image.mem_req }}"
+    msg: "The image size is too big, no free memory available"
+
+- name: download image with checksum validation
+  get_url:
+    url: "{{ ironic.image.url }}"
+    dest: /tmp/{{ inventory_hostname }}.img
+    checksum: "{{ ironic.image.checksum|default(omit) }}"
+    validate_certs: "{{ ironic.image.validate_certs|default(omit) }}"
+  async: 600
+  poll: 15

@@ -18,6 +18,7 @@ Generic hardware types.
 
 from ironic.drivers import hardware_type
 from ironic.drivers.modules import agent
+from ironic.drivers.modules.ansible import deploy as ansible_deploy
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import iscsi_deploy
@@ -45,7 +46,8 @@ class GenericHardware(hardware_type.AbstractHardwareType):
     @property
     def supported_deploy_interfaces(self):
         """List of supported deploy interfaces."""
-        return [iscsi_deploy.ISCSIDeploy, agent.AgentDeploy]
+        return [iscsi_deploy.ISCSIDeploy, agent.AgentDeploy,
+                ansible_deploy.AnsibleDeploy]
 
     @property
     def supported_inspect_interfaces(self):

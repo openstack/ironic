@@ -1,0 +1,20 @@
+- name: convert and write
+  become: yes
+  command: qemu-img convert -t directsync -O host_device /tmp/{{ inventory_hostname }}.img {{ ironic_image_target }}
+  async: 1200
+  poll: 10
+  when: ironic.image.disk_format != 'raw'
+
+- name: stream to target
+  become: yes
+  stream_url:
+    url: "{{ ironic.image.url }}"
+    dest: "{{ ironic_image_target }}"
+    checksum: "{{ ironic.image.checksum|default(omit) }}"
+    validate_certs: "{{ ironic.image.validate_certs|default(omit) }}"
+  async: 600
+  poll: 15
+  when: ironic.image.disk_format == 'raw'
+
+- name: flush
+  command: sync

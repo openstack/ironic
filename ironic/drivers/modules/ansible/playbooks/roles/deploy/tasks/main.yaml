@@ -1,0 +1,7 @@
+- import_tasks: download.yaml
+  when: ironic.image.disk_format != 'raw'
+
+- import_tasks: write.yaml
+
+- import_tasks: configdrive.yaml
+  when: ironic.configdrive is defined
