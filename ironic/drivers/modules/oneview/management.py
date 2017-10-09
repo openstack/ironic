@@ -68,9 +68,8 @@ def set_onetime_boot(task):
         persistent = next_boot_device.get('persistent')
 
         if not persistent:
-            client = common.get_hponeview_client()
             server_hardware = task.node.driver_info.get('server_hardware_uri')
-            ilo_client = common.get_ilorest_client(client, server_hardware)
+            ilo_client = common.get_ilorest_client(server_hardware)
             boot_device = BOOT_DEVICE_MAP_ILO.get(boot_device)
             body = {
                 "Boot": {
@@ -93,9 +92,8 @@ def _is_onetime_boot(task):
               False otherwise.
 
     """
-    client = common.get_hponeview_client()
     server_hardware = task.node.driver_info.get('server_hardware_uri')
-    ilo_client = common.get_ilorest_client(client, server_hardware)
+    ilo_client = common.get_ilorest_client(server_hardware)
     response = ilo_client.get(path=ILO_SYSTEM_PATH,
                               headers=ILO_REQUEST_HEADERS)
     boot = response.dict.get('Boot')
@@ -114,7 +112,7 @@ def set_boot_device(task):
     :raises: OneViewError if the communication with OneView fails
     """
     client = common.get_hponeview_client()
-    common.has_server_profile(task, client)
+    common.has_server_profile(task)
     driver_internal_info = task.node.driver_internal_info
     next_boot_device = driver_internal_info.get('next_boot_device')
 
@@ -163,10 +161,6 @@ def set_boot_device(task):
 
 class OneViewManagement(base.ManagementInterface):
 
-    def __init__(self):
-        super(OneViewManagement, self).__init__()
-        self.client = common.get_hponeview_client()
-
     def get_properties(self):
         return deploy_utils.get_properties()
 
@@ -187,12 +181,9 @@ class OneViewManagement(base.ManagementInterface):
                  resources in OneView
         """
         common.verify_node_info(task.node)
-
         try:
-            common.validate_oneview_resources_compatibility(self.client, task)
-            if not deploy_utils.is_node_in_use_by_ironic(
-                self.client, task.node
-            ):
+            common.validate_oneview_resources_compatibility(task)
+            if not deploy_utils.is_node_in_use_by_ironic(task.node):
                 raise exception.InvalidParameterValue(
                     _("Node %s is not in use by ironic.") % task.node.uuid)
         except exception.OneViewError as oneview_exc:
@@ -264,6 +255,7 @@ class OneViewManagement(base.ManagementInterface):
         """
         driver_internal_info = task.node.driver_internal_info
         next_boot_device = driver_internal_info.get('next_boot_device')
+        client = common.get_hponeview_client()
 
         if next_boot_device:
             return next_boot_device
@@ -272,7 +264,7 @@ class OneViewManagement(base.ManagementInterface):
         server_profile = driver_info.get('applied_server_profile_uri')
 
         try:
-            profile = self.client.server_profiles.get(server_profile)
+            profile = client.server_profiles.get(server_profile)
         except client_exception.HPOneViewException as exc:
             msg = _("Error getting boot device from OneView. Error: %s") % exc
             raise exception.OneViewError(msg)

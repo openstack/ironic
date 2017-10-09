@@ -285,8 +285,7 @@ class OneViewCommonTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.ports = [fake_port]
-            common.validate_oneview_resources_compatibility(oneview_client,
-                                                            task)
+            common.validate_oneview_resources_compatibility(task)
             self.assertTrue(mock_sp_template.called)
             self.assertTrue(mock_sh_type.called)
             self.assertTrue(mock_enclosure.called)

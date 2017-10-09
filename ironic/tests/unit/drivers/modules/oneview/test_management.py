@@ -214,7 +214,6 @@ class OneViewManagementDriverFunctionsTestCase(db_base.DbTestCase):
             )
 
 
-@mock.patch.object(common, 'get_hponeview_client')
 class OneViewManagementDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
@@ -237,7 +236,7 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
                        spect_set=True, autospec=True)
     @mock.patch.object(common, 'validate_oneview_resources_compatibility',
                        spect_set=True, autospec=True)
-    def test_validate(self, mock_validate, mock_ironic_node, mock_ov_client):
+    def test_validate(self, mock_validate, mock_ironic_node):
         mock_ironic_node.return_value = True
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -246,15 +245,13 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(deploy_utils, 'is_node_in_use_by_ironic',
                        spect_set=True, autospec=True)
-    def test_validate_for_node_not_in_use_by_ironic(
-        self, mock_ironic_node, mock_get_ov_client
-    ):
+    def test_validate_for_node_not_in_use_by_ironic(self, mock_ironic_node):
         mock_ironic_node.return_value = False
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.management.validate, task)
 
-    def test_validate_fail(self, mock_get_ov_client):
+    def test_validate_fail(self):
         node = obj_utils.create_test_node(
             self.context, uuid=uuidutils.generate_uuid(),
             id=999, driver='fake_oneview'
@@ -264,19 +261,19 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
                               task.driver.management.validate, task)
 
     @mock.patch.object(common, 'validate_oneview_resources_compatibility')
-    def test_validate_fail_exception(self, mock_validate, mock_get_ov_client):
+    def test_validate_fail_exception(self, mock_validate):
         mock_validate.side_effect = exception.OneViewError('message')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.management.validate,
                               task)
 
-    def test_get_properties(self, mock_get_ov_client):
+    def test_get_properties(self):
         expected = common.COMMON_PROPERTIES
         self.assertItemsEqual(expected,
                               self.driver.management.get_properties())
 
-    def test_set_boot_device_persistent_true(self, mock_get_ov_client):
+    def test_set_boot_device_persistent_true(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.management.set_boot_device(
                 task, boot_devices.PXE, True)
@@ -287,7 +284,7 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
                 next_boot_device.get('boot_device'), boot_devices.PXE)
             self.assertTrue(next_boot_device.get('persistent'))
 
-    def test_set_boot_device_persistent_false(self, mock_get_ov_client):
+    def test_set_boot_device_persistent_false(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.management.set_boot_device(
                 task, boot_devices.PXE, False)
@@ -298,7 +295,7 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
                 next_boot_device.get('boot_device'), boot_devices.PXE)
             self.assertFalse(next_boot_device.get('persistent'))
 
-    def test_set_boot_device_invalid_device(self, mock_get_ov_client):
+    def test_set_boot_device_invalid_device(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.management.set_boot_device,
@@ -306,7 +303,7 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
             driver_internal_info = task.node.driver_internal_info
             self.assertNotIn('next_boot_device', driver_internal_info)
 
-    def test_get_supported_boot_devices(self, mock_get_ov_client):
+    def test_get_supported_boot_devices(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             expected = [
                 boot_devices.PXE, boot_devices.DISK, boot_devices.CDROM
@@ -316,10 +313,10 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
                 task.driver.management.get_supported_boot_devices(task),
             )
 
+    @mock.patch.object(common, 'get_hponeview_client')
     @mock.patch.object(common, 'get_ilorest_client')
-    def test_get_boot_device(
-            self, mock_ilo_client, mock_get_ov_client):
-        client = mock_get_ov_client()
+    def test_get_boot_device(self, mock_ilo_client, mock_ov_client):
+        client = mock_ov_client()
         ilo_client = mock_ilo_client()
         self.driver.management.client = client
         device_mapping = management.BOOT_DEVICE_MAP_ONEVIEW.items()
@@ -337,11 +334,8 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
                 self.assertTrue(ilo_client.get.called)
 
     @mock.patch.object(common, 'get_ilorest_client')
-    def test_get_boot_device_from_next_boot_device(
-            self, mock_ilo_client, mock_get_ov_client):
-        client = mock_get_ov_client()
+    def test_get_boot_device_from_next_boot_device(self, mock_ilo_client):
         ilo_client = mock_ilo_client()
-        self.driver.management.client = client
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             driver_internal_info = task.node.driver_internal_info
@@ -355,13 +349,12 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
             }
             response = self.driver.management.get_boot_device(task)
             self.assertEqual(expected_response, response)
-            self.assertFalse(client.get_boot_order.called)
             self.assertFalse(ilo_client.get.called)
 
+    @mock.patch.object(common, 'get_hponeview_client')
     @mock.patch.object(common, 'get_ilorest_client')
-    def test_get_boot_device_fail(
-            self, mock_ilo_client, mock_get_ov_client):
-        client = mock_get_ov_client()
+    def test_get_boot_device_fail(self, mock_ilo_client, mock_ov_client):
+        client = mock_ov_client()
         ilo_client = mock_ilo_client()
         self.driver.management.client = client
         exc = client_exception.HPOneViewException()
@@ -376,14 +369,8 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
             self.assertFalse(ilo_client.get.called)
 
     @mock.patch.object(common, 'get_ilorest_client')
-    def test_get_boot_device_unknown_device(
-            self, mock_ilo_client, mock_get_ov_client):
-        client = mock_get_ov_client()
+    def test_get_boot_device_unknown_device(self, mock_ilo_client):
         ilo_client = mock_ilo_client()
-        order = ['Eggs', 'Bacon']
-        profile = {'boot': {'order': order}}
-        client.server_profiles.get.return_value = profile
-        self.driver.management.client = client
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(
                 exception.InvalidParameterValue,
@@ -392,7 +379,7 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
             )
             self.assertFalse(ilo_client.get.called)
 
-    def test_get_sensors_data_not_implemented(self, mock_get_ov_client):
+    def test_get_sensors_data_not_implemented(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(
                 NotImplementedError,
