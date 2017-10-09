@@ -16,7 +16,7 @@
 import mock
 
 from ironic.conductor import task_manager
-from ironic.drivers.modules.oneview import common as oneview_common
+from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy_utils
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
@@ -43,13 +43,13 @@ class AgentPXEOneViewInspectTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertEqual(expected, task.driver.inspect.get_properties())
 
-    @mock.patch.object(oneview_common, 'verify_node_info')
-    def test_validate(self, mock_verify_node_info):
+    @mock.patch.object(common, 'validate_oneview_resources_compatibility')
+    def test_validate(self, mock_validate):
         self.config(enabled=False, group='inspector')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.inspect.validate(task)
-            mock_verify_node_info.assert_called_once_with(task.node)
+            self.assertTrue(mock_validate.called)
 
     @mock.patch.object(deploy_utils, 'allocate_server_hardware_to_ironic')
     def test_inspect_hardware(self, mock_allocate_server_hardware_to_ironic):
@@ -78,13 +78,13 @@ class ISCSIPXEOneViewInspectTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertEqual(expected, task.driver.inspect.get_properties())
 
-    @mock.patch.object(oneview_common, 'verify_node_info')
-    def test_validate(self, mock_verify_node_info):
+    @mock.patch.object(common, 'validate_oneview_resources_compatibility')
+    def test_validate(self, mock_validate):
         self.config(enabled=False, group='inspector')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.inspect.validate(task)
-            mock_verify_node_info.assert_called_once_with(task.node)
+            self.assertTrue(mock_validate.called)
 
     @mock.patch.object(deploy_utils, 'allocate_server_hardware_to_ironic')
     def test_inspect_hardware(self, mock_allocate_server_hardware_to_ironic):
