@@ -2117,7 +2117,7 @@ function cleanup_baremetal_basic_ops {
 
         # Cleanup node bridge/interfaces
         for i in $(seq 1 $IRONIC_VM_INTERFACE_COUNT); do
-            sudo ip tuntap del dev tap-${vm_name}i${i} mode tap
+            sudo ip link del dev tap-${vm_name}i${i}
         done
     done
 
