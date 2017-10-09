@@ -176,6 +176,21 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
 
     @mock.patch.object(common, 'get_hponeview_client')
     @mock.patch.object(management, 'set_boot_device')
+    def test_set_power_soft_reboot(
+            self, mock_set_boot_device, mock_get_ov_client):
+        client = mock_get_ov_client()
+        self.driver.power.client = client
+        server_hardware = self.node.driver_info.get('server_hardware_uri')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.driver.power.set_power_state(task, states.SOFT_REBOOT)
+            calls = [mock.call(power.SOFT_POWER_OFF, server_hardware,
+                               timeout=-1),
+                     mock.call(power.POWER_ON, server_hardware, timeout=-1)]
+            update = client.server_hardware.update_power_state
+            update.assert_has_calls(calls)
+
+    @mock.patch.object(common, 'get_hponeview_client')
+    @mock.patch.object(management, 'set_boot_device')
     def test_set_power_on_fail(self, mock_set_boot_device, mock_get_ov_client):
         client = mock_get_ov_client()
         exc = client_exception.HPOneViewException()
@@ -291,3 +306,11 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
             update.assert_called_once_with(power.POWER_ON, server_hardware,
                                            timeout=2)
             mock_set_boot_device.assert_called_once_with(task)
+
+    def test_get_supported_power_states(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            supported_power_states = (
+                task.driver.power.get_supported_power_states(task))
+            self.assertEqual(set(power.SET_POWER_STATE_MAP),
+                             set(supported_power_states))
