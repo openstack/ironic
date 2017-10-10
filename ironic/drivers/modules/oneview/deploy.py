@@ -82,16 +82,16 @@ class OneViewPeriodicTasks(object):
                 continue
 
             if oneview_using:
-                purpose = ('Updating node %(node_uuid)s in use '
-                           'by OneView from %(provision_state)s state '
-                           'to %(target_state)s state and maintenance '
-                           'mode %(maintenance)s.',
-                           {'node_uuid': node_uuid,
-                            'provision_state': states.AVAILABLE,
-                            'target_state': states.MANAGEABLE,
-                            'maintenance': True})
+                purpose_msg = ('Updating node %(node_uuid)s in use '
+                               'by OneView from %(provision_state)s state '
+                               'to %(target_state)s state and maintenance '
+                               'mode %(maintenance)s.')
+                purpose_data = {'node_uuid': node_uuid,
+                                'provision_state': states.AVAILABLE,
+                                'target_state': states.MANAGEABLE,
+                                'maintenance': True}
 
-                LOG.info(purpose)
+                LOG.info(purpose_msg, purpose_data)
 
                 node.maintenance = True
                 node.maintenance_reason = common.NODE_IN_USE_BY_ONEVIEW
@@ -143,16 +143,16 @@ class OneViewPeriodicTasks(object):
                     continue
 
                 if not oneview_using:
-                    purpose = ('Bringing node %(node_uuid)s back from '
-                               'use by OneView from %(provision_state)s '
-                               'state to %(target_state)s state and '
-                               'maintenance mode %(maintenance)s.',
-                               {'node_uuid': node_uuid,
-                                'provision_state': states.MANAGEABLE,
-                                'target_state': states.AVAILABLE,
-                                'maintenance': False})
+                    purpose_msg = ('Bringing node %(node_uuid)s back from '
+                                   'use by OneView from %(provision_state)s '
+                                   'state to %(target_state)s state and '
+                                   'maintenance mode %(maintenance)s.')
+                    purpose_data = {'node_uuid': node_uuid,
+                                    'provision_state': states.MANAGEABLE,
+                                    'target_state': states.AVAILABLE,
+                                    'maintenance': False}
 
-                    LOG.info(purpose)
+                    LOG.info(purpose_msg, purpose_data)
 
                     node.maintenance = False
                     node.maintenance_reason = None
@@ -193,16 +193,16 @@ class OneViewPeriodicTasks(object):
 
                 node = objects.Node.get(context, node_uuid)
 
-                purpose = ('Bringing node %(node_uuid)s back from use '
-                           'by OneView from %(provision_state)s state '
-                           'to %(target_state)s state and '
-                           'maintenance mode %(maintenance)s.',
-                           {'node_uuid': node_uuid,
-                            'provision_state': states.CLEANFAIL,
-                            'target_state': states.MANAGEABLE,
-                            'maintenance': False})
+                purpose_msg = ('Bringing node %(node_uuid)s back from use '
+                               'by OneView from %(provision_state)s state '
+                               'to %(target_state)s state and '
+                               'maintenance mode %(maintenance)s.')
+                purpose_dict = {'node_uuid': node_uuid,
+                                'provision_state': states.CLEANFAIL,
+                                'target_state': states.MANAGEABLE,
+                                'maintenance': False}
 
-                LOG.info(purpose)
+                LOG.info(purpose_msg, purpose_dict)
 
                 node.maintenance = True
                 node.maintenance_reason = common.NODE_IN_USE_BY_ONEVIEW
