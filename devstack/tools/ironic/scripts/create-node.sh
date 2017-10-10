@@ -94,10 +94,15 @@ INTERFACE_COUNT=${INTERFACE_COUNT:-1}
 
 for int in $(seq 1 $INTERFACE_COUNT); do
     tapif=tap-${NAME}i${int}
-    sudo ip tuntap add dev $tapif mode tap
-    sudo ip link set $tapif mtu $INTERFACE_MTU
-    sudo ip link set $tapif up
-    sudo ovs-vsctl add-port $BRIDGE $tapif
+    ovsif=ovs-${NAME}i${int}
+    # NOTE(vsaienko) use veth pair here to ensure that interface
+    # exists in OVS even when VM is powered off.
+    sudo ip link add dev $tapif type veth peer name $ovsif
+    for l in $tapif $ovsif; do
+        sudo ip link set dev $l up
+        sudo ip link set $l mtu $INTERFACE_MTU
+    done
+    sudo ovs-vsctl add-port $BRIDGE $ovsif
 done
 
 if ! virsh list --all | grep -q $NAME; then
@@ -126,5 +131,5 @@ if ! virsh list --all | grep -q $NAME; then
 fi
 
 # echo mac in format mac1,ovs-node-0i1;mac2,ovs-node-0i2;...;macN,ovs-node0iN
-VM_MAC=$(echo -n $(virsh domiflist $NAME |awk '/tap-/{print $5","$1}')|tr ' ' ';')
+VM_MAC=$(echo -n $(virsh domiflist $NAME |awk '/tap-/{print $5","$3}')|tr ' ' ';' |sed s/tap-/ovs-/g)
 echo -n "$VM_MAC $VBMC_PORT $PDU_OUTLET"
