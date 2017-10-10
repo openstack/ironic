@@ -162,12 +162,15 @@ class ListType(wtypes.UserType):
         """Validate and convert the input to a ListType.
 
         :param value: A comma separated string of values
-        :returns: A list of unique values, whose order is not guaranteed.
+        :returns: A list of unique values (lower-cased), maintaining the
+                  same order
         """
-        items = [v.strip().lower() for v in six.text_type(value).split(',')]
-        # filter() to remove empty items
-        # set() to remove duplicated items
-        return list(set(filter(None, items)))
+        items = []
+        for v in six.text_type(value).split(','):
+            v_norm = v.strip().lower()
+            if v_norm and v_norm not in items:
+                items.append(v_norm)
+        return items
 
     @staticmethod
     def frombasetype(value):

@@ -277,14 +277,14 @@ class TestListType(base.TestCase):
 
     def test_list_type(self):
         v = types.ListType()
-        self.assertItemsEqual(['foo', 'bar'], v.validate('foo,bar'))
-        self.assertItemsEqual(['cat', 'meow'], v.validate("cat  ,  meow"))
-        self.assertItemsEqual(['spongebob', 'squarepants'],
-                              v.validate("SpongeBob,SquarePants"))
-        self.assertItemsEqual(['foo', 'bar'],
-                              v.validate("foo, ,,bar"))
-        self.assertItemsEqual(['foo', 'bar'],
-                              v.validate("foo,foo,foo,bar"))
+        self.assertEqual(['foo', 'bar'], v.validate('foo,bar'))
+        self.assertNotEqual(['bar', 'foo'], v.validate('foo,bar'))
+
+        self.assertEqual(['cat', 'meow'], v.validate("cat  ,  meow"))
+        self.assertEqual(['spongebob', 'squarepants'],
+                         v.validate("SpongeBob,SquarePants"))
+        self.assertEqual(['foo', 'bar'], v.validate("foo, ,,bar"))
+        self.assertEqual(['foo', 'bar'], v.validate("foo,foo,foo,bar"))
         self.assertIsInstance(v.validate('foo,bar'), list)
 
 
