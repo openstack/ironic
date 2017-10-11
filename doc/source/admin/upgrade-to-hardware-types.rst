@@ -10,34 +10,47 @@ Planning the upgrade
 --------------------
 
 It is necessary to figure out which hardware types and hardware interfaces
-correspond to which classic drivers used in your deployment.
-Use the following table:
+correspond to which classic drivers used in your deployment. The following
+table lists the classic drivers with their corresponding hardware types and
+the boot, deploy, inspect, management, and power hardware interfaces:
 
-================== ============= ==================== ============== ========== =========
-  Classic Driver   Hardware Type         Boot             Deploy     Management   Power
-================== ============= ==================== ============== ========== =========
-pxe_ilo            ilo           ilo-pxe              iscsi          ilo        ilo
-agent_ilo          ilo           ilo-virtual-media    direct         ilo        ilo
-iscsi_ilo          ilo           ilo-virtual-media    iscsi          ilo        ilo
-pxe_ipmitool       ipmi          pxe                  iscsi          ipmitool   ipmitool
-agent_ipmitool     ipmi          pxe                  direct         ipmitool   ipmitool
-pxe_irmc           irmc          irmc-pxe             iscsi          irmc       irmc
-iscsi_irmc         irmc          irmc-virtual-media   iscsi          irmc       irmc
-agent_irmc         irmc          irmc-virtual-media   direct         irmc       irmc
-agent_pxe_oneview  oneview       pxe                  oneview-direct oneview    oneview
-iscsi_pxe_oneview  oneview       pxe                  oneview-iscsi  oneview    oneview
-pxe_snmp           snmp          pxe                  iscsi          fake       snmp
-================== ============= ==================== ============== ========== =========
-
-.. TODO(dtantsur): finish this table
-
-.. warning::
-    This table does not currently cover hardware interfaces other than
-    boot, deploy, management and power.
+===================== ==================== ==================== ==============  ========== ========== =========
+   Classic Driver        Hardware Type             Boot             Deploy       Inspect   Management   Power
+===================== ==================== ==================== ==============  ========== ========== =========
+agent_ilo             ilo                  ilo-virtual-media    direct          ilo        ilo        ilo
+agent_ipmitool        ipmi                 pxe                  direct          inspector  ipmitool   ipmitool
+agent_ipmitool_socat  ipmi                 pxe                  direct          inspector  ipmitool   ipmitool
+agent_irmc            irmc                 irmc-virtual-media   direct          irmc       irmc       irmc
+agent_pxe_oneview     oneview              pxe                  oneview-direct  oneview    oneview    oneview
+agent_ucs             cisco-ucs-managed    pxe                  direct          inspector  ucsm       ucsm
+iscsi_ilo             ilo                  ilo-virtual-media    iscsi           ilo        ilo        ilo
+iscsi_irmc            irmc                 irmc-virtual-media   iscsi           irmc       irmc       irmc
+iscsi_pxe_oneview     oneview              pxe                  oneview-iscsi   oneview    oneview    oneview
+pxe_agent_cimc        cisco-ucs-standalone pxe                  direct          inspector  cimc       cimc
+pxe_drac              idrac                pxe                  iscsi           idrac      idrac      idrac
+pxe_drac_inspector    idrac                pxe                  iscsi           inspector  idrac      idrac
+pxe_ilo               ilo                  ilo-pxe              iscsi           ilo        ilo        ilo
+pxe_ipmitool          ipmi                 pxe                  iscsi           inspector  ipmitool   ipmitool
+pxe_ipmitool_socat    ipmi                 pxe                  iscsi           inspector  ipmitool   ipmitool
+pxe_iscsi_cimc        cisco-ucs-standalone pxe                  iscsi           inspector  cimc       cimc
+pxe_irmc              irmc                 irmc-pxe             iscsi           irmc       irmc       irmc
+pxe_snmp              snmp                 pxe                  iscsi           no-inspect fake       snmp
+pxe_ucs               cisco-ucs-managed    pxe                  iscsi           inspector  ucsm       ucsm
+===================== ==================== ==================== ==============  ========== ========== =========
 
 .. note::
-    For out-of-tree drivers you may need to reach out to their maintainers or
-    figure out the appropriate interfaces by researching the source code.
+    The ``inspector`` *inspect* interface was only used if
+    explicitly enabled in the configuration. Otherwise, ``no-inspect``
+    was used.
+
+.. note::
+    ``pxe_ipmitool_socat`` and ``agent_ipmitool_socat`` use
+    ``ipmitool-socat`` *console* interface (the default for the ``ipmi``
+    hardware type), while ``pxe_ipmitool`` and ``agent_ipmitool`` use
+    ``ipmitool-shellinabox``. See Console_ for details.
+
+For out-of-tree drivers you may need to reach out to their maintainers or
+figure out the appropriate interfaces by researching the source code.
 
 Configuration
 -------------
