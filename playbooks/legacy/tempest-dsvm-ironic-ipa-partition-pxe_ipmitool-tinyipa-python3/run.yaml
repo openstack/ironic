@@ -1,0 +1,182 @@
+- hosts: all
+  name: Autoconverted job legacy-tempest-dsvm-ironic-ipa-partition-pxe_ipmitool-tinyipa-python3
+    from old job gate-tempest-dsvm-ironic-ipa-partition-pxe_ipmitool-tinyipa-python3-ubuntu-xenial-nv
+  tasks:
+
+    - name: Ensure legacy workspace directory
+      file:
+        path: '{{ ansible_user_dir }}/workspace'
+        state: directory
+
+    - shell:
+        cmd: |
+          set -e
+          set -x
+          cat > clonemap.yaml << EOF
+          clonemap:
+            - name: openstack-infra/devstack-gate
+              dest: devstack-gate
+          EOF
+          /usr/zuul-env/bin/zuul-cloner -m clonemap.yaml --cache-dir /opt/git \
+              git://git.openstack.org \
+              openstack-infra/devstack-gate
+        executable: /bin/bash
+        chdir: '{{ ansible_user_dir }}/workspace'
+      environment: '{{ zuul | zuul_legacy_vars }}'
+
+    - shell:
+        cmd: |
+          cat << 'EOF' >> ironic-extra-vars
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_DEPLOY_DRIVER_ISCSI_WITH_IPA=True"
+          # Standardize VM size for each supported ramdisk
+          case "tinyipa" in
+              'tinyipa')
+                  export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_SPECS_RAM=384"
+                  export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_RAMDISK_TYPE=tinyipa"
+                  ;;
+              'tinyipa256')
+                  export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_SPECS_RAM=256"
+                  export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_RAMDISK_TYPE=tinyipa"
+                  ;;
+              'coreos')
+                  export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_SPECS_RAM=1280"
+                  export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_RAMDISK_TYPE=coreos"
+                  ;;
+          # if using a ramdisk without a known good value, use the devstack
+          # default by not exporting any value for IRONIC_VM_SPECS_RAM
+          esac
+
+          EOF
+        chdir: '{{ ansible_user_dir }}/workspace'
+      environment: '{{ zuul | zuul_legacy_vars }}'
+
+    - shell:
+        cmd: |
+          cat << 'EOF' >> ironic-extra-vars
+            export DEVSTACK_GATE_TEMPEST_REGEX="ironic"
+
+          EOF
+        chdir: '{{ ansible_user_dir }}/workspace'
+      environment: '{{ zuul | zuul_legacy_vars }}'
+
+    - shell:
+        cmd: |
+          cat << 'EOF' >> ironic-vars-early
+            # use tempest plugin
+          if [[ "$ZUUL_BRANCH" != "master" ]] ; then
+            # NOTE(jroll) if this is not a patch against master, then
+            # fetch master to install the plugin
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"TEMPEST_PLUGINS+=' git+git://git.openstack.org/openstack/ironic'"
+          else
+            # on master, use the local change, so we can pick up any changes to the plugin
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"TEMPEST_PLUGINS+=' /opt/stack/new/ironic'"
+          fi
+          export TEMPEST_CONCURRENCY=1
+
+          EOF
+        chdir: '{{ ansible_user_dir }}/workspace'
+      environment: '{{ zuul | zuul_legacy_vars }}'
+
+    - shell:
+        cmd: |
+          cat << 'EOF' >> ironic-extra-vars
+            export DEVSTACK_GATE_USE_PYTHON3=True
+
+          EOF
+        chdir: '{{ ansible_user_dir }}/workspace'
+      environment: '{{ zuul | zuul_legacy_vars }}'
+
+    - shell:
+        cmd: |
+          set -e
+          set -x
+          cat << 'EOF' >>"/tmp/dg-local.conf"
+          [[local|localrc]]
+          disable_service s-account
+          disable_service s-container
+          disable_service s-object
+          disable_service s-proxy
+
+          EOF
+        executable: /bin/bash
+        chdir: '{{ ansible_user_dir }}/workspace'
+      environment: '{{ zuul | zuul_legacy_vars }}'
+
+    - shell:
+        cmd: |
+          set -e
+          set -x
+          export PROJECTS="openstack/ironic $PROJECTS"
+          export PROJECTS="openstack/ironic-lib $PROJECTS"
+          export PROJECTS="openstack/ironic-python-agent $PROJECTS"
+          export PROJECTS="openstack/python-ironicclient $PROJECTS"
+          export PROJECTS="openstack/pyghmi $PROJECTS"
+          export PROJECTS="openstack/virtualbmc $PROJECTS"
+          export PYTHONUNBUFFERED=true
+          export DEVSTACK_GATE_TEMPEST=1
+          export DEVSTACK_GATE_IRONIC=1
+          export DEVSTACK_GATE_NEUTRON=1
+          export DEVSTACK_GATE_VIRT_DRIVER=ironic
+          export DEVSTACK_GATE_CONFIGDRIVE=1
+          export DEVSTACK_GATE_IRONIC_DRIVER=pxe_ipmitool
+          export BRANCH_OVERRIDE=default
+          if [ "$BRANCH_OVERRIDE" != "default" ] ; then
+              export OVERRIDE_ZUUL_BRANCH=$BRANCH_OVERRIDE
+          fi
+
+          if [[ ! "stable/newton stable/ocata stable/pike" =~ $ZUUL_BRANCH ]] ; then
+              export DEVSTACK_GATE_TLSPROXY=1
+          fi
+
+          if [ "pxe_ipmitool" == "pxe_snmp" ] ; then
+              # explicitly enable pxe_snmp driver
+              export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_ENABLED_DRIVERS=fake,pxe_snmp"
+          fi
+
+          if [ "pxe_ipmitool" == "redfish" ] ; then
+              # When deploying with redfish we need to enable the "redfish"
+              # hardware type
+              export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_ENABLED_HARDWARE_TYPES=redfish"
+          fi
+
+          if [ "wholedisk" == "wholedisk" ] ; then
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_TEMPEST_WHOLE_DISK_IMAGE=True"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_EPHEMERAL_DISK=0"
+          else
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_TEMPEST_WHOLE_DISK_IMAGE=False"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_EPHEMERAL_DISK=1"
+          fi
+
+          if [ -n "" ] ; then
+            export DEVSTACK_GATE_IRONIC_BUILD_RAMDISK=1
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_INSPECTOR_BUILD_RAMDISK=True"
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"USE_SUBNETPOOL=False"
+          else
+            export DEVSTACK_GATE_IRONIC_BUILD_RAMDISK=0
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_INSPECTOR_BUILD_RAMDISK=False"
+          fi
+
+          if [ "bios" == "uefi" ] ; then
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_BOOT_MODE=uefi"
+          fi
+
+          export DEVSTACK_PROJECT_FROM_GIT=""
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_COUNT=1"
+
+          # Ensure the ironic-vars-EARLY file exists
+          touch ironic-vars-early
+          # Pull in the EARLY variables injected by the optional builders
+          source ironic-vars-early
+
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"enable_plugin ironic git://git.openstack.org/openstack/ironic"
+
+          # Ensure the ironic-EXTRA-vars file exists
+          touch ironic-extra-vars
+          # Pull in the EXTRA variables injected by the optional builders
+          source ironic-extra-vars
+
+          cp devstack-gate/devstack-vm-gate-wrap.sh ./safe-devstack-vm-gate-wrap.sh
+          ./safe-devstack-vm-gate-wrap.sh
+        executable: /bin/bash
+        chdir: '{{ ansible_user_dir }}/workspace'
+      environment: '{{ zuul | zuul_legacy_vars }}'
