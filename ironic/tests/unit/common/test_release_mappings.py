@@ -84,7 +84,7 @@ class ReleaseMappingsTestCase(base.TestCase):
         self.assertIn('master', release_mappings.RELEASE_MAPPING)
         model_names = set((s.__name__ for s in models.Base.__subclasses__()))
         exceptions = set(['NodeTag', 'ConductorHardwareInterfaces',
-                          'NodeTrait'])
+                          'NodeTrait', 'BIOSSetting'])
         # NOTE(xek): As a rule, all models which can be changed between
         # releases or are sent through RPC should have their counterpart
         # versioned objects.

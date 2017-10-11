@@ -300,6 +300,17 @@ class NodeTrait(Base):
     )
 
 
+class BIOSSetting(Base):
+    """Represents a bios setting of a bare metal node."""
+
+    __tablename__ = 'bios_settings'
+    __table_args__ = (table_args())
+    node_id = Column(Integer, ForeignKey('nodes.id'),
+                     primary_key=True, nullable=False)
+    name = Column(String(255), primary_key=True, nullable=False)
+    value = Column(Text, nullable=True)
+
+
 def get_class(model_name):
     """Returns the model class with the specified name.
 
