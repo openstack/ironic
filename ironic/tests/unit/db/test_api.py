@@ -12,9 +12,11 @@
 
 import mock
 from oslo_utils import uuidutils
+from testtools import matchers
 
 from ironic.common import context
 from ironic.common import driver_factory
+from ironic.common import exception
 from ironic.common import release_mappings
 from ironic.db import api as db_api
 from ironic.tests.unit.db import base
@@ -97,3 +99,42 @@ class MigrateToHardwareTypesTestCase(base.DbTestCase):
         self.assertEqual((1, 1), result)
         node = self.dbapi.get_node_by_id(self.node.id)
         self.assertEqual('classic_driver', node.driver)
+
+
+class GetNotVersionsTestCase(base.DbTestCase):
+
+    def setUp(self):
+        super(GetNotVersionsTestCase, self).setUp()
+        self.dbapi = db_api.get_instance()
+
+    def test_get_not_versions(self):
+        versions = ['1.1', '1.2', '1.3']
+        node_uuids = []
+        for v in versions:
+            node = utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                          version=v)
+            node_uuids.append(node.uuid)
+        self.assertEqual([], self.dbapi.get_not_versions('Node', versions))
+
+        res = self.dbapi.get_not_versions('Node', ['2.0'])
+        self.assertThat(res, matchers.HasLength(len(node_uuids)))
+        res_uuids = [n.uuid for n in res]
+        self.assertEqual(node_uuids, res_uuids)
+
+        res = self.dbapi.get_not_versions('Node', versions[1:])
+        self.assertThat(res, matchers.HasLength(1))
+        self.assertEqual(node_uuids[0], res[0].uuid)
+
+    def test_get_not_versions_null(self):
+        node = utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                      version=None)
+        node = self.dbapi.get_node_by_id(node.id)
+        self.assertIsNone(node.version)
+        res = self.dbapi.get_not_versions('Node', ['1.6'])
+        self.assertThat(res, matchers.HasLength(1))
+        self.assertEqual(node.uuid, res[0].uuid)
+
+    def test_get_not_versions_no_model(self):
+        utils.create_test_node(uuid=uuidutils.generate_uuid(), version='1.4')
+        self.assertRaises(exception.IronicException,
+                          self.dbapi.get_not_versions, 'NotExist', ['1.6'])

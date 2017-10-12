@@ -13,6 +13,7 @@
 import datetime
 
 import mock
+from oslo_utils import uuidutils
 from testtools import matchers
 
 from ironic.common import exception
@@ -165,3 +166,85 @@ class TestPortgroupObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
     def test_payload_schemas(self):
         self._check_payload_schemas(objects.portgroup,
                                     objects.Portgroup.fields)
+
+
+class TestConvertToVersion(db_base.DbTestCase):
+
+    def setUp(self):
+        super(TestConvertToVersion, self).setUp()
+        self.vif_id = 'some_uuid'
+        extra = {'vif_port_id': self.vif_id}
+        self.fake_portgroup = db_utils.get_test_portgroup(extra=extra)
+
+    def test_vif_in_extra_lower_version(self):
+        # no conversion
+        portgroup = objects.Portgroup(self.context, **self.fake_portgroup)
+        portgroup._convert_to_version("1.3", False)
+        self.assertFalse('tenant_vif_port_id' in portgroup.internal_info)
+
+    def test_vif_in_extra(self):
+        for v in ['1.4', '1.5']:
+            portgroup = objects.Portgroup(self.context, **self.fake_portgroup)
+            portgroup._convert_to_version(v, False)
+            self.assertEqual(self.vif_id,
+                             portgroup.internal_info['tenant_vif_port_id'])
+
+    def test_vif_in_extra_not_in_extra(self):
+        portgroup = objects.Portgroup(self.context, **self.fake_portgroup)
+        portgroup.extra.pop('vif_port_id')
+        portgroup._convert_to_version('1.4', False)
+        self.assertFalse('tenant_vif_port_id' in portgroup.internal_info)
+
+    def test_vif_in_extra_in_internal_info(self):
+        vif2 = 'another_uuid'
+        portgroup = objects.Portgroup(self.context, **self.fake_portgroup)
+        portgroup.internal_info['tenant_vif_port_id'] = vif2
+        portgroup._convert_to_version('1.4', False)
+        # no change
+        self.assertEqual(vif2, portgroup.internal_info['tenant_vif_port_id'])
+
+
+class TestMigrateVifPortId(db_base.DbTestCase):
+
+    def setUp(self):
+        super(TestMigrateVifPortId, self).setUp()
+        self.vif_id = 'some_uuid'
+        self.db_portgroups = []
+        extra = {'vif_port_id': self.vif_id}
+        for i in range(3):
+            portgroup = db_utils.create_test_portgroup(
+                uuid=uuidutils.generate_uuid(),
+                name='pg%s' % i,
+                address='52:54:00:cf:2d:3%s' % i,
+                extra=extra, version='1.3')
+            self.db_portgroups.append(portgroup)
+
+    @mock.patch.object(objects.Portgroup, '_convert_to_version', autospec=True)
+    def test_migrate_vif_port_id_all(self, mock_convert):
+        with mock.patch.object(self.dbapi, 'get_not_versions',
+                               autospec=True) as mock_get_not_versions:
+            mock_get_not_versions.return_value = self.db_portgroups
+            total, done = objects.portgroup.migrate_vif_port_id(
+                self.context, 0)
+            self.assertEqual(3, total)
+            self.assertEqual(3, done)
+            mock_get_not_versions.assert_called_once_with('Portgroup', ['1.4'])
+            calls = 3 * [
+                mock.call(mock.ANY, '1.4', remove_unavailable_fields=False),
+            ]
+            self.assertEqual(calls, mock_convert.call_args_list)
+
+    @mock.patch.object(objects.Portgroup, '_convert_to_version', autospec=True)
+    def test_migrate_vif_port_id_one(self, mock_convert):
+        with mock.patch.object(self.dbapi, 'get_not_versions',
+                               autospec=True) as mock_get_not_versions:
+            mock_get_not_versions.return_value = self.db_portgroups
+            total, done = objects.portgroup.migrate_vif_port_id(
+                self.context, 1)
+            self.assertEqual(3, total)
+            self.assertEqual(1, done)
+            mock_get_not_versions.assert_called_once_with('Portgroup', ['1.4'])
+            calls = [
+                mock.call(mock.ANY, '1.4', remove_unavailable_fields=False),
+            ]
+            self.assertEqual(calls, mock_convert.call_args_list)

@@ -30,7 +30,6 @@ from ironic.api import expose
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
-from ironic.common import utils as common_utils
 from ironic import objects
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
@@ -456,9 +455,8 @@ class PortgroupsController(pecan.rest.RestController):
                 error_msg, status_code=http_client.BAD_REQUEST)
 
         pg_dict = portgroup.as_dict()
-        vif = pg_dict.get('extra', {}).get('vif_port_id')
-        if vif:
-            common_utils.warn_about_deprecated_extra_vif_port_id()
+
+        api_utils.handle_post_port_like_extra_vif(pg_dict)
 
         # NOTE(yuriyz): UUID is mandatory for notifications payload
         if not pg_dict.get('uuid'):
@@ -528,6 +526,9 @@ class PortgroupsController(pecan.rest.RestController):
                                                               patch))
         except api_utils.JSONPATCH_EXCEPTIONS as e:
             raise exception.PatchError(patch=patch, reason=e)
+
+        api_utils.handle_patch_port_like_extra_vif(rpc_portgroup, portgroup,
+                                                   patch)
 
         # Update only the fields that have changed
         for field in objects.Portgroup.fields:

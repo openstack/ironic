@@ -29,6 +29,8 @@ from ironic.common import service
 from ironic.conf import CONF
 from ironic.db import api as db_api
 from ironic.db import migration
+from ironic.objects import port
+from ironic.objects import portgroup
 from ironic import version
 
 
@@ -64,6 +66,12 @@ dbapi = db_api.get_instance()
 ONLINE_MIGRATIONS = (
     # TODO(dtantsur): remove when classic drivers are removed (Rocky?)
     (dbapi, 'migrate_to_hardware_types'),
+    # Added in Rocky
+    # TODO(rloo): remove in Stein
+    (port, 'migrate_vif_port_id'),
+    # Added in Rocky
+    # TODO(rloo): remove in Stein
+    (portgroup, 'migrate_vif_port_id'),
 )
 
 
