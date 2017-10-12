@@ -445,6 +445,11 @@ class Connection(api.Connection):
                 models.VolumeTarget).filter_by(node_id=node_id)
             volume_target_query.delete()
 
+            # delete all bios attached to the node
+            bios_settings_query = model_query(
+                models.BIOSSetting).filter_by(node_id=node_id)
+            bios_settings_query.delete()
+
             query.delete()
 
     def update_node(self, node_id, values):
@@ -1383,3 +1388,69 @@ class Connection(api.Connection):
         q = model_query(
             models.NodeTrait).filter_by(node_id=node_id, trait=trait)
         return model_query(q.exists()).scalar()
+
+    @oslo_db_api.retry_on_deadlock
+    def create_bios_setting_list(self, node_id, settings, version):
+        self._check_node_exists(node_id)
+        bios_settings = []
+        with _session_for_write() as session:
+            try:
+                for setting in settings:
+                    bios_setting = models.BIOSSetting(
+                        node_id=node_id,
+                        name=setting['name'],
+                        value=setting['value'],
+                        version=version)
+                    bios_settings.append(bios_setting)
+                    session.add(bios_setting)
+                session.flush()
+            except db_exc.DBDuplicateEntry:
+                raise exception.BIOSSettingAlreadyExists(
+                    node=node_id, name=setting['name'])
+        return bios_settings
+
+    @oslo_db_api.retry_on_deadlock
+    def update_bios_setting_list(self, node_id, settings, version):
+        self._check_node_exists(node_id)
+        bios_settings = []
+        with _session_for_write() as session:
+            try:
+                for setting in settings:
+                    query = model_query(models.BIOSSetting).filter_by(
+                        node_id=node_id, name=setting['name'])
+                    ref = query.one()
+                    ref.update({'value': setting['value'],
+                                'version': version})
+                    bios_settings.append(ref)
+                session.flush()
+            except NoResultFound:
+                raise exception.BIOSSettingNotFound(
+                    node=node_id, name=setting['name'])
+        return bios_settings
+
+    @oslo_db_api.retry_on_deadlock
+    def delete_bios_setting(self, node_id, name):
+        self._check_node_exists(node_id)
+        with _session_for_write():
+            count = model_query(models.BIOSSetting).filter_by(
+                node_id=node_id, name=name).delete()
+            if count == 0:
+                raise exception.BIOSSettingNotFound(
+                    node=node_id, name=name)
+
+    def get_bios_setting(self, node_id, name):
+        self._check_node_exists(node_id)
+        query = model_query(models.BIOSSetting).filter_by(
+            node_id=node_id, name=name)
+        try:
+            ref = query.one()
+        except NoResultFound:
+            raise exception.BIOSSettingNotFound(node=node_id, name=name)
+        return ref
+
+    def get_bios_setting_list(self, node_id):
+        self._check_node_exists(node_id)
+        result = (model_query(models.BIOSSetting)
+                  .filter_by(node_id=node_id)
+                  .all())
+        return result

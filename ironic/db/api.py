@@ -995,3 +995,86 @@ class Connection(object):
         :returns: True if the trait exists otherwise False.
         :raises: NodeNotFound if the node is not found.
         """
+
+    @abc.abstractmethod
+    def create_bios_setting_list(self, node_id, settings, version):
+        """Create a list of BIOSSetting records for a given node.
+
+        :param node_id: The node id.
+        :param settings: A list of BIOS Settings to be created.
+
+                       ::
+
+                        [
+                          {
+                           'name': String,
+                           'value': String,
+                          },
+                          {
+                           'name': String,
+                           'value': String,
+                          },
+                          ...
+                        ]
+        :param version: the version of the object.BIOSSetting.
+        :returns: A list of BIOSSetting object.
+        :raises: NodeNotFound if the node is not found.
+        :raises: BIOSSettingAlreadyExists if any of the setting records
+            already exists.
+        """
+
+    @abc.abstractmethod
+    def update_bios_setting_list(self, node_id, settings, version):
+        """Update a list of BIOSSetting records.
+
+        :param node_id: The node id.
+        :param settings: A list of BIOS Settings to be updated.
+
+                       ::
+
+                        [
+                          {
+                           'name': String,
+                           'value': String,
+                          },
+                          {
+                           'name': String,
+                           'value': String,
+                          },
+                          ...
+                        ]
+        :param version: the version of the object.BIOSSetting.
+        :returns: A list of BIOSSetting objects.
+        :raises: NodeNotFound if the node is not found.
+        :raises: BIOSSettingNotFound if any of the settings is not found.
+        """
+
+    @abc.abstractmethod
+    def delete_bios_setting(self, node_id, name):
+        """Delete BIOS setting.
+
+        :param node_id: The node id.
+        :param name: String containing name of bios setting to be deleted.
+        :raises: NodeNotFound if the node is not found.
+        :raises: BIOSSettingNotFound if the bios setting is not found.
+        """
+
+    @abc.abstractmethod
+    def get_bios_setting(self, node_id, name):
+        """Retrieve BIOS setting value.
+
+        :param node_id: The node id.
+        :param name: String containing name of bios setting to be retrieved.
+        :returns: The BIOSSetting object.
+        :raises: NodeNotFound if the node is not found.
+        :raises: BIOSSettingNotFound if the bios setting is not found.
+        """
+
+    @abc.abstractmethod
+    def get_bios_setting_list(self, node_id):
+        """Retrieve BIOS settings of a given node.
+
+        :param node_id: The node id.
+        :returns: A list of BIOSSetting objects.
+        :raises: NodeNotFound if the node is not found.
+        """
