@@ -13,10 +13,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from tempest.common import utils
 from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
-from tempest import test
 
 from ironic_tempest_plugin import manager
 from ironic_tempest_plugin.tests.scenario import baremetal_manager
@@ -82,7 +82,7 @@ class BaremetalMultitenancy(baremetal_manager.BaremetalScenarioTest,
             self.assertNotIn(success_substring, output)
 
     @decorators.idempotent_id('26e2f145-2a8e-4dc7-8457-7f2eb2c6749d')
-    @test.services('compute', 'image', 'network')
+    @utils.services('compute', 'image', 'network')
     def test_baremetal_multitenancy(self):
 
         tenant_cidr = '10.0.100.0/24'
