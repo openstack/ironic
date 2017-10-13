@@ -15,6 +15,7 @@
 
 """Policy Engine For Ironic."""
 
+import itertools
 import sys
 
 from oslo_concurrency import lockutils
@@ -70,169 +71,317 @@ default_policies = [
 #             depend on their existence throughout the code.
 
 node_policies = [
-    policy.RuleDefault('baremetal:node:get',
-                       'rule:is_admin or rule:is_observer',
-                       description='Retrieve Node records'),
-    policy.RuleDefault('baremetal:node:get_boot_device',
-                       'rule:is_admin or rule:is_observer',
-                       description='Retrieve Node boot device metadata'),
-    policy.RuleDefault('baremetal:node:get_states',
-                       'rule:is_admin or rule:is_observer',
-                       description='View Node power and provision state'),
-    policy.RuleDefault('baremetal:node:create',
-                       'rule:is_admin',
-                       description='Create Node records'),
-    policy.RuleDefault('baremetal:node:delete',
-                       'rule:is_admin',
-                       description='Delete Node records'),
-    policy.RuleDefault('baremetal:node:update',
-                       'rule:is_admin',
-                       description='Update Node records'),
-    policy.RuleDefault('baremetal:node:validate',
-                       'rule:is_admin',
-                       description='Request active validation of Nodes'),
-    policy.RuleDefault('baremetal:node:set_maintenance',
-                       'rule:is_admin',
-                       description='Set maintenance flag, taking a Node '
-                                   'out of service'),
-    policy.RuleDefault('baremetal:node:clear_maintenance',
-                       'rule:is_admin',
-                       description='Clear maintenance flag, placing the Node '
-                                   'into service again'),
-    policy.RuleDefault('baremetal:node:set_boot_device',
-                       'rule:is_admin',
-                       description='Change Node boot device'),
-    policy.RuleDefault('baremetal:node:set_power_state',
-                       'rule:is_admin',
-                       description='Change Node power status'),
-    policy.RuleDefault('baremetal:node:set_provision_state',
-                       'rule:is_admin',
-                       description='Change Node provision status'),
-    policy.RuleDefault('baremetal:node:set_raid_state',
-                       'rule:is_admin',
-                       description='Change Node RAID status'),
-    policy.RuleDefault('baremetal:node:get_console',
-                       'rule:is_admin',
-                       description='Get Node console connection information'),
-    policy.RuleDefault('baremetal:node:set_console_state',
-                       'rule:is_admin',
-                       description='Change Node console status'),
-    policy.RuleDefault('baremetal:node:vif:list',
-                       'rule:is_admin',
-                       description='List VIFs attached to node'),
-    policy.RuleDefault('baremetal:node:vif:attach',
-                       'rule:is_admin',
-                       description='Attach a VIF to a node'),
-    policy.RuleDefault('baremetal:node:vif:detach',
-                       'rule:is_admin',
-                       description='Detach a VIF from a node'),
-    policy.RuleDefault('baremetal:node:inject_nmi',
-                       'rule:is_admin',
-                       description='Inject NMI for a node'),
+    policy.DocumentedRuleDefault(
+        'baremetal:node:create',
+        'rule:is_admin',
+        'Create Node records',
+        [{'path': '/nodes', 'method': 'POST'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:node:get',
+        'rule:is_admin or rule:is_observer',
+        'Retrieve Node records',
+        [{'path': '/nodes', 'method': 'GET'},
+         {'path': '/nodes/detail', 'method': 'GET'},
+         {'path': '/nodes/{node_ident}', 'method': 'GET'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:node:update',
+        'rule:is_admin',
+        'Update Node records',
+        [{'path': '/nodes/{node_ident}', 'method': 'PATCH'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:node:delete',
+        'rule:is_admin',
+        'Delete Node records',
+        [{'path': '/nodes/{node_ident}', 'method': 'DELETE'}]),
+
+    policy.DocumentedRuleDefault(
+        'baremetal:node:validate',
+        'rule:is_admin',
+        'Request active validation of Nodes',
+        [{'path': '/nodes/{node_ident}/validate', 'method': 'GET'}]),
+
+    policy.DocumentedRuleDefault(
+        'baremetal:node:set_maintenance',
+        'rule:is_admin',
+        'Set maintenance flag, taking a Node out of service',
+        [{'path': '/nodes/{node_ident}/maintenance', 'method': 'PUT'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:node:clear_maintenance',
+        'rule:is_admin',
+        'Clear maintenance flag, placing the Node into service again',
+        [{'path': '/nodes/{node_ident}/maintenance', 'method': 'DELETE'}]),
+
+    policy.DocumentedRuleDefault(
+        'baremetal:node:get_boot_device',
+        'rule:is_admin or rule:is_observer',
+        'Retrieve Node boot device metadata',
+        [{'path': '/nodes/{node_ident}/management/boot_device',
+          'method': 'GET'},
+         {'path': '/nodes/{node_ident}/management/boot_device/supported',
+          'method': 'GET'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:node:set_boot_device',
+        'rule:is_admin',
+        'Change Node boot device',
+        [{'path': '/nodes/{node_ident}/management/boot_device',
+          'method': 'PUT'}]),
+
+    policy.DocumentedRuleDefault(
+        'baremetal:node:inject_nmi',
+        'rule:is_admin',
+        'Inject NMI for a node',
+        [{'path': '/nodes/{node_ident}/management/inject_nmi',
+          'method': 'PUT'}]),
+
+    policy.DocumentedRuleDefault(
+        'baremetal:node:get_states',
+        'rule:is_admin or rule:is_observer',
+        'View Node power and provision state',
+        [{'path': '/nodes/{node_ident}/states', 'method': 'GET'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:node:set_power_state',
+        'rule:is_admin',
+        'Change Node power status',
+        [{'path': '/nodes/{node_ident}/states/power', 'method': 'PUT'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:node:set_provision_state',
+        'rule:is_admin',
+        'Change Node provision status',
+        [{'path': '/nodes/{node_ident}/states/provision', 'method': 'PUT'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:node:set_raid_state',
+        'rule:is_admin',
+        'Change Node RAID status',
+        [{'path': '/nodes/{node_ident}/states/raid', 'method': 'PUT'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:node:get_console',
+        'rule:is_admin',
+        'Get Node console connection information',
+        [{'path': '/nodes/{node_ident}/states/console', 'method': 'GET'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:node:set_console_state',
+        'rule:is_admin',
+        'Change Node console status',
+        [{'path': '/nodes/{node_ident}/states/console', 'method': 'PUT'}]),
+
+    policy.DocumentedRuleDefault(
+        'baremetal:node:vif:list',
+        'rule:is_admin',
+        'List VIFs attached to node',
+        [{'path': '/nodes/{node_ident}/vifs', 'method': 'GET'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:node:vif:attach',
+        'rule:is_admin',
+        'Attach a VIF to a node',
+        [{'path': '/nodes/{node_ident}/vifs', 'method': 'POST'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:node:vif:detach',
+        'rule:is_admin',
+        'Detach a VIF from a node',
+        [{'path': '/nodes/{node_ident}/vifs/{node_vif_ident}',
+          'method': 'DELETE'}]),
 ]
 
 port_policies = [
-    policy.RuleDefault('baremetal:port:get',
-                       'rule:is_admin or rule:is_observer',
-                       description='Retrieve Port records'),
-    policy.RuleDefault('baremetal:port:create',
-                       'rule:is_admin',
-                       description='Create Port records'),
-    policy.RuleDefault('baremetal:port:delete',
-                       'rule:is_admin',
-                       description='Delete Port records'),
-    policy.RuleDefault('baremetal:port:update',
-                       'rule:is_admin',
-                       description='Update Port records'),
+    policy.DocumentedRuleDefault(
+        'baremetal:port:get',
+        'rule:is_admin or rule:is_observer',
+        'Retrieve Port records',
+        [{'path': '/ports', 'method': 'GET'},
+         {'path': '/ports/detail', 'method': 'GET'},
+         {'path': '/ports/{port_id}', 'method': 'GET'},
+         {'path': '/nodes/{node_ident}/ports', 'method': 'GET'},
+         {'path': '/nodes/{node_ident}/ports/detail', 'method': 'GET'},
+         {'path': '/portgroups/{portgroup_ident}/ports', 'method': 'GET'},
+         {'path': '/portgroups/{portgroup_ident}/ports/detail',
+          'method': 'GET'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:port:create',
+        'rule:is_admin',
+        'Create Port records',
+        [{'path': '/ports', 'method': 'POST'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:port:delete',
+        'rule:is_admin',
+        'Delete Port records',
+        [{'path': '/ports/{port_id}', 'method': 'DELETE'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:port:update',
+        'rule:is_admin',
+        'Update Port records',
+        [{'path': '/ports/{port_id}', 'method': 'PATCH'}]),
 ]
 
 portgroup_policies = [
-    policy.RuleDefault('baremetal:portgroup:get',
-                       'rule:is_admin or rule:is_observer',
-                       description='Retrieve Portgroup records'),
-    policy.RuleDefault('baremetal:portgroup:create',
-                       'rule:is_admin',
-                       description='Create Portgroup records'),
-    policy.RuleDefault('baremetal:portgroup:delete',
-                       'rule:is_admin',
-                       description='Delete Portgroup records'),
-    policy.RuleDefault('baremetal:portgroup:update',
-                       'rule:is_admin',
-                       description='Update Portgroup records'),
+    policy.DocumentedRuleDefault(
+        'baremetal:portgroup:get',
+        'rule:is_admin or rule:is_observer',
+        'Retrieve Portgroup records',
+        [{'path': '/portgroups', 'method': 'GET'},
+         {'path': '/portgroups/detail', 'method': 'GET'},
+         {'path': '/portgroups/{portgroup_ident}', 'method': 'GET'},
+         {'path': '/nodes/{node_ident}/portgroups', 'method': 'GET'},
+         {'path': '/nodes/{node_ident}/portgroups/detail', 'method': 'GET'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:portgroup:create',
+        'rule:is_admin',
+        'Create Portgroup records',
+        [{'path': '/portgroups', 'method': 'POST'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:portgroup:delete',
+        'rule:is_admin',
+        'Delete Portgroup records',
+        [{'path': '/portgroups/{portgroup_ident}', 'method': 'DELETE'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:portgroup:update',
+        'rule:is_admin',
+        'Update Portgroup records',
+        [{'path': '/portgroups/{portgroup_ident}', 'method': 'PATCH'}]),
 ]
 
 chassis_policies = [
-    policy.RuleDefault('baremetal:chassis:get',
-                       'rule:is_admin or rule:is_observer',
-                       description='Retrieve Chassis records'),
-    policy.RuleDefault('baremetal:chassis:create',
-                       'rule:is_admin',
-                       description='Create Chassis records'),
-    policy.RuleDefault('baremetal:chassis:delete',
-                       'rule:is_admin',
-                       description='Delete Chassis records'),
-    policy.RuleDefault('baremetal:chassis:update',
-                       'rule:is_admin',
-                       description='Update Chassis records'),
+    policy.DocumentedRuleDefault(
+        'baremetal:chassis:get',
+        'rule:is_admin or rule:is_observer',
+        'Retrieve Chassis records',
+        [{'path': '/chassis', 'method': 'GET'},
+         {'path': '/chassis/detail', 'method': 'GET'},
+         {'path': '/chassis/{chassis_id}', 'method': 'GET'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:chassis:create',
+        'rule:is_admin',
+        'Create Chassis records',
+        [{'path': '/chassis', 'method': 'POST'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:chassis:delete',
+        'rule:is_admin',
+        'Delete Chassis records',
+        [{'path': '/chassis/{chassis_id}', 'method': 'DELETE'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:chassis:update',
+        'rule:is_admin',
+        'Update Chassis records',
+        [{'path': '/chassis/{chassis_id}', 'method': 'PATCH'}]),
 ]
 
 driver_policies = [
-    policy.RuleDefault('baremetal:driver:get',
-                       'rule:is_admin or rule:is_observer',
-                       description='View list of available drivers'),
-    policy.RuleDefault('baremetal:driver:get_properties',
-                       'rule:is_admin or rule:is_observer',
-                       description='View driver-specific properties'),
-    policy.RuleDefault('baremetal:driver:get_raid_logical_disk_properties',
-                       'rule:is_admin or rule:is_observer',
-                       description='View driver-specific RAID metadata'),
-
+    policy.DocumentedRuleDefault(
+        'baremetal:driver:get',
+        'rule:is_admin or rule:is_observer',
+        'View list of available drivers',
+        [{'path': '/drivers', 'method': 'GET'},
+         {'path': '/drivers/{driver_name}', 'method': 'GET'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:driver:get_properties',
+        'rule:is_admin or rule:is_observer',
+        'View driver-specific properties',
+        [{'path': '/drivers/{driver_name}/properties', 'method': 'GET'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:driver:get_raid_logical_disk_properties',
+        'rule:is_admin or rule:is_observer',
+        'View driver-specific RAID metadata',
+        [{'path': '/drivers/{driver_name}/raid/logical_disk_properties',
+          'method': 'GET'}]),
 ]
 
-extra_policies = [
-    policy.RuleDefault('baremetal:node:vendor_passthru',
-                       'rule:is_admin',
-                       description='Access vendor-specific Node functions'),
-    policy.RuleDefault('baremetal:driver:vendor_passthru',
-                       'rule:is_admin',
-                       description='Access vendor-specific Driver functions'),
-    policy.RuleDefault('baremetal:node:ipa_heartbeat',
-                       'rule:public_api',
-                       description='Send heartbeats from IPA ramdisk'),
-    policy.RuleDefault('baremetal:driver:ipa_lookup',
-                       'rule:public_api',
-                       description='Access IPA ramdisk functions'),
+vendor_passthru_policies = [
+    policy.DocumentedRuleDefault(
+        'baremetal:node:vendor_passthru',
+        'rule:is_admin',
+        'Access vendor-specific Node functions',
+        [{'path': 'nodes/{node_ident}/vendor_passthru/methods',
+          'method': 'GET'},
+         {'path': 'nodes/{node_ident}/vendor_passthru?method={method_name}',
+          'method': 'GET'},
+         {'path': 'nodes/{node_ident}/vendor_passthru?method={method_name}',
+          'method': 'PUT'},
+         {'path': 'nodes/{node_ident}/vendor_passthru?method={method_name}',
+          'method': 'POST'},
+         {'path': 'nodes/{node_ident}/vendor_passthru?method={method_name}',
+          'method': 'PATCH'},
+         {'path': 'nodes/{node_ident}/vendor_passthru?method={method_name}',
+          'method': 'DELETE'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:driver:vendor_passthru',
+        'rule:is_admin',
+        'Access vendor-specific Driver functions',
+        [{'path': 'drivers/{driver_name}/vendor_passthru/methods',
+          'method': 'GET'},
+         {'path': 'drivers/{driver_name}/vendor_passthru?method={method_name}',
+          'method': 'GET'},
+         {'path': 'drivers/{driver_name}/vendor_passthru?method={method_name}',
+          'method': 'PUT'},
+         {'path': 'drivers/{driver_name}/vendor_passthru?method={method_name}',
+          'method': 'POST'},
+         {'path': 'drivers/{driver_name}/vendor_passthru?method={method_name}',
+          'method': 'PATCH'},
+         {'path': 'drivers/{driver_name}/vendor_passthru?method={method_name}',
+          'method': 'DELETE'}]),
+]
+
+utility_policies = [
+    policy.DocumentedRuleDefault(
+        'baremetal:node:ipa_heartbeat',
+        'rule:public_api',
+        'Send heartbeats from IPA ramdisk',
+        [{'path': '/heartbeat/{node_ident}', 'method': 'POST'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:driver:ipa_lookup',
+        'rule:public_api',
+        'Access IPA ramdisk functions',
+        [{'path': '/lookup', 'method': 'GET'}]),
 ]
 
 volume_policies = [
-    policy.RuleDefault('baremetal:volume:get',
-                       'rule:is_admin or rule:is_observer',
-                       description='Retrieve Volume connector and target '
-                                   'records'),
-    policy.RuleDefault('baremetal:volume:create',
-                       'rule:is_admin',
-                       description='Create Volume connector and target '
-                                   'records'),
-    policy.RuleDefault('baremetal:volume:delete',
-                       'rule:is_admin',
-                       description='Delete Volume connetor and target '
-                                   'records'),
-    policy.RuleDefault('baremetal:volume:update',
-                       'rule:is_admin',
-                       description='Update Volume connector and target '
-                                   'records'),
+    policy.DocumentedRuleDefault(
+        'baremetal:volume:get',
+        'rule:is_admin or rule:is_observer',
+        'Retrieve Volume connector and target records',
+        [{'path': '/volume', 'method': 'GET'},
+         {'path': '/volume/connectors', 'method': 'GET'},
+         {'path': '/volume/connectors/{volume_connector_id}', 'method': 'GET'},
+         {'path': '/volume/targets', 'method': 'GET'},
+         {'path': '/volume/targets/{volume_target_id}', 'method': 'GET'},
+         {'path': '/nodes/{node_ident}/volume', 'method': 'GET'},
+         {'path': '/nodes/{node_ident}/volume/connectors', 'method': 'GET'},
+         {'path': '/nodes/{node_ident}/volume/targets', 'method': 'GET'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:volume:create',
+        'rule:is_admin',
+        'Create Volume connector and target records',
+        [{'path': '/volume/connectors', 'method': 'POST'},
+         {'path': '/volume/targets', 'method': 'POST'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:volume:delete',
+        'rule:is_admin',
+        'Delete Volume connector and target records',
+        [{'path': '/volume/connectors/{volume_connector_id}',
+          'method': 'DELETE'},
+         {'path': '/volume/targets/{volume_target_id}',
+          'method': 'DELETE'}]),
+    policy.DocumentedRuleDefault(
+        'baremetal:volume:update',
+        'rule:is_admin',
+        'Update Volume connector and target records',
+        [{'path': '/volume/connectors/{volume_connector_id}',
+          'method': 'PATCH'},
+         {'path': '/volume/targets/{volume_target_id}',
+          'method': 'PATCH'}]),
 ]
 
 
 def list_policies():
-    policies = (default_policies
-                + node_policies
-                + port_policies
-                + portgroup_policies
-                + chassis_policies
-                + driver_policies
-                + extra_policies
-                + volume_policies)
+    policies = itertools.chain(
+        default_policies,
+        node_policies,
+        port_policies,
+        portgroup_policies,
+        chassis_policies,
+        driver_policies,
+        vendor_passthru_policies,
+        utility_policies,
+        volume_policies
+    )
     return policies
 
 
