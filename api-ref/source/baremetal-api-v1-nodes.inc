@@ -84,7 +84,7 @@ supplied when the Node is created, or the resource may be updated later.
 
 Normal response codes: 201
 
-.. TODO: add error codes
+Error codes: 400,403,406
 
 Request
 -------
@@ -190,7 +190,7 @@ provision state, and maintenance setting for each Node.
 
 Normal response codes: 200
 
-.. TODO: add error codes
+Error codes: 400,403,406
 
 Request
 -------
@@ -241,7 +241,7 @@ Nova instance, eg. with a request to ``v1/nodes/detail?instance_uuid={NOVA INSTA
 
 Normal response codes: 200
 
-.. TODO: add error codes
+Error codes: 400,403,406
 
 Request
 -------
@@ -320,7 +320,7 @@ only the specified set.
 
 Normal response codes: 200
 
-.. TODO: add error codes
+Error codes: 400,403,404,406
 
 Request
 -------
@@ -395,7 +395,7 @@ managed through sub-resources.
 
 Normal response codes: 200
 
-.. TODO: add error codes
+Error codes: 400,403,404,406,409
 
 Request
 -------
@@ -470,7 +470,7 @@ Deletes a node.
 
 Normal response codes: 204
 
-.. TODO: add error codes
+Error codes: 400,403,404,409
 
 Request
 -------
