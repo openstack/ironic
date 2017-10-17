@@ -482,6 +482,7 @@ class Connection(object):
                          'hostname': the unique hostname which identifies
                                      this Conductor service.
                          'drivers': a list of supported drivers.
+                         'version': the version of the object.Conductor
                         }
         :param update_existing: When false, registration will raise an
                                 exception when a conflicting online record
@@ -899,14 +900,20 @@ class Connection(object):
 
     @abc.abstractmethod
     def backfill_version_column(self, max_count):
-        """Backfill the version column with Ocata versions.
+        """Backfill the Conductor version column with Pike version.
 
-        The version column was added to all the resource tables in this Pike
+        The version column was added to all the resource tables in the Pike
         release (via 'ironic-dbsync upgrade'). After upgrading (from Ocata to
-        Pike), the 'ironic-dbsync online_data_migrations' command will invoke
-        this method to populate (backfill) the version columns. The version
-        used will be the object version from the pinning set in config (i.e.
-        prior to this column being added).
+        Pike), the 'ironic-dbsync online_data_migrations' command would have
+        populated (backfilled) the version column for all objects.
+
+        Unfortunately, in the Pike release, we forgot to set the value for the
+        conductor's version column. For the Queens release, we are setting
+        the conductor version, however, we still need to backfill in case new
+        conductors were added between the time the operator ran Pike's
+        'ironic-dbsync online_data_migrations' and their upgrade to Queens.
+        The version used will be the conductor object version from the Pike
+        release.
 
         :param max_count: The maximum number of objects to migrate. Must be
                           >= 0. If zero, all the objects will be migrated.
@@ -914,4 +921,4 @@ class Connection(object):
                   migrated (at the beginning of this call) and 2. the number
                   of migrated objects.
         """
-        # TODO(rloo) Delete this in Queens cycle.
+        # TODO(rloo) Delete this in Rocky cycle.

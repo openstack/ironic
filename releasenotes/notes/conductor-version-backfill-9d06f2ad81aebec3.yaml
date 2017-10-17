@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The ``conductors`` database table's ``version`` column is
+    populated as part of the data migration (via the command
+    ``ironic-dbsync online_data_migrations``).

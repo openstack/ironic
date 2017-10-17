@@ -57,81 +57,62 @@ class BackfillVersionTestCase(base.DbTestCase):
         super(BackfillVersionTestCase, self).setUp()
         self.context = context.get_admin_context()
         self.dbapi = db_api.get_instance()
-        obj_mapping = release_mappings.RELEASE_MAPPING['ocata']['objects']
-        self.node_ver = obj_mapping['Node'][0]
-        self.chassis_ver = obj_mapping['Chassis'][0]
+        obj_mapping = release_mappings.RELEASE_MAPPING['pike']['objects']
+        self.conductor_ver = obj_mapping['Conductor'][0]
 
     def test_empty_db(self):
         self.assertEqual((0, 0),
                          self.dbapi.backfill_version_column(self.context, 10))
 
     def test_version_exists(self):
-        utils.create_test_node()
+        utils.create_test_conductor()
         self.assertEqual((0, 0),
                          self.dbapi.backfill_version_column(self.context, 10))
 
-    def test_one_node(self):
-        node = utils.create_test_node(version=None)
-        self.assertIsNone(node.version)
-        node = self.dbapi.get_node_by_uuid(node.uuid)
-        self.assertIsNone(node.version)
+    def test_one_conductor(self):
+        conductors = self._create_conductors(1)
         self.assertEqual((1, 1),
                          self.dbapi.backfill_version_column(self.context, 10))
-        res = self.dbapi.get_node_by_uuid(node.uuid)
-        self.assertEqual(self.node_ver, res.version)
+        res = self.dbapi.get_conductor(conductors[0])
+        self.assertEqual(self.conductor_ver, res.version)
 
     def test_max_count_zero(self):
-        orig_node = utils.create_test_node(version=None)
-        orig_chassis = utils.create_test_chassis(version=None)
-        self.assertIsNone(orig_node.version)
-        self.assertIsNone(orig_chassis.version)
+        conductors = self._create_conductors(2)
         self.assertEqual((2, 2),
                          self.dbapi.backfill_version_column(self.context, 0))
-        node = self.dbapi.get_node_by_uuid(orig_node.uuid)
-        self.assertEqual(self.node_ver, node.version)
-        chassis = self.dbapi.get_chassis_by_uuid(orig_chassis.uuid)
-        self.assertEqual(self.chassis_ver, chassis.version)
+        for hostname in conductors:
+            conductor = self.dbapi.get_conductor(hostname)
+            self.assertEqual(self.conductor_ver, conductor.version)
 
-    def test_no_version_max_count_1(self):
-        orig_node = utils.create_test_node(version=None)
-        orig_chassis = utils.create_test_chassis(version=None)
-        self.assertIsNone(orig_node.version)
-        self.assertIsNone(orig_chassis.version)
-        self.assertEqual((2, 1),
-                         self.dbapi.backfill_version_column(self.context, 1))
-        node = self.dbapi.get_node_by_uuid(orig_node.uuid)
-        chassis = self.dbapi.get_chassis_by_uuid(orig_chassis.uuid)
-        self.assertTrue(node.version is None or chassis.version is None)
-        self.assertTrue(node.version == self.node_ver or
-                        chassis.version == self.chassis_ver)
+    def _create_conductors(self, num, version=None):
+        conductors = []
+        for i in range(0, num):
+            conductor = utils.create_test_conductor(
+                version=version,
+                hostname='test_name_%d' % i,
+                uuid=uuidutils.generate_uuid())
+            conductors.append(conductor.hostname)
+        for hostname in conductors:
+            conductor = self.dbapi.get_conductor(hostname)
+            self.assertEqual(version, conductor.version)
+        return conductors
 
-    def _create_nodes(self, num_nodes, version=None):
-        nodes = []
-        for i in range(0, num_nodes):
-            node = utils.create_test_node(version=version,
-                                          uuid=uuidutils.generate_uuid())
-            nodes.append(node.uuid)
-        for uuid in nodes:
-            node = self.dbapi.get_node_by_uuid(uuid)
-            self.assertIsNone(node.version)
-        return nodes
-
-    def test_no_version_max_count_2_some_nodes(self):
-        nodes = self._create_nodes(5)
+    def test_no_version_max_count_2_some_conductors(self):
+        conductors = self._create_conductors(5)
 
         self.assertEqual((5, 2),
                          self.dbapi.backfill_version_column(self.context, 2))
         self.assertEqual((3, 3),
                          self.dbapi.backfill_version_column(self.context, 10))
-        for uuid in nodes:
-            node = self.dbapi.get_node_by_uuid(uuid)
-            self.assertEqual(self.node_ver, node.version)
+        for hostname in conductors:
+            conductor = self.dbapi.get_conductor(hostname)
+            self.assertEqual(self.conductor_ver, conductor.version)
 
-    def test_no_version_max_count_same_nodes(self):
-        nodes = self._create_nodes(5)
+    def test_no_version_max_count_same(self):
+        conductors = self._create_conductors(5)
 
         self.assertEqual((5, 5),
                          self.dbapi.backfill_version_column(self.context, 5))
-        for uuid in nodes:
-            node = self.dbapi.get_node_by_uuid(uuid)
-            self.assertEqual(self.node_ver, node.version)
+        for hostname in conductors:
+            conductor = self.dbapi.get_conductor(hostname)
+            self.assertEqual(self.conductor_ver, conductor.version)

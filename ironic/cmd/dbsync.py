@@ -58,8 +58,8 @@ dbapi = db_api.get_instance()
 #                  of migrated objects.
 #        """
 ONLINE_MIGRATIONS = (
-    # Added in Pike
-    # TODO(rloo): remove in Queens
+    # Added in Pike, modified in Queens
+    # TODO(rloo): remove in Rocky
     dbapi.backfill_version_column,
 )
 
