@@ -1,0 +1,8 @@
+---
+fixes:
+  - Fixes a failure when deploying a node. This happened when a port or port
+    group's internal_info['tenant_vif_port_id'] still existed after the
+    corresponding neutron port was removed and prior to deletion of the
+    instance, causing future deployments of the bare metal node to fail. The
+    situation is now logged and does not block future deployments. See
+    https://bugs.launchpad.net/ironic/+bug/1685592 for details.
