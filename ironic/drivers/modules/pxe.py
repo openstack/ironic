@@ -297,10 +297,14 @@ def _get_volume_pxe_options(task):
             pxe_options['username'] = properties['auth_username']
         if 'auth_password' in properties:
             pxe_options['password'] = properties['auth_password']
+        iscsi_initiator_iqn = None
+        for vc in task.volume_connectors:
+            if vc.type == 'iqn':
+                iscsi_initiator_iqn = vc.connector_id
+
         pxe_options.update(
             {'iscsi_boot_url': __generate_iscsi_url(volume.properties),
-             'iscsi_initiator_iqn': (__get_property(properties,
-                                                    'target_iqn') or None)})
+             'iscsi_initiator_iqn': iscsi_initiator_iqn})
         # NOTE(TheJulia): This may be the route to multi-path, define
         # volumes via sanhook in the ipxe template and let the OS sort it out.
         additional_targets = []
