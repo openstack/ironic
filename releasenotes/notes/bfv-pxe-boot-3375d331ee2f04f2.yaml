@@ -1,0 +1,5 @@
+---
+fixes:
+  - Fixes a problem when using boot from volume with the pxe boot interface,
+    now when booting the correct iscsi initiator is used.
+    `bug 1724275 <https://bugs.launchpad.net/ironic/+bug/1724275>`_
