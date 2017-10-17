@@ -580,7 +580,7 @@ class JinjaTemplatingTestCase(base.TestCase):
                                                self.params,
                                                is_file=False))
 
-    @mock.patch('ironic.common.utils.jinja2.FileSystemLoader')
+    @mock.patch('ironic.common.utils.jinja2.FileSystemLoader', autospec=True)
     def test_render_file(self, jinja_fsl_mock):
         path = '/path/to/template.j2'
         jinja_fsl_mock.return_value = jinja2.DictLoader(

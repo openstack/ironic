@@ -32,7 +32,7 @@ if six.PY3:
     file = io.BytesIO
 
 
-@mock.patch.object(swift, '_get_swift_session')
+@mock.patch.object(swift, '_get_swift_session', autospec=True)
 @mock.patch.object(swift_client, 'Connection', autospec=True)
 class SwiftTestCase(base.TestCase):
 
@@ -68,7 +68,7 @@ class SwiftTestCase(base.TestCase):
                   'user': username,
                   'key': password}
         connection_mock.assert_called_once_with(**params)
-        swift_session_mock.assert_not_called()
+        self.assertFalse(swift_session_mock.called)
 
     @mock.patch.object(__builtin__, 'open', autospec=True)
     def test_create_object(self, open_mock, connection_mock, keystone_mock):

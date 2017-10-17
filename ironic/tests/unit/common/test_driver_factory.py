@@ -84,7 +84,7 @@ class DriverLoadTestCase(db_base.DbTestCase):
             ['fake'], driver_factory.DriverFactory._extension_manager.names())
         self.assertTrue(mock_log.called)
 
-    @mock.patch.object(driver_factory, '_warn_if_unsupported')
+    @mock.patch.object(driver_factory, '_warn_if_unsupported', autospec=True)
     def test_driver_init_checks_unsupported(self, mock_warn):
         self.config(enabled_drivers=['fake'])
         driver_factory.DriverFactory._init_extension_manager()
@@ -150,7 +150,7 @@ class GetDriverTestCase(base.TestCase):
 
 
 class NetworkInterfaceFactoryTestCase(db_base.DbTestCase):
-    @mock.patch.object(driver_factory, '_warn_if_unsupported')
+    @mock.patch.object(driver_factory, '_warn_if_unsupported', autospec=True)
     def test_build_driver_for_task(self, mock_warn):
         # flat, neutron, and noop network interfaces are enabled in base test
         # case

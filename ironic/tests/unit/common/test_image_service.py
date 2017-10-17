@@ -265,7 +265,7 @@ class FileImageServiceTestCase(base.TestCase):
 
 class ServiceGetterTestCase(base.TestCase):
 
-    @mock.patch.object(image_service, '_get_glance_session')
+    @mock.patch.object(image_service, '_get_glance_session', autospec=True)
     @mock.patch.object(glance_v2_service.GlanceImageService, '__init__',
                        return_value=None, autospec=True)
     def test_get_glance_image_service(self, glance_service_mock,
@@ -277,7 +277,7 @@ class ServiceGetterTestCase(base.TestCase):
                                                     self.context)
         self.assertFalse(session_mock.called)
 
-    @mock.patch.object(image_service, '_get_glance_session')
+    @mock.patch.object(image_service, '_get_glance_session', autospec=True)
     @mock.patch.object(glance_v1_service.GlanceImageService, '__init__',
                        return_value=None, autospec=True)
     def test_get_glance_image_service_default_v1(self, glance_service_mock,
@@ -290,7 +290,7 @@ class ServiceGetterTestCase(base.TestCase):
                                                     self.context)
         self.assertFalse(session_mock.called)
 
-    @mock.patch.object(image_service, '_get_glance_session')
+    @mock.patch.object(image_service, '_get_glance_session', autospec=True)
     @mock.patch.object(glance_v2_service.GlanceImageService, '__init__',
                        return_value=None, autospec=True)
     def test_get_glance_image_service_url(self, glance_service_mock,
@@ -302,7 +302,7 @@ class ServiceGetterTestCase(base.TestCase):
                                                     self.context)
         self.assertFalse(session_mock.called)
 
-    @mock.patch.object(image_service, '_get_glance_session')
+    @mock.patch.object(image_service, '_get_glance_session', autospec=True)
     @mock.patch.object(glance_v2_service.GlanceImageService, '__init__',
                        return_value=None, autospec=True)
     def test_get_glance_image_service_no_token(self, glance_service_mock,
@@ -318,7 +318,7 @@ class ServiceGetterTestCase(base.TestCase):
         sess.get_token.assert_called_once_with()
         self.assertEqual('admin-token', self.context.auth_token)
 
-    @mock.patch.object(image_service, '_get_glance_session')
+    @mock.patch.object(image_service, '_get_glance_session', autospec=True)
     @mock.patch.object(glance_v2_service.GlanceImageService, '__init__',
                        return_value=None, autospec=True)
     def test_get_glance_image_service_token_not_needed(self,

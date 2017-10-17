@@ -485,8 +485,7 @@ class TestPXEUtils(db_base.DbTestCase):
                                       render_mock.return_value)
 
     @mock.patch.object(os, 'chmod', autospec=True)
-    @mock.patch('ironic.common.pxe_utils._link_mac_pxe_configs',
-                autospec=True)
+    @mock.patch('ironic.common.pxe_utils._link_mac_pxe_configs', autospec=True)
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
     @mock.patch('ironic.common.utils.render_template', autospec=True)
     @mock.patch('oslo_utils.fileutils.ensure_tree', autospec=True)
@@ -747,7 +746,8 @@ class TestPXEUtils(db_base.DbTestCase):
 
     @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
     @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
-    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.provider')
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.provider',
+                autospec=True)
     def test_clean_up_pxe_config_uefi(self, provider_mock, unlink_mock,
                                       rmtree_mock):
         ip_address = '10.10.0.1'
@@ -770,9 +770,10 @@ class TestPXEUtils(db_base.DbTestCase):
             rmtree_mock.assert_called_once_with(
                 os.path.join(CONF.pxe.tftp_root, self.node.uuid))
 
-    @mock.patch('ironic.common.utils.rmtree_without_raise')
+    @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
     @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
-    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.provider')
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory.provider',
+                autospec=True)
     def test_clean_up_pxe_config_uefi_instance_info(self,
                                                     provider_mock, unlink_mock,
                                                     rmtree_mock):
