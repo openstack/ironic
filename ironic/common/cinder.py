@@ -16,7 +16,7 @@ import datetime
 import json
 
 from cinderclient import exceptions as cinder_exceptions
-from cinderclient.v3 import client as client
+from cinderclient.v3 import client
 from oslo_log import log
 
 from ironic.common import exception

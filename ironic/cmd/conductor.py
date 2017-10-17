@@ -26,7 +26,7 @@ from oslo_log import log
 from oslo_reports import guru_meditation_report as gmr
 from oslo_service import service
 
-from ironic.common import profiler as profiler
+from ironic.common import profiler
 from ironic.common import rpc_service
 from ironic.common import service as ironic_service
 from ironic import version
