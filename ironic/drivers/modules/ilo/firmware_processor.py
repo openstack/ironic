@@ -16,6 +16,7 @@ Firmware file processor
 """
 
 import os
+import re
 import shutil
 import tempfile
 import types
@@ -33,14 +34,14 @@ from ironic.common import image_service
 from ironic.common import swift
 from ironic.drivers.modules.ilo import common as ilo_common
 
-# Supported components for firmware update when invoked
-# through manual clean step, ``update_firmware``.
-SUPPORTED_FIRMWARE_UPDATE_COMPONENTS = ['ilo', 'cpld', 'power_pic', 'bios',
-                                        'chassis']
+# Supported components for firmware update when invoked through manual clean
+# step, ``update_firmware``.
+SUPPORTED_ILO_FIRMWARE_UPDATE_COMPONENTS = ['ilo', 'cpld', 'power_pic', 'bios',
+                                            'chassis']
 
 # Mandatory fields to be provided as part of firmware image update
 # with manual clean step
-FIRMWARE_IMAGE_INFO_FIELDS = {'url', 'checksum', 'component'}
+FIRMWARE_IMAGE_INFO_FIELDS = {'url', 'checksum'}
 
 CONF = cfg.CONF
 
@@ -81,14 +82,52 @@ def verify_firmware_update_args(func):
     return wrapper
 
 
-def get_and_validate_firmware_image_info(firmware_image_info):
+def _validate_ilo_component(component):
+    """Validates component with supported values.
+
+    :param component: name of the component to be validated.
+    :raises: InvalidParameterValue, for unsupported firmware component
+    """
+    if component not in SUPPORTED_ILO_FIRMWARE_UPDATE_COMPONENTS:
+        msg = (_("Component '%(component)s' for firmware update is not "
+                 "supported in 'ilo' based firmware update. Supported "
+                 "values are: %(supported_components)s") %
+               {'component': component, 'supported_components': (
+                ", ".join(SUPPORTED_ILO_FIRMWARE_UPDATE_COMPONENTS))})
+        LOG.error(msg)
+        raise exception.InvalidParameterValue(msg)
+
+
+def _validate_sum_components(components):
+    """Validates components' file extension with supported values.
+
+    :param components: A list of components to be updated.
+    :raises: InvalidParameterValue, for unsupported firmware component
+    """
+    not_supported = []
+    for component in components:
+        if not re.search('\.(scexe|exe|rpm)$', component):
+            not_supported.append(component)
+
+    if not_supported:
+        msg = (_("The component files '%s' provided are not supported in "
+                 "'SUM' based firmware update. The valid file extensions are "
+                 "'scexe', 'exe', 'rpm'.") %
+               ', '.join(x for x in not_supported))
+        LOG.error(msg)
+        raise exception.InvalidParameterValue(msg)
+
+
+def get_and_validate_firmware_image_info(firmware_image_info,
+                                         firmware_update_mode):
     """Validates the firmware image info and returns the retrieved values.
 
     :param firmware_image_info: dict object containing the firmware image info
     :raises: MissingParameterValue, for missing fields (or values) in
              image info.
     :raises: InvalidParameterValue, for unsupported firmware component
-    :returns: tuple of firmware url, checksum, component
+    :returns: tuple of firmware url, checksum, component when the firmware
+        update is ilo based.
     """
     image_info = firmware_image_info or {}
 
@@ -98,6 +137,9 @@ def get_and_validate_firmware_image_info(firmware_image_info):
         if not image_info.get(field):
             missing_fields.append(field)
 
+    if firmware_update_mode == 'ilo' and not image_info.get('component'):
+        missing_fields.append('component')
+
     if missing_fields:
         msg = (_("Firmware image info: %(image_info)s is missing the "
                  "required %(missing)s field/s.") %
@@ -106,18 +148,15 @@ def get_and_validate_firmware_image_info(firmware_image_info):
         LOG.error(msg)
         raise exception.MissingParameterValue(msg)
 
-    component = image_info['component']
-    component = component.lower()
-    if component not in SUPPORTED_FIRMWARE_UPDATE_COMPONENTS:
-        msg = (_("Component for firmware update is not supported. Provided "
-                 "value: %(component)s. Supported values are: "
-                 "%(supported_components)s") %
-               {'component': component, 'supported_components': (
-                ", ".join(SUPPORTED_FIRMWARE_UPDATE_COMPONENTS))})
-        LOG.error(msg)
-        raise exception.InvalidParameterValue(msg)
-    LOG.debug("Validating firmware image info: %s ... done", image_info)
-    return image_info['url'], image_info['checksum'], component
+    if firmware_update_mode == 'sum':
+        component = image_info.get('components')
+        if component:
+            _validate_sum_components(component)
+    else:
+        component = image_info['component'].lower()
+        _validate_ilo_component(component)
+        LOG.debug("Validating firmware image info: %s ... done", image_info)
+        return image_info['url'], image_info['checksum'], component
 
 
 class FirmwareProcessor(object):
@@ -248,30 +287,39 @@ def _download_http_based_fw_to(self, target_file):
         image_service.HttpImageService().download(src_file, fd)
 
 
-def _download_swift_based_fw_to(self, target_file):
-    """Swift based firmware file downloader
+def get_swift_url(parsed_url):
+    """Gets swift temp url.
 
-    It generates a temp url for the swift based firmware url and then downloads
-    the firmware file via http based downloader to the target file.
-    Expecting url as swift://containername/objectname
-    :param target_file: destination file for downloading the original firmware
-                        file.
-    :raises: SwiftOperationError, on failure to download from swift.
-    :raises: ImageDownloadFailed, on failure to download the original file.
+    It generates a temp url for the swift based firmware url to the target
+    file. Expecting url as swift://containername/objectname.
+
+    :param parsed_url: Parsed url object.
+    :raises: SwiftOperationError, on failure to get url from swift.
     """
     # Extract container name
-    container = self.parsed_url.netloc
+    container = parsed_url.netloc
     # Extract the object name from the path of the form:
     #    ``/objectname`` OR
     #    ``/pseudo-folder/objectname``
     # stripping the leading '/' character.
-    objectname = self.parsed_url.path.lstrip('/')
+    objectname = parsed_url.path.lstrip('/')
     timeout = CONF.ilo.swift_object_expiry_timeout
     # Generate temp url using swift API
-    tempurl = swift.SwiftAPI().get_temp_url(container, objectname, timeout)
+    return swift.SwiftAPI().get_temp_url(container, objectname, timeout)
+
+
+def _download_swift_based_fw_to(self, target_file):
+    """Swift based firmware file downloader
+
+    It downloads the firmware file via http based downloader to the target
+    file. Expecting url as swift://containername/objectname
+    :param target_file: destination file for downloading the original firmware
+                        file.
+    :raises: ImageDownloadFailed, on failure to download the original file.
+    """
     # set the parsed_url attribute to the newly created tempurl from swift and
     # delegate the dowloading job to the http_based downloader
-    self.parsed_url = urlparse.urlparse(tempurl)
+    self.parsed_url = urlparse.urlparse(get_swift_url(self.parsed_url))
     _download_http_based_fw_to(self, target_file)
 
 

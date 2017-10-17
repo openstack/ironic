@@ -235,9 +235,9 @@ Prerequisites
   which contains a set of modules for managing HPE ProLiant hardware.
 
   Install ``proliantutils`` module on the ironic conductor node. Minimum
-  version required is 2.4.0::
+  version required is 2.4.1::
 
-   $ pip install "proliantutils>=2.4.0"
+   $ pip install "proliantutils>=2.4.1"
 
 * ``ipmitool`` command must be present on the service node(s) where
   ``ironic-conductor`` is running. On most distros, this is provided as part
@@ -1095,6 +1095,11 @@ Supported **Manual** Cleaning Operations
     Some devices firmware cannot be updated via this method, such as: storage
     controllers, host bus adapters, disk drive firmware, network interfaces
     and Onboard Administrator (OA).
+  ``update_firmware_sum``:
+    Updates all or list of user specified firmware components on the node
+    using Smart Update Manager (SUM). It is an inband step associated with
+    the ``management`` interface. See `Smart Update Manager (SUM) based firmware update`_
+    for more information on usage.
 
 * iLO with firmware version 1.5 is minimally required to support all the
   operations.
@@ -1798,6 +1803,80 @@ All the fields in the firmware image block are mandatory.
     $ md5sum image.rpm
     66cdb090c80b71daa21a67f06ecd3f33  image.rpm
 
+Smart Update Manager (SUM) based firmware update
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The firmware update based on `SUM`_ is an inband clean step supported by iLO
+drivers. The firmware update is performed on all or list of user specified
+firmware components on the node. Refer to `SUM User Guide`_ to get more
+information on SUM based firmware update.
+
+``update_firmware_sum`` clean step requires the agent ramdisk with
+``Proliant Hardware Manager`` from the proliantutils version 2.4.0 or higher.
+See `DIB support for Proliant Hardware Manager`_ to create the agent ramdisk
+with ``Proliant Hardware Manager``.
+
+The attributes of ``update_firmware_sum`` clean step are as follows:
+
+.. csv-table::
+ :header: "Attribute", "Description"
+ :widths: 30, 120
+
+ "``interface``", "Interface of the clean step, here ``management``"
+ "``step``", "Name of the clean step, here ``update_firmware_sum``"
+ "``args``", "Keyword-argument entry (<name>: <value>) being passed to the clean step"
+
+The keyword arguments used for the clean step are as follows:
+
+* ``url``: URL of SPP (Service Pack for Proliant) ISO. It is mandatory. The
+  URL schemes supported are ``http``, ``https`` and ``swift``.
+* ``checksum``: MD5 checksum of SPP ISO to verify the image. It is mandatory.
+* ``components``: List of filenames of the fimware components to be flashed.
+  It is optional. If not provided, the firmware update is performed on all
+  the firmware components.
+
+The clean step performs an update on all or a list of firmware components and
+returns the SUM log files. The log files include ``hpsum_log.txt`` and
+``hpsum_detail_log.txt`` which holds the information about firmware components,
+firmware version for each component and their update status. The log object
+will be named with the following pattern::
+
+    <node-uuid>[_<instance-uuid>]_update_firmware_sum_<timestamp yyyy-mm-dd-hh-mm-ss>.tar.gz
+
+Refer to :ref:`retrieve_deploy_ramdisk_logs` for more information on enabling and
+viewing the logs returned from the ramdisk.
+
+An example of ``update_firmware_sum`` clean step:
+
+.. code-block:: json
+
+    {
+        "interface": "management",
+        "step": "update_firmware_sum",
+        "args":
+            {
+                "url": "http://my_address:port/SPP.iso",
+                "checksum": "abcdefxyz",
+                "components": ["CP024356.scexe", "CP008097.exe"]
+            }
+    }
+
+The clean step fails if there is any error in the processing of clean step
+arguments. The processing error could happen during validation of components'
+file extension, image download, image checksum verification or image extraction.
+In case of a failure, check Ironic conductor logs carefully to see if there are
+any validation or firmware processing related errors which may help in root
+cause analysis or gaining an understanding of where things were left off or
+where things failed. You can then fix or work around and then try again.
+
+.. warning::
+   This feature is officially supported only with RHEL and SUSE based IPA ramdisk.
+   Refer to `SUM`_ for supported OS versions for specific SUM version.
+
+.. note::
+   Refer `Guidelines for SPP ISO`_ for steps to get SPP (Service Pack for
+   ProLiant) ISO.
+
 RAID Support
 ^^^^^^^^^^^^
 
@@ -1820,7 +1899,7 @@ configuration of RAID:
 .. _DIB_raid_support:
 
 DIB support for Proliant Hardware Manager
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To create an agent ramdisk with ``Proliant Hardware Manager``,
 use the ``proliant-tools`` element in DIB::
@@ -1867,3 +1946,6 @@ See the `proliant-tools`_ for more information on creating agent ramdisk with
 .. _`iLO 5 management engine`: https://www.hpe.com/us/en/servers/integrated-lights-out-ilo.html#innovations
 .. _`Redfish`: https://www.dmtf.org/standards/redfish
 .. _`Gen10 wiki section`: https://wiki.openstack.org/wiki/Ironic/Drivers/iLODrivers/master#Enabling_ProLiant_Gen10_systems_in_Ironic
+.. _`Guidelines for SPP ISO`: http://h17007.www1.hpe.com/us/en/enterprise/servers/products/service_pack/spp
+.. _`SUM`: http://h17007.www1.hpe.com/us/en/enterprise/servers/products/service_pack/hpsum/index.aspx
+.. _`SUM User Guide`: http://h20565.www2.hpe.com/hpsc/doc/public/display?docId=c05210448

@@ -358,7 +358,7 @@ class UtilsRamdiskLogsTestCase(tests_base.TestCase):
         mock_swift.return_value.create_object.assert_called_once_with(
             container_name, file_name, mock.ANY,
             object_headers={'X-Delete-After': '86400'})
-        mock_logs_name.assert_called_once_with(self.node)
+        mock_logs_name.assert_called_once_with(self.node, label=None)
 
     @mock.patch.object(os, 'makedirs', autospec=True)
     @mock.patch.object(driver_utils,
@@ -379,4 +379,4 @@ class UtilsRamdiskLogsTestCase(tests_base.TestCase):
             mock_open.assert_called_once_with(expected_path, 'wb')
 
         mock_makedirs.assert_called_once_with(log_path)
-        mock_logs_name.assert_called_once_with(self.node)
+        mock_logs_name.assert_called_once_with(self.node, label=None)

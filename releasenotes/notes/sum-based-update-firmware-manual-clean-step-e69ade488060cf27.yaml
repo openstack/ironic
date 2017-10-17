@@ -1,0 +1,6 @@
+---
+features:
+  - iLO drivers now support firmware update based on `Smart Update Manager
+    <http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=emr_na-c04637207&sp4ts.oid=5182020>`_
+    (SUM) as an in-band manual cleaning step ``update_firmware_sum`` for
+    all the hardware components.

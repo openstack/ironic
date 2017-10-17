@@ -20,6 +20,7 @@ from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import importutils
 import six
+import six.moves.urllib.parse as urlparse
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -27,9 +28,12 @@ from ironic.common.i18n import _
 from ironic.conductor import task_manager
 from ironic.conf import CONF
 from ironic.drivers import base
+from ironic.drivers.modules import agent_base_vendor
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import firmware_processor
 from ironic.drivers.modules import ipmitool
+from ironic.drivers import utils as driver_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -82,6 +86,13 @@ def _execute_ilo_clean_step(node, step, *args, **kwargs):
             "Clean step %(step)s failed "
             "on node %(node)s with error: %(err)s") %
             {'node': node.uuid, 'step': step, 'err': ilo_exception})
+
+
+def _should_collect_logs(command):
+    """Returns boolean to check whether logs need to collected or not."""
+    return ((CONF.agent.deploy_logs_collect == 'on_failure' and
+             command['command_status'] == 'FAILED') or
+            CONF.agent.deploy_logs_collect == 'always')
 
 
 class IloManagement(base.ManagementInterface):
@@ -371,7 +382,7 @@ class IloManagement(base.ManagementInterface):
             for firmware_image_info in firmware_images:
                 url, checksum, component = (
                     firmware_processor.get_and_validate_firmware_image_info(
-                        firmware_image_info))
+                        firmware_image_info, kwargs['firmware_update_mode']))
                 LOG.debug("Processing of firmware file: %(firmware_file)s on "
                           "node: %(node)s ... in progress",
                           {'firmware_file': url, 'node': node.uuid})
@@ -420,3 +431,85 @@ class IloManagement(base.ManagementInterface):
 
         LOG.info("All Firmware update operations completed successfully "
                  "for node: %s.", node.uuid)
+
+    @METRICS.timer('IloManagement.update_firmware_sum')
+    @base.clean_step(priority=0, abortable=False, argsinfo={
+        'url': {
+            'description': (
+                "The image location for SPP (Service Pack for Proliant) ISO."
+            ),
+            'required': True
+        },
+        'checksum': {
+            'description': (
+                "The md5 checksum of the SPP image file."
+            ),
+            'required': True
+        },
+        'components': {
+            'description': (
+                "The list of firmware component filenames. If not specified, "
+                "SUM updates all the firmware components."
+            ),
+            'required': False}
+    })
+    def update_firmware_sum(self, task, **kwargs):
+        """Updates the firmware using Smart Update Manager (SUM).
+
+        :param task: a TaskManager object.
+        :raises: NodeCleaningFailure, on failure to execute step.
+        """
+        node = task.node
+        # The arguments are validated and sent to the ProliantHardwareManager
+        # to perform SUM based firmware update clean step.
+        firmware_processor.get_and_validate_firmware_image_info(kwargs,
+                                                                'sum')
+
+        url = kwargs['url']
+        if urlparse.urlparse(url).scheme == 'swift':
+            url = firmware_processor.get_swift_url(urlparse.urlparse(url))
+            node.clean_step['args']['url'] = url
+
+        step = node.clean_step
+        return deploy_utils.agent_execute_clean_step(task, step)
+
+    @staticmethod
+    @agent_base_vendor.post_clean_step_hook(
+        interface='management', step='update_firmware_sum')
+    def _update_firmware_sum_final(task, command):
+        """Clean step hook after SUM based firmware update operation.
+
+        This method is invoked as a post clean step hook by the Ironic
+        conductor once firmware update operaion is completed. The clean logs
+        are collected and stored according to the configured storage backend
+        when the node is configured to collect the logs.
+
+        :param task: a TaskManager instance.
+        :param command: A command result structure of the SUM based firmware
+            update operation returned from agent ramdisk on query of the
+            status of command(s).
+        """
+        if not _should_collect_logs(command):
+            return
+
+        node = task.node
+        try:
+            driver_utils.store_ramdisk_logs(
+                node,
+                command['command_result']['clean_result']['Log Data'],
+                label='update_firmware_sum')
+        except exception.SwiftOperationError as e:
+            LOG.error('Failed to store the logs from the node %(node)s '
+                      'for "update_firmware_sum" clean step in Swift. '
+                      'Error: %(error)s',
+                      {'node': node.uuid, 'error': e})
+        except EnvironmentError as e:
+            LOG.exception('Failed to store the logs from the node %(node)s '
+                          'for "update_firmware_sum" clean step due to a '
+                          'file-system related error. Error: %(error)s',
+                          {'node': node.uuid, 'error': e})
+        except Exception as e:
+            LOG.exception('Unknown error when storing logs from the node '
+                          '%(node)s for "update_firmware_sum" clean step. '
+                          'Error: %(error)s',
+                          {'node': node.uuid, 'error': e})

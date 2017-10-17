@@ -19,10 +19,13 @@ from oslo_utils import importutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
+from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules.ilo import management as ilo_management
 from ironic.drivers.modules import ipmitool
+from ironic.drivers import utils as driver_utils
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -544,3 +547,165 @@ class IloManagementTestCase(db_base.DbTestCase):
             self.assertTrue(LOG_mock.error.called)
             remove_mock.assert_has_calls([mock.call(fw_loc_obj_1),
                                           mock.call(fw_loc_obj_2)])
+
+    @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
+                       autospec=True)
+    def test_update_firmware_sum_mode_with_component(self, execute_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            execute_mock.return_value = states.CLEANWAIT
+            # | GIVEN |
+            firmware_update_args = {
+                'url': 'http://any_url',
+                'checksum': 'xxxx',
+                'component': ['CP02345.scexe', 'CP02567.exe']}
+            clean_step = {'step': 'update_firmware',
+                          'interface': 'management',
+                          'args': firmware_update_args}
+            task.node.clean_step = clean_step
+            # | WHEN |
+            return_value = task.driver.management.update_firmware_sum(
+                task, **firmware_update_args)
+            # | THEN |
+            self.assertEqual(states.CLEANWAIT, return_value)
+            execute_mock.assert_called_once_with(task, clean_step)
+
+    @mock.patch.object(ilo_management.firmware_processor,
+                       'get_swift_url', autospec=True)
+    @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
+                       autospec=True)
+    def test_update_firmware_sum_mode_swift_url(self, execute_mock,
+                                                swift_url_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            swift_url_mock.return_value = "http://path-to-file"
+            execute_mock.return_value = states.CLEANWAIT
+            # | GIVEN |
+            firmware_update_args = {
+                'url': 'swift://container/object',
+                'checksum': 'xxxx',
+                'components': ['CP02345.scexe', 'CP02567.exe']}
+            clean_step = {'step': 'update_firmware',
+                          'interface': 'management',
+                          'args': firmware_update_args}
+            task.node.clean_step = clean_step
+            # | WHEN |
+            return_value = task.driver.management.update_firmware_sum(
+                task, **firmware_update_args)
+            # | THEN |
+            self.assertEqual(states.CLEANWAIT, return_value)
+            self.assertEqual(task.node.clean_step['args']['url'],
+                             "http://path-to-file")
+
+    @mock.patch.object(deploy_utils, 'agent_execute_clean_step',
+                       autospec=True)
+    def test_update_firmware_sum_mode_without_component(self, execute_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            execute_mock.return_value = states.CLEANWAIT
+            # | GIVEN |
+            firmware_update_args = {
+                'url': 'any_valid_url',
+                'checksum': 'xxxx'}
+            clean_step = {'step': 'update_firmware',
+                          'interface': 'management',
+                          'args': firmware_update_args}
+            task.node.clean_step = clean_step
+            # | WHEN |
+            return_value = task.driver.management.update_firmware_sum(
+                task, **firmware_update_args)
+            # | THEN |
+            self.assertEqual(states.CLEANWAIT, return_value)
+            execute_mock.assert_called_once_with(task, clean_step)
+
+    def test_update_firmware_sum_mode_invalid_component(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # | GIVEN |
+            firmware_update_args = {
+                'url': 'any_valid_url',
+                'checksum': 'xxxx',
+                'components': ['CP02345']}
+            # | WHEN & THEN |
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.management.update_firmware_sum,
+                              task,
+                              **firmware_update_args)
+
+    @mock.patch.object(driver_utils, 'store_ramdisk_logs')
+    def test__update_firmware_sum_final_with_logs(self, store_mock):
+        self.config(deploy_logs_collect='always', group='agent')
+        command = {'command_status': 'SUCCEEDED',
+                   'command_result': {
+                       'clean_result': {'Log Data': 'aaaabbbbcccdddd'}}
+                   }
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management._update_firmware_sum_final(
+                task, command)
+            store_mock.assert_called_once_with(task.node, 'aaaabbbbcccdddd',
+                                               label='update_firmware_sum')
+
+    @mock.patch.object(driver_utils, 'store_ramdisk_logs')
+    def test__update_firmware_sum_final_without_logs(self, store_mock):
+        self.config(deploy_logs_collect='on_failure', group='agent')
+        command = {'command_status': 'SUCCEEDED',
+                   'command_result': {
+                       'clean_result': {'Log Data': 'aaaabbbbcccdddd'}}
+                   }
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management._update_firmware_sum_final(
+                task, command)
+        self.assertFalse(store_mock.called)
+
+    @mock.patch.object(ilo_management, 'LOG', spec_set=True, autospec=True)
+    @mock.patch.object(driver_utils, 'store_ramdisk_logs')
+    def test__update_firmware_sum_final_swift_error(self, store_mock,
+                                                    log_mock):
+        self.config(deploy_logs_collect='always', group='agent')
+        command = {'command_status': 'SUCCEEDED',
+                   'command_result': {
+                       'clean_result': {'Log Data': 'aaaabbbbcccdddd'}}
+                   }
+        store_mock.side_effect = exception.SwiftOperationError('Error')
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management._update_firmware_sum_final(
+                task, command)
+        self.assertTrue(log_mock.error.called)
+
+    @mock.patch.object(ilo_management, 'LOG', spec_set=True, autospec=True)
+    @mock.patch.object(driver_utils, 'store_ramdisk_logs')
+    def test__update_firmware_sum_final_environment_error(self, store_mock,
+                                                          log_mock):
+        self.config(deploy_logs_collect='always', group='agent')
+        command = {'command_status': 'SUCCEEDED',
+                   'command_result': {
+                       'clean_result': {'Log Data': 'aaaabbbbcccdddd'}}
+                   }
+        store_mock.side_effect = EnvironmentError('Error')
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management._update_firmware_sum_final(
+                task, command)
+        self.assertTrue(log_mock.exception.called)
+
+    @mock.patch.object(ilo_management, 'LOG', spec_set=True, autospec=True)
+    @mock.patch.object(driver_utils, 'store_ramdisk_logs')
+    def test__update_firmware_sum_final_unknown_exception(self, store_mock,
+                                                          log_mock):
+        self.config(deploy_logs_collect='always', group='agent')
+        command = {'command_status': 'SUCCEEDED',
+                   'command_result': {
+                       'clean_result': {'Log Data': 'aaaabbbbcccdddd'}}
+                   }
+        store_mock.side_effect = Exception('Error')
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management._update_firmware_sum_final(
+                task, command)
+        self.assertTrue(log_mock.exception.called)

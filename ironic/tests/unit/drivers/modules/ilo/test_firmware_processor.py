@@ -85,7 +85,7 @@ class FirmwareProcessorTestCase(base.TestCase):
         # | WHEN |
         url, checksum, component = (
             ilo_fw_processor.get_and_validate_firmware_image_info(
-                firmware_image_info))
+                firmware_image_info, 'ilo'))
         # | THEN |
         self.assertEqual(self.any_url, url)
         self.assertEqual('b64c8f7799cfbb553d384d34dc43fafe336cc889', checksum)
@@ -102,7 +102,7 @@ class FirmwareProcessorTestCase(base.TestCase):
         self.assertRaisesRegex(
             exception.MissingParameterValue, 'checksum',
             ilo_fw_processor.get_and_validate_firmware_image_info,
-            invalid_firmware_image_info)
+            invalid_firmware_image_info, 'ilo')
 
     def test_get_and_validate_firmware_image_info_fails_for_empty_parameter(
             self):
@@ -116,7 +116,7 @@ class FirmwareProcessorTestCase(base.TestCase):
         self.assertRaisesRegex(
             exception.MissingParameterValue, 'component',
             ilo_fw_processor.get_and_validate_firmware_image_info,
-            invalid_firmware_image_info)
+            invalid_firmware_image_info, 'ilo')
 
     def test_get_and_validate_firmware_image_info_fails_for_invalid_component(
             self):
@@ -130,7 +130,64 @@ class FirmwareProcessorTestCase(base.TestCase):
         self.assertRaises(
             exception.InvalidParameterValue,
             ilo_fw_processor.get_and_validate_firmware_image_info,
-            invalid_firmware_image_info)
+            invalid_firmware_image_info, 'ilo')
+
+    def test_get_and_validate_firmware_image_info_sum(self):
+        # | GIVEN |
+        result = None
+        firmware_image_info = {
+            'url': self.any_url,
+            'checksum': 'b64c8f7799cfbb553d384d34dc43fafe336cc889'
+        }
+        # | WHEN | & | THEN |
+        ret_val = ilo_fw_processor.get_and_validate_firmware_image_info(
+            firmware_image_info, 'sum')
+        self.assertEqual(result, ret_val)
+
+    def test_get_and_validate_firmware_image_info_sum_with_component(self):
+        # | GIVEN |
+        result = None
+        firmware_image_info = {
+            'url': self.any_url,
+            'checksum': 'b64c8f7799cfbb553d384d34dc43fafe336cc889',
+            'components': ['CP02345.exe']
+        }
+        # | WHEN | & | THEN |
+        ret_val = ilo_fw_processor.get_and_validate_firmware_image_info(
+            firmware_image_info, 'sum')
+        self.assertEqual(result, ret_val)
+
+    def test_get_and_validate_firmware_image_info_sum_invalid_component(
+            self):
+        # | GIVEN |
+        invalid_firmware_image_info = {
+            'url': 'any_url',
+            'checksum': 'valid_checksum',
+            'components': 'INVALID'
+        }
+        # | WHEN | & | THEN |
+        self.assertRaises(
+            exception.InvalidParameterValue,
+            ilo_fw_processor.get_and_validate_firmware_image_info,
+            invalid_firmware_image_info, 'sum')
+
+    def test__validate_sum_components(self):
+        result = None
+        components = ['CP02345.scexe', 'CP02678.exe']
+
+        ret_val = ilo_fw_processor._validate_sum_components(components)
+
+        self.assertEqual(ret_val, result)
+
+    @mock.patch.object(ilo_fw_processor, 'LOG')
+    def test__validate_sum_components_fails(self, LOG_mock):
+        components = ['INVALID']
+
+        self.assertRaises(
+            exception.InvalidParameterValue,
+            ilo_fw_processor._validate_sum_components, components)
+
+        self.assertTrue(LOG_mock.error.called)
 
     def test_fw_processor_ctor_sets_parsed_url_attrib_of_fw_processor(self):
         # | WHEN |
