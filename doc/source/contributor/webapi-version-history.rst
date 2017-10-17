@@ -2,6 +2,17 @@
 REST API Version History
 ========================
 
+1.40 (Rocky, master)
+---------------------
+
+Added BIOS properties as sub resources of nodes:
+
+* GET /v1/nodes/<node_ident>/bios
+* GET /v1/nodes/<node_ident>/bios/<setting_name>
+
+Added ``bios_interface`` field to the node object to allow getting and
+setting the interface.
+
 1.39 (Rocky, master)
 --------------------
 

@@ -121,6 +121,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn('traits', data['nodes'][0])
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data['nodes'][0])
+        self.assertNotIn('bios_interface', data['nodes'][0])
 
     def test_get_one(self):
         node = obj_utils.create_test_node(self.context,
@@ -156,6 +157,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('traits', data)
         # never expose the chassis_id
         self.assertNotIn('chassis_id', data)
+        self.assertIn('bios_interface', data)
 
     def test_get_one_with_json(self):
         # Test backward compatibility with guess_content_type_from_ext
@@ -226,6 +228,13 @@ class TestListNodes(test_api_base.BaseApiTest):
             '/nodes/%s' % node.uuid,
             headers={api_base.Version.string: '1.36'})
         self.assertNotIn('traits', data)
+
+    def test_node_bios_hidden_in_lower_version(self):
+        node = obj_utils.create_test_node(self.context)
+        data = self.get_json(
+            '/nodes/%s' % node.uuid,
+            headers={api_base.Version.string: '1.39'})
+        self.assertNotIn('bios_interface', data)
 
     def test_node_inspect_wait_state_between_api_versions(self):
         node = obj_utils.create_test_node(self.context,
@@ -2345,10 +2354,11 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual('neutron', result['network_interface'])
 
     def test_create_node_specify_interfaces(self):
-        headers = {api_base.Version.string: '1.38'}
+        headers = {api_base.Version.string: '1.40'}
         all_interface_fields = api_utils.V31_FIELDS + ['network_interface',
                                                        'rescue_interface',
-                                                       'storage_interface']
+                                                       'storage_interface',
+                                                       'bios_interface']
         for field in all_interface_fields:
             if field == 'network_interface':
                 cfg.CONF.set_override('enabled_%ss' % field, ['flat'])
@@ -2835,6 +2845,14 @@ class TestPost(test_api_base.BaseApiTest):
 
     def test_create_node_invalid_storage_interface(self):
         ndict = test_api_utils.post_get_test_node(storage_interface='foo')
+        response = self.post_json('/nodes', ndict, expect_errors=True,
+                                  headers={api_base.Version.string:
+                                           str(api_v1.max_version())})
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    def test_create_node_invalid_bios_interface(self):
+        ndict = test_api_utils.post_get_test_node(bios_interface='foo')
         response = self.post_json('/nodes', ndict, expect_errors=True,
                                   headers={api_base.Version.string:
                                            str(api_v1.max_version())})
@@ -4402,6 +4420,68 @@ class TestAttachDetachVif(test_api_base.BaseApiTest):
 
         self.assertEqual(http_client.CONFLICT, ret.status_code)
         self.assertTrue(ret.json['error_message'])
+
+
+class TestBIOS(test_api_base.BaseApiTest):
+
+    def setUp(self):
+        super(TestBIOS, self).setUp()
+        self.version = "1.40"
+        self.node = obj_utils.create_test_node(
+            self.context, id=1)
+        self.bios = obj_utils.create_test_bios_setting(self.context,
+                                                       node_id=self.node.id)
+
+    def test_get_all_bios(self):
+        ret = self.get_json('/nodes/%s/bios' % self.node.uuid,
+                            headers={api_base.Version.string: self.version})
+
+        expected_json = [
+            {u'created_at': ret['bios'][0]['created_at'],
+             u'updated_at': ret['bios'][0]['updated_at'],
+             u'links': [
+                {u'href': u'http://localhost/v1/nodes/' + self.node.uuid +
+                 '/bios/virtualization', u'rel': u'self'},
+                {u'href': u'http://localhost/nodes/' + self.node.uuid +
+                 '/bios/virtualization', u'rel': u'bookmark'}], u'name':
+             u'virtualization', u'value': u'on'}]
+        self.assertEqual({u'bios': expected_json}, ret)
+
+    def test_get_all_bios_fails_with_bad_version(self):
+        ret = self.get_json('/nodes/%s/bios' % self.node.uuid,
+                            headers={api_base.Version.string: "1.39"},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+
+    def test_get_one_bios(self):
+        ret = self.get_json('/nodes/%s/bios/virtualization' % self.node.uuid,
+                            headers={api_base.Version.string: self.version})
+
+        expected_json = {
+            u'virtualization': {
+                u'created_at': ret['virtualization']['created_at'],
+                u'updated_at': ret['virtualization']['updated_at'],
+                u'links': [
+                    {u'href': u'http://localhost/v1/nodes/' + self.node.uuid +
+                     '/bios/virtualization', u'rel': u'self'},
+                    {u'href': u'http://localhost/nodes/' + self.node.uuid +
+                     '/bios/virtualization', u'rel': u'bookmark'}],
+                u'name': u'virtualization', u'value': u'on'}}
+        self.assertEqual(expected_json, ret)
+
+    def test_get_one_bios_fails_with_bad_version(self):
+        ret = self.get_json('/nodes/%s/bios/virtualization' % self.node.uuid,
+                            headers={api_base.Version.string: "1.39"},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+
+    def test_get_one_bios_fails_if_not_found(self):
+        ret = self.get_json('/nodes/%s/bios/fake_setting' % self.node.uuid,
+                            headers={api_base.Version.string: self.version},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+        self.assertIn("fake_setting", ret.json['error_message'])
+        self.assertNotIn(self.node.id, ret.json['error_message'])
 
 
 class TestTraits(test_api_base.BaseApiTest):

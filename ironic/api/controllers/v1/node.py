@@ -28,6 +28,7 @@ from wsme import types as wtypes
 
 from ironic.api.controllers import base
 from ironic.api.controllers import link
+from ironic.api.controllers.v1 import bios
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import port
@@ -161,6 +162,9 @@ def hide_fields_in_newer_versions(obj):
 
     if not api_utils.allow_rescue_interface():
         obj.rescue_interface = wsme.Unset
+
+    if not api_utils.allow_bios_interface():
+        obj.bios_interface = wsme.Unset
 
 
 def update_state_in_older_versions(obj):
@@ -1040,6 +1044,9 @@ class Node(base.APIBase):
     traits = wtypes.ArrayType(str)
     """The traits associated with this node"""
 
+    bios_interface = wsme.wsattr(wtypes.text)
+    """The bios interface to be used for this node"""
+
     # NOTE(deva): "conductor_affinity" shouldn't be presented on the
     #             API because it's an internal value. Don't add it here.
 
@@ -1194,7 +1201,8 @@ class Node(base.APIBase):
                      deploy_interface=None, inspect_interface=None,
                      management_interface=None, power_interface=None,
                      raid_interface=None, vendor_interface=None,
-                     storage_interface=None, traits=[], rescue_interface=None)
+                     storage_interface=None, traits=[], rescue_interface=None,
+                     bios_interface=None)
         # NOTE(matty_dubs): The chassis_uuid getter() is based on the
         # _chassis_uuid variable:
         sample._chassis_uuid = 'edcad704-b2da-41d5-96d9-afd580ecfa12'
@@ -1463,6 +1471,7 @@ class NodesController(rest.RestController):
         'vifs': NodeVIFController,
         'volume': volume.VolumeController,
         'traits': NodeTraitsController,
+        'bios': bios.NodeBiosController,
     }
 
     @pecan.expose()
@@ -1476,7 +1485,9 @@ class NodesController(rest.RestController):
         if ((remainder[0] == 'portgroups'
                 and not api_utils.allow_portgroups_subcontrollers())
             or (remainder[0] == 'vifs'
-                and not api_utils.allow_vifs_subcontroller())):
+                and not api_utils.allow_vifs_subcontroller())
+            or (remainder[0] == 'bios' and
+                not api_utils.allow_bios_interface())):
             pecan.abort(http_client.NOT_FOUND)
         if remainder[0] == 'traits' and not api_utils.allow_traits():
             # NOTE(mgoddard): Returning here will ensure we exhibit the
@@ -1827,6 +1838,10 @@ class NodesController(rest.RestController):
                 and node.storage_interface is not wtypes.Unset):
             raise exception.NotAcceptable()
 
+        if (not api_utils.allow_bios_interface() and
+                node.bios_interface is not wtypes.Unset):
+            raise exception.NotAcceptable()
+
         if node.traits is not wtypes.Unset:
             msg = _("Cannot specify node traits on node creation. Traits must "
                     "be set via the node traits API.")
@@ -1874,19 +1889,8 @@ class NodesController(rest.RestController):
                                      chassis_uuid=api_node.chassis_uuid)
         return api_node
 
-    @METRICS.timer('NodesController.patch')
-    @wsme.validate(types.uuid, [NodePatchType])
-    @expose.expose(Node, types.uuid_or_name, body=[NodePatchType])
-    def patch(self, node_ident, patch):
-        """Update an existing node.
-
-        :param node_ident: UUID or logical name of a node.
-        :param patch: a json PATCH document to apply to this node.
-        """
-        context = pecan.request.context
-        cdict = context.to_policy_values()
-        policy.authorize('baremetal:node:update', cdict, cdict)
-
+    # NOTE (yolanda): isolate validation to avoid patch too complex pep error
+    def _validate_patch(self, patch):
         if self.from_chassis:
             raise exception.OperationNotPermitted()
 
@@ -1916,6 +1920,25 @@ class NodesController(rest.RestController):
         r_interface = api_utils.get_patch_values(patch, '/rescue_interface')
         if r_interface and not api_utils.allow_rescue_interface():
             raise exception.NotAcceptable()
+
+        b_interface = api_utils.get_patch_values(patch, '/bios_interface')
+        if b_interface and not api_utils.allow_bios_interface():
+            raise exception.NotAcceptable()
+
+    @METRICS.timer('NodesController.patch')
+    @wsme.validate(types.uuid, [NodePatchType])
+    @expose.expose(Node, types.uuid_or_name, body=[NodePatchType])
+    def patch(self, node_ident, patch):
+        """Update an existing node.
+
+        :param node_ident: UUID or logical name of a node.
+        :param patch: a json PATCH document to apply to this node.
+        """
+        context = pecan.request.context
+        cdict = context.to_policy_values()
+        policy.authorize('baremetal:node:update', cdict, cdict)
+
+        self._validate_patch(patch)
 
         rpc_node = api_utils.get_rpc_node_with_suffix(node_ident)
 

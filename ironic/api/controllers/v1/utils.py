@@ -362,6 +362,8 @@ def check_allowed_fields(fields):
     """
     if fields is None:
         return
+    if 'bios_interface' in fields and not allow_bios_interface():
+        raise exception.NotAcceptable()
     if 'network_interface' in fields and not allow_network_interface():
         raise exception.NotAcceptable()
     if 'resource_class' in fields and not allow_resource_class():
@@ -691,6 +693,14 @@ def allow_rescue_interface():
     Version 1.38 of the API added support for rescue and unrescue.
     """
     return pecan.request.version.minor >= versions.MINOR_38_RESCUE_INTERFACE
+
+
+def allow_bios_interface():
+    """Check if we should support bios interface.
+
+    Version 1.40 of the API added support for bios interface.
+    """
+    return pecan.request.version.minor >= versions.MINOR_40_BIOS_INTERFACE
 
 
 def get_controller_reserved_names(cls):

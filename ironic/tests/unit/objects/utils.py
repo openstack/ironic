@@ -230,6 +230,31 @@ def create_test_volume_target(ctxt, **kw):
     return volume_target
 
 
+def get_test_bios_setting(ctxt, **kw):
+    """Return a BiosSettingList object with appropriate attributes.
+
+    NOTE: The object leaves the attributes marked as changed, such
+    that a create() could be used to commit it to the DB.
+    """
+    kw['object_type'] = 'bios'
+    db_bios_setting = db_utils.get_test_bios_setting(**kw)
+    bios_setting = objects.BIOSSetting(ctxt)
+    for key in db_bios_setting:
+        setattr(bios_setting, key, db_bios_setting[key])
+    return bios_setting
+
+
+def create_test_bios_setting(ctxt, **kw):
+    """Create and return a test bios setting list object.
+
+    Create a BIOS setting list in the DB and return a BIOSSettingList
+    object with appropriate attributes.
+    """
+    bios_setting = get_test_bios_setting(ctxt, **kw)
+    bios_setting.create()
+    return bios_setting
+
+
 def get_payloads_with_schemas(from_module):
     """Get the Payload classes with SCHEMAs defined.
 
