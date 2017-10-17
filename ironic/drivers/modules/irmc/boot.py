@@ -598,7 +598,7 @@ class IRMCVolumeBootMixIn(object):
             except scci.SCCIInvalidInputError as e:
                 raise exception.InvalidParameterValue(
                     _('Physical port information of volume connector '
-                      '%(connector)s is invalid: %(error)') %
+                      '%(connector)s is invalid: %(error)s') %
                     {'connector': vc.uuid, 'error': e})
             return pid
         return None
@@ -896,8 +896,8 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
 
         self._validate_volume_boot(task)
         if not task.driver.storage.should_write_image(task):
-            LOG.debug('Node %(node) skips image validation because of booting '
-                      'from a remote volume.',
+            LOG.debug('Node %(node)s skips image validation because of '
+                      'booting from a remote volume.',
                       {'node': task.node.uuid})
             return
 
@@ -943,7 +943,7 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
             irmc_management.backup_bios_config(task)
 
             if not task.driver.storage.should_write_image(task):
-                LOG.debug('Node %(node) skips ramdisk preparation because of '
+                LOG.debug('Node %(node)s skips ramdisk preparation because of '
                           'booting from a remote volume.',
                           {'node': task.node.uuid})
                 return
