@@ -33,6 +33,13 @@ LOG = logging.getLogger(__name__)
 
 PXE_CFG_DIR_NAME = 'pxelinux.cfg'
 
+DHCP_CLIENT_ID = '61'  # rfc2132
+DHCP_TFTP_SERVER_NAME = '66'  # rfc2132
+DHCP_BOOTFILE_NAME = '67'  # rfc2132
+DHCP_TFTP_SERVER_ADDRESS = '150'  # rfc5859
+DHCP_IPXE_ENCAP_OPTS = '175'  # Tentatively Assigned
+DHCP_TFTP_PATH_PREFIX = '210'  # rfc5071
+
 
 def get_root_dir():
     """Returns the directory where the config files and images will live."""
@@ -317,30 +324,47 @@ def dhcp_options_for_instance(task):
         if dhcp_provider_name == 'neutron':
             # Neutron use dnsmasq as default DHCP agent, add extra config
             # to neutron "dhcp-match=set:ipxe,175" and use below option
-            dhcp_opts.append({'opt_name': 'tag:!ipxe,bootfile-name',
+            dhcp_opts.append({'opt_name': "tag:!ipxe,%s" % DHCP_BOOTFILE_NAME,
                               'opt_value': boot_file})
-            dhcp_opts.append({'opt_name': 'tag:ipxe,bootfile-name',
+            dhcp_opts.append({'opt_name': "tag:ipxe,%s" % DHCP_BOOTFILE_NAME,
                               'opt_value': ipxe_script_url})
         else:
             # !175 == non-iPXE.
             # http://ipxe.org/howto/dhcpd#ipxe-specific_options
-            dhcp_opts.append({'opt_name': '!175,bootfile-name',
+            dhcp_opts.append({'opt_name': "!%s,%s" % (DHCP_IPXE_ENCAP_OPTS,
+                              DHCP_BOOTFILE_NAME),
                               'opt_value': boot_file})
-            dhcp_opts.append({'opt_name': 'bootfile-name',
+            dhcp_opts.append({'opt_name': DHCP_BOOTFILE_NAME,
                               'opt_value': ipxe_script_url})
     else:
-        dhcp_opts.append({'opt_name': 'bootfile-name',
+        dhcp_opts.append({'opt_name': DHCP_BOOTFILE_NAME,
                           'opt_value': boot_file})
         # 210 == tftp server path-prefix or tftp root, will be used to find
         # pxelinux.cfg directory. The pxelinux.0 loader infers this information
         # from it's own path, but Petitboot needs it to be specified by this
         # option since it doesn't use pxelinux.0 loader.
-        dhcp_opts.append({'opt_name': '210',
+        dhcp_opts.append({'opt_name': DHCP_TFTP_PATH_PREFIX,
                           'opt_value': get_tftp_path_prefix()})
 
-    dhcp_opts.append({'opt_name': 'server-ip-address',
+    dhcp_opts.append({'opt_name': DHCP_TFTP_SERVER_NAME,
                       'opt_value': CONF.pxe.tftp_server})
-    dhcp_opts.append({'opt_name': 'tftp-server',
+    dhcp_opts.append({'opt_name': DHCP_TFTP_SERVER_ADDRESS,
+                      'opt_value': CONF.pxe.tftp_server})
+
+    # NOTE(vsaienko) set this option specially for dnsmasq case as it always
+    # sets `siaddr` field which is treated by pxe clients as TFTP server
+    # see page 9 https://tools.ietf.org/html/rfc2131.
+    # If `server-ip-address` is not provided dnsmasq sets `siaddr` to dnsmasq's
+    # IP which breaks PXE booting as TFTP server is configured on ironic
+    # conductor host.
+    # http://thekelleys.org.uk/gitweb/?p=dnsmasq.git;a=blob;f=src/dhcp-common.c;h=eae9ae3567fe16eb979a484976c270396322efea;hb=a3303e196e5d304ec955c4d63afb923ade66c6e8#l572 # noqa
+    # There is an informational RFC which describes how options related to
+    # tftp 150,66 and siaddr should be used https://tools.ietf.org/html/rfc5859
+    # All dhcp servers we've tried: contrail/dnsmasq/isc just silently ignore
+    # unknown options but potentially it may blow up with others.
+    # Related bug was opened on Neutron side:
+    # https://bugs.launchpad.net/neutron/+bug/1723354
+    dhcp_opts.append({'opt_name': 'server-ip-address',
                       'opt_value': CONF.pxe.tftp_server})
 
     # Append the IP version for all the configuration options
