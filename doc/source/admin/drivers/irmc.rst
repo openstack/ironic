@@ -18,7 +18,7 @@ Prerequisites
 * Install `python-scciclient <https://pypi.org/project/python-scciclient>`_
   and `pysnmp <https://pypi.org/project/pysnmp>`_ packages::
 
-  $ pip install "python-scciclient>=0.6.0" pysnmp
+  $ pip install "python-scciclient>=0.7.0" pysnmp
 
 Hardware Type
 =============
@@ -65,6 +65,10 @@ hardware interfaces:
     Supports ``irmc``, which enables power control via ServerView Common
     Command Interface (SCCI), by default. Also supports ``ipmitool``.
 
+* raid
+    Supports  ``irmc``, ``no-raid`` and ``agent``.
+    The default is ``no-raid``.
+
 For other hardware interfaces, ``irmc`` hardware type supports the
 Bare Metal reference interfaces. For more details about the hardware
 interfaces and how to enable the desired ones, see
@@ -84,7 +88,7 @@ interfaces enabled for ``irmc`` hardware type.
    enabled_management_interfaces = irmc
    enabled_network_interfaces = flat,neutron
    enabled_power_interfaces = irmc
-   enabled_raid_interfaces = no-raid
+   enabled_raid_interfaces = no-raid,irmc
    enabled_storage_interfaces = noop,cinder
    enabled_vendor_interfaces = no-vendor,ipmitool
 
@@ -93,10 +97,10 @@ Here is a command example to enroll a node with ``irmc`` hardware type.
 .. code-block:: console
 
    openstack baremetal node create --os-baremetal-api-version=1.31 \
-      --driver irmc \
       --boot-interface irmc-pxe \
       --deploy-interface direct \
-      --inspect-interface irmc
+      --inspect-interface irmc  \
+      --raid-interface irmc
 
 Node configuration
 ^^^^^^^^^^^^^^^^^^
@@ -384,6 +388,99 @@ example::
 
 See :ref:`capabilities-discovery` for more details and examples.
 
+RAID configuration Support
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``irmc`` hardware type provides the iRMC RAID configuration with ``irmc``
+raid interface.
+
+.. note::
+
+   * RAID implementation for ``irmc`` hardware type is based on eLCM license
+     and SDCard. Otherwise, SP(Service Platform) in lifecycle management
+     must be available.
+   * RAID implementation only supported for RAIDAdapter 0 in Fujitsu Servers.
+
+Configuration
+~~~~~~~~~~~~~
+
+The RAID configuration Support in the iRMC drivers requires the following
+configuration:
+
+* It is necessary to set ironic configuration into Node with
+  JSON file option::
+
+    $ openstack baremetal node set <node-uuid-or-name> \
+      --target-raid-config <JSON file containing target RAID configuration>
+
+  Here is some sample values for JSON file::
+
+    {
+        "logical_disks": [
+            {
+                "size_gb": 1000,
+                "raid_level": "1"
+        ]
+    }
+
+  or::
+
+    {
+        "logical_disks": [
+            {
+                "size_gb": 1000,
+                "raid_level": "1",
+                "controller": "FTS RAID Ctrl SAS 6G 1GB (D3116C) (0)",
+                "physical_disks": [
+                    "0",
+                    "1"
+                ]
+            }
+        ]
+    }
+
+.. note::
+
+    RAID 1+0 and 5+0 in iRMC driver does not support property ``physical_disks``
+    in ``target_raid_config`` during create raid configuration yet. See
+    following example::
+
+        {
+          "logical_disks":
+            [
+              {
+                "size_gb": "Max",
+                "raid_level": "1+0"
+              }
+            ]
+        }
+
+See :ref:`raid` for more details and examples.
+
+Supported properties
+~~~~~~~~~~~~~~~~~~~~
+
+The RAID configuration using iRMC driver supports following parameters in
+JSON file:
+
+* ``size_gb``: is mandatory properties in Ironic.
+* ``raid_level``: is mandatory properties in Ironic. Currently, iRMC Server
+  supports following RAID levels: 0, 1, 5, 6, 1+0 and 5+0.
+* ``controller``: is name of the controller as read by the RAID interface.
+* ``physical_disks``: are specific values for each raid array in
+  LogicalDrive which operator want to set them along with ``raid_level``.
+
+The RAID configuration is supported as a manual cleaning step.
+
+.. note::
+
+   * iRMC server will power-on after create/delete raid configuration is
+     applied, FGI (Foreground Initialize) will process raid configuration in
+     iRMC server, thus the operation will completed upon power-on and power-off
+     when created RAID on iRMC server.
+
+See :ref:`raid` for more details and examples.
+
 Supported platforms
 ===================
 This driver supports FUJITSU PRIMERGY BX S4 or RX S8 servers and above.
@@ -397,3 +494,8 @@ Power Off (Graceful Power Off) are only available if
 `ServerView agents <http://manuals.ts.fujitsu.com/index.php?id=5406-5873-5925-5945-16159>`_
 are installed. See `iRMC S4 Manual <http://manuals.ts.fujitsu.com/index.php?id=5406-5873-5925-5988>`_
 for more details.
+
+RAID configuration feature supports FUJITSU PRIMERGY servers with
+RAID-Ctrl-SAS-6G-1GB(D3116C) controller and above.
+For detail supported controller with OOB-RAID configuration, please see
+`the whitepaper for iRMC RAID configuration <https://sp.ts.fujitsu.com/dmsp/Publications/public/wp-SVS-ooB-RAID-HDD-en.pdf>`_.

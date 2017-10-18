@@ -17,12 +17,14 @@ of FUJITSU PRIMERGY servers, and above servers.
 """
 
 from ironic.drivers import generic
+from ironic.drivers.modules import agent
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import boot
 from ironic.drivers.modules.irmc import inspect
 from ironic.drivers.modules.irmc import management
 from ironic.drivers.modules.irmc import power
+from ironic.drivers.modules.irmc import raid
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import pxe
 
@@ -63,3 +65,8 @@ class IRMCHardware(generic.GenericHardware):
     def supported_power_interfaces(self):
         """List of supported power interfaces."""
         return [power.IRMCPower, ipmitool.IPMIPower]
+
+    @property
+    def supported_raid_interfaces(self):
+        """List of supported raid interfaces."""
+        return [noop.NoRAID, raid.IRMCRAID, agent.AgentRAID]

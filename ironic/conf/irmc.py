@@ -89,6 +89,14 @@ opts = [
                        'this option is not defined, then leave out '
                        'pci_gpu_devices in capabilities property. '
                        'Sample gpu_ids value: 0x1000/0x0079,0x2100/0x0080')),
+    cfg.IntOpt('query_raid_config_fgi_status_interval',
+               min=1,
+               default=300,
+               help=_('Interval (in seconds) between periodic RAID status '
+                      'checks to determine whether the asynchronous RAID '
+                      'configuration was successfully finished or not. '
+                      'Foreground Initialization (FGI) will start 5 minutes '
+                      'after creating virtual drives.')),
 ]
 
 
