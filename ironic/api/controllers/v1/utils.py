@@ -740,6 +740,14 @@ def allow_inspect_wait_state():
     return pecan.request.version.minor >= versions.MINOR_39_INSPECT_WAIT
 
 
+def allow_inspect_abort():
+    """Check if inspection abort is allowed.
+
+    Version 1.41 of the API added support for inspection abort
+    """
+    return pecan.request.version.minor >= versions.MINOR_41_INSPECTION_ABORT
+
+
 def handle_post_port_like_extra_vif(p_dict):
     """Handle a Post request that sets .extra['vif_port_id'].
 

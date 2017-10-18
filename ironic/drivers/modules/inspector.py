@@ -34,7 +34,7 @@ LOG = logging.getLogger(__name__)
 client = importutils.try_import('ironic_inspector_client')
 
 
-INSPECTOR_API_VERSION = (1, 0)
+INSPECTOR_API_VERSION = (1, 3)
 
 _INSPECTOR_SESSION = None
 
@@ -129,6 +129,16 @@ class Inspector(base.InspectInterface):
         # to operate on a node.
         eventlet.spawn_n(_start_inspection, task.node.uuid, task.context)
         return states.INSPECTWAIT
+
+    def abort(self, task):
+        """Abort hardware inspection.
+
+        :param task: a task from TaskManager.
+        """
+        node_uuid = task.node.uuid
+        LOG.debug('Aborting inspection for node %(uuid)s using '
+                  'ironic-inspector', {'uuid': node_uuid})
+        _get_client(task.context).abort(node_uuid)
 
     @periodics.periodic(spacing=CONF.inspector.status_check_period,
                         enabled=CONF.inspector.enabled)

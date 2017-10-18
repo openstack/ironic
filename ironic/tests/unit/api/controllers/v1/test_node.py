@@ -4128,6 +4128,24 @@ class TestPut(test_api_base.BaseApiTest):
                                      obj_fields.NotificationLevel.ERROR,
                                      obj_fields.NotificationStatus.ERROR)])
 
+    def test_inspect_abort_raises_before_1_41(self):
+        self.node.provision_state = states.INSPECTWAIT
+        self.node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['abort']},
+                            headers={api_base.Version.string: "1.40"},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
+    def test_inspect_abort_accepted_after_1_41(self, mock_provision):
+        self.node.provision_state = states.INSPECTWAIT
+        self.node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['abort']},
+                            headers={api_base.Version.string: "1.41"})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+
 
 class TestCheckCleanSteps(base.TestCase):
     def test__check_clean_steps_not_list(self):

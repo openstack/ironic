@@ -1396,7 +1396,8 @@ class ConductorManager(base_manager.BaseConductorManager):
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
                                    exception.InvalidParameterValue,
-                                   exception.InvalidStateRequested)
+                                   exception.InvalidStateRequested,
+                                   exception.UnsupportedDriverExtension)
     def do_provisioning_action(self, context, node_id, action):
         """RPC method to initiate certain provisioning state transitions.
 
@@ -1443,52 +1444,11 @@ class ConductorManager(base_manager.BaseConductorManager):
                     err_handler=utils.provisioning_error_handler)
                 return
 
-            if (action == states.VERBS['abort']
-                    and node.provision_state == states.CLEANWAIT):
-
-                # Check if the clean step is abortable; if so abort it.
-                # Otherwise, indicate in that clean step, that cleaning
-                # should be aborted after that step is done.
-                if (node.clean_step
-                    and not node.clean_step.get('abortable')):
-                    LOG.info('The current clean step "%(clean_step)s" for '
-                             'node %(node)s is not abortable. Adding a '
-                             'flag to abort the cleaning after the clean '
-                             'step is completed.',
-                             {'clean_step': node.clean_step['step'],
-                              'node': node.uuid})
-                    clean_step = node.clean_step
-                    if not clean_step.get('abort_after'):
-                        clean_step['abort_after'] = True
-                        node.clean_step = clean_step
-                        node.save()
-                    return
-
-                LOG.debug('Aborting the cleaning operation during clean step '
-                          '"%(step)s" for node %(node)s in provision state '
-                          '"%(prov)s".',
-                          {'node': node.uuid,
-                           'prov': node.provision_state,
-                           'step': node.clean_step.get('step')})
-                target_state = None
-                if node.target_provision_state == states.MANAGEABLE:
-                    target_state = states.MANAGEABLE
-                task.process_event(
-                    'abort',
-                    callback=self._spawn_worker,
-                    call_args=(self._do_node_clean_abort, task),
-                    err_handler=utils.provisioning_error_handler,
-                    target_state=target_state)
-                return
-
-            if (action == states.VERBS['abort']
-                    and node.provision_state == states.RESCUEWAIT):
-                utils.remove_node_rescue_password(node, save=True)
-                task.process_event(
-                    'abort',
-                    callback=self._spawn_worker,
-                    call_args=(self._do_node_rescue_abort, task),
-                    err_handler=utils.provisioning_error_handler)
+            if (action == states.VERBS['abort'] and
+                    node.provision_state in (states.CLEANWAIT,
+                                             states.RESCUEWAIT,
+                                             states.INSPECTWAIT)):
+                self._do_abort(task)
                 return
 
             try:
@@ -1497,6 +1457,78 @@ class ConductorManager(base_manager.BaseConductorManager):
                 raise exception.InvalidStateRequested(
                     action=action, node=node.uuid,
                     state=node.provision_state)
+
+    def _do_abort(self, task):
+        """Handle node abort for certain states."""
+        node = task.node
+
+        if node.provision_state == states.CLEANWAIT:
+            # Check if the clean step is abortable; if so abort it.
+            # Otherwise, indicate in that clean step, that cleaning
+            # should be aborted after that step is done.
+            if (node.clean_step and not
+                    node.clean_step.get('abortable')):
+                LOG.info('The current clean step "%(clean_step)s" for '
+                         'node %(node)s is not abortable. Adding a '
+                         'flag to abort the cleaning after the clean '
+                         'step is completed.',
+                         {'clean_step': node.clean_step['step'],
+                          'node': node.uuid})
+                clean_step = node.clean_step
+                if not clean_step.get('abort_after'):
+                    clean_step['abort_after'] = True
+                    node.clean_step = clean_step
+                    node.save()
+                return
+
+            LOG.debug('Aborting the cleaning operation during clean step '
+                      '"%(step)s" for node %(node)s in provision state '
+                      '"%(prov)s".',
+                      {'node': node.uuid,
+                       'prov': node.provision_state,
+                       'step': node.clean_step.get('step')})
+            target_state = None
+            if node.target_provision_state == states.MANAGEABLE:
+                target_state = states.MANAGEABLE
+            task.process_event(
+                'abort',
+                callback=self._spawn_worker,
+                call_args=(self._do_node_clean_abort, task),
+                err_handler=utils.provisioning_error_handler,
+                target_state=target_state)
+            return
+
+        if node.provision_state == states.RESCUEWAIT:
+            utils.remove_node_rescue_password(node, save=True)
+            task.process_event(
+                'abort',
+                callback=self._spawn_worker,
+                call_args=(self._do_node_rescue_abort, task),
+                err_handler=utils.provisioning_error_handler)
+            return
+
+        if node.provision_state == states.INSPECTWAIT:
+            try:
+                task.driver.inspect.abort(task)
+            except exception.UnsupportedDriverExtension:
+                with excutils.save_and_reraise_exception():
+                    intf_name = task.driver.inspect.__class__.__name__
+                    LOG.error('Inspect interface %(intf)s does not '
+                              'support abort operation when aborting '
+                              'inspection of node %(node)s',
+                              {'intf': intf_name, 'node': node.uuid})
+            except Exception as e:
+                with excutils.save_and_reraise_exception():
+                    LOG.exception('Error in aborting the inspection of '
+                                  'node %(node)s', {'node': node.uuid})
+                    node.last_error = _('Failed to abort inspection. '
+                                        'Error: %s') % e
+                    node.save()
+            node.last_error = _('Inspection was aborted by request.')
+            task.process_event('abort')
+            LOG.info('Successfully aborted inspection of node %(node)s',
+                     {'node': node.uuid})
+            return
 
     @METRICS.timer('ConductorManager._sync_power_states')
     @periodics.periodic(spacing=CONF.conductor.sync_power_state_interval)

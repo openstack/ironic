@@ -923,6 +923,22 @@ class InspectInterface(BaseInterface):
                   or None.
         """
 
+    def abort(self, task):
+        """Abort asynchronized hardware inspection.
+
+        Abort an ongoing hardware introspection, this is only used for
+        asynchronize based inspect interface.
+
+        NOTE: This interface is called with node exclusive lock held, the
+        interface implementation is expected to be a quick processing.
+
+        :param task: a task from TaskManager.
+        :raises: UnsupportedDriverExtension, if the method is not implemented
+                 by specific inspect interface.
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='abort')
+
 
 class BIOSInterface(BaseInterface):
     interface_type = 'bios'

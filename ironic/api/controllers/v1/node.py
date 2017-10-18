@@ -555,6 +555,54 @@ class NodeStatesController(rest.RestController):
         url_args = '/'.join([node_ident, 'states'])
         pecan.response.location = link.build_url('nodes', url_args)
 
+    def _do_provision_action(self, rpc_node, target, configdrive=None,
+                             clean_steps=None, rescue_password=None):
+        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
+        # Note that there is a race condition. The node state(s) could change
+        # by the time the RPC call is made and the TaskManager manager gets a
+        # lock.
+        if target in (ir_states.ACTIVE, ir_states.REBUILD):
+            rebuild = (target == ir_states.REBUILD)
+            pecan.request.rpcapi.do_node_deploy(context=pecan.request.context,
+                                                node_id=rpc_node.uuid,
+                                                rebuild=rebuild,
+                                                configdrive=configdrive,
+                                                topic=topic)
+        elif (target == ir_states.VERBS['unrescue']):
+            pecan.request.rpcapi.do_node_unrescue(
+                pecan.request.context, rpc_node.uuid, topic)
+        elif (target == ir_states.VERBS['rescue']):
+            if not (rescue_password and rescue_password.strip()):
+                msg = (_('A non-empty "rescue_password" is required when '
+                         'setting target provision state to %s') %
+                       ir_states.VERBS['rescue'])
+                raise wsme.exc.ClientSideError(
+                    msg, status_code=http_client.BAD_REQUEST)
+            pecan.request.rpcapi.do_node_rescue(
+                pecan.request.context, rpc_node.uuid, rescue_password, topic)
+        elif target == ir_states.DELETED:
+            pecan.request.rpcapi.do_node_tear_down(
+                pecan.request.context, rpc_node.uuid, topic)
+        elif target == ir_states.VERBS['inspect']:
+            pecan.request.rpcapi.inspect_hardware(
+                pecan.request.context, rpc_node.uuid, topic=topic)
+        elif target == ir_states.VERBS['clean']:
+            if not clean_steps:
+                msg = (_('"clean_steps" is required when setting target '
+                         'provision state to %s') % ir_states.VERBS['clean'])
+                raise wsme.exc.ClientSideError(
+                    msg, status_code=http_client.BAD_REQUEST)
+            _check_clean_steps(clean_steps)
+            pecan.request.rpcapi.do_node_clean(
+                pecan.request.context, rpc_node.uuid, clean_steps, topic)
+        elif target in PROVISION_ACTION_STATES:
+            pecan.request.rpcapi.do_provisioning_action(
+                pecan.request.context, rpc_node.uuid, target, topic)
+        else:
+            msg = (_('The requested action "%(action)s" could not be '
+                     'understood.') % {'action': target})
+            raise exception.InvalidStateRequested(message=msg)
+
     @METRICS.timer('NodeStatesController.provision')
     @expose.expose(None, types.uuid_or_name, wtypes.text,
                    wtypes.text, types.jsontype, wtypes.text,
@@ -614,7 +662,6 @@ class NodeStatesController(rest.RestController):
 
         api_utils.check_allow_management_verbs(target)
         rpc_node = api_utils.get_rpc_node(node_ident)
-        topic = pecan.request.rpcapi.get_topic_for(rpc_node)
 
         if (target in (ir_states.ACTIVE, ir_states.REBUILD)
                 and rpc_node.maintenance):
@@ -655,50 +702,13 @@ class NodeStatesController(rest.RestController):
             raise wsme.exc.ClientSideError(
                 msg, status_code=http_client.BAD_REQUEST)
 
-        # Note that there is a race condition. The node state(s) could change
-        # by the time the RPC call is made and the TaskManager manager gets a
-        # lock.
-        if target in (ir_states.ACTIVE, ir_states.REBUILD):
-            rebuild = (target == ir_states.REBUILD)
-            pecan.request.rpcapi.do_node_deploy(context=pecan.request.context,
-                                                node_id=rpc_node.uuid,
-                                                rebuild=rebuild,
-                                                configdrive=configdrive,
-                                                topic=topic)
-        elif (target == ir_states.VERBS['unrescue']):
-            pecan.request.rpcapi.do_node_unrescue(
-                pecan.request.context, rpc_node.uuid, topic)
-        elif (target == ir_states.VERBS['rescue']):
-            if not (rescue_password and rescue_password.strip()):
-                msg = (_('A non-empty "rescue_password" is required when '
-                         'setting target provision state to %s') %
-                       ir_states.VERBS['rescue'])
-                raise wsme.exc.ClientSideError(
-                    msg, status_code=http_client.BAD_REQUEST)
-            pecan.request.rpcapi.do_node_rescue(
-                pecan.request.context, rpc_node.uuid, rescue_password, topic)
-        elif target == ir_states.DELETED:
-            pecan.request.rpcapi.do_node_tear_down(
-                pecan.request.context, rpc_node.uuid, topic)
-        elif target == ir_states.VERBS['inspect']:
-            pecan.request.rpcapi.inspect_hardware(
-                pecan.request.context, rpc_node.uuid, topic=topic)
-        elif target == ir_states.VERBS['clean']:
-            if not clean_steps:
-                msg = (_('"clean_steps" is required when setting target '
-                         'provision state to %s') % ir_states.VERBS['clean'])
-                raise wsme.exc.ClientSideError(
-                    msg, status_code=http_client.BAD_REQUEST)
-            _check_clean_steps(clean_steps)
-            pecan.request.rpcapi.do_node_clean(
-                pecan.request.context, rpc_node.uuid, clean_steps, topic)
-        elif target in PROVISION_ACTION_STATES:
-            pecan.request.rpcapi.do_provisioning_action(
-                pecan.request.context, rpc_node.uuid, target, topic)
-        else:
-            msg = (_('The requested action "%(action)s" could not be '
-                     'understood.') % {'action': target})
-            raise exception.InvalidStateRequested(message=msg)
+        if (rpc_node.provision_state == ir_states.INSPECTWAIT and
+            target == ir_states.VERBS['abort']):
+            if not api_utils.allow_inspect_abort():
+                raise exception.NotAcceptable()
+
+        self._do_provision_action(rpc_node, target, configdrive, clean_steps,
+                                  rescue_password)
 
         # Set the HTTP Location Header
         url_args = '/'.join([node_ident, 'states'])

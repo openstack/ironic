@@ -7580,3 +7580,64 @@ class NodeTraitsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def test_remove_node_traits_node_trait_not_found(self):
         self._test_remove_node_traits_exception(exception.NodeTraitNotFound)
+
+
+@mgr_utils.mock_record_keepalive
+class DoNodeInspectAbortTestCase(mgr_utils.CommonMixIn,
+                                 mgr_utils.ServiceSetUpMixin,
+                                 db_base.DbTestCase):
+    @mock.patch.object(manager, 'LOG')
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.abort')
+    @mock.patch('ironic.conductor.task_manager.acquire', autospec=True)
+    def test_do_inspect_abort_interface_not_support(self, mock_acquire,
+                                                    mock_abort, mock_log):
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake-hardware',
+                                          provision_state=states.INSPECTWAIT)
+        task = task_manager.TaskManager(self.context, node.uuid)
+        mock_acquire.side_effect = self._get_acquire_side_effect(task)
+        mock_abort.side_effect = exception.UnsupportedDriverExtension(
+            driver='fake', extension='inspect')
+        self._start_service()
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_provisioning_action,
+                                self.context, task.node.uuid,
+                                "abort")
+        self.assertEqual(exception.UnsupportedDriverExtension,
+                         exc.exc_info[0])
+        self.assertTrue(mock_log.error.called)
+
+    @mock.patch.object(manager, 'LOG')
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.abort')
+    @mock.patch('ironic.conductor.task_manager.acquire', autospec=True)
+    def test_do_inspect_abort_interface_return_failed(self, mock_acquire,
+                                                      mock_abort, mock_log):
+        mock_abort.side_effect = exception.IronicException('Oops')
+        self._start_service()
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake-hardware',
+                                          provision_state=states.INSPECTWAIT)
+        task = task_manager.TaskManager(self.context, node.uuid)
+        mock_acquire.side_effect = self._get_acquire_side_effect(task)
+        self.assertRaises(exception.IronicException,
+                          self.service.do_provisioning_action,
+                          self.context, task.node.uuid,
+                          "abort")
+        node.refresh()
+        self.assertTrue(mock_log.exception.called)
+        self.assertIn('Failed to abort inspection.', node.last_error)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeInspect.abort')
+    @mock.patch('ironic.conductor.task_manager.acquire', autospec=True)
+    def test_do_inspect_abort_succeeded(self, mock_acquire, mock_abort):
+        self._start_service()
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake-hardware',
+                                          provision_state=states.INSPECTWAIT)
+        task = task_manager.TaskManager(self.context, node.uuid)
+        mock_acquire.side_effect = self._get_acquire_side_effect(task)
+        self.service.do_provisioning_action(self.context, task.node.uuid,
+                                            "abort")
+        node.refresh()
+        self.assertEqual('inspect failed', node.provision_state)
+        self.assertIn('Inspection was aborted', node.last_error)
