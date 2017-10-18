@@ -533,6 +533,22 @@ class TestListNodes(test_api_base.BaseApiTest):
         next_marker = data['nodes'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
 
+    def test_collection_links_instance_uuid_param(self):
+        cfg.CONF.set_override('max_limit', 1, 'api')
+        nodes = []
+        for id in range(2):
+            node = obj_utils.create_test_node(
+                self.context,
+                uuid=uuidutils.generate_uuid(),
+                instance_uuid=uuidutils.generate_uuid(),
+                resource_class='tst_resource')
+            nodes.append(node)
+
+        query_str = 'instance_uuid=%s' % nodes[0].instance_uuid
+        data = self.get_json('/nodes?%s' % query_str)
+        self.assertEqual(1, len(data['nodes']))
+        self.assertNotIn('next', data)
+
     def test_sort_key(self):
         nodes = []
         for id in range(3):

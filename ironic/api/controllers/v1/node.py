@@ -1310,8 +1310,20 @@ class NodesController(rest.RestController):
                 _("The sort_key value %(key)s is an invalid field for "
                   "sorting") % {'key': sort_key})
 
+        # The query parameters for the 'next' URL
+        parameters = {}
+
         if instance_uuid:
+            # NOTE(rloo) if instance_uuid is specified, the other query
+            # parameters are ignored. Since there can be at most one node that
+            # has this instance_uuid, we do not want to generate a 'next' link.
+
             nodes = self._get_nodes_by_instance(instance_uuid)
+
+            # NOTE(rloo) if limit==1 and len(nodes)==1 (see
+            # Collection.has_next()), a 'next' link will
+            # be generated, which we don't want.
+            limit = 0
         else:
             filters = {}
             if chassis_uuid:
@@ -1331,11 +1343,12 @@ class NodesController(rest.RestController):
                                       sort_key=sort_key, sort_dir=sort_dir,
                                       filters=filters)
 
-        parameters = {'sort_key': sort_key, 'sort_dir': sort_dir}
-        if associated:
-            parameters['associated'] = associated
-        if maintenance:
-            parameters['maintenance'] = maintenance
+            parameters = {'sort_key': sort_key, 'sort_dir': sort_dir}
+            if associated:
+                parameters['associated'] = associated
+            if maintenance:
+                parameters['maintenance'] = maintenance
+
         return NodeCollection.convert_with_links(nodes, limit,
                                                  url=resource_url,
                                                  fields=fields,
