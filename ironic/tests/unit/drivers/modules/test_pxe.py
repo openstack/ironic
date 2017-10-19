@@ -378,7 +378,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             expected_options.update({
                 'boot_from_volume': True,
                 'iscsi_boot_url': 'iscsi:fake_host::3260:0:fake_iqn',
-                'iscsi_initiator_iqn': 'fake_iqn',
+                'iscsi_initiator_iqn': 'fake_iqn_initiator',
                 'iscsi_volumes': ['iscsi:fake_host::3260:1:fake_iqn'],
                 'username': 'fake_username',
                 'password': 'fake_password'})
@@ -419,6 +419,12 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
     def test__build_pxe_config_options_ipxe_and_iscsi_boot(self):
         vol_id = uuidutils.generate_uuid()
         vol_id2 = uuidutils.generate_uuid()
+        obj_utils.create_test_volume_connector(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            type='iqn',
+            node_id=self.node.id,
+            connector_id='fake_iqn_initiator')
         obj_utils.create_test_volume_target(
             self.context, node_id=self.node.id, volume_type='iscsi',
             boot_index=0, volume_id='1234', uuid=vol_id,
@@ -439,6 +445,12 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
     def test__build_pxe_config_options_ipxe_and_iscsi_boot_from_lists(self):
         vol_id = uuidutils.generate_uuid()
         vol_id2 = uuidutils.generate_uuid()
+        obj_utils.create_test_volume_connector(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            type='iqn',
+            node_id=self.node.id,
+            connector_id='fake_iqn_initiator')
         obj_utils.create_test_volume_target(
             self.context, node_id=self.node.id, volume_type='iscsi',
             boot_index=0, volume_id='1234', uuid=vol_id,
@@ -460,6 +472,12 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
     def test__get_volume_pxe_options(self):
         vol_id = uuidutils.generate_uuid()
         vol_id2 = uuidutils.generate_uuid()
+        obj_utils.create_test_volume_connector(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            type='iqn',
+            node_id=self.node.id,
+            connector_id='fake_iqn_initiator')
         obj_utils.create_test_volume_target(
             self.context, node_id=self.node.id, volume_type='iscsi',
             boot_index=0, volume_id='1234', uuid=vol_id,
@@ -483,7 +501,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         expected = {'boot_from_volume': True,
                     'username': 'fake_username', 'password': 'fake_password',
                     'iscsi_boot_url': 'iscsi:fake_host::3260:0:fake_iqn',
-                    'iscsi_initiator_iqn': 'fake_iqn',
+                    'iscsi_initiator_iqn': 'fake_iqn_initiator',
                     'iscsi_volumes': ['iscsi:fake_host::3260:1:fake_iqn']}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
