@@ -558,6 +558,145 @@ class NodePowerActionTestCase(db_base.DbTestCase):
             self.assertIsNone(node['target_power_state'])
             self.assertIsNone(node['last_error'])
 
+    def test__calculate_target_state(self):
+        for new_state in (states.POWER_ON, states.REBOOT, states.SOFT_REBOOT):
+            self.assertEqual(
+                states.POWER_ON,
+                conductor_utils._calculate_target_state(new_state))
+        for new_state in (states.POWER_OFF, states.SOFT_POWER_OFF):
+            self.assertEqual(
+                states.POWER_OFF,
+                conductor_utils._calculate_target_state(new_state))
+        self.assertIsNone(conductor_utils._calculate_target_state('bad_state'))
+
+    def test__can_skip_state_change_different_state(self):
+        """Test setting node state to different state.
+
+        Test that we should change state if requested state is different from
+        current state.
+        """
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='fake',
+                                          last_error='anything but None',
+                                          power_state=states.POWER_ON)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            get_power_mock.return_value = states.POWER_ON
+
+            result = conductor_utils._can_skip_state_change(
+                task, states.POWER_OFF)
+
+            self.assertFalse(result)
+            get_power_mock.assert_called_once_with(mock.ANY)
+
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
+    def test__can_skip_state_change_same_state(self, mock_log):
+        """Test setting node state to its present state.
+
+        Test that we don't try to set the power state if the requested
+        state is the same as the current state.
+        """
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='fake',
+                                          last_error='anything but None',
+                                          power_state=states.POWER_ON)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            get_power_mock.return_value = states.POWER_ON
+
+            result = conductor_utils._can_skip_state_change(
+                task, states.POWER_ON)
+
+            self.assertTrue(result)
+            node.refresh()
+            get_power_mock.assert_called_once_with(mock.ANY)
+            self.assertEqual(states.POWER_ON, node['power_state'])
+            self.assertEqual(states.NOSTATE, node['target_power_state'])
+            self.assertIsNone(node['last_error'])
+            mock_log.warning.assert_called_once_with(
+                u"Not going to change node %(node)s power state because "
+                u"current state = requested state = '%(state)s'.",
+                {'state': states.POWER_ON, 'node': node.uuid})
+
+    def test__can_skip_state_change_db_not_in_sync(self):
+        """Test setting node state to its present state if DB is out of sync.
+
+        Under rare conditions (see bug #1403106) database might contain stale
+        information, make sure we fix it.
+        """
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='fake',
+                                          last_error='anything but None',
+                                          power_state=states.POWER_ON)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_mock:
+            get_power_mock.return_value = states.POWER_OFF
+
+            result = conductor_utils._can_skip_state_change(
+                task, states.POWER_OFF)
+
+            self.assertTrue(result)
+
+            node.refresh()
+            get_power_mock.assert_called_once_with(mock.ANY)
+            self.assertEqual(states.POWER_OFF, node['power_state'])
+            self.assertEqual(states.NOSTATE, node['target_power_state'])
+            self.assertIsNone(node['last_error'])
+
+    @mock.patch('ironic.objects.node.NodeSetPowerStateNotification')
+    def test__can_skip_state_change_failed_getting_state_notify(
+            self, mock_notif):
+        """Test for notification & exception when can't get power state.
+
+        Test to make sure we generate a notification and also that an exception
+        is raised when we can't get the current power state.
+        """
+        self.config(notification_level='info')
+        self.config(host='my-host')
+        # Required for exception handling
+        mock_notif.__name__ = 'NodeSetPowerStateNotification'
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='fake',
+                                          power_state=states.POWER_ON)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        with mock.patch.object(self.driver.power,
+                               'get_power_state') as get_power_state_mock:
+            get_power_state_mock.side_effect = (
+                exception.InvalidParameterValue('failed getting power state'))
+
+            self.assertRaises(exception.InvalidParameterValue,
+                              conductor_utils._can_skip_state_change,
+                              task,
+                              states.POWER_ON)
+
+            node.refresh()
+            get_power_state_mock.assert_called_once_with(mock.ANY)
+            self.assertEqual(states.POWER_ON, node.power_state)
+            self.assertEqual(states.NOSTATE, node['target_power_state'])
+            self.assertIsNotNone(node.last_error)
+
+            # 1 notification should be sent for the error
+            self.assertEqual(1, mock_notif.call_count)
+            self.assertEqual(1, mock_notif.return_value.emit.call_count)
+
+            notif_args = mock_notif.call_args_list[0][1]
+
+            self.assertNotificationEqual(notif_args,
+                                         'ironic-conductor', CONF.host,
+                                         'baremetal.node.power_set.error',
+                                         obj_fields.NotificationLevel.ERROR)
+
 
 class NodeSoftPowerActionTestCase(db_base.DbTestCase):
 
