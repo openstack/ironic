@@ -214,6 +214,8 @@ Node configuration
     irmc_username.
   - ``properties/capabilities`` property to be ``boot_mode:uefi`` if
     UEFI boot is required.
+  - ``properties/capabilities`` property to be ``secure_boot:true`` if
+    Secure Boot is required.
   - ``driver_info/irmc_deploy_iso`` property to be either ``deploy iso
     file name``, ``Glance UUID``, ``Glance URL`` or ``Image Service
     URL``.
@@ -296,6 +298,8 @@ Node configuration
     irmc_username.
   - ``properties/capabilities`` property to be ``boot_mode:uefi`` if
     UEFI boot is required.
+  - ``properties/capabilities`` property to be ``secure_boot:true`` if
+    Secure Boot is required.
   - ``driver_info/irmc_deploy_iso`` property to be either ``deploy iso
     file name``, ``Glance UUID``, ``Glance URL`` or ``Image Service
     URL``.

@@ -995,6 +995,10 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
             root_uuid_or_disk_id = driver_internal_info['root_uuid_or_disk_id']
             self._configure_vmedia_boot(task, root_uuid_or_disk_id)
 
+        # Enable secure boot, if being requested
+        if deploy_utils.is_secure_boot_requested(node):
+            irmc_common.set_secure_boot_mode(node, enable=True)
+
     @METRICS.timer('IRMCVirtualMediaBoot.clean_up_instance')
     def clean_up_instance(self, task):
         """Cleans up the boot of instance.
@@ -1009,6 +1013,10 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
         if task.node.driver_internal_info.get('boot_from_volume'):
             self._cleanup_boot_from_volume(task)
             return
+
+        # Disable secure boot, if enabled secure boot
+        if deploy_utils.is_secure_boot_requested(task.node):
+            irmc_common.set_secure_boot_mode(task.node, enable=False)
 
         _remove_share_file(_get_boot_iso_name(task.node))
         driver_internal_info = task.node.driver_internal_info

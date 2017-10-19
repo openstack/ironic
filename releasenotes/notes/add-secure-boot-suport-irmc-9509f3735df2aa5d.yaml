@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds support to provision an instance in secure boot mode for
+    ``irmc-virtual-media`` boot interface.
