@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes a problem when using ipmitool and rebooting a node which would cause
+    a deploy to fail. Now when rebooting a node we check if the node is already
+    powered off, if it is we don't attempt to power off the node. This is
+    because some BMCs will error if the node is already powered off and an
+    ipmitool request is made to power it off. See
+    https://bugs.launchpad.net/ironic/+bug/1718794 for details.
