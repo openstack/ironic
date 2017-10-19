@@ -1,0 +1,77 @@
+- project:
+    name: openstack/ironic
+    check:
+      jobs:
+        - ironic-tempest-dsvm-pxe_ipmitool-postgres:
+            voting: false
+        - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+        - ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_ipmitool-tinyipa:
+            branches: ^stable/(newton|ocata).*$
+        - ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_snmp-tinyipa:
+            voting: false
+            branches: ^(?!stable/newton).*$
+        - ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa:
+            branches: ^stable/(newton|ocata).*$
+        - ironic-tempest-dsvm-ipa-partition-bios-pxe_ipmitool-tinyipa:
+            branches: ^stable/(newton|ocata).*$
+        - ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
+        - ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3:
+            voting: false
+            branches: ^(?!stable/(newton|ocata)).*$
+        - ironic-tempest-dsvm-ipa-wholedisk-agent_ipmitool-tinyipa-multinode:
+            branches: ^stable/(newton|ocata).*$
+            voting: false
+        # NOTE(sambetts) multinode job is voting starting from Pike
+        - ironic-tempest-dsvm-ipa-wholedisk-agent_ipmitool-tinyipa-multinode:
+            branches: ^(?!stable/(newton|ocata)).*$
+        - ironic-tempest-dsvm-ipa-partition-redfish-tinyipa:
+            branches: ^(?!stable/(newton|ocata)).*$
+        - ironic-tempest-dsvm-bfv:
+            branches: ^(?!stable/(newton|ocata)).*$
+        - ironic-dsvm-standalone:
+            branches: ^(?!stable/(newton|ocata)).*$
+        - ironic-tempest-dsvm-ironic-inspector:
+            voting: false
+        - ironic-grenade-dsvm:
+            branches: ^(?!(driverfixes|stable/(mitaka|newton))).*$
+        - ironic-grenade-dsvm-multinode-multitenant:
+            branches: ^(?!stable/(newton|ocata)).*$
+        - ironic-tempest-dsvm-multitenant-network:
+            branches: ^stable/(newton|ocata).*$
+    gate:
+      queue: ironic
+      jobs:
+        - ironic-tempest-dsvm-ipa-partition-bios-pxe_ipmitool-tinyipa:
+            branches: ^stable/(newton|ocata).*$
+        - ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
+        - ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa:
+            branches: ^stable/(newton|ocata).*$
+        - ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_ipmitool-tinyipa:
+            branches: ^stable/(newton|ocata).*$
+        - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa:
+            branches: ^stable/(newton|ocata).*$
+        - ironic-tempest-dsvm-ipa-partition-redfish-tinyipa:
+            branches: ^(?!stable/(newton|ocata)).*$
+        - ironic-tempest-dsvm-bfv:
+            branches: ^(?!stable/(newton|ocata)).*$
+        - ironic-dsvm-standalone:
+            branches: ^(?!stable/(newton|ocata)).*$
+        - ironic-grenade-dsvm:
+            branches: ^(?!(driverfixes|stable/(mitaka|newton))).*$
+        - ironic-grenade-dsvm-multinode-multitenant:
+            branches: ^(?!stable/(newton|ocata)).*$
+        - ironic-tempest-dsvm-multitenant-network:
+            branches: ^stable/(newton|ocata).*$
+        # NOTE(sambetts) multinode job is voting starting from Pike
+        - ironic-tempest-dsvm-ipa-wholedisk-agent_ipmitool-tinyipa-multinode:
+            branches: ^(?!stable/(newton|ocata)).*$
+    experimental:
+      jobs:
+        - ironic-dsvm-functional
+        - ironic-tempest-dsvm-parallel:
+            voting: false
+            branches: ^(?!stable)
+        - ironic-tempest-dsvm-pxe_ipa-full:
+            voting: false
+        - ironic-tempest-dsvm-ipa-resourceclasses-partition-pxe_ipmitool-tinyipa:
+            voting: false

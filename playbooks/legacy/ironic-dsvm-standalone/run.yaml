@@ -1,0 +1,98 @@
+- hosts: all
+  name: Autoconverted job legacy-ironic-dsvm-standalone from old job gate-ironic-dsvm-standalone-ubuntu-xenial
+  tasks:
+
+    - name: Ensure legacy workspace directory
+      file:
+        path: '{{ ansible_user_dir }}/workspace'
+        state: directory
+
+    - shell:
+        cmd: |
+          set -e
+          set -x
+          cat > clonemap.yaml << EOF
+          clonemap:
+            - name: openstack-infra/devstack-gate
+              dest: devstack-gate
+          EOF
+          /usr/zuul-env/bin/zuul-cloner -m clonemap.yaml --cache-dir /opt/git \
+              git://git.openstack.org \
+              openstack-infra/devstack-gate
+        executable: /bin/bash
+        chdir: '{{ ansible_user_dir }}/workspace'
+      environment: '{{ zuul | zuul_legacy_vars }}'
+
+    - shell:
+        cmd: |
+          cat << 'EOF' >> ironic-vars-early
+            # use tempest plugin
+          if [[ "$ZUUL_BRANCH" != "master" ]] ; then
+            # NOTE(jroll) if this is not a patch against master, then
+            # fetch master to install the plugin
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"TEMPEST_PLUGINS+=' git+git://git.openstack.org/openstack/ironic'"
+          else
+            # on master, use the local change, so we can pick up any changes to the plugin
+            export DEVSTACK_LOCAL_CONFIG+=$'\n'"TEMPEST_PLUGINS+=' /opt/stack/new/ironic'"
+          fi
+          export TEMPEST_CONCURRENCY=4
+
+          EOF
+        chdir: '{{ ansible_user_dir }}/workspace'
+      environment: '{{ zuul | zuul_legacy_vars }}'
+
+    - shell:
+        cmd: |
+          cat << 'EOF' >> ironic-extra-vars
+            export DEVSTACK_GATE_TEMPEST_REGEX="ironic_standalone"
+
+          EOF
+        chdir: '{{ ansible_user_dir }}/workspace'
+      environment: '{{ zuul | zuul_legacy_vars }}'
+
+    - shell:
+        cmd: |
+          set -e
+          set -x
+          export PROJECTS="openstack/ironic $PROJECTS"
+          export PROJECTS="openstack/ironic-lib $PROJECTS"
+          export PROJECTS="openstack/ironic-python-agent $PROJECTS"
+          export PROJECTS="openstack/python-ironicclient $PROJECTS"
+          export PYTHONUNBUFFERED=true
+          export DEVSTACK_GATE_TEMPEST=1
+          export DEVSTACK_GATE_IRONIC=1
+          export DEVSTACK_GATE_NEUTRON=1
+          export DEVSTACK_GATE_IRONIC_BUILD_RAMDISK=0
+          export DEVSTACK_GATE_VIRT_DRIVER=ironic
+          export DEVSTACK_GATE_IRONIC_DRIVER=agent_ipmitool
+          export OVERRIDE_ENABLED_SERVICES="g-api,g-reg,q-agt,q-dhcp,q-l3,q-svc,key,mysql,rabbit,ir-api,ir-cond,s-account,s-container,s-object,s-proxy,tempest"
+
+          export BRANCH_OVERRIDE=default
+          if [ "$BRANCH_OVERRIDE" != "default" ] ; then
+              export OVERRIDE_ZUUL_BRANCH=$BRANCH_OVERRIDE
+          fi
+
+          export DEVSTACK_LOCAL_CONFIG="enable_plugin ironic git://git.openstack.org/openstack/ironic"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_COUNT=6"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_DEPLOY_DRIVER=agent_ipmitool"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"SWIFT_ENABLE_TEMPURLS=True"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"SWIFT_TEMPURL_KEY=secretkey"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_ENABLED_DRIVERS=fake,agent_ipmitool,pxe_ipmitool"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_AUTOMATED_CLEAN_ENABLED=False"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_USE_MOD_WSGI=True"
+
+          # Ensure the ironic-vars-EARLY file exists
+          touch ironic-vars-early
+          # Pull in the EARLY variables injected by the optional builders
+          source ironic-vars-early
+
+          # Ensure the ironic-EXTRA-vars file exists
+          touch ironic-extra-vars
+          # Pull in the EXTRA variables injected by the optional builders
+          source ironic-extra-vars
+
+          cp devstack-gate/devstack-vm-gate-wrap.sh ./safe-devstack-vm-gate-wrap.sh
+          ./safe-devstack-vm-gate-wrap.sh
+        executable: /bin/bash
+        chdir: '{{ ansible_user_dir }}/workspace'
+      environment: '{{ zuul | zuul_legacy_vars }}'

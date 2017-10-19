@@ -1,0 +1,250 @@
+- job:
+    name: legacy-ironic-dsvm-base
+    parent: legacy-dsvm-base
+    irrelevant-files:
+      - ^(test-|)requirements.txt$
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^install-guide/.*$
+      - ^ironic/locale/.*$
+      - ^ironic/tests/.*$
+      - ^releasenotes/.*$
+      - ^setup.cfg$
+      - ^tools/.*$
+      - ^tox.ini$
+    required-projects:
+      - openstack-infra/devstack-gate
+      - openstack/ironic
+      - openstack/ironic-lib
+      - openstack/ironic-python-agent
+      - openstack/pyghmi
+      - openstack/python-ironicclient
+      - openstack/tempest
+      - openstack/virtualbmc
+
+- job:
+    name: legacy-ironic-dsvm-base-multinode
+    parent: legacy-dsvm-base-multinode
+    irrelevant-files:
+      - ^(test-|)requirements.txt$
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^install-guide/.*$
+      - ^ironic/locale/.*$
+      - ^ironic/tests/.*$
+      - ^releasenotes/.*$
+      - ^setup.cfg$
+      - ^tools/.*$
+      - ^tox.ini$
+    required-projects:
+      - openstack-infra/devstack-gate
+      - openstack/ironic
+      - openstack/ironic-lib
+      - openstack/ironic-python-agent
+      - openstack/pyghmi
+      - openstack/python-ironicclient
+      - openstack/tempest
+      - openstack/virtualbmc
+      - openstack/networking-generic-switch
+
+- job:
+    name: ironic-tempest-dsvm-pxe_ipmitool-postgres
+    parent: legacy-ironic-dsvm-base
+    run: playbooks/legacy/tempest-dsvm-ironic-pxe_ipmitool-postgres/run
+    post-run: playbooks/legacy/tempest-dsvm-ironic-pxe_ipmitool-postgres/post
+    timeout: 10800
+
+- job:
+    name: ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+    parent: legacy-ironic-dsvm-base
+    run: playbooks/legacy/tempest-dsvm-ironic-ipa-wholedisk-bios-agent_ipmitool-tinyipa/run
+    post-run: playbooks/legacy/tempest-dsvm-ironic-ipa-wholedisk-bios-agent_ipmitool-tinyipa/post
+    timeout: 5400
+
+- job:
+    name: ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_ipmitool-tinyipa
+    parent: legacy-ironic-dsvm-base
+    run: playbooks/legacy/tempest-dsvm-ironic-ipa-wholedisk-bios-pxe_ipmitool-tinyipa/run
+    post-run: playbooks/legacy/tempest-dsvm-ironic-ipa-wholedisk-bios-pxe_ipmitool-tinyipa/post
+    timeout: 5400
+
+- job:
+    name: ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_snmp-tinyipa
+    parent: legacy-ironic-dsvm-base
+    run: playbooks/legacy/tempest-dsvm-ironic-ipa-wholedisk-bios-pxe_snmp-tinyipa/run
+    post-run: playbooks/legacy/tempest-dsvm-ironic-ipa-wholedisk-bios-pxe_snmp-tinyipa/post
+    timeout: 5400
+
+- job:
+    name: ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa
+    parent: legacy-ironic-dsvm-base
+    run: playbooks/legacy/tempest-dsvm-ironic-ipa-partition-bios-agent_ipmitool-tinyipa/run
+    post-run: playbooks/legacy/tempest-dsvm-ironic-ipa-partition-bios-agent_ipmitool-tinyipa/post
+    timeout: 5400
+
+- job:
+    name: ironic-tempest-dsvm-ipa-partition-bios-pxe_ipmitool-tinyipa
+    parent: legacy-ironic-dsvm-base
+    run: playbooks/legacy/tempest-dsvm-ironic-ipa-partition-bios-pxe_ipmitool-tinyipa/run
+    post-run: playbooks/legacy/tempest-dsvm-ironic-ipa-partition-bios-pxe_ipmitool-tinyipa/post
+    timeout: 5400
+
+- job:
+    name: ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
+    parent: legacy-ironic-dsvm-base
+    run: playbooks/legacy/tempest-dsvm-ironic-ipa-partition-uefi-pxe_ipmitool-tinyipa/run
+    post-run: playbooks/legacy/tempest-dsvm-ironic-ipa-partition-uefi-pxe_ipmitool-tinyipa/post
+    timeout: 5400
+
+- job:
+    name: ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
+    parent: legacy-ironic-dsvm-base
+    run: playbooks/legacy/tempest-dsvm-ironic-ipa-partition-pxe_ipmitool-tinyipa-python3/run
+    post-run: playbooks/legacy/tempest-dsvm-ironic-ipa-partition-pxe_ipmitool-tinyipa-python3/post
+    timeout: 5400
+
+- job:
+    name: ironic-tempest-dsvm-ipa-wholedisk-agent_ipmitool-tinyipa-multinode
+    parent: legacy-ironic-dsvm-base-multinode
+    run: playbooks/legacy/tempest-dsvm-ironic-ipa-wholedisk-agent_ipmitool-tinyipa-multinode/run
+    post-run: playbooks/legacy/tempest-dsvm-ironic-ipa-wholedisk-agent_ipmitool-tinyipa-multinode/post
+    timeout: 10800
+    nodeset: legacy-ubuntu-xenial-2-node
+
+- job:
+    name: ironic-tempest-dsvm-ipa-partition-redfish-tinyipa
+    parent: legacy-ironic-dsvm-base
+    run: playbooks/legacy/tempest-dsvm-ironic-ipa-partition-redfish-tinyipa/run
+    post-run: playbooks/legacy/tempest-dsvm-ironic-ipa-partition-redfish-tinyipa/post
+    timeout: 5400
+
+- job:
+    name: ironic-tempest-dsvm-bfv
+    parent: legacy-ironic-dsvm-base
+    run: playbooks/legacy/tempest-dsvm-ironic-bfv/run
+    post-run: playbooks/legacy/tempest-dsvm-ironic-bfv/post
+    timeout: 9600
+
+- job:
+    name: ironic-dsvm-standalone
+    parent: legacy-ironic-dsvm-base
+    run: playbooks/legacy/ironic-dsvm-standalone/run
+    post-run: playbooks/legacy/ironic-dsvm-standalone/post
+    timeout: 10800
+    required-projects:
+      - openstack-infra/devstack-gate
+      - openstack/ironic
+      - openstack/ironic-lib
+      - openstack/ironic-python-agent
+      - openstack/python-ironicclient
+
+- job:
+    name: ironic-tempest-dsvm-ironic-inspector
+    parent: legacy-ironic-dsvm-base
+    run: playbooks/legacy/tempest-dsvm-ironic-inspector/run
+    post-run: playbooks/legacy/tempest-dsvm-ironic-inspector/post
+    timeout: 10800
+    required-projects:
+      - openstack-infra/devstack-gate
+      - openstack/ironic
+      - openstack/ironic-inspector
+      - openstack/ironic-lib
+      - openstack/ironic-python-agent
+      - openstack/pyghmi
+      - openstack/python-ironic-inspector-client
+      - openstack/python-ironicclient
+      - openstack/tempest
+      - openstack/virtualbmc
+
+- job:
+    name: ironic-grenade-dsvm
+    parent: legacy-ironic-dsvm-base
+    run: playbooks/legacy/grenade-dsvm-ironic/run
+    post-run: playbooks/legacy/grenade-dsvm-ironic/post
+    timeout: 10800
+    required-projects:
+      - openstack-dev/grenade
+      - openstack-infra/devstack-gate
+      - openstack/ironic
+      - openstack/ironic-lib
+      - openstack/ironic-python-agent
+      - openstack/pyghmi
+      - openstack/python-ironicclient
+      - openstack/virtualbmc
+
+- job:
+    name: ironic-grenade-dsvm-multinode-multitenant
+    parent: legacy-ironic-dsvm-base-multinode
+    run: playbooks/legacy/grenade-dsvm-ironic-multinode-multitenant/run
+    post-run: playbooks/legacy/grenade-dsvm-ironic-multinode-multitenant/post
+    timeout: 10800
+    required-projects:
+      - openstack-dev/grenade
+      - openstack-infra/devstack-gate
+      - openstack/ironic
+      - openstack/ironic-lib
+      - openstack/ironic-python-agent
+      - openstack/networking-generic-switch
+      - openstack/pyghmi
+      - openstack/python-ironicclient
+      - openstack/virtualbmc
+    nodeset: legacy-ubuntu-xenial-2-node
+
+- job:
+    name: ironic-tempest-dsvm-multitenant-network
+    parent: legacy-ironic-dsvm-base
+    run: playbooks/legacy/tempest-dsvm-ironic-multitenant-network/run
+    post-run: playbooks/legacy/tempest-dsvm-ironic-multitenant-network/post
+    timeout: 10800
+    required-projects:
+      - openstack-infra/devstack-gate
+      - openstack/ironic
+      - openstack/ironic-lib
+      - openstack/ironic-python-agent
+      - openstack/pyghmi
+      - openstack/python-ironicclient
+      - openstack/tempest
+      - openstack/virtualbmc
+      - openstack/networking-generic-switch
+
+- job:
+    name: ironic-dsvm-functional
+    parent: legacy-ironic-dsvm-base
+    run: playbooks/legacy/ironic-dsvm-functional/run
+    post-run: playbooks/legacy/ironic-dsvm-functional/post
+    timeout: 4800
+    required-projects:
+      - openstack-infra/devstack-gate
+      - openstack/ironic
+      - openstack/ironic-python-agent
+
+- job:
+    name: ironic-tempest-dsvm-parallel
+    parent: legacy-ironic-dsvm-base
+    run: playbooks/legacy/tempest-dsvm-ironic-parallel/run
+    post-run: playbooks/legacy/tempest-dsvm-ironic-parallel/post
+    timeout: 10800
+    required-projects:
+      - openstack-infra/devstack-gate
+      - openstack/ara
+      - openstack/ironic
+      - openstack/ironic-lib
+      - openstack/ironic-python-agent
+      - openstack/python-ironicclient
+      - openstack/tempest
+
+- job:
+    name: ironic-tempest-dsvm-pxe_ipa-full
+    parent: legacy-ironic-dsvm-base
+    run: playbooks/legacy/tempest-dsvm-ironic-pxe_ipa-full/run
+    post-run: playbooks/legacy/tempest-dsvm-ironic-pxe_ipa-full/post
+    timeout: 9600
+
+- job:
+    name: ironic-tempest-dsvm-ipa-resourceclasses-partition-pxe_ipmitool-tinyipa
+    parent: legacy-ironic-dsvm-base
+    run: playbooks/legacy/tempest-dsvm-ironic-ipa-resourceclasses-partition-pxe_ipmitool-tinyipa/run
+    post-run: playbooks/legacy/tempest-dsvm-ironic-ipa-resourceclasses-partition-pxe_ipmitool-tinyipa/post
+    timeout: 5400
