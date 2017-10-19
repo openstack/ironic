@@ -1048,6 +1048,12 @@ v_management:
   in: body
   required: true
   type: object
+v_network:
+  description: |
+    Status of the "network" interface
+  in: body
+  required: true
+  type: object
 v_power:
   description: |
     Status of the "power" interface
@@ -1057,6 +1063,12 @@ v_power:
 v_raid:
   description: |
     Status of the "raid" interface
+  in: body
+  required: true
+  type: object
+v_storage:
+  description: |
+    Status of the "storage" interface
   in: body
   required: true
   type: object

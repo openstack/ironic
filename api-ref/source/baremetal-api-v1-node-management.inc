@@ -66,13 +66,15 @@ the Node's driver does not support that interface.
 
 .. rest_parameters:: parameters.yaml
 
-  - power: v_power
   - boot: v_boot
-  - deploy: v_deploy
   - console: v_console
-  - management: v_management
+  - deploy: v_deploy
   - inspect: v_inspect
+  - management: v_management
+  - network: v_network
+  - power: v_power
   - raid: v_raid
+  - storage: v_storage
 
 **Example node validation response:**
 

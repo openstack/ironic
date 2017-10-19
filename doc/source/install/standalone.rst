@@ -136,10 +136,15 @@ Steps to start a deployment are pretty similar to those when using Compute:
     +------------+--------+----------------------------------------------------------------+
     | Interface  | Result | Reason                                                         |
     +------------+--------+----------------------------------------------------------------+
+    | boot       | True   |                                                                |
     | console    | False  | Missing 'ipmi_terminal_port' parameter in node's driver_info.  |
     | deploy     | True   |                                                                |
+    | inspect    | True   |                                                                |
     | management | True   |                                                                |
+    | network    | True   |                                                                |
     | power      | True   |                                                                |
+    | raid       | True   |                                                                |
+    | storage    | True   |                                                                |
     +------------+--------+----------------------------------------------------------------+
 
 #. Now you can start the deployment, run::
