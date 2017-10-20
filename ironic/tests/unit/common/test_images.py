@@ -589,7 +589,7 @@ class FsImageTestCase(base.TestCase):
             '4', '-boot-info-table', '-b', 'isolinux/isolinux.bin',
             '-o', 'tgt_file', 'tmpdir')
 
-    @mock.patch.object(os.path, 'isfile', autspec=True)
+    @mock.patch.object(os.path, 'isfile', autospec=True)
     def test_create_isolinux_image_for_bios(self, mock_isfile):
         mock_isfile.return_value = False
         self._test_create_isolinux_image_for_bios()
@@ -599,7 +599,7 @@ class FsImageTestCase(base.TestCase):
         self._test_create_isolinux_image_for_bios(
             ldlinux_path='path/to/ldlinux.c32')
 
-    @mock.patch.object(os.path, 'isfile', autspec=True)
+    @mock.patch.object(os.path, 'isfile', autospec=True)
     def test_create_isolinux_image_for_bios_default_ldlinux(self, mock_isfile):
         mock_isfile.side_effect = [False, True]
         self._test_create_isolinux_image_for_bios(

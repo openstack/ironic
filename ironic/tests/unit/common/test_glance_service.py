@@ -156,7 +156,8 @@ class TestGlanceImageService(base.TestCase):
             'properties': {},
             'owner': None,
         }
-        with mock.patch.object(self.service, 'call', return_value=image):
+        with mock.patch.object(self.service, 'call', return_value=image,
+                               autospec=True):
             image_meta = self.service.show(image_id)
             self.service.call.assert_called_once_with('get', image_id)
         self.assertEqual(expected, image_meta)
@@ -164,7 +165,8 @@ class TestGlanceImageService(base.TestCase):
     def test_show_makes_datetimes(self):
         image_id = uuidutils.generate_uuid()
         image = self._make_datetime_fixture()
-        with mock.patch.object(self.service, 'call', return_value=image):
+        with mock.patch.object(self.service, 'call', return_value=image,
+                               autospec=True):
             image_meta = self.service.show(image_id)
             self.service.call.assert_called_once_with('get', image_id)
         self.assertEqual(self.NOW_DATETIME, image_meta['created_at'])

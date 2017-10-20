@@ -38,10 +38,10 @@ class RequestContextTestCase(tests_base.TestCase):
             "overwrite": True
         }
 
-    @mock.patch.object(oslo_context.RequestContext, "__init__")
+    @mock.patch.object(oslo_context.RequestContext, "__init__", autospec=True)
     def test_create_context(self, context_mock):
         test_context = context.RequestContext()
-        context_mock.assert_called_once_with()
+        context_mock.assert_called_once_with(mock.ANY)
         self.assertFalse(test_context.is_public_api)
 
     def test_from_dict(self):
@@ -62,14 +62,14 @@ class RequestContextTestCase(tests_base.TestCase):
         admin_context = context.get_admin_context()
         self.assertTrue(admin_context.is_admin)
 
-    @mock.patch.object(oslo_context, 'get_current')
+    @mock.patch.object(oslo_context, 'get_current', autospec=True)
     def test_thread_without_context(self, context_get_mock):
         self.context.update_store = mock.Mock()
         context_get_mock.return_value = None
         self.context.ensure_thread_contain_context()
         self.context.update_store.assert_called_once_with()
 
-    @mock.patch.object(oslo_context, 'get_current')
+    @mock.patch.object(oslo_context, 'get_current', autospec=True)
     def test_thread_with_context(self, context_get_mock):
         self.context.update_store = mock.Mock()
         context_get_mock.return_value = self.context

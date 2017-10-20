@@ -159,7 +159,7 @@ class TestCinderUtils(db_base.DbTestCase):
         self.assertIsNone(cinder._get_attachment_id(self.node, unattached))
         self.assertIsNone(cinder._get_attachment_id(self.node, no_attachment))
 
-    @mock.patch.object(datetime, 'datetime')
+    @mock.patch.object(datetime, 'datetime', autospec=True)
     def test__create_metadata_dictionary(self, mock_datetime):
         fake_time = '2017-06-05T00:33:26.574676'
         mock_utcnow = mock.Mock()
