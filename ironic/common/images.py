@@ -24,7 +24,6 @@ import shutil
 
 from ironic_lib import disk_utils
 from ironic_lib import utils as ironic_utils
-import jinja2
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import fileutils
@@ -150,18 +149,8 @@ def _generate_cfg(kernel_params, template, options):
     :returns: a string containing the contents of the isolinux configuration
         file.
     """
-    if not kernel_params:
-        kernel_params = []
-    kernel_params_str = ' '.join(kernel_params)
-
-    tmpl_path, tmpl_file = os.path.split(template)
-    env = jinja2.Environment(loader=jinja2.FileSystemLoader(tmpl_path))
-    template = env.get_template(tmpl_file)
-
-    options.update({'kernel_params': kernel_params_str})
-
-    cfg = template.render(options)
-    return cfg
+    options.update({'kernel_params': ' '.join(kernel_params or [])})
+    return utils.render_template(template, options)
 
 
 def create_isolinux_image_for_bios(output_file, kernel, ramdisk,
