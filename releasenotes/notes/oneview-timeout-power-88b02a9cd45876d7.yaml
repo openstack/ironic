@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds support for 'timeout' parameter when powering on/off an Ironic node
+    that is being managed using 'oneview' hardware type.
