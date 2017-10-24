@@ -365,10 +365,15 @@ Validating node information
     +------------+--------+--------+
     | Interface  | Result | Reason |
     +------------+--------+--------+
+    | boot       | True   |        |
     | console    | True   |        |
     | deploy     | True   |        |
+    | inspect    | True   |        |
     | management | True   |        |
+    | network    | True   |        |
     | power      | True   |        |
+    | raid       | True   |        |
+    | storage    | True   |        |
     +------------+--------+--------+
 
    If the node fails validation, each driver interface will return information
@@ -380,10 +385,15 @@ Validating node information
     +------------+--------+-------------------------------------------------------------------------------------------------------------------------------------+
     | Interface  | Result | Reason                                                                                                                              |
     +------------+--------+-------------------------------------------------------------------------------------------------------------------------------------+
+    | boot       | True   |                                                                                                                                     |
     | console    | None   | not supported                                                                                                                       |
     | deploy     | False  | Cannot validate iSCSI deploy. Some parameters were missing in node's instance_info. Missing are: ['root_gb', 'image_source']        |
+    | inspect    | True   |                                                                                                                                     |
     | management | False  | Missing the following IPMI credentials in node's driver_info: ['ipmi_address'].                                                     |
+    | network    | True   |                                                                                                                                     |
     | power      | False  | Missing the following IPMI credentials in node's driver_info: ['ipmi_address'].                                                     |
+    | raid       | None   | not supported                                                                                                                       |
+    | storage    | True   |                                                                                                                                     |
     +------------+--------+-------------------------------------------------------------------------------------------------------------------------------------+
 
    When using the Compute Service with the Bare Metal service, it is safe to
@@ -398,11 +408,17 @@ Validating node information
     +------------+--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     | Interface  | Result | Reason                                                                                                                                                           |
     +------------+--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | boot       | False  | Cannot validate image information for node because one or more parameters are missing from its instance_info. Missing are: ['ramdisk', 'kernel', 'image_source'] |
     | console    | True   |                                                                                                                                                                  |
     | deploy     | False  | Cannot validate image information for node because one or more parameters are missing from its instance_info. Missing are: ['ramdisk', 'kernel', 'image_source'] |
+    | inspect    | True   |                                                                                                                                                                  |
     | management | True   |                                                                                                                                                                  |
+    | network    | True   |                                                                                                                                                                  |
     | power      | True   |                                                                                                                                                                  |
+    | raid       | None   | not supported                                                                                                                                                    |
+    | storage    | True   |                                                                                                                                                                  |
     +------------+--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
 
 Making node available for deployment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -533,9 +549,9 @@ UUID interchangeably:
     | instance_info          | {}                                   |
     +------------------------+--------------------------------------+
 
-.. _rfc952: http://tools.ietf.org/html/rfc952
-.. _rfc1123: http://tools.ietf.org/html/rfc1123
-.. _wiki_hostname: http://en.wikipedia.org/wiki/Hostname
+.. _rfc952: https://tools.ietf.org/html/rfc952
+.. _rfc1123: https://tools.ietf.org/html/rfc1123
+.. _wiki_hostname: https://en.wikipedia.org/wiki/Hostname
 
 .. _hardware_interfaces_defaults:
 
