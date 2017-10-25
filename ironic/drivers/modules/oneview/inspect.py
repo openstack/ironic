@@ -20,11 +20,10 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conf import CONF
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy_utils
-
-from ironic.conf import CONF
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 

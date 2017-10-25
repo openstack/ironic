@@ -12,19 +12,17 @@
 
 from ironic.conductor import task_manager
 from ironic.drivers.modules import agent
+from ironic.drivers.modules.cimc import management as cimc_mgmt
+from ironic.drivers.modules.cimc import power as cimc_power
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.storage import noop as noop_storage
-from ironic.tests.unit.db import base as db_base
-from ironic.tests.unit.objects import utils as obj_utils
-
-from ironic.drivers.modules.cimc import management as cimc_mgmt
-from ironic.drivers.modules.cimc import power as cimc_power
-
 from ironic.drivers.modules.ucs import management as ucs_mgmt
 from ironic.drivers.modules.ucs import power as ucs_power
+from ironic.tests.unit.db import base as db_base
+from ironic.tests.unit.objects import utils as obj_utils
 
 
 class CiscoUCSStandaloneHardwareTestCase(db_base.DbTestCase):

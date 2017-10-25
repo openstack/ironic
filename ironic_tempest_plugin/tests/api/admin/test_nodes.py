@@ -11,7 +11,6 @@
 #    under the License.
 
 import six
-
 from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators

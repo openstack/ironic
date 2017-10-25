@@ -11,7 +11,6 @@
 #    under the License.
 
 import mock
-
 from oslo_config import cfg
 from osprofiler import web
 

@@ -17,7 +17,6 @@ Test class for iRMC Power Driver
 """
 
 import mock
-
 from oslo_utils import uuidutils
 
 from ironic.common import exception

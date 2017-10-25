@@ -15,10 +15,8 @@ Hardware types for Cisco UCS Servers
 """
 
 from ironic.drivers import ipmi
-
 from ironic.drivers.modules.cimc import management as cimc_mgmt
 from ironic.drivers.modules.cimc import power as cimc_power
-
 from ironic.drivers.modules.ucs import management as ucs_mgmt
 from ironic.drivers.modules.ucs import power as ucs_power
 

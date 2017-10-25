@@ -23,7 +23,6 @@ import subprocess
 
 from oslo_log import log
 from oslo_utils import netutils
-
 from tempest.common import compute
 from tempest.common.utils.linux import remote_client
 from tempest.common.utils import net_utils

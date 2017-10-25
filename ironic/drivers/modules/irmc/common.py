@@ -15,10 +15,9 @@
 """
 Common functionalities shared between different iRMC modules.
 """
-import six
-
 from oslo_log import log as logging
 from oslo_utils import importutils
+import six
 
 from ironic.common import exception
 from ironic.common.i18n import _

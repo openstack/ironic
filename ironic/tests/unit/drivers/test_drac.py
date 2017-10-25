@@ -15,7 +15,6 @@
 import inspect
 
 import mock
-
 from oslo_utils import importutils
 
 from ironic.common import exception

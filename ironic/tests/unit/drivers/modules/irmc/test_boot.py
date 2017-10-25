@@ -45,7 +45,6 @@ from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers import third_party_driver_mock_specs \
     as mock_specs
 from ironic.tests.unit.objects import utils as obj_utils
-
 if six.PY3:
     import io
     file = io.BytesIO

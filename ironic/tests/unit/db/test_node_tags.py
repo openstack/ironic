@@ -13,7 +13,6 @@
 """Tests for manipulating NodeTags via the DB API"""
 
 from ironic.common import exception
-
 from ironic.tests.unit.db import base
 from ironic.tests.unit.db import utils as db_utils
 
