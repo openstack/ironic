@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import mock
-
 from oslo_utils import importutils
 from six.moves import http_client
 

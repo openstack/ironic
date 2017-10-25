@@ -15,7 +15,6 @@
 #    under the License.
 
 import mock
-
 from neutronclient.common import exceptions as neutron_client_exc
 from oslo_utils import uuidutils
 

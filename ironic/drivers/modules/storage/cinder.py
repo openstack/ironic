@@ -12,12 +12,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import retrying
-
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import excutils
 from oslo_utils import strutils
+import retrying
 
 from ironic.common import cinder
 from ironic.common import exception
