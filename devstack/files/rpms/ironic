@@ -20,3 +20,4 @@ libvirt-devel
 socat
 edk2-ovmf # dist:f24,f25
 ipxe-roms-qemu
+jq
