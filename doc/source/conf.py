@@ -11,12 +11,22 @@
 #  License for the specific language governing permissions and limitations
 #  under the License.
 
+import eventlet
+
+# NOTE(dims): monkey patch subprocess to prevent failures in latest eventlet
+# See https://github.com/eventlet/eventlet/issues/398
+try:
+    eventlet.monkey_patch(subprocess=True)
+except TypeError:
+    pass
+
 # -- General configuration ----------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.viewcode',
+              'sphinx.ext.graphviz',
               'sphinxcontrib.httpdomain',
               'sphinxcontrib.pecanwsme.rest',
               'sphinxcontrib.seqdiag',
@@ -95,7 +105,7 @@ exclude_patterns = ['api/ironic_tempest_plugin.*']
 # Ignore the following warning: WARNING: while setting up extension
 # wsmeext.sphinxext: directive 'autoattribute' is already registered,
 # it will be overridden.
-suppress_warnings = [ 'app.add_directive']
+suppress_warnings = ['app.add_directive']
 
 # -- Options for HTML output --------------------------------------------------
 
