@@ -13,6 +13,7 @@ It contains the following sections:
    :maxdepth: 2
 
    get_started.rst
+   refarch/index
    install.rst
    configure-integration.rst
    deploy-ramdisk.rst

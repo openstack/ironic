@@ -52,6 +52,8 @@ If there are slow or unresponsive BMCs in the environment, the
 need to be raised. The default is fairly conservative, as setting this timeout
 too low can cause older BMCs to crash and require a hard-reset.
 
+.. _ipmi-sensor-data:
+
 Collecting sensor data
 ~~~~~~~~~~~~~~~~~~~~~~
 
