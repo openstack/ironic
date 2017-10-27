@@ -1149,9 +1149,25 @@ class Connection(api.Connection):
                 supported_versions = object_versions[model.__name__]
                 if not supported_versions:
                     continue
+
+                # TODO(rloo). Because we forgot to set the version of
+                #     conductors in Pike, we allow the Conductor version to
+                #     be null now (Queens). In Rocky, it cannot be null,
+                #     and this 'if...' can be deleted then.
+                if model.__name__ == 'Conductor':
+                    query = model_query(model.version).filter(
+                        model.version.notin_(supported_versions))
+                    if query.count():
+                        return False
+                    continue
+
+                # NOTE(rloo): we use model.version, not model, because we
+                #             know that the object has a 'version' column
+                #             but we don't know whether the entire object is
+                #             compatible with its (old) DB representation.
                 # NOTE(rloo): .notin_ does not handle null:
                 # http://docs.sqlalchemy.org/en/latest/core/sqlelement.html#sqlalchemy.sql.operators.ColumnOperators.notin_
-                query = model_query(model).filter(
+                query = model_query(model.version).filter(
                     sql.or_(model.version == sql.null(),
                             model.version.notin_(supported_versions)))
                 if query.count():

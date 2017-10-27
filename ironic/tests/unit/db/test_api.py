@@ -50,6 +50,27 @@ class UpgradingTestCase(base.DbTestCase):
         self.assertEqual('1.0', node.version)
         self.assertFalse(self.dbapi.check_versions())
 
+    def test_check_versions_conductor(self):
+        for v in self.object_versions['Conductor']:
+            conductor = utils.create_test_conductor(
+                uuid=uuidutils.generate_uuid(), version=v)
+            conductor = self.dbapi.get_conductor(conductor.hostname)
+            self.assertEqual(v, conductor.version)
+        self.assertTrue(self.dbapi.check_versions())
+
+    def test_check_versions_conductor_no_version(self):
+        # works in Queens only
+        conductor = utils.create_test_conductor(version=None)
+        conductor = self.dbapi.get_conductor(conductor.hostname)
+        self.assertIsNone(conductor.version)
+        self.assertTrue(self.dbapi.check_versions())
+
+    def test_check_versions_conductor_old(self):
+        conductor = utils.create_test_conductor(version='1.0')
+        conductor = self.dbapi.get_conductor(conductor.hostname)
+        self.assertEqual('1.0', conductor.version)
+        self.assertFalse(self.dbapi.check_versions())
+
 
 class BackfillVersionTestCase(base.DbTestCase):
 

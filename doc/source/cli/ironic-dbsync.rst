@@ -188,14 +188,12 @@ upgrade
 This command will upgrade existing database tables to the most recent version,
 or to the version specified with the :option:`--revision` option.
 
-..
-  TODO(rloo): add this in Queens; doesn't make sense to add in Pike
-  Before this ``upgrade`` is invoked, the command
-  `ironic db-sync online_data_migrations` must have been successfully run using
-  the previous version of ironic (if you are doing an upgrade as opposed to a
-  new installation of ironic). If it wasn't run, the database will not be
-  compatible with this recent version of ironic, and this command will return
-  2 (error).
+Before this ``upgrade`` is invoked, the command
+:command:`ironic-dbsync online_data_migrations` must have been successfully run
+using the previous version of ironic (if you are doing an upgrade as opposed to
+a new installation of ironic). If it wasn't run, the database will not be
+compatible with this recent version of ironic, and this command will return
+2 (error).
 
 If there are no existing tables, then new tables are created, beginning
 with the oldest known version, and successively upgraded using all of the
