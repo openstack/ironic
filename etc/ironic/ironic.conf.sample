@@ -681,8 +681,18 @@
 # Seconds to wait for a response from a call. (integer value)
 #rpc_response_timeout = 60
 
-# A URL representing the messaging driver to use and its full
-# configuration. (string value)
+# The network address and optional user credentials for
+# connecting to the messaging backend, in URL format. The
+# expected format is:
+#
+# driver://[user:pass@]host:port[,[userN:passN@]hostN:portN]/virtual_host?query
+#
+# Example: rabbit://rabbitmq:password@127.0.0.1:5672//
+#
+# For full details on the fields in the URL see the
+# documentation of oslo_messaging.TransportURL at
+# https://docs.openstack.org/oslo.messaging/latest/reference/transport.html
+# (string value)
 #transport_url = <None>
 
 # DEPRECATED: The messaging driver to use, defaults to rabbit.
@@ -1265,12 +1275,16 @@
 # Cluster (NDB). (boolean value)
 #mysql_enable_ndb = false
 
-# Timeout before idle SQL connections are reaped. (integer
-# value)
+# Connections which have been present in the connection pool
+# longer than this number of seconds will be replaced with a
+# new one the next time they are checked out from the pool.
+# (integer value)
+# Deprecated group/name - [DATABASE]/idle_timeout
+# Deprecated group/name - [database]/idle_timeout
 # Deprecated group/name - [DEFAULT]/sql_idle_timeout
 # Deprecated group/name - [DATABASE]/sql_idle_timeout
 # Deprecated group/name - [sql]/idle_timeout
-#idle_timeout = 3600
+#connection_recycle_time = 3600
 
 # Minimum number of SQL connections to keep open in a pool.
 # (integer value)
@@ -2581,6 +2595,16 @@
 # value)
 #ssl_key_password = <None>
 
+# By default SSL checks that the name in the server's
+# certificate matches the hostname in the transport_url. In
+# some configurations it may be preferable to use the virtual
+# hostname instead, for example if the server uses the Server
+# Name Indication TLS extension (rfc6066) to provide a
+# certificate per virtual host. Set ssl_verify_vhost to True
+# if the server's SSL certificate uses the virtual host name
+# instead of the DNS name. (boolean value)
+#ssl_verify_vhost = false
+
 # DEPRECATED: Accept clients using either SSL or plain TCP
 # (boolean value)
 # This option is deprecated for removal.
@@ -2675,6 +2699,16 @@
 # not support routing otherwise use routable addressing
 # (string value)
 #addressing_mode = dynamic
+
+# Enable virtual host support for those message buses that do
+# not natively support virtual hosting (such as qpidd). When
+# set to true the virtual host name will be added to all
+# message bus addresses, effectively creating a private
+# 'subnet' per virtual host. Set to False if the message bus
+# supports virtual hosting using the 'hostname' field in the
+# AMQP 1.0 Open performative as the name of the virtual host.
+# (boolean value)
+#pseudo_vhost = true
 
 # address prefix used when sending to a specific server
 # (string value)
@@ -3289,6 +3323,27 @@
 # to be searched.  Missing or empty directories are ignored.
 # (multi valued)
 #policy_dirs = policy.d
+
+# Content Type to send and receive data for REST based policy
+# check (string value)
+# Allowed values: application/x-www-form-urlencoded, application/json
+#remote_content_type = application/x-www-form-urlencoded
+
+# server identity verification for REST based policy check
+# (boolean value)
+#remote_ssl_verify_server_crt = false
+
+# Absolute path to ca cert file for REST based policy check
+# (string value)
+#remote_ssl_ca_crt_file = <None>
+
+# Absolute path to client cert for REST based policy check
+# (string value)
+#remote_ssl_client_crt_file = <None>
+
+# Absolute path client key file REST based policy check
+# (string value)
+#remote_ssl_client_key_file = <None>
 
 
 [profiler]
