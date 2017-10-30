@@ -1,11 +1,11 @@
 ---
 upgrade:
   - |
-    The ``ironic-dbsync`` command will check the object versions to make
-    sure they are compatible with the new ironic release, before doing the
-    ``upgrade`` or ``online_data_migrations``.
+    The ``ironic-dbsync`` command will check the database object (record)
+    versions to make sure they are compatible with the new ironic release,
+    before doing the ``upgrade`` or ``online_data_migrations``.
 other:
   - |
-    The ``ironic-dbsync`` command will check the object versions to make
-    sure they are compatible with the new ironic release, before doing the
-    ``upgrade`` or ``online_data_migrations``.
+    The ``ironic-dbsync`` command will check the database object (record)
+    versions to make sure they are compatible with the new ironic release,
+    before doing the ``upgrade`` or ``online_data_migrations``.
