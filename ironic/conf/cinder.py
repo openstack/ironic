@@ -20,20 +20,16 @@ opts = [
     cfg.URIOpt('url',
                schemes=('http', 'https'),
                help=_('URL for connecting to cinder. If set, the value must '
-                      'start with either http:// or https://. This option is '
-                      'part of boot-from-volume work, which is not currently '
-                      'exposed to users.')),
+                      'start with either http:// or https://.')),
     cfg.IntOpt('retries',
                default=3,
                help=_('Client retries in the case of a failed request '
-                      'connection. This option is part of boot-from-volume '
-                      'work, which is not currently exposed to users.')),
+                      'connection.')),
     cfg.IntOpt('action_retries',
                default=3,
                help=_('Number of retries in the case of a failed '
                       'action (currently only used when detaching '
-                      'volumes). This option is part of boot-from-volume '
-                      'work, which is not currently exposed to users.')),
+                      'volumes).')),
     cfg.IntOpt('action_retry_interval',
                default=5,
                help=_('Retry interval in seconds in the case of a failed '

@@ -907,9 +907,7 @@
 #
 
 # Number of retries in the case of a failed action (currently
-# only used when detaching volumes). This option is part of
-# boot-from-volume work, which is not currently exposed to
-# users. (integer value)
+# only used when detaching volumes). (integer value)
 #action_retries = 3
 
 # Retry interval in seconds in the case of a failed action
@@ -970,8 +968,7 @@
 #project_name = <None>
 
 # Client retries in the case of a failed request connection.
-# This option is part of boot-from-volume work, which is not
-# currently exposed to users. (integer value)
+# (integer value)
 #retries = 3
 
 # Tenant ID (string value)
@@ -987,9 +984,7 @@
 #trust_id = <None>
 
 # URL for connecting to cinder. If set, the value must start
-# with either http:// or https://. This option is part of
-# boot-from-volume work, which is not currently exposed to
-# users. (uri value)
+# with either http:// or https://. (uri value)
 #url = <None>
 
 # User's domain id (string value)
