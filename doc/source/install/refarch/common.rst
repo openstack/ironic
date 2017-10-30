@@ -34,19 +34,19 @@ components.
     manages them by writing files to their root directories.
 
   * If serial console is used, the conductor launches console processes
-    locally. If the nova-serialproxy service (part of the Compute service)
-    it used, it has to be able to reach them. Otherwise, they have to be
-    directly accessible by the users.
+    locally. If the ``nova-serialproxy`` service (part of the Compute service)
+    is used, it has to be able to reach the conductors. Otherwise, they have to
+    be directly accessible by the users.
 
-  * There has to be mutual connectivity between the conductor and the nodes
+  * There must be mutual connectivity between the conductor and the nodes
     being deployed or cleaned. See Networking_ for details.
 
 * The provisioning ramdisk which runs the ``ironic-python-agent`` service
   on start up.
 
   .. warning::
-    The ``ironic-python-agent`` service is not intended to be used anywhere
-    other than a provisioning/cleaning ramdisk.
+    The ``ironic-python-agent`` service is not intended to be used or executed
+    anywhere other than a provisioning/cleaning ramdisk.
 
 Hardware and drivers
 --------------------
@@ -105,7 +105,7 @@ Alternatively, several vendors provide *virtual media* implementations of the
 boot interface. They work by pushing an ISO image to the node's `management
 controller`_, and do not require either PXE or iPXE. If such boot
 implementation is available for the hardware, it is recommended using it
-for better scalability and security.  Check your driver documentation at
+for better scalability and security. Check your driver documentation at
 :doc:`/admin/drivers` for details.
 
 Deploy interface
@@ -115,8 +115,10 @@ There are two deploy interfaces in-tree, ``iscsi`` and ``direct``. See
 :doc:`../enabling-drivers` for explanation of the difference. With the
 ``iscsi`` deploy method, most of the deployment operations happen on the
 conductor. If the Object Storage service (swift) or RadosGW is present in
-the cloud, it is recommended to use the ``direct`` deploy method for better
-scalability and reliability.
+the environment, it is recommended to use the ``direct`` deploy method for
+better scalability and reliability.
+
+.. TODO(dtantsur): say something about the ansible deploy, when it's in
 
 Hardware specifications
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -125,8 +127,12 @@ The Bare Metal services does not impose too many restrictions on the
 characteristics of hardware itself. However, keep in mind that
 
 * By default, the Bare Metal service will pick the smallest hard drive that
-  is large than 4 GiB for deployment. A smaller hard drive can be used, but
+  is larger than 4 GiB for deployment. Another hard drive can be used, but it
   requires setting :ref:`root device hints <root-device-hints>`.
+
+  .. note::
+    This device does not have to match the boot device set in BIOS (or similar
+    firmware).
 
 * The machines should have enough RAM to fit the deployment/cleaning ramdisk
   to run. The minimum varies greatly depending on the way the ramdisk was
@@ -139,15 +145,20 @@ Image types
 
 The Bare Metal service can deploy two types of images:
 
-* *Whole-disk* images contain a complete partitioning table with all necessary
-  partitions. Such images are the most universal, but may be harder to build.
+* *Whole-disk* images that contain a complete partitioning table with all
+  necessary partitions and a bootloader. Such images are the most universal,
+  but may be harder to build.
 
-* *Partition images* contain only the root partition. The Bare Metal service
-  will create the necessary partitions and install a boot loader, if needed.
+* *Partition images* that contain only the root partition. The Bare Metal
+  service will create the necessary partitions and install a boot loader,
+  if needed.
 
   .. warning::
-    Partition images are only supported with GNU/Linux operating systems,
-    and requires the GRUB2 bootloader to be present on the root image.
+    Partition images are only supported with GNU/Linux operating systems.
+
+  .. warning::
+    If you plan on using local boot, your partition images must contain GRUB2
+    bootloader tools to enable ironic to set up the bootloader during deploy.
 
 Local vs network boot
 ---------------------
@@ -166,7 +177,8 @@ boot interfaces based on it:
   managing it. Thus, nodes are able to reboot correctly, even if the Bare Metal
   TFTP or HTTP service is down.
 
-* Network boot (and iPXE) must be used when booting nodes from remote volumes.
+* Network boot (and iPXE) must be used when booting nodes from remote volumes,
+  if the driver does not support attaching volumes out-of-band.
 
 The default boot option for the cloud can be changed via the Bare Metal service
 configuration file, for example:
@@ -196,15 +208,15 @@ documentation. However, several considerations are common for all of them:
 
 * There has to be a *cleaning* network, which is used by nodes during
   the cleaning process. In the majority of cases, the same network should
-  be used as cleaning and provisioning for simplicity.
+  be used for cleaning and provisioning for simplicity.
 
-  Unless noted otherwise, everything in these sections apply to both networks.
+Unless noted otherwise, everything in these sections apply to both networks.
 
-* The baremetal nodes have to have access to the Bare Metal API while connected
+* The baremetal nodes must have access to the Bare Metal API while connected
   to the provisioning/cleaning network.
 
   .. note::
-      Actually, only two endpoints need to be exposed there::
+      Only two endpoints need to be exposed there::
 
         GET /v1/lookup
         POST /v1/heartbeat/[a-z0-9\-]+
@@ -230,8 +242,8 @@ documentation. However, several considerations are common for all of them:
   * either an HTTP server or the Object Storage service in case of the
     ``direct`` deploy interface and some virtual media boot interfaces
 
-* The Baremetal Conductor needs to have access to the booted baremetal nodes
-  during provisioning/cleaning. The conductor communicates with an internal
+* The Baremetal Conductors need to have access to the booted baremetal nodes
+  during provisioning/cleaning. A conductor communicates with an internal
   API, provided by **ironic-python-agent**, to conduct actions on nodes.
 
 HA and Scalability
@@ -244,8 +256,9 @@ The Bare Metal API service is stateless, and thus can be easily scaled
 horizontally. It is recommended to deploy it as a WSGI application behind e.g.
 Apache or another WSGI container.
 
-Note, that this service accesses the ironic database for reading entities
-(e.g. in response to ``GET /v1/nodes`` request) and in rare cases for writing.
+.. note::
+    This service accesses the ironic database for reading entities (e.g. in
+    response to ``GET /v1/nodes`` request) and in rare cases for writing.
 
 ironic-conductor
 ~~~~~~~~~~~~~~~~
