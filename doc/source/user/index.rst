@@ -165,23 +165,24 @@ through the steps involved during the provisioning of a bare metal instance.
 
 These pre-requisites must be met before the deployment process:
 
-- Dependent packages to be configured on the Bare Metal service node(s)
+* Dependent packages to be configured on the Bare Metal service node(s)
   where ironic-conductor is running like tftp-server, ipmi, syslinux etc for
   bare metal provisioning.
-- Nova must be configured to make use of the bare metal service endpoint
+* Nova must be configured to make use of the bare metal service endpoint
   and compute driver should be configured to use ironic driver on the Nova
   compute node(s).
-- Flavors to be created for the available hardware. Nova must know the flavor
+* Flavors to be created for the available hardware. Nova must know the flavor
   to boot from.
-- Images to be made available in Glance. Listed below are some image types
+* Images to be made available in Glance. Listed below are some image types
   required for successful bare metal deployment:
 
-     +  bm-deploy-kernel
-     +  bm-deploy-ramdisk
-     +  user-image
-     +  user-image-vmlinuz
-     +  user-image-initrd
-- Hardware to be enrolled via Ironic RESTful API service.
+  -  bm-deploy-kernel
+  -  bm-deploy-ramdisk
+  -  user-image
+  -  user-image-vmlinuz
+  -  user-image-initrd
+
+* Hardware to be enrolled via Ironic RESTful API service.
 
 Deploy Process
 --------------
