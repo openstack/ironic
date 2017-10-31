@@ -32,7 +32,8 @@ class BaremetalAgentIpmitoolWholedisk(bsm.BaremetalStandaloneScenarioTest):
     @decorators.idempotent_id('defff515-a6ff-44f6-9d8d-2ded51196d98')
     @utils.services('image', 'network', 'object_storage')
     def test_ip_access_to_server(self):
-        self.ping_ip_address(self.node_ip, should_succeed=True)
+        self.assertTrue(self.ping_ip_address(self.node_ip,
+                                             should_succeed=True))
 
 
 class BaremetalAgentIpmitoolWholediskHttpLink(
@@ -53,7 +54,8 @@ class BaremetalAgentIpmitoolWholediskHttpLink(
     @decorators.idempotent_id('d926c683-1a32-44df-afd0-e60134346fd0')
     @utils.services('network')
     def test_ip_access_to_server(self):
-        self.ping_ip_address(self.node_ip, should_succeed=True)
+        self.assertTrue(self.ping_ip_address(self.node_ip,
+                                             should_succeed=True))
 
 
 class BaremetalAgentIpmitoolPartitioned(bsm.BaremetalStandaloneScenarioTest):
@@ -65,7 +67,8 @@ class BaremetalAgentIpmitoolPartitioned(bsm.BaremetalStandaloneScenarioTest):
     @decorators.idempotent_id('27b86130-d8dc-419d-880a-fbbbe4ce3f8c')
     @utils.services('image', 'network', 'object_storage')
     def test_ip_access_to_server(self):
-        self.ping_ip_address(self.node_ip, should_succeed=True)
+        self.assertTrue(self.ping_ip_address(self.node_ip,
+                                             should_succeed=True))
 
 
 class BaremetalPxeIpmitoolWholedisk(bsm.BaremetalStandaloneScenarioTest):
@@ -77,7 +80,8 @@ class BaremetalPxeIpmitoolWholedisk(bsm.BaremetalStandaloneScenarioTest):
     @decorators.idempotent_id('d8c5badd-45db-4d05-bbe8-35babbed6e86')
     @utils.services('image', 'network')
     def test_ip_access_to_server(self):
-        self.ping_ip_address(self.node_ip, should_succeed=True)
+        self.assertTrue(self.ping_ip_address(self.node_ip,
+                                             should_succeed=True))
 
 
 class BaremetalPxeIpmitoolWholediskHttpLink(
@@ -98,7 +102,8 @@ class BaremetalPxeIpmitoolWholediskHttpLink(
     @decorators.idempotent_id('71ccf06f-6765-40fd-8252-1b1bfa423b9b')
     @utils.services('network')
     def test_ip_access_to_server(self):
-        self.ping_ip_address(self.node_ip, should_succeed=True)
+        self.assertTrue(self.ping_ip_address(self.node_ip,
+                                             should_succeed=True))
 
 
 class BaremetalPxeIpmitoolPartitioned(bsm.BaremetalStandaloneScenarioTest):
@@ -110,7 +115,8 @@ class BaremetalPxeIpmitoolPartitioned(bsm.BaremetalStandaloneScenarioTest):
     @decorators.idempotent_id('ea85e19c-6869-4577-b9bb-2eb150f77c90')
     @utils.services('image', 'network')
     def test_ip_access_to_server(self):
-        self.ping_ip_address(self.node_ip, should_succeed=True)
+        self.assertTrue(self.ping_ip_address(self.node_ip,
+                                             should_succeed=True))
 
 
 class BaremetalIpmiWholedisk(bsm.BaremetalStandaloneScenarioTest):
@@ -122,7 +128,8 @@ class BaremetalIpmiWholedisk(bsm.BaremetalStandaloneScenarioTest):
     @decorators.idempotent_id('c2db24e7-07dc-4a20-8f93-d4efae2bfd4e')
     @utils.services('image', 'network')
     def test_ip_access_to_server(self):
-        self.ping_ip_address(self.node_ip, should_succeed=True)
+        self.assertTrue(self.ping_ip_address(self.node_ip,
+                                             should_succeed=True))
 
 
 class BaremetalIpmiPartitioned(bsm.BaremetalStandaloneScenarioTest):
@@ -134,4 +141,5 @@ class BaremetalIpmiPartitioned(bsm.BaremetalStandaloneScenarioTest):
     @decorators.idempotent_id('7d0b205e-edbc-4e2d-9f6d-95cd74eefecb')
     @utils.services('image', 'network')
     def test_ip_access_to_server(self):
-        self.ping_ip_address(self.node_ip, should_succeed=True)
+        self.assertTrue(self.ping_ip_address(self.node_ip,
+                                             should_succeed=True))
