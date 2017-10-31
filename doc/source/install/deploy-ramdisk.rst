@@ -38,7 +38,7 @@ CoreOS tools
         sudo dnf install docker gzip util-linux cpio findutils grep gpg
 
     Ubuntu 14.04 (trusty) or higher:
-        sudo apt-get install docker.io gzip uuid-runtime cpio findutils grep gnupg
+        sudo apt-get install docker.io gzip uuid-runtime cpio findutils grep gnupg cgroup-lite
 
     SUSE:
         sudo zypper install docker gzip util-linux cpio findutils grep gpg2
