@@ -27,12 +27,16 @@ the Bare Metal service:
 - ``noop`` interface is used for standalone deployments, and does not perform
   any network switching;
 
-- ``flat`` interface places all provisioned nodes and nodes being deployed into
-  a single layer 2 network, separated from the cleaning network;
+- ``flat`` interface places all nodes into a single provider network that is
+  pre-configured on the Networking service and physical equipment. Nodes remain
+  physically connected to this network during their entire life cycle.
 
-- ``neutron`` interface provides tenant-defined networking by integrating with
-  the Networking service, while also separating tenant networks from the
-  provisioning and cleaning provider networks.
+- ``neutron`` interface provides tenant-defined networking through the
+  Networking service, separating tenant networks from each other and from the
+  provisioning and cleaning provider networks. Nodes will move between these
+  networks during their life cycle. This interface requires Networking service
+  support for the switches attached to the baremetal servers so they can be
+  programmed.
 
 Local link connection
 ---------------------
