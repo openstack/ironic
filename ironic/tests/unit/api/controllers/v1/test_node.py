@@ -2982,8 +2982,11 @@ class TestPut(test_api_base.BaseApiTest):
                             {'target': states.ACTIVE})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        self.mock_dnd.assert_called_once_with(
-            mock.ANY, self.node.uuid, False, None, 'test-topic')
+        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+                                              node_id=self.node.uuid,
+                                              rebuild=False,
+                                              configdrive=None,
+                                              topic='test-topic')
         # Check location header
         self.assertIsNotNone(ret.location)
         expected_location = '/v1/nodes/%s/states' % self.node.uuid
@@ -3002,16 +3005,74 @@ class TestPut(test_api_base.BaseApiTest):
                             headers={api_base.Version.string: "1.5"})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        self.mock_dnd.assert_called_once_with(
-            mock.ANY, self.node.uuid, False, None, 'test-topic')
+
+        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+                                              node_id=self.node.uuid,
+                                              rebuild=False,
+                                              configdrive=None,
+                                              topic='test-topic')
 
     def test_provision_with_deploy_configdrive(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.ACTIVE, 'configdrive': 'foo'})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        self.mock_dnd.assert_called_once_with(
-            mock.ANY, self.node.uuid, False, 'foo', 'test-topic')
+        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+                                              node_id=self.node.uuid,
+                                              rebuild=False,
+                                              configdrive='foo',
+                                              topic='test-topic')
+        # Check location header
+        self.assertIsNotNone(ret.location)
+        expected_location = '/v1/nodes/%s/states' % self.node.uuid
+        self.assertEqual(urlparse.urlparse(ret.location).path,
+                         expected_location)
+
+    def test_provision_with_rebuild(self):
+        node = self.node
+        node.provision_state = states.ACTIVE
+        node.target_provision_state = states.NOSTATE
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.REBUILD})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+                                              node_id=self.node.uuid,
+                                              rebuild=True,
+                                              configdrive=None,
+                                              topic='test-topic')
+        # Check location header
+        self.assertIsNotNone(ret.location)
+        expected_location = '/v1/nodes/%s/states' % self.node.uuid
+        self.assertEqual(urlparse.urlparse(ret.location).path,
+                         expected_location)
+
+    def test_provision_with_rebuild_unsupported_configdrive(self):
+        node = self.node
+        node.provision_state = states.ACTIVE
+        node.target_provision_state = states.NOSTATE
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.REBUILD, 'configdrive': 'foo'},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+
+    def test_provision_with_rebuild_configdrive(self):
+        node = self.node
+        node.provision_state = states.ACTIVE
+        node.target_provision_state = states.NOSTATE
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.REBUILD, 'configdrive': 'foo'},
+                            headers={api_base.Version.string: '1.35'})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+                                              node_id=self.node.uuid,
+                                              rebuild=True,
+                                              configdrive='foo',
+                                              topic='test-topic')
         # Check location header
         self.assertIsNotNone(ret.location)
         expected_location = '/v1/nodes/%s/states' % self.node.uuid
@@ -3097,8 +3158,11 @@ class TestPut(test_api_base.BaseApiTest):
                             {'target': states.ACTIVE})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        self.mock_dnd.assert_called_once_with(
-            mock.ANY, node.uuid, False, None, 'test-topic')
+        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+                                              node_id=self.node.uuid,
+                                              rebuild=False,
+                                              configdrive=None,
+                                              topic='test-topic')
         # Check location header
         self.assertIsNotNone(ret.location)
         expected_location = '/v1/nodes/%s/states' % node.uuid

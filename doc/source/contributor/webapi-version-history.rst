@@ -2,6 +2,12 @@
 REST API Version History
 ========================
 
+1.35 (Queens, 10.0.0)
+---------------------
+
+Added ability to provide ``configdrive`` when node is updated
+to ``rebuild`` provision state.
+
 1.34 (Pike, 9.0.0)
 ------------------
 

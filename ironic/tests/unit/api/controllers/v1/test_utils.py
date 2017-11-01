@@ -25,6 +25,7 @@ import wsme
 from ironic.api.controllers.v1 import node as api_node
 from ironic.api.controllers.v1 import utils
 from ironic.common import exception
+from ironic.common import states
 from ironic import objects
 from ironic.tests import base
 from ironic.tests.unit.api import utils as test_api_utils
@@ -443,6 +444,30 @@ class TestApiUtils(base.TestCase):
         self.assertFalse(utils.allow_port_physical_network())
         mock_request.version.minor = 33
         self.assertFalse(utils.allow_port_physical_network())
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_allow_node_rebuild_with_configdrive(self, mock_request):
+        mock_request.version.minor = 35
+        self.assertTrue(utils.allow_node_rebuild_with_configdrive())
+        mock_request.version.minor = 34
+        self.assertFalse(utils.allow_node_rebuild_with_configdrive())
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allow_configdrive_fails(self, mock_request):
+        mock_request.version.minor = 35
+        self.assertRaises(wsme.exc.ClientSideError,
+                          utils.check_allow_configdrive, states.DELETED)
+        mock_request.version.minor = 34
+        self.assertRaises(wsme.exc.ClientSideError,
+                          utils.check_allow_configdrive, states.REBUILD)
+
+    @mock.patch.object(pecan, 'request', spec_set=['version'])
+    def test_check_allow_configdrive(self, mock_request):
+        mock_request.version.minor = 35
+        utils.check_allow_configdrive(states.ACTIVE)
+        utils.check_allow_configdrive(states.REBUILD)
+        mock_request.version.minor = 34
+        utils.check_allow_configdrive(states.ACTIVE)
 
 
 class TestNodeIdent(base.TestCase):

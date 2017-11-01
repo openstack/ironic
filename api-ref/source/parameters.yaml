@@ -364,7 +364,7 @@ configdrive:
   description: |
     A gzip'ed and base-64 encoded config drive, to be written to a partition
     on the Node's boot disk. This parameter is only accepted when setting the
-    state to "active".
+    state to "active" or "rebuild".
   in: body
   required: false
   type: string or gzip+b64 blob

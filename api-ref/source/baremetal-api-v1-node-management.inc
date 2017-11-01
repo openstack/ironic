@@ -337,6 +337,9 @@ Acceptable target states depend on the Node's current provision state. More
 detailed documentation of the Ironic State Machine is available
 `in the developer docs <http://docs.openstack.org/ironic/latest/contributor/states.html>`_.
 
+.. versionadded:: 1.35
+   A ``configdrive`` can be provided when setting the node's provision target state to ``rebuild``.
+
 Normal response code: 202
 
 Error codes:

@@ -392,6 +392,18 @@ def check_allow_driver_detail(detail):
              'opr': versions.MINOR_30_DYNAMIC_DRIVERS})
 
 
+def check_allow_configdrive(target):
+    allowed_targets = [states.ACTIVE]
+    if allow_node_rebuild_with_configdrive():
+        allowed_targets.append(states.REBUILD)
+
+    if target not in allowed_targets:
+        msg = (_('Adding a config drive is only supported when setting '
+                 'provision state to %s') % ', '.join(allowed_targets))
+        raise wsme.exc.ClientSideError(
+            msg, status_code=http_client.BAD_REQUEST)
+
+
 def initial_node_provision_state():
     """Return node state to use by default when creating new nodes.
 
@@ -579,6 +591,15 @@ def allow_port_physical_network():
     return ((pecan.request.version.minor >=
              versions.MINOR_34_PORT_PHYSICAL_NETWORK) and
             objects.Port.supports_physical_network())
+
+
+def allow_node_rebuild_with_configdrive():
+    """Check if we should support node rebuild with configdrive.
+
+    Version 1.35 of the API added support for node rebuild with configdrive.
+    """
+    return (pecan.request.version.minor >=
+            versions.MINOR_35_REBUILD_CONFIG_DRIVE)
 
 
 def get_controller_reserved_names(cls):
