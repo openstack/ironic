@@ -146,8 +146,9 @@ Node configuration
     irmc_username.
   - ``properties/capabilities`` property to be ``boot_mode:uefi`` if
     UEFI boot is required.
-  - ``properties/capabilities`` property to be ``boot_mode:uefi,secure_boot:true`` if
-    UEFI Secure Boot is required.
+  - ``properties/capabilities`` property to be ``secure_boot:true`` if
+    UEFI Secure Boot is required. Please refer to `UEFI Secure Boot Support`_
+    for more information.
 
 * All of nodes are configured by setting the following configuration
   options in ``[irmc]`` section of ``/etc/ironic/ironic.conf``:
@@ -215,7 +216,8 @@ Node configuration
   - ``properties/capabilities`` property to be ``boot_mode:uefi`` if
     UEFI boot is required.
   - ``properties/capabilities`` property to be ``secure_boot:true`` if
-    Secure Boot is required.
+    Secure Boot is required. Please refer to `UEFI Secure Boot Support`_
+    for more information.
   - ``driver_info/irmc_deploy_iso`` property to be either ``deploy iso
     file name``, ``Glance UUID``, ``Glance URL`` or ``Image Service
     URL``.
@@ -299,7 +301,8 @@ Node configuration
   - ``properties/capabilities`` property to be ``boot_mode:uefi`` if
     UEFI boot is required.
   - ``properties/capabilities`` property to be ``secure_boot:true`` if
-    Secure Boot is required.
+    Secure Boot is required. Please refer to `UEFI Secure Boot Support`_
+    for more information.
   - ``driver_info/irmc_deploy_iso`` property to be either ``deploy iso
     file name``, ``Glance UUID``, ``Glance URL`` or ``Image Service
     URL``.
@@ -351,6 +354,32 @@ Node configuration
 
 Functionalities across drivers
 ==============================
+
+UEFI Secure Boot Support
+^^^^^^^^^^^^^^^^^^^^^^^^
+The hardware type ``irmc`` and iRMC classic drivers support secure boot deploy.
+
+.. warning::
+     Secure boot feature is not supported with ``pxe`` boot interface.
+
+The UEFI secure boot can be configured by adding ``secure_boot`` parameter,
+which is a boolean value. Enabling the secure boot is different when
+Bare Metal service is used with Compute service or without Compute service. The
+following sections describes both methods:
+
+* Enabling secure boot with Compute service:
+  To enable secure boot we need to set a capability on the bare metal node
+  and the bare metal flavor, for example::
+
+    openstack baremetal node set <node-uuid> --property capabilities='secure_boot:true'
+    openstack flavor set FLAVOR-NAME --property capabilities:secure_boot="true"
+
+* Enabling secure boot without Compute service:
+  Since adding capabilities to the node's properties is only used by the nova
+  scheduler to perform more advanced scheduling of instances, we need
+  to enable secure boot without nova, for example::
+
+    openstack baremetal node set <node-uuid> --instance-info capabilities='{"secure_boot": "true"}'
 
 .. _irmc_node_cleaning:
 

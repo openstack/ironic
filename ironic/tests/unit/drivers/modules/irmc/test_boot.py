@@ -1157,7 +1157,7 @@ class IRMCVirtualMediaBootTestCase(db_base.DbTestCase):
                        autospec=True)
     def test_clean_up_instance_with_secure_boot(self, mock_cleanup_vmedia_boot,
                                                 mock_set_secure_boot_mode):
-        self.node.provision_state = states.CLEANING
+        self.node.provision_state = states.DELETING
         self.node.target_provision_state = states.AVAILABLE
         self.node.instance_info = {
             'capabilities': {
@@ -1178,7 +1178,7 @@ class IRMCVirtualMediaBootTestCase(db_base.DbTestCase):
                        autospec=True)
     def test_clean_up_instance_with_secure_boot_false(
             self, mock_cleanup_vmedia_boot, mock_set_secure_boot_mode):
-        self.node.provision_state = states.CLEANING
+        self.node.provision_state = states.DELETING
         self.node.target_provision_state = states.AVAILABLE
         self.node.instance_info = {
             'capabilities': {
@@ -1198,7 +1198,7 @@ class IRMCVirtualMediaBootTestCase(db_base.DbTestCase):
                        autospec=True)
     def test_clean_up_instance_without_secure_boot(
             self, mock_cleanup_vmedia_boot, mock_set_secure_boot_mode):
-        self.node.provision_state = states.CLEANING
+        self.node.provision_state = states.DELETING
         self.node.target_provision_state = states.AVAILABLE
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
