@@ -12,7 +12,9 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 from oslo_utils import importutils
 from six.moves.urllib import parse
 
@@ -226,43 +228,25 @@ def get_oneview_info(node):
 def validate_oneview_resources_compatibility(oneview_client, task):
     """Validate if the node configuration is consistent with OneView.
 
-    This method calls python-oneviewclient functions to validate if the node
+    This method calls hpOneView functions to validate if the node
     configuration is consistent with the OneView resources it represents,
-    including server_hardware_uri, server_hardware_type_uri,
-    server_profile_template_uri, enclosure_group_uri and node ports. Also
-    verifies if a Server Profile is applied to the Server Hardware the node
-    represents when in pre-allocation model. If any validation fails,
-    python-oneviewclient will raise an appropriate OneViewException.
+    including serverHardwareUri, serverHardwareTypeUri, serverGroupUri
+    serverProfileTemplateUri, enclosureGroupUri and node ports. If any
+    validation fails, the driver will raise an appropriate OneViewError.
 
     :param oneview_client: an instance of the OneView client
     :param: task: a TaskManager instance containing the node to act on.
+    :raises: OneViewError if any validation fails.
     """
-    node_ports = task.ports
-
+    ports = task.ports
     oneview_info = get_oneview_info(task.node)
 
-    try:
-        spt_uuid = oneview_utils.get_uuid_from_uri(
-            oneview_info.get("server_profile_template_uri")
-        )
-
-        oneview_client.validate_node_server_profile_template(oneview_info)
-        oneview_client.validate_node_server_hardware_type(oneview_info)
-        oneview_client.validate_node_enclosure_group(oneview_info)
-        oneview_client.validate_node_server_hardware(
-            oneview_info,
-            task.node.properties.get('memory_mb'),
-            task.node.properties.get('cpus')
-        )
-        oneview_client.is_node_port_mac_compatible_with_server_hardware(
-            oneview_info, node_ports
-        )
-        oneview_client.validate_server_profile_template_mac_type(spt_uuid)
-
-    except oneview_exceptions.OneViewException as oneview_exc:
-        msg = (_("Error validating node resources with OneView: %s") %
-               oneview_exc)
-        raise exception.OneViewError(error=msg)
+    _validate_node_server_profile_template(oneview_client, oneview_info)
+    _validate_node_server_hardware_type(oneview_client, oneview_info)
+    _validate_node_enclosure_group(oneview_client, oneview_info)
+    _validate_server_profile_template_mac_type(oneview_client, oneview_info)
+    _validate_node_port_mac_server_hardware(
+        oneview_client, oneview_info, ports)
 
 
 def _verify_node_info(node_namespace, node_info_dict, info_required):
@@ -292,8 +276,8 @@ def _verify_node_info(node_namespace, node_info_dict, info_required):
 def node_has_server_profile(func):
     """Checks if the node's Server Hardware has a Server Profile associated.
 
-    Decorator to execute before the function execution if the Server Profile
-    is applied to the Server Hardware.
+    Decorator to execute before the function execution to check if the Server
+    Profile is applied to the Server Hardware.
 
     :param func: a given decorated function.
     """
@@ -322,3 +306,257 @@ def has_server_profile(task, client):
             {"node": task.node.uuid, "message": exc}
         )
         raise exception.OneViewError(error=exc)
+
+
+def _get_server_hardware_mac_from_ilo(oneview_client, server_hardware):
+    """Get the MAC of Server Hardware's iLO controller.
+
+    :param: oneview_client: an instance of the HPE OneView client
+    :param: server_hardware: a server hardware uuid or uri
+    :return: MAC of Server Hardware's iLO controller.
+    :raises: InvalidParameterValue if required iLO credentials are missing.
+    :raises: OneViewError if can't get mac from a server hardware via iLO or
+             if fails to get JSON object with the default path.
+    """
+    try:
+        client = get_ilorest_client(oneview_client, server_hardware)
+        ilo_path = "/rest/v1/systems/1"
+        hardware = jsonutils.loads(client.get(ilo_path).text)
+        hardware_mac = hardware['HostCorrelation']['HostMACAddress'][0]
+    except redfish.JsonDecodingError as exc:
+        LOG.error("Failed in JSON object getting path: %s", ilo_path)
+        raise exception.OneViewError(error=exc)
+    except (ValueError, TypeError, IndexError) as exc:
+        LOG.error(
+            "Failed to get mac from server hardware %(server_hardware)s "
+            "via iLO. Error: %(message)s", {
+                "server_hardware": server_hardware.get("uri"),
+                "message": exc
+            }
+        )
+        raise exception.OneViewError(error=exc)
+
+    return hardware_mac
+
+
+def _get_server_hardware_mac(server_hardware):
+    """Get the MAC address of the first PXE bootable port of an Ethernet port.
+
+    :param: server_hardware: OneView Server Hardware object
+    :return: MAC of the first Ethernet and function 'a' port of the
+             Server Hardware object
+    :raises: OneViewError if there is no Ethernet port on the Server Hardware
+             or if there is no portMap on the Server Hardware requested
+    """
+    sh_physical_port = None
+
+    if server_hardware.get('portMap'):
+        for device in server_hardware.get(
+                'portMap', {}).get('deviceSlots', ()):
+            for physical_port in device.get('physicalPorts', ()):
+                if physical_port.get('type') == 'Ethernet':
+                    sh_physical_port = physical_port
+                    break
+        if sh_physical_port:
+            for virtual_port in sh_physical_port.get('virtualPorts', ()):
+                # NOTE(nicodemos): Ironic oneview drivers needs to use a
+                # port that type is Ethernet and function identifier 'a' for
+                # this FlexNIC to be able to make a deploy using PXE.
+                if virtual_port.get('portFunction') == 'a':
+                    return virtual_port.get('mac', ()).lower()
+        raise exception.OneViewError(
+            _("There is no Ethernet port on the Server Hardware: %s") %
+            server_hardware.get('uri'))
+    else:
+        raise exception.OneViewError(
+            _("The Server Hardware: %s doesn't have a list of adapters/slots, "
+              "their ports and attributes. This information is available only "
+              "for blade servers. Is this a rack server?") %
+            server_hardware.get('uri'))
+
+
+def _validate_node_server_profile_template(oneview_client, oneview_info):
+    """Validate if the Server Profile Template is consistent.
+
+    :param: oneview_client: an instance of the HPE OneView client
+    :param: oneview_info: the OneView related info in an Ironic node
+    :raises: OneViewError if the node's Server Profile Template is not
+             consistent
+    """
+    server_profile_template = oneview_client.server_profile_templates.get(
+        oneview_info['server_profile_template_uri'])
+    server_hardware = oneview_client.server_hardware.get(
+        oneview_info['server_hardware_uri'])
+
+    _validate_server_profile_template_server_hardware_type(
+        server_profile_template, server_hardware)
+    _validate_spt_enclosure_group(server_profile_template, server_hardware)
+    _validate_server_profile_template_manage_boot(server_profile_template)
+
+
+def _validate_server_profile_template_server_hardware_type(
+        server_profile_template, server_hardware):
+    """Validate if the Server Hardware Types are the same.
+
+    Validate if the Server Profile Template and the Server Hardware have the
+    same Server Hardware Type
+
+    :param: server_profile_template: OneView Server Profile Template object
+    :param: server_hardware: OneView Server Hardware object
+    :raises: OneViewError if the Server Profile Template and the Server
+             Hardware does not have the same Server Hardware Type
+    """
+    spt_server_hardware_type_uri = (
+        server_profile_template.get('serverHardwareTypeUri')
+    )
+    sh_server_hardware_type_uri = server_hardware.get('serverHardwareTypeUri')
+
+    if spt_server_hardware_type_uri != sh_server_hardware_type_uri:
+        message = _(
+            "Server profile template %(spt_uri)s serverHardwareTypeUri is "
+            "inconsistent with server hardware %(server_hardware_uri)s "
+            "serverHardwareTypeUri.") % {
+                'spt_uri': server_profile_template.get('uri'),
+                'server_hardware_uri': server_hardware.get('uri')}
+        raise exception.OneViewError(message)
+
+
+def _validate_spt_enclosure_group(server_profile_template, server_hardware):
+    """Validate Server Profile Template's Enclosure Group and Server Hardware's.
+
+    :param: server_profile_template: OneView Server Profile Template object
+    :param: server_hardware: OneView Server Hardware object
+    :raises: OneViewError if the Server Profile Template's Enclosure Group does
+             not match the Server Hardware's
+    """
+    spt_enclosure_group_uri = server_profile_template.get('enclosureGroupUri')
+    sh_enclosure_group_uri = server_hardware.get('serverGroupUri')
+
+    if spt_enclosure_group_uri != sh_enclosure_group_uri:
+        message = _("Server profile template %(spt_uri)s enclosureGroupUri is "
+                    "inconsistent with server hardware %(sh_uri)s "
+                    "serverGroupUri.") % {
+                        'spt_uri': server_profile_template.get('uri'),
+                        'sh_uri': server_hardware.get('uri')}
+        raise exception.OneViewError(message)
+
+
+def _validate_server_profile_template_manage_boot(server_profile_template):
+    """Validate if the Server Profile Template allows to manage the boot order.
+
+    :param: server_profile_template: OneView Server Profile Template object
+    :raises: OneViewError if the Server Profile Template does not allows to
+             manage the boot order.
+    """
+    manage_boot = server_profile_template.get('boot', {}).get('manageBoot')
+
+    if not manage_boot:
+        message = _("Server Profile Template: %s, does not allow to manage "
+                    "boot order.") % server_profile_template.get('uri')
+        raise exception.OneViewError(message)
+
+
+def _validate_node_server_hardware_type(oneview_client, oneview_info):
+    """Validate if the node's Server Hardware Type matches Server Hardware's.
+
+    :param: oneview_client: the HPE OneView Client
+    :param: oneview_info: the OneView related info in an Ironic node
+    :raises: OneViewError if the node's Server Hardware Type group doesn't
+             match the Server Hardware's
+    """
+    node_server_hardware_type_uri = oneview_info['server_hardware_type_uri']
+    server_hardware = oneview_client.server_hardware.get(
+        oneview_info['server_hardware_uri'])
+    server_hardware_sht_uri = server_hardware.get('serverHardwareTypeUri')
+
+    if server_hardware_sht_uri != node_server_hardware_type_uri:
+        message = _("Node server_hardware_type_uri is inconsistent "
+                    "with OneView's server hardware %(server_hardware_uri)s "
+                    "serverHardwareTypeUri.") % {
+                        'server_hardware_uri': server_hardware.get('uri')}
+        raise exception.OneViewError(message)
+
+
+def _validate_node_enclosure_group(oneview_client, oneview_info):
+    """Validate if the node's Enclosure Group matches the Server Hardware's.
+
+    :param: oneview_client: an instance of the HPE OneView client
+    :param: oneview_info: the OneView related info in an Ironic node
+    :raises: OneViewError if the node's enclosure group doesn't match the
+             Server Hardware's
+    """
+    server_hardware = oneview_client.server_hardware.get(
+        oneview_info['server_hardware_uri'])
+    sh_enclosure_group_uri = server_hardware.get('serverGroupUri')
+    node_enclosure_group_uri = oneview_info['enclosure_group_uri']
+
+    if node_enclosure_group_uri and (
+            sh_enclosure_group_uri != node_enclosure_group_uri):
+        message = _(
+            "Node enclosure_group_uri '%(node_enclosure_group_uri)s' "
+            "is inconsistent with OneView's server hardware "
+            "serverGroupUri '%(sh_enclosure_group_uri)s' of "
+            "ServerHardware %(server_hardware)s") % {
+                'node_enclosure_group_uri': node_enclosure_group_uri,
+                'sh_enclosure_group_uri': sh_enclosure_group_uri,
+                'server_hardware': server_hardware.get('uri')}
+        raise exception.OneViewError(message)
+
+
+def _validate_node_port_mac_server_hardware(oneview_client,
+                                            oneview_info, ports):
+    """Validate if a port matches the node's Server Hardware's MAC.
+
+    :param: oneview_client: an instance of the HPE OneView client
+    :param: oneview_info: the OneView related info in an Ironic node
+    :param: ports: a list of Ironic node's ports
+    :raises: OneViewError if there is no port with MAC address matching one
+    in OneView
+
+    """
+    server_hardware = oneview_client.server_hardware.get(
+        oneview_info['server_hardware_uri'])
+
+    if not ports:
+        return
+
+    # NOTE(nicodemos) If hponeview client's unable to get the MAC of the Server
+    # Hardware and raises an exception, the driver will try to get it from
+    # the iLOrest client.
+    try:
+        mac = _get_server_hardware_mac(server_hardware)
+    except exception.OneViewError:
+        mac = _get_server_hardware_mac_from_ilo(
+            oneview_client, server_hardware)
+
+    incompatible_macs = []
+    for port in ports:
+        if port.address.lower() == mac.lower():
+            return
+        incompatible_macs.append(port.address)
+
+    message = _("The ports of the node are not compatible with its "
+                "server hardware %(server_hardware_uri)s. There are no Ironic "
+                "port MAC's: %(port_macs)s, that matches with the "
+                "server hardware's MAC: %(server_hardware_mac)s") % {
+                    'server_hardware_uri': server_hardware.get('uri'),
+                    'port_macs': ', '.join(incompatible_macs),
+                    'server_hardware_mac': mac}
+    raise exception.OneViewError(message)
+
+
+def _validate_server_profile_template_mac_type(oneview_client, oneview_info):
+    """Validate if the node's Server Profile Template's MAC type is physical.
+
+    :param: oneview_client: an instance of the HPE OneView client
+    :param: oneview_info: the OneView related info in an Ironic node
+    :raises: OneViewError if the node's Server Profile Template's MAC type is
+             not physical
+    """
+    server_profile_template = oneview_client.server_profile_templates.get(
+        oneview_info['server_profile_template_uri']
+    )
+    if server_profile_template.get('macType') != 'Physical':
+        message = _("The server profile template %s is not set to use "
+                    "physical MAC.") % server_profile_template.get('uri')
+        raise exception.OneViewError(message)

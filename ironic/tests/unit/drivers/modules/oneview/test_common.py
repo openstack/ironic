@@ -14,6 +14,7 @@
 #    under the License.
 
 import mock
+
 from oslo_utils import importutils
 
 from ironic.common import exception
@@ -239,35 +240,139 @@ class OneViewCommonTestCase(db_base.DbTestCase):
                                      {"a": '', "b": None, "c": "something"},
                                      ["a", "b", "c"])
 
-    @mock.patch.object(common, 'get_oneview_client', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(common, 'get_hponeview_client', autospec=True)
+    @mock.patch.object(common, '_validate_node_server_profile_template')
+    @mock.patch.object(common, '_validate_node_server_hardware_type')
+    @mock.patch.object(common, '_validate_node_enclosure_group')
+    @mock.patch.object(common, '_validate_node_port_mac_server_hardware')
+    @mock.patch.object(common, '_validate_server_profile_template_mac_type')
     def test_validate_oneview_resources_compatibility(
-            self, mock_get_ov_client):
+            self, mock_spt_mac_type, mock_port_mac_sh, mock_enclosure,
+            mock_sh_type, mock_sp_template, mock_hponeview):
         """Validate compatibility of resources.
 
-        1) Check validate_node_server_profile_template method is called
-        2) Check validate_node_server_hardware_type method is called
-        3) Check validate_node_enclosure_group method is called
-        4) Check validate_node_server_hardware method is called
-        5) Check is_node_port_mac_compatible_with_server_hardware method
-           is called
-        6) Check validate_server_profile_template_mac_type method is called
+        1) Check _validate_node_server_profile_template method is called
+        2) Check _validate_node_server_hardware_type method is called
+        3) Check _validate_node_enclosure_group method is called
+        4) Check _validate_node_port_mac_server_hardware method is called
+        5) Check _validate_server_profile_template_mac_type method is called
         """
-        oneview_client = mock_get_ov_client()
+        oneview_client = mock_hponeview()
+        fake_port = db_utils.create_test_port()
+        fake_port.address = 'AA:BB:CC:DD:EE'
+        fake_device = {'physicalPorts': [
+            {'type': 'Ethernet',
+             'virtualPorts': [
+                 {'portFunction': 'a',
+                  'mac': 'AA:BB:CC:DD:EE'}
+             ]}
+        ]}
+        fake_spt = {
+            'serverHardwareTypeUri': 'fake_sht_uri',
+            'enclosureGroupUri': 'fake_eg_uri',
+            'macType': 'Physical',
+            'boot': {'manageBoot': True}
+        }
+        fake_sh = {
+            'serverHardwareTypeUri': 'fake_sht_uri',
+            'serverGroupUri': 'fake_eg_uri',
+            'processorCoreCount': 4,
+            'processorCount': 2,
+            'memoryMb': 4096,
+            'portMap': {'deviceSlots': [fake_device]}
+        }
+        oneview_client.server_profile_templates.get.return_value = fake_spt
+        oneview_client.server_hardware.get.return_value = fake_sh
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.ports = [fake_port]
             common.validate_oneview_resources_compatibility(oneview_client,
                                                             task)
-            self.assertTrue(
-                oneview_client.validate_node_server_profile_template.called)
-            self.assertTrue(
-                oneview_client.validate_node_server_hardware_type.called)
-            self.assertTrue(
-                oneview_client.validate_node_enclosure_group.called)
-            self.assertTrue(
-                oneview_client.validate_node_server_hardware.called)
-            self.assertTrue(
-                oneview_client.
-                is_node_port_mac_compatible_with_server_hardware.called)
-            self.assertTrue(
-                oneview_client.
-                validate_server_profile_template_mac_type.called)
+            self.assertTrue(mock_sp_template.called)
+            self.assertTrue(mock_sh_type.called)
+            self.assertTrue(mock_enclosure.called)
+            self.assertTrue(mock_port_mac_sh.called)
+            self.assertTrue(mock_spt_mac_type.called)
+
+    @mock.patch.object(common, 'get_hponeview_client', autospec=True)
+    def test__validate_server_profile_template_mac_type_virtual(
+            self, mock_hponeview):
+        oneview_client = mock_hponeview()
+        fake_spt = {'macType': 'Virtual'}
+        oneview_client.server_hardware.get.return_value = fake_spt
+        oneview_info = {'server_profile_template_uri': 'fake_uri'}
+
+        self.assertRaises(exception.OneViewError,
+                          common._validate_server_profile_template_mac_type,
+                          oneview_client, oneview_info)
+
+    @mock.patch.object(common, 'get_hponeview_client', autospec=True)
+    def test__validate_node_port_mac_server_hardware_invalid(
+            self, mock_hponeview):
+        oneview_client = mock_hponeview()
+        fake_device = {
+            'physicalPorts': [
+                {'type': 'notEthernet',
+                 'mac': '00:11:22:33:44',
+                 'virtualPorts': [{
+                     'portFunction': 'a',
+                     'mac': 'AA:BB:CC:DD:EE'}]},
+                {'type': 'Ethernet',
+                 'mac': '11:22:33:44:55',
+                 'virtualPorts': [{
+                     'portFunction': 'a',
+                     'mac': 'BB:CC:DD:EE:FF'}]}]}
+        fake_sh = {'portMap': {'deviceSlots': [fake_device]}}
+        fake_port = db_utils.create_test_port(address='AA:BB:CC:DD:EE')
+        oneview_client.server_hardware.get.return_value = fake_sh
+        oneview_info = db_utils.get_test_oneview_driver_info()
+
+        self.assertRaises(exception.OneViewError,
+                          common._validate_node_port_mac_server_hardware,
+                          oneview_client, oneview_info, [fake_port])
+
+    @mock.patch.object(common, 'get_hponeview_client', autospec=True)
+    def test__validate_node_enclosure_group_invalid(self, mock_hponeview):
+        oneview_client = mock_hponeview()
+        fake_sh = {'serverGroupUri': 'invalid_fake_eg_uri'}
+        oneview_client.server_hardware.get.return_value = fake_sh
+        oneview_info = {'server_hardware_uri': 'fake_sh_uri',
+                        'enclosure_group_uri': 'fake_eg_uri'}
+
+        self.assertRaises(exception.OneViewError,
+                          common._validate_node_enclosure_group,
+                          oneview_client, oneview_info)
+
+    @mock.patch.object(common, 'get_hponeview_client', autospec=True)
+    def test__validate_node_server_hardware_type(self, mock_hponeview):
+        oneview_client = mock_hponeview()
+        fake_sh = {'serverHardwareTypeUri': 'invalid_fake_sh_uri'}
+        oneview_client.server_hardware.get.return_value = fake_sh
+        oneview_info = {'server_hardware_uri': 'fake_sh_uri',
+                        'server_hardware_type_uri': 'fake_sht_uri'}
+
+        self.assertRaises(exception.OneViewError,
+                          common._validate_node_server_hardware_type,
+                          oneview_client, oneview_info)
+
+    def test__validate_server_profile_template_manage_boot_false(self):
+        fake_spt = {'boot': {'manageBoot': False}}
+        self.assertRaises(exception.OneViewError,
+                          common._validate_server_profile_template_manage_boot,
+                          fake_spt)
+
+    def test__validate_spt_enclosure_group_invalid(self):
+        fake_spt = {'enclosureGroupUri': 'fake_eg_uri'}
+        fake_sh = {'serverGroupUri': 'invalid_fake_eg_uri'}
+        self.assertRaises(exception.OneViewError,
+                          common._validate_spt_enclosure_group,
+                          fake_spt, fake_sh)
+
+    def test__validate_server_profile_template_server_hardware_type(self):
+        fake_spt = {'serverHardwareTypeUri': 'fake_sht_uri'}
+        fake_sh = {'serverHardwareTypeUri': 'invalid_fake_sht_uri'}
+        self.assertRaises(
+            exception.OneViewError,
+            common._validate_server_profile_template_server_hardware_type,
+            fake_spt, fake_sh
+        )

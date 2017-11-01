@@ -90,15 +90,12 @@ class OneViewPower(base.PowerInterface):
         common.verify_node_info(task.node)
 
         try:
-            if deploy_utils.is_node_in_use_by_oneview(
-                self.client, task.node
-            ):
+            common.validate_oneview_resources_compatibility(self.client, task)
+
+            if deploy_utils.is_node_in_use_by_oneview(self.client, task.node):
                 raise exception.InvalidParameterValue(
                     _("Node %s is in use by OneView.") % task.node.uuid)
 
-            common.validate_oneview_resources_compatibility(
-                self.oneview_client, task
-            )
         except exception.OneViewError as oneview_exc:
             raise exception.InvalidParameterValue(oneview_exc)
 

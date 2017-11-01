@@ -59,8 +59,7 @@ class OneViewInspect(inspector.Inspector):
         common.verify_node_info(task.node)
 
         try:
-            common.validate_oneview_resources_compatibility(
-                self.oneview_client, task)
+            common.validate_oneview_resources_compatibility(self.client, task)
         except exception.OneViewError as oneview_exc:
             raise exception.InvalidParameterValue(oneview_exc)
 
