@@ -545,23 +545,23 @@ class GetUpdatedCapabilitiesTestCase(base.TestCase):
         self.assertIsInstance(cap_returned, str)
 
     def test_validate_network_port(self):
-        port = utils.validate_network_port('1', 'message')
-        self.assertEqual(1, port)
+        port = utils.validate_network_port('0', 'message')
+        self.assertEqual(0, port)
         port = utils.validate_network_port('65535')
         self.assertEqual(65535, port)
 
     def test_validate_network_port_fail(self):
         self.assertRaisesRegex(exception.InvalidParameterValue,
-                               'Port "65536" is out of range.',
+                               'Port "65536" is not a valid port.',
                                utils.validate_network_port,
                                '65536')
         self.assertRaisesRegex(exception.InvalidParameterValue,
-                               'fake_port "-1" is out of range.',
+                               'fake_port "-1" is not a valid port.',
                                utils.validate_network_port,
                                '-1',
                                'fake_port')
         self.assertRaisesRegex(exception.InvalidParameterValue,
-                               'Port "invalid" is not a valid integer.',
+                               'Port "invalid" is not a valid port.',
                                utils.validate_network_port,
                                'invalid')
 
