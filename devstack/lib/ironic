@@ -154,7 +154,18 @@ IRONIC_ENABLED_RAID_INTERFACES=${IRONIC_ENABLED_RAID_INTERFACES:-"agent,no-raid"
 IRONIC_ENABLED_VENDOR_INTERFACES=${IRONIC_ENABLED_VENDOR_INTERFACES:-"ipmitool,no-vendor"}
 IRONIC_ENABLED_STORAGE_INTERFACES=${IRONIC_ENABLED_STORAGE_INTERFACES:-"cinder,noop"}
 IRONIC_ENABLED_NETWORK_INTERFACES=${IRONIC_ENABLED_NETWORK_INTERFACES:-"flat,noop"}
-# If IRONIC_VM_ENGING is explicitly set to "auto" or "kvm",
+# for usage with hardware types
+IRONIC_DEFAULT_BOOT_INTERFACE=${IRONIC_DEFAULT_BOOT_INTERFACE:-}
+IRONIC_DEFAULT_DEPLOY_INTERFACE=${IRONIC_DEFAULT_DEPLOY_INTERFACE:-}
+IRONIC_DEFAULT_MANAGEMENT_INTERFACE=${IRONIC_DEFAULT_MANAGEMENT_INTERFACE:-}
+IRONIC_DEFAULT_POWER_INTERFACE=${IRONIC_DEFAULT_POWER_INTERFACE:-}
+IRONIC_DEFAULT_CONSOLE_INTERFACE=${IRONIC_DEFAULT_CONSOLE_INTERFACE:-}
+IRONIC_DEFAULT_INSPECT_INTERFACE=${IRONIC_DEFAULT_INSPECT_INTERFACE:-}
+IRONIC_DEFAULT_RAID_INTERFACE=${IRONIC_DEFAULT_RAID_INTERFACE:-}
+IRONIC_DEFAULT_VENDOR_INTERFACE=${IRONIC_DEFAULT_VENDOR_INTERFACE:-}
+IRONIC_DEFAULT_STORAGE_INTERFACE=${IRONIC_DEFAULT_STORAGE_INTERFACE:-}
+IRONIC_DEFAULT_NETWORK_INTERFACE=${IRONIC_DEFAULT_NETWORK_INTERFACE:-}
+# If IRONIC_VM_ENGINE is explicitly set to "auto" or "kvm",
 # devstack will attempt to use hardware virtualization
 # (aka nested kvm). We do not enable it in the infra gates
 # because it is not consistently supported/working across
@@ -1113,12 +1124,20 @@ function configure_ironic_conductor {
     iniset $IRONIC_CONF_FILE DEFAULT enabled_drivers $IRONIC_ENABLED_DRIVERS
     iniset $IRONIC_CONF_FILE DEFAULT enabled_hardware_types $IRONIC_ENABLED_HARDWARE_TYPES
 
-    # configure enabled interfaces
+    # configure enabled and default interfaces
     local iface
     local iface_var
+    local default_iface_var
     for iface in ${IRONIC_DRIVER_INTERFACE_TYPES}; do
-        iface_var="IRONIC_ENABLED_$(echo $iface | tr '[:lower:]' '[:upper:]')_INTERFACES"
+        iface_var="IRONIC_ENABLED_${iface^^}_INTERFACES"
         iniset $IRONIC_CONF_FILE DEFAULT enabled_${iface}_interfaces ${!iface_var}
+        default_iface_var="IRONIC_DEFAULT_${iface^^}_INTERFACE"
+        if [[ -n "${!default_iface_var}" ]]; then
+            if [[ ! "${!iface_var}" =~ ${!default_iface_var} ]]; then
+                die $LINENO "Default interface set for ${iface} interface is not enabled."
+            fi
+            iniset $IRONIC_CONF_FILE DEFAULT default_${iface}_interface ${!default_iface_var}
+        fi
     done
 
     if is_deployed_by_redfish; then
