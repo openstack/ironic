@@ -29,16 +29,13 @@ IPMITool driver
 
   drivers/ipmitool
 
-DRAC driver
------------
+iDRAC driver
+------------
 
-DRAC with PXE deploy
-^^^^^^^^^^^^^^^^^^^^
+.. toctree::
+  :maxdepth: 1
 
-- Add ``pxe_drac`` to the list of ``enabled_drivers`` in
-  ``/etc/ironic/ironic.conf``
-- Install python-dracclient package
-
+  drivers/idrac
 
 SNMP driver
 -----------
