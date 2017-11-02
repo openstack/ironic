@@ -14,6 +14,7 @@
 
 import contextlib
 import datetime
+import types
 
 import iso8601
 import mock
@@ -436,7 +437,8 @@ class _TestObject(object):
         self.assertFalse(mock_convert.called)
 
     @mock.patch.object(MyObj, 'convert_to_version', autospec=True)
-    @mock.patch.object(base.IronicObject, 'get_target_version')
+    @mock.patch.object(base.IronicObject, 'get_target_version',
+                       spec_set=types.FunctionType)
     def test_do_version_changes_for_db_pinned(self, mock_target_version,
                                               mock_convert):
         # obj is same version as pinned, no conversion done
@@ -456,7 +458,8 @@ class _TestObject(object):
         mock_target_version.assert_called_with()
         self.assertFalse(mock_convert.called)
 
-    @mock.patch.object(base.IronicObject, 'get_target_version')
+    @mock.patch.object(base.IronicObject, 'get_target_version',
+                       spec_set=types.FunctionType)
     def test_do_version_changes_for_db_downgrade(self, mock_target_version):
         # obj is 1.5; convert to 1.4
         mock_target_version.return_value = '1.4'
@@ -542,7 +545,7 @@ class _TestObject(object):
         # Mock obj_load_attr as this is what is called if an attribute that we
         # try to access is not yet set. For all ironic objects it's a noop,
         # we've implemented it in MyObj purely for testing
-        with mock.patch.object(obj, 'obj_load_attr'):
+        with mock.patch.object(obj, 'obj_load_attr', autospec=True):
             MyObj._from_db_object(self.context, obj, dbobj,
                                   fields=['foo', 'bar'])
             self.assertEqual(obj.__class__.VERSION, obj.VERSION)
@@ -611,7 +614,8 @@ class _TestObject(object):
         self.assertRaises(object_exception.IncompatibleObjectVersion,
                           obj.get_target_version)
 
-    @mock.patch.object(base.IronicObject, 'get_target_version')
+    @mock.patch.object(base.IronicObject, 'get_target_version',
+                       spec_set=types.FunctionType)
     def test_supports_version(self, mock_target_version):
         mock_target_version.return_value = "1.5"
         obj = MyObj(self.context)
@@ -756,7 +760,8 @@ class TestObjectSerializer(test_base.TestCase):
             for item in thing2:
                 self.assertIsInstance(item, MyObj)
 
-    @mock.patch('ironic.objects.base.IronicObject.indirection_api')
+    @mock.patch('ironic.objects.base.IronicObject.indirection_api',
+                autospec=True)
     def _test_deserialize_entity_newer(self, obj_version, backported_to,
                                        mock_indirection_api,
                                        my_version='1.6'):
@@ -827,7 +832,7 @@ class TestObjectSerializer(test_base.TestCase):
         self.assertFalse(mock_release_mapping.called)
 
     @mock.patch.object(base.IronicObject, 'convert_to_version', autospec=True)
-    @mock.patch.object(base.IronicObject, 'get_target_version')
+    @mock.patch.object(base.IronicObject, 'get_target_version', autospec=True)
     def test_serialize_entity_unpinned_api(self, mock_version, mock_convert):
         """Test single element serializer with no backport, unpinned."""
         mock_version.return_value = MyObj.VERSION
@@ -848,7 +853,8 @@ class TestObjectSerializer(test_base.TestCase):
         self.assertFalse(mock_convert.called)
 
     @mock.patch.object(base.IronicObject, 'convert_to_version', autospec=True)
-    @mock.patch.object(base.IronicObject, 'get_target_version')
+    @mock.patch.object(base.IronicObject, 'get_target_version',
+                       spec_set=types.FunctionType)
     def test_serialize_entity_unpinned_conductor(self, mock_version,
                                                  mock_convert):
         """Test single element serializer with no backport, unpinned."""
@@ -869,7 +875,7 @@ class TestObjectSerializer(test_base.TestCase):
         mock_version.assert_called_once_with()
         self.assertFalse(mock_convert.called)
 
-    @mock.patch.object(base.IronicObject, 'get_target_version')
+    @mock.patch.object(base.IronicObject, 'get_target_version', autospec=True)
     def test_serialize_entity_pinned_api(self, mock_version):
         """Test single element serializer with backport to pinned version."""
         mock_version.return_value = '1.4'
@@ -888,7 +894,8 @@ class TestObjectSerializer(test_base.TestCase):
         self.assertEqual('miss', data['missing'])
         self.assertFalse(mock_version.called)
 
-    @mock.patch.object(base.IronicObject, 'get_target_version')
+    @mock.patch.object(base.IronicObject, 'get_target_version',
+                       spec_set=types.FunctionType)
     def test_serialize_entity_pinned_conductor(self, mock_version):
         """Test single element serializer with backport to pinned version."""
         mock_version.return_value = '1.4'
@@ -908,7 +915,8 @@ class TestObjectSerializer(test_base.TestCase):
         self.assertNotIn('ironic_object.changes', primitive)
         mock_version.assert_called_once_with()
 
-    @mock.patch.object(base.IronicObject, 'get_target_version')
+    @mock.patch.object(base.IronicObject, 'get_target_version',
+                       spec_set=types.FunctionType)
     def test_serialize_entity_invalid_pin(self, mock_version):
         mock_version.side_effect = object_exception.InvalidTargetVersion(
             version='1.6')
@@ -963,7 +971,7 @@ class TestObjectSerializer(test_base.TestCase):
 
 
 class TestRegistry(test_base.TestCase):
-    @mock.patch('ironic.objects.base.objects')
+    @mock.patch('ironic.objects.base.objects', autospec=True)
     def test_hook_chooses_newer_properly(self, mock_objects):
         reg = base.IronicObjectRegistry()
         reg.registration_hook(MyObj, 0)
@@ -979,7 +987,7 @@ class TestRegistry(test_base.TestCase):
         reg.registration_hook(MyNewerObj, 0)
         self.assertEqual(MyNewerObj, mock_objects.MyObj)
 
-    @mock.patch('ironic.objects.base.objects')
+    @mock.patch('ironic.objects.base.objects', autospec=True)
     def test_hook_keeps_newer_properly(self, mock_objects):
         reg = base.IronicObjectRegistry()
         reg.registration_hook(MyObj, 0)

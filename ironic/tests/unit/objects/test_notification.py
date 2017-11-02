@@ -94,7 +94,7 @@ class TestNotificationBase(test_base.TestCase):
         actual_payload = mock_notify.call_args[1]['payload']
         self.assertJsonEqual(expected_payload, actual_payload)
 
-    @mock.patch('ironic.common.rpc.VERSIONED_NOTIFIER')
+    @mock.patch('ironic.common.rpc.VERSIONED_NOTIFIER', autospec=True)
     def test_emit_notification(self, mock_notifier):
         self.config(notification_level='debug')
         payload = self.TestNotificationPayload(an_extra_field='extra',
@@ -130,7 +130,7 @@ class TestNotificationBase(test_base.TestCase):
             expected_publisher='ironic-conductor.host',
             notif_level=fields.NotificationLevel.DEBUG)
 
-    @mock.patch('ironic.common.rpc.VERSIONED_NOTIFIER')
+    @mock.patch('ironic.common.rpc.VERSIONED_NOTIFIER', autospec=True)
     def test_no_emit_level_too_low(self, mock_notifier):
         # Make sure notification doesn't emit when set notification
         # level < config level
@@ -153,7 +153,7 @@ class TestNotificationBase(test_base.TestCase):
 
         self.assertFalse(mock_notifier.called)
 
-    @mock.patch('ironic.common.rpc.VERSIONED_NOTIFIER')
+    @mock.patch('ironic.common.rpc.VERSIONED_NOTIFIER', autospec=True)
     def test_no_emit_notifs_disabled(self, mock_notifier):
         # Make sure notifications aren't emitted when notification_level
         # isn't defined, indicating notifications should be disabled
@@ -175,7 +175,7 @@ class TestNotificationBase(test_base.TestCase):
 
         self.assertFalse(mock_notifier.called)
 
-    @mock.patch('ironic.common.rpc.VERSIONED_NOTIFIER')
+    @mock.patch('ironic.common.rpc.VERSIONED_NOTIFIER', autospec=True)
     def test_no_emit_schema_not_populated(self, mock_notifier):
         self.config(notification_level='debug')
         payload = self.TestNotificationPayload(an_extra_field='extra',
@@ -195,7 +195,7 @@ class TestNotificationBase(test_base.TestCase):
                           mock_context)
         self.assertFalse(mock_notifier.called)
 
-    @mock.patch('ironic.common.rpc.VERSIONED_NOTIFIER')
+    @mock.patch('ironic.common.rpc.VERSIONED_NOTIFIER', autospec=True)
     def test_emit_notification_empty_schema(self, mock_notifier):
         self.config(notification_level='debug')
         payload = self.TestNotificationPayloadEmptySchema(fake_field='123')

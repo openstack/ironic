@@ -13,6 +13,7 @@
 #    under the License.
 
 import datetime
+import types
 
 import mock
 from testtools.matchers import HasLength
@@ -31,8 +32,10 @@ class TestVolumeConnectorObject(db_base.DbTestCase,
         super(TestVolumeConnectorObject, self).setUp()
         self.volume_connector_dict = db_utils.get_test_volume_connector()
 
-    @mock.patch('ironic.objects.VolumeConnector.get_by_uuid')
-    @mock.patch('ironic.objects.VolumeConnector.get_by_id')
+    @mock.patch('ironic.objects.VolumeConnector.get_by_uuid',
+                spec_set=types.FunctionType)
+    @mock.patch('ironic.objects.VolumeConnector.get_by_id',
+                spec_set=types.FunctionType)
     def test_get(self, mock_get_by_id, mock_get_by_uuid):
         id = self.volume_connector_dict['id']
         uuid = self.volume_connector_dict['uuid']

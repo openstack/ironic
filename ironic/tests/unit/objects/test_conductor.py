@@ -15,6 +15,7 @@
 #    under the License.
 
 import datetime
+import types
 
 import mock
 from oslo_utils import timeutils
@@ -87,7 +88,8 @@ class TestConductorObject(db_base.DbTestCase):
             self.assertEqual(expected, mock_get_cdr.call_args_list)
             self.assertEqual(self.context, c._context)
 
-    @mock.patch.object(base.IronicObject, 'get_target_version')
+    @mock.patch.object(base.IronicObject, 'get_target_version',
+                       spec_set=types.FunctionType)
     def _test_register(self, mock_target_version, update_existing=False):
         mock_target_version.return_value = '1.5'
         host = self.fake_conductor['hostname']
@@ -111,7 +113,8 @@ class TestConductorObject(db_base.DbTestCase):
     def test_register_update_existing_true(self):
         self._test_register(update_existing=True)
 
-    @mock.patch.object(objects.Conductor, 'unregister_all_hardware_interfaces')
+    @mock.patch.object(objects.Conductor, 'unregister_all_hardware_interfaces',
+                       autospec=True)
     def test_unregister(self, mock_unreg_ifaces):
         host = self.fake_conductor['hostname']
         with mock.patch.object(self.dbapi, 'get_conductor',
@@ -122,7 +125,7 @@ class TestConductorObject(db_base.DbTestCase):
                 c = objects.Conductor.get_by_hostname(self.context, host)
                 c.unregister()
                 mock_unregister_cdr.assert_called_once_with(host)
-                mock_unreg_ifaces.assert_called_once_with()
+                mock_unreg_ifaces.assert_called_once_with(mock.ANY)
 
     def test_register_hardware_interfaces(self):
         host = self.fake_conductor['hostname']
