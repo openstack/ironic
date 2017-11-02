@@ -92,9 +92,9 @@ instead. ::
     password = PASSWORD
     auth_url = http://RADOSGW_IP:8000/auth/v1
 
-Make sure that if an agent_* driver is being used, edit
-``/etc/glance/glance-api.conf`` to store the instance images in respective
-object store (radosgw or swift) as well::
+If the :ref:`direct-deploy` is being used, edit ``/etc/glance/glance-api.conf``
+to store the instance images in respective object store (radosgw or swift)
+as well::
 
     [glance_store]
     ...

@@ -202,9 +202,11 @@ steps on the ironic conductor node to configure the PXE UEFI environment.
 #. Make sure that bare metal node is configured to boot in UEFI boot mode and
    boot device is set to network/pxe.
 
-   NOTE: ``pxe_ilo`` driver supports automatic setting of UEFI boot mode and
-   boot device on the bare metal node. So this step is not required for
-   ``pxe_ilo`` driver.
+   .. note::
+    Some drivers, e.g. ``ilo`` and ``irmc``, support automatic setting of the
+    boot mode during deployment. This step is not required for them. Please
+    check :doc:`../admin/drivers` for information on whether your driver
+    requires manual UEFI configuration.
 
 .. note::
   For more information on configuring boot modes, see :ref:`boot_mode_support`.

@@ -5,10 +5,9 @@ Installing ipmitool command
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To enable one of the drivers that use IPMI_ protocol for power and management
-actions (for example, ``ipmi``, ``pxe_ipmitool`` and ``agent_ipmitool``), the
-``ipmitool`` command must be present on the service node(s) where
-``ironic-conductor`` is running. On most distros, it is provided as part
-of the ``ipmitool`` package. Source code is available at
+actions (for example, ``ipmi``), the ``ipmitool`` command must be present on
+the service node(s) where ``ironic-conductor`` is running. On most distros, it
+is provided as part of the ``ipmitool`` package. Source code is available at
 http://ipmitool.sourceforge.net/.
 
 .. warning::
@@ -58,10 +57,9 @@ Collecting sensor data
 ~~~~~~~~~~~~~~~~~~~~~~
 
 Bare Metal service supports sending IPMI sensor data to Telemetry with
-certain drivers, such as drivers ending with ``ipmitool``, ``ilo`` and
-``irmc``.  By default, support for sending IPMI sensor data to Telemetry is
-disabled. If you want to enable it, you should make the following two changes
-in ``ironic.conf``:
+certain hardware types, such as ``ipmi``, ``ilo`` and ``irmc``.  By default,
+support for sending IPMI sensor data to Telemetry is disabled. If you want
+to enable it, you should make the following two changes in ``ironic.conf``:
 
 .. code-block:: ini
 

@@ -3,10 +3,9 @@
 Configure the Image service for temporary URLs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Some drivers of the Baremetal service (in particular, any ``agent_*`` drivers,
-any new-style drivers using ``direct`` deploy interface,
-and some virtual media drivers) require target user images to be available
-over clean HTTP(S) URL with no authentication involved
+Some drivers of the Baremetal service (in particular, any drivers using
+:ref:`direct-deploy` and some virtual media drivers) require target user images
+to be available over clean HTTP(S) URL with no authentication involved
 (neither username/password-based, nor token-based).
 
 When using the Baremetal service integrated in OpenStack,
