@@ -64,31 +64,10 @@
     timeout: 5400
 
 - job:
-    name: ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_ipmitool-tinyipa
-    parent: legacy-ironic-dsvm-base
-    run: playbooks/legacy/tempest-dsvm-ironic-ipa-wholedisk-bios-pxe_ipmitool-tinyipa/run.yaml
-    post-run: playbooks/legacy/tempest-dsvm-ironic-ipa-wholedisk-bios-pxe_ipmitool-tinyipa/post.yaml
-    timeout: 5400
-
-- job:
     name: ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_snmp-tinyipa
     parent: legacy-ironic-dsvm-base
     run: playbooks/legacy/tempest-dsvm-ironic-ipa-wholedisk-bios-pxe_snmp-tinyipa/run.yaml
     post-run: playbooks/legacy/tempest-dsvm-ironic-ipa-wholedisk-bios-pxe_snmp-tinyipa/post.yaml
-    timeout: 5400
-
-- job:
-    name: ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa
-    parent: legacy-ironic-dsvm-base
-    run: playbooks/legacy/tempest-dsvm-ironic-ipa-partition-bios-agent_ipmitool-tinyipa/run.yaml
-    post-run: playbooks/legacy/tempest-dsvm-ironic-ipa-partition-bios-agent_ipmitool-tinyipa/post.yaml
-    timeout: 5400
-
-- job:
-    name: ironic-tempest-dsvm-ipa-partition-bios-pxe_ipmitool-tinyipa
-    parent: legacy-ironic-dsvm-base
-    run: playbooks/legacy/tempest-dsvm-ironic-ipa-partition-bios-pxe_ipmitool-tinyipa/run.yaml
-    post-run: playbooks/legacy/tempest-dsvm-ironic-ipa-partition-bios-pxe_ipmitool-tinyipa/post.yaml
     timeout: 5400
 
 - job:
@@ -191,23 +170,6 @@
       - openstack/python-ironicclient
       - openstack/virtualbmc
     nodeset: legacy-ubuntu-xenial-2-node
-
-- job:
-    name: ironic-tempest-dsvm-multitenant-network
-    parent: legacy-ironic-dsvm-base
-    run: playbooks/legacy/tempest-dsvm-ironic-multitenant-network/run.yaml
-    post-run: playbooks/legacy/tempest-dsvm-ironic-multitenant-network/post.yaml
-    timeout: 10800
-    required-projects:
-      - openstack-infra/devstack-gate
-      - openstack/ironic
-      - openstack/ironic-lib
-      - openstack/ironic-python-agent
-      - openstack/pyghmi
-      - openstack/python-ironicclient
-      - openstack/tempest
-      - openstack/virtualbmc
-      - openstack/networking-generic-switch
 
 - job:
     name: ironic-dsvm-functional
