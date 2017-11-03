@@ -1,0 +1,5 @@
+---
+fixes:
+  - Fixes the issue of port number 0 (zero) being considered invalid (`bug 1729628
+    <https://bugs.launchpad.net/ironic/+bug/1729628>`_). Zero is a valid port
+    number and is now recognized as such.
