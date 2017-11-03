@@ -14,7 +14,6 @@
 #    under the License.
 
 import mock
-from oslo_utils import importutils
 
 from ironic.common import driver_factory
 from ironic.common import exception
@@ -30,8 +29,6 @@ from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
-
-oneview_models = importutils.try_import('oneview_client.models')
 
 METHODS = ['iter_nodes', 'update_node', 'do_provisioning_action']
 PXE_DRV_INFO_DICT = db_utils.get_test_pxe_driver_info()
@@ -86,7 +83,6 @@ class OneViewDriverDeploy(deploy.OneViewPeriodicTasks):
 
     def __init__(self):
         self.client = mock.MagicMock()
-        self.oneview_client = mock.MagicMock()
 
 
 @mock.patch('ironic.objects.Node', spec_set=True, autospec=True)

@@ -123,26 +123,6 @@ SCCICLIENT_VIOM_CONF_SPEC = (
     'terminate',
 )
 
-ONEVIEWCLIENT_SPEC = (
-    'client',
-    'states',
-    'exceptions',
-    'models',
-    'utils',
-)
-
-ONEVIEWCLIENT_CLIENT_CLS_SPEC = (
-)
-
-ONEVIEWCLIENT_STATES_SPEC = (
-    'ONEVIEW_POWER_OFF',
-    'ONEVIEW_POWERING_OFF',
-    'ONEVIEW_POWER_ON',
-    'ONEVIEW_POWERING_ON',
-    'ONEVIEW_RESETTING',
-    'ONEVIEW_ERROR',
-)
-
 HPONEVIEW_SPEC = (
     'oneview_client',
     'resources',

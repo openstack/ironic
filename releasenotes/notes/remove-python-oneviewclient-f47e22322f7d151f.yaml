@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    The OneView drivers no longer use ``python-oneviewclient`` to communicate with
+    OneView appliances. The ``oneview`` hardware type now uses the ``hpOneView``
+    and ``python-ilorest-library`` libraries.

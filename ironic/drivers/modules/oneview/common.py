@@ -25,19 +25,9 @@ from ironic.drivers import utils
 
 LOG = logging.getLogger(__name__)
 
-# NOTE(mrtenio): hpOneView will be the default library for OneView. It
-# is being introduced together with the python-oneviewclient to be used
-# generally by other patches. python-oneviewclient will be removed
-# subsequently.
-client = importutils.try_import('oneview_client.client')
-oneview_utils = importutils.try_import('oneview_client.utils')
-oneview_states = importutils.try_import('oneview_client.states')
-oneview_exceptions = importutils.try_import('oneview_client.exceptions')
-
 hponeview_client = importutils.try_import('hpOneView.oneview_client')
 redfish = importutils.try_import('redfish')
 client_exception = importutils.try_import('hpOneView.exceptions')
-
 
 REQUIRED_ON_DRIVER_INFO = {
     'server_hardware_uri': _("Server Hardware URI. Required in driver_info."),
@@ -75,25 +65,6 @@ NODE_IN_USE_BY_ONEVIEW = 'node in use by OneView'
 SERVER_HARDWARE_ALLOCATION_ERROR = 'server hardware allocation error'
 
 
-def get_oneview_client():
-    """Generate an instance of the OneView client.
-
-    Generates an instance of the OneView client using the imported
-    oneview_client library.
-
-    :returns: an instance of the OneView client
-    """
-    oneview_client = client.Client(
-        manager_url=CONF.oneview.manager_url,
-        username=CONF.oneview.username,
-        password=CONF.oneview.password,
-        allow_insecure_connections=CONF.oneview.allow_insecure_connections,
-        tls_cacert_file=CONF.oneview.tls_cacert_file,
-        max_polling_attempts=CONF.oneview.max_polling_attempts
-    )
-    return oneview_client
-
-
 def prepare_manager_url(manager_url):
     # NOTE(mrtenio) python-oneviewclient uses https or http in the manager_url
     # while python-hpOneView does not. This will not be necessary when
@@ -105,9 +76,9 @@ def prepare_manager_url(manager_url):
 
 
 def get_hponeview_client():
-    """Generate an instance of the hpOneView client.
+    """Generate an instance of the HPE OneView client.
 
-    Generates an instance of the hpOneView client using the hpOneView library.
+    Generates an instance of the HPE OneView client using the hpOneView lib.
 
     :returns: an instance of the OneViewClient
     :raises: InvalidParameterValue if mandatory information is missing on the
