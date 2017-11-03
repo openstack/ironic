@@ -429,9 +429,10 @@ Switch to the stack user and clone DevStack::
     git clone https://git.openstack.org/openstack-dev/devstack.git devstack
 
 Create devstack/local.conf with minimal settings required to enable Ironic.
-You can use either of two drivers for deploy: agent\_\* or pxe\_\*, see :ref:`IPA`
-for explanation. An example local.conf that enables both types of drivers
-and uses the ``agent_ipmitool`` driver by default::
+You can use either of two drivers for deploy: agent\_\* or pxe\_\*, see
+:doc:`/admin/interfaces/deploy` for explanation. An example local.conf that
+enables both types of drivers and uses the ``agent_ipmitool`` driver
+by default::
 
     cd devstack
     cat >local.conf <<END

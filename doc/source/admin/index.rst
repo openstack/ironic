@@ -8,7 +8,7 @@ the services.
 .. toctree::
   :maxdepth: 1
 
-   Enabling Drivers <drivers>
+   Drivers, Hardware Types and Hardware Interfaces <drivers>
    Ironic Python Agent <drivers/ipa>
    Node Hardware Inspection <inspection>
    Node Cleaning <cleaning>

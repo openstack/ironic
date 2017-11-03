@@ -1,107 +1,38 @@
-.. _enabling_drivers:
+===============================================
+Drivers, Hardware Types and Hardware Interfaces
+===============================================
 
-================
-Enabling drivers
-================
-
-Ironic-Python-Agent (agent)
----------------------------
-
-Ironic-Python-Agent is an agent that handles *ironic* bare metal
-nodes in various actions such as inspection and deployment of such
-nodes, and runs processes inside of a ramdisk.
-
-For more information on this, see :ref:`IPA`.
-
-PXE Boot Interface
+Generic Interfaces
 ------------------
 
 .. toctree::
-  :maxdepth: 1
+  :maxdepth: 2
 
-  drivers/pxe
+  interfaces/boot
+  interfaces/deploy
 
-IPMITool driver
----------------
-
-.. toctree::
-  :maxdepth: 1
-
-  drivers/ipmitool
-
-iDRAC driver
-------------
-
-.. toctree::
-  :maxdepth: 1
-
-  drivers/idrac
-
-SNMP driver
------------
-
-.. toctree::
-  :maxdepth: 1
-
-  drivers/snmp
-
-iLO driver
-----------
-
-.. toctree::
-  :maxdepth: 1
-
-  drivers/ilo
-
-iRMC driver
------------
-
-.. toctree::
-  :maxdepth: 1
-
-  drivers/irmc
-
-Cisco UCS driver
-----------------
-
-.. toctree::
-  :maxdepth: 1
-
-  drivers/ucs
-
-
-CIMC driver
------------
+Hardware Types
+--------------
 
 .. toctree::
   :maxdepth: 1
 
   drivers/cimc
-
-
-OneView driver
---------------
-
-.. toctree::
-  :maxdepth: 1
-
+  drivers/idrac
+  drivers/ilo
+  drivers/ipmitool
+  drivers/irmc
   drivers/oneview
-
-
-Redfish driver
---------------
-
-.. toctree::
-  :maxdepth: 1
-
   drivers/redfish
+  drivers/snmp
+  drivers/ucs
 
 
 Unsupported drivers
 -------------------
 
 The following drivers were declared as unsupported in ironic Newton release
-and as of Ocata release they are removed form ironic:
+and as of Ocata release they are removed from ironic:
 
 - AMT driver - available as part of ironic-staging-drivers_
 - iBoot driver - available as part of ironic-staging-drivers_
@@ -110,4 +41,9 @@ and as of Ocata release they are removed form ironic:
 - SeaMicro drivers
 - MSFT OCS drivers
 
+The SSH drivers were removed in the Pike release. Similar functionality can be
+achieved either with VirtualBMC_ or using libvirt drivers from
+ironic-staging-drivers_.
+
 .. _ironic-staging-drivers: http://ironic-staging-drivers.readthedocs.io
+.. _VirtualBMC: https://git.openstack.org/cgit/openstack/virtualbmc
