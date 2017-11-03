@@ -242,17 +242,14 @@
 # "ironic.hardware.interfaces.rescue" entrypoint. When setting
 # this value, please make sure that every enabled hardware
 # type will have the same set of enabled rescue interfaces on
-# every ironic-conductor service. This option is part of
-# rescue feature work, which is not currently exposed to
-# users. (list value)
+# every ironic-conductor service. (list value)
 #enabled_rescue_interfaces = no-rescue
 
 # Default rescue interface to be used for nodes that do not
 # have rescue_interface field set. A complete list of rescue
 # interfaces present on your system may be found by
 # enumerating the "ironic.hardware.interfaces.rescue"
-# entrypoint. This option is part of rescue feature work,
-# which is not currently exposed to users. (string value)
+# entrypoint. (string value)
 #default_rescue_interface = <None>
 
 # Specify the list of storage interfaces to load during
@@ -1267,9 +1264,8 @@
 # (integer value)
 #check_provision_state_interval = 60
 
-# Interval (seconds) between checks of rescue timeouts. This
-# option is part of rescue feature work, which is not
-# currently exposed to users. (integer value)
+# Interval (seconds) between checks of rescue timeouts.
+# (integer value)
 # Minimum value: 1
 #check_rescue_state_interval = 60
 
@@ -1364,8 +1360,7 @@
 # Timeout (seconds) to wait for a callback from the rescue
 # ramdisk. If the timeout is reached the node will be put in
 # the "rescue failed" provision state. Set to 0 to disable
-# timeout. This option is part of rescue feature work, which
-# is not currently exposed to users. (integer value)
+# timeout. (integer value)
 # Minimum value: 0
 #rescue_callback_timeout = 1800
 
@@ -2852,17 +2847,14 @@
 # Required for "neutron" network interface, if rescue mode
 # will be used. It is not used for the "flat" or "noop"
 # network interfaces. If a name is provided, it must be unique
-# among all networks or rescue will fail. This option is part
-# of rescue feature work, which is not currently exposed to
-# users. (string value)
+# among all networks or rescue will fail. (string value)
 #rescuing_network = <None>
 
 # List of Neutron Security Group UUIDs to be applied during
 # the node rescue process. Optional for the "neutron" network
 # interface and not used for the "flat" or "noop" network
 # interfaces. If not specified, the default security group is
-# used. This option is part of rescue feature work, which is
-# not currently exposed to users. (list value)
+# used. (list value)
 #rescuing_network_security_groups =
 
 # Client retries in the case of a failed request. (integer

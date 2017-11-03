@@ -56,8 +56,7 @@ opts = [
                default=60,
                min=1,
                help=_('Interval (seconds) between checks of rescue '
-                      'timeouts. This option is part of rescue feature '
-                      'work, which is not currently exposed to users.')),
+                      'timeouts.')),
     cfg.IntOpt('deploy_callback_timeout',
                default=1800,
                help=_('Timeout (seconds) to wait for a callback from '
@@ -157,9 +156,7 @@ opts = [
                help=_('Timeout (seconds) to wait for a callback from the '
                       'rescue ramdisk. If the timeout is reached the node '
                       'will be put in the "rescue failed" provision state. '
-                      'Set to 0 to disable timeout. This option is part of '
-                      'rescue feature work, which is not currently exposed '
-                      'to users.')),
+                      'Set to 0 to disable timeout.')),
     cfg.IntOpt('soft_power_off_timeout',
                default=600,
                min=1,
