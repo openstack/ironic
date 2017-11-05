@@ -30,10 +30,6 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 class OneViewInspect(inspector.Inspector):
     """Interface for in band inspection."""
 
-    def __init__(self):
-        super(OneViewInspect, self).__init__()
-        self.client = common.get_hponeview_client()
-
     def get_properties(self):
         return deploy_utils.get_properties()
 
@@ -54,7 +50,7 @@ class OneViewInspect(inspector.Inspector):
         common.verify_node_info(task.node)
 
         try:
-            common.validate_oneview_resources_compatibility(self.client, task)
+            common.validate_oneview_resources_compatibility(task)
         except exception.OneViewError as oneview_exc:
             raise exception.InvalidParameterValue(oneview_exc)
 
@@ -62,7 +58,7 @@ class OneViewInspect(inspector.Inspector):
     def inspect_hardware(self, task):
         profile_name = 'Ironic Inspecting [%s]' % task.node.uuid
         deploy_utils.allocate_server_hardware_to_ironic(
-            self.client, task.node, profile_name
+            task.node, profile_name
         )
         return super(OneViewInspect, self).inspect_hardware(task)
 
@@ -93,8 +89,6 @@ class OneViewInspect(inspector.Inspector):
         if state_before == states.INSPECTING and state_after in [
                 states.MANAGEABLE, states.INSPECTFAIL
         ]:
-            deploy_utils.deallocate_server_hardware_from_ironic(
-                self.client, task.node
-            )
+            deploy_utils.deallocate_server_hardware_from_ironic(task.node)
 
         return result
