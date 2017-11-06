@@ -1801,7 +1801,8 @@ function enroll_nodes {
         # Setting root hint allows to install OS on such devices.
         # 0x1af4 is VirtIO vendor device ID.
         if [[ "$ironic_node_disk" -lt "4" && is_deployed_by_agent ]]; then
-            $IRONIC_CMD node set --property root_device='{"vendor": "0x1af4"}'
+            $IRONIC_CMD node set $node_id --property \
+                root_device='{"vendor": "0x1af4"}'
         fi
 
         # In case we using portgroups, we should API version that support them.
