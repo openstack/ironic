@@ -114,10 +114,10 @@ Request
 
 .. rest_parameters:: parameters.yaml
 
-    - node_uuid: node_uuid
+    - node_uuid: req_node_uuid
     - type: volume_connector_type
     - connector_id: volume_connector_connector_id
-    - extra: extra
+    - extra: req_extra
 
 **Example Volume connector creation request:**
 
@@ -320,12 +320,12 @@ Request
 
 .. rest_parameters:: parameters.yaml
 
-    - node_uuid: node_uuid
+    - node_uuid: req_node_uuid
     - volume_type: volume_target_volume_type
     - properties: volume_target_properties
     - boot_index: volume_target_boot_index
     - volume_id: volume_target_volume_id
-    - extra: extra
+    - extra: req_extra
 
 **Example Volume target creation request:**
 

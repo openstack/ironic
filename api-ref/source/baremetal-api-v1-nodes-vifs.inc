@@ -53,7 +53,7 @@ Request
 
 .. rest_parameters:: parameters.yaml
 
-    - id: node_vif_ident
+    - id: req_node_vif_ident
     - node_ident: node_ident
 
 **Example request to attach a VIF to a Node:**
@@ -78,4 +78,4 @@ Request
 .. rest_parameters:: parameters.yaml
 
     - node_ident: node_ident
-    - node_vif_ident: node_vif_ident
+    - node_vif_ident: req_node_vif_ident
