@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    Deprecated options ``glance_host``, ``glance_port`` and ``glance_protocol``
+    from ``[glance]`` section of ironic configuration file were removed and
+    will be ignored.
+    Please use ``[glance]/glance_api_servers`` options to provide specific
+    addresses for the Image service endpoint when its discovery from keystone
+    service catalog is not desired.

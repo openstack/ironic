@@ -1541,9 +1541,9 @@
 
 # A list of the glance api servers available to ironic. Prefix
 # with https:// for SSL-based glance API servers. Format is
-# [hostname|IP]:port. If neither this option nor glance_host
-# is set, the service catalog is used. It is recommended to
-# rely on the service catalog, if possible. (list value)
+# [hostname|IP]:port. If this option is not set, the service
+# catalog is used. It is recommended to rely on the service
+# catalog, if possible. (list value)
 #glance_api_servers = <None>
 
 # DEPRECATED: Glance API version (1 or 2) to use. (integer
@@ -1561,32 +1561,9 @@
 # when glance_api_insecure is set to False. (string value)
 #glance_cafile = <None>
 
-# DEPRECATED: Default glance hostname or IP address. The
-# service catalog is used when not defined. Deprecated, use
-# glance_api_servers instead. (string value)
-# This option is deprecated for removal.
-# Its value may be silently ignored in the future.
-#glance_host = <None>
-
 # Number of retries when downloading an image from glance.
 # (integer value)
 #glance_num_retries = 0
-
-# DEPRECATED: Default glance port. Deprecated, use
-# glance_api_servers instead. (port value)
-# Minimum value: 0
-# Maximum value: 65535
-# This option is deprecated for removal.
-# Its value may be silently ignored in the future.
-#glance_port = 9292
-
-# DEPRECATED: Default protocol to use when connecting to
-# glance. Set to https for SSL. Deprecated, use
-# glance_api_services instead. (string value)
-# Allowed values: http, https
-# This option is deprecated for removal.
-# Its value may be silently ignored in the future.
-#glance_protocol = http
 
 # Verify HTTPS connections. (boolean value)
 #insecure = false

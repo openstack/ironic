@@ -97,7 +97,7 @@ class TestGlanceImageService(base.TestCase):
         self.context.project_id = 'fake'
         self.service = service.GlanceImageService(client, 1, self.context)
 
-        self.config(glance_host='localhost', group='glance')
+        self.config(glance_api_servers=['http://localhost'], group='glance')
         try:
             self.config(auth_strategy='keystone', group='glance')
         except Exception:
@@ -875,13 +875,6 @@ class TestGlanceAPIServers(base.TestCase):
         mock_service_url.assert_called_once_with(mock_session.return_value,
                                                  service_type='image',
                                                  endpoint_type='public')
-
-    def test__get_api_servers_with_host_port(self):
-        CONF.set_override('glance_host', 'example.com', 'glance')
-        CONF.set_override('glance_port', 42, 'glance')
-        CONF.set_override('glance_protocol', 'https', 'glance')
-        endpoint = service_utils._get_api_server()
-        self.assertEqual('https://example.com:42', endpoint)
 
     def test__get_api_servers_one(self):
         CONF.set_override('glance_api_servers', ['https://10.0.0.1:9293'],

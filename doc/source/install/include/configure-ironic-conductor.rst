@@ -16,18 +16,6 @@ Configuring ironic-conductor service
       If a conductor host has multiple IPs, ``my_ip`` should
       be set to the IP which is on the same network as the bare metal nodes.
 
-#. Configure the ironic-api service URL. Replace ``IRONIC_API_IP`` with IP of
-   ironic-api service as follows:
-
-   .. code-block:: ini
-
-      [conductor]
-
-      # URL of Ironic API service. If not set ironic can get the
-      # current value from the keystone service catalog. (string
-      # value)
-      api_url=http://IRONIC_API_IP:6385
-
 #. Configure the location of the database. Ironic-conductor should use the same
    configuration as ironic-api. Replace ``IRONIC_DBPASSWORD`` with the password
    of your ``ironic`` user, and replace DB_IP with the IP address where the DB
@@ -53,35 +41,6 @@ Configuring ironic-conductor service
       # A URL representing the messaging driver to use and its full
       # configuration. (string value)
       transport_url = rabbit://RPC_USER:RPC_PASSWORD@RPC_HOST:RPC_PORT/
-
-#. Configure the ironic-conductor service so that it can communicate with the
-   Image service. Replace ``GLANCE_IP`` with the hostname or IP address of
-   the Image service:
-
-   .. code-block:: ini
-
-      [glance]
-
-      # Default glance hostname or IP address. (string value)
-      glance_host=GLANCE_IP
-
-   .. note::
-      Swift backend for the Image service must be installed and configured
-      for ``agent_*`` drivers. Ceph Object Gateway (RADOS Gateway) is also
-      supported as the Image service's backend (:ref:`radosgw support`).
-
-#. Set the URL (replace ``NEUTRON_IP``) for connecting to the Networking
-   service, to be the Networking service endpoint:
-
-   .. code-block:: ini
-
-      [neutron]
-
-      # URL for connecting to neutron. (string value)
-      url=http://NEUTRON_IP:9696
-
-   To configure the network for ironic-conductor service to perform node
-   cleaning, see :ref:`cleaning` from the admin guide.
 
 #. Configure credentials for accessing other OpenStack services.
 
@@ -156,6 +115,58 @@ Configuring ironic-conductor service
       # PEM encoded Certificate Authority to use when verifying
       # HTTPs connections. (string value)
       cafile=/opt/stack/data/ca-bundle.pem
+
+#. Notes for configuring the Image service access
+
+   .. note::
+      Swift backend for the Image service must be installed and configured
+      for ``agent_*`` drivers. Ceph Object Gateway (RADOS Gateway) is also
+      supported as the Image service's backend (:ref:`radosgw support`).
+
+   Configure the ironic-conductor service to use specific Image service
+   endpoints - only if you do not want to use Image service endpoint discovery
+   from the keystone service catalog.
+   Replace ``<GLANCE_SERVICE_URL>`` with the address of the image service API:
+
+   .. code-block:: ini
+
+      [glance]
+      glance_api_servers = <GLANCE_SERVICE_URL>
+
+
+#. Notes for configuring the Network service access
+
+   .. note::
+      To configure the network for ironic-conductor service to perform node
+      cleaning, see :ref:`cleaning` from the admin guide.
+
+   Set a specific URL (replace ``NETWORKING_SERVICE_ENDPOINT``)
+   for connecting to the Networking service, to be the Networking
+   service endpoint - only for the case when you do not want to use
+   discovery of Networking service endpoint from keystone service catalog:
+
+   .. code-block:: ini
+
+      [neutron]
+
+      # URL for connecting to neutron. (string value)
+      url=<NETWORKING_SERVICE_ENDPOINT>
+
+#. Configure a specific ironic-api service URL - only if you do not want
+   to use discovery of the Baremetal service endpoint from keystone catalog
+   (for example when having deployed two separate pools of ironic-api services
+   for security reasons).
+   Replace ``IRONIC_API_IP`` with IP of specific ironic-api service as follows:
+
+   .. code-block:: ini
+
+      [conductor]
+
+      # URL of Ironic API service. If not set ironic can get the
+      # current value from the keystone service catalog. (string
+      # value)
+      endpoint_override=http://IRONIC_API_IP:6385
+
 
 #. Configure enabled drivers and hardware types as described in
    :doc:`/install/enabling-drivers`.

@@ -97,9 +97,7 @@ def _get_api_server_iterator():
     that will cycle through the list, looping around to the beginning if
     necessary.
 
-    If CONF.glance.glance_api_servers isn't set, we fall back to using this
-    as the server: CONF.glance.glance_host:CONF.glance.glance_port.
-    If CONF.glance.glance_host is also not set, fetch the endpoint from the
+    If CONF.glance.glance_api_servers isn't set, fetch the endpoint from the
     service catalog.
 
     :returns: iterator that cycles (indefinitely) over shuffled glance API
@@ -107,21 +105,14 @@ def _get_api_server_iterator():
     """
     api_servers = []
 
-    if not CONF.glance.glance_api_servers and not CONF.glance.glance_host:
+    if not CONF.glance.glance_api_servers:
         session = keystone.get_session('glance',
                                        auth=keystone.get_auth('glance'))
         api_servers = [keystone.get_service_url(session, service_type='image',
                                                 endpoint_type='public')]
     else:
-        configured_servers = (CONF.glance.glance_api_servers or
-                              ['%s:%s' % (CONF.glance.glance_host,
-                                          CONF.glance.glance_port)])
-        for api_server in configured_servers:
-            if '//' not in api_server:
-                api_server = '%s://%s' % (CONF.glance.glance_protocol,
-                                          api_server)
-            api_servers.append(api_server)
-        random.shuffle(api_servers)
+        api_servers = random.sample(CONF.glance.glance_api_servers,
+                                    len(CONF.glance.glance_api_servers))
     return itertools.cycle(api_servers)
 
 
