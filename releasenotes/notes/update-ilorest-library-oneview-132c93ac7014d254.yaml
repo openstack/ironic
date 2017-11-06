@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The minimum required version of python-ilorest-library for the hardware
+    type OneView was bumped to 2.1.0.
