@@ -48,8 +48,7 @@
             branches: ^stable/(newton|ocata).*$
         - ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_ipmitool-tinyipa:
             branches: ^stable/(newton|ocata).*$
-        - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa:
-            branches: ^stable/(newton|ocata).*$
+        - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
         - ironic-tempest-dsvm-ipa-partition-redfish-tinyipa:
             branches: ^(?!stable/(newton|ocata)).*$
         - ironic-tempest-dsvm-bfv:
