@@ -31,8 +31,9 @@ class TestRoot(base.BaseApiTest):
         version1 = response['default_version']
         self.assertEqual('v1', version1['id'])
         self.assertEqual('CURRENT', version1['status'])
-        self.assertEqual(versions.MIN_VERSION_STRING, version1['min_version'])
-        self.assertEqual(versions.MAX_VERSION_STRING, version1['version'])
+        self.assertEqual(versions.min_version_string(),
+                         version1['min_version'])
+        self.assertEqual(versions.max_version_string(), version1['version'])
 
 
 class TestV1Root(base.BaseApiTest):

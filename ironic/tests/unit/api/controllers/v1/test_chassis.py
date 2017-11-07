@@ -77,7 +77,7 @@ class TestListChassis(test_api_base.BaseApiTest):
         fields = 'extra,description'
         data = self.get_json(
             '/chassis/%s?fields=%s' % (chassis.uuid, fields),
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         # We always append "links"
         self.assertItemsEqual(['description', 'extra', 'links'], data)
 
@@ -89,7 +89,7 @@ class TestListChassis(test_api_base.BaseApiTest):
 
         data = self.get_json(
             '/chassis?fields=%s' % fields,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
 
         self.assertEqual(3, len(data['chassis']))
         for ch in data['chassis']:
@@ -101,7 +101,7 @@ class TestListChassis(test_api_base.BaseApiTest):
         fields = 'uuid,spongebob'
         response = self.get_json(
             '/chassis/%s?fields=%s' % (chassis.uuid, fields),
-            headers={api_base.Version.string: str(api_v1.MAX_VER)},
+            headers={api_base.Version.string: str(api_v1.max_version())},
             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
@@ -112,7 +112,7 @@ class TestListChassis(test_api_base.BaseApiTest):
         fields = 'uuid,extra'
         response = self.get_json(
             '/chassis/%s?fields=%s' % (chassis.uuid, fields),
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 

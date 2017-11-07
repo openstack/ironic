@@ -65,14 +65,14 @@ class TestLookup(test_api_base.BaseApiTest):
     def test_nothing_provided(self):
         response = self.get_json(
             '/lookup',
-            headers={api_base.Version.string: str(api_v1.MAX_VER)},
+            headers={api_base.Version.string: str(api_v1.max_version())},
             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     def test_not_found(self):
         response = self.get_json(
             '/lookup?addresses=%s' % ','.join(self.addresses),
-            headers={api_base.Version.string: str(api_v1.MAX_VER)},
+            headers={api_base.Version.string: str(api_v1.max_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
@@ -83,7 +83,7 @@ class TestLookup(test_api_base.BaseApiTest):
 
         response = self.get_json(
             '/lookup?addresses=%s' % ','.join(self.addresses),
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
@@ -94,7 +94,7 @@ class TestLookup(test_api_base.BaseApiTest):
 
         data = self.get_json(
             '/lookup?addresses=%s' % ','.join(self.addresses),
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(self.node.uuid, data['node']['uuid'])
         self.assertEqual(set(ramdisk._LOOKUP_RETURN_FIELDS) | {'links'},
                          set(data['node']))
@@ -110,7 +110,7 @@ class TestLookup(test_api_base.BaseApiTest):
                      ':f4:52:14:03:00:54:06:c2,' + ','.join(self.addresses))
         data = self.get_json(
             '/lookup?addresses=%s' % addresses,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(self.node.uuid, data['node']['uuid'])
         self.assertEqual(set(ramdisk._LOOKUP_RETURN_FIELDS) | {'links'},
                          set(data['node']))
@@ -121,7 +121,7 @@ class TestLookup(test_api_base.BaseApiTest):
         data = self.get_json(
             '/lookup?addresses=%s&node_uuid=%s' %
             (','.join(self.addresses), self.node.uuid),
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(self.node.uuid, data['node']['uuid'])
         self.assertEqual(set(ramdisk._LOOKUP_RETURN_FIELDS) | {'links'},
                          set(data['node']))
@@ -130,7 +130,7 @@ class TestLookup(test_api_base.BaseApiTest):
     def test_found_by_only_uuid(self):
         data = self.get_json(
             '/lookup?node_uuid=%s' % self.node.uuid,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(self.node.uuid, data['node']['uuid'])
         self.assertEqual(set(ramdisk._LOOKUP_RETURN_FIELDS) | {'links'},
                          set(data['node']))
@@ -140,7 +140,7 @@ class TestLookup(test_api_base.BaseApiTest):
         response = self.get_json(
             '/lookup?addresses=%s&node_uuid=%s' %
             (','.join(self.addresses), self.node2.uuid),
-            headers={api_base.Version.string: str(api_v1.MAX_VER)},
+            headers={api_base.Version.string: str(api_v1.max_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
@@ -149,7 +149,7 @@ class TestLookup(test_api_base.BaseApiTest):
         data = self.get_json(
             '/lookup?addresses=%s&node_uuid=%s' %
             (','.join(self.addresses), self.node2.uuid),
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(self.node2.uuid, data['node']['uuid'])
         self.assertEqual(set(ramdisk._LOOKUP_RETURN_FIELDS) | {'links'},
                          set(data['node']))
@@ -163,7 +163,7 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         response = self.post_json(
             '/heartbeat/%s' % uuidutils.generate_uuid(),
             {'callback_url': 'url'},
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
@@ -171,7 +171,7 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         response = self.post_json(
             '/heartbeat/%s' % uuidutils.generate_uuid(),
             {'callback_url': 'url'},
-            headers={api_base.Version.string: str(api_v1.MAX_VER)},
+            headers={api_base.Version.string: str(api_v1.max_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
@@ -181,7 +181,7 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         response = self.post_json(
             '/heartbeat/%s' % node.uuid,
             {'callback_url': 'url'},
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,

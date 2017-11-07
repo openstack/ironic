@@ -275,13 +275,13 @@ service_opts = [
                choices=versions.RELEASE_VERSIONS,
                # TODO(xek): mutable=True,
                help=_('Used for rolling upgrades. Setting this option '
-                      'downgrades (or pins) the internal ironic RPC '
-                      'communication and database objects to their respective '
+                      'downgrades (or pins) the Bare Metal API, '
+                      'the internal ironic RPC communication, and '
+                      'the database objects to their respective '
                       'versions, so they are compatible with older services. '
                       'When doing a rolling upgrade from version N to version '
                       'N+1, set (to pin) this to N. To unpin (default), leave '
-                      'it unset and the latest versions of RPC communication '
-                      'and database objects will be used.')),
+                      'it unset and the latest versions will be used.')),
 ]
 
 utils_opts = [

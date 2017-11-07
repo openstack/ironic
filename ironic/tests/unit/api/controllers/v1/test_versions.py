@@ -17,7 +17,11 @@ Tests for the versions constants and methods.
 
 import re
 
+import mock
+
 from ironic.api.controllers.v1 import versions
+from ironic.common import release_mappings
+from ironic.conf import CONF
 from ironic.tests import base
 
 
@@ -36,16 +40,16 @@ class TestVersionConstants(base.TestCase):
         self.minor_consts.sort(key=minor_key)
 
     def test_max_ver_str(self):
-        # Test to make sure MAX_VERSION_STRING corresponds with the largest
+        # Test to make sure _MAX_VERSION_STRING corresponds with the largest
         # MINOR_ constant
 
         max_ver = '1.{}'.format(getattr(versions, self.minor_consts[-1]))
-        self.assertEqual(max_ver, versions.MAX_VERSION_STRING)
+        self.assertEqual(max_ver, versions._MAX_VERSION_STRING)
 
     def test_min_ver_str(self):
-        # Try to make sure someone doesn't change the MIN_VERSION_STRING by
+        # Try to make sure someone doesn't change the _MIN_VERSION_STRING by
         # accident and make sure it exists
-        self.assertEqual('1.1', versions.MIN_VERSION_STRING)
+        self.assertEqual('1.1', versions._MIN_VERSION_STRING)
 
     def test_name_value_match(self):
         # Test to make sure variable name matches the value.  For example
@@ -67,3 +71,25 @@ class TestVersionConstants(base.TestCase):
                 value, seen_values,
                 'The value {} has been used more than once'.format(value))
             seen_values.add(value)
+
+
+class TestMaxVersionString(base.TestCase):
+
+    def test_max_version_not_pinned(self):
+        CONF.set_override('pin_release_version', None)
+        self.assertEqual(versions._MAX_VERSION_STRING,
+                         versions.max_version_string())
+
+    @mock.patch('ironic.common.release_mappings.RELEASE_MAPPING',
+                autospec=True)
+    def test_max_version_pinned(self, mock_release_mapping):
+        CONF.set_override('pin_release_version',
+                          release_mappings.RELEASE_VERSIONS[-1])
+        mock_release_mapping.get.return_value = {
+            'api': '1.5',
+            'rpc': '1.4',
+            'objects': {
+                'MyObj': ['1.4'],
+            }
+        }
+        self.assertEqual('1.5', versions.max_version_string())

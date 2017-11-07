@@ -13,6 +13,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_config import cfg
+
+from ironic.common import release_mappings
+
+CONF = cfg.CONF
+
 # This is the version 1 API
 BASE_VERSION = 1
 
@@ -104,11 +110,33 @@ MINOR_33_STORAGE_INTERFACE = 33
 MINOR_34_PORT_PHYSICAL_NETWORK = 34
 MINOR_35_REBUILD_CONFIG_DRIVE = 35
 
-# When adding another version, update MINOR_MAX_VERSION and also update
-# doc/source/dev/webapi-version-history.rst with a detailed explanation of
-# what the version has changed.
+# When adding another version, update:
+# - MINOR_MAX_VERSION
+# - doc/source/dev/webapi-version-history.rst with a detailed explanation of
+#   what changed in the new version
+# - common/release_mappings.py, RELEASE_MAPPING['master']['api']
+
 MINOR_MAX_VERSION = MINOR_35_REBUILD_CONFIG_DRIVE
 
 # String representations of the minor and maximum versions
-MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)
-MAX_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_MAX_VERSION)
+_MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)
+_MAX_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_MAX_VERSION)
+
+
+def min_version_string():
+    """Returns the minimum supported API version (as a string)"""
+    return _MIN_VERSION_STRING
+
+
+def max_version_string():
+    """Returns the maximum supported API version (as a string).
+
+    If the service is pinned, the maximum API version is the pinned
+    version. Otherwise, it is the maximum supported API version.
+    """
+    release_ver = release_mappings.RELEASE_MAPPING.get(
+        CONF.pin_release_version)
+    if release_ver:
+        return release_ver['api']
+    else:
+        return _MAX_VERSION_STRING

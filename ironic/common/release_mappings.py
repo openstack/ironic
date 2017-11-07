@@ -26,6 +26,7 @@
 
 # NOTE(xek): The format of this dict is:
 # { '<release version>': {
+#       'api': '<Bare Metal API version>',
 #       'rpc': '<RPC API version>',
 #       'objects':  {
 #            '<object class name>': ['<object version>'],
@@ -55,6 +56,7 @@
 
 RELEASE_MAPPING = {
     '8.0': {
+        'api': '1.31',
         'rpc': '1.40',
         'objects': {
             'Node': ['1.21'],
@@ -67,6 +69,7 @@ RELEASE_MAPPING = {
         }
     },
     '9.0': {
+        'api': '1.34',
         'rpc': '1.41',
         'objects': {
             'Node': ['1.21'],
@@ -79,6 +82,7 @@ RELEASE_MAPPING = {
         }
     },
     '9.1': {
+        'api': '1.34',
         'rpc': '1.41',
         'objects': {
             'Node': ['1.21'],
@@ -92,6 +96,7 @@ RELEASE_MAPPING = {
     },
     '9.2': {
         'rpc': '1.41',
+        'api': '1.35',
         'objects': {
             'Node': ['1.21'],
             'Conductor': ['1.2'],
@@ -103,6 +108,7 @@ RELEASE_MAPPING = {
         }
     },
     'master': {
+        'api': '1.35',
         'rpc': '1.41',
         'objects': {
             'Node': ['1.21'],

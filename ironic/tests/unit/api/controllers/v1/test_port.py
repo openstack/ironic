@@ -233,7 +233,7 @@ class TestListPorts(test_api_base.BaseApiTest):
         fields = 'address,extra'
         data = self.get_json(
             '/ports/%s?fields=%s' % (port.uuid, fields),
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
         # We always append "links"
         self.assertItemsEqual(['address', 'extra', 'links'], data)
 
@@ -242,7 +242,7 @@ class TestListPorts(test_api_base.BaseApiTest):
                                           internal_info={"foo": "bar"})
         data = self.get_json(
             '/ports/%s' % port.uuid,
-            headers={api_base.Version.string: str(api_v1.MIN_VER)})
+            headers={api_base.Version.string: str(api_v1.min_version())})
         self.assertNotIn('internal_info', data)
 
         data = self.get_json('/ports/%s' % port.uuid,
@@ -313,7 +313,7 @@ class TestListPorts(test_api_base.BaseApiTest):
 
         data = self.get_json(
             '/ports?fields=%s' % fields,
-            headers={api_base.Version.string: str(api_v1.MAX_VER)})
+            headers={api_base.Version.string: str(api_v1.max_version())})
 
         self.assertEqual(3, len(data['ports']))
         for port in data['ports']:
@@ -325,7 +325,7 @@ class TestListPorts(test_api_base.BaseApiTest):
         fields = 'uuid,spongebob'
         response = self.get_json(
             '/ports/%s?fields=%s' % (port.uuid, fields),
-            headers={api_base.Version.string: str(api_v1.MAX_VER)},
+            headers={api_base.Version.string: str(api_v1.max_version())},
             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertEqual('application/json', response.content_type)
@@ -336,7 +336,7 @@ class TestListPorts(test_api_base.BaseApiTest):
         fields = 'uuid,extra'
         response = self.get_json(
             '/ports/%s?fields=%s' % (port.uuid, fields),
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
@@ -380,7 +380,7 @@ class TestListPorts(test_api_base.BaseApiTest):
                                           physical_network='physnet1')
         data = self.get_json(
             '/ports/detail',
-            headers={api_base.Version.string: str(api_v1.MAX_VER)}
+            headers={api_base.Version.string: str(api_v1.max_version())}
         )
         self.assertEqual(port.uuid, data['ports'][0]["uuid"])
         self.assertIn('extra', data['ports'][0])
@@ -519,7 +519,7 @@ class TestListPorts(test_api_base.BaseApiTest):
         for invalid_key in invalid_keys_list:
             response = self.get_json(
                 '/ports?sort_key=%s' % invalid_key, expect_errors=True,
-                headers={api_base.Version.string: str(api_v1.MAX_VER)}
+                headers={api_base.Version.string: str(api_v1.max_version())}
             )
             self.assertEqual(http_client.BAD_REQUEST, response.status_int)
             self.assertEqual('application/json', response.content_type)
@@ -535,7 +535,7 @@ class TestListPorts(test_api_base.BaseApiTest):
                 address='52:54:00:cf:2d:3%s' % id_,
                 pxe_enabled=id_ % 2)
             port_uuids.append(port.uuid)
-        headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+        headers = {api_base.Version.string: str(api_v1.max_version())}
         detail_str = '/detail' if detail else ''
         data = self.get_json('/ports%s?sort_key=pxe_enabled' % detail_str,
                              headers=headers)
@@ -1268,7 +1268,7 @@ class TestPatch(test_api_base.BaseApiTest):
 
     def test_invalid_physnet_non_text(self, mock_upd):
         physnet = 1234
-        headers = {api_base.Version.string: versions.MAX_VERSION_STRING}
+        headers = {api_base.Version.string: versions.max_version_string()}
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/physical_network',
                                      'value': physnet,
@@ -1281,7 +1281,7 @@ class TestPatch(test_api_base.BaseApiTest):
 
     def test_invalid_physnet_too_long(self, mock_upd):
         physnet = 'p' * 65
-        headers = {api_base.Version.string: versions.MAX_VERSION_STRING}
+        headers = {api_base.Version.string: versions.max_version_string()}
         response = self.patch_json('/ports/%s' % self.port.uuid,
                                    [{'path': '/physical_network',
                                      'value': physnet,
@@ -1319,7 +1319,7 @@ class TestPost(test_api_base.BaseApiTest):
         self.portgroup = obj_utils.create_test_portgroup(self.context,
                                                          node_id=self.node.id)
         self.headers = {api_base.Version.string: str(
-            versions.MAX_VERSION_STRING)}
+            versions.max_version_string())}
 
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
         self.mock_gtf = p.start()
@@ -1370,7 +1370,7 @@ class TestPost(test_api_base.BaseApiTest):
         pdict.pop('pxe_enabled')
         pdict.pop('extra')
         pdict.pop('physical_network')
-        headers = {api_base.Version.string: str(api_v1.MIN_VER)}
+        headers = {api_base.Version.string: str(api_v1.min_version())}
         response = self.post_json('/ports', pdict, headers=headers)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.CREATED, response.status_int)

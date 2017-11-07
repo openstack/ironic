@@ -16,6 +16,7 @@ import mock
 from oslo_utils import versionutils
 import six
 
+from ironic.api.controllers.v1 import versions as api_versions
 from ironic.common import release_mappings
 from ironic.conductor import rpcapi
 from ironic.db.sqlalchemy import models
@@ -49,7 +50,11 @@ class ReleaseMappingsTestCase(base.TestCase):
     def test_structure(self):
         for value in release_mappings.RELEASE_MAPPING.values():
             self.assertIsInstance(value, dict)
-            self.assertEqual({'rpc', 'objects'}, set(value))
+            self.assertEqual({'api', 'rpc', 'objects'}, set(value))
+            self.assertIsInstance(value['api'], six.string_types)
+            (major, minor) = value['api'].split('.')
+            self.assertEqual(1, int(major))
+            self.assertLessEqual(int(minor), api_versions.MINOR_MAX_VERSION)
             self.assertIsInstance(value['rpc'], six.string_types)
             self.assertIsInstance(value['objects'], dict)
             for obj_value in value['objects'].values():
@@ -110,6 +115,7 @@ class GetObjectVersionsTestCase(base.TestCase):
 
     TEST_MAPPING = {
         '7.0': {
+            'api': '1.30',
             'rpc': '1.40',
             'objects': {
                 'Node': ['1.21'],
@@ -119,6 +125,7 @@ class GetObjectVersionsTestCase(base.TestCase):
             }
         },
         '8.0': {
+            'api': '1.30',
             'rpc': '1.40',
             'objects': {
                 'Node': ['1.22'],
@@ -129,6 +136,7 @@ class GetObjectVersionsTestCase(base.TestCase):
             }
         },
         'master': {
+            'api': '1.34',
             'rpc': '1.40',
             'objects': {
                 'Node': ['1.23'],

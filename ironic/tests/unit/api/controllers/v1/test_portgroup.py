@@ -51,7 +51,7 @@ class TestPortgroupObject(base.TestCase):
 
 
 class TestListPortgroups(test_api_base.BaseApiTest):
-    headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+    headers = {api_base.Version.string: str(api_v1.max_version())}
 
     def setUp(self):
         super(TestListPortgroups, self).setUp()
@@ -152,7 +152,7 @@ class TestListPortgroups(test_api_base.BaseApiTest):
                                                     node_id=self.node.id)
         response = self.get_json(
             '/portgroups/%s' % (portgroup.uuid),
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
@@ -170,7 +170,7 @@ class TestListPortgroups(test_api_base.BaseApiTest):
     def test_detail_invalid_api_version(self):
         response = self.get_json(
             '/portgroups/detail',
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
@@ -274,14 +274,14 @@ class TestListPortgroups(test_api_base.BaseApiTest):
         # Test get one old api version, /portgroups controller not allowed
         response = self.get_json('/portgroups/%s/ports/%s' % (
             pg.uuid, uuidutils.generate_uuid()),
-            headers={api_base.Version.string: str(api_v1.MIN_VER)},
+            headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
         # Test get one not allowed to access to /portgroups/<uuid>/ports/<uuid>
         response = self.get_json(
             '/portgroups/%s/ports/%s' % (pg.uuid, uuidutils.generate_uuid()),
-            headers={api_base.Version.string: str(api_v1.MAX_VER)},
+            headers={api_base.Version.string: str(api_v1.max_version())},
             expect_errors=True)
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
@@ -471,7 +471,7 @@ class TestListPortgroups(test_api_base.BaseApiTest):
 
 @mock.patch.object(rpcapi.ConductorAPI, 'update_portgroup')
 class TestPatch(test_api_base.BaseApiTest):
-    headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+    headers = {api_base.Version.string: str(api_v1.max_version())}
 
     def setUp(self):
         super(TestPatch, self).setUp()
@@ -865,7 +865,7 @@ class TestPatch(test_api_base.BaseApiTest):
                                      'op': 'replace'}],
                                    expect_errors=True,
                                    headers={api_base.Version.string:
-                                            str(api_v1.MIN_VER)})
+                                            str(api_v1.min_version())})
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
         self.assertTrue(response.json['error_message'])
@@ -929,7 +929,7 @@ class TestPatch(test_api_base.BaseApiTest):
 
 
 class TestPost(test_api_base.BaseApiTest):
-    headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+    headers = {api_base.Version.string: str(api_v1.max_version())}
 
     def setUp(self):
         super(TestPost, self).setUp()
@@ -1205,7 +1205,7 @@ class TestPost(test_api_base.BaseApiTest):
 
 @mock.patch.object(rpcapi.ConductorAPI, 'destroy_portgroup')
 class TestDelete(test_api_base.BaseApiTest):
-    headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+    headers = {api_base.Version.string: str(api_v1.max_version())}
 
     def setUp(self):
         super(TestDelete, self).setUp()

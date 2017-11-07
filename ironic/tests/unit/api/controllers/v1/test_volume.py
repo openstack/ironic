@@ -32,7 +32,7 @@ class TestGetVolume(test_api_base.BaseApiTest):
                                                headers=headers))
 
     def test_get_volume(self):
-        headers = {api_base.Version.string: str(api_v1.MAX_VER)}
+        headers = {api_base.Version.string: str(api_v1.max_version())}
         data = self.get_json('/volume/', headers=headers)
         for key in ['links', 'connectors', 'targets']:
             self._test_links(data, key, headers)
@@ -46,7 +46,7 @@ class TestGetVolume(test_api_base.BaseApiTest):
                       data['targets'][1]['href'])
 
     def test_get_volume_invalid_api_version(self):
-        headers = {api_base.Version.string: str(api_v1.MIN_VER)}
+        headers = {api_base.Version.string: str(api_v1.min_version())}
         response = self.get_json('/volume/', headers=headers,
                                  expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
