@@ -2,4 +2,5 @@
 features:
   - |
     Adds support to provision an instance in secure boot mode for
-    ``irmc-virtual-media`` boot interface.
+    ``irmc-virtual-media`` boot interface. For details, see the `iRMC driver documentation
+    <https://docs.openstack.org/ironic/latest/admin/drivers/irmc.html#uefi-secure-boot-support>`_.
