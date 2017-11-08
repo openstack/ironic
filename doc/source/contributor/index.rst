@@ -26,6 +26,7 @@ primarily for developers.
   Provisioning State Machine <states>
   Developing New Notifications <notifications>
   OSProfiler Tracing <osprofiler-support>
+  Rolling Upgrades <rolling-upgrades>
 
 These pages contain information for PTLs, cross-project liaisons, and core
 reviewers.
