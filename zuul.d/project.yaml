@@ -2,35 +2,31 @@
     name: openstack/ironic
     check:
       jobs:
-        - ironic-tempest-dsvm-pxe_ipmitool-postgres:
-            voting: false
-        - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
-        - ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_ipmitool-tinyipa
-        - ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_snmp-tinyipa:
-            voting: false
+        - ironic-grenade-dsvm
         - ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa
         - ironic-tempest-dsvm-ipa-partition-bios-pxe_ipmitool-tinyipa
         - ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
+        - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+        - ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_ipmitool-tinyipa
+        - ironic-tempest-dsvm-multitenant-network
+        # Non-voting jobs
         - ironic-tempest-dsvm-ipa-wholedisk-agent_ipmitool-tinyipa-multinode:
+            voting: false
+        - ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_snmp-tinyipa:
             voting: false
         - ironic-tempest-dsvm-ironic-inspector:
             voting: false
-        - ironic-grenade-dsvm
-        - ironic-tempest-dsvm-multitenant-network
+        - ironic-tempest-dsvm-pxe_ipmitool-postgres:
+            voting: false
     gate:
       queue: ironic
       jobs:
+        - ironic-grenade-dsvm
+        - ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa
         - ironic-tempest-dsvm-ipa-partition-bios-pxe_ipmitool-tinyipa
         - ironic-tempest-dsvm-ipa-partition-uefi-pxe_ipmitool-tinyipa
-        - ironic-tempest-dsvm-ipa-partition-bios-agent_ipmitool-tinyipa
-        - ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_ipmitool-tinyipa
         - ironic-tempest-dsvm-ipa-wholedisk-bios-agent_ipmitool-tinyipa
-        - ironic-grenade-dsvm
+        - ironic-tempest-dsvm-ipa-wholedisk-bios-pxe_ipmitool-tinyipa
         - ironic-tempest-dsvm-multitenant-network
-    experimental:
-      jobs:
-        - ironic-dsvm-functional
-        - ironic-tempest-dsvm-pxe_ipa-full:
-            voting: false
-        - ironic-tempest-dsvm-ipa-resourceclasses-partition-pxe_ipmitool-tinyipa:
-            voting: false
+
+
