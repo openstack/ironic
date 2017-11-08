@@ -1,6 +1,6 @@
 ---
 fixes:
   - |
-    Fixes ``get_boot_device`` method from oneview drivers' management interface.
-    Now the method returns the persistent boot option correctly, based on the
-    iLO information of the node.
+    The ``oneview`` management interface now correctly detects whether the
+    current boot device setting is persistent. Previously it always
+    returned ``True``.

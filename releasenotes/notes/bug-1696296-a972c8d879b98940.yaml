@@ -5,5 +5,5 @@ fixes:
     the service could not report its heartbeat due to the database connection
     experiencing an unexpected failure. Full tracebacks of these exceptions are
     now logged, and if the database connection recovers in a reasonable amount
-    of time the service will still be available.
-    See https://bugs.launchpad.net/ironic/+bug/1696296.
+    of time the service will still be available. See `bug 1696296
+    <https://bugs.launchpad.net/ironic/+bug/1696296>`_ for details.

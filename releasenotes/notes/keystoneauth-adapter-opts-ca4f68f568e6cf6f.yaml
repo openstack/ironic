@@ -1,41 +1,36 @@
 ---
-upgrade:
+features:
   - |
-    To facilitate automatic discovery of services from the keystone catalog,
+    To facilitate automatic discovery of services from the service catalog,
     the configuration file sections for service clients may include these
     configuration options: ``service_type``, ``service_name``,
-    ``valid_interfaces``, ``region_name`` and other keystoneauth Adaper-related
-    options.
+    ``valid_interfaces``, ``region_name`` and other keystoneauth options.
 
     These options together must uniquely specify an endpoint for a service
-    registered in the keystone catalog.
-    Consult the ``keystoneauth`` library documentation for full list of
+    registered in the service catalog. Alternatively, the ``endpoint_override``
+    option can be used to specify the endpoint.
+
+    Consult the `keystoneauth library documentation
+    <https://docs.openstack.org/keystoneauth/latest/>`_ for a full list of
     available options, their meaning and possible values.
 
     Default values for ``service_type`` are set by ironic to sane defaults
-    based on required services and their entries in ``service-types-authority``.
+    based on required services and their entries in the `service types
+    authority <https://service-types.openstack.org/service-types.json>`_.
 
     The ``valid_interfaces`` option defaults to ``['internal', 'public']``.
 
     The ``region_name`` option defaults to ``None`` and must be explicitly set
     for multi-regional setup for endpoint discovery to succeed.
 
-    The configuration file sections where these new options are available are:
-
-    - service_catalog
-
-features:
-  - |
-    Options for service endpoint discovery can now be set per-service in
-    appropriate service configuration file sections:
-
-    - ``[service_catalog]`` for baremetal API discovery
+    Currently only the ``[service_catalog]`` section supports these options.
 
 deprecations:
   - |
     Configuration option ``[conductor]api_url`` is deprecated
-    and will be ignored in the Rocky release.
-    Instead, use ``[service_catalog]endpoint_override`` configuration option
-    to set specific ironic API address if automatic discovery of ironic API
-    endpoint from keystone catalog is not desired.
+    and will be removed in the Rocky release. Instead, use the
+    ``[service_catalog]endpoint_override`` configuration option to set
+    the Bare Metal API endpoint if its automatic discovery from the service
+    catalog is not desired.
+
     This new option defaults to ``None`` and must be set explicitly if needed.
