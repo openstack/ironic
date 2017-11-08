@@ -78,13 +78,6 @@
     timeout: 5400
 
 - job:
-    name: ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
-    parent: legacy-ironic-dsvm-base
-    run: playbooks/legacy/tempest-dsvm-ironic-ipa-partition-pxe_ipmitool-tinyipa-python3/run.yaml
-    post-run: playbooks/legacy/tempest-dsvm-ironic-ipa-partition-pxe_ipmitool-tinyipa-python3/post.yaml
-    timeout: 5400
-
-- job:
     name: ironic-tempest-dsvm-ipa-wholedisk-agent_ipmitool-tinyipa-multinode
     parent: legacy-ironic-dsvm-base-multinode
     run: playbooks/legacy/tempest-dsvm-ironic-ipa-wholedisk-agent_ipmitool-tinyipa-multinode/run.yaml
@@ -170,28 +163,3 @@
       - openstack/python-ironicclient
       - openstack/virtualbmc
     nodeset: legacy-ubuntu-xenial-2-node
-
-- job:
-    name: ironic-dsvm-functional
-    parent: legacy-ironic-dsvm-base
-    run: playbooks/legacy/ironic-dsvm-functional/run.yaml
-    post-run: playbooks/legacy/ironic-dsvm-functional/post.yaml
-    timeout: 4800
-    required-projects:
-      - openstack-infra/devstack-gate
-      - openstack/ironic
-      - openstack/ironic-python-agent
-
-- job:
-    name: ironic-tempest-dsvm-pxe_ipa-full
-    parent: legacy-ironic-dsvm-base
-    run: playbooks/legacy/tempest-dsvm-ironic-pxe_ipa-full/run.yaml
-    post-run: playbooks/legacy/tempest-dsvm-ironic-pxe_ipa-full/post.yaml
-    timeout: 9600
-
-- job:
-    name: ironic-tempest-dsvm-ipa-resourceclasses-partition-pxe_ipmitool-tinyipa
-    parent: legacy-ironic-dsvm-base
-    run: playbooks/legacy/tempest-dsvm-ironic-ipa-resourceclasses-partition-pxe_ipmitool-tinyipa/run.yaml
-    post-run: playbooks/legacy/tempest-dsvm-ironic-ipa-resourceclasses-partition-pxe_ipmitool-tinyipa/post.yaml
-    timeout: 5400
