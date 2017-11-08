@@ -64,11 +64,6 @@ Request
 Detach VIF from a node
 ======================
 
-.. rest_parameters:: parameters.yaml
-
-    - node_ident: node_ident
-    - node_vif_ident: node_vif_ident
-
 .. rest_method:: DELETE /v1/nodes/{node_ident}/vifs/{node_vif_ident}
 
 Detach VIF from a Node.
@@ -76,3 +71,11 @@ Detach VIF from a Node.
 Normal response code: 204
 
 Error codes: 400,401,403,404
+
+Request
+-------
+
+.. rest_parameters:: parameters.yaml
+
+    - node_ident: node_ident
+    - node_vif_ident: node_vif_ident
