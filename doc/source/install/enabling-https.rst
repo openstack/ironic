@@ -73,12 +73,19 @@ To enable secure HTTPS communication between Bare Metal service and Image servic
     [glance]
     ...
     glance_cafile=/path/to/certfile
-    glance_protocol=https
-    glance_api_insecure=False
 
    .. note::
       'glance_cafile' is a optional path to a CA certificate bundle to be used to validate the SSL certificate
       served by Image service.
+
+#. If not using the keystone service catalog for the Image service API endpoint
+   discovery, also edit the ``glance_api_servers`` option to point to HTTPS URL
+   of image service (replace ``<GLANCE_API_ADDRESS>`` with hostname[:port][path]
+   of the Image service endpoint)::
+
+    [glance]
+    ...
+    glance_api_servers = https://<GLANCE_API_ADDRESS>
 
 #. Restart ironic-conductor service::
 

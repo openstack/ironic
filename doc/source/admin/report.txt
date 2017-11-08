@@ -370,10 +370,7 @@ glance:
   glance_api_insecure = False
   glance_api_servers = None
   glance_cafile = None
-  glance_host = 10.223.197.220
   glance_num_retries = 0
-  glance_port = 9292
-  glance_protocol = http
   insecure = False
   keyfile = None
   swift_account = AUTH_cb13c4492d124b01b4659a97d627955c
