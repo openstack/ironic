@@ -1,5 +1,7 @@
-# Copyright (2016-2017) Hewlett Packard Enterprise Development LP
-# Copyright (2016-2017) Universidade Federal de Campina Grande
+# Copyright 2017 Hewlett Packard Enterprise Development Company LP.
+# Copyright 2016 Hewlett Packard Enterprise Development LP.
+# Copyright 2016 Universidade Federal de Campina Grande
+# All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -43,7 +45,7 @@ class OneViewPeriodicTasks(object):
     @periodics.periodic(spacing=CONF.oneview.periodic_check_interval,
                         enabled=CONF.oneview.enable_periodic_tasks)
     def _periodic_check_nodes_taken_by_oneview(self, manager, context):
-        """Check if nodes in Ironic were taken by OneView users.
+        """Checks if nodes in Ironic were taken by OneView users.
 
         This driver periodic task will check for nodes that were taken by
         OneView users while the node is in available state, set the node to
@@ -54,6 +56,7 @@ class OneViewPeriodicTasks(object):
         :param context: request context
         :returns: None.
         """
+
         filters = {
             'provision_state': states.AVAILABLE,
             'maintenance': False,
@@ -67,7 +70,7 @@ class OneViewPeriodicTasks(object):
 
             try:
                 oneview_using = deploy_utils.is_node_in_use_by_oneview(
-                    self.client, node
+                    self.oneview_client, node
                 )
             except exception.OneViewError as e:
                 # NOTE(xavierr): Skip this node and process the
@@ -101,7 +104,7 @@ class OneViewPeriodicTasks(object):
     @periodics.periodic(spacing=CONF.oneview.periodic_check_interval,
                         enabled=CONF.oneview.enable_periodic_tasks)
     def _periodic_check_nodes_freed_by_oneview(self, manager, context):
-        """Check if nodes taken by OneView users were freed.
+        """Checks if nodes taken by OneView users were freed.
 
         This driver periodic task will be responsible to poll the nodes that
         are in maintenance mode and on manageable state to check if the Server
@@ -113,6 +116,7 @@ class OneViewPeriodicTasks(object):
         :param context: request context
         :returns: None.
         """
+
         filters = {
             'provision_state': states.MANAGEABLE,
             'maintenance': True,
@@ -128,7 +132,7 @@ class OneViewPeriodicTasks(object):
 
                 try:
                     oneview_using = deploy_utils.is_node_in_use_by_oneview(
-                        self.client, node
+                        self.oneview_client, node
                     )
                 except exception.OneViewError as e:
                     # NOTE(xavierr): Skip this node and process the
@@ -164,7 +168,7 @@ class OneViewPeriodicTasks(object):
     @periodics.periodic(spacing=CONF.oneview.periodic_check_interval,
                         enabled=CONF.oneview.enable_periodic_tasks)
     def _periodic_check_nodes_taken_on_cleanfail(self, manager, context):
-        """Check failed deploys due to Oneview users taking Server Hardware.
+        """Checks failed deploys due to Oneview users taking Server Hardware.
 
         This last driver periodic task will take care of nodes that would be
         caught on a race condition between OneView and a deploy by Ironic. In
@@ -179,6 +183,7 @@ class OneViewPeriodicTasks(object):
         :param context: request context
         :returns: None.
         """
+
         filters = {
             'provision_state': states.CLEANFAIL,
             'driver': self.oneview_driver
@@ -220,7 +225,6 @@ class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
 
     def __init__(self):
         super(OneViewIscsiDeploy, self).__init__()
-        self.client = common.get_hponeview_client()
         self.oneview_client = common.get_oneview_client()
 
     def get_properties(self):
@@ -238,23 +242,23 @@ class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
 
     @METRICS.timer('OneViewIscsiDeploy.prepare')
     def prepare(self, task):
-        deploy_utils.prepare(self.client, task)
+        deploy_utils.prepare(self.oneview_client, task)
         super(OneViewIscsiDeploy, self).prepare(task)
 
     @METRICS.timer('OneViewIscsiDeploy.tear_down')
     def tear_down(self, task):
         if not CONF.conductor.automated_clean:
-            deploy_utils.tear_down(self.client, task)
+            deploy_utils.tear_down(self.oneview_client, task)
         return super(OneViewIscsiDeploy, self).tear_down(task)
 
     @METRICS.timer('OneViewIscsiDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
-        deploy_utils.prepare_cleaning(self.client, task)
+        deploy_utils.prepare_cleaning(self.oneview_client, task)
         return super(OneViewIscsiDeploy, self).prepare_cleaning(task)
 
     @METRICS.timer('OneViewIscsiDeploy.tear_down_cleaning')
     def tear_down_cleaning(self, task):
-        deploy_utils.tear_down_cleaning(self.client, task)
+        deploy_utils.tear_down_cleaning(self.oneview_client, task)
         super(OneViewIscsiDeploy, self).tear_down_cleaning(task)
 
 
@@ -265,7 +269,6 @@ class OneViewAgentDeploy(agent.AgentDeploy, OneViewPeriodicTasks):
 
     def __init__(self):
         super(OneViewAgentDeploy, self).__init__()
-        self.client = common.get_hponeview_client()
         self.oneview_client = common.get_oneview_client()
 
     def get_properties(self):
@@ -283,21 +286,21 @@ class OneViewAgentDeploy(agent.AgentDeploy, OneViewPeriodicTasks):
 
     @METRICS.timer('OneViewAgentDeploy.prepare')
     def prepare(self, task):
-        deploy_utils.prepare(self.client, task)
+        deploy_utils.prepare(self.oneview_client, task)
         super(OneViewAgentDeploy, self).prepare(task)
 
     @METRICS.timer('OneViewAgentDeploy.tear_down')
     def tear_down(self, task):
         if not CONF.conductor.automated_clean:
-            deploy_utils.tear_down(self.client, task)
+            deploy_utils.tear_down(self.oneview_client, task)
         return super(OneViewAgentDeploy, self).tear_down(task)
 
     @METRICS.timer('OneViewAgentDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
-        deploy_utils.prepare_cleaning(self.client, task)
+        deploy_utils.prepare_cleaning(self.oneview_client, task)
         return super(OneViewAgentDeploy, self).prepare_cleaning(task)
 
     @METRICS.timer('OneViewAgentDeploy.tear_down_cleaning')
     def tear_down_cleaning(self, task):
-        deploy_utils.tear_down_cleaning(self.client, task)
+        deploy_utils.tear_down_cleaning(self.oneview_client, task)
         super(OneViewAgentDeploy, self).tear_down_cleaning(task)
