@@ -230,7 +230,8 @@ class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
     def validate(self, task):
         common.verify_node_info(task.node)
         try:
-            common.validate_oneview_resources_compatibility(self.client, task)
+            common.validate_oneview_resources_compatibility(
+                self.oneview_client, task)
         except exception.OneViewError as oneview_exc:
             raise exception.InvalidParameterValue(oneview_exc)
         super(OneViewIscsiDeploy, self).validate(task)
@@ -274,7 +275,8 @@ class OneViewAgentDeploy(agent.AgentDeploy, OneViewPeriodicTasks):
     def validate(self, task):
         common.verify_node_info(task.node)
         try:
-            common.validate_oneview_resources_compatibility(self.client, task)
+            common.validate_oneview_resources_compatibility(
+                self.oneview_client, task)
         except exception.OneViewError as oneview_exc:
             raise exception.InvalidParameterValue(oneview_exc)
         super(OneViewAgentDeploy, self).validate(task)

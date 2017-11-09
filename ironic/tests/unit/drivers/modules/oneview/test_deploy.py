@@ -278,16 +278,10 @@ class OneViewIscsiDeployTestCase(db_base.DbTestCase):
         expected = common.COMMON_PROPERTIES
         self.assertEqual(expected, self.driver.deploy.get_properties())
 
-    @mock.patch.object(common, 'validate_oneview_resources_compatibility',
-                       spect_set=True, autospec=True)
-    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'validate',
-                       spec_set=True, autospec=True)
-    def test_validate(self, iscsi_deploy_validate_mock,
-                      mock_validate_resources, mock_ov_client):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
+    @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'validate', autospec=True)
+    def test_validate(self, iscsi_deploy_validate_mock, mock_get_ov_client):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.deploy.validate(task)
-            self.assertTrue(mock_validate_resources.called)
             iscsi_deploy_validate_mock.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(iscsi_deploy.ISCSIDeploy, 'prepare', autospec=True)
@@ -403,16 +397,10 @@ class OneViewAgentDeployTestCase(db_base.DbTestCase):
         expected = common.COMMON_PROPERTIES
         self.assertEqual(expected, self.driver.deploy.get_properties())
 
-    @mock.patch.object(common, 'validate_oneview_resources_compatibility',
-                       spect_set=True, autospec=True)
-    @mock.patch.object(agent.AgentDeploy, 'validate',
-                       spec_set=True, autospec=True)
-    def test_validate(self, agent_deploy_validate_mock,
-                      mock_validate_resources, mock_ov_client):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
+    @mock.patch.object(agent.AgentDeploy, 'validate', autospec=True)
+    def test_validate(self, agent_deploy_validate_mock, mock_get_ov_client):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.deploy.validate(task)
-            self.assertTrue(mock_validate_resources.called)
             agent_deploy_validate_mock.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(agent.AgentDeploy, 'prepare', autospec=True)

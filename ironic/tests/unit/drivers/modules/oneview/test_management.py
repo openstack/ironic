@@ -236,22 +236,18 @@ class OneViewManagementDriverTestCase(db_base.DbTestCase):
         )
         self.info = common.get_oneview_info(self.node)
 
-    @mock.patch.object(deploy_utils, 'is_node_in_use_by_ironic',
-                       spect_set=True, autospec=True)
-    @mock.patch.object(common, 'validate_oneview_resources_compatibility',
-                       spect_set=True, autospec=True)
-    def test_validate(self, mock_validate, mock_ironic_node, mock_ov_client):
+    @mock.patch.object(deploy_utils, 'is_node_in_use_by_ironic')
+    @mock.patch.object(common, 'validate_oneview_resources_compatibility')
+    def test_validate(self, mock_validate, mock_ironic_node, mock_ovclient):
         mock_ironic_node.return_value = True
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
+        with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.management.validate(task)
             self.assertTrue(mock_validate.called)
 
-    @mock.patch.object(deploy_utils, 'is_node_in_use_by_ironic',
-                       spect_set=True, autospec=True)
+    @mock.patch.object(deploy_utils, 'is_node_in_use_by_ironic')
+    @mock.patch.object(common, 'validate_oneview_resources_compatibility')
     def test_validate_for_node_not_in_use_by_ironic(
-        self, mock_ironic_node, mock_get_ov_client
-    ):
+            self, mock_validate, mock_ironic_node, mock_ovclient):
         mock_ironic_node.return_value = False
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.InvalidParameterValue,

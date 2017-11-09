@@ -191,7 +191,8 @@ class OneViewManagement(base.ManagementInterface):
         common.verify_node_info(task.node)
 
         try:
-            common.validate_oneview_resources_compatibility(self.client, task)
+            common.validate_oneview_resources_compatibility(
+                self.oneview_client, task)
 
             if not deploy_utils.is_node_in_use_by_ironic(
                 self.client, task.node
