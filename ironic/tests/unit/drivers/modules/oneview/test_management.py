@@ -29,7 +29,10 @@ from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
+
 client_exception = importutils.try_import('hpOneView.exceptions')
+oneview_exceptions = importutils.try_import('oneview_client.exceptions')
+oneview_models = importutils.try_import('oneview_client.models')
 
 
 @mock.patch.object(common, 'get_hponeview_client')

@@ -26,6 +26,8 @@ from ironic.drivers.modules.oneview import common
 LOG = logging.getLogger(__name__)
 
 client_exception = importutils.try_import('hpOneView.exceptions')
+oneview_exception = importutils.try_import('oneview_client.exceptions')
+oneview_utils = importutils.try_import('oneview_client.utils')
 
 
 def get_properties():
@@ -199,7 +201,7 @@ def is_node_in_use_by_oneview(client, node):
 def is_node_in_use_by_ironic(client, node):
     """Check if node is in use by ironic in OneView.
 
-    :param client: an instance of the HPE OneView client
+    :param client: an instance of the OneView client
     :param node: an ironic node object
     :returns: Boolean value. True if node is in use by ironic,
               False otherwise.

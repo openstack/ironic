@@ -24,8 +24,9 @@ Classic Drivers
 ===============
 
 The ``iscsi_pxe_oneview`` and ``agent_pxe_oneview`` drivers implement the
-core interfaces of an ironic Driver [2]_, and use the ``hpOneView`` [3]_ to
-provide communication between ironic and OneView through OneView's REST API.
+core interfaces of an ironic Driver [2]_, and use the ``python-oneviewclient``
+[3]_ to provide communication between ironic and OneView through OneView's
+REST API.
 
 .. note::
    Classic drivers will be deprecated in favor of Hardware Types.
@@ -38,15 +39,15 @@ process:
 * The ironic driver for OneView, which can be:
     * `iscsi_pxe_oneview` or
     * `agent_pxe_oneview`
-* The hpOneView library
+* The python-oneviewclient library
 * The OneView appliance
 
 The role of ironic is to serve as a bare metal provider to OneView's managed
 physical hardware and to provide communication with other necessary OpenStack
 services such as Nova and Glance. When ironic receives a boot request, it
 works together with the ironic OneView driver to access a machine in OneView,
-the ``hpOneView`` being responsible for the communication with the OneView
-appliance.
+the ``python-oneviewclient`` being responsible for the communication with the
+OneView appliance.
 
 From the Newton release on, OneView drivers enables a new feature called
 **dynamic allocation** of nodes [6]_. In this model, the driver allocates
@@ -71,14 +72,14 @@ The following requirements apply for both ``iscsi_pxe_oneview`` and
 
   Minimum version supported is 2.0.
 
-* ``hpOneView`` is a python package containing a client to manage the
-  communication between ironic and OneView.
+* ``python-oneviewclient`` is a python package containing a client to manage
+  the communication between ironic and OneView.
 
-  Install the ``hpOneView`` module to enable the communication. Minimum version
-  required is 3.2.1 but it is recommended to install the most up-to-date
-  version::
+  Install the ``python-oneviewclient`` module to enable the communication.
+  Minimum version required is 2.4.0 but it is recommended to install the most
+  up-to-date version::
 
-  $ pip install "hpOneView>=3.2.1"
+  $ pip install "python-oneviewclient<3.0.0,>=2.4.0"
 
 * ``ironic-inspector`` if using hardware inspection.
 
@@ -96,7 +97,7 @@ Tested platforms
   - Proliant BL460c Gen8
   - Proliant BL460c Gen9
   - Proliant BL465c Gen8
-  - Proliant DL360 Gen9
+  - Proliant DL360 Gen9 (starting with python-oneviewclient 2.1.0)
 
   Notice that for the driver to work correctly with Gen8 and Gen9 DL servers
   in general, the hardware also needs to run version 4.2.3 of iLO, with
@@ -434,7 +435,7 @@ References
 ==========
 .. [1] HP OneView - https://www.hpe.com/us/en/integrated-systems/software.html
 .. [2] :ref:`architecture_drivers`
-.. [3] hpOneView - https://pypi.python.org/pypi/hpOneView
+.. [3] python-oneviewclient - https://pypi.python.org/pypi/python-oneviewclient
 .. [6] Dynamic Allocation in OneView drivers - http://specs.openstack.org/openstack/ironic-specs/specs/not-implemented/oneview-drivers-dynamic-allocation.html
 .. [7] ironic-oneviewd - https://pypi.python.org/pypi/ironic-oneviewd/
 .. [8] ironic-oneview-cli - https://pypi.python.org/pypi/ironic-oneview-cli/

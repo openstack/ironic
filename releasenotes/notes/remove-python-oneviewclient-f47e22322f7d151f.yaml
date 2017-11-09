@@ -1,6 +1,0 @@
----
-upgrade:
-  - |
-    The ``oneview`` drivers now use ``hpOneView`` and
-    ``python-ilorest-library`` libraries to communicate with OneView
-    appliances. The ``python-oneviewclient`` library is no longer used.

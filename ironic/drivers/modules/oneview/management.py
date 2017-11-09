@@ -26,6 +26,7 @@ from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy_utils
 
 client_exception = importutils.try_import('hpOneView.exceptions')
+oneview_exceptions = importutils.try_import('oneview_client.exceptions')
 
 LOG = logging.getLogger(__name__)
 METRICS = metrics_utils.get_metrics_logger(__name__)
@@ -166,6 +167,7 @@ class OneViewManagement(base.ManagementInterface):
     def __init__(self):
         super(OneViewManagement, self).__init__()
         self.client = common.get_hponeview_client()
+        self.oneview_client = common.get_oneview_client()
 
     def get_properties(self):
         return deploy_utils.get_properties()
@@ -190,6 +192,7 @@ class OneViewManagement(base.ManagementInterface):
 
         try:
             common.validate_oneview_resources_compatibility(self.client, task)
+
             if not deploy_utils.is_node_in_use_by_ironic(
                 self.client, task.node
             ):

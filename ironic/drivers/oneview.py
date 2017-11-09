@@ -21,6 +21,7 @@ from ironic.common.i18n import _
 from ironic.drivers import base
 from ironic.drivers import generic
 from ironic.drivers.modules import noop
+from ironic.drivers.modules.oneview import common
 from ironic.drivers.modules.oneview import deploy
 from ironic.drivers.modules.oneview import inspect
 from ironic.drivers.modules.oneview import management
@@ -56,7 +57,7 @@ class OneViewHardware(generic.GenericHardware):
 
 
 class AgentPXEOneViewDriver(base.BaseDriver):
-    """OneViewDriver using HPE OneViewClient interface.
+    """OneViewDriver using OneViewClient interface.
 
     This driver implements the `core` functionality using
     :class:ironic.drivers.modules.oneview.power.OneViewPower for power
@@ -65,11 +66,21 @@ class AgentPXEOneViewDriver(base.BaseDriver):
     """
 
     def __init__(self):
+        if not importutils.try_import('oneview_client.client'):
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_("Unable to import python-oneviewclient library"))
+
         if not importutils.try_import('hpOneView.oneview_client'):
             raise exception.DriverLoadError(
                 driver=self.__class__.__name__,
                 reason=_("Unable to import hpOneView library"))
 
+        # Checks connectivity to OneView and version compatibility on driver
+        # initialization
+        oneview_client = common.get_oneview_client()
+        oneview_client.verify_oneview_version()
+        oneview_client.verify_credentials()
         self.power = power.OneViewPower()
         self.management = management.OneViewManagement()
         self.boot = pxe.PXEBoot()
@@ -79,7 +90,7 @@ class AgentPXEOneViewDriver(base.BaseDriver):
 
 
 class ISCSIPXEOneViewDriver(base.BaseDriver):
-    """OneViewDriver using HPE OneViewClient interface.
+    """OneViewDriver using OneViewClient interface.
 
     This driver implements the `core` functionality using
     :class:ironic.drivers.modules.oneview.power.OneViewPower for power
@@ -88,11 +99,21 @@ class ISCSIPXEOneViewDriver(base.BaseDriver):
     """
 
     def __init__(self):
+        if not importutils.try_import('oneview_client.client'):
+            raise exception.DriverLoadError(
+                driver=self.__class__.__name__,
+                reason=_("Unable to import python-oneviewclient library"))
+
         if not importutils.try_import('hpOneView.oneview_client'):
             raise exception.DriverLoadError(
                 driver=self.__class__.__name__,
                 reason=_("Unable to import hpOneView library"))
 
+        # Checks connectivity to OneView and version compatibility on driver
+        # initialization
+        oneview_client = common.get_oneview_client()
+        oneview_client.verify_oneview_version()
+        oneview_client.verify_credentials()
         self.power = power.OneViewPower()
         self.management = management.OneViewManagement()
         self.boot = pxe.PXEBoot()

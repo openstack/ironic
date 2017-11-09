@@ -221,6 +221,7 @@ class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
     def __init__(self):
         super(OneViewIscsiDeploy, self).__init__()
         self.client = common.get_hponeview_client()
+        self.oneview_client = common.get_oneview_client()
 
     def get_properties(self):
         return deploy_utils.get_properties()
@@ -264,6 +265,7 @@ class OneViewAgentDeploy(agent.AgentDeploy, OneViewPeriodicTasks):
     def __init__(self):
         super(OneViewAgentDeploy, self).__init__()
         self.client = common.get_hponeview_client()
+        self.oneview_client = common.get_oneview_client()
 
     def get_properties(self):
         return deploy_utils.get_properties()

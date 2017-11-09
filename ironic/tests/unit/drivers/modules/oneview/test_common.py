@@ -25,7 +25,8 @@ from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
-hponeview_client = importutils.try_import('hpOneView.oneview_client')
+hponeview_client = importutils.try_import('oneview_client.client')
+oneview_states = importutils.try_import('oneview_client.states')
 
 
 class OneViewCommonTestCase(db_base.DbTestCase):
