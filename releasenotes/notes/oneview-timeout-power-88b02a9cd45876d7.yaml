@@ -1,5 +1,0 @@
----
-features:
-  - |
-    Adds support for ``timeout`` parameter when powering on/off a bare metal
-    node managed by the ``oneview`` hardware type.
