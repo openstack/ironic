@@ -27,7 +27,7 @@
     name: legacy-ironic-dsvm-base-multinode
     parent: legacy-dsvm-base-multinode
     irrelevant-files:
-      - ^(test-|)requirements.txt$
+      - ^(test-|driver-|)requirements.txt$
       - ^.*\.rst$
       - ^api-ref/.*$
       - ^doc/.*$
