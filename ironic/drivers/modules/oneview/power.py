@@ -56,6 +56,10 @@ SET_POWER_STATE_MAP = {
 
 class OneViewPower(base.PowerInterface):
 
+    def __init__(self):
+        super(OneViewPower, self).__init__()
+        self.client = common.get_hponeview_client()
+
     def get_properties(self):
         return deploy_utils.get_properties()
 
@@ -84,9 +88,9 @@ class OneViewPower(base.PowerInterface):
         common.verify_node_info(task.node)
 
         try:
-            common.validate_oneview_resources_compatibility(task)
+            common.validate_oneview_resources_compatibility(self.client, task)
 
-            if deploy_utils.is_node_in_use_by_oneview(task.node):
+            if deploy_utils.is_node_in_use_by_oneview(self.client, task.node):
                 raise exception.InvalidParameterValue(
                     _("Node %s is in use by OneView.") % task.node.uuid)
 
@@ -104,9 +108,8 @@ class OneViewPower(base.PowerInterface):
                  resource
         """
         server_hardware = task.node.driver_info.get('server_hardware_uri')
-        client = common.get_hponeview_client()
         try:
-            server_hardware = client.server_hardware.get(server_hardware)
+            server_hardware = self.client.server_hardware.get(server_hardware)
         except client_exception.HPOneViewException as exc:
             LOG.error(
                 "Error getting power state for node %(node)s. Error:"
@@ -132,8 +135,7 @@ class OneViewPower(base.PowerInterface):
         :raises: PowerStateFailure if the power couldn't be set to power_state.
         :raises: OneViewError if OneView fails setting the power state.
         """
-        client = common.get_hponeview_client()
-        if deploy_utils.is_node_in_use_by_oneview(task.node):
+        if deploy_utils.is_node_in_use_by_oneview(self.client, task.node):
             raise exception.PowerStateFailure(_(
                 "Cannot set power state '%(power_state)s' to node %(node)s. "
                 "The node is in use by OneView.") %
@@ -155,19 +157,19 @@ class OneViewPower(base.PowerInterface):
         try:
             if power_state == states.POWER_ON:
                 management.set_boot_device(task)
-                client.server_hardware.update_power_state(
+                self.client.server_hardware.update_power_state(
                     SET_POWER_STATE_MAP.get(power_state),
                     server_hardware, timeout=timeout)
             elif power_state == states.REBOOT:
-                client.server_hardware.update_power_state(
+                self.client.server_hardware.update_power_state(
                     SET_POWER_STATE_MAP.get(states.POWER_OFF), server_hardware,
                     timeout=timeout)
                 management.set_boot_device(task)
-                client.server_hardware.update_power_state(
+                self.client.server_hardware.update_power_state(
                     SET_POWER_STATE_MAP.get(states.POWER_ON), server_hardware,
                     timeout=timeout)
             else:
-                client.server_hardware.update_power_state(
+                self.client.server_hardware.update_power_state(
                     SET_POWER_STATE_MAP.get(power_state), server_hardware,
                     timeout=timeout)
         except client_exception.HPOneViewException as exc:

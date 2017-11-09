@@ -95,15 +95,15 @@ def get_hponeview_client():
     return hponeview_client.OneViewClient(config)
 
 
-def get_ilorest_client(server_hardware):
+def get_ilorest_client(oneview_client, server_hardware):
     """Generate an instance of the iLORest library client.
 
-    :param server_hardware: a server hardware uuid or uri
+    :param oneview_client: an instance of a python-hpOneView
+    :param: server_hardware: a server hardware uuid or uri
     :returns: an instance of the iLORest client
     :raises: InvalidParameterValue if mandatory information is missing on the
              node or on invalid input.
     """
-    oneview_client = get_hponeview_client()
     remote_console = oneview_client.server_hardware.get_remote_console_url(
         server_hardware
     )
@@ -196,7 +196,7 @@ def get_oneview_info(node):
     return oneview_info
 
 
-def validate_oneview_resources_compatibility(task):
+def validate_oneview_resources_compatibility(oneview_client, task):
     """Validate if the node configuration is consistent with OneView.
 
     This method calls hpOneView functions to validate if the node
@@ -205,11 +205,11 @@ def validate_oneview_resources_compatibility(task):
     serverProfileTemplateUri, enclosureGroupUri and node ports. If any
     validation fails, the driver will raise an appropriate OneViewError.
 
+    :param oneview_client: an instance of the OneView client
     :param: task: a TaskManager instance containing the node to act on.
     :raises: OneViewError if any validation fails.
     """
     ports = task.ports
-    oneview_client = get_hponeview_client()
     oneview_info = get_oneview_info(task.node)
 
     _validate_node_server_profile_template(oneview_client, oneview_info)
@@ -254,22 +254,22 @@ def node_has_server_profile(func):
     """
     def inner(self, *args, **kwargs):
         task = args[0]
-        has_server_profile(task)
+        has_server_profile(task, self.client)
         return func(self, *args, **kwargs)
     return inner
 
 
-def has_server_profile(task):
+def has_server_profile(task, client):
     """Checks if the node's Server Hardware has a Server Profile associated.
 
     Function to check if the Server Profile is applied to the Server Hardware.
 
+    :param client: an instance of the OneView client
     :param task: a TaskManager instance containing the node to act on.
     """
-    oneview_client = get_hponeview_client()
     try:
         profile = task.node.driver_info.get('applied_server_profile_uri')
-        oneview_client.server_profiles.get(profile)
+        client.server_profiles.get(profile)
     except client_exception.HPOneViewException as exc:
         LOG.error(
             "Failed to get server profile from OneView appliance for"
@@ -279,9 +279,10 @@ def has_server_profile(task):
         raise exception.OneViewError(error=exc)
 
 
-def _get_server_hardware_mac_from_ilo(server_hardware):
+def _get_server_hardware_mac_from_ilo(oneview_client, server_hardware):
     """Get the MAC of Server Hardware's iLO controller.
 
+    :param: oneview_client: an instance of the HPE OneView client
     :param: server_hardware: a server hardware uuid or uri
     :return: MAC of Server Hardware's iLO controller.
     :raises: InvalidParameterValue if required iLO credentials are missing.
@@ -289,7 +290,7 @@ def _get_server_hardware_mac_from_ilo(server_hardware):
              if fails to get JSON object with the default path.
     """
     try:
-        client = get_ilorest_client(server_hardware)
+        client = get_ilorest_client(oneview_client, server_hardware)
         ilo_path = "/rest/v1/systems/1"
         hardware = jsonutils.loads(client.get(ilo_path).text)
         hardware_mac = hardware['HostCorrelation']['HostMACAddress'][0]
@@ -496,7 +497,8 @@ def _validate_node_port_mac_server_hardware(oneview_client,
     try:
         mac = _get_server_hardware_mac(server_hardware)
     except exception.OneViewError:
-        mac = _get_server_hardware_mac_from_ilo(server_hardware)
+        mac = _get_server_hardware_mac_from_ilo(
+            oneview_client, server_hardware)
 
     incompatible_macs = []
     for port in ports:

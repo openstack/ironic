@@ -66,7 +66,9 @@ class OneViewPeriodicTasks(object):
             node = objects.Node.get(context, node_uuid)
 
             try:
-                oneview_using = deploy_utils.is_node_in_use_by_oneview(node)
+                oneview_using = deploy_utils.is_node_in_use_by_oneview(
+                    self.client, node
+                )
             except exception.OneViewError as e:
                 # NOTE(xavierr): Skip this node and process the
                 # remaining nodes. This node will be checked in
@@ -126,7 +128,7 @@ class OneViewPeriodicTasks(object):
 
                 try:
                     oneview_using = deploy_utils.is_node_in_use_by_oneview(
-                        node
+                        self.client, node
                     )
                 except exception.OneViewError as e:
                     # NOTE(xavierr): Skip this node and process the
@@ -216,6 +218,10 @@ class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
 
     oneview_driver = common.ISCSI_PXE_ONEVIEW
 
+    def __init__(self):
+        super(OneViewIscsiDeploy, self).__init__()
+        self.client = common.get_hponeview_client()
+
     def get_properties(self):
         return deploy_utils.get_properties()
 
@@ -223,30 +229,30 @@ class OneViewIscsiDeploy(iscsi_deploy.ISCSIDeploy, OneViewPeriodicTasks):
     def validate(self, task):
         common.verify_node_info(task.node)
         try:
-            common.validate_oneview_resources_compatibility(task)
+            common.validate_oneview_resources_compatibility(self.client, task)
         except exception.OneViewError as oneview_exc:
             raise exception.InvalidParameterValue(oneview_exc)
         super(OneViewIscsiDeploy, self).validate(task)
 
     @METRICS.timer('OneViewIscsiDeploy.prepare')
     def prepare(self, task):
-        deploy_utils.prepare(task)
+        deploy_utils.prepare(self.client, task)
         super(OneViewIscsiDeploy, self).prepare(task)
 
     @METRICS.timer('OneViewIscsiDeploy.tear_down')
     def tear_down(self, task):
         if not CONF.conductor.automated_clean:
-            deploy_utils.tear_down(task)
+            deploy_utils.tear_down(self.client, task)
         return super(OneViewIscsiDeploy, self).tear_down(task)
 
     @METRICS.timer('OneViewIscsiDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
-        deploy_utils.prepare_cleaning(task)
+        deploy_utils.prepare_cleaning(self.client, task)
         return super(OneViewIscsiDeploy, self).prepare_cleaning(task)
 
     @METRICS.timer('OneViewIscsiDeploy.tear_down_cleaning')
     def tear_down_cleaning(self, task):
-        deploy_utils.tear_down_cleaning(task)
+        deploy_utils.tear_down_cleaning(self.client, task)
         super(OneViewIscsiDeploy, self).tear_down_cleaning(task)
 
 
@@ -255,6 +261,10 @@ class OneViewAgentDeploy(agent.AgentDeploy, OneViewPeriodicTasks):
 
     oneview_driver = common.AGENT_PXE_ONEVIEW
 
+    def __init__(self):
+        super(OneViewAgentDeploy, self).__init__()
+        self.client = common.get_hponeview_client()
+
     def get_properties(self):
         return deploy_utils.get_properties()
 
@@ -262,28 +272,28 @@ class OneViewAgentDeploy(agent.AgentDeploy, OneViewPeriodicTasks):
     def validate(self, task):
         common.verify_node_info(task.node)
         try:
-            common.validate_oneview_resources_compatibility(task)
+            common.validate_oneview_resources_compatibility(self.client, task)
         except exception.OneViewError as oneview_exc:
             raise exception.InvalidParameterValue(oneview_exc)
         super(OneViewAgentDeploy, self).validate(task)
 
     @METRICS.timer('OneViewAgentDeploy.prepare')
     def prepare(self, task):
-        deploy_utils.prepare(task)
+        deploy_utils.prepare(self.client, task)
         super(OneViewAgentDeploy, self).prepare(task)
 
     @METRICS.timer('OneViewAgentDeploy.tear_down')
     def tear_down(self, task):
         if not CONF.conductor.automated_clean:
-            deploy_utils.tear_down(task)
+            deploy_utils.tear_down(self.client, task)
         return super(OneViewAgentDeploy, self).tear_down(task)
 
     @METRICS.timer('OneViewAgentDeploy.prepare_cleaning')
     def prepare_cleaning(self, task):
-        deploy_utils.prepare_cleaning(task)
+        deploy_utils.prepare_cleaning(self.client, task)
         return super(OneViewAgentDeploy, self).prepare_cleaning(task)
 
     @METRICS.timer('OneViewAgentDeploy.tear_down_cleaning')
     def tear_down_cleaning(self, task):
-        deploy_utils.tear_down_cleaning(task)
+        deploy_utils.tear_down_cleaning(self.client, task)
         super(OneViewAgentDeploy, self).tear_down_cleaning(task)

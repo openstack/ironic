@@ -33,6 +33,7 @@ from ironic.tests.unit.objects import utils as obj_utils
 client_exception = importutils.try_import('hpOneView.exceptions')
 
 
+@mock.patch.object(common, 'get_hponeview_client')
 class OneViewPowerDriverTestCase(db_base.DbTestCase):
 
     def setUp(self):
@@ -53,12 +54,12 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
         deploy_utils.is_node_in_use_by_oneview = mock.Mock(return_value=False)
 
     @mock.patch.object(common, 'validate_oneview_resources_compatibility')
-    def test_validate(self, mock_validate):
+    def test_validate(self, mock_validate, mock_get_ov_client):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.power.validate(task)
             self.assertTrue(mock_validate.called)
 
-    def test_validate_missing_parameter(self):
+    def test_validate_missing_parameter(self, mock_get_ov_client):
         node = obj_utils.create_test_node(
             self.context, uuid=uuidutils.generate_uuid(),
             id=999, driver='fake_oneview')
@@ -69,7 +70,7 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
                 task)
 
     @mock.patch.object(common, 'validate_oneview_resources_compatibility')
-    def test_validate_exception(self, mock_validate):
+    def test_validate_exception(self, mock_validate, mock_get_ov_client):
         mock_validate.side_effect = exception.OneViewError('message')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(
@@ -77,7 +78,7 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
                 task.driver.power.validate,
                 task)
 
-    def test_validate_node_in_use_by_oneview(self):
+    def test_validate_node_in_use_by_oneview(self, mock_get_ov_client):
         deploy_utils.is_node_in_use_by_oneview.return_value = True
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(
@@ -85,34 +86,34 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
                 task.driver.power.validate,
                 task)
 
-    def test_get_properties(self):
+    def test_get_properties(self, mock_get_ov_client):
         expected = common.COMMON_PROPERTIES
         self.assertEqual(expected, self.driver.power.get_properties())
 
-    @mock.patch.object(common, 'get_hponeview_client')
     def test_get_power_state(self, mock_get_ov_client):
         client = mock_get_ov_client()
         server_hardware = {'powerState': 'On'}
         client.server_hardware.get.return_value = server_hardware
+        self.driver.power.client = client
         with task_manager.acquire(self.context, self.node.uuid) as task:
             power_state = self.driver.power.get_power_state(task)
             self.assertEqual(states.POWER_ON, power_state)
 
-    @mock.patch.object(common, 'get_hponeview_client')
     def test_get_power_state_fail(self, mock_get_ov_client):
         client = mock_get_ov_client()
         exc = client_exception.HPOneViewException()
         client.server_hardware.get.side_effect = exc
+        self.driver.power.client = client
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(
                 exception.OneViewError,
                 self.driver.power.get_power_state,
                 task)
 
-    @mock.patch.object(common, 'get_hponeview_client')
     @mock.patch.object(management, 'set_boot_device')
     def test_set_power_on(self, mock_set_boot_device, mock_get_ov_client):
         client = mock_get_ov_client()
+        self.driver.power.client = client
         server_hardware = self.node.driver_info.get('server_hardware_uri')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.driver.power.set_power_state(task, states.POWER_ON)
@@ -121,10 +122,10 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
             update.assert_called_once_with(power.POWER_ON, server_hardware,
                                            timeout=-1)
 
-    @mock.patch.object(common, 'get_hponeview_client')
     @mock.patch.object(management, 'set_boot_device')
     def test_set_power_off(self, mock_set_boot_device, mock_get_ov_client):
         client = mock_get_ov_client()
+        self.driver.power.client = client
         server_hardware = self.node.driver_info.get('server_hardware_uri')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.driver.power.set_power_state(task, states.POWER_OFF)
@@ -133,10 +134,10 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
             update.assert_called_once_with(power.POWER_OFF, server_hardware,
                                            timeout=-1)
 
-    @mock.patch.object(common, 'get_hponeview_client')
     @mock.patch.object(management, 'set_boot_device')
     def test_set_power_reboot(self, mock_set_boot_device, mock_get_ov_client):
         client = mock_get_ov_client()
+        self.driver.power.client = client
         server_hardware = self.node.driver_info.get('server_hardware_uri')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.driver.power.set_power_state(task, states.REBOOT)
@@ -145,12 +146,12 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
             update = client.server_hardware.update_power_state
             update.assert_has_calls(calls)
 
-    @mock.patch.object(common, 'get_hponeview_client')
     @mock.patch.object(management, 'set_boot_device')
     def test_set_power_on_fail(self, mock_set_boot_device, mock_get_ov_client):
         client = mock_get_ov_client()
         exc = client_exception.HPOneViewException()
         client.server_hardware.update_power_state.side_effect = exc
+        self.driver.power.client = client
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(
                 exception.OneViewError,
@@ -159,13 +160,13 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
                 states.POWER_ON)
             mock_set_boot_device.assert_called_once_with(task)
 
-    @mock.patch.object(common, 'get_hponeview_client')
     @mock.patch.object(management, 'set_boot_device')
     def test_set_power_off_fail(
             self, mock_set_boot_device, mock_get_ov_client):
         client = mock_get_ov_client()
         exc = client_exception.HPOneViewException()
         client.server_hardware.update_power_state.side_effect = exc
+        self.driver.power.client = client
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(
                 exception.OneViewError,
@@ -174,15 +175,16 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
                 states.POWER_OFF)
             self.assertFalse(mock_set_boot_device.called)
 
-    @mock.patch.object(common, 'get_hponeview_client')
     @mock.patch.object(management, 'set_boot_device')
     def test_reboot_fail_with_hardware_on(
             self, mock_set_boot_device, mock_get_ov_client):
         client = mock_get_ov_client()
         server_hardware = {'powerState': 'On'}
         client.server_hardware.get.return_value = server_hardware
+        self.driver.power.client = client
         exc = client_exception.HPOneViewException()
         client.server_hardware.update_power_state.side_effect = exc
+        self.driver.power.client = client
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(
                 exception.OneViewError,
@@ -190,15 +192,16 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
                 task)
             self.assertFalse(mock_set_boot_device.called)
 
-    @mock.patch.object(common, 'get_hponeview_client')
     @mock.patch.object(management, 'set_boot_device')
     def test_reboot_fail_with_hardware_off(
             self, mock_set_boot_device, mock_get_ov_client):
         client = mock_get_ov_client()
         server_hardware = {'powerState': 'Off'}
         client.server_hardware.get.return_value = server_hardware
+        self.driver.power.client = client
         exc = client_exception.HPOneViewException()
         client.server_hardware.update_power_state.side_effect = exc
+        self.driver.power.client = client
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(
                 exception.OneViewError,
@@ -207,7 +210,8 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
             mock_set_boot_device.assert_called_once_with(task)
 
     @mock.patch.object(management, 'set_boot_device')
-    def test_set_power_invalid_state(self, mock_set_boot_device):
+    def test_set_power_invalid_state(
+            self, mock_set_boot_device, mock_get_ov_client):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(
                 exception.InvalidParameterValue,
@@ -216,13 +220,13 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
                 'fake_state')
             self.assertFalse(mock_set_boot_device.called)
 
-    @mock.patch.object(common, 'get_hponeview_client')
     @mock.patch.object(management, 'set_boot_device')
     def test_set_power_reboot_with_hardware_on(
             self, mock_set_boot_device, mock_get_ov_client):
         client = mock_get_ov_client()
         server_hardware = {'powerState': 'On'}
         client.server_hardware.get.return_value = server_hardware
+        self.driver.power.client = client
         server_hardware = self.node.driver_info.get('server_hardware_uri')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.driver.power.reboot(task)
@@ -232,13 +236,13 @@ class OneViewPowerDriverTestCase(db_base.DbTestCase):
             update.assert_has_calls(calls)
             mock_set_boot_device.assert_called_once_with(task)
 
-    @mock.patch.object(common, 'get_hponeview_client')
     @mock.patch.object(management, 'set_boot_device')
     def test_set_power_reboot_with_hardware_off(
             self, mock_set_boot_device, mock_get_ov_client):
         client = mock_get_ov_client()
         server_hardware = {'powerState': 'Off'}
         client.server_hardware.get.return_value = server_hardware
+        self.driver.power.client = client
         server_hardware = self.node.driver_info.get('server_hardware_uri')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.driver.power.reboot(task, timeout=-1)

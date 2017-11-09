@@ -55,12 +55,14 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
     # Tests for prepare
     def test_prepare_node_is_in_use_by_oneview(self, mock_oneview_client):
         """`prepare` behavior when the node has a Profile on OneView."""
+        client = mock_oneview_client()
         deploy_utils.is_node_in_use_by_oneview.return_value = True
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.provision_state = states.DEPLOYING
             self.assertRaises(
                 exception.InstanceDeployFailure,
                 deploy_utils.prepare,
+                client,
                 task
             )
 
@@ -70,7 +72,7 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
         """`prepare` behavior when the node is free from OneView standpoint."""
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.provision_state = states.DEPLOYING
-            deploy_utils.prepare(task)
+            deploy_utils.prepare(mock_oneview_client(), task)
             self.assertTrue(mock_save.called)
 
     # Tests for tear_down
@@ -84,7 +86,7 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
             self.assertIn(
                 'applied_server_profile_uri', task.node.driver_info
             )
-            deploy_utils.tear_down(task)
+            deploy_utils.tear_down(client, task)
             self.assertNotIn(
                 'applied_server_profile_uri', task.node.driver_info
             )
@@ -99,7 +101,7 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
             self.assertFalse(
                 'applied_server_profile_uri' in task.node.driver_info
             )
-            deploy_utils.prepare_cleaning(task)
+            deploy_utils.prepare_cleaning(mock_oneview_client(), task)
             self.assertTrue(
                 'applied_server_profile_uri' in task.node.driver_info
             )
@@ -116,7 +118,7 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
             task.node.driver_info['applied_server_profile_uri'] = (
                 'same/sp_applied'
             )
-            deploy_utils.prepare_cleaning(task)
+            deploy_utils.prepare_cleaning(client, task)
             self.assertFalse(mock_node_save.called)
 
     def test_prepare_cleaning_node_is_in_use_by_oneview(
@@ -128,6 +130,7 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
             self.assertRaises(
                 exception.NodeCleaningFailure,
                 deploy_utils.prepare_cleaning,
+                mock_oneview_client(),
                 task
             )
 
@@ -142,7 +145,7 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
             self.assertTrue(
                 'applied_server_profile_uri' in task.node.driver_info
             )
-            deploy_utils.tear_down_cleaning(task)
+            deploy_utils.tear_down_cleaning(client, task)
             self.assertFalse(
                 'applied_server_profile_uri' in task.node.driver_info
             )
@@ -293,7 +296,7 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             deploy_utils.allocate_server_hardware_to_ironic(
-                task.node, 'serverProfileName'
+                client, task.node, 'serverProfileName'
             )
             self.assertTrue(mock_node_save.called)
             self.assertIn('applied_server_profile_uri', task.node.driver_info)
@@ -317,7 +320,7 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
                 'any/applied_sp_uri/'
             )
             deploy_utils.allocate_server_hardware_to_ironic(
-                task.node, 'serverProfileName'
+                client, task.node, 'serverProfileName'
             )
             self.assertTrue(mock_node_save.called)
 
@@ -332,7 +335,9 @@ class OneViewDeployUtilsTestCase(db_base.DbTestCase):
             task.node.driver_info['applied_server_profile_uri'] = (
                 'any/applied_sp_uri/'
             )
-            deploy_utils.deallocate_server_hardware_from_ironic(task)
+            deploy_utils.deallocate_server_hardware_from_ironic(
+                client, task
+            )
             self.assertTrue(client.server_profiles.delete.called)
             self.assertNotIn(
                 'applied_server_profile_uri', task.node.driver_info
