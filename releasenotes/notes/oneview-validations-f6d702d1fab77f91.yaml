@@ -1,7 +1,0 @@
----
-other:
-  - |
-    Adds the implementation of the validations for the OneView hardware type,
-    migrating from python-oneviewclient library to OneView driver. This process
-    is part of migrating from ``python-oneviewclient`` to ``python-hpOneView``
-    and ``python-ilorest-library``.

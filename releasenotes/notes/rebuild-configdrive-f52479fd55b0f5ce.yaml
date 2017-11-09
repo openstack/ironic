@@ -1,10 +1,11 @@
 ---
 features:
   - |
-    Starting with REST API version 1.35, it is possible to provide
+    Starting with the Bare Metal API version 1.35, it is possible to provide
     a configdrive when rebuilding a node.
 fixes:
   - |
     Fixes the problem of an old configdrive (used for deploying the node)
-    being used again when rebuilding the node. Starting with REST API 1.35,
-    it is possible to specify a different configdrive when rebuilding a node.
+    being used again when rebuilding the node. Starting with the Bare Metal API
+    version 1.35, it is possible to specify a different configdrive when
+    rebuilding a node.
