@@ -128,14 +128,12 @@ class OneViewPower(base.PowerInterface):
 
     @METRICS.timer('OneViewPower.set_power_state')
     @task_manager.require_exclusive_lock
-    def set_power_state(self, task, power_state, timeout=None):
+    def set_power_state(self, task, power_state):
         """Set the power state of the task's node.
 
         :param task: a TaskManager instance.
         :param power_state: The desired power state POWER_ON, POWER_OFF or
                             REBOOT from :mod:`ironic.common.states`.
-        :param timeout: timeout (in seconds) positive integer (> 0) for any
-                        power state. ``None`` indicates to use default timeout.
         :raises: InvalidParameterValue if an invalid power state was specified.
         :raises: PowerStateFailure if the power couldn't be set to power_state.
         :raises: OneViewError if OneView fails setting the power state.
@@ -157,43 +155,36 @@ class OneViewPower(base.PowerInterface):
                   {'node_uuid': task.node.uuid, 'power_state': power_state})
 
         server_hardware = task.node.driver_info.get('server_hardware_uri')
-        timeout = (-1 if timeout is None else timeout)
 
         try:
             if power_state == states.POWER_ON:
                 management.set_boot_device(task)
                 self.client.server_hardware.update_power_state(
-                    SET_POWER_STATE_MAP.get(power_state),
-                    server_hardware, timeout=timeout)
+                    SET_POWER_STATE_MAP.get(power_state), server_hardware)
             elif power_state == states.REBOOT:
                 self.client.server_hardware.update_power_state(
-                    SET_POWER_STATE_MAP.get(states.POWER_OFF), server_hardware,
-                    timeout=timeout)
+                    SET_POWER_STATE_MAP.get(states.POWER_OFF), server_hardware)
                 management.set_boot_device(task)
                 self.client.server_hardware.update_power_state(
-                    SET_POWER_STATE_MAP.get(states.POWER_ON), server_hardware,
-                    timeout=timeout)
+                    SET_POWER_STATE_MAP.get(states.POWER_ON), server_hardware)
             else:
                 self.client.server_hardware.update_power_state(
-                    SET_POWER_STATE_MAP.get(power_state), server_hardware,
-                    timeout=timeout)
+                    SET_POWER_STATE_MAP.get(power_state), server_hardware)
         except client_exception.HPOneViewException as exc:
             raise exception.OneViewError(
                 _("Error setting power state: %s") % exc)
 
     @METRICS.timer('OneViewPower.reboot')
     @task_manager.require_exclusive_lock
-    def reboot(self, task, timeout=None):
+    def reboot(self, task):
         """Reboot the node.
 
         :param task: a TaskManager instance.
-        :param timeout: timeout (in seconds) positive integer (> 0) for any
-                        power state. ``None`` indicates to use default timeout.
         :raises: PowerStateFailure if the final state of the node is not
                  POWER_ON.
         """
         current_power_state = self.get_power_state(task)
         if current_power_state == states.POWER_ON:
-            self.set_power_state(task, states.REBOOT, timeout=timeout)
+            self.set_power_state(task, states.REBOOT)
         else:
-            self.set_power_state(task, states.POWER_ON, timeout=timeout)
+            self.set_power_state(task, states.POWER_ON)
