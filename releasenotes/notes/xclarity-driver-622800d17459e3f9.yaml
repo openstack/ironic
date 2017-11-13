@@ -1,0 +1,9 @@
+---
+
+features:
+ - |
+    Adds the new ``xclarity`` hardware type for managing Lenovo server
+    hardware with the following interfaces:
+
+    * management: ``xclarity``
+    * power: ``xclarity``
