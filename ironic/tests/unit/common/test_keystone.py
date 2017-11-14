@@ -57,7 +57,7 @@ class KeystoneTestCase(base.TestCase):
         mock_sess.get_endpoint.return_value = fake_url
         res = keystone.get_service_url(mock_sess)
         mock_sess.get_endpoint.assert_called_with(
-            interface='internal', region='fake_region',
+            interface='internal', region_name='fake_region',
             service_type='baremetal')
         self.assertEqual(fake_url, res)
 
