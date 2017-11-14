@@ -89,7 +89,6 @@ class TestCase(oslo_test_base.BaseTestCase):
         # NOTE(danms): Make sure to reset us back to non-remote objects
         # for each test to avoid interactions. Also, backup the object
         # registry
-        objects_base.IronicObject.indirection_api = None
         self._base_test_obj_backup = copy.copy(
             objects_base.IronicObjectRegistry.obj_classes())
         self.addCleanup(self._restore_obj_registry)

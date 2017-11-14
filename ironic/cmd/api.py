@@ -25,8 +25,6 @@ from oslo_reports import guru_meditation_report as gmr
 from ironic.common import profiler
 from ironic.common import service as ironic_service
 from ironic.common import wsgi_service
-from ironic.objects import base
-from ironic.objects import indirection
 from ironic import version
 
 CONF = cfg.CONF
@@ -37,10 +35,6 @@ def main():
     ironic_service.prepare_service(sys.argv)
 
     gmr.TextGuruMeditation.setup_autorun(version)
-
-    # Enable object backporting via the conductor
-    base.IronicObject.indirection_api = (
-        indirection.IronicObjectIndirectionAPI())
 
     profiler.setup('ironic_api', CONF.host)
 
