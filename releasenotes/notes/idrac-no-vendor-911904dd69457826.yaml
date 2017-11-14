@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Adds missing ``no-vendor`` implementation to supported vendor interfaces
+    of the ``idrac`` hardware type.

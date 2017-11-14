@@ -65,7 +65,7 @@ class IDRACHardware(generic.GenericHardware):
     @property
     def supported_vendor_interfaces(self):
         """List of supported vendor interfaces."""
-        return [vendor_passthru.DracVendorPassthru]
+        return [vendor_passthru.DracVendorPassthru, noop.NoVendor]
 
 
 class PXEDracDriver(base.BaseDriver):
