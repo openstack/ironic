@@ -302,11 +302,15 @@ class TestAgentDeploy(db_base.DbTestCase):
     @mock.patch.object(noop_storage.NoopStorage, 'detach_volumes',
                        autospec=True)
     @mock.patch.object(flat_network.FlatNetwork,
+                       'remove_provisioning_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
                        'unconfigure_tenant_networks',
                        spec_set=True, autospec=True)
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
     def test_tear_down(self, power_mock,
                        unconfigure_tenant_nets_mock,
+                       remove_provisioning_net_mock,
                        storage_detach_volumes_mock):
         object_utils.create_test_volume_target(
             self.context, node_id=self.node.id)
@@ -316,6 +320,8 @@ class TestAgentDeploy(db_base.DbTestCase):
             power_mock.assert_called_once_with(task, states.POWER_OFF)
             self.assertEqual(driver_return, states.DELETED)
             unconfigure_tenant_nets_mock.assert_called_once_with(mock.ANY,
+                                                                 task)
+            remove_provisioning_net_mock.assert_called_once_with(mock.ANY,
                                                                  task)
             storage_detach_volumes_mock.assert_called_once_with(
                 task.driver.storage, task)
