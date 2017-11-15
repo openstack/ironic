@@ -302,6 +302,13 @@ Request a change to the Node's power state.
 
 Normal response code: 202 (Accepted)
 
+.. versionadded:: 1.27
+   In the request, the ``target`` value can also be one of ``soft power off``
+   or ``soft rebooting``.
+
+.. versionadded:: 1.27
+   In the request, a ``timeout`` can be specified.
+
 Error codes:
     - 409 (NodeLocked, ClientError)
     - 400 (Invalid, InvalidStateRequested, InvalidParameterValue)

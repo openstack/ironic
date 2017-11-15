@@ -873,7 +873,7 @@ power_state:
   type: string
 power_timeout:
   description: |
-    Timeout for a power state transition.
+    Timeout (in seconds) for a power state transition.
   in: body
   required: false
   type: integer
