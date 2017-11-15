@@ -368,7 +368,7 @@
 # (default), leave it unset and the latest versions of RPC
 # communication and database objects will be used. (string
 # value)
-# Allowed values: pike, 9.1, 9.0, 8.0
+# Allowed values: pike, 9.2, 9.1, 9.0, 8.0
 #pin_release_version = <None>
 
 # Path to the rootwrap configuration file to use for running
@@ -441,6 +441,10 @@
 # Syslog facility to receive log lines. This option is ignored
 # if log_config_append is set. (string value)
 #syslog_log_facility = LOG_USER
+
+# Use JSON formatting for logging. This option is ignored if
+# log_config_append is set. (boolean value)
+#use_json = false
 
 # Log output to standard error. This option is ignored if
 # log_config_append is set. (boolean value)
