@@ -129,6 +129,8 @@ class TestCase(oslo_test_base.BaseTestCase):
                     group='neutron')
         self.config(provisioning_network=uuidutils.generate_uuid(),
                     group='neutron')
+        self.config(rescuing_network=uuidutils.generate_uuid(),
+                    group='neutron')
         self.config(enabled_drivers=['fake'])
         self.config(enabled_hardware_types=['fake-hardware'])
         self.config(enabled_network_interfaces=['flat', 'noop', 'neutron'])

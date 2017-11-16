@@ -362,8 +362,9 @@ class VIFPortIDMixin(object):
         """Returns the currently used VIF associated with port or portgroup
 
         We are booting the node only in one network at a time, and presence of
-        cleaning_vif_port_id means we're doing cleaning, of
-        provisioning_vif_port_id - provisioning.
+        cleaning_vif_port_id means we're doing cleaning,
+        of provisioning_vif_port_id - provisioning,
+        of rescuing_vif_port_id - rescuing.
         Otherwise it's a tenant network
 
         :param task: A TaskManager instance.
@@ -373,6 +374,7 @@ class VIFPortIDMixin(object):
 
         return (p_obj.internal_info.get('cleaning_vif_port_id') or
                 p_obj.internal_info.get('provisioning_vif_port_id') or
+                p_obj.internal_info.get('rescuing_vif_port_id') or
                 self._get_vif_id_by_port_like_obj(p_obj) or None)
 
 
