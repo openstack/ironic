@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes an issue whereby in certain deployment failure scenarios a node's
+    provisioning ports are not deleted.  The issue would typically have been
+    masked by nova, which deletes all ports with a device ID matching the
+    instance's UUID during instance termination.  See `bug 1732412
+    <https://bugs.launchpad.net/ironic/+bug/1732412>`_
+    for details.

@@ -492,6 +492,9 @@ class ISCSIDeploy(AgentDeployMixin, base.DeployInterface):
         task.driver.storage.detach_volumes(task)
         deploy_utils.tear_down_storage_configuration(task)
         task.driver.network.unconfigure_tenant_networks(task)
+        # NOTE(mgoddard): If the deployment was unsuccessful the node may have
+        # ports on the provisioning network which were not deleted.
+        task.driver.network.remove_provisioning_network(task)
         return states.DELETED
 
     @METRICS.timer('ISCSIDeploy.prepare')

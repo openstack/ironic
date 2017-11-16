@@ -745,11 +745,15 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
     @mock.patch.object(noop_storage.NoopStorage, 'detach_volumes',
                        autospec=True)
     @mock.patch.object(flat_network.FlatNetwork,
+                       'remove_provisioning_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
                        'unconfigure_tenant_networks',
                        spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     def test_tear_down(self, node_power_action_mock,
                        unconfigure_tenant_nets_mock,
+                       remove_provisioning_net_mock,
                        storage_detach_volumes_mock):
         obj_utils.create_test_volume_target(
             self.context, node_id=self.node.id)
@@ -760,6 +764,8 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             node_power_action_mock.assert_called_once_with(task,
                                                            states.POWER_OFF)
             unconfigure_tenant_nets_mock.assert_called_once_with(mock.ANY,
+                                                                 task)
+            remove_provisioning_net_mock.assert_called_once_with(mock.ANY,
                                                                  task)
             storage_detach_volumes_mock.assert_called_once_with(
                 task.driver.storage, task)
