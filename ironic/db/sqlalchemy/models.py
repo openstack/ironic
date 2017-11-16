@@ -175,6 +175,7 @@ class Node(Base):
     management_interface = Column(String(255), nullable=True)
     network_interface = Column(String(255), nullable=True)
     raid_interface = Column(String(255), nullable=True)
+    rescue_interface = Column(String(255), nullable=True)
     storage_interface = Column(String(255), nullable=True)
     power_interface = Column(String(255), nullable=True)
     vendor_interface = Column(String(255), nullable=True)
