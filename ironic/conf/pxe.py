@@ -118,8 +118,8 @@ opts = [
                       'Defaults to 4. EXPERIMENTAL')),
     cfg.BoolOpt('ipxe_use_swift',
                 default=False,
-                help=_("Download deploy images directly from swift using "
-                       "temporary URLs. "
+                help=_("Download deploy and rescue images directly from swift "
+                       "using temporary URLs. "
                        "If set to false (default), images are downloaded "
                        "to the ironic-conductor node and served over its "
                        "local HTTP server. "

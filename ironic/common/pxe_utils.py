@@ -39,6 +39,10 @@ DHCP_BOOTFILE_NAME = '67'  # rfc2132
 DHCP_TFTP_SERVER_ADDRESS = '150'  # rfc5859
 DHCP_IPXE_ENCAP_OPTS = '175'  # Tentatively Assigned
 DHCP_TFTP_PATH_PREFIX = '210'  # rfc5071
+DEPLOY_KERNEL_RAMDISK_LABELS = ['deploy_kernel', 'deploy_ramdisk']
+RESCUE_KERNEL_RAMDISK_LABELS = ['rescue_kernel', 'rescue_ramdisk']
+KERNEL_RAMDISK_LABELS = {'deploy': DEPLOY_KERNEL_RAMDISK_LABELS,
+                         'rescue': RESCUE_KERNEL_RAMDISK_LABELS}
 
 
 def get_root_dir():
@@ -158,14 +162,25 @@ def _get_pxe_ip_address_path(ip_address, hex_form):
     )
 
 
-def get_deploy_kr_info(node_uuid, driver_info):
-    """Get href and tftp path for deploy kernel and ramdisk.
+def get_kernel_ramdisk_info(node_uuid, driver_info, mode='deploy'):
+    """Get href and tftp path for deploy or rescue kernel and ramdisk.
+
+    :param node_uuid: UUID of the node
+    :param driver_info: Node's driver_info dict
+    :param mode: A label to indicate whether paths for deploy or rescue
+                 ramdisk are being requested. Supported values are 'deploy'
+                 'rescue'. Defaults to 'deploy', indicating deploy paths will
+                 be returned.
+    :returns: a dictionary whose keys are deploy_kernel and deploy_ramdisk or
+              rescue_kernel and rescue_ramdisk and whose values are the
+              absolute paths to them.
 
     Note: driver_info should be validated outside of this method.
     """
     root_dir = get_root_dir()
     image_info = {}
-    for label in ('deploy_kernel', 'deploy_ramdisk'):
+    labels = KERNEL_RAMDISK_LABELS[mode]
+    for label in labels:
         image_info[label] = (
             str(driver_info[label]),
             os.path.join(root_dir, node_uuid, label)

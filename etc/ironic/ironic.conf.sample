@@ -4029,11 +4029,11 @@
 # 6 - <No description provided>
 #ip_version = 4
 
-# Download deploy images directly from swift using temporary
-# URLs. If set to false (default), images are downloaded to
-# the ironic-conductor node and served over its local HTTP
-# server. Applicable only when 'ipxe_enabled' option is set to
-# true. (boolean value)
+# Download deploy and rescue images directly from swift using
+# temporary URLs. If set to false (default), images are
+# downloaded to the ironic-conductor node and served over its
+# local HTTP server. Applicable only when 'ipxe_enabled'
+# option is set to true. (boolean value)
 #ipxe_use_swift = false
 
 

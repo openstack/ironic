@@ -24,14 +24,16 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.drivers import base as drivers_base
+from ironic.drivers.modules import agent
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import fake
+from ironic.drivers.modules.network import flat as flat_network
 from ironic.drivers.modules import pxe
 from ironic.drivers import utils as driver_utils
 from ironic import objects
-from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as object_utils
@@ -47,10 +49,23 @@ class AgentDeployMixinBaseTest(db_base.DbTestCase):
 
     def setUp(self):
         super(AgentDeployMixinBaseTest, self).setUp()
-        mgr_utils.mock_the_extension_manager(driver="fake_agent")
+        for iface in drivers_base.ALL_INTERFACES:
+            impl = 'fake'
+            if iface == 'deploy':
+                impl = 'direct'
+            if iface == 'boot':
+                impl = 'pxe'
+            if iface == 'rescue':
+                impl = 'agent'
+            if iface == 'network':
+                continue
+            config_kwarg = {'enabled_%s_interfaces' % iface: [impl],
+                            'default_%s_interface' % iface: impl}
+            self.config(**config_kwarg)
+        self.config(enabled_hardware_types=['fake-hardware'])
         self.deploy = agent_base_vendor.AgentDeployMixin()
         n = {
-            'driver': 'fake_agent',
+            'driver': 'fake-hardware',
             'instance_info': INSTANCE_INFO,
             'driver_info': DRIVER_INFO,
             'driver_internal_info': DRIVER_INTERNAL_INFO,
@@ -132,9 +147,9 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             failed_mock.assert_called_once_with(
                 task, mock.ANY, collect_logs=True)
         log_mock.assert_called_once_with(
-            'Asynchronous exception for node '
-            '1be26c0b-03f2-4d2e-ae87-c02d7f33c123: Failed checking if deploy '
-            'is done. Exception: LlamaException')
+            'Asynchronous exception: Failed checking if deploy is done. '
+            'Exception: LlamaException for node %(node)s',
+            {'node': '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'})
 
     @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'deploy_has_started', autospec=True)
@@ -164,9 +179,9 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             # deploy_utils.set_failed_state anymore
             self.assertFalse(failed_mock.called)
         log_mock.assert_called_once_with(
-            'Asynchronous exception for node '
-            '1be26c0b-03f2-4d2e-ae87-c02d7f33c123: Failed checking if deploy '
-            'is done. Exception: LlamaException')
+            'Asynchronous exception: Failed checking if deploy is done. '
+            'Exception: LlamaException for node %(node)s',
+            {'node': '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'})
 
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
     @mock.patch.object(agent_base_vendor.HeartbeatMixin,
@@ -265,6 +280,34 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         mock_continue.assert_called_once_with(mock.ANY, task)
         mock_handler.assert_called_once_with(task, mock.ANY)
 
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin, '_finalize_rescue',
+                       autospec=True)
+    def test_heartbeat_rescue(self, mock_finalize_rescue):
+        self.node.provision_state = states.RESCUEWAIT
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.deploy.heartbeat(task, 'http://127.0.0.1:8080', '1.0.0')
+
+        mock_finalize_rescue.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(manager_utils, 'rescuing_error_handler')
+    @mock.patch.object(agent_base_vendor.HeartbeatMixin, '_finalize_rescue',
+                       autospec=True)
+    def test_heartbeat_rescue_fails(self, mock_finalize,
+                                    mock_rescue_err_handler):
+        self.node.provision_state = states.RESCUEWAIT
+        self.node.save()
+        mock_finalize.side_effect = Exception('some failure')
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.deploy.heartbeat(task, 'http://127.0.0.1:8080', '1.0.0')
+
+        mock_finalize.assert_called_once_with(mock.ANY, task)
+        mock_rescue_err_handler.assert_called_once_with(
+            task, 'Asynchronous exception: Node failed to perform '
+            'rescue operation. Exception: some failure for node')
+
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
     @mock.patch.object(agent_base_vendor.HeartbeatMixin,
                        'deploy_has_started', autospec=True)
@@ -285,8 +328,100 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
         mock_touch.assert_called_once_with(mock.ANY)
 
 
-class AgentDeployMixinTest(AgentDeployMixinBaseTest):
+class AgentRescueTests(db_base.DbTestCase):
 
+    def setUp(self):
+        super(AgentRescueTests, self).setUp()
+        for iface in drivers_base.ALL_INTERFACES:
+            impl = 'fake'
+            if iface == 'deploy':
+                impl = 'direct'
+            if iface == 'boot':
+                impl = 'pxe'
+            if iface == 'rescue':
+                impl = 'agent'
+            if iface == 'network':
+                impl = 'flat'
+            config_kwarg = {'enabled_%s_interfaces' % iface: [impl],
+                            'default_%s_interface' % iface: impl}
+            self.config(**config_kwarg)
+        self.config(enabled_hardware_types=['fake-hardware'])
+        instance_info = INSTANCE_INFO
+        driver_info = DRIVER_INFO
+        self.deploy = agent_base_vendor.AgentDeployMixin()
+        n = {
+            'driver': 'fake-hardware',
+            'instance_info': instance_info,
+            'driver_info': driver_info,
+            'driver_internal_info': DRIVER_INTERNAL_INFO,
+        }
+        self.node = object_utils.create_test_node(self.context, **n)
+
+    @mock.patch.object(flat_network.FlatNetwork, 'configure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(agent.AgentRescue, 'clean_up',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'finalize_rescue',
+                       spec=types.FunctionType)
+    def test__finalize_rescue(self, mock_finalize_rescue,
+                              mock_clean_up, mock_conf_tenant_net):
+        node = self.node
+        node.provision_state = states.RESCUEWAIT
+        node.save()
+        mock_finalize_rescue.return_value = {'command_status': 'SUCCEEDED'}
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            task.process_event = mock.Mock()
+            self.deploy._finalize_rescue(task)
+            mock_finalize_rescue.assert_called_once_with(task.node)
+            task.process_event.assert_has_calls([mock.call('resume'),
+                                                 mock.call('done')])
+            mock_clean_up.assert_called_once_with(mock.ANY, task)
+            mock_conf_tenant_net.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(agent_client.AgentClient, 'finalize_rescue',
+                       spec=types.FunctionType)
+    def test__finalize_rescue_bad_command_result(self, mock_finalize_rescue):
+        node = self.node
+        node.provision_state = states.RESCUEWAIT
+        node.save()
+        mock_finalize_rescue.return_value = {'command_status': 'FAILED',
+                                             'command_error': 'bad'}
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.assertRaises(exception.InstanceRescueFailure,
+                              self.deploy._finalize_rescue, task)
+            mock_finalize_rescue.assert_called_once_with(task.node)
+
+    @mock.patch.object(agent_client.AgentClient, 'finalize_rescue',
+                       spec=types.FunctionType)
+    def test__finalize_rescue_exc(self, mock_finalize_rescue):
+        node = self.node
+        node.provision_state = states.RESCUEWAIT
+        node.save()
+        mock_finalize_rescue.side_effect = exception.IronicException("No pass")
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.assertRaises(exception.InstanceRescueFailure,
+                              self.deploy._finalize_rescue, task)
+            mock_finalize_rescue.assert_called_once_with(task.node)
+
+    @mock.patch.object(agent_client.AgentClient, 'finalize_rescue',
+                       spec=types.FunctionType)
+    def test__finalize_rescue_missing_command_result(self,
+                                                     mock_finalize_rescue):
+        node = self.node
+        node.provision_state = states.RESCUEWAIT
+        node.save()
+        mock_finalize_rescue.return_value = {}
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.assertRaises(exception.InstanceRescueFailure,
+                              self.deploy._finalize_rescue, task)
+            mock_finalize_rescue.assert_called_once_with(task.node)
+
+
+class AgentDeployMixinTest(AgentDeployMixinBaseTest):
     @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
     @mock.patch.object(time, 'sleep', lambda seconds: None)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)

@@ -63,21 +63,43 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         mgr_utils.mock_the_extension_manager(driver="fake_pxe")
         self.node = obj_utils.create_test_node(self.context, **n)
 
-    def test__parse_driver_info_missing_deploy_kernel(self):
-        del self.node.driver_info['deploy_kernel']
+    def _test__parse_driver_info_missing_kernel(self, mode='deploy'):
+        del self.node.driver_info['%s_kernel' % mode]
+        if mode == 'rescue':
+            self.node.provision_state = states.RESCUING
         self.assertRaises(exception.MissingParameterValue,
-                          pxe._parse_driver_info, self.node)
+                          pxe._parse_driver_info, self.node, mode=mode)
+
+    def test__parse_driver_info_missing_deploy_kernel(self):
+        self._test__parse_driver_info_missing_kernel()
+
+    def test__parse_driver_info_missing_rescue_kernel(self):
+        self._test__parse_driver_info_missing_kernel(mode='rescue')
+
+    def _test__parse_driver_info_missing_ramdisk(self, mode='deploy'):
+        del self.node.driver_info['%s_ramdisk' % mode]
+        if mode == 'rescue':
+            self.node.provision_state = states.RESCUING
+        self.assertRaises(exception.MissingParameterValue,
+                          pxe._parse_driver_info, self.node, mode=mode)
 
     def test__parse_driver_info_missing_deploy_ramdisk(self):
-        del self.node.driver_info['deploy_ramdisk']
-        self.assertRaises(exception.MissingParameterValue,
-                          pxe._parse_driver_info, self.node)
+        self._test__parse_driver_info_missing_ramdisk()
 
-    def test__parse_driver_info(self):
-        expected_info = {'deploy_ramdisk': 'glance://deploy_ramdisk_uuid',
-                         'deploy_kernel': 'glance://deploy_kernel_uuid'}
-        image_info = pxe._parse_driver_info(self.node)
-        self.assertEqual(expected_info, image_info)
+    def test__parse_driver_info_missing_rescue_ramdisk(self):
+        self._test__parse_driver_info_missing_ramdisk(mode='rescue')
+
+    def _test__parse_driver_info(self, mode='deploy'):
+        exp_info = {'%s_ramdisk' % mode: 'glance://%s_ramdisk_uuid' % mode,
+                    '%s_kernel' % mode: 'glance://%s_kernel_uuid' % mode}
+        image_info = pxe._parse_driver_info(self.node, mode=mode)
+        self.assertEqual(exp_info, image_info)
+
+    def test__parse_driver_info_deploy(self):
+        self._test__parse_driver_info()
+
+    def test__parse_driver_info_rescue(self):
+        self._test__parse_driver_info(mode='rescue')
 
     def test__get_deploy_image_info(self):
         expected_info = {'deploy_ramdisk':
@@ -90,18 +112,18 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                           os.path.join(CONF.pxe.tftp_root,
                                        self.node.uuid,
                                        'deploy_kernel'))}
-        image_info = pxe._get_deploy_image_info(self.node)
+        image_info = pxe._get_image_info(self.node)
         self.assertEqual(expected_info, image_info)
 
     def test__get_deploy_image_info_missing_deploy_kernel(self):
         del self.node.driver_info['deploy_kernel']
         self.assertRaises(exception.MissingParameterValue,
-                          pxe._get_deploy_image_info, self.node)
+                          pxe._get_image_info, self.node)
 
     def test__get_deploy_image_info_deploy_ramdisk(self):
         del self.node.driver_info['deploy_ramdisk']
         self.assertRaises(exception.MissingParameterValue,
-                          pxe._get_deploy_image_info, self.node)
+                          pxe._get_image_info, self.node)
 
     @mock.patch.object(base_image_service.BaseImageService, '_show',
                        autospec=True)
@@ -168,7 +190,7 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
     @mock.patch('ironic.common.utils.render_template', autospec=True)
     def _test_build_pxe_config_options_pxe(self, render_mock,
                                            whle_dsk_img=False,
-                                           debug=False):
+                                           debug=False, mode='deploy'):
         self.config(debug=debug)
         self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
@@ -181,21 +203,24 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
         tftp_server = CONF.pxe.tftp_server
 
-        deploy_kernel = os.path.join(self.node.uuid, 'deploy_kernel')
-        deploy_ramdisk = os.path.join(self.node.uuid, 'deploy_ramdisk')
+        kernel_label = '%s_kernel' % mode
+        ramdisk_label = '%s_ramdisk' % mode
+
+        pxe_kernel = os.path.join(self.node.uuid, kernel_label)
+        pxe_ramdisk = os.path.join(self.node.uuid, ramdisk_label)
         kernel = os.path.join(self.node.uuid, 'kernel')
         ramdisk = os.path.join(self.node.uuid, 'ramdisk')
         root_dir = CONF.pxe.tftp_root
 
         image_info = {
-            'deploy_kernel': ('deploy_kernel',
-                              os.path.join(root_dir,
-                                           self.node.uuid,
-                                           'deploy_kernel')),
-            'deploy_ramdisk': ('deploy_ramdisk',
-                               os.path.join(root_dir,
-                                            self.node.uuid,
-                                            'deploy_ramdisk'))
+            kernel_label: (kernel_label,
+                           os.path.join(root_dir,
+                                        self.node.uuid,
+                                        kernel_label)),
+            ramdisk_label: (ramdisk_label,
+                            os.path.join(root_dir,
+                                         self.node.uuid,
+                                         ramdisk_label))
         }
 
         if (whle_dsk_img or
@@ -219,14 +244,18 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             expected_pxe_params += ' ipa-debug=1'
 
         expected_options = {
-            'ari_path': ramdisk,
-            'deployment_ari_path': deploy_ramdisk,
+            'deployment_ari_path': pxe_ramdisk,
             'pxe_append_params': expected_pxe_params,
-            'aki_path': kernel,
-            'deployment_aki_path': deploy_kernel,
+            'deployment_aki_path': pxe_kernel,
             'tftp_server': tftp_server,
             'ipxe_timeout': 0,
         }
+
+        if mode == 'deploy':
+            expected_options.update({'ari_path': ramdisk, 'aki_path': kernel})
+        elif mode == 'rescue':
+            self.node.provision_state = states.RESCUING
+            self.node.save()
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -238,6 +267,14 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
 
     def test__build_pxe_config_options_pxe_ipa_debug(self):
         self._test_build_pxe_config_options_pxe(debug=True)
+
+    def test__build_pxe_config_options_pxe_rescue(self):
+        del self.node.driver_internal_info['is_whole_disk_image']
+        self._test_build_pxe_config_options_pxe(mode='rescue')
+
+    def test__build_pxe_config_options_ipa_debug_rescue(self):
+        del self.node.driver_internal_info['is_whole_disk_image']
+        self._test_build_pxe_config_options_pxe(debug=True, mode='rescue')
 
     def test__build_pxe_config_options_pxe_local_boot(self):
         del self.node.driver_internal_info['is_whole_disk_image']
@@ -289,7 +326,8 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                             ipxe_timeout=0,
                                             ipxe_use_swift=False,
                                             debug=False,
-                                            boot_from_volume=False):
+                                            boot_from_volume=False,
+                                            mode='deploy'):
         self.config(debug=debug)
         self.config(pxe_append_params='test_param', group='pxe')
         # NOTE: right '/' should be removed from url string
@@ -307,37 +345,41 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
         http_url = 'http://192.1.2.3:1234'
         self.config(ipxe_enabled=True, group='pxe')
         self.config(http_url=http_url, group='deploy')
+
+        kernel_label = '%s_kernel' % mode
+        ramdisk_label = '%s_ramdisk' % mode
+
         if ipxe_use_swift:
             self.config(ipxe_use_swift=True, group='pxe')
             glance = mock.Mock()
             glance_mock.return_value = glance
             glance.swift_temp_url.side_effect = [
-                deploy_kernel, deploy_ramdisk] = [
+                pxe_kernel, pxe_ramdisk] = [
                 'swift_kernel', 'swift_ramdisk']
             image_info = {
-                'deploy_kernel': (uuidutils.generate_uuid(),
-                                  os.path.join(root_dir,
-                                               self.node.uuid,
-                                               'deploy_kernel')),
-                'deploy_ramdisk': (uuidutils.generate_uuid(),
-                                   os.path.join(root_dir,
-                                                self.node.uuid,
-                                                'deploy_ramdisk'))
+                kernel_label: (uuidutils.generate_uuid(),
+                               os.path.join(root_dir,
+                                            self.node.uuid,
+                                            kernel_label)),
+                ramdisk_label: (uuidutils.generate_uuid(),
+                                os.path.join(root_dir,
+                                             self.node.uuid,
+                                             ramdisk_label))
             }
         else:
-            deploy_kernel = os.path.join(http_url, self.node.uuid,
-                                         'deploy_kernel')
-            deploy_ramdisk = os.path.join(http_url, self.node.uuid,
-                                          'deploy_ramdisk')
+            pxe_kernel = os.path.join(http_url, self.node.uuid,
+                                      kernel_label)
+            pxe_ramdisk = os.path.join(http_url, self.node.uuid,
+                                       ramdisk_label)
             image_info = {
-                'deploy_kernel': ('deploy_kernel',
-                                  os.path.join(root_dir,
-                                               self.node.uuid,
-                                               'deploy_kernel')),
-                'deploy_ramdisk': ('deploy_ramdisk',
-                                   os.path.join(root_dir,
-                                                self.node.uuid,
-                                                'deploy_ramdisk'))
+                kernel_label: (kernel_label,
+                               os.path.join(root_dir,
+                                            self.node.uuid,
+                                            kernel_label)),
+                ramdisk_label: (ramdisk_label,
+                                os.path.join(root_dir,
+                                             self.node.uuid,
+                                             ramdisk_label))
             }
 
         kernel = os.path.join(http_url, self.node.uuid, 'kernel')
@@ -365,14 +407,17 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
             expected_pxe_params += ' ipa-debug=1'
 
         expected_options = {
-            'ari_path': ramdisk,
-            'deployment_ari_path': deploy_ramdisk,
+            'deployment_ari_path': pxe_ramdisk,
             'pxe_append_params': expected_pxe_params,
-            'aki_path': kernel,
-            'deployment_aki_path': deploy_kernel,
+            'deployment_aki_path': pxe_kernel,
             'tftp_server': tftp_server,
             'ipxe_timeout': ipxe_timeout_in_ms,
         }
+        if mode == 'deploy':
+            expected_options.update({'ari_path': ramdisk, 'aki_path': kernel})
+        elif mode == 'rescue':
+            self.node.provision_state = states.RESCUING
+            self.node.save()
 
         if boot_from_volume:
             expected_options.update({
@@ -548,6 +593,17 @@ class PXEPrivateMethodsTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             options = pxe._get_volume_pxe_options(task)
         self.assertEqual([], options['iscsi_volumes'])
+
+    def test__build_pxe_config_options_ipxe_rescue(self):
+        self._test_build_pxe_config_options_ipxe(mode='rescue')
+
+    def test__build_pxe_config_options_ipxe_rescue_swift(self):
+        self._test_build_pxe_config_options_ipxe(mode='rescue',
+                                                 ipxe_use_swift=True)
+
+    def test__build_pxe_config_options_ipxe_rescue_timeout(self):
+        self._test_build_pxe_config_options_ipxe(mode='rescue',
+                                                 ipxe_timeout=120)
 
     @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
     def test__cache_tftp_images_master_path(self, mock_fetch_image):
@@ -823,7 +879,7 @@ class PXEBootTestCase(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(dhcp_factory, 'DHCPFactory')
     @mock.patch.object(pxe, '_get_instance_image_info', autospec=True)
-    @mock.patch.object(pxe, '_get_deploy_image_info', autospec=True)
+    @mock.patch.object(pxe, '_get_image_info', autospec=True)
     @mock.patch.object(pxe, '_cache_ramdisk_kernel', autospec=True)
     @mock.patch.object(pxe, '_build_pxe_config_options', autospec=True)
     @mock.patch.object(pxe_utils, 'create_pxe_config', autospec=True)
@@ -836,9 +892,13 @@ class PXEBootTestCase(db_base.DbTestCase):
                               uefi=False,
                               cleaning=False,
                               ipxe_use_swift=False,
-                              whole_disk_image=False):
+                              whole_disk_image=False,
+                              mode='deploy'):
         mock_build_pxe.return_value = {}
-        mock_deploy_img_info.return_value = {'deploy_kernel': 'a'}
+        kernel_label = '%s_kernel' % mode
+        ramdisk_label = '%s_ramdisk' % mode
+        mock_deploy_img_info.return_value = {kernel_label: 'a',
+                                             ramdisk_label: 'r'}
         if whole_disk_image:
             mock_instance_img_info.return_value = {}
         else:
@@ -850,11 +910,16 @@ class PXEBootTestCase(db_base.DbTestCase):
         driver_internal_info = self.node.driver_internal_info
         driver_internal_info['is_whole_disk_image'] = whole_disk_image
         self.node.driver_internal_info = driver_internal_info
+        if mode == 'rescue':
+            mock_deploy_img_info.return_value = {
+                'rescue_kernel': 'a',
+                'rescue_ramdisk': 'r'}
+            self.node.provision_state = states.RESCUING
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(task)
-            task.driver.boot.prepare_ramdisk(task, {'foo': 'bar'})
-            mock_deploy_img_info.assert_called_once_with(task.node)
+            task.driver.boot.prepare_ramdisk(task, {'foo': 'bar'}, mode=mode)
+            mock_deploy_img_info.assert_called_once_with(task.node, mode=mode)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
@@ -868,16 +933,21 @@ class PXEBootTestCase(db_base.DbTestCase):
                         {'kernel': 'b'})
                 mock_instance_img_info.assert_called_once_with(task.node,
                                                                self.context)
-            elif cleaning is False:
+            elif not cleaning and mode == 'deploy':
                 mock_cache_r_k.assert_called_once_with(
                     self.context, task.node,
-                    {'deploy_kernel': 'a', 'kernel': 'b'})
+                    {'deploy_kernel': 'a', 'deploy_ramdisk': 'r',
+                     'kernel': 'b'})
                 mock_instance_img_info.assert_called_once_with(task.node,
                                                                self.context)
-            else:
-                mock_cache_r_k.assert_called_once_with(
-                    self.context, task.node,
-                    {'deploy_kernel': 'a'})
+            elif mode == 'deploy':
+                    mock_cache_r_k.assert_called_once_with(
+                        self.context, task.node,
+                        {'deploy_kernel': 'a', 'deploy_ramdisk': 'r'})
+            elif mode == 'rescue':
+                    mock_cache_r_k.assert_called_once_with(
+                        self.context, task.node,
+                        {'rescue_kernel': 'a', 'rescue_ramdisk': 'r'})
             if uefi:
                 mock_pxe_config.assert_called_once_with(
                     task, {'foo': 'bar'}, CONF.pxe.uefi_pxe_config_template)
@@ -889,6 +959,11 @@ class PXEBootTestCase(db_base.DbTestCase):
         self.node.provision_state = states.DEPLOYING
         self.node.save()
         self._test_prepare_ramdisk()
+
+    def test_prepare_ramdisk_rescue(self):
+        self.node.provision_state = states.RESCUING
+        self.node.save()
+        self._test_prepare_ramdisk(mode='rescue')
 
     def test_prepare_ramdisk_uefi(self):
         self.node.provision_state = states.DEPLOYING
@@ -992,16 +1067,24 @@ class PXEBootTestCase(db_base.DbTestCase):
         self._test_prepare_ramdisk(cleaning=True)
 
     @mock.patch.object(pxe, '_clean_up_pxe_env', autospec=True)
-    @mock.patch.object(pxe, '_get_deploy_image_info', autospec=True)
-    def test_clean_up_ramdisk(self, get_deploy_image_info_mock,
-                              clean_up_pxe_env_mock):
+    @mock.patch.object(pxe, '_get_image_info', autospec=True)
+    def _test_clean_up_ramdisk(self, get_image_info_mock,
+                               clean_up_pxe_env_mock, mode='deploy'):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            image_info = {'deploy_kernel': ['', '/path/to/deploy_kernel'],
-                          'deploy_ramdisk': ['', '/path/to/deploy_ramdisk']}
-            get_deploy_image_info_mock.return_value = image_info
-            task.driver.boot.clean_up_ramdisk(task)
+            kernel_label = '%s_kernel' % mode
+            ramdisk_label = '%s_ramdisk' % mode
+            image_info = {kernel_label: ['', '/path/to/' + kernel_label],
+                          ramdisk_label: ['', '/path/to/' + ramdisk_label]}
+            get_image_info_mock.return_value = image_info
+            task.driver.boot.clean_up_ramdisk(task, mode=mode)
             clean_up_pxe_env_mock.assert_called_once_with(task, image_info)
-            get_deploy_image_info_mock.assert_called_once_with(task.node)
+            get_image_info_mock.assert_called_once_with(task.node, mode=mode)
+
+    def test_clean_up_ramdisk(self):
+        self._test_clean_up_ramdisk()
+
+    def test_clean_up_ramdisk_rescue(self):
+        self._test_clean_up_ramdisk(mode='rescue')
 
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)

@@ -16,14 +16,17 @@ import types
 
 import mock
 from oslo_config import cfg
+from oslo_utils import reflection
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common import images
+from ironic.common import neutron as neutron_common
 from ironic.common import raid
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import agent_client
@@ -388,23 +391,48 @@ class TestAgentDeploy(db_base.DbTestCase):
         self.node.refresh()
         self.assertEqual('bar', self.node.instance_info['foo'])
 
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
+    @mock.patch.object(deploy_utils, 'build_agent_options')
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
+    def _test_prepare_rescue_states(
+            self, build_instance_info_mock, build_options_mock,
+            pxe_prepare_ramdisk_mock, prov_state):
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            task.node.provision_state = prov_state
+            build_options_mock.return_value = {'a': 'b'}
+            self.driver.prepare(task)
+            self.assertFalse(build_instance_info_mock.called)
+            build_options_mock.assert_called_once_with(task.node)
+            pxe_prepare_ramdisk_mock.assert_called_once_with(
+                task, {'a': 'b'})
+
+    def test_prepare_rescue_states(self):
+        for state in (states.RESCUING, states.RESCUEWAIT,
+                      states.RESCUE, states.RESCUEFAIL):
+            self._test_prepare_rescue_states(prov_state=state)
+
     @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
                        autospec=True)
     @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info')
     @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
                        spec_set=True, autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'prepare_instance')
-    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk')
-    @mock.patch.object(deploy_utils, 'build_agent_options')
-    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy')
-    def test_prepare_active(
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
+                       spec_set=True, autospec=True)
+    def _test_prepare_conductor_takeover(
             self, build_instance_info_mock, build_options_mock,
             pxe_prepare_ramdisk_mock, pxe_prepare_instance_mock,
             add_provisioning_net_mock, storage_driver_info_mock,
-            storage_attach_volumes_mock):
+            storage_attach_volumes_mock, prov_state):
         with task_manager.acquire(
                 self.context, self.node['uuid'], shared=False) as task:
-            task.node.provision_state = states.ACTIVE
+            task.node.provision_state = prov_state
 
             self.driver.prepare(task)
 
@@ -415,6 +443,11 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertFalse(add_provisioning_net_mock.called)
             self.assertTrue(storage_driver_info_mock.called)
             self.assertFalse(storage_attach_volumes_mock.called)
+
+    def test_prepare_active_and_unrescue_states(self):
+        for prov_state in (states.ACTIVE, states.UNRESCUING):
+            self._test_prepare_conductor_takeover(
+                prov_state=prov_state)
 
     @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
                        autospec=True)
@@ -1193,3 +1226,266 @@ class AgentRAIDTestCase(db_base.DbTestCase):
 
         self.node.refresh()
         self.assertEqual({}, self.node.raid_config)
+
+
+class AgentRescueTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(AgentRescueTestCase, self).setUp()
+        for iface in drivers_base.ALL_INTERFACES:
+            impl = 'fake'
+            if iface == 'network':
+                impl = 'flat'
+            if iface == 'rescue':
+                impl = 'agent'
+            config_kwarg = {'enabled_%s_interfaces' % iface: [impl],
+                            'default_%s_interface' % iface: impl}
+            self.config(**config_kwarg)
+        self.config(enabled_hardware_types=['fake-hardware'])
+        instance_info = INSTANCE_INFO
+        instance_info.update({'rescue_password': 'password'})
+        driver_info = DRIVER_INFO
+        driver_info.update({'rescue_ramdisk': 'my_ramdisk',
+                            'rescue_kernel': 'my_kernel'})
+        n = {
+            'driver': 'fake-hardware',
+            'instance_info': instance_info,
+            'driver_info': driver_info,
+            'driver_internal_info': DRIVER_INTERNAL_INFO,
+        }
+        self.node = object_utils.create_test_node(self.context, **n)
+
+    @mock.patch.object(flat_network.FlatNetwork, 'add_rescuing_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'clean_up_instance', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_agent_rescue(self, mock_node_power_action, mock_build_agent_opts,
+                          mock_clean_up_instance, mock_prepare_ramdisk,
+                          mock_unconf_tenant_net, mock_add_rescue_net):
+        self.config(manage_agent_boot=True, group='agent')
+        mock_build_agent_opts.return_value = {'ipa-api-url': 'fake-api'}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = task.driver.rescue.rescue(task)
+            mock_node_power_action.assert_has_calls(
+                [mock.call(task, states.POWER_OFF),
+                 mock.call(task, states.POWER_ON)])
+            mock_clean_up_instance.assert_called_once_with(mock.ANY, task)
+            mock_unconf_tenant_net.assert_called_once_with(mock.ANY, task)
+            mock_add_rescue_net.assert_called_once_with(mock.ANY, task)
+            mock_build_agent_opts.assert_called_once_with(task.node)
+            mock_prepare_ramdisk.assert_called_once_with(
+                mock.ANY, task, {'ipa-api-url': 'fake-api'}, mode='rescue')
+            self.assertEqual(states.RESCUEWAIT, result)
+
+    @mock.patch.object(flat_network.FlatNetwork, 'add_rescuing_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'clean_up_instance', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_agent_rescue_no_manage_agent_boot(self, mock_node_power_action,
+                                               mock_build_agent_opts,
+                                               mock_clean_up_instance,
+                                               mock_prepare_ramdisk,
+                                               mock_unconf_tenant_net,
+                                               mock_add_rescue_net):
+        self.config(manage_agent_boot=False, group='agent')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = task.driver.rescue.rescue(task)
+            mock_node_power_action.assert_has_calls(
+                [mock.call(task, states.POWER_OFF),
+                 mock.call(task, states.POWER_ON)])
+            mock_clean_up_instance.assert_called_once_with(mock.ANY, task)
+            mock_unconf_tenant_net.assert_called_once_with(mock.ANY, task)
+            mock_add_rescue_net.assert_called_once_with(mock.ANY, task)
+            self.assertFalse(mock_build_agent_opts.called)
+            self.assertFalse(mock_prepare_ramdisk.called)
+            self.assertEqual(states.RESCUEWAIT, result)
+
+    @mock.patch.object(flat_network.FlatNetwork, 'remove_rescuing_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'configure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'prepare_instance', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'clean_up_ramdisk', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_agent_unrescue(self, mock_node_power_action, mock_clean_ramdisk,
+                            mock_prepare_instance, mock_conf_tenant_net,
+                            mock_remove_rescue_net):
+        """Test unrescue in case where boot driver prepares instance reboot."""
+        self.config(manage_agent_boot=True, group='agent')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = task.driver.rescue.unrescue(task)
+            mock_node_power_action.assert_has_calls(
+                [mock.call(task, states.POWER_OFF),
+                 mock.call(task, states.POWER_ON)])
+            mock_clean_ramdisk.assert_called_once_with(
+                mock.ANY, task, mode='rescue')
+            mock_remove_rescue_net.assert_called_once_with(mock.ANY, task)
+            mock_conf_tenant_net.assert_called_once_with(mock.ANY, task)
+            mock_prepare_instance.assert_called_once_with(mock.ANY, task)
+            self.assertEqual(states.ACTIVE, result)
+
+    @mock.patch.object(flat_network.FlatNetwork, 'remove_rescuing_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'configure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'prepare_instance', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'clean_up_ramdisk', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_agent_unrescue_no_manage_agent_boot(self, mock_node_power_action,
+                                                 mock_clean_ramdisk,
+                                                 mock_prepare_instance,
+                                                 mock_conf_tenant_net,
+                                                 mock_remove_rescue_net):
+        """Test unrescue in case where boot driver prepares instance reboot."""
+        self.config(manage_agent_boot=False, group='agent')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = task.driver.rescue.unrescue(task)
+            mock_node_power_action.assert_has_calls(
+                [mock.call(task, states.POWER_OFF),
+                 mock.call(task, states.POWER_ON)])
+            self.assertFalse(mock_clean_ramdisk.called)
+            mock_remove_rescue_net.assert_called_once_with(mock.ANY, task)
+            mock_conf_tenant_net.assert_called_once_with(mock.ANY, task)
+            mock_prepare_instance.assert_called_once_with(mock.ANY, task)
+            self.assertEqual(states.ACTIVE, result)
+
+    @mock.patch.object(neutron_common, 'validate_network', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
+    def test_agent_rescue_validate(self, mock_boot_validate,
+                                   mock_validate_network):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.rescue.validate(task)
+            self.assertFalse(mock_validate_network.called)
+            mock_boot_validate.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(neutron_common, 'validate_network', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
+    def test_agent_rescue_validate_neutron_net(self, mock_boot_validate,
+                                               mock_validate_network):
+        self.config(enabled_network_interfaces=['neutron'])
+        self.node.network_interface = 'neutron'
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.rescue.validate(task)
+            mock_validate_network.assert_called_once_with(
+                CONF.neutron.rescuing_network, 'rescuing network',
+                context=task.context)
+            mock_boot_validate.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(neutron_common, 'validate_network', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
+    def test_agent_rescue_validate_no_manage_agent(self, mock_boot_validate,
+                                                   mock_validate_network):
+        # If ironic's not managing booting of ramdisks, we don't set up PXE for
+        # the ramdisk/kernel, so validation can pass without this info
+        self.config(manage_agent_boot=False, group='agent')
+        driver_info = self.node.driver_info
+        del driver_info['rescue_ramdisk']
+        del driver_info['rescue_kernel']
+        self.node.driver_info = driver_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.rescue.validate(task)
+            self.assertFalse(mock_validate_network.called)
+            self.assertFalse(mock_boot_validate.called)
+
+    @mock.patch.object(neutron_common, 'validate_network', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
+    def test_agent_rescue_validate_fails_no_rescue_ramdisk(
+            self, mock_boot_validate, mock_validate_network):
+        driver_info = self.node.driver_info
+        del driver_info['rescue_ramdisk']
+        self.node.driver_info = driver_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.MissingParameterValue,
+                              task.driver.rescue.validate, task)
+            self.assertFalse(mock_validate_network.called)
+            mock_boot_validate.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(neutron_common, 'validate_network', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
+    def test_agent_rescue_validate_fails_no_rescue_kernel(
+            self, mock_boot_validate, mock_validate_network):
+        driver_info = self.node.driver_info
+        del driver_info['rescue_kernel']
+        self.node.driver_info = driver_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.MissingParameterValue,
+                              task.driver.rescue.validate, task)
+            self.assertFalse(mock_validate_network.called)
+            mock_boot_validate.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(neutron_common, 'validate_network', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
+    def test_agent_rescue_validate_fails_no_rescue_password(
+            self, mock_boot_validate, mock_validate_network):
+        instance_info = self.node.instance_info
+        del instance_info['rescue_password']
+        self.node.instance_info = instance_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.MissingParameterValue,
+                              task.driver.rescue.validate, task)
+            self.assertFalse(mock_validate_network.called)
+            mock_boot_validate.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(neutron_common, 'validate_network', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
+    def test_agent_rescue_validate_fails_empty_rescue_password(
+            self, mock_boot_validate, mock_validate_network):
+        instance_info = self.node.instance_info
+        instance_info['rescue_password'] = "    "
+        self.node.instance_info = instance_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.rescue.validate, task)
+            self.assertFalse(mock_validate_network.called)
+            mock_boot_validate.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(neutron_common, 'validate_network', autospec=True)
+    @mock.patch.object(reflection, 'get_signature', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'validate', autospec=True)
+    def test_agent_rescue_validate_incompat_exc(self, mock_boot_validate,
+                                                mock_get_signature,
+                                                mock_validate_network):
+        mock_get_signature.return_value.parameters = ['task']
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.IncompatibleInterface,
+                              task.driver.rescue.validate, task)
+            self.assertFalse(mock_validate_network.called)
+            self.assertFalse(mock_boot_validate.called)
+
+    @mock.patch.object(flat_network.FlatNetwork, 'remove_rescuing_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'clean_up_ramdisk', autospec=True)
+    def test_agent_rescue_clean_up(self, mock_clean_ramdisk,
+                                   mock_remove_rescue_net):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.rescue.clean_up(task)
+            self.assertNotIn('rescue_password', task.node.instance_info)
+            mock_clean_ramdisk.assert_called_once_with(
+                mock.ANY, task, mode='rescue')
+            mock_remove_rescue_net.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(flat_network.FlatNetwork, 'remove_rescuing_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'clean_up_ramdisk', autospec=True)
+    def test_agent_rescue_clean_up_no_manage_boot(self, mock_clean_ramdisk,
+                                                  mock_remove_rescue_net):
+        self.config(manage_agent_boot=False, group='agent')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.rescue.clean_up(task)
+            self.assertNotIn('rescue_password', task.node.instance_info)
+            self.assertFalse(mock_clean_ramdisk.called)
+            mock_remove_rescue_net.assert_called_once_with(mock.ANY, task)

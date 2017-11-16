@@ -15,6 +15,7 @@
 from ironic_lib import metrics_utils
 from ironic_lib import utils as il_utils
 from oslo_log import log
+from oslo_utils import reflection
 from oslo_utils import units
 import six.moves.urllib_parse as urlparse
 
@@ -32,6 +33,7 @@ from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import agent_base_vendor
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules.network import neutron
 
 
 LOG = log.getLogger(__name__)
@@ -56,6 +58,14 @@ OPTIONAL_PROPERTIES = {
                         'a dot to prefix the domain name. This value will be '
                         'ignored if ``image_http_proxy`` and '
                         '``image_https_proxy`` are not specified. Optional.'),
+}
+
+RESCUE_PROPERTIES = {
+    'rescue_kernel': _('UUID (from Glance) of the rescue kernel. This value '
+                       'is required for rescue mode.'),
+    'rescue_ramdisk': _('UUID (from Glance) of the rescue ramdisk with agent '
+                        'that is used at node rescue time. This value is '
+                        'required for rescue mode.'),
 }
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
@@ -460,13 +470,15 @@ class AgentDeploy(AgentDeployMixin, base.DeployInterface):
                 # backend storage system, and we can return to the caller
                 # as we do not need to boot the agent to deploy.
                 return
-        if node.provision_state == states.ACTIVE:
+        if node.provision_state in (states.ACTIVE, states.UNRESCUING):
             # Call is due to conductor takeover
             task.driver.boot.prepare_instance(task)
         elif node.provision_state != states.ADOPTING:
-            node.instance_info = deploy_utils.build_instance_info_for_deploy(
-                task)
-            node.save()
+            if node.provision_state not in (states.RESCUING, states.RESCUEWAIT,
+                                            states.RESCUE, states.RESCUEFAIL):
+                node.instance_info = (
+                    deploy_utils.build_instance_info_for_deploy(task))
+                node.save()
             if CONF.agent.manage_agent_boot:
                 deploy_opts = deploy_utils.build_agent_options(node)
                 task.driver.boot.prepare_ramdisk(task, deploy_opts)
@@ -693,3 +705,133 @@ class AgentRAID(base.RAIDInterface):
         """
         task.node.raid_config = {}
         task.node.save()
+
+
+class AgentRescue(base.RescueInterface):
+    """Implementation of RescueInterface which uses agent ramdisk."""
+
+    def get_properties(self):
+        """Return the properties of the interface.
+
+        :returns: dictionary of <property name>:<property description> entries.
+        """
+        return RESCUE_PROPERTIES.copy()
+
+    @METRICS.timer('AgentRescue.rescue')
+    @task_manager.require_exclusive_lock
+    def rescue(self, task):
+        """Boot a rescue ramdisk on the node.
+
+        :param task: a TaskManager instance.
+        :raises: NetworkError if the tenant ports cannot be removed.
+        :raises: InvalidParameterValue when the wrong power state is specified
+             or the wrong driver info is specified for power management.
+        :raises: other exceptions by the node's power driver if something
+             wrong occurred during the power action.
+        :raises: any boot interface's prepare_ramdisk exceptions.
+        :returns: Returns states.RESCUEWAIT
+        """
+        manager_utils.node_power_action(task, states.POWER_OFF)
+        task.driver.boot.clean_up_instance(task)
+        task.driver.network.unconfigure_tenant_networks(task)
+        task.driver.network.add_rescuing_network(task)
+        if CONF.agent.manage_agent_boot:
+            ramdisk_opts = deploy_utils.build_agent_options(task.node)
+            # prepare_ramdisk will set the boot device
+            task.driver.boot.prepare_ramdisk(task, ramdisk_opts, mode='rescue')
+        manager_utils.node_power_action(task, states.POWER_ON)
+
+        return states.RESCUEWAIT
+
+    @METRICS.timer('AgentRescue.unrescue')
+    @task_manager.require_exclusive_lock
+    def unrescue(self, task):
+        """Attempt to move a rescued node back to active state.
+
+        :param task: a TaskManager instance.
+        :raises: NetworkError if the rescue ports cannot be removed.
+        :raises: InvalidParameterValue when the wrong power state is specified
+             or the wrong driver info is specified for power management.
+        :raises: other exceptions by the node's power driver if something
+             wrong occurred during the power action.
+        :raises: any boot interface's prepare_instance exceptions.
+        :returns: Returns states.ACTIVE
+        """
+        manager_utils.node_power_action(task, states.POWER_OFF)
+        self.clean_up(task)
+        task.driver.network.configure_tenant_networks(task)
+        task.driver.boot.prepare_instance(task)
+        manager_utils.node_power_action(task, states.POWER_ON)
+
+        return states.ACTIVE
+
+    @METRICS.timer('AgentRescue.validate')
+    def validate(self, task):
+        """Validate that the node has required properties for agent rescue.
+
+        :param task: a TaskManager instance with the node being checked
+        :raises: InvalidParameterValue if 'instance_info/rescue_password' has
+            empty password or rescuing network UUID config option
+            has an invalid value when 'neutron' network is used.
+        :raises: MissingParameterValue if node is missing one or more required
+            parameters
+        :raises: IncompatibleInterface if 'prepare_ramdisk' and
+            'clean_up_ramdisk' of node's boot interface do not support 'mode'
+            argument.
+        """
+        node = task.node
+        missing_params = []
+
+        # Validate rescuing network if node is using 'neutron' network
+        if isinstance(task.driver.network, neutron.NeutronNetwork):
+            task.driver.network.get_rescuing_network_uuid(task)
+
+        if CONF.agent.manage_agent_boot:
+            if ('mode' not in reflection.get_signature(
+                task.driver.boot.prepare_ramdisk).parameters or
+                'mode' not in reflection.get_signature(
+                task.driver.boot.clean_up_ramdisk).parameters):
+                raise exception.IncompatibleInterface(
+                    interface_type='boot',
+                    interface_impl="of 'prepare_ramdisk' and/or "
+                                   "'clean_up_ramdisk' with 'mode' argument",
+                    hardware_type=node.driver)
+            # TODO(stendulker): boot.validate() performs validation of
+            # provisioning related parameters which is not required during
+            # rescue operation.
+            task.driver.boot.validate(task)
+            for req in RESCUE_PROPERTIES:
+                if node.driver_info.get(req) is None:
+                    missing_params.append('driver_info/' + req)
+
+        rescue_pass = node.instance_info.get('rescue_password')
+        if rescue_pass is None:
+            missing_params.append('instance_info/rescue_password')
+
+        if missing_params:
+            msg = _('Node %(node)s is missing parameter(s): '
+                    '%(params)s. These are required for rescuing node.')
+            raise exception.MissingParameterValue(
+                msg % {'node': node.uuid,
+                       'params': ', '.join(missing_params)})
+
+        if not rescue_pass.strip():
+            msg = (_("The 'instance_info/rescue_password' is an empty string "
+                     "for node %s. The 'rescue_password' must be a non-empty "
+                     "string value.") % node.uuid)
+            raise exception.InvalidParameterValue(msg)
+
+    @METRICS.timer('AgentRescue.clean_up')
+    def clean_up(self, task):
+        """Clean up after RESCUEWAIT timeout/failure or finishing rescue.
+
+        Rescue password should be removed from the node and ramdisk boot
+        environment should be cleaned if Ironic is managing the ramdisk boot.
+
+        :param task: a TaskManager instance with the node.
+        :raises: NetworkError if the rescue ports cannot be removed.
+        """
+        manager_utils.remove_node_rescue_password(task.node, save=True)
+        if CONF.agent.manage_agent_boot:
+            task.driver.boot.clean_up_ramdisk(task, mode='rescue')
+        task.driver.network.remove_rescuing_network(task)

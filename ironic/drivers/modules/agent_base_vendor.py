@@ -269,7 +269,7 @@ class HeartbeatMixin(object):
     @property
     def heartbeat_allowed_states(self):
         """Define node states where heartbeating is allowed"""
-        return (states.DEPLOYWAIT, states.CLEANWAIT)
+        return (states.DEPLOYWAIT, states.CLEANWAIT, states.RESCUEWAIT)
 
     @METRICS.timer('HeartbeatMixin.heartbeat')
     def heartbeat(self, task, callback_url, agent_version):
@@ -334,17 +334,50 @@ class HeartbeatMixin(object):
                 else:
                     msg = _('Node failed to check cleaning progress.')
                     self.continue_cleaning(task)
-
+            elif (node.provision_state == states.RESCUEWAIT):
+                msg = _('Node failed to perform rescue operation.')
+                self._finalize_rescue(task)
         except Exception as e:
-            err_info = {'node': node.uuid, 'msg': msg, 'e': e}
-            last_error = _('Asynchronous exception for node %(node)s: '
-                           '%(msg)s Exception: %(e)s') % err_info
-            LOG.exception(last_error)
+            err_info = {'msg': msg, 'e': e}
+            last_error = _('Asynchronous exception: %(msg)s '
+                           'Exception: %(e)s for node') % err_info
+            errmsg = last_error + ' %(node)s'
+            LOG.exception(errmsg, {'node': node.uuid})
             if node.provision_state in (states.CLEANING, states.CLEANWAIT):
                 manager_utils.cleaning_error_handler(task, last_error)
             elif node.provision_state in (states.DEPLOYING, states.DEPLOYWAIT):
                 deploy_utils.set_failed_state(
                     task, last_error, collect_logs=bool(self._client))
+            elif node.provision_state in (states.RESCUING, states.RESCUEWAIT):
+                manager_utils.rescuing_error_handler(task, last_error)
+
+    def _finalize_rescue(self, task):
+        """Call ramdisk to prepare rescue mode and verify result.
+
+        :param task: A TaskManager instance
+        :raises: InstanceRescueFailure, if rescuing failed
+        """
+        node = task.node
+        try:
+            result = self._client.finalize_rescue(node)
+        except exception.IronicException as e:
+            raise exception.InstanceRescueFailure(node=node.uuid,
+                                                  instance=node.instance_uuid,
+                                                  reason=e)
+        if ((not result.get('command_status')) or
+                result.get('command_status') != 'SUCCEEDED'):
+            # NOTE(mariojv) Caller will clean up failed rescue in exception
+            # handler.
+            fail_reason = (_('Agent returned bad result for command '
+                             'finalize_rescue: %(result)s') %
+                           {'result': result.get('command_error')})
+            raise exception.InstanceRescueFailure(node=node.uuid,
+                                                  instance=node.instance_uuid,
+                                                  reason=fail_reason)
+        task.process_event('resume')
+        task.driver.rescue.clean_up(task)
+        task.driver.network.configure_tenant_networks(task)
+        task.process_event('done')
 
 
 class AgentDeployMixin(HeartbeatMixin):

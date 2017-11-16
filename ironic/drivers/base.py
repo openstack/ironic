@@ -419,10 +419,10 @@ class BootInterface(BaseInterface):
     interface_type = 'boot'
 
     @abc.abstractmethod
-    def prepare_ramdisk(self, task, ramdisk_params):
+    def prepare_ramdisk(self, task, ramdisk_params, mode='deploy'):
         """Prepares the boot of Ironic ramdisk.
 
-        This method prepares the boot of the deploy ramdisk after
+        This method prepares the boot of the deploy or rescue ramdisk after
         reading relevant information from the node's database.
 
         :param task: a task from TaskManager.
@@ -436,17 +436,25 @@ class BootInterface(BaseInterface):
             Other implementations can make use of ramdisk_params to pass such
             information.  Different implementations of boot interface will
             have different ways of passing parameters to the ramdisk.
+        :param mode: Label indicating a deploy or rescue operation
+            being carried out on the node. Supported values are 'deploy' and
+            'rescue'. Defaults to 'deploy', indicating deploy operation is
+            being carried out.
         :returns: None
         """
 
     @abc.abstractmethod
-    def clean_up_ramdisk(self, task):
+    def clean_up_ramdisk(self, task, mode='deploy'):
         """Cleans up the boot of ironic ramdisk.
 
         This method cleans up the environment that was setup for booting the
-        deploy ramdisk.
+        deploy or rescue ramdisk.
 
         :param task: a task from TaskManager.
+        :param mode: Label indicating a deploy or rescue operation
+            was carried out on the node. Supported values are 'deploy' and
+            'rescue'. Defaults to 'deploy', indicating deploy operation was
+            carried out.
         :returns: None
         """
 
