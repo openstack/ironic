@@ -139,13 +139,8 @@
               export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_ENABLED_HARDWARE_TYPES=redfish"
           fi
 
-          if [ "wholedisk" == "wholedisk" ] ; then
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_TEMPEST_WHOLE_DISK_IMAGE=True"
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_EPHEMERAL_DISK=0"
-          else
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_TEMPEST_WHOLE_DISK_IMAGE=False"
-            export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_EPHEMERAL_DISK=1"
-          fi
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_TEMPEST_WHOLE_DISK_IMAGE=False"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_EPHEMERAL_DISK=1"
 
           if [ -n "" ] ; then
             export DEVSTACK_GATE_IRONIC_BUILD_RAMDISK=1
