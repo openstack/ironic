@@ -16,6 +16,7 @@ from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_serialization import jsonutils
 import requests
+from six.moves import http_client
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -90,6 +91,16 @@ class AgentClient(object):
                    'res': result.get('command_result'),
                    'error': result.get('command_error'),
                    'code': response.status_code})
+
+        if response.status_code >= http_client.BAD_REQUEST:
+            LOG.error('Agent command %(method)s for node %(node)s failed '
+                      'expected 2xx HTTP status code, got %(code)d.',
+                      {'method': method, 'node': node.uuid,
+                       'code': response.status_code})
+            raise exception.AgentAPIError(node=node.uuid,
+                                          status=response.status_code,
+                                          error=result.get('faultstring'))
+
         return result
 
     @METRICS.timer('AgentClient.get_commands_status')

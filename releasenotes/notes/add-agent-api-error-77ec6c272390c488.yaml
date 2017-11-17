@@ -1,0 +1,4 @@
+---
+fixes:
+  - Fixes propagation of HTTP errors from **ironic-python-agent** commands. Now
+    an operation is aborted on receiving HTTP error status from the ramdisk.
