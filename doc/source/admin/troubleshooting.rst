@@ -176,7 +176,7 @@ location of the files will depend on the way you've built the ramdisk.
 After you've done the modifications, pack the whole content of the current
 directory back::
 
-    find . | cpio -H newc -o > /path/to/the/new/ramdisk
+    find . | cpio -H newc -o | gzip -c > /path/to/the/new/ramdisk
 
 .. note:: You don't need to modify the kernel (e.g.
           ``tinyipa-master.vmlinuz``), only the ramdisk part.
