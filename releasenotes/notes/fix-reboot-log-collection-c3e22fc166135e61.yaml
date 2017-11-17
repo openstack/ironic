@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes an issue where if a failure occurs during deployment, the Bare Metal
+    service could attempt to collect logs from a node that had been powered
+    off. This would result in a number of failed attempts to collect the logs
+    before failing the deployment.  See `bug 1732939
+    <https://bugs.launchpad.net/ironic/+bug/1732939>`_ for details.
