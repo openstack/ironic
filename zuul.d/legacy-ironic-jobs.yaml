@@ -14,13 +14,11 @@
       - ^tools/.*$
       - ^tox.ini$
     required-projects:
-      - openstack-infra/devstack-gate
       - openstack/ironic
       - openstack/ironic-lib
       - openstack/ironic-python-agent
       - openstack/pyghmi
       - openstack/python-ironicclient
-      - openstack/tempest
       - openstack/virtualbmc
 
 - job:
@@ -39,15 +37,13 @@
       - ^tools/.*$
       - ^tox.ini$
     required-projects:
-      - openstack-infra/devstack-gate
       - openstack/ironic
       - openstack/ironic-lib
       - openstack/ironic-python-agent
+      - openstack/networking-generic-switch
       - openstack/pyghmi
       - openstack/python-ironicclient
-      - openstack/tempest
       - openstack/virtualbmc
-      - openstack/networking-generic-switch
 
 - job:
     name: ironic-tempest-dsvm-pxe_ipmitool-postgres
