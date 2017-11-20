@@ -756,5 +756,5 @@ class VifInvalidForAttach(Conflict):
 
 
 class AgentAPIError(IronicException):
-    _msg_fmt = _('Agent API for node %(node)s returned status %(status)s with '
-                 'error %(error)s')
+    _msg_fmt = _('Agent API for node %(node)s returned HTTP status code '
+                 '%(status)s with error: %(error)s')

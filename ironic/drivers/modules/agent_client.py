@@ -93,8 +93,8 @@ class AgentClient(object):
                    'code': response.status_code})
 
         if response.status_code >= http_client.BAD_REQUEST:
-            LOG.error('Agent command %(method)s for node %(node)s failed '
-                      'expected 2xx HTTP status code, got %(code)d.',
+            LOG.error('Agent command %(method)s for node %(node)s failed. '
+                      'Expected 2xx HTTP status code, got %(code)d.',
                       {'method': method, 'node': node.uuid,
                        'code': response.status_code})
             raise exception.AgentAPIError(node=node.uuid,
