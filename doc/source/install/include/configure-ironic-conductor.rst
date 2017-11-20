@@ -131,7 +131,7 @@ Configuring ironic-conductor service
    .. code-block:: ini
 
       [glance]
-      glance_api_servers = <GLANCE_SERVICE_URL>
+      endpoint_override = <GLANCE_SERVICE_URL>
 
 
 #. Notes for configuring the Network service access

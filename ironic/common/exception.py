@@ -487,7 +487,7 @@ class UnsupportedDriverExtension(Invalid):
 
 
 class GlanceConnectionFailed(IronicException):
-    _msg_fmt = _("Connection to glance host %(endpoint)s failed: "
+    _msg_fmt = _("Connection to glance endpoint %(endpoint)s failed: "
                  "%(reason)s")
 
 

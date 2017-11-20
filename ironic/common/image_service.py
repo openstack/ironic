@@ -20,7 +20,9 @@ import datetime
 import os
 import shutil
 
+from oslo_log import log
 from oslo_utils import importutils
+from oslo_utils import uuidutils
 import requests
 import sendfile
 import six
@@ -29,23 +31,15 @@ import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common import keystone
 from ironic.common import utils
 from ironic.conf import CONF
 
 IMAGE_CHUNK_SIZE = 1024 * 1024  # 1mb
-
-_GLANCE_SESSION = None
-
-
-def _get_glance_session():
-    global _GLANCE_SESSION
-    if not _GLANCE_SESSION:
-        auth = keystone.get_auth('glance')
-        _GLANCE_SESSION = keystone.get_session('glance', auth=auth)
-    return _GLANCE_SESSION
+LOG = log.getLogger(__name__)
 
 
+# TODO(pas-ha) in Queens change default to '2',
+# but keep the versioned import in place (less work for possible Glance v3)
 def GlanceImageService(client=None, version=None, context=None):
     module_str = 'ironic.common.glance_service'
     if version is None:
@@ -54,9 +48,6 @@ def GlanceImageService(client=None, version=None, context=None):
     module = importutils.import_versioned_module(module_str, version,
                                                  'image_service')
     service_class = getattr(module, 'GlanceImageService')
-    if (context is not None and CONF.glance.auth_strategy == 'keystone'
-        and not context.auth_token):
-            context.auth_token = _get_glance_session().get_token()
     return service_class(client, version, context)
 
 
@@ -279,14 +270,21 @@ def get_image_service(image_href, client=None, version=None, context=None):
         specified image.
     """
     scheme = urlparse.urlparse(image_href).scheme.lower()
-    try:
-        cls = protocol_mapping[scheme or 'glance']
-    except KeyError:
-        raise exception.ImageRefValidationFailed(
-            image_href=image_href,
-            reason=_('Image download protocol '
-                     '%s is not supported.') % scheme
-        )
+
+    if not scheme:
+        if uuidutils.is_uuid_like(six.text_type(image_href)):
+            cls = GlanceImageService
+        else:
+            raise exception.ImageRefValidationFailed(
+                image_href=image_href,
+                reason=_('Scheme-less image href is not a UUID.'))
+    else:
+        cls = protocol_mapping.get(scheme)
+        if not cls:
+            raise exception.ImageRefValidationFailed(
+                image_href=image_href,
+                reason=_('Image download protocol %s is not supported.'
+                         ) % scheme)
 
     if cls == GlanceImageService:
         return cls(client, version, context)

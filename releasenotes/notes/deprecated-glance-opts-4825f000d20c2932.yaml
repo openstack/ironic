@@ -1,0 +1,31 @@
+---
+deprecations:
+  - |
+    Configuration option ``glance_api_servers`` from the ``[glance]``
+    section in the configuration file is deprecated
+    and will be ignored in the Rocky release.
+    Instead, use ``[glance]/endpoint_override`` configuration option to set
+    a specific (possibly load-balanced) glance API address when automatic
+    discovery of glance API endpoint from keystone catalog is not desired.
+    This new option defaults to ``None`` and must be set explicitly if needed.
+    This new option is mostly suited for standalone ironic deployments without
+    keystone and its service catalog, and it is generally recommended to
+    rely on keystone service catalog for service endpoint discovery.
+
+  - |
+    Configuration option ``[glance]/glance_api_insecure`` is deprecated
+    and will be ignored in the Rocky release.
+    Instead, use ``[glance]/insecure`` configuration option
+    (its default is ``False``).
+
+  - |
+    Configuration option ``[glance]/glance_cafile`` is deprecated
+    and will be ignored in the Rocky release.
+    Instead, use ``[glance]/cafile`` configuration option
+    (its default is ``None``).
+  - |
+    Configuration option ``[glance]/auth_strategy`` is deprecated
+    and will be ignored in the Rocky release.
+    Instead, to setup glance in noauth mode set ``[glance]/auth_type``
+    configuration option to ``none`` and provide glance API address as
+    ``[glance]/endpoint_override`` configuration option.

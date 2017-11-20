@@ -92,7 +92,7 @@ class ImageCache(object):
         # NOTE(vdrok): File name is converted to UUID if it's not UUID already,
         # so that two images with same file names do not collide
         if service_utils.is_glance_image(href):
-            master_file_name = service_utils.parse_image_ref(href)[0]
+            master_file_name = service_utils.parse_image_id(href)
         else:
             # NOTE(vdrok): Doing conversion of href in case it's unicode
             # string, UUID cannot be generated for unicode strings on python 2.

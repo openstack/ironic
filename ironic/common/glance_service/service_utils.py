@@ -18,7 +18,7 @@ import copy
 import itertools
 import random
 
-from oslo_config import cfg
+from oslo_log import log
 from oslo_serialization import jsonutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
@@ -27,15 +27,17 @@ import six.moves.urllib.parse as urlparse
 
 from ironic.common import exception
 from ironic.common import image_service
-from ironic.common import keystone
+from ironic.conf import CONF
 
-CONF = cfg.CONF
+
+LOG = log.getLogger(__name__)
 
 _GLANCE_API_SERVER = None
 """ iterator that cycles (indefinitely) over glance API servers. """
 
 
 def _extract_attributes(image):
+    # TODO(pas-ha) in Queens unify these once GlanceV1 is no longer supported
     IMAGE_ATTRIBUTES = ['size', 'disk_format', 'owner',
                         'container_format', 'checksum', 'id',
                         'name', 'created_at', 'updated_at',
@@ -90,73 +92,47 @@ def _convert(metadata):
     return metadata
 
 
-def _get_api_server_iterator():
-    """Return iterator over shuffled API servers.
-
-    Shuffle a list of CONF.glance.glance_api_servers and return an iterator
-    that will cycle through the list, looping around to the beginning if
-    necessary.
-
-    If CONF.glance.glance_api_servers isn't set, fetch the endpoint from the
-    service catalog.
-
-    :returns: iterator that cycles (indefinitely) over shuffled glance API
-              servers.
-    """
-    api_servers = []
-
-    if not CONF.glance.glance_api_servers:
-        session = keystone.get_session('glance',
-                                       auth=keystone.get_auth('glance'))
-        api_servers = [keystone.get_service_url(session, service_type='image',
-                                                endpoint_type='public')]
-    else:
-        api_servers = random.sample(CONF.glance.glance_api_servers,
-                                    len(CONF.glance.glance_api_servers))
-    return itertools.cycle(api_servers)
-
-
-def _get_api_server():
-    """Return a Glance API server.
-
-    :returns: for an API server, the tuple (host-or-IP, port, use_ssl), where
-        use_ssl is True to use the 'https' scheme, and False to use 'http'.
-    """
-    global _GLANCE_API_SERVER
-
-    if not _GLANCE_API_SERVER:
-        _GLANCE_API_SERVER = _get_api_server_iterator()
-    return six.next(_GLANCE_API_SERVER)
-
-
-def parse_image_ref(image_href):
-    """Parse an image href.
+def parse_image_id(image_href):
+    """Parse an image id from image href.
 
     :param image_href: href of an image
-    :returns: a tuple (image ID, glance URL, whether to use SSL)
+    :returns: image id parsed from image_href
 
-    :raises ValueError: when input image href is invalid
+    :raises InvalidImageRef: when input image href is invalid
     """
-    if '/' not in six.text_type(image_href):
-        endpoint = _get_api_server()
-        return (image_href, endpoint, endpoint.startswith('https'))
-    else:
-        try:
-            url = urlparse.urlparse(image_href)
-            if url.scheme == 'glance':
-                endpoint = _get_api_server()
-                image_id = image_href.split('/')[-1]
-                return (image_id, endpoint, endpoint.startswith('https'))
-            else:
-                glance_port = url.port or 80
-                glance_host = url.netloc.split(':', 1)[0]
-                image_id = url.path.split('/')[-1]
-                use_ssl = (url.scheme == 'https')
-                endpoint = '%s://%s:%s' % (url.scheme, glance_host,
-                                           glance_port)
-                return (image_id, endpoint, use_ssl)
-        except ValueError:
+    image_href = six.text_type(image_href)
+    if uuidutils.is_uuid_like(image_href):
+        image_id = image_href
+    elif image_href.startswith('glance://'):
+        image_id = image_href.split('/')[-1]
+        if not uuidutils.is_uuid_like(image_id):
             raise exception.InvalidImageRef(image_href=image_href)
+    else:
+        raise exception.InvalidImageRef(image_href=image_href)
+    return image_id
+
+
+# TODO(pas-ha) remove in Rocky
+def get_glance_api_server(image_href):
+    """Construct a glance API url from config options
+
+    Returns a random server from the CONF.glance.glance_api_servers list
+    of servers.
+
+    :param image_href: href of an image
+    :returns: glance API URL
+
+    :raises InvalidImageRef: when input image href is invalid
+    """
+    image_href = six.text_type(image_href)
+    if not is_glance_image(image_href):
+        raise exception.InvalidImageRef(image_href=image_href)
+    global _GLANCE_API_SERVER
+    if not _GLANCE_API_SERVER:
+        _GLANCE_API_SERVER = itertools.cycle(
+            random.sample(CONF.glance.glance_api_servers,
+                          len(CONF.glance.glance_api_servers)))
+    return six.next(_GLANCE_API_SERVER)
 
 
 def translate_from_glance(image):
@@ -176,7 +152,9 @@ def is_image_available(context, image):
     # request and we need not handle the noauth use-case.
     if hasattr(context, 'auth_token') and context.auth_token:
         return True
-    if image.is_public or context.is_admin:
+
+    if ((getattr(image, 'is_public', None) or
+         getattr(image, 'visibility', None) == 'public') or context.is_admin):
         return True
     properties = image.properties
     if context.project_id and ('owner_id' in properties):

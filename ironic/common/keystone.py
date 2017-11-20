@@ -16,6 +16,8 @@
 
 from keystoneauth1 import exceptions as kaexception
 from keystoneauth1 import loading as kaloading
+from keystoneauth1 import service_token
+from keystoneauth1 import token_endpoint
 from oslo_log import log as logging
 import six
 
@@ -102,7 +104,23 @@ def get_adapter(group, **adapter_kwargs):
                                                     **adapter_kwargs)
 
 
-# NOTE(pas-ha) Used by neutronclient and glanceclient only
+def get_service_auth(context, endpoint, service_auth):
+    """Create auth plugin wrapping both user and service auth.
+
+    When properly configured and using auth_token middleware,
+    requests with valid service auth will not fail
+    if the user token is expired.
+
+    Ideally we would use the plugin provided by auth_token middleware
+    however this plugin isn't serialized yet.
+    """
+    # TODO(pas-ha) use auth plugin from context when it is available
+    user_auth = token_endpoint.Token(endpoint, context.auth_token)
+    return service_token.ServiceTokenAuthWrapper(user_auth=user_auth,
+                                                 service_auth=service_auth)
+
+
+# NOTE(pas-ha) Used by neutronclient only
 # FIXME(pas-ha) remove this while moving to kesytoneauth adapters
 @ks_exceptions
 def get_service_url(session, **kwargs):

@@ -104,14 +104,17 @@ opts = [
                       'multiple containers to store images, and this value '
                       'will determine how many containers are created.')),
     cfg.ListOpt('glance_api_servers',
+                deprecated_for_removal=True,
+                deprecated_reason=_("Use [glance]/endpoint_override option "
+                                    "to set the full load-balanced glance API "
+                                    "URL instead."),
                 help=_('A list of the glance api servers available to ironic. '
                        'Prefix with https:// for SSL-based glance API '
-                       'servers. Format is [hostname|IP]:port. '
-                       'If this option is not set, the service '
-                       'catalog is used. It is recommended to rely on the '
-                       'service catalog, if possible.')),
+                       'servers. Format is [hostname|IP]:port.')),
     cfg.BoolOpt('glance_api_insecure',
                 default=False,
+                deprecated_for_removal=True,
+                deprecated_reason=_("Use [glance]/insecure option instead."),
                 help=_('Allow to perform insecure SSL (https) requests to '
                        'glance.')),
     cfg.IntOpt('glance_num_retries',
@@ -121,9 +124,16 @@ opts = [
     cfg.StrOpt('auth_strategy',
                default='keystone',
                choices=['keystone', 'noauth'],
+               deprecated_for_removal=True,
+               deprecated_reason=_("To configure glance in noauth mode, "
+                                   "set [glance]/auth_type=none and "
+                                   "[glance]/endpoint_override="
+                                   "<GLANCE_API_ADDRESS> instead."),
                help=_('Authentication strategy to use when connecting to '
                       'glance.')),
     cfg.StrOpt('glance_cafile',
+               deprecated_for_removal=True,
+               deprecated_reason=_("Use [glance]/cafile option instead."),
                help=_('Optional path to a CA certificate bundle to be used to '
                       'validate the SSL certificate served by glance. It is '
                       'used when glance_api_insecure is set to False.')),
@@ -138,8 +148,8 @@ opts = [
 
 def register_opts(conf):
     conf.register_opts(opts, group='glance')
-    auth.register_auth_opts(conf, 'glance')
+    auth.register_auth_opts(conf, 'glance', service_type='image')
 
 
 def list_opts():
-    return auth.add_auth_opts(opts)
+    return auth.add_auth_opts(opts, service_type='image')

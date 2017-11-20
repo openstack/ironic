@@ -17,6 +17,7 @@ import mock
 from oslo_config import cfg
 from oslo_config import fixture
 
+from ironic.common import context
 from ironic.common import exception
 from ironic.common import keystone
 from ironic.conf import auth as ironic_auth
@@ -92,3 +93,14 @@ class KeystoneTestCase(base.TestCase):
                                        interface='admin')
         self.assertEqual('admin', adapter.interface)
         self.assertEqual(session, adapter.session)
+
+    @mock.patch('keystoneauth1.service_token.ServiceTokenAuthWrapper')
+    @mock.patch('keystoneauth1.token_endpoint.Token')
+    def test_get_service_auth(self, token_mock, service_auth_mock):
+        ctxt = context.RequestContext(auth_token='spam')
+        mock_auth = mock.Mock()
+        self.assertEqual(service_auth_mock.return_value,
+                         keystone.get_service_auth(ctxt, 'ham', mock_auth))
+        token_mock.assert_called_once_with('ham', 'spam')
+        service_auth_mock.assert_called_once_with(
+            user_auth=token_mock.return_value, service_auth=mock_auth)

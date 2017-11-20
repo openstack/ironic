@@ -79,13 +79,13 @@ To enable secure HTTPS communication between Bare Metal service and Image servic
       served by Image service.
 
 #. If not using the keystone service catalog for the Image service API endpoint
-   discovery, also edit the ``glance_api_servers`` option to point to HTTPS URL
+   discovery, also edit the ``endpoint_override`` option to point to HTTPS URL
    of image service (replace ``<GLANCE_API_ADDRESS>`` with hostname[:port][path]
    of the Image service endpoint)::
 
     [glance]
     ...
-    glance_api_servers = https://<GLANCE_API_ADDRESS>
+    endpoint_override = https://<GLANCE_API_ADDRESS>
 
 #. Restart ironic-conductor service::
 

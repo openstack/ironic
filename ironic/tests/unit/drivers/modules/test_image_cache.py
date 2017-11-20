@@ -38,8 +38,6 @@ def touch(filename):
     open(filename, 'w').close()
 
 
-@mock.patch('ironic.common.glance_service.service_utils.parse_image_ref',
-            lambda image: (image, 'example.com', True))
 class TestImageCacheFetch(base.TestCase):
 
     def setUp(self):
