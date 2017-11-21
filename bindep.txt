@@ -60,10 +60,13 @@ dev-db/mariadb [platform:gentoo]
 mysql-client [platform:dpkg]
 mysql-server [platform:dpkg]
 # libmysqlclient-dev [platform:dpkg]
+# gettext and graphviz are needed by doc builds only. For transition,
+# have them in both doc and test.
+# TODO(jaegerandi): Remove test once infra scripts are updated.
 # this is needed for compiling translations
-gettext [test]
+gettext [test doc]
 # this is needed to build the FSM diagram
-graphviz [!platform:gentoo test]
+graphviz [!platform:gentoo test doc]
 
 # these are needed to build a deploy ramdisk
 
