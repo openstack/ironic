@@ -2,11 +2,12 @@
 # KATO Tomoyuki <kato.tomoyuki@jp.fujitsu.com>, 2015. #zanata
 # Andreas Jaeger <jaegerandi@gmail.com>, 2016. #zanata
 # KATO Tomoyuki <kato.tomoyuki@jp.fujitsu.com>, 2016. #zanata
+# Yuta Hono <yuta.hono@ntt.com>, 2016. #zanata
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic 9.0.1.dev5\n"
+"Project-Id-Version: ironic 9.2.1.dev16\n"
 "Report-Msgid-Bugs-To: https://bugs.launchpad.net/openstack-i18n/\n"
-"POT-Creation-Date: 2017-08-17 23:24+0000\n"
+"POT-Creation-Date: 2017-11-20 17:44+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -84,6 +85,13 @@ msgstr "「qemu-img info」の解析に失敗しました。"
 #, python-format
 msgid "A chassis with UUID %(uuid)s already exists."
 msgstr "UUID %(uuid)s のシャーシは既に存在します。"
+
+msgid ""
+"A list of the glance api servers available to ironic. Prefix with https:// "
+"for SSL-based glance API servers. Format is [hostname|IP]:port."
+msgstr ""
+"ironic が利用可能な glance API サーバリスト。 SSLベースのglance API サーバー"
+"では https:// より始まります。フォーマットは [hostname|IP]:port です。"
 
 #, python-format
 msgid "A node with UUID %(uuid)s already exists."
@@ -1107,10 +1115,6 @@ msgid "SNMP port, default %(port)d"
 msgstr "SNMP ポート。デフォルトは %(port)d。"
 
 #, python-format
-msgid "SNMP security name.  Required for version %(v3)s"
-msgstr "SNMP セキュリティー名。バージョン %(v3)s に必須。"
-
-#, python-format
 msgid "SNMPPowerDriver: SNMP UDP port out of range: %d"
 msgstr "SNMPPowerDriver: SNMP の UDP ポートが範囲外です: %d"
 
@@ -1396,14 +1400,6 @@ msgstr "ポート %(port_id)s での DHCP オプションの更新に失敗し�
 #, python-format
 msgid "Update MAC address on port: %(port_id)s failed."
 msgstr "ポート %(port_id)s での MAC アドレスの更新に失敗しました。"
-
-msgid ""
-"Upgrade the database schema to the latest version. Optionally, use --"
-"revision to specify an alembic revision string to upgrade to."
-msgstr ""
-"データベースのスキーマを最新バージョンにアップグレードします。オプションとし"
-"て、--revision を使用して、アップグレードする Alembic バージョン文字列を指定"
-"することもできます。"
 
 msgid "Username for the iRMC with administrator privileges. Required."
 msgstr "管理者権限を持つ iRMC のユーザー名。必須。"
