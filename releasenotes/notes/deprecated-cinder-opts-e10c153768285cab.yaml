@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    Configuration option ``[cinder]/url`` is deprecated
+    and will be ignored in the Rocky release.
+    Instead, use ``[cinder]/endpoint_override`` configuration option to set
+    a specific cinder API address when automatic discovery of the cinder API
+    endpoint from keystone catalog is not desired.

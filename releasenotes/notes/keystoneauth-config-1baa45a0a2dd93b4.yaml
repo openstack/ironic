@@ -4,3 +4,7 @@ features:
     Adds the ability to set keystoneauth settings in the
     ``[glance]`` configuration section for service automatic
     discovery.
+  - |
+    Adds the ability to set keystoneauth settings in the
+    ``[cinder]`` configuration section for service automatic
+    discovery.

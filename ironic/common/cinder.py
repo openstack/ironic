@@ -35,32 +35,45 @@ _CINDER_SESSION = None
 def _get_cinder_session():
     global _CINDER_SESSION
     if not _CINDER_SESSION:
-        auth = keystone.get_auth('cinder')
-        _CINDER_SESSION = keystone.get_session('cinder', auth=auth)
+        _CINDER_SESSION = keystone.get_session('cinder')
     return _CINDER_SESSION
 
 
-def get_client():
+def get_client(context):
     """Get a cinder client connection.
 
+    :param context: request context,
+                    instance of ironic.common.context.RequestContext
     :returns: A cinder client.
     """
-    params = {
-        'connect_retries': CONF.cinder.retries
-    }
-    # TODO(jtaryma): Add support for noauth
-    # NOTE(TheJulia): If a URL is provided for cinder, we will pass
-    # along the URL to python-cinderclient. Otherwise the library
-    # handles keystone url autodetection.
-    if CONF.cinder.url:
-        params['endpoint_override'] = CONF.cinder.url
+    service_auth = keystone.get_auth('cinder')
+    session = _get_cinder_session()
 
-    if CONF.keystone.region_name:
-        params['region_name'] = CONF.keystone.region_name
+    # TODO(pas-ha) remove in Rocky
+    adapter_opts = {}
+    # NOTE(pas-ha) new option must always win if set
+    if CONF.cinder.url and not CONF.cinder.endpoint_override:
+        adapter_opts['endpoint_override'] = CONF.cinder.url
+    if CONF.keystone.region_name and not CONF.cinder.region_name:
+        adapter_opts['region_name'] = CONF.keystone.region_name
 
-    params['session'] = _get_cinder_session()
-
-    return client.Client(**params)
+    adapter = keystone.get_adapter('cinder', session=session,
+                                   auth=service_auth, **adapter_opts)
+    # TODO(pas-ha) use versioned endpoint data to select required
+    # cinder api version
+    cinder_url = adapter.get_endpoint()
+    # TODO(pas-ha) investigate possibility of passing a user context here,
+    # similar to what neutron/glance-related code does
+    # NOTE(pas-ha) cinderclient has both 'connect_retries' (passed to
+    # ksa.Adapter) and 'retries' (used in its subclass of ksa.Adapter) options.
+    # The first governs retries on establishing the HTTP connection,
+    # the second governs retries on OverLimit exceptions from API.
+    # The description of [cinder]/retries fits the first,
+    # so this is what we pass.
+    return client.Client(session=session, auth=service_auth,
+                         endpoint_override=cinder_url,
+                         connect_retries=CONF.cinder.retries,
+                         global_request_id=context.global_id)
 
 
 def is_volume_available(volume):
@@ -140,7 +153,7 @@ def _init_client(task):
     """
     node = task.node
     try:
-        return get_client()
+        return get_client(task.context)
     except Exception as e:
         msg = (_('Failed to initialize cinder client for operations on node '
                  '%(uuid)s: %(err)s') % {'uuid': node.uuid, 'err': e})
