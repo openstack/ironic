@@ -203,10 +203,18 @@ def _get_completed_cleaning_command(task, commands):
 
 
 @METRICS.timer('log_and_raise_deployment_error')
-def log_and_raise_deployment_error(task, msg):
-    """Helper method to log the error and raise exception."""
+def log_and_raise_deployment_error(task, msg, collect_logs=True):
+    """Helper method to log the error and raise exception.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :param msg: the message to set in last_error of the node.
+    :param collect_logs: Boolean indicating whether to attempt to collect
+                         logs from IPA-based ramdisk. Defaults to True.
+                         Actual log collection is also affected by
+                         CONF.agent.deploy_logs_collect config option.
+    """
     LOG.error(msg)
-    deploy_utils.set_failed_state(task, msg)
+    deploy_utils.set_failed_state(task, msg, collect_logs=collect_logs)
     raise exception.InstanceDeployFailure(msg)
 
 
@@ -590,7 +598,13 @@ class AgentDeployMixin(HeartbeatMixin):
                         {'node': node.uuid, 'error': error})
 
                 manager_utils.node_power_action(task, states.POWER_OFF)
+        except Exception as e:
+            msg = (_('Error rebooting node %(node)s after deploy. '
+                     'Error: %(error)s') %
+                   {'node': node.uuid, 'error': e})
+            log_and_raise_deployment_error(task, msg)
 
+        try:
             task.driver.network.remove_provisioning_network(task)
             task.driver.network.configure_tenant_networks(task)
 
@@ -599,7 +613,9 @@ class AgentDeployMixin(HeartbeatMixin):
             msg = (_('Error rebooting node %(node)s after deploy. '
                      'Error: %(error)s') %
                    {'node': node.uuid, 'error': e})
-            log_and_raise_deployment_error(task, msg)
+            # NOTE(mgoddard): Don't collect logs since the node has been
+            # powered off.
+            log_and_raise_deployment_error(task, msg, collect_logs=False)
 
         task.process_event('done')
         LOG.info('Deployment to node %s done', task.node.uuid)

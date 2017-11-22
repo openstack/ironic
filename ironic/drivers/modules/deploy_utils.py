@@ -504,7 +504,7 @@ def set_failed_state(task, msg, collect_logs=True):
 
     :param task: a TaskManager instance containing the node to act on.
     :param msg: the message to set in last_error of the node.
-    :param collect_logs: boolean indicating whether to attempt collect
+    :param collect_logs: Boolean indicating whether to attempt to collect
                          logs from IPA-based ramdisk. Defaults to True.
                          Actual log collection is also affected by
                          CONF.agent.deploy_logs_collect config option.
