@@ -39,22 +39,36 @@ INSPECTOR_API_VERSION = (1, 0)
 _INSPECTOR_SESSION = None
 
 
-def _get_inspector_session():
-    if CONF.auth_strategy != 'keystone':
-        return
-
+def _get_inspector_session(**kwargs):
     global _INSPECTOR_SESSION
     if not _INSPECTOR_SESSION:
-        _INSPECTOR_SESSION = keystone.get_session(
-            'inspector', auth=keystone.get_auth('inspector'))
+        _INSPECTOR_SESSION = keystone.get_session('inspector', **kwargs)
     return _INSPECTOR_SESSION
 
 
-def _get_client():
+def _get_client(context):
     """Helper to get inspector client instance."""
+    # NOTE(pas-ha) remove in Rocky
+    if CONF.auth_strategy != 'keystone':
+        CONF.set_override('auth_type', 'none', group='inspector')
+    service_auth = keystone.get_auth('inspector')
+    session = _get_inspector_session(auth=service_auth)
+    adapter_params = {}
+    if CONF.inspector.service_url and not CONF.inspector.endpoint_override:
+        adapter_params['endpoint_override'] = CONF.inspector.service_url
+    adapter = keystone.get_adapter('inspector', session=session,
+                                   **adapter_params)
+    inspector_url = adapter.get_endpoint()
+    # TODO(pas-ha) investigate possibility of passing user context here,
+    # similar to what neutron/glance-related code does
+    # NOTE(pas-ha) ironic-inspector-client has no Adaper-based
+    # SessionClient, so we'll resolve inspector API form adapter loaded
+    # form config options
+    # TODO(pas-ha) rewrite when inspectorclient is based on ksa Adapter,
+    #              also add global_request_id to the call
     return client.ClientV1(api_version=INSPECTOR_API_VERSION,
-                           inspector_url=CONF.inspector.service_url,
-                           session=_get_inspector_session())
+                           session=session,
+                           inspector_url=inspector_url)
 
 
 class Inspector(base.InspectInterface):
@@ -137,7 +151,7 @@ class Inspector(base.InspectInterface):
 def _start_inspection(node_uuid, context):
     """Call to inspector to start inspection."""
     try:
-        _get_client().introspect(node_uuid)
+        _get_client(context).introspect(node_uuid)
     except Exception as exc:
         LOG.exception('Exception during contacting ironic-inspector '
                       'for inspection of node %(node)s: %(err)s',
@@ -166,7 +180,7 @@ def _check_status(task):
               task.node.uuid)
 
     try:
-        status = _get_client().get_status(node.uuid)
+        status = _get_client(task.context).get_status(node.uuid)
     except Exception:
         # NOTE(dtantsur): get_status should not normally raise
         # let's assume it's a transient failure and retry later

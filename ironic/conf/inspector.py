@@ -23,6 +23,10 @@ opts = [
                        'This option does not affect new-style dynamic drivers '
                        'and the fake_inspector driver.')),
     cfg.StrOpt('service_url',
+               deprecated_for_removal=True,
+               deprecated_reason=_("Use [inspector]/endpoint_override option "
+                                   "instead to set a specific "
+                                   "ironic-inspector API URL to connect to."),
                help=_('ironic-inspector HTTP endpoint. If this is not set, '
                       'the service catalog will be used.')),
     cfg.IntOpt('status_check_period', default=60,
@@ -33,8 +37,9 @@ opts = [
 
 def register_opts(conf):
     conf.register_opts(opts, group='inspector')
-    auth.register_auth_opts(conf, 'inspector')
+    auth.register_auth_opts(conf, 'inspector',
+                            service_type='baremetal-introspection')
 
 
 def list_opts():
-    return auth.add_auth_opts(opts)
+    return auth.add_auth_opts(opts, service_type='baremetal-introspection')
