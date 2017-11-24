@@ -69,6 +69,9 @@ api_opts = [
                 default=False,
                 help=_('Enable pecan debug mode. WARNING: this is insecure '
                        'and should not be used in a production environment.')),
+    cfg.StrOpt('default_resource_class',
+               help=_('Resource class to use for new nodes when no resource '
+                      'class is provided in the creation request.')),
 ]
 
 driver_opts = [

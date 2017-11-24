@@ -1643,6 +1643,9 @@ class NodesController(rest.RestController):
             self._check_names_acceptable([node.name], error_msg)
         node.provision_state = api_utils.initial_node_provision_state()
 
+        if not node.resource_class:
+            node.resource_class = CONF.default_resource_class
+
         new_node = objects.Node(context, **node.as_dict())
         notify.emit_start_notification(context, new_node, 'create',
                                        chassis_uuid=node.chassis_uuid)

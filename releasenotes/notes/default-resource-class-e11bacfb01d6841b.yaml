@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds new configuration option ``[DEFAULT]default_resource_class`` that
+    specifies the resource class to use for new nodes when no resource class
+    is provided in the node creation request.

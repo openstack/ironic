@@ -2267,6 +2267,37 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(ndict['uuid'], result['uuid'])
         self.assertEqual(states.ENROLL, result['provision_state'])
 
+    def test_create_node_no_default_resource_class(self):
+        ndict = test_api_utils.post_get_test_node()
+        self.post_json('/nodes', ndict)
+
+        # newer version is needed to see the resource_class field
+        result = self.get_json('/nodes/%s' % ndict['uuid'],
+                               headers={api_base.Version.string: "1.21"})
+        self.assertIsNone(result['resource_class'])
+
+    def test_create_node_with_default_resource_class(self):
+        self.config(default_resource_class='class1')
+
+        ndict = test_api_utils.post_get_test_node()
+        self.post_json('/nodes', ndict)
+
+        # newer version is needed to see the resource_class field
+        result = self.get_json('/nodes/%s' % ndict['uuid'],
+                               headers={api_base.Version.string: "1.21"})
+        self.assertEqual('class1', result['resource_class'])
+
+    def test_create_node_explicit_resource_class(self):
+        self.config(default_resource_class='class1')
+
+        ndict = test_api_utils.post_get_test_node(resource_class='class2')
+        self.post_json('/nodes', ndict,
+                       headers={api_base.Version.string: "1.21"})
+
+        result = self.get_json('/nodes/%s' % ndict['uuid'],
+                               headers={api_base.Version.string: "1.21"})
+        self.assertEqual('class2', result['resource_class'])
+
     def test_create_node_doesnt_contain_id(self):
         # FIXME(comstud): I'd like to make this test not use the
         # dbapi, however, no matter what I do when trying to mock
