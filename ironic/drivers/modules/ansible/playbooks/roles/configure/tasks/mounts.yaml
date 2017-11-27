@@ -1,0 +1,8 @@
+- name: create tmp mount point for root
+  file:
+    state: directory
+    path: "{{ tmp_rootfs_mount }}"
+
+- name: mount user image root
+  become: yes
+  command: mount {{ ironic_image_target }} {{ tmp_rootfs_mount }}

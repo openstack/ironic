@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Adds a new ``ansible`` deploy interface. It targets mostly undercloud
+    use-case by allowing greater customization of provisioning process.
+
+    This new deploy interface is usable only with hardware types.
+    It is set as supported for a ``generic`` hardware type and all
+    its subclasses, but must be explicitly enabled in the
+    ``[DEFAULT]enabled_deploy_interfaces`` configuration file option
+    to actually allow setting nodes to use it.

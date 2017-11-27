@@ -34,6 +34,7 @@ _default_opt_lists = [
 _opts = [
     ('DEFAULT', itertools.chain(*_default_opt_lists)),
     ('agent', ironic.conf.agent.opts),
+    ('ansible', ironic.conf.ansible.opts),
     ('api', ironic.conf.api.opts),
     ('audit', ironic.conf.audit.opts),
     ('cimc', ironic.conf.cisco.cimc_opts),

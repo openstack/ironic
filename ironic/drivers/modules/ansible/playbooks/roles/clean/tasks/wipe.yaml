@@ -1,0 +1,24 @@
+- name: store start and end of disk
+  set_fact:
+    start_sectors:
+      - 0
+    end_sectors:
+      - "{{ (device.value.sectors | int) - sectors_to_wipe }}"
+  when:
+    - device.value.host
+
+- name: update start and end sectors with such for partitions
+  set_fact:
+    start_sectors: "{{ start_sectors + [item.value.start | int ] }}"
+    end_sectors: "{{ end_sectors  + [ (item.value.start | int) + ( item.value.sectors | int) - sectors_to_wipe ] }}"
+  with_dict: "{{ device.value.partitions }}"
+  when:
+    - device.value.host
+
+- name: wipe starts and ends of disks and partitions
+  command: dd if=/dev/zero of=/dev/{{ device.key }} ibs={{ device.value.sectorsize }} obs={{ device.value.sectorsize }} count={{ sectors_to_wipe }} seek={{ item }}
+  with_flattened:
+    - "{{ start_sectors | map('int') | list | sort (reverse=True) }}"
+    - "{{ end_sectors | map('int') | list | sort (reverse=True) }}"
+  when:
+    - device.value.host

@@ -1,0 +1,6 @@
+- import_tasks: zap.yaml
+  tags:
+    - zap
+- import_tasks: shred.yaml
+  tags:
+    - shred

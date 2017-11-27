@@ -1,0 +1,45 @@
+# this is to handle no autocleaning in ironic
+- name: erase partition table
+  become: yes
+  command: dd if=/dev/zero of={{ ironic_root_device }} bs=512 count=36
+  when: not ironic.partition_info.preserve_ephemeral|default('no')|bool
+
+- name: run parted
+  become: yes
+  parted:
+    device: "{{ ironic_root_device }}"
+    label: "{{ ironic.partition_info.label }}"
+    state: "{{ item.1.state | default('present') }}"
+    name: "{{ item.1.name | default(omit) }}"
+    number: "{{ item.1.number }}"
+    part_type: "{{ item.1.part_type | default(omit) }}"
+    part_start: "{{ item.1.part_start }}"
+    part_end: "{{ item.1.part_end }}"
+    flags: "{{ item.1.flags | default(omit) }}"
+    align: "{{ item.1.align | default(omit) }}"
+    unit: "{{ item.1.unit | default(omit) }}"
+  with_items:
+    - "{{ ironic.partition_info.partitions.items() | sort(attribute='1.number') }}"
+
+- name: reset image target to root partition
+  set_fact:
+    ironic_image_target: "{{ ironic_root_device }}{{ ironic.partition_info.partitions.root.number }}"
+
+- name: make swap
+  become: yes
+  command: mkswap -L swap1 "{{ ironic_root_device }}{{ ironic.partition_info.partitions.swap.number }}"
+  when: ironic.partition_info.partitions.swap is defined
+
+- name: format ephemeral partition
+  become: yes
+  filesystem:
+    dev: "{{ ironic_root_device }}{{ ironic.partition_info.partitions.ephemeral.number }}"
+    fstype: "{{ ironic.partition_info.ephemeral_format }}"
+    force: yes
+    opts: "-L ephemeral0"
+  when: ironic.partition_info.partitions.ephemeral is defined and not ironic.partition_info.preserve_ephemeral|default('no')|bool
+
+- name: save block device for configdrive if partition was created
+  set_fact:
+    ironic_configdrive_target: "{{ ironic_root_device }}{{ ironic.partition_info.partitions.configdrive.number }}"
+  when: ironic.partition_info.partitions.configdrive is defined

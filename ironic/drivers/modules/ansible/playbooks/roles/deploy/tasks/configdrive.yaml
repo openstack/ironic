@@ -1,0 +1,44 @@
+- name: download configdrive data
+  get_url:
+    url: "{{ ironic.configdrive.location }}"
+    dest: /tmp/{{ inventory_hostname }}.gz.base64
+    validate_certs: "{{ ironic.image.validate_certs|default(omit) }}"
+  async: 600
+  poll: 15
+  when: ironic.configdrive.type|default('') == 'url'
+
+- block:
+  - name: copy configdrive file to node
+    copy:
+      src: "{{ ironic.configdrive.location }}"
+      dest: /tmp/{{ inventory_hostname }}.gz.base64
+  - name: remove configdrive from conductor
+    delegate_to: conductor
+    file:
+      path: "{{ ironic.configdrive.location }}"
+      state: absent
+  when: ironic.configdrive.type|default('') == 'file'
+
+- name: unpack configdrive
+  shell: cat /tmp/{{ inventory_hostname }}.gz.base64 | base64 --decode | gunzip > /tmp/{{ inventory_hostname }}.cndrive
+
+- block:
+  - name: prepare config drive partition
+    become: yes
+    script: partition_configdrive.sh {{ ironic_root_device }}
+    register: configdrive_partition_output
+
+  - name: test the output of configdrive partitioner
+    assert:
+      that:
+        - "{{ (configdrive_partition_output.stdout_lines | last).split() | length == 2 }}"
+        - "{{ (configdrive_partition_output.stdout_lines | last).split() | first == 'configdrive' }}"
+
+  - name: store configdrive partition
+    set_fact:
+      ironic_configdrive_target: "{{ (configdrive_partition_output.stdout_lines | last).split() | last }}"
+  when: ironic_configdrive_target is undefined
+
+- name: write configdrive
+  become: yes
+  command: dd if=/tmp/{{ inventory_hostname }}.cndrive of={{ ironic_configdrive_target }} bs=64K oflag=direct

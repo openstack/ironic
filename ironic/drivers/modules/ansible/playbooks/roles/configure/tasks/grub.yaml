@@ -1,0 +1,79 @@
+- name: discover grub-install command
+  find:
+    paths:
+      - "{{ tmp_rootfs_mount }}/usr/sbin"
+    pattern: "grub*-install"
+  register: grub_install_found
+
+- name: discover grub-mkconfig command
+  find:
+    paths:
+      - "{{ tmp_rootfs_mount }}/usr/sbin"
+    pattern: "grub*-mkconfig"
+  register: grub_config_found
+
+- name: find grub config file
+  find:
+    paths:
+      - "{{ tmp_rootfs_mount }}/boot"
+    pattern: "grub*.cfg"
+    recurse: yes
+  register: grub_file_found
+
+- name: test if all needed grub files were found
+  assert:
+    that:
+      - "{{ grub_install_found.matched > 0 }}"
+      - "{{ grub_config_found.matched > 0 }}"
+      - "{{ grub_file_found.matched > 0 }}"
+
+- name: set paths to grub commands
+  set_fact:
+    grub_install_cmd: "{{ grub_install_found.files[0].path | replace(tmp_rootfs_mount,'') }}"
+    grub_config_cmd: "{{ grub_config_found.files[0].path | replace(tmp_rootfs_mount,'') }}"
+    grub_config_file: "{{ grub_file_found.files[0].path | replace(tmp_rootfs_mount,'') }}"
+
+- name: make dirs for chroot
+  become: yes
+  file:
+    state: directory
+    path: "{{ tmp_rootfs_mount }}/{{ item }}"
+  with_items:
+    - dev
+    - sys
+    - proc
+
+- name: mount dirs for chroot
+  become: yes
+  command: mount -o bind /{{ item }} {{ tmp_rootfs_mount }}/{{ item }}
+  with_items:
+    - dev
+    - sys
+    - proc
+
+- block:
+  - name: get grub version string
+    become: yes
+    command: chroot {{ tmp_rootfs_mount }} /bin/sh -c '{{ grub_install_cmd }} --version'
+    register: grub_version_string
+  - name: install grub to disk
+    become: yes
+    command: chroot {{ tmp_rootfs_mount }} /bin/sh -c '{{ grub_install_cmd }} {{ ironic_root_device }}'
+  - name: preload lvm modules for grub2
+    become: yes
+    lineinfile:
+      dest: "{{ tmp_rootfs_mount }}/etc/default/grub"
+      state: present
+      line: GRUB_PRELOAD_MODULES=lvm
+    when: grub_version_string.stdout.split() | last | first == '2'
+  - name: create grub config
+    become: yes
+    command: chroot {{ tmp_rootfs_mount }} /bin/sh -c '{{ grub_config_cmd }} -o {{ grub_config_file }}'
+  always:
+  - name: unmount dirs for chroot
+    become: yes
+    command: umount {{ tmp_rootfs_mount }}/{{ item }}
+    with_items:
+      - dev
+      - sys
+      - proc

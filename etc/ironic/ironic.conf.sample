@@ -817,6 +817,78 @@
 #deploy_logs_swift_days_to_expire = 30
 
 
+[ansible]
+
+#
+# From ironic
+#
+
+# Extra arguments to pass on every invocation of Ansible.
+# (string value)
+#ansible_extra_args = <None>
+
+# Set ansible verbosity level requested when invoking
+# "ansible-playbook" command. 4 includes detailed SSH session
+# logging. Default is 4 when global debug is enabled and 0
+# otherwise. (integer value)
+# Minimum value: 0
+# Maximum value: 4
+#verbosity = <None>
+
+# Path to "ansible-playbook" script. Default will search the
+# $PATH configured for user running ironic-conductor process.
+# Provide the full path when ansible-playbook is not in $PATH
+# or installed in not default location. (string value)
+#ansible_playbook_script = ansible-playbook
+
+# Path to directory with playbooks, roles and local inventory.
+# (string value)
+#playbooks_path = $pybasedir/drivers/modules/ansible/playbooks
+
+# Path to ansible configuration file. If set to empty, system
+# default will be used. (string value)
+#config_file_path = $pybasedir/drivers/modules/ansible/playbooks/ansible.cfg
+
+# Number of times to retry getting power state to check if
+# bare metal node has been powered off after a soft power off.
+# Value of 0 means do not retry on failure. (integer value)
+# Minimum value: 0
+#post_deploy_get_power_state_retries = 6
+
+# Amount of time (in seconds) to wait between polling power
+# state after trigger soft poweroff. (integer value)
+# Minimum value: 0
+#post_deploy_get_power_state_retry_interval = 5
+
+# Extra amount of memory in MiB expected to be consumed by
+# Ansible-related processes on the node. Affects decision
+# whether image will fit into RAM. (integer value)
+#extra_memory = 10
+
+# Skip verifying SSL connections to the image store when
+# downloading the image. Setting it to "True" is only
+# recommended for testing environments that use self-signed
+# certificates. (boolean value)
+#image_store_insecure = false
+
+# Specific CA bundle to use for validating SSL connections to
+# the image store. If not specified, CA available in the
+# ramdisk will be used. Is not used by default playbooks
+# included with the driver. Suitable for environments that use
+# self-signed certificates. (string value)
+#image_store_cafile = <None>
+
+# Client cert to use for SSL connections to image store. Is
+# not used by default playbooks included with the driver.
+# (string value)
+#image_store_certfile = <None>
+
+# Client key to use for SSL connections to image store. Is not
+# used by default playbooks included with the driver. (string
+# value)
+#image_store_keyfile = <None>
+
+
 [api]
 
 #

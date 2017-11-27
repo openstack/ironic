@@ -1,0 +1,9 @@
+- name: get devices wwn facts
+  facts_wwn:
+    devices: "{{ ansible_devices.keys() }}"
+
+- name: calculate root hint
+  root_hints:
+    root_device_hints: "{{ ironic.root_device_hints }}"
+    ansible_devices: "{{ ansible_devices }}"
+    ansible_devices_wwn: "{{ devices_wwn | default({}) }}"

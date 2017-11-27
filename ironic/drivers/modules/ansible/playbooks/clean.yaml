@@ -1,0 +1,6 @@
+---
+- import_playbook: add-ironic-nodes.yaml
+
+- hosts: ironic
+  roles:
+    - clean

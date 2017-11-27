@@ -1,0 +1,11 @@
+- hosts: conductor
+  gather_facts: no
+  tasks:
+    - add_host:
+        group: ironic
+        hostname: "{{ item.name }}"
+        ansible_host: "{{ item.ip }}"
+        ansible_user: "{{ item.user }}"
+        ironic_extra: "{{ item.extra | default({}) }}"
+      with_items: "{{ ironic.nodes }}"
+      tags: always
