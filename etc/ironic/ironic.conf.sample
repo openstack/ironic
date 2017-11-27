@@ -20,6 +20,10 @@
 # value)
 #pecan_debug = false
 
+# Resource class to use for new nodes when no resource class
+# is provided in the creation request. (string value)
+#default_resource_class = <None>
+
 # Specify the list of drivers to load during service
 # initialization. Missing drivers, or drivers which fail to
 # initialize, will prevent the conductor service from
@@ -1092,7 +1096,7 @@
 # This option is deprecated for removal.
 # Its value may be silently ignored in the future.
 # Reason: Use [cinder]/endpoint_override option to set a
-# specific cinder API url to connect to.
+# specific cinder API URL to connect to.
 #url = <None>
 
 # User's domain id (string value)
