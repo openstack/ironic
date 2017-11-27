@@ -523,9 +523,10 @@ configuration:
 
     gpu_ids = 0x1000/0x0079,0x2100/0x0080
 
-* It is necessary that pyghmi version >= 1.0.22 and pysnmp version >= 4.2.3
-  are used on the conductor. The latest version of pyghmi can
-  be downloaded from `here <https://pypi.python.org/pypi/pyghmi/>`__
+* The python-scciclient package requires pyghmi version >= 1.0.22 and pysnmp
+  version >= 4.2.3. They are used by the conductor service on the conductor.
+  The latest version of pyghmi can be downloaded from `here
+  <https://pypi.python.org/pypi/pyghmi/>`__
   and pysnmp can be downloaded from `here
   <https://pypi.python.org/pypi/pysnmp/>`__.
 
