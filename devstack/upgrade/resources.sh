@@ -31,6 +31,9 @@ NEUTRON_NET=ironic_grenade
 
 set -o xtrace
 
+# TODO(dtantsur): remove in Rocky, needed for parsing Placement API responses
+install_package jq
+
 function wait_for_ironic_resources {
     local i
     local nodes_count
@@ -49,10 +52,10 @@ function wait_for_ironic_resources {
     die $LINENO "Timed out waiting for Ironic nodes are available again."
 }
 
-total_cpus=$(( $IRONIC_VM_SPECS_CPU * $IRONIC_VM_COUNT ))
+total_nodes=$IRONIC_VM_COUNT
 
 if [[ "${HOST_TOPOLOGY}" == "multinode" ]]; then
-    total_cpus=$(( 2 * $total_cpus ))
+    total_nodes=$(( 2 * $total_nodes ))
 fi
 
 function early_create {
@@ -149,7 +152,7 @@ function destroy {
 case $1 in
     "early_create")
         wait_for_ironic_resources
-        wait_for_nova_resources "vcpus" $total_cpus
+        wait_for_nova_resources $total_nodes
         early_create
         ;;
     "create")

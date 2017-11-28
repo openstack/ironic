@@ -37,3 +37,4 @@ squashfs-tools
 libvirt-dev
 socat
 ipxe-qemu
+jq

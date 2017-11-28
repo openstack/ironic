@@ -195,7 +195,6 @@ IRONIC_VM_LOG_DIR=${IRONIC_VM_LOG_DIR:-$IRONIC_DATA_DIR/logs/}
 IRONIC_VM_LOG_ROTATE=$(trueorfalse True IRONIC_VM_LOG_ROTATE)
 
 # Set resource_classes for nodes to use Nova's placement engine
-IRONIC_USE_RESOURCE_CLASSES=$(trueorfalse True IRONIC_USE_RESOURCE_CLASSES)
 IRONIC_DEFAULT_RESOURCE_CLASS=${IRONIC_DEFAULT_RESOURCE_CLASS:-baremetal}
 
 # Whether to build the ramdisk or download a prebuilt one.
@@ -1531,26 +1530,56 @@ function create_bridge_and_vms {
 }
 
 function wait_for_nova_resources {
-    # TODO(jroll) if IRONIC_USE_RESOURCE_CLASSES, use the placement engine instead
-
     # After nodes have been enrolled, we need to wait for both ironic and
     # nova's periodic tasks to populate the resource tracker with available
     # nodes and resources. Wait up to 2 minutes for a given resource before
     # timing out.
-    local resource=$1
-    local expected_count=$2
+    local expected_count=$1
+    local resource_class=${IRONIC_DEFAULT_RESOURCE_CLASS^^}
+
+    # TODO(dtantsur): switch to Placement OSC plugin, once it exists
+    local token
+    token=$(openstack token issue -f value -c id)
+    local endpoint
+    endpoint=$(openstack endpoint list --service placement --interface public -f value -c URL)
+    die_if_not_set $LINENO endpoint "Cannot find Placement API endpoint"
+
     local i
-    echo_summary "Waiting 2 minutes for Nova resource tracker to pick up $resource >= $expected_count"
+    local count
+    echo_summary "Waiting 2 minutes for Nova resource tracker to pick up $expected_count nodes"
     for i in $(seq 1 120); do
-        if [ $(openstack hypervisor stats show -f value -c $resource) -ge $expected_count ]; then
+        # Fetch provider UUIDs from Placement
+        local providers
+        providers=$(curl -sH "X-Auth-Token: $token" $endpoint/resource_providers \
+            | jq -r '.resource_providers[].uuid')
+
+        local p
+        # Total count of the resource class, has to be equal to nodes count
+        count=0
+        for p in $providers; do
+            local amount
+            # A resource class inventory record looks something like
+            # {"max_unit": 1, "min_unit": 1, "step_size": 1, "reserved": 0, "total": 1, "allocation_ratio": 1}
+            # Subtrack reserved from total (defaulting both to 0)
+            amount=$(curl -sH "X-Auth-Token: $token" $endpoint/resource_providers/$p/inventories \
+                | jq ".inventories.CUSTOM_$resource_class as \$cls
+                    | (\$cls.total // 0) - (\$cls.reserved // 0)")
+
+            if [ $amount -gt 0 ]; then
+                count=$(( count + $amount ))
+            fi
+        done
+
+        if [ $count -ge $expected_count ]; then
             return 0
         fi
+
         if is_service_enabled n-api; then
             $TOP_DIR/tools/discover_hosts.sh
         fi
         sleep 1
     done
-    die $LINENO "Timed out waiting for Nova hypervisor-stats $resource >= $expected_count"
+    die $LINENO "Timed out waiting for Nova to track $expected_count nodes"
 }
 
 function _clean_ncpu_failure {
@@ -1794,11 +1823,6 @@ function enroll_nodes {
         $IRONIC_CMD node manage $node_id --wait $IRONIC_MANAGE_TIMEOUT || \
             die $LINENO "Node did not reach manageable state in $IRONIC_MANAGE_TIMEOUT seconds"
 
-        # TODO(dtantsur): only do it if IRONIC_USE_RESOURCE_CLASSES is False
-        $IRONIC_CMD node set $node_id --property cpus=$ironic_node_cpu \
-            --property memory_mb=$ironic_node_ram \
-            --property local_gb=$ironic_node_disk
-
         # NOTE(vsaienko) IPA didn't automatically recognize root devices less than 4Gb.
         # Setting root hint allows to install OS on such devices.
         # 0x1af4 is VirtIO vendor device ID.
@@ -1843,7 +1867,6 @@ function enroll_nodes {
         fi
 
         total_nodes=$((total_nodes+1))
-        total_cpus=$((total_cpus+$ironic_node_cpu))
     done < $ironic_hwinfo_file
 
     # NOTE(dtantsur): doing it outside of the loop, because of cleaning
@@ -1854,13 +1877,12 @@ function enroll_nodes {
             local adjusted_disk
             adjusted_disk=$(($ironic_node_disk - $ironic_ephemeral_disk))
             openstack flavor create --ephemeral $ironic_ephemeral_disk --ram $ironic_node_ram --disk $adjusted_disk --vcpus $ironic_node_cpu baremetal
-            if [[ "$IRONIC_USE_RESOURCE_CLASSES" == "True" ]]; then
-                local resource_class=${IRONIC_DEFAULT_RESOURCE_CLASS^^}
-                openstack flavor set baremetal --property "resources:CUSTOM_$resource_class"="1"
-                openstack flavor set baremetal --property "resources:DISK_GB"="0"
-                openstack flavor set baremetal --property "resources:MEMORY_MB"="0"
-                openstack flavor set baremetal --property "resources:VCPU"="0"
-            fi
+
+            local resource_class=${IRONIC_DEFAULT_RESOURCE_CLASS^^}
+            openstack flavor set baremetal --property "resources:CUSTOM_$resource_class"="1"
+            openstack flavor set baremetal --property "resources:DISK_GB"="0"
+            openstack flavor set baremetal --property "resources:MEMORY_MB"="0"
+            openstack flavor set baremetal --property "resources:VCPU"="0"
 
             openstack flavor set baremetal --property "cpu_arch"="$ironic_node_arch"
 
@@ -1880,11 +1902,8 @@ function enroll_nodes {
             # NOTE(vsaienko) we enrolling IRONIC_VM_COUNT on each node. So on subnode
             # we expect to have 2 x total_cpus
             total_nodes=$(( total_nodes * 2 ))
-            total_cpus=$(( total_cpus * 2 ))
         fi
-        wait_for_nova_resources "count" $total_nodes
-        # TODO(dtantsur): only do it when IRONIC_USE_RESOURCE_CLASSES is False
-        wait_for_nova_resources "vcpus" $total_cpus
+        wait_for_nova_resources $total_nodes
     fi
 }
 
