@@ -148,3 +148,60 @@ Configuring nodes
 After these steps, the provisioning of the created node will happen in the
 provisioning network, and then the node will be moved to the tenant network
 that was requested.
+
+Configuring the Networking service
+==================================
+
+In addition to configuring the Bare Metal service some additional configuration
+of the Networking service is required to ensure ports for bare metal servers
+are correctly programmed. This configuration will be determined by the Bare
+Metal service network interfaces you have enabled and which top of rack
+switches you have in your environment.
+
+``flat`` network interface
+--------------------------
+
+In order for Networking service ports to correctly operate with the Bare Metal
+service ``flat`` network interface the ``baremetal`` ML2 mechanism driver from
+`networking-baremetal
+<http://git.openstack.org/cgit/openstack/networking-baremetal>`_ needs to be
+loaded into the Networking service configuration. This driver understands that
+the switch should be already configured by the admin, and will mark the
+networking service ports as successfully bound as nothing else needs to be
+done.
+
+#. Install the ``networking-baremetal`` library
+
+   .. code-block:: console
+
+     $ pip install networking-baremetal
+
+#. Enable the ``baremetal`` driver in the Networking service ML2 configuration
+   file
+
+   .. code-block:: ini
+
+     [ml2]
+     mechanism_drivers = ovs,baremetal
+
+``neutron`` network interface
+-----------------------------
+
+The ``neutron`` network interface allows the Networking service to program the
+physical top of rack switches for the bare metal servers. To do this an ML2
+mechanism driver which supports the ``baremetal`` VNIC type for the make and
+model of top of rack switch in the environment must be installed and enabled.
+
+This is a list of known top of rack ML2 mechanism drivers which work with the
+``neutron`` network interface:
+
+Cisco Nexus 9000 series
+  To install and configure this ML2 mechanism driver see `Nexus Mechanism
+  Driver Installation Guide
+  <http://networking-cisco.readthedocs.io/projects/test/en/latest/install/ml2-nexus.html#nexus-mechanism-driver-installation-guide>`_.
+
+Networking Generic Switch
+  This is an ML2 mechanism driver built for testing against virtual bare metal
+  environments and some switches that are not covered by hardware specific ML2
+  mechanism drivers. More information is available in the project's `README
+  <http://git.openstack.org/cgit/openstack/networking-generic-switch/tree/README.rst>`_.
