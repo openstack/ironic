@@ -55,7 +55,9 @@ There are several types of hardware interfaces:
 
 boot
     manages booting of both the deploy ramdisk and the user instances on the
-    bare metal node. Boot interface implementations are often vendor specific,
+    bare metal node. See :doc:`/admin/interfaces/boot` for details.
+
+    Boot interface implementations are often vendor specific,
     and can be enabled via the ``enabled_boot_interfaces`` option:
 
     .. code-block:: ini
@@ -71,21 +73,24 @@ console
     manages access to the serial console of a bare metal node.
     See :doc:`/admin/console` for details.
 deploy
-    defines how the image gets transferred to the target disk.
+    defines how the image gets transferred to the target disk. See
+    :doc:`/admin/interfaces/deploy` for an explanation of the difference
+    between supported deploy interfaces ``direct`` and ``iscsi``.
 
-    * With ``iscsi`` deploy method the deploy ramdisk publishes node's hard
-      drive as an iSCSI_ share. The ironic-conductor then copies the image
-      to this share. Requires :doc:`configure-iscsi`.
-
-    * With ``direct`` deploy method, the deploy ramdisk fetches the image
-      from an HTTP location (object storage temporary URL or user-provided
-      HTTP URL).
+    The deploy interfaces can be enabled as follows:
 
     .. code-block:: ini
 
         [DEFAULT]
         enabled_hardware_types = ipmi,redfish
         enabled_deploy_interfaces = iscsi,direct
+
+    Additionally,
+
+    * the ``iscsi`` deploy interface requires :doc:`configure-iscsi`
+
+    * the ``direct`` deploy interface requires the Object Storage service
+      or an HTTP service
 inspect
     implements fetching hardware information from nodes. Can be implemented
     out-of-band (via contacting the node's BMC) or in-band (via booting
@@ -312,5 +317,4 @@ See :doc:`/admin/drivers` for the required configuration of each driver.
 
 .. _driver composition reform specification: https://specs.openstack.org/openstack/ironic-specs/specs/approved/driver-composition-reform.html
 .. _setup.cfg: https://git.openstack.org/cgit/openstack/ironic/tree/setup.cfg
-.. _iSCSI: https://en.wikipedia.org/wiki/ISCSI
 .. _ironic-inspector: https://docs.openstack.org/ironic-inspector/latest/

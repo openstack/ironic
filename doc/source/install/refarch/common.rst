@@ -89,32 +89,19 @@ The boot interface of a node manages booting of both the deploy ramdisk and
 the user instances on the bare metal node. The deploy interface orchestrates
 the deployment and defines how the image gets transferred to the target disk.
 
-The ``pxe`` boot interface uses PXE_ or iPXE_ to deliver the target
-kernel/ramdisk pair. PXE uses relatively slow and unreliable TFTP protocol
-for transfer, while iPXE uses HTTP. The downside of iPXE is that it's less
-common, and usually requires bootstrapping using PXE first. It is recommended
-to use iPXE, when it is supported by target hardware, see
-:doc:`../configure-pxe` for details.
-
-.. note::
-    Both PXE and iPXE are configured differently, when UEFI boot is used
-    instead of conventional BIOS boot. This is particularly important for CPU
-    architectures that do not have BIOS support at all.
-
-Alternatively, several vendors provide *virtual media* implementations of the
-boot interface. They work by pushing an ISO image to the node's `management
-controller`_, and do not require either PXE or iPXE. If such boot
+The main alternatives are to use PXE/iPXE or virtual media - see
+:doc:`/admin/interfaces/boot` for a detailed explanation. If a virtual media
 implementation is available for the hardware, it is recommended using it
-for better scalability and security. Check your driver documentation at
-:doc:`/admin/drivers` for details.
+for better scalability and security. Otherwise, it is recommended to use iPXE,
+when it is supported by target hardware.
 
 Deploy interface
 ~~~~~~~~~~~~~~~~
 
 There are two deploy interfaces in-tree, ``iscsi`` and ``direct``. See
-:doc:`../enabling-drivers` for explanation of the difference. With the
-``iscsi`` deploy method, most of the deployment operations happen on the
-conductor. If the Object Storage service (swift) or RadosGW is present in
+:doc:`../../admin/interfaces/deploy` for explanation of the difference.
+With the ``iscsi`` deploy method, most of the deployment operations happen on
+the conductor. If the Object Storage service (swift) or RadosGW is present in
 the environment, it is recommended to use the ``direct`` deploy method for
 better scalability and reliability.
 
