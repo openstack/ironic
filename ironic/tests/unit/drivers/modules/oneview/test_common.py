@@ -25,6 +25,7 @@ from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
+hponeview_client = importutils.try_import('hpOneView.oneview_client')
 oneview_states = importutils.try_import('oneview_client.states')
 
 
@@ -40,7 +41,53 @@ class OneViewCommonTestCase(db_base.DbTestCase):
         self.config(manager_url='https://1.2.3.4', group='oneview')
         self.config(username='user', group='oneview')
         self.config(password='password', group='oneview')
+        self.config(tls_cacert_file='ca_file', group='oneview')
+        self.config(allow_insecure_connections=False, group='oneview')
         mgr_utils.mock_the_extension_manager(driver="fake_oneview")
+
+    def test_prepare_manager_url(self):
+        self.assertEqual(
+            common.prepare_manager_url("https://1.2.3.4/"), "1.2.3.4")
+        self.assertEqual(
+            common.prepare_manager_url("http://oneview"), "oneview")
+        self.assertEqual(
+            common.prepare_manager_url("http://oneview:8080"), "oneview:8080")
+        self.assertEqual(
+            common.prepare_manager_url("http://oneview/something"), "oneview")
+        self.assertEqual(
+            common.prepare_manager_url("oneview/something"), "oneview")
+        self.assertEqual(
+            common.prepare_manager_url("oneview"), "oneview")
+
+    @mock.patch.object(hponeview_client, 'OneViewClient', autospec=True)
+    def test_get_hponeview_client(self, mock_hponeview_client):
+        common.get_hponeview_client()
+        mock_hponeview_client.assert_called_once_with(self.config)
+
+    def test_get_hponeview_client_insecure_false(self):
+        self.config(tls_cacert_file=None, group='oneview')
+        self.assertRaises(exception.OneViewError, common.get_hponeview_client)
+
+    @mock.patch.object(hponeview_client, 'OneViewClient', autospec=True)
+    def test_get_hponeview_client_insecure_cafile(self, mock_oneview):
+        self.config(allow_insecure_connections=True, group='oneview')
+        credentials = {
+            "ip": 'https://1.2.3.4',
+            "credentials": {
+                "userName": 'user',
+                "password": 'password'
+            },
+            "ssl_certificate": None
+        }
+        mock_oneview.assert_called_once_with(credentials)
+
+    def test_get_ilo_access(self):
+        url = ("hplocons://addr=1.2.3.4&sessionkey" +
+               "=a79659e3b3b7c8209c901ac3509a6719")
+        remote_console = {'remoteConsoleUrl': url}
+        host_ip, token = common._get_ilo_access(remote_console)
+        self.assertEqual(host_ip, "1.2.3.4")
+        self.assertEqual(token, "a79659e3b3b7c8209c901ac3509a6719")
 
     def test_verify_node_info(self):
         common.verify_node_info(self.node)
