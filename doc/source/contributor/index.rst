@@ -13,6 +13,8 @@ project.
 
   Developer Contribution Guide <code-contribution-guide>
   Setting Up Your Development Environment <dev-quickstart>
+  Priorities <https://specs.openstack.org/openstack/ironic-specs/#priorities>
+  Specifications <https://specs.openstack.org/openstack/ironic-specs/>
   Frequently Asked Questions <faq>
 
 The following pages describe the architecture of the Bare Metal service
