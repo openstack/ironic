@@ -557,7 +557,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
 
         mock_stop.assert_called_once_with(self.info['uuid'])
         mock_dir_exists.assert_called_once_with()
-        mock_popen.assert_not_called()
+        self.assertEqual(0, mock_popen.call_count)
 
     @mock.patch.object(console_utils, '_stop_console', autospec=True)
     def test_stop_socat_console(self, mock_stop):
