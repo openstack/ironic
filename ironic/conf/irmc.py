@@ -72,6 +72,15 @@ opts = [
     cfg.IntOpt('clean_priority_restore_irmc_bios_config',
                default=0,
                help=_('Priority for restore_irmc_bios_config clean step.')),
+    cfg.ListOpt('gpu_ids',
+                default=[],
+                help=_('List of vendor IDs and device IDs for GPU device to '
+                       'inspect. List items are in format vendorID/deviceID '
+                       'and separated by commas. GPU inspection will use this '
+                       'value to count the number of GPU device in a node. If '
+                       'this option is not defined, then leave out '
+                       'pci_gpu_devices in capabilities property. '
+                       'Sample gpu_ids value: 0x1000/0x0079,0x2100/0x0080')),
 ]
 
 

@@ -26,7 +26,7 @@ Prerequisites
 * Install `python-scciclient <https://pypi.python.org/pypi/python-scciclient>`_
   and `pysnmp <https://pypi.python.org/pypi/pysnmp>`_ packages::
 
-  $ pip install "python-scciclient>=0.5.0" pysnmp
+  $ pip install "python-scciclient>=0.6.0" pysnmp
 
 Hardware Type
 =============
@@ -62,10 +62,10 @@ hardware interfaces:
     Supports ``irmc``, ``inspector``, and ``no-inspect``.
     The default is ``irmc``.
 
-    .. note::
-       `Ironic Inspector <https://docs.openstack.org/ironic-inspector/latest/>`_
-       needs to be present and configured to use ``inspector`` as the
-       inspect interface.
+.. note::
+   `Ironic Inspector <https://docs.openstack.org/ironic-inspector/latest/>`_
+   needs to be present and configured to use ``inspector`` as the
+   inspect interface.
 
 * management
     Supports only ``irmc``.
@@ -490,6 +490,93 @@ Supported hardware
 The drivers support the PCI controllers, Fibrechannel Cards, Converged Network
 Adapters supported by
 `Fujitsu ServerView Virtual-IO Manager <http://www.fujitsu.com/fts/products/computing/servers/primergy/management/primergy-blade-server-io-virtualization.html>`_.
+
+Hardware Inspection Support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``irmc`` hardware type (only ``irmc`` inspect interface is supported) and
+the following iRMC classic drivers support Hardware Inspection:
+
+* ``pxe_irmc``
+* ``iscsi_irmc``
+* ``agent_irmc``
+
+.. note::
+   SNMP requires being enabled in ServerView® iRMC S4 Web Server(Network
+   Settings\SNMP section).
+
+Configuration
+~~~~~~~~~~~~~
+
+The Hardware Inspection Support in the iRMC drivers requires the following
+configuration:
+
+* It is necessary to set ironic configuration with ``gpu_ids`` option
+  in ``[irmc]`` section.
+
+  ``gpu_ids`` is a list of ``<vendorID>/<deviceID>`` where:
+
+  - ``<vendorID>``: 4 hexadecimal digits starts with '0x'.
+  - ``<deviceID>``: 4 hexadecimal digits starts with '0x'.
+
+  Here is a sample value for gpu_ids::
+
+    gpu_ids = 0x1000/0x0079,0x2100/0x0080
+
+* It is necessary that pyghmi version >= 1.0.22 and pysnmp version >= 4.2.3
+  are used on the conductor. The latest version of pyghmi can
+  be downloaded from `here <https://pypi.python.org/pypi/pyghmi/>`__
+  and pysnmp can be downloaded from `here
+  <https://pypi.python.org/pypi/pysnmp/>`__.
+
+Supported properties
+~~~~~~~~~~~~~~~~~~~~
+
+The inspection process will discover the following essential properties
+(properties required for scheduling deployment):
+
+* ``memory_mb``: memory size
+
+* ``cpus``: number of cpus
+
+* ``cpu_arch``: cpu architecture
+
+* ``local_gb``: disk size
+
+Inspection can also discover the following extra capabilities for iRMC
+drivers:
+
+* ``irmc_firmware_version``: iRMC firmware version
+
+* ``rom_firmware_version``: ROM firmware version
+
+* ``trusted_boot``: The flag whether TPM(Trusted Platform Module) is
+  supported by the server. The possible values are 'True' or 'False'.
+
+* ``server_model``: server model
+
+* ``pci_gpu_devices``: number of gpu devices connected to the bare metal.
+
+.. note::
+
+   * The disk size is returned only when eLCM License for FUJITSU PRIMERGY
+     servers is activated. If the license is not activated, then Hardware
+     Inspection will fail to get this value.
+   * Before inspecting, if the server is power-off, it will be turned on
+     automatically. System will wait for a few second before start
+     inspecting. After inspection, power status will be restored to the
+     previous state.
+
+The operator can specify these capabilities in compute service flavor, for
+example::
+
+  openstack flavor set baremetal-flavor-name --property capabilities:irmc_firmware_version="iRMC S4-8.64F"
+
+  openstack flavor set baremetal-flavor-name --property capabilities:server_model="TX2540M1F5"
+
+  openstack flavor set baremetal-flavor-name --property capabilities:pci_gpu_devices="1"
+
+See :ref:`capabilities-discovery` for more details and examples.
 
 Supported platforms
 ===================

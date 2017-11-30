@@ -2172,6 +2172,15 @@
 # value)
 #clean_priority_restore_irmc_bios_config = 0
 
+# List of vendor IDs and device IDs for GPU device to inspect.
+# List items are in format vendorID/deviceID and separated by
+# commas. GPU inspection will use this value to count the
+# number of GPU device in a node. If this option is not
+# defined, then leave out pci_gpu_devices in capabilities
+# property. Sample gpu_ids value: 0x1000/0x0079,0x2100/0x0080
+# (list value)
+#gpu_ids =
+
 
 [ironic_lib]
 
