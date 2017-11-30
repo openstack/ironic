@@ -14,6 +14,7 @@
 #    under the License.
 
 import datetime
+import types
 
 import mock
 from oslo_config import cfg
@@ -146,13 +147,15 @@ class TestPortObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
             self.assertIsInstance(ports[0], objects.Port)
             self.assertEqual(self.context, ports[0]._context)
 
-    @mock.patch.object(obj_base.IronicObject, 'supports_version')
+    @mock.patch.object(obj_base.IronicObject, 'supports_version',
+                       spec_set=types.FunctionType)
     def test_supports_physical_network_supported(self, mock_sv):
         mock_sv.return_value = True
         self.assertTrue(objects.Port.supports_physical_network())
         mock_sv.assert_called_once_with((1, 7))
 
-    @mock.patch.object(obj_base.IronicObject, 'supports_version')
+    @mock.patch.object(obj_base.IronicObject, 'supports_version',
+                       spec_set=types.FunctionType)
     def test_supports_physical_network_unsupported(self, mock_sv):
         mock_sv.return_value = False
         self.assertFalse(objects.Port.supports_physical_network())

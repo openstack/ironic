@@ -13,6 +13,7 @@
 #    under the License.
 
 import datetime
+import types
 
 import mock
 from testtools.matchers import HasLength
@@ -30,8 +31,10 @@ class TestVolumeTargetObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         super(TestVolumeTargetObject, self).setUp()
         self.volume_target_dict = db_utils.get_test_volume_target()
 
-    @mock.patch('ironic.objects.VolumeTarget.get_by_uuid')
-    @mock.patch('ironic.objects.VolumeTarget.get_by_id')
+    @mock.patch('ironic.objects.VolumeTarget.get_by_uuid',
+                spec_set=types.FunctionType)
+    @mock.patch('ironic.objects.VolumeTarget.get_by_id',
+                spec_set=types.FunctionType)
     def test_get(self, mock_get_by_id, mock_get_by_uuid):
         id = self.volume_target_dict['id']
         uuid = self.volume_target_dict['uuid']
