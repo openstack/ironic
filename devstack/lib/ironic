@@ -53,6 +53,10 @@ GITREPO["sushy"]=${SUSHY_REPO:-${GIT_BASE}/openstack/sushy.git}
 GITBRANCH["sushy"]=${SUSHY_BRANCH:-master}
 GITDIR["sushy"]=$DEST/sushy
 
+GITREPO["sushy-tools"]=${SUSHY_TOOLS_REPO:-${GIT_BASE}/openstack/sushy-tools.git}
+GITBRANCH["sushy-tools"]=${SUSHY_TOOLS_BRANCH:-master}
+GITDIR["sushy-tools"]=$DEST/sushy-tools
+
 IRONIC_DIR=$DEST/ironic
 IRONIC_DEVSTACK_DIR=$IRONIC_DIR/devstack
 IRONIC_DEVSTACK_FILES_DIR=$IRONIC_DEVSTACK_DIR/files
@@ -699,7 +703,13 @@ function setup_redfish {
         pip_install_gr "sushy"
     fi
 
-    pip_install "sushy-tools"
+    if use_library_from_git "sushy-tools"; then
+        git_clone_by_name "sushy-tools"
+        setup_dev_lib "sushy-tools"
+    else
+        pip_install "sushy-tools"
+    fi
+
     start_redfish_emulator
 }
 
